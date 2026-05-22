@@ -3,7 +3,8 @@ package com.aci.hermes.ui.screens.status
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.ConnectionState
-import com.aci.hermes.data.network.HermesClientFactory
+import com.aci.hermes.data.network.AIClientFactory
+import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.data.preferences.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,15 +13,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class StatusUiState(
+    val mode: ConnectionMode = ConnectionMode.MOCK,
     val gatewayUrl: String = "",
     val providerId: String = "",
-    val mockMode: Boolean = false,
+    val model: String = "",
     val connection: ConnectionState = ConnectionState.Unknown
 )
 
 class StatusViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory
+    private val clientFactory: AIClientFactory
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StatusUiState())
@@ -34,9 +36,10 @@ class StatusViewModel(
             val snap = settings.snapshot()
             _state.update {
                 it.copy(
+                    mode = snap.connectionMode,
                     gatewayUrl = snap.gatewayUrl,
                     providerId = snap.providerId,
-                    mockMode = snap.mockMode
+                    model = snap.model
                 )
             }
             val client = clientFactory.current()

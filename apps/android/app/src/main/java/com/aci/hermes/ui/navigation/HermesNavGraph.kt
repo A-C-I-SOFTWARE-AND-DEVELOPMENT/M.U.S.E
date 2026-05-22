@@ -51,7 +51,9 @@ fun HermesNavHost(container: AppContainer) {
                 onContinue = { nav.navigate(Screen.Provider.route) },
                 onSkip = {
                     scope.launch {
-                        container.settingsRepository.setMockMode(true)
+                        container.settingsRepository.setConnectionMode(
+                            com.aci.hermes.data.preferences.ConnectionMode.MOCK
+                        )
                         container.settingsRepository.setOnboarded(true)
                         nav.navigate(Screen.Chat.route) {
                             popUpTo(Screen.Setup.route) { inclusive = true }

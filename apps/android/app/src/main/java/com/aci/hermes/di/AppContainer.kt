@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aci.hermes.BuildConfig
-import com.aci.hermes.data.network.HermesClientFactory
+import com.aci.hermes.data.network.AIClientFactory
 import com.aci.hermes.data.preferences.SecureKeyStore
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.ui.screens.chat.ChatViewModel
@@ -45,7 +45,7 @@ class AppContainer(context: Context) {
         .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    val clientFactory: HermesClientFactory = HermesClientFactory(settingsRepository, httpClient, logBuffer)
+    val clientFactory: AIClientFactory = AIClientFactory(settingsRepository, httpClient, logBuffer)
 
     fun providerVmFactory(): ViewModelProvider.Factory = factory { ProviderViewModel(settingsRepository, httpClient, logBuffer) }
     fun chatVmFactory(): ViewModelProvider.Factory = factory { ChatViewModel(settingsRepository, clientFactory) }

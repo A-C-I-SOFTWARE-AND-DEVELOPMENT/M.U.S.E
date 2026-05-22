@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.data.model.ConnectionState
-import com.aci.hermes.data.network.HermesClientFactory
+import com.aci.hermes.data.network.AIClientFactory
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +25,7 @@ data class DiagnosticsUiState(
 
 class DiagnosticsViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory,
+    private val clientFactory: AIClientFactory,
     private val logBuffer: LogBuffer
 ) : ViewModel() {
 

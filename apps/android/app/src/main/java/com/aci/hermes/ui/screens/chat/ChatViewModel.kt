@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.ChatMessage
 import com.aci.hermes.data.model.Role
-import com.aci.hermes.data.network.HermesClientFactory
+import com.aci.hermes.data.network.AIClientFactory
+import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.data.preferences.SettingsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,15 +18,17 @@ data class ChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val input: String = "",
     val sending: Boolean = false,
-    val mockMode: Boolean = false,
+    val mode: ConnectionMode = ConnectionMode.MOCK,
     val gatewayConfigured: Boolean = false,
+    val directConfigured: Boolean = false,
+    val model: String = "",
     /** Bumped on `newConversation()` — chunks tagged with a stale epoch are dropped. */
     val conversationEpoch: Int = 0
 )
 
 class ChatViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory
+    private val clientFactory: AIClientFactory
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -35,10 +38,13 @@ class ChatViewModel(
     init {
         viewModelScope.launch {
             val snap = settings.snapshot()
+            val secrets = settings.secretsSnapshot()
             _state.update {
                 it.copy(
-                    mockMode = snap.mockMode,
-                    gatewayConfigured = snap.gatewayUrl.isNotBlank()
+                    mode = snap.connectionMode,
+                    gatewayConfigured = snap.gatewayUrl.isNotBlank(),
+                    directConfigured = !secrets.providerApiKey.isNullOrBlank(),
+                    model = snap.model
                 )
             }
         }
@@ -63,8 +69,6 @@ class ChatViewModel(
                 val client = clientFactory.current()
                 val history = _state.value.messages.dropLast(1)
                 client.chat(history, prompt).collect { chunk ->
-                    // Drop late chunks from a conversation the user already
-                    // reset; they would otherwise resurrect the old bubble.
                     if (_state.value.conversationEpoch != epoch) return@collect
                     _state.update { current ->
                         val existingIdx = current.messages.indexOfFirst { it.id == chunk.id }
@@ -73,15 +77,10 @@ class ChatViewModel(
                         } else {
                             current.messages.toMutableList().also { it[existingIdx] = chunk }
                         }
-                        current.copy(
-                            messages = updated,
-                            sending = chunk.pending
-                        )
+                        current.copy(messages = updated, sending = chunk.pending)
                     }
                 }
             } finally {
-                // Guarantees the send button re-enables even if the flow
-                // closes without a terminal chunk (e.g. gateway hangs).
                 if (_state.value.conversationEpoch == epoch) {
                     _state.update { it.copy(sending = false) }
                 }

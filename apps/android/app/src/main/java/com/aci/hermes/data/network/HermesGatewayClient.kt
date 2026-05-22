@@ -41,9 +41,10 @@ class HermesGatewayClient(
     private val providerApiKey: String?,
     private val providerId: String?,
     private val logBuffer: LogBuffer
-) : HermesClient {
+) : AIClient {
 
     override val isMock: Boolean = false
+    override val providerName: String = "Hermes gateway"
 
     private val json = Json {
         ignoreUnknownKeys = true
