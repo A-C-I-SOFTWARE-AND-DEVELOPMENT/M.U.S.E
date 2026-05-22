@@ -3,6 +3,7 @@ package com.aci.hermes.data.network
 import com.aci.hermes.data.model.ChatMessage
 import com.aci.hermes.data.model.HermesStatus
 import com.aci.hermes.data.model.Role
+import com.aci.hermes.util.GatewayUrl
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -98,12 +99,14 @@ class DirectAIClient(
                 }
             }
         } catch (t: Throwable) {
-            logBuffer.error(TAG, "Direct API status failed: ${t.message}")
+            val classified = GatewayUrl.classifyFailure(t = t, gatewayUrl = baseUrl)
+            logBuffer.error(TAG, "Direct API status failed (${classified.kind}): ${t.message}")
             HermesStatus(
                 ok = false,
                 providerId = providerLabel.lowercase(),
                 model = model,
-                message = friendlyNetworkError(t)
+                message = classified.message,
+                failureKind = classified.kind
             )
         }
     }

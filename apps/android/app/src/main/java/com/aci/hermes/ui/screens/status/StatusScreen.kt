@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.ConnectionState
+import com.aci.hermes.util.GatewayUrl
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,11 +71,37 @@ fun StatusScreen(viewModel: StatusViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun StatusCard(state: StatusUiState) {
-    val (label, color) = when (val c = state.connection) {
-        is ConnectionState.Connected -> stringResource(R.string.status_connected) to MaterialTheme.colorScheme.primary
-        is ConnectionState.Failed -> "${stringResource(R.string.status_disconnected)} — ${c.reason}" to MaterialTheme.colorScheme.error
-        ConnectionState.Connecting -> "Checking…" to MaterialTheme.colorScheme.onSurface
-        ConnectionState.Unknown -> stringResource(R.string.status_unknown) to MaterialTheme.colorScheme.onSurface
+    val connection = state.connection
+    val headline: String
+    val detail: String?
+    val color: Color
+    when (connection) {
+        is ConnectionState.Connected -> {
+            headline = stringResource(R.string.status_connected)
+            detail = null
+            color = MaterialTheme.colorScheme.primary
+        }
+        is ConnectionState.Failed -> {
+            headline = when (connection.kind) {
+                GatewayUrl.FailureKind.UNREACHABLE -> stringResource(R.string.status_backend_unreachable)
+                GatewayUrl.FailureKind.WRONG_URL -> stringResource(R.string.status_wrong_url)
+                GatewayUrl.FailureKind.TLS -> stringResource(R.string.status_tls_error)
+                GatewayUrl.FailureKind.HTTP -> stringResource(R.string.status_http_error)
+                GatewayUrl.FailureKind.UNKNOWN -> stringResource(R.string.status_disconnected)
+            }
+            detail = connection.reason
+            color = MaterialTheme.colorScheme.error
+        }
+        ConnectionState.Connecting -> {
+            headline = stringResource(R.string.status_connecting)
+            detail = null
+            color = MaterialTheme.colorScheme.onSurface
+        }
+        ConnectionState.Unknown -> {
+            headline = stringResource(R.string.status_unknown)
+            detail = null
+            color = MaterialTheme.colorScheme.onSurface
+        }
     }
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Row(
@@ -89,7 +116,14 @@ private fun StatusCard(state: StatusUiState) {
             ) {}
             Column {
                 Text(stringResource(R.string.status_gateway), style = MaterialTheme.typography.titleMedium)
-                Text(label, color = color, style = MaterialTheme.typography.bodyMedium)
+                Text(headline, color = color, style = MaterialTheme.typography.bodyMedium)
+                if (detail != null) {
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }
