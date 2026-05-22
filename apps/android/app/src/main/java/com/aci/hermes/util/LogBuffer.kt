@@ -3,6 +3,7 @@ package com.aci.hermes.util
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -56,8 +57,10 @@ class LogBuffer {
                 _lastError.value = entry
             }
         }
-        val next = (_entries.value + entry).takeLast(MAX_ENTRIES)
-        _entries.value = next
+        // `update` is atomic — OkHttp dispatcher threads and Main can both
+        // call this concurrently during streaming and we'd otherwise drop
+        // entries in the read-modify-write window.
+        _entries.update { (it + entry).takeLast(MAX_ENTRIES) }
     }
 
     companion object {

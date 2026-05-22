@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.ConnectionState
 import com.aci.hermes.data.network.HermesClientFactory
 import com.aci.hermes.data.preferences.SettingsRepository
-import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +20,7 @@ data class StatusUiState(
 
 class StatusViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory,
-    private val logBuffer: LogBuffer
+    private val clientFactory: HermesClientFactory
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StatusUiState())

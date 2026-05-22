@@ -76,15 +76,30 @@ class SettingsRepository(
         context.dataStore.edit { it[Keys.ONBOARDED] = value }
     }
 
-    fun gatewayToken(): String? = secureKeyStore.get(SecureKeyStore.KEY_GATEWAY_TOKEN)
-    fun setGatewayToken(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_GATEWAY_TOKEN, value)
-    fun providerApiKey(): String? = secureKeyStore.get(SecureKeyStore.KEY_PROVIDER_API_KEY)
-    fun setProviderApiKey(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_PROVIDER_API_KEY, value)
+    suspend fun gatewayToken(): String? = secureKeyStore.get(SecureKeyStore.KEY_GATEWAY_TOKEN)
+    suspend fun setGatewayToken(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_GATEWAY_TOKEN, value)
+    suspend fun providerApiKey(): String? = secureKeyStore.get(SecureKeyStore.KEY_PROVIDER_API_KEY)
+    suspend fun setProviderApiKey(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_PROVIDER_API_KEY, value)
 
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }
         secureKeyStore.clear()
     }
+
+    /**
+     * Subset of state the secret-bearing callers need. Reads everything off
+     * Main in one go so the UI doesn't pay the EncryptedSharedPreferences
+     * cost on each access.
+     */
+    suspend fun secretsSnapshot(): SecretsSnapshot = SecretsSnapshot(
+        gatewayToken = gatewayToken(),
+        providerApiKey = providerApiKey()
+    )
+
+    data class SecretsSnapshot(
+        val gatewayToken: String?,
+        val providerApiKey: String?
+    )
 
     suspend fun snapshot(): Snapshot {
         val data = context.dataStore.data.first()

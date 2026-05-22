@@ -3,7 +3,7 @@ package com.aci.hermes.ui.screens.provider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.ConnectionState
-import com.aci.hermes.data.network.HermesClientFactory
+import com.aci.hermes.data.model.HermesStatus
 import com.aci.hermes.data.network.HermesGatewayClient
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 
 data class ProviderUiState(
     val gatewayUrl: String = "",
@@ -25,7 +26,7 @@ data class ProviderUiState(
 
 class ProviderViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory,
+    private val http: OkHttpClient,
     private val logBuffer: LogBuffer
 ) : ViewModel() {
 
@@ -35,11 +36,12 @@ class ProviderViewModel(
     init {
         viewModelScope.launch {
             val snap = settings.snapshot()
+            val secrets = settings.secretsSnapshot()
             _state.value = ProviderUiState(
                 gatewayUrl = snap.gatewayUrl,
-                gatewayToken = settings.gatewayToken().orEmpty(),
+                gatewayToken = secrets.gatewayToken.orEmpty(),
                 providerId = snap.providerId,
-                providerApiKey = settings.providerApiKey().orEmpty(),
+                providerApiKey = secrets.providerApiKey.orEmpty(),
                 mockMode = snap.mockMode
             )
         }
@@ -55,9 +57,7 @@ class ProviderViewModel(
         val current = _state.value
         if (current.mockMode) {
             _state.update {
-                it.copy(test = ConnectionState.Connected(
-                    com.aci.hermes.data.model.HermesStatus(ok = true, message = "Mock mode")
-                ))
+                it.copy(test = ConnectionState.Connected(HermesStatus(ok = true, message = "Mock mode")))
             }
             return
         }
@@ -68,6 +68,7 @@ class ProviderViewModel(
         _state.update { it.copy(test = ConnectionState.Connecting) }
         viewModelScope.launch {
             val probe = HermesGatewayClient(
+                http = http,
                 baseUrl = current.gatewayUrl,
                 token = current.gatewayToken.ifBlank { null },
                 providerApiKey = current.providerApiKey.ifBlank { null },
