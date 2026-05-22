@@ -78,50 +78,67 @@ def check_github_requirements() -> bool:
 # ---------------------------------------------------------------------------
 # Validation helpers used by every handler
 # ---------------------------------------------------------------------------
+#
+# Each helper raises ``_GateFailure`` carrying a ready-to-return JSON
+# error envelope. Handlers catch it once at the top and return the
+# payload — keeps every handler short and lets the type checker narrow
+# owner/name/client to non-Optional after a successful gate run.
 
 
-def _validate_repo(args: Dict[str, Any]) -> tuple[str | None, str | None, str | None]:
-    """Return (owner, name, err). On failure (owner, name) are None."""
+class _GateFailure(Exception):
+    """A handler-level input or policy failure with the JSON to return."""
+
+    def __init__(self, payload_json: str) -> None:
+        self.payload_json = payload_json
+        super().__init__(payload_json)
+
+
+def _validate_repo(args: Dict[str, Any]) -> tuple[str, str]:
+    """Return (owner, name) or raise _GateFailure with a bad_args error."""
     owner = args.get("owner")
     name = args.get("name") or args.get("repo")
     if not isinstance(owner, str) or not isinstance(name, str):
-        return None, None, _err("bad_args", "owner and name must be strings")
+        raise _GateFailure(_err("bad_args", "owner and name must be strings"))
     try:
         github_config.validate_owner_name(owner, name)
     except github_config.ConfigError as exc:
-        return None, None, _err("bad_args", str(exc))
-    return owner, name, None
+        raise _GateFailure(_err("bad_args", str(exc))) from exc
+    return owner, name
 
 
-def _check_repo_allowed(
-    cfg: github_config.GithubConfig, owner: str, name: str
-) -> str | None:
+def _check_repo_allowed(cfg: github_config.GithubConfig, owner: str, name: str) -> None:
     if not cfg.is_repo_allowed(owner, name):
-        return _err(
-            "repo_not_allowed",
-            f"{owner}/{name} is not in github.allowed_repositories",
+        raise _GateFailure(
+            _err(
+                "repo_not_allowed",
+                f"{owner}/{name} is not in github.allowed_repositories",
+            )
         )
-    return None
 
 
-def _check_writes_enabled(cfg: github_config.GithubConfig) -> str | None:
+def _check_writes_enabled(cfg: github_config.GithubConfig) -> None:
     if not cfg.allow_writes:
-        return _err(
-            "writes_disabled",
-            "github.allow_writes is false; refusing to mutate the repo. "
-            "Set github.allow_writes: true in ~/.hermes/config.yaml to enable.",
+        raise _GateFailure(
+            _err(
+                "writes_disabled",
+                "github.allow_writes is false; refusing to mutate the repo. "
+                "Set github.allow_writes: true in ~/.hermes/config.yaml to enable.",
+            )
         )
-    return None
 
 
-def _client_or_err() -> tuple[GithubClient | None, str | None]:
+def _require_client() -> GithubClient:
+    """Return a GithubClient with a token, or raise _GateFailure."""
     client = GithubClient()
     if not client.has_token():
-        return None, _err(
-            "no_token",
-            "GITHUB_PERSONAL_ACCESS_TOKEN is not configured. Set it in ~/.hermes/.env.",
+        raise _GateFailure(
+            _err(
+                "no_token",
+                "GITHUB_PERSONAL_ACCESS_TOKEN is not configured. "
+                "Set it in ~/.hermes/.env.",
+            )
         )
-    return client, None
+    return client
 
 
 # ---------------------------------------------------------------------------
@@ -419,14 +436,12 @@ def handle_audit_repo(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.repo(owner, name)
     if not res.get("success"):
         return _json(res)
@@ -437,20 +452,21 @@ def handle_get_repo_file(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+    except _GateFailure as exc:
+        return exc.payload_json
     path = args.get("path")
     if not isinstance(path, str) or not path:
         return _err("bad_args", "path is required")
     if "\x00" in path or ".." in path.split("/"):
         return _err("bad_args", "path contains forbidden segments")
     ref = args.get("ref") if isinstance(args.get("ref"), str) else None
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.file_contents(owner, name, path, ref=ref)
     if not res.get("success"):
         return _json(res)
@@ -461,15 +477,13 @@ def handle_list_branches(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     limit = int(args.get("limit") or DEFAULT_LIST_CAP)
-    client, terr = _client_or_err()
-    if terr:
-        return terr
     res = client.branches(owner, name, limit=limit)
     if not res.get("success"):
         return _json(res)
@@ -481,18 +495,19 @@ def handle_list_issues(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+    except _GateFailure as exc:
+        return exc.payload_json
     state = args.get("state") or "open"
     if state not in {"open", "closed", "all"}:
         return _err("bad_args", "state must be open|closed|all")
     limit = int(args.get("limit") or DEFAULT_LIST_CAP)
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.issues(owner, name, state=state, limit=limit)
     if not res.get("success"):
         return _json(res)
@@ -509,21 +524,21 @@ def handle_create_issue(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
-    if block := _check_writes_enabled(cfg):
-        return block
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+        _check_writes_enabled(cfg)
+    except _GateFailure as exc:
+        return exc.payload_json
     title = args.get("title")
     if not isinstance(title, str) or not title.strip():
         return _err("bad_args", "title is required")
     body = args.get("body") if isinstance(args.get("body"), str) else None
     labels = args.get("labels") if isinstance(args.get("labels"), list) else None
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.create_issue(owner, name, title=title, body=body, labels=labels)
     if not res.get("success"):
         return _json(res)
@@ -534,18 +549,19 @@ def handle_list_pull_requests(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+    except _GateFailure as exc:
+        return exc.payload_json
     state = args.get("state") or "open"
     if state not in {"open", "closed", "all"}:
         return _err("bad_args", "state must be open|closed|all")
     limit = int(args.get("limit") or DEFAULT_LIST_CAP)
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.pull_requests(owner, name, state=state, limit=limit)
     if not res.get("success"):
         return _json(res)
@@ -560,17 +576,18 @@ def handle_get_pull_request(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+    except _GateFailure as exc:
+        return exc.payload_json
     number = args.get("number")
     if not isinstance(number, int) or number < 1:
         return _err("bad_args", "number must be a positive integer")
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.pull_request(owner, name, number=number)
     if not res.get("success"):
         return _json(res)
@@ -581,22 +598,22 @@ def handle_comment_on_issue_or_pr(args: Dict[str, Any], **_kw) -> str:
     cfg = github_config.load_config()
     if not cfg.enabled:
         return _err("plugin_disabled", "github.enabled is false")
-    owner, name, err = _validate_repo(args)
-    if err:
-        return err
-    if blocked := _check_repo_allowed(cfg, owner, name):
-        return blocked
-    if block := _check_writes_enabled(cfg):
-        return block
+    try:
+        owner, name = _validate_repo(args)
+        _check_repo_allowed(cfg, owner, name)
+        _check_writes_enabled(cfg)
+    except _GateFailure as exc:
+        return exc.payload_json
     number = args.get("number")
     if not isinstance(number, int) or number < 1:
         return _err("bad_args", "number must be a positive integer")
     body = args.get("body")
     if not isinstance(body, str) or not body.strip():
         return _err("bad_args", "body is required")
-    client, terr = _client_or_err()
-    if terr:
-        return terr
+    try:
+        client = _require_client()
+    except _GateFailure as exc:
+        return exc.payload_json
     res = client.comment_on_issue(owner, name, number=number, body=body)
     if not res.get("success"):
         return _json(res)

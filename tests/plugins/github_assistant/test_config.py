@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Mapping, cast
+
 import pytest
 
 from plugins.github_assistant.config import (
@@ -71,8 +73,12 @@ def test_allowed_repositories_entry_must_be_valid_chars():
 
 
 def test_top_level_must_be_mapping():
+    # from_mapping is typed to accept Mapping | None; cast() suppresses the
+    # type checker while keeping the runtime value a plain string so the
+    # production code path that rejects non-Mapping values gets exercised.
+    bogus = cast(Mapping[str, Any], "not a dict")
     with pytest.raises(ConfigError):
-        from_mapping("not a dict")  # type: ignore[arg-type]
+        from_mapping(bogus)
 
 
 def test_is_repo_allowed_empty_means_no_allowlist():
