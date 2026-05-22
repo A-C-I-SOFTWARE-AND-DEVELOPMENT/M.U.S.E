@@ -9,19 +9,20 @@ import kotlinx.coroutines.flow.flow
 import java.util.UUID
 
 /**
- * Pretend gateway. Lets the UI be exercised without any backend wired up.
+ * Pretend backend. Lets the UI be exercised without any network calls.
  * Replies with deterministic, lightly-templated responses so the chat
  * screen has something to render during development and demos.
  */
-class MockHermesClient : HermesClient {
+class MockAIClient : AIClient {
     override val isMock: Boolean = true
+    override val providerName: String = "Mock"
 
     override suspend fun status(): HermesStatus = HermesStatus(
         ok = true,
         version = "mock-0.1.0",
         providerId = "mock",
         model = "hermes-mock",
-        message = "Mock gateway — no network calls made."
+        message = "Mock mode — no network calls made."
     )
 
     override fun chat(history: List<ChatMessage>, prompt: String): Flow<ChatMessage> = flow {
@@ -50,13 +51,13 @@ class MockHermesClient : HermesClient {
         return when {
             "hello" in p || "hi" in p ->
                 "Hello! This is mock mode — your UI works but no real model is being called. " +
-                    "Configure a Hermes gateway in Settings to talk to a live agent."
+                    "Switch to Direct Personal API Mode or Hermes Gateway Mode in Settings to talk to a live agent."
             "status" in p || "health" in p ->
-                "Mock gateway is healthy. Provider: mock. Model: hermes-mock."
+                "Mock mode is healthy. Provider: mock. Model: hermes-mock."
             "help" in p ->
-                "Mock mode: try asking 'hello', 'status', or anything else — replies are canned but streaming-style."
+                "Mock mode: try 'hello', 'status', or anything else — replies are canned but streaming-style."
             else ->
-                "[mock reply] I received: \"${prompt.take(120)}\". Wire up a real Hermes gateway in Settings to get an actual response."
+                "[mock reply] I received: \"${prompt.take(120)}\". Switch modes in Settings to get an actual response."
         }
     }
 }

@@ -9,18 +9,31 @@
     <string name="setup_get_started">Get started</string>
     <string name="setup_skip">Skip and use mock mode</string>
 
-    <!-- Provider -->
-    <string name="provider_title">Connect to Hermes</string>
+    <!-- Provider / AI connection mode -->
+    <string name="provider_title">AI Connection</string>
+    <string name="provider_mode_heading">Choose a connection mode</string>
+
+    <string name="mode_mock_short">Mock</string>
+    <string name="mode_direct_short">Direct API</string>
+    <string name="mode_hermes_short">Hermes</string>
+
+    <string name="mode_mock_description">No backend. The app replies with canned sample responses — useful for trying the UI without configuring anything.</string>
+    <string name="mode_direct_description">Your phone calls an AI provider (OpenRouter, OpenAI, or a custom OpenAI-compatible endpoint) directly with an API key you paste below. Recommended for personal use.</string>
+    <string name="mode_hermes_description">Your phone talks to a Hermes gateway you run somewhere (home server, VPS, Termux on this device). The gateway handles skills, memory, tools, and provider keys server-side.</string>
+
     <string name="provider_gateway_label">Gateway URL</string>
     <string name="provider_gateway_hint">https://hermes.example.com or http://10.0.2.2:8080</string>
     <string name="provider_token_label">Gateway token (optional)</string>
     <string name="provider_token_hint">Bearer token configured on the gateway</string>
-    <string name="provider_provider_label">Default model provider</string>
-    <string name="provider_api_key_label">Provider API key</string>
+    <string name="provider_provider_label">Provider</string>
+    <string name="provider_custom_base_url_label">Custom base URL</string>
+    <string name="provider_api_key_label">API key</string>
     <string name="provider_api_key_hint">Stored encrypted on-device</string>
-    <string name="provider_mock_toggle">Enable mock mode (no backend required)</string>
+    <string name="provider_model_label">Model</string>
     <string name="provider_test_connection">Test connection</string>
+    <string name="provider_test_direct_api">Test direct API connection</string>
     <string name="provider_save">Save and continue</string>
+    <string name="provider_direct_security_note">Personal-use mode stores your API key locally on this device. Do not use this mode for a public app or shared device.</string>
 
     <!-- Navigation -->
     <string name="nav_status">Status</string>
@@ -32,7 +45,7 @@
     <string name="chat_input_hint">Message Hermes…</string>
     <string name="chat_send">Send</string>
     <string name="chat_empty_state">Start a conversation. Hermes lives where you do — terminal, gateway, and now Android.</string>
-    <string name="chat_offline">Not connected to a Hermes gateway. Configure one in Settings or enable mock mode.</string>
+    <string name="chat_offline">Not configured yet. Open Settings → Edit connection to set up Direct API or Hermes Gateway, or switch to Mock mode to explore.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -60,9 +73,8 @@
     <string name="status_title">Hermes Status</string>
     <string name="status_gateway">Gateway</string>
     <string name="status_provider">Model provider</string>
-    <string name="status_mock_label">Mock mode</string>
-    <string name="status_mock_on">On — UI is using sample responses</string>
-    <string name="status_mock_off">Off — talking to live Hermes gateway</string>
+    <string name="status_mode_label">Connection mode</string>
+    <string name="status_model">Model</string>
     <string name="status_connected">Connected</string>
     <string name="status_disconnected">Not connected</string>
     <string name="status_unknown">Unknown</string>

@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -72,28 +71,24 @@ fun SettingsScreen(
         ) {
 
             SettingsSection(stringResource(R.string.settings_section_connection)) {
-                SettingsRow(
-                    title = "Gateway URL",
-                    subtitle = state.gatewayUrl.ifBlank { "(not set)" }
-                )
-                SettingsRow(
-                    title = "Default provider",
-                    subtitle = state.providerId
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Mock mode", style = MaterialTheme.typography.titleMedium)
-                        Text(
-                            "Bypass the gateway and reply locally.",
-                            style = MaterialTheme.typography.bodyMedium
+                val modeLabel = when (state.mode) {
+                    com.aci.hermes.data.preferences.ConnectionMode.MOCK -> stringResource(R.string.mode_mock_short)
+                    com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> stringResource(R.string.mode_direct_short)
+                    com.aci.hermes.data.preferences.ConnectionMode.HERMES -> stringResource(R.string.mode_hermes_short)
+                }
+                SettingsRow(title = "Connection mode", subtitle = modeLabel)
+                if (state.mode != com.aci.hermes.data.preferences.ConnectionMode.MOCK) {
+                    SettingsRow(title = "Provider", subtitle = state.providerId)
+                    if (state.mode == com.aci.hermes.data.preferences.ConnectionMode.DIRECT) {
+                        SettingsRow(title = "Model", subtitle = state.model.ifBlank { "(unset)" })
+                    }
+                    if (state.gatewayUrl.isNotBlank()) {
+                        SettingsRow(
+                            title = if (state.mode == com.aci.hermes.data.preferences.ConnectionMode.HERMES)
+                                "Gateway URL" else "Base URL",
+                            subtitle = state.gatewayUrl
                         )
                     }
-                    Switch(checked = state.mockMode, onCheckedChange = viewModel::setMockMode)
                 }
                 OutlinedButton(onClick = onEditConnection, modifier = Modifier.fillMaxWidth()) {
                     Text("Edit connection")

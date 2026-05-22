@@ -14,9 +14,13 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "hermes_settings")
 
 /**
- * Non-sensitive user settings (gateway URL, theme mode, default provider id,
- * onboarding state, mock mode). API keys and gateway tokens live in
- * [SecureKeyStore] instead.
+ * Non-sensitive user settings (connection mode, gateway URL, provider id,
+ * model, theme, onboarding flag). Secrets — provider API key, gateway
+ * bearer token — live in [SecureKeyStore].
+ *
+ * `mockMode` (legacy boolean) is still surfaced for backward-compat with
+ * older builds, but the canonical signal is now `connectionMode`. The two
+ * are kept in sync on write.
  */
 class SettingsRepository(
     private val context: Context,
@@ -25,11 +29,22 @@ class SettingsRepository(
     private val defaultMockMode: Boolean
 ) {
     private object Keys {
+        val CONNECTION_MODE = stringPreferencesKey("connection_mode")
         val GATEWAY_URL = stringPreferencesKey("gateway_url")
         val PROVIDER_ID = stringPreferencesKey("provider_id")
+        val MODEL = stringPreferencesKey("model")
         val THEME_MODE = stringPreferencesKey("theme_mode")
-        val MOCK_MODE = booleanPreferencesKey("mock_mode")
+        val MOCK_MODE = booleanPreferencesKey("mock_mode") // legacy, kept in sync
         val ONBOARDED = booleanPreferencesKey("onboarded")
+    }
+
+    private val defaultMode: ConnectionMode =
+        if (defaultMockMode) ConnectionMode.MOCK else ConnectionMode.DIRECT
+
+    val connectionMode: Flow<ConnectionMode> = context.dataStore.data.map { prefs ->
+        prefs[Keys.CONNECTION_MODE]?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
+            ?: legacyModeFrom(prefs)
+            ?: defaultMode
     }
 
     val gatewayUrl: Flow<String> = context.dataStore.data.map {
@@ -40,6 +55,10 @@ class SettingsRepository(
         it[Keys.PROVIDER_ID] ?: "openrouter"
     }
 
+    val model: Flow<String> = context.dataStore.data.map {
+        it[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL
+    }
+
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
         when (it[Keys.THEME_MODE]) {
             "LIGHT" -> ThemeMode.LIGHT
@@ -48,12 +67,15 @@ class SettingsRepository(
         }
     }
 
-    val mockMode: Flow<Boolean> = context.dataStore.data.map {
-        it[Keys.MOCK_MODE] ?: defaultMockMode
-    }
-
     val hasOnboarded: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.ONBOARDED] ?: false
+    }
+
+    suspend fun setConnectionMode(mode: ConnectionMode) {
+        context.dataStore.edit {
+            it[Keys.CONNECTION_MODE] = mode.name
+            it[Keys.MOCK_MODE] = (mode == ConnectionMode.MOCK)
+        }
     }
 
     suspend fun setGatewayUrl(url: String) {
@@ -64,12 +86,12 @@ class SettingsRepository(
         context.dataStore.edit { it[Keys.PROVIDER_ID] = id }
     }
 
-    suspend fun setThemeMode(mode: ThemeMode) {
-        context.dataStore.edit { it[Keys.THEME_MODE] = mode.name }
+    suspend fun setModel(model: String) {
+        context.dataStore.edit { it[Keys.MODEL] = model.trim() }
     }
 
-    suspend fun setMockMode(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.MOCK_MODE] = enabled }
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.dataStore.edit { it[Keys.THEME_MODE] = mode.name }
     }
 
     suspend fun setOnboarded(value: Boolean) {
@@ -86,11 +108,6 @@ class SettingsRepository(
         secureKeyStore.clear()
     }
 
-    /**
-     * Subset of state the secret-bearing callers need. Reads everything off
-     * Main in one go so the UI doesn't pay the EncryptedSharedPreferences
-     * cost on each access.
-     */
     suspend fun secretsSnapshot(): SecretsSnapshot = SecretsSnapshot(
         gatewayToken = gatewayToken(),
         providerApiKey = providerApiKey()
@@ -103,24 +120,46 @@ class SettingsRepository(
 
     suspend fun snapshot(): Snapshot {
         val data = context.dataStore.data.first()
+        val mode = data[Keys.CONNECTION_MODE]
+            ?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
+            ?: legacyModeFrom(data)
+            ?: defaultMode
         return Snapshot(
+            connectionMode = mode,
             gatewayUrl = data[Keys.GATEWAY_URL] ?: defaultGatewayUrl,
             providerId = data[Keys.PROVIDER_ID] ?: "openrouter",
+            model = data[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL,
             themeMode = when (data[Keys.THEME_MODE]) {
                 "LIGHT" -> ThemeMode.LIGHT
                 "DARK" -> ThemeMode.DARK
                 else -> ThemeMode.SYSTEM
             },
-            mockMode = data[Keys.MOCK_MODE] ?: defaultMockMode,
             hasOnboarded = data[Keys.ONBOARDED] ?: false
         )
     }
 
     data class Snapshot(
+        val connectionMode: ConnectionMode,
         val gatewayUrl: String,
         val providerId: String,
+        val model: String,
         val themeMode: ThemeMode,
-        val mockMode: Boolean,
         val hasOnboarded: Boolean
     )
+
+    /**
+     * Best-effort fallback for installs that pre-date the
+     * `connection_mode` key. If the legacy `mock_mode` boolean is set
+     * to true we honour it; otherwise we can't disambiguate Direct from
+     * Hermes from the legacy state, so return null and let the default
+     * apply.
+     */
+    private fun legacyModeFrom(prefs: Preferences): ConnectionMode? {
+        val legacyMockMode = prefs[Keys.MOCK_MODE] ?: return null
+        return if (legacyMockMode) ConnectionMode.MOCK else null
+    }
+
+    companion object {
+        const val DEFAULT_DIRECT_MODEL = "openai/gpt-4o-mini"
+    }
 }

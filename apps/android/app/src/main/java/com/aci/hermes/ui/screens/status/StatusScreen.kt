@@ -99,15 +99,18 @@ private fun StatusCard(state: StatusUiState) {
 private fun DetailsCard(state: StatusUiState) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Detail(stringResource(R.string.diagnostics_gateway_url), state.gatewayUrl.ifBlank { "(not set)" })
+            val modeLabel = when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> stringResource(R.string.mode_mock_short)
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> stringResource(R.string.mode_direct_short)
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES -> stringResource(R.string.mode_hermes_short)
+            }
+            Detail(stringResource(R.string.status_mode_label), modeLabel)
             HorizontalDivider()
             Detail(stringResource(R.string.status_provider), state.providerId.ifBlank { "(unset)" })
             HorizontalDivider()
-            Detail(
-                stringResource(R.string.status_mock_label),
-                if (state.mockMode) stringResource(R.string.status_mock_on)
-                else stringResource(R.string.status_mock_off)
-            )
+            Detail(stringResource(R.string.status_model), state.model.ifBlank { "(unset)" })
+            HorizontalDivider()
+            Detail(stringResource(R.string.diagnostics_gateway_url), state.gatewayUrl.ifBlank { "(not set)" })
             val c = state.connection
             if (c is ConnectionState.Connected) {
                 HorizontalDivider()

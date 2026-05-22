@@ -90,14 +90,24 @@ fun ChatScreen(
                 .padding(padding)
         ) {
 
-            AnimatedVisibility(visible = state.mockMode) {
-                AssistChip(
-                    onClick = { /* informational */ },
-                    label = { Text("Mock mode — UI sandbox") },
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                )
+            val modeLabel = when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> "Mock mode — UI sandbox"
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT ->
+                    if (state.directConfigured) "Direct API — ${state.model}" else "Direct API — no key set"
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES ->
+                    if (state.gatewayConfigured) "Hermes gateway" else "Hermes mode — gateway not set"
             }
-            AnimatedVisibility(visible = !state.mockMode && !state.gatewayConfigured) {
+            AssistChip(
+                onClick = { /* informational */ },
+                label = { Text(modeLabel) },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+            )
+            val needsConfig = when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> false
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> !state.directConfigured
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES -> !state.gatewayConfigured
+            }
+            AnimatedVisibility(visible = needsConfig) {
                 Card(
                     modifier = Modifier
                         .padding(horizontal = 12.dp, vertical = 4.dp)
