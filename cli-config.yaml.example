@@ -1098,3 +1098,52 @@ display:
 #     - command: "~/.hermes/agent-hooks/log-orchestration.sh"
 #
 # hooks_auto_accept: false
+
+# =============================================================================
+# GitHub integration — native plugin gates
+# =============================================================================
+# The github_assistant plugin ships in this repo at plugins/github_assistant/
+# and exposes eight tools (audit/get-file/list-branches/list-issues/
+# create-issue/list-PRs/get-PR/comment) against the GitHub REST API.
+#
+# Two-step opt-in is intentional:
+#   1. Set GITHUB_PERSONAL_ACCESS_TOKEN in ~/.hermes/.env
+#   2. Set github.enabled: true here
+#
+# Until both are true the plugin's tools are hidden from the model.
+#
+# allow_writes is a SEPARATE flag — read tools work with allow_writes:false,
+# the two write tools refuse to run without it. Flip it deliberately.
+#
+# allowed_repositories switches into deny-by-default mode. Leave empty to
+# trust the token's own scope; populate to harden.
+#
+# See docs/github-integration.md for fine-grained PAT scope guidance.
+#
+# github:
+#   enabled: false
+#   allow_writes: false
+#   allowed_repositories: []
+#     # - "echerd27-design/hermes-agent"
+
+# =============================================================================
+# GitHub MCP server — alternative path (independent of the native plugin)
+# =============================================================================
+# The official @modelcontextprotocol/server-github exposes ~30 GitHub actions
+# behind one MCP entry. Wire it under mcp_servers.github and Hermes will
+# discover its tools at startup (they appear as github.<tool_name>).
+#
+# The native plugin and the MCP server can coexist — the native tools use
+# bare names (github_audit_repo), the MCP tools use dotted names.
+#
+# mcp_servers:
+#   github:
+#     command: "npx"
+#     args: ["-y", "@modelcontextprotocol/server-github"]
+#     env:
+#       GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+#     timeout: 60
+#     connect_timeout: 30
+#     # tools.include / tools.exclude let you whitelist a subset:
+#     # tools:
+#     #   include: ["search_repositories", "get_file_contents"]
