@@ -6,7 +6,6 @@ import com.aci.hermes.data.model.ChatMessage
 import com.aci.hermes.data.model.Role
 import com.aci.hermes.data.network.HermesClientFactory
 import com.aci.hermes.data.preferences.SettingsRepository
-import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,13 +18,14 @@ data class ChatUiState(
     val input: String = "",
     val sending: Boolean = false,
     val mockMode: Boolean = false,
-    val gatewayConfigured: Boolean = false
+    val gatewayConfigured: Boolean = false,
+    /** Bumped on `newConversation()` — chunks tagged with a stale epoch are dropped. */
+    val conversationEpoch: Int = 0
 )
 
 class ChatViewModel(
     private val settings: SettingsRepository,
-    private val clientFactory: HermesClientFactory,
-    private val logBuffer: LogBuffer
+    private val clientFactory: HermesClientFactory
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -50,6 +50,7 @@ class ChatViewModel(
         val prompt = _state.value.input.trim()
         if (prompt.isEmpty() || _state.value.sending) return
         val userMsg = ChatMessage(role = Role.USER, content = prompt)
+        val epoch = _state.value.conversationEpoch
         _state.update {
             it.copy(
                 messages = it.messages + userMsg,
@@ -58,28 +59,44 @@ class ChatViewModel(
             )
         }
         inflight = viewModelScope.launch {
-            val client = clientFactory.current()
-            val history = _state.value.messages.dropLast(1) // exclude the just-added user msg
-            client.chat(history, prompt).collect { chunk ->
-                _state.update { current ->
-                    val existingIdx = current.messages.indexOfFirst { it.id == chunk.id }
-                    val updated = if (existingIdx == -1) {
-                        current.messages + chunk
-                    } else {
-                        current.messages.toMutableList().also { it[existingIdx] = chunk }
+            try {
+                val client = clientFactory.current()
+                val history = _state.value.messages.dropLast(1)
+                client.chat(history, prompt).collect { chunk ->
+                    // Drop late chunks from a conversation the user already
+                    // reset; they would otherwise resurrect the old bubble.
+                    if (_state.value.conversationEpoch != epoch) return@collect
+                    _state.update { current ->
+                        val existingIdx = current.messages.indexOfFirst { it.id == chunk.id }
+                        val updated = if (existingIdx == -1) {
+                            current.messages + chunk
+                        } else {
+                            current.messages.toMutableList().also { it[existingIdx] = chunk }
+                        }
+                        current.copy(
+                            messages = updated,
+                            sending = chunk.pending
+                        )
                     }
-                    current.copy(
-                        messages = updated,
-                        sending = chunk.pending
-                    )
+                }
+            } finally {
+                // Guarantees the send button re-enables even if the flow
+                // closes without a terminal chunk (e.g. gateway hangs).
+                if (_state.value.conversationEpoch == epoch) {
+                    _state.update { it.copy(sending = false) }
                 }
             }
-            _state.update { it.copy(sending = false) }
         }
     }
 
     fun newConversation() {
         inflight?.cancel()
-        _state.update { it.copy(messages = emptyList(), sending = false) }
+        _state.update {
+            it.copy(
+                messages = emptyList(),
+                sending = false,
+                conversationEpoch = it.conversationEpoch + 1
+            )
+        }
     }
 }

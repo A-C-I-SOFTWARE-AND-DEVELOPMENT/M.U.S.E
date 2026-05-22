@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="hermes_gold">#FFD700</color>
-    <color name="hermes_gold_dark">#B8860B</color>
     <color name="hermes_ink">#0E0E12</color>
-    <color name="hermes_paper">#FAF9F6</color>
-    <color name="hermes_violet">#5865F2</color>
 </resources>

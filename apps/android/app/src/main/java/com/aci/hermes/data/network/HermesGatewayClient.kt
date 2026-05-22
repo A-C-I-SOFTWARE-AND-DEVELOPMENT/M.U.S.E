@@ -1,6 +1,5 @@
 package com.aci.hermes.data.network
 
-import android.util.Log
 import com.aci.hermes.data.model.ChatMessage
 import com.aci.hermes.data.model.HermesStatus
 import com.aci.hermes.data.model.Role
@@ -23,19 +22,20 @@ import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 /**
  * HTTP client for the Hermes gateway REST surface.
  *
  * Endpoints used (see `apps/android/docs/ARCHITECTURE.md`):
  *   * GET  /v1/health            → [HermesStatus]
- *   * POST /v1/chat              → SSE stream of `delta` events
+ *   * POST /v1/chat              → SSE stream of `delta`/`done`/`error` events
  *
- * Either endpoint missing on the gateway is treated as a soft failure — the
- * caller surfaces the error in the diagnostics screen rather than crashing.
+ * The [OkHttpClient] is supplied by [com.aci.hermes.di.AppContainer] and
+ * shared across all instances so the dispatcher executor and connection
+ * pool aren't leaked across navigation.
  */
 class HermesGatewayClient(
+    private val http: OkHttpClient,
     private val baseUrl: String,
     private val token: String?,
     private val providerApiKey: String?,
@@ -45,12 +45,11 @@ class HermesGatewayClient(
 
     override val isMock: Boolean = false
 
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
-    private val http: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS) // SSE streams can hold for a while
-        .writeTimeout(10, TimeUnit.SECONDS)
-        .build()
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        explicitNulls = false
+    }
 
     private fun urlOf(path: String): String {
         val base = baseUrl.trimEnd('/')
@@ -58,15 +57,26 @@ class HermesGatewayClient(
         return "$base$p"
     }
 
-    private fun addAuth(builder: Request.Builder): Request.Builder {
+    /**
+     * Sets the auth + provider-key headers and the supplied `Accept` value.
+     * Uses `.header()` (replace, not append) so a caller-specified Accept
+     * overrides any prior value — important for the SSE stream which needs
+     * `text/event-stream`.
+     *
+     * `provider_id` is intentionally NOT sent as a header: it travels in
+     * the JSON body of `/v1/chat` instead, so we have a single source of
+     * truth for which provider the request targets.
+     */
+    private fun authedRequest(path: String, accept: String): Request.Builder {
+        val builder = Request.Builder().url(urlOf(path))
         token?.takeIf { it.isNotBlank() }?.let { builder.header("Authorization", "Bearer $it") }
         providerApiKey?.takeIf { it.isNotBlank() }?.let { builder.header("X-Hermes-Provider-Key", it) }
-        providerId?.takeIf { it.isNotBlank() }?.let { builder.header("X-Hermes-Provider-Id", it) }
-        return builder.header("Accept", "application/json")
+        builder.header("Accept", accept)
+        return builder
     }
 
     override suspend fun status(): HermesStatus = withContext(Dispatchers.IO) {
-        val request = addAuth(Request.Builder().url(urlOf("/v1/health"))).get().build()
+        val request = authedRequest("/v1/health", "application/json").get().build()
         try {
             http.newCall(request).execute().use { resp: Response ->
                 if (!resp.isSuccessful) {
@@ -78,7 +88,9 @@ class HermesGatewayClient(
                 if (body.isBlank()) {
                     return@withContext HermesStatus(ok = true, message = "Gateway returned empty body")
                 }
-                val parsed = runCatching { json.decodeFromString(HealthDto.serializer(), body) }.getOrNull()
+                val parsed = runCatching { json.decodeFromString(HealthDto.serializer(), body) }
+                    .onFailure { logBuffer.warn(TAG, "Health parse failed: ${it.message}") }
+                    .getOrNull()
                 if (parsed == null) {
                     return@withContext HermesStatus(ok = true, message = "Gateway responded (unparsed body)")
                 }
@@ -106,12 +118,13 @@ class HermesGatewayClient(
         )
         val body = json.encodeToString(ChatRequestDto.serializer(), payload)
             .toRequestBody("application/json".toMediaType())
-        val request = addAuth(Request.Builder().url(urlOf("/v1/chat")))
-            .header("Accept", "text/event-stream")
-            .post(body)
-            .build()
+        val request = authedRequest("/v1/chat", "text/event-stream").post(body).build()
 
         val acc = StringBuilder()
+        // Once a terminal event (done/error) is emitted, ignore onClosed so
+        // it cannot overwrite an error bubble with a clean one.
+        var terminalEmitted = false
+
         val listener = object : EventSourceListener() {
             override fun onOpen(eventSource: EventSource, response: Response) {
                 logBuffer.info(TAG, "SSE open: HTTP ${response.code}")
@@ -119,44 +132,49 @@ class HermesGatewayClient(
             }
 
             override fun onEvent(eventSource: EventSource, eventId: String?, type: String?, data: String) {
-                runCatching {
-                    val event = json.decodeFromString(SseEventDto.serializer(), data)
-                    when (event.type) {
-                        "delta" -> {
-                            if (!event.text.isNullOrEmpty()) {
-                                acc.append(event.text)
-                                trySend(
-                                    ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = true)
-                                )
-                            }
-                        }
-                        "error" -> {
+                val event = runCatching { json.decodeFromString(SseEventDto.serializer(), data) }
+                    .onFailure { logBuffer.warn(TAG, "SSE parse failed: ${it.message} (data=${data.take(120)})") }
+                    .getOrNull() ?: return
+                when (event.type) {
+                    "delta" -> {
+                        if (!event.text.isNullOrEmpty()) {
+                            acc.append(event.text)
                             trySend(
-                                ChatMessage(
-                                    id = id,
-                                    role = Role.ASSISTANT,
-                                    content = acc.toString(),
-                                    pending = false,
-                                    errorText = event.message ?: "Gateway reported an error"
-                                )
+                                ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = true)
                             )
                         }
-                        "done" -> {
-                            trySend(ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = false))
-                        }
+                    }
+                    "error" -> {
+                        terminalEmitted = true
+                        trySend(
+                            ChatMessage(
+                                id = id,
+                                role = Role.ASSISTANT,
+                                content = acc.toString(),
+                                pending = false,
+                                errorText = event.message ?: "Gateway reported an error"
+                            )
+                        )
+                    }
+                    "done" -> {
+                        terminalEmitted = true
+                        trySend(ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = false))
                     }
                 }
             }
 
             override fun onClosed(eventSource: EventSource) {
                 logBuffer.info(TAG, "SSE closed")
-                trySend(ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = false))
+                if (!terminalEmitted) {
+                    trySend(ChatMessage(id = id, role = Role.ASSISTANT, content = acc.toString(), pending = false))
+                }
                 close()
             }
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
                 val reason = t?.message ?: response?.code?.let { "HTTP $it" } ?: "stream failed"
                 logBuffer.error(TAG, "SSE failure: $reason")
+                terminalEmitted = true
                 trySend(
                     ChatMessage(
                         id = id,
