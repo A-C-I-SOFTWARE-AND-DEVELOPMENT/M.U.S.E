@@ -28,7 +28,10 @@ class FinanceAdapter:
 
     secret: SecretBundle
     ledger: dict[str, dict[str, Any]] = field(default_factory=dict)
-    budgets: dict[str, dict[str, float]] = field(default_factory=dict)
+    # `budgets` entries carry a mix of str ("name") and float (spent/cap)
+    # values, so the inner dict is Any-typed; if we tighten this to
+    # dict[str, float] the setdefault() call in budget_read complains.
+    budgets: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     # ── invoicing ───────────────────────────────────────────────────────
 

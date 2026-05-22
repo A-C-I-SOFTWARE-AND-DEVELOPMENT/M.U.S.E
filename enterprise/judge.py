@@ -25,10 +25,14 @@ comparator (e.g. recomputing a sum, re-hashing a payload).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any, Iterable, Mapping, Optional
 
 from enterprise.policy import Risk, Task
+
+
+_EMPTY_DIFF: Mapping[str, tuple[Any, Any]] = MappingProxyType({})
 
 
 @dataclass(frozen=True)
@@ -47,7 +51,7 @@ class JudgeVerdict:
     ok: bool
     validation: str
     reasons: tuple[str, ...] = ()
-    diff: Mapping[str, tuple[Any, Any]] = ()
+    diff: Mapping[str, tuple[Any, Any]] = field(default_factory=lambda: _EMPTY_DIFF)
 
 
 def _schema_check(

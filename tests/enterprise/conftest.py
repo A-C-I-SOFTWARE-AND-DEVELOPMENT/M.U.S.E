@@ -14,10 +14,12 @@ Two things to enforce:
 from __future__ import annotations
 
 import os
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import Iterator
 
 import pytest
+
+SeedSecret = Callable[[str, str], None]
 
 
 @pytest.fixture
@@ -30,7 +32,7 @@ def audit_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 @pytest.fixture
-def seed_secret(monkeypatch: pytest.MonkeyPatch) -> Iterator[callable]:
+def seed_secret(monkeypatch: pytest.MonkeyPatch) -> Iterator[SeedSecret]:
     """Helper to set + unset ``<SERVICE>_API_KEY`` env vars for tests."""
     set_vars: list[str] = []
 

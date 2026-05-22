@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, Mapping, cast
+
 from enterprise.judge import cross_check
 from enterprise.policy import Risk, Task
 
@@ -92,9 +94,9 @@ def test_judge_passes_when_jury_matches_substantively():
 
 
 def test_non_mapping_result_is_a_schema_fail():
-    v = cross_check(
-        task=_ok_task(),
-        declared_risk=Risk.MEDIUM,
-        leaf_result="this is a string, not a dict",  # type: ignore[arg-type]
-    )
+    # cross_check is typed to accept Mapping; cast() suppresses the type
+    # checker while keeping the runtime value a plain string so the
+    # production code path that handles "not a Mapping" gets exercised.
+    bogus = cast(Mapping[str, Any], "this is a string, not a dict")
+    v = cross_check(task=_ok_task(), declared_risk=Risk.MEDIUM, leaf_result=bogus)
     assert v.validation == "schema_fail"
