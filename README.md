@@ -50,7 +50,7 @@ The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **a
 
 If you already have Git installed, the installer detects it and uses that instead.  Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
 >
 > **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only Hermes feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
 
@@ -120,6 +120,31 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 | [Contributing](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) | Development setup, PR process, code style |
 | [CLI Reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) | All commands and flags |
 | [Environment Variables](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) | Complete env var reference |
+
+---
+
+## Android Native App
+
+A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running Hermes backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
+
+**Three runtime modes:**
+
+1. **Remote gateway** — point the app at a Hermes install on your VPS / home server. Recommended.
+2. **Local Termux gateway** — `hermes gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
+3. **Mock mode** — UI sandbox with canned responses, no backend required (great for trying the UI before committing to a setup).
+
+**Build the debug APK:**
+
+```bash
+cd apps/android
+./gradlew assembleDebug
+# APK at: apps/android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Release AAB for Google Play:** see [`apps/android/README.md`](apps/android/README.md#release-aab-for-google-play). CI builds the debug APK on every change via [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml).
+
+Architecture, wire format, and the deliberate "no embedded Python" decision are documented in [`apps/android/docs/ARCHITECTURE.md`](apps/android/docs/ARCHITECTURE.md).
 
 ---
 
