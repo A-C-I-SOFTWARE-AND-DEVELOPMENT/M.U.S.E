@@ -1,14 +1,18 @@
 package com.aci.hermes.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.di.AppContainer
 import kotlinx.coroutines.launch
 import com.aci.hermes.ui.screens.chat.ChatScreen
@@ -48,22 +52,43 @@ fun HermesNavHost(container: AppContainer) {
         }
         composable(Screen.Setup.route) {
             SetupScreen(
-                onContinue = { nav.navigate(Screen.Provider.route) },
-                onSkip = {
+                onUseDirectApi = {
+                    nav.navigate(Screen.Provider.route(ConnectionMode.DIRECT))
+                },
+                onUseDemoMode = {
                     scope.launch {
-                        container.settingsRepository.setConnectionMode(
-                            com.aci.hermes.data.preferences.ConnectionMode.MOCK
-                        )
+                        container.settingsRepository.setConnectionMode(ConnectionMode.MOCK)
                         container.settingsRepository.setOnboarded(true)
                         nav.navigate(Screen.Chat.route) {
                             popUpTo(Screen.Setup.route) { inclusive = true }
                         }
                     }
+                },
+                onConnectHermesGateway = {
+                    nav.navigate(Screen.Provider.route(ConnectionMode.HERMES))
                 }
             )
         }
-        composable(Screen.Provider.route) {
+        composable(
+            route = Screen.Provider.route,
+            arguments = listOf(
+                navArgument(Screen.Provider.ARG_MODE) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
             val vm: ProviderViewModel = viewModel(factory = remember { container.providerVmFactory() })
+            val initialMode = backStackEntry.arguments
+                ?.getString(Screen.Provider.ARG_MODE)
+                ?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
+            // Pre-select the requested mode once, on first composition. The
+            // saved persisted mode still wins if the user navigates back in
+            // from Settings → Edit connection without an explicit hint.
+            LaunchedEffect(initialMode) {
+                if (initialMode != null) vm.setMode(initialMode)
+            }
             ProviderScreen(
                 viewModel = vm,
                 onSaved = {
@@ -91,7 +116,7 @@ fun HermesNavHost(container: AppContainer) {
             SettingsScreen(
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
-                onEditConnection = { nav.navigate(Screen.Provider.route) },
+                onEditConnection = { nav.navigate(Screen.Provider.route()) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) }
             )
         }

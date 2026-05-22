@@ -3,11 +3,24 @@
     <string name="app_name">Hermes Agent</string>
 
     <!-- Onboarding / setup -->
-    <string name="setup_welcome_title">Welcome to Hermes</string>
-    <string name="setup_welcome_subtitle">The self-improving AI agent built by Nous Research — now on your phone.</string>
-    <string name="setup_companion_note">This Android app is a native companion for Hermes. The agent\'s heavy lifting runs against a Hermes gateway you connect to (local Termux instance, home server, or remote VPS). You can also use mock mode to explore the UI without a backend.</string>
-    <string name="setup_get_started">Get started</string>
-    <string name="setup_skip">Skip and use mock mode</string>
+    <string name="setup_welcome_title">Use Hermes on this phone</string>
+    <string name="setup_welcome_subtitle">Pick how you want Hermes Agent to reach a model. The first option works from this phone alone.</string>
+    <string name="setup_companion_note">All choices can be changed later under Settings → Edit connection. Your API keys are stored encrypted on this device only.</string>
+
+    <string name="setup_tag_recommended">Recommended</string>
+    <string name="setup_tag_advanced">Advanced</string>
+
+    <string name="setup_card_direct_title">Use AI directly from this phone</string>
+    <string name="setup_card_direct_description">Hermes Agent calls an AI provider (OpenRouter, OpenAI, or any OpenAI-compatible endpoint) using an API key you paste in. No server to run. Best for personal use on one phone.</string>
+    <string name="setup_card_direct_cta">Set up Direct API</string>
+
+    <string name="setup_card_demo_title">Explore demo mode</string>
+    <string name="setup_card_demo_description">No API key, no network calls. The app replies with canned sample text — handy for poking around the UI before committing to a setup.</string>
+    <string name="setup_card_demo_cta">Try demo mode</string>
+
+    <string name="setup_card_hermes_title">Connect to Hermes Gateway</string>
+    <string name="setup_card_hermes_description">Point at a Hermes gateway you run elsewhere (Termux, home server, VPS). The gateway brokers provider keys, skills, memory, and tools.</string>
+    <string name="setup_card_hermes_cta">Configure gateway</string>
 
     <!-- Provider / AI connection mode -->
     <string name="provider_title">AI Connection</string>
@@ -26,12 +39,20 @@
     <string name="provider_token_label">Gateway token (optional)</string>
     <string name="provider_token_hint">Bearer token configured on the gateway</string>
     <string name="provider_provider_label">Provider</string>
-    <string name="provider_custom_base_url_label">Custom base URL</string>
+    <string name="provider_custom_base_url_label">Custom OpenAI-compatible base URL</string>
     <string name="provider_api_key_label">API key</string>
     <string name="provider_api_key_hint">Stored encrypted on-device</string>
+    <string name="provider_api_key_reveal">Show API key</string>
+    <string name="provider_api_key_hide">Hide API key</string>
+    <string name="provider_api_key_clear">Clear API key</string>
     <string name="provider_model_label">Model</string>
+    <string name="provider_recommended_models_label">Recommended for %1$s</string>
+    <string name="provider_reset_recommended_model">Reset to recommended model</string>
+    <string name="provider_use_last_working_model">Use last working: %1$s</string>
+    <string name="provider_last_working_model">Last working model: %1$s</string>
     <string name="provider_test_connection">Test connection</string>
     <string name="provider_test_direct_api">Test direct API connection</string>
+    <string name="provider_testing">Testing…</string>
     <string name="provider_save">Save and continue</string>
     <string name="provider_direct_security_note">Personal-use mode stores your API key locally on this device. Do not use this mode for a public app or shared device.</string>
 
@@ -61,6 +82,7 @@
     <string name="diagnostics_app_version">App version</string>
     <string name="diagnostics_build_type">Build type</string>
     <string name="diagnostics_gateway_url">Gateway URL</string>
+    <string name="diagnostics_custom_api_base_url">Custom API base URL</string>
     <string name="diagnostics_last_error">Last error</string>
     <string name="diagnostics_logs">Recent logs</string>
     <string name="diagnostics_copy_logs">Copy logs</string>

@@ -1,9 +1,11 @@
 # The repo-root .gitignore excludes `data/` everywhere (it predates this
 # Android module and was meant for Python data dumps). Re-include our
 # Kotlin `data/` package explicitly so the build doesn't lose the
-# model/network/preferences/repository sources.
+# model/network/preferences/repository sources — and the matching tests.
 !app/src/main/java/com/aci/hermes/data/
 !app/src/main/java/com/aci/hermes/data/**
+!app/src/test/java/com/aci/hermes/data/
+!app/src/test/java/com/aci/hermes/data/**
 
 # Gradle
 .gradle/

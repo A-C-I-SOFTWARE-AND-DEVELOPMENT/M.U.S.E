@@ -53,6 +53,16 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests {
+            // android.util.Log is a stub on the JVM; without this every
+            // call from production code (e.g. LogBuffer.info) throws
+            // RuntimeException during unit tests. Returning defaults
+            // lets the pure logic under test run without Robolectric.
+            isReturnDefaultValues = true
+        }
+    }
+
     packaging {
         resources {
             excludes += setOf(
@@ -94,6 +104,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

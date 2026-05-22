@@ -42,7 +42,7 @@ class AIClientFactory(
                 } else {
                     DirectAIClient(
                         http = http,
-                        baseUrl = baseUrlFor(snap.providerId, snap.gatewayUrl),
+                        baseUrl = baseUrlFor(snap.providerId, snap.customApiBaseUrl),
                         apiKey = key,
                         model = snap.model.ifBlank { SettingsRepository.DEFAULT_DIRECT_MODEL },
                         providerLabel = providerLabel(snap.providerId),
@@ -77,14 +77,15 @@ class AIClientFactory(
         private const val TAG = "AIClientFactory"
 
         /**
-         * In direct mode, `gateway_url` is reused as the "custom base URL"
-         * field — the user enters it on the Provider screen when they pick
-         * the "custom" provider.
+         * Direct-mode base URL resolution. For OpenRouter/OpenAI we hard-code
+         * the canonical endpoint; for `custom` we use the user-supplied
+         * `customApiBaseUrl`. We deliberately do **not** reuse the Hermes
+         * gateway URL field here — those are distinct concepts.
          */
-        fun baseUrlFor(providerId: String, customBaseUrl: String): String = when (providerId) {
+        fun baseUrlFor(providerId: String, customApiBaseUrl: String): String = when (providerId) {
             "openrouter" -> DirectAIClient.OPENROUTER_BASE_URL
             "openai" -> DirectAIClient.OPENAI_BASE_URL
-            "custom" -> customBaseUrl.trim().ifBlank { DirectAIClient.OPENROUTER_BASE_URL }
+            "custom" -> customApiBaseUrl.trim().ifBlank { DirectAIClient.OPENROUTER_BASE_URL }
             else -> DirectAIClient.OPENROUTER_BASE_URL
         }
 

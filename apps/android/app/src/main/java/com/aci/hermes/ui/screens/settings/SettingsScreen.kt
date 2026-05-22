@@ -81,11 +81,18 @@ fun SettingsScreen(
                     SettingsRow(title = "Provider", subtitle = state.providerId)
                     if (state.mode == com.aci.hermes.data.preferences.ConnectionMode.DIRECT) {
                         SettingsRow(title = "Model", subtitle = state.model.ifBlank { "(unset)" })
+                        if (state.providerId == "custom" && state.customApiBaseUrl.isNotBlank()) {
+                            SettingsRow(
+                                title = stringResource(R.string.diagnostics_custom_api_base_url),
+                                subtitle = state.customApiBaseUrl
+                            )
+                        }
                     }
-                    if (state.gatewayUrl.isNotBlank()) {
+                    if (state.mode == com.aci.hermes.data.preferences.ConnectionMode.HERMES &&
+                        state.gatewayUrl.isNotBlank()
+                    ) {
                         SettingsRow(
-                            title = if (state.mode == com.aci.hermes.data.preferences.ConnectionMode.HERMES)
-                                "Gateway URL" else "Base URL",
+                            title = "Gateway URL",
                             subtitle = state.gatewayUrl
                         )
                     }

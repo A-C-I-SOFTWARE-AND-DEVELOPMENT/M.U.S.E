@@ -31,8 +31,10 @@ class SettingsRepository(
     private object Keys {
         val CONNECTION_MODE = stringPreferencesKey("connection_mode")
         val GATEWAY_URL = stringPreferencesKey("gateway_url")
+        val CUSTOM_API_BASE_URL = stringPreferencesKey("custom_api_base_url")
         val PROVIDER_ID = stringPreferencesKey("provider_id")
         val MODEL = stringPreferencesKey("model")
+        val LAST_WORKING_MODEL = stringPreferencesKey("last_working_model")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val MOCK_MODE = booleanPreferencesKey("mock_mode") // legacy, kept in sync
         val ONBOARDED = booleanPreferencesKey("onboarded")
@@ -51,12 +53,32 @@ class SettingsRepository(
         it[Keys.GATEWAY_URL] ?: defaultGatewayUrl
     }
 
+    /**
+     * Direct mode custom OpenAI-compatible base URL. Used only when
+     * `providerId == "custom"`. Separate from `gatewayUrl` so switching
+     * between Direct/custom and Hermes-gateway doesn't trample either
+     * field.
+     *
+     * Legacy installs reused `gateway_url` for the custom direct endpoint;
+     * if `custom_api_base_url` is unset we fall back to that value so
+     * existing users don't have to re-enter it.
+     */
+    val customApiBaseUrl: Flow<String> = context.dataStore.data.map { prefs ->
+        prefs[Keys.CUSTOM_API_BASE_URL]
+            ?: prefs[Keys.GATEWAY_URL]?.takeIf { prefs[Keys.PROVIDER_ID] == "custom" }
+            ?: ""
+    }
+
     val providerId: Flow<String> = context.dataStore.data.map {
         it[Keys.PROVIDER_ID] ?: "openrouter"
     }
 
     val model: Flow<String> = context.dataStore.data.map {
         it[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL
+    }
+
+    val lastWorkingModel: Flow<String?> = context.dataStore.data.map {
+        it[Keys.LAST_WORKING_MODEL]
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -82,12 +104,20 @@ class SettingsRepository(
         context.dataStore.edit { it[Keys.GATEWAY_URL] = url.trim() }
     }
 
+    suspend fun setCustomApiBaseUrl(url: String) {
+        context.dataStore.edit { it[Keys.CUSTOM_API_BASE_URL] = url.trim() }
+    }
+
     suspend fun setProviderId(id: String) {
         context.dataStore.edit { it[Keys.PROVIDER_ID] = id }
     }
 
     suspend fun setModel(model: String) {
         context.dataStore.edit { it[Keys.MODEL] = model.trim() }
+    }
+
+    suspend fun setLastWorkingModel(model: String) {
+        context.dataStore.edit { it[Keys.LAST_WORKING_MODEL] = model.trim() }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -124,11 +154,17 @@ class SettingsRepository(
             ?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
             ?: legacyModeFrom(data)
             ?: defaultMode
+        val providerId = data[Keys.PROVIDER_ID] ?: "openrouter"
+        val customBase = data[Keys.CUSTOM_API_BASE_URL]
+            ?: data[Keys.GATEWAY_URL]?.takeIf { providerId == "custom" }
+            ?: ""
         return Snapshot(
             connectionMode = mode,
             gatewayUrl = data[Keys.GATEWAY_URL] ?: defaultGatewayUrl,
-            providerId = data[Keys.PROVIDER_ID] ?: "openrouter",
+            customApiBaseUrl = customBase,
+            providerId = providerId,
             model = data[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL,
+            lastWorkingModel = data[Keys.LAST_WORKING_MODEL],
             themeMode = when (data[Keys.THEME_MODE]) {
                 "LIGHT" -> ThemeMode.LIGHT
                 "DARK" -> ThemeMode.DARK
@@ -141,8 +177,10 @@ class SettingsRepository(
     data class Snapshot(
         val connectionMode: ConnectionMode,
         val gatewayUrl: String,
+        val customApiBaseUrl: String,
         val providerId: String,
         val model: String,
+        val lastWorkingModel: String?,
         val themeMode: ThemeMode,
         val hasOnboarded: Boolean
     )

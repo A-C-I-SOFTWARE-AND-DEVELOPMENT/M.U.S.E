@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.data.network.AIClientFactory
+import com.aci.hermes.data.network.DirectApiTester
 import com.aci.hermes.data.preferences.SecureKeyStore
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.ui.screens.chat.ChatViewModel
@@ -45,9 +46,22 @@ class AppContainer(context: Context) {
         .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
+    /**
+     * Short-lived non-streaming HTTP client for status checks and the
+     * Provider screen's "Test direct API" probe. Distinct from
+     * [httpClient] so SSE-style zero read-timeouts can't wedge the UI.
+     */
+    val testHttpClient: OkHttpClient = httpClient.newBuilder()
+        .readTimeout(15, TimeUnit.SECONDS)
+        .callTimeout(20, TimeUnit.SECONDS)
+        .build()
+
     val clientFactory: AIClientFactory = AIClientFactory(settingsRepository, httpClient, logBuffer)
 
-    fun providerVmFactory(): ViewModelProvider.Factory = factory { ProviderViewModel(settingsRepository, httpClient, logBuffer) }
+    val directApiTester: DirectApiTester = DirectApiTester(testHttpClient, logBuffer)
+
+    fun providerVmFactory(): ViewModelProvider.Factory =
+        factory { ProviderViewModel(settingsRepository, testHttpClient, directApiTester, logBuffer) }
     fun chatVmFactory(): ViewModelProvider.Factory = factory { ChatViewModel(settingsRepository, clientFactory) }
     fun settingsVmFactory(): ViewModelProvider.Factory = factory { SettingsViewModel(settingsRepository, logBuffer) }
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory { DiagnosticsViewModel(settingsRepository, clientFactory, logBuffer) }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class StatusUiState(
     val mode: ConnectionMode = ConnectionMode.MOCK,
     val gatewayUrl: String = "",
+    val customApiBaseUrl: String = "",
     val providerId: String = "",
     val model: String = "",
     val connection: ConnectionState = ConnectionState.Unknown
@@ -38,6 +39,7 @@ class StatusViewModel(
                 it.copy(
                     mode = snap.connectionMode,
                     gatewayUrl = snap.gatewayUrl,
+                    customApiBaseUrl = snap.customApiBaseUrl,
                     providerId = snap.providerId,
                     model = snap.model
                 )

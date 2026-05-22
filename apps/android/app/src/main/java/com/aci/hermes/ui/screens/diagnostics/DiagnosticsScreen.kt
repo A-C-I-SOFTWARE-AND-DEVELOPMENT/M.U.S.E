@@ -96,8 +96,36 @@ private fun DiagInfoCard(state: DiagnosticsUiState) {
             HorizontalDivider()
             DiagRow(stringResource(R.string.diagnostics_build_type), state.buildType)
             HorizontalDivider()
-            DiagRow(stringResource(R.string.diagnostics_gateway_url), state.gatewayUrl.ifBlank { "(not set)" })
+            val modeLabel = when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> stringResource(R.string.mode_mock_short)
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> stringResource(R.string.mode_direct_short)
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES -> stringResource(R.string.mode_hermes_short)
+            }
+            DiagRow(stringResource(R.string.status_mode_label), modeLabel)
             HorizontalDivider()
+            // Show the URL that actually drives traffic for the current
+            // mode. Hermes mode → gateway URL. Direct/custom → custom API
+            // base URL. Direct/openrouter|openai → hard-coded endpoint, so
+            // no row.
+            when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES -> {
+                    DiagRow(
+                        stringResource(R.string.diagnostics_gateway_url),
+                        state.gatewayUrl.ifBlank { "(not set)" }
+                    )
+                    HorizontalDivider()
+                }
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> {
+                    if (state.providerId == "custom") {
+                        DiagRow(
+                            stringResource(R.string.diagnostics_custom_api_base_url),
+                            state.customApiBaseUrl.ifBlank { "(not set)" }
+                        )
+                        HorizontalDivider()
+                    }
+                }
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> Unit
+            }
             DiagRow(
                 stringResource(R.string.diagnostics_last_error),
                 state.lastError?.message ?: stringResource(R.string.diagnostics_no_error)

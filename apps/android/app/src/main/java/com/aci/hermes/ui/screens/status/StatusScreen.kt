@@ -110,7 +110,24 @@ private fun DetailsCard(state: StatusUiState) {
             HorizontalDivider()
             Detail(stringResource(R.string.status_model), state.model.ifBlank { "(unset)" })
             HorizontalDivider()
-            Detail(stringResource(R.string.diagnostics_gateway_url), state.gatewayUrl.ifBlank { "(not set)" })
+            // Show the URL that actually matters for the current mode. In
+            // Direct mode the gateway URL is irrelevant; in Hermes mode
+            // the custom direct base URL is irrelevant.
+            when (state.mode) {
+                com.aci.hermes.data.preferences.ConnectionMode.HERMES -> Detail(
+                    stringResource(R.string.diagnostics_gateway_url),
+                    state.gatewayUrl.ifBlank { "(not set)" }
+                )
+                com.aci.hermes.data.preferences.ConnectionMode.DIRECT -> {
+                    if (state.providerId == "custom") {
+                        Detail(
+                            stringResource(R.string.diagnostics_custom_api_base_url),
+                            state.customApiBaseUrl.ifBlank { "(not set)" }
+                        )
+                    }
+                }
+                com.aci.hermes.data.preferences.ConnectionMode.MOCK -> Unit
+            }
             val c = state.connection
             if (c is ConnectionState.Connected) {
                 HorizontalDivider()

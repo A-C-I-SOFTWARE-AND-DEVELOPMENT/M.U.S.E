@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val mode: ConnectionMode = ConnectionMode.MOCK,
     val gatewayUrl: String = "",
+    val customApiBaseUrl: String = "",
     val providerId: String = "",
     val model: String = "",
     val themeMode: ThemeMode = ThemeMode.SYSTEM
@@ -34,6 +35,7 @@ class SettingsViewModel(
             _state.value = SettingsUiState(
                 mode = snap.connectionMode,
                 gatewayUrl = snap.gatewayUrl,
+                customApiBaseUrl = snap.customApiBaseUrl,
                 providerId = snap.providerId,
                 model = snap.model,
                 themeMode = snap.themeMode
@@ -54,6 +56,7 @@ class SettingsViewModel(
             _state.value = SettingsUiState(
                 mode = snap.connectionMode,
                 gatewayUrl = snap.gatewayUrl,
+                customApiBaseUrl = snap.customApiBaseUrl,
                 providerId = snap.providerId,
                 model = snap.model,
                 themeMode = snap.themeMode

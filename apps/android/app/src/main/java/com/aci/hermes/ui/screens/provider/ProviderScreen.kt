@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,11 +13,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -29,9 +36,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.ConnectionState
@@ -71,23 +80,15 @@ fun ProviderScreen(
                     DirectProviderPicker(state, viewModel)
                     if (state.providerId == "custom") {
                         OutlinedTextField(
-                            value = state.gatewayUrl,
-                            onValueChange = viewModel::setGatewayUrl,
+                            value = state.customApiBaseUrl,
+                            onValueChange = viewModel::setCustomApiBaseUrl,
                             label = { Text(stringResource(R.string.provider_custom_base_url_label)) },
                             placeholder = { Text("https://example.com/v1") },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
-                    OutlinedTextField(
-                        value = state.providerApiKey,
-                        onValueChange = viewModel::setProviderApiKey,
-                        label = { Text(stringResource(R.string.provider_api_key_label)) },
-                        placeholder = { Text(stringResource(R.string.provider_api_key_hint)) },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    ApiKeyField(state, viewModel)
                     ModelInput(state, viewModel)
                     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                         Text(
@@ -213,9 +214,55 @@ private fun DirectProviderPicker(state: ProviderUiState, viewModel: ProviderView
     )
 }
 
+@Composable
+private fun ApiKeyField(state: ProviderUiState, viewModel: ProviderViewModel) {
+    OutlinedTextField(
+        value = state.providerApiKey,
+        onValueChange = viewModel::setProviderApiKey,
+        label = { Text(stringResource(R.string.provider_api_key_label)) },
+        placeholder = { Text(stringResource(R.string.provider_api_key_hint)) },
+        singleLine = true,
+        visualTransformation = if (state.apiKeyVisible) {
+            VisualTransformation.None
+        } else {
+            PasswordVisualTransformation()
+        },
+        trailingIcon = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = viewModel::toggleApiKeyVisible) {
+                    Icon(
+                        imageVector = if (state.apiKeyVisible) {
+                            Icons.Filled.VisibilityOff
+                        } else {
+                            Icons.Filled.Visibility
+                        },
+                        contentDescription = stringResource(
+                            if (state.apiKeyVisible) R.string.provider_api_key_hide
+                            else R.string.provider_api_key_reveal
+                        )
+                    )
+                }
+                if (state.providerApiKey.isNotEmpty()) {
+                    IconButton(onClick = viewModel::clearApiKey) {
+                        Icon(
+                            imageVector = Icons.Filled.Clear,
+                            contentDescription = stringResource(R.string.provider_api_key_clear)
+                        )
+                    }
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ModelInput(state: ProviderUiState, viewModel: ProviderViewModel) {
+    Text(
+        stringResource(R.string.provider_model_label),
+        style = MaterialTheme.typography.titleMedium
+    )
     OutlinedTextField(
         value = state.model,
         onValueChange = viewModel::setModel,
@@ -226,6 +273,13 @@ private fun ModelInput(state: ProviderUiState, viewModel: ProviderViewModel) {
     )
     val suggestions = SuggestedModels.forProvider(state.providerId)
     if (suggestions.isNotEmpty()) {
+        Text(
+            stringResource(
+                R.string.provider_recommended_models_label,
+                DirectProvider.byId(state.providerId).shortLabel
+            ),
+            style = MaterialTheme.typography.bodyMedium
+        )
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -240,13 +294,39 @@ private fun ModelInput(state: ProviderUiState, viewModel: ProviderViewModel) {
             }
         }
     }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        TextButton(onClick = viewModel::resetToRecommendedModel) {
+            Text(stringResource(R.string.provider_reset_recommended_model))
+        }
+        if (!state.lastWorkingModel.isNullOrBlank() && state.lastWorkingModel != state.model) {
+            TextButton(onClick = viewModel::useLastWorkingModel) {
+                Text(
+                    stringResource(
+                        R.string.provider_use_last_working_model,
+                        state.lastWorkingModel
+                    )
+                )
+            }
+        }
+    }
+    if (!state.lastWorkingModel.isNullOrBlank()) {
+        Text(
+            text = stringResource(R.string.provider_last_working_model, state.lastWorkingModel),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 @Composable
 private fun TestResult(test: ConnectionState) {
     when (test) {
         ConnectionState.Connecting ->
-            Text("Testing…", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.provider_testing), style = MaterialTheme.typography.bodyMedium)
         is ConnectionState.Connected -> {
             val s = test.status
             Text(
@@ -292,18 +372,5 @@ private enum class DirectProvider(
 
     companion object {
         fun byId(id: String): DirectProvider = entries.firstOrNull { it.id == id } ?: OPENROUTER
-    }
-}
-
-private object SuggestedModels {
-    fun forProvider(providerId: String): List<String> = when (providerId) {
-        "openrouter" -> listOf(
-            "openai/gpt-4o-mini",
-            "anthropic/claude-3.5-haiku",
-            "google/gemini-flash-1.5",
-            "meta-llama/llama-3.1-70b-instruct"
-        )
-        "openai" -> listOf("gpt-4o-mini", "gpt-4o", "gpt-4.1-mini")
-        else -> emptyList()
     }
 }

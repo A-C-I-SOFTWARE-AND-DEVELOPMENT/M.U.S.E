@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.data.model.ConnectionState
 import com.aci.hermes.data.network.AIClientFactory
+import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,10 @@ import kotlinx.coroutines.launch
 data class DiagnosticsUiState(
     val appVersion: String = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
     val buildType: String = BuildConfig.BUILD_TYPE,
+    val mode: ConnectionMode = ConnectionMode.MOCK,
+    val providerId: String = "",
     val gatewayUrl: String = "",
+    val customApiBaseUrl: String = "",
     val connection: ConnectionState = ConnectionState.Unknown,
     val logs: List<LogBuffer.Entry> = emptyList(),
     val lastError: LogBuffer.Entry? = null
@@ -46,7 +50,14 @@ class DiagnosticsViewModel(
         _state.update { it.copy(connection = ConnectionState.Connecting) }
         viewModelScope.launch {
             val snap = settings.snapshot()
-            _state.update { it.copy(gatewayUrl = snap.gatewayUrl) }
+            _state.update {
+                it.copy(
+                    mode = snap.connectionMode,
+                    providerId = snap.providerId,
+                    gatewayUrl = snap.gatewayUrl,
+                    customApiBaseUrl = snap.customApiBaseUrl
+                )
+            }
             val client = clientFactory.current()
             val status = client.status()
             _state.update {
