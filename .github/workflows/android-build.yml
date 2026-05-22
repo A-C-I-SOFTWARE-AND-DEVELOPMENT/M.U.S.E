@@ -37,10 +37,16 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Show toolchain
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME"
+          java -version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -1 "$ANDROID_HOME" || true
+          ls -1 "$ANDROID_HOME/platforms" || true
+          ls -1 "$ANDROID_HOME/build-tools" || true
 
       - name: Cache Gradle caches
         uses: actions/cache@v4
@@ -55,15 +61,30 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Print Gradle / project info
+        run: ./gradlew --no-daemon --stacktrace --version
+
       - name: Assemble debug APK
-        run: ./gradlew --no-daemon assembleDebug
+        run: ./gradlew --no-daemon --stacktrace --info assembleDebug
 
       - name: Upload debug APK
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: hermes-agent-debug-apk
           path: apps/android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-reports
+          path: |
+            apps/android/app/build/reports/
+            apps/android/build/reports/
+          if-no-files-found: ignore
           retention-days: 14
 
   lint:
@@ -87,10 +108,7 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Cache Gradle caches
         uses: actions/cache@v4
@@ -104,7 +122,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Lint
-        run: ./gradlew --no-daemon lintDebug
+        run: ./gradlew --no-daemon --stacktrace lintDebug
 
       - name: Upload lint report
         if: always()
