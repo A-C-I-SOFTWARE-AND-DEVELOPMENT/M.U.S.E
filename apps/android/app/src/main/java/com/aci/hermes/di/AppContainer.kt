@@ -38,9 +38,12 @@ class AppContainer(context: Context) {
     )
 
     // Singleton: dispatcher executor + connection pool live for the
-    // process. Read timeout is 0 because /v1/chat is an open SSE stream.
+    // process. Read timeout is 0 because /v1/chat is an open SSE stream;
+    // health-check and chat dials clone this client and apply their own
+    // shorter call/connect budgets (see HermesGatewayClient) so we don't
+    // wait the OS-default ~100s when the gateway URL is unreachable.
     val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
         .build()

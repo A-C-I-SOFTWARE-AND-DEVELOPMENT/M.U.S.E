@@ -22,7 +22,8 @@
     <string name="mode_hermes_description">Your phone talks to a Hermes gateway you run somewhere (home server, VPS, Termux on this device). The gateway handles skills, memory, tools, and provider keys server-side.</string>
 
     <string name="provider_gateway_label">Gateway URL</string>
-    <string name="provider_gateway_hint">https://hermes.example.com or http://10.0.2.2:8080</string>
+    <string name="provider_gateway_hint">https://hermes.example.com (real phone) or http://10.0.2.2:8080 (emulator)</string>
+    <string name="provider_gateway_setup_note">Setup notes:\n• Android emulator → host: http://10.0.2.2:8080\n• Real phone, same Wi-Fi: http://&lt;LAN-IP-of-host&gt;:8080 (e.g. http://192.168.1.42:8080)\n• Anywhere else: an ngrok / Cloudflare tunnel or a public HTTPS URL.\nProduction gateways must use HTTPS. Gateway tokens and GitHub tokens stay server-side in ~/.hermes/.env — never paste them into the app.</string>
     <string name="provider_token_label">Gateway token (optional)</string>
     <string name="provider_token_hint">Bearer token configured on the gateway</string>
     <string name="provider_provider_label">Provider</string>
@@ -76,8 +77,13 @@
     <string name="status_mode_label">Connection mode</string>
     <string name="status_model">Model</string>
     <string name="status_connected">Connected</string>
+    <string name="status_connecting">Connecting…</string>
     <string name="status_disconnected">Not connected</string>
     <string name="status_unknown">Unknown</string>
+    <string name="status_backend_unreachable">Backend unreachable</string>
+    <string name="status_wrong_url">Wrong backend URL</string>
+    <string name="status_tls_error">TLS error</string>
+    <string name="status_http_error">Gateway error</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>

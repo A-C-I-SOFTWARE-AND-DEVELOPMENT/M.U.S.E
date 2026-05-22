@@ -81,6 +81,77 @@ locally. This makes the whole UI navigable without a gateway running.
 
 ---
 
+## Backend URL — picking the right one
+
+This is the #1 setup mistake on real devices, so it gets its own section.
+
+The default backend URL baked into the APK depends on how it was built —
+see [Configuring the backend URL](#configuring-the-backend-url) below —
+but the underlying rules are:
+
+| Where the app runs                     | Use this URL                                      |
+|----------------------------------------|---------------------------------------------------|
+| Android emulator on your laptop        | `http://10.0.2.2:8080` (loopback to host)         |
+| Real phone, same Wi-Fi as the gateway  | `http://<LAN-IP>:8080`, e.g. `http://192.168.1.42:8080` |
+| Real phone, away from home             | ngrok / Cloudflare tunnel, or a public HTTPS URL  |
+| Production                             | `https://<your-domain>` (HTTPS required)          |
+
+> `10.0.2.2` is a magic emulator-only alias for "the host running the AVD".
+> It is **not routable** from a physical phone — dialling it will hang on
+> the TCP connect and the app will surface **"Wrong backend URL — 10.0.2.2
+> only works inside the Android emulator"** after ~8 seconds. If you see
+> that, swap the URL in **Settings → Edit connection**.
+
+The app surfaces four explicit connection states so failures are
+debuggable from the UI alone:
+
+- **Connected** — `/v1/health` returned 200.
+- **Connecting…** — probe in flight.
+- **Backend unreachable** — TCP timed out / connection refused / no route.
+- **Wrong backend URL** — DNS failure, emulator-only host on a real
+  device, or empty URL.
+
+### Configuring the backend URL
+
+The Android module reads the default URL at *build time* in this order:
+
+1. `-PhermesGatewayUrl=...` — Gradle property (CLI or `gradle.properties`).
+2. `$HERMES_GATEWAY_URL` — primary env var name.
+3. `$ANDROID_API_BASE_URL` — alias env var, useful when the same gateway
+   is shared with other Android-native clients.
+4. **Debug-only fallback:** `http://10.0.2.2:8080` (emulator convenience).
+5. **Release fallback:** empty — the user must enter the URL on first run.
+
+Example builds:
+
+```bash
+# Real phone on the LAN — bake the LAN IP into the debug APK so the
+# emulator-only default never gets a chance to mislead you.
+HERMES_GATEWAY_URL="http://192.168.1.42:8080" \
+  ./gradlew :app:assembleDebug
+
+# Production release pointing at your public gateway.
+HERMES_GATEWAY_URL="https://hermes.example.com" \
+  ./gradlew :app:bundleRelease
+```
+
+Whatever the build-time default is, it only seeds the URL on first launch.
+The user can override it any time from **Settings → Edit connection**, and
+the override is persisted in DataStore.
+
+### Tokens never live in the app
+
+- **Gateway bearer tokens** the user enters are stored in
+  `EncryptedSharedPreferences` on the device, scoped to the app sandbox.
+- **GitHub PATs, MCP credentials, and any other gateway-side secrets**
+  stay **server-side** in `~/.hermes/.env` (or the gateway process
+  environment / your hosting provider's secret store). They are never
+  baked into the APK, shipped in `strings.xml`, or stored client-side.
+  If you find yourself needing one of these on the phone, that's a sign
+  the request should be flowing through the gateway instead.
+
+---
+
 ## Building
 
 ### Prerequisites

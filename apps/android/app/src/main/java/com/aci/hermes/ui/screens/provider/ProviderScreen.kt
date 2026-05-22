@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.ConnectionState
 import com.aci.hermes.data.preferences.ConnectionMode
+import com.aci.hermes.util.GatewayUrl
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -107,8 +108,19 @@ fun ProviderScreen(
                         label = { Text(stringResource(R.string.provider_gateway_label)) },
                         placeholder = { Text(stringResource(R.string.provider_gateway_hint)) },
                         singleLine = true,
+                        isError = state.gatewayUrlWarning != null,
                         modifier = Modifier.fillMaxWidth()
                     )
+                    state.gatewayUrlWarning?.let { warning ->
+                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                            Text(
+                                text = warning,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = state.gatewayToken,
                         onValueChange = viewModel::setGatewayToken,
@@ -118,6 +130,13 @@ fun ProviderScreen(
                         visualTransformation = PasswordVisualTransformation(),
                         modifier = Modifier.fillMaxWidth()
                     )
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                        Text(
+                            text = stringResource(R.string.provider_gateway_setup_note),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
                 }
             }
 
@@ -246,7 +265,7 @@ private fun ModelInput(state: ProviderUiState, viewModel: ProviderViewModel) {
 private fun TestResult(test: ConnectionState) {
     when (test) {
         ConnectionState.Connecting ->
-            Text("Testing…", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.status_connecting), style = MaterialTheme.typography.bodyMedium)
         is ConnectionState.Connected -> {
             val s = test.status
             Text(
@@ -259,11 +278,27 @@ private fun TestResult(test: ConnectionState) {
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        is ConnectionState.Failed -> Text(
-            "✗ ${test.reason}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error
-        )
+        is ConnectionState.Failed -> {
+            val headline = when (test.kind) {
+                GatewayUrl.FailureKind.UNREACHABLE -> stringResource(R.string.status_backend_unreachable)
+                GatewayUrl.FailureKind.WRONG_URL -> stringResource(R.string.status_wrong_url)
+                GatewayUrl.FailureKind.TLS -> stringResource(R.string.status_tls_error)
+                GatewayUrl.FailureKind.HTTP -> stringResource(R.string.status_http_error)
+                GatewayUrl.FailureKind.UNKNOWN -> stringResource(R.string.status_disconnected)
+            }
+            Column {
+                Text(
+                    "✗ $headline",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                Text(
+                    test.reason,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
         ConnectionState.Unknown -> Unit
     }
 }

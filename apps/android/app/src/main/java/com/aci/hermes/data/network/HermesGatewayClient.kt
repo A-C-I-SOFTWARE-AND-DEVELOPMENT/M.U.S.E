@@ -3,6 +3,7 @@ package com.aci.hermes.data.network
 import com.aci.hermes.data.model.ChatMessage
 import com.aci.hermes.data.model.HermesStatus
 import com.aci.hermes.data.model.Role
+import com.aci.hermes.util.GatewayUrl
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -22,6 +23,7 @@ import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
  * HTTP client for the Hermes gateway REST surface.
@@ -77,13 +79,32 @@ class HermesGatewayClient(
     }
 
     override suspend fun status(): HermesStatus = withContext(Dispatchers.IO) {
+        // Health-check uses a derived client with a hard call timeout so
+        // we never sit waiting the OS-default 75-100s when the host is
+        // dropping SYNs (e.g. real phone dialling the emulator-only
+        // 10.0.2.2 address). The main `http` client deliberately disables
+        // read timeouts for the SSE chat stream, so we can't reuse it.
+        val probe = http.newBuilder()
+            .connectTimeout(HEALTH_CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .readTimeout(HEALTH_READ_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .writeTimeout(HEALTH_READ_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .callTimeout(HEALTH_CALL_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .build()
         val request = authedRequest("/v1/health", "application/json").get().build()
         try {
-            http.newCall(request).execute().use { resp: Response ->
+            probe.newCall(request).execute().use { resp: Response ->
                 if (!resp.isSuccessful) {
-                    val msg = "Gateway returned HTTP ${resp.code}"
-                    logBuffer.warn(TAG, msg)
-                    return@withContext HermesStatus(ok = false, message = msg)
+                    val classified = GatewayUrl.classifyFailure(
+                        t = null,
+                        httpCode = resp.code,
+                        gatewayUrl = baseUrl
+                    )
+                    logBuffer.warn(TAG, "Gateway HTTP ${resp.code}")
+                    return@withContext HermesStatus(
+                        ok = false,
+                        message = classified.message,
+                        failureKind = classified.kind
+                    )
                 }
                 val body = resp.body?.string().orEmpty()
                 if (body.isBlank()) {
@@ -104,8 +125,13 @@ class HermesGatewayClient(
                 )
             }
         } catch (t: Throwable) {
-            logBuffer.error(TAG, "Health check failed: ${t.message}")
-            HermesStatus(ok = false, message = t.message ?: t::class.java.simpleName)
+            val classified = GatewayUrl.classifyFailure(t = t, gatewayUrl = baseUrl)
+            logBuffer.error(TAG, "Health check failed (${classified.kind}): ${t.message}")
+            HermesStatus(
+                ok = false,
+                message = classified.message,
+                failureKind = classified.kind
+            )
         }
     }
 
@@ -173,8 +199,12 @@ class HermesGatewayClient(
             }
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                val reason = t?.message ?: response?.code?.let { "HTTP $it" } ?: "stream failed"
-                logBuffer.error(TAG, "SSE failure: $reason")
+                val classified = GatewayUrl.classifyFailure(
+                    t = t,
+                    httpCode = response?.code,
+                    gatewayUrl = baseUrl
+                )
+                logBuffer.error(TAG, "SSE failure (${classified.kind}): ${classified.message}")
                 terminalEmitted = true
                 trySend(
                     ChatMessage(
@@ -182,14 +212,22 @@ class HermesGatewayClient(
                         role = Role.ASSISTANT,
                         content = acc.toString(),
                         pending = false,
-                        errorText = reason
+                        errorText = classified.message
                     )
                 )
                 close()
             }
         }
 
-        val es = EventSources.createFactory(http).newEventSource(request, listener)
+        // SSE has no read-timeout (the stream is intentionally open-ended)
+        // so we use the shared client. But we apply a short *connect*
+        // budget — once the TCP handshake succeeds, the stream may live
+        // for minutes; failing the dial in ~5s is the user-friendly
+        // behaviour when the URL is wrong.
+        val sseClient = http.newBuilder()
+            .connectTimeout(CHAT_CONNECT_TIMEOUT_SEC, TimeUnit.SECONDS)
+            .build()
+        val es = EventSources.createFactory(sseClient).newEventSource(request, listener)
         awaitClose { es.cancel() }
     }.flowOn(Dispatchers.IO)
 
@@ -227,5 +265,16 @@ class HermesGatewayClient(
 
     companion object {
         private const val TAG = "HermesGateway"
+
+        // Fail-fast budget for /v1/health so the user sees a real error in
+        // ~8s instead of waiting out the OS-level TCP timeout (~100s) the
+        // bug report described.
+        private const val HEALTH_CONNECT_TIMEOUT_SEC = 5L
+        private const val HEALTH_READ_TIMEOUT_SEC = 8L
+        private const val HEALTH_CALL_TIMEOUT_SEC = 8L
+
+        // SSE chat call: short connect budget, no read timeout (stream is
+        // open-ended by design).
+        private const val CHAT_CONNECT_TIMEOUT_SEC = 5L
     }
 }

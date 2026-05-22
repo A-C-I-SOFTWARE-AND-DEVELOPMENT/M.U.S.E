@@ -9,6 +9,7 @@ import com.aci.hermes.data.network.DirectAIClient
 import com.aci.hermes.data.network.HermesGatewayClient
 import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.util.GatewayUrl
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,7 +27,11 @@ data class ProviderUiState(
     val model: String = SettingsRepository.DEFAULT_DIRECT_MODEL,
     val test: ConnectionState = ConnectionState.Unknown,
     val saving: Boolean = false,
-    val validationError: String? = null
+    val validationError: String? = null,
+    // Inline hint shown under the gateway URL field when the URL is
+    // plausibly wrong (e.g. 10.0.2.2 on a real phone, http:// on a
+    // public host). Computed from the URL — not a network probe.
+    val gatewayUrlWarning: String? = null
 )
 
 class ProviderViewModel(
@@ -48,7 +53,8 @@ class ProviderViewModel(
                 gatewayToken = secrets.gatewayToken.orEmpty(),
                 providerId = snap.providerId,
                 providerApiKey = secrets.providerApiKey.orEmpty(),
-                model = snap.model
+                model = snap.model,
+                gatewayUrlWarning = GatewayUrl.warningFor(snap.gatewayUrl)
             )
         }
     }
@@ -58,7 +64,13 @@ class ProviderViewModel(
         // meaningful against the new mode's endpoint.
         it.copy(mode = m, test = ConnectionState.Unknown, validationError = null)
     }
-    fun setGatewayUrl(v: String) = _state.update { it.copy(gatewayUrl = v, test = ConnectionState.Unknown) }
+    fun setGatewayUrl(v: String) = _state.update {
+        it.copy(
+            gatewayUrl = v,
+            test = ConnectionState.Unknown,
+            gatewayUrlWarning = GatewayUrl.warningFor(v)
+        )
+    }
     fun setGatewayToken(v: String) = _state.update { it.copy(gatewayToken = v, test = ConnectionState.Unknown) }
     fun setProviderId(v: String) = _state.update { it.copy(providerId = v, test = ConnectionState.Unknown) }
     fun setProviderApiKey(v: String) = _state.update { it.copy(providerApiKey = v, test = ConnectionState.Unknown) }
@@ -76,11 +88,25 @@ class ProviderViewModel(
             ConnectionMode.DIRECT -> {
                 val key = current.providerApiKey.trim()
                 if (key.isEmpty()) {
-                    _state.update { it.copy(test = ConnectionState.Failed("Enter an API key to test.")) }
+                    _state.update {
+                        it.copy(
+                            test = ConnectionState.Failed(
+                                reason = "Enter an API key to test.",
+                                kind = GatewayUrl.FailureKind.WRONG_URL
+                            )
+                        )
+                    }
                     return
                 }
                 if (current.providerId == "custom" && current.gatewayUrl.isBlank()) {
-                    _state.update { it.copy(test = ConnectionState.Failed("Custom endpoint needs a base URL.")) }
+                    _state.update {
+                        it.copy(
+                            test = ConnectionState.Failed(
+                                reason = "Custom endpoint needs a base URL.",
+                                kind = GatewayUrl.FailureKind.WRONG_URL
+                            )
+                        )
+                    }
                     return
                 }
                 _state.update { it.copy(test = ConnectionState.Connecting) }
@@ -102,7 +128,31 @@ class ProviderViewModel(
 
             ConnectionMode.HERMES -> {
                 if (current.gatewayUrl.isBlank()) {
-                    _state.update { it.copy(test = ConnectionState.Failed("Gateway URL is empty.")) }
+                    _state.update {
+                        it.copy(
+                            test = ConnectionState.Failed(
+                                reason = "Gateway URL is empty.",
+                                kind = GatewayUrl.FailureKind.WRONG_URL
+                            )
+                        )
+                    }
+                    return
+                }
+                // Catch the "10.0.2.2 on a real phone" misconfig before we
+                // even open a socket — it would otherwise eat the full
+                // connect-timeout window and look like a generic outage.
+                if (GatewayUrl.isEmulatorOnlyHost(current.gatewayUrl) && !GatewayUrl.isProbablyEmulator) {
+                    _state.update {
+                        it.copy(
+                            test = ConnectionState.Failed(
+                                reason = "10.0.2.2 only works in the Android emulator. " +
+                                    "On a real phone, use the gateway's LAN IP (e.g. " +
+                                    "http://192.168.1.42:8080), an ngrok / Cloudflare " +
+                                    "tunnel, or a public HTTPS URL.",
+                                kind = GatewayUrl.FailureKind.WRONG_URL
+                            )
+                        )
+                    }
                     return
                 }
                 _state.update { it.copy(test = ConnectionState.Connecting) }
@@ -123,8 +173,16 @@ class ProviderViewModel(
 
     private fun applyStatus(status: HermesStatus) {
         _state.update {
-            if (status.ok) it.copy(test = ConnectionState.Connected(status))
-            else it.copy(test = ConnectionState.Failed(status.message ?: "Unknown error"))
+            if (status.ok) {
+                it.copy(test = ConnectionState.Connected(status))
+            } else {
+                it.copy(
+                    test = ConnectionState.Failed(
+                        reason = status.message ?: "Unknown error",
+                        kind = status.failureKind ?: GatewayUrl.FailureKind.UNKNOWN
+                    )
+                )
+            }
         }
     }
 

@@ -156,10 +156,41 @@ in mock mode or against a thin REST shim sitting in front of the gateway.
 
 | Build type | App id | Default mock mode | Default gateway URL |
 |---|---|---|---|
-| `debug` | `com.aci.hermes.debug` | ON | `http://10.0.2.2:8080` (emulator → host) |
-| `release` | `com.aci.hermes` | OFF | `""` (user must enter) |
+| `debug` | `com.aci.hermes.debug` | ON | `$HERMES_GATEWAY_URL`, else `http://10.0.2.2:8080` (emulator → host) |
+| `release` | `com.aci.hermes` | OFF | `$HERMES_GATEWAY_URL`, else `""` (user must enter) |
 
-Both are configured in `app/build.gradle.kts` via `buildConfigField`.
+The default URL is resolved at build time from (in order):
+
+1. `-PhermesGatewayUrl=...` (Gradle property)
+2. `$HERMES_GATEWAY_URL` (env var)
+3. `$ANDROID_API_BASE_URL` (env var alias)
+4. Build-type fallback above.
+
+It is exposed via `BuildConfig.DEFAULT_GATEWAY_URL` and only used as the
+seed value on first launch — once the user touches the URL field on the
+**Provider** screen, the override is persisted in DataStore and the
+build-time default no longer applies.
+
+> `10.0.2.2` is an Android-emulator-only loopback alias. The
+> `data/network` layer detects it and refuses to dial it from a real
+> device (see `util/GatewayUrl.kt`), surfacing a **"Wrong backend URL"**
+> banner instead of waiting out the OS-level TCP connect timeout.
+
+## Connection state model
+
+`ConnectionState` (in `data/model/HermesStatus.kt`) is the single source
+of truth the status, diagnostics, and provider screens render from:
+
+| State                   | Meaning                                                          |
+|-------------------------|------------------------------------------------------------------|
+| `Unknown`               | Nothing has been probed yet.                                     |
+| `Connecting`            | `/v1/health` probe in flight.                                    |
+| `Connected(status)`     | Probe returned 2xx; `status` carries version/model/etc.          |
+| `Failed(reason, kind)`  | Probe failed. `kind` ∈ {UNREACHABLE, WRONG_URL, TLS, HTTP, UNKNOWN} |
+
+`HermesGatewayClient.status()` uses a *short-timeout* OkHttp client
+clone (5s connect, 8s call timeout) so the UI can show a real error
+in ~8 seconds instead of waiting the OS default ~100 seconds.
 
 ## Why not embed a Python runtime?
 

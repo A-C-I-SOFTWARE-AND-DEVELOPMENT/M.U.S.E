@@ -6,6 +6,7 @@ import com.aci.hermes.data.model.ConnectionState
 import com.aci.hermes.data.network.AIClientFactory
 import com.aci.hermes.data.preferences.ConnectionMode
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.util.GatewayUrl
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,8 +46,16 @@ class StatusViewModel(
             val client = clientFactory.current()
             val status = client.status()
             _state.update {
-                if (status.ok) it.copy(connection = ConnectionState.Connected(status))
-                else it.copy(connection = ConnectionState.Failed(status.message ?: "Unknown error"))
+                if (status.ok) {
+                    it.copy(connection = ConnectionState.Connected(status))
+                } else {
+                    it.copy(
+                        connection = ConnectionState.Failed(
+                            reason = status.message ?: "Unknown error",
+                            kind = status.failureKind ?: GatewayUrl.FailureKind.UNKNOWN
+                        )
+                    )
+                }
             }
         }
     }
