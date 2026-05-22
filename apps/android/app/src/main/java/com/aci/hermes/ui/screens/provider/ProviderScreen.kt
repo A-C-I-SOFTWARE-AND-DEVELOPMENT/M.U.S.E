@@ -2,6 +2,8 @@ package com.aci.hermes.ui.screens.provider
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,7 +36,7 @@ import com.aci.hermes.R
 import com.aci.hermes.data.model.ConnectionState
 import com.aci.hermes.data.model.Providers
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ProviderScreen(
     viewModel: ProviderViewModel,
@@ -102,8 +104,9 @@ fun ProviderScreen(
                 text = stringResource(R.string.provider_provider_label),
                 style = MaterialTheme.typography.titleMedium
             )
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
@@ -112,8 +115,7 @@ fun ProviderScreen(
                     AssistChip(
                         onClick = { viewModel.setProviderId(p.id) },
                         label = { Text(p.displayName.substringBefore(" ")) },
-                        enabled = !state.mockMode,
-                        modifier = Modifier
+                        enabled = !state.mockMode
                     )
                 }
             }
