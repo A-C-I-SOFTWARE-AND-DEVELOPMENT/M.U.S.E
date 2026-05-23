@@ -1,0 +1,388 @@
+# Hermes model registry
+#
+# Source of truth for every model, CLI tool, runtime, and human-in-the-loop
+# surface that the model router is allowed to pick.  The router reads this
+# file (plus the policy in model-routing-policy.md and the capability matrix
+# in tool-capability-matrix.md) and produces a worker-selection-report from
+# templates/orchestration/worker-selection-report.md for the user before any
+# handoff actually happens.
+#
+# Schema (per entry):
+#   id              string, kebab-case, stable, unique
+#   provider        which vendor / owner the surface belongs to
+#   surface         how Hermes reaches it: internal | cli | handoff | runtime | http | human
+#   strengths       short bullet list of what it is genuinely good at
+#   best_for        the kind of jobs the router should prefer it for
+#   not_for         the kind of jobs the router must avoid sending here
+#   detection       how Hermes decides this surface is actually available
+#                     internal:  bool      (Hermes itself, always true)
+#                     command:   string    (binary on PATH)
+#                     env:       [string]  (required env vars)
+#                     file:      string    (file that must exist, e.g. auth.json)
+#                     app:       string    (Android package or external app id)
+#                     prompt:    bool      (always asks user, e.g. clipboard handoff)
+#   run_mode        how the work is actually executed
+#                     internal:        bool
+#                     official_cli:    bool   (use vendor's own CLI, no API proxying)
+#                     handoff:         bool   (user copies prompt into another tool)
+#                     local_runtime:   bool   (local model server, e.g. Ollama)
+#                     sandboxed:       bool   (runs inside a sandbox / container / worktree)
+#   tradeoffs       quality / speed / cost / privacy buckets: low | medium | high
+#   risk            low | medium | high  (blast radius if it goes wrong unsupervised)
+#   requires_approval  whether the router must surface a human-approval gate
+#                      before this surface is used (see human-approval entry)
+#   fallback        ordered list of registry ids to try if this one is unavailable
+#                   or fails the detection / health check
+#
+# Conventions:
+# - "handoff" surfaces never call third-party APIs from the device.  The user
+#   pastes the structured prompt into the official app they are already logged
+#   into (see docs/hermes-local-orchestrator.md for the rationale).
+# - The router prefers `hermes-local` for evidence-gathering and validation,
+#   and only delegates to an external surface when the job actually needs it.
+# - Every entry must include enough detection signal that the router can decide
+#   "available / unavailable" without trying it and failing.
+
+version: 1
+updated: 2026-05-23
+
+models:
+  - id: hermes-local
+    provider: hermes
+    surface: internal
+    strengths:
+      - repo evidence
+      - terminal validation
+      - file operations
+      - memory
+      - GitHub publishing
+      - skill loading
+      - kanban orchestration
+    best_for:
+      - every job (default first pick)
+      - validation
+      - local context gathering
+      - reading and grepping the repo
+      - running tests and linters
+      - committing and pushing
+    not_for:
+      - generating large novel features in one shot (delegate to codex/claude-code)
+      - long-context architecture review of unfamiliar codebases (prefer claude-code)
+    detection:
+      internal: true
+    run_mode:
+      internal: true
+    tradeoffs:
+      quality: medium
+      speed: high
+      cost: low
+      privacy: high
+    risk: low
+    requires_approval: false
+    fallback: []
+
+  - id: codex
+    provider: openai
+    surface: cli
+    strengths:
+      - implementation
+      - tests
+      - fast code edits
+      - one-shot feature work in a known repo
+    best_for:
+      - feature implementation
+      - bug fixes
+      - test repair
+      - batch issue fixing across worktrees
+    not_for:
+      - long-context architecture review
+      - decisions about cross-repo strategy
+      - anything outside a git repo (codex refuses to run)
+    detection:
+      command: codex
+      env: []   # auth can live in ~/.codex/auth.json (CLI OAuth) instead of OPENAI_API_KEY
+      file: ~/.codex/auth.json   # optional; presence is treated as auth signal
+    run_mode:
+      official_cli: true
+      sandboxed: true   # via codex --full-auto sandbox or per-worktree isolation
+    tradeoffs:
+      quality: high
+      speed: high
+      cost: medium
+      privacy: medium
+    risk: medium
+    requires_approval: false
+    fallback:
+      - claude-code
+      - chatgpt-handoff
+
+  - id: claude-code
+    provider: anthropic
+    surface: cli
+    strengths:
+      - architecture
+      - long context review
+      - complex refactor
+      - risk review
+      - structured JSON / schema output
+      - subagent orchestration
+    best_for:
+      - architecture proposals
+      - code review and security review
+      - complex planning
+      - large refactors that span many files
+      - PR review with structured output
+    not_for:
+      - tiny mechanical edits where the codex CLI is faster
+      - jobs without a real plan (use plan skill first)
+    detection:
+      command: claude
+      env: []   # OAuth via `claude auth login` is fine; ANTHROPIC_API_KEY also works
+    run_mode:
+      official_cli: true
+      sandboxed: true   # via worktrees, --bare, and tool allowlists
+    tradeoffs:
+      quality: high
+      speed: medium
+      cost: medium
+      privacy: medium
+    risk: medium
+    requires_approval: false
+    fallback:
+      - codex
+      - chatgpt-handoff
+
+  - id: aider
+    provider: aider
+    surface: cli
+    strengths:
+      - tight diff-driven edits
+      - git-aware refactors
+      - working with very explicit file context
+      - cheap iteration loop
+    best_for:
+      - targeted multi-file edits where the user already knows the files
+      - rename-across-these-12-files style work
+      - cleaning up diff hunks
+    not_for:
+      - open-ended exploration of an unfamiliar codebase
+      - tasks where the right files are not yet known
+    detection:
+      command: aider
+      env:
+        - OPENAI_API_KEY  # or ANTHROPIC_API_KEY; aider needs one provider key
+    run_mode:
+      official_cli: true
+      sandboxed: false   # aider edits the working tree in place; use a worktree for safety
+    tradeoffs:
+      quality: medium
+      speed: high
+      cost: low
+      privacy: medium
+    risk: medium
+    requires_approval: false
+    fallback:
+      - codex
+      - hermes-local
+
+  - id: goose
+    provider: block
+    surface: cli
+    strengths:
+      - long-running automation in a sandbox
+      - MCP-rich workflows
+      - infra and devops tasks
+    best_for:
+      - long-running "set it and report back" style work
+      - tasks that lean on MCP servers Hermes doesn't host itself
+      - environment setup, dependency upgrades, CI plumbing
+    not_for:
+      - quick code edits (use codex / aider)
+      - architecture review (use claude-code)
+    detection:
+      command: goose
+    run_mode:
+      official_cli: true
+      sandboxed: true
+    tradeoffs:
+      quality: medium
+      speed: medium
+      cost: medium
+      privacy: medium
+    risk: medium
+    requires_approval: false
+    fallback:
+      - codex
+      - hermes-local
+
+  - id: chatgpt-handoff
+    provider: openai
+    surface: handoff
+    strengths:
+      - human-driven reasoning with the model the user is already paying for
+      - works when no CLI / API surface is available
+      - good for ambiguous product / writing tasks
+    best_for:
+      - turning a vague request into a concrete plan
+      - long-form drafting (specs, RFCs, comms) where the user wants to edit live
+      - any time the user is on a device without CLI access (Android orchestrator)
+    not_for:
+      - anything that needs to touch the repo automatically
+      - validation, testing, or committing
+    detection:
+      prompt: true   # always available; surfaces a clipboard / deep-link handoff
+    run_mode:
+      handoff: true
+    tradeoffs:
+      quality: high
+      speed: medium
+      cost: low      # piggy-backs on user's existing ChatGPT subscription
+      privacy: medium
+    risk: low        # user approves every handoff explicitly
+    requires_approval: true
+    fallback:
+      - claude-code
+      - codex
+
+  - id: local-model
+    provider: local
+    surface: runtime
+    strengths:
+      - offline / private execution
+      - no per-call cost
+      - predictable latency on local hardware
+    best_for:
+      - classification, summarization, embedding-style work
+      - jobs where data must not leave the device
+      - cheap pre-filtering before routing to a stronger model
+    not_for:
+      - complex multi-file refactors
+      - tasks that need browser or terminal tool use the local runtime doesn't expose
+    detection:
+      command: ollama   # or llama-server, lmstudio; first one found wins
+      env:
+        - OLLAMA_HOST   # optional; defaults to http://localhost:11434
+    run_mode:
+      local_runtime: true
+    tradeoffs:
+      quality: low
+      speed: high
+      cost: low
+      privacy: high
+    risk: low
+    requires_approval: false
+    fallback:
+      - hermes-local
+      - codex
+
+  - id: github-publisher
+    provider: github
+    surface: http
+    strengths:
+      - committing, pushing, creating PRs and issues
+      - the only sanctioned way for Hermes to publish work upstream
+    best_for:
+      - turning a finished local change into a PR
+      - posting review replies, opening issues, updating PR descriptions
+    not_for:
+      - reasoning, planning, or code generation
+      - anything that needs to read files (use hermes-local)
+    detection:
+      env:
+        - GITHUB_TOKEN   # or GH_TOKEN; one must be set
+      command: git       # git must be installed locally
+    run_mode:
+      internal: true     # called through the GitHub plugin / MCP tools
+    tradeoffs:
+      quality: high
+      speed: high
+      cost: low
+      privacy: medium
+    risk: medium         # writes are visible to others — see "Executing actions with care"
+    requires_approval: true   # PR creation, comments, merges always confirm first
+    fallback: []
+
+  - id: android-termux-runtime
+    provider: hermes
+    surface: runtime
+    strengths:
+      - lets Hermes run real shell commands on the user's phone
+      - bridges the Android orchestrator app to the same toolset desktop uses
+    best_for:
+      - phone-side validation (git status, running a script, fetching a URL)
+      - jobs the user wants to run while away from the laptop
+    not_for:
+      - heavy builds (Termux is small, single-arch, often resource-constrained)
+      - anything that requires desktop-only tooling (Docker, IDE plugins)
+    detection:
+      app: com.termux                  # Termux installed
+      env:
+        - PREFIX                       # set to /data/data/com.termux/files/usr inside Termux
+      file: /data/data/com.termux/files/usr/bin/bash
+    run_mode:
+      sandboxed: true                  # Termux is its own sandbox
+    tradeoffs:
+      quality: medium
+      speed: medium
+      cost: low
+      privacy: high
+    risk: medium
+    requires_approval: true            # every external action on the phone needs a tap
+    fallback:
+      - hermes-local
+      - chatgpt-handoff
+
+  - id: browser-research
+    provider: hermes
+    surface: runtime
+    strengths:
+      - fetching live web pages / docs the model's training data doesn't cover
+      - structured scraping with the browser plugin
+    best_for:
+      - "what does the current docs page say about X"
+      - reproducing a bug from a third-party site
+      - pulling release notes, RFCs, or vendor announcements
+    not_for:
+      - reasoning over content that's already in the repo (use hermes-local)
+      - anything that requires authenticated access the user has not approved
+    detection:
+      command: chromium   # or chrome, playwright-chromium; first found wins
+      env: []
+    run_mode:
+      sandboxed: true     # headless browser in its own process
+    tradeoffs:
+      quality: medium
+      speed: medium
+      cost: low
+      privacy: medium
+    risk: medium
+    requires_approval: true   # browsing on the user's behalf can leak intent
+    fallback:
+      - chatgpt-handoff
+      - hermes-local
+
+  - id: human-approval
+    provider: human
+    surface: human
+    strengths:
+      - the only surface that can authorize destructive or externally-visible actions
+      - the only surface that can break ties when policy is ambiguous
+    best_for:
+      - confirming pushes, merges, comments, deletes, force-pushes
+      - approving handoffs to chatgpt / browser / termux
+      - choosing between two roughly equivalent worker mixes
+    not_for:
+      - things the policy already permits without approval (don't ask twice)
+      - high-frequency loops (batch the approvals)
+    detection:
+      prompt: true
+    run_mode:
+      handoff: true
+    tradeoffs:
+      quality: high
+      speed: low
+      cost: low
+      privacy: high
+    risk: low
+    requires_approval: false   # this *is* the approval surface
+    fallback: []
