@@ -38,7 +38,7 @@ import urllib.request
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence
 
 __all__ = [
     "DEFAULT_WINDOW_DAYS",
@@ -199,12 +199,12 @@ def have_gh_auth() -> bool:
         return False
 
 
-def get_github_token(env: Optional[dict] = None) -> Optional[str]:
+def get_github_token(env: Optional[Mapping[str, str]] = None) -> Optional[str]:
     """Look up a GitHub token from environment without persisting it."""
 
-    env = env if env is not None else os.environ
+    source: Mapping[str, str] = env if env is not None else os.environ
     for var in ("GITHUB_TOKEN", "GH_TOKEN", "HERMES_GITHUB_TOKEN"):
-        token = env.get(var)
+        token = source.get(var)
         if token:
             return token.strip() or None
     return None
