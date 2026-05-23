@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
@@ -33,7 +32,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.data.model.ConnectionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +61,7 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
                     IconButton(onClick = viewModel::clearLogs) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.diagnostics_clear_logs))
                     }
-                }
+                },
             )
         }
     ) { padding ->
@@ -72,7 +70,7 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             DiagInfoCard(state)
             LogsCard(state)
@@ -84,23 +82,13 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
 private fun DiagInfoCard(state: DiagnosticsUiState) {
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            val backend = when (val c = state.connection) {
-                is ConnectionState.Connected -> "OK" + (c.status.version?.let { " ($it)" } ?: "")
-                is ConnectionState.Failed -> "Failed — ${c.reason}"
-                ConnectionState.Connecting -> "Checking…"
-                ConnectionState.Unknown -> "Unknown"
-            }
-            DiagRow(stringResource(R.string.diagnostics_backend), backend)
-            HorizontalDivider()
             DiagRow(stringResource(R.string.diagnostics_app_version), state.appVersion)
             HorizontalDivider()
             DiagRow(stringResource(R.string.diagnostics_build_type), state.buildType)
             HorizontalDivider()
-            DiagRow(stringResource(R.string.diagnostics_gateway_url), state.gatewayUrl.ifBlank { "(not set)" })
-            HorizontalDivider()
             DiagRow(
                 stringResource(R.string.diagnostics_last_error),
-                state.lastError?.message ?: stringResource(R.string.diagnostics_no_error)
+                state.lastError?.message ?: stringResource(R.string.diagnostics_no_error),
             )
         }
     }
@@ -118,14 +106,14 @@ private fun DiagRow(label: String, value: String) {
 private fun LogsCard(state: DiagnosticsUiState) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 stringResource(R.string.diagnostics_logs),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 8.dp),
             )
             if (state.logs.isEmpty()) {
                 Text(stringResource(R.string.diagnostics_no_logs), style = MaterialTheme.typography.bodyMedium)

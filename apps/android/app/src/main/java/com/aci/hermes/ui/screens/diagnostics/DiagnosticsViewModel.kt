@@ -3,10 +3,6 @@ package com.aci.hermes.ui.screens.diagnostics
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.BuildConfig
-import com.aci.hermes.data.model.ConnectionState
-import com.aci.hermes.data.network.AIClientFactory
-import com.aci.hermes.data.preferences.SettingsRepository
-import com.aci.hermes.util.GatewayUrl
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,16 +14,12 @@ import kotlinx.coroutines.launch
 data class DiagnosticsUiState(
     val appVersion: String = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
     val buildType: String = BuildConfig.BUILD_TYPE,
-    val gatewayUrl: String = "",
-    val connection: ConnectionState = ConnectionState.Unknown,
     val logs: List<LogBuffer.Entry> = emptyList(),
-    val lastError: LogBuffer.Entry? = null
+    val lastError: LogBuffer.Entry? = null,
 )
 
 class DiagnosticsViewModel(
-    private val settings: SettingsRepository,
-    private val clientFactory: AIClientFactory,
-    private val logBuffer: LogBuffer
+    private val logBuffer: LogBuffer,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DiagnosticsUiState())
@@ -40,29 +32,12 @@ class DiagnosticsViewModel(
                     _state.update { it.copy(logs = entries, lastError = err) }
                 }
         }
-        refresh()
     }
 
     fun refresh() {
-        _state.update { it.copy(connection = ConnectionState.Connecting) }
-        viewModelScope.launch {
-            val snap = settings.snapshot()
-            _state.update { it.copy(gatewayUrl = snap.gatewayUrl) }
-            val client = clientFactory.current()
-            val status = client.status()
-            _state.update {
-                if (status.ok) {
-                    it.copy(connection = ConnectionState.Connected(status))
-                } else {
-                    it.copy(
-                        connection = ConnectionState.Failed(
-                            reason = status.message ?: "Unknown error",
-                            kind = status.failureKind ?: GatewayUrl.FailureKind.UNKNOWN
-                        )
-                    )
-                }
-            }
-        }
+        // Nothing to refresh now that we don't poll a backend, but kept
+        // so the UI's refresh icon stays meaningful for future use.
+        _state.update { it.copy() }
     }
 
     fun clearLogs() = logBuffer.clear()

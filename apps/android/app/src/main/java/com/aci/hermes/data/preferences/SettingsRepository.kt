@@ -14,49 +14,24 @@ import kotlinx.coroutines.flow.map
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "hermes_settings")
 
 /**
- * Non-sensitive user settings (connection mode, gateway URL, provider id,
- * model, theme, onboarding flag). Secrets — provider API key, gateway
- * bearer token — live in [SecureKeyStore].
- *
- * `mockMode` (legacy boolean) is still surfaced for backward-compat with
- * older builds, but the canonical signal is now `connectionMode`. The two
- * are kept in sync on write.
+ * Local-only orchestrator preferences. Hermes deliberately does not
+ * store any provider API keys or session tokens — the legacy
+ * EncryptedSharedPreferences store was removed when Chat / Provider
+ * was retired.
  */
-class SettingsRepository(
-    private val context: Context,
-    private val secureKeyStore: SecureKeyStore,
-    private val defaultGatewayUrl: String,
-    private val defaultMockMode: Boolean
-) {
+class SettingsRepository(private val context: Context) {
+
     private object Keys {
-        val CONNECTION_MODE = stringPreferencesKey("connection_mode")
-        val GATEWAY_URL = stringPreferencesKey("gateway_url")
-        val PROVIDER_ID = stringPreferencesKey("provider_id")
-        val MODEL = stringPreferencesKey("model")
         val THEME_MODE = stringPreferencesKey("theme_mode")
-        val MOCK_MODE = booleanPreferencesKey("mock_mode") // legacy, kept in sync
         val ONBOARDED = booleanPreferencesKey("onboarded")
-    }
 
-    private val defaultMode: ConnectionMode =
-        if (defaultMockMode) ConnectionMode.MOCK else ConnectionMode.DIRECT
-
-    val connectionMode: Flow<ConnectionMode> = context.dataStore.data.map { prefs ->
-        prefs[Keys.CONNECTION_MODE]?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
-            ?: legacyModeFrom(prefs)
-            ?: defaultMode
-    }
-
-    val gatewayUrl: Flow<String> = context.dataStore.data.map {
-        it[Keys.GATEWAY_URL] ?: defaultGatewayUrl
-    }
-
-    val providerId: Flow<String> = context.dataStore.data.map {
-        it[Keys.PROVIDER_ID] ?: "openrouter"
-    }
-
-    val model: Flow<String> = context.dataStore.data.map {
-        it[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL
+        val PREFERRED_BUILDER = stringPreferencesKey("preferred_builder")
+        val PREFERRED_REVIEWER = stringPreferencesKey("preferred_reviewer")
+        val USE_API_KEYS = booleanPreferencesKey("use_api_keys")
+        val LOCAL_ONLY_MODE = booleanPreferencesKey("local_only_mode")
+        val ALLOW_EXTERNAL_APP_OPENING = booleanPreferencesKey("allow_external_app_opening")
+        val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
+        val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -71,23 +46,26 @@ class SettingsRepository(
         it[Keys.ONBOARDED] ?: false
     }
 
-    suspend fun setConnectionMode(mode: ConnectionMode) {
-        context.dataStore.edit {
-            it[Keys.CONNECTION_MODE] = mode.name
-            it[Keys.MOCK_MODE] = (mode == ConnectionMode.MOCK)
-        }
+    val preferredBuilder: Flow<PreferredBuilder> = context.dataStore.data.map {
+        runCatching { PreferredBuilder.valueOf(it[Keys.PREFERRED_BUILDER] ?: "") }
+            .getOrDefault(PreferredBuilder.CODEX)
     }
 
-    suspend fun setGatewayUrl(url: String) {
-        context.dataStore.edit { it[Keys.GATEWAY_URL] = url.trim() }
+    val preferredReviewer: Flow<PreferredReviewer> = context.dataStore.data.map {
+        runCatching { PreferredReviewer.valueOf(it[Keys.PREFERRED_REVIEWER] ?: "") }
+            .getOrDefault(PreferredReviewer.CLAUDE_CODE)
     }
 
-    suspend fun setProviderId(id: String) {
-        context.dataStore.edit { it[Keys.PROVIDER_ID] = id }
+    val useApiKeys: Flow<Boolean> = context.dataStore.data.map { it[Keys.USE_API_KEYS] ?: false }
+    val localOnlyMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.LOCAL_ONLY_MODE] ?: true }
+    val allowExternalAppOpening: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.ALLOW_EXTERNAL_APP_OPENING] ?: false
     }
-
-    suspend fun setModel(model: String) {
-        context.dataStore.edit { it[Keys.MODEL] = model.trim() }
+    val clipboardHandoffEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.CLIPBOARD_HANDOFF_ENABLED] ?: true
+    }
+    val showSafetyWarnings: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.SHOW_SAFETY_WARNINGS] ?: true
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -98,68 +76,73 @@ class SettingsRepository(
         context.dataStore.edit { it[Keys.ONBOARDED] = value }
     }
 
-    suspend fun gatewayToken(): String? = secureKeyStore.get(SecureKeyStore.KEY_GATEWAY_TOKEN)
-    suspend fun setGatewayToken(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_GATEWAY_TOKEN, value)
-    suspend fun providerApiKey(): String? = secureKeyStore.get(SecureKeyStore.KEY_PROVIDER_API_KEY)
-    suspend fun setProviderApiKey(value: String?) = secureKeyStore.put(SecureKeyStore.KEY_PROVIDER_API_KEY, value)
+    suspend fun setPreferredBuilder(value: PreferredBuilder) {
+        context.dataStore.edit { it[Keys.PREFERRED_BUILDER] = value.name }
+    }
+
+    suspend fun setPreferredReviewer(value: PreferredReviewer) {
+        context.dataStore.edit { it[Keys.PREFERRED_REVIEWER] = value.name }
+    }
+
+    suspend fun setUseApiKeys(value: Boolean) {
+        context.dataStore.edit { it[Keys.USE_API_KEYS] = value }
+    }
+
+    suspend fun setLocalOnlyMode(value: Boolean) {
+        context.dataStore.edit { it[Keys.LOCAL_ONLY_MODE] = value }
+    }
+
+    suspend fun setAllowExternalAppOpening(value: Boolean) {
+        context.dataStore.edit { it[Keys.ALLOW_EXTERNAL_APP_OPENING] = value }
+    }
+
+    suspend fun setClipboardHandoffEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.CLIPBOARD_HANDOFF_ENABLED] = value }
+    }
+
+    suspend fun setShowSafetyWarnings(value: Boolean) {
+        context.dataStore.edit { it[Keys.SHOW_SAFETY_WARNINGS] = value }
+    }
 
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }
-        secureKeyStore.clear()
     }
-
-    suspend fun secretsSnapshot(): SecretsSnapshot = SecretsSnapshot(
-        gatewayToken = gatewayToken(),
-        providerApiKey = providerApiKey()
-    )
-
-    data class SecretsSnapshot(
-        val gatewayToken: String?,
-        val providerApiKey: String?
-    )
 
     suspend fun snapshot(): Snapshot {
         val data = context.dataStore.data.first()
-        val mode = data[Keys.CONNECTION_MODE]
-            ?.let { runCatching { ConnectionMode.valueOf(it) }.getOrNull() }
-            ?: legacyModeFrom(data)
-            ?: defaultMode
         return Snapshot(
-            connectionMode = mode,
-            gatewayUrl = data[Keys.GATEWAY_URL] ?: defaultGatewayUrl,
-            providerId = data[Keys.PROVIDER_ID] ?: "openrouter",
-            model = data[Keys.MODEL] ?: DEFAULT_DIRECT_MODEL,
             themeMode = when (data[Keys.THEME_MODE]) {
                 "LIGHT" -> ThemeMode.LIGHT
                 "DARK" -> ThemeMode.DARK
                 else -> ThemeMode.SYSTEM
             },
-            hasOnboarded = data[Keys.ONBOARDED] ?: false
+            hasOnboarded = data[Keys.ONBOARDED] ?: false,
+            preferredBuilder = runCatching {
+                PreferredBuilder.valueOf(data[Keys.PREFERRED_BUILDER] ?: "")
+            }.getOrDefault(PreferredBuilder.CODEX),
+            preferredReviewer = runCatching {
+                PreferredReviewer.valueOf(data[Keys.PREFERRED_REVIEWER] ?: "")
+            }.getOrDefault(PreferredReviewer.CLAUDE_CODE),
+            useApiKeys = data[Keys.USE_API_KEYS] ?: false,
+            localOnlyMode = data[Keys.LOCAL_ONLY_MODE] ?: true,
+            allowExternalAppOpening = data[Keys.ALLOW_EXTERNAL_APP_OPENING] ?: false,
+            clipboardHandoffEnabled = data[Keys.CLIPBOARD_HANDOFF_ENABLED] ?: true,
+            showSafetyWarnings = data[Keys.SHOW_SAFETY_WARNINGS] ?: true,
         )
     }
 
     data class Snapshot(
-        val connectionMode: ConnectionMode,
-        val gatewayUrl: String,
-        val providerId: String,
-        val model: String,
         val themeMode: ThemeMode,
-        val hasOnboarded: Boolean
+        val hasOnboarded: Boolean,
+        val preferredBuilder: PreferredBuilder,
+        val preferredReviewer: PreferredReviewer,
+        val useApiKeys: Boolean,
+        val localOnlyMode: Boolean,
+        val allowExternalAppOpening: Boolean,
+        val clipboardHandoffEnabled: Boolean,
+        val showSafetyWarnings: Boolean,
     )
-
-    /**
-     * Best-effort fallback for installs that pre-date the
-     * `connection_mode` key. If the legacy `mock_mode` boolean is set
-     * to true we honour it; otherwise we can't disambiguate Direct from
-     * Hermes from the legacy state, so return null and let the default
-     * apply.
-     */
-    private fun legacyModeFrom(prefs: Preferences): ConnectionMode? {
-        val legacyMockMode = prefs[Keys.MOCK_MODE] ?: return null
-        return if (legacyMockMode) ConnectionMode.MOCK else null
-    }
-
-    companion object {
-        const val DEFAULT_DIRECT_MODEL = "openai/gpt-4o-mini"
-    }
 }
+
+enum class PreferredBuilder { CODEX, CHATGPT, MANUAL }
+enum class PreferredReviewer { CLAUDE_CODE, CLAUDE, CHATGPT, MANUAL }

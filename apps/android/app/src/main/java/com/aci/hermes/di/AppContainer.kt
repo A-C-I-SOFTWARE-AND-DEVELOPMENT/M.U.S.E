@@ -1,60 +1,68 @@
 package com.aci.hermes.di
 
+import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.aci.hermes.BuildConfig
-import com.aci.hermes.data.network.AIClientFactory
-import com.aci.hermes.data.preferences.SecureKeyStore
+import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.data.orchestrator.HermesTaskRepository
+import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
-import com.aci.hermes.ui.screens.chat.ChatViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
-import com.aci.hermes.ui.screens.provider.ProviderViewModel
+import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
-import com.aci.hermes.ui.screens.status.StatusViewModel
 import com.aci.hermes.util.LogBuffer
-import okhttp3.OkHttpClient
-import java.util.concurrent.TimeUnit
 
 /**
- * Hand-rolled DI container. We deliberately avoid Hilt / Koin here:
- *   * Keeps the build configuration small (no annotation processors).
- *   * Makes the wiring obvious to anyone landing in the Android module
- *     without prior Hilt experience.
+ * Hand-rolled DI container. Held by [com.aci.hermes.HermesApplication]
+ * for the lifetime of the process. ViewModel factories pull
+ * dependencies out of this container.
  *
- * Held by [com.aci.hermes.HermesApplication] for the lifetime of the
- * process. ViewModel factories pull dependencies out of this container.
+ * Scope is intentionally tiny — Hermes is a local orchestrator and
+ * does not talk to remote services from the app process.
  */
-class AppContainer(context: Context) {
+class AppContainer(private val application: Application) {
+
+    private val context: Context = application
+
     val logBuffer: LogBuffer = LogBuffer()
 
-    private val secureKeyStore = SecureKeyStore(context)
+    val settingsRepository: SettingsRepository = SettingsRepository(context)
 
-    val settingsRepository: SettingsRepository = SettingsRepository(
-        context = context,
-        secureKeyStore = secureKeyStore,
-        defaultGatewayUrl = BuildConfig.DEFAULT_GATEWAY_URL,
-        defaultMockMode = BuildConfig.ENABLE_MOCK_DEFAULT
-    )
+    val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
 
-    // Singleton: dispatcher executor + connection pool live for the
-    // process. Read timeout is 0 because /v1/chat is an open SSE stream;
-    // health-check and chat dials clone this client and apply their own
-    // shorter call/connect budgets (see HermesGatewayClient) so we don't
-    // wait the OS-default ~100s when the gateway URL is unreachable.
-    val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .writeTimeout(10, TimeUnit.SECONDS)
-        .build()
+    val promptBuilder: PromptBuilder = PromptBuilder()
 
-    val clientFactory: AIClientFactory = AIClientFactory(settingsRepository, httpClient, logBuffer)
+    fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
+        OrchestratorViewModel(
+            application = application,
+            settings = settingsRepository,
+            tasksRepo = taskRepository,
+            promptBuilder = promptBuilder,
+            logBuffer = logBuffer,
+        )
+    }
 
-    fun providerVmFactory(): ViewModelProvider.Factory = factory { ProviderViewModel(settingsRepository, httpClient, logBuffer) }
-    fun chatVmFactory(): ViewModelProvider.Factory = factory { ChatViewModel(settingsRepository, clientFactory) }
-    fun settingsVmFactory(): ViewModelProvider.Factory = factory { SettingsViewModel(settingsRepository, logBuffer) }
-    fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory { DiagnosticsViewModel(settingsRepository, clientFactory, logBuffer) }
-    fun statusVmFactory(): ViewModelProvider.Factory = factory { StatusViewModel(settingsRepository, clientFactory) }
+    fun taskDetailVmFactory(taskId: String?, initialTarget: TargetTool?): ViewModelProvider.Factory = factory {
+        TaskDetailViewModel(
+            application = application,
+            tasksRepo = taskRepository,
+            promptBuilder = promptBuilder,
+            settings = settingsRepository,
+            logBuffer = logBuffer,
+            initialTaskId = taskId,
+            initialTarget = initialTarget,
+        )
+    }
+
+    fun settingsVmFactory(): ViewModelProvider.Factory = factory {
+        SettingsViewModel(settingsRepository, taskRepository, logBuffer)
+    }
+
+    fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
+        DiagnosticsViewModel(logBuffer)
+    }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
         object : ViewModelProvider.Factory {
