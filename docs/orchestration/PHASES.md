@@ -26,22 +26,25 @@ what was deliberately deferred.
   shared `Worker` base with deterministic, network-free heuristics.
 - `hermes_cli/scoring.py` — four-signal weighted scorer
   (success, structure, coverage, hint) with weights that sum to 1.0.
-- `hermes_cli/arbiter.py` — picks a single winner, a draw, or abstains
-  below `MIN_PASS_SCORE`.
-- `hermes_cli/merge_engine.py` — produces a single `MergeArtifact`, either
-  the winner's proposal or a side-by-side union when the arbiter flagged
-  a draw.
-- `hermes_cli/validation_gates.py` — five gates (`structure`, `size`,
+- `hermes_cli/merge_engine.py` — arbiter + merge in one module.
+  `select_winner()` picks a single winner, falls back to manual review
+  below `MANUAL_REVIEW_FLOOR`, and produces a single `MergeArtifact`
+  (winner's proposal or a side-by-side union when reviewers must
+  reconcile).
+- `hermes_cli/validation.py` — five gates (`structure`, `size`,
   `secrets`, `unicode`, `policy`). Every gate is stdlib-only and
   deterministic.
 - `hermes_cli/github_publisher.py` — emits a `PublishDescriptor` (PR or
   issue). Dry-run by default; live mode requires both
   `HERMES_PUBLISH_LIVE=1` and a caller-supplied transport. No embedded
   credential path.
-- Tests: `tests/test_orchestrator.py`, `tests/test_worker.py`,
+- Tests: `tests/test_orchestrator_*.py`, `tests/test_worker_*.py`,
   `tests/test_scoring.py`, `tests/test_merge_engine.py`,
-  `tests/test_validation_gates.py`, `tests/test_github_publisher.py`
-  (60 tests total, all passing).
+  `tests/test_validation_gates.py`, `tests/test_github_publisher.py`,
+  `tests/test_parallel_orchestration.py`. All deterministic suites pass
+  in the standard CI image; the two parallel-runner cancel/timeout tests
+  require `psutil` so the live-system guard in `tests/conftest.py` can
+  recognise spawned worker subprocesses.
 - Docs: `docs/orchestration/final-10-10-readiness-report.md`,
   `release-checklist.md`, `known-limitations.md`, `next-roadmap.md`.
 
@@ -50,16 +53,16 @@ what was deliberately deferred.
 ```
 $ bash -n scripts/hermes-orchestrate.sh          # OK
 $ python -m py_compile hermes_cli/*.py hermes_cli/workers/*.py   # OK
-$ pytest tests/test_orchestrator*.py tests/test_worker*.py \
+$ pytest tests/test_orchestrator_*.py tests/test_worker_*.py \
          tests/test_scoring.py tests/test_merge_engine.py \
          tests/test_validation_gates.py tests/test_github_publisher.py -q
-60 passed
 ```
 
 End-to-end smoke (against a throwaway repo at `/tmp/demo-repo`) confirms:
 
 - six sandboxed git worktrees created and torn down per run,
-- arbiter, scoring, and merge engine wired correctly,
+- scoring and merge engine wired correctly (arbiter lives in
+  `merge_engine.select_winner()`),
 - five gates run and report PASS,
 - publisher writes a JSON descriptor under `.hermes/publish/` and never
   contacts the network in dry-run mode.
