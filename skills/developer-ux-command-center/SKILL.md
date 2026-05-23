@@ -5,11 +5,21 @@ version: 0.2.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [orchestration, developer-ux, cli, command-center]
+    tags: [orchestration, developer-ux, cli, command-center, android, cockpit, private-local]
     related_skills:
       - hermes-orchestration-pipeline
+      - aos-full-agent-team
       - model-router
       - github-publisher
+      - decision-quality-gate
+      - ai-improvement-radar
+      - self-improvement-loop
+      - best-coding-tool-mission
+    related_docs:
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/hermes-local-orchestrator.md
+      - apps/android/README.md
 ---
 
 # Developer UX command center
@@ -134,3 +144,56 @@ something that lives outside the job folder — open an issue, post a
 comment, look up a PR — reach for the GitHub MCP tools (`mcp__github__*`)
 or the native plugin instead. Use the script only to create, list,
 and inspect orchestration jobs.
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The developer terminal surface (this skill) and the
+[Android APK](../../apps/android/) (the cockpit) are two faces of the
+**same engine** — the Hermes backend running on a VPS, home server,
+laptop, or Termux on phone. They share:
+
+- The same job folder contract (`.hermes-orchestrator/jobs/<job-id>/`).
+- The same `decision-ledger.md` per job.
+- The same `status.json` lifecycle.
+- The same routing decisions emitted by
+  [`model-router`](../model-router/SKILL.md).
+- The same publish gates enforced by
+  [`github-publisher`](../github-publisher/SKILL.md).
+
+There is no cockpit-only state. The cockpit reads the folders this
+script scaffolds; this script can inspect jobs the cockpit launched.
+See [`docs/hermes-local-orchestrator.md`](../../docs/hermes-local-orchestrator.md)
+for the cockpit ↔ backend contract.
+
+## Posture: private and local-first
+
+- All jobs live on disk. No telemetry, no remote config, no
+  third-party data sharing.
+- External AI tools (Claude Code, Codex, Aider, Goose, local models)
+  are invoked only when the developer is already logged in to them.
+- The Android APK cockpit connects to the backend via a gateway the
+  developer controls — there is no Hermes-owned cloud relay.
+
+## Where this fits in the larger system
+
+| Concern | Skill / doc |
+|---|---|
+| Visible reasoning per decision | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) (template: [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)) |
+| Worker / model selection | [`model-router`](../model-router/SKILL.md), backed by [`docs/ai-intelligence/model-registry.yaml`](../../docs/ai-intelligence/model-registry.yaml) |
+| New AI tool capability tracking | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) |
+| Council orchestration | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Closing the loop after a job | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) |
+| Mission anchor | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/developer-ux-command-center                # load this skill into a session
+/hermes-orchestration-pipeline <job-id>     # drive a scaffolded job folder
+/aos-full-agent-team <goal>                 # full team for a single goal
+/model-router <task-type>                   # pick a worker / model on purpose
+/decision-quality-gate <decision-id>        # gate a proposed decision
+/ai-improvement-radar                       # scan + write a radar report
+/github-publisher <job-id>                  # ship approved changes
+```

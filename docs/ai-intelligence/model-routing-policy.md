@@ -9,6 +9,26 @@ task. The companion files are:
 - `skills/model-router/SKILL.md` — the runtime entry point that loads
   this policy and applies it per task.
 
+The policy does not live in isolation — it is one stage of the Hermes
+orchestration stack:
+
+- Every routing decision is recorded as a row in the job's
+  `decision-ledger.md` via [`skills/decision-quality-gate`](../../skills/decision-quality-gate/SKILL.md)
+  (template: [`docs/orchestration/decision-ledger.md`](../orchestration/decision-ledger.md)).
+- Fresh capability data comes from
+  [`skills/ai-improvement-radar`](../../skills/ai-improvement-radar/SKILL.md)
+  and the competitive harvester at
+  [`docs/competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md).
+- The end-of-job [`skills/self-improvement-loop`](../../skills/self-improvement-loop/SKILL.md)
+  emits `routing_miss` proposals against this policy when a job's
+  scorecard shows the wrong worker was picked
+  (Principle 9 in [`docs/mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md)).
+- The job folder substrate is documented at
+  [`docs/orchestration/hermes-orchestration-pipeline.md`](../orchestration/hermes-orchestration-pipeline.md).
+- Hermes backend is the engine; the Android APK at
+  [`apps/android/`](../../apps/android/) is the cockpit — both read
+  the same routing plan from the same job folder.
+
 The policy is intentionally deterministic. Two Hermes sessions on the
 same machine with the same registry and the same task should produce
 the same routing plan.
@@ -315,4 +335,34 @@ primary: chatgpt-handoff
 fallbacks: [hermes-local]
 validator: hermes-local
 publisher: (only if user asks; defaults off)
+```
+
+---
+
+## 10. Posture: private and local-first
+
+The router is private and local-first by default:
+
+- Detection only checks for tools the user has already installed and
+  authenticated. The router never phones home, never fetches a remote
+  registry, never reports detected workers to a third party.
+- Under `HERMES_OFFLINE=1` (or `model_router.prefer_local: true`),
+  cloud workers are removed from the candidate set; local-only
+  workers (`local-model`, `aider`, `goose`, `hermes-local`) handle
+  the job or the router stops and tells the user.
+- `chatgpt-handoff` is the only mechanism the router uses to involve
+  a logged-in subscription tool — and it is opt-in per session via
+  `/route chatgpt-handoff` or `model_router.allow_manual_handoff`.
+
+## 11. Invocation (CLI, gateway DM, or Android cockpit)
+
+```text
+/reload-skills                              # after editing registry / policy
+/model-router <task-type>                   # pick a worker / model on purpose
+/route detect                               # re-run worker detection
+/route ladder                               # show the current plan
+/route <worker>                             # pin <worker> for the next delegation
+/ai-improvement-radar                       # refresh registry / policy intelligence
+/decision-quality-gate <decision-id>        # gate a routing decision
+/self-improvement-loop                      # emit routing_miss proposals at job close
 ```

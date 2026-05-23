@@ -5,8 +5,27 @@ version: 1.0.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [learning, curator, routing, scorecard, mission, monitor]
-    related_skills: [best-coding-tool-mission, enterprise-monitor, enterprise-orchestrator]
+    tags: [learning, curator, routing, scorecard, mission, monitor, private-local]
+    related_skills:
+      - best-coding-tool-mission
+      - hermes-orchestration-pipeline
+      - aos-full-agent-team
+      - model-router
+      - decision-quality-gate
+      - research-validator
+      - ai-improvement-radar
+      - github-publisher
+      - developer-ux-command-center
+      - enterprise-monitor
+      - enterprise-orchestrator
+    related_docs:
+      - docs/orchestration/self-improvement-loop.md
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/ai-intelligence/model-registry.yaml
+      - docs/ai-intelligence/ai-improvement-radar.md
+      - docs/competitive/openhuman-paperclip-research.md
+      - docs/mission/best-coding-tool-mission.md
 ---
 
 # Self-Improvement Loop
@@ -177,3 +196,50 @@ Next prompt should be: <one short line, e.g. "cheaper: prefer local builder for 
 ```
 
 The trailer is what the user reads to know the loop actually closed.
+
+## Where this fits in the larger system
+
+The loop is the **closing pass** of every orchestrated job. It does
+not pick workers, run research, gate decisions, or ship code — it
+turns the artifacts those other skills produced into durable
+improvements:
+
+| Concern | Skill / doc |
+|---|---|
+| Job folder the loop reads from | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md) |
+| Mission anchor (Principle 8 + Principle 9) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+| Decision ledger the loop mines | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) (template: [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)) |
+| Evidence re-derivation discipline | [`research-validator`](../research-validator/SKILL.md) |
+| `routing_miss` proposals consumed by | [`model-router`](../model-router/SKILL.md) |
+| Fresh capability signals feeding routing updates | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) |
+| Council that runs through this loop on close | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Publishing the changes the loop produced | [`github-publisher`](../github-publisher/SKILL.md) |
+| Terminal surface for inspecting proposals | [`developer-ux-command-center`](../developer-ux-command-center/SKILL.md) |
+
+## Posture: private and local-first
+
+- Proposals live on disk under `~/.hermes/self-improvement/drafts/`
+  and `applied/`. Nothing is uploaded.
+- The loop never calls an external API. It reads job artifacts and
+  writes proposal files.
+- The Android APK cockpit reads the trailer line and the proposals
+  count from the same on-disk contract — the cockpit can surface a
+  proposal to the user for approval, but the approval itself is
+  recorded on disk through [`decision-quality-gate`](../decision-quality-gate/SKILL.md).
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The loop runs on the Hermes backend at the end of every job. The
+Android APK cockpit displays the trailer as the last thing the user
+sees for a job (Principle 10: the APK is the cockpit, the backend is
+the engine).
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/self-improvement-loop                      # close the current job
+/ai-improvement-radar                       # upstream: fresh capability signals
+/decision-quality-gate                      # upstream: the ledgers this loop mines
+/model-router <task-type>                   # downstream: consumes routing_miss proposals
+```

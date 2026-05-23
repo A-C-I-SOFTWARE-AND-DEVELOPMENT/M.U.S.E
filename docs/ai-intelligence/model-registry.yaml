@@ -6,6 +6,46 @@
 # the decision policy (model-routing-policy.md) and the per-worker
 # capability matrix (tool-capability-matrix.md).
 #
+# How this file is kept fresh and how it plugs into the wider
+# orchestration stack:
+#
+#   - ai-improvement-radar  (skills/ai-improvement-radar/SKILL.md +
+#                            docs/ai-intelligence/ai-improvement-radar.md)
+#     watches official sources for the workers listed below and emits
+#     recommendations against this file. The radar never edits this
+#     file directly — every change is a deliberate human action
+#     recorded through decision-quality-gate.
+#
+#   - decision-quality-gate (skills/decision-quality-gate/SKILL.md +
+#                            docs/orchestration/decision-ledger.md)
+#     records every change to this file as a ledger row with
+#     evidence, options, and rollback.
+#
+#   - self-improvement-loop (skills/self-improvement-loop/SKILL.md +
+#                            docs/orchestration/self-improvement-loop.md)
+#     emits `routing_miss` proposals against this file when a job's
+#     scorecard shows the wrong worker was picked, per Principle 9
+#     of docs/mission/best-coding-tool-mission.md.
+#
+#   - hermes-orchestration-pipeline (skills/hermes-orchestration-pipeline/SKILL.md +
+#                                    docs/orchestration/hermes-orchestration-pipeline.md)
+#     scaffolds the job folders that the routing decisions are recorded
+#     into. The pipeline is private and local-first by default; this
+#     registry only references workers the user has installed locally
+#     or is already authenticated with — no Hermes-owned cloud relay.
+#
+#   - github-publisher (skills/github-publisher/SKILL.md) is the
+#     internal worker that ships ledger-backed changes. It is never a
+#     primary "thinker" — it is the publication channel only.
+#
+#   - Competitive harvester input that may trigger new entries:
+#     docs/competitive/openhuman-paperclip-research.md and
+#     docs/competitive/developer-agent-feature-harvest.md.
+#
+# Hermes backend is the engine; the Android APK at apps/android/ is the
+# cockpit. The cockpit reads routing plans from the same job folders
+# the registry feeds; there is no cockpit-only state.
+#
 # Schema:
 #   id           — stable worker identifier used throughout Hermes
 #   provider     — vendor or origin (hermes, openai, anthropic, etc.)

@@ -10,6 +10,30 @@ person doesn't repeat it.
 **Researcher:** Hermes Agent (general-purpose subagent)
 **Method:** Web search + WebFetch against candidate URLs
 
+## How this feeds the rest of the orchestration stack
+
+This file is a **competitive feature harvester** output. It is one of
+the inputs to:
+
+- [`docs/ai-intelligence/ai-improvement-radar.md`](../ai-intelligence/ai-improvement-radar.md)
+  and [`skills/ai-improvement-radar/SKILL.md`](../../skills/ai-improvement-radar/SKILL.md)
+  — the radar reviews competitive findings each cycle and extracts
+  only actionable features (Principle 9 of
+  [`docs/mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md)).
+- [`docs/ai-intelligence/model-registry.yaml`](../ai-intelligence/model-registry.yaml)
+  and [`docs/ai-intelligence/model-routing-policy.md`](../ai-intelligence/model-routing-policy.md)
+  — actionable findings may trigger registry / policy updates routed
+  through [`skills/decision-quality-gate/SKILL.md`](../../skills/decision-quality-gate/SKILL.md)
+  (ledger template: [`docs/orchestration/decision-ledger.md`](../orchestration/decision-ledger.md)).
+- [`docs/orchestration/self-improvement-loop.md`](../orchestration/self-improvement-loop.md)
+  and [`skills/self-improvement-loop/SKILL.md`](../../skills/self-improvement-loop/SKILL.md)
+  — the loop may emit `routing_miss` proposals when this harvest
+  reveals a tool Hermes should have routed to.
+
+Discipline rule (same as the radar): only **shipped, documented**
+features move policy. Marketing claims and unreproduced benchmarks
+stay in the unverified column.
+
 ---
 
 ## 1. OpenHuman

@@ -112,9 +112,46 @@ The mission is the gate every loop checks against.
 
 ## Related docs
 
-- `docs/ai-intelligence/ai-improvement-radar.md`
-- `docs/orchestration/self-improvement-loop.md`
+- `docs/orchestration/hermes-orchestration-pipeline.md` — the job
+  folder contract every principle sits on top of.
+- `docs/orchestration/decision-ledger.md` — Principle 3 (visible
+  evidence and validation) lives here.
+- `docs/orchestration/self-improvement-loop.md` — Principle 8
+  (Hermes learns from every job) lives here.
+- `docs/ai-intelligence/ai-improvement-radar.md` — Principle 9
+  (current AI improvements update routing) lives here.
+- `docs/ai-intelligence/model-registry.yaml` — Principle 2 (best
+  worker/model mix) reads from here.
+- `docs/ai-intelligence/model-routing-policy.md` — Principle 2
+  scoring rubric lives here.
+- `docs/competitive/openhuman-paperclip-research.md` — competitive
+  harvester output that feeds Principle 9.
+- `apps/android/README.md` — Principle 10 (the APK is the cockpit;
+  the backend is the engine) lives here.
+- `docs/hermes-local-orchestrator.md` — the cockpit ↔ backend
+  contract that operationalises Principle 10.
 - `skills/best-coding-tool-mission/SKILL.md`
+- `skills/hermes-orchestration-pipeline/SKILL.md`
+- `skills/aos-full-agent-team/SKILL.md`
+- `skills/model-router/SKILL.md`
+- `skills/decision-quality-gate/SKILL.md`
+- `skills/research-validator/SKILL.md`
 - `skills/ai-improvement-radar/SKILL.md`
 - `skills/self-improvement-loop/SKILL.md`
+- `skills/github-publisher/SKILL.md`
+- `skills/developer-ux-command-center/SKILL.md`
 - `templates/orchestration/job-retrospective.md`
+
+## Invocation (CLI, gateway DM, or Android cockpit)
+
+```text
+/reload-skills                              # after editing skills
+/best-coding-tool-mission                   # load mission anchor at job start
+/aos-full-agent-team <goal>                 # full 16-specialist council
+/hermes-orchestration-pipeline <job-id>     # drive a scaffolded job folder
+/model-router <task-type>                   # pick a worker / model (P2)
+/decision-quality-gate <decision-id>        # gate a decision (P3, P6)
+/ai-improvement-radar                       # update the routing intelligence (P9)
+/self-improvement-loop                      # close the job (P8)
+/github-publisher <job-id>                  # ship approved changes (P7)
+```

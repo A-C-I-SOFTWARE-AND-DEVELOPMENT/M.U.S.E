@@ -7,13 +7,26 @@ license: MIT
 platforms: [linux, macos, windows, android]
 metadata:
   hermes:
-    tags: [research, validation, evidence, fact-checking, verification, audit]
+    tags: [research, validation, evidence, fact-checking, verification, audit, private-local]
     related_skills:
       - decision-quality-gate
+      - hermes-orchestration-pipeline
+      - model-router
+      - ai-improvement-radar
+      - self-improvement-loop
+      - aos-full-agent-team
+      - best-coding-tool-mission
       - enterprise-judge
       - enterprise-monitor
       - spike
       - subagent-driven-development
+    related_docs:
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/decision-quality-system.md
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/ai-intelligence/ai-improvement-radar.md
+      - docs/competitive/openhuman-paperclip-research.md
 ---
 
 # Research & Validator
@@ -265,6 +278,41 @@ Success criteria:
 | Skipping memory/session search on a re-engaged task | Always check session store first when resuming |
 | "Tests pass" as the only success criterion | Name *which* tests, and what "pass" means including timing/skip budget |
 
+## Where this fits in the larger system
+
+Research is the **evidence layer** behind every ledger. Other skills
+in the orchestration stack consume what this skill produces:
+
+| Concern | Skill / doc |
+|---|---|
+| Gate that consumes this output | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) — fills its ledger `Evidence Reviewed` / `Validation Plan` from this skill |
+| Job folder the evidence is filed into | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md) — `shared-context/evidence.md` and per-decision ledgers |
+| Routing decisions that need evidence | [`model-router`](../model-router/SKILL.md) — every routing rationale is itself evidence-backed |
+| Where new tool / model claims come from | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) — radar reports must clear the same source-quality bar this skill enforces |
+| Closing the loop with re-scored evidence | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) — re-derives scores from `evidence/` rather than trusting worker self-scores |
+| Council that runs through this skill | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Mission anchor (Principle 3) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+
+## Posture: private and local-first
+
+- Evidence collection prefers **local code + filesystem first**, then
+  on-device docs, then network only when needed.
+- Web fetches go through the user's own session — there is no
+  Hermes-owned proxy or scraping infrastructure.
+- Citations are stored as plain markdown alongside the ledger; they
+  never leave the user's disk.
+- The Android APK cockpit displays the same evidence rows from the
+  same on-disk files.
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/research-validator                         # load this skill into a session
+/decision-quality-gate                      # downstream gate that consumes the evidence
+/ai-improvement-radar                       # produces source-checked feature claims
+```
+
 ## Cross-references
 
 - **Gate that consumes this output:** [`skills/decision-quality-gate/SKILL.md`](../decision-quality-gate/SKILL.md)
@@ -273,3 +321,5 @@ Success criteria:
 - **Spike skill:** [`skills/software-development/spike/SKILL.md`](../software-development/spike/SKILL.md) — when research itself requires a throwaway experiment
 - **Enterprise judge:** [`skills/enterprise-council/judge/SKILL.md`](../enterprise-council/judge/SKILL.md) — formal validator for leaf results
 - **Enterprise monitor:** [`skills/enterprise-council/monitor/SKILL.md`](../enterprise-council/monitor/SKILL.md) — flags systemic ledger-quality regressions
+- **AI improvement radar:** [`docs/ai-intelligence/ai-improvement-radar.md`](../../docs/ai-intelligence/ai-improvement-radar.md) — uses the same source-quality discipline
+- **Competitive harvester:** [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md) — worked example of source-quality discipline applied to peer tools

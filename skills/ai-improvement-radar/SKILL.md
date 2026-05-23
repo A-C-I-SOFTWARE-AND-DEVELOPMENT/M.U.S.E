@@ -7,14 +7,30 @@ license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [ai-intelligence, radar, routing, coding-agents, evaluation, policy]
-    related_skills: [claude-code, codex, hermes-agent, opencode]
+    tags: [ai-intelligence, radar, routing, coding-agents, evaluation, policy, competitive, private-local]
+    related_skills:
+      - model-router
+      - research-validator
+      - decision-quality-gate
+      - self-improvement-loop
+      - hermes-orchestration-pipeline
+      - aos-full-agent-team
+      - best-coding-tool-mission
+      - claude-code
+      - codex
+      - hermes-agent
+      - opencode
     docs:
       - docs/ai-intelligence/ai-improvement-radar.md
     related_docs:
       - docs/ai-intelligence/model-registry.yaml
       - docs/ai-intelligence/model-routing-policy.md
       - docs/ai-intelligence/tool-capability-matrix.md
+      - docs/competitive/openhuman-paperclip-research.md
+      - docs/competitive/developer-agent-feature-harvest.md
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/mission/best-coding-tool-mission.md
 ---
 
 # AI Improvement Radar — Hermes Routing Intelligence
@@ -233,6 +249,56 @@ The `Confidence` column in "New features discovered" uses this scale:
 8. **Keep reports short.** A good radar report is two to four pages, not
    twenty. Long reports usually mean low signal-to-noise.
 
+## Where this fits in the larger system
+
+The radar is the **intelligence layer** for the router. It does not
+make routing decisions; it keeps the data the router scores against
+from going stale:
+
+| Concern | Skill / doc |
+|---|---|
+| Consumer of radar recommendations | [`model-router`](../model-router/SKILL.md) — reads the updated registry / policy / capability matrix on the next session |
+| Source-quality discipline behind every radar row | [`research-validator`](../research-validator/SKILL.md) |
+| Ledger row recording an apply-or-defer decision on a recommendation | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) |
+| Loop that mines radar reports for `routing_miss` proposals | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) (Principle 9: current AI improvements update the routing policy) |
+| Competitive feature harvester input | [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md), [`docs/competitive/developer-agent-feature-harvest.md`](../../docs/competitive/developer-agent-feature-harvest.md) |
+| Orchestration job folder the radar reports sit beside | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md) (reports under `.hermes-orchestrator/ai-radar/`) |
+| Council that may run the radar as part of a goal | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Mission anchor (Principle 9) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+
+## Posture: private and local-first
+
+- The radar reads **official sources only**. It does not scrape
+  subscription apps, does not bypass auth, does not drive logged-in
+  browser sessions.
+- Reports live on disk in `.hermes-orchestrator/ai-radar/` next to
+  the job folders.
+- The radar **recommends**; it does not auto-promote. Every routing
+  policy change is an explicit human action through
+  [`decision-quality-gate`](../decision-quality-gate/SKILL.md).
+- The Android APK cockpit reads radar reports from the same on-disk
+  contract — no separate remote feed.
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The radar runs on the Hermes backend (via the slash command or
+`scripts/hermes-ai-radar.sh`). The Android APK cockpit surfaces the
+latest report's summary and the user can approve / defer
+recommendations from the cockpit — but the recommendations apply to
+the same `docs/ai-intelligence/*` files in the same repo.
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/ai-improvement-radar                       # run a radar cycle
+/ai-improvement-radar tools=claude-code,codex,aider
+/research-validator                         # source-quality check behind any radar row
+/decision-quality-gate <decision-id>        # gate any apply on a recommendation
+/self-improvement-loop                      # mines radar reports for routing_miss proposals
+/model-router <task-type>                   # consumer of the registry the radar updates
+```
+
 ## See also
 
 - `docs/ai-intelligence/ai-improvement-radar.md` — narrative companion
@@ -243,6 +309,14 @@ The `Confidence` column in "New features discovered" uses this scale:
   for routing-rule updates.
 - `docs/ai-intelligence/tool-capability-matrix.md` — recommended target
   for per-tool capability updates.
+- `docs/competitive/openhuman-paperclip-research.md` — competitive
+  research example feeding the radar.
+- `docs/competitive/developer-agent-feature-harvest.md` — broader
+  harvest output.
+- `docs/orchestration/self-improvement-loop.md` — how radar findings
+  reach routing as `routing_miss` proposals.
+- `docs/mission/best-coding-tool-mission.md` — Principle 9 (current
+  AI improvements update the routing policy).
 - `skills/autonomous-ai-agents/claude-code/SKILL.md`
 - `skills/autonomous-ai-agents/codex/SKILL.md`
 - `skills/autonomous-ai-agents/hermes-agent/SKILL.md`

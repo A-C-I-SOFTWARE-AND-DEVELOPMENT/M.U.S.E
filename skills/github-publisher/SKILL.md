@@ -5,11 +5,20 @@ version: 0.2.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [orchestration, github, publishing, pr]
+    tags: [orchestration, github, publishing, pr, private-local]
     related_skills:
       - hermes-orchestration-pipeline
+      - aos-full-agent-team
       - model-router
+      - decision-quality-gate
       - developer-ux-command-center
+      - self-improvement-loop
+      - best-coding-tool-mission
+    related_docs:
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/github-integration.md
 ---
 
 # GitHub publisher
@@ -111,3 +120,47 @@ user's, documented in `docs/github-integration.md`.
 - It never invents a branch name. If `branch.txt` is missing or
   empty, fail and tell the user the orchestrator scaffolded a broken
   job.
+
+## Where this fits in the larger system
+
+`github-publisher` is the **publication channel** for the whole
+orchestration stack. It does not decide *what* to publish — it
+consumes artifacts produced by upstream skills:
+
+- The job folder contract comes from
+  [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md).
+- The worker / model that produced the patch was picked by
+  [`model-router`](../model-router/SKILL.md) (registry:
+  [`docs/ai-intelligence/model-registry.yaml`](../../docs/ai-intelligence/model-registry.yaml)).
+- The decision to publish at all is gated by
+  [`decision-quality-gate`](../decision-quality-gate/SKILL.md), which
+  appends a row to `decision-ledger.md` (template:
+  [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)).
+- The publish is recorded with its **undo path** by
+  [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md)'s
+  reversibility rules (Principle 7) — see `publish.md` in the job
+  folder.
+- After the publish, [`self-improvement-loop`](../self-improvement-loop/SKILL.md)
+  records the outcome and feeds the scorecard back into routing.
+
+## Posture: private and local-first
+
+The publisher inherits the same posture as the rest of the pipeline:
+
+- The PAT is read from the environment by the
+  [`github_assistant` plugin](../../plugins/github_assistant/) — the
+  skill never sees it and never logs it.
+- Writes are gated by `github.allow_writes: true` and the repo
+  allowlist in `~/.hermes/config.yaml`.
+- The Android APK cockpit can trigger this skill but never bypasses
+  the gates — the cockpit drives the same on-disk contract the CLI
+  uses (see [`docs/hermes-local-orchestrator.md`](../../docs/hermes-local-orchestrator.md)).
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/github-publisher <job-id>                  # publish a job's github/* artifacts
+/hermes-orchestration-pipeline <job-id>     # upstream: scaffold + drive a job
+/decision-quality-gate <decision-id>        # upstream: gate the publish decision
+```

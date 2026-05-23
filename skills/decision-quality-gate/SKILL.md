@@ -7,14 +7,28 @@ license: MIT
 platforms: [linux, macos, windows, android]
 metadata:
   hermes:
-    tags: [decision, gate, quality, validation, audit, orchestration, governance]
+    tags: [decision, gate, quality, validation, audit, orchestration, governance, private-local]
     related_skills:
+      - hermes-orchestration-pipeline
+      - aos-full-agent-team
+      - model-router
       - research-validator
+      - ai-improvement-radar
+      - self-improvement-loop
+      - github-publisher
+      - best-coding-tool-mission
       - enterprise-orchestrator
       - enterprise-judge
       - plan
       - writing-plans
       - spike
+    related_docs:
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/decision-quality-system.md
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/ai-intelligence/model-registry.yaml
+      - docs/mission/best-coding-tool-mission.md
     homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
 ---
 
@@ -222,10 +236,52 @@ The Judge skill checks for these anti-patterns when present. The
 curator's background pass also flags ledgers that match the
 anti-pattern signatures.
 
+## Where this fits in the larger system
+
+The gate is the **visible reasoning layer** of the orchestration
+stack. It does not pick workers, run research, ship code, or learn —
+it forces every other layer's reasoning into a ledger row a human can
+audit:
+
+| Concern | Skill / doc |
+|---|---|
+| The job folder the ledger lives in | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md) — every job has its own `decision-ledger.md` |
+| Worker / model selection ledger row | [`model-router`](../model-router/SKILL.md) records the routing decision through this gate |
+| Evidence to fill the ledger honestly | [`research-validator`](../research-validator/SKILL.md) |
+| Tracking new AI tool capabilities so ledgers cite fresh options | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) |
+| Closing the loop on ledger outcomes | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) — mines ledgers for `routing_miss`, `prompt_regression`, `mission_drift` |
+| Council orchestration that produces ledgers per dispatched task | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Publishing a ledger-backed decision | [`github-publisher`](../github-publisher/SKILL.md) — refuses to publish without a pass/conditional ledger |
+| Mission anchor (Principle 3: visible evidence) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+
+## Posture: private and local-first
+
+- Ledgers are plain markdown on the user's disk
+  (`~/.hermes/decisions/...` and inside the job folder). They are
+  never uploaded.
+- The gate does not call any external API on its own. It produces
+  the ledger; downstream skills consume it.
+- The Android APK cockpit reads ledgers from the same on-disk
+  contract — there is no cockpit-side mirror.
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/decision-quality-gate                      # load this skill into a session
+/decision-quality-gate <decision-id>        # gate a specific decision
+/research-validator                         # gather evidence before filling a ledger
+/model-router <task-type>                   # routing decision → ledger row
+/self-improvement-loop                      # mine ledgers at end of job
+```
+
 ## Cross-references
 
 - **Template:** [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)
 - **System overview:** [`docs/orchestration/decision-quality-system.md`](../../docs/orchestration/decision-quality-system.md)
 - **Research companion:** [`skills/research-validator/SKILL.md`](../research-validator/SKILL.md) — gather evidence to fill the ledger
+- **AI improvement radar:** [`skills/ai-improvement-radar/SKILL.md`](../ai-improvement-radar/SKILL.md) — keeps the model/worker options cited in ledgers fresh
+- **Self-improvement loop:** [`skills/self-improvement-loop/SKILL.md`](../self-improvement-loop/SKILL.md) — mines ledger outcomes for proposals
 - **Enterprise judge:** [`skills/enterprise-council/judge/SKILL.md`](../enterprise-council/judge/SKILL.md) — validates ledgers produced by leaf agents
 - **Plan mode:** [`skills/software-development/plan/SKILL.md`](../software-development/plan/SKILL.md) — write-only plan-mode is the right tool when the ledger conclusion is "do not implement yet"
+- **Mission:** [`docs/mission/best-coding-tool-mission.md`](../../docs/mission/best-coding-tool-mission.md) — Principle 3 (visible evidence) is the reason this gate exists

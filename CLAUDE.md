@@ -66,6 +66,33 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 | `/new` or `/reset` | Start a fresh conversation |
 | `/model [provider:model]` | Switch model mid-conversation |
 
+### Orchestration pipeline skills (load via slash)
+
+The orchestration skills cooperate via the job folder contract
+(`.hermes-orchestrator/jobs/<job-id>/`) and a per-job
+`decision-ledger.md`. Load them by name from any session:
+
+| Slash | What it does |
+|---|---|
+| `/aos-full-agent-team <goal>` | Full 16-specialist council for a goal |
+| `/hermes-orchestration-pipeline <job-id>` | Drive a scaffolded job folder |
+| `/model-router <task-type>` | Pick a worker / model on purpose |
+| `/decision-quality-gate <decision-id>` | Gate a proposed decision (writes a ledger row) |
+| `/research-validator` | Gather evidence behind a ledger |
+| `/ai-improvement-radar` | Scan + write a radar report against the registry |
+| `/self-improvement-loop` | Close the current job; emit proposals |
+| `/github-publisher <job-id>` | Ship a job's approved changes |
+| `/best-coding-tool-mission` | Anchor a job to the 10 principles |
+| `/developer-ux-command-center` | Terminal surface for the pipeline |
+
+Posture is **private and local-first**: every job lives on disk, no
+telemetry, no remote config, no third-party data sharing. The Hermes
+backend is the engine; the Android APK at
+[`apps/android`](apps/android/) is the cockpit. Both share the same
+on-disk job folder contract. See [`docs/orchestration/`](docs/orchestration/)
+for the full guide and [`docs/mission/best-coding-tool-mission.md`](docs/mission/best-coding-tool-mission.md)
+for the 10 product principles each skill enforces.
+
 ## Conventions to follow
 
 1. **Edit before write.** Prefer `Edit` on an existing file over

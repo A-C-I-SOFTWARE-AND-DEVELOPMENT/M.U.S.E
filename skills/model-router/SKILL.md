@@ -7,12 +7,30 @@ license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [routing, orchestration, models, delegation, planning, hermes-local]
-    related_skills: [hermes-agent, claude-code, codex, opencode]
+    tags: [routing, orchestration, models, delegation, planning, hermes-local, private-local]
+    related_skills:
+      - hermes-orchestration-pipeline
+      - aos-full-agent-team
+      - decision-quality-gate
+      - research-validator
+      - ai-improvement-radar
+      - self-improvement-loop
+      - github-publisher
+      - best-coding-tool-mission
+      - hermes-agent
+      - claude-code
+      - codex
+      - opencode
     intelligence_sources:
       - docs/ai-intelligence/model-registry.yaml
       - docs/ai-intelligence/model-routing-policy.md
       - docs/ai-intelligence/tool-capability-matrix.md
+    related_docs:
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/competitive/openhuman-paperclip-research.md
+      - docs/mission/best-coding-tool-mission.md
 ---
 
 # Model Router
@@ -272,10 +290,64 @@ Users can steer the router without editing YAML:
 - It will not silently switch providers mid-task. A re-route is always
   announced in the session and recorded on the task card.
 
+## Where this fits in the larger system
+
+The router does not pick workers in a vacuum — it is one stage of a
+self-improving loop:
+
+| Concern | Skill / doc |
+|---|---|
+| Job folder contract the router writes into | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md) |
+| Visible "why this worker" reasoning | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) — every routing decision lands as a ledger row (template: [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)) |
+| Evidence behind the routing rationale | [`research-validator`](../research-validator/SKILL.md) |
+| Keeping the registry / policy fresh | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) — emits recommendations against `docs/ai-intelligence/*` |
+| Competitive features feeding the radar | [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md) |
+| Closing the loop with scorecards | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) — emits `routing_miss` proposals when a worker underperformed (see [`docs/orchestration/self-improvement-loop.md`](../../docs/orchestration/self-improvement-loop.md)) |
+| Mission anchor (Principle 2 + Principle 9) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md) |
+| Full team running over a goal | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| Publishing the routed work | [`github-publisher`](../github-publisher/SKILL.md) |
+
+## Posture: private and local-first
+
+- Detection only checks for tools the user has already installed and
+  authenticated. The router never phones home, never fetches a remote
+  registry, never reports which workers are present to a third party.
+- The registry, policy, and capability matrix live in this repo; the
+  user edits them directly.
+- Under `HERMES_OFFLINE=1` (or `model_router.prefer_local: true`),
+  cloud workers are demoted in favor of `local-model`, `aider`,
+  `goose`, and `hermes-local` — the router never silently leaks a
+  prompt to a remote endpoint.
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The router runs on the Hermes backend. The Android APK cockpit
+reads the routing plan from the job folder (same on-disk contract
+described in [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md))
+and renders it. The cockpit can request a re-route via `/route` but
+never bypasses the rules above.
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills or registry
+/model-router <task-type>                   # pick a worker / model on purpose
+/route detect                               # re-run worker detection
+/route ladder                               # show the current routing plan
+/route <worker>                             # pin <worker> for the next delegation
+/ai-improvement-radar                       # refresh the registry's intelligence
+/decision-quality-gate <decision-id>        # gate a routing decision
+```
+
 ## Pointers
 
 - Worker registry: `docs/ai-intelligence/model-registry.yaml`
 - Decision tree + scoring: `docs/ai-intelligence/model-routing-policy.md`
 - Capability matrix: `docs/ai-intelligence/tool-capability-matrix.md`
+- AI improvement radar: `docs/ai-intelligence/ai-improvement-radar.md`
+- Competitive harvester: `docs/competitive/openhuman-paperclip-research.md`
+- Decision ledger template: `docs/orchestration/decision-ledger.md`
+- Self-improvement loop: `docs/orchestration/self-improvement-loop.md`
+- Mission: `docs/mission/best-coding-tool-mission.md`
 - GitHub publication rules: `docs/github-integration.md`
-- Hermes role on Android (planner-only handoffs): `docs/hermes-local-orchestrator.md`
+- Hermes role on Android (cockpit ↔ engine): `docs/hermes-local-orchestrator.md`

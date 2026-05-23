@@ -139,6 +139,59 @@ All of the above is intentional. The whole point of Phase 02 is to lock
 the folder contract so the controller in the next phase can be written
 against a stable surface.
 
+## Where this fits in the larger Hermes orchestration stack
+
+This document defines the **substrate** — the job folder contract.
+The reasoning, learning, and publication layers that live on top of
+it are documented elsewhere; each of them reads and writes inside the
+same job folder:
+
+| Layer | Doc / skill |
+|---|---|
+| Visible reasoning per decision | [`decision-ledger.md`](decision-ledger.md) + [`skills/decision-quality-gate/SKILL.md`](../../skills/decision-quality-gate/SKILL.md) — every non-trivial decision lands as a row in `decision-ledger.md` inside the job |
+| Evidence behind ledger rows | [`skills/research-validator/SKILL.md`](../../skills/research-validator/SKILL.md) |
+| Worker / model selection | [`skills/model-router/SKILL.md`](../../skills/model-router/SKILL.md), backed by [`docs/ai-intelligence/model-registry.yaml`](../ai-intelligence/model-registry.yaml) and [`docs/ai-intelligence/model-routing-policy.md`](../ai-intelligence/model-routing-policy.md) |
+| AI capability tracking that feeds routing | [`docs/ai-intelligence/ai-improvement-radar.md`](../ai-intelligence/ai-improvement-radar.md) + [`skills/ai-improvement-radar/SKILL.md`](../../skills/ai-improvement-radar/SKILL.md) |
+| Competitive feature harvester input | [`docs/competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md) |
+| End-of-job learning pass | [`self-improvement-loop.md`](self-improvement-loop.md) + [`skills/self-improvement-loop/SKILL.md`](../../skills/self-improvement-loop/SKILL.md) |
+| Council orchestration | [`skills/aos-full-agent-team/SKILL.md`](../../skills/aos-full-agent-team/SKILL.md) |
+| Publishing the result | [`github-publisher-runtime.md`](github-publisher-runtime.md) + [`skills/github-publisher/SKILL.md`](../../skills/github-publisher/SKILL.md) |
+| Developer terminal surface | [`skills/developer-ux-command-center/SKILL.md`](../../skills/developer-ux-command-center/SKILL.md) |
+| Mission anchor (10 principles) | [`docs/mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md) + [`skills/best-coding-tool-mission/SKILL.md`](../../skills/best-coding-tool-mission/SKILL.md) |
+
+## Posture: private and local-first
+
+The pipeline is **private and local-first by default**:
+
+- Job folders live on the user's disk
+  (`.hermes-orchestrator/jobs/<job-id>/` or `~/.hermes/jobs/<job-id>/`).
+- No telemetry, no remote config, no third-party data sharing inside
+  the pipeline.
+- External AI tools (Claude Code, Codex, Aider, Goose, local models)
+  run only when the user is already logged in; the pipeline never
+  proxies prompts through a Hermes-owned cloud relay.
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The Hermes backend (CLI / gateway / Termux) is the engine that
+scaffolds, drives, and learns from jobs. The
+[Android APK](../../apps/android/) is the cockpit that surfaces those
+same jobs to the user — same on-disk contract, no separate cockpit
+state. See [`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md)
+for the cockpit ↔ backend contract.
+
+## Invocation (CLI, gateway DM, or cockpit)
+
+```text
+/reload-skills                              # pick up new/edited skills
+/aos-full-agent-team <goal>                 # full 16-specialist council
+/hermes-orchestration-pipeline <job-id>     # drive a scaffolded job folder
+/model-router <task-type>                   # pick a worker / model
+/decision-quality-gate <decision-id>        # gate a proposed decision
+/ai-improvement-radar                       # scan + write a radar report
+/github-publisher <job-id>                  # ship approved changes
+```
+
 ## Validation
 
 The following sequence should succeed end-to-end on a clean checkout:

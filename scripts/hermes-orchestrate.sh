@@ -5,6 +5,35 @@
 # This script only emits the job-folder contract; it does not run any
 # external model tools yet. The controller that fills in the artifacts
 # arrives in a later phase.
+#
+# Posture: private and local-first by default. The job folder lives on
+# the user's disk (.hermes-orchestrator/jobs/<job-id>/). No telemetry,
+# no remote config, no third-party data sharing inside the pipeline.
+# External AI tools are invoked only when the user is already logged
+# in to them; nothing is proxied through a Hermes-owned cloud relay.
+#
+# Hermes backend is the engine; the Android APK at apps/android/ is
+# the cockpit. The cockpit reads jobs from the same folders this
+# script scaffolds; there is no cockpit-only state.
+#
+# Where this fits in the larger system:
+#   docs/orchestration/hermes-orchestration-pipeline.md  # this script's spec
+#   docs/orchestration/decision-ledger.md                # ledger template
+#   docs/orchestration/self-improvement-loop.md          # end-of-job loop
+#   docs/ai-intelligence/model-registry.yaml             # worker catalog
+#   docs/ai-intelligence/model-routing-policy.md         # routing policy
+#   docs/ai-intelligence/ai-improvement-radar.md         # capability radar
+#   docs/competitive/openhuman-paperclip-research.md     # competitive harvester
+#   docs/mission/best-coding-tool-mission.md             # 10 principles
+#
+# Once a job is scaffolded, drive it from any session (CLI / gateway / APK):
+#   /reload-skills                              # pick up new/edited skills
+#   /aos-full-agent-team <goal>                 # full 16-specialist council
+#   /hermes-orchestration-pipeline <job-id>     # drive a scaffolded job folder
+#   /model-router <task-type>                   # pick a worker / model
+#   /decision-quality-gate <decision-id>        # gate a proposed decision
+#   /ai-improvement-radar                       # scan + write a radar report
+#   /github-publisher <job-id>                  # ship approved changes
 
 set -euo pipefail
 

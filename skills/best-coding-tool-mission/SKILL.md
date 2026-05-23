@@ -5,8 +5,29 @@ version: 1.0.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [mission, routing, quality, scorecard, local-first, jeremiah]
-    related_skills: [self-improvement-loop, enterprise-orchestrator, enterprise-monitor]
+    tags: [mission, routing, quality, scorecard, local-first, jeremiah, private-local, cockpit]
+    related_skills:
+      - self-improvement-loop
+      - hermes-orchestration-pipeline
+      - aos-full-agent-team
+      - model-router
+      - decision-quality-gate
+      - research-validator
+      - ai-improvement-radar
+      - github-publisher
+      - developer-ux-command-center
+      - enterprise-orchestrator
+      - enterprise-monitor
+    related_docs:
+      - docs/mission/best-coding-tool-mission.md
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/ai-intelligence/model-registry.yaml
+      - docs/ai-intelligence/model-routing-policy.md
+      - docs/ai-intelligence/ai-improvement-radar.md
+      - docs/competitive/openhuman-paperclip-research.md
+      - apps/android/README.md
 ---
 
 # Best Coding Tool Mission
@@ -144,3 +165,47 @@ Scorecard required at: <path-to-scorecard.json>
 
 This preamble is the durable artifact that proves the mission was
 honored, not just intended.
+
+## Where each principle is enforced
+
+Each of the 10 principles is **operationalised** by a concrete skill or
+doc in this repo. The mission anchor is the *what*; the table below is
+the *where*:
+
+| Principle | Where it is enforced |
+|---|---|
+| P1 — One prompt starts everything | [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md), `scripts/hermes-orchestrate.sh` |
+| P2 — Best worker/model mix | [`model-router`](../model-router/SKILL.md), [`docs/ai-intelligence/model-registry.yaml`](../../docs/ai-intelligence/model-registry.yaml), [`docs/ai-intelligence/model-routing-policy.md`](../../docs/ai-intelligence/model-routing-policy.md) |
+| P3 — Visible evidence and validation | [`decision-quality-gate`](../decision-quality-gate/SKILL.md), [`research-validator`](../research-validator/SKILL.md), [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md) |
+| P4 — Durable artifacts | Job folder contract in [`hermes-orchestration-pipeline`](../hermes-orchestration-pipeline/SKILL.md), [`docs/orchestration/self-improvement-loop.md`](../../docs/orchestration/self-improvement-loop.md) |
+| P5 — Scored worker outputs | Scorecard in [`self-improvement-loop`](../self-improvement-loop/SKILL.md), [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) |
+| P6 — Reviewed merges | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md) (contrarian + quality gate), [`decision-quality-gate`](../decision-quality-gate/SKILL.md) |
+| P7 — Reversible publishes | [`github-publisher`](../github-publisher/SKILL.md), `publish.md` in the job folder |
+| P8 — Hermes learns from every job | [`self-improvement-loop`](../self-improvement-loop/SKILL.md) |
+| P9 — Current AI improvements update routing | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md), [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md) |
+| P10 — Android APK is the cockpit; backend is the engine | [`developer-ux-command-center`](../developer-ux-command-center/SKILL.md), [`apps/android/README.md`](../../apps/android/README.md), [`docs/hermes-local-orchestrator.md`](../../docs/hermes-local-orchestrator.md) |
+
+## Posture: private and local-first
+
+The mission is explicitly **private and local-first**:
+
+- Every artifact lives on the user's disk. No telemetry, no remote
+  config, no third-party data sharing in the pipeline.
+- External AI tools are invoked only when the user is already logged
+  in. The Hermes backend never relays prompts through a Hermes-owned
+  cloud intermediary.
+- The Hermes backend is the engine; the Android APK is the cockpit.
+
+## How to invoke
+
+```text
+/reload-skills                              # after editing skills
+/best-coding-tool-mission                   # load this skill at job start
+/aos-full-agent-team <goal>                 # full team for a goal
+/hermes-orchestration-pipeline <job-id>     # drive a job folder
+/model-router <task-type>                   # pick a worker / model
+/decision-quality-gate <decision-id>        # gate a decision
+/ai-improvement-radar                       # scan + write a radar report
+/self-improvement-loop                      # close the job
+/github-publisher <job-id>                  # ship approved changes
+```

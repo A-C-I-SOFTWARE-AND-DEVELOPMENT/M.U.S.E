@@ -179,3 +179,44 @@ state the user cannot back out of.
 - `apps/android/` (the cockpit) surfaces the loop's trailer line as
   the last thing the user sees for a job. That trailer is the
   visible proof that the loop ran.
+
+## Where this fits in the larger orchestration stack
+
+| Concern | Doc / skill |
+|---|---|
+| Job folder the loop reads from | [`hermes-orchestration-pipeline.md`](hermes-orchestration-pipeline.md), [`../../skills/hermes-orchestration-pipeline/SKILL.md`](../../skills/hermes-orchestration-pipeline/SKILL.md) |
+| Mission anchor (Principle 8 + Principle 9) | [`../mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md), [`../../skills/best-coding-tool-mission/SKILL.md`](../../skills/best-coding-tool-mission/SKILL.md) |
+| Decision ledger the loop mines | [`decision-ledger.md`](decision-ledger.md), [`../../skills/decision-quality-gate/SKILL.md`](../../skills/decision-quality-gate/SKILL.md) |
+| Evidence re-derivation discipline | [`../../skills/research-validator/SKILL.md`](../../skills/research-validator/SKILL.md) |
+| `routing_miss` proposals consumed by | [`../../skills/model-router/SKILL.md`](../../skills/model-router/SKILL.md), [`../ai-intelligence/model-registry.yaml`](../ai-intelligence/model-registry.yaml), [`../ai-intelligence/model-routing-policy.md`](../ai-intelligence/model-routing-policy.md) |
+| Fresh capability signals feeding routing updates | [`../../skills/ai-improvement-radar/SKILL.md`](../../skills/ai-improvement-radar/SKILL.md), [`../ai-intelligence/ai-improvement-radar.md`](../ai-intelligence/ai-improvement-radar.md) |
+| Competitive feature harvester input | [`../competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md) |
+| Council that runs through this loop on close | [`../../skills/aos-full-agent-team/SKILL.md`](../../skills/aos-full-agent-team/SKILL.md) |
+| Publishing the changes the loop produced | [`github-publisher-runtime.md`](github-publisher-runtime.md), [`../../skills/github-publisher/SKILL.md`](../../skills/github-publisher/SKILL.md) |
+
+## Posture: private and local-first
+
+- Proposals are JSON files under `~/.hermes/self-improvement/drafts/`
+  and `~/.hermes/self-improvement/applied/`. Nothing is uploaded.
+- The loop never calls an external API. It reads job artifacts and
+  writes proposal files on disk.
+- The Android APK cockpit reads the trailer and proposal counts from
+  the same on-disk contract — there is no cockpit-only state.
+
+## Hermes backend is the engine; the APK is the cockpit
+
+The loop runs on the Hermes backend at the end of every job. The
+APK surfaces its trailer line as the last thing the user sees per
+job — Principle 10 (the APK is the cockpit; the backend is the
+engine).
+
+## Invocation (CLI, gateway DM, or cockpit)
+
+```text
+/reload-skills                              # after editing skills
+/self-improvement-loop                      # close the current job
+/ai-improvement-radar                       # upstream: fresh capability signals
+/decision-quality-gate                      # upstream: the ledgers this loop mines
+/model-router <task-type>                   # downstream: consumes routing_miss proposals
+/github-publisher <job-id>                  # downstream: ships approved changes
+```

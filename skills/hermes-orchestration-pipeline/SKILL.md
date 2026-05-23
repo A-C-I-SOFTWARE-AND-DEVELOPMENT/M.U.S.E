@@ -5,11 +5,25 @@ version: 0.2.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [orchestration, pipeline, foundation, council, scaffold]
+    tags: [orchestration, pipeline, foundation, council, scaffold, private-local]
     related_skills:
+      - aos-full-agent-team
       - model-router
       - github-publisher
       - developer-ux-command-center
+      - decision-quality-gate
+      - research-validator
+      - ai-improvement-radar
+      - self-improvement-loop
+      - best-coding-tool-mission
+    related_docs:
+      - docs/orchestration/hermes-orchestration-pipeline.md
+      - docs/orchestration/decision-ledger.md
+      - docs/orchestration/self-improvement-loop.md
+      - docs/ai-intelligence/model-registry.yaml
+      - docs/ai-intelligence/model-routing-policy.md
+      - docs/competitive/openhuman-paperclip-research.md
+      - docs/mission/best-coding-tool-mission.md
 ---
 
 # Hermes orchestration pipeline
@@ -126,6 +140,57 @@ skill in sync if you change it.
    explicitly says so; respect that until the merge artifacts are
    real.
 
+## Posture: private and local-first
+
+The pipeline is **private and local-first by default**:
+
+- Every job folder lives on disk at
+  `.hermes-orchestrator/jobs/<job-id>/` (or `~/.hermes/jobs/<job-id>/`
+  in the later runtime). Nothing in the contract requires a cloud
+  service.
+- No telemetry, no remote config, no third-party data sharing.
+- External AI tools (Claude Code, Codex, Aider, Goose, local models)
+  are invoked only when the user is already logged in to them; the
+  pipeline never relays prompts through a Hermes-owned cloud
+  intermediary.
+- The Hermes backend is the engine; the Android APK at
+  [`apps/android`](../../apps/android/) is the cockpit. Every job is
+  inspectable from the cockpit through the same on-disk contract
+  described above — there is no separate cockpit-only state.
+
+## Where this fits in the larger system
+
+This skill scaffolds the substrate. The decisions made on top of it
+are recorded by the wider orchestration stack:
+
+| Concern | Skill / doc |
+|---|---|
+| Visible reasoning per decision | [`decision-quality-gate`](../decision-quality-gate/SKILL.md) writes a ledger into `decision-ledger.md` (template: [`docs/orchestration/decision-ledger.md`](../../docs/orchestration/decision-ledger.md)). |
+| Evidence checks behind a ledger | [`research-validator`](../research-validator/SKILL.md). |
+| Picking which worker / model runs the card | [`model-router`](../model-router/SKILL.md), backed by [`docs/ai-intelligence/model-registry.yaml`](../../docs/ai-intelligence/model-registry.yaml) and [`docs/ai-intelligence/model-routing-policy.md`](../../docs/ai-intelligence/model-routing-policy.md). |
+| Tracking new AI coding-tool capabilities | [`ai-improvement-radar`](../ai-improvement-radar/SKILL.md) writes reports under `.hermes-orchestrator/ai-radar/`. |
+| Harvesting comparable tools' features | [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md) feeds the radar. |
+| End-of-job learning pass | [`self-improvement-loop`](../self-improvement-loop/SKILL.md), see [`docs/orchestration/self-improvement-loop.md`](../../docs/orchestration/self-improvement-loop.md). |
+| Mission anchor (Principle 1..10) | [`best-coding-tool-mission`](../best-coding-tool-mission/SKILL.md), see [`docs/mission/best-coding-tool-mission.md`](../../docs/mission/best-coding-tool-mission.md). |
+| Council orchestration over this contract | [`aos-full-agent-team`](../aos-full-agent-team/SKILL.md). |
+| Promoting `github/*` into a real branch + PR | [`github-publisher`](../github-publisher/SKILL.md). |
+| Terminal surface for developers | [`developer-ux-command-center`](../developer-ux-command-center/SKILL.md). |
+
+## How to invoke
+
+Pick up new or edited skills, then drive the pipeline from any
+session (CLI, gateway DM, or Android cockpit):
+
+```text
+/reload-skills                              # after editing skills
+/aos-full-agent-team <goal>                 # full 16-specialist council
+/hermes-orchestration-pipeline <job-id>     # drive a scaffolded job folder
+/model-router <task-type>                   # pick a worker / model on purpose
+/decision-quality-gate <decision-id>        # gate a proposed decision
+/ai-improvement-radar                       # scan + write a radar report
+/github-publisher <branch>                  # ship approved changes
+```
+
 ## When in doubt
 
 - Reach for `docs/orchestration/hermes-orchestration-pipeline.md`
@@ -133,6 +198,10 @@ skill in sync if you change it.
 - The script itself is the executable spec. If they disagree, prefer
   the script's behavior and file a bug against the docs.
 - The related skills cover narrower slices:
+  - `aos-full-agent-team` — full council over a single goal.
   - `model-router` — choosing which worker(s) to dispatch.
+  - `decision-quality-gate` — recording the *why* in the ledger.
+  - `ai-improvement-radar` — keeping the router's intelligence fresh.
+  - `self-improvement-loop` — closing the loop after every job.
   - `github-publisher` — turning `github/*` into a real branch + PR.
   - `developer-ux-command-center` — the surface the developer sees.

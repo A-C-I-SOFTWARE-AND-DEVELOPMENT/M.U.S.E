@@ -356,3 +356,37 @@ parsed.
 - [`../../skills/research-validator/SKILL.md`](../../skills/research-validator/SKILL.md) — how to fill `Evidence Reviewed` and `Validation Plan` honestly
 - [`../../skills/enterprise-council/judge/SKILL.md`](../../skills/enterprise-council/judge/SKILL.md) — the validator that consumes structured leaf ledgers
 - [`../../skills/enterprise-council/orchestrator/SKILL.md`](../../skills/enterprise-council/orchestrator/SKILL.md) — the orchestrator that emits ledgers per dispatched task
+
+### How the ledger plugs into the rest of the orchestration stack
+
+| Concern | Doc / skill |
+|---|---|
+| Job folder the ledger lives in | [`hermes-orchestration-pipeline.md`](hermes-orchestration-pipeline.md) — every job has its own `decision-ledger.md` |
+| Worker / model picked in the ledger row | [`../../skills/model-router/SKILL.md`](../../skills/model-router/SKILL.md), [`../ai-intelligence/model-registry.yaml`](../ai-intelligence/model-registry.yaml), [`../ai-intelligence/model-routing-policy.md`](../ai-intelligence/model-routing-policy.md) |
+| Fresh AI capabilities cited as options | [`../../skills/ai-improvement-radar/SKILL.md`](../../skills/ai-improvement-radar/SKILL.md), [`../ai-intelligence/ai-improvement-radar.md`](../ai-intelligence/ai-improvement-radar.md) |
+| Competitive feature harvester input | [`../competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md) |
+| End-of-job mining of ledger outcomes | [`self-improvement-loop.md`](self-improvement-loop.md), [`../../skills/self-improvement-loop/SKILL.md`](../../skills/self-improvement-loop/SKILL.md) |
+| Publishing a ledger-backed decision | [`github-publisher-runtime.md`](github-publisher-runtime.md), [`../../skills/github-publisher/SKILL.md`](../../skills/github-publisher/SKILL.md) |
+| Council that emits ledgers per dispatched specialist | [`../../skills/aos-full-agent-team/SKILL.md`](../../skills/aos-full-agent-team/SKILL.md) |
+| Mission anchor (Principle 3) | [`../mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md), [`../../skills/best-coding-tool-mission/SKILL.md`](../../skills/best-coding-tool-mission/SKILL.md) |
+
+### Posture: private and local-first
+
+Ledgers are plain markdown on the user's disk. They are never
+uploaded, never relayed through a Hermes-owned cloud service, and
+never shared with third parties. The Android APK cockpit reads
+ledgers from the same on-disk contract — there is no cockpit-only
+mirror. The Hermes backend is the engine; the APK is the cockpit.
+
+### Invocation (CLI, gateway DM, or cockpit)
+
+```text
+/reload-skills                              # after editing skills
+/decision-quality-gate                      # load the gate into a session
+/decision-quality-gate <decision-id>        # gate a specific decision
+/research-validator                         # fill Evidence + Validation honestly
+/model-router <task-type>                   # routing decision → ledger row
+/ai-improvement-radar                       # keeps the cited options fresh
+/self-improvement-loop                      # mines ledgers for routing/prompt fixes
+/github-publisher <job-id>                  # consumes pass/conditional ledgers
+```
