@@ -79,6 +79,31 @@ hermes doctor       # Diagnose any issues
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
 
+## Hermes Orchestration
+
+Turn a sentence into a graph of validated, auditable jobs run by
+specialist workers. The orchestrator decomposes the goal, the kanban
+dispatcher fans it out, every step goes through a validation gate,
+every decision lands in a tamper-evident ledger, and the result
+publishes to wherever you asked (PR, Telegram, file, Android
+cockpit).
+
+```bash
+bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
+hermes                                                    # interactive
+/reload-skills                                            # after editing skills
+/orchestrate Build this repo into production quality      # from inside a session
+/orchestrator status                                      # see what's running
+```
+
+Same brain on every surface — CLI, gateway DM (Telegram / Discord /
+Slack / WhatsApp / Signal), Android cockpit, Termux shell. Works
+fully offline against a local llama.cpp / vLLM / Ollama server.
+
+**📖 Full guide:** [docs/orchestration/](docs/orchestration/) —
+overview, getting started, prompt-to-PR demo, Android + Termux
+demo, worker adapters, private/local mode, troubleshooting, FAQ.
+
 ## CLI vs Messaging Quick Reference
 
 Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
@@ -145,6 +170,49 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 **Release AAB for Google Play:** see [`apps/android/README.md`](apps/android/README.md#release-aab-for-google-play). CI builds the debug APK on every change via [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml).
 
 Architecture, wire format, and the deliberate "no embedded Python" decision are documented in [`apps/android/docs/ARCHITECTURE.md`](apps/android/docs/ARCHITECTURE.md).
+
+---
+
+## Hermes Orchestration Pipeline
+
+Hermes can be used as a private local-first developer command center. The
+Hermes backend is the engine; the Android APK is the cockpit. Everything
+runs on devices you own — VPS, home server, laptop, or Termux on
+phone — and the Android cockpit talks to it over a gateway you control.
+
+The pipeline ties together:
+
+- **Agent skills** — composable procedures the agent calls at runtime.
+- **Decision ledger** — every non-trivial decision is recorded with
+  rationale, alternatives, and outcome so future runs can learn from it.
+- **Model router** — picks the right model for the job (planner,
+  builder, reviewer, summarizer) from the model registry.
+- **AI improvement radar** — a continuous scan of new AI capabilities,
+  models, and tools that Hermes should adopt.
+- **Competitive feature harvester** — tracks shipping features from
+  comparable tools and feeds them into the improvement radar.
+- **Self-improvement loop** — Hermes proposes patches to its own
+  skills, ledger, and routing policy, gated by the decision quality gate.
+- **GitHub publisher** — turns approved changes into branches, PRs,
+  and releases without leaving the cockpit.
+
+Invocation (from the CLI or any messaging gateway):
+
+```text
+/reload-skills
+/aos-full-agent-team <goal>
+/hermes-orchestration-pipeline <job-id>
+/model-router <task-type>
+/decision-quality-gate <decision-id>
+/ai-improvement-radar
+/github-publisher <branch>
+```
+
+Posture is **private and local-first** by default — no telemetry,
+no remote config, no third-party data sharing beyond the official AI
+tools the user is already logged into. See
+[`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+for the Android cockpit contract.
 
 ---
 
