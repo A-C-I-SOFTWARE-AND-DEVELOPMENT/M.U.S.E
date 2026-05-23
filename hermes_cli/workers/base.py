@@ -1,45 +1,41 @@
-"""Worker adapter contract — the five-step interface every tool follows.
+"""Worker base — adapter contract + shared primitives.
 
-A worker is anything Hermes can hand a job to: a local CLI like Codex
-or Claude Code, a desktop tool like Aider or Goose, a manual handoff
-to ChatGPT, a publisher like GitHub Publisher, or the in-process
-Hermes Local runtime. The orchestrator drives them all through the
-same shape so swapping or stacking workers stays a configuration
-question rather than a code change.
+This module hosts two complementary layers used by every Hermes worker:
 
-The contract has five steps, each returning a small immutable record:
+1. **Adapter contract** — :class:`WorkerAdapter` plus its five result
+   records (:class:`WorkerDetection`, :class:`WorkerPrompt`,
+   :class:`WorkerRunResult`, :class:`WorkerArtifacts`, :class:`WorkerScore`).
+   The orchestrator drives every adapter through the same five-step
+   shape (``detect → prepare_prompt → run → collect → score``) so swapping
+   tools is a configuration question rather than a code change.
 
-1. ``detect()``      → :class:`WorkerDetection` — is this worker usable
-   on the current machine right now? Returns a verdict the orchestrator
-   can act on (skip, prompt for install, fall back to another worker)
-   without raising.
-2. ``prepare_prompt(job)`` → :class:`WorkerPrompt` — turn an abstract
-   job into the exact text / metadata the worker expects. Pure;
-   the orchestrator may inspect or log it before running anything.
-3. ``run(job)``      → :class:`WorkerRunResult` — execute the worker
-   and report success / failure together with stdout, stderr, and
-   timing. May spawn subprocesses or call external APIs.
-4. ``collect(job)``  → :class:`WorkerArtifacts` — gather whatever the
-   worker produced (patches, files, logs, links) into a uniform record
-   the rest of Hermes can ingest.
-5. ``score(artifacts)`` → :class:`WorkerScore` — heuristic / model-based
-   judgement of how well the artifacts satisfy the job. Used by the
-   council and the kanban router to decide whether to ship or rework.
+2. **Shared primitives** — :class:`WorkerStatus`, :class:`WorkerError`,
+   :class:`WorkerTask`, :class:`WorkerResult` and the small set of
+   workspace I/O helpers (``ensure_workspace``, ``write_prompt``,
+   ``write_status``, ``collect_git_artifacts``, render helpers).
+   Concrete workers (``aider.py``, ``goose.py``, …) use these helpers so
+   each adapter stays small and easy to test.
 
-The ``job`` parameter is intentionally typed as ``Any``. Different
-workers care about different fields and the surrounding orchestrator
-chooses what shape it passes. Adapters that need stricter typing can
-narrow it themselves in their own implementation.
+The two layers are deliberately independent: an adapter may implement
+the full ABC while building its on-disk artifacts with the primitives,
+or it may stay procedural and only use the primitives. Both styles are
+first-class.
 """
 
 from __future__ import annotations
 
+import json
+import shutil
+import subprocess
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Any, ClassVar, Mapping
+from dataclasses import asdict, dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Any, ClassVar, Mapping, Optional
 
 
-# ── Result records ──────────────────────────────────────────────────────
+# ── Adapter result records ─────────────────────────────────────────────
 
 
 @dataclass(frozen=True)
@@ -54,8 +50,7 @@ class WorkerDetection:
             empty when the worker can't report one (or wasn't found).
         reason: Human-readable explanation. For available workers this
             is usually the path / binary that was discovered; for
-            unavailable workers it's why detection failed ("codex CLI
-            not on PATH", "no API key for chatgpt-handoff").
+            unavailable workers it's why detection failed.
         details: Optional structured payload — install hints, candidate
             install paths, capability flags. Adapters are free to add
             keys; consumers should treat unknown keys as informational.
@@ -69,21 +64,7 @@ class WorkerDetection:
 
 @dataclass(frozen=True)
 class WorkerPrompt:
-    """Result of ``WorkerAdapter.prepare_prompt(job)``.
-
-    Attributes:
-        text: The actual prompt body to deliver to the worker. For
-            manual-handoff workers (ChatGPT, Claude) this is what gets
-            copied to the clipboard; for CLI workers it's what gets
-            piped on stdin or written to the workspace.
-        role: A short tag describing how the prompt frames the worker
-            ("builder", "planner", "reviewer", "architect", "publisher",
-            ...). The orchestrator uses it to pair prompts with the
-            right artifact-collection strategy.
-        metadata: Optional extra context — model hints, allowed tools,
-            temperature, workspace path. Adapters add what they need;
-            unknown keys are fine.
-    """
+    """Result of ``WorkerAdapter.prepare_prompt(job)``."""
 
     text: str
     role: str = ""
@@ -92,24 +73,7 @@ class WorkerPrompt:
 
 @dataclass(frozen=True)
 class WorkerRunResult:
-    """Result of ``WorkerAdapter.run(job)``.
-
-    Attributes:
-        ok: True if the worker finished without an unrecoverable error.
-            A worker that completed but reported no useful output is
-            still ``ok``; that nuance lives in :class:`WorkerScore`.
-        exit_code: Numeric exit code where it makes sense (CLI tools).
-            Zero by convention for non-process workers that succeeded.
-        stdout: Captured standard output. Empty string when the worker
-            doesn't have one (manual handoff, API publishers).
-        stderr: Captured standard error.
-        duration_seconds: Wall-clock duration of the ``run`` call.
-            Zero for synchronous handoff-only flows.
-        error: Short error tag for programmatic dispatch ("timeout",
-            "not_found", "auth_failed", "no_changes"); empty on success.
-        details: Adapter-specific extras — process id, log file path,
-            opened deep-link URL, etc.
-    """
+    """Result of ``WorkerAdapter.run(job)``."""
 
     ok: bool
     exit_code: int = 0
@@ -122,25 +86,7 @@ class WorkerRunResult:
 
 @dataclass(frozen=True)
 class WorkerArtifacts:
-    """Result of ``WorkerAdapter.collect(job)``.
-
-    Attributes:
-        files: Paths the worker wrote or changed inside the workspace,
-            relative to ``workspace_path`` when set. Empty list is
-            valid and common for review-only workers.
-        patches: Unified-diff strings the worker produced. Patches are
-            kept separate from ``files`` because some workers emit
-            advisory diffs without applying them.
-        logs: Paths to per-step log files the worker dropped on disk.
-        links: External URLs the worker created (PR links, gists,
-            shared chats). Useful for publisher-style workers.
-        workspace_path: Root the file paths are relative to. Empty
-            when the worker doesn't operate on a workspace at all.
-        notes: Free-form text the adapter wants downstream consumers
-            (the judge, the kanban router, the user) to see — e.g.
-            a one-line summary of what the worker did.
-        details: Adapter-specific extras.
-    """
+    """Result of ``WorkerAdapter.collect(job)``."""
 
     files: tuple[str, ...] = ()
     patches: tuple[str, ...] = ()
@@ -155,19 +101,9 @@ class WorkerArtifacts:
 class WorkerScore:
     """Result of ``WorkerAdapter.score(artifacts)``.
 
-    Attributes:
-        value: Normalised quality score in [0.0, 1.0]. The base class
-            validates the range on construction so downstream code
-            (the council, the kanban router) can compare scores from
-            different workers without rescaling.
-        confidence: How confident the adapter is in its own scoring,
-            also in [0.0, 1.0]. A heuristic scorer reports low
-            confidence; a model-graded scorer reports higher.
-        rationale: Short explanation the judge / user can read.
-        components: Per-axis breakdown ("compiles": 1.0, "tests": 0.0,
-            ...) when the adapter wants to surface why the score is
-            what it is. All values must be in [0.0, 1.0] but the keys
-            are free-form.
+    ``value`` and ``confidence`` must be in [0.0, 1.0]; ``components``
+    values too. The dataclass validates the range on construction so
+    downstream code can compare scores without rescaling.
     """
 
     value: float
@@ -192,7 +128,7 @@ class WorkerScore:
                 )
 
 
-# ── Adapter contract ────────────────────────────────────────────────────
+# ── Adapter contract ───────────────────────────────────────────────────
 
 
 class WorkerAdapter(ABC):
@@ -202,15 +138,6 @@ class WorkerAdapter(ABC):
     :attr:`display_name` and implement the five abstract methods.
     ``__init_subclass__`` enforces both class attributes so a misconfigured
     adapter fails at import time instead of at dispatch time.
-
-    Subclasses are expected to be cheap to construct — detection that
-    spawns subprocesses or hits the network belongs in :meth:`detect`,
-    not ``__init__`` — so the registry can hold long-lived instances.
-
-    The ``job`` argument is typed as ``Any`` deliberately: different
-    workers want different fields on it (a workspace path, a model
-    name, a clipboard target). Concrete adapters narrow this in their
-    own signatures when they want help from a type checker.
     """
 
     id: ClassVar[str] = ""
@@ -219,7 +146,6 @@ class WorkerAdapter(ABC):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if getattr(cls, "__abstractmethods__", None):
-            # Still abstract — let the next subclass fill in the gaps.
             return
         if not cls.id or not isinstance(cls.id, str):
             raise TypeError(f"{cls.__name__} must set a non-empty class attribute `id`")
@@ -249,11 +175,190 @@ class WorkerAdapter(ABC):
         """Judge how well ``artifacts`` satisfy the original job."""
 
 
+# ── Shared primitives (used by procedural workers) ─────────────────────
+
+
+class WorkerStatus(str, Enum):
+    """Terminal state of a worker invocation."""
+
+    HANDOFF_REQUIRED = "handoff_required"
+    EXECUTED = "executed"
+    COMMAND_NOT_FOUND = "command_not_found"
+    FAILED = "failed"
+
+
+class WorkerError(Exception):
+    """Raised when a worker cannot prepare or run a task."""
+
+
+@dataclass
+class WorkerTask:
+    """A description of work to hand to a local CLI agent."""
+
+    title: str
+    instructions: str
+    files: list[str] = field(default_factory=list)
+    context: Optional[str] = None
+    acceptance_criteria: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class WorkerResult:
+    """Everything a caller needs to surface a worker run to the user."""
+
+    worker: str
+    status: WorkerStatus
+    workspace: Path
+    prompt_path: Path
+    status_path: Path
+    command_available: bool
+    handoff_command: Optional[str] = None
+    output_path: Optional[Path] = None
+    patch_path: Optional[Path] = None
+    changed_files_path: Optional[Path] = None
+    exit_code: Optional[int] = None
+    error: Optional[str] = None
+
+    def to_status_dict(self) -> dict[str, Any]:
+        return {
+            "worker": self.worker,
+            "status": self.status.value,
+            "workspace": str(self.workspace),
+            "prompt_path": str(self.prompt_path),
+            "command_available": self.command_available,
+            "handoff_command": self.handoff_command,
+            "exit_code": self.exit_code,
+            "error": self.error,
+            "output_path": str(self.output_path) if self.output_path else None,
+            "patch_path": str(self.patch_path) if self.patch_path else None,
+            "changed_files_path": (
+                str(self.changed_files_path) if self.changed_files_path else None
+            ),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+
+def detect_command(command: str) -> bool:
+    """Return True if ``command`` is callable from ``$PATH``."""
+    return shutil.which(command) is not None
+
+
+def ensure_workspace(workspace: Path) -> Path:
+    """Create ``workspace`` (and parents) and return its resolved path."""
+    workspace.mkdir(parents=True, exist_ok=True)
+    return workspace.resolve()
+
+
+def write_prompt(workspace: Path, prompt: str) -> Path:
+    """Write ``prompt.md`` to ``workspace`` and return its path."""
+    prompt_path = workspace / "prompt.md"
+    prompt_path.write_text(prompt, encoding="utf-8")
+    return prompt_path
+
+
+def write_status(workspace: Path, result: WorkerResult) -> Path:
+    """Persist ``result`` as ``status.json`` and return its path."""
+    status_path = workspace / "status.json"
+    status_path.write_text(
+        json.dumps(result.to_status_dict(), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return status_path
+
+
+def collect_git_artifacts(
+    workspace: Path,
+    repo_root: Path,
+) -> tuple[Optional[Path], Optional[Path]]:
+    """Capture ``git diff`` + changed-files list into ``workspace``."""
+    if not (repo_root / ".git").exists():
+        return (None, None)
+    if shutil.which("git") is None:
+        return (None, None)
+
+    patch_path: Optional[Path] = None
+    changed_files_path: Optional[Path] = None
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "--no-color"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if diff.returncode == 0:
+            patch_path = workspace / "patch.diff"
+            patch_path.write_text(diff.stdout, encoding="utf-8")
+    except OSError:
+        patch_path = None
+
+    try:
+        names = subprocess.run(
+            ["git", "diff", "--name-only"],
+            cwd=str(repo_root),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if names.returncode == 0:
+            changed_files_path = workspace / "changed-files.txt"
+            changed_files_path.write_text(names.stdout, encoding="utf-8")
+    except OSError:
+        changed_files_path = None
+
+    return (patch_path, changed_files_path)
+
+
+def render_files_block(files: list[str]) -> str:
+    if not files:
+        return ""
+    bullets = "\n".join(f"- `{path}`" for path in files)
+    return f"\n## Files in scope\n{bullets}\n"
+
+
+def render_acceptance_block(criteria: list[str]) -> str:
+    if not criteria:
+        return ""
+    bullets = "\n".join(f"- {item}" for item in criteria)
+    return f"\n## Acceptance criteria\n{bullets}\n"
+
+
+def render_context_block(context: Optional[str]) -> str:
+    if not context:
+        return ""
+    return f"\n## Context\n{context.strip()}\n"
+
+
+def result_as_dict(result: WorkerResult) -> dict[str, Any]:
+    """``asdict`` shim that stringifies Path values."""
+    data = asdict(result)
+    for key, value in list(data.items()):
+        if isinstance(value, Path):
+            data[key] = str(value)
+        elif isinstance(value, WorkerStatus):
+            data[key] = value.value
+    return data
+
+
 __all__ = [
     "WorkerAdapter",
     "WorkerArtifacts",
     "WorkerDetection",
+    "WorkerError",
     "WorkerPrompt",
+    "WorkerResult",
     "WorkerRunResult",
     "WorkerScore",
+    "WorkerStatus",
+    "WorkerTask",
+    "collect_git_artifacts",
+    "detect_command",
+    "ensure_workspace",
+    "render_acceptance_block",
+    "render_context_block",
+    "render_files_block",
+    "result_as_dict",
+    "write_prompt",
+    "write_status",
 ]
