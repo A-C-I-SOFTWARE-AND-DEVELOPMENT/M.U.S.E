@@ -79,6 +79,12 @@ class Job:
     The orchestrator stores a small flat record per job.  Tool calls,
     model decisions, and validator output live in the decision ledger
     (keyed by ``job.id``).
+
+    Phase 12 added the ``mode``, ``repo_root``, ``trusted_local``,
+    ``phase``, ``phases_completed`` and ``approvals`` fields so the
+    same record can drive the phase-based controller.  All Phase 12
+    fields have safe defaults so older ``jobs.json`` files keep
+    loading.
     """
 
     id: str
@@ -90,6 +96,14 @@ class Job:
     artifacts: list[str] = field(default_factory=list)
     published_at: Optional[int] = None
     resumed_count: int = 0
+
+    # Phase 12 additions ---------------------------------------------------
+    mode: str = "build"
+    repo_root: str = ""
+    trusted_local: bool = False
+    phase: str = "intake"
+    phases_completed: list[str] = field(default_factory=list)
+    approvals: dict[str, bool] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -683,6 +697,679 @@ def run_best_coding_tool_mission(rest: str) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Phase 12 — phase-based job controller
+# ---------------------------------------------------------------------------
+#
+# The controller adds a *phase* loop (intake → research → planning →
+# implementation → validation → publish → retrospective) on top of the
+# legacy Job record above.  It is safe by default:
+#
+#   * Phases that mutate the working tree (implementation) or remote
+#     state (publish) MUST have an approval recorded on the Job before
+#     they will run.
+#   * When a job is created with ``trusted_local=False`` or while the
+#     controller is operating in continuous-listening mode, the
+#     approval-gated phases refuse to auto-run; the caller must invoke
+#     them explicitly with ``approve=True``.
+#   * If an integration module (workers, scoring, validation, merge)
+#     is not yet wired in, the phase still runs but writes a TODO
+#     entry to the decision ledger instead of failing.
+#
+# Every transition appends to two places: the per-job decision ledger
+# (``decision_ledger.DecisionLedger`` JSONL file) AND the legacy
+# in-memory ledger used by ``/decision-ledger show`` so existing
+# surfaces keep working.
+
+from hermes_cli import workflows as _wf
+from hermes_cli import decision_ledger as _dl
+from hermes_cli import model_router as _mr
+from hermes_cli import job_queue as _jq
+
+
+class OrchestratorError(RuntimeError):
+    """Base error for the Phase 12 controller surface."""
+
+
+class ApprovalRequired(OrchestratorError):
+    """Raised when a phase needs an approval that has not been granted."""
+
+
+class PhaseError(OrchestratorError):
+    """Raised when a phase precondition fails (out-of-order call, etc.)."""
+
+
+# Module-level continuous-listening flag.  Gateway dispatchers flip this
+# on when Hermes is listening passively (Telegram, Discord, Signal,
+# etc.) — the controller refuses to auto-run approval-gated phases in
+# that mode even if the caller forgets to pass ``approve=False``.
+_CONTINUOUS_LISTENING = False
+
+
+def set_continuous_listening(enabled: bool) -> None:
+    """Toggle continuous-listening mode for the controller."""
+    global _CONTINUOUS_LISTENING
+    _CONTINUOUS_LISTENING = bool(enabled)
+
+
+def is_continuous_listening() -> bool:
+    return _CONTINUOUS_LISTENING
+
+
+# ── job artifact paths ────────────────────────────────────────────────────
+
+def _jobs_dir() -> Path:
+    d = _orch_dir() / "jobs"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _job_artifacts_dir(job_id: str) -> Path:
+    return _jobs_dir() / job_id
+
+
+def _job_queue() -> _jq.JobQueue:
+    return _jq.JobQueue(_orch_dir())
+
+
+def _ledger_for(job_id: str) -> _dl.DecisionLedger:
+    return _dl.open_ledger(_job_artifacts_dir(job_id))
+
+
+# ── persistence helpers tailored to the controller ────────────────────────
+
+def _save_job(job: Job) -> Job:
+    jobs = _load_jobs()
+    for i, existing in enumerate(jobs):
+        if existing.id == job.id:
+            jobs[i] = job
+            break
+    else:
+        jobs.append(job)
+    _save_jobs(jobs)
+    return job
+
+
+def _require_job(job_id: str) -> Job:
+    job = get_job(job_id)
+    if job is None:
+        raise OrchestratorError(f"unknown job id: {job_id!r}")
+    return job
+
+
+# ── public Phase 12 API ───────────────────────────────────────────────────
+
+def create_job(
+    prompt: str,
+    repo_root: str | os.PathLike[str],
+    mode: str = "build",
+    trusted_local: bool = False,
+) -> Job:
+    """Create a new orchestration job and queue it for the intake phase.
+
+    Parameters
+    ----------
+    prompt:
+        The user's request, verbatim.  Required and non-empty.
+    repo_root:
+        Path to the repository the job operates on.
+    mode:
+        One of the job modes (``build``, ``review``, ``audit``,
+        ``debug``, ``refactor``, ``research``, ``planning``).
+    trusted_local:
+        Whether the caller has explicitly marked the local environment
+        as trusted.  Untrusted jobs cannot auto-run approval-gated
+        phases — every gate must be passed ``approve=True`` by the
+        caller.
+    """
+    prompt = (prompt or "").strip()
+    if not prompt:
+        raise OrchestratorError("prompt is required")
+    mode_clean = (mode or "").strip().lower() or "build"
+
+    now = _now()
+    job = Job(
+        id=_new_job_id(),
+        prompt=prompt,
+        status="queued",
+        created_at=now,
+        updated_at=now,
+        mode=mode_clean,
+        repo_root=str(repo_root or ""),
+        trusted_local=bool(trusted_local),
+        phase=_wf.PHASE_INTAKE,
+    )
+    _save_job(job)
+    _append_ledger(job.id, {
+        "kind": "create_job",
+        "mode": job.mode,
+        "repo_root": job.repo_root,
+        "trusted_local": job.trusted_local,
+        "prompt": job.prompt,
+    })
+    _ledger_for(job.id).append(
+        "create_job",
+        mode=job.mode,
+        repo_root=job.repo_root,
+        trusted_local=job.trusted_local,
+        prompt=job.prompt,
+    )
+    _job_queue().enqueue(job.id)
+    initialize_job_artifacts(job.id)
+    return job
+
+
+def load_job(job_id: str) -> Job:
+    """Return the job named ``job_id``.  Raises if missing.
+
+    Differs from :func:`get_job` (which returns ``None`` for unknown
+    ids) so the controller can fail loudly when the caller expects a
+    specific job.
+    """
+    return _require_job(job_id)
+
+
+# NOTE: list_jobs already exists above (legacy slash-command surface)
+# with signature ``list_jobs(limit=25)``.  The Phase 12 signature
+# ``list_jobs()`` is satisfied by the default argument — both call
+# styles work.
+
+
+def update_job_status(job_id: str, status: str) -> Job:
+    """Set ``job.status`` to *status* and persist."""
+    if not status:
+        raise OrchestratorError("status is required")
+    job = _require_job(job_id)
+    prev = job.status
+    job.status = status
+    job.updated_at = _now()
+    _save_job(job)
+    _append_ledger(job.id, {
+        "kind": "status",
+        "from": prev,
+        "to": status,
+    })
+    _ledger_for(job.id).append("status", **{"from": prev, "to": status})
+    return job
+
+
+def initialize_job_artifacts(job_id: str) -> Path:
+    """Create the on-disk artifact tree for a job and return its root.
+
+    Idempotent.  Safe to call before any phase runs.
+    """
+    job = _require_job(job_id)
+    root = _job_artifacts_dir(job.id)
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "phases").mkdir(parents=True, exist_ok=True)
+    (root / "workers").mkdir(parents=True, exist_ok=True)
+    (root / "publish").mkdir(parents=True, exist_ok=True)
+    # Write a small README so the directory is self-describing on disk.
+    readme = root / "README.md"
+    if not readme.exists():
+        readme.write_text(
+            f"# Job {job.id}\n\nphases/  — per-phase notes\n"
+            f"workers/ — per-worker prompts + artifacts\n"
+            f"publish/ — github-ready bundle (after publish phase)\n",
+            encoding="utf-8",
+        )
+    return root
+
+
+# ── phase machinery ───────────────────────────────────────────────────────
+
+def _write_phase_note(job_id: str, phase: str, content: str) -> Path:
+    root = initialize_job_artifacts(job_id)
+    path = root / "phases" / f"{phase}.md"
+    path.write_text(
+        content if content.endswith("\n") else content + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _transition_to(job: Job, phase: str) -> Job:
+    if not _wf.is_known_phase(phase):
+        raise PhaseError(f"unknown phase: {phase!r}")
+    prev_phase = job.phase
+    job.phase = phase
+    job.status = phase  # mirror so /orchestrator status reads naturally
+    job.updated_at = _now()
+    _save_job(job)
+    _append_ledger(job.id, {
+        "kind": "phase_enter",
+        "from": prev_phase,
+        "to": phase,
+    })
+    _ledger_for(job.id).append(
+        "phase_enter", **{"from": prev_phase, "to": phase}
+    )
+    return job
+
+
+def _mark_phase_complete(job: Job, phase: str, *, summary: str = "") -> Job:
+    if phase not in job.phases_completed:
+        job.phases_completed.append(phase)
+    job.updated_at = _now()
+    _save_job(job)
+    _append_ledger(job.id, {
+        "kind": "phase_complete",
+        "phase": phase,
+        "summary": summary,
+    })
+    _ledger_for(job.id).append(
+        "phase_complete", phase=phase, summary=summary
+    )
+    return job
+
+
+def _check_approval_or_raise(job: Job, phase: str, *, approve: bool) -> None:
+    """Enforce the safe-by-default approval gate for risky phases."""
+    if phase not in _wf.APPROVAL_GATED_PHASES:
+        return
+    # Continuous listening mode NEVER auto-runs the dangerous phases.
+    if _CONTINUOUS_LISTENING and phase in _wf.NEVER_AUTO_IN_LISTENING_MODE:
+        if not job.approvals.get(phase):
+            raise ApprovalRequired(
+                f"phase '{phase}' requires explicit approval while the "
+                f"controller is in continuous-listening mode"
+            )
+    # Caller can short-circuit a recorded approval by passing approve=True
+    # — that records the approval in the same call.
+    if approve:
+        job.approvals[phase] = True
+        _save_job(job)
+        _append_ledger(job.id, {
+            "kind": "approval_granted",
+            "phase": phase,
+            "source": "phase-call",
+        })
+        _ledger_for(job.id).append(
+            "approval_granted", phase=phase, source="phase-call"
+        )
+    if not job.approvals.get(phase):
+        raise ApprovalRequired(
+            f"phase '{phase}' requires approval — call request_approval("
+            f"{job.id!r}, {phase!r}) and then re-run the phase with "
+            f"approve=True"
+        )
+
+
+def request_approval(job_id: str, phase: str) -> dict[str, Any]:
+    """Record that *phase* needs approval for *job_id*.
+
+    Returns a dict describing the approval request.  The caller (CLI,
+    gateway, or test) is responsible for showing the request to the
+    user and then re-invoking the phase with ``approve=True`` once the
+    user agrees.
+    """
+    job = _require_job(job_id)
+    if not _wf.is_known_phase(phase):
+        raise PhaseError(f"unknown phase: {phase!r}")
+    job.approvals.setdefault(phase, False)
+    _save_job(job)
+    spec = _wf.PHASE_SPECS[phase]
+    record = {
+        "kind": "approval_requested",
+        "phase": phase,
+        "description": spec.description,
+        "mutates_local": spec.mutates_local,
+        "mutates_remote": spec.mutates_remote,
+    }
+    _append_ledger(job.id, record)
+    _ledger_for(job.id).append(
+        "approval_requested",
+        phase=phase,
+        description=spec.description,
+        mutates_local=spec.mutates_local,
+        mutates_remote=spec.mutates_remote,
+    )
+    return {
+        "job_id": job.id,
+        "phase": phase,
+        "approved": False,
+        "description": spec.description,
+        "mutates_local": spec.mutates_local,
+        "mutates_remote": spec.mutates_remote,
+    }
+
+
+def grant_approval(job_id: str, phase: str) -> Job:
+    """Mark *phase* as approved for *job_id* and persist."""
+    job = _require_job(job_id)
+    if not _wf.is_known_phase(phase):
+        raise PhaseError(f"unknown phase: {phase!r}")
+    job.approvals[phase] = True
+    job.updated_at = _now()
+    _save_job(job)
+    _append_ledger(job.id, {"kind": "approval_granted", "phase": phase})
+    _ledger_for(job.id).append("approval_granted", phase=phase)
+    return job
+
+
+# ── phase runners ─────────────────────────────────────────────────────────
+
+def run_intake_phase(job_id: str) -> Job:
+    """Phase 1 — record intake metadata.  Always safe to run."""
+    job = _transition_to(_require_job(job_id), _wf.PHASE_INTAKE)
+    routing = _mr.route_for(
+        phase=_wf.PHASE_INTAKE, mode=job.mode, trusted_local=job.trusted_local
+    )
+    _append_ledger(job.id, {"kind": "route", "phase": _wf.PHASE_INTAKE,
+                            "route": routing.to_dict()})
+    _ledger_for(job.id).append(
+        "route", phase=_wf.PHASE_INTAKE, route=routing.to_dict()
+    )
+    summary = (
+        f"Job mode `{job.mode}`, repo `{job.repo_root or '?'}`.  "
+        f"Trust: {'local' if job.trusted_local else 'untrusted'}.  "
+        f"Route: {routing.profile}."
+    )
+    _write_phase_note(job.id, _wf.PHASE_INTAKE,
+                      f"# Intake\n\n{summary}\n\n## Prompt\n\n{job.prompt}\n")
+    return _mark_phase_complete(job, _wf.PHASE_INTAKE, summary=summary)
+
+
+def run_research_phase(job_id: str) -> Job:
+    """Phase 2 — read-only research.  Always safe to run."""
+    job = _require_job(job_id)
+    if _wf.PHASE_INTAKE not in job.phases_completed:
+        raise PhaseError("research phase requires intake to be complete")
+    job = _transition_to(job, _wf.PHASE_RESEARCH)
+    routing = _mr.route_for(
+        phase=_wf.PHASE_RESEARCH, mode=job.mode, trusted_local=job.trusted_local
+    )
+    _ledger_for(job.id).append(
+        "route", phase=_wf.PHASE_RESEARCH, route=routing.to_dict()
+    )
+    note = (
+        f"# Research\n\nRoute: `{routing.profile}` — {routing.rationale}.\n\n"
+        f"TODO: integrate read-only repo scan once `workers.research` "
+        f"adapter lands.\n"
+    )
+    _write_phase_note(job.id, _wf.PHASE_RESEARCH, note)
+    return _mark_phase_complete(job, _wf.PHASE_RESEARCH,
+                                summary="research stub — TODO wire read-only scan")
+
+
+def run_planning_phase(job_id: str) -> Job:
+    """Phase 3 — decompose into a worker plan.  Always safe to run."""
+    job = _require_job(job_id)
+    if _wf.PHASE_RESEARCH not in job.phases_completed:
+        raise PhaseError("planning phase requires research to be complete")
+    job = _transition_to(job, _wf.PHASE_PLANNING)
+    routing = _mr.route_for(
+        phase=_wf.PHASE_PLANNING, mode=job.mode, trusted_local=job.trusted_local
+    )
+    _ledger_for(job.id).append(
+        "route", phase=_wf.PHASE_PLANNING, route=routing.to_dict()
+    )
+
+    try:
+        # Lazy import — keeps the controller import-light when the
+        # workers package is incomplete.
+        from hermes_cli.workers import registry as _wreg
+        known = list(_wreg.known_workers())
+    except Exception:
+        known = []
+
+    plan = [
+        "# Plan",
+        "",
+        f"Mode: `{job.mode}`",
+        f"Planner profile: `{routing.profile}`",
+        f"Known workers: {', '.join(known) if known else '(none registered)'}",
+        "",
+        "## Proposed steps",
+        "",
+        "1. implementation — produce patch + artifacts (approval gated)",
+        "2. validation     — run scoring + validation gates",
+        "3. publish        — prepare github bundle (approval gated)",
+        "4. retrospective  — record lessons to the decision ledger",
+        "",
+    ]
+    _write_phase_note(job.id, _wf.PHASE_PLANNING, "\n".join(plan))
+    return _mark_phase_complete(job, _wf.PHASE_PLANNING,
+                                summary=f"plan ready ({len(known)} worker(s) registered)")
+
+
+def run_implementation_phase(
+    job_id: str, *, approve: bool = False, remote: bool = False
+) -> Job:
+    """Phase 4 — execute workers.  **Approval-gated.**
+
+    Parameters
+    ----------
+    approve:
+        Records an approval at the same time the phase runs.  Without
+        approval the phase raises :class:`ApprovalRequired`.
+    remote:
+        Set to True if execution will reach off-device infrastructure.
+        Remote runs ALWAYS require approval, regardless of trust.
+    """
+    job = _require_job(job_id)
+    if _wf.PHASE_PLANNING not in job.phases_completed:
+        raise PhaseError("implementation phase requires planning to be complete")
+
+    if remote and not job.approvals.get(_wf.PHASE_IMPLEMENTATION) and not approve:
+        # Remote execution always needs an explicit approval.
+        raise ApprovalRequired(
+            "remote implementation always requires approval — "
+            "call request_approval(job_id, 'implementation') first"
+        )
+    _check_approval_or_raise(job, _wf.PHASE_IMPLEMENTATION, approve=approve)
+
+    job = _transition_to(job, _wf.PHASE_IMPLEMENTATION)
+    routing = _mr.route_for(
+        phase=_wf.PHASE_IMPLEMENTATION,
+        mode=job.mode,
+        trusted_local=job.trusted_local,
+    )
+    _ledger_for(job.id).append(
+        "route", phase=_wf.PHASE_IMPLEMENTATION, route=routing.to_dict()
+    )
+
+    # Try to fan out workers via the registry; fall back to a TODO if
+    # the worker adapters aren't wired up yet.
+    workers_used: list[str] = []
+    try:
+        from hermes_cli.workers import registry as _wreg
+        for adapter in _wreg.default_registry:
+            workers_used.append(adapter.id)
+    except Exception:
+        workers_used = []
+
+    note_lines = [
+        "# Implementation",
+        "",
+        f"Builder profile: `{routing.profile}`",
+        f"Remote execution: {'yes' if remote else 'no'}",
+        f"Approved: yes",
+        "",
+    ]
+    if workers_used:
+        note_lines.append("## Workers")
+        note_lines.append("")
+        for w in workers_used:
+            note_lines.append(f"- `{w}` — TODO: dispatch via worker adapter")
+    else:
+        note_lines.append("_No worker adapters registered — wrote stub only._")
+    note_lines.append("")
+    _write_phase_note(job.id, _wf.PHASE_IMPLEMENTATION, "\n".join(note_lines))
+
+    return _mark_phase_complete(
+        job, _wf.PHASE_IMPLEMENTATION,
+        summary=f"implementation stub ({len(workers_used)} worker(s))",
+    )
+
+
+def run_validation_phase(job_id: str) -> Job:
+    """Phase 5 — score & validate.  Always safe to run."""
+    job = _require_job(job_id)
+    if _wf.PHASE_IMPLEMENTATION not in job.phases_completed:
+        raise PhaseError(
+            "validation phase requires implementation to be complete"
+        )
+    job = _transition_to(job, _wf.PHASE_VALIDATION)
+    routing = _mr.route_for(
+        phase=_wf.PHASE_VALIDATION,
+        mode=job.mode,
+        trusted_local=job.trusted_local,
+    )
+    _ledger_for(job.id).append(
+        "route", phase=_wf.PHASE_VALIDATION, route=routing.to_dict()
+    )
+
+    scoring_available = True
+    validation_available = True
+    try:
+        from hermes_cli import scoring as _scoring  # noqa: F401
+    except Exception:
+        scoring_available = False
+    try:
+        from hermes_cli import validation as _validation  # noqa: F401
+    except Exception:
+        validation_available = False
+
+    note_lines = [
+        "# Validation",
+        "",
+        f"Reviewer profile: `{routing.profile}`",
+        f"Scoring engine available: {'yes' if scoring_available else 'no'}",
+        f"Validation runner available: "
+        f"{'yes' if validation_available else 'no'}",
+        "",
+        "TODO: invoke scoring.score_workers + ValidationRunner.run "
+        "against the implementation artifacts.",
+        "",
+    ]
+    _write_phase_note(job.id, _wf.PHASE_VALIDATION, "\n".join(note_lines))
+    return _mark_phase_complete(
+        job, _wf.PHASE_VALIDATION,
+        summary="validation stub — TODO wire scoring + validation",
+    )
+
+
+def prepare_publish_phase(
+    job_id: str, *, approve: bool = False, remote: bool = False
+) -> Job:
+    """Phase 6 — prepare the github-ready bundle.  **Approval-gated.**
+
+    Does not push anywhere — that remains the user's call.  Writes
+    ``publish/pr_body.md`` + ``publish/manifest.json`` under the job
+    artifact root.
+    """
+    job = _require_job(job_id)
+    if _wf.PHASE_VALIDATION not in job.phases_completed:
+        raise PhaseError(
+            "publish phase requires validation to be complete"
+        )
+    if remote and not job.approvals.get(_wf.PHASE_PUBLISH) and not approve:
+        raise ApprovalRequired(
+            "remote publish always requires approval — "
+            "call request_approval(job_id, 'publish') first"
+        )
+    _check_approval_or_raise(job, _wf.PHASE_PUBLISH, approve=approve)
+
+    job = _transition_to(job, _wf.PHASE_PUBLISH)
+
+    root = initialize_job_artifacts(job.id)
+    pub_dir = root / "publish"
+    pub_dir.mkdir(parents=True, exist_ok=True)
+    first_line = (job.prompt.splitlines() or [""])[0].strip()
+    title = first_line[:80] or f"job {job.id}"
+    pr_body = (
+        f"# {title}\n\n"
+        f"Hermes orchestrator job `{job.id}` (mode `{job.mode}`).\n\n"
+        f"## Prompt\n\n```\n{job.prompt.rstrip()}\n```\n\n"
+        f"## Phases completed\n\n"
+        + "".join(f"- {ph}\n" for ph in job.phases_completed)
+        + "\n---\n\n"
+        "_Generated by the Hermes orchestrator.  Publish requires the "
+        "user's explicit approval — see the decision ledger for the "
+        "approval record._\n"
+    )
+    (pub_dir / "pr_body.md").write_text(pr_body, encoding="utf-8")
+    manifest = {
+        "job_id": job.id,
+        "mode": job.mode,
+        "repo_root": job.repo_root,
+        "trusted_local": job.trusted_local,
+        "phases_completed": list(job.phases_completed),
+        "remote_publish": bool(remote),
+        "files": ["pr_body.md", "manifest.json"],
+    }
+    (pub_dir / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    _ledger_for(job.id).append(
+        "publish_prepared", remote=bool(remote), files=manifest["files"]
+    )
+    job.published_at = _now()
+    _save_job(job)
+    return _mark_phase_complete(
+        job, _wf.PHASE_PUBLISH,
+        summary=f"publish bundle written to {pub_dir}",
+    )
+
+
+def run_retrospective_phase(job_id: str) -> Job:
+    """Phase 7 — record lessons learned.  Always safe to run."""
+    job = _require_job(job_id)
+    if _wf.PHASE_PUBLISH not in job.phases_completed:
+        # Retrospective can still run if publish was skipped (e.g., the
+        # user cancelled), but we keep the phase order strict for the
+        # happy path.
+        raise PhaseError(
+            "retrospective phase requires publish to be complete; "
+            "cancel the job instead if you skipped publish"
+        )
+    job = _transition_to(job, _wf.PHASE_RETROSPECTIVE)
+
+    note_lines = [
+        "# Retrospective",
+        "",
+        f"Phases completed ({len(job.phases_completed)}):",
+        "",
+    ]
+    for ph in job.phases_completed:
+        note_lines.append(f"- {ph}")
+    note_lines.extend([
+        "",
+        "TODO: synthesize a lessons-learned summary once the validation "
+        "report is wired in.",
+        "",
+    ])
+    _write_phase_note(job.id, _wf.PHASE_RETROSPECTIVE, "\n".join(note_lines))
+    job = _mark_phase_complete(
+        job, _wf.PHASE_RETROSPECTIVE,
+        summary=f"retrospective recorded ({len(job.phases_completed)} phases)",
+    )
+    return update_job_status(job.id, "succeeded")
+
+
+def cancel_job(job_id: str, *, reason: str = "") -> Job:
+    """Cancel *job_id*, removing it from the queue and marking status."""
+    job = _require_job(job_id)
+    if job.status in {"succeeded", "published", "cancelled"}:
+        # Idempotent — do not re-cancel a finished job.
+        return job
+    _job_queue().remove(job.id)
+    prev = job.status
+    job.status = "cancelled"
+    job.updated_at = _now()
+    _save_job(job)
+    _append_ledger(job.id, {
+        "kind": "cancel", "from": prev, "reason": reason or "(unspecified)",
+    })
+    _ledger_for(job.id).append(
+        "cancel", **{"from": prev, "reason": reason or "(unspecified)"}
+    )
+    return job
+
+
 __all__ = [
     "Job",
     "JOB_STATUSES",
@@ -702,4 +1389,24 @@ __all__ = [
     "run_decision_ledger",
     "run_ai_radar",
     "run_best_coding_tool_mission",
+    # Phase 12 — controller
+    "OrchestratorError",
+    "ApprovalRequired",
+    "PhaseError",
+    "set_continuous_listening",
+    "is_continuous_listening",
+    "create_job",
+    "load_job",
+    "update_job_status",
+    "initialize_job_artifacts",
+    "run_intake_phase",
+    "run_research_phase",
+    "run_planning_phase",
+    "request_approval",
+    "grant_approval",
+    "run_implementation_phase",
+    "run_validation_phase",
+    "prepare_publish_phase",
+    "run_retrospective_phase",
+    "cancel_job",
 ]

@@ -498,3 +498,342 @@ def test_end_to_end_flow(controller: JobController, tmp_path: Path):
     assert (gdir / "pr_body.md").is_file()
     assert (gdir / "decision_ledger.md").is_file()
     assert (gdir / "scorecard.md").is_file()
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Phase 12 — module-level phase controller
+# ──────────────────────────────────────────────────────────────────────
+#
+# These tests exercise the new ``hermes_cli.orchestrator`` module-level
+# API: ``create_job``, ``load_job``, ``list_jobs``,
+# ``update_job_status``, ``initialize_job_artifacts``,
+# ``run_<phase>_phase``, ``request_approval`` / ``grant_approval``,
+# ``resume_job``, and ``cancel_job``.
+#
+# The controller persists jobs to ``$HERMES_HOME/orchestrator``; the
+# autouse fixture in ``tests/conftest.py`` redirects ``HERMES_HOME`` to
+# a per-test tempdir, so these tests are hermetic without any explicit
+# tmp_path plumbing.
+
+from hermes_cli import orchestrator as orch  # noqa: E402
+from hermes_cli import workflows as wf  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _reset_phase12_state():
+    """Reset module-level controller state between tests."""
+    orch.set_continuous_listening(False)
+    yield
+    orch.set_continuous_listening(False)
+
+
+@pytest.fixture
+def phase12_job():
+    return orch.create_job(
+        prompt="Add a /healthz endpoint and a smoke test",
+        repo_root="/srv/example",
+        mode="build",
+        trusted_local=True,
+    )
+
+
+class TestCreateJobPhase12:
+    def test_create_job_records_metadata(self):
+        job = orch.create_job(
+            prompt="ship it",
+            repo_root="/work/repo",
+            mode="build",
+            trusted_local=False,
+        )
+        assert job.id.startswith("orc-")
+        assert job.prompt == "ship it"
+        assert job.mode == "build"
+        assert job.repo_root == "/work/repo"
+        assert job.trusted_local is False
+        assert job.phase == wf.PHASE_INTAKE
+        assert job.status == "queued"
+        assert job.phases_completed == []
+
+    def test_create_job_rejects_empty_prompt(self):
+        with pytest.raises(orch.OrchestratorError, match="prompt is required"):
+            orch.create_job(
+                prompt="   ",
+                repo_root="/x",
+                mode="build",
+                trusted_local=True,
+            )
+
+    def test_create_job_initializes_artifacts(self, phase12_job):
+        root = orch._job_artifacts_dir(phase12_job.id)
+        assert root.is_dir()
+        assert (root / "phases").is_dir()
+        assert (root / "workers").is_dir()
+        assert (root / "publish").is_dir()
+        assert (root / "README.md").is_file()
+
+    def test_create_job_appends_decision_ledger_entry(self, phase12_job):
+        entries = orch._ledger_for(phase12_job.id).entries()
+        kinds = [e.get("kind") for e in entries]
+        assert "create_job" in kinds
+
+
+class TestLoadJob:
+    def test_load_job_returns_job(self, phase12_job):
+        loaded = orch.load_job(phase12_job.id)
+        assert loaded.id == phase12_job.id
+        assert loaded.prompt == phase12_job.prompt
+
+    def test_load_job_unknown_raises(self):
+        with pytest.raises(orch.OrchestratorError, match="unknown job id"):
+            orch.load_job("orc-does-not-exist")
+
+
+class TestListJobsPhase12:
+    def test_list_jobs_returns_recent_first(self):
+        a = orch.create_job("a", "/x", mode="build", trusted_local=True)
+        b = orch.create_job("b", "/x", mode="build", trusted_local=True)
+        c = orch.create_job("c", "/x", mode="build", trusted_local=True)
+        listing = orch.list_jobs()
+        ids = [j.id for j in listing]
+        # Newest first; only the three jobs we created.
+        assert ids[:3] == [c.id, b.id, a.id]
+
+
+class TestUpdateJobStatus:
+    def test_update_persists(self, phase12_job):
+        updated = orch.update_job_status(phase12_job.id, "running")
+        assert updated.status == "running"
+        # Reload to confirm persistence
+        again = orch.load_job(phase12_job.id)
+        assert again.status == "running"
+
+    def test_update_records_ledger(self, phase12_job):
+        orch.update_job_status(phase12_job.id, "paused")
+        entries = orch._ledger_for(phase12_job.id).entries_of_kind("status")
+        assert any(e.get("to") == "paused" for e in entries)
+
+    def test_update_rejects_empty(self, phase12_job):
+        with pytest.raises(orch.OrchestratorError):
+            orch.update_job_status(phase12_job.id, "")
+
+
+class TestInitializeJobArtifacts:
+    def test_idempotent(self, phase12_job):
+        first = orch.initialize_job_artifacts(phase12_job.id)
+        second = orch.initialize_job_artifacts(phase12_job.id)
+        assert first == second
+        assert first.is_dir()
+
+
+class TestSafePhases:
+    """intake / research / planning / validation / retrospective never
+    need approval and should run cleanly in sequence."""
+
+    def test_run_intake_writes_note(self, phase12_job):
+        job = orch.run_intake_phase(phase12_job.id)
+        assert job.phase == wf.PHASE_INTAKE
+        assert wf.PHASE_INTAKE in job.phases_completed
+        path = orch._job_artifacts_dir(job.id) / "phases" / "intake.md"
+        assert path.is_file()
+        assert "Intake" in path.read_text()
+
+    def test_research_requires_intake(self, phase12_job):
+        with pytest.raises(orch.PhaseError, match="requires intake"):
+            orch.run_research_phase(phase12_job.id)
+
+    def test_planning_after_research(self, phase12_job):
+        orch.run_intake_phase(phase12_job.id)
+        orch.run_research_phase(phase12_job.id)
+        job = orch.run_planning_phase(phase12_job.id)
+        assert wf.PHASE_PLANNING in job.phases_completed
+        path = orch._job_artifacts_dir(job.id) / "phases" / "planning.md"
+        assert path.is_file()
+        assert "Plan" in path.read_text()
+
+
+class TestApprovalGate:
+    """Implementation + publish must respect approval gates."""
+
+    def _advance_to_planning(self, job_id: str) -> None:
+        orch.run_intake_phase(job_id)
+        orch.run_research_phase(job_id)
+        orch.run_planning_phase(job_id)
+
+    def test_implementation_requires_approval(self, phase12_job):
+        self._advance_to_planning(phase12_job.id)
+        with pytest.raises(orch.ApprovalRequired):
+            orch.run_implementation_phase(phase12_job.id)
+
+    def test_request_approval_records_request(self, phase12_job):
+        record = orch.request_approval(phase12_job.id, wf.PHASE_IMPLEMENTATION)
+        assert record["phase"] == wf.PHASE_IMPLEMENTATION
+        assert record["approved"] is False
+        assert record["mutates_local"] is True
+
+    def test_grant_approval_lets_phase_proceed(self, phase12_job):
+        self._advance_to_planning(phase12_job.id)
+        orch.request_approval(phase12_job.id, wf.PHASE_IMPLEMENTATION)
+        orch.grant_approval(phase12_job.id, wf.PHASE_IMPLEMENTATION)
+        job = orch.run_implementation_phase(phase12_job.id)
+        assert wf.PHASE_IMPLEMENTATION in job.phases_completed
+
+    def test_approve_kwarg_short_circuits(self, phase12_job):
+        self._advance_to_planning(phase12_job.id)
+        job = orch.run_implementation_phase(phase12_job.id, approve=True)
+        assert wf.PHASE_IMPLEMENTATION in job.phases_completed
+        assert job.approvals[wf.PHASE_IMPLEMENTATION] is True
+
+    def test_remote_implementation_always_requires_approval(self, phase12_job):
+        self._advance_to_planning(phase12_job.id)
+        # Even with trusted_local=True, remote=True without prior approval
+        # must raise ApprovalRequired.
+        with pytest.raises(orch.ApprovalRequired, match="remote"):
+            orch.run_implementation_phase(phase12_job.id, remote=True)
+
+    def test_continuous_listening_never_auto_implements(self, phase12_job):
+        self._advance_to_planning(phase12_job.id)
+        orch.set_continuous_listening(True)
+        # Even calling with approve=True should be honored, but without
+        # approve=True the call must raise.
+        with pytest.raises(orch.ApprovalRequired, match="listening"):
+            orch.run_implementation_phase(phase12_job.id)
+
+
+class TestValidationAndPublish:
+    def _to_implementation_done(self, job_id: str) -> None:
+        orch.run_intake_phase(job_id)
+        orch.run_research_phase(job_id)
+        orch.run_planning_phase(job_id)
+        orch.run_implementation_phase(job_id, approve=True)
+
+    def test_validation_after_implementation(self, phase12_job):
+        self._to_implementation_done(phase12_job.id)
+        job = orch.run_validation_phase(phase12_job.id)
+        assert wf.PHASE_VALIDATION in job.phases_completed
+        path = orch._job_artifacts_dir(job.id) / "phases" / "validation.md"
+        assert path.is_file()
+
+    def test_publish_requires_approval(self, phase12_job):
+        self._to_implementation_done(phase12_job.id)
+        orch.run_validation_phase(phase12_job.id)
+        with pytest.raises(orch.ApprovalRequired):
+            orch.prepare_publish_phase(phase12_job.id)
+
+    def test_publish_writes_bundle(self, phase12_job):
+        self._to_implementation_done(phase12_job.id)
+        orch.run_validation_phase(phase12_job.id)
+        job = orch.prepare_publish_phase(phase12_job.id, approve=True)
+        pub_dir = orch._job_artifacts_dir(job.id) / "publish"
+        assert (pub_dir / "pr_body.md").is_file()
+        assert (pub_dir / "manifest.json").is_file()
+        manifest = json.loads((pub_dir / "manifest.json").read_text())
+        assert manifest["job_id"] == job.id
+        assert manifest["mode"] == "build"
+
+    def test_remote_publish_requires_approval(self, phase12_job):
+        self._to_implementation_done(phase12_job.id)
+        orch.run_validation_phase(phase12_job.id)
+        with pytest.raises(orch.ApprovalRequired, match="remote"):
+            orch.prepare_publish_phase(phase12_job.id, remote=True)
+
+
+class TestRetrospective:
+    def test_retrospective_completes_job(self, phase12_job):
+        orch.run_intake_phase(phase12_job.id)
+        orch.run_research_phase(phase12_job.id)
+        orch.run_planning_phase(phase12_job.id)
+        orch.run_implementation_phase(phase12_job.id, approve=True)
+        orch.run_validation_phase(phase12_job.id)
+        orch.prepare_publish_phase(phase12_job.id, approve=True)
+        job = orch.run_retrospective_phase(phase12_job.id)
+        assert wf.PHASE_RETROSPECTIVE in job.phases_completed
+        assert job.status == "succeeded"
+
+    def test_retrospective_requires_publish(self, phase12_job):
+        orch.run_intake_phase(phase12_job.id)
+        orch.run_research_phase(phase12_job.id)
+        orch.run_planning_phase(phase12_job.id)
+        with pytest.raises(orch.PhaseError, match="publish"):
+            orch.run_retrospective_phase(phase12_job.id)
+
+
+class TestResumeAndCancel:
+    def test_resume_paused_job(self, phase12_job):
+        orch.update_job_status(phase12_job.id, "paused")
+        resumed = orch.resume_job(phase12_job.id)
+        assert resumed is not None
+        assert resumed.status == "queued"
+        assert resumed.resumed_count == 1
+
+    def test_cancel_records_status_and_ledger(self, phase12_job):
+        cancelled = orch.cancel_job(phase12_job.id, reason="user pressed ESC")
+        assert cancelled.status == "cancelled"
+        entries = orch._ledger_for(phase12_job.id).entries_of_kind("cancel")
+        assert any("user pressed ESC" in (e.get("reason") or "") for e in entries)
+
+    def test_cancel_is_idempotent_on_finished(self, phase12_job):
+        orch.update_job_status(phase12_job.id, "succeeded")
+        cancelled = orch.cancel_job(phase12_job.id)
+        # Already-finished jobs are not re-cancelled.
+        assert cancelled.status == "succeeded"
+
+
+def test_phase12_full_flow():
+    """End-to-end happy path across every phase."""
+    job = orch.create_job(
+        prompt="Refactor the auth flow to drop legacy cookies",
+        repo_root="/srv/example",
+        mode="refactor",
+        trusted_local=True,
+    )
+    orch.run_intake_phase(job.id)
+    orch.run_research_phase(job.id)
+    orch.run_planning_phase(job.id)
+    orch.request_approval(job.id, wf.PHASE_IMPLEMENTATION)
+    orch.grant_approval(job.id, wf.PHASE_IMPLEMENTATION)
+    orch.run_implementation_phase(job.id)
+    orch.run_validation_phase(job.id)
+    orch.request_approval(job.id, wf.PHASE_PUBLISH)
+    orch.grant_approval(job.id, wf.PHASE_PUBLISH)
+    orch.prepare_publish_phase(job.id)
+    final = orch.run_retrospective_phase(job.id)
+
+    expected = [
+        wf.PHASE_INTAKE,
+        wf.PHASE_RESEARCH,
+        wf.PHASE_PLANNING,
+        wf.PHASE_IMPLEMENTATION,
+        wf.PHASE_VALIDATION,
+        wf.PHASE_PUBLISH,
+        wf.PHASE_RETROSPECTIVE,
+    ]
+    assert final.phases_completed == expected
+    assert final.status == "succeeded"
+    assert final.approvals[wf.PHASE_IMPLEMENTATION] is True
+    assert final.approvals[wf.PHASE_PUBLISH] is True
+
+    ledger_entries = orch._ledger_for(job.id).entries()
+    kinds = {e.get("kind") for e in ledger_entries}
+    assert "create_job" in kinds
+    assert "phase_enter" in kinds
+    assert "phase_complete" in kinds
+    assert "approval_granted" in kinds
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Workflow helper sanity
+# ──────────────────────────────────────────────────────────────────────
+
+
+class TestWorkflowsModule:
+    def test_phase_specs_present(self):
+        for phase in wf.PHASES_ORDERED:
+            assert phase in wf.PHASE_SPECS
+
+    def test_approval_gated_phases_marked(self):
+        for phase in wf.APPROVAL_GATED_PHASES:
+            assert wf.PHASE_SPECS[phase].requires_approval
+
+    def test_next_phase_sequence(self):
+        assert wf.next_phase(wf.PHASE_INTAKE) == wf.PHASE_RESEARCH
+        assert wf.next_phase(wf.PHASE_RETROSPECTIVE) is None
