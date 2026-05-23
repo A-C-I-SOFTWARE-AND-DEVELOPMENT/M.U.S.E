@@ -36,6 +36,17 @@ from hermes_cli.workers.base import (
     WorkerStatus,
     WorkerTask,
 )
+from hermes_cli.workers.isolation import (
+    CollectedRun,
+    IsolatedSpawner,
+    IsolatedWorkspace,
+    IsolationError,
+    SpawnResult,
+    cleanup_workspace,
+    list_workspaces,
+    new_instance_id,
+    prepare_workspace,
+)
 from hermes_cli.workers.registry import (
     WorkerRegistry,
     default_registry,
@@ -46,6 +57,11 @@ from hermes_cli.workers.registry import (
 )
 
 __all__ = [
+    "CollectedRun",
+    "IsolatedSpawner",
+    "IsolatedWorkspace",
+    "IsolationError",
+    "SpawnResult",
     "WorkerAdapter",
     "WorkerArtifacts",
     "WorkerDetection",
@@ -57,9 +73,13 @@ __all__ = [
     "WorkerScore",
     "WorkerStatus",
     "WorkerTask",
+    "cleanup_workspace",
     "default_registry",
     "get",
     "known_workers",
+    "list_workspaces",
+    "new_instance_id",
+    "prepare_workspace",
     "register",
     "unregister",
 ]
