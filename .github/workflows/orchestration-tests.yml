@@ -1,0 +1,87 @@
+name: Orchestration tests
+
+# Runs the orchestration-specific test suite plus a py_compile + bash
+# syntax sanity sweep. Deliberately narrow scope so it stays green
+# even if the broader test suite has unrelated flakes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hermes_cli/orchestrator/**'
+      - 'hermes_cli/workers/**'
+      - 'hermes_cli/orchestrator_commands.py'
+      - 'scripts/hermes-orchestrate.sh'
+      - 'tests/test_orchestrator*.py'
+      - 'tests/test_worker*.py'
+      - 'tests/test_scoring.py'
+      - 'tests/test_merge_engine.py'
+      - 'tests/test_validation_gates.py'
+      - 'tests/test_github_publisher.py'
+      - '.github/workflows/orchestration-tests.yml'
+  pull_request:
+    paths:
+      - 'hermes_cli/orchestrator/**'
+      - 'hermes_cli/workers/**'
+      - 'hermes_cli/orchestrator_commands.py'
+      - 'scripts/hermes-orchestrate.sh'
+      - 'tests/test_orchestrator*.py'
+      - 'tests/test_worker*.py'
+      - 'tests/test_scoring.py'
+      - 'tests/test_merge_engine.py'
+      - 'tests/test_validation_gates.py'
+      - 'tests/test_github_publisher.py'
+      - '.github/workflows/orchestration-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: orchestration-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Orchestration unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-xdist pytest-timeout
+
+      - name: Py-compile the orchestrator modules
+        run: |
+          python -m py_compile hermes_cli/*.py hermes_cli/workers/*.py
+          python -m py_compile hermes_cli/orchestrator/*.py
+
+      - name: Bash syntax-check the orchestrate script
+        run: bash -n scripts/hermes-orchestrate.sh
+
+      - name: Run orchestration tests
+        env:
+          # Guard against accidental network use even if a test slips.
+          OPENAI_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+          GITHUB_TOKEN: ""
+          # Pin jobs root into the workspace so we never touch ~/.hermes.
+          HERMES_ORCHESTRATOR_JOBS_ROOT: ${{ github.workspace }}/.tmp/orchestrator-jobs
+        run: |
+          python -m pytest \
+            tests/test_orchestrator*.py \
+            tests/test_worker*.py \
+            tests/test_scoring.py \
+            tests/test_merge_engine.py \
+            tests/test_validation_gates.py \
+            tests/test_github_publisher.py \
+            -q -p no:cacheprovider
