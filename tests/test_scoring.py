@@ -12,6 +12,7 @@ No filesystem state escapes ``tmp_path``; no LLM calls; no subprocess.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -37,7 +38,7 @@ def _write_worker(
     *,
     output_md: str = "Worker did a thing.\n\nIt went fine.\n",
     patch_diff: str | None = "diff --git a/foo.py b/foo.py\n@@ -1 +1 @@\n-old\n+new\n",
-    changed_files: list[str] | None = ("foo.py",),
+    changed_files: Sequence[str] | None = ("foo.py",),
     test_output: str = "1 passed in 0.01s\n",
     status: dict | None = None,
 ) -> Path:
