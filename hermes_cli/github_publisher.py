@@ -77,10 +77,17 @@ class PublisherError(RuntimeError):
 class SecretBlocked(PublisherError):
     """Raised when staging is refused because a file looks like a secret."""
 
-    def __init__(self, path: str, reason: str) -> None:
+    def __init__(
+        self,
+        path: str,
+        reason: str,
+        *,
+        findings: Optional[dict[str, str]] = None,
+    ) -> None:
         super().__init__(f"refused to stage {path}: {reason}")
         self.path = path
         self.reason = reason
+        self.findings: dict[str, str] = dict(findings) if findings else {path: reason}
 
 
 # ── dataclasses ──────────────────────────────────────────────────────────────
@@ -508,10 +515,8 @@ def stage_files(
     findings = scan_for_secrets(cleaned, repo_root=root, scan_contents=scan_contents)
     if findings:
         # Block on the first finding (deterministic), but expose all.
-        first = next(iter(findings.items()))
-        err = SecretBlocked(first[0], first[1])
-        err.findings = dict(findings)  # type: ignore[attr-defined]
-        raise err
+        first_path, first_reason = next(iter(findings.items()))
+        raise SecretBlocked(first_path, first_reason, findings=findings)
 
     if dry_run or not cleaned:
         return cleaned
