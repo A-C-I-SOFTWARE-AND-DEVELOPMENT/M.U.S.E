@@ -7751,6 +7751,45 @@ class HermesCLI:
         from hermes_cli.skills_hub import handle_skills_slash
         handle_skills_slash(cmd, ChatConsole())
 
+    # ------------------------------------------------------------------ #
+    # Orchestrator slash commands (Phase 16)
+    # ------------------------------------------------------------------ #
+    def _handle_orchestrator_slash(self, cmd: str, canonical: str) -> None:
+        """Dispatch any of the orchestrator-family slash commands.
+
+        Every orchestrator command (``/orchestrate``, ``/orchestrator``,
+        ``/model-router``, ``/decision-ledger``, ``/ai-radar``,
+        ``/best-coding-tool-mission``) flows through the central
+        :mod:`hermes_cli.orchestrator` controller so CLI and gateway share
+        formatting and bookkeeping.
+        """
+        from hermes_cli import orchestrator as _orch
+
+        rest = cmd.strip()
+        if rest.startswith("/"):
+            rest = rest.lstrip("/")
+        # Strip the canonical command name from the front of the payload.
+        if rest.lower().startswith(canonical.lower()):
+            rest = rest[len(canonical):].lstrip()
+
+        runners = {
+            "orchestrate":              _orch.run_orchestrate,
+            "orchestrator":             _orch.run_orchestrator,
+            "model-router":             _orch.run_model_router,
+            "decision-ledger":          _orch.run_decision_ledger,
+            "ai-radar":                 _orch.run_ai_radar,
+            "best-coding-tool-mission": _orch.run_best_coding_tool_mission,
+        }
+        runner = runners.get(canonical)
+        if runner is None:  # pragma: no cover - guarded by caller
+            return
+        try:
+            output = runner(rest)
+        except Exception as exc:  # pragma: no cover - defensive
+            output = f"(._.) /{canonical} error: {exc}"
+        if output:
+            print(output)
+
     def _show_gateway_status(self):
         """Show status of the gateway and connected messaging platforms."""
         from gateway.config import load_gateway_config, Platform
@@ -8031,6 +8070,15 @@ class HermesCLI:
             self._handle_curator_command(cmd_original)
         elif canonical == "kanban":
             self._handle_kanban_command(cmd_original)
+        elif canonical in {
+            "orchestrate",
+            "orchestrator",
+            "model-router",
+            "decision-ledger",
+            "ai-radar",
+            "best-coding-tool-mission",
+        }:
+            self._handle_orchestrator_slash(cmd_original, canonical)
         elif canonical == "skills":
             with self._busy_command(self._slow_command_status(cmd_original)):
                 self._handle_skills_command(cmd_original)

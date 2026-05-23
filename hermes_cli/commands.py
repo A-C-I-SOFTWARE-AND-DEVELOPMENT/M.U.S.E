@@ -215,6 +215,37 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("update", "Update Hermes Agent to the latest version", "Info"),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info"),
 
+    # Orchestration (Phase 16 — native slash commands).
+    #
+    # All six are registered ``cli_only`` so they do not consume slots in
+    # Slack's 50-slash app-manifest cap. Each new gateway-visible canonical
+    # bumps an alias like /q or /btw off the manifest (see
+    # tests/hermes_cli/test_commands.py::TestSlackNativeSlashes), and Phase
+    # 16 prioritizes CLI parity over gateway parity. The gateway code path
+    # in :meth:`gateway.run.HermesGateway._handle_orchestrator_slash` is
+    # wired and ready: a future phase can flip these to gateway-visible
+    # (or add ``gateway_config_gate``) when the orchestrator UX warrants
+    # crowding the manifest. CLI users still get them via /help and
+    # tab-completion.
+    CommandDef("orchestrate", "Queue a new local orchestrator job (no auto-execution)",
+               "Tools & Skills", cli_only=True, args_hint="<prompt>"),
+    CommandDef("orchestrator", "Inspect / resume / publish local orchestrator jobs",
+               "Tools & Skills", cli_only=True, args_hint="[subcommand]",
+               subcommands=("status", "list", "open", "resume", "publish")),
+    CommandDef("model-router", "Explain which model/profile a prompt would route to",
+               "Tools & Skills", cli_only=True, args_hint="explain <prompt>",
+               subcommands=("explain",)),
+    CommandDef("decision-ledger", "Show the orchestrator's decision ledger",
+               "Tools & Skills", cli_only=True, args_hint="show [job-id]",
+               subcommands=("show",)),
+    CommandDef("ai-radar", "Refresh the local AI-radar snapshot",
+               "Tools & Skills", cli_only=True, args_hint="update",
+               subcommands=("update",)),
+    CommandDef("best-coding-tool-mission",
+               "Show the orchestrator's 'best coding tool' mission status",
+               "Tools & Skills", cli_only=True, args_hint="status",
+               subcommands=("status",)),
+
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",
                cli_only=True, aliases=("exit",), args_hint="[--delete]"),
