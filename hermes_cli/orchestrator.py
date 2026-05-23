@@ -28,9 +28,14 @@ Design references:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
+
+
+def _utcnow() -> datetime:
+    """Return a timezone-aware UTC ``datetime`` for ledger timestamps."""
+    return datetime.now(timezone.utc)
 
 JobState = Literal[
     "NEW",
@@ -56,8 +61,8 @@ class JobRecord:
     prompt: str
     cwd: Path
     state: JobState = "NEW"
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=_utcnow)
+    updated_at: datetime = field(default_factory=_utcnow)
     candidate_workers: tuple[str, ...] = ()
     run_ids: tuple[str, ...] = ()
 
