@@ -1,61 +1,57 @@
-"""Worker adapters for the Hermes Job Controller (Phase 7 skeleton).
+"""Worker adapter framework for Hermes.
 
-This package is the registry of every worker adapter Hermes can hand a
-job off to. The package init is intentionally tiny: it does **not**
-import the individual adapter modules at load time, so that adding a
-new adapter that depends on an optional CLI never breaks ``import
-hermes_cli``.
+A *worker* is any tool Hermes can hand a job off to: Hermes Local,
+Codex, Claude Code, Aider, Goose, the ChatGPT manual-handoff flow,
+GitHub Publisher, or anything plugged in later. Every worker exposes
+the same five-step contract so the orchestrator can drive it
+identically regardless of which CLI / SDK / human-handoff sits behind
+it:
 
-See:
-    - ``docs/orchestration/job-controller-roadmap.md``
-    - ``docs/orchestration/worker-adapter-interface.md``
-    - ``docs/orchestration/orchestrator-command-roadmap.md``
+    detect → prepare_prompt → run → collect → score
+
+This package gives that contract a home. ``base`` defines the
+``WorkerAdapter`` abstract base class plus the small set of dataclass
+records (``WorkerDetection``, ``WorkerPrompt``, ``WorkerRunResult``,
+``WorkerArtifacts``, ``WorkerScore``) the steps exchange. ``registry``
+holds the in-process lookup table so the orchestrator can ask for a
+worker by id without importing the adapter module directly.
+
+Concrete adapters live outside this package — each ships in its own
+module (e.g. ``hermes_cli.workers.codex``) and registers itself via
+``registry.register``. Keeping the base small means new tools can be
+added without touching this module.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from hermes_cli.workers.base import (
+    WorkerAdapter,
+    WorkerArtifacts,
+    WorkerDetection,
+    WorkerPrompt,
+    WorkerRunResult,
+    WorkerScore,
+)
+from hermes_cli.workers.registry import (
+    WorkerRegistry,
+    default_registry,
+    get,
+    known_workers,
+    register,
+    unregister,
+)
 
-if TYPE_CHECKING:
-    from hermes_cli.workers.base import WorkerAdapter
-
-# Adapter names known to Phase 7. The mapping is name -> dotted module
-# path; the controller imports the module lazily via ``importlib`` only
-# when the adapter is actually selected by the model router. Listing a
-# name here is **not** the same as wiring it into the CLI — the slash
-# commands described in ``orchestrator-command-roadmap.md`` are not
-# registered yet.
-BUILTIN_ADAPTERS: dict[str, str] = {
-    "hermes_local": "hermes_cli.workers.hermes_local",
-    "codex": "hermes_cli.workers.codex",
-    "claude_code": "hermes_cli.workers.claude_code",
-    "aider": "hermes_cli.workers.aider",
-    "goose": "hermes_cli.workers.goose",
-    "chatgpt_handoff": "hermes_cli.workers.chatgpt_handoff",
-}
-
-
-def load_adapter(name: str) -> "WorkerAdapter":
-    """Lazily import and instantiate the adapter registered under ``name``.
-
-    Raises :class:`KeyError` if the name is not in ``BUILTIN_ADAPTERS``.
-    Raises :class:`ImportError` if the optional dependency required by
-    the adapter is not installed — callers should catch that and treat
-    the adapter as unavailable.
-
-    TODO(phase-7): wire this into ``hermes_cli/orchestrator.py`` once
-    the controller lands. For now it is reachable only from tests.
-    """
-    import importlib
-
-    module_path = BUILTIN_ADAPTERS[name]
-    module = importlib.import_module(module_path)
-    factory = getattr(module, "adapter", None)
-    if factory is None:
-        raise ImportError(
-            f"worker module {module_path!r} does not expose an `adapter` factory",
-        )
-    return factory()
-
-
-__all__ = ["BUILTIN_ADAPTERS", "load_adapter"]
+__all__ = [
+    "WorkerAdapter",
+    "WorkerArtifacts",
+    "WorkerDetection",
+    "WorkerPrompt",
+    "WorkerRegistry",
+    "WorkerRunResult",
+    "WorkerScore",
+    "default_registry",
+    "get",
+    "known_workers",
+    "register",
+    "unregister",
+]
