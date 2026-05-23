@@ -19,6 +19,13 @@
 #   cost         — cost tier:    free  | low      | medium | high
 #   validation   — how results are validated (always hermes-local for
 #                  final sign-off; this field describes intermediate checks)
+#   validation_needs — gates the router REQUIRES Hermes to run on this
+#                  worker's output before publication. Distinct from
+#                  `validation` (which describes what the worker can
+#                  self-check); this lists what Hermes itself must run.
+#   profile_hint — the orchestration profile name this worker fits best
+#                  (researcher / engineer / reviewer / publisher / etc.).
+#                  Used when the orchestrator maps a card to a worker.
 #   fallbacks    — preferred fallback order if this worker is the primary
 #
 # Notes:
@@ -58,6 +65,14 @@ models:
       runs_lints: true
       reads_diff: true
       smoke_runs: true
+    validation_needs:
+      # hermes-local IS the validator; it self-validates by running the
+      # project's existing test/lint/typecheck commands.
+      - diff_review
+      - project_tests
+      - project_lints
+      - smoke_run
+    profile_hint: engineer   # also serves as researcher/publisher when needed
     fallbacks: []
 
   - id: codex
@@ -94,6 +109,12 @@ models:
     validation:
       runs_tests: optional
       reads_diff: true
+    validation_needs:
+      - diff_review
+      - project_tests
+      - project_lints
+      - smoke_run
+    profile_hint: engineer
     fallbacks:
       - claude-code
       - aider
@@ -132,6 +153,12 @@ models:
     validation:
       reads_diff: true
       runs_tests: optional
+    validation_needs:
+      - diff_review
+      - cited_files_exist           # design / review tasks
+      - project_tests               # when claude-code writes code
+      - architecture_evidence_check # design docs must match repo layout
+    profile_hint: reviewer          # also runs as architect for design tasks
     fallbacks:
       - codex
       - aider
@@ -169,6 +196,11 @@ models:
     validation:
       reads_diff: true
       runs_tests: optional
+    validation_needs:
+      - diff_review
+      - project_tests
+      - project_lints
+    profile_hint: engineer
     fallbacks:
       - codex
       - claude-code
@@ -201,6 +233,11 @@ models:
     validation:
       reads_diff: true
       runs_tests: optional
+    validation_needs:
+      - diff_review
+      - project_tests
+      - shell_exit_status     # plumbing scripts must exit clean
+    profile_hint: engineer    # leans toward shell/plumbing work
     fallbacks:
       - aider
       - codex
@@ -232,6 +269,12 @@ models:
     validation:
       user_pastes_back_result: true
       hermes_validates_pasted_result: true
+    validation_needs:
+      - pasted_artifact_present
+      - diff_review              # if the paste contains code
+      - cited_files_exist        # if the paste references repo paths
+      - no_secret_leakage        # paste round-trip exits the device
+    profile_hint: researcher     # user-driven, off-machine reasoning
     fallbacks:
       - hermes-local
 
@@ -267,6 +310,12 @@ models:
     validation:
       reads_diff: true
       runs_tests: optional
+    validation_needs:
+      - diff_review
+      - project_tests           # only when local-model produces code
+      - no_secret_leakage       # redaction-safe drafts must stay local
+      - on_device_only          # endpoint must be loopback / unix socket
+    profile_hint: researcher    # offline drafts and private reasoning
     fallbacks:
       - aider
       - codex
@@ -300,6 +349,12 @@ models:
     validation:
       reads_diff: true        # confirms what is being pushed
       respects_allowlist: true
+    validation_needs:
+      - diff_parity_check       # what was pushed == what was validated
+      - allowlist_confirmed
+      - write_gate_confirmed
+      - branch_naming_policy_ok
+    profile_hint: publisher
     fallbacks:
       - hermes-local          # leaves a TODO if the publisher can't act
 
@@ -313,3 +368,37 @@ config_keys:
   - model_router.cost_ceiling          # low | medium | high | unlimited
   - model_router.quality_floor         # draft | standard | high | critical
   - model_router.max_fallbacks
+
+# Validation signals catalog.
+#
+# `validation_needs` on each worker references these names. Hermes (the
+# validator) maps each signal to a concrete check it runs locally before
+# publication. The orchestration validation gate
+# (docs/orchestration/local-validation-gates.md) uses the same names.
+validation_signals:
+  diff_review:                   "git diff inspection by hermes-local"
+  project_tests:                 "project test command exits 0"
+  project_lints:                 "configured lints/type checks exit 0"
+  smoke_run:                     "smoke-run the changed code path"
+  shell_exit_status:             "plumbing scripts exit 0"
+  cited_files_exist:             "every cited path/symbol resolves in repo"
+  architecture_evidence_check:   "design fits the file layout it cites"
+  pasted_artifact_present:       "user paste exists and is parseable"
+  no_secret_leakage:             "no secrets in artifact or paste round-trip"
+  on_device_only:                "endpoint is loopback / unix socket only"
+  diff_parity_check:             "what was pushed == what was validated"
+  allowlist_confirmed:           "repo is on github.allowed_repositories"
+  write_gate_confirmed:          "github.allow_writes is true"
+  branch_naming_policy_ok:       "branch matches configured naming policy"
+
+# Orchestration profile hints.
+#
+# Each worker's `profile_hint` maps to one of these names. The
+# orchestrator (docs/orchestration/worker-adapters.md) uses these to
+# resolve a card's `assignee` to a concrete worker when no explicit
+# routing rule fires.
+profile_hints:
+  researcher: "read-heavy, long context, no shell, offline-friendly"
+  engineer:   "edits files, runs tests, scoped shell access"
+  reviewer:   "read-only critique, judge-style skills, no writes"
+  publisher:  "branch/push/PR/comment under the GitHub write gate"

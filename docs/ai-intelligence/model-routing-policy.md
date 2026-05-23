@@ -219,6 +219,24 @@ candidate set entirely.
 
 ---
 
+## 7a. Orchestration profile filter
+
+When the routing call originates from the orchestrator (a Kanban card
+with an `assignee` profile), apply this filter **before scoring**:
+
+1. Read the card's `assignee` (e.g., `engineer`).
+2. Keep only workers whose `profile_hint` matches the assignee.
+3. Run the scoring rubric on the filtered set.
+4. If the filtered set is empty, **do not autocorrect**. Return a
+   routing plan with `primary: null`, `rationale: "no available worker
+   matches profile <assignee>"`, and leave the card in `ready` per the
+   orchestrator's no-autocorrect contract
+   (`docs/orchestration/worker-adapters.md`).
+
+This filter does not apply to ad-hoc routing calls (e.g., a user typing
+`/route` inside an interactive session) — those use the full candidate
+set.
+
 ## 8. Hard rules
 
 These rules override scoring. If they conflict, the router obeys the
@@ -299,7 +317,29 @@ validator: hermes-local
 publisher: (omitted)
 ```
 
-### 9.4 User pastes a task into ChatGPT manually
+### 9.4 Orchestrated card with parallel workers
+
+Inputs:
+- Orchestrator emits a card: `task_type: implementation`,
+  `assignee: engineer`, `parallel_workers: 2`.
+- Detection: `codex`, `aider`, `goose`, `hermes-local` available.
+
+The profile filter keeps the workers whose `profile_hint == engineer`:
+`codex`, `aider`, `goose`, `hermes-local`. Scoring ranks them in that
+order for this task type. The orchestrator fans the card out to the
+top 2 (`codex` and `aider`). The scoring/merge engine
+(`docs/orchestration/scoring-and-merge-engine.md`) picks the winning
+output. Validation runs against the chosen patch; `github-publisher`
+opens the PR.
+
+```
+candidates (post-profile-filter): [codex, aider, goose, hermes-local]
+fanned_out: [codex, aider]
+validator: hermes-local
+publisher: github-publisher
+```
+
+### 9.5 User pastes a task into ChatGPT manually
 
 Inputs:
 - `task_type: manual_handoff`

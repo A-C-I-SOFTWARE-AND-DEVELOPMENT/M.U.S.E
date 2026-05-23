@@ -1,18 +1,27 @@
 ---
 name: model-router
 description: "Choose the best worker/model mix for each Hermes workflow. Considers task type, local tool availability, quality, cost, speed, validation needs, and fallback options."
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
     tags: [routing, orchestration, models, delegation, planning, hermes-local]
-    related_skills: [hermes-agent, claude-code, codex, opencode]
+    related_skills:
+      - hermes-orchestration-pipeline
+      - codex-dispatch-governor
+      - github-publisher
+      - local-quality-gate
+      - ai-improvement-radar
     intelligence_sources:
       - docs/ai-intelligence/model-registry.yaml
       - docs/ai-intelligence/model-routing-policy.md
       - docs/ai-intelligence/tool-capability-matrix.md
+    orchestration_links:
+      - docs/orchestration/worker-adapters.md
+      - docs/orchestration/local-validation-gates.md
+      - docs/orchestration/scoring-and-merge-engine.md
 ---
 
 # Model Router
@@ -49,18 +58,20 @@ the next session — no code changes required.
 ## Workers in scope
 
 These are the worker IDs the router knows about. Each one has a full
-entry in `model-registry.yaml`.
+entry in `model-registry.yaml`, including a `profile_hint` that the
+orchestrator uses to resolve Kanban-card assignees (see
+`docs/orchestration/worker-adapters.md`).
 
-| Worker | Surface | Role in Hermes |
-|--------|---------|----------------|
-| `hermes-local` | internal | The planner, dispatcher, validator, and GitHub publisher. Always present. Runs on every job. |
-| `codex` | OpenAI CLI / app / web | Default implementation worker — fast feature work, test repair, bug fixes. |
-| `claude-code` | Anthropic CLI | Long-context architecture, multi-file refactor planning, risk review. |
-| `aider` | local CLI | Git-aware paired-edit worker. Surgical edits with explicit diffs. |
-| `goose` | local CLI | Local agent with shell + file tools. Good for plumbing tasks on the host. |
-| `chatgpt-handoff` | user-driven, web/app | Manual paste handoff to ChatGPT (no API). Used when the user wants ChatGPT in the loop without an API key. |
-| `local-model` | local inference (Ollama / llama.cpp / vLLM) | Offline reasoning, redaction-safe drafting, free-tier fallback. |
-| `github-publisher` | internal | The Hermes-owned worker that opens branches/PRs/comments. Never a primary "thinker" — it's the publication channel for everything else. |
+| Worker | Surface | Profile hint | Role in Hermes |
+|--------|---------|--------------|----------------|
+| `hermes-local` | internal | engineer | The planner, dispatcher, validator, and GitHub publisher. Always present. Runs on every job. |
+| `codex` | OpenAI CLI / app / web | engineer | Default implementation worker — fast feature work, test repair, bug fixes. |
+| `claude-code` | Anthropic CLI | reviewer | Long-context architecture, multi-file refactor planning, risk review. |
+| `aider` | local CLI | engineer | Git-aware paired-edit worker. Surgical edits with explicit diffs. |
+| `goose` | local CLI | engineer | Local agent with shell + file tools. Good for plumbing tasks on the host. |
+| `chatgpt-handoff` | user-driven, web/app | researcher | Manual paste handoff to ChatGPT (no API). Used when the user wants ChatGPT in the loop without an API key. |
+| `local-model` | local inference (Ollama / llama.cpp / vLLM) | researcher | Offline reasoning, redaction-safe drafting, free-tier fallback. |
+| `github-publisher` | internal | publisher | The Hermes-owned worker that opens branches/PRs/comments. Never a primary "thinker" — it's the publication channel for everything else. |
 
 `hermes-local` and `github-publisher` are always available because they
 are internal to Hermes. The other six are **detected at runtime** (see
@@ -272,10 +283,43 @@ Users can steer the router without editing YAML:
 - It will not silently switch providers mid-task. A re-route is always
   announced in the session and recorded on the task card.
 
+## Integration with the orchestration system
+
+The router does not replace the orchestrator — it slots into it. When
+Hermes is running an orchestrated job (`/orchestrate <goal>`), the
+orchestrator decomposes the goal into Kanban cards, each tagged with an
+`assignee` profile (`researcher`, `engineer`, `reviewer`, `publisher`).
+The router is what turns that profile name into a concrete worker:
+
+1. The orchestrator emits a card with `assignee: engineer`.
+2. The dispatcher hands the card to the router with `task_type` inferred
+   from the card's labels (or supplied explicitly).
+3. The router applies the policy in `model-routing-policy.md`, but
+   filters the candidate set by `profile_hint == card.assignee` first.
+4. If no available worker matches the profile, the router does **not**
+   silently rename the assignee — it surfaces the gap and the card sits
+   in `ready` until the user adds a worker or re-tags the card. (See
+   `docs/orchestration/troubleshooting.md#stuck-in-ready`.)
+5. The validation step is the orchestration validation gate
+   (`docs/orchestration/local-validation-gates.md`). The
+   `validation_needs` field on each worker tells the gate which
+   signals to require for that card.
+6. The publish step routes through `github-publisher`, gated by the
+   same allowlist + `allow_writes` rules the rest of Hermes uses.
+
+When the orchestrator is running parallel workers on a card (see
+`docs/orchestration/scoring-and-merge-engine.md`), the router scores
+each candidate worker and the orchestrator fans the card out to the
+top N. The scoring engine then picks the winning output by re-applying
+this skill's scoring rubric to the *results*, not just the workers.
+
 ## Pointers
 
 - Worker registry: `docs/ai-intelligence/model-registry.yaml`
 - Decision tree + scoring: `docs/ai-intelligence/model-routing-policy.md`
 - Capability matrix: `docs/ai-intelligence/tool-capability-matrix.md`
 - GitHub publication rules: `docs/github-integration.md`
+- Worker profiles in the orchestrator: `docs/orchestration/worker-adapters.md`
+- Local validation gate: `docs/orchestration/local-validation-gates.md`
+- Parallel-worker scoring: `docs/orchestration/scoring-and-merge-engine.md`
 - Hermes role on Android (planner-only handoffs): `docs/hermes-local-orchestrator.md`

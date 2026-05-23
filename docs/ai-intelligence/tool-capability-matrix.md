@@ -126,6 +126,35 @@ user can see what would need to be unlocked.
 
 ---
 
+## Validation signals per task type
+
+When the router emits a plan, it pairs the selected worker's
+`validation_needs` (from `model-registry.yaml`) with the task type to
+build the validation suite Hermes will run before publication. The
+default mapping:
+
+| Task type | Validation signals (added to worker's `validation_needs`) |
+|-----------|-----------------------------------------------------------|
+| `implementation`, `bug_fix`, `test_repair` | `diff_review`, `project_tests`, `project_lints`, `smoke_run` |
+| `refactor_small` | `diff_review`, `project_tests`, `project_lints` |
+| `refactor_large` | `diff_review`, `project_tests`, `project_lints`, `smoke_run`, `cited_files_exist` |
+| `architecture` | `cited_files_exist`, `architecture_evidence_check` |
+| `code_review`, `long_context_review` | `cited_files_exist` |
+| `plumbing` | `shell_exit_status`, `diff_review` (if files changed) |
+| `research` | `cited_files_exist`, `no_secret_leakage` |
+| `redaction_safe_draft` | `no_secret_leakage`, `on_device_only` |
+| `github_publish` | `diff_parity_check`, `allowlist_confirmed`, `write_gate_confirmed`, `branch_naming_policy_ok` |
+| `manual_handoff` | `pasted_artifact_present`, `diff_review` (if code), `cited_files_exist`, `no_secret_leakage` |
+
+The union of the worker's `validation_needs` and the task's signals is
+what the local validation gate
+(`docs/orchestration/local-validation-gates.md`) executes. A worker
+that cannot produce evidence for a required signal does not get to
+publish — the router demotes it and tries the next entry in the
+fallback ladder.
+
+---
+
 ## Maintenance
 
 When adding a new worker:
