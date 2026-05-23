@@ -60,7 +60,10 @@ jobs:
       - name: Install pytest deps
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest pytest-xdist pytest-timeout
+          # pyyaml is needed because tests/test_orchestrator_commands.py
+          # imports hermes_cli.commands → utils.py → yaml. The rest of
+          # the orchestration suite is stdlib-only.
+          python -m pip install pytest pytest-xdist pytest-timeout pyyaml
 
       - name: Py-compile the orchestrator modules
         run: |
