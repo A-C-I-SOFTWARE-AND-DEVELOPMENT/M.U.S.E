@@ -1,141 +1,182 @@
 ---
 name: competitive-feature-harvester
-description: "Research competing AI agents and harvest verified, user-loved features that could improve Hermes."
+description: "Harvest competitor agent features into a Hermes backlog."
 version: 1.0.0
 author: Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   hermes:
-    tags: [research, competitive, planning, product, agents]
-    related_skills: [research/blogwatcher, research/arxiv]
+    tags: [research, competitive, product, harvest, backlog]
+    category: research
+    related_skills: [blogwatcher, research-paper-writing, requesting-code-review]
 ---
 
 # Competitive Feature Harvester
 
-A repeatable workflow for surveying competing agent products (OpenHuman, Paperclip, OpenHands, Aider, Continue, Goose, Claude Code, Codex, OpenClaw, and similar) and converting **verified** feature claims into Hermes-relevant proposals.
+Survey competing AI coding agents, extract the features users actually praise,
+match them against what Hermes already ships, and emit a prioritized backlog
+of things worth copying or beating. Verified sources only. No fabricated
+features.
 
-The rule that matters: **only record claims that are tied to a primary source.** If a fact cannot be sourced to an official repo, doc site, release note, or first-party blog post, mark it `unverified` and stop using it as a recommendation.
+## When to Use
 
-## When to use
+- A new agent or release is making noise and we need to know what to copy
+- Quarterly: refresh the harvest so the backlog doesn't drift
+- A feature request from a user echoes something a competitor ships — confirm
+  what they actually do before committing to design
+- A PR proposes adopting a competitor's pattern — verify the pattern before
+  greenlighting
 
-- A new agent product is making noise and you want to know what it actually ships, separated from marketing.
-- You're planning a Hermes release and want a structured "what should we steal" list.
-- You're updating `docs/competitive/` so reviewers can audit feature decisions later.
+**Skip for:** general curiosity research with no decision attached, marketing
+posts that are not engineering decisions, or comparisons where Hermes is
+clearly out of category (image generation tools, web-only builders).
+
+## Prerequisites
+
+- `WebSearch` and `WebFetch` tools available
+- The Agent / subagent tool (this skill parallelizes research)
+- A clear list of competitors you want to cover
+- Read access to the Hermes repo so you can mark "already ships" honestly
+  (especially `AGENTS.md`, `README.md`, the `RELEASE_v*.md` files, the
+  `skills/` tree, and `toolsets.py`)
 
 ## Inputs
 
-1. A list of products to study (default set is below — extend per request).
-2. Optional focus area (e.g. "memory", "messaging gateways", "skill systems"). When empty, do a full harvest.
-3. Output directory (default: `docs/competitive/`).
+The user provides:
+1. **Competitor list** (e.g. "OpenHands, Aider, Codex, Continue, Goose")
+2. **Scope** — features only, or features + a Hermes adoption backlog?
+3. **Output directory** (defaults to `docs/competitive/` and `docs/product/`)
 
-Default target set: `OpenHuman`, `Paperclip`, `OpenHands`, `Aider`, `Continue`, `Goose`, `Claude Code`, `Codex`, `OpenClaw`. Add comparable developer/local-agent tools whenever they are plausibly relevant.
+## Procedure
 
-## Workflow
+### Phase 1 — Inventory Hermes first
 
-### Phase 1 — Source discovery
+Run a single `Explore` subagent against the repo with a checklist of
+capability areas (core agent, dev/code, platforms, security, eval/training,
+config/UX). For each capability, return one of:
 
-For every product, hunt for these primary sources in order:
+- ✅ YES + file path
+- ⚠️ PARTIAL + file path + what's missing
+- ❌ NO
 
-1. **GitHub repository README** (`github.com/<org>/<repo>`).
-2. **Official documentation site** (linked from README).
-3. **Official product/landing page**.
-4. **Release notes / changelog / blog**.
-5. **App store / package registry listing** when applicable.
+This anchors the harvest in reality — without it, you will recommend
+features Hermes already has, which embarrasses everyone.
 
-Use `WebSearch` to locate, then `WebFetch` to read. Capture the canonical URL — not aggregator/review/SEO pages.
+### Phase 2 — Spawn one research subagent per competitor
 
-```text
-WebSearch  "<product> features site:<official-domain>"
-WebSearch  "<product> github"
-WebSearch  "<product> release notes <current-year>"
-WebFetch   <discovered-url>  "list every shipped feature, quote verbatim, note license + last release date"
+Use `Agent(subagent_type=general-purpose, run_in_background=true)` and
+launch them **in parallel in a single message**. One subagent per
+competitor keeps each report focused and reduces the risk of one bad
+source bleeding into another. Brief each agent with:
+
+- **Product URLs** (official docs, GitHub repo)
+- **A specific feature area list** to investigate (don't leave it open-ended
+  — name `repo map`, `hooks`, `sandbox modes`, `recipes`, etc.)
+- **The Hermes context** (1 sentence so they can flag relevance)
+- **The honesty rule:** unverified claims must be marked unverified; if
+  a project is dormant, say so; if a feature can't be found in official
+  docs, don't list it.
+
+Required output format per agent:
+
+```
+| # | Feature | What it does | Source | Why users love it | Confidence |
 ```
 
-Treat aggregator reviews, "Top 10 AI agents" articles, and AI-generated blog posts as **leads, not sources**. They frequently hallucinate features that the official docs do not back up.
+Plus a short "What stands out" paragraph and a sources block. Cap each
+report at 1500 words to keep your context manageable.
 
-### Phase 2 — Verify each claim
+### Phase 3 — Disambiguate the obscure ones
 
-For each candidate feature, before recording it:
+If a name is ambiguous (e.g. "OpenHuman" could be the citizen-science
+project, OpenHands, or a real new tool), spawn a **dedicated investigation
+subagent** whose job is to disambiguate, not to harvest features. Brief it
+to:
 
-1. Find at least one primary source that asserts the feature (README, docs, release notes, or first-party blog).
-2. Note the **exact URL** and the **quoted phrase** that supports the claim.
-3. If only secondary sources mention it, mark `confidence: unverified` and do not recommend implementing it.
-4. If the feature is described inconsistently across sources, record the disagreement.
+- Try multiple candidate URLs and search queries
+- Distinguish lookalikes by URL, org, and category
+- Report **"insufficient evidence"** if it can't find a high-confidence
+  match, instead of guessing
 
-Confidence ladder:
+Document the disambiguation in `docs/competitive/<name>-research.md` so
+future researchers don't repeat the same wild goose chase.
 
-| Confidence | Meaning |
-|---|---|
-| `high` | Documented in official repo/docs/release notes with a direct quote. |
-| `medium` | Mentioned consistently across official sources but with weaker specifics, or only in a blog post by the maintainers. |
-| `low` | Plausible from official sources but partly inferred. |
-| `unverified` | Only found in third-party reviews, AI-generated articles, or hearsay. **Do not recommend.** |
+### Phase 4 — Cross-reference with Hermes inventory
 
-### Phase 3 — Map to Hermes
-
-For each verified feature, decide:
-
-- **Already in Hermes?** Cross-check `README.md`, `skills/`, `plugins/`, `cli.py`, `mcp_serve.py`, and `gateway/`. If yes, note the existing implementation and skip.
-- **Applies to Hermes?** Yes / No / Partial — with one-line reason. A feature that requires a desktop mascot may not apply; a 20-minute OAuth poll loop probably does.
-- **Implementation target.** Name the directory and approximate component (e.g. `plugins/google_meet`, `cron/`, new `gateway/budget.py`).
-
-### Phase 4 — Write artefacts
-
-Two files always, plus per-product deep dives when warranted:
-
-1. `docs/competitive/<product>-research.md` (or `<a>-<b>-research.md` when paired) — primary-source notes for that product. Quote-heavy, URL-heavy.
-2. `docs/competitive/developer-agent-feature-harvest.md` — the master table across all products. Append new rows; do not rewrite history.
-
-The master table schema:
+For each harvested feature, fill out the master row:
 
 ```markdown
 | Product | Feature | Source | User-loved reason | Applies to Hermes? | Implementation target | Confidence |
-|---|---|---|---|---|---|---|
 ```
 
-Rules for table rows:
+`Applies to Hermes?` options:
+- **Already ships** — cite the Hermes file/skill that covers it
+- **Partial** — cite what's missing
+- **Gap — high value** — fits Hermes architecture and would beat or match
+- **Gap — low value** — fits but not differentiated
+- **Out of scope** — Hermes deliberately doesn't go here (e.g. proprietary
+  cloud SaaS, IDE plugin)
+- **Unverified** — needs follow-up before scoring
 
-- One row per feature, not per product.
-- `Source` is a markdown link to the primary URL, not a search result.
-- `User-loved reason` is the *why*. If you cannot find a why in a user's voice, write "(no user testimony found)" rather than inventing one.
-- `Applies to Hermes?` is `Yes`, `No`, or `Partial: <reason>`.
-- `Implementation target` names a real path in this repo or is `n/a` if the feature does not apply.
-- `Confidence` uses the ladder above.
+### Phase 5 — Emit deliverables
 
-### Phase 5 — Recommend
+Three files (paths are fixed so the docs system can find them):
 
-At the bottom of `developer-agent-feature-harvest.md`, write a short "Recommended for Hermes" section listing only features with `confidence: high` or `medium` that have `Applies to Hermes? = Yes/Partial`. Group by implementation surface (gateway, skills, memory, scheduling, governance, UI).
+1. `docs/competitive/developer-agent-feature-harvest.md` — the full table
+   plus per-product "what stands out" notes.
+2. `docs/competitive/<name>-research.md` — disambiguation notes for any
+   obscure name (one file per name, or one combined file).
+3. `docs/product/hermes-feature-backlog.md` — only the rows marked
+   "Gap — high value", grouped by theme, with proposed implementation
+   targets and a one-line rationale.
 
-Never recommend `unverified` features. Never recommend duplicates of things Hermes already ships.
+Update existing files in place — do not create v2 or v3 copies.
 
-## Output contract
+## Verification
 
-Each research file must contain:
+Before declaring the harvest done:
 
-- A `## Sources` section listing every URL fetched.
-- For each feature claimed, a verbatim quoted phrase or paraphrase tied to a URL.
-- An honest gap list ("the docs do not say whether X works offline").
+- [ ] Every row in the master table has a source URL
+- [ ] No feature is claimed as "copied to Hermes" unless verified as
+      shipped (check git log / `RELEASE_v*.md`)
+- [ ] Obscure names (anything not on the top-10 leaderboard) have a
+      disambiguation paragraph
+- [ ] The backlog is sorted by `(value × leverage) / cost`, not by
+      vendor or alphabetic order
+- [ ] Anything marked "Already ships" cites the Hermes file or skill
+      that proves it
+- [ ] At least one row is marked "Out of scope" — if everything looks
+      adoptable, you're not being honest about Hermes' deliberate
+      choices
 
-If after best effort a product has no primary sources you can fetch, the deliverable for that product is one line: `unverified / insufficient evidence` — and that's the answer. Do not pad.
+## Pitfalls
 
-## Anti-fabrication checklist
+- **Don't trust the marketing site.** Engineering docs (`docs.*`,
+  `github.com/<org>/<repo>/README.md`) beat blog posts. Blog posts beat
+  Twitter threads. Twitter threads beat YouTube reviews.
+- **A 404'd doc page is not a dead feature.** Many vendor doc sites
+  reorganize quarterly. Cross-reference with `llms.txt`, the GitHub
+  README, and the release notes before concluding a feature is gone.
+- **"Loved" is verifiable too.** Quote the docs' own framing or a
+  reputable review. Don't invent user sentiment.
+- **Beware lookalikes.** OpenHuman vs OpenHands. Paperclip-the-orchestrator
+  vs Paperclip-the-Rails-gem vs paperclip-cli-the-ML-tool. The disambiguation
+  phase exists for a reason — skipping it produces wrong recommendations.
+- **Don't recommend features Hermes already has.** Phase 1 is non-optional.
+  If the inventory subagent missed something, the backlog inherits the
+  error.
+- **Confidence ratings are load-bearing.** If you mark something `high`
+  because the docs say so, the reader will trust it. Reserve `high` for
+  features documented on a canonical docs page or in the source code.
+- **The harvest is for Hermes.** Features that don't fit Hermes'
+  architecture (single-IDE plugins, proprietary SaaS-only flows) belong
+  in "Out of scope," not in the backlog.
 
-Before committing:
+## Related Skills
 
-- [ ] Every feature row links to a primary source URL.
-- [ ] No row uses a fabricated quote.
-- [ ] No row infers a feature from product category alone.
-- [ ] AI-generated review sites are not cited as sources.
-- [ ] When two sources disagree, both are noted.
-- [ ] Star counts, release dates, and licenses came from the repo itself, not a paraphrase.
-
-## Refresh cadence
-
-Re-run this skill when:
-
-- A target product cuts a major release.
-- A new comparable product gains traction (>10k GitHub stars in a quarter, or sustained discussion in developer-tools spaces).
-- Hermes planning needs an updated competitive view (before each release-train kickoff).
-
-Old rows stay; add a `Last verified: YYYY-MM-DD` column entry rather than silently mutating prior findings.
+- `blogwatcher` — useful for the ongoing "what just shipped?" feed
+- `research-paper-writing` — when a competitor releases a paper alongside
+  the tool (OpenHands has one), this skill cites it properly
+- `requesting-code-review` — when the harvest motivates a PR, this skill
+  verifies it before landing
