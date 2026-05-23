@@ -1,58 +1,136 @@
 ---
 name: developer-ux-command-center
-description: "The Android APK cockpit's view onto the Hermes orchestration pipeline. Surfaces job state, decision ledger entries, model-router picks, and approval prompts on the device the developer is actually carrying."
-version: 0.1.0
-author: Hermes Agent
-license: MIT
-platforms: [android, linux, macos, windows]
+description: "Developer-facing surface for the Hermes orchestration pipeline. Use to drive scripts/hermes-orchestrate.sh from a terminal: scaffold a job, list jobs, inspect status, and explain artifacts in plain prose."
+version: 0.2.0
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    status: stub
-    tags: [android, cockpit, ux, command-center, orchestration, mobile]
+    tags: [orchestration, developer-ux, cli, command-center]
     related_skills:
       - hermes-orchestration-pipeline
-      - aos-full-agent-team
-      - decision-quality-gate
       - model-router
       - github-publisher
-    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
 ---
 
-# Developer UX Command Center (stub)
+# Developer UX command center
 
-The cockpit-side counterpart to the orchestration pipeline. The
-Hermes backend is the **engine**; the Android APK at
-[`apps/android`](../../apps/android/) is the **cockpit**. This skill
-defines what the cockpit shows and what it lets the developer trigger.
+The command surface a developer interacts with when driving the Hermes
+orchestration pipeline from a terminal. Wraps `scripts/hermes-orchestrate.sh`
+and the job folder contract; explains what the artifacts mean.
 
-> **Status: Phase 1 placeholder.** This stub exists so the
-> `developer-ux-command-center` references already in `AGENTS.md`,
-> `README.md`, and the Phase 8 integration docs resolve to a real
-> file. The behaviour below is the *intended* contract, to be
-> implemented by the next Phase 1 pass.
+## Phase-02 reality check
 
-## Intended surfaces
+In Phase 02 the script only scaffolds artifacts — it does not run any
+external model tool. Every command below is real and works today; the
+artifacts they produce are intentionally empty templates for the
+controller in the next phase to fill in.
 
-| Surface | What it shows / does |
-|---|---|
-| Job kanban | Status of each active job folder (queued / running / waiting-approval / shipped). |
-| Decision ledger viewer | Append-only feed of `ledger.jsonl` entries, filterable per job. |
-| Model router pick | Which model the router chose for the active step, with rationale. |
-| Approval prompts | Push a confirmation to the phone when `decision-quality-gate` needs a human. |
-| Pipeline handoff | "Pipeline run" alongside the existing manual `ChatGPT / Claude / Codex` handoff buttons. |
+If a user asks "what did the worker say?" before the controller phase
+ships, the honest answer is "nothing yet — Phase 02 only scaffolds the
+folder." Do not invent worker output.
 
-## Posture
+## The four developer commands
 
-- **Cockpit, not engine.** Nothing in this skill runs the pipeline on
-  the device. The cockpit only issues commands to the backend the user
-  controls.
-- **No third-party telemetry.** The cockpit never sends task content
-  to anyone except the backend the user has configured.
-- **Local-first.** All ledger reads come from the backend's filesystem
-  over the user's gateway; no third-party cloud is in the path.
+### 1. Scaffold a new job
 
-## Companion docs
+```bash
+bash scripts/hermes-orchestrate.sh --mode <m> "<mission text>"
+```
 
-- `docs/hermes-local-orchestrator.md` — cockpit contract (manual + pipeline handoff).
-- `AGENTS.md` — Orchestration pipeline skills (canonical contract).
-- `apps/android/README.md` — Android cockpit build / install notes.
+- `<m>` is one of `plan`, `audit`, `build`, `debug`, `review`, `publish`
+  (defaults to `audit`).
+- Multi-word missions must be quoted.
+- Add `--trusted-local` if the user has explicitly said this job may
+  mutate local state without further prompts.
+- Add `--job-id <id>` to pin the job id (useful for reproducible
+  testing and for shared scripts).
+- Add `--root <path>` to override the default `.hermes-orchestrator`
+  root — e.g. for a sandboxed run during a demo.
+
+The script prints the job id, the folder it created, the mode, and the
+worker roster.
+
+### 2. List existing jobs
+
+```bash
+bash scripts/hermes-orchestrate.sh --list
+```
+
+Prints one job id per line. Honors `--root`.
+
+### 3. Inspect a job's status
+
+```bash
+bash scripts/hermes-orchestrate.sh --status <job-id>
+```
+
+Prints `status.json` for the job. In Phase 02 this is always
+`"state": "scaffolded"` — that will gain more states as the controller
+ships.
+
+### 4. Read the help
+
+```bash
+bash scripts/hermes-orchestrate.sh --help
+```
+
+The script's own usage block is the canonical reference. If this skill
+ever disagrees with `--help`, trust `--help` and file a doc bug.
+
+### Invocation variants
+
+Both `bash scripts/hermes-orchestrate.sh ...` and
+`./scripts/hermes-orchestrate.sh ...` are supported. The second form
+needs a one-time `chmod +x scripts/hermes-orchestrate.sh`. Suggest the
+explicit `bash` form first — it works on a fresh checkout without any
+permission changes.
+
+## Reading a job folder for the user
+
+When a developer says "what's in the job folder?" walk them through
+the contract in this order — it mirrors the way the controller will
+populate it:
+
+1. `job.json` — the immutable header (mode, mission, workers,
+   `trusted_local`).
+2. `mission.md` — human-readable mission.
+3. `decision-ledger.md` — what the orchestrator has decided so far
+   (Phase 02 has one row: the scaffold).
+4. `shared-context/*` — the context every worker shares.
+5. `workers/<worker>/` — per-worker prompt, output, patch, status.
+   In Phase 02 every `status.json` says `not_started`.
+6. `merge/*` — council synthesis (empty templates in Phase 02).
+7. `github/*` — branch + PR draft (templates in Phase 02; do not push).
+8. `logs/orchestrator.log` — append-only log; Phase 02 logs the
+   scaffold trace.
+
+Always link the developer to
+`docs/orchestration/hermes-orchestration-pipeline.md` for the full
+contract — this skill is the conversational entry point, not the spec.
+
+## Anti-patterns
+
+- **Inventing flags.** The script accepts exactly the flags listed in
+  the table above. `--dry-run`, `--watch`, `--worker` do not exist
+  yet. If a developer asks for one, that is a feature request, not a
+  forgotten flag.
+- **Editing scaffolded artifacts by hand.** The controller assumes
+  the artifacts are produced by orchestrator code. Hand-editing
+  `status.json` or `decision-ledger.md` will desync the system. If
+  the developer needs to mutate state, ask why and surface the
+  underlying request.
+- **Pushing a scaffold PR.** `github/pr-body.md` includes a
+  do-not-merge banner. Honor it. See the `github-publisher` skill for
+  the (future) publish flow.
+- **Claiming a worker ran.** In Phase 02 no worker runs. If
+  `workers/<w>/output.md` has content, someone wrote it out-of-band
+  — trust `status.json`, not the prose.
+
+## When to suggest the script vs. an MCP tool
+
+The orchestration script is a local-disk pipeline. It does not call
+GitHub, the API, or any MCP server directly. If the developer wants
+something that lives outside the job folder — open an issue, post a
+comment, look up a PR — reach for the GitHub MCP tools (`mcp__github__*`)
+or the native plugin instead. Use the script only to create, list,
+and inspect orchestration jobs.

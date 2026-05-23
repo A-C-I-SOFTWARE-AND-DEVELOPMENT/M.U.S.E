@@ -1,66 +1,113 @@
 ---
 name: github-publisher
-description: "Turns approved Hermes changes into branches, pull requests, and releases. Reads the decision ledger, refuses to ship anything not gated by decision-quality-gate, and never bypasses auth or signing."
-version: 0.1.0
-author: Hermes Agent
-license: MIT
-platforms: [linux, macos, windows, android]
+description: "Promote a Hermes orchestration job's github/ artifacts (branch, commit message, PR title, PR body) into a real branch and pull request. Phase-02-aware: the artifacts exist but must not be pushed until later phases populate merge/."
+version: 0.2.0
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    status: stub
-    tags: [github, publisher, release, pr, orchestration, ship]
+    tags: [orchestration, github, publishing, pr]
     related_skills:
       - hermes-orchestration-pipeline
-      - decision-quality-gate
-      - self-improvement-loop
-      - aos-full-agent-team
-    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
+      - model-router
+      - developer-ux-command-center
 ---
 
-# GitHub Publisher (stub)
+# GitHub publisher
 
-The ship-it end of the Hermes orchestration pipeline. After
-`decision-quality-gate` has approved a change set, this skill is
-responsible for turning the resulting job folder into a branch, a pull
-request, and (when configured) a release — without leaving the
-Hermes cockpit.
+This skill turns a job's `github/` folder into a branch + draft PR. It
+is the bridge between the orchestration pipeline and the GitHub plugin
+documented at `docs/github-integration.md`.
 
-> **Status: Phase 1 placeholder.** This stub exists so the
-> `github-publisher` references already in `AGENTS.md`, `README.md`,
-> and the Phase 8 integration docs resolve to a real file. The
-> behaviour below is the *intended* contract, to be implemented by
-> the next Phase 1 pass.
+## Phase-02 reality check
 
-## Intended invocation
+In Phase 02, `scripts/hermes-orchestrate.sh` emits four files under
+every job's `github/` folder with templated content:
 
-```text
-/github-publisher <branch>
+```
+.hermes-orchestrator/jobs/<job-id>/github/
+├── branch.txt              # default: hermes/<mode>/<job-id>
+├── commit-message.txt
+├── pr-title.txt
+└── pr-body.md
 ```
 
-Inputs (resolved from the active job folder):
+These are **scaffold templates only**. The `pr-body.md` explicitly
+warns "do not merge a PR generated from this template until later
+phases populate the merge/ artifacts." Respect that warning. In
+particular, do not:
 
-- A diff or commit set produced by the builder lane.
-- A decision ledger entry with `outcome: approved`.
-- The target repo / branch policy from project settings.
+- push the branch named in `branch.txt`,
+- run `git commit -F github/commit-message.txt`,
+- call `mcp__github__create_pull_request` with `github/pr-title.txt`
+  and `github/pr-body.md`.
 
-Output:
+When the controller exists in the next phase, this skill will own the
+push + PR creation flow described below.
 
-- A pushed branch on the remote the user has authorised.
-- A draft pull request linking back to the decision ledger entry.
-- Optional release artefact when the project's release policy applies.
+## Future workflow (informative, not active in Phase 02)
 
-## Safety posture
+When `merge/final-patch.diff` and `merge/final-plan.md` carry real
+content, the publish path is:
 
-- Never bypasses pre-commit hooks (`--no-verify` is refused).
-- Never force-pushes to `main` / `master`.
-- Refuses to publish anything without a matching `decision-quality-gate`
-  approval in `ledger.jsonl`.
-- Honours the local-first stance: nothing leaves the user's machine
-  except git pushes to the user's own remote.
+1. **Sanity-check the job folder.** Required: a non-empty
+   `merge/final-patch.diff`, a populated `merge/final-plan.md`, and
+   all four files under `github/`.
+2. **Apply the patch on a fresh branch.**
+   ```bash
+   branch="$(cat .hermes-orchestrator/jobs/<id>/github/branch.txt)"
+   git switch -c "${branch}"
+   git apply .hermes-orchestrator/jobs/<id>/merge/final-patch.diff
+   ```
+3. **Commit using the scaffolded message.**
+   ```bash
+   git commit -F .hermes-orchestrator/jobs/<id>/github/commit-message.txt
+   ```
+4. **Push the branch with upstream tracking.**
+   ```bash
+   git push -u origin "${branch}"
+   ```
+   On network errors, retry up to 4 times with exponential backoff
+   (2s, 4s, 8s, 16s) — same policy the rest of the project uses.
+5. **Open a draft PR via the GitHub MCP server.** Use
+   `mcp__github__create_pull_request` with:
+   - `title` = contents of `github/pr-title.txt`
+   - `body` = contents of `github/pr-body.md`
+   - `draft` = `true`
+   - `base` = the repo's default branch unless the job's
+     `constraints.md` says otherwise
+6. **Record the PR URL** by appending a row to `decision-ledger.md`
+   and updating `status.json` to `state: "published"`.
 
-## Companion docs
+The native GitHub plugin (`plugins/github_assistant/`) covers the same
+ground for users who prefer Hermes tools over MCP; the choice is the
+user's, documented in `docs/github-integration.md`.
 
-- `AGENTS.md` — Orchestration pipeline skills (canonical contract).
-- `docs/orchestration/decision-ledger.md` — ledger lifecycle.
-- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline driver.
-- `plugins/github/` — the existing native GitHub plugin this skill builds on.
+## Why a draft, always
+
+- Phase-02 templates ship with a warning banner; making the PR draft
+  by default prevents anyone from merging a scaffold by accident.
+- The user expects to review the council synthesis before the PR
+  flips to ready-for-review. The draft state is the natural pause
+  point.
+
+## Safety rails carried over from `github-integration.md`
+
+- Never push to `main` / `master` directly. Always create the branch
+  named in `branch.txt`.
+- Never force-push from this skill. If a branch already exists, fail
+  loud and surface the existing branch to the user.
+- Never pass the GitHub PAT into the prompt. The plugin / MCP server
+  reads it from the environment; the skill never sees it.
+- Never bypass `pre-commit` hooks with `--no-verify`. If a hook fails,
+  the council review missed something — surface the failure.
+
+## What this skill never does
+
+- It never runs in Phase 02. The artifacts are scaffolds; pushing them
+  would create empty branches and misleading PRs.
+- It never edits `merge/final-patch.diff` or `merge/final-plan.md`.
+  Those come from council synthesis. The publisher only consumes
+  them.
+- It never invents a branch name. If `branch.txt` is missing or
+  empty, fail and tell the user the orchestrator scaffolded a broken
+  job.
