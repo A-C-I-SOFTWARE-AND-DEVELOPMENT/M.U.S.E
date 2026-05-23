@@ -1,59 +1,133 @@
 ---
 name: aos-full-agent-team
-description: "Spawns the standard Agent-Operating-System team (planner / builder / reviewer / architect) and assigns work via the kanban dispatcher. Driven by the hermes-orchestration-pipeline and gated by decision-quality-gate."
-version: 0.1.0
+description: "Full AoS council: spin up all 16 specialists end-to-end."
+version: 1.0.0
 author: Hermes Agent
 license: MIT
-platforms: [linux, macos, windows, android]
+platforms: [linux, macos, windows]
 metadata:
   hermes:
-    status: stub
-    tags: [orchestration, agent-team, kanban, planner, builder, reviewer, architect]
+    tags: [aos, council, full-team, orchestration, master]
     related_skills:
-      - hermes-orchestration-pipeline
-      - decision-quality-gate
+      - aos-council-director
+      - evidence-architect
+      - principal-systems-architect
+      - product-experience-architect
+      - commercial-strategist
+      - assurance-risk-director
+      - delivery-scope-controller
+      - contrarian-reviewer
+      - contrarian-red-flag-analyst
+      - codex-dispatch-governor
       - model-router
+      - github-publisher
+      - developer-ux-command-center
+      - decision-quality-gate
       - research-validator
       - self-improvement-loop
-      - github-publisher
-    homepage: https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
+      - ai-improvement-radar
 ---
 
-# AOS Full Agent Team (stub)
+# AoS Full Agent Team
 
-This skill is the **roster** end of the Hermes orchestration pipeline.
-When invoked it materialises the standard Agent-Operating-System team
-roles for a given goal and hands them off to the kanban dispatcher.
+Master orchestration skill. Spins up the full 16-specialist AoS council against a single user goal, runs the canonical sequence, and produces a published decision-of-record. Use this when you want the whole apparatus, not a single specialist.
 
-> **Status: Phase 1 placeholder.** The Phase 1 "agent-skills" branch
-> that was supposed to author this skill was not produced before the
-> coordinator merge. This stub exists so that the references already
-> committed in `AGENTS.md`, `README.md`, and the Phase 8 integration
-> docs resolve to a real file. Treat the contract below as the
-> *intended* behaviour, to be implemented by the next Phase 1 pass.
+## When to Use
 
-## Intended invocation
+- The user invokes `/aos-full-agent-team` directly
+- A decision is consequential enough that any single specialist isn't enough
+- The user says "run the council" / "full team review" / "AoS pass"
 
-```text
-/aos-full-agent-team <goal>
+## The 16 specialists
+
+| Slot | Skill | Slash | Role |
+|------|-------|-------|------|
+| Director | `aos-council-director` | `/aos-council-director` | Decomposes, dispatches, integrates |
+| Evidence | `evidence-architect` | `/evidence-architect` | Builds the evidence base |
+| Architecture | `principal-systems-architect` | `/principal-systems-architect` | System / technical design |
+| Product | `product-experience-architect` | `/product-experience-architect` | User / journey / experience |
+| Commercial | `commercial-strategist` | `/commercial-strategist` | Market / pricing / GTM |
+| Risk | `assurance-risk-director` | `/assurance-risk-director` | Safety, security, legal, veto |
+| Delivery | `delivery-scope-controller` | `/delivery-scope-controller` | Scope, sequencing, slices |
+| Contrarian | `contrarian-reviewer` | `/contrarian-reviewer` | Devil's advocate, red flags |
+| Contrarian (alias) | `contrarian-red-flag-analyst` | `/contrarian-red-flag-analyst` | Alias of contrarian-reviewer |
+| Dispatch | `codex-dispatch-governor` | `/codex-dispatch-governor` | Hands coding work to agents |
+| Routing | `model-router` | `/model-router` | Picks the model per task |
+| Publishing | `github-publisher` | `/github-publisher` | Publishes to GitHub |
+| DX | `developer-ux-command-center` | `/developer-ux-command-center` | Developer ergonomics, docs |
+| Gate | `decision-quality-gate` | `/decision-quality-gate` | Final completeness / coherence gate |
+| Validation | `research-validator` | `/research-validator` | Fact-checks citations |
+| Retro | `self-improvement-loop` | `/self-improvement-loop` | Updates playbook from outcomes |
+| Radar | `ai-improvement-radar` | `/ai-improvement-radar` | Scans AI ecosystem |
+
+## Canonical sequence
+
+```
+1. Director       — read goal, write brief, plan council tasks
+2. Evidence       — build evidence pack (memory: aos/council/<slug>/evidence)
+3. Specialists    — dispatched in parallel via delegate_task:
+                      principal-systems-architect
+                      product-experience-architect
+                      commercial-strategist
+                      developer-ux-command-center
+4. Risk           — assurance-risk-director (reads all specialist findings)
+5. Delivery       — delivery-scope-controller (reads all findings + risk)
+6. Dispatch       — codex-dispatch-governor + model-router (only if slices need handoff)
+7. Validation     — research-validator (only for claims marked factual/empirical)
+8. Contrarian     — contrarian-reviewer (always — never skipped)
+9. Gate           — decision-quality-gate (always — never skipped)
+10. Publish       — github-publisher (only on pass / conditional)
+11. Retro         — self-improvement-loop (only when user requests, or on slip)
+12. Radar         — ai-improvement-radar (independent cadence; runs on demand)
 ```
 
-The dispatcher reads the job folder (`prompt.md`, `inputs/`, `outputs/`,
-`ledger.jsonl`, `status.json`) and materialises four roles:
+## Workflow
 
-| Role | Responsibility |
-|---|---|
-| Planner | Produce the decomposition and acceptance criteria for the goal. |
-| Architect | Pick a target shape, constraints, and trade-offs. Records in the ledger. |
-| Builder | Implement against the plan; one builder per parallelisable lane. |
-| Reviewer | Validate against the plan, ledger, and `decision-quality-gate`. |
+1. Load this SKILL.md (you're here). Read the user's goal verbatim.
+2. **Compute the goal slug** — lowercase, hyphenated, ≤40 chars. Persist the brief and goal under `memory` at `aos/council/<slug>/brief`.
+3. **Install the council todo list** via `todo`, one entry per step in the canonical sequence.
+4. **Invoke `aos-council-director`** with the goal slug. From here, the Director runs the council; you (under `aos-full-agent-team`) are the wrapping orchestrator.
+5. The Director dispatches each specialist via `delegate_task`. Parallel where the canonical sequence allows; sequential where it doesn't.
+6. At every step, mark the corresponding `todo` entry done.
+7. Read the final `quality_gate` result from `memory` at `aos/council/<slug>/quality_gate`.
+8. If `pass` or `conditional`, hand off to `github-publisher`. If `fail`, present the blockers to the user and stop.
 
-Each role is resolved to a concrete model by `model-router` using
-`docs/ai-intelligence/model-registry.yaml`.
+## Output contract — wrapper summary
 
-## Companion docs
+```json
+{
+  "goal": "<verbatim>",
+  "slug": "...",
+  "memory_root": "aos/council/<slug>",
+  "specialists_run": ["..."],
+  "specialists_skipped": [{"name": "...", "reason": "..."}],
+  "final_quality_gate": "pass | conditional | fail",
+  "decision_memory_key": "aos/council/<slug>/decision",
+  "publication": "<receipt or 'not published'>",
+  "next_actions": ["..."]
+}
+```
 
-- `AGENTS.md` — Orchestration pipeline skills (the canonical contract).
-- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline driver.
-- `docs/orchestration/decision-ledger.md` — ledger lifecycle.
-- `docs/ai-intelligence/model-routing-policy.md` — model assignment rules.
+## Tools you use
+
+- `memory` — root for the council session
+- `todo` — install and tick off the canonical sequence
+- `delegate_task` — invoke `aos-council-director`, which fans out the rest
+- `read_file`, `search_files` — only when the user's goal references concrete files
+- `session_search` — find prior councils on the same topic and reuse their decision-of-record where appropriate
+- `write_file` — only to materialize the final decision-of-record as a file when the user asks
+
+## Quality criteria
+
+- The canonical sequence is followed unless the user explicitly opted out of a step.
+- Every skipped specialist appears in `specialists_skipped` with a concrete `reason`.
+- The contrarian and the quality gate are **never** in `specialists_skipped`.
+- The `memory_root` is the single audit trail for the whole council — no findings live outside it.
+- The wrapper summary points to the decision-of-record memory key, not a copy of it.
+
+## Don't
+
+- Don't try to be a specialist yourself. Your job is orchestration; the specialists own substance.
+- Don't publish without a `pass` or `conditional` quality gate.
+- Don't skip the contrarian pass for speed.
+- Don't run `self-improvement-loop` or `ai-improvement-radar` automatically inside a council — those run on demand, against history.
