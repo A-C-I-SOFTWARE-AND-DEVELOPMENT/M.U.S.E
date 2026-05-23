@@ -186,10 +186,15 @@ def _load_ledger() -> dict[str, list[dict[str, Any]]]:
     raw = _read_json(_orch_dir() / _LEDGER_FILE, default={})
     if not isinstance(raw, dict):
         return {}
-    return {
-        str(k): list(v) if isinstance(v, list) else []
-        for k, v in raw.items()
-    }
+    result: dict[str, list[dict[str, Any]]] = {}
+    for k, v in raw.items():
+        if isinstance(v, list):
+            # Defensive: only keep dict entries so callers always get the
+            # documented shape, even if the file was hand-edited.
+            result[str(k)] = [e for e in v if isinstance(e, dict)]
+        else:
+            result[str(k)] = []
+    return result
 
 
 def _save_ledger(ledger: dict[str, list[dict[str, Any]]]) -> None:
