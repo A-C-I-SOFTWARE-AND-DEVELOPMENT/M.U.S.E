@@ -1102,3 +1102,114 @@ not the specific names.
 
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
+
+---
+
+## Hermes Orchestration
+
+When working on **anything in the orchestration stack** — the
+orchestrator skills, the kanban dispatcher, the validation gates, the
+decision ledger, the publishing path, the Android cockpit's
+orchestrator pane, the Termux runtime — read
+[`docs/orchestration/README.md`](docs/orchestration/README.md) first.
+It is the conceptual map; the rest of this section is rules for code
+that touches the orchestrator.
+
+### The five primitives
+
+The orchestration system is built from five concepts:
+
+1. **Job** — one orchestrated goal. Lives at
+   `~/.hermes/jobs/<job-id>/` and as rows in the kanban SQLite store.
+2. **Worker** — a Hermes profile (model + toolset + skills +
+   environment) that executes a card.
+3. **Model routing** — `orchestration.routing` rules that override a
+   profile's default model per-card.
+4. **Validation gate** — schema check + policy check (via
+   `enterprise.policy.classify`) + optional judge call. Every card
+   passes through.
+5. **Decision ledger** — append-only JSONL at
+   `~/.hermes/jobs/<job-id>/ledger.jsonl`. Source of truth for replay,
+   diff, and audit.
+
+If a change you're making interacts with any of these five, it needs
+to land its semantics in `docs/orchestration/` (or update the
+existing doc) in the same PR.
+
+### Rules for orchestrator code
+
+- **Do not change ledger entry shape silently.** The ledger is a
+  stable, tooling-readable format (see
+  [`docs/orchestration/faq.md`](docs/orchestration/faq.md)). New
+  `kind` values are fine; renaming or repurposing existing ones
+  needs a deprecation cycle.
+- **Do not bypass `enterprise.policy.classify` in publishing paths.**
+  Every mutation on an external service (GitHub, gateway DM, file
+  write outside the job folder) goes through it.
+- **Do not autocorrect unknown profile names.** The dispatcher's
+  documented behavior is to silently leave the card in `ready`. Tests
+  in `tests/orchestration/` enforce this.
+- **Workers must not call publishing tools directly.** The publishing
+  card (T5 in the prompt-to-PR demo) is a separate kanban card
+  precisely so the policy gate catches it. Don't add backdoors that
+  let an engineer-profile worker open a PR mid-run.
+- **The job folder is the source of truth.** If you cache state
+  in-memory, it must be reconstructable from `ledger.jsonl`. A
+  process crash and restart should resume cleanly.
+
+### Rules for orchestrator skills
+
+Custom orchestrator skills live under `~/.hermes/skills/` and ship
+under `skills/` in the repo. They must:
+
+- Discover available profiles before decomposing (call
+  `hermes profile list` or ask the user). The
+  [kanban-orchestrator playbook](skills/devops/kanban-orchestrator/SKILL.md)
+  is the reference implementation.
+- Use `parents=[...]` for dependencies, not free-form prose.
+- Mark themselves done with `kanban_complete` and a structured
+  `metadata.task_graph` summary.
+- Never invent profile names. If the user's setup doesn't fit the
+  decomposition, ask which profile to use.
+
+### Adding a new entry surface
+
+There are five today: `hermes` (TUI), `bash scripts/hermes-orchestrate.sh`,
+`/orchestrate` slash command, Android cockpit, gateway DM. A sixth would
+need:
+
+1. A way for a human (or trigger) to deliver the prompt.
+2. A way to authenticate the human (bearer / DM pairing / local
+   privilege).
+3. Translation to the same job-spawn call the other surfaces use —
+   not a new code path that re-implements orchestration.
+
+If you find yourself reimplementing orchestration in the new entry
+point, stop. The orchestrator is the brain; the entry point is just
+the mouth.
+
+### Adding a new worker adapter
+
+See
+[`docs/orchestration/worker-adapters.md`](docs/orchestration/worker-adapters.md).
+The shortest path is a new profile in YAML. Only write Python if
+you need a new *environment* backend that the seven shipped
+backends can't cover.
+
+### Tests
+
+The orchestration tests live under `tests/orchestration/`,
+`tests/kanban/`, and `tests/enterprise/`. The critical ones — the
+ones we will not regress on:
+
+- Dependency engine promotes children only when every parent is
+  `done`.
+- Dispatcher does not spawn workers for unknown profile assignees.
+- Policy gate escalates on HIGH-risk mutations.
+- Schema gate rejects `kanban_complete(created_cards=[...])` lists
+  with ids that don't exist or aren't owned by the worker.
+- Ledger replay produces the same job state as live execution.
+
+If a PR touches any of those code paths, those tests must continue
+to pass. Add cases for new behavior; don't loosen existing
+assertions to make a new feature land.

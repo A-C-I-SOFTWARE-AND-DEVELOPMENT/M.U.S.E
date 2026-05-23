@@ -79,6 +79,31 @@ hermes doctor       # Diagnose any issues
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
 
+## Hermes Orchestration
+
+Turn a sentence into a graph of validated, auditable jobs run by
+specialist workers. The orchestrator decomposes the goal, the kanban
+dispatcher fans it out, every step goes through a validation gate,
+every decision lands in a tamper-evident ledger, and the result
+publishes to wherever you asked (PR, Telegram, file, Android
+cockpit).
+
+```bash
+bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
+hermes                                                    # interactive
+/reload-skills                                            # after editing skills
+/orchestrate Build this repo into production quality      # from inside a session
+/orchestrator status                                      # see what's running
+```
+
+Same brain on every surface — CLI, gateway DM (Telegram / Discord /
+Slack / WhatsApp / Signal), Android cockpit, Termux shell. Works
+fully offline against a local llama.cpp / vLLM / Ollama server.
+
+**📖 Full guide:** [docs/orchestration/](docs/orchestration/) —
+overview, getting started, prompt-to-PR demo, Android + Termux
+demo, worker adapters, private/local mode, troubleshooting, FAQ.
+
 ## CLI vs Messaging Quick Reference
 
 Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
