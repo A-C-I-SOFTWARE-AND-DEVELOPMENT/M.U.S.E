@@ -1,7 +1,7 @@
 ---
 name: developer-ux-command-center
 description: "Developer-facing surface for the Hermes orchestration pipeline. Use to drive scripts/hermes-orchestrate.sh from a terminal: scaffold a job, list jobs, inspect status, and explain artifacts in plain prose."
-version: 0.2.0
+version: 0.3.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
@@ -18,15 +18,15 @@ The command surface a developer interacts with when driving the Hermes
 orchestration pipeline from a terminal. Wraps `scripts/hermes-orchestrate.sh`
 and the job folder contract; explains what the artifacts mean.
 
-## Phase-02 reality check
+## Phase-03 reality check
 
-In Phase 02 the script only scaffolds artifacts — it does not run any
+In Phase 03 the script only scaffolds artifacts — it does not run any
 external model tool. Every command below is real and works today; the
 artifacts they produce are intentionally empty templates for the
 controller in the next phase to fill in.
 
 If a user asks "what did the worker say?" before the controller phase
-ships, the honest answer is "nothing yet — Phase 02 only scaffolds the
+ships, the honest answer is "nothing yet — Phase 03 only scaffolds the
 folder." Do not invent worker output.
 
 ## The four developer commands
@@ -37,8 +37,8 @@ folder." Do not invent worker output.
 bash scripts/hermes-orchestrate.sh --mode <m> "<mission text>"
 ```
 
-- `<m>` is one of `plan`, `audit`, `build`, `debug`, `review`, `publish`
-  (defaults to `audit`).
+- `<m>` is one of `plan`, `research`, `audit`, `build`, `validate`,
+  `publish` (defaults to `audit`).
 - Multi-word missions must be quoted.
 - Add `--trusted-local` if the user has explicitly said this job may
   mutate local state without further prompts.
@@ -64,9 +64,9 @@ Prints one job id per line. Honors `--root`.
 bash scripts/hermes-orchestrate.sh --status <job-id>
 ```
 
-Prints `status.json` for the job. In Phase 02 this is always
-`"state": "scaffolded"` — that will gain more states as the controller
-ships.
+Prints `status.json` for the job. In Phase 03 this is always
+`"state": "scaffolded"` with `"current_stage": "research"` — that will
+gain more states as the controller ships.
 
 ### 4. Read the help
 
@@ -95,14 +95,24 @@ populate it:
    `trusted_local`).
 2. `mission.md` — human-readable mission.
 3. `decision-ledger.md` — what the orchestrator has decided so far
-   (Phase 02 has one row: the scaffold).
-4. `shared-context/*` — the context every worker shares.
-5. `workers/<worker>/` — per-worker prompt, output, patch, status.
-   In Phase 02 every `status.json` says `not_started`.
-6. `merge/*` — council synthesis (empty templates in Phase 02).
-7. `github/*` — branch + PR draft (templates in Phase 02; do not push).
-8. `logs/orchestrator.log` — append-only log; Phase 02 logs the
-   scaffold trace.
+   (Phase 03 has one row: the scaffold).
+4. `queue.json` — pending / in-flight / completed / failed task list
+   (empty in Phase 03).
+5. `checkpoints/` — append-only resume points (empty placeholder in
+   Phase 03).
+6. `shared-context/*` — the context every worker shares, including
+   `tool-detection.json` for what's actually reachable on this host.
+7. `phases/*.md` — one stage notebook per pipeline stage (`research`,
+   `planning`, `approval`, `implementation`, `validation`, `publish`).
+8. `workers/<worker>/` — per-worker prompt, output, patch, status.
+   In Phase 03 every `status.json` says `not_started`.
+9. `merge/*` — council synthesis (empty templates in Phase 03).
+10. `validation/` — local validation gate outputs (empty placeholder).
+11. `github/*` — branch + PR draft (templates in Phase 03; do not push).
+12. `deploy/` — post-publish release notes / rollout plan (empty
+    placeholder).
+13. `logs/orchestrator.log` — append-only log; Phase 03 logs the
+    scaffold trace.
 
 Always link the developer to
 `docs/orchestration/hermes-orchestration-pipeline.md` for the full
@@ -122,7 +132,7 @@ contract — this skill is the conversational entry point, not the spec.
 - **Pushing a scaffold PR.** `github/pr-body.md` includes a
   do-not-merge banner. Honor it. See the `github-publisher` skill for
   the (future) publish flow.
-- **Claiming a worker ran.** In Phase 02 no worker runs. If
+- **Claiming a worker ran.** In Phase 03 no worker runs. If
   `workers/<w>/output.md` has content, someone wrote it out-of-band
   — trust `status.json`, not the prose.
 

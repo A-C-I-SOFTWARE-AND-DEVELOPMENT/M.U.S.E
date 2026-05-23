@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hermes-orchestrate.sh
 #
-# Phase 02 foundation scaffold for the Hermes orchestration pipeline.
+# Phase 03 foundation scaffold for the Hermes orchestration pipeline.
 # This script only emits the job-folder contract; it does not run any
 # external model tools yet. The controller that fills in the artifacts
 # arrives in a later phase.
@@ -46,15 +46,32 @@ TRUSTED_LOCAL="false"
 MISSION=""
 ACTION="run"   # run | help | status | list
 
-WORKERS=("hermes-local" "claude-code" "codex-cli")
-VALID_MODES=("plan" "audit" "build" "debug" "review" "publish")
+WORKERS=(
+    "hermes-local"
+    "claude-code-windows"
+    "codex"
+    "aider"
+    "goose"
+    "chatgpt-handoff"
+)
+VALID_MODES=("plan" "research" "audit" "build" "validate" "publish")
+PHASE_TAG="03-foundation"
+
+PHASE_FILES=(
+    "research"
+    "planning"
+    "approval"
+    "implementation"
+    "validation"
+    "publish"
+)
 
 # ---------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------
 usage() {
     cat <<'EOF'
-hermes-orchestrate.sh — Phase 02 foundation scaffold
+hermes-orchestrate.sh — Phase 03 foundation scaffold
 
 USAGE
   bash scripts/hermes-orchestrate.sh [flags] "<mission text>"
@@ -68,7 +85,7 @@ FLAGS
   --status <job-id>    Print status.json for a job and exit.
   --job-id <id>        Use this job id instead of an auto-generated one.
   --root <path>        Override orchestrator root (default: .hermes-orchestrator).
-  --mode <m>           One of: plan | audit | build | debug | review | publish
+  --mode <m>           One of: plan | research | audit | build | validate | publish
                        (default: audit).
   --trusted-local      Mark the job as locally trusted (trusted_local=true
                        in job.json). Future phases use this to skip extra
@@ -92,18 +109,21 @@ FOLDER CONTRACT (per job)
   job.json                          shared-context/repo-map.md
   mission.md                        shared-context/evidence.md
   status.json                       shared-context/constraints.md
-  decision-ledger.md                shared-context/user-preferences.md
-  workers/<worker>/prompt.md        merge/council-review.md
-  workers/<worker>/output.md        merge/scorecard.json
-  workers/<worker>/patch.diff       merge/conflict-report.md
-  workers/<worker>/status.json      merge/final-plan.md
+  decision-ledger.md                shared-context/user-profile.md
+  queue.json                        shared-context/tool-detection.json
+  checkpoints/                      phases/{research,planning,approval,
+  workers/<worker>/prompt.md          implementation,validation,publish}.md
+  workers/<worker>/output.md        merge/council-review.md
+  workers/<worker>/patch.diff       merge/scorecard.json
+  workers/<worker>/status.json      merge/conflict-report.md
+  validation/                       merge/final-plan.md
   github/branch.txt                 merge/final-patch.diff
-  github/commit-message.txt         logs/orchestrator.log
-  github/pr-title.txt
+  github/commit-message.txt         deploy/
+  github/pr-title.txt               logs/orchestrator.log
   github/pr-body.md
 
 WORKERS REGISTERED
-  hermes-local, claude-code, codex-cli
+  hermes-local, claude-code-windows, codex, aider, goose, chatgpt-handoff
 EOF
 }
 
@@ -270,7 +290,7 @@ mission_json="$(printf '%s' "${MISSION}" | json_escape)"
 mode_json="$(printf '%s' "${MODE}" | json_escape)"
 job_id_json="$(printf '%s' "${JOB_ID}" | json_escape)"
 created_json="$(printf '%s' "${now_utc}" | json_escape)"
-phase_json="$(printf '%s' "02-foundation" | json_escape)"
+phase_json="$(printf '%s' "${PHASE_TAG}" | json_escape)"
 workers_json="$(HERMES_ORCH_LIST="$(printf '%s\n' "${WORKERS[@]}")" json_string_list)"
 
 # job.json
@@ -306,6 +326,7 @@ write_file "${JOB_DIR}/status.json" <<EOF
   "mode": ${mode_json},
   "state": "scaffolded",
   "phase": ${phase_json},
+  "current_stage": "research",
   "created_at": ${created_json},
   "updated_at": ${created_json},
   "workers": ${workers_json}
@@ -316,12 +337,38 @@ EOF
 write_file "${JOB_DIR}/decision-ledger.md" <<EOF
 # Decision ledger — ${JOB_ID}
 
-Append-only log of orchestration decisions. Phase 02 seeds the first
+Append-only log of orchestration decisions. Phase 03 seeds the first
 entry; later phases append to it.
 
 | Timestamp (UTC) | Actor | Decision | Rationale |
 |---|---|---|---|
-| ${now_utc} | orchestrator | scaffold-job | Created job folder contract for mode \`${MODE}\`. |
+| ${now_utc} | orchestrator | scaffold-job | Created Phase 03 job folder contract for mode \`${MODE}\`. |
+EOF
+
+# queue.json — orchestrator dispatch queue (placeholder)
+write_file "${JOB_DIR}/queue.json" <<EOF
+{
+  "job_id": ${job_id_json},
+  "phase": ${phase_json},
+  "version": 1,
+  "pending": [],
+  "in_flight": [],
+  "completed": [],
+  "failed": []
+}
+EOF
+
+# checkpoints/ — append-only durable resume points (placeholder)
+mkdir -p "${JOB_DIR}/checkpoints"
+write_file "${JOB_DIR}/checkpoints/README.md" <<EOF
+# Checkpoints — ${JOB_ID}
+
+Append-only resume points for the orchestrator. Each checkpoint is a
+single JSON file named \`<utc-timestamp>-<stage>.json\` that captures
+enough state for a restart to pick up where the last run left off.
+
+Phase 03 only creates this directory; the controller in a later phase
+populates checkpoints as stages complete.
 EOF
 
 # shared-context/
@@ -346,12 +393,39 @@ Hard limits the orchestrator must respect (security, scope, branch,
 do-not-touch paths). Populated by later phases.
 EOF
 
-write_file "${JOB_DIR}/shared-context/user-preferences.md" <<EOF
-# User preferences — ${JOB_ID}
+write_file "${JOB_DIR}/shared-context/user-profile.md" <<EOF
+# User profile — ${JOB_ID}
 
 Style, formatting, tooling, and communication preferences carried over
 from user history. Populated by later phases.
 EOF
+
+# tool-detection.json — what's actually installed on this host
+write_file "${JOB_DIR}/shared-context/tool-detection.json" <<EOF
+{
+  "job_id": ${job_id_json},
+  "phase": ${phase_json},
+  "detected_at": null,
+  "workers": {
+    "hermes-local": {"available": null, "evidence": null},
+    "claude-code-windows": {"available": null, "evidence": null},
+    "codex": {"available": null, "evidence": null},
+    "aider": {"available": null, "evidence": null},
+    "goose": {"available": null, "evidence": null},
+    "chatgpt-handoff": {"available": null, "evidence": null}
+  }
+}
+EOF
+
+# phases/ — one markdown file per stage of the pipeline
+for stage in "${PHASE_FILES[@]}"; do
+    write_file "${JOB_DIR}/phases/${stage}.md" <<EOF
+# Stage: ${stage} — ${JOB_ID}
+
+_Empty._ Phase 03 only scaffolds this file; the controller in a later
+phase populates the ${stage} stage notes.
+EOF
+done
 
 # workers/<worker>/...
 for worker in "${WORKERS[@]}"; do
@@ -369,13 +443,13 @@ ${MISSION}
 
 ## Notes
 
-Phase 02 only scaffolds this prompt; no worker is dispatched yet.
+Phase 03 only scaffolds this prompt; no worker is dispatched yet.
 EOF
 
     write_file "${JOB_DIR}/workers/${worker}/output.md" <<EOF
 # Output from ${worker} — ${JOB_ID}
 
-_Empty._ Phase 02 only scaffolds this file; no worker has run yet.
+_Empty._ Phase 03 only scaffolds this file; no worker has run yet.
 EOF
 
     : >"${JOB_DIR}/workers/${worker}/patch.diff"
@@ -386,7 +460,8 @@ EOF
   "job_id": ${job_id_json},
   "state": "not_started",
   "phase": ${phase_json},
-  "created_at": ${created_json}
+  "created_at": ${created_json},
+  "updated_at": ${created_json}
 }
 EOF
 done
@@ -423,6 +498,20 @@ EOF
 
 : >"${JOB_DIR}/merge/final-patch.diff"
 
+# validation/ — local validation gate artifacts (tests, lint, smoke runs)
+mkdir -p "${JOB_DIR}/validation"
+write_file "${JOB_DIR}/validation/README.md" <<EOF
+# Validation — ${JOB_ID}
+
+Outputs from the local validation gates: test runs, lint/type checks,
+smoke runs, and any task-specific checks pinned in the mission. The
+controller writes one file per validator (\`pytest.txt\`, \`ruff.txt\`,
+\`mypy.txt\`, ...) plus a \`summary.json\` that the publisher reads
+before opening a PR.
+
+Phase 03 only creates this directory.
+EOF
+
 # github/
 write_file "${JOB_DIR}/github/branch.txt" <<EOF
 hermes/${MODE}/${JOB_ID}
@@ -431,7 +520,7 @@ EOF
 write_file "${JOB_DIR}/github/commit-message.txt" <<EOF
 chore(orchestrator): scaffold job ${JOB_ID}
 
-Phase 02 foundation only — no implementation yet.
+Phase 03 foundation only — no implementation yet.
 EOF
 
 write_file "${JOB_DIR}/github/pr-title.txt" <<EOF
@@ -442,7 +531,7 @@ write_file "${JOB_DIR}/github/pr-body.md" <<EOF
 ## Summary
 
 Scaffolded by \`hermes-orchestrate.sh\` for job \`${JOB_ID}\` in mode
-\`${MODE}\`. Phase 02 only emits the folder contract; the controller
+\`${MODE}\`. Phase 03 only emits the folder contract; the controller
 that fills these artifacts runs in a later phase.
 
 ## Mission
@@ -455,6 +544,19 @@ ${MISSION}
   templates.
 - Do not merge a PR generated from this template until later phases
   populate the \`merge/\` artifacts.
+EOF
+
+# deploy/ — post-publish deploy artifacts (release notes, deploy plan)
+mkdir -p "${JOB_DIR}/deploy"
+write_file "${JOB_DIR}/deploy/README.md" <<EOF
+# Deploy — ${JOB_ID}
+
+Post-publish deploy artifacts: release notes draft, rollout plan,
+post-merge smoke checklist, and any environment-specific deploy
+metadata. The publisher only reaches here when the PR has been merged
+and the mission's \`publish\` stage is complete.
+
+Phase 03 only creates this directory.
 EOF
 
 # logs/
@@ -474,4 +576,4 @@ mkdir -p "${JOB_DIR}/logs"
 echo "Job ${JOB_ID} scaffolded at ${JOB_DIR}"
 echo "Mode: ${MODE}"
 echo "Workers: ${WORKERS[*]}"
-echo "Phase: 02-foundation (no external model tools were invoked)"
+echo "Phase: ${PHASE_TAG} (no external model tools were invoked)"

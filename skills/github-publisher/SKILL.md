@@ -1,7 +1,7 @@
 ---
 name: github-publisher
-description: "Promote a Hermes orchestration job's github/ artifacts (branch, commit message, PR title, PR body) into a real branch and pull request. Phase-02-aware: the artifacts exist but must not be pushed until later phases populate merge/."
-version: 0.2.0
+description: "Promote a Hermes orchestration job's github/ artifacts (branch, commit message, PR title, PR body) into a real branch and pull request. Phase-03-aware: the artifacts exist but must not be pushed until later phases populate merge/, validation/, and deploy/."
+version: 0.3.0
 platforms: [linux, macos, windows]
 metadata:
   hermes:
@@ -18,9 +18,9 @@ This skill turns a job's `github/` folder into a branch + draft PR. It
 is the bridge between the orchestration pipeline and the GitHub plugin
 documented at `docs/github-integration.md`.
 
-## Phase-02 reality check
+## Phase-03 reality check
 
-In Phase 02, `scripts/hermes-orchestrate.sh` emits four files under
+In Phase 03, `scripts/hermes-orchestrate.sh` emits four files under
 every job's `github/` folder with templated content:
 
 ```
@@ -44,14 +44,16 @@ particular, do not:
 When the controller exists in the next phase, this skill will own the
 push + PR creation flow described below.
 
-## Future workflow (informative, not active in Phase 02)
+## Future workflow (informative, not active in Phase 03)
 
-When `merge/final-patch.diff` and `merge/final-plan.md` carry real
-content, the publish path is:
+When `merge/final-patch.diff`, `merge/final-plan.md`, and the local
+validation gates in `validation/` carry real content, the publish
+path is:
 
 1. **Sanity-check the job folder.** Required: a non-empty
-   `merge/final-patch.diff`, a populated `merge/final-plan.md`, and
-   all four files under `github/`.
+   `merge/final-patch.diff`, a populated `merge/final-plan.md`, a
+   passing `validation/summary.json`, and all four files under
+   `github/`.
 2. **Apply the patch on a fresh branch.**
    ```bash
    branch="$(cat .hermes-orchestrator/jobs/<id>/github/branch.txt)"
@@ -77,6 +79,10 @@ content, the publish path is:
      `constraints.md` says otherwise
 6. **Record the PR URL** by appending a row to `decision-ledger.md`
    and updating `status.json` to `state: "published"`.
+7. **Write deploy artifacts** (release notes draft, rollout plan,
+   post-merge smoke checklist) into `deploy/`. The publisher only
+   reaches this step after the PR is merged and the `publish` stage
+   is complete.
 
 The native GitHub plugin (`plugins/github_assistant/`) covers the same
 ground for users who prefer Hermes tools over MCP; the choice is the
@@ -84,7 +90,7 @@ user's, documented in `docs/github-integration.md`.
 
 ## Why a draft, always
 
-- Phase-02 templates ship with a warning banner; making the PR draft
+- Phase-03 templates ship with a warning banner; making the PR draft
   by default prevents anyone from merging a scaffold by accident.
 - The user expects to review the council synthesis before the PR
   flips to ready-for-review. The draft state is the natural pause
@@ -103,7 +109,7 @@ user's, documented in `docs/github-integration.md`.
 
 ## What this skill never does
 
-- It never runs in Phase 02. The artifacts are scaffolds; pushing them
+- It never runs in Phase 03. The artifacts are scaffolds; pushing them
   would create empty branches and misleading PRs.
 - It never edits `merge/final-patch.diff` or `merge/final-plan.md`.
   Those come from council synthesis. The publisher only consumes
