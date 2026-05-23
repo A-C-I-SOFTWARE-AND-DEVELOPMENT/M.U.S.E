@@ -9,8 +9,9 @@ research base; the prioritized adoption list lives in
 
 **Date:** 2026-05-23
 **Scope:** Claude Code, Codex CLI, Aider, OpenHands, Continue, Goose, OpenHuman,
-Paperclip, plus adjacent tools (Cline, Cursor, Roo Code, Zed/ACP, Gemini CLI,
-Devin, SWE-agent, Plandex, bolt.new/Lovable, Smol Developer, GPT Engineer).
+Paperclip, OpenClaw, plus adjacent tools (Cline, Cursor, Roo Code, Zed/ACP,
+Gemini CLI, Devin, SWE-agent, Plandex, bolt.new/Lovable, Smol Developer,
+GPT Engineer).
 
 **Method:** Eight parallel research subagents (one Hermes inventory + seven
 competitor groups). Each was briefed to cite official sources, mark unverified
@@ -191,19 +192,55 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Product | Feature | Source | User-loved reason | Applies to Hermes? | Implementation target | Confidence |
 |---|---|---|---|---|---|---|
 | OpenHuman | Single Rust binary, local-first runtime | https://github.com/tinyhumansai/openhuman | One install, no dependency tree | OUT OF SCOPE — Hermes is Python-first by design | — | H |
-| OpenHuman | "Memory Tree" — SQLite + Obsidian-compatible markdown vault | https://tinyhumans.gitbook.io/openhuman | Users can browse/edit memory in their own knowledge tool | GAP — possible memory plugin | New `plugins/memory/obsidian/` provider | H |
-| OpenHuman | 118+ OAuth integrations w/ periodic auto-fetch | github.com README | Personal-AI grounded in your services | OUT OF SCOPE — Hermes platform gateway covers messaging; deep OAuth-per-service is a plugin space | — | M |
-| OpenHuman | TokenJuice compression (vendor claim ~80% reduction) | github.com README | Lower token spend | UNVERIFIED — vendor claim; no public benchmark | Compare against `trajectory_compressor.py` if a benchmark surfaces | L |
-| OpenHuman | Voice + desktop mascot, can join Google Meets | github.com README | Personal-AI affordances | PARTIAL — Hermes voice exists; mascot is the skin engine + spinner faces; no Google Meet joining | — (low value; the `google_meet` plugin under `plugins/` already exists — verify scope) | M |
+| OpenHuman | "Memory Tree" + Obsidian Wiki — content canonicalized into ≤3k-token Markdown chunks, scored, folded into hierarchical summary trees in local SQLite; positioned as "persistent 1-billion-token memory" | https://tinyhumans.gitbook.io/openhuman, https://github.com/tinyhumansai/openhuman/blob/main/gitbooks/README.md | Users can browse/edit memory in their own knowledge tool; persistence survives across sessions and devices | GAP — possible memory plugin | New `plugins/memory/obsidian/` provider; the ≤3k-token chunking + hierarchical summary pattern is also worth porting into `agent/context_compressor.py` for non-Obsidian users | H |
+| OpenHuman | TokenJuice rule overlay — HTML→Markdown, long URLs shortened, deduped/summarized tool outputs (vendor claim ~80% reduction in cost/latency) | https://github.com/tinyhumansai/openhuman/blob/main/gitbooks/features/token-compression.md | Cheaper turns without losing information | PARTIAL — Hermes has `trajectory_compressor.py` + `agent/context_compressor.py`; no documented per-tool-output rule overlay specifically targeting HTML/URL bloat | Add an opt-in `tool_output_filter` plugin hook that runs configured rewrite rules before tool results enter the message log | M |
+| OpenHuman | 118+ OAuth integrations w/ periodic auto-fetch | https://github.com/tinyhumansai/openhuman | Personal-AI grounded in your services | OUT OF SCOPE — Hermes platform gateway covers messaging; deep OAuth-per-service is a plugin space | — | M |
+| OpenHuman | Voice + desktop mascot + live Google Meet agent (STT in, ElevenLabs TTS out, mascot lip-sync) | https://github.com/tinyhumansai/openhuman | Personal-AI affordances | PARTIAL — Hermes voice exists; mascot is the skin engine + spinner faces; the `google_meet` plugin under `plugins/` covers the meeting integration — verify scope and TTS-out parity | Audit `plugins/google_meet/`; add ElevenLabs TTS-out adapter if missing | M |
 
 See [`openhuman-paperclip-research.md`](./openhuman-paperclip-research.md) for
 the full disambiguation.
+
+### OpenClaw (`openclaw/openclaw`)
+
+OpenClaw is the closest architectural analog to Hermes that exists today:
+a local-first, multi-channel personal AI assistant with sandboxed sessions,
+cron, webhooks, and a skill/plugin system. Treat this section as the most
+load-bearing competitive read in the document.
+
+| Product | Feature | Source | User-loved reason | Applies to Hermes? | Implementation target | Confidence |
+|---|---|---|---|---|---|---|
+| OpenClaw | Local-first Gateway as "single control plane for sessions, channels, tools, and events" | https://github.com/openclaw/openclaw | One process, one config, everything talks through it | ALREADY SHIPS — `gateway/` is exactly this | — | H |
+| OpenClaw | Multi-channel inbox across 24+ platforms (WhatsApp, Telegram, Slack, Discord, Google Chat, Signal, iMessage, IRC, Teams, Matrix, Feishu, LINE, Mattermost, Nextcloud Talk, Nostr, Synology Chat, Tlon, Twitch, Zalo, WeChat, QQ, WebChat, …) | https://github.com/openclaw/openclaw | "Answers you on the channels you already use" | PARTIAL — Hermes ships ~10 platforms in `gateway/platforms/`; OpenClaw's list is ~2× longer (Feishu, LINE, Nostr, WeChat, QQ, Zalo, Tlon, Synology Chat, IRC notably missing from Hermes) | Add the missing channel adapters under `gateway/platforms/`; prioritize Feishu / WeChat / LINE for APAC reach | H |
+| OpenClaw | Multi-agent routing — bind specific inbound channels/accounts to isolated agents | https://github.com/openclaw/openclaw | One Telegram account → ops agent, another → coding agent | PARTIAL — Hermes routes by user/channel but not by-account isolation as a first-class concept | Add `channel_routing:` config: per-channel/per-account profile binding | H |
+| OpenClaw | Voice Wake + Talk Mode (macOS/iOS), continuous voice on Android | https://github.com/openclaw/openclaw | Hands-free always-on assistant | PARTIAL — Hermes has `hermes_cli/voice.py` (push-to-talk style); no wake-word/continuous mode on the Android app | Add wake-word listener to `apps/android/` companion + macOS menu-bar variant | H |
+| OpenClaw | Live Canvas — agent-driven visual workspace | https://github.com/openclaw/openclaw | "Render a live Canvas you control" — visible reasoning surface for non-text outputs | GAP — high value | New canvas surface in the dashboard React app; agent tool `canvas.write(node, content)` | H |
+| OpenClaw | SOUL.md — injected prompt file defining agent personality | https://github.com/openclaw/openclaw, https://github.com/mergisi/awesome-openclaw-agents | Personality as a file you can fork and PR | PARTIAL — Hermes personalities exist as YAML in `hermes_cli/personalities/`; no single SOUL.md convention nor a personality marketplace | Adopt SOUL.md as an alternate front-end for the existing personality system; document the marketplace pattern (see Continue Hub row) | H |
+| OpenClaw | AGENTS.md, scoped — subdirectory-level overrides ("Read scoped `AGENTS.md` before subtree work") | https://github.com/openclaw/openclaw/blob/main/AGENTS.md | Per-subtree rules without bloating the root file | GAP — Hermes loads root `AGENTS.md`/`CLAUDE.md` only | Extend `_load_context_files()` in `run_agent.py` to walk up from cwd, concatenating scoped `AGENTS.md` files (cap by byte budget; cf. Codex `project_doc_max_bytes`) | H |
+| OpenClaw | Workspace skills under `~/.openclaw/workspace/skills/` | https://github.com/openclaw/openclaw | User-owned skill location, separate from binary | ALREADY SHIPS — Hermes skill discovery covers `~/.hermes/skills/` etc. | — | H |
+| OpenClaw | Sandbox modes for non-main sessions (Docker, SSH, OpenShell backends) | https://github.com/openclaw/openclaw | Isolation by default for delegated work | ALREADY SHIPS — `tools/environments/` covers Docker, SSH, Modal, Daytona, Singularity, Vercel | — | H |
+| OpenClaw | First-class agent toolset: browser, canvas, nodes, cron, sessions | https://github.com/openclaw/openclaw | Batteries-included agent infra | PARTIAL — Hermes covers all except `canvas` and `nodes` (visual-flow editor) | Add `nodes`-style visual-flow editor as an optional `plugins/flow_designer/` (research effort first; not on the critical path) | M |
+| OpenClaw | Companion apps for macOS, iOS, Android | https://github.com/openclaw/openclaw | "Always at hand" experience | PARTIAL — Hermes ships Android only (`apps/android/`); no macOS menu-bar nor iOS companion | Audit `apps/`; scope a macOS menu-bar app reusing the Android app's API client (lower priority than channel parity) | H |
+| OpenClaw | DM pairing policies + explicit allowlisting for unknown senders | https://github.com/openclaw/openclaw | Security default that prevents stranger drift | PARTIAL — Hermes gateway has per-platform auth but no first-class "pair this DM thread" + allowlist UX | Add `gateway.security.allowlist` config + pairing flow in dashboard | H |
+| OpenClaw | Marketplace of community agent templates ("162 production-ready AI agent templates… SOUL.md configs across 19 categories") | https://github.com/mergisi/awesome-openclaw-agents | Reusable agent profiles, low-friction discovery | PARTIAL — see Continue Hub / Roo Code marketplace rows; Hermes' skill hub doesn't cover personality marketplaces yet | Extend skill hub manifest to cover SOUL/personality templates | M |
+| OpenClaw | Reported >100k GitHub stars within first week (late Jan 2026); active near-daily releases through 2026 | https://github.com/openclaw/openclaw/releases | Signal of fast iteration + community traction | INSPIRATION — not a feature, but a benchmark for Hermes' release cadence | Set a release/cadence target in `docs/orchestration/` | M |
+
+**What stands out (and what to watch):** OpenClaw is, deliberately or
+otherwise, the same product Hermes is trying to be — multi-channel gateway,
+personal AI runtime, skills, cron, sandboxed sessions, voice, companion
+app. The differentiation Hermes needs to invest in: **orchestration depth**
+(Hermes has a full job/worker/validation/ledger system that OpenClaw does
+not), **model-routing breadth** (Hermes ships dozens of provider plugins),
+and **the published agent loop** (Hermes' embeddable `AIAgent` plus the
+orchestration primitives are more reusable than OpenClaw's monolithic
+gateway). Channel parity, scoped `AGENTS.md`, Live Canvas, and SOUL.md
+personality-as-file are the four near-term gaps worth closing.
 
 ### Paperclip (`paperclipai/paperclip`)
 
 | Product | Feature | Source | User-loved reason | Applies to Hermes? | Implementation target | Confidence |
 |---|---|---|---|---|---|---|
-| Paperclip | Adapters for `claude_local`, `codex`, `cursor`, `gemini`, `opencode` + HTTP/webhook bots | https://github.com/paperclipai/paperclip/blob/master/docs/adapters/claude-local.md | Wrap multiple coding agents under one orchestrator | PARTIAL — Hermes can delegate via `terminal` to any of these; no formal "adapter contract" | Define `agent_adapter` protocol (start/stop/session-resume/heartbeat) in `tools/` | H |
+| Paperclip | Built-in adapters: official docs show `claude_local` + `codex_local` shipping in V1; a "Generic Process" adapter for arbitrary CLI tools is documented but marked "**not yet implemented in V1**" | https://paperclipai-paperclip.mintlify.app/agents/process-adapter, https://github.com/paperclipai/paperclip/blob/master/docs/adapters/claude-local.md | Wrap multiple coding agents under one orchestrator | PARTIAL — Hermes can delegate via `terminal` to any of these; no formal "adapter contract" | Define `agent_adapter` protocol (start/stop/session-resume/heartbeat) in `tools/`; ship `claude_code`, `codex`, `aider`, `goose` adapters under it | H |
+| Paperclip | Supported runtimes shown on landing page: OpenClaw, Claude Code, Codex, Cursor, Bash, HTTP — but several appear to be roadmap or community-contributed rather than built-in V1 | https://paperclip.ing/ | Broad coverage messaging | PARTIAL — Hermes' `terminal` already covers any of these by command; what's missing is the named-adapter affordance | Same as adapter row above; document which adapters ship vs which are roadmap | M |
 | Paperclip | Persists Claude Code session IDs across heartbeats; resumes via `--add-dir` skill symlinks | https://github.com/paperclipai/paperclip/blob/master/docs/adapters/claude-local.md | Long-running delegated work survives ticks | GAP — Hermes cron spawns fresh sessions per run | Add `session_continuity` config to cron jobs (resume previous session ID if recent) | H |
 | Paperclip | Org chart / roles / budgets / governance / ticket audit trail | https://github.com/paperclipai/paperclip | "Agents as employees of a company" | PARTIAL — Hermes kanban + observability covers tickets/audit; no budgets/roles UI | Add per-worker `budget` field to kanban + display in dashboard | H |
 | Paperclip | Multi-company isolation in a single deployment | https://github.com/paperclipai/paperclip | One install for multiple teams | PARTIAL — Hermes profile system + kanban board isolation gets close | Document profile + kanban board boundary as the Hermes equivalent | M |
@@ -253,8 +290,9 @@ the full disambiguation.
 
 1. **Rules files are table stakes.** Cursor (`.cursorrules`), Cline
    (`.clinerules`), Continue (`.continue/rules`), Goose (`.goosehints`),
-   Claude Code (`CLAUDE.md`), Codex (`AGENTS.md`). Hermes loads `AGENTS.md`
-   but has no per-glob activation. Highest-leverage feature gap.
+   Claude Code (`CLAUDE.md`), Codex (`AGENTS.md`), OpenClaw (scoped
+   `AGENTS.md` per subtree). Hermes loads `AGENTS.md` but has no
+   per-glob activation and no subtree walk. Highest-leverage feature gap.
 2. **Sandbox profiles backed by OS primitives.** Codex's Seatbelt/Landlock
    model has set the bar; container isolation alone is now table stakes,
    not differentiation.
@@ -278,6 +316,11 @@ the full disambiguation.
    keyword / org / global), Continue rules priority, Claude Code skill
    overrides. Hermes activates skills by name and category — a glob/keyword
    tier is missing.
+9. **Multi-channel personal-assistant runtime.** OpenClaw (24+ channels) and
+   Hermes (~10 channels) converge on the same shape: local-first gateway,
+   per-channel routing, voice, sandboxed sessions, cron, skills. Hermes is
+   ahead on orchestration depth and model breadth, behind on channel parity
+   and a Live-Canvas-style visible-reasoning surface.
 
 ---
 

@@ -160,9 +160,19 @@ Before declaring the harvest done:
   README, and the release notes before concluding a feature is gone.
 - **"Loved" is verifiable too.** Quote the docs' own framing or a
   reputable review. Don't invent user sentiment.
-- **Beware lookalikes.** OpenHuman vs OpenHands. Paperclip-the-orchestrator
-  vs Paperclip-the-Rails-gem vs paperclip-cli-the-ML-tool. The disambiguation
-  phase exists for a reason — skipping it produces wrong recommendations.
+- **Beware lookalikes.** OpenHuman vs OpenHands vs OpenClaw vs
+  `Gen-Verse/OpenClaw-RL`. Paperclip-the-orchestrator vs
+  Paperclip-the-Rails-gem vs paperclip-cli-the-ML-tool. The
+  disambiguation phase exists for a reason — skipping it produces
+  wrong recommendations. The current canonical disambiguation lives in
+  [`docs/competitive/openhuman-paperclip-research.md`](../../docs/competitive/openhuman-paperclip-research.md).
+- **Marketing pages lie about adapter lists.** Logos on a landing page
+  are aspirational. The Paperclip 2026-05-23 audit found only two of
+  five "shipped" adapters were actually built-in V1. Always
+  cross-check the landing-page list against the engineering docs
+  (Mintlify, GitBook, MkDocs) and the source tree. If the two
+  disagree, the engineering docs win and the marketing page belongs
+  in a "claimed support" footnote.
 - **Don't recommend features Hermes already has.** Phase 1 is non-optional.
   If the inventory subagent missed something, the backlog inherits the
   error.
