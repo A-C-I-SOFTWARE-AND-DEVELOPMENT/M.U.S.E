@@ -31,7 +31,8 @@ def _good_artifact(body: str | None = None) -> MergeArtifact:
 
 def test_five_gates_are_registered() -> None:
     assert len(GATES) == 5
-    assert {g.__name__ for g in GATES} == {
+    names = {getattr(g, "__name__", "") for g in GATES}
+    assert names == {
         "gate_structure", "gate_size", "gate_secrets", "gate_unicode", "gate_policy",
     }
 
@@ -126,4 +127,6 @@ def test_report_to_dict_round_trip() -> None:
     report = run_gates(_good_artifact())
     payload = report.to_dict()
     assert payload["passed"] is True
-    assert len(payload["gates"]) == 5
+    gates_payload = payload["gates"]
+    assert isinstance(gates_payload, list)
+    assert len(gates_payload) == 5

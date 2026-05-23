@@ -62,6 +62,7 @@ def test_dry_run_artifact_is_valid_json(tmp_path: Path) -> None:
     art = _good_artifact()
     report = run_gates(art)
     result = publish(art, report, repo="example/repo", out_dir=tmp_path)
+    assert result.dry_run_path is not None
     payload = json.loads(result.dry_run_path.read_text())
     assert payload["repo"] == "example/repo"
     assert payload["dry_run"] is True
@@ -119,4 +120,5 @@ def test_descriptor_kind_can_be_issue(tmp_path: Path) -> None:
     report = run_gates(art)
     result = publish(art, report, repo="example/repo", out_dir=tmp_path, kind="issue")
     assert result.descriptor.kind == "issue"
+    assert result.dry_run_path is not None
     assert result.dry_run_path.name.startswith("issue_")
