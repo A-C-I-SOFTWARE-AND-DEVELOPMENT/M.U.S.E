@@ -237,6 +237,29 @@ for t in git python python3 pip node; do
     fi
 done
 
+# Node ecosystem package managers — at least one is needed for the browser
+# and gateway extras. npm ships with nodejs; pnpm is an upgrade.
+if have npm; then
+    _print pass "npm available" "$(tool_version npm)"
+elif have pnpm; then
+    _print pass "pnpm available (npm missing but pnpm covers most needs)" "$(tool_version pnpm)"
+else
+    _print warn "neither npm nor pnpm found" "pkg install nodejs (npm) or: npm i -g pnpm"
+fi
+
+if have pnpm; then
+    _print info "pnpm also installed" "$(tool_version pnpm)"
+fi
+
+# uv is the recommended Python installer for the phone-first runtime — it
+# is several times faster than pip on slow Termux storage.
+if have uv; then
+    _print pass "uv available" "$(tool_version uv)"
+else
+    _print warn "uv not installed" \
+        "curl -LsSf https://astral.sh/uv/install.sh | sh (recommended over pip on Termux)"
+fi
+
 # ── 5. Optional CLI agents ─────────────────────────────────────────────────
 _section "Optional CLI agents"
 
@@ -298,6 +321,68 @@ if [ -r /etc/resolv.conf ] || [ -r "${PREFIX:-/}/etc/resolv.conf" ]; then
     _print pass "resolv.conf readable"
 else
     _print info "resolv.conf not readable" "Termux often uses getaddrinfo via Android — usually fine"
+fi
+
+# ── 8. Local API reachability ──────────────────────────────────────────────
+_section "Local API reachability"
+
+API_PORT_CHECK="${HERMES_TERMUX_API_PORT:-8765}"
+API_PID_FILE_CHECK="${HERMES_HOME:-$HOME/.hermes}/termux/api.pid"
+
+api_pid=""
+if [ -f "$API_PID_FILE_CHECK" ]; then
+    api_pid=$(tr -d '[:space:]' < "$API_PID_FILE_CHECK" 2>/dev/null || true)
+fi
+
+if [ -n "$api_pid" ] && kill -0 "$api_pid" 2>/dev/null; then
+    _print pass "API process alive" "pid $api_pid (from $API_PID_FILE_CHECK)"
+else
+    if [ -n "$api_pid" ]; then
+        _print warn "API PID file is stale" "$API_PID_FILE_CHECK references pid $api_pid (not running)"
+    else
+        _print info "API not started by service script" \
+            "run: bash scripts/hermes-termux-service.sh start"
+    fi
+fi
+
+# Probe localhost only; never reach outside the device.
+if have curl; then
+    if curl --max-time 2 --silent --output /dev/null --fail \
+            "http://127.0.0.1:${API_PORT_CHECK}/" 2>/dev/null \
+        || curl --max-time 2 --silent --output /dev/null \
+                "http://127.0.0.1:${API_PORT_CHECK}/" 2>/dev/null; then
+        _print pass "Local API reachable on 127.0.0.1:${API_PORT_CHECK}"
+    else
+        _print warn "Local API not reachable on 127.0.0.1:${API_PORT_CHECK}" \
+            "expected if the service is stopped; start with hermes-termux-service.sh"
+    fi
+elif have nc; then
+    if nc -z 127.0.0.1 "$API_PORT_CHECK" 2>/dev/null; then
+        _print pass "Local API port open on 127.0.0.1:${API_PORT_CHECK}"
+    else
+        _print warn "Local API port closed on 127.0.0.1:${API_PORT_CHECK}" \
+            "start with: bash scripts/hermes-termux-service.sh start"
+    fi
+else
+    _print info "curl and nc both missing" "cannot probe local API reachability"
+fi
+
+# ── 9. Gateway status ──────────────────────────────────────────────────────
+_section "Gateway status"
+
+GW_PID_FILE_CHECK="${HERMES_HOME:-$HOME/.hermes}/termux/gateway.pid"
+gw_pid=""
+if [ -f "$GW_PID_FILE_CHECK" ]; then
+    gw_pid=$(tr -d '[:space:]' < "$GW_PID_FILE_CHECK" 2>/dev/null || true)
+fi
+
+if [ -n "$gw_pid" ] && kill -0 "$gw_pid" 2>/dev/null; then
+    _print pass "Gateway running" "pid $gw_pid"
+elif [ -n "$gw_pid" ]; then
+    _print warn "Gateway PID file is stale" "$GW_PID_FILE_CHECK references pid $gw_pid (not running)"
+else
+    _print info "Gateway not running" \
+        "opt in with HERMES_TERMUX_GATEWAY=1 bash scripts/hermes-termux-service.sh restart"
 fi
 
 # ── Summary ────────────────────────────────────────────────────────────────
