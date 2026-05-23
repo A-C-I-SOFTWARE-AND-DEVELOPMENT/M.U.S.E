@@ -702,7 +702,16 @@ shared decision ledger so that every run is auditable.
 | Skill | Purpose |
 |---|---|
 | `hermes-orchestration-pipeline` | Top-level driver. Reads a job folder, dispatches to the right specialist skills, and writes the result back to the ledger. |
-| `aos-full-agent-team` | Spawns the standard planner / builder / reviewer / architect roles and assigns work via the kanban dispatcher. |
+| `aos-full-agent-team` | Master AoS council orchestrator. Spins up the full 16-specialist council against one goal and drives it through the canonical sequence to a published decision-of-record. See [`docs/orchestration/hermes-agent-skill-map.md`](docs/orchestration/hermes-agent-skill-map.md). |
+| `aos-council-director` | Decomposes a goal into council-ready tasks, dispatches the specialists, integrates findings, produces the decision-of-record. |
+| `evidence-architect` | Builds the structured evidence base (claims + provenance) every other specialist consults. |
+| `principal-systems-architect` | Owns technical architecture: components, interfaces, data flow, trade-offs. |
+| `product-experience-architect` | Owns product / UX: segments, jobs-to-be-done, journeys, breakage modes. |
+| `commercial-strategist` | Owns commercial axis: market, pricing, GTM, defensibility. |
+| `assurance-risk-director` | Owns risk: safety, security, privacy, legal. Holds a non-silent veto. |
+| `delivery-scope-controller` | Owns delivery shape: in/out of scope, slices, dependencies, critical path. |
+| `contrarian-reviewer` | Devil's advocate. Always runs before the quality gate. Aliased as `contrarian-red-flag-analyst` for upstream compatibility. |
+| `codex-dispatch-governor` | Hands coding work to in-Hermes subagents, external coding agents (Codex / Claude Code / Cursor), or the Android handoff. |
 | `model-router` | Resolves `task-type → model` using `docs/ai-intelligence/model-registry.yaml` and the routing policy. |
 | `decision-quality-gate` | Validates a proposed decision against the ledger before it ships. |
 | `research-validator` | Cross-checks claims pulled from the web / docs before they enter the ledger. |
@@ -726,6 +735,7 @@ These skills cooperate via two on-disk contracts:
 Companion docs:
 
 - `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline contract.
+- `docs/orchestration/hermes-agent-skill-map.md` — Claude-agent → Hermes-skill map for the AoS council (master + 16 specialists + alias).
 - `docs/orchestration/decision-ledger.md` — ledger schema and lifecycle.
 - `docs/orchestration/self-improvement-loop.md` — how Hermes proposes
   patches to itself.
@@ -749,11 +759,15 @@ Invocation summary (CLI or any messaging gateway):
 
 ```text
 /reload-skills                              # pick up new/edited skills
-/aos-full-agent-team <goal>                 # full team for a goal
+/aos-full-agent-team <goal>                 # full 16-specialist council
+/aos-council-director <goal>                # council director only
 /hermes-orchestration-pipeline <job-id>     # drive a job folder
 /model-router <task-type>                   # pick a model for a task
 /decision-quality-gate <decision-id>        # gate a proposed decision
+/research-validator <decision-id>           # validate claims for a decision
+/contrarian-reviewer <decision-id>          # red-flag pass on a draft
 /ai-improvement-radar                       # scan + report adoptions
+/self-improvement-loop                      # close a job with a retro
 /github-publisher <branch>                  # ship approved changes
 ```
 
