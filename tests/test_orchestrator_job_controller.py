@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.orchestrator import (
+from hermes_cli.job_controller import (
     GITHUB_DIRNAME,
     JOB_FILE,
     JobController,
