@@ -118,6 +118,54 @@ There is no intent-filter; no other process can start `HermesService`.
 - This app is not Play Store-ready and is not intended to be. There is
   no telemetry, no analytics, no remote config, and no in-app updates.
 
+## Backend pipeline integration
+
+The Android app is the **cockpit**. The Hermes backend (CLI + gateway
+running on a VPS, home server, laptop, or Termux on the same device) is
+the **engine**. The cockpit never runs the orchestration pipeline by
+itself — it issues commands, displays state, and surfaces approvals.
+
+When the user creates a task in the cockpit, it can be handed off in two
+ways:
+
+1. **Manual handoff** (default) — copy the structured prompt to the
+   clipboard or deep-link into the official ChatGPT / Claude / Codex
+   app, as described above. The orchestration pipeline is not used.
+2. **Pipeline handoff** — the cockpit hits the backend gateway with a
+   job-folder request. The backend then runs the orchestration
+   pipeline described in `AGENTS.md` ("Orchestration pipeline skills"):
+
+   - `hermes-orchestration-pipeline` reads the job folder.
+   - `aos-full-agent-team` spawns planner / builder / reviewer / architect roles.
+   - `model-router` resolves task type to model using
+     `docs/ai-intelligence/model-registry.yaml` and
+     `docs/ai-intelligence/model-routing-policy.md`.
+   - `decision-quality-gate` validates each non-trivial decision against
+     `docs/orchestration/decision-ledger.md`.
+   - `research-validator` cross-checks external claims.
+   - `ai-improvement-radar` and the competitive feature harvester at
+     `docs/competitive/openhuman-paperclip-research.md` feed the
+     `self-improvement-loop`, which can propose patches to Hermes
+     itself via `github-publisher`.
+
+Cockpit invocations map onto the same slash commands that work in the
+CLI and on any messaging gateway:
+
+```text
+/reload-skills
+/aos-full-agent-team <goal>
+/hermes-orchestration-pipeline <job-id>
+/model-router <task-type>
+/decision-quality-gate <decision-id>
+/ai-improvement-radar
+/github-publisher <branch>
+```
+
+**Posture stays private and local-first.** The cockpit never sends task
+content to a third party on its own — only the backend the user
+controls. The pipeline ledger (`ledger.jsonl` per job folder) stays on
+the backend's filesystem; the cockpit reads summaries over the gateway.
+
 ## Resetting
 
 Settings → Reset all settings and tasks clears both the DataStore

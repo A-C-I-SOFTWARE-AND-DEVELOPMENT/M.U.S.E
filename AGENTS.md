@@ -693,6 +693,70 @@ lives in the `hermes-agent-dev` skill at
 `references/new-skill-pr-salvage.md` — load it before polishing
 contributor skill PRs.
 
+### Orchestration pipeline skills
+
+A coordinated set of skills implements the local-first orchestration
+pipeline. They expect the same job-folder contract and read/write a
+shared decision ledger so that every run is auditable.
+
+| Skill | Purpose |
+|---|---|
+| `hermes-orchestration-pipeline` | Top-level driver. Reads a job folder, dispatches to the right specialist skills, and writes the result back to the ledger. |
+| `aos-full-agent-team` | Spawns the standard planner / builder / reviewer / architect roles and assigns work via the kanban dispatcher. |
+| `model-router` | Resolves `task-type → model` using `docs/ai-intelligence/model-registry.yaml` and the routing policy. |
+| `decision-quality-gate` | Validates a proposed decision against the ledger before it ships. |
+| `research-validator` | Cross-checks claims pulled from the web / docs before they enter the ledger. |
+| `ai-improvement-radar` | Continuous scan for new AI capabilities Hermes should adopt. |
+| `self-improvement-loop` | Proposes patches to Hermes's own skills, ledger, and routing policy. Gated by `decision-quality-gate`. |
+| `github-publisher` | Turns approved changes into branches, PRs, and releases. |
+| `developer-ux-command-center` | The Android APK cockpit's view onto the pipeline. |
+| `best-coding-tool-mission` | Holds the project's north-star mission used when ranking trade-offs. |
+
+These skills cooperate via two on-disk contracts:
+
+1. **Job folder contract** — every job lives in a directory whose
+   layout is fixed (`prompt.md`, `inputs/`, `outputs/`, `ledger.jsonl`,
+   `status.json`). Skills read inputs and append to `ledger.jsonl`;
+   they never overwrite history.
+2. **Decision ledger** — every non-trivial decision is appended as a
+   JSON line with `decision_id`, `rationale`, `alternatives`,
+   `model`, `cost`, `outcome`. The `decision-quality-gate` skill
+   consumes this; the `self-improvement-loop` skill mines it.
+
+Companion docs:
+
+- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline contract.
+- `docs/orchestration/decision-ledger.md` — ledger schema and lifecycle.
+- `docs/orchestration/self-improvement-loop.md` — how Hermes proposes
+  patches to itself.
+- `docs/ai-intelligence/model-registry.yaml` — model catalog (capabilities,
+  cost, context window, modality) consumed by `model-router`.
+- `docs/ai-intelligence/model-routing-policy.md` — rules that map
+  task type to model.
+- `docs/competitive/openhuman-paperclip-research.md` — competitive
+  feature harvester output that feeds `ai-improvement-radar`.
+- `docs/mission/best-coding-tool-mission.md` — mission statement.
+- `scripts/hermes-orchestrate.sh` — convenience entry point that
+  invokes the pipeline against a job folder.
+
+Posture: **private and local-first**. No telemetry, no remote config,
+no third-party data sharing in the pipeline. The Hermes backend is the
+engine; the Android APK at [`apps/android`](apps/android/) is the
+cockpit. See [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+for the cockpit contract.
+
+Invocation summary (CLI or any messaging gateway):
+
+```text
+/reload-skills                              # pick up new/edited skills
+/aos-full-agent-team <goal>                 # full team for a goal
+/hermes-orchestration-pipeline <job-id>     # drive a job folder
+/model-router <task-type>                   # pick a model for a task
+/decision-quality-gate <decision-id>        # gate a proposed decision
+/ai-improvement-radar                       # scan + report adoptions
+/github-publisher <branch>                  # ship approved changes
+```
+
 ---
 
 ## Toolsets
