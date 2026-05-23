@@ -353,9 +353,11 @@ curator) are sufficient.
 | Agent acts on a high-stakes irreversible action with no visible reasoning | Gate's "irreversible or expensive" trigger forces a ledger |
 | "Considered alternatives" with no alternatives listed | Template's minimum-two-options requirement; Judge anti-pattern check |
 | Validation: "looks good" with no falsifiable check | Validation Plan's mandatory `Commands` and `Success criteria` sub-fields |
-| Model/worker drift over time with no record of original rationale | Mandatory Model/Worker Choice section even for "obvious" picks |
+| Model/worker drift over time with no record of original rationale | Mandatory `Selected Model / Worker` and `Why This Choice` sections even for "obvious" picks |
 | Re-doing the same research from scratch every session | Evidence Reviewed's prior-memory channel; persisted ledgers as a searchable store |
-| Rollback hand-wave ("I'll figure it out") | Final Decision's mandatory `Rollback` sub-field with a concrete procedure |
+| Rollback hand-wave ("I'll figure it out") | Dedicated `Rollback Plan` section with a concrete procedure |
+| Cost drift undiscovered until the bill arrives | Dedicated `Cost / Latency / Quality Tradeoff` section that future operators can diff against |
+| Unauthorised pushes / sends / payments | Dedicated `Approval Required` section with `yes` / `no` / `defer` verdict tokens |
 | Hand-waving evidence ("based on the codebase") | Evidence Reviewed sub-field types: file paths with line ranges, verbatim commands, doc URLs with sections |
 | Hidden chain-of-thought as the only artefact | Gate procedure produces the ledger as the binding artefact; reasoning is allowed to be ephemeral, but the ledger is not |
 
