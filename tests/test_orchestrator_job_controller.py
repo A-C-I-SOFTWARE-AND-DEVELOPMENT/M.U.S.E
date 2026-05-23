@@ -302,7 +302,9 @@ class TestWorkerFolders:
         assert path.exists()
         assert path.read_text().rstrip() == "Build the endpoint"
         reloaded = controller.load_job(job.job_id)
-        assert reloaded.worker(wid).prompt_written is True
+        spec = reloaded.worker(wid)
+        assert spec is not None
+        assert spec.prompt_written is True
 
     def test_write_worker_prompt_rejects_unknown_worker(
         self, controller: JobController, job: Job
@@ -346,7 +348,9 @@ class TestCollectArtifacts:
         files = artifacts[wid]
         assert len(files) == 3
         reloaded = controller.load_job(job.job_id)
-        assert reloaded.worker(wid).artifact_count == 3
+        spec = reloaded.worker(wid)
+        assert spec is not None
+        assert spec.artifact_count == 3
 
 
 # ──────────────────────────────────────────────────────────────────────
