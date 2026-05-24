@@ -1,8 +1,10 @@
 name: Orchestration tests
 
-# Runs the orchestration-specific test suite plus a py_compile + bash
-# syntax sanity sweep. Deliberately narrow scope so it stays green
-# even if the broader test suite has unrelated flakes.
+# Runs the full Phase 25 orchestration test suite plus a py_compile +
+# bash syntax sanity sweep. Deliberately hermetic: no real Claude /
+# OpenAI / Supabase / Vercel / GitHub credentials, no Android device,
+# no outbound network. All artefacts live under tmp_path / the
+# workspace-scoped HERMES_ORCHESTRATOR_JOBS_ROOT.
 
 on:
   push:
@@ -13,11 +15,26 @@ on:
       - 'scripts/hermes-termux-service.sh'
       - 'scripts/hermes-termux-doctor.sh'
       - 'scripts/hermes-ai-radar.sh'
+      - 'skills/**/SKILL.md'
       - 'tests/test_orchestrator*.py'
+      - 'tests/test_phase_gated_workflows.py'
+      - 'tests/test_decision_ledger.py'
+      - 'tests/test_model_router.py'
+      - 'tests/test_user_profile_builder.py'
+      - 'tests/test_job_queue.py'
+      - 'tests/test_checkpoints.py'
       - 'tests/test_worker*.py'
+      - 'tests/test_remote_bridge.py'
+      - 'tests/test_parallel_runner.py'
+      - 'tests/test_parallel_orchestration.py'
       - 'tests/test_scoring.py'
       - 'tests/test_merge_engine.py'
+      - 'tests/test_validation.py'
       - 'tests/test_validation_gates.py'
+      - 'tests/test_monitoring.py'
+      - 'tests/test_secrets_policy.py'
+      - 'tests/test_voice_intake.py'
+      - 'tests/test_integration_*.py'
       - 'tests/test_github_publisher.py'
       - '.github/workflows/orchestration-tests.yml'
   pull_request:
@@ -27,11 +44,26 @@ on:
       - 'scripts/hermes-termux-service.sh'
       - 'scripts/hermes-termux-doctor.sh'
       - 'scripts/hermes-ai-radar.sh'
+      - 'skills/**/SKILL.md'
       - 'tests/test_orchestrator*.py'
+      - 'tests/test_phase_gated_workflows.py'
+      - 'tests/test_decision_ledger.py'
+      - 'tests/test_model_router.py'
+      - 'tests/test_user_profile_builder.py'
+      - 'tests/test_job_queue.py'
+      - 'tests/test_checkpoints.py'
       - 'tests/test_worker*.py'
+      - 'tests/test_remote_bridge.py'
+      - 'tests/test_parallel_runner.py'
+      - 'tests/test_parallel_orchestration.py'
       - 'tests/test_scoring.py'
       - 'tests/test_merge_engine.py'
+      - 'tests/test_validation.py'
       - 'tests/test_validation_gates.py'
+      - 'tests/test_monitoring.py'
+      - 'tests/test_secrets_policy.py'
+      - 'tests/test_voice_intake.py'
+      - 'tests/test_integration_*.py'
       - 'tests/test_github_publisher.py'
       - '.github/workflows/orchestration-tests.yml'
   workflow_dispatch:
@@ -45,9 +77,9 @@ concurrency:
 
 jobs:
   test:
-    name: Orchestration unit tests
+    name: Orchestration unit + integration tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,11 +92,21 @@ jobs:
       - name: Install pytest deps
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest pytest-xdist pytest-timeout
+          # FastAPI is required for the orchestrator_api / job_queue /
+          # monitoring tests. PyYAML is required by validation tests.
+          # uvicorn + websockets are needed for orchestrator_api's
+          # public-bind guard test and the WebSocket subscriber test.
+          python -m pip install \
+            pytest pytest-xdist pytest-timeout \
+            fastapi httpx pyyaml psutil uvicorn websockets
 
       - name: Py-compile the orchestrator modules
         run: |
           python -m py_compile hermes_cli/*.py hermes_cli/workers/*.py
+          # If hermes_cli/integrations/ exists, compile it too.
+          if [ -d hermes_cli/integrations ]; then
+            python -m py_compile hermes_cli/integrations/*.py
+          fi
 
       - name: Bash syntax-check the orchestration scripts
         run: |
@@ -73,20 +115,87 @@ jobs:
           bash -n scripts/hermes-termux-doctor.sh
           bash -n scripts/hermes-ai-radar.sh
 
+      - name: Enumerate skill frontmatter (sanity)
+        run: |
+          # List every top-level skill SKILL.md so a missing/renamed
+          # file shows up in the CI log even if no test references it.
+          find skills -maxdepth 2 -name SKILL.md | sort
+
+      - name: Sweep for accidental literal secrets in tracked files
+        run: |
+          # The validation module rejects these patterns at commit
+          # time; CI doubles as a backstop in case a contributor's
+          # local hooks were skipped. Allow the regex *patterns* in
+          # validation.py itself — they are not real keys.
+          set +e
+          grep -RIn \
+            -e 'AKIA[0-9A-Z]\{16\}' \
+            -e 'ghp_[0-9A-Za-z]\{36,\}' \
+            -e 'sk-ant-[0-9A-Za-z_-]\{20,\}' \
+            -e 'sk-[A-Za-z0-9]\{40,\}' \
+            -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' \
+            docs skills scripts hermes_cli tests \
+            --exclude='validation.py' \
+            --exclude='test_secrets_policy.py' \
+            --exclude='test_validation_gates.py' \
+            --exclude='test_validation.py' \
+            --exclude='test_remote_bridge.py'
+          rc=$?
+          # grep exit 0 == match found, 1 == no match, 2 == error.
+          # We want "no match" to succeed.
+          if [ $rc -eq 0 ]; then
+            echo "::error::Possible literal credential found in tracked files."
+            exit 1
+          elif [ $rc -eq 2 ]; then
+            echo "::warning::Secret scan returned grep error code 2; continuing."
+          fi
+
       - name: Run orchestration tests
         env:
-          # Guard against accidental network use even if a test slips.
+          # Guard against accidental network/credential use even if a
+          # test slips. Conftest also strips these, but pinning them
+          # blank in the runner environment defends against subprocesses.
           OPENAI_API_KEY: ""
           ANTHROPIC_API_KEY: ""
           GITHUB_TOKEN: ""
+          SUPABASE_URL: ""
+          SUPABASE_ANON_KEY: ""
+          VERCEL_TOKEN: ""
           # Pin jobs root into the workspace so we never touch ~/.hermes.
           HERMES_ORCHESTRATOR_JOBS_ROOT: ${{ github.workspace }}/.tmp/orchestrator-jobs
+          # Keep tests pinned to one event loop / deterministic locale.
+          TZ: UTC
+          LANG: C.UTF-8
+          LC_ALL: C.UTF-8
+          PYTHONHASHSEED: '0'
         run: |
           python -m pytest \
-            tests/test_orchestrator*.py \
-            tests/test_worker*.py \
+            tests/test_orchestrator_job_controller.py \
+            tests/test_orchestrator_api.py \
+            tests/test_orchestrator_commands.py \
+            tests/test_phase_gated_workflows.py \
+            tests/test_decision_ledger.py \
+            tests/test_model_router.py \
+            tests/test_user_profile_builder.py \
+            tests/test_job_queue.py \
+            tests/test_checkpoints.py \
+            tests/test_worker_adapter_base.py \
+            tests/test_worker_aider.py \
+            tests/test_worker_claude_code.py \
+            tests/test_worker_codex.py \
+            tests/test_worker_goose.py \
+            tests/test_worker_hermes_local.py \
+            tests/test_remote_bridge.py \
+            tests/test_parallel_runner.py \
+            tests/test_parallel_orchestration.py \
             tests/test_scoring.py \
             tests/test_merge_engine.py \
+            tests/test_validation.py \
             tests/test_validation_gates.py \
+            tests/test_monitoring.py \
+            tests/test_secrets_policy.py \
+            tests/test_voice_intake.py \
+            tests/test_integration_orchestrator_pipeline.py \
+            tests/test_integration_slash_commands.py \
             tests/test_github_publisher.py \
             -q -p no:cacheprovider
