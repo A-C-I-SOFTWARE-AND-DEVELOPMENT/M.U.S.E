@@ -7,25 +7,42 @@
 # capability matrix (tool-capability-matrix.md).
 #
 # Schema:
-#   id           — stable worker identifier used throughout Hermes
-#   provider     — vendor or origin (hermes, openai, anthropic, etc.)
-#   surface      — how the worker is exposed (internal, cli, app, web, local)
-#   strengths    — what this worker is genuinely good at
-#   best_for     — task types from the router's classification list
-#   detection    — how Hermes confirms the worker is reachable on the host
-#   run_mode     — how Hermes drives the worker once selected
-#   quality      — quality tier: draft | standard | high | critical
-#   speed        — speed tier:   slow  | medium   | fast | instant
-#   cost         — cost tier:    free  | low      | medium | high
-#   validation   — how results are validated (always hermes-local for
-#                  final sign-off; this field describes intermediate checks)
-#   fallbacks    — preferred fallback order if this worker is the primary
+#   id                  — stable worker identifier used throughout Hermes
+#   provider            — vendor or origin (hermes, openai, anthropic, etc.)
+#   surface             — how the worker is exposed (internal, cli, app,
+#                         web, local, mcp, tunnel, user-driven)
+#   strengths           — what this worker is genuinely good at
+#   best_for            — fine-grained task descriptors (free-form)
+#   categories          — canonical task categories the worker handles;
+#                         must come from the router's category list (see
+#                         model-routing-policy.md §2)
+#   detection           — how Hermes confirms the worker is reachable on
+#                         the host
+#   run_mode            — how Hermes drives the worker once selected
+#   quality             — draft | standard | high | critical
+#   speed               — slow  | medium   | fast | instant
+#   cost                — free  | low      | medium | high
+#   privacy             — local | standard | cloud
+#   risk                — low   | medium   | high   (blast radius of a
+#                         bad run)
+#   validation          — intermediate checks the worker runs itself
+#                         (final validation is always hermes-local)
+#   fallbacks           — preferred fallback order if this worker is the
+#                         primary
+#   approval_required   — true if Hermes must collect human approval
+#                         before invoking this worker
+#   approval_triggers   — which approval tags the worker triggers
+#                         (publish, deployment, schema, remote-tunnel-setup,
+#                         secrets, continuous-listening, ...)
 #
 # Notes:
-#   - "internal" workers (hermes-local, github-publisher) are always
-#     present.
+#   - "internal" workers (hermes-local, github-publisher, human-approval)
+#     are always present.
 #   - Detection is performed at session start and cached per process.
 #   - Cost is qualitative; the router does not model dollars/token here.
+#   - The registry is read by hermes_cli/model_registry.py at runtime.
+#     If this file is missing or malformed, the router falls back to a
+#     hard-coded built-in registry (see model_registry._BUILTIN).
 
 models:
   - id: hermes-local
@@ -46,6 +63,13 @@ models:
       - plumbing
       - redaction_safe_draft
       - github_publish
+    categories:
+      - planning
+      - validation
+      - backend-orchestration
+      - user-profile-learning
+      - voice-pipeline
+      - security
     detection:
       internal: true
     run_mode:
@@ -53,12 +77,16 @@ models:
     quality: high
     speed: fast
     cost: free
+    privacy: local
+    risk: low
     validation:
       runs_tests: true
       runs_lints: true
       reads_diff: true
       smoke_runs: true
     fallbacks: []
+    approval_required: false
+    approval_triggers: []
 
   - id: codex
     provider: openai
@@ -74,6 +102,10 @@ models:
       - bug fixes
       - test repair
       - refactor_small
+    categories:
+      - implementation
+      - debug
+      - validation
     detection:
       command: codex
       any_of:
@@ -91,15 +123,19 @@ models:
     quality: high
     speed: fast
     cost: medium
+    privacy: cloud
+    risk: low
     validation:
       runs_tests: optional
       reads_diff: true
     fallbacks:
-      - claude-code
+      - claude-code-local
       - aider
       - hermes-local
+    approval_required: false
+    approval_triggers: []
 
-  - id: claude-code
+  - id: claude-code-local
     provider: anthropic
     surface: cli
     strengths:
@@ -115,6 +151,11 @@ models:
       - long_context_review
       - refactor_large
       - complex refactor
+    categories:
+      - refactor
+      - implementation
+      - debug
+      - security
     detection:
       command: claude
       any_of:
@@ -129,6 +170,8 @@ models:
     quality: critical
     speed: medium
     cost: high
+    privacy: cloud
+    risk: low
     validation:
       reads_diff: true
       runs_tests: optional
@@ -136,6 +179,60 @@ models:
       - codex
       - aider
       - hermes-local
+    approval_required: false
+    approval_triggers: []
+
+  - id: claude-code-windows
+    provider: anthropic
+    surface: cli-tunnel
+    strengths:
+      - long-context review
+      - multi-file reasoning
+      - repo-wide refactor
+      - architecture
+      - remote workstation throughput
+    best_for:
+      - refactor_large
+      - architecture
+      - complex repo-wide coding
+    categories:
+      - refactor
+      - implementation
+      - architecture
+      - backend-orchestration
+      - remote-execution
+    detection:
+      command: claude
+      tunnel: claude-code-windows   # secure tunnel must be healthy
+      any_of:
+        - env: ANTHROPIC_API_KEY
+        - file: ~/.claude/.credentials.json
+      requires:
+        - tunnel.healthy: true
+    run_mode:
+      tunnel_cli: true
+      invocation: "claude --remote windows -p '{prompt}'"
+      pty: true
+    quality: critical
+    speed: medium
+    cost: high
+    privacy: cloud
+    risk: medium
+    validation:
+      reads_diff: true
+      runs_tests: optional
+    fallbacks:
+      - claude-code-local
+      - codex
+      - aider
+      - hermes-local
+    approval_required: true
+    approval_triggers:
+      - remote-tunnel-setup
+    notes: >
+      Preferred for complex repo-wide coding when the secure tunnel to
+      the user's Windows workstation is healthy. Falls back to
+      claude-code-local on any tunnel failure.
 
   - id: aider
     provider: paul-gauthier
@@ -150,6 +247,11 @@ models:
       - bug_fix
       - test_repair
       - implementation
+      - git-native local patch loops
+    categories:
+      - implementation
+      - refactor
+      - debug
     detection:
       command: aider
       requires_git_repo: true
@@ -166,13 +268,20 @@ models:
     quality: high
     speed: medium
     cost: low
+    privacy: cloud
+    risk: low
     validation:
       reads_diff: true
       runs_tests: optional
     fallbacks:
       - codex
-      - claude-code
+      - claude-code-local
       - hermes-local
+    approval_required: false
+    approval_triggers: []
+    notes: >
+      Preferred for git-native local patch loops where surgical diffs
+      and explicit commits are the priority.
 
   - id: goose
     provider: block
@@ -182,10 +291,16 @@ models:
       - plumbing tasks on the host
       - long-running shell sessions
       - extensible via MCP
+      - recipe and extension workflows
     best_for:
       - plumbing
       - implementation
       - bug_fix
+      - recipe-driven workflows
+    categories:
+      - implementation
+      - backend-orchestration
+      - debug
     detection:
       command: goose
       any_of:
@@ -198,6 +313,8 @@ models:
     quality: standard
     speed: medium
     cost: low
+    privacy: cloud
+    risk: low
     validation:
       reads_diff: true
       runs_tests: optional
@@ -205,10 +322,16 @@ models:
       - aider
       - codex
       - hermes-local
+    approval_required: false
+    approval_triggers: []
+    notes: >
+      Optional worker selected for recipe and extension workflows.
+      The router does not preferentially route to Goose unless a
+      Goose recipe is the natural way to express the task.
 
   - id: chatgpt-handoff
     provider: openai
-    surface: user-driven (web/app)
+    surface: user-driven
     strengths:
       - user-driven reasoning
       - leverages an existing ChatGPT subscription
@@ -218,6 +341,9 @@ models:
       - manual_handoff
       - research
       - architecture        # when the user wants to think alongside ChatGPT
+    categories:
+      - research
+      - planning
     detection:
       manual_only: true     # only selectable when the user asks for it
       requires_user_opt_in: true
@@ -229,15 +355,22 @@ models:
     quality: high
     speed: slow             # bounded by user paste cycle
     cost: free              # uses the user's existing subscription
+    privacy: cloud
+    risk: medium
     validation:
       user_pastes_back_result: true
       hermes_validates_pasted_result: true
     fallbacks:
       - hermes-local
+    approval_required: false
+    approval_triggers: []
+    notes: >
+      Never selected automatically. Opted in via /route chatgpt-handoff
+      or model_router.allow_manual_handoff=true.
 
   - id: local-model
     provider: local
-    surface: local inference (ollama / llama.cpp / vllm / lmstudio)
+    surface: local
     strengths:
       - offline reasoning
       - redaction-safe drafting
@@ -248,6 +381,10 @@ models:
       - research
       - implementation        # for small tasks where a local model is enough
       - bug_fix               # for small tasks
+    categories:
+      - research
+      - planning
+      - user-profile-learning
     detection:
       any_of:
         - port: 11434         # ollama default
@@ -264,14 +401,18 @@ models:
     quality: standard
     speed: medium
     cost: free
+    privacy: local
+    risk: low
     validation:
       reads_diff: true
       runs_tests: optional
     fallbacks:
       - aider
       - codex
-      - claude-code
+      - claude-code-local
       - hermes-local
+    approval_required: false
+    approval_triggers: []
 
   - id: github-publisher
     provider: hermes
@@ -283,6 +424,9 @@ models:
       - audit-friendly token redaction
     best_for:
       - github_publish
+    categories:
+      - github-pr
+      - deployment
     detection:
       internal: true
       requires:
@@ -297,11 +441,223 @@ models:
     quality: high
     speed: fast
     cost: free
+    privacy: cloud
+    risk: high
     validation:
       reads_diff: true        # confirms what is being pushed
       respects_allowlist: true
     fallbacks:
       - hermes-local          # leaves a TODO if the publisher can't act
+    approval_required: true
+    approval_triggers:
+      - publish
+
+  # ────────────────────────────────────────────────────────────────────
+  # Specialist workers (browser, deployment, mobile, approval gate)
+  # ────────────────────────────────────────────────────────────────────
+
+  - id: browser-research
+    provider: hermes
+    surface: tool
+    strengths:
+      - current external docs
+      - URL fetch
+      - search summarization
+      - citation capture
+    best_for:
+      - research
+      - external_doc_lookup
+    categories:
+      - research
+    detection:
+      tool: browser
+      any_of:
+        - plugin: web_search
+        - env: HERMES_BROWSER_BACKEND
+    run_mode:
+      internal: true
+      tool: browser
+    quality: high
+    speed: fast
+    cost: low
+    privacy: cloud
+    risk: low
+    validation:
+      cites_sources: true
+      reads_diff: false
+    fallbacks:
+      - chatgpt-handoff
+      - hermes-local
+    approval_required: false
+    approval_triggers: []
+    notes: >
+      Required when the task references current external docs. The
+      router adds browser-research as a sidecar (role=researcher) for
+      any category that needs fresh external context.
+
+  - id: supabase-worker
+    provider: supabase
+    surface: mcp
+    strengths:
+      - Supabase schema and migration
+      - row-level security policies
+      - edge function deployment
+      - typed client generation
+    best_for:
+      - deployment
+      - backend_data_layer
+    categories:
+      - deployment
+      - backend-orchestration
+      - remote-execution
+    detection:
+      mcp: supabase
+      any_of:
+        - env: SUPABASE_ACCESS_TOKEN
+        - file: ~/.supabase/access-token
+    run_mode:
+      mcp: true
+      server: supabase
+    quality: high
+    speed: medium
+    cost: medium
+    privacy: cloud
+    risk: high
+    validation:
+      dry_run_migration: true
+      reads_diff: true
+    fallbacks:
+      - hermes-local
+    approval_required: true
+    approval_triggers:
+      - schema
+      - deployment
+    notes: >
+      The Supabase worker only runs after schema and/or deployment
+      approval has been granted. The router holds it back from the
+      candidate set until the relevant approval tag is present.
+
+  - id: vercel-worker
+    provider: vercel
+    surface: mcp
+    strengths:
+      - Vercel deployment
+      - preview environments
+      - edge config and rewrites
+      - rollback control
+    best_for:
+      - deployment
+      - preview_environment
+    categories:
+      - deployment
+      - remote-execution
+    detection:
+      mcp: vercel
+      any_of:
+        - env: VERCEL_TOKEN
+        - command: vercel
+    run_mode:
+      mcp: true
+      server: vercel
+    quality: high
+    speed: fast
+    cost: medium
+    privacy: cloud
+    risk: high
+    validation:
+      preview_build: true
+      reads_diff: true
+    fallbacks:
+      - hermes-local
+    approval_required: true
+    approval_triggers:
+      - deployment
+    notes: >
+      The Vercel worker only runs after deployment approval has been
+      granted. The router holds it back from the candidate set until
+      the deployment approval tag is present.
+
+  - id: android-builder
+    provider: hermes
+    surface: local
+    strengths:
+      - Android Gradle build
+      - Termux runtime
+      - Jetpack / Compose
+      - instrumentation tests on attached device
+    best_for:
+      - mobile-android
+      - apk_build
+    categories:
+      - mobile-android
+      - deployment
+    detection:
+      any_of:
+        - command: gradle
+        - command: ./gradlew
+        - env: ANDROID_HOME
+        - env: ANDROID_SDK_ROOT
+    run_mode:
+      gradle: true
+      invocation: "./gradlew :app:assembleDebug"
+    quality: high
+    speed: medium
+    cost: free
+    privacy: local
+    risk: medium
+    validation:
+      runs_tests: optional
+      apk_lints: true
+    fallbacks:
+      - hermes-local
+    approval_required: false
+    approval_triggers: []
+    notes: >
+      Owns Android build and packaging. Pairs with claude-code-local
+      or codex for the actual source changes; the android-builder
+      worker is the surface that runs gradle on the host.
+
+  - id: human-approval
+    provider: user
+    surface: user-driven
+    strengths:
+      - explicit consent for destructive actions
+      - approval for remote execution
+      - policy gate for secrets / publish / continuous listening
+    best_for:
+      - approval_gate
+    categories:
+      - secrets-management
+      - deployment
+      - remote-execution
+      - github-pr
+      - security
+    detection:
+      internal: true
+      always_available: true
+    run_mode:
+      internal: true
+      prompt_user: true
+    quality: critical
+    speed: slow
+    cost: free
+    privacy: local
+    risk: low
+    validation:
+      requires_explicit_confirmation: true
+    fallbacks: []
+    approval_required: true
+    approval_triggers:
+      - secrets
+      - destructive
+      - publish
+      - remote-tunnel-setup
+      - continuous-listening
+    notes: >
+      Human approval is required for secrets, destructive commands,
+      publish, remote-tunnel setup, and continuous-listening mode.
+      The router always includes human-approval in the selected
+      worker list when any of those triggers apply.
 
 # Routing knobs the model-router skill reads from config.yaml.
 # These are documented here so the registry, the policy doc, and the

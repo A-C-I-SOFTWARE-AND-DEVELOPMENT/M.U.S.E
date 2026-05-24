@@ -36,23 +36,42 @@ user once.
 
 ## 2. Task classification
 
-| Task type | One-line definition |
-|-----------|---------------------|
-| `implementation` | Add new functionality. |
-| `bug_fix` | Restore broken behavior. |
-| `test_repair` | Make a red test green without changing intent. |
-| `refactor_small` | One or two files, single responsibility. |
-| `refactor_large` | Cross-module / cross-package restructure. |
-| `architecture` | Design a system or contract before code exists. |
-| `code_review` | Critique a diff. |
-| `long_context_review` | Read a large body of code/text and reason about it. |
-| `plumbing` | Shell, env, install, scripts, CI glue. |
-| `research` | Read external sources and summarize. |
-| `redaction_safe_draft` | Output must not leave the device. |
-| `github_publish` | Branch, push, PR, comment, merge. |
-| `manual_handoff` | The user wants to drive the worker by hand. |
+The router uses a **canonical task category** as the routing key. The
+fifteen categories below cover Hermes' end-to-end workflow surface;
+``hermes_cli/model_router.py:TASK_CATEGORIES`` is the source of truth
+and the router rejects categories outside this list rather than
+guessing.
 
-If a request mixes types, split it into sub-tasks before routing.
+| Task category | One-line definition |
+|-----------|---------------------|
+| `mobile-android` | Android Gradle build / Termux runtime / APK packaging. |
+| `voice-pipeline` | Speech-to-text, text-to-speech, voice gateway plumbing. |
+| `backend-orchestration` | Hermes-side wiring: gateways, plugins, tool routing. |
+| `research` | Read external sources and summarize. Current docs matter. |
+| `planning` | Draft a plan, schedule, contract before code exists. |
+| `implementation` | Add new functionality. |
+| `refactor` | Cross-file or cross-module restructure. |
+| `debug` | Restore broken behavior, repair a failing test. |
+| `validation` | Run the test/lint/typecheck suite and report. |
+| `security` | Security review, secret hygiene, threat-model write-up. |
+| `deployment` | Push to Vercel / Supabase / production. Gated. |
+| `github-pr` | Branch, push, PR, comment, merge. Gated. |
+| `user-profile-learning` | Capture / refine Hermes' user-profile facts. |
+| `remote-execution` | Run a worker on a remote host via a secure tunnel. |
+| `secrets-management` | Read / rotate / store secrets. Gated. |
+
+If a request mixes categories, split it into sub-tasks before routing.
+
+### Legacy fine-grained types
+
+For backwards compatibility with the original Phase 05 vocabulary the
+router also accepts these descriptors inside a worker's ``best_for``
+list (so older registry entries keep working): ``implementation``,
+``bug_fix``, ``test_repair``, ``refactor_small``, ``refactor_large``,
+``architecture``, ``code_review``, ``long_context_review``,
+``plumbing``, ``research``, ``redaction_safe_draft``,
+``github_publish``, ``manual_handoff``. These are not categories
+themselves; they only inform scoring.
 
 ---
 
@@ -205,7 +224,7 @@ In-session slash commands (`/route ...`):
 
 ```yaml
 model_router:
-  preferred_workers: [claude-code, codex, aider]
+  preferred_workers: [claude-code-windows, codex, aider]
   prefer_local: false
   allow_manual_handoff: false
   cost_ceiling: medium        # low | medium | high | unlimited
@@ -224,24 +243,94 @@ candidate set entirely.
 These rules override scoring. If they conflict, the router obeys the
 rule and explains the override in the plan's `rationale`.
 
-1. **Never bypass GitHub gates.** If a task requires
-   `github-publisher` to write, but `github.allow_writes: false` or
-   the repo isn't on the allowlist, the router demotes the publish
-   step to a dry-run (diff preview + draft PR description only) and
-   asks the user.
-2. **Never pick `chatgpt-handoff` automatically.** It only appears in
-   the candidate set when `task_type == manual_handoff` or the user
-   explicitly invokes `/route chatgpt-handoff`.
-3. **Never skip local validation.** `hermes-local` always runs the
-   validation step. The router cannot route around it.
-4. **Never run a worker whose detection failed.** Even with a manual
-   `/route <worker>`, the router refuses and surfaces the detection
-   failure so the user can fix it.
-5. **Prefer local under `HERMES_OFFLINE=1`.** Cloud workers are
-   removed from the candidate set entirely. If nothing local is
-   available, the router stops and tells the user.
-6. **Quality floor wins.** If no worker meets `quality_floor`, the
-   router does not lower the bar silently — it asks.
+1. **Hermes Local is always included.** Every routing plan lists
+   `hermes-local` as at least the validator. It is the only worker
+   that runs final validation, owns persistent memory, and writes
+   the decision ledger.
+2. **Claude Code Windows is preferred for complex repo-wide coding —
+   if the secure tunnel is healthy.** When `tunnel_healthy=False`
+   the router demotes `claude-code-windows` and falls back to
+   `claude-code-local` for the same kind of work. The tunnel health
+   check is part of detection; it is *not* score-able.
+3. **Codex is preferred for focused implementation and test repair.**
+   It tops the preference list for the `implementation` and `debug`
+   categories.
+4. **Aider is preferred for git-native local patch loops.** It tops
+   the preference list when the task is framed as surgical
+   multi-file patches over an existing git tree.
+5. **Goose is optional for recipe/extension workflows.** It is never
+   the default. The router only routes to Goose when a Goose recipe
+   or MCP extension is the natural way to express the task — or when
+   no preferred worker is available.
+6. **Browser research is required when current external docs
+   matter.** The router adds `browser-research` as a sidecar
+   (`role=researcher`) whenever the category is `research` or the
+   caller flags `needs_external_docs=True`.
+7. **Human approval is required for:** secrets management,
+   destructive commands, publish, remote-tunnel setup, and
+   continuous-listening mode. The router adds `human-approval` to
+   the selected list and emits the relevant approval tag in
+   `approval_requirements`.
+8. **Supabase worker only runs after schema and/or deployment
+   approval.** Until the `schema-approval` tag is in
+   `approvals_granted`, the router places `supabase-worker` in
+   `rejected` with the reason `requires schema/deployment approval`.
+9. **Vercel worker only runs after deployment approval.** Until the
+   `deployment` tag is in `approvals_granted`, the router places
+   `vercel-worker` in `rejected` with the reason
+   `requires deployment approval`.
+10. **Never bypass GitHub gates.** If a task requires
+    `github-publisher` to write, but `github.allow_writes: false` or
+    the repo isn't on the allowlist, the router demotes the publish
+    step to a dry-run (diff preview + draft PR description only) and
+    asks the user.
+11. **Never pick `chatgpt-handoff` automatically.** It only appears
+    in the candidate set when the user explicitly invokes
+    `/route chatgpt-handoff` or sets the worker in
+    `model_router.preferred_workers`.
+12. **Never skip local validation.** `hermes-local` always runs the
+    validation step. The router cannot route around it.
+13. **Never run a worker whose detection failed.** Even with a manual
+    `/route <worker>`, the router refuses and surfaces the detection
+    failure so the user can fix it.
+14. **Prefer local under `HERMES_OFFLINE=1`.** Cloud workers are
+    removed from the candidate set entirely. If nothing local is
+    available, the router stops and tells the user.
+15. **Quality floor wins.** If no worker meets `quality_floor`, the
+    router does not lower the bar silently — it asks.
+
+### Approval tag vocabulary
+
+The `approval_requirements` list is a multiset drawn from this fixed
+vocabulary so the orchestrator and the gateway can match on it
+without prose parsing:
+
+| Tag | Triggered by |
+|-----|--------------|
+| `publish` | `github-pr` category, `github-publisher` in selected. |
+| `deployment` | `deployment` category, `vercel-worker` in selected. |
+| `schema-approval` | `supabase-worker` in selected. |
+| `remote-tunnel-setup` | `remote-execution` category, `claude-code-windows` in selected. |
+| `secrets` | `secrets-management` category. |
+| `security-review` | `security` category. |
+| `continuous-listening` | Caller set `continuous_listening=True`. |
+
+### Required outputs
+
+Every routing decision returns the following structure (see
+``hermes_cli/model_router.RoutingDecision``):
+
+- `selected` — the workers Hermes will run, with role + score + rationale.
+- `rejected` — every other registered worker plus the reason it was
+  passed over (detection / capability / approval / category miss).
+- `explanation` — one-paragraph human-readable rationale.
+- `decision_ledger_entry` (``ledger_entry`` on the dataclass) — JSON-
+  serialisable dict appended one-per-line to
+  `$HERMES_HOME/orchestrator/decision_ledger.jsonl`.
+- `fallback_plan` — ordered ladder terminating at `hermes-local`.
+- `approval_requirements` — list of tags from the vocabulary above.
+- `validation_plan` — concrete steps `hermes-local` runs after the
+  primary worker returns.
 
 ---
 
@@ -250,37 +339,46 @@ rule and explains the override in the plan's `rationale`.
 ### 9.1 Add a feature in a small Python repo
 
 Inputs:
-- `task_type: implementation`
-- Detection: `codex`, `claude-code`, `aider`, `hermes-local`,
-  `github-publisher` available; `goose`, `local-model` not.
+- `task_category: implementation`
+- Detection: `codex`, `claude-code-local`, `aider`, `hermes-local`,
+  `github-publisher` available; `claude-code-windows`, `goose`,
+  `local-model` not.
 - `cost_ceiling: medium` (default).
 
 Scoring favors `codex` (high strength match, fast, medium cost, in
-a git repo). `claude-code` scores close but loses on cost. Ladder:
+a git repo). `claude-code-local` scores close but loses on cost.
+Ladder:
 
 ```
 primary: codex
-fallbacks: [claude-code, aider, hermes-local]
+fallbacks: [aider, claude-code-local, hermes-local]
 validator: hermes-local
-publisher: github-publisher
+publisher: (omitted unless task ends in a PR)
 ```
 
-### 9.2 Cross-package refactor in a 200-file repo
+### 9.2 Cross-package refactor across a 200-file repo, tunnel up
 
 Inputs:
-- `task_type: refactor_large`
-- All workers available.
+- `task_category: refactor`
+- All workers available; `tunnel_healthy: true`.
 
-Scoring favors `claude-code` (long-context, multi-file reasoning,
-critical quality). `codex` is fallback. `aider` follows for surgical
-follow-up edits if `claude-code` proposes a plan but doesn't finish.
+Scoring favors `claude-code-windows` (long-context, multi-file
+reasoning, critical quality, preference #1 for `refactor`). The
+router emits `remote-tunnel-setup` in `approval_requirements` and
+includes `human-approval` in the selected list.
 
 ```
-primary: claude-code
-fallbacks: [codex, aider, hermes-local]
+primary: claude-code-windows
+fallbacks: [claude-code-local, codex, aider, hermes-local]
 validator: hermes-local
-publisher: github-publisher
+publisher: (omitted unless task ends in a PR)
+approval_requirements: [remote-tunnel-setup]
 ```
+
+If the same refactor runs with `tunnel_healthy: false`,
+`claude-code-windows` is rejected with "secure tunnel to Windows
+host is not healthy" and the router falls back to `claude-code-local`
+as primary.
 
 ### 9.3 Offline drafting of a private note
 

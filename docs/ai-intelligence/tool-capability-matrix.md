@@ -44,17 +44,42 @@ machine*.
 
 | Worker | read_files | write_files | run_terminal | run_tests | multi_file_refactor | long_context_review | architecture | network_fetch | github_read | github_write | persistent_memory | offline_capable | redaction_safe | validation_local |
 |--------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| `hermes-local`     | yes    | yes    | yes    | yes    | assist | assist | assist | yes    | yes    | gated  | yes    | yes    | gated  | yes    |
-| `codex`            | yes    | yes    | yes    | yes    | yes    | gated  | assist | yes    | yes    | gated  | no     | no     | no     | no     |
-| `claude-code`      | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | gated  | no     | no     | no     | no     |
-| `aider`            | yes    | yes    | gated  | gated  | yes    | gated  | assist | no     | gated  | no     | no     | gated  | no     | no     |
-| `goose`            | yes    | yes    | yes    | yes    | yes    | gated  | assist | yes    | gated  | no     | no     | gated  | no     | no     |
-| `chatgpt-handoff`  | assist | assist | no     | no     | assist | assist | assist | assist | assist | assist | no     | no     | no     | no     |
-| `local-model`      | gated  | gated  | gated  | no     | gated  | gated  | assist | no     | no     | no     | no     | yes    | yes    | no     |
-| `github-publisher` | no     | no     | no     | no     | no     | no     | no     | gated  | yes    | gated  | no     | no     | no     | no     |
+| `hermes-local`        | yes    | yes    | yes    | yes    | assist | assist | assist | yes    | yes    | gated  | yes    | yes    | gated  | yes    |
+| `codex`               | yes    | yes    | yes    | yes    | yes    | gated  | assist | yes    | yes    | gated  | no     | no     | no     | no     |
+| `claude-code-local`   | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | gated  | no     | no     | no     | no     |
+| `claude-code-windows` | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | yes    | gated  | no     | no     | no     | no     |
+| `aider`               | yes    | yes    | gated  | gated  | yes    | gated  | assist | no     | gated  | no     | no     | gated  | no     | no     |
+| `goose`               | yes    | yes    | yes    | yes    | yes    | gated  | assist | yes    | gated  | no     | no     | gated  | no     | no     |
+| `chatgpt-handoff`     | assist | assist | no     | no     | assist | assist | assist | assist | assist | assist | no     | no     | no     | no     |
+| `local-model`         | gated  | gated  | gated  | no     | gated  | gated  | assist | no     | no     | no     | no     | yes    | yes    | no     |
+| `browser-research`    | no     | no     | no     | no     | no     | no     | no     | yes    | gated  | no     | no     | no     | no     | no     |
+| `github-publisher`    | no     | no     | no     | no     | no     | no     | no     | gated  | yes    | gated  | no     | no     | no     | no     |
+| `supabase-worker`     | gated  | gated  | no     | no     | no     | no     | no     | gated  | no     | no     | no     | no     | no     | no     |
+| `vercel-worker`       | gated  | gated  | no     | no     | no     | no     | no     | gated  | no     | no     | no     | no     | no     | no     |
+| `android-builder`     | yes    | yes    | yes    | gated  | gated  | no     | no     | no     | no     | no     | no     | yes    | yes    | gated  |
+| `human-approval`      | no     | no     | no     | no     | no     | no     | no     | no     | no     | no     | no     | yes    | yes    | no     |
 
 ### Cell notes
 
+- `claude-code-windows` mirrors `claude-code-local`'s capability row
+  because they are the same CLI; the difference is where it runs.
+  Detection adds a `tunnel: claude-code-windows` predicate that must
+  pass before the router will route to it, and selection always
+  triggers the `remote-tunnel-setup` approval tag.
+- `browser-research.github_read = gated` — possible only if the
+  browser backend has been pointed at github.com, but the router
+  prefers `hermes-local` (`github_assistant`) for GitHub reads.
+- `supabase-worker.read_files / write_files = gated` — only inside
+  the project's Supabase config tree and migrations directory; the
+  router gates schema changes behind the `schema-approval` tag.
+- `vercel-worker.read_files / write_files = gated` — only inside the
+  Vercel project tree (project.json, vercel.json, env files); the
+  router gates a real deploy behind the `deployment` approval tag.
+- `android-builder.run_tests = gated` — instrumentation tests require
+  an attached device or emulator; the router accepts a missing device
+  but downgrades the validation plan accordingly.
+- `human-approval.*` — every action is `no` or `assist`. Its
+  contribution is policy (gate, deny, allow), not capability.
 - `hermes-local.github_write = gated` — only via the
   `github_assistant` plugin, with `github.enabled: true`,
   `github.allow_writes: true`, and the repo on
@@ -63,11 +88,11 @@ machine*.
   the user has selected. When using a local model, drafting stays on
   the device; when using a cloud provider, it does not.
 - `codex.long_context_review = gated` — works for moderately large
-  contexts but the router prefers `claude-code` for true
+  contexts but the router prefers `claude-code-local` for true
   long-context reviews.
 - `codex.persistent_memory = no` — Codex sessions don't carry state
   the way Hermes does; the router relies on Hermes memory instead.
-- `claude-code.architecture = yes` — preferred for design work; print
+- `claude-code-local.architecture = yes` — preferred for design work; print
   mode + long context window are the reason.
 - `aider.run_terminal = gated` — Aider can run shell commands when
   invoked with the right flags but the router uses Hermes for shell
@@ -101,23 +126,25 @@ machine*.
 ## How the router uses this
 
 For each routing decision, the router builds a `required_capabilities`
-set from the task type and evidence:
+set from the task category and evidence:
 
-| Task type | Required capabilities |
-|-----------|----------------------|
-| `implementation` | read_files, write_files, run_terminal, validation_local (Hermes side) |
-| `bug_fix` | read_files, write_files, run_tests |
-| `test_repair` | read_files, write_files, run_tests |
-| `refactor_small` | read_files, write_files, multi_file_refactor |
-| `refactor_large` | read_files, write_files, multi_file_refactor, long_context_review |
-| `architecture` | long_context_review, architecture |
-| `code_review` | read_files, long_context_review |
-| `long_context_review` | read_files, long_context_review |
-| `plumbing` | read_files, run_terminal |
+| Task category | Required capabilities |
+|---------------|----------------------|
+| `mobile-android` | read_files, write_files, run_terminal (gradle) |
+| `voice-pipeline` | read_files, write_files |
+| `backend-orchestration` | read_files, write_files, run_terminal |
 | `research` | network_fetch (or offline_capable, if `HERMES_OFFLINE=1`) |
-| `redaction_safe_draft` | offline_capable, redaction_safe |
-| `github_publish` | github_read, github_write |
-| `manual_handoff` | (whatever the user asks; the assist row covers it) |
+| `planning` | read_files, persistent_memory (Hermes side) |
+| `implementation` | read_files, write_files, run_terminal, validation_local |
+| `refactor` | read_files, write_files, multi_file_refactor, long_context_review |
+| `debug` | read_files, write_files, run_tests |
+| `validation` | read_files, run_tests, validation_local |
+| `security` | read_files, long_context_review |
+| `deployment` | github_write or network_fetch (via supabase/vercel worker) |
+| `github-pr` | github_read, github_write |
+| `user-profile-learning` | persistent_memory |
+| `remote-execution` | run_terminal (via tunnel) |
+| `secrets-management` | redaction_safe |
 
 A worker that has `no` for any required capability is **disqualified**
 before scoring. A worker with `gated` capabilities is allowed, but the

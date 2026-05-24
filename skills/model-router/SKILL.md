@@ -13,6 +13,24 @@ metadata:
       - docs/ai-intelligence/model-registry.yaml
       - docs/ai-intelligence/model-routing-policy.md
       - docs/ai-intelligence/tool-capability-matrix.md
+    runtime_modules:
+      - hermes_cli.model_router
+      - hermes_cli.model_registry
+    routing_template: templates/orchestration/worker-selection-report.md
+    worker_ids:
+      - hermes-local
+      - claude-code-windows
+      - claude-code-local
+      - codex
+      - aider
+      - goose
+      - chatgpt-handoff
+      - browser-research
+      - github-publisher
+      - supabase-worker
+      - vercel-worker
+      - android-builder
+      - human-approval
 ---
 
 # Model Router
