@@ -48,7 +48,7 @@ import shutil
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable
 
@@ -521,7 +521,7 @@ class CheckpointStore:
                 f"phase must be one of {list(CheckpointPhase.ALL)}; "
                 f"got {phase!r}"
             )
-        stamp = datetime.utcnow().strftime("%Y%m%dt%H%M%Sz")
+        stamp = datetime.now(tz=timezone.utc).strftime("%Y%m%dt%H%M%Sz")
         suffix = secrets.token_hex(3)
         return f"{stamp}-{phase}-{suffix}"
 
