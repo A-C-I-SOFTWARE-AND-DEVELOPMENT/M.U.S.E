@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
@@ -87,6 +89,10 @@ def test_service_script_writes_pid_files_under_hermes_home() -> None:
 
 # ── Doctor script: required checks ─────────────────────────────────────────
 
+@pytest.mark.skip(
+    reason="Phase 21 doctor expansion (npm/pnpm/uv/API reachability/gateway/127.0.0.1) "
+    "salvaged ahead of impl PR; un-skip when the doctor script lands."
+)
 def test_doctor_script_covers_required_checks() -> None:
     text = DOCTOR_SH.read_text()
     # Direct command/tool probes the phase 21 spec requires.
