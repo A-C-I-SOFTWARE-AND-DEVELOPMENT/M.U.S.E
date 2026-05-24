@@ -57,7 +57,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install orchestration test deps
+      - name: Install pytest deps
         run: |
           python -m pip install --upgrade pip
           python -m pip install pytest pytest-xdist pytest-timeout PyYAML==6.0.3
