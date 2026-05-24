@@ -1,6 +1,6 @@
 # Hermes Feature Backlog — Competitive Harvest Output
 
-**Source:** Phase 21 harvest in
+**Source:** Phase 23 refresh of the Phase 21 harvest in
 [`docs/competitive/developer-agent-feature-harvest.md`](../competitive/developer-agent-feature-harvest.md).
 
 **Scope:** Only items rated **Gap — high value** or **Partial — high value**
@@ -15,6 +15,7 @@ unscheduled.
 - Nothing here is committed; this is a research-backed proposal list
 - No feature is marked "shipped" unless a Hermes release / commit confirms it
 - Sources cited in the harvest doc; not repeated here
+- `[P23]` markers identify items added in the Phase 23 refresh
 
 ---
 
@@ -132,6 +133,48 @@ mode (auto-approve safe tool classes).
 - Wire into existing approval flow; no new tools to write
 
 **Effort:** ~3-5 days.
+
+---
+
+### 5b. `[P23]` Per-category usage accounting (`hermes usage --by skill|subagent|plugin|mcp`)
+
+**Inspiration:** Claude Code v2.1.149 `/usage` per-category breakdown.
+
+**Why:** Hermes' decision ledger logs every model call but there's no
+aggregated view by primitive. Users asking "where is my budget going?"
+get raw rows, not a roll-up. Five major competitors expose some flavor
+of this; Claude Code's per-category breakdown is the strongest pattern.
+
+**Implementation target:**
+- New `hermes usage` subcommand reading the existing ledger
+- Group-by options: `skill`, `subagent`, `plugin`, `mcp_server`, `model`
+- Output: table + JSON; JSON feeds the dashboard
+- Add a "projected vs actual" column once Claude Code's
+  `estimated_context_tokens` pattern is borrowed for our `plugin.yaml`
+
+**Effort:** ~3-5 days. Aggregation logic + dashboard widget.
+
+---
+
+### 5c. `[P23]` `/code-review` slash command (effort levels + PR comments)
+
+**Inspiration:** Claude Code v2.1.147 `/code-review`, Goose v1.35.0 local
+code review.
+
+**Why:** Hermes has the `requesting-code-review` skill + `github_assistant`
+plugin separately. Both Anthropic and Block converged on the same week on
+"one slash command, effort dial, posts PR comments." Easy parity win.
+
+**Implementation target:**
+- New `/code-review [--effort low|medium|high] [--post-pr-comments]`
+  slash command in `agent/skill_commands.py`
+- Routes effort levels to the `auxiliary` model registry (cheap model for
+  low, primary for high)
+- When `--post-pr-comments` set, uses `github_assistant.add_pr_comment` to
+  push findings inline rather than printing to stdout
+
+**Effort:** ~3-5 days. Glue between existing skill, GitHub plugin, and
+auxiliary model router.
 
 ---
 
@@ -277,6 +320,114 @@ never bounce.
 - Reuses kanban claim mechanic to prevent dual-ownership
 
 **Effort:** ~2-3 weeks. Working-tree sync is the hard part.
+
+---
+
+### 12b. `[P23]` `/goal` self-evaluation primitive
+
+**Inspiration:** Goose v1.35.0 `/goal` self-evaluation slash command.
+
+**Why:** Hermes' decision ledger captures what happened but doesn't tell
+the agent (or the user) whether what happened achieved the goal. Goose
+shipped this in May 2026 and the pattern is simple enough to copy
+cleanly. Complements but doesn't duplicate the orchestrator's validation
+gate (which evaluates artifacts, not goals).
+
+**Implementation target:**
+- `/goal set <text>` writes a `Goal` row to the session DB (status: open)
+- `/goal evaluate` prompts the model with the goal + the decision ledger
+  + the validation results, emits a structured pass/fail/partial verdict
+- `/goal close` marks done; integrates with the kanban worker model so a
+  worker can claim a goal, work it, and close it
+- Surfaces in dashboard as a "goals" sidebar
+
+**Effort:** ~1 week. New DB row + slash commands + dashboard widget.
+
+---
+
+### 12c. `[P23]` GitLab assistant plugin
+
+**Inspiration:** Devin's May 22 GitLab PR review parity with GitHub.
+
+**Why:** Hermes' `github_assistant` plugin is a flagship; GitLab users get
+the GitHub MCP server's tools but no first-class plugin. Devin shipped
+GitLab parity — Hermes should match before the gap becomes a competitive
+talking point.
+
+**Implementation target:**
+- New `plugins/gitlab_assistant/` mirroring `github_assistant/` (same
+  toolset shape: `list_mrs`, `comment_on_mr`, `create_mr`, etc.)
+- Auth via `~/.hermes/.env` (`GITLAB_TOKEN` + optional `GITLAB_URL` for
+  self-hosted)
+- Update `docs/github-integration.md` → rename to
+  `docs/scm-integration.md` and cover both surfaces
+
+**Effort:** ~1-2 weeks. Most of the work is mapping GitLab's API onto the
+existing tool surface.
+
+---
+
+### 12d. `[P23]` Jira gateway plugin (ticket-to-agent loop)
+
+**Inspiration:** Cursor's May 19 Jira integration (assign work to agents
+from tickets).
+
+**Why:** Hermes has Slack/Discord/Telegram/Email gateways but no Jira
+gateway. Tickets are where engineering work actually starts at most
+orgs; Hermes' kanban covers the internal case but not the
+"organization already uses Jira" case.
+
+**Implementation target:**
+- New `gateway/platforms/jira.py` listening for ticket assignments to
+  the `hermes` user
+- On assignment: pull description + comments, spawn a kanban worker, post
+  progress back as ticket comments, close ticket on validation pass
+- Reuse existing webhook plumbing
+
+**Effort:** ~1-2 weeks. Jira webhook setup + reverse-direction comment
+posting.
+
+---
+
+### 12e. `[P23]` Plugin manifest preview + dependency declaration
+
+**Inspiration:** Claude Code v2.1.143-2.1.145 `/plugin` Discover, dependency
+enforcement, projected context-cost in the marketplace.
+
+**Why:** Hermes plugins register tools at load time with no pre-install
+preview and no dependency declaration. Borrowing the `npm`-style rigor
+from Claude Code is a low-cost reliability win.
+
+**Implementation target:**
+- Add `dependencies:` and `estimated_context_tokens:` fields to
+  `plugin.yaml`
+- New `hermes plugin show <name>` that prints the plugin's exposed tools,
+  hooks, slash commands, MCP servers, dependencies, and projected cost
+  before activation
+- Loader validates dependencies and refuses to load on missing prereqs
+  (or installs them with `--with-deps`)
+
+**Effort:** ~1 week. Manifest schema + loader changes + CLI subcommand.
+
+---
+
+### 12f. `[P23]` Output schemas for cron jobs
+
+**Inspiration:** Codex CLI v0.132.0 — resumed automations enforce
+structured JSON output schemas.
+
+**Why:** Hermes cron jobs return free-form text; downstream consumers
+(other cron jobs, kanban tasks, dashboards) have to parse it
+defensively. Schema-enforced output makes the output graph reliable.
+
+**Implementation target:**
+- Add `output_schema:` (JSON Schema) to cron job spec
+- Validator in `cron/scheduler.py` re-prompts the agent on schema
+  violation up to N retries
+- Schema-violating jobs fail loudly to the dashboard rather than emitting
+  bad data downstream
+
+**Effort:** ~3-5 days.
 
 ---
 
@@ -446,6 +597,66 @@ opencode).
 
 ---
 
+### 24b. `[P23]` Concurrent plugin loading
+
+**Inspiration:** Cline CLI v3.0.9 — concurrent plugin loading for faster
+startup.
+
+**Why:** Hermes plugin discovery is sequential; cold-start matters for
+Termux/mobile use cases. Cline shipped concurrent loading as a measured
+win.
+
+**Target:** Switch `agent/plugins/__init__.py` to `asyncio.gather()` over
+plugin discoverers; benchmark startup time pre/post.
+
+---
+
+### 24c. `[P23]` Goal entity in session DB
+
+**Inspiration:** Codex CLI v0.133.0 — goals enabled by default with
+dedicated storage.
+
+**Why:** Memory backends store facts and preferences; goals are different
+in shape (status, deadline, owner, validation criteria). A first-class
+`Goal` row enables better summarization, better dashboards, and the
+`/goal evaluate` flow above without reusing the memory table.
+
+**Target:** New `Goal` row in `hermes_state.py` linked to session ID and
+optional kanban task; CRUD via `/goal` slash commands.
+
+---
+
+### 24d. `[P23]` Tamper-evident decision ledger (HMAC chain option)
+
+**Inspiration:** Bernstein's HMAC-chained audit log + signed agent cards.
+
+**Why:** Hermes' decision ledger is append-only but doesn't cryptographically
+chain entries. For compliance-positioned users (Bernstein's pitch), a
+tamper-evident option is the deciding factor between Hermes and a
+purpose-built compliance orchestrator. Not every Hermes user needs it —
+hence T3.
+
+**Target:** Optional `ledger.hmac_chain: true` config. Each ledger row
+includes `prev_hmac` computed from the previous row + a per-job key. Add
+`hermes ledger verify <job-id>` to detect breaks. Document the threat
+model honestly: this defends against post-hoc tampering of a stored
+ledger, not against a compromised process while a job runs.
+
+---
+
+### 24e. `[P23]` Triage recipe (autonomous issue triage)
+
+**Inspiration:** Devin Auto-Triage (May 18 blog).
+
+**Why:** Once recipes (T1 #6) ship, autonomous issue triage is a natural
+demo. Sits on top of existing primitives (`github_assistant`, kanban,
+delegate_task) — the recipe is the choreography.
+
+**Target:** Ship `recipes/triage.yaml` once T1 #6 lands. Inputs: repo,
+label-filter, since-date. Output: PRs opened or comments posted.
+
+---
+
 ### 25. Obsidian-format memory provider
 
 **Inspiration:** OpenHuman Memory Tree.
@@ -483,3 +694,23 @@ new in-tree memory providers.
   not mark "shipped" inside this doc
 - New items added by a future harvest go into the tier whose rationale
   they match; if no tier fits, default to T3
+
+---
+
+## Phase 23 refresh summary (2026-05-23)
+
+- **Verified:** OpenHuman and Paperclip both still alive and growing;
+  Phase 21 claims hold with one drift (Paperclip's headline adapter list
+  no longer includes Gemini; OpenClaw is now first-class).
+- **New T1-shaped items:** per-category usage accounting (`5b`), code
+  review slash command (`5c`).
+- **New T2-shaped items:** goal self-evaluation (`12b`), GitLab plugin
+  (`12c`), Jira gateway (`12d`), plugin manifest preview (`12e`), cron
+  output schemas (`12f`).
+- **New T3-shaped items:** concurrent plugin loading (`24b`), goal entity
+  (`24c`), tamper-evident ledger (`24d`), triage recipe (`24e`).
+- **No-changes products in window:** Aider (last release Aug 2025),
+  Continue (last release March 2026), Plandex (next release July 2026).
+- **One new competitor identified:** Bernstein — Python orchestrator with
+  HMAC-chained audit log; closest direct competitor to Hermes
+  orchestration. Tamper-evident ledger item (`24d`) is the response.
