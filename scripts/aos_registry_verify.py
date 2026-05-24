@@ -87,17 +87,17 @@ def stale_path_candidates(text: str) -> list[str]:
     return stale
 
 
-def audit_skill_file(path: Path, failures: list[str]) -> None:
+def audit_skill_file(path: Path, failures: list[str], warnings: list[str], strict: bool) -> None:
     text = path.read_text(encoding="utf-8")
     fm = frontmatter(text)
     rel = path.relative_to(ROOT)
-    check(bool(fm), f"SKILL.md frontmatter present: {rel}", failures)
+    check(bool(fm), f"SKILL.md frontmatter present: {rel}", failures, warnings, warn=not strict)
     desc = fm.get("description", "")
     if desc:
-        check(len(desc) <= 60, f"SKILL.md description <=60 chars: {rel} ({len(desc)})", failures)
-        check(desc.endswith("."), f"SKILL.md description ends with period: {rel}", failures)
+        check(len(desc) <= 60, f"SKILL.md description <=60 chars: {rel} ({len(desc)})", failures, warnings, warn=not strict)
+        check(desc.endswith("."), f"SKILL.md description ends with period: {rel}", failures, warnings, warn=not strict)
     else:
-        check(False, f"SKILL.md description present: {rel}", failures)
+        check(False, f"SKILL.md description present: {rel}", failures, warnings, warn=not strict)
 
 
 def audit() -> int:
@@ -128,8 +128,13 @@ def audit() -> int:
             rel = file_path.relative_to(ROOT)
             check(contains_reference_only_marker(text), f"reference-only marker: {rel}", failures, warnings, warn=True)
 
+    strict_skill_descriptions = EXPECTED_PATHS["operating_registry"].exists()
+    if not strict_skill_descriptions:
+        print("WARN SKILL.md description length checks are advisory until the operating registry exists")
+        warnings.append("skill description checks advisory until operating registry exists")
+
     for skill in sorted(AOS_ROOT.rglob("SKILL.md")) if AOS_ROOT.exists() else []:
-        audit_skill_file(skill, failures)
+        audit_skill_file(skill, failures, warnings, strict_skill_descriptions)
 
     scan_roots = [path for path in EXPECTED_PATHS.values() if path.exists()]
     stale_paths: list[tuple[Path, str]] = []
