@@ -13,7 +13,6 @@ caller's real ``~/.hermes/voice/`` folder.
 
 from __future__ import annotations
 
-import importlib
 import json
 import os
 from pathlib import Path
@@ -28,21 +27,16 @@ import pytest
 
 @pytest.fixture
 def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Point HERMES_HOME at a tmp dir and reload the intake module.
+    """Point HERMES_HOME at a tmp dir for the duration of one test.
 
-    The pipeline reads ``HERMES_HOME`` lazily (via
-    ``hermes_constants.get_hermes_home`` or the env var), so a
-    monkeypatch is enough — no module reload required for the
-    pipeline. We still re-import so any module-level state introduced
-    later cannot leak between tests.
+    ``hermes_cli.voice_intake._hermes_home()`` reads ``HERMES_HOME`` on
+    every call (it is *not* cached), and ``hermes_cli.voice_models``
+    holds no module-level state at all. A simple ``monkeypatch.setenv``
+    is therefore enough — no module reload required. (We previously
+    used ``importlib.reload``; that turned out to disturb other tests
+    sharing the same xdist worker, so it has been dropped.)
     """
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    # Re-import to pick up the env override cleanly.
-    import hermes_cli.voice_intake as vi
-    import hermes_cli.voice_models as vm
-
-    importlib.reload(vm)
-    importlib.reload(vi)
     return tmp_path
 
 
