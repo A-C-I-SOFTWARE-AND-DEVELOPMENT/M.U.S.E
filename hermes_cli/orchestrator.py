@@ -1,17 +1,27 @@
 """Local orchestrator controller for the Hermes CLI.
 
-Provides Python-level entry points for the Phase 16 native slash commands:
+Provides Python-level entry points for the native Hermes orchestration
+slash commands:
 
   * ``/orchestrate <prompt>``
-  * ``/orchestrator status [job-id]``
   * ``/orchestrator list``
+  * ``/orchestrator status [job-id]``
   * ``/orchestrator open <job-id>``
   * ``/orchestrator resume <job-id>``
+  * ``/orchestrator cancel <job-id>``
+  * ``/orchestrator approve <job-id> <phase>``
+  * ``/orchestrator validate <job-id>``
   * ``/orchestrator publish <job-id>``
+  * ``/orchestrator publish-plan <job-id>``
   * ``/model-router explain <prompt>``
   * ``/decision-ledger show [job-id]``
   * ``/ai-radar update``
   * ``/best-coding-tool-mission status``
+  * ``/voice-capture status``
+  * ``/voice-capture mode <push_to_talk|wake_word|driving_capture|disabled>``
+  * ``/remote-worker status``
+  * ``/self-improve run <job-id>``
+  * ``/profile build-github-history``
 
 The controller is intentionally minimal: it owns local job bookkeeping and
 returns formatted strings so the CLI dispatcher and the gateway can render
@@ -21,6 +31,11 @@ until config + approval are wired.  This mirrors the local-orchestrator
 contract documented in ``docs/hermes-local-orchestrator.md``: Hermes
 prepares hand-off material; the user is the one who launches anything that
 actually moves money, code, or messages.
+
+Publish/remote/secret actions (``publish-plan``, ``approve``, the
+``/remote-worker`` family) are explicitly gated: they refuse to advance a
+job until an operator approves the phase.  The approval record lives
+beside the job in ``$HERMES_HOME/orchestrator/approvals.json``.
 """
 
 from __future__ import annotations
@@ -44,6 +59,24 @@ _JOBS_FILE = "jobs.json"
 _LEDGER_FILE = "decision_ledger.json"
 _RADAR_FILE = "ai_radar.json"
 _MISSION_FILE = "best_coding_tool_mission.json"
+_APPROVALS_FILE = "approvals.json"
+_VALIDATION_FILE = "validation.json"
+_PLANS_FILE = "publish_plans.json"
+_VOICE_CAPTURE_FILE = "voice_capture.json"
+_REMOTE_WORKER_FILE = "remote_workers.json"
+_SELF_IMPROVE_FILE = "self_improve.json"
+_PROFILE_GITHUB_HISTORY_FILE = "profile_github_history.json"
+
+# Sentinel for actions that require explicit operator approval before
+# state can transition into a "published" / "remote" / "secret-touching"
+# phase.  See ``approve_phase`` and ``publish_plan``.
+APPROVAL_PHASES = ("plan", "publish", "remote", "self_improve")
+VOICE_CAPTURE_MODES = (
+    "push_to_talk",
+    "wake_word",
+    "driving_capture",
+    "disabled",
+)
 
 
 def _hermes_home() -> Path:
@@ -69,7 +102,16 @@ def _orch_dir() -> Path:
 # Job dataclass + JSON persistence
 # ---------------------------------------------------------------------------
 
-JOB_STATUSES = ("queued", "running", "paused", "succeeded", "failed", "published")
+JOB_STATUSES = (
+    "queued",
+    "running",
+    "paused",
+    "succeeded",
+    "failed",
+    "published",
+    "cancelled",
+    "plan_ready",
+)
 
 
 @dataclass
@@ -90,6 +132,8 @@ class Job:
     artifacts: list[str] = field(default_factory=list)
     published_at: Optional[int] = None
     resumed_count: int = 0
+    cancelled_at: Optional[int] = None
+    approvals: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -276,6 +320,352 @@ def get_ledger(job_id: Optional[str] = None) -> dict[str, list[dict[str, Any]]]:
 
 
 # ---------------------------------------------------------------------------
+# Cancel / approve / validate / publish-plan
+# ---------------------------------------------------------------------------
+
+def cancel_job(job_id: str) -> Optional[Job]:
+    """Mark a job as cancelled.
+
+    Cancellation is a one-way state — a cancelled job can still be inspected
+    via ``/orchestrator open`` but it will not auto-resume.  Already-published
+    jobs are left alone so the publish record stays honest.
+    """
+    jobs = _load_jobs()
+    job = _find_job(jobs, job_id)
+    if not job:
+        return None
+    if job.status == "published":
+        # Refuse to retract a publish through ``cancel``.  Publish is an
+        # external commitment; the caller should issue a follow-up instead.
+        return job
+    job.status = "cancelled"
+    job.cancelled_at = _now()
+    job.updated_at = _now()
+    _save_jobs(jobs)
+    _append_ledger(job.id, {"kind": "cancel", "status": job.status})
+    return job
+
+
+def approve_phase(job_id: str, phase: str) -> Optional[Job]:
+    """Record an operator approval for a publish/remote/secret phase.
+
+    Approval is required before ``publish_plan`` will actually emit a
+    publish-plan, before ``self_improve_run`` will accept a job id, and
+    before ``/remote-worker`` may dispatch any work.  The approval record
+    is kept on the job so the decision ledger reflects who/when.
+    """
+    phase = (phase or "").strip()
+    if phase not in APPROVAL_PHASES:
+        raise ValueError(
+            f"unknown approval phase {phase!r}; "
+            f"expected one of {', '.join(APPROVAL_PHASES)}"
+        )
+    jobs = _load_jobs()
+    job = _find_job(jobs, job_id)
+    if not job:
+        return None
+    job.approvals = dict(job.approvals or {})
+    job.approvals[phase] = _now()
+    job.updated_at = _now()
+    _save_jobs(jobs)
+    _append_ledger(job.id, {"kind": "approve", "phase": phase})
+    return job
+
+
+def has_approval(job: Job, phase: str) -> bool:
+    return bool((job.approvals or {}).get(phase))
+
+
+def validate_job(job_id: str) -> Optional[dict[str, Any]]:
+    """Run the local validation gate against the workspace for *job_id*.
+
+    Persists a compact summary under
+    ``$HERMES_HOME/orchestrator/validation.json`` keyed by job id, and
+    appends a ``validate`` entry to the decision ledger.  Returns ``None``
+    when *job_id* is unknown.  Falls back to a static skeleton when the
+    validation runner module is unavailable so the slash command still
+    surfaces useful state in stripped-down environments.
+    """
+    job = get_job(job_id)
+    if not job:
+        return None
+    summary: dict[str, Any]
+    try:
+        from hermes_cli.validation import ValidationRunner  # type: ignore
+
+        # Route the runner's artefact writes (validation/results.json,
+        # validation/summary.md, validation/commands.log) into the
+        # orchestrator's own per-job folder rather than the user's cwd
+        # so we never leave a stray validation/ directory in the
+        # workspace they're currently editing.
+        per_job_dir = _orch_dir() / "validation" / job.id
+        per_job_dir.mkdir(parents=True, exist_ok=True)
+        runner = ValidationRunner(
+            workspace=str(Path.cwd()),
+            output_dir=str(per_job_dir),
+        )
+        report = runner.run()
+        # ValidationReport.to_dict() is the documented contract.
+        report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
+        status_counts = (
+            report.status_counts()
+            if hasattr(report, "status_counts")
+            else {}
+        )
+        summary = {
+            "job_id": job.id,
+            "checked_at": _now(),
+            "status_counts": status_counts,
+            "checks": report_dict.get("checks") or [],
+            "publish_blocked": any(
+                c.get("status") == "fail" and c.get("critical")
+                for c in (report_dict.get("checks") or [])
+            ),
+        }
+    except Exception as exc:
+        # The runner is best-effort: a stripped-down test environment may
+        # be missing ``hermes_cli.validation``.  Surface a skeleton record
+        # so users still see the dispatch and timestamp.
+        summary = {
+            "job_id": job.id,
+            "checked_at": _now(),
+            "status_counts": {},
+            "checks": [],
+            "publish_blocked": False,
+            "note": f"validation runner unavailable: {exc!s}",
+        }
+    all_validations = _read_json(_orch_dir() / _VALIDATION_FILE, default={})
+    if not isinstance(all_validations, dict):
+        all_validations = {}
+    all_validations[job.id] = summary
+    _write_json(_orch_dir() / _VALIDATION_FILE, all_validations)
+    _append_ledger(job.id, {
+        "kind": "validate",
+        "status_counts": summary.get("status_counts", {}),
+        "publish_blocked": summary.get("publish_blocked", False),
+    })
+    return summary
+
+
+def publish_plan(job_id: str) -> dict[str, Any]:
+    """Emit a publish-plan for the job — *only* after ``approve plan``.
+
+    Publish-plans live under
+    ``$HERMES_HOME/orchestrator/publish_plans.json``.  This is the
+    last gate before a workflow can hand artefacts off to a downstream
+    publisher (PR, kanban, GitHub release, etc.).  Without approval, the
+    function returns ``{"ok": False, "reason": "approval required"}``
+    and writes nothing.
+    """
+    job = get_job(job_id)
+    if not job:
+        return {"ok": False, "reason": f"unknown job id {job_id!r}"}
+    if not has_approval(job, "plan"):
+        return {
+            "ok": False,
+            "reason": (
+                "publish-plan requires prior approval — "
+                f"run /orchestrator approve {job.id} plan first"
+            ),
+            "job_id": job.id,
+        }
+    validations = _read_json(_orch_dir() / _VALIDATION_FILE, default={})
+    val_summary = (
+        validations.get(job.id) if isinstance(validations, dict) else None
+    )
+    if val_summary and val_summary.get("publish_blocked"):
+        return {
+            "ok": False,
+            "reason": "publish-plan blocked by failing validation checks",
+            "job_id": job.id,
+        }
+    plans = _read_json(_orch_dir() / _PLANS_FILE, default={})
+    if not isinstance(plans, dict):
+        plans = {}
+    plan = {
+        "job_id": job.id,
+        "prompt": job.prompt,
+        "created_at": _now(),
+        "approvals": dict(job.approvals or {}),
+        "artifacts": list(job.artifacts or []),
+        "validation": val_summary,
+        # The plan is local-only.  Downstream publishers (kanban, github
+        # publisher, hermes-local-orchestrator clipboard handoff) decide
+        # what to do with the artifacts list; we never push.
+        "next_step": (
+            "Hand off this plan to the github_publisher plugin or your "
+            "preferred publisher."
+        ),
+    }
+    plans[job.id] = plan
+    _write_json(_orch_dir() / _PLANS_FILE, plans)
+    _append_ledger(job.id, {"kind": "publish-plan"})
+    # Bump status so listings reflect the readiness.
+    jobs = _load_jobs()
+    real_job = _find_job(jobs, job.id)
+    if real_job and real_job.status not in {"published", "cancelled"}:
+        real_job.status = "plan_ready"
+        real_job.updated_at = _now()
+        _save_jobs(jobs)
+    return {"ok": True, "plan": plan}
+
+
+# ---------------------------------------------------------------------------
+# Voice capture state
+# ---------------------------------------------------------------------------
+
+def _default_voice_capture_state() -> dict[str, Any]:
+    return {
+        "mode": "disabled",
+        "updated_at": 0,
+        "history": [],
+    }
+
+
+def voice_capture_status() -> dict[str, Any]:
+    raw = _read_json(_orch_dir() / _VOICE_CAPTURE_FILE,
+                     default=_default_voice_capture_state())
+    if not isinstance(raw, dict):
+        return _default_voice_capture_state()
+    raw.setdefault("mode", "disabled")
+    raw.setdefault("updated_at", 0)
+    raw.setdefault("history", [])
+    return raw
+
+
+def set_voice_capture_mode(mode: str) -> dict[str, Any]:
+    mode = (mode or "").strip().lower()
+    if mode not in VOICE_CAPTURE_MODES:
+        raise ValueError(
+            f"unknown voice-capture mode {mode!r}; "
+            f"expected one of {', '.join(VOICE_CAPTURE_MODES)}"
+        )
+    state = voice_capture_status()
+    previous = state.get("mode", "disabled")
+    state["mode"] = mode
+    state["updated_at"] = _now()
+    history = list(state.get("history") or [])
+    history.append({"ts": state["updated_at"], "from": previous, "to": mode})
+    state["history"] = history[-25:]
+    _write_json(_orch_dir() / _VOICE_CAPTURE_FILE, state)
+    return state
+
+
+# ---------------------------------------------------------------------------
+# Remote-worker status
+# ---------------------------------------------------------------------------
+
+def remote_worker_status() -> dict[str, Any]:
+    """Return a snapshot of registered remote workers.
+
+    Reads the local registry under
+    ``$HERMES_HOME/orchestrator/remote_workers.json``.  When the registry
+    is empty (the common case in a fresh checkout), returns a single
+    placeholder entry so users can confirm the file path and update flow.
+    """
+    raw = _read_json(_orch_dir() / _REMOTE_WORKER_FILE, default=None)
+    if not isinstance(raw, dict) or not raw.get("workers"):
+        return {
+            "workers": [],
+            "note": (
+                "No remote workers registered.  Drop entries under "
+                "orchestrator.remote_workers in config.yaml or hand-edit "
+                f"{_orch_dir() / _REMOTE_WORKER_FILE} to populate."
+            ),
+            "checked_at": _now(),
+        }
+    workers = raw.get("workers") or []
+    return {
+        "workers": workers,
+        "checked_at": _now(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Self-improve
+# ---------------------------------------------------------------------------
+
+def self_improve_run(job_id: str) -> dict[str, Any]:
+    """Record a request to run the self-improvement loop against *job_id*.
+
+    Requires ``approve <job-id> self_improve`` first because the loop
+    mutates the local skill library — it must not be invoked silently.
+    Stores the request under
+    ``$HERMES_HOME/orchestrator/self_improve.json``.
+    """
+    job = get_job(job_id)
+    if not job:
+        return {"ok": False, "reason": f"unknown job id {job_id!r}"}
+    if not has_approval(job, "self_improve"):
+        return {
+            "ok": False,
+            "job_id": job.id,
+            "reason": (
+                "/self-improve run requires approval — "
+                f"run /orchestrator approve {job.id} self_improve first"
+            ),
+        }
+    history = _read_json(_orch_dir() / _SELF_IMPROVE_FILE, default={})
+    if not isinstance(history, dict):
+        history = {}
+    runs = list(history.get(job.id) or [])
+    record = {
+        "ts": _now(),
+        "job_id": job.id,
+        # The self-improvement loop is invoked via the
+        # ``self-improvement-loop`` skill; this command only stages
+        # the request so the loop can pick it up next time it runs.
+        "status": "requested",
+        "next_step": (
+            "Invoke /self-improvement-loop in an interactive session, "
+            "or wait for the background curator to pick this request up."
+        ),
+    }
+    runs.append(record)
+    history[job.id] = runs[-25:]
+    _write_json(_orch_dir() / _SELF_IMPROVE_FILE, history)
+    _append_ledger(job.id, {"kind": "self-improve", "status": "requested"})
+    return {"ok": True, "record": record}
+
+
+# ---------------------------------------------------------------------------
+# Profile: build GitHub history
+# ---------------------------------------------------------------------------
+
+def profile_build_github_history() -> dict[str, Any]:
+    """Refresh the local profile's GitHub history snapshot.
+
+    The CLI surface is a placeholder for the heavier history-mining flow
+    in the ``github_assistant`` plugin: it stamps a local JSON file under
+    ``$HERMES_HOME/orchestrator/profile_github_history.json`` so users
+    can verify dispatch + filesystem access.  Wire a real walk by
+    setting ``profile.github_history.feed`` in ``config.yaml``.
+    """
+    try:
+        from hermes_cli.profiles import get_active_profile_name
+        profile_name = get_active_profile_name()
+    except Exception:
+        profile_name = "default"
+    payload = {
+        "profile": profile_name,
+        "built_at": _now(),
+        "source": "manual /profile build-github-history",
+        "note": (
+            "Local placeholder.  Wire a real GitHub history walk via the "
+            "github_assistant plugin or set "
+            "profile.github_history.feed in config.yaml."
+        ),
+    }
+    _write_json(_orch_dir() / _PROFILE_GITHUB_HISTORY_FILE, payload)
+    return payload
+
+
+def profile_github_history_status() -> dict[str, Any]:
+    return _read_json(_orch_dir() / _PROFILE_GITHUB_HISTORY_FILE,
+                      default={"built_at": 0})
+
+
+# ---------------------------------------------------------------------------
 # Model router — explain-only stub
 # ---------------------------------------------------------------------------
 
@@ -438,11 +828,15 @@ _ORCHESTRATOR_HELP = (
     "Usage: /orchestrator <subcommand> [args]\n"
     "\n"
     "Subcommands:\n"
-    "  status [job-id]   Show status of one job (or every job).\n"
-    "  list              List recent jobs.\n"
-    "  open <job-id>     Print a job's full record.\n"
-    "  resume <job-id>   Re-queue a paused or failed job.\n"
-    "  publish <job-id>  Mark a job as published.\n"
+    "  status [job-id]               Show status of one job (or every job).\n"
+    "  list                          List recent jobs.\n"
+    "  open <job-id>                 Print a job's full record.\n"
+    "  resume <job-id>               Re-queue a paused or failed job.\n"
+    "  cancel <job-id>               Mark a job as cancelled.\n"
+    "  approve <job-id> <phase>      Approve a publish/remote/secret phase.\n"
+    "  validate <job-id>             Run local validation gates for a job.\n"
+    "  publish <job-id>              Mark a job as published.\n"
+    "  publish-plan <job-id>         Emit a publish-plan (requires approval).\n"
 )
 
 
@@ -473,6 +867,46 @@ _MISSION_HELP = (
     "Usage: /best-coding-tool-mission status\n"
     "\n"
     "Show the orchestrator's running mission summary and live metrics.\n"
+)
+
+
+_VOICE_CAPTURE_HELP = (
+    "Usage: /voice-capture <subcommand> [args]\n"
+    "\n"
+    "Subcommands:\n"
+    "  status                        Show the current voice-capture state.\n"
+    "  mode <mode>                   Set the capture mode.  Modes:\n"
+    "                                  push_to_talk, wake_word,\n"
+    "                                  driving_capture, disabled.\n"
+)
+
+
+_REMOTE_WORKER_HELP = (
+    "Usage: /remote-worker status\n"
+    "\n"
+    "Show the local snapshot of registered remote workers.  Remote workers\n"
+    "must be approved per-job before they can pick up work — see\n"
+    "/orchestrator approve <job-id> remote.\n"
+)
+
+
+_SELF_IMPROVE_HELP = (
+    "Usage: /self-improve run <job-id>\n"
+    "\n"
+    "Stage a self-improvement-loop request for *job-id*.  Requires prior\n"
+    "/orchestrator approve <job-id> self_improve.  The loop itself is\n"
+    "invoked by the self-improvement-loop skill — this command only\n"
+    "records the request so the loop knows what job to target.\n"
+)
+
+
+_PROFILE_HELP = (
+    "Usage: /profile [subcommand]\n"
+    "\n"
+    "With no subcommand, /profile shows the active profile name and home.\n"
+    "Subcommands:\n"
+    "  build-github-history          Refresh the local GitHub-history\n"
+    "                                snapshot for the active profile.\n"
 )
 
 
@@ -553,12 +987,89 @@ def _run_orchestrator_publish(args: list[str]) -> str:
     )
 
 
+def _run_orchestrator_cancel(args: list[str]) -> str:
+    if not args:
+        return "⚠ /orchestrator cancel requires a job id"
+    job = cancel_job(args[0])
+    if not job:
+        return f"⚠ /orchestrator: unknown job id {args[0]!r}"
+    if job.status != "cancelled":
+        return (
+            f"⚠ Job {job.id} is {job.status} and cannot be cancelled "
+            f"through /orchestrator cancel."
+        )
+    return f"✓ Job {job.id} cancelled at {_fmt_ts(job.cancelled_at)}."
+
+
+def _run_orchestrator_approve(args: list[str]) -> str:
+    if len(args) < 2:
+        return (
+            "⚠ /orchestrator approve requires <job-id> <phase>\n"
+            f"  Phases: {', '.join(APPROVAL_PHASES)}"
+        )
+    job_id, phase = args[0], args[1]
+    try:
+        job = approve_phase(job_id, phase)
+    except ValueError as exc:
+        return f"⚠ /orchestrator approve: {exc}"
+    if not job:
+        return f"⚠ /orchestrator: unknown job id {job_id!r}"
+    return (
+        f"✓ Job {job.id} approved for phase '{phase}' at "
+        f"{_fmt_ts(job.approvals.get(phase))}."
+    )
+
+
+def _run_orchestrator_validate(args: list[str]) -> str:
+    if not args:
+        return "⚠ /orchestrator validate requires a job id"
+    summary = validate_job(args[0])
+    if summary is None:
+        return f"⚠ /orchestrator: unknown job id {args[0]!r}"
+    counts = summary.get("status_counts") or {}
+    count_line = ", ".join(
+        f"{k}={v}" for k, v in sorted(counts.items())
+    ) or "—"
+    blocked = "yes" if summary.get("publish_blocked") else "no"
+    lines = [
+        f"  job:              {summary.get('job_id')}",
+        f"  checked_at:       {_fmt_ts(summary.get('checked_at'))}",
+        f"  status_counts:    {count_line}",
+        f"  publish_blocked:  {blocked}",
+    ]
+    if summary.get("note"):
+        lines.append(f"  note:             {summary['note']}")
+    return "\n".join(lines)
+
+
+def _run_orchestrator_publish_plan(args: list[str]) -> str:
+    if not args:
+        return "⚠ /orchestrator publish-plan requires a job id"
+    result = publish_plan(args[0])
+    if not result.get("ok"):
+        return f"⚠ /orchestrator publish-plan: {result.get('reason')}"
+    plan = result.get("plan") or {}
+    artifacts = plan.get("artifacts") or []
+    lines = [
+        f"✓ Publish-plan emitted for {plan.get('job_id')}",
+        f"  created_at:  {_fmt_ts(plan.get('created_at'))}",
+        f"  approvals:   {', '.join(sorted((plan.get('approvals') or {}).keys())) or '—'}",
+        f"  artifacts:   {len(artifacts)}",
+        f"  next_step:   {plan.get('next_step')}",
+    ]
+    return "\n".join(lines)
+
+
 _ORCHESTRATOR_SUBCOMMANDS: dict[str, Any] = {
-    "status":  _run_orchestrator_status,
-    "list":    _run_orchestrator_list,
-    "open":    _run_orchestrator_open,
-    "resume":  _run_orchestrator_resume,
-    "publish": _run_orchestrator_publish,
+    "status":       _run_orchestrator_status,
+    "list":         _run_orchestrator_list,
+    "open":         _run_orchestrator_open,
+    "resume":       _run_orchestrator_resume,
+    "cancel":       _run_orchestrator_cancel,
+    "approve":      _run_orchestrator_approve,
+    "validate":     _run_orchestrator_validate,
+    "publish":      _run_orchestrator_publish,
+    "publish-plan": _run_orchestrator_publish_plan,
 }
 
 
@@ -683,23 +1194,168 @@ def run_best_coding_tool_mission(rest: str) -> str:
     return "\n".join(lines)
 
 
+def run_voice_capture(rest: str) -> str:
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _VOICE_CAPTURE_HELP
+    try:
+        tokens = shlex.split(rest)
+    except ValueError as exc:
+        return f"⚠ /voice-capture: {exc}\n{_VOICE_CAPTURE_HELP}"
+    sub, *args = tokens
+    if sub == "status":
+        state = voice_capture_status()
+        history = state.get("history") or []
+        last = history[-1] if history else None
+        last_line = (
+            f"{last.get('from')} → {last.get('to')} at {_fmt_ts(last.get('ts'))}"
+            if last else "—"
+        )
+        return (
+            f"  mode:          {state.get('mode')}\n"
+            f"  updated_at:    {_fmt_ts(state.get('updated_at'))}\n"
+            f"  last change:   {last_line}\n"
+            f"  history depth: {len(history)}"
+        )
+    if sub == "mode":
+        if not args:
+            return (
+                f"⚠ /voice-capture mode requires a mode argument\n"
+                f"{_VOICE_CAPTURE_HELP}"
+            )
+        try:
+            state = set_voice_capture_mode(args[0])
+        except ValueError as exc:
+            return f"⚠ /voice-capture: {exc}\n{_VOICE_CAPTURE_HELP}"
+        return (
+            f"✓ voice-capture mode set to {state.get('mode')} at "
+            f"{_fmt_ts(state.get('updated_at'))}"
+        )
+    return f"⚠ /voice-capture: unknown subcommand {sub!r}\n{_VOICE_CAPTURE_HELP}"
+
+
+def run_remote_worker(rest: str) -> str:
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _REMOTE_WORKER_HELP
+    try:
+        tokens = shlex.split(rest)
+    except ValueError as exc:
+        return f"⚠ /remote-worker: {exc}\n{_REMOTE_WORKER_HELP}"
+    sub = tokens[0]
+    if sub != "status":
+        return (
+            f"⚠ /remote-worker: unknown subcommand {sub!r}\n"
+            f"{_REMOTE_WORKER_HELP}"
+        )
+    snapshot = remote_worker_status()
+    workers = snapshot.get("workers") or []
+    if not workers:
+        return (
+            f"  workers:    (none)\n"
+            f"  checked_at: {_fmt_ts(snapshot.get('checked_at'))}\n"
+            f"  note:       {snapshot.get('note', '—')}"
+        )
+    lines = [f"  workers ({len(workers)}):"]
+    for w in workers:
+        if not isinstance(w, dict):
+            continue
+        name = w.get("id") or w.get("name") or "?"
+        kind = w.get("kind", "?")
+        url = w.get("url", "—")
+        status = w.get("status", "unknown")
+        lines.append(f"    • {name:<20} kind={kind:<14} status={status:<10} url={url}")
+    lines.append(f"  checked_at: {_fmt_ts(snapshot.get('checked_at'))}")
+    return "\n".join(lines)
+
+
+def run_self_improve(rest: str) -> str:
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _SELF_IMPROVE_HELP
+    try:
+        tokens = shlex.split(rest)
+    except ValueError as exc:
+        return f"⚠ /self-improve: {exc}\n{_SELF_IMPROVE_HELP}"
+    sub, *args = tokens
+    if sub != "run":
+        return f"⚠ /self-improve: unknown subcommand {sub!r}\n{_SELF_IMPROVE_HELP}"
+    if not args:
+        return "⚠ /self-improve run requires a job id"
+    result = self_improve_run(args[0])
+    if not result.get("ok"):
+        return f"⚠ /self-improve run: {result.get('reason')}"
+    record = result.get("record") or {}
+    return (
+        f"✓ self-improvement-loop request staged for {record.get('job_id')}\n"
+        f"  at:        {_fmt_ts(record.get('ts'))}\n"
+        f"  next_step: {record.get('next_step')}"
+    )
+
+
+def run_profile(rest: str) -> str:
+    """Dispatch for the ``/profile`` subcommands managed by the orchestrator.
+
+    The bare ``/profile`` form is still handled by the historical
+    profile handler in :mod:`cli` (it prints the active profile name +
+    home directory).  This entry point handles the new
+    ``build-github-history`` subcommand and falls through for help text
+    when other subcommands are given.
+    """
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _PROFILE_HELP
+    try:
+        tokens = shlex.split(rest)
+    except ValueError as exc:
+        return f"⚠ /profile: {exc}\n{_PROFILE_HELP}"
+    sub = tokens[0]
+    if sub == "build-github-history":
+        payload = profile_build_github_history()
+        return (
+            "✓ GitHub-history snapshot written\n"
+            f"  profile:    {payload.get('profile')}\n"
+            f"  built_at:   {_fmt_ts(payload.get('built_at'))}\n"
+            f"  source:     {payload.get('source')}\n"
+            f"  note:       {payload.get('note')}"
+        )
+    return f"⚠ /profile: unknown subcommand {sub!r}\n{_PROFILE_HELP}"
+
+
 __all__ = [
     "Job",
     "JOB_STATUSES",
+    "APPROVAL_PHASES",
+    "VOICE_CAPTURE_MODES",
     "submit_job",
     "list_jobs",
     "get_job",
     "resume_job",
     "publish_job",
+    "cancel_job",
+    "approve_phase",
+    "has_approval",
+    "validate_job",
+    "publish_plan",
     "get_ledger",
     "model_router_explain",
     "ai_radar_update",
     "ai_radar_status",
     "best_coding_tool_mission_status",
+    "voice_capture_status",
+    "set_voice_capture_mode",
+    "remote_worker_status",
+    "self_improve_run",
+    "profile_build_github_history",
+    "profile_github_history_status",
     "run_orchestrate",
     "run_orchestrator",
     "run_model_router",
     "run_decision_ledger",
     "run_ai_radar",
     "run_best_coding_tool_mission",
+    "run_voice_capture",
+    "run_remote_worker",
+    "run_self_improve",
+    "run_profile",
 ]
