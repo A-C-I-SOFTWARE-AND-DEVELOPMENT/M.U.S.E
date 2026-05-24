@@ -101,7 +101,18 @@ WEAK_EVIDENCE_THRESHOLD = 1
 _SECRET_PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"sk-[A-Za-z0-9_-]{10,}"),                  # OpenAI / Anthropic
     re.compile(r"sk-ant-[A-Za-z0-9_-]{10,}"),              # Anthropic explicit
-    re.compile(r"gh[pousr]_[A-Za-z0-9]{16,}"),             # GitHub tokens
+    # GitHub PAT (classic) + OAuth (ghp_/gho_/ghu_/ghs_/ghr_).
+    re.compile(r"gh[pousr]_[A-Za-z0-9]{16,255}"),
+    # Fine-grained PATs (issued by GitHub since 2022). Format documented at
+    # https://github.blog/...: literal prefix ``github_pat_`` followed by
+    # two underscore-separated alphanumeric segments. Match defensively
+    # — accept lengths from 36 to ~96 so future format tweaks still get
+    # redacted.
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+    # GitHub Apps refresh tokens.
+    re.compile(r"ghr_[A-Za-z0-9_]{20,255}"),
+    # GitHub server-to-server tokens.
+    re.compile(r"ghs_[A-Za-z0-9_]{20,255}"),
     re.compile(r"glpat-[A-Za-z0-9_-]{16,}"),               # GitLab PAT
     re.compile(r"xox[abprs]-[A-Za-z0-9-]{10,}"),           # Slack tokens
     re.compile(r"AKIA[0-9A-Z]{16}"),                       # AWS access key
@@ -219,11 +230,32 @@ def promotion_decision(proposal: Proposal) -> str:
         return "promote"
 
     if proposal.kind == "routing_miss":
-        # Only an additive nudge with a recorded previous_value can
-        # be applied directly. Anything bigger goes to the curator.
+        # Only an additive nudge with *meaningful* rollback metadata
+        # can be applied directly. Anything bigger goes to the curator.
+        # "Meaningful" means: the proposal records both
+        #   - the previous value of whatever it nudges, AND
+        #   - the exact size of the nudge (so the curator / monitor
+        #     can verify the change is really one notch).
+        # A placeholder like ``"unchanged"`` or ``None`` is *not*
+        # rollback metadata; without it we cannot revert (Principle 7),
+        # so we refuse to auto-apply and route to the curator instead.
         is_additive_nudge = bool(extra.get("additive_nudge"))
-        has_previous = "previous_value" in extra
-        if proposal.reversible and is_additive_nudge and has_previous:
+        previous_value = extra.get("previous_value")
+        has_meaningful_previous = (
+            "previous_value" in extra
+            and previous_value is not None
+            and not (
+                isinstance(previous_value, str)
+                and previous_value.strip().lower() in {"", "unchanged", "n/a", "none"}
+            )
+        )
+        has_nudge_size = "nudge_delta" in extra or "weight_delta" in extra
+        if (
+            proposal.reversible
+            and is_additive_nudge
+            and has_meaningful_previous
+            and has_nudge_size
+        ):
             return "apply"
         return "promote"
 
@@ -274,6 +306,57 @@ def _read_text(path: Path) -> str:
         return ""
 
 
+def _normalise_corrections(value: object) -> tuple[str, ...]:
+    """Coerce ``value`` into a clean tuple of correction strings.
+
+    Accepts every realistic shape a worker / human might write into
+    ``user-corrections.json``:
+
+    * a list of strings → kept as-is
+    * a list mixing strings and dicts (``{"text": "..."}`` /
+      ``{"correction": "..."}`` / ``{"message": "..."}``) → values are
+      pulled out by key
+    * a single string → wrapped in a 1-tuple. **Crucially**, we do not
+      iterate the string — ``tuple("hello")`` produces
+      ``("h", "e", "l", "l", "o")`` which would emit one bogus
+      proposal per character.
+    * ``None`` / empty → empty tuple
+
+    Unknown shapes are dropped silently.
+    """
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        s = value.strip()
+        return (s,) if s else ()
+    if isinstance(value, dict):
+        # A single correction object at the top level.
+        for key in ("text", "correction", "message", "body"):
+            inner = value.get(key)
+            if isinstance(inner, str) and inner.strip():
+                return (inner.strip(),)
+        return ()
+    if not hasattr(value, "__iter__"):
+        return ()
+    out: list[str] = []
+    for item in value:
+        if isinstance(item, str):
+            s = item.strip()
+            if s:
+                out.append(s)
+            continue
+        if isinstance(item, dict):
+            for key in ("text", "correction", "message", "body"):
+                inner = item.get(key)
+                if isinstance(inner, str) and inner.strip():
+                    out.append(inner.strip())
+                    break
+            continue
+        # Drop anything else (ints, booleans, nested lists) rather
+        # than letting it become a one-character splat downstream.
+    return tuple(out)
+
+
 def load_job_context(job_dir: Path) -> JobContext:
     """Read everything we care about from ``job_dir`` into a
     :class:`JobContext`.
@@ -318,7 +401,11 @@ def load_job_context(job_dir: Path) -> JobContext:
     )
 
     corrections_raw = _read_json(job_dir / "user-corrections.json") or {}
-    user_corrections = tuple(corrections_raw.get("corrections", []))
+    user_corrections = _normalise_corrections(
+        corrections_raw.get("corrections")
+        if isinstance(corrections_raw, dict)
+        else corrections_raw
+    )
 
     publish_md = _read_text(job_dir / "publish.md")
     publish_actions: tuple[str, ...] = tuple(

@@ -41,6 +41,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Mapping, Optional, Sequence
+from urllib.parse import urlparse
 
 
 # ---------------------------------------------------------------------------
@@ -166,37 +167,42 @@ CONFIDENCE_LEVELS: tuple[str, ...] = ("high", "medium", "low", "unverified")
 # check is a soft heuristic — the skill is the authority on what counts —
 # but it is enough to flag obvious non-sources (reddit, twitter, hn, etc.)
 # as ``unverified``.
-_OFFICIAL_DOMAIN_HINTS: tuple[str, ...] = (
-    "github.com/openai",
-    "github.com/anthropic",
-    "github.com/aider-ai",
-    "github.com/block",
-    "github.com/continuedev",
-    "github.com/all-hands-ai",
-    "github.com/supabase",
-    "github.com/google-gemini",
-    "github.com/google",
-    "github.com/openai/whisper",
-    "openai.com",
-    "anthropic.com",
-    "claude.com",
-    "code.claude.com",
-    "aider.chat",
-    "block.github.io",
-    "continue.dev",
-    "all-hands.dev",
-    "supabase.com",
-    "vercel.com",
-    "sdk.vercel.ai",
-    "developer.android.com",
-    "ai.google.dev",
-    "deepmind.google",
+#
+# Each entry is ``(host_suffix, required_path_prefix_or_empty)``. ``host``
+# must match the URL's *parsed host* (exact, or as a subdomain suffix —
+# e.g. ``code.claude.com`` matches ``claude.com``). ``required_path``,
+# when non-empty, must be a prefix of the URL's *path* — that prevents
+# a redirect like ``https://evil.example/?u=github.com/openai`` from
+# being treated as an official OpenAI source.
+_OFFICIAL_HOST_RULES: tuple[tuple[str, str], ...] = (
+    ("github.com", "/openai"),
+    ("github.com", "/anthropic"),
+    ("github.com", "/aider-ai"),
+    ("github.com", "/block"),
+    ("github.com", "/continuedev"),
+    ("github.com", "/all-hands-ai"),
+    ("github.com", "/supabase"),
+    ("github.com", "/google-gemini"),
+    ("github.com", "/google"),
+    ("openai.com", ""),
+    ("anthropic.com", ""),
+    ("claude.com", ""),
+    ("aider.chat", ""),
+    ("block.github.io", ""),
+    ("continue.dev", ""),
+    ("all-hands.dev", ""),
+    ("supabase.com", ""),
+    ("vercel.com", ""),
+    ("sdk.vercel.ai", ""),
+    ("developer.android.com", ""),
+    ("ai.google.dev", ""),
+    ("deepmind.google", ""),
 )
 
 # Sources we will *never* accept as primary evidence. They may be quoted
 # as colour in the "Unverified items" section of the report, but never
-# drive a recommendation.
-_DISQUALIFIED_DOMAIN_HINTS: tuple[str, ...] = (
+# drive a recommendation. Matched by *parsed host*, not substring.
+_DISQUALIFIED_HOSTS: tuple[str, ...] = (
     "reddit.com",
     "twitter.com",
     "x.com",
@@ -209,34 +215,81 @@ _DISQUALIFIED_DOMAIN_HINTS: tuple[str, ...] = (
 )
 
 
-def is_official_source(url: str) -> bool:
-    """Return True if ``url`` looks like an official vendor source.
+def _parsed_host(url: object) -> Optional[str]:
+    """Return ``url``'s lowercased host (no port), or None if not a URL.
 
-    Heuristic only — see ``_OFFICIAL_DOMAIN_HINTS``. Empty / non-URL
-    inputs are False.
+    Used by :func:`is_official_source` and :func:`is_disqualified_source`
+    so substring matches against arbitrary URL text cannot smuggle a
+    domain past the source-quality gate.
     """
     if not url or not isinstance(url, str):
+        return None
+    try:
+        parsed = urlparse(url)
+    except (ValueError, TypeError):
+        return None
+    if parsed.scheme not in {"http", "https"}:
+        return None
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return None
+    return host
+
+
+def _host_matches(host: str, suffix: str) -> bool:
+    """``host`` equals ``suffix`` or is a subdomain of it."""
+    host = host.lower()
+    suffix = suffix.lower()
+    if host == suffix:
+        return True
+    return host.endswith("." + suffix)
+
+
+def is_official_source(url: object) -> bool:
+    """Return True if ``url`` looks like an official vendor source.
+
+    Heuristic only — see ``_OFFICIAL_HOST_RULES``. Decisions are made
+    on the *parsed host and path*, never on raw substring matches, so
+    URLs that merely *mention* a vendor domain in their query string
+    or fragment are never treated as official. Empty / non-URL /
+    non-string inputs are False.
+    """
+    host = _parsed_host(url)
+    if host is None:
         return False
-    lowered = url.lower()
-    if not (lowered.startswith("http://") or lowered.startswith("https://")):
+    # Disqualified hosts are never official, even if a path appears to
+    # reference an official org.
+    if any(_host_matches(host, bad) for bad in _DISQUALIFIED_HOSTS):
         return False
-    for hint in _DISQUALIFIED_DOMAIN_HINTS:
-        if hint in lowered:
-            return False
-    for hint in _OFFICIAL_DOMAIN_HINTS:
-        if hint in lowered:
+    try:
+        parsed = urlparse(url)  # type: ignore[arg-type]
+    except (ValueError, TypeError):
+        return False
+    path = (parsed.path or "").lower()
+    for host_suffix, required_path in _OFFICIAL_HOST_RULES:
+        if not _host_matches(host, host_suffix):
+            continue
+        if not required_path:
+            return True
+        # Path must start with the required prefix, and the next
+        # character (if any) must be a separator — so ``/openaifoo``
+        # doesn't match ``/openai``.
+        if path == required_path:
+            return True
+        if path.startswith(required_path + "/"):
             return True
     return False
 
 
-def is_disqualified_source(url: str) -> bool:
+def is_disqualified_source(url: object) -> bool:
     """Return True if ``url`` is a social / forum / blog source that
-    must never drive a recommendation.
+    must never drive a recommendation. Matched by parsed host so
+    substring smuggling does not work.
     """
-    if not url or not isinstance(url, str):
+    host = _parsed_host(url)
+    if host is None:
         return False
-    lowered = url.lower()
-    return any(hint in lowered for hint in _DISQUALIFIED_DOMAIN_HINTS)
+    return any(_host_matches(host, bad) for bad in _DISQUALIFIED_HOSTS)
 
 
 # ---------------------------------------------------------------------------
@@ -326,6 +379,10 @@ class RadarReport:
         return tuple(f for f in self.findings if f.is_unverified)
 
 
+_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z$")
+_TIMESTAMP_SANITIZE_RE = re.compile(r"[^A-Za-z0-9_-]+")
+
+
 def utc_timestamp(now: Optional[datetime] = None) -> str:
     """Return a filesystem-safe ISO-ish UTC timestamp.
 
@@ -338,6 +395,25 @@ def utc_timestamp(now: Optional[datetime] = None) -> str:
     if now.tzinfo is None:
         now = now.replace(tzinfo=timezone.utc)
     return now.strftime("%Y-%m-%dT%H-%M-%SZ")
+
+
+def _safe_timestamp(value: object) -> str:
+    """Return a filesystem-safe rendering of ``value``.
+
+    Accepts strings that already match the canonical
+    ``YYYY-MM-DDTHH-MM-SSZ`` shape and returns them unchanged. Anything
+    else is run through a strict allowlist (alphanumerics + ``-_``);
+    any remaining characters become ``-``. Empty / non-string input
+    falls back to a fresh ``utc_timestamp()`` so we always have *some*
+    safe value to put in a filename — even if the caller passed
+    ``../../etc/passwd``, we will not.
+    """
+    if isinstance(value, str) and _TIMESTAMP_RE.match(value):
+        return value
+    if not isinstance(value, str) or not value:
+        return utc_timestamp()
+    cleaned = _TIMESTAMP_SANITIZE_RE.sub("-", value).strip("-")
+    return cleaned or utc_timestamp()
 
 
 # ---------------------------------------------------------------------------
@@ -586,7 +662,7 @@ def write_radar_request(
     triggers a radar. The skill reads the file when it runs.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    ts = utc_timestamp(now)
+    ts = _safe_timestamp(utc_timestamp(now))
     payload = {
         "timestamp": ts,
         "requested_by": requested_by,
@@ -609,10 +685,21 @@ def write_radar_report(
     """Render ``report`` as markdown and write it under ``out_dir``.
 
     Returns the path written. The filename is
-    ``<report.timestamp>-radar.md``.
+    ``<sanitized-timestamp>-radar.md``. The timestamp is *always* run
+    through :func:`_safe_timestamp` before becoming part of the path
+    so a malformed ``report.timestamp`` cannot smuggle path separators
+    or parent-directory traversal into the output location.
     """
+    out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{report.timestamp}-radar.md"
+    safe_ts = _safe_timestamp(report.timestamp)
+    path = out_dir / f"{safe_ts}-radar.md"
+    # Belt-and-braces: ensure the resolved path still lives inside
+    # out_dir even after Path normalisation.
+    if out_dir not in path.resolve().parents:
+        raise ValueError(
+            f"refusing to write radar report outside {out_dir}: {path!r}"
+        )
     path.write_text(render_report_markdown(report), encoding="utf-8")
     return path
 

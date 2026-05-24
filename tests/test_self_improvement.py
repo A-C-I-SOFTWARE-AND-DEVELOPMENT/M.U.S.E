@@ -191,6 +191,38 @@ def test_redact_secrets_idempotent_on_clean_text():
     assert redact_secrets(raw) == raw
 
 
+def test_redact_secrets_handles_modern_github_token_formats():
+    """Fine-grained PATs, server-to-server, refresh, and OAuth all
+    redacted. Pinning this so a regex regression cannot leak fresh
+    GitHub credentials into a checked-in retrospective."""
+    samples = {
+        "ghp_classic": "ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "gho_oauth": "gho_BBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "ghu_userserver": "ghu_CCCCCCCCCCCCCCCCCCCCCCCCC",
+        "ghs_server": "ghs_DDDDDDDDDDDDDDDDDDDDDDDDD",
+        "ghr_refresh": "ghr_EEEEEEEEEEEEEEEEEEEEEEEEE",
+        "github_pat_fine_grained": (
+            "github_pat_11AAAAAAA0AaAaAaAaAaAaA_"
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        ),
+    }
+    for label, token in samples.items():
+        raw = f"token={token} ({label})"
+        out = redact_secrets(raw)
+        assert token not in out, (
+            f"token format {label} survived redaction: {out!r}"
+        )
+        assert "[REDACTED]" in out
+
+
+def test_redact_secrets_does_not_eat_unrelated_token_words():
+    """The word "token" appearing in prose with no value attached
+    must not be replaced — otherwise retrospectives become useless."""
+    raw = "The reviewer asked us to mint a new token next week."
+    out = redact_secrets(raw)
+    assert "mint a new token" in out
+
+
 def test_retrospective_does_not_contain_visible_secret(tmp_path):
     """The "do not store secrets in retrospectives" rule, end-to-end."""
     job_dir = _write_job(
@@ -238,6 +270,7 @@ def test_routing_miss_with_user_confirmed_is_applied_if_nudge_recorded():
         extra={
             "additive_nudge": True,
             "previous_value": "0.5",
+            "nudge_delta": "+0.1",
             "user_confirmed": True,
         },
     )
@@ -254,9 +287,68 @@ def test_routing_miss_without_recorded_previous_value_is_promoted_not_applied():
         rationale="three consecutive failures",
         evidence_event_count=K_CONFIRMATIONS,
         # No previous_value!
-        extra={"additive_nudge": True},
+        extra={"additive_nudge": True, "nudge_delta": "-0.1"},
     )
     assert promotion_decision(p) == "promote"
+
+
+@pytest.mark.parametrize(
+    "previous_value",
+    ["unchanged", "N/A", "none", "", None, "  UNCHANGED  "],
+)
+def test_routing_miss_with_placeholder_previous_value_is_not_auto_applied(
+    previous_value,
+):
+    """The "meaningful rollback metadata" rule: a placeholder
+    ``previous_value`` is not enough to auto-apply a routing change."""
+    p = Proposal(
+        kind="routing_miss",
+        target="docs/ai-intelligence/model-routing-policy.md",
+        summary="x",
+        rationale="y",
+        extra={
+            "additive_nudge": True,
+            "previous_value": previous_value,
+            "nudge_delta": "+0.1",
+            "user_confirmed": True,
+        },
+    )
+    assert promotion_decision(p) == "promote"
+
+
+def test_routing_miss_without_recorded_nudge_size_is_not_auto_applied():
+    """We also need to know *how big* the nudge is — without a
+    recorded delta the change is not really an additive nudge."""
+    p = Proposal(
+        kind="routing_miss",
+        target="docs/ai-intelligence/model-routing-policy.md",
+        summary="x",
+        rationale="y",
+        extra={
+            "additive_nudge": True,
+            "previous_value": "0.5",
+            # No nudge_delta / weight_delta.
+            "user_confirmed": True,
+        },
+    )
+    assert promotion_decision(p) == "promote"
+
+
+def test_routing_miss_with_weight_delta_also_auto_applies():
+    """``weight_delta`` is an accepted alias for ``nudge_delta``."""
+    p = Proposal(
+        kind="routing_miss",
+        target="docs/ai-intelligence/model-routing-policy.md",
+        summary="x",
+        rationale="y",
+        extra={
+            "additive_nudge": True,
+            "previous_value": "0.5",
+            "weight_delta": "-0.1",
+            "user_confirmed": True,
+        },
+    )
+    assert promotion_decision(p) == "apply"
 
 
 def test_prompt_regression_always_routes_to_curator():
@@ -331,6 +423,80 @@ def test_filter_overfit_passes_user_confirmed_routing_miss_through():
 
 
 # ─── Job loading + bucketing ──────────────────────────────────────────────
+
+
+def test_user_corrections_string_value_does_not_split_into_chars(tmp_path):
+    """The "do not split user-corrections strings into one character
+    per correction" rule. A malformed shape where the file stores a
+    plain string (not a list) must be normalised, not iterated."""
+    job_dir = _write_job(tmp_path)
+    # Overwrite user-corrections.json with a string value at the
+    # ``corrections`` key.
+    (job_dir / "user-corrections.json").write_text(
+        json.dumps({"corrections": "please prefer pathlib"}),
+        encoding="utf-8",
+    )
+    job = load_job_context(job_dir)
+    assert job.user_corrections == ("please prefer pathlib",)
+
+
+def test_user_corrections_at_top_level_string(tmp_path):
+    """Some workers write the bare value, not wrapped in an object."""
+    job_dir = _write_job(tmp_path)
+    (job_dir / "user-corrections.json").write_text(
+        json.dumps("please prefer pathlib"),
+        encoding="utf-8",
+    )
+    job = load_job_context(job_dir)
+    assert job.user_corrections == ("please prefer pathlib",)
+
+
+def test_user_corrections_list_of_dicts_extracted_by_key(tmp_path):
+    job_dir = _write_job(tmp_path)
+    (job_dir / "user-corrections.json").write_text(
+        json.dumps(
+            {
+                "corrections": [
+                    {"text": "prefer pathlib"},
+                    {"correction": "no os.path"},
+                    {"message": "explain decisions in the PR body"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    job = load_job_context(job_dir)
+    assert job.user_corrections == (
+        "prefer pathlib",
+        "no os.path",
+        "explain decisions in the PR body",
+    )
+
+
+def test_user_corrections_drops_unknown_shapes(tmp_path):
+    job_dir = _write_job(tmp_path)
+    (job_dir / "user-corrections.json").write_text(
+        json.dumps(
+            {
+                "corrections": [
+                    "real correction",
+                    42,  # dropped
+                    None,  # dropped
+                    {"unknown_key": "ignored"},  # dropped
+                    "",  # dropped (empty)
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    job = load_job_context(job_dir)
+    assert job.user_corrections == ("real correction",)
+
+
+def test_user_corrections_missing_file_is_empty(tmp_path):
+    job_dir = _write_job(tmp_path)
+    job = load_job_context(job_dir)
+    assert job.user_corrections == ()
 
 
 def test_load_job_context_reads_every_artifact(tmp_path):

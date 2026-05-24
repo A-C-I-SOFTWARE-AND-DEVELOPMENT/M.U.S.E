@@ -92,7 +92,7 @@ def test_is_official_source_recognises_vendor_domains():
 def test_is_official_source_rejects_non_urls():
     assert not is_official_source("")
     assert not is_official_source("not a url")
-    assert not is_official_source(None)  # type: ignore[arg-type]
+    assert not is_official_source(None)
 
 
 def test_is_disqualified_source_flags_social_and_forums():
@@ -100,6 +100,71 @@ def test_is_disqualified_source_flags_social_and_forums():
     assert is_disqualified_source("https://twitter.com/somebody/status/123")
     assert is_disqualified_source("https://news.ycombinator.com/item?id=1")
     assert not is_disqualified_source("https://code.claude.com/docs")
+
+
+def test_is_official_source_uses_parsed_host_not_substring():
+    """A URL that only *mentions* an official domain in its query
+    string or path must not be treated as official."""
+    # Domain hidden in the query string.
+    assert not is_official_source(
+        "https://evil.example.com/?redirect=https://github.com/openai/codex"
+    )
+    # Domain hidden in the fragment.
+    assert not is_official_source(
+        "https://evil.example.com/#anthropic.com"
+    )
+    # Domain hidden in a path that just happens to contain the literal.
+    assert not is_official_source(
+        "https://evil.example.com/anthropic.com/foo"
+    )
+
+
+def test_is_official_source_requires_path_prefix_for_github_orgs():
+    """``github.com`` alone is not enough — we need a real path under
+    a tracked org."""
+    # Bare github.com is not "official" — it's just GitHub itself.
+    assert not is_official_source("https://github.com")
+    # A different org is not official.
+    assert not is_official_source("https://github.com/somebody-else/codex")
+    # ``/openaifoo`` is *not* a prefix match for ``/openai``.
+    assert not is_official_source("https://github.com/openaifoo/bar")
+    # ``/openai/codex`` is.
+    assert is_official_source("https://github.com/openai/codex")
+
+
+def test_is_disqualified_source_uses_parsed_host_not_substring():
+    """A URL whose query string mentions reddit must not be flagged
+    if the *real* host is something else — and vice versa, a real
+    reddit URL must still be flagged regardless of path."""
+    # Real reddit host → disqualified.
+    assert is_disqualified_source("https://old.reddit.com/r/foo")
+    assert is_disqualified_source("https://www.reddit.com/")
+    # Substring smuggling → NOT disqualified (the real host is the
+    # vendor domain).
+    assert not is_disqualified_source(
+        "https://code.claude.com/docs?ref=reddit.com"
+    )
+
+
+def test_is_official_source_blocks_disqualified_host_first():
+    """If the parsed host is on the social/forum blocklist, no path
+    can resurrect it as official."""
+    # Adversarial: a reddit URL whose path is `/openai`.
+    assert not is_official_source("https://www.reddit.com/openai")
+    assert is_disqualified_source("https://www.reddit.com/openai")
+
+
+def test_url_parsing_handles_malformed_input():
+    # ``ftp://`` is not http(s).
+    assert not is_official_source("ftp://github.com/openai/codex")
+    # No scheme at all.
+    assert not is_official_source("github.com/openai/codex")
+    # Empty host.
+    assert not is_official_source("https:///foo")
+    # Non-strings.
+    assert not is_official_source(123)
+    assert not is_official_source({"url": "https://github.com/openai/codex"})
+    assert not is_disqualified_source(123)
 
 
 def test_radar_finding_high_confidence_requires_official_source():
@@ -361,6 +426,46 @@ def test_utc_timestamp_is_filesystem_safe():
 def test_default_radar_dir_points_under_repo_root(tmp_path):
     d = ai_radar.default_radar_dir(tmp_path)
     assert d == tmp_path / ".hermes-orchestrator" / "ai-radar"
+
+
+def test_write_radar_report_sanitises_malicious_timestamp(tmp_path):
+    """A malformed timestamp must not be able to escape ``out_dir``."""
+    report = RadarReport(
+        timestamp="../../etc/passwd",
+        summary="adversarial",
+        tools_surveyed=(),
+        findings=(),
+        sources_checked={},
+        overall_confidence="low",
+    )
+    out = write_radar_report(tmp_path, report)
+    # The written file must live under tmp_path, not somewhere up the tree.
+    assert out.parent.resolve() == tmp_path.resolve()
+    # And the unsafe characters are gone from the filename.
+    assert ".." not in out.name
+    assert "/" not in out.name
+    assert out.name.endswith("-radar.md")
+
+
+def test_write_radar_report_sanitises_path_separators_in_timestamp(tmp_path):
+    report = RadarReport(
+        timestamp="2026-05-23T18:30:00Z",  # colons — not the canonical shape
+        summary="",
+        findings=(),
+    )
+    out = write_radar_report(tmp_path, report)
+    assert ":" not in out.name
+    assert out.parent.resolve() == tmp_path.resolve()
+
+
+def test_write_radar_report_keeps_canonical_timestamps_unchanged(tmp_path):
+    report = RadarReport(
+        timestamp="2026-05-23T18-30-00Z",
+        summary="",
+        findings=(),
+    )
+    out = write_radar_report(tmp_path, report)
+    assert out.name == "2026-05-23T18-30-00Z-radar.md"
 
 
 def test_finding_to_dict_round_trips():
