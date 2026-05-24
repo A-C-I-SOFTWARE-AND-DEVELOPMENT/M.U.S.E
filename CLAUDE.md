@@ -89,8 +89,27 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 - [`README.md`](README.md) — user-facing intro.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — PR process.
 - [`SECURITY.md`](SECURITY.md) — reporting vulnerabilities.
+- [`docs/README.md`](docs/README.md) — plain-English operating
+  manual index. Points to every user-facing guide below.
 - [`docs/orchestration/`](docs/orchestration/) — orchestration
-  end-to-end.
+  end-to-end. Start with `getting-started.md` and the Prompt to PR
+  demo (`prompt-to-pr-demo.md`).
+- [`docs/mobile/mobile-app-guide.md`](docs/mobile/mobile-app-guide.md)
+  — the Android cockpit, phone-first setup, approvals on the
+  lockscreen.
+- [`docs/voice/voice-first-user-guide.md`](docs/voice/voice-first-user-guide.md)
+  — voice-first capture, driving mode, STT/TTS choices.
+- [`docs/remote/windows-claude-code-bridge-guide.md`](docs/remote/windows-claude-code-bridge-guide.md)
+  — the Claude Code Windows bridge.
+- [`docs/profile/github-history-profile-guide.md`](docs/profile/github-history-profile-guide.md)
+  — what the user profile stores and how Hermes learns from past
+  jobs.
+- [`docs/security/private-local-security-guide.md`](docs/security/private-local-security-guide.md)
+  — secrets, approvals, private-local recipes.
+- [`docs/integrations/github-supabase-vercel-guide.md`](docs/integrations/github-supabase-vercel-guide.md)
+  — wiring up GitHub, Supabase, and Vercel.
+- [`docs/troubleshooting/hermes-orchestration-troubleshooting.md`](docs/troubleshooting/hermes-orchestration-troubleshooting.md)
+  — symptom-to-fix table across every surface.
 - [`docs/github-integration.md`](docs/github-integration.md) — the
   native `github_assistant` plugin vs the GitHub MCP server.
 - [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)

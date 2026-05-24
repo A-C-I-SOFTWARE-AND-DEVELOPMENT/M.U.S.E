@@ -1169,6 +1169,29 @@ them into invariants before re-requesting review.
 
 ---
 
+## Plain-English operating manual (docs/)
+
+The [`docs/`](docs/) folder is the user-facing manual for Hermes.
+When you make a change that affects user behavior, you usually need
+to update one of these pages too — pick the closest match:
+
+| If you changed… | Update |
+|---|---|
+| The orchestrator, kanban, gates, ledger | `docs/orchestration/` (start at `README.md`) |
+| The Prompt to PR flow | `docs/orchestration/prompt-to-pr-demo.md` |
+| The Android cockpit / mobile API | `docs/mobile/mobile-app-guide.md` (and the developer specs under `docs/android/`) |
+| Voice capture, STT/TTS, driving mode | `docs/voice/voice-first-user-guide.md` |
+| The Claude Code Windows bridge / a worker adapter | `docs/remote/windows-claude-code-bridge-guide.md` (+ `docs/orchestration/worker-adapters.md`) |
+| The user profile / GitHub-history learning | `docs/profile/github-history-profile-guide.md` |
+| Secrets, policy gate, private-local recipes | `docs/security/private-local-security-guide.md` (+ `docs/orchestration/private-local-mode.md`) |
+| GitHub / Supabase / Vercel integration | `docs/integrations/github-supabase-vercel-guide.md` |
+| A new failure mode users will hit | `docs/troubleshooting/hermes-orchestration-troubleshooting.md` (and the orchestration-specific `docs/orchestration/troubleshooting.md`) |
+
+The index is [`docs/README.md`](docs/README.md). Keep the index in
+sync when you add or rename a guide.
+
+---
+
 ## Hermes Orchestration
 
 When working on **anything in the orchestration stack** — the
