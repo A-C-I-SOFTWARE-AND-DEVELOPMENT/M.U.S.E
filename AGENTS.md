@@ -1277,3 +1277,36 @@ ones we will not regress on:
 If a PR touches any of those code paths, those tests must continue
 to pass. Add cases for new behavior; don't loosen existing
 assertions to make a new feature land.
+
+## Recovered AOS Enterprise Council Pack
+
+Installed by the AOS Recovery pass on 2026-05-24 (branch
+`claude/aos-agent-recovery-hermes-jmocw`). The pack lives at
+`skills/aos-enterprise-council/` and is loadable by Hermes via
+its activation phrases (see below) or explicitly via
+`/aos-enterprise-council <goal>`.
+
+**Activation phrases** (any one loads the pack):
+
+> audit repo · audit this repo · build the app · enterprise hardening ·
+> launch readiness · improve the product · use the AOS team · use the
+> aos smart team · activate the council · run the council · psychology
+> audit · ux audit · Claude/Codex orchestration · HazMat Command review ·
+> Nourish review · full smart team
+
+**Registry surface** (load before dispatching council members):
+
+- `skills/aos-enterprise-council/registry/AOS_AGENT_REGISTRY_COMPLETE.md` — 233 distinct top-level agents.
+- `skills/aos-enterprise-council/registry/AOS_SUBAGENT_REGISTRY_COMPLETE.md` — 108 sub-agents (79 hazmat division specialists + 4 worker templates + 13 Python runtime workers + 7 R-personas + 5 product roles).
+- `skills/aos-enterprise-council/registry/AOS_PROMPT_LIBRARY_COMPLETE.md`
+- `skills/aos-enterprise-council/registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md`
+- `skills/aos-enterprise-council/registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md`
+
+**Recovery artifacts** at repo root: `AOS_FULL_SOURCE_INVENTORY.md`,
+`AOS_AGENT_RECOVERY_REPORT.md`, `AOS_INSTALLATION_REPORT.md`,
+`AOS_DUPLICATE_AND_CONFLICT_REPORT.md`.
+
+**Preserved sources** (never delete): `recovered-agent-sources/` — 166
+hazmat-command files + 20 hermes-agent AOS files snapshotted on
+2026-05-24, with `MANIFEST.md` listing every preserved file. See
+`recovered-agent-sources/MANIFEST.md` for the index.
