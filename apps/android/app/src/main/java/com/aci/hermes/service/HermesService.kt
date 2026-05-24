@@ -33,7 +33,16 @@ class HermesService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val launchSource = intent?.getStringExtra(EXTRA_LAUNCH_SOURCE) ?: DEFAULT_LAUNCH_SOURCE
-        val mode = intent?.getStringExtra(EXTRA_MODE) ?: DEFAULT_MODE
+        // Prefer the namespaced `hermes_mode` extra used by `adb shell am
+        // start-foreground-service` invocations from Termux / CI; fall back to
+        // the legacy `mode` key for in-process Intents built before the
+        // namespacing convention landed.
+        val mode = intent?.getStringExtra(EXTRA_HERMES_MODE)
+            ?: intent?.getStringExtra(EXTRA_MODE)
+            ?: DEFAULT_MODE
+        val workspace = intent?.getStringExtra(EXTRA_HERMES_WORKSPACE)
+        val agent = intent?.getStringExtra(EXTRA_HERMES_AGENT)
+        val debug = intent?.getBooleanExtra(EXTRA_HERMES_DEBUG, false) == true
 
         // Handle in-notification Stop action.
         if (intent?.action == ACTION_STOP) {
@@ -45,6 +54,13 @@ class HermesService : Service() {
         Log.i(TAG, "Hermes local orchestrator started")
         Log.i(TAG, "Launch source: $launchSource")
         Log.i(TAG, "Mode: $mode")
+        // The service stays local-only — these extras are recorded for
+        // observability so an ADB-triggered start surfaces what the caller
+        // intended. Routing them into a real Python/CLI bridge is tracked
+        // separately (see apps/android/README.md → "Service intent contract").
+        if (workspace != null) Log.i(TAG, "Workspace hint: $workspace")
+        if (agent != null) Log.i(TAG, "Agent hint: $agent")
+        if (debug) Log.i(TAG, "Debug mode requested")
 
         val notification = buildNotification()
         // On API 34+ the typed overload is required when the manifest
@@ -111,6 +127,16 @@ class HermesService : Service() {
 
         const val EXTRA_LAUNCH_SOURCE = "launch_source"
         const val EXTRA_MODE = "mode"
+
+        // Namespaced extras for ADB / Termux launches. Keeping the
+        // `hermes_*` prefix lets a caller pass the same payload across
+        // the Python CLI, the Termux bridge, and `am start-foreground-service`
+        // without collisions with platform-defined extras.
+        const val EXTRA_HERMES_WORKSPACE = "hermes_workspace"
+        const val EXTRA_HERMES_MODE = "hermes_mode"
+        const val EXTRA_HERMES_AGENT = "hermes_agent"
+        const val EXTRA_HERMES_DEBUG = "hermes_debug"
+
         const val DEFAULT_LAUNCH_SOURCE = "app_start"
         const val DEFAULT_MODE = "local_subscription_tools"
 

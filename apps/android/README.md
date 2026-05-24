@@ -276,3 +276,57 @@ supported via `workflow_dispatch`.
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the gateway wire
 format and the deliberate split between this Android module and the Python
 core.
+
+---
+
+## Service intent contract
+
+`HermesService` is a local-only foreground service (manifest declares
+`android:exported="false"`, `foregroundServiceType="dataSync"`). It can be
+started in two ways:
+
+1. **From the app process** — the activity calls
+   `startForegroundService(Intent(this, HermesService::class.java))`.
+2. **From ADB on a development device** — useful for smoke-testing the
+   service or for a future Termux bridge that wants to hand work off to
+   the foreground notification.
+
+Because the service is `exported=false`, ADB invocations must use the
+debug build's component name and run on a device where the same UID owns
+the app:
+
+```bash
+# Debug build component name uses the .debug applicationIdSuffix.
+adb shell am start-foreground-service \
+  -n com.aci.hermes.debug/com.aci.hermes.service.HermesService \
+  --es hermes_workspace /storage/emulated/0/hermes-workspace \
+  --es hermes_mode local_subscription_tools \
+  --es hermes_agent codex \
+  --ez hermes_debug true
+```
+
+Supported extras (all optional, all `String` except where noted):
+
+| Extra | Type | Default | Notes |
+|---|---|---|---|
+| `hermes_workspace` | String | _none_ | Absolute path the caller would like the orchestrator to consider its workspace. Currently logged only — no runtime side-effects. |
+| `hermes_mode` | String | `local_subscription_tools` | Takes precedence over the legacy `mode` extra. Free-form label. |
+| `hermes_agent` | String | _none_ | Hint about which agent persona started the service (e.g. `codex`, `claude`, `cli`). Logged only. |
+| `hermes_debug` | Boolean | `false` | When `true`, marks the launch as a debug invocation in `logcat`. |
+
+Stopping the service:
+
+```bash
+adb shell am start-service \
+  -n com.aci.hermes.debug/com.aci.hermes.service.HermesService \
+  -a com.aci.hermes.action.STOP_ORCHESTRATOR
+```
+
+The user can also stop it from the persistent notification.
+
+**Reality check.** These extras are intentionally *observational only* in
+the current build. The service prints them via `Log.i(HermesService, …)`
+so you can verify your wiring with `adb logcat -s HermesService`. Wiring
+them into a real bridge that hands work off to a Python orchestrator
+process (over Termux loopback, or via the Hermes gateway) is tracked
+separately and is not part of the alpha.
