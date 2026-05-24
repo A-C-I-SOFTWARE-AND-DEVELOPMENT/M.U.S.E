@@ -88,9 +88,12 @@ class TestPlan:
             repo_root=repo,
         )
         assert isinstance(plan, gh_int.GitHubPlan)
-        # Frozen — assigning should raise
-        with pytest.raises(Exception):
-            plan.job_id = "other"  # type: ignore[misc]
+        # Frozen — confirmed via dataclass params so the static checker
+        # doesn't flag the deliberately-invalid assignment style.
+        import dataclasses
+
+        assert dataclasses.is_dataclass(plan)
+        assert plan.__dataclass_params__.frozen is True
 
     def test_plan_has_branch_namespaced_under_hermes_job(self, repo: Path) -> None:
         plan = gh_int.plan(
