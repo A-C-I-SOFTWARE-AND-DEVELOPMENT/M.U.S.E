@@ -109,7 +109,7 @@ class TestHandoffPath:
 
     def test_handoff_command_describes_manual_paste(self, tmp_path: Path):
         result = worker.run(_task(), tmp_path / "ws")
-        assert result.handoff_command
+        assert result.handoff_command is not None
         # The "command" is human-readable instructions, not a shell line.
         assert "prompt.md" in result.handoff_command
         assert "response.md" in result.handoff_command
@@ -120,6 +120,7 @@ class TestHandoffPath:
     def test_handoff_command_uses_deep_link_when_provided(self, tmp_path: Path):
         cfg = worker.ChatGPTHandoffConfig(deep_link="https://chat.openai.com/g/foo")
         result = worker.run(_task(), tmp_path / "ws", config=cfg)
+        assert result.handoff_command is not None
         assert "https://chat.openai.com/g/foo" in result.handoff_command
 
     def test_prompt_written_matches_render_prompt(self, tmp_path: Path):
@@ -150,6 +151,7 @@ class TestHandoffPath:
         data = json.loads(result.status_path.read_text(encoding="utf-8"))
         assert data["response_filename"] == "reply.md"
         assert "reply.md" in data["expected_artifacts"]
+        assert result.handoff_command is not None
         assert "reply.md" in result.handoff_command
 
     def test_run_is_idempotent(self, tmp_path: Path):
@@ -247,7 +249,8 @@ class TestScoreStub:
         worker.run(_task(), ws)
         (ws / worker.RESPONSE_FILENAME).write_text("x\n")
         artifacts = worker.collect_artifacts(ws)
-        score = worker.score(artifacts, components={"strategy": "n/a"})  # type: ignore[dict-item]
+        bad: dict[str, float] = {"strategy": "n/a"}  # type: ignore[dict-item]
+        score = worker.score(artifacts, components=bad)
         assert score.components["strategy"] == 0.0
 
 
