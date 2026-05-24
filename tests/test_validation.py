@@ -210,6 +210,32 @@ class TestRemoteWorkerHeartbeats:
         assert result.status == STATUS_WARN
         assert result.metadata["fresh"] == 0
 
+    def test_non_object_heartbeat_does_not_crash(self, workspace: Path) -> None:
+        worker = workspace / "remote" / "workers" / "w-1"
+        worker.mkdir(parents=True)
+        # A list / null parses but isn't a dict — must degrade to
+        # stale, not raise AttributeError.
+        (worker / "heartbeat.json").write_text("[]", encoding="utf-8")
+        report = ValidationRunner(workspace).run()
+        result = _by_name(report.results)["remote.workers"]
+        assert result.status == STATUS_WARN
+        assert result.metadata["fresh"] == 0
+        assert len(result.metadata["stale"]) == 1
+
+    def test_updated_at_key_accepted_as_timestamp(self, workspace: Path) -> None:
+        # Schema docs accept `updated_at` alongside `timestamp` /
+        # `heartbeat`; validation must honor it or fresh workers get
+        # incorrectly flagged stale.
+        worker = workspace / "remote" / "workers" / "w-1"
+        worker.mkdir(parents=True)
+        (worker / "heartbeat.json").write_text(
+            json.dumps({"updated_at": time.time()}), encoding="utf-8"
+        )
+        report = ValidationRunner(workspace).run()
+        result = _by_name(report.results)["remote.workers"]
+        assert result.status == STATUS_PASS
+        assert result.metadata["fresh"] == 1
+
 
 # ── Remote queue ───────────────────────────────────────────────────────────
 
@@ -290,6 +316,19 @@ class TestRemoteQueue:
         assert result.status == STATUS_FAIL
         assert "remote.queue" not in report.blocking_failures
         assert report.publish_allowed is True
+
+    def test_non_list_jobs_payload_fails(self, workspace: Path) -> None:
+        # ``{"jobs": {...}}`` is a real schema drift — silently
+        # coercing it to depth=0 would hide a broken queue writer.
+        remote = workspace / "remote"
+        remote.mkdir()
+        (remote / "queue.json").write_text(
+            json.dumps({"jobs": {"a": 1}}), encoding="utf-8"
+        )
+        report = ValidationRunner(workspace).run()
+        result = _by_name(report.results)["remote.queue"]
+        assert result.status == STATUS_FAIL
+        assert "list" in result.summary
 
 
 # ── Filtering ──────────────────────────────────────────────────────────────

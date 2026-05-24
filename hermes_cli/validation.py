@@ -1329,7 +1329,18 @@ class ValidationRunner:
             except (OSError, json.JSONDecodeError) as exc:
                 stale.append(f"{hb.relative_to(self.workspace)}: {exc}")
                 continue
-            ts = data.get("timestamp") or data.get("heartbeat") or 0
+            if not isinstance(data, dict):
+                stale.append(
+                    f"{hb.relative_to(self.workspace)}: "
+                    f"heartbeat must be a JSON object, got {type(data).__name__}"
+                )
+                continue
+            ts = (
+                data.get("timestamp")
+                or data.get("heartbeat")
+                or data.get("updated_at")
+                or 0
+            )
             try:
                 ts_f = float(ts)
             except (TypeError, ValueError):
@@ -1387,7 +1398,17 @@ class ValidationRunner:
             extra: dict[str, Any] = {}
         elif isinstance(data, dict):
             raw_jobs = data.get("jobs", [])
-            jobs = raw_jobs if isinstance(raw_jobs, list) else []
+            if not isinstance(raw_jobs, list):
+                return CheckResult(
+                    name="remote.queue",
+                    category=CATEGORY_REMOTE,
+                    status=STATUS_FAIL,
+                    summary=(
+                        f"queue.json: `jobs` must be a list, "
+                        f"got {type(raw_jobs).__name__}"
+                    ),
+                )
+            jobs = raw_jobs
             extra = {k: v for k, v in data.items() if k != "jobs"}
         else:
             return CheckResult(

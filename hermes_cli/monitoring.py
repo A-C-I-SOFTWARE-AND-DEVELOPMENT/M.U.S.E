@@ -171,13 +171,13 @@ class MonitoringHub:
         """Append ``event`` as one JSON line to ``events.jsonl``."""
         self.output_dir.mkdir(parents=True, exist_ok=True)
         events_path = self.output_dir / EVENTS_FILENAME
-        # ``a`` + manual newline keeps the file valid jsonl even if a
-        # writer crashes mid-line on a different process. JSON is
-        # serialised compactly to keep one observation per line.
-        line = json.dumps(event.to_dict(), sort_keys=True, separators=(",", ":"))
+        # Emit the payload and the trailing newline as a single
+        # ``write()`` call so concurrent producers on an O_APPEND file
+        # cannot interleave bytes mid-record. JSON is serialised
+        # compactly to keep one observation per line.
+        line = json.dumps(event.to_dict(), sort_keys=True, separators=(",", ":")) + "\n"
         with events_path.open("a", encoding="utf-8") as fh:
             fh.write(line)
-            fh.write("\n")
 
     def read_events(self, limit: int | None = None) -> list[MonitoringEvent]:
         """Return events from ``events.jsonl``, newest last."""
@@ -374,7 +374,13 @@ class MonitoringHub:
             extra: dict[str, Any] = {}
         elif isinstance(data, dict):
             raw = data.get("jobs", [])
-            jobs = raw if isinstance(raw, list) else []
+            if not isinstance(raw, list):
+                return {
+                    "present": True,
+                    "error": f"`jobs` must be a list, got {type(raw).__name__}",
+                    "depth": 0,
+                }
+            jobs = raw
             extra = {k: v for k, v in data.items() if k != "jobs"}
         else:
             return {"present": True, "error": "not list/object", "depth": 0}
@@ -507,6 +513,15 @@ def _scan_heartbeat_dir(
             workers.append(entry)
             stale.append(entry)
             continue
+        if not isinstance(data, dict):
+            entry = {
+                "path": rel,
+                "error": f"heartbeat must be a JSON object, got {type(data).__name__}",
+                "fresh": False,
+            }
+            workers.append(entry)
+            stale.append(entry)
+            continue
         ts: float | None = None
         for key in timestamp_keys:
             if key in data:
@@ -634,6 +649,17 @@ def _alerts_for_queue(queue: dict[str, Any]) -> list[dict[str, Any]]:
 def _alerts_for_validation(validation: dict[str, Any]) -> list[dict[str, Any]]:
     if not validation.get("present"):
         return []
+    if validation.get("error"):
+        # The results.json is corrupt or unreadable — surface that as
+        # the failure, don't misattribute it to a blocked publish gate.
+        return [
+            {
+                "severity": SEVERITY_ERROR,
+                "source": "validation",
+                "message": f"validation artifact unreadable: {validation['error']}",
+                "detail": {"error": validation["error"]},
+            }
+        ]
     if validation.get("publish_allowed"):
         return []
     failures = validation.get("blocking_failures") or []

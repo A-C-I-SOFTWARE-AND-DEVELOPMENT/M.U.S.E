@@ -225,6 +225,18 @@ class TestWorkerScan:
         warn_alerts = [a for a in snap.alerts if a["severity"] == SEVERITY_WARN]
         assert any("remote_workers" == a["source"] for a in warn_alerts)
 
+    def test_non_object_heartbeat_does_not_crash(self, tmp_path: Path) -> None:
+        # A list / null parses but isn't a dict — must degrade to
+        # stale instead of raising AttributeError.
+        _write_json(
+            tmp_path / "remote" / "workers" / "rw" / "heartbeat.json",
+            [],
+        )
+        snap = _make_hub(tmp_path).snapshot()
+        assert snap.remote_workers["fresh"] == 0
+        assert len(snap.remote_workers["stale"]) == 1
+        assert "object" in snap.remote_workers["stale"][0]["error"]
+
 
 # ── Remote tunnel scanning ─────────────────────────────────────────────────
 
@@ -314,6 +326,17 @@ class TestQueueScan:
         errors = [a for a in snap.alerts if a["source"] == "remote_queue"]
         assert errors and errors[0]["severity"] == SEVERITY_ERROR
 
+    def test_non_list_jobs_errors(self, tmp_path: Path) -> None:
+        _write_json(
+            tmp_path / "remote" / "queue.json",
+            {"jobs": {"a": 1}},
+        )
+        snap = _make_hub(tmp_path).snapshot()
+        assert "error" in snap.remote_queue
+        assert snap.remote_queue["depth"] == 0
+        errors = [a for a in snap.alerts if a["source"] == "remote_queue"]
+        assert errors and errors[0]["severity"] == SEVERITY_ERROR
+
 
 # ── Validation passthrough ─────────────────────────────────────────────────
 
@@ -361,6 +384,21 @@ class TestValidationPassthrough:
         snap = _make_hub(tmp_path).snapshot()
         assert snap.validation["publish_allowed"] is True
         assert not any(a["source"] == "validation" for a in snap.alerts)
+
+    def test_corrupt_results_json_reported_as_artifact_error(
+        self, tmp_path: Path
+    ) -> None:
+        # When the results.json itself can't be parsed, the alert
+        # should name the corrupt artifact — not pretend the publish
+        # gate is blocked.
+        path = tmp_path / "validation" / "results.json"
+        path.parent.mkdir(parents=True)
+        path.write_text("{partial", encoding="utf-8")
+        snap = _make_hub(tmp_path).snapshot()
+        errors = [a for a in snap.alerts if a["source"] == "validation"]
+        assert errors and errors[0]["severity"] == SEVERITY_ERROR
+        assert "unreadable" in errors[0]["message"]
+        assert "publish gate" not in errors[0]["message"]
 
 
 # ── App health passthrough ─────────────────────────────────────────────────
