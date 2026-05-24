@@ -18,7 +18,6 @@ Covers the Phase 10 safety properties enumerated in
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -578,11 +577,13 @@ class TestListJobs:
 
 
 class TestDefaultAuditPath:
-    def test_respects_hermes_home_env(self, endpoint_root: Path, tmp_path: Path):
-        os.environ["HERMES_HOME"] = str(tmp_path / "hermes-home")
-        try:
-            endpoint = make_endpoint(endpoint_root)
-            bridge = rb.RemoteBridge(endpoint)
-            assert tmp_path / "hermes-home" / "remote" in bridge.audit_log.path.parents
-        finally:
-            os.environ.pop("HERMES_HOME", None)
+    def test_respects_hermes_home_env(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes-home"))
+        endpoint = make_endpoint(endpoint_root)
+        bridge = rb.RemoteBridge(endpoint)
+        assert tmp_path / "hermes-home" / "remote" in bridge.audit_log.path.parents
