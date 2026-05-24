@@ -60,7 +60,7 @@ jobs:
       - name: Install pytest deps
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest pytest-xdist pytest-timeout
+          python -m pip install pytest pytest-xdist pytest-timeout PyYAML
 
       - name: Py-compile the orchestrator modules
         run: |
@@ -75,11 +75,9 @@ jobs:
 
       - name: Run orchestration tests
         env:
-          # Guard against accidental network use even if a test slips.
           OPENAI_API_KEY: ""
           ANTHROPIC_API_KEY: ""
           GITHUB_TOKEN: ""
-          # Pin jobs root into the workspace so we never touch ~/.hermes.
           HERMES_ORCHESTRATOR_JOBS_ROOT: ${{ github.workspace }}/.tmp/orchestrator-jobs
         run: |
           python -m pytest \
