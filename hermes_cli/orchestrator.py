@@ -391,7 +391,7 @@ def validate_job(job_id: str) -> Optional[dict[str, Any]]:
         return None
     summary: dict[str, Any]
     try:
-        from hermes_cli.validation import ValidationRunner  # type: ignore
+        from hermes_cli.validation import ValidationRunner
 
         # Route the runner's artefact writes (validation/results.json,
         # validation/summary.md, validation/commands.log) into the
