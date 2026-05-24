@@ -5828,6 +5828,31 @@ class HermesCLI:
         print(f"  Home:    {display}")
         print()
 
+    def _handle_profile_command_dispatch(self, command: str) -> None:
+        """Dispatch ``/profile`` with or without a subcommand.
+
+        ``/profile`` (no args) keeps its historical behaviour: print the
+        active profile name + home directory.  Any subcommand (currently
+        ``build-github-history``) is delegated to the orchestrator
+        controller so CLI and gateway share formatting.
+        """
+        rest = (command or "").strip()
+        if rest.startswith("/"):
+            rest = rest.lstrip("/")
+        # Strip the leading "profile" word.
+        head, _, payload = rest.partition(" ")
+        payload = payload.strip()
+        if not payload:
+            self._handle_profile_command()
+            return
+        from hermes_cli import orchestrator as _orch
+        try:
+            output = _orch.run_profile(payload)
+        except Exception as exc:  # pragma: no cover - defensive
+            output = f"(._.) /profile error: {exc}"
+        if output:
+            print(output)
+
     def show_config(self):
         """Display current configuration with kawaii ASCII art."""
         # Get terminal config from environment (which was set from cli-config.yaml)
@@ -7759,7 +7784,8 @@ class HermesCLI:
 
         Every orchestrator command (``/orchestrate``, ``/orchestrator``,
         ``/model-router``, ``/decision-ledger``, ``/ai-radar``,
-        ``/best-coding-tool-mission``) flows through the central
+        ``/best-coding-tool-mission``, ``/voice-capture``,
+        ``/remote-worker``, ``/self-improve``) flows through the central
         :mod:`hermes_cli.orchestrator` controller so CLI and gateway share
         formatting and bookkeeping.
         """
@@ -7779,6 +7805,9 @@ class HermesCLI:
             "decision-ledger":          _orch.run_decision_ledger,
             "ai-radar":                 _orch.run_ai_radar,
             "best-coding-tool-mission": _orch.run_best_coding_tool_mission,
+            "voice-capture":            _orch.run_voice_capture,
+            "remote-worker":            _orch.run_remote_worker,
+            "self-improve":             _orch.run_self_improve,
         }
         runner = runners.get(canonical)
         if runner is None:  # pragma: no cover - guarded by caller
@@ -7883,7 +7912,7 @@ class HermesCLI:
         elif canonical == "help":
             self.show_help()
         elif canonical == "profile":
-            self._handle_profile_command()
+            self._handle_profile_command_dispatch(cmd_original)
         elif canonical == "tools":
             self._handle_tools_command(cmd_original)
         elif canonical == "toolsets":
@@ -8077,6 +8106,9 @@ class HermesCLI:
             "decision-ledger",
             "ai-radar",
             "best-coding-tool-mission",
+            "voice-capture",
+            "remote-worker",
+            "self-improve",
         }:
             self._handle_orchestrator_slash(cmd_original, canonical)
         elif canonical == "skills":

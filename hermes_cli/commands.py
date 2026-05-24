@@ -108,7 +108,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
                args_hint="[text | remove N | clear]"),
     CommandDef("status", "Show session info", "Session"),
     CommandDef("whoami", "Show your slash command access (admin / user)", "Info"),
-    CommandDef("profile", "Show active profile name and home directory", "Info"),
+    CommandDef("profile",
+               "Show active profile name / home, or refresh derived snapshots",
+               "Info", args_hint="[build-github-history]",
+               subcommands=("build-github-history",)),
     CommandDef("sethome", "Set this chat as the home channel", "Session",
                gateway_only=True, aliases=("set-home",)),
     CommandDef("resume", "Resume a previously-named session", "Session",
@@ -215,23 +218,27 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("update", "Update Hermes Agent to the latest version", "Info"),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info"),
 
-    # Orchestration (Phase 16 — native slash commands).
+    # Orchestration (native slash commands).
     #
-    # All six are registered ``cli_only`` so they do not consume slots in
-    # Slack's 50-slash app-manifest cap. Each new gateway-visible canonical
-    # bumps an alias like /q or /btw off the manifest (see
-    # tests/hermes_cli/test_commands.py::TestSlackNativeSlashes), and Phase
-    # 16 prioritizes CLI parity over gateway parity. The gateway code path
+    # All orchestrator-family canonicals are registered ``cli_only`` so
+    # they do not consume slots in Slack's 50-slash app-manifest cap.
+    # Each new gateway-visible canonical bumps an alias like /q or /btw
+    # off the manifest (see
+    # tests/hermes_cli/test_commands.py::TestSlackNativeSlashes), so CLI
+    # parity is prioritised over gateway parity. The gateway code path
     # in :meth:`gateway.run.HermesGateway._handle_orchestrator_slash` is
     # wired and ready: a future phase can flip these to gateway-visible
     # (or add ``gateway_config_gate``) when the orchestrator UX warrants
     # crowding the manifest. CLI users still get them via /help and
-    # tab-completion.
+    # tab-completion. See
+    # ``docs/orchestration/orchestrator-command-reference.md`` for the
+    # full catalogue.
     CommandDef("orchestrate", "Queue a new local orchestrator job (no auto-execution)",
                "Tools & Skills", cli_only=True, args_hint="<prompt>"),
-    CommandDef("orchestrator", "Inspect / resume / publish local orchestrator jobs",
+    CommandDef("orchestrator", "Inspect / resume / approve / publish local orchestrator jobs",
                "Tools & Skills", cli_only=True, args_hint="[subcommand]",
-               subcommands=("status", "list", "open", "resume", "publish")),
+               subcommands=("status", "list", "open", "resume", "cancel",
+                            "approve", "validate", "publish", "publish-plan")),
     CommandDef("model-router", "Explain which model/profile a prompt would route to",
                "Tools & Skills", cli_only=True, args_hint="explain <prompt>",
                subcommands=("explain",)),
@@ -245,6 +252,21 @@ COMMAND_REGISTRY: list[CommandDef] = [
                "Show the orchestrator's 'best coding tool' mission status",
                "Tools & Skills", cli_only=True, args_hint="status",
                subcommands=("status",)),
+    CommandDef("voice-capture",
+               "Inspect or switch the voice-capture mode "
+               "(push_to_talk / wake_word / driving_capture / disabled)",
+               "Tools & Skills", cli_only=True,
+               args_hint="<status|mode> [mode]",
+               subcommands=("status", "mode")),
+    CommandDef("remote-worker",
+               "Show the local snapshot of registered remote workers",
+               "Tools & Skills", cli_only=True, args_hint="status",
+               subcommands=("status",)),
+    CommandDef("self-improve",
+               "Stage a self-improvement-loop request for a job "
+               "(requires prior /orchestrator approve <job-id> self_improve)",
+               "Tools & Skills", cli_only=True, args_hint="run <job-id>",
+               subcommands=("run",)),
 
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",

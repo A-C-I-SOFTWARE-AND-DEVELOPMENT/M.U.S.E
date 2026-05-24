@@ -46,11 +46,18 @@ class TestRegistryEntries:
         assert not cmd.gateway_only
 
     @pytest.mark.parametrize("name,subs", [
-        ("orchestrator", ("status", "list", "open", "resume", "publish")),
+        ("orchestrator", (
+            "status", "list", "open", "resume", "cancel",
+            "approve", "validate", "publish", "publish-plan",
+        )),
         ("model-router", ("explain",)),
         ("decision-ledger", ("show",)),
         ("ai-radar", ("update",)),
         ("best-coding-tool-mission", ("status",)),
+        ("voice-capture", ("status", "mode")),
+        ("remote-worker", ("status",)),
+        ("self-improve", ("run",)),
+        ("profile", ("build-github-history",)),
     ])
     def test_subcommand_registry(self, name: str, subs: tuple[str, ...]) -> None:
         cmd = resolve_command(name)
@@ -60,10 +67,11 @@ class TestRegistryEntries:
         assert SUBCOMMANDS.get(f"/{name}") == list(subs)
 
     def test_all_orchestrator_commands_are_cli_only(self) -> None:
-        # Phase 16 leaves all six commands cli_only to avoid bumping
-        # aliases like /q and /btw off Slack's 50-slash cap. They remain
-        # discoverable via /help, the tab-completer, and prefix matching
-        # in :func:`HermesCLI.process_command`.
+        # Phase 24 keeps the orchestrator-family commands cli_only to avoid
+        # bumping aliases like /q and /btw off Slack's 50-slash cap.  They
+        # remain discoverable via /help, the tab-completer, and prefix
+        # matching in :func:`HermesCLI.process_command`.  ``/profile`` is
+        # excluded — it predates this surface and is gateway-visible.
         for name in (
             "orchestrate",
             "orchestrator",
@@ -71,16 +79,20 @@ class TestRegistryEntries:
             "decision-ledger",
             "ai-radar",
             "best-coding-tool-mission",
+            "voice-capture",
+            "remote-worker",
+            "self-improve",
         ):
             cmd = resolve_command(name)
             assert cmd is not None and cmd.cli_only, (
-                f"/{name} should be cli_only in Phase 16"
+                f"/{name} should be cli_only"
             )
 
     def test_no_orchestrator_command_appears_in_gateway_set(self) -> None:
         # GATEWAY_KNOWN_COMMANDS excludes cli_only entries (unless
-        # gateway_config_gate is set). Sanity-check that Phase 16's
-        # orchestrator commands are not silently surfaced.
+        # gateway_config_gate is set). Sanity-check that the orchestrator
+        # commands are not silently surfaced.  ``/profile`` is excluded —
+        # it predates this surface and is gateway-visible.
         for name in (
             "orchestrate",
             "orchestrator",
@@ -88,6 +100,9 @@ class TestRegistryEntries:
             "decision-ledger",
             "ai-radar",
             "best-coding-tool-mission",
+            "voice-capture",
+            "remote-worker",
+            "self-improve",
         ):
             assert name not in GATEWAY_KNOWN_COMMANDS, (
                 f"/{name} unexpectedly appears in GATEWAY_KNOWN_COMMANDS"
@@ -98,6 +113,7 @@ class TestRegistryEntries:
         new_names = {
             "orchestrate", "orchestrator", "model-router",
             "decision-ledger", "ai-radar", "best-coding-tool-mission",
+            "voice-capture", "remote-worker", "self-improve",
         }
         seen = [c.name for c in COMMAND_REGISTRY if c.name in new_names]
         assert sorted(seen) == sorted(new_names)
@@ -390,4 +406,329 @@ class TestRunMission:
 
     def test_unknown_subcommand(self) -> None:
         out = orch.run_best_coding_tool_mission("reset")
+        assert "unknown subcommand" in out
+
+
+# ---------------------------------------------------------------------------
+# Phase 24: cancel / approve / validate / publish-plan
+# ---------------------------------------------------------------------------
+
+class TestCancelJob:
+    def test_cancel_marks_job_cancelled(self) -> None:
+        job = orch.submit_job("cancel me")
+        cancelled = orch.cancel_job(job.id)
+        assert cancelled is not None
+        assert cancelled.status == "cancelled"
+        assert cancelled.cancelled_at and cancelled.cancelled_at > 0
+
+    def test_cancel_unknown_id_returns_none(self) -> None:
+        assert orch.cancel_job("nope") is None
+
+    def test_cancel_refuses_to_retract_published_job(self) -> None:
+        job = orch.submit_job("publish first")
+        orch.publish_job(job.id)
+        after = orch.cancel_job(job.id)
+        assert after is not None
+        # Already published — status must not flip to cancelled.
+        assert after.status == "published"
+
+
+class TestApprovePhase:
+    def test_approval_records_timestamp(self) -> None:
+        job = orch.submit_job("approve me")
+        approved = orch.approve_phase(job.id, "plan")
+        assert approved is not None
+        assert approved.approvals.get("plan") and approved.approvals["plan"] > 0
+        assert orch.has_approval(approved, "plan")
+
+    def test_unknown_phase_raises(self) -> None:
+        job = orch.submit_job("bad phase")
+        with pytest.raises(ValueError):
+            orch.approve_phase(job.id, "teleport")
+
+    def test_unknown_job_id_returns_none(self) -> None:
+        assert orch.approve_phase("does-not-exist", "plan") is None
+
+
+class TestValidateJob:
+    def test_validate_returns_summary_for_known_job(self) -> None:
+        job = orch.submit_job("validate me")
+        summary = orch.validate_job(job.id)
+        assert summary is not None
+        assert summary["job_id"] == job.id
+        # Either the runner returned counts or surfaced a note.
+        assert "status_counts" in summary
+        # Validation summary persisted next to jobs.
+        from pathlib import Path
+        home = Path(os.environ["HERMES_HOME"]) / "orchestrator"
+        assert (home / "validation.json").is_file()
+
+    def test_validate_unknown_id_returns_none(self) -> None:
+        assert orch.validate_job("nope") is None
+
+    def test_validate_appends_ledger_entry(self) -> None:
+        job = orch.submit_job("ledger validate")
+        orch.validate_job(job.id)
+        entries = orch.get_ledger(job.id)[job.id]
+        kinds = [e.get("kind") for e in entries]
+        assert "validate" in kinds
+
+
+class TestPublishPlan:
+    def test_publish_plan_blocked_without_approval(self) -> None:
+        job = orch.submit_job("plan me")
+        result = orch.publish_plan(job.id)
+        assert result["ok"] is False
+        assert "approval required" in result["reason"] or "approve" in result["reason"]
+
+    def test_publish_plan_succeeds_after_approval(self) -> None:
+        job = orch.submit_job("approved plan")
+        orch.approve_phase(job.id, "plan")
+        result = orch.publish_plan(job.id)
+        assert result["ok"] is True
+        plan = result["plan"]
+        assert plan["job_id"] == job.id
+        # Status should bump to "plan_ready".
+        refreshed = orch.get_job(job.id)
+        assert refreshed is not None and refreshed.status == "plan_ready"
+
+    def test_publish_plan_persists_to_disk(self) -> None:
+        job = orch.submit_job("persist plan")
+        orch.approve_phase(job.id, "plan")
+        orch.publish_plan(job.id)
+        from pathlib import Path
+        home = Path(os.environ["HERMES_HOME"]) / "orchestrator"
+        assert (home / "publish_plans.json").is_file()
+
+    def test_publish_plan_blocked_by_failing_validation(self, monkeypatch) -> None:
+        job = orch.submit_job("blocked plan")
+        orch.approve_phase(job.id, "plan")
+        # Stub a validation summary with a critical failure.
+        summary = {
+            job.id: {
+                "job_id": job.id,
+                "checked_at": 1,
+                "status_counts": {"fail": 1},
+                "publish_blocked": True,
+                "checks": [],
+            }
+        }
+        from pathlib import Path
+        path = Path(os.environ["HERMES_HOME"]) / "orchestrator" / "validation.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(summary), encoding="utf-8")
+        result = orch.publish_plan(job.id)
+        assert result["ok"] is False
+        assert "blocked by failing validation" in result["reason"]
+
+
+# ---------------------------------------------------------------------------
+# Phase 24: voice-capture, remote-worker, self-improve, profile
+# ---------------------------------------------------------------------------
+
+class TestVoiceCapture:
+    def test_default_status_is_disabled(self) -> None:
+        state = orch.voice_capture_status()
+        assert state["mode"] == "disabled"
+
+    @pytest.mark.parametrize("mode", [
+        "push_to_talk", "wake_word", "driving_capture", "disabled",
+    ])
+    def test_set_mode_persists_and_tracks_history(self, mode: str) -> None:
+        state = orch.set_voice_capture_mode(mode)
+        assert state["mode"] == mode
+        assert state["history"]
+        # Reload from disk to confirm persistence.
+        reloaded = orch.voice_capture_status()
+        assert reloaded["mode"] == mode
+
+    def test_set_mode_rejects_unknown_mode(self) -> None:
+        with pytest.raises(ValueError):
+            orch.set_voice_capture_mode("siri")
+
+
+class TestRemoteWorker:
+    def test_status_returns_placeholder_when_empty(self) -> None:
+        snap = orch.remote_worker_status()
+        assert snap["workers"] == []
+        assert "No remote workers" in snap.get("note", "")
+
+    def test_status_reads_local_registry(self) -> None:
+        from pathlib import Path
+        path = Path(os.environ["HERMES_HOME"]) / "orchestrator" / "remote_workers.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({
+            "workers": [
+                {"id": "lab-host", "kind": "ssh", "status": "ready", "url": "ssh://lab"},
+            ]
+        }), encoding="utf-8")
+        snap = orch.remote_worker_status()
+        assert len(snap["workers"]) == 1
+        assert snap["workers"][0]["id"] == "lab-host"
+
+
+class TestSelfImprove:
+    def test_run_blocked_without_approval(self) -> None:
+        job = orch.submit_job("self-improve me")
+        result = orch.self_improve_run(job.id)
+        assert result["ok"] is False
+        assert "approve" in result["reason"]
+
+    def test_run_succeeds_after_approval(self) -> None:
+        job = orch.submit_job("approve self_improve")
+        orch.approve_phase(job.id, "self_improve")
+        result = orch.self_improve_run(job.id)
+        assert result["ok"] is True
+        assert result["record"]["job_id"] == job.id
+        # Persisted under self_improve.json.
+        from pathlib import Path
+        path = Path(os.environ["HERMES_HOME"]) / "orchestrator" / "self_improve.json"
+        assert path.is_file()
+
+    def test_run_unknown_job_returns_failure(self) -> None:
+        result = orch.self_improve_run("nope")
+        assert result["ok"] is False
+        assert "unknown job id" in result["reason"]
+
+
+class TestProfileBuildGithubHistory:
+    def test_build_writes_snapshot(self) -> None:
+        payload = orch.profile_build_github_history()
+        assert payload["built_at"] > 0
+        from pathlib import Path
+        path = Path(os.environ["HERMES_HOME"]) / "orchestrator" / "profile_github_history.json"
+        assert path.is_file()
+        # Status reads the same file.
+        loaded = orch.profile_github_history_status()
+        assert loaded["built_at"] == payload["built_at"]
+
+
+# ---------------------------------------------------------------------------
+# Phase 24: slash entry points for the new commands
+# ---------------------------------------------------------------------------
+
+class TestRunOrchestratorPhase24Subs:
+    def test_cancel_requires_id(self) -> None:
+        out = orch.run_orchestrator("cancel")
+        assert "requires a job id" in out
+
+    def test_cancel_marks_job(self) -> None:
+        job = orch.submit_job("cancel via slash")
+        out = orch.run_orchestrator(f"cancel {job.id}")
+        assert "cancelled" in out
+
+    def test_approve_requires_phase(self) -> None:
+        job = orch.submit_job("approve via slash")
+        out = orch.run_orchestrator(f"approve {job.id}")
+        assert "<job-id> <phase>" in out
+
+    def test_approve_unknown_phase(self) -> None:
+        job = orch.submit_job("approve via slash 2")
+        out = orch.run_orchestrator(f"approve {job.id} teleport")
+        assert "unknown approval phase" in out
+
+    def test_approve_success(self) -> None:
+        job = orch.submit_job("approve via slash 3")
+        out = orch.run_orchestrator(f"approve {job.id} plan")
+        assert "approved" in out
+        assert "plan" in out
+
+    def test_validate_returns_summary(self) -> None:
+        job = orch.submit_job("validate via slash")
+        out = orch.run_orchestrator(f"validate {job.id}")
+        assert job.id in out
+        assert "publish_blocked" in out
+
+    def test_publish_plan_requires_approval(self) -> None:
+        job = orch.submit_job("plan via slash")
+        out = orch.run_orchestrator(f"publish-plan {job.id}")
+        assert "approval" in out or "approve" in out
+
+    def test_publish_plan_after_approval(self) -> None:
+        job = orch.submit_job("plan via slash success")
+        orch.run_orchestrator(f"approve {job.id} plan")
+        out = orch.run_orchestrator(f"publish-plan {job.id}")
+        assert "Publish-plan emitted" in out
+
+
+class TestRunVoiceCapture:
+    def test_help_when_empty(self) -> None:
+        out = orch.run_voice_capture("")
+        assert "Usage: /voice-capture" in out
+
+    def test_status_default(self) -> None:
+        out = orch.run_voice_capture("status")
+        assert "mode:" in out
+        assert "disabled" in out
+
+    def test_mode_without_arg_returns_help(self) -> None:
+        out = orch.run_voice_capture("mode")
+        assert "Usage" in out or "requires a mode" in out
+
+    @pytest.mark.parametrize("mode", [
+        "push_to_talk", "wake_word", "driving_capture", "disabled",
+    ])
+    def test_mode_set(self, mode: str) -> None:
+        out = orch.run_voice_capture(f"mode {mode}")
+        assert mode in out
+
+    def test_unknown_mode(self) -> None:
+        out = orch.run_voice_capture("mode siri")
+        assert "unknown voice-capture mode" in out
+
+    def test_unknown_subcommand(self) -> None:
+        out = orch.run_voice_capture("teleport")
+        assert "unknown subcommand" in out
+
+
+class TestRunRemoteWorker:
+    def test_help_when_empty(self) -> None:
+        out = orch.run_remote_worker("")
+        assert "Usage: /remote-worker" in out
+
+    def test_status_no_workers(self) -> None:
+        out = orch.run_remote_worker("status")
+        assert "workers:" in out
+
+    def test_unknown_subcommand(self) -> None:
+        out = orch.run_remote_worker("connect")
+        assert "unknown subcommand" in out
+
+
+class TestRunSelfImprove:
+    def test_help_when_empty(self) -> None:
+        out = orch.run_self_improve("")
+        assert "Usage: /self-improve" in out
+
+    def test_run_requires_id(self) -> None:
+        out = orch.run_self_improve("run")
+        assert "requires a job id" in out
+
+    def test_run_blocked_without_approval(self) -> None:
+        job = orch.submit_job("self-improve slash")
+        out = orch.run_self_improve(f"run {job.id}")
+        assert "approve" in out
+
+    def test_run_succeeds_after_approval(self) -> None:
+        job = orch.submit_job("self-improve slash 2")
+        orch.run_orchestrator(f"approve {job.id} self_improve")
+        out = orch.run_self_improve(f"run {job.id}")
+        assert "staged" in out
+
+    def test_unknown_subcommand(self) -> None:
+        out = orch.run_self_improve("teleport")
+        assert "unknown subcommand" in out
+
+
+class TestRunProfile:
+    def test_help_when_empty(self) -> None:
+        out = orch.run_profile("")
+        assert "Usage: /profile" in out
+
+    def test_build_github_history(self) -> None:
+        out = orch.run_profile("build-github-history")
+        assert "GitHub-history snapshot written" in out
+
+    def test_unknown_subcommand(self) -> None:
+        out = orch.run_profile("teleport")
         assert "unknown subcommand" in out
