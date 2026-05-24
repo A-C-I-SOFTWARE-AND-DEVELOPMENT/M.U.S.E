@@ -208,6 +208,7 @@ def test_local_run_failure_records_exit_code(repo: Path):
     assert "boom" in Path(s.stderr_path or "").read_text(encoding="utf-8")
 
 
+@pytest.mark.live_system_guard_bypass
 def test_local_run_times_out(repo: Path):
     plan = op.ExecutionPlan(
         job_id="job-5",
@@ -293,6 +294,7 @@ def test_sequential_run_is_serial(repo: Path):
     assert elapsed >= 0.35
 
 
+@pytest.mark.live_system_guard_bypass
 def test_cancel_flag_aborts_running_worker(repo: Path):
     plan = op.ExecutionPlan(
         job_id="job-cancel",
