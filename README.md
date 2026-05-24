@@ -28,6 +28,24 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 
 ---
 
+## JARVIS Prime Operating Layer
+
+Hermes can support a JARVIS-style, local-first personal AI operating layer for users who want an active command center rather than a passive chatbot. In this pattern, Hermes coordinates the conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
+
+The operating model is intentionally small and reviewable:
+
+- **Hermes** is the command center and execution shell.
+- **AOS** is the reasoning council for multi-perspective judgment.
+- **Claude Code** is the primary builder for implementation work.
+- **Codex** is the reviewer, bounded fix worker, or second-pass engineer.
+- **Slack and Termux** are mobile command surfaces for Android-first workflows.
+- **Mobile voice capture** supports jogging, walking, driving breaks, and away-from-desk idea capture.
+- **Focused mode** handles long technical review, build planning, local verification, and PR handoff.
+
+JARVIS Prime is loyal to the user's long-term mission, not blindly obedient to the moment. It should challenge weak ideas, route code work through builder/reviewer workflows, and defer risky actions such as merges, deploys, public posting, credential changes, and publishing until explicit owner approval.
+
+---
+
 ## Quick Install
 
 ### Linux, macOS, WSL2, Termux
