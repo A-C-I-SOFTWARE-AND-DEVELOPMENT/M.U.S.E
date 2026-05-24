@@ -42,9 +42,15 @@ import dataclasses
 import json
 import os
 import time
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
 from typing import Any
+
+
+# A clock returns the current unix timestamp as a float. Hub callers
+# inject a fixed-time clock in tests so snapshot output is
+# deterministic.
+Clock = Callable[[], float]
 
 
 # ── Constants ──────────────────────────────────────────────────────────────
@@ -149,7 +155,7 @@ class MonitoringHub:
         workspace: str | os.PathLike[str],
         *,
         output_dir: str | os.PathLike[str] | None = None,
-        clock: "Clock | None" = None,
+        clock: Clock | None = None,
     ) -> None:
         self.workspace = Path(workspace).resolve()
         self.output_dir = (
@@ -688,10 +694,6 @@ def _max_severity(alerts: Iterable[dict[str, Any]]) -> str | None:
             best = sev
             best_rank = rank[sev]
     return best
-
-
-# Allow callers (and tests) to inject a deterministic clock.
-Clock = "callable returning a unix timestamp"
 
 
 def _wall_clock() -> float:
