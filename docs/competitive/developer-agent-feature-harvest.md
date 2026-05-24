@@ -1,29 +1,36 @@
 # Developer-Agent Feature Harvest
 
-**Phase 21 — Competitive feature harvest for Hermes.**
+**Phase 23 — Competitive feature harvest for Hermes (refresh of Phase 21).**
 
 A verified survey of distinctive features across competing AI developer agents,
 cross-referenced against what Hermes already ships. The output of this doc is a
 research base; the prioritized adoption list lives in
 [`docs/product/hermes-feature-backlog.md`](../product/hermes-feature-backlog.md).
 
-**Date:** 2026-05-23
+**Date:** 2026-05-23 (Phase 23 refresh; Phase 21 baseline was ~2026-05-16)
 **Scope:** Claude Code, Codex CLI, Aider, OpenHands, Continue, Goose, OpenHuman,
 Paperclip, plus adjacent tools (Cline, Cursor, Roo Code, Zed/ACP, Gemini CLI,
-Devin, SWE-agent, Plandex, bolt.new/Lovable, Smol Developer, GPT Engineer).
+Devin, SWE-agent, Plandex, bolt.new/Lovable, Smol Developer, GPT Engineer,
+Bernstein).
 
-**Method:** Eight parallel research subagents (one Hermes inventory + seven
-competitor groups). Each was briefed to cite official sources, mark unverified
-claims, and flag dormant projects. Results synthesized below. Full disambiguation
-of OpenHuman and Paperclip lives in
+**Method (Phase 21):** Eight parallel research subagents (one Hermes inventory
++ seven competitor groups). Each was briefed to cite official sources, mark
+unverified claims, and flag dormant projects.
+
+**Method (Phase 23 refresh):** Two parallel verification subagents — one to
+re-verify the OpenHuman/Paperclip claims, one to harvest changelogs dated
+after 2026-05-10 across all twelve products. Findings folded into the tables
+below with `[P23]` markers on new rows. Full disambiguation of OpenHuman and
+Paperclip lives in
 [`openhuman-paperclip-research.md`](./openhuman-paperclip-research.md).
 
 **Rules used:**
 - Prefer official sources (docs.*, github.com/<org>/<repo>/README.md, release notes)
 - Reputable reviews are secondary and marked as such
 - Unverified claims marked unverified
-- "Applies to Hermes?" reflects the codebase as of commit on `claude/competitive-feature-harvest-2XQx8`
+- "Applies to Hermes?" reflects the codebase as of commit on `claude/competitive-feature-harvest-x5Qbk`
 - No feature is claimed as "copied" unless verified in a Hermes release
+- Phase 23 additions are marked `[P23]` so the next refresh can diff easily
 
 ---
 
@@ -97,6 +104,10 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Claude Code | Effort levels (low / medium / high / xhigh / max) per skill, plus per-skill model override | https://code.claude.com/docs/en/skills | Cost/quality dial per workflow | GAP — Hermes has `reasoning_config` and `auxiliary` clients; not exposed per-skill | Add `model:` and `effort:` frontmatter fields in `SKILL.md` → resolved at skill activation | H |
 | Claude Code | Routines / scheduled tasks / `/loop` (Anthropic-managed scheduling) | https://code.claude.com/docs/en/routines (referenced) | Cron-grade scheduling integrated with agent context | ALREADY SHIPS — see `cron/` and `hermes-already-has-routines.md` | — | H |
 | Claude Code | Channels (Telegram / Discord / iMessage / webhook ingress into existing session) | https://code.claude.com/docs/en/channels (referenced) | Direct overlap with Hermes' gateway concept | ALREADY SHIPS — see `gateway/platforms/` | — | H |
+| Claude Code `[P23]` | `/usage` now reports per-category cost breakdown — skills, subagents, plugins, per-MCP-server | https://code.claude.com/docs/en/changelog (v2.1.149) | "Where is my budget going?" answered without spreadsheets | GAP — high value | Aggregate the existing ledger by primitive; new `hermes usage --by skill\|subagent\|plugin\|mcp` view in `hermes_cli/` and dashboard | H |
+| Claude Code `[P23]` | `/code-review` (renamed from `/simplify`) with effort levels + GitHub PR-comment posting; pinned background sessions auto-restart on idle | https://code.claude.com/docs/en/changelog (v2.1.147) | Code review as a first-class subagent flow, not an ad-hoc skill | PARTIAL — Hermes has `requesting-code-review` skill + `github_assistant` plugin; no unified slash command with effort dial nor auto-PR-comment posting | New `/code-review [--effort low\|medium\|high]` slash command wrapping the existing skill + `github_assistant` comment poster | H |
+| Claude Code `[P23]` | `claude agents --json` for scripting; `/plugin` Discover lists commands/agents/skills/hooks/MCP/LSP before install | https://code.claude.com/docs/en/changelog (v2.1.145) | Pre-install plugin manifest preview avoids "what does this thing do" surprise | PARTIAL — Hermes plugin loader registers tools; no pre-install manifest preview UI | Add `hermes plugin show <name>` that prints the plugin's exposed tools, hooks, slash commands, and MCP servers before activation | H |
+| Claude Code `[P23]` | Plugin dependency enforcement + projected context-cost shown in marketplace | https://code.claude.com/docs/en/changelog (v2.1.143) | npm-like rigor for plugins | GAP — Hermes plugin manifests don't declare deps or projected token cost | Add `dependencies:` and `estimated_context_tokens:` to `plugin.yaml`; validate at load | H |
 
 ### Codex CLI (OpenAI)
 
@@ -113,6 +124,9 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Codex CLI | GitHub Action with `safety-strategy: drop-sudo`, `unprivileged-user`, `allow-users`/`allow-bots` | https://github.com/openai/codex-action | Privilege-drop guards in CI | GAP — high value | Include the same safety controls in the proposed `hermes-action@v1` template | H |
 | Codex CLI | `--dangerously-bypass-approvals-and-sandbox` escape hatch | https://developers.openai.com/codex/cli/reference | Single explicit flag for disposable envs | GAP — low value | Optional `--unsafe` flag mirroring intent; explicit is better than ad-hoc env vars | H |
 | Codex CLI | Codex SDK (TypeScript GA + Python experimental): `startThread()`, `run()`, `resumeThread()` | https://developers.openai.com/codex/sdk | Programmatic mirror of CLI behavior | GAP — see Claude Code SDK row | — | H |
+| Codex CLI `[P23]` | Goals enabled by default with dedicated storage; permission profile management; lifecycle events for plugins | https://github.com/openai/codex/releases (v0.133.0) | Goals as a persistent primitive separate from session messages | PARTIAL — Hermes has memory (Honcho / Mem0 / supermemory) but no explicit "goal" entity distinct from chat memory | Add `Goal` row to session DB with status (open/done/dropped) + linked task graph nodes; surface in dashboard | H |
+| Codex CLI `[P23]` | Resumed automations enforce structured JSON output schemas | https://github.com/openai/codex/releases (v0.132.0) | Output schemas survive resume — automation reliability | PARTIAL — Hermes cron supports prompts but no per-job output schema enforcement | Add `output_schema:` field to cron job spec + validator in `cron/` | H |
+| Codex CLI `[P23]` | Unified `@`-mention picker; `codex doctor` diagnostic; marketplace plugin workflows; remote daemon management | https://github.com/openai/codex/releases (v0.131.0) | Doctor command is now standard across agents | ALREADY SHIPS (mostly) — Hermes has `hermes doctor`, `@`-mention is on the backlog (T2 #9), plugin marketplace overlaps with skills hub | Cross-reference T2 #9 (`@`-mention syntax) — Codex's picker UX is worth borrowing | H |
 
 ### Aider
 
@@ -132,6 +146,7 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Aider | Image/URL ingestion (`/web <url>` scrapes to markdown; paste prompts to add URL) | https://aider.chat/docs/usage/images-urls.html | Ground model on UI screenshots and fresh API docs | PARTIAL — Hermes has `web_extract`; no `/web` slash command equivalent | Add `/web` slash command wrapping `web_extract` | H |
 | Aider | Polyglot Leaderboard (225 Exercism problems × 6 languages, reports accuracy AND cost) | https://aider.chat/docs/leaderboards/ | Vendor-neutral, reproducible model selection guide | GAP — Hermes has `mini_swe_runner.py` but no published per-model cost+accuracy table | Run leaderboard at release time; publish to `website/docs/benchmarks/` | H |
 | Aider | Browser mode (`--browser`) Streamlit-based GUI | https://aider.chat/docs/usage/browser.html | GUI without losing git integration | PARTIAL — Hermes dashboard is a web UI; deliberately differentiated from a Streamlit clone | — (out of scope vs Hermes dashboard) | H |
+| Aider `[P23]` | **Project status:** no new release in the Phase 23 window; last release v0.86.0 (Aug 2025). Project may be entering low-maintenance mode. | https://aider.chat/blog/, GitHub releases | — | — | Watch — if dormant continues, downgrade Aider rows from "shipping reference" to "historical inspiration" in the next refresh | M |
 
 ### OpenHands (All-Hands-AI)
 
@@ -165,6 +180,7 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Continue | Dev data collection — JSON event capture to `.continue/dev_data` or remote HTTP | https://docs.continue.dev/customize/deep-dives/development-data | User-owned interaction data for fine-tuning / evals / audit | PARTIAL — Hermes has trajectory generation (`batch_runner.py`) but not an opt-in continuous interaction log | Add `data:` config section + writer that emits JSONL turn events | H |
 | Continue | AI Checks on PRs (`.continue/checks/*.md` → GitHub status check) | https://github.com/continuedev/continue | Source-controlled AI policies that block merges | GAP — high value | Add `.hermes/checks/*.md` pattern + GitHub Action that runs each as a status check | H |
 | Continue | Continue CLI (`cn`) — same hub prompts in IDE, CLI, CI | https://github.com/continuedev/continue | One assistant across surfaces | ALREADY SHIPS — Hermes CLI + gateway share skill set | — | H |
+| Continue `[P23]` | **Project status:** atom feed shows last release 2026-03-27; no new feature in Phase 23 window | https://changelog.continue.dev/ | — | — | Continue's Phase 21 rows above are still the canonical reference; no refresh needed this cycle | M |
 
 ### Goose (Block)
 
@@ -185,6 +201,9 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | Goose | Custom distributions — rebrand/repackage for enterprise rollout | https://block-goose.mintlify.app/llms.txt | Enterprise rollout story | PARTIAL — `enterprise/` dir exists; rebranding is via skin engine; not a documented "custom distribution" workflow | Document the skin engine + plugin-set as the "custom distribution" mechanism | M |
 | Goose | MCP-UI widget rendering in Desktop | https://www.nickyt.co/blog/what-makes-goose-different-from-other-ai-coding-agents-2edc/ (secondary) | "Superior experience vs text-based" responses | GAP — Hermes TUI is text; dashboard is HTML | Render MCP-UI responses in the dashboard React surface | M |
 | Goose | Server deployment (REST + WS + SSE) for multi-user production | https://block-goose.mintlify.app/llms.txt | Self-hosted shared backend | ALREADY SHIPS — `gateway/platforms/api_server.py` + dashboard | — | M |
+| Goose `[P23]` | Extensible hooks system (v1.35.0, May 22 2026) | https://block.github.io/goose/docs/category/release-notes | Goose joins Claude Code's hooks pattern — taxonomy expansion | PARTIAL — Hermes has hooks; verify event coverage parity in next pass | Compare Goose's hook event taxonomy against Hermes' once Goose docs publish the full list | H |
+| Goose `[P23]` | `/goal` self-evaluation slash command (v1.35.0) | https://block.github.io/goose/docs/category/release-notes | Agent grades its own progress against a stated goal | GAP — Hermes has decision ledger but no self-evaluation primitive against an explicit goal | New `/goal set <text>` then `/goal evaluate` flow that prompts the model with the goal + the session ledger and emits a structured pass/fail/partial verdict | H |
+| Goose `[P23]` | Local code review (v1.35.0); Vercel AI Gateway provider | https://block.github.io/goose/docs/category/release-notes | Code review as a first-class flow (see Claude Code `/code-review` row) | PARTIAL — combine with Claude Code `[P23]` row above into one backlog item | — | H |
 
 ### OpenHuman (`tinyhumansai/openhuman`)
 
@@ -195,6 +214,7 @@ Confirmed gaps (the harvest below maps competitor features into these):
 | OpenHuman | 118+ OAuth integrations w/ periodic auto-fetch | github.com README | Personal-AI grounded in your services | OUT OF SCOPE — Hermes platform gateway covers messaging; deep OAuth-per-service is a plugin space | — | M |
 | OpenHuman | TokenJuice compression (vendor claim ~80% reduction) | github.com README | Lower token spend | UNVERIFIED — vendor claim; no public benchmark | Compare against `trajectory_compressor.py` if a benchmark surfaces | L |
 | OpenHuman | Voice + desktop mascot, can join Google Meets | github.com README | Personal-AI affordances | PARTIAL — Hermes voice exists; mascot is the skin engine + spinner faces; no Google Meet joining | — (low value; the `google_meet` plugin under `plugins/` already exists — verify scope) | M |
+| OpenHuman `[P23]` | **Phase 23 status:** all Phase 21 claims verified; license confirmed GPL-3.0; auto-fetch cadence is 20-minute per active connection; v0.54.0 at 2026-05-19; repo at 26.3k★ in two weeks | github.com/tinyhumansai/openhuman | Validation that the personal-AI niche has traction — not a Hermes-relevance change | — | — | H |
 
 See [`openhuman-paperclip-research.md`](./openhuman-paperclip-research.md) for
 the full disambiguation.
@@ -208,6 +228,8 @@ the full disambiguation.
 | Paperclip | Org chart / roles / budgets / governance / ticket audit trail | https://github.com/paperclipai/paperclip | "Agents as employees of a company" | PARTIAL — Hermes kanban + observability covers tickets/audit; no budgets/roles UI | Add per-worker `budget` field to kanban + display in dashboard | H |
 | Paperclip | Multi-company isolation in a single deployment | https://github.com/paperclipai/paperclip | One install for multiple teams | PARTIAL — Hermes profile system + kanban board isolation gets close | Document profile + kanban board boundary as the Hermes equivalent | M |
 | Paperclip | Self-hosted Node.js + React + embedded Postgres | https://github.com/paperclipai/paperclip | Self-host on customer infra | OUT OF SCOPE — different stack | — | H |
+| Paperclip `[P23]` | **Adapter list shift:** headline list is now OpenClaw, Claude Code, Codex, Bash, HTTP webhooks; Gemini dropped from the headline enumeration (whether removed or de-emphasized unknown — INSUFFICIENT EVIDENCE) | github.com/paperclipai/paperclip README | — | — | If Hermes ships an adapter contract (T3 #24), default to the current Paperclip headline set | M |
+| Paperclip `[P23]` | AMI bundles 4 runtimes (Claude Code, Codex, OpenCode, OpenClaw) on Ubuntu 24.04; turnkey appliance | https://aws.amazon.com/marketplace/pp/prodview-bzyfsoqckclmy | Lower friction onboarding for orgs | PARTIAL — Hermes ships container/Modal/Daytona/Vercel sandboxes; no preconfigured AMI | Optional: Hermes Marketplace AMI as a packaging exercise; defer unless an enterprise user asks | M |
 
 ### Adjacent agents (Cline, Cursor, Roo, Zed/ACP, Gemini CLI, Devin, SWE-agent, Plandex, bolt/Lovable, Smol/GPT-E)
 
@@ -246,6 +268,19 @@ the full disambiguation.
 | Lovable | Chat-driven full-stack builder, screenshot-to-app, GitHub sync | https://lovable.dev | Prompt-to-deployed-app | OUT OF SCOPE | — | H |
 | Smol Developer | Spec → file-list → file-by-file generation | https://github.com/smol-ai/developer | "Junior developer" workflow | DORMANT — project stale; no recent releases | — (no action) | M |
 | GPT Engineer | Natural-language spec → executed code; iterative loop | https://github.com/AntonOsika/gpt-engineer | Pioneered "describe an app, get a repo" | ARCHIVED 2026-04-22 — points users to gptengineer.app or Aider | — (no action) | H |
+| Cursor `[P23]` | Cursor 3.5 (May 20) — Automations in the Agents Window with multi-repo / no-repo config | https://cursor.com/changelog | Cron-like agent automations baked into the IDE | ALREADY SHIPS — `cron/scheduler.py` + multi-platform gateway | — | H |
+| Cursor `[P23]` | May 19 — Jira integration: assign work + trigger cloud agents from tickets | https://cursor.com/changelog | Ticket-to-agent loop | GAP — Hermes kanban covers internal tickets; no Jira gateway plugin | New `plugins/jira/` gateway plugin (mirrors existing `plugins/linear/` pattern if present, or new) | H |
+| Cursor `[P23]` | Composer 2.5 (May 18) — improved sustained-task intelligence + instruction-following (vendor claim) | https://cursor.com/changelog | Long-task coherence | OUT OF SCOPE — proprietary model | — | M |
+| Cursor `[P23]` | Cursor 3.4 (May 13) — full-screen tabs; customizable compactness for chat responses; Dockerfile-configurable multi-repo cloud-agent envs | https://cursor.com/changelog | "Compactness" as a tunable response axis (UX dial alongside output styles) | PARTIAL — Hermes output styles backlog item (T1 #5 family) should include a compactness axis | Add `verbosity:` (concise/normal/verbose) to output-style config | H |
+| Cline `[P23]` | v3.84.0 + CLI v3.0.9-3.0.11 (May 19-22) — SAP AI Core, Poolside, Vertex Gemini Google auth providers; concurrent plugin loading | https://github.com/cline/cline/releases | Steady provider sprawl; concurrent plugin loading speeds cold start | PARTIAL — Hermes `plugins/model-providers/` has wide coverage; plugin loading is sequential | Add concurrent plugin discovery in `agent/plugins/__init__.py`; benchmark startup time | H |
+| Gemini CLI `[P23]` | v0.43-0.44-preview (May 12-22) — agent session invocations + Auto modes merged; subagent protocols; Sublime Text and Emacs Client editors | https://github.com/google-gemini/gemini-cli/releases | Subagent protocol moving toward GA | ALREADY SHIPS (subagents) — `delegate_task`; editor list is IDE territory (out of scope) | — | H |
+| Devin `[P23]` | May 22 — platform defaults, Slack-channel overrides, MCP OAuth improvements, custom automation schedules, GitLab PR reviews | https://docs.devin.ai/release-notes/overview | GitLab parity with GitHub | GAP — Hermes `github_assistant` plugin exists; no GitLab equivalent | New `plugins/gitlab_assistant/` mirroring `github_assistant/` (same MCP-style tool surface) | H |
+| Devin `[P23]` | Windows VM support (May 21 blog) — Devin natively operates in Windows envs | https://cognition.ai/blog | First autonomous agent with native Windows | OUT OF SCOPE — Hermes Termux/Linux/macOS focus is deliberate (Windows users get WSL); revisit only on explicit user demand | — | M |
+| Devin `[P23]` | Auto-Triage (May 18 blog) — monitors for issues, correlates reports, opens PRs | https://cognition.ai/blog | Issue triage as autonomous loop | PARTIAL — Hermes orchestrator can do this with a recipe; no canonical "triage" preset | Add `recipes/triage.yaml` once recipes (T1 #6) lands | M |
+| Devin `[P23]` | Voice recording during agent runs (May 13) | https://docs.devin.ai/release-notes/overview | Voice-narrated sessions | OUT OF SCOPE — Hermes has voice-in; voice-narrated playback is dashboard territory, low priority | — | H |
+| Zed / ACP `[P23]` | Terminal Threads (May 20) — run Claude Code, Amp, or any terminal agent as threads in Zed's sidebar | https://zed.dev/blog | Generic "any terminal agent as a thread" — protocol-neutral host UX | ALREADY ALIGNED — Hermes ACP adapter is the producer side of this pattern; verify Zed Terminal Threads can host Hermes via ACP | Audit `acp_adapter/` against Zed Terminal Threads protocol | H |
+| Zed `[P23]` | Authenticate with ChatGPT subscription directly inside Zed (May 15) | https://zed.dev/blog | Subscription-auth pattern spreading beyond Anthropic Pro | OUT OF SCOPE — host-side auth flow; Hermes' `plugins/model-providers/openai_subscription/` already exists | — | H |
+| Bernstein `[P23]` | Python orchestrator over 40+ CLI coding agents; HMAC-chained audit log; signed agent cards; parallel git-worktree isolation; MCP server mode | https://github.com/sipyourdrink-ltd/bernstein | Compliance-positioned orchestrator (direct competitor to Hermes orchestration stack) | PARTIAL — Hermes has orchestration with decision ledger + worker profiles + worktree isolation (via Phase 7+ work); no HMAC chaining or signed agent cards | (1) Confirm the decision ledger's tamper-evidence story is documented; (2) consider HMAC-chain or Merkle-tree option for the ledger; (3) decide whether "signed agent cards" matters for Hermes' threat model | M |
 
 ---
 
@@ -278,6 +313,23 @@ the full disambiguation.
    keyword / org / global), Continue rules priority, Claude Code skill
    overrides. Hermes activates skills by name and category — a glob/keyword
    tier is missing.
+9. **[P23] Per-category usage accounting.** Claude Code v2.1.149 made
+   `/usage` break costs down by skill, subagent, plugin, and per-MCP-server.
+   Hermes' decision ledger has the raw data; a usage view by primitive
+   is the obvious next surface.
+10. **[P23] Code review as a first-class subagent flow.** Claude Code
+    `/code-review` (effort levels + PR-comment posting) and Goose v1.35.0
+    `local code review` converged in the same week. Hermes has a code-review
+    skill and the `github_assistant` plugin — wiring them into a single slash
+    command with effort levels is one PR.
+11. **[P23] Hooks systems converging.** Goose v1.35.0 shipped an
+    "extensible hooks system," joining Claude Code's existing 25+ event
+    taxonomy. Hermes has hooks; refreshing the event-taxonomy comparison
+    every release cycle is now a recurring chore.
+12. **[P23] Compliance-grade audit logs.** Bernstein launched with
+    HMAC-chained audit and signed agent cards. Hermes' decision ledger
+    is similar in shape but doesn't claim tamper-evidence. Decision point
+    for the security-review skill, not a guaranteed adoption.
 
 ---
 

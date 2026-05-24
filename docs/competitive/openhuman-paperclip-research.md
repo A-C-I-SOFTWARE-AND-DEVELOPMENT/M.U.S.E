@@ -6,9 +6,12 @@ bundles coding tools, Paperclip is an orchestrator that sits **above** other
 coding agents. This document records the disambiguation work so the next
 person doesn't repeat it.
 
-**Date:** 2026-05-23
-**Researcher:** Hermes Agent (general-purpose subagent)
+**Date:** 2026-05-23 (Phase 23 refresh of Phase 21 work from 2026-05-16)
+**Researcher:** Hermes Agent (general-purpose subagent, two-pass verification)
 **Method:** Web search + WebFetch against candidate URLs
+**Phase 23 verdict:** Both products still alive, growing fast, original
+claims hold with two minor drifts on Paperclip (adapter list shift,
+launch date correction). Detail in each section.
 
 ---
 
@@ -28,23 +31,34 @@ agent.
 ### Identity
 
 - **Name:** OpenHuman
-- **Repo:** https://github.com/tinyhumansai/openhuman
+- **Repo:** https://github.com/tinyhumansai/openhuman (26.3k★ as of Phase 23)
 - **Docs:** https://tinyhumans.gitbook.io/openhuman/overview/getting-started
 - **Product Hunt:** https://www.producthunt.com/products/openhuman
-- **Launched:** ~2026-05-12
-- **License:** Open source (per README; specific license not confirmed in
-  this pass)
+- **Launched:** 2026-05-12
+- **Latest release at Phase 23:** v0.54.0 (2026-05-19)
+- **License:** GPL-3.0 (confirmed Phase 23, not stated in Phase 21)
+- **Language mix:** Rust 63.7% + TypeScript 32.2% (Tauri v2 desktop app)
+- **Status flag:** "Early Beta" per README
 
-### Distinctive features (medium confidence on the marketing claims)
+### Distinctive features (Phase 23 — all verified high-confidence unless noted)
 
 | Feature | Source | Confidence |
 |---|---|---|
-| Single Rust binary, local-first runtime | github.com/tinyhumansai/openhuman README | High |
-| "Memory Tree" — SQLite + Obsidian-compatible markdown vault | tinyhumans.gitbook.io/openhuman | High |
-| 118+ OAuth integrations, periodic auto-fetch | github.com/tinyhumansai/openhuman README | Medium |
-| TokenJuice compression (claims ~80% token reduction) | github.com/tinyhumansai/openhuman README | Medium — vendor claim |
-| Voice + desktop mascot, can join Google Meets | github.com/tinyhumansai/openhuman README | Medium |
-| Bundled coder tools (fs/git/lint/test/grep) | github.com/tinyhumansai/openhuman README | Medium |
+| Single Rust binary, Tauri v2 desktop app (mac/Win/Linux) | github.com/tinyhumansai/openhuman README | High |
+| "Memory Tree" — SQLite + Obsidian-compatible markdown vault, ~3k-token chunks with hierarchical summary tree | tinyhumans.gitbook.io/openhuman | High |
+| 118+ OAuth integrations, auto-fetch every 20 minutes per active connection | github.com/tinyhumansai/openhuman README | High |
+| TokenJuice compression: HTML→Markdown + dedupe, claims up to ~80% token reduction | github.com/tinyhumansai/openhuman README | Medium — vendor claim, no independent benchmark |
+| Voice (ElevenLabs TTS + STT) + lip-synced desktop mascot + live Google Meet agent | github.com/tinyhumansai/openhuman README | High |
+| Bundled coder tools (fs/git/lint/test/grep) | github.com/tinyhumansai/openhuman README | High |
+
+### Phase 23 verification deltas
+
+- All Phase 21 claims still hold.
+- License confirmed as GPL-3.0 (Phase 21 had this as unconfirmed).
+- Auto-fetch cadence ("every 20 minutes") added — present in current
+  README, may have been there in Phase 21 but wasn't captured.
+- Repo went from launch (~May 12) to 26.3k★ inside two weeks; treated as
+  competitive signal but doesn't change Hermes-relevance assessment.
 
 ### NOT to be confused with
 
@@ -96,24 +110,47 @@ The Paperclip docs themselves frame it this way:
 ### Identity
 
 - **Name:** Paperclip
-- **Repo:** https://github.com/paperclipai/paperclip
-- **Marketing site:** https://paperclip.ing (note: TLS certificate
-  reported "not yet valid" when fetched during research — consistent with
-  a freshly issued cert on a new domain, but flagged here so future
-  reviewers don't ignore the signal)
+- **Repo:** https://github.com/paperclipai/paperclip (67.3k★ / 12.4k forks
+  as of Phase 23)
+- **Marketing site:** https://paperclip.ing (TLS cert now valid)
 - **AWS Marketplace:** https://aws.amazon.com/marketplace/pp/prodview-bzyfsoqckclmy
-- **Launched:** ~2026-03-04
+  — Ubuntu 24.04 AMI, opens at `localhost:3100`, pre-bundles four runtimes
+  (Claude Code, Codex, OpenCode, OpenClaw)
+- **Launched:** 2026-03-02 (Phase 21 said 03-04; AWS + blog sources are
+  the more authoritative 03-02)
+- **Latest release at Phase 23:** v2026.517.0 (2026-05-17)
 - **License:** MIT (per repo)
+- **Language mix:** TypeScript 97.8%
 
-### Distinctive features
+### Distinctive features (Phase 23)
 
 | Feature | Source | Confidence |
 |---|---|---|
-| Node.js server + React UI, self-hosted, embedded Postgres | github.com/paperclipai/paperclip | High |
-| Adapters for `claude_local`, `codex`, `cursor`, `gemini`, `opencode` + HTTP/webhook bots | github.com/paperclipai/paperclip/blob/master/docs/adapters/claude-local.md | High |
-| Persists Claude Code session IDs across heartbeats; resumes with `--add-dir` skill symlinks | docs/adapters/claude-local.md | High |
-| Org chart / roles / budgets / governance / ticket audit trail | github.com/paperclipai/paperclip; paperclip.ing | High |
-| Multi-company isolation in a single deployment | github.com/paperclipai/paperclip | Medium |
+| Node.js 20+ server + React UI, embedded Postgres (or external) | github.com/paperclipai/paperclip | High |
+| Adapters: OpenClaw, Claude Code, Codex, Bash, HTTP webhooks (headline list); AMI adds OpenCode, Cursor, OpenRouter models | github.com/paperclipai/paperclip README; AWS Marketplace listing | High |
+| Persists Claude Code session IDs between heartbeats; cwd-aware resume; auto-retry on unknown-session; `maxTurnsPerRun` default 300 | docs/adapters/claude-local.md | High |
+| Org chart / roles / budgets / governance / approval gates / ticket audit trail | github.com/paperclipai/paperclip; paperclip.ing | High |
+| Multi-company isolation in a single deployment | github.com/paperclipai/paperclip | High |
+| Task-based atomic execution + runtime skill injection + company export/import | README | Medium |
+
+### Phase 23 verification deltas
+
+- **Adapter list shift.** Phase 21 listed `claude_local, codex, cursor,
+  gemini, opencode`. Current README headline list is **OpenClaw, Claude
+  Code, Codex, Bash, HTTP webhooks**; AWS Marketplace page adds
+  OpenCode, Cursor, OpenRouter. **Gemini is no longer in the headline
+  enumeration** in either surface — searched the repo's README and
+  adapter docs index. Whether it was removed or simply de-emphasized
+  cannot be determined from public sources; flagged as INSUFFICIENT
+  EVIDENCE for the "removed" interpretation.
+- **OpenClaw is now first-class** as a Paperclip-native worker (was
+  external in Phase 21).
+- **AMI now bundles four runtimes** out of the box, which makes Paperclip
+  more of a turnkey appliance than Phase 21's "self-host the Node app"
+  framing implied.
+- **Launch date corrected** 03-04 → 03-02 per AWS Marketplace + jimmysong.io.
+- Tagline still verbatim in README: "If OpenClaw is an _employee_,
+  Paperclip is the _company_."
 
 ### NOT to be confused with
 
@@ -173,13 +210,15 @@ or to the kanban board's existing roles/assignment primitives.
 
 ## Sources
 
-- https://github.com/tinyhumansai/openhuman
+- https://github.com/tinyhumansai/openhuman (Phase 21 + Phase 23)
 - https://tinyhumans.gitbook.io/openhuman/overview/getting-started
 - https://www.producthunt.com/products/openhuman
 - https://knightli.com/en/2026/05/15/openhuman-open-source-personal-ai-agent/ (secondary)
 - https://github.com/OpenHands/OpenHands (the unrelated project)
-- https://github.com/paperclipai/paperclip
+- https://github.com/paperclipai/paperclip (Phase 21 + Phase 23)
 - https://github.com/paperclipai/paperclip/blob/master/docs/adapters/claude-local.md
 - https://paperclip.ing/
 - https://aws.amazon.com/marketplace/pp/prodview-bzyfsoqckclmy
+- https://jimmysong.io/ai/paperclip/ (secondary — Phase 23 addition for
+  launch-date cross-check)
 - https://github.com/fredruss/agent-paperclip (separate small project)
