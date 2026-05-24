@@ -1004,9 +1004,28 @@ def skill_view(
                     _record(found_skill_md.parent, found_skill_md)
 
             # Strategy 3: legacy flat <name>.md files anywhere under the dir.
+            # Recovered registry stubs can share names with real bundled skills
+            # (for example AOS snapshots of kanban-codex-lane). Those stubs are
+            # historical references, not loadable skill files, so do not count
+            # them as collision candidates for bare skill lookup.
             for found_md in search_dir.rglob(f"{name}.md"):
-                if found_md.name != "SKILL.md":
-                    _record(None, found_md)
+                if found_md.name == "SKILL.md":
+                    continue
+                if any(part in _EXCLUDED_SKILL_DIRS for part in found_md.parts):
+                    continue
+                try:
+                    frontmatter, _ = _parse_frontmatter(
+                        found_md.read_text(encoding="utf-8")[:4000]
+                    )
+                except Exception:
+                    frontmatter = {}
+                if (
+                    frontmatter.get("recovery_label")
+                    or frontmatter.get("canonical_source")
+                    or frontmatter.get("bucket")
+                ):
+                    continue
+                _record(None, found_md)
 
         if len(candidates) > 1:
             paths = [str(smd) for _, smd in candidates]
