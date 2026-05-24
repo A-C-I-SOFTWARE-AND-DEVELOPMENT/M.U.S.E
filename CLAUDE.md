@@ -113,3 +113,20 @@ If you're stuck, check in this order:
    output attached.
 
 Welcome aboard.
+
+## AOS Enterprise Council pack (installed 2026-05-24)
+
+A complete autonomous-enterprise smart team is available as a Hermes
+skill at `skills/aos-enterprise-council/`. When the user asks for
+"audit repo", "build the app", "enterprise hardening", "launch
+readiness", "improve the product", "use the AOS team", "activate the
+council", "psychology audit", "Claude/Codex orchestration", "HazMat
+Command review", or "Nourish review", load that skill first.
+
+The pack contains 233 registered top-level agents + 108 sub-agents,
+grouped into 18 category folders under `agents/`. The 5 registry
+files in `skills/aos-enterprise-council/registry/` are the source of
+truth — never improvise a council member that isn't in the registry.
+
+The full recovery narrative + Termux install commands live at the
+repo root: `AOS_AGENT_RECOVERY_REPORT.md` and `AOS_INSTALLATION_REPORT.md`.
