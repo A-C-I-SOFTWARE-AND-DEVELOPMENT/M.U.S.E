@@ -75,3 +75,26 @@ For major tasks, produce:
 Prefer adding AOS/Council capability as repo-native docs, skills, Claude agents, commands, and optional plugins rather than hardcoding fragile behavior into Hermes core.
 
 If implementation requires tool changes, follow `AGENTS.md`: create the tool implementation, register it with the registry, and expose it through the correct toolset. If implementation can live as a skill or plugin, prefer that path first.
+
+## AOS Enterprise Council Pack (installed 2026-05-24)
+
+The AOS Recovery pass installed a Hermes-loadable enterprise council
+pack at `skills/aos-enterprise-council/`. It is the bench
+implementation for the agents named in the "Project Agents" section
+above, plus the broader 233-agent registered surface recovered from
+the hazmat-command + hermes-agent sister repos (233 top-level agents,
+108 sub-agents, 18 category folders, 7 path-scoped rules, 22
+templates, 12 workflows, 5 copy-paste prompts).
+
+Load it via any of: "audit repo", "build the app", "enterprise
+hardening", "launch readiness", "improve the product", "use the AOS
+team", "activate the council", "psychology audit", "ux audit",
+"Claude/Codex orchestration", "HazMat Command review", "Nourish
+review" — or explicitly with `/aos-enterprise-council <goal>`.
+
+The 5 registry files are the source of truth — never improvise a
+council member that isn't in
+`skills/aos-enterprise-council/registry/AOS_AGENT_REGISTRY_COMPLETE.md`.
+
+Recovery narrative + Termux install commands at the repo root:
+`AOS_AGENT_RECOVERY_REPORT.md` and `AOS_INSTALLATION_REPORT.md`.
