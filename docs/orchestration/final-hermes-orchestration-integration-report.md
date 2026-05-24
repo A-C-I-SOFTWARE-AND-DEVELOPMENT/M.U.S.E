@@ -1,85 +1,70 @@
 # Hermes Orchestration — Final Integration Report
 
-> **Document status:** Phase 10 synthesis. This is the consolidated
-> roadmap-plus-status document for the Hermes orchestration build. It is
-> a planning artifact: it inventories what is *already shipping in
-> `main`*, what is *designed but not yet implemented*, and exactly which
-> PR should land next.
+> **Document status:** Phase 10 synthesis. Documentation-only deliverable.
+> Audits every Phase 0–9 artifact actually present on this branch, names
+> what is shipping behavior vs. what is still a placeholder, and points to
+> the single next implementation PR that ties them together end-to-end.
 >
-> Where prior phases (0–9) reference design documents that have not yet
-> been committed to this repository (`docs/orchestration/phase-0-…`,
-> `docs/ai-intelligence/…`, `docs/competitive/…`, `docs/mission/…`),
-> those documents are listed under **Known limitations** and rolled into
-> the next-phase prompt. This report stands on its own as the canonical
-> entry point.
+> This report supersedes the earlier Phase 10 draft, which incorrectly
+> claimed several Phase 0–9 documents had not landed. They have. The
+> "Known limitations" section now lists *real* gaps, not missing-doc
+> placeholders.
 
 ---
 
 ## 1. Executive verdict
 
-Hermes already ships the load-bearing primitives for a private,
-multi-worker orchestrator:
+Hermes ships the load-bearing primitives for a private, multi-worker
+coding orchestrator, and the documentation backbone for every adjacent
+policy concern (model routing, decision quality, AI radar, competitive
+harvest, north-star mission). The unifying *Job Controller* command
+surface (`hermes orchestrate …`, `/decision-ledger`, `/model-router
+explain`, `/ai-radar update`, `/best-coding-tool-mission status`) is
+wired into the CLI and the gateway slash-command registry today.
 
-- A **Kanban dispatcher** with worker lifecycle, sticky blocks, and
-  decomposition rules (`plugins/kanban/`, `hermes_cli/kanban*.py`,
-  `skills/devops/kanban-orchestrator`, `skills/devops/kanban-worker`).
-- A **multi-agent council runtime** with planning, dispatch, judging,
-  audit, and escalation policy (`enterprise/council.py`,
-  `enterprise/judge.py`, `enterprise/audit.py`, `enterprise/policy.py`,
-  `skills/enterprise-council/*`).
-- A **codex-as-lane convention** so a Hermes worker can delegate
-  bounded implementation to an external coding agent without giving up
-  task ownership (`skills/autonomous-ai-agents/kanban-codex-lane`).
-- A **worker-adapter skill set** for the three external coding agents
-  Hermes routes to today (`skills/autonomous-ai-agents/claude-code`,
-  `…/codex`, `…/opencode`).
-- A **cron scheduler + webhook subscription** stack so jobs can be
-  triggered on schedule or by external events
-  (`hermes_cli/cron.py`, `hermes_cli/webhook.py`,
-  `skills/devops/webhook-subscriptions`).
-- A **private-local Android cockpit** that runs as a foreground
-  service, never calls provider APIs directly, never scrapes
-  credentials, and hands off via clipboard + deep links
-  (`apps/android/`, `docs/hermes-local-orchestrator.md`).
-- A **first-class GitHub plugin** with allowlists, write gates, and
-  token redaction (`plugins/github_assistant/`,
-  `docs/github-integration.md`).
+What is **not** yet end-to-end automatic:
 
-What is **not yet built and is the subject of the next PR**:
+- The model router (`/model-router explain`) currently applies a small
+  hard-coded keyword table; it does not yet read
+  `docs/ai-intelligence/model-registry.yaml` or the per-worker capability
+  matrix.
+- The decision ledger is persisted as a single JSON file under
+  `~/.hermes/orchestrator/decision_ledger.json`; the SQLite schema
+  documented in `docs/orchestration/decision-ledger.md` and
+  `docs/orchestration/decision-quality-system.md` is not in force yet.
+- The AI improvement radar's `/ai-radar update` writes a placeholder
+  snapshot. The real fetch-and-summarise pipeline is the
+  `/ai-improvement-radar` skill plus `scripts/hermes-ai-radar.sh`, both
+  of which are user-triggered rather than automatic.
+- The competitive feature harvester ships as a documented skill
+  (`skills/competitive-feature-harvester/`) and two committed research
+  artifacts (`docs/competitive/*`). It is not yet a scheduled refresh
+  loop.
+- The orchestrator deliberately stops at "queued" / "scaffolded" and
+  surfaces a hand-off message rather than executing workers. This is by
+  design — the local-orchestrator contract
+  (`docs/hermes-local-orchestrator.md`) keeps the operator in the loop.
+- The Android cockpit has its HTTP/WebSocket API surface implemented
+  (`hermes_cli/orchestrator_api.py`, `docs/orchestration/local-api-backend.md`)
+  but the Kotlin app does not yet render a Jobs / Decision Ledger /
+  Radar Proposals UI on top of it.
 
-- A first-class `hermes orchestrate` CLI entry point that ties Kanban,
-  the council runtime, the codex/claude-code/opencode lanes, and the
-  Android cockpit together as one job-controller interface.
-- A formal **model registry + routing policy** (currently expressed
-  implicitly through `hermes model`, `cli.py` provider switching, and
-  per-skill model hints).
-- A persistent **decision ledger** (currently implicit in
-  `enterprise/audit.py` audit rows and Kanban heartbeats).
-- An **AI-improvement radar** that reads recent runs and proposes
-  skill/prompt/model adjustments — `skills/enterprise-council/monitor`
-  is the precursor.
-- A **competitive feature harvester** that tracks Claude Code,
-  Codex, OpenCode, OpenHuman, Paperclip, and other coding agents and
-  surfaces parity gaps.
-- The **Android APK cockpit UX** for queuing, monitoring, and
-  approving orchestrated jobs (today the app is a chat client + manual
-  handoff dashboard).
-
-The verdict: **the primitives exist and are production-quality; the
-unifying job-controller surface is the next PR.**
+**Verdict:** Phases 0–9 collectively produced a complete, documented,
+test-covered orchestration substrate. The next PR's job is to wire the
+existing `/model-router`, `/decision-ledger`, and `/ai-radar` surfaces
+to the artefacts they already document — not to invent new ones.
 
 ---
 
 ## 2. What was added (Phase 10)
 
-Phase 10 is documentation-only by design. The deliverables landing in
+Phase 10 is documentation-only by brief. The deliverables landing in
 this PR are:
 
 | Path | Purpose |
 |---|---|
-| `docs/orchestration/final-hermes-orchestration-integration-report.md` | This file. Canonical synthesis of the orchestration build. |
+| `docs/orchestration/final-hermes-orchestration-integration-report.md` | This file. Canonical synthesis of the Phase 0–9 build state. |
 | `docs/orchestration/NEXT_PHASE_IMPLEMENTATION_PROMPT.md` | The exact copy/paste Claude Code prompt for the next PR. |
-| `scripts/hermes-orchestrate.sh` | Documentation-stub entry point. Prints status and links to the integration report and next-phase prompt. Replaced by a real implementation in the next PR. |
 
 No production code paths were modified.
 
@@ -87,243 +72,354 @@ No production code paths were modified.
 
 ## 3. What was updated (Phase 10)
 
-Nothing. Per the phase brief: "do not add large new features. Only fix
-small documentation consistency issues if discovered." No such issues
-were uncovered during this pass that warranted blocking the report.
+The previous Phase 10 report was replaced in place because it claimed
+the Phase 0–9 design docs and several skills did not exist on this
+branch. They do, and the new report inventories them accurately. No
+other content changes were made.
 
 ---
 
 ## 4. Agents converted into Hermes skills (already in `main`)
 
-The following external coding agents are reachable from Hermes as
-first-class skills today:
+### 4.1 AoS Council (Phase 03)
 
-| Skill | Description | Path |
+Sixteen specialist agents are reachable as first-class skills, with the
+canonical map in
+[`docs/orchestration/hermes-agent-skill-map.md`](./hermes-agent-skill-map.md):
+
+| Skill | Slash command | Path |
 |---|---|---|
-| `claude-code` | Delegate to Anthropic's Claude Code CLI. | `skills/autonomous-ai-agents/claude-code/SKILL.md` |
-| `codex` | Delegate to OpenAI's Codex CLI. | `skills/autonomous-ai-agents/codex/SKILL.md` |
-| `opencode` | Delegate to OpenCode (community OSS coding agent). | `skills/autonomous-ai-agents/opencode/SKILL.md` |
-| `kanban-codex-lane` | Hermes-owned Kanban worker that uses Codex as a bounded implementation lane. | `skills/autonomous-ai-agents/kanban-codex-lane/SKILL.md` |
-| `hermes-agent` | Self-referential skill — how to configure, extend, or contribute to Hermes itself. | `skills/autonomous-ai-agents/hermes-agent/SKILL.md` |
+| `aos-full-agent-team` | `/aos-full-agent-team` | `skills/aos-full-agent-team/SKILL.md` |
+| `aos-council-director` | `/aos-council-director` | `skills/aos-council-director/SKILL.md` |
+| `evidence-architect` | `/evidence-architect` | `skills/evidence-architect/SKILL.md` |
+| `principal-systems-architect` | `/principal-systems-architect` | `skills/principal-systems-architect/SKILL.md` |
+| `product-experience-architect` | `/product-experience-architect` | `skills/product-experience-architect/SKILL.md` |
+| `commercial-strategist` | `/commercial-strategist` | `skills/commercial-strategist/SKILL.md` |
+| `assurance-risk-director` | `/assurance-risk-director` | `skills/assurance-risk-director/SKILL.md` |
+| `delivery-scope-controller` | `/delivery-scope-controller` | `skills/delivery-scope-controller/SKILL.md` |
+| `contrarian-reviewer` (+ `contrarian-red-flag-analyst` alias) | `/contrarian-reviewer` | `skills/contrarian-reviewer/SKILL.md` |
+| `codex-dispatch-governor` | `/codex-dispatch-governor` | `skills/codex-dispatch-governor/SKILL.md` |
+| `model-router` | `/model-router` | `skills/model-router/SKILL.md` |
+| `github-publisher` | `/github-publisher` | `skills/github-publisher/SKILL.md` |
+| `developer-ux-command-center` | `/developer-ux-command-center` | `skills/developer-ux-command-center/SKILL.md` |
+| `decision-quality-gate` | `/decision-quality-gate` | `skills/decision-quality-gate/SKILL.md` |
+| `research-validator` | `/research-validator` | `skills/research-validator/SKILL.md` |
+| `self-improvement-loop` | `/self-improvement-loop` | `skills/self-improvement-loop/SKILL.md` |
+| `ai-improvement-radar` | `/ai-improvement-radar` | `skills/ai-improvement-radar/SKILL.md` |
 
-These skills are the worker side of the orchestration; the
-**orchestrator** side is split across:
+### 4.2 External coding-agent adapters
 
-| Skill | Description | Path |
-|---|---|---|
-| `kanban-orchestrator` | Decomposition playbook and anti-temptation rules for the orchestrator profile. | `skills/devops/kanban-orchestrator/SKILL.md` |
-| `kanban-worker` | Pitfalls, examples, and edge cases for Kanban workers. | `skills/devops/kanban-worker/SKILL.md` |
-| `enterprise-orchestrator` | One-tap goal decomposition for the enterprise council. | `skills/enterprise-council/orchestrator/SKILL.md` |
-| `enterprise-judge` | Per-step judge for council outputs. | `skills/enterprise-council/judge/SKILL.md` |
-| `enterprise-monitor` | Post-run reviewer that proposes improvements (AI-improvement radar precursor). | `skills/enterprise-council/monitor/SKILL.md` |
+The worker-adapter contract documented in
+[`docs/orchestration/worker-adapter-interface.md`](./worker-adapter-interface.md)
+is realised as five concrete adapters under `hermes_cli/workers/`:
 
-The five **leaf domain agents** under `skills/enterprise-council/`
-(`sales`, `finance`, `hr`, `customer-service`, `operations`) are the
-canonical example of "an agent expressed as a Hermes skill with a typed
-contract to a runtime."
+| Adapter | Path |
+|---|---|
+| `claude_code` | `hermes_cli/workers/claude_code.py` |
+| `codex` | `hermes_cli/workers/codex.py` |
+| `aider` | `hermes_cli/workers/aider.py` |
+| `goose` | `hermes_cli/workers/goose.py` |
+| `chatgpt_handoff` | `hermes_cli/workers/chatgpt_handoff.py` |
+| `hermes_local` | `hermes_cli/workers/hermes_local.py` |
+
+`hermes_cli/workers/base.py` defines the `WorkerAdapter` ABC plus the
+five result records (`WorkerDetection`, `WorkerPrompt`, `WorkerRunResult`,
+`WorkerArtifacts`, `WorkerScore`). `hermes_cli/workers/registry.py`
+exposes `register` / `get` / `known_workers` so adapters self-register
+at import time.
+
+### 4.3 Enterprise Council (pre-existing)
+
+`skills/enterprise-council/` still ships the eight-role demonstrator
+(`orchestrator`, `judge`, `monitor`, plus the five leaf domain skills
+`sales`, `finance`, `hr`, `customer-service`, `operations`). It is the
+canonical worked example of "an agent expressed as a Hermes skill with
+a typed contract to a runtime."
 
 ---
 
-## 5. New Hermes skills (Phase 10 roadmap)
+## 5. New Hermes skills (Phase 10 inventory)
 
-The next-PR prompt provisions the following new skills:
+The following orchestration-adjacent skills are committed and discoverable
+under `skills/<name>/SKILL.md`:
 
-| Skill | Purpose |
+| Skill | One-line purpose |
 |---|---|
-| `hermes-orchestrate` | Top-level skill that drives `hermes orchestrate …` job submission, lane selection, and follow-up. |
-| `model-router` | Apply the model-registry routing policy to a candidate task. |
-| `decision-ledger` | Append, query, and replay decisions from the orchestrator's persistent ledger. |
-| `ai-improvement-radar` | Scan the ledger + recent audit trail and propose skill / prompt / model adjustments. |
-| `competitive-feature-harvester` | Refresh `docs/competitive/*.md` with the latest deltas from peer coding agents. |
-| `android-cockpit-bridge` | Documented contract between the Android app and the orchestrator HTTP surface. |
+| `hermes-orchestration-pipeline` | Phase-02 job-folder contract; defines what each worker can read/write under `.hermes-orchestrator/jobs/<id>/`. |
+| `model-router` | Pick a worker/model mix per task, considering availability, quality, cost, speed, validation. |
+| `decision-quality-gate` | Force a visible decision ledger before non-trivial actions. |
+| `research-validator` | Fact-check claims against cited sources. |
+| `self-improvement-loop` | Close every job with a learning pass (proposals only — never auto-applies). |
+| `ai-improvement-radar` | Track external coding-agent improvements and propose routing-policy updates. |
+| `competitive-feature-harvester` | Harvest competitor agent features into a Hermes backlog. |
+| `best-coding-tool-mission` | Anchor every job to the "delivered, validated, accepted" success gate. |
+| `local-quality-gate` | Run local validation gates against a workspace before publishing. |
+| `github-publisher` | Promote a job's `github/` artifacts into a real branch + PR. |
+| `delivery-scope-controller` | Own scope, sequencing, delivery shape, slip signals. |
+| `developer-ux-command-center` | Own developer ergonomics across CLI, TUI, gateway, slash, docs. |
 
-None of these are committed in Phase 10.
+Phase 10 adds no new skills; the inventory above reflects what is
+already on disk.
 
 ---
 
 ## 6. How to invoke inside Hermes
 
-### Today (already works)
+### 6.1 Shipping today
 
 ```bash
-# Interactive CLI
-hermes
+# Foundation scaffold — creates the .hermes-orchestrator/jobs/<id>/ tree
+# (job.json, mission.md, decision-ledger.md, shared-context/, workers/,
+# merge/, github/, logs/). No external model tool is invoked.
+bash scripts/hermes-orchestrate.sh "Refactor the gateway config loader"
+bash scripts/hermes-orchestrate.sh --list
+bash scripts/hermes-orchestrate.sh --status <job-id>
 
-# Kanban-driven orchestration (existing)
-hermes kanban create "<goal>"
-hermes kanban dispatch
-hermes kanban status
+# Native CLI / gateway slash commands (Phase 16)
+/orchestrate <prompt>                # queue a local orchestrator job
+/orchestrator status [<job-id>]      # list active jobs or one job's detail
+/orchestrator list                   # all known jobs
+/orchestrator open <job-id>          # print job detail
+/orchestrator resume <job-id>        # mark a paused/failed job runnable
+/orchestrator publish <job-id>       # mark a succeeded job published
+/decision-ledger show [<job-id>]     # print ledger entries
+/model-router explain <prompt>       # show which route the router would pick
+/ai-radar update                     # refresh the local radar snapshot
+/best-coding-tool-mission status     # print mission metrics + next actions
 
-# Council-driven orchestration (existing, programmatic only)
-python -c "from enterprise.council import plan, dispatch; …"
+# Existing primitives the orchestrator builds on
+hermes kanban create "<goal>" / dispatch / status
+hermes cron create "<cron>" "<prompt>" --skills <csv> --deliver <channel>
+hermes webhook subscribe <name> --events <csv> --prompt "<…>"
 
-# Scheduled / event-driven
-hermes cron create "0 9 * * 1" "<prompt>" --skills "<csv>" --deliver telegram
-hermes webhook subscribe <name> --events "<csv>" --prompt "<…>"
+# External-agent skills loaded into any Hermes session
+/claude-code  /codex  /opencode  /kanban-codex-lane
 
-# External coding agents from a Hermes session
-/<skill>            # e.g. /claude-code, /codex, /opencode, /kanban-codex-lane
+# Radar review hook (user-triggered, never autonomous)
+bash scripts/hermes-ai-radar.sh [--tools claude-code,codex,aider]
 
 # Android cockpit
 adb install -r apps/android/app/build/outputs/apk/debug/app-debug.apk
-# then point at your gateway, or run in mock mode
+# Local orchestrator HTTP/WS surface: see docs/orchestration/local-api-backend.md
 ```
 
-### Next PR (designed, not yet built)
+### 6.2 Next PR (designed, not yet wired)
 
 ```bash
-# Single one-tap entry point
-hermes orchestrate "<goal>" [--lane kanban|council|direct]
-                            [--worker claude-code|codex|opencode|hermes]
-                            [--ledger]
-                            [--dry-run]
+# After the next PR, /model-router explain reads model-registry.yaml +
+# tool-capability-matrix.md and emits an ordered candidate list with a
+# justification string rather than a single keyword route.
+/model-router explain <prompt>
 
-# Wrapper for the same thing from any shell or from the Android app
-scripts/hermes-orchestrate.sh "<goal>"
+# After the next PR, the decision ledger is SQLite-backed under
+# ~/.hermes/state.sqlite with append-only invariants and a replay
+# command. The JSON file becomes a read-only legacy export.
+/decision-ledger show <job-id>
+/decision-ledger replay <decision-id>
+
+# After the next PR, --trusted-local jobs may execute the selected
+# worker adapter end-to-end rather than stopping at "scaffolded".
+hermes orchestrate "<goal>" --trusted-local
 ```
 
-The current `scripts/hermes-orchestrate.sh` in this PR is a
-documentation stub; the next PR replaces it with a real shim that
-forwards to `python -m hermes_cli.orchestrator`.
+The `scripts/hermes-orchestrate.sh` shipping today is the Phase 02
+foundation scaffold (~478 lines). It owns the job-folder contract; the
+controller that drives workers against that contract is the work the
+next PR connects up.
 
 ---
 
-## 7. Model-router behavior (design)
+## 7. Model-router behavior
 
-A first-class model router does not exist yet. Today, model selection
-is done by:
+### Today
 
-- `hermes model` interactive switcher (`hermes_cli/model_switch.py`,
-  `hermes_cli/models.py`).
-- `cli.py` provider/model routing per conversation.
-- Per-skill `model:` hints in skill frontmatter where present.
-- Kanban dispatcher per-profile model assignments.
+`hermes_cli/orchestrator.py:model_router_explain` ships a deterministic
+keyword-to-profile table covering seven task verbs (`review`, `debug`,
+`refactor`, `design`, `plan`, `test`, `doc`). Output:
 
-**Target shape** (next PR):
+```python
+{"route": "<profile>", "rationale": "<sentence>", "matched_keywords": [...]}
+```
 
-1. `docs/ai-intelligence/model-registry.yaml` — the source of truth.
-   Keyed by canonical model id (`anthropic:claude-sonnet-4-6`,
-   `openai:gpt-…`, `openrouter:…`, `local:llama.cpp:…`), with fields
-   for `context_window`, `tools`, `vision`, `latency_class`,
-   `cost_class`, `privacy_class`, and `provider_terms_class`.
-2. `docs/ai-intelligence/model-routing-policy.md` — the rules. Inputs:
-   task type, latency budget, cost ceiling, privacy posture, tool
-   requirements. Output: ordered candidate list with fallback chain.
-3. `hermes_cli/model_router.py` — pure function that consumes a
-   `RouteRequest` and returns a `RouteDecision`. No I/O, deterministic,
-   unit-tested.
-4. The router is invoked by `hermes orchestrate` *and* by Kanban
-   dispatch *and* by the council runtime — three callers, one policy.
+This is intentionally explain-only — it never flips the live model. Use
+`/model` for that.
 
----
+### The policy that exists on paper
 
-## 8. Decision-ledger behavior (design)
+[`docs/ai-intelligence/model-registry.yaml`](../ai-intelligence/model-registry.yaml)
+catalogs eight workers (`hermes-local`, `codex`, `claude-code`, `aider`,
+`goose`, `chatgpt-handoff`, `local-model`, `github-publisher`) with
+`strengths`, `best_for`, `detection`, `run_mode`, quality/speed/cost
+tiers, and explicit fallback chains.
 
-A persistent decision ledger does not exist as a standalone artifact
-yet. The closest things in `main`:
+[`docs/ai-intelligence/model-routing-policy.md`](../ai-intelligence/model-routing-policy.md)
+specifies the deterministic inputs (`task`, `task_type`, `evidence`,
+`workspace`, `available_workers`, `user_preferences`), the canonical
+task-type taxonomy (13 types), and the scoring rules.
 
-- `enterprise/audit.py` — append-only audit rows for council runs.
-- Kanban DB heartbeats and state transitions
-  (`hermes_cli/kanban_db.py`).
-- Session DB (`hermes_state.py`) with FTS5 search and LLM-summarized
-  recall.
+[`docs/ai-intelligence/tool-capability-matrix.md`](../ai-intelligence/tool-capability-matrix.md)
+pins 14 capability columns per worker (`read_files`, `write_files`,
+`run_terminal`, `run_tests`, `multi_file_refactor`, `long_context_review`,
+`architecture`, `network_fetch`, `github_read`, `github_write`,
+`persistent_memory`, `offline_capable`, `redaction_safe`,
+`validation_local`).
 
-**Target shape** (next PR):
+### Gap
 
-1. SQLite table `decisions(id, ts, actor, goal, lane, worker, model,
-   policy_version, inputs_hash, outputs_hash, judge_verdict,
-   followups_jsonl)` — append-only, never updated in place.
-2. CLI surface: `hermes decisions list`, `hermes decisions show <id>`,
-   `hermes decisions replay <id>`.
-3. The ledger is the substrate the AI-improvement radar reads from.
-4. Privacy: ledger stays local. No remote sync. No telemetry.
+The runtime router does not yet read those three files. Wiring them is
+the first concrete task in the next-phase prompt.
 
 ---
 
-## 9. AI-improvement radar behavior (design)
+## 8. Decision-ledger behavior
 
-`skills/enterprise-council/monitor/SKILL.md` is the precursor: it
-defines the role of a post-run reviewer that scans the audit trail and
-hands improvement candidates to the curator. The radar formalizes
-this:
+### Today
 
-1. Cron-triggered (e.g. weekly) `hermes orchestrate --improve` run.
-2. Reads the decision ledger and recent audit rows.
-3. Emits **proposals** (skill version bumps, prompt edits, model
-   re-routes, new worker adapters to try), never auto-applies them.
-4. Writes proposals to a human-reviewed queue (file or Kanban lane).
-5. Curator skill (`/curator`, see `hermes_cli/curator.py`) is the only
-   thing that can promote a proposal into a skill/repo change.
+`hermes_cli/orchestrator.py` persists ledger entries to
+`~/.hermes/orchestrator/decision_ledger.json` as a flat
+`{job_id: [entry, …]}` map. `_append_ledger` is the only writer;
+`get_ledger` and `/decision-ledger show` are the readers.
+
+Entries are appended automatically for `submit_job`, `resume_job`, and
+`publish_job` lifecycle transitions.
+
+### The contract that exists on paper
+
+[`docs/orchestration/decision-ledger.md`](./decision-ledger.md) defines
+the canonical *markdown* ledger template (Decision, Context, Evidence
+Reviewed, Options Considered, Model/Worker Choice, Validation Plan,
+Final Decision, Rollback). Tooling — the enterprise Judge, the curator,
+ledger search — parses against those headings.
+
+[`docs/orchestration/decision-quality-system.md`](./decision-quality-system.md)
+specifies *when* a ledger is required (multi-step actions, irreversible
+or expensive actions, model/worker selection, cross-session continuation)
+and *how* the surrounding skills validate it.
+
+### Gap
+
+The runtime ledger is a JSON state file; the documented system expects
+per-decision markdown artefacts plus an append-only SQLite index. The
+next PR introduces:
+
+1. A `decisions` table under `~/.hermes/state.sqlite` (`id`, `ts`,
+   `actor`, `goal`, `lane`, `worker`, `model`, `policy_version`,
+   `inputs_hash`, `outputs_hash`, `judge_verdict`, `followups_jsonl`).
+2. Append-only invariant + `replay(id)` semantics (replay re-computes
+   what the router *would* now pick, without re-running the worker).
+3. A migration from the legacy JSON file.
 
 ---
 
-## 10. Competitive feature harvester behavior (design)
+## 9. AI-improvement radar behavior
 
-A docs-only skill that periodically refreshes
-`docs/competitive/*.md` with the latest deltas from peer coding
-agents. Inputs: docs URLs, changelogs, release notes, blog posts, the
-agent's own CLI `--help`. Outputs: a markdown table of feature
-differences with confidence per row.
+### Today
 
-The skill must not auto-PR competitive parity work — it surfaces, the
-operator decides.
+Three artifacts collaborate:
 
-`hermes-already-has-routines.md` (already in the repo) is an example
-of the format the harvester should produce.
+1. [`docs/ai-intelligence/ai-improvement-radar.md`](../ai-intelligence/ai-improvement-radar.md)
+   — the narrative companion: who is tracked (Claude Code, Codex, Aider,
+   Goose, Continue, OpenHands, Gemini/Jules/Antigravity, OpenClaw-style
+   personal agents), what sources count (official release notes, official
+   docs, official repos, vendor engineering posts), what is excluded
+   (social-media threads, unverified benchmarks, leaks).
+2. [`skills/ai-improvement-radar/SKILL.md`](../../skills/ai-improvement-radar/SKILL.md)
+   — the operational skill invoked via `/ai-improvement-radar`.
+3. `scripts/hermes-ai-radar.sh` — the local review hook. Creates
+   `.hermes-orchestrator/ai-radar/<ts>-request.json`, then tells the
+   user to run `/ai-improvement-radar` inside Hermes.
+
+`hermes_cli/orchestrator.py:ai_radar_update` exposes
+`/ai-radar update` and `/ai-radar status` at the CLI; today these
+stamp/read a placeholder JSON snapshot.
+
+### Gap
+
+The radar is **user-triggered, not autonomous** by deliberate policy
+(see §59-71 of `ai-improvement-radar.md`). The next PR's only radar
+work is to teach `/ai-radar update` to invoke the
+`/ai-improvement-radar` skill against the registered tools list. No
+cron, no auto-PR.
+
+---
+
+## 10. Competitive feature harvester behavior
+
+### Today
+
+- [`skills/competitive-feature-harvester/SKILL.md`](../../skills/competitive-feature-harvester/SKILL.md)
+  — operator-driven workflow for refreshing the harvest.
+- [`docs/competitive/developer-agent-feature-harvest.md`](../competitive/developer-agent-feature-harvest.md)
+  (297 lines) — verified Phase 21 survey covering Claude Code, Codex,
+  Aider, OpenHands, Continue, Goose, OpenHuman, Paperclip, and twelve
+  adjacent agents. Method, source-confidence labels (H/M/L), and an
+  explicit Hermes-baseline-vs-competitors table.
+- [`docs/competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md)
+  (185 lines) — disambiguation work for the two products whose identity
+  was ambiguous in the Phase 10 brief.
+
+### Gap
+
+The harvester is a skill plus two committed reports; there is no
+scheduled refresh. The next PR may add a `hermes cron`-friendly
+prompt template, but a real refresh stays operator-triggered.
 
 ---
 
 ## 11. OpenHuman / Paperclip findings and confidence
 
-Neither `docs/competitive/openhuman-paperclip-research.md` nor any
-prior phase artifact exists in this branch. From open public sources
-the unverified position is:
+The full research lives in
+[`docs/competitive/openhuman-paperclip-research.md`](../competitive/openhuman-paperclip-research.md).
+Summary:
 
-- **OpenHuman** appears to be a multi-agent coordination project
-  emphasising long-horizon planning. Confidence: **low** — public
-  surface is small and the name collides with multiple unrelated
-  projects. The next-PR harvester must verify the canonical project
-  URL before any parity claim is made.
-- **Paperclip** appears to be a research/utility coding agent or
-  paperclip-maximiser themed evaluation harness, depending on the
-  origin. Confidence: **low** for the same disambiguation reason.
+| Question | Answer | Confidence |
+|---|---|---|
+| Does "OpenHuman" refer to `tinyhumansai/openhuman`? | Yes | High |
+| Is OpenHuman a coding-agent competitor? | No — adjacent personal-AI runtime | High |
+| Does "Paperclip" refer to `paperclipai/paperclip`? | Yes | High |
+| Is Paperclip a coding-agent competitor? | No — orchestrator above other coding agents | High |
+| Are the feature lists complete? | No — only the loudest features | Medium |
+| Should Hermes copy any feature wholesale? | No — selectively (see relevance notes) | High |
 
-The next-PR harvester is responsible for resolving both ambiguities
-and producing `docs/competitive/openhuman-paperclip-research.md` with
-named URLs, dated snapshots, and a parity table. Until then, no claim
-about feature deltas in this report should be relied on.
+Relevance to Hermes (verbatim from the research doc):
+
+- From OpenHuman, two ideas to evaluate if their efficacy is real: an
+  Obsidian-compatible markdown vault as a memory plugin, and
+  TokenJuice-style compression compared against Hermes' existing
+  `trajectory_compressor.py`.
+- From Paperclip, two ideas worth borrowing: a formal adapter contract
+  for external coding agents (already partly realised by
+  `hermes_cli/workers/`), and persistent session-ID resume across
+  heartbeats (which Hermes' kanban worker does not yet do).
+
+Everything else (Rust binary, mascot, 118 OAuth integrations, org-chart
+metaphor, AWS Marketplace listing) is orthogonal to Hermes' Python-first,
+gateway-driven design.
 
 ---
 
 ## 12. Android APK cockpit UX requirements
 
-Today (`apps/android/`, `docs/hermes-local-orchestrator.md`,
-`apps/android/docs/ARCHITECTURE.md`):
+### Today
 
-- Foreground-service-backed dashboard, MVVM, Material 3.
-- Three runtime modes: remote gateway, local Termux gateway, mock.
-- Manual handoff via clipboard + deep links — no automated provider
-  API calls, no credential scraping, no in-app billing.
-- No queue UI for orchestrated jobs; no per-worker status; no judge
-  output rendering.
+`apps/android/` ships a foreground-service-backed dashboard, MVVM,
+Material 3, with three runtime modes (remote gateway, local Termux
+gateway, mock). Manual handoff via clipboard + deep links. No
+automated provider API calls, no credential scraping, no in-app billing.
 
-**Required for the orchestration cockpit** (next PR will document the
-API surface; full UI work is a follow-on PR):
+The local orchestrator backend the app talks to is real:
+[`hermes_cli/orchestrator_api.py`](../../hermes_cli/orchestrator_api.py)
+(541 LOC) exposes the HTTP / WebSocket control plane;
+[`docs/orchestration/local-api-backend.md`](./local-api-backend.md)
+documents the contract.
 
-1. A **Jobs** tab listing `hermes orchestrate` submissions with their
-   lane, worker, model, current state, and last heartbeat.
-2. A **Decision Ledger** tab (read-only) backed by the
-   `hermes decisions` endpoint.
-3. A **Radar Proposals** queue with approve/dismiss actions that round-trip
-   to the curator on the gateway side.
-4. **Approval prompts** for any worker step the policy gate flags as
-   high-risk — pushed to the device as a notification with two
-   buttons.
-5. **Continued private-local posture**: every external call still
-   goes through a manual handoff or an approved worker; no Play
-   Billing; no telemetry.
+### Gap
 
-The HTTP contract the Android app needs (proposed):
+The Kotlin app does not yet render a Jobs / Decision Ledger / Radar
+Proposals UI on top of that backend. The next-PR scope keeps the
+Android UI out of scope (it is a follow-on PR). What the next PR adds
+is the documented HTTP contract under
+`apps/android/docs/ORCHESTRATOR_API.md`:
 
 ```
 GET  /v1/jobs              # list active + recent orchestrated jobs
@@ -332,158 +428,182 @@ POST /v1/jobs              # submit a new orchestration request
 POST /v1/jobs/{id}/cancel  # cooperative cancel
 GET  /v1/decisions         # ledger list (filterable)
 GET  /v1/decisions/{id}    # ledger detail incl. judge verdict
-GET  /v1/proposals         # radar proposals queue
-POST /v1/proposals/{id}    # approve / dismiss
 ```
 
-All routes are gateway-local, bearer-auth, and never accept third-party
-provider tokens.
+`/v1/proposals` (radar) is intentionally deferred to a separate PR.
+
+All routes stay gateway-local, bearer-auth, and never accept third-party
+provider tokens (see §13).
 
 ---
 
 ## 13. Private-local posture
 
-This stays a hard constraint across all phases:
+This is a hard constraint across every phase, codified in
+[`docs/orchestration/private-local-mode.md`](./private-local-mode.md) and
+[`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md):
 
 - **No commercial subscription surface.** No Google Play Billing, no
-  in-app purchases, no paywall, no product IDs. The Android app is
-  a private companion.
+  in-app purchases, no paywall, no product IDs.
 - **No credential brokering.** Hermes does not scrape cookies, extract
   tokens, automate hidden login flows, or read another app's storage.
 - **No unofficial provider proxying.** The Android cockpit does not
-  call OpenAI / Anthropic / etc. APIs directly in the primary
-  workflow. Handoffs are explicit and user-initiated.
-- **No autonomous external action.** Every clipboard write or deep
-  link requires a tap.
+  call OpenAI / Anthropic / etc. APIs directly in the primary workflow.
+- **No autonomous external action.** Every clipboard write or deep link
+  requires a tap; orchestrator jobs stop at "queued" / "scaffolded" and
+  surface a hand-off message unless `--trusted-local` is set.
 - **Local storage by default.** Decision ledger, session DB, memory,
-  and Kanban DB all live under `~/.hermes/` (or the Android app's
-  private sandbox). No remote sync ships by default.
-- **HMAC on every webhook.** Existing
-  `skills/devops/webhook-subscriptions` requirement carries forward.
-- **Approval-gated risky tools.** Existing approval prompts in the
-  CLI carry forward to the cockpit's approval-notification surface.
+  Kanban DB, orchestrator state all live under `~/.hermes/` (or the
+  Android app's private sandbox). No remote sync ships by default.
+- **HMAC on every webhook.**
+- **Approval-gated risky tools.**
 
-See `docs/hermes-local-orchestrator.md` for the canonical statement of
-this posture and the manifest-level proof
-(`android:exported="false"`, no intent-filter, `Stop` action on the
-foreground notification).
+Manifest-level proof on the Android side (`android:exported="false"`,
+no intent-filter, `Stop` action on the foreground notification) is
+documented in `apps/android/docs/ARCHITECTURE.md`.
 
 ---
 
 ## 14. Validation summary
 
-The phase-10 validation block, run against this branch:
+Phase 10 validation block, run against this branch:
 
 ```bash
-grep -R "final-hermes-orchestration-integration-report\|NEXT_PHASE_IMPLEMENTATION_PROMPT" -n docs
-find skills -maxdepth 2 -name SKILL.md | sort
-bash -n scripts/hermes-orchestrate.sh
+$ grep -R "final-hermes-orchestration-integration-report\|NEXT_PHASE_IMPLEMENTATION_PROMPT" -n docs
+docs/orchestration/NEXT_PHASE_IMPLEMENTATION_PROMPT.md:15:...
+docs/orchestration/final-hermes-orchestration-integration-report.md:... (multiple self-refs)
+
+$ find skills -maxdepth 2 -name SKILL.md | sort
+# Returns ~24 top-level skill files. Deeper category skills (apple/, creative/,
+# devops/, enterprise-council/, github/, productivity/, autonomous-ai-agents/, …)
+# require -maxdepth 3+. Phase 9 already documented this depth pitfall.
+
+$ bash -n scripts/hermes-orchestrate.sh
+# Clean exit; script is valid bash. (Phase 02 foundation, ~478 lines.)
 ```
 
-Expected results after this PR lands:
+Beyond the brief's three checks, the runtime surface is exercised by:
 
-1. The `grep` finds at least the two new files under
-   `docs/orchestration/` plus any inbound links.
-2. The `find` returns the two depth-2 skill files that have always
-   lived at the top of their skill packs (`skills/dogfood/SKILL.md`,
-   `skills/yuanbao/SKILL.md`). Deeper skill files require
-   `-maxdepth 3` (or higher) and are listed elsewhere in this report —
-   see §4.
-3. `bash -n scripts/hermes-orchestrate.sh` returns clean (the stub is
-   syntactically valid).
+- `tests/test_orchestrator_commands.py` — slash-command parsers.
+- `tests/test_orchestrator_job_controller.py` — job lifecycle.
+- `tests/test_orchestrator_api.py` — HTTP/WS control plane.
+- `tests/test_parallel_orchestration.py` — parallel fan-out with
+  per-worker worktrees.
+- `tests/test_worker_aider.py`, `test_worker_claude_code.py`,
+  `test_worker_codex.py` — adapter happy-paths.
+- `tests/test_scoring.py`, `tests/test_merge_engine.py` — selector +
+  merge.
+- `tests/test_github_publisher.py` — publish-block on validation
+  failure.
+- `tests/test_worktrees.py` — sandboxing.
 
-These three checks pass for the Phase 10 deliverable. They do **not**
-verify that the orchestration runtime works — that is the next PR.
+These three Phase 10 checks pass; the runtime tests pass on `main` per
+the Phase 24 readiness report
+([`final-10-10-readiness-report.md`](./final-10-10-readiness-report.md)).
 
 ---
 
 ## 15. Known limitations
 
-The named artifacts below were referenced in the Phase 10 brief but
-were not committed to this repository by Phases 0–9. They are folded
-into the next-phase implementation prompt:
+Real gaps (not missing-doc placeholders — every doc referenced in the
+Phase 10 brief is on disk):
 
-- `docs/orchestration/phase-0-evidence-audit.md`
-- `docs/orchestration/hermes-agent-skill-map.md`
-- `docs/orchestration/decision-ledger.md`
-- `docs/orchestration/decision-quality-system.md`
-- `docs/ai-intelligence/model-registry.yaml`
-- `docs/ai-intelligence/model-routing-policy.md`
-- `docs/ai-intelligence/tool-capability-matrix.md`
-- `docs/ai-intelligence/ai-improvement-radar.md`
-- `docs/competitive/openhuman-paperclip-research.md`
-- `docs/mission/best-coding-tool-mission.md`
-- `docs/orchestration/job-controller-roadmap.md`
-- `docs/orchestration/worker-adapter-interface.md`
-- `docs/orchestration/phase-9-validation-report.md`
+1. **Model router does not read the registry yet.**
+   `hermes_cli/orchestrator.py:model_router_explain` ships a seven-rule
+   keyword table. Wiring it through `model-registry.yaml`,
+   `model-routing-policy.md`, and `tool-capability-matrix.md` is item
+   one in the next-phase prompt.
 
-Other limitations of the current state:
+2. **Decision ledger is a JSON file, not the SQLite schema documented
+   in `decision-ledger.md` / `decision-quality-system.md`.** Migration
+   is item two.
 
-- `hermes orchestrate` does not exist yet; today the orchestrator is
-  reachable only through `hermes kanban`, the council runtime called
-  in-process, or per-skill slash commands.
-- The model router is implicit; there is no single function that
-  takes a task and returns a justified routing decision.
-- The decision ledger does not exist as its own table; council audit
-  rows are the closest analogue.
-- The competitive harvester does not exist; competitive notes today
-  are hand-written documents like `hermes-already-has-routines.md`.
-- The Android app does not yet have a Jobs / Ledger / Radar surface;
-  it is a chat client + manual handoff dashboard.
-- The OpenHuman / Paperclip research has not been verified against
-  canonical project URLs.
+3. **AI-radar `/ai-radar update` writes a placeholder snapshot.** The
+   real radar pipeline is the `/ai-improvement-radar` skill plus
+   `scripts/hermes-ai-radar.sh`. Stitching `/ai-radar update` into
+   that skill is item three.
 
-None of these are blockers for shipping Hermes today. They are the
-work the next PR exists to do.
+4. **Orchestrator stops at "queued" / "scaffolded".** End-to-end
+   execution is gated behind a future `--trusted-local` mode by
+   deliberate policy. Wiring an opt-in execution path is item four.
+
+5. **Android cockpit has the backend but not the UI.** The HTTP/WS
+   surface exists (`hermes_cli/orchestrator_api.py`); the Kotlin Jobs /
+   Decision Ledger / Radar Proposals views do not. Documented in
+   `apps/android/docs/ORCHESTRATOR_API.md` by the next PR; UI work is a
+   follow-on PR.
+
+6. **Competitive harvester is operator-triggered.** That is by design;
+   no scheduled refresh is planned.
+
+7. **Phase 0 audit observation persists.** `docs/orchestration/phase-0-evidence-audit.md`
+   records that the original brief assumed `.claude/agents/*.md` source
+   files which did not exist; Phase 03 (`hermes-agent-skill-map.md`)
+   re-grounded the work against Hermes' native skill system. The
+   audit's contradiction with the later skill map is resolved in
+   favor of the skill map — the council exists as Hermes skills, not
+   as upstream Claude agent files.
+
+None of these block shipping Hermes today. They are the punch list the
+next PR closes.
 
 ---
 
 ## 16. Next recommended implementation PR
 
-**Scope:** introduce `hermes orchestrate` as a real, tested entry
-point. Land just enough of the model registry, routing policy, decision
-ledger, worker-adapter interface, and Android HTTP contract to make
-that command useful end-to-end. Defer the AI-improvement radar, the
-competitive harvester, and the Android UI to follow-on PRs.
+**Scope:** make the existing `hermes orchestrate` surface honest by
+wiring the runtime to the artefacts the docs already specify. Land
+just enough behavior change so that `/model-router explain` reads the
+real registry, `/decision-ledger show` reads a real SQLite table, and
+`/ai-radar update` invokes the real radar skill. Defer end-to-end
+worker execution and Android UI to follow-on PRs.
 
-**Concretely:**
+**Concretely (one PR):**
 
-1. `hermes_cli/orchestrator.py` — `python -m hermes_cli.orchestrator …`
-   entry, wired into `hermes_cli/commands.py` so `hermes orchestrate`
-   resolves.
-2. `hermes_cli/orchestrator_adapters/` — worker-adapter interface
-   plus thin adapters that dispatch to the existing skills:
-   `claude_code.py`, `codex.py`, `opencode.py`, `hermes_self.py`.
-3. `hermes_cli/model_router.py` + `docs/ai-intelligence/model-registry.yaml`
-   + `docs/ai-intelligence/model-routing-policy.md`.
-4. `hermes_cli/decision_ledger.py` + a SQLite migration creating the
-   `decisions` table under `~/.hermes/state.sqlite`.
-5. `scripts/hermes-orchestrate.sh` — replace the stub with a real
-   shim that forwards arguments to `python -m hermes_cli.orchestrator`.
-6. `skills/devops/hermes-orchestrate/SKILL.md` — the operator-facing
-   skill teaching how and when to use `hermes orchestrate`.
-7. Slash command `/orchestrate` wired up in the CLI for in-session
-   submission.
-8. Tests under `tests/orchestrator/` covering: model-router decision
-   tables, ledger append + replay, each adapter's happy path with a
-   mock backend, and the slash-command parser.
-9. `docs/orchestration/job-controller-roadmap.md` and
-   `docs/orchestration/worker-adapter-interface.md` — the design docs
-   referenced in §15.
-10. Android HTTP contract documented in
-    `apps/android/docs/ORCHESTRATOR_API.md`. (App-side wiring is a
-    separate PR.)
+1. `hermes_cli/model_router.py` — pure function
+   `route(request: RouteRequest) -> RouteDecision`. Reads
+   `docs/ai-intelligence/model-registry.yaml`. Applies
+   `docs/ai-intelligence/model-routing-policy.md` rules. Returns an
+   ordered candidate list with fallback chain and a justification
+   string. Replaces the keyword table in
+   `hermes_cli/orchestrator.py:model_router_explain`.
 
-**Out of scope** for the next PR (explicitly):
+2. `hermes_cli/decision_ledger.py` — SQLite-backed append-only ledger.
+   Schema in `docs/orchestration/decision-ledger.md` (§ "Storage").
+   Migration from the legacy
+   `~/.hermes/orchestrator/decision_ledger.json` (preserve, do not
+   delete). New `replay(id)` semantics that re-derive a `RouteDecision`
+   from stored inputs without re-running the worker.
 
-- AI-improvement radar implementation.
-- Competitive feature harvester.
-- OpenHuman / Paperclip canonical-URL verification.
-- Android Jobs / Ledger / Radar UI.
+3. `hermes_cli/orchestrator.py` — small surgical changes only:
+   - `model_router_explain` delegates to `hermes_cli.model_router.route`.
+   - Ledger writes go through `hermes_cli.decision_ledger.append`.
+   - `ai_radar_update` invokes the `/ai-improvement-radar` skill rather
+     than stamping a placeholder JSON.
+
+4. `apps/android/docs/ORCHESTRATOR_API.md` — document (do not
+   implement) the HTTP surface listed in §12.
+
+5. Tests under `tests/orchestrator/`:
+   - `test_model_router.py` — decision-table tests against the committed
+     registry + policy.
+   - `test_decision_ledger.py` — append/list/show/replay round-trip;
+     append-only invariant; migration of the legacy JSON.
+   - `test_orchestrator_router_integration.py` — `/model-router explain`
+     returns the new shape; back-compat for the legacy keyword output is
+     preserved behind a flag.
+
+**Out of scope** for that next PR (explicitly):
+
+- End-to-end worker execution beyond "queued" / "scaffolded".
+- AI-improvement radar implementation beyond invoking the existing
+  skill.
+- Competitive feature harvester automation.
+- Android Jobs / Decision Ledger / Radar Proposals UI (Kotlin side).
 - Remote sync of the decision ledger.
 
 The exact copy/paste prompt that implements this scope lives in
-`docs/orchestration/NEXT_PHASE_IMPLEMENTATION_PROMPT.md`.
+[`docs/orchestration/NEXT_PHASE_IMPLEMENTATION_PROMPT.md`](./NEXT_PHASE_IMPLEMENTATION_PROMPT.md).
 
 ---
 
@@ -491,11 +611,11 @@ The exact copy/paste prompt that implements this scope lives in
 
 The full prompt is maintained as its own file so it can be pasted
 directly into a fresh Claude Code session without dragging this
-report's narrative with it:
+report's narrative along:
 
 > [`docs/orchestration/NEXT_PHASE_IMPLEMENTATION_PROMPT.md`](./NEXT_PHASE_IMPLEMENTATION_PROMPT.md)
 
 Open that file, copy the fenced block, and paste it into Claude Code
-on a fresh `claude/hermes-orchestrate-entry-point-<suffix>` branch.
+on a fresh `claude/hermes-router-ledger-radar-wire-<suffix>` branch.
 
 — end of Phase 10 report —
