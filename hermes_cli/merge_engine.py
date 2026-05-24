@@ -1,6 +1,6 @@
 """Merge engine: pick the best worker, detect conflicts, write the plan.
 
-Phase 13 of the Hermes local orchestrator. The scoring layer
+Phase 14 of the Hermes local orchestrator. The scoring layer
 (`hermes_cli.scoring`) tells us *how good* each worker is. This module
 decides *what to ship*. It is intentionally conservative: when in doubt
 it asks for a human review rather than producing a Frankenstein patch.
@@ -12,20 +12,23 @@ Merge policy (in priority order)
    auth / billing / migrations without adding tests cannot win, full
    stop, even if its weighted score is highest. It is preserved as a
    *rejected candidate* in the council review with an explanation.
-2. **Prefer validated small diffs.** Among the surviving candidates,
+2. **Reject workers that leak secrets.** Anything with a non-empty
+   ``secrets_safety`` flag is rejected outright — leaking an API key
+   is never a tradeoff.
+3. **Prefer validated small diffs.** Among the surviving candidates,
    we sort by ``weighted_total`` from `scoring.rank`, which already
    biases toward small diffs that pass tests. We do not stitch patches
    together to chase a higher score.
-3. **Detect conflicts.** If the winning worker and *any other* worker
+4. **Detect conflicts.** If the winning worker and *any other* worker
    that crossed the score floor touched the same file, we record a
    ``FileConflict``. Conflicts do not automatically block the winner —
    they appear in ``conflict-report.md`` and the final plan asks the
    human to confirm the resolution.
-4. **Preserve losing ideas.** Every losing worker gets a short entry
+5. **Preserve losing ideas.** Every losing worker gets a short entry
    in ``council-review.md`` with its score breakdown and its strongest
    note, so the human can lift good ideas from the runners-up before
    the run is filed.
-5. **Manual review when there's no clear winner.** If no surviving
+6. **Manual review when there's no clear winner.** If no surviving
    candidate scores above ``MANUAL_REVIEW_FLOOR`` on ``correctness``,
    we still write the artifacts but mark the final plan as requiring
    manual review and leave ``final-patch.diff`` empty.
@@ -41,7 +44,7 @@ import json
 import re
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from hermes_cli.scoring import (
     SCORE_CATEGORIES,
@@ -59,6 +62,7 @@ from hermes_cli.scoring import (
 SCORE_FLOOR: float = 0.45            # below this, a worker can't be a candidate
 MANUAL_REVIEW_FLOOR: float = 0.55    # winner must beat this to skip manual review
 HIGH_RISK_TEST_REQUIRED: bool = True # reject high-risk diffs lacking tests
+SECRETS_SAFETY_FLOOR: float = 0.5    # below this, secrets are assumed leaked
 
 
 @dataclass(frozen=True)
@@ -138,6 +142,31 @@ def _reject_high_risk_no_tests(
     return survivors, rejected
 
 
+def _reject_leaks_secrets(
+    cards: Sequence[Scorecard],
+) -> tuple[list[Scorecard], list[RejectedWorker]]:
+    """Drop workers whose ``secrets_safety`` is below the floor."""
+    survivors: list[Scorecard] = []
+    rejected: list[RejectedWorker] = []
+    for card in cards:
+        secrets_score = card.scores.get("secrets_safety", 1.0)
+        if secrets_score < SECRETS_SAFETY_FLOOR:
+            rejected.append(
+                RejectedWorker(
+                    worker_id=card.worker_id,
+                    profile=card.profile,
+                    reason=(
+                        f"secrets_safety score {secrets_score:.2f} is below "
+                        f"floor {SECRETS_SAFETY_FLOOR:.2f} — possible secret in diff"
+                    ),
+                    score=card.weighted_total,
+                )
+            )
+        else:
+            survivors.append(card)
+    return survivors, rejected
+
+
 def _reject_below_floor(
     cards: Sequence[Scorecard],
 ) -> tuple[list[Scorecard], list[RejectedWorker]]:
@@ -196,10 +225,12 @@ def select_winner(
 
     # Stage 1: hard policy gate — high-risk without tests.
     survivors, rejected_risk = _reject_high_risk_no_tests(scorecards)
-    # Stage 2: score floor.
+    # Stage 2: hard policy gate — leaked secrets.
+    survivors, rejected_secrets = _reject_leaks_secrets(survivors)
+    # Stage 3: score floor.
     survivors, rejected_floor = _reject_below_floor(survivors)
 
-    rejected = rejected_risk + rejected_floor
+    rejected = rejected_risk + rejected_secrets + rejected_floor
 
     if not survivors:
         return MergeResult(
@@ -230,7 +261,7 @@ def select_winner(
         )
     if winner.tests_passed is False:
         manual = True
-        reasons.append("winning worker's tests reported failures")
+        reasons.append("winning worker's validation reported failures")
     if winner.touches_high_risk:
         # We already rejected high-risk-no-tests; a high-risk winner
         # *with* tests still gets surfaced for human eyes.
@@ -270,7 +301,7 @@ def _write_scorecard_json(
     scorecards: Sequence[Scorecard],
 ) -> Path:
     payload = {
-        "schema": "hermes.merge.scorecard.v1",
+        "schema": "hermes.merge.scorecard.v2",
         "categories": list(SCORE_CATEGORIES),
         "winner": result.winner.worker_id if result.winner else None,
         "manual_review_required": result.manual_review_required,
@@ -303,7 +334,7 @@ def _write_council_review(
             f"- Weighted score: **{w.weighted_total:.3f}** "
             f"(unweighted mean {w.total:.3f})"
         )
-        lines.append(f"- Tests passed: {w.tests_passed}")
+        lines.append(f"- Validation passed: {w.tests_passed}")
         lines.append(f"- Files changed: {w.changed_file_count}")
         lines.append(f"- Diff lines: {w.diff_line_count}")
         lines.append(f"- Touches high-risk paths: {w.touches_high_risk}")
@@ -494,12 +525,114 @@ def _write_final_patch(
     return target
 
 
+def _write_plain_english_summary(
+    out_dir: Path,
+    result: MergeResult,
+    artifacts_by_id: Mapping[str, WorkerArtifact],
+    scorecards: Sequence[Scorecard],
+) -> Path:
+    """A one-page, jargon-free summary aimed at the project owner.
+
+    No tables, no schema names — short sentences a human can skim from
+    a phone notification and decide whether to look at the rest.
+    """
+    lines: list[str] = ["# What happened", ""]
+    n_workers = len(scorecards)
+    if n_workers == 0:
+        lines.append("No workers ran. There is nothing to apply.")
+    elif result.winner is None:
+        lines.append(
+            f"{n_workers} worker(s) ran. None of them produced a result "
+            "Hermes was willing to ship — see `final-plan.md` for the "
+            "rejection reasons."
+        )
+    else:
+        w = result.winner
+        verdict = (
+            "needs your eyes before it lands"
+            if result.manual_review_required
+            else "looks ready to apply"
+        )
+        lines.append(
+            f"{n_workers} worker(s) ran. The plan from "
+            f"**{w.worker_id}** (profile `{w.profile}`) {verdict}."
+        )
+        lines.append("")
+        art = artifacts_by_id.get(w.worker_id)
+        if art and art.output_md:
+            summary = _first_paragraph(art.output_md)
+            if summary:
+                lines.append(f"> {summary}")
+                lines.append("")
+        lines.append(
+            f"It changed **{w.changed_file_count}** file(s) "
+            f"({w.diff_line_count} line(s) of code)."
+        )
+        if w.touches_high_risk:
+            lines.append(
+                "It touches sensitive code (auth, billing, migrations, or "
+                "similar) — Hermes only let it through because it added tests."
+            )
+        if w.adds_tests:
+            lines.append("It added or updated tests.")
+        if w.tests_passed is True:
+            lines.append("Its validation run passed.")
+        elif w.tests_passed is False:
+            lines.append("Its validation run **failed** — read the report before applying.")
+        else:
+            lines.append("Its validation outcome is unclear from the captured output.")
+
+    if result.rejected:
+        lines.append("")
+        lines.append("### Workers Hermes did not pick")
+        for r in result.rejected:
+            lines.append(f"- `{r.worker_id}`: {_first_sentence(r.reason)}")
+
+    if result.runners_up:
+        lines.append("")
+        lines.append("### Other plans worth a look")
+        for s in result.runners_up[:3]:
+            note = s.notes[0] if s.notes else "no notes from scoring"
+            lines.append(f"- `{s.worker_id}` (score {s.weighted_total:.2f}): {note}")
+
+    if result.conflicts:
+        lines.append("")
+        lines.append(
+            f"### Heads up: {len(result.conflicts)} file(s) were touched by "
+            "more than one worker"
+        )
+        lines.append(
+            "The merge engine never blends patches automatically. "
+            "If you like ideas from another worker, lift them by hand."
+        )
+
+    if result.review_reasons:
+        lines.append("")
+        lines.append("### What still needs checking")
+        for reason in result.review_reasons:
+            lines.append(f"- {reason}")
+
+    if result.winner is not None:
+        lines.append("")
+        lines.append(
+            "### Next step\n\n"
+            "Open `final-plan.md` for the full apply instructions, or "
+            "`council-review.md` for the score breakdown across every "
+            "worker."
+        )
+
+    target = out_dir / "plain-english-summary.md"
+    target.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return target
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────
 
 
 _HEADING_RE = re.compile(r"^\s*#")
+_SENTENCE_END_RE = re.compile(r"(?<=[.!?])\s+")
 
 
 def _first_paragraph(markdown: str) -> str:
@@ -524,6 +657,12 @@ def _first_paragraph(markdown: str) -> str:
     return " ".join(chunk).strip()
 
 
+def _first_sentence(text: str) -> str:
+    """Return the first sentence of ``text`` (or all of it if shorter)."""
+    parts = _SENTENCE_END_RE.split(text.strip(), maxsplit=1)
+    return parts[0] if parts else text
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Public entry point
 # ──────────────────────────────────────────────────────────────────────
@@ -534,21 +673,25 @@ def run_merge(
     out_dir: Path,
     *,
     artifacts: Optional[Sequence[WorkerArtifact]] = None,
+    user_profile: Optional[Mapping[str, Any]] = None,
+    decision_ledger: Optional[Sequence[Mapping[str, Any]]] = None,
 ) -> MergeResult:
     """Score and merge every worker under ``workers_dir``.
 
-    Writes the five canonical merge artifacts into ``out_dir``:
+    Writes the six canonical merge artifacts into ``out_dir``:
 
       - ``scorecard.json``
       - ``council-review.md``
       - ``conflict-report.md``
       - ``final-plan.md``
       - ``final-patch.diff``
+      - ``plain-english-summary.md``
 
     Returns a `MergeResult` so callers can branch on whether the run
     requires manual review. ``artifacts`` may be supplied by tests to
     skip the filesystem scan; in production it's None and we discover
-    them ourselves.
+    them ourselves. ``user_profile`` and ``decision_ledger`` are
+    optional bias inputs passed through to the scoring layer.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -556,7 +699,14 @@ def run_merge(
         worker_dirs = discover_workers(workers_dir)
         artifacts = [load_artifact(d) for d in worker_dirs]
 
-    scorecards = [score_artifact(a) for a in artifacts]
+    scorecards = [
+        score_artifact(
+            a,
+            user_profile=user_profile,
+            decision_ledger=decision_ledger,
+        )
+        for a in artifacts
+    ]
     result = select_winner(artifacts, scorecards)
     result.output_dir = out_dir
 
@@ -567,6 +717,7 @@ def run_merge(
     _write_conflict_report(out_dir, result)
     _write_final_plan(out_dir, result, by_id)
     _write_final_patch(out_dir, result, by_id)
+    _write_plain_english_summary(out_dir, result, by_id, scorecards)
 
     return result
 
@@ -578,6 +729,7 @@ __all__ = [
     "MergeResult",
     "RejectedWorker",
     "SCORE_FLOOR",
+    "SECRETS_SAFETY_FLOOR",
     "run_merge",
     "select_winner",
 ]

@@ -1,22 +1,24 @@
 """Scoring engine for parallel worker outputs.
 
-Phase 13 of the Hermes local orchestrator. After several workers run
+Phase 14 of the Hermes local orchestrator. After several workers run
 against the same task in their own sandboxes, each one drops a fixed
 set of artifacts into its output directory:
 
     workers/<worker_id>/
-        output.md          # human-readable narrative
-        patch.diff         # unified diff against the repo
-        changed-files.txt  # newline-separated file paths
-        test-output.txt    # captured stdout/stderr of the test run
-        status.json        # structured metadata (declared success, model, etc.)
+        output.md              # human-readable narrative
+        patch.diff             # unified diff against the repo
+        changed-files.txt      # newline-separated file paths
+        validation-output.txt  # captured stdout/stderr of validation/test run
+        status.json            # structured metadata (declared success, model, etc.)
 
 This module turns each directory into a `WorkerArtifact` and then into a
-`Scorecard` across twelve categories. The categories deliberately mix
-*correctness* signals (tests pass, diff applies cleanly), *fit* signals
-(architecture, repo conventions), and *taste* signals (UX, jeremiah_fit,
-local-first orientation). The merge engine in `merge_engine.py`
-consumes the scorecards to choose a winner and produce a final plan.
+`Scorecard` across the sixteen Phase 14 categories. The categories
+deliberately mix *correctness* signals (tests pass, diff applies
+cleanly), *fit* signals (architecture, repo conventions, mobile, voice,
+remote execution), *safety* signals (security, secrets), and *taste*
+signals (UX, developer experience, jeremiah_fit). The merge engine in
+`merge_engine.py` consumes the scorecards to choose a winner and
+produce a final plan.
 
 Design notes
 ------------
@@ -25,14 +27,16 @@ Design notes
   on disk plus a small handful of structural heuristics. That keeps the
   module unit-testable, deterministic, and cheap to re-run when the
   merge engine wants a second pass.
-* **Scores are bounded floats in [0.0, 1.0].** A `None` score means
-  *no evidence available* — the merge engine treats that as soft-neutral
-  (0.5) rather than zero, so a worker that simply omitted a category
-  isn't punished as if it failed it.
+* **Scores are bounded floats in [0.0, 1.0].** A missing self-score
+  resolves to 0.5 (soft-neutral) so a worker that simply omitted a
+  category isn't punished as if it failed it.
 * **status.json wins ties.** A worker that declares ``confidence`` or
   per-category ``self_scores`` will see those reflected in the final
   scorecard, *bounded* by the structural evidence — a worker can't talk
   itself into a 1.0 for correctness if its tests didn't run.
+* **Optional user_profile** lets the orchestrator bias ``jeremiah_fit``
+  and a few other taste categories toward the project owner's stated
+  preferences without hard-coding them.
 """
 
 from __future__ import annotations
@@ -46,25 +50,29 @@ from typing import Any, Mapping, Optional, Sequence
 SCORE_CATEGORIES: tuple[str, ...] = (
     "correctness",
     "completeness",
-    "testability",
     "maintainability",
-    "repo_fit",
+    "testability",
     "architecture_fit",
-    "risk_control",
-    "ux_quality",
+    "repo_fit",
+    "security",
+    "secrets_safety",
+    "mobile_fit",
+    "voice_fit",
+    "remote_execution_fit",
+    "developer_experience",
+    "ui_ux",
     "speed",
     "cost_efficiency",
-    "local_first_fit",
     "jeremiah_fit",
 )
 
 
-_REQUIRED_ARTIFACTS: tuple[str, ...] = (
-    "output.md",
-    "patch.diff",
-    "changed-files.txt",
+# Filenames the worker is expected to drop into its directory.
+# ``validation-output.txt`` is the Phase 14 name; ``test-output.txt`` is
+# accepted as a legacy alias so older workers keep working.
+_VALIDATION_FILENAMES: tuple[str, ...] = (
+    "validation-output.txt",
     "test-output.txt",
-    "status.json",
 )
 
 
@@ -82,12 +90,41 @@ _HIGH_RISK_PATH_HINTS: tuple[str, ...] = (
 )
 
 
-_TEST_FAILURE_PATTERNS = re.compile(
+_MOBILE_PATH_HINTS: tuple[str, ...] = (
+    "android",
+    "termux",
+    "apps/android",
+    "ios",
+    "/mobile",
+    "react-native",
+)
+
+
+_VOICE_PATH_HINTS: tuple[str, ...] = (
+    "voice",
+    "tts",
+    "stt",
+    "whisper",
+    "speech",
+    "audio",
+)
+
+
+_DEV_EX_HINTS: tuple[str, ...] = (
+    "cli",
+    "docs/",
+    "readme",
+    "help",
+    "error",
+)
+
+
+_VALIDATION_FAILURE_PATTERNS = re.compile(
     r"\b(FAILED|ERROR|Traceback|AssertionError|"
     r"tests? failed|FAIL:|test_.*\bfailed\b)\b",
     re.IGNORECASE,
 )
-_TEST_SUCCESS_PATTERNS = re.compile(
+_VALIDATION_SUCCESS_PATTERNS = re.compile(
     r"\b("
     r"passed|"
     r"\d+\s+passed"
@@ -95,6 +132,36 @@ _TEST_SUCCESS_PATTERNS = re.compile(
     r"|\d+\s+tests?\s+ok"
     r")\b",
     re.IGNORECASE,
+)
+
+
+# Heuristic patterns that suggest a secret was committed by accident.
+# These run against patch.diff *additions* (lines starting with "+").
+# We deliberately keep the list short and high-precision — false
+# positives here block merges, so we'd rather miss a clever exfil than
+# flood every patch with "looks suspicious" notes.
+_SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"AKIA[0-9A-Z]{16}"),                   # AWS access key id
+    re.compile(r"AIza[0-9A-Za-z_\-]{30,}"),            # Google API key
+    re.compile(r"ghp_[A-Za-z0-9]{30,}"),               # GitHub personal token
+    re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),       # GitHub fine-grained PAT
+    re.compile(r"sk-[A-Za-z0-9]{20,}"),                # OpenAI / Anthropic style
+    re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"),       # Slack tokens
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), # PEM private keys
+    re.compile(
+        r"(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token)\s*[:=]\s*['\"][^'\"\s]{8,}['\"]"
+    ),
+)
+
+
+# Patterns that hint at remote-execution unfriendliness (TTY-only,
+# localhost-only, hard-coded user paths, etc.).
+_REMOTE_UNFRIENDLY_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\bos\.isatty\b"),
+    re.compile(r"\brequires?[_-]?tty\b", re.IGNORECASE),
+    re.compile(r"127\.0\.0\.1|localhost"),
+    re.compile(r"/home/[a-zA-Z0-9_-]+/"),
+    re.compile(r"open(?:\s*\(|s\s+).*['\"]/(?:tmp|var)/[^'\"]+['\"]"),
 )
 
 
@@ -113,9 +180,15 @@ class WorkerArtifact:
     output_md: str
     patch_diff: str
     changed_files: tuple[str, ...]
-    test_output: str
+    validation_output: str
     status: Mapping[str, Any]
     missing: tuple[str, ...] = ()
+
+    # Legacy alias — older callers used ``test_output`` for what is now
+    # ``validation_output``. Both names point at the same string.
+    @property
+    def test_output(self) -> str:
+        return self.validation_output
 
     @property
     def declared_success(self) -> bool:
@@ -144,6 +217,15 @@ class WorkerArtifact:
         )
 
     @property
+    def diff_added_text(self) -> str:
+        """Concatenation of all "+" lines in the diff, for content scans."""
+        return "\n".join(
+            line[1:]
+            for line in self.patch_diff.splitlines()
+            if line.startswith("+") and not line.startswith("+++")
+        )
+
+    @property
     def changed_file_count(self) -> int:
         return len(self.changed_files)
 
@@ -153,6 +235,22 @@ class WorkerArtifact:
         for path in self.changed_files:
             lowered = path.lower()
             if any(hint in lowered for hint in _HIGH_RISK_PATH_HINTS):
+                return True
+        return False
+
+    @property
+    def touches_mobile(self) -> bool:
+        for path in self.changed_files:
+            lowered = path.lower()
+            if any(hint in lowered for hint in _MOBILE_PATH_HINTS):
+                return True
+        return False
+
+    @property
+    def touches_voice(self) -> bool:
+        for path in self.changed_files:
+            lowered = path.lower()
+            if any(hint in lowered for hint in _VOICE_PATH_HINTS):
                 return True
         return False
 
@@ -167,6 +265,17 @@ class WorkerArtifact:
             if base.startswith("test_") and base.endswith(".py"):
                 return True
             if base.endswith(("_test.py", ".test.ts", ".test.tsx", ".spec.ts")):
+                return True
+        return False
+
+    @property
+    def adds_docs(self) -> bool:
+        for path in self.changed_files:
+            normalized = path.replace("\\", "/").lower()
+            base = normalized.rsplit("/", 1)[-1]
+            if normalized.startswith("docs/") or "/docs/" in normalized:
+                return True
+            if base in ("readme.md", "changelog.md") or base.endswith(".rst"):
                 return True
         return False
 
@@ -195,7 +304,7 @@ class Scorecard:
 
     @property
     def total(self) -> float:
-        """Unweighted mean across the 12 canonical categories.
+        """Unweighted mean across the canonical categories.
 
         Missing categories are treated as 0.5 (soft-neutral) so a worker
         that simply didn't supply self-scores for one category isn't
@@ -208,12 +317,13 @@ class Scorecard:
 
     @property
     def weighted_total(self) -> float:
-        """Weighted mean — correctness and risk_control dominate.
+        """Weighted mean — correctness and safety dominate.
 
         The merge engine uses ``weighted_total`` for ranking. The
         intuition is that a beautifully-written, well-architected
         change that fails its own tests is still worse than a clunky
-        change that passes them.
+        change that passes them — and a change that leaks a secret is
+        unshippable no matter how good it looks otherwise.
         """
         weights = _CATEGORY_WEIGHTS
         total_weight = 0.0
@@ -234,18 +344,31 @@ class Scorecard:
 
 _CATEGORY_WEIGHTS: Mapping[str, float] = {
     "correctness": 3.0,
-    "risk_control": 2.5,
+    "secrets_safety": 2.5,
+    "security": 2.2,
     "completeness": 1.5,
     "testability": 1.5,
     "maintainability": 1.2,
     "repo_fit": 1.2,
     "architecture_fit": 1.2,
-    "ux_quality": 1.0,
+    "ui_ux": 1.0,
+    "developer_experience": 1.0,
+    "remote_execution_fit": 1.0,
+    "mobile_fit": 0.9,
+    "voice_fit": 0.7,
     "speed": 0.8,
     "cost_efficiency": 0.8,
-    "local_first_fit": 1.0,
     "jeremiah_fit": 1.0,
 }
+
+
+def _resolve_validation_path(worker_dir: Path) -> Optional[Path]:
+    """Return the validation-output path the worker actually wrote, if any."""
+    for name in _VALIDATION_FILENAMES:
+        candidate = worker_dir / name
+        if candidate.exists() and candidate.is_file():
+            return candidate
+    return None
 
 
 def load_artifact(worker_dir: Path, *, worker_id: Optional[str] = None) -> WorkerArtifact:
@@ -273,20 +396,32 @@ def load_artifact(worker_dir: Path, *, worker_id: Optional[str] = None) -> Worke
     output_md = _read_text("output.md")
     patch_diff = _read_text("patch.diff")
     changed_text = _read_text("changed-files.txt")
-    test_output = _read_text("test-output.txt")
     status_text = _read_text("status.json")
 
-    missing = tuple(
-        name
-        for name, content in (
-            ("output.md", output_md),
-            ("patch.diff", patch_diff),
-            ("changed-files.txt", changed_text),
-            ("test-output.txt", test_output),
-            ("status.json", status_text),
-        )
-        if content is None
-    )
+    validation_path = _resolve_validation_path(worker_dir)
+    validation_text: Optional[str] = None
+    if validation_path is not None:
+        try:
+            validation_text = validation_path.read_text(
+                encoding="utf-8", errors="replace"
+            )
+        except OSError:
+            validation_text = None
+
+    missing_names: list[str] = []
+    for name, content in (
+        ("output.md", output_md),
+        ("patch.diff", patch_diff),
+        ("changed-files.txt", changed_text),
+        ("status.json", status_text),
+    ):
+        if content is None:
+            missing_names.append(name)
+    if validation_text is None:
+        # Report under the canonical name; the legacy alias is a
+        # convenience for old workers and shouldn't shape the missing
+        # list.
+        missing_names.append("validation-output.txt")
 
     status: Mapping[str, Any] = {}
     if status_text:
@@ -311,9 +446,9 @@ def load_artifact(worker_dir: Path, *, worker_id: Optional[str] = None) -> Worke
         output_md=output_md or "",
         patch_diff=patch_diff or "",
         changed_files=changed_files,
-        test_output=test_output or "",
+        validation_output=validation_text or "",
         status=status,
-        missing=missing,
+        missing=tuple(missing_names),
     )
 
 
@@ -328,18 +463,18 @@ def discover_workers(root: Path) -> list[Path]:
     return sorted(p for p in root.iterdir() if p.is_dir())
 
 
-def _tests_outcome(test_output: str) -> Optional[bool]:
-    """Best-effort classification of a worker's test output.
+def _validation_outcome(text: str) -> Optional[bool]:
+    """Best-effort classification of a worker's validation output.
 
     Returns True if we saw success signals and no failure signals,
     False if we saw failure signals, and None if the output was empty
-    or ambiguous (the merge engine treats None as "tests weren't run",
-    which is itself a negative signal for high-risk code).
+    or ambiguous (the merge engine treats None as "validation wasn't
+    run", which is itself a negative signal for high-risk code).
     """
-    if not test_output.strip():
+    if not text.strip():
         return None
-    has_failure = bool(_TEST_FAILURE_PATTERNS.search(test_output))
-    has_success = bool(_TEST_SUCCESS_PATTERNS.search(test_output))
+    has_failure = bool(_VALIDATION_FAILURE_PATTERNS.search(text))
+    has_success = bool(_VALIDATION_SUCCESS_PATTERNS.search(text))
     if has_failure:
         return False
     if has_success:
@@ -377,12 +512,68 @@ def _clamped_self_score(status: Mapping[str, Any], category: str) -> Optional[fl
     return None
 
 
-def score_artifact(artifact: WorkerArtifact) -> Scorecard:
-    """Score one worker across all 12 categories.
+def _scan_secrets(diff_added_text: str) -> list[str]:
+    """Return human-readable hits for any secret-like pattern in the diff."""
+    hits: list[str] = []
+    seen: set[str] = set()
+    for pattern in _SECRET_PATTERNS:
+        for match in pattern.finditer(diff_added_text):
+            snippet = match.group(0)
+            # Don't leak the actual secret into the scorecard — just
+            # show enough to make the pattern recognisable.
+            redacted = snippet[:6] + "…" if len(snippet) > 6 else snippet
+            label = f"{pattern.pattern[:40]} → {redacted}"
+            if label in seen:
+                continue
+            seen.add(label)
+            hits.append(label)
+    return hits
+
+
+def _scan_remote_unfriendly(text: str) -> int:
+    """Count remote-execution-unfriendly patterns in the supplied text."""
+    return sum(1 for p in _REMOTE_UNFRIENDLY_PATTERNS if p.search(text))
+
+
+def _profile_score(user_profile: Optional[Mapping[str, Any]], category: str) -> Optional[float]:
+    """Pull a per-category override from the user profile, if present.
+
+    The user profile is an open-ended dict supplied by the orchestrator;
+    its ``category_preferences`` key, if a mapping, can boost or
+    suppress specific categories on a per-worker basis. Anything not
+    found returns None.
+    """
+    if not isinstance(user_profile, Mapping):
+        return None
+    prefs = user_profile.get("category_preferences")
+    if not isinstance(prefs, Mapping):
+        return None
+    raw = prefs.get(category)
+    if raw is None:
+        return None
+    try:
+        return _bounded(float(raw))
+    except (TypeError, ValueError):
+        return None
+
+
+def score_artifact(
+    artifact: WorkerArtifact,
+    *,
+    user_profile: Optional[Mapping[str, Any]] = None,
+    decision_ledger: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> Scorecard:
+    """Score one worker across all 16 categories.
 
     The implementation is intentionally a flat block of small heuristics
     rather than a clever model: each category's contribution is easy to
     read, easy to test, and easy to revise.
+
+    ``user_profile`` (optional) lets the caller bias category outcomes
+    toward the project owner's stated preferences. ``decision_ledger``
+    (optional) is a sequence of prior decision entries — currently only
+    used to surface a note when the same worker has been rejected
+    before for the same reason.
     """
     card = Scorecard(
         worker_id=artifact.worker_id,
@@ -397,22 +588,36 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
     if artifact.missing:
         card.flags.append(f"missing artifacts: {', '.join(artifact.missing)}")
 
-    tests_outcome = _tests_outcome(artifact.test_output)
-    card.tests_passed = tests_outcome
+    validation_outcome = _validation_outcome(artifact.validation_output)
+    card.tests_passed = validation_outcome
+    diff_added_text = artifact.diff_added_text
+
+    if decision_ledger:
+        prior_rejections = sum(
+            1
+            for entry in decision_ledger
+            if isinstance(entry, Mapping)
+            and entry.get("worker_id") == artifact.worker_id
+            and entry.get("outcome") == "rejected"
+        )
+        if prior_rejections:
+            card.notes.append(
+                f"worker has {prior_rejections} prior rejection(s) on the ledger"
+            )
 
     # ── correctness ───────────────────────────────────────────────────
-    if tests_outcome is True and artifact.declared_success:
+    if validation_outcome is True and artifact.declared_success:
         correctness = 0.95
-        card.notes.append("tests pass and worker declared success")
-    elif tests_outcome is True:
+        card.notes.append("validation passed and worker declared success")
+    elif validation_outcome is True:
         correctness = 0.8
-        card.notes.append("tests pass but worker did not declare success")
-    elif tests_outcome is False:
+        card.notes.append("validation passed but worker did not declare success")
+    elif validation_outcome is False:
         correctness = 0.15
-        card.flags.append("tests reported failures")
+        card.flags.append("validation reported failures")
     elif artifact.declared_success and artifact.patch_diff.strip():
         correctness = 0.55
-        card.notes.append("worker declared success but no test evidence")
+        card.notes.append("worker declared success but no validation evidence")
     elif not artifact.patch_diff.strip():
         correctness = 0.1
         card.flags.append("empty patch")
@@ -433,22 +638,6 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
             completeness += 0.05
     card.scores["completeness"] = _bounded(completeness)
 
-    # ── testability ───────────────────────────────────────────────────
-    if artifact.adds_tests and tests_outcome is True:
-        testability = 0.95
-    elif artifact.adds_tests:
-        testability = 0.7
-        card.notes.append("worker added tests but did not show them passing")
-    elif tests_outcome is True:
-        testability = 0.6
-        card.notes.append("tests pass but no new tests were added")
-    elif artifact.touches_high_risk:
-        testability = 0.2
-        card.flags.append("high-risk change without tests")
-    else:
-        testability = 0.4
-    card.scores["testability"] = testability
-
     # ── maintainability ───────────────────────────────────────────────
     diff = artifact.diff_line_count
     if diff == 0:
@@ -465,14 +654,21 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
         card.flags.append("very large diff (>600 changed lines)")
     card.scores["maintainability"] = maintainability
 
-    # ── repo_fit ──────────────────────────────────────────────────────
-    repo_fit = 0.6
-    if artifact.changed_file_count and not artifact.patch_diff.strip():
-        repo_fit = 0.2
-        card.flags.append("changed-files.txt has paths but patch.diff is empty")
-    elif "diff --git" in artifact.patch_diff:
-        repo_fit = 0.8
-    card.scores["repo_fit"] = repo_fit
+    # ── testability ───────────────────────────────────────────────────
+    if artifact.adds_tests and validation_outcome is True:
+        testability = 0.95
+    elif artifact.adds_tests:
+        testability = 0.7
+        card.notes.append("worker added tests but did not show them passing")
+    elif validation_outcome is True:
+        testability = 0.6
+        card.notes.append("validation passed but no new tests were added")
+    elif artifact.touches_high_risk:
+        testability = 0.2
+        card.flags.append("high-risk change without tests")
+    else:
+        testability = 0.4
+    card.scores["testability"] = testability
 
     # ── architecture_fit ──────────────────────────────────────────────
     architecture_fit = _clamped_self_score(artifact.status, "architecture_fit")
@@ -490,39 +686,136 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
             architecture_fit = 0.55
     card.scores["architecture_fit"] = architecture_fit
 
-    # ── risk_control ──────────────────────────────────────────────────
-    if artifact.touches_high_risk and not artifact.adds_tests:
-        risk_control = 0.15
-        card.flags.append("touches high-risk paths without tests")
-    elif artifact.touches_high_risk and tests_outcome is True:
-        risk_control = 0.8
-    elif tests_outcome is False:
-        risk_control = 0.2
-    elif diff > 600:
-        risk_control = 0.4
-    elif artifact.declared_success and tests_outcome is True:
-        risk_control = 0.85
-    else:
-        risk_control = 0.6
-    card.scores["risk_control"] = risk_control
+    # ── repo_fit ──────────────────────────────────────────────────────
+    repo_fit = 0.6
+    if artifact.changed_file_count and not artifact.patch_diff.strip():
+        repo_fit = 0.2
+        card.flags.append("changed-files.txt has paths but patch.diff is empty")
+    elif "diff --git" in artifact.patch_diff:
+        repo_fit = 0.8
+    card.scores["repo_fit"] = repo_fit
 
-    # ── ux_quality ────────────────────────────────────────────────────
-    ux_quality = _clamped_self_score(artifact.status, "ux_quality")
-    if ux_quality is None:
-        if len(artifact.output_md) >= 500 and artifact.output_md.count("\n") >= 8:
-            ux_quality = 0.75
-        elif artifact.output_md.strip():
-            ux_quality = 0.55
+    # ── security ──────────────────────────────────────────────────────
+    security = _clamped_self_score(artifact.status, "security")
+    if security is None:
+        if artifact.touches_high_risk and not artifact.adds_tests:
+            security = 0.15
+            card.flags.append("touches high-risk paths without tests")
+        elif artifact.touches_high_risk and validation_outcome is True:
+            security = 0.8
+        elif validation_outcome is False:
+            security = 0.25
+        elif diff > 600:
+            security = 0.45
+        elif artifact.declared_success and validation_outcome is True:
+            security = 0.85
         else:
-            ux_quality = 0.3
-    card.scores["ux_quality"] = ux_quality
+            security = 0.6
+    card.scores["security"] = security
+
+    # ── secrets_safety ────────────────────────────────────────────────
+    secret_hits = _scan_secrets(diff_added_text)
+    if secret_hits:
+        secrets_safety = 0.0
+        card.flags.append(
+            f"possible secret(s) in diff: {'; '.join(secret_hits[:3])}"
+        )
+    else:
+        secrets_safety = _clamped_self_score(artifact.status, "secrets_safety")
+        if secrets_safety is None:
+            # No suspicious additions and no claim from the worker — treat
+            # as soft-positive, but only if there's *something* to score.
+            if artifact.patch_diff.strip():
+                secrets_safety = 0.9
+            else:
+                secrets_safety = 0.5
+    card.scores["secrets_safety"] = secrets_safety
+
+    # ── mobile_fit ────────────────────────────────────────────────────
+    mobile_fit = _clamped_self_score(artifact.status, "mobile_fit")
+    if mobile_fit is None:
+        if artifact.touches_mobile and validation_outcome is True:
+            mobile_fit = 0.85
+        elif artifact.touches_mobile:
+            mobile_fit = 0.65
+            card.notes.append("touches mobile paths without validation")
+        elif artifact.patch_diff.strip():
+            # Doesn't touch mobile surfaces at all — neutral, on the
+            # principle that "didn't break what it didn't touch".
+            mobile_fit = 0.6
+        else:
+            mobile_fit = 0.5
+    card.scores["mobile_fit"] = mobile_fit
+
+    # ── voice_fit ─────────────────────────────────────────────────────
+    voice_fit = _clamped_self_score(artifact.status, "voice_fit")
+    if voice_fit is None:
+        if artifact.touches_voice and validation_outcome is True:
+            voice_fit = 0.85
+        elif artifact.touches_voice:
+            voice_fit = 0.6
+            card.notes.append("touches voice paths without validation")
+        elif artifact.patch_diff.strip():
+            voice_fit = 0.6
+        else:
+            voice_fit = 0.5
+    card.scores["voice_fit"] = voice_fit
+
+    # ── remote_execution_fit ──────────────────────────────────────────
+    remote_execution_fit = _clamped_self_score(artifact.status, "remote_execution_fit")
+    if remote_execution_fit is None:
+        unfriendly = _scan_remote_unfriendly(artifact.patch_diff)
+        if unfriendly == 0:
+            remote_execution_fit = 0.85
+        elif unfriendly <= 2:
+            remote_execution_fit = 0.6
+        else:
+            remote_execution_fit = 0.4
+            card.notes.append(
+                f"{unfriendly} remote-unfriendly pattern(s) in diff "
+                "(tty / localhost / hard-coded user paths)"
+            )
+    card.scores["remote_execution_fit"] = remote_execution_fit
+
+    # ── developer_experience ──────────────────────────────────────────
+    dev_ex = _clamped_self_score(artifact.status, "developer_experience")
+    if dev_ex is None:
+        score = 0.5
+        if len(artifact.output_md) >= 600 and artifact.output_md.count("\n") >= 10:
+            score = 0.8
+        elif artifact.output_md.strip():
+            score = 0.6
+        if artifact.adds_docs:
+            score = min(1.0, score + 0.1)
+            card.notes.append("worker added or updated documentation")
+        if any(
+            hint in path.lower() for path in artifact.changed_files for hint in _DEV_EX_HINTS
+        ):
+            score = min(1.0, score + 0.05)
+        dev_ex = score
+    card.scores["developer_experience"] = dev_ex
+
+    # ── ui_ux ─────────────────────────────────────────────────────────
+    ui_ux = _clamped_self_score(artifact.status, "ui_ux")
+    if ui_ux is None:
+        # Look back at ux_quality for legacy self-scores so old workers
+        # don't lose all signal in this category.
+        ui_ux = _clamped_self_score(artifact.status, "ux_quality")
+    if ui_ux is None:
+        if len(artifact.output_md) >= 500 and artifact.output_md.count("\n") >= 8:
+            ui_ux = 0.75
+        elif artifact.output_md.strip():
+            ui_ux = 0.55
+        else:
+            ui_ux = 0.3
+    card.scores["ui_ux"] = ui_ux
 
     # ── speed ─────────────────────────────────────────────────────────
     speed = _clamped_self_score(artifact.status, "speed")
     if speed is None:
         elapsed = artifact.status.get("elapsed_seconds")
         if isinstance(elapsed, (int, float)) and elapsed > 0:
-            # 0 - 60s -> ~1.0, 300s -> ~0.5, 900s+ -> ~0.1
+            # 0 - 60s -> ~1.0, 300s -> ~0.67, 900s+ -> ~0.0
             speed = _bounded(1.0 - (float(elapsed) / 900.0))
         else:
             speed = 0.5
@@ -539,40 +832,30 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
             cost = 0.5
     card.scores["cost_efficiency"] = cost
 
-    # ── local_first_fit ───────────────────────────────────────────────
-    local_first = _clamped_self_score(artifact.status, "local_first_fit")
-    if local_first is None:
-        # Hermes is a local-first orchestrator; patches that add network
-        # endpoints or external service calls without justification
-        # are downgraded. Pure local edits get a soft positive.
-        text = (artifact.patch_diff + "\n" + artifact.output_md).lower()
-        external_hits = sum(
-            text.count(token)
-            for token in ("http://", "https://", "fetch(", "requests.")
-        )
-        if external_hits == 0:
-            local_first = 0.8
-        elif external_hits <= 3:
-            local_first = 0.6
-        else:
-            local_first = 0.4
-            card.notes.append(
-                f"{external_hits} external-network references in diff/output"
-            )
-    card.scores["local_first_fit"] = local_first
-
     # ── jeremiah_fit ──────────────────────────────────────────────────
     # "jeremiah_fit" tracks alignment with the project owner's stated
     # preferences (private-personal-orchestrator, no telemetry, no
     # autonomous external actions, manual handoff by default). Workers
     # may self-score this; absent that, we apply a small bias from
-    # local_first_fit and risk_control.
-    jeremiah_fit = _clamped_self_score(artifact.status, "jeremiah_fit")
+    # secrets_safety / security / remote_execution_fit and let the
+    # user_profile (if present) override.
+    jeremiah_fit = _profile_score(user_profile, "jeremiah_fit")
+    if jeremiah_fit is None:
+        jeremiah_fit = _clamped_self_score(artifact.status, "jeremiah_fit")
     if jeremiah_fit is None:
         jeremiah_fit = _bounded(
-            0.5 * card.scores["local_first_fit"] + 0.5 * card.scores["risk_control"]
+            0.4 * card.scores["secrets_safety"]
+            + 0.3 * card.scores["security"]
+            + 0.3 * card.scores["remote_execution_fit"]
         )
     card.scores["jeremiah_fit"] = jeremiah_fit
+
+    # Profile-driven overrides for any other category.
+    if isinstance(user_profile, Mapping):
+        for cat in SCORE_CATEGORIES:
+            override = _profile_score(user_profile, cat)
+            if override is not None and cat != "jeremiah_fit":
+                card.scores[cat] = override
 
     # Final pass: clamp every score and ensure every category is set.
     for cat in SCORE_CATEGORIES:
@@ -584,9 +867,17 @@ def score_artifact(artifact: WorkerArtifact) -> Scorecard:
     return card
 
 
-def score_workers(workers: Sequence[WorkerArtifact]) -> list[Scorecard]:
+def score_workers(
+    workers: Sequence[WorkerArtifact],
+    *,
+    user_profile: Optional[Mapping[str, Any]] = None,
+    decision_ledger: Optional[Sequence[Mapping[str, Any]]] = None,
+) -> list[Scorecard]:
     """Score a sequence of workers in input order."""
-    return [score_artifact(w) for w in workers]
+    return [
+        score_artifact(w, user_profile=user_profile, decision_ledger=decision_ledger)
+        for w in workers
+    ]
 
 
 def rank(scorecards: Sequence[Scorecard]) -> list[Scorecard]:
