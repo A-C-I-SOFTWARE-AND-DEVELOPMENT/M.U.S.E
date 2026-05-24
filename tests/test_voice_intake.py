@@ -25,6 +25,7 @@ import pytest
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point HERMES_HOME at a tmp dir and reload the intake module.
@@ -39,6 +40,7 @@ def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # Re-import to pick up the env override cleanly.
     import hermes_cli.voice_intake as vi
     import hermes_cli.voice_models as vm
+
     importlib.reload(vm)
     importlib.reload(vi)
     return tmp_path
@@ -47,18 +49,21 @@ def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 @pytest.fixture
 def vi(hermes_home):
     import hermes_cli.voice_intake as vi
+
     return vi
 
 
 @pytest.fixture
 def vm(hermes_home):
     import hermes_cli.voice_models as vm
+
     return vm
 
 
 # ---------------------------------------------------------------------------
 # Mode normalisation
 # ---------------------------------------------------------------------------
+
 
 class TestModeNormalization:
     def test_canonical_modes_pass_through(self, vm):
@@ -92,6 +97,7 @@ class TestModeNormalization:
 # Driving-mode config invariants
 # ---------------------------------------------------------------------------
 
+
 class TestDrivingConfigPinning:
     def test_driving_mode_forces_safety_defaults(self, vm):
         """Even if the caller passes loose values, driving-mode config
@@ -124,6 +130,7 @@ class TestDrivingConfigPinning:
 # Redaction
 # ---------------------------------------------------------------------------
 
+
 class TestRedaction:
     def test_redacts_api_key_shape(self, vm):
         text = "use sk-abcdef1234567890qrstuvwxyz to call the api"
@@ -152,6 +159,7 @@ class TestRedaction:
 # Intent classification
 # ---------------------------------------------------------------------------
 
+
 class TestIntentClassification:
     def test_create_job_phrases(self, vm):
         for phrase in [
@@ -172,7 +180,9 @@ class TestIntentClassification:
 
     def test_status_query(self, vm):
         assert vm.classify_intent("what's the status of the build?") == "query_status"
-        assert vm.classify_intent("update me on the orchestration job") == "query_status"
+        assert (
+            vm.classify_intent("update me on the orchestration job") == "query_status"
+        )
 
     def test_cancel_and_confirm(self, vm):
         assert vm.classify_intent("cancel that") == "cancel"
@@ -199,6 +209,7 @@ class TestIntentClassification:
 # Disabled mode
 # ---------------------------------------------------------------------------
 
+
 class TestDisabledMode:
     def test_begin_intake_raises_when_disabled(self, vi, vm):
         cfg = vm.VoiceIntakeConfig(mode="disabled")
@@ -210,9 +221,12 @@ class TestDisabledMode:
 # End-to-end pipeline — push-to-talk
 # ---------------------------------------------------------------------------
 
+
 class TestPushToTalkPipeline:
     def test_capture_note_writes_three_artefacts(self, vi, vm, hermes_home):
-        transcript = vm.VoiceTranscript(text="remind me to call Sam tomorrow", provider="local-whisper")
+        transcript = vm.VoiceTranscript(
+            text="remind me to call Sam tomorrow", provider="local-whisper"
+        )
         intake, job_id = vi.run_pipeline(transcript, confirmation="yes")
         assert intake.draft.intent == "capture_note"
         assert intake.approval.state == "approved"
@@ -238,7 +252,9 @@ class TestPushToTalkPipeline:
             calls.append(prompt)
             return FakeJob()
 
-        transcript = vm.VoiceTranscript(text="implement a retry guard for the publisher")
+        transcript = vm.VoiceTranscript(
+            text="implement a retry guard for the publisher"
+        )
         cfg = vm.VoiceIntakeConfig(mode="push_to_talk")
         intake, job_id = vi.run_pipeline(
             transcript,
@@ -251,7 +267,9 @@ class TestPushToTalkPipeline:
         assert calls == ["implement a retry guard for the publisher"]
         assert job_id == "orc-fake1234"
         # Approval notes record the orchestrator job link for audit.
-        assert any("orchestrator-job:orc-fake1234" in note for note in intake.approval.notes)
+        assert any(
+            "orchestrator-job:orc-fake1234" in note for note in intake.approval.notes
+        )
 
     def test_cancellation_returns_no_job(self, vi, vm):
         called: list[str] = []
@@ -294,6 +312,7 @@ class TestPushToTalkPipeline:
 # Driving-mode behaviour
 # ---------------------------------------------------------------------------
 
+
 class TestDrivingMode:
     def test_unknown_intent_degrades_to_note(self, vi, vm):
         transcript = vm.VoiceTranscript(text="xyzzy plugh weather")
@@ -313,7 +332,9 @@ class TestDrivingMode:
             seen.append(prompt)
             return type("J", (), {"id": "orc-drv1"})()
 
-        transcript = vm.VoiceTranscript(text="create a job to refactor the scorer module")
+        transcript = vm.VoiceTranscript(
+            text="create a job to refactor the scorer module"
+        )
         cfg = vm.VoiceIntakeConfig(mode="driving_capture")
         intake, job_id = vi.run_pipeline(
             transcript,
@@ -349,7 +370,9 @@ class TestDrivingMode:
 
     def test_transcript_is_trimmed_for_readback(self, vi, vm):
         long_text = "implement " + ("a very long verbose description " * 50)
-        cfg = vm.VoiceIntakeConfig(mode="driving_capture", driving_max_transcript_chars=120)
+        cfg = vm.VoiceIntakeConfig(
+            mode="driving_capture", driving_max_transcript_chars=120
+        )
         intake = vi.begin_intake(cfg)
         intake = vi.ingest_transcript(intake, vm.VoiceTranscript(text=long_text))
         assert len(intake.transcript.text) <= 124  # 120 + "..." plus the rstrip
@@ -371,9 +394,12 @@ class TestDrivingMode:
 # Read-back artefacts
 # ---------------------------------------------------------------------------
 
+
 class TestReadback:
     def test_readback_string_is_one_actionable_sentence(self, vi, vm):
-        transcript = vm.VoiceTranscript(text="implement a retry guard for the publisher")
+        transcript = vm.VoiceTranscript(
+            text="implement a retry guard for the publisher"
+        )
         intake = vi.begin_intake(vm.VoiceIntakeConfig())
         intake = vi.ingest_transcript(intake, transcript)
         spoken = vi.build_readback(intake)
@@ -381,7 +407,9 @@ class TestReadback:
         assert "Say yes to proceed or no to cancel." in spoken
 
     def test_readback_md_contains_provider_and_intent(self, vi, vm, hermes_home):
-        transcript = vm.VoiceTranscript(text="capture this note about quarterly goals", provider="local-whisper")
+        transcript = vm.VoiceTranscript(
+            text="capture this note about quarterly goals", provider="local-whisper"
+        )
         intake = vi.begin_intake(vm.VoiceIntakeConfig())
         intake = vi.ingest_transcript(intake, transcript)
         vi.build_readback(intake)
@@ -402,6 +430,7 @@ class TestReadback:
 # Affirmative / negative phrase grammar
 # ---------------------------------------------------------------------------
 
+
 class TestConfirmationGrammar:
     def test_explicit_affirmatives(self, vi):
         for phrase in ["yes", "Yes please", "confirm", "go ahead", "do it"]:
@@ -409,7 +438,9 @@ class TestConfirmationGrammar:
 
     def test_prefix_affirmative(self, vi):
         assert vi.is_affirmative("yes, ship it")
-        assert vi.is_affirmative("approve approve approve") is True  # exact-prefix on "approve"
+        assert (
+            vi.is_affirmative("approve approve approve") is True
+        )  # exact-prefix on "approve"
 
     def test_explicit_negatives(self, vi):
         for phrase in ["no", "Cancel that", "never mind", "stop"]:
@@ -426,6 +457,7 @@ class TestConfirmationGrammar:
 # Intake inspection helpers
 # ---------------------------------------------------------------------------
 
+
 class TestInspection:
     def test_load_intake_round_trip(self, vi, vm):
         transcript = vm.VoiceTranscript(text="note the council vote")
@@ -438,7 +470,9 @@ class TestInspection:
 
     def test_list_intakes_returns_recent(self, vi, vm):
         for i in range(3):
-            vi.run_pipeline(vm.VoiceTranscript(text=f"note number {i}"), confirmation="yes")
+            vi.run_pipeline(
+                vm.VoiceTranscript(text=f"note number {i}"), confirmation="yes"
+            )
         intakes = vi.list_intakes(limit=10)
         assert len(intakes) >= 3
         assert all(hasattr(it, "id") for it in intakes)
@@ -450,6 +484,7 @@ class TestInspection:
 # ---------------------------------------------------------------------------
 # Confirmation requirement enforcement
 # ---------------------------------------------------------------------------
+
 
 class TestConfirmationRequired:
     def test_unknown_intent_with_implementation_flag_raises(self, vi, vm):
@@ -470,6 +505,7 @@ class TestConfirmationRequired:
 # ---------------------------------------------------------------------------
 # Filesystem layout
 # ---------------------------------------------------------------------------
+
 
 class TestFilesystemLayout:
     def test_intake_folder_under_hermes_home(self, vi, hermes_home):
@@ -493,6 +529,7 @@ class TestFilesystemLayout:
 # Approval state JSON shape (consumed by gateway + cockpit)
 # ---------------------------------------------------------------------------
 
+
 class TestApprovalStateJson:
     def test_approved_state_has_required_keys(self, vi, vm, hermes_home):
         transcript = vm.VoiceTranscript(text="note today's release rollout")
@@ -500,7 +537,13 @@ class TestApprovalStateJson:
         data = json.loads(
             (hermes_home / "voice" / intake.id / vi.APPROVAL_FILE).read_text()
         )
-        assert set(data) >= {"state", "decided_at", "decided_by", "confirmation_phrase", "notes"}
+        assert set(data) >= {
+            "state",
+            "decided_at",
+            "decided_by",
+            "confirmation_phrase",
+            "notes",
+        }
         assert data["state"] == "approved"
         assert data["decided_by"] == "user"
         assert isinstance(data["notes"], list)

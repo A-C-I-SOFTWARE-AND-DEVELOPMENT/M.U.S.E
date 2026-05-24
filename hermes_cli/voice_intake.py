@@ -108,7 +108,7 @@ def _hermes_home() -> Path:
     ``~/.hermes/``.
     """
     try:
-        from hermes_constants import get_hermes_home  # type: ignore
+        from hermes_constants import get_hermes_home
 
         return get_hermes_home()
     except Exception:
@@ -188,7 +188,11 @@ def _matches_phrase(text: str, phrases: tuple[str, ...]) -> bool:
         return True
     # Prefix match catches "yes, do it" / "no, cancel that".
     for phrase in phrases:
-        if lowered == phrase or lowered.startswith(phrase + " ") or lowered.startswith(phrase + ","):
+        if (
+            lowered == phrase
+            or lowered.startswith(phrase + " ")
+            or lowered.startswith(phrase + ",")
+        ):
             return True
     return False
 
@@ -206,6 +210,7 @@ def is_negative(text: str) -> bool:
 # ---------------------------------------------------------------------------
 # Pipeline — step 1: begin
 # ---------------------------------------------------------------------------
+
 
 def begin_intake(config: Optional[VoiceIntakeConfig] = None) -> VoiceIntake:
     """Open a new voice intake.
@@ -229,6 +234,7 @@ def begin_intake(config: Optional[VoiceIntakeConfig] = None) -> VoiceIntake:
 # ---------------------------------------------------------------------------
 # Pipeline — step 2: ingest
 # ---------------------------------------------------------------------------
+
 
 def ingest_transcript(intake: VoiceIntake, transcript: VoiceTranscript) -> VoiceIntake:
     """Attach *transcript* to *intake* and build the draft job.
@@ -271,14 +277,25 @@ def _build_draft(intake: VoiceIntake, text: str) -> VoiceDraftJob:
     # Driving-mode degradation: an unknown / ambiguous transcript is
     # captured as a note instead of being inflated into "implement
     # this for me". This is the rule the safety doc relies on.
-    if intake.mode == MODE_DRIVING_CAPTURE and intent in {INTENT_UNKNOWN, INTENT_CREATE_JOB}:
+    if intake.mode == MODE_DRIVING_CAPTURE and intent in {
+        INTENT_UNKNOWN,
+        INTENT_CREATE_JOB,
+    }:
         if intent == INTENT_UNKNOWN:
             intent = INTENT_CAPTURE_NOTE
 
     requires_impl = intent == INTENT_CREATE_JOB
     publishes = bool(text) and any(
         word in text.lower()
-        for word in ("publish", "ship it", "deploy", "merge", "release", "send the pr", "open the pr")
+        for word in (
+            "publish",
+            "ship it",
+            "deploy",
+            "merge",
+            "release",
+            "send the pr",
+            "open the pr",
+        )
     )
 
     summary = _summarize_for_readback(intent, text)
@@ -315,6 +332,7 @@ def _summarize_for_readback(intent: str, text: str) -> str:
 # Pipeline — step 3: read-back
 # ---------------------------------------------------------------------------
 
+
 def build_readback(intake: VoiceIntake) -> str:
     """Return the plain-English read-back string and persist it.
 
@@ -343,7 +361,11 @@ def build_readback(intake: VoiceIntake) -> str:
 
     # Touch a metadata-only access so transcript provider attribution
     # is testable end-to-end.
-    logger.debug("voice readback built (provider=%s, intent=%s)", transcript.provider, draft.intent)
+    logger.debug(
+        "voice readback built (provider=%s, intent=%s)",
+        transcript.provider,
+        draft.intent,
+    )
     return spoken
 
 
@@ -416,6 +438,7 @@ def _compose_markdown_readback(intake: VoiceIntake) -> str:
 # ---------------------------------------------------------------------------
 # Pipeline — step 4: decision
 # ---------------------------------------------------------------------------
+
 
 def record_decision(intake: VoiceIntake, phrase: Optional[str]) -> VoiceIntake:
     """Interpret *phrase* and write the terminal approval state.
@@ -506,7 +529,9 @@ def finalize(
     if approval.state != APPROVAL_APPROVED:
         return None
 
-    if (draft.requires_implementation or draft.publish_action) and cfg.require_voice_confirmation:
+    if (
+        draft.requires_implementation or draft.publish_action
+    ) and cfg.require_voice_confirmation:
         # We already know the state is ``approved`` — but if the user
         # somehow approved an empty/unknown intent (e.g. a wake-word
         # false positive), refuse rather than creating a junk job.
@@ -557,6 +582,7 @@ def _default_submitter(prompt: str) -> Any:
 # Convenience: full pipeline wrapper
 # ---------------------------------------------------------------------------
 
+
 def run_pipeline(
     transcript: VoiceTranscript,
     *,
@@ -585,6 +611,7 @@ def run_pipeline(
 # JSON files directly).
 # ---------------------------------------------------------------------------
 
+
 def _write_intake_json(folder: Path, intake: VoiceIntake) -> None:
     path = folder / INTAKE_FILE
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -601,7 +628,9 @@ def _write_transcript_file(folder: Path, intake: VoiceIntake) -> None:
 def _write_approval_file(folder: Path, approval: VoiceApproval) -> None:
     path = folder / APPROVAL_FILE
     tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(asdict(approval), indent=2, sort_keys=True), encoding="utf-8")
+    tmp.write_text(
+        json.dumps(asdict(approval), indent=2, sort_keys=True), encoding="utf-8"
+    )
     os.replace(tmp, path)
 
 
@@ -609,6 +638,7 @@ def _write_approval_file(folder: Path, approval: VoiceApproval) -> None:
 # Inspection helpers (used by ``hermes voice last`` and the cockpit
 # diagnostics page)
 # ---------------------------------------------------------------------------
+
 
 def load_intake(voice_id: str) -> Optional[VoiceIntake]:
     folder = _voice_root() / voice_id

@@ -117,12 +117,44 @@ VOICE_INTENTS: tuple[str, ...] = (
 # ``create_job`` heuristics. ``re.IGNORECASE`` is applied at compile
 # time so the patterns can stay readable.
 _INTENT_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
-    (INTENT_CANCEL, re.compile(r"\b(cancel|abort|never\s*mind|forget\s*it|stop)\b", re.IGNORECASE)),
-    (INTENT_CONFIRM, re.compile(r"\b(yes|yeah|yep|confirm|go\s*ahead|do\s*it|approve|approved)\b", re.IGNORECASE)),
-    (INTENT_REPEAT, re.compile(r"\b(repeat|say\s*again|read\s*back|one\s*more\s*time)\b", re.IGNORECASE)),
-    (INTENT_QUERY_STATUS, re.compile(r"\b(status|what(?:'|\s+i)s\s+(?:happening|the\s+status)|how\s+is|update\s+me)\b", re.IGNORECASE)),
-    (INTENT_CREATE_JOB, re.compile(r"\b(create|implement|build|publish|deploy|ship|fix|refactor|add|run|kick\s*off)\b", re.IGNORECASE)),
-    (INTENT_CAPTURE_NOTE, re.compile(r"\b(note|remember|jot|capture|log|save|todo|to\s*do|reminder|remind\s*me)\b", re.IGNORECASE)),
+    (
+        INTENT_CANCEL,
+        re.compile(r"\b(cancel|abort|never\s*mind|forget\s*it|stop)\b", re.IGNORECASE),
+    ),
+    (
+        INTENT_CONFIRM,
+        re.compile(
+            r"\b(yes|yeah|yep|confirm|go\s*ahead|do\s*it|approve|approved)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        INTENT_REPEAT,
+        re.compile(
+            r"\b(repeat|say\s*again|read\s*back|one\s*more\s*time)\b", re.IGNORECASE
+        ),
+    ),
+    (
+        INTENT_QUERY_STATUS,
+        re.compile(
+            r"\b(status|what(?:'|\s+i)s\s+(?:happening|the\s+status)|how\s+is|update\s+me)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        INTENT_CREATE_JOB,
+        re.compile(
+            r"\b(create|implement|build|publish|deploy|ship|fix|refactor|add|run|kick\s*off)\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        INTENT_CAPTURE_NOTE,
+        re.compile(
+            r"\b(note|remember|jot|capture|log|save|todo|to\s*do|reminder|remind\s*me)\b",
+            re.IGNORECASE,
+        ),
+    ),
 )
 
 
@@ -141,7 +173,9 @@ _SECRET_PATTERNS: tuple["re.Pattern[str]", ...] = (
     re.compile(r"\b[A-Za-z0-9/+=]{40}\b"),
     # Bearer tokens and password-style assignments.
     re.compile(r"(?i)\b(bearer)\s+[A-Za-z0-9._\-]{16,}\b"),
-    re.compile(r"(?i)\b(password|passcode|pin|secret|api[\s_-]?key|token)\s+(?:is\s+)?[A-Za-z0-9._\-]{4,}\b"),
+    re.compile(
+        r"(?i)\b(password|passcode|pin|secret|api[\s_-]?key|token)\s+(?:is\s+)?[A-Za-z0-9._\-]{4,}\b"
+    ),
 )
 
 
@@ -151,6 +185,7 @@ _REDACTION_MARKER = "[REDACTED]"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _new_voice_id() -> str:
     """Stable ID for a single voice intake interaction."""
@@ -234,6 +269,7 @@ def classify_intent(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class VoiceIntakeConfig:
@@ -374,7 +410,9 @@ class VoiceIntake:
 
     id: str = field(default_factory=_new_voice_id)
     mode: str = MODE_PUSH_TO_TALK
-    transcript: VoiceTranscript = field(default_factory=lambda: VoiceTranscript(text=""))
+    transcript: VoiceTranscript = field(
+        default_factory=lambda: VoiceTranscript(text="")
+    )
     draft: VoiceDraftJob = field(default_factory=VoiceDraftJob)
     approval: VoiceApproval = field(default_factory=VoiceApproval)
     config: VoiceIntakeConfig = field(default_factory=VoiceIntakeConfig)
@@ -412,6 +450,7 @@ class VoiceIntake:
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 class VoiceIntakeError(RuntimeError):
     """Base class for voice-intake errors."""
