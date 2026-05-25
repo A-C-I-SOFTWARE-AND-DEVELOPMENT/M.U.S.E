@@ -1,103 +1,113 @@
 ---
 name: github-publisher
-description: Safely prepare, validate, commit, push, and open GitHub pull requests from Hermes jobs.
+description: "Promote a Hermes orchestration job's github/ artifacts (branch, commit message, PR title, PR body) into a real branch and pull request. Phase-02-aware: the artifacts exist but must not be pushed until later phases populate merge/."
+version: 0.2.0
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [orchestration, github, publishing, pr]
+    related_skills:
+      - hermes-orchestration-pipeline
+      - model-router
+      - developer-ux-command-center
 ---
 
-# GitHub Publisher
+# GitHub publisher
 
-## Purpose
+This skill turns a job's `github/` folder into a branch + draft PR. It
+is the bridge between the orchestration pipeline and the GitHub plugin
+documented at `docs/github-integration.md`.
 
-Use this skill when a Hermes job needs to publish work to GitHub. It turns validated local changes into a branch, commit, push, and pull request while keeping the workflow reversible.
+## Phase-02 reality check
 
-## Required Checks Before Publishing
+In Phase 02, `scripts/hermes-orchestrate.sh` emits four files under
+every job's `github/` folder with templated content:
 
-Run or request equivalent checks:
-
-```bash
-git status --short
-git branch --show-current
-git diff --check
-git diff --stat
-git diff --name-only
+```
+.hermes-orchestrator/jobs/<job-id>/github/
+├── branch.txt              # default: hermes/<mode>/<job-id>
+├── commit-message.txt
+├── pr-title.txt
+└── pr-body.md
 ```
 
-Run a secret scan before commit:
+These are **scaffold templates only**. The `pr-body.md` explicitly
+warns "do not merge a PR generated from this template until later
+phases populate the merge/ artifacts." Respect that warning. In
+particular, do not:
 
-```bash
-git diff --cached -- . ':!.env' | grep -Ei 'api[_-]?key|secret|token|password|bearer|private[_-]?key' || true
-git diff -- . ':!.env' | grep -Ei 'api[_-]?key|secret|token|password|bearer|private[_-]?key' || true
-```
+- push the branch named in `branch.txt`,
+- run `git commit -F github/commit-message.txt`,
+- call `mcp__github__create_pull_request` with `github/pr-title.txt`
+  and `github/pr-body.md`.
 
-Block publishing if `.env`, private keys, generated credentials, or obvious secrets are staged.
+When the controller exists in the next phase, this skill will own the
+push + PR creation flow described below.
 
-## Branch Policy
+## Future workflow (informative, not active in Phase 02)
 
-Use branch-per-job:
+When `merge/final-patch.diff` and `merge/final-plan.md` carry real
+content, the publish path is:
 
-```text
-hermes/<job-id>
-```
+1. **Sanity-check the job folder.** Required: a non-empty
+   `merge/final-patch.diff`, a populated `merge/final-plan.md`, and
+   all four files under `github/`.
+2. **Apply the patch on a fresh branch.**
+   ```bash
+   branch="$(cat .hermes-orchestrator/jobs/<id>/github/branch.txt)"
+   git switch -c "${branch}"
+   git apply .hermes-orchestrator/jobs/<id>/merge/final-patch.diff
+   ```
+3. **Commit using the scaffolded message.**
+   ```bash
+   git commit -F .hermes-orchestrator/jobs/<id>/github/commit-message.txt
+   ```
+4. **Push the branch with upstream tracking.**
+   ```bash
+   git push -u origin "${branch}"
+   ```
+   On network errors, retry up to 4 times with exponential backoff
+   (2s, 4s, 8s, 16s) — same policy the rest of the project uses.
+5. **Open a draft PR via the GitHub MCP server.** Use
+   `mcp__github__create_pull_request` with:
+   - `title` = contents of `github/pr-title.txt`
+   - `body` = contents of `github/pr-body.md`
+   - `draft` = `true`
+   - `base` = the repo's default branch unless the job's
+     `constraints.md` says otherwise
+6. **Record the PR URL** by appending a row to `decision-ledger.md`
+   and updating `status.json` to `state: "published"`.
 
-If the branch exists, ask whether to resume it or create a new suffix.
+The native GitHub plugin (`plugins/github_assistant/`) covers the same
+ground for users who prefer Hermes tools over MCP; the choice is the
+user's, documented in `docs/github-integration.md`.
 
-## Commit Policy
+## Why a draft, always
 
-Commit only intentional files. Exclude:
+- Phase-02 templates ship with a warning banner; making the PR draft
+  by default prevents anyone from merging a scaffold by accident.
+- The user expects to review the council synthesis before the PR
+  flips to ready-for-review. The draft state is the natural pause
+  point.
 
-- `.env`
-- secret files
-- local logs unless explicitly requested
-- generated build directories
-- APK binaries unless release packaging is explicitly requested
-- worker scratch outputs unless they are documentation deliverables
+## Safety rails carried over from `github-integration.md`
 
-## PR Body Template
+- Never push to `main` / `master` directly. Always create the branch
+  named in `branch.txt`.
+- Never force-push from this skill. If a branch already exists, fail
+  loud and surface the existing branch to the user.
+- Never pass the GitHub PAT into the prompt. The plugin / MCP server
+  reads it from the environment; the skill never sees it.
+- Never bypass `pre-commit` hooks with `--no-verify`. If a hook fails,
+  the council review missed something — surface the failure.
 
-```markdown
-## Summary
-- 
+## What this skill never does
 
-## Hermes Job
-- Job ID: 
-- Job folder: 
-
-## Changes
-- 
-
-## Validation
-- [ ] 
-
-## Risk / Rollback
-- Risk level: 
-- Rollback: revert this PR or reset branch `...`
-
-## Worker Inputs
-- Hermes Local:
-- Codex:
-- Claude Code:
-- Aider:
-- ChatGPT handoff:
-```
-
-## Approval Gates
-
-For private local mode:
-
-- Auto-allow branch creation.
-- Auto-allow local commit when validation passed and no secrets are present.
-- Ask before push unless the user already approved publishing.
-- Ask before opening PR unless the user already approved publishing.
-- Never force-push without explicit approval.
-- Never merge automatically unless explicitly requested.
-
-## Output Format
-
-- Current repo
-- Current branch
-- Files changed
-- Validation results
-- Secret scan result
-- Proposed branch
-- Commit message
-- PR title/body
-- Publish approval needed
+- It never runs in Phase 02. The artifacts are scaffolds; pushing them
+  would create empty branches and misleading PRs.
+- It never edits `merge/final-patch.diff` or `merge/final-plan.md`.
+  Those come from council synthesis. The publisher only consumes
+  them.
+- It never invents a branch name. If `branch.txt` is missing or
+  empty, fail and tell the user the orchestrator scaffolded a broken
+  job.

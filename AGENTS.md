@@ -693,64 +693,69 @@ lives in the `hermes-agent-dev` skill at
 `references/new-skill-pr-salvage.md` — load it before polishing
 contributor skill PRs.
 
----
+### Orchestration pipeline skills
 
-## JARVIS Prime Operating Layer
+A coordinated set of skills implements the local-first orchestration
+pipeline. They expect the same job-folder contract and read/write a
+shared decision ledger so that every run is auditable.
 
-> **Implementation status — spec, not runtime (yet).** This section defines the operating contract for JARVIS Prime. The contract ships in this PR as:
-> - vision docs (`docs/jarvis-prime-operating-system.md`, `docs/jarvis-code-operator-workflow.md`, `docs/mobile-voice-development-workflow.md`, `docs/jarvis-verification-gates.md`, `docs/aos-jarvis-agent-routing.md`, `docs/claude-codex-handoff-workflow.md`, `docs/memory-and-personality-policy.md`, `docs/slack-mobile-command-policy.md`)
-> - skill definitions (`skills/jarvis-prime/SKILL.md`, `skills/jarvis-code-operator/SKILL.md`, `skills/mobile-voice-development/SKILL.md`)
-> - verification scripts (`scripts/jarvis_context_audit.py`, `scripts/aos_registry_verify.py`)
->
-> **Not yet wired into Hermes runtime:** slash command handlers for `JARVIS capture/focused/build/critic/strategy/review/remember/forget/correct`; mode-classifier injection into the system prompt; personality file under `~/.hermes/personalities/`; Slack subcommand registration in `gateway/platforms/slack.py`; Termux dispatch via `hermes "JARVIS ..."`; verification-gate enforcement in CI; owner-authorization mechanism (currently a free-text "yes, with authorization" the operator types). These ship in follow-up PRs.
->
-> Treat the rest of this section as the contract the runtime will satisfy, not as a feature inventory.
+| Skill | Purpose |
+|---|---|
+| `hermes-orchestration-pipeline` | Top-level driver. Reads a job folder, dispatches to the right specialist skills, and writes the result back to the ledger. |
+| `aos-full-agent-team` | Spawns the standard planner / builder / reviewer / architect roles and assigns work via the kanban dispatcher. |
+| `model-router` | Resolves `task-type → model` using `docs/ai-intelligence/model-registry.yaml` and the routing policy. |
+| `decision-quality-gate` | Validates a proposed decision against the ledger before it ships. |
+| `research-validator` | Cross-checks claims pulled from the web / docs before they enter the ledger. |
+| `ai-improvement-radar` | Continuous scan for new AI capabilities Hermes should adopt. |
+| `self-improvement-loop` | Proposes patches to Hermes's own skills, ledger, and routing policy. Gated by `decision-quality-gate`. |
+| `github-publisher` | Turns approved changes into branches, PRs, and releases. |
+| `developer-ux-command-center` | The Android APK cockpit's view onto the pipeline. |
+| `best-coding-tool-mission` | Holds the project's north-star mission used when ranking trade-offs. |
 
-JARVIS Prime is a local-first personal AI operating layer built on top of Hermes. It is for workflows where the assistant must be human-like, emotionally intelligent, direct, strategic, loyal to the user's long-term mission, and willing to challenge weak ideas instead of acting like a passive chatbot or yes-man.
+These skills cooperate via two on-disk contracts:
 
-### Behavioral contract
+1. **Job folder contract** — every job lives in a directory whose
+   layout is fixed (`prompt.md`, `inputs/`, `outputs/`, `ledger.jsonl`,
+   `status.json`). Skills read inputs and append to `ledger.jsonl`;
+   they never overwrite history.
+2. **Decision ledger** — every non-trivial decision is appended as a
+   JSON line with `decision_id`, `rationale`, `alternatives`,
+   `model`, `cost`, `outcome`. The `decision-quality-gate` skill
+   consumes this; the `self-improvement-loop` skill mines it.
 
-- Be loyal to the mission, not blindly obedient to the moment.
-- Say when an idea is too broad, emotionally satisfying but strategically weak, or not the move.
-- Give the stronger version when challenging an idea.
-- Keep owner control over merges, deploys, publishing, credential changes, public posting, spending, and destructive work.
-- Do not create a giant uncontrolled swarm or activate hundreds of agents by default.
+Companion docs:
 
-### Operating modes
+- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline contract.
+- `docs/orchestration/decision-ledger.md` — ledger schema and lifecycle.
+- `docs/orchestration/self-improvement-loop.md` — how Hermes proposes
+  patches to itself.
+- `docs/ai-intelligence/model-registry.yaml` — model catalog (capabilities,
+  cost, context window, modality) consumed by `model-router`.
+- `docs/ai-intelligence/model-routing-policy.md` — rules that map
+  task type to model.
+- `docs/competitive/openhuman-paperclip-research.md` — competitive
+  feature harvester output that feeds `ai-improvement-radar`.
+- `docs/mission/best-coding-tool-mission.md` — mission statement.
+- `scripts/hermes-orchestrate.sh` — convenience entry point that
+  invokes the pipeline against a job folder.
 
-- **Companion Mode** — human-like conversation, emotional intelligence, encouragement, and honest support.
-- **Strategy Mode** — product, business, career, pricing, positioning, investor, internal promotion, and roadmap reasoning.
-- **Critic Mode** — contrarian review, blind-spot detection, hard truth, weak logic detection, and better alternatives.
-- **Operator Mode** — task routing, AOS coordination, GitHub issue/PR planning, Slack/Termux workflows, and execution management.
-- **Builder Mode** — code planning, Claude Code build packets, Codex review packets, local verification, and PR handoff.
-- **Mobile Voice Mode** — short capture mode for jogging, walking, and mobile situations; expand later in focused mode.
+Posture: **private and local-first**. No telemetry, no remote config,
+no third-party data sharing in the pipeline. The Hermes backend is the
+engine; the Android APK at [`apps/android`](apps/android/) is the
+cockpit. See [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+for the cockpit contract.
 
-### Default engineering flow
+Invocation summary (CLI or any messaging gateway):
 
-1. Confirm repo root, branch, and dirty worktree state.
-2. Classify risk and owner gates.
-3. Scope one mission with explicit non-goals and acceptance criteria.
-4. Use Claude Code as the primary builder when implementation is needed.
-5. Use Codex as reviewer, bounded fix worker, refactorer, or second-pass engineer.
-6. Do not let Claude Code and Codex edit the same branch at the same time.
-7. Run local verification or state why verification was skipped.
-8. Return changed files, verification results, rollback notes, and PR handoff.
-
-### Default specialists
-
-Keep the default active council small. Use AOS for reasoning and activate specialists only when their domain is required, such as security/compliance, product UX, contrarian review, QA/release gates, memory/evidence curation, logistics, HazMat, nutrition, or career strategy.
-
-### Worker separation
-
-Decision agents and specialists reason. Skills encode repeatable procedures. Workers execute bounded lanes and report evidence. Personas simulate audience or tone. Product roles represent stakeholder needs. Do not promote procedures, execution lanes, personas, or product roles into always-active decision agents.
-
-### Mobile voice mode
-
-For Slack, Termux, jogging, walking, driving breaks, or away-from-desk capture, keep responses short. Preserve the raw idea, produce a clean task title, summarize plainly, recommend a route, and defer long code, long diffs, secrets, merges, deploys, and destructive actions until focused mode.
-
-### Memory and contrarian review expectations
-
-Save durable preferences, repeated corrections, project direction, and workflow lessons. Do not save secrets, temporary emotions, one-off task progress, stale PR/issue/commit identifiers, or raw voice dumps. Contrarian review should name the strongest objection, distinguish fatal flaws from fixable gaps, and end with a stronger path when one exists.
+```text
+/reload-skills                              # pick up new/edited skills
+/aos-full-agent-team <goal>                 # full team for a goal
+/hermes-orchestration-pipeline <job-id>     # drive a job folder
+/model-router <task-type>                   # pick a model for a task
+/decision-quality-gate <decision-id>        # gate a proposed decision
+/ai-improvement-radar                       # scan + report adoptions
+/github-publisher <branch>                  # ship approved changes
+```
 
 ---
 
@@ -1162,12 +1167,146 @@ not the specific names.
 Reviewers should reject new change-detector tests; authors should convert
 them into invariants before re-requesting review.
 
+---
+
+## Plain-English operating manual (docs/)
+
+The [`docs/`](docs/) folder is the user-facing manual for Hermes.
+When you make a change that affects user behavior, you usually need
+to update one of these pages too — pick the closest match:
+
+| If you changed… | Update |
+|---|---|
+| The orchestrator, kanban, gates, ledger | `docs/orchestration/` (start at `README.md`) |
+| The Prompt to PR flow | `docs/orchestration/prompt-to-pr-demo.md` |
+| The Android cockpit / mobile API | `docs/mobile/mobile-app-guide.md` (and the developer specs under `docs/android/`) |
+| Voice capture, STT/TTS, driving mode | `docs/voice/voice-first-user-guide.md` |
+| The Claude Code Windows bridge / a worker adapter | `docs/remote/windows-claude-code-bridge-guide.md` (+ `docs/orchestration/worker-adapters.md`) |
+| The user profile / GitHub-history learning | `docs/profile/github-history-profile-guide.md` |
+| Secrets, policy gate, private-local recipes | `docs/security/private-local-security-guide.md` (+ `docs/orchestration/private-local-mode.md`) |
+| GitHub / Supabase / Vercel integration | `docs/integrations/github-supabase-vercel-guide.md` |
+| A new failure mode users will hit | `docs/troubleshooting/hermes-orchestration-troubleshooting.md` (and the orchestration-specific `docs/orchestration/troubleshooting.md`) |
+
+The index is [`docs/README.md`](docs/README.md). Keep the index in
+sync when you add or rename a guide.
+
+---
+
+## Hermes Orchestration
+
+When working on **anything in the orchestration stack** — the
+orchestrator skills, the kanban dispatcher, the validation gates, the
+decision ledger, the publishing path, the Android cockpit's
+orchestrator pane, the Termux runtime — read
+[`docs/orchestration/README.md`](docs/orchestration/README.md) first.
+It is the conceptual map; the rest of this section is rules for code
+that touches the orchestrator.
+
+### The five primitives
+
+The orchestration system is built from five concepts:
+
+1. **Job** — one orchestrated goal. Lives at
+   `~/.hermes/jobs/<job-id>/` and as rows in the kanban SQLite store.
+2. **Worker** — a Hermes profile (model + toolset + skills +
+   environment) that executes a card.
+3. **Model routing** — `orchestration.routing` rules that override a
+   profile's default model per-card.
+4. **Validation gate** — schema check + policy check (via
+   `enterprise.policy.classify`) + optional judge call. Every card
+   passes through.
+5. **Decision ledger** — append-only JSONL at
+   `~/.hermes/jobs/<job-id>/ledger.jsonl`. Source of truth for replay,
+   diff, and audit.
+
+If a change you're making interacts with any of these five, it needs
+to land its semantics in `docs/orchestration/` (or update the
+existing doc) in the same PR.
+
+### Rules for orchestrator code
+
+- **Do not change ledger entry shape silently.** The ledger is a
+  stable, tooling-readable format (see
+  [`docs/orchestration/faq.md`](docs/orchestration/faq.md)). New
+  `kind` values are fine; renaming or repurposing existing ones
+  needs a deprecation cycle.
+- **Do not bypass `enterprise.policy.classify` in publishing paths.**
+  Every mutation on an external service (GitHub, gateway DM, file
+  write outside the job folder) goes through it.
+- **Do not autocorrect unknown profile names.** The dispatcher's
+  documented behavior is to silently leave the card in `ready`. Tests
+  in `tests/orchestration/` enforce this.
+- **Workers must not call publishing tools directly.** The publishing
+  card (T5 in the prompt-to-PR demo) is a separate kanban card
+  precisely so the policy gate catches it. Don't add backdoors that
+  let an engineer-profile worker open a PR mid-run.
+- **The job folder is the source of truth.** If you cache state
+  in-memory, it must be reconstructable from `ledger.jsonl`. A
+  process crash and restart should resume cleanly.
+
+### Rules for orchestrator skills
+
+Custom orchestrator skills live under `~/.hermes/skills/` and ship
+under `skills/` in the repo. They must:
+
+- Discover available profiles before decomposing (call
+  `hermes profile list` or ask the user). The
+  [kanban-orchestrator playbook](skills/devops/kanban-orchestrator/SKILL.md)
+  is the reference implementation.
+- Use `parents=[...]` for dependencies, not free-form prose.
+- Mark themselves done with `kanban_complete` and a structured
+  `metadata.task_graph` summary.
+- Never invent profile names. If the user's setup doesn't fit the
+  decomposition, ask which profile to use.
+
+### Adding a new entry surface
+
+There are five today: `hermes` (TUI), `bash scripts/hermes-orchestrate.sh`,
+`/orchestrate` slash command, Android cockpit, gateway DM. A sixth would
+need:
+
+1. A way for a human (or trigger) to deliver the prompt.
+2. A way to authenticate the human (bearer / DM pairing / local
+   privilege).
+3. Translation to the same job-spawn call the other surfaces use —
+   not a new code path that re-implements orchestration.
+
+If you find yourself reimplementing orchestration in the new entry
+point, stop. The orchestrator is the brain; the entry point is just
+the mouth.
+
+### Adding a new worker adapter
+
+See
+[`docs/orchestration/worker-adapters.md`](docs/orchestration/worker-adapters.md).
+The shortest path is a new profile in YAML. Only write Python if
+you need a new *environment* backend that the seven shipped
+backends can't cover.
+
+### Tests
+
+The orchestration tests live under `tests/orchestration/`,
+`tests/kanban/`, and `tests/enterprise/`. The critical ones — the
+ones we will not regress on:
+
+- Dependency engine promotes children only when every parent is
+  `done`.
+- Dispatcher does not spawn workers for unknown profile assignees.
+- Policy gate escalates on HIGH-risk mutations.
+- Schema gate rejects `kanban_complete(created_cards=[...])` lists
+  with ids that don't exist or aren't owned by the worker.
+- Ledger replay produces the same job state as live execution.
+
+If a PR touches any of those code paths, those tests must continue
+to pass. Add cases for new behavior; don't loosen existing
+assertions to make a new feature land.
+
 ## Recovered AOS Enterprise Council Pack
 
 Installed by the AOS Recovery pass on 2026-05-24 (branch
 `claude/aos-agent-recovery-hermes-jmocw`). The pack lives at
-`skills/aos-enterprise-council/` and is loadable by Hermes via its
-activation phrases (see below) or explicitly via
+`skills/aos-enterprise-council/` and is loadable by Hermes via
+its activation phrases (see below) or explicitly via
 `/aos-enterprise-council <goal>`.
 
 **Activation phrases** (any one loads the pack):

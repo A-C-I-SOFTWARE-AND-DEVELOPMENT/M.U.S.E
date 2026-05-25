@@ -7226,6 +7226,19 @@ class GatewayRunner:
         if canonical == "kanban":
             return await self._handle_kanban_command(event)
 
+        if canonical in {
+            "orchestrate",
+            "orchestrator",
+            "model-router",
+            "decision-ledger",
+            "ai-radar",
+            "best-coding-tool-mission",
+            "voice-capture",
+            "remote-worker",
+            "self-improve",
+        }:
+            return await self._handle_orchestrator_slash(event, canonical)
+
         if canonical == "retry":
             return await self._handle_retry_command(event)
         
@@ -9134,9 +9147,29 @@ class GatewayRunner:
         return EphemeralReply(f"{header}{_tip_line}")
 
     async def _handle_profile_command(self, event: MessageEvent) -> str:
-        """Handle /profile — show active profile name and home directory."""
+        """Handle /profile — show active profile name and home directory.
+
+        Subcommands (currently ``build-github-history``) are delegated to
+        the shared :mod:`hermes_cli.orchestrator` controller.
+        """
         from hermes_constants import display_hermes_home
         from hermes_cli.profiles import get_active_profile_name
+
+        text = (event.text or "").strip()
+        if text.startswith("/"):
+            text = text.lstrip("/")
+        head, _, payload = text.partition(" ")
+        payload = payload.strip()
+        if payload:
+            import asyncio
+            from hermes_cli import orchestrator as _orch
+            try:
+                output = await asyncio.to_thread(_orch.run_profile, payload)
+            except Exception as exc:  # pragma: no cover - defensive
+                return f"(._.) /profile error: {exc}"
+            if len(output) > 3800:
+                output = output[:3800] + "\n…(truncated)"
+            return output or "(no output)"
 
         display = display_hermes_home()
         profile_name = get_active_profile_name()
@@ -9341,6 +9374,47 @@ class GatewayRunner:
         if len(output) > 3800:
             output = output[:3800] + "\n" + t("gateway.kanban.truncated_suffix")
         return output or t("gateway.kanban.no_output")
+
+    async def _handle_orchestrator_slash(
+        self, event: MessageEvent, canonical: str
+    ) -> str:
+        """Handle any orchestrator-family slash command from gateway adapters.
+
+        Dispatch is identical to the CLI path — the shared
+        :mod:`hermes_cli.orchestrator` controller does the formatting and
+        bookkeeping.  Runs in a thread pool because the controller does
+        filesystem JSON I/O.
+        """
+        import asyncio
+        from hermes_cli import orchestrator as _orch
+
+        text = (event.text or "").strip()
+        if text.startswith("/"):
+            text = text.lstrip("/")
+        if text.lower().startswith(canonical.lower()):
+            text = text[len(canonical):].lstrip()
+
+        runners = {
+            "orchestrate":              _orch.run_orchestrate,
+            "orchestrator":             _orch.run_orchestrator,
+            "model-router":             _orch.run_model_router,
+            "decision-ledger":          _orch.run_decision_ledger,
+            "ai-radar":                 _orch.run_ai_radar,
+            "best-coding-tool-mission": _orch.run_best_coding_tool_mission,
+            "voice-capture":            _orch.run_voice_capture,
+            "remote-worker":            _orch.run_remote_worker,
+            "self-improve":             _orch.run_self_improve,
+        }
+        runner = runners.get(canonical)
+        if runner is None:  # pragma: no cover - guarded by caller
+            return f"⚠ /{canonical}: not wired in gateway"
+        try:
+            output = await asyncio.to_thread(runner, text)
+        except Exception as exc:  # pragma: no cover - defensive
+            return f"(._.) /{canonical} error: {exc}"
+        if len(output) > 3800:
+            output = output[:3800] + "\n…(truncated)"
+        return output or "(no output)"
 
     async def _handle_status_command(self, event: MessageEvent) -> str:
         """Handle /status command."""

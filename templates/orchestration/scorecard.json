@@ -1,0 +1,72 @@
+{
+  "schema": "hermes.merge.scorecard.v2",
+  "categories": [
+    "correctness",
+    "completeness",
+    "maintainability",
+    "testability",
+    "architecture_fit",
+    "repo_fit",
+    "security",
+    "secrets_safety",
+    "mobile_fit",
+    "voice_fit",
+    "remote_execution_fit",
+    "developer_experience",
+    "ui_ux",
+    "speed",
+    "cost_efficiency",
+    "jeremiah_fit"
+  ],
+  "winner": "<worker_id or null>",
+  "manual_review_required": false,
+  "review_reasons": [],
+  "scorecards": [
+    {
+      "worker_id": "<worker_id>",
+      "profile": "<model or agent label>",
+      "declared_success": true,
+      "tests_passed": true,
+      "touches_high_risk": false,
+      "adds_tests": true,
+      "diff_line_count": 0,
+      "changed_file_count": 0,
+      "notes": [],
+      "flags": [],
+      "scores": {
+        "correctness": 0.0,
+        "completeness": 0.0,
+        "maintainability": 0.0,
+        "testability": 0.0,
+        "architecture_fit": 0.0,
+        "repo_fit": 0.0,
+        "security": 0.0,
+        "secrets_safety": 0.0,
+        "mobile_fit": 0.0,
+        "voice_fit": 0.0,
+        "remote_execution_fit": 0.0,
+        "developer_experience": 0.0,
+        "ui_ux": 0.0,
+        "speed": 0.0,
+        "cost_efficiency": 0.0,
+        "jeremiah_fit": 0.0
+      },
+      "total": 0.0,
+      "weighted_total": 0.0
+    }
+  ],
+  "rejected": [
+    {
+      "worker_id": "<worker_id>",
+      "profile": "<model or agent label>",
+      "reason": "<short reason>",
+      "score": 0.0
+    }
+  ],
+  "conflicts": [
+    {
+      "path": "<relative/path/to/file>",
+      "workers": ["<worker_id_a>", "<worker_id_b>"]
+    }
+  ]
+}

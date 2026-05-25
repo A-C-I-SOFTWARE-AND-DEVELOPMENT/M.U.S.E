@@ -1,397 +1,296 @@
-# Hermes Agent Setup
+# ACI Hermes — Setup Guide
 
-This guide is written for a mobile-first builder using Android, Termux, ADB, GitHub, Codex-style tooling, Claude Code, and ChatGPT.
+> **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
+> **Owner:** ACI Software & Development
+>   ( **A**ccountability · **C**ommunication · **I**nformation · Software & Development )
+> **Upstream:** Hermes Agent by [Nous Research](https://nousresearch.com)
+> (MIT-licensed — upstream attribution is preserved everywhere it was authored)
 
-## What this repository currently is
+This guide is the **fastest honest path** to a working ACI Hermes
+development environment. It covers the two runtimes that ship in this
+repo and how they relate.
 
-`echerd27-design/hermes-agent` is currently a fork of the Python/CLI-based Hermes Agent project with an added `dotclaude/` global Claude Code operating layer. It is **not currently a native Android app project**: no `app/src/main/AndroidManifest.xml`, Gradle wrapper, or Android module was found during this audit.
+For deep-dive material:
 
-That means the safe setup path today is:
+- General product / feature docs → [`README.md`](README.md)
+- Codebase orientation for AI assistants → [`AGENTS.md`](AGENTS.md) and
+  [`CLAUDE.md`](CLAUDE.md)
+- Android companion app → [`apps/android/README.md`](apps/android/README.md)
+- Termux runtime → [`docs/termux/`](docs/termux/)
+- Orchestration system → [`docs/orchestration/README.md`](docs/orchestration/README.md)
 
-1. Run Hermes as a CLI/Python agent on a supported shell environment.
-2. Use Termux on Android for mobile operation where practical.
-3. Use ADB from another machine or Termux-adjacent workflows only when a real Android app/service exists.
-4. Keep Codex/Claude Code authentication separate from Hermes provider API keys.
+---
 
-## Supported setup paths
+## 1. What's actually in this repo
 
-### Linux, macOS, WSL2, or cloud shell
+ACI Hermes is **two runtimes plus a bridge**:
+
+| # | Runtime | Status today | Where it lives |
+|---|---|---|---|
+| 1 | Python CLI + gateway (the main agent) | Stable, shipped | repo root, `agent/`, `gateway/`, `hermes_cli/`, `cli.py`, `run_agent.py` |
+| 2 | Native Android companion (Kotlin + Compose) | **Alpha** — debug APK builds in CI, foreground service runs | [`apps/android/`](apps/android/) |
+| 3 | Termux / ADB bridge between #1 and #2 | Manual scripts; no auto-pairing yet | [`scripts/hermes-termux-doctor.sh`](scripts/hermes-termux-doctor.sh), [`scripts/hermes-termux-service.sh`](scripts/hermes-termux-service.sh), [`scripts/hermes-mobile-workspace-init.sh`](scripts/hermes-mobile-workspace-init.sh) |
+
+The Android app is a **thin native client**, not a CPython-in-APK
+embedding. The intended on-device topology is:
+
+```
+Android app  ──(localhost HTTP)──►  Hermes gateway (running under Termux)  ──►  LLM provider
+```
+
+…with the gateway also reachable from a server / VPS if you don't want
+to host it on the phone.
+
+---
+
+## 2. Desktop / cloud setup (Python CLI)
+
+Tested on Linux, macOS, WSL2. For Windows-native and the universal install
+one-liner, see [`README.md`](README.md#quick-install).
+
+### 2a. Manual checkout (recommended for contributors)
 
 ```bash
-git clone https://github.com/echerd27-design/hermes-agent.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
 cd hermes-agent
-curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# uv handles Python version + venv creation in one step.
+# If you don't have uv: curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv .venv --python 3.11
 source .venv/bin/activate
-uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
+
+# Dev install (lint, tests, debugger).
+uv pip install -e ".[dev]"
 ```
 
-### Android / Termux baseline
-
-Install Termux from a trusted source, then:
+### 2b. Sanity checks
 
 ```bash
-pkg update && pkg upgrade
-pkg install -y git python ripgrep clang libffi openssl rust
-curl -LsSf https://astral.sh/uv/install.sh | sh
-source ~/.profile 2>/dev/null || true
+ruff check .                  # lint — should be clean on main
+scripts/run_tests.sh          # full test suite (hermetic env, 4 workers)
+hermes doctor                 # runtime / config / provider diagnostic
+```
 
-git clone https://github.com/echerd27-design/hermes-agent.git
+If `hermes doctor` complains about a missing provider key, see
+§5 — keys live in `~/.hermes/.env`, never in the repo.
+
+### 2c. First conversation
+
+```bash
+hermes                        # interactive CLI
+hermes model                  # pick a model (OpenRouter / NovitaAI / NIM / local / …)
+hermes setup                  # full setup wizard
+```
+
+---
+
+## 3. Termux setup (phone / on-device)
+
+Termux is the supported on-phone shell. The Android companion app
+(§4) does **not** replace it — they cooperate.
+
+### 3a. Termux packages
+
+In a fresh Termux session:
+
+```bash
+pkg update
+pkg install git python uv rust clang make pkg-config openssl libffi
+termux-setup-storage          # one-time: grants ~/storage symlink
+```
+
+`rust` + `clang` + `openssl` + `libffi` are needed because several of
+Hermes's transitive deps build from source on Android.
+
+### 3b. Clone and install with the Termux extra
+
+```bash
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
 cd hermes-agent
+
 uv venv .venv --python 3.11
 source .venv/bin/activate
+
+# IMPORTANT: use the [termux] extra, not [all]. The .[all] extra pulls
+# voice deps (faster-whisper, sounddevice, numpy) that don't build on
+# Termux. The [termux] extra carries only what works on-device.
 uv pip install -e ".[termux]"
+```
+
+### 3c. Verify the runtime
+
+```bash
+bash scripts/hermes-termux-doctor.sh                # read-only environment scan
+bash scripts/hermes-mobile-workspace-init.sh        # workspace + tooling probe
 hermes doctor
 ```
 
-Use `[termux]` before `[all]` on Android because some desktop/voice dependencies may not build cleanly under Termux.
+### 3d. Run as a background service (optional)
 
-## Codex and Claude Code workflow setup
-
-Hermes can help coordinate work, but it does not automatically inherit a ChatGPT, Codex, Claude, or Claude Code subscription as API tokens.
-
-Use the official authentication flow for each tool you install:
-
-```bash
-codex --help
-claude --help
-```
-
-Then bind all tools to the same workspace:
+Termux has no systemd. `scripts/hermes-termux-service.sh` is a small
+supervisor that uses a PID file, a wake lock, and `nohup`. Read the
+script's header for environment variables — and never put secrets in
+them.
 
 ```bash
-cd /path/to/hermes-agent
-pwd
-scripts/hermes-mobile-workspace-init.sh
+bash scripts/hermes-termux-service.sh start
+bash scripts/hermes-termux-service.sh status
+bash scripts/hermes-termux-service.sh stop
 ```
 
-The helper script captures the current working directory, checks for optional CLIs, and prints safe next commands without fabricating unsupported device-auth behavior.
+For auto-start on device boot, install Termux:Boot and follow
+[`docs/termux/hermes-termux-boot.md`](docs/termux/hermes-termux-boot.md).
 
-## Provider/API key configuration
+---
 
-Keep provider credentials outside git:
+## 4. Native Android companion app
+
+The Android module lives under [`apps/android/`](apps/android/) and is
+already wired up — it is **not** a placeholder.
+
+### 4a. What's actually built
+
+- `applicationId = "com.aci.hermes"`, namespace `com.aci.hermes`
+- `minSdk = 26`, `targetSdk = 35`, `compileSdk = 35`
+- Kotlin 2.1 + Jetpack Compose (Material 3)
+- `HermesService` — local-only foreground service with a persistent
+  notification, notification channel `hermes_orchestrator`, foreground
+  service type `dataSync`
+- `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, and
+  `FOREGROUND_SERVICE_DATA_SYNC` permissions declared
+- Debug build APK assembled by CI on every PR touching `apps/android/`
+  (see [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml))
+
+### 4b. Building locally
+
+Prereqs: JDK 17, Android SDK with platform `android-35` and build-tools
+`35.0.0`. (Android Studio installs these for you.)
 
 ```bash
-export OPENAI_API_KEY="..."
-export ANTHROPIC_API_KEY="..."
-export OPENROUTER_API_KEY="..."
+cd apps/android
+./gradlew assembleDebug
+# APK lands at apps/android/app/build/outputs/apk/debug/app-debug.apk
+
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Do not commit `.env`, tokens, OAuth credentials, API keys, signing keys, or Android keystores.
+### 4c. Service intent contract
 
-## Global Claude Code operating layer
+`HermesService` is `exported=false`, so ADB invocations need the debug
+build's component name. The supported namespaced extras
+(`hermes_workspace`, `hermes_mode`, `hermes_agent`, `hermes_debug`) are
+currently **observational only** — they are logged to `logcat` for
+wiring verification. See
+[`apps/android/README.md`](apps/android/README.md#service-intent-contract)
+for the full table and example commands.
 
-PR #1 added `dotclaude/`, which installs a global Claude Code operating layer into `~/.claude/`:
+### 4d. What is NOT done yet
+
+- No embedded CPython — Android sandboxes can't ship a full POSIX
+  toolchain. Use Termux for an on-phone gateway.
+- No production release signing config (debug builds only by default).
+- `usesCleartextTraffic="true"` for local-network testing — must be
+  gated before a Play Store release.
+- Push-from-gateway, skill picker UI, voice input: tracked in
+  [`apps/android/README.md`](apps/android/README.md#whats-not-wired-up-yet).
+
+---
+
+## 5. Authentication and secrets
+
+**Hard rules.** Read these before configuring anything.
+
+1. All provider API keys (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`,
+   `ANTHROPIC_API_KEY`, `NOVITA_API_KEY`, …) live in `~/.hermes/.env`
+   on the host that runs the agent. They are loaded by the plugin
+   layer; the agent core never sees raw key strings.
+2. **Never commit a key.** `.gitignore` already covers `.env` and
+   `~/.hermes/`, but `git status` before every push regardless.
+3. **A ChatGPT subscription is not an OpenAI API key.** A Claude.ai
+   subscription is not an Anthropic API key. The browser products and
+   the API platforms have separate billing. If you need API access,
+   create an API key on the provider's developer console.
+4. **Codex CLI and Claude Code CLI authenticate independently** of
+   anything in this repo. Run their own `login` / `auth` flows once;
+   `scripts/hermes-mobile-workspace-init.sh` will not (and should not)
+   try to do that for you.
+5. `[`SECURITY.md`](SECURITY.md)` covers vulnerability reporting and
+   the supply-chain hardening (exact-pinned deps, OSV scanner, etc.).
+
+`.env.example` lists every variable Hermes recognizes, all commented
+out. Copy it to `~/.hermes/.env` and uncomment what you need.
+
+---
+
+## 6. Day-to-day commands
+
+Inside the interactive CLI or any gateway DM:
+
+| Command | What it does |
+|---|---|
+| `/orchestrate <goal>` | Start an orchestrated job |
+| `/orchestrator status` | List active jobs |
+| `/orchestrator status <job-id>` | One job's task graph |
+| `/reload-skills` | Re-scan skill files after editing |
+| `/profiles` | List configured worker profiles |
+| `/<skill-name>` | Load any skill into the session |
+| `/new` or `/reset` | Start a fresh conversation |
+| `/model [provider:model]` | Switch model mid-conversation |
+
+Shell:
 
 ```bash
-bash dotclaude/install.sh
+hermes                       # interactive CLI
+hermes gateway               # start the messaging gateway
+hermes tools                 # configure enabled tools
+hermes config set            # set a single config value
+hermes doctor                # diagnose install / config
+hermes update                # update Hermes
 ```
 
-This is intentionally separate from the Hermes app/CLI runtime. It configures Claude Code behavior on the developer machine; it is not Android application logic.
+---
 
-## Validation after cloning
+## 7. ACI ownership context
 
-Run what is available for the current Python repository:
+This repository is owned and operated by **ACI Software & Development**.
+Hermes is being adapted into ACI's orchestration foundation — the same
+codebase will eventually carry:
 
-```bash
-python --version
-uv --version
-uv pip install -e ".[dev]"
-python -m ruff check .
-scripts/run_tests.sh
-```
+- The ACI Agent Suite (structured agents with role + duty + validation).
+- The ACI AOS Layer (intake → plan → delegate → execute → review).
+- The ACI Supervisory Unit layer.
+- The ACI Audit + Validation layer.
+- The ACI Memory + Skills layer.
+- The ACI Orchestration Bridge (Codex, Claude Code, Termux, GitHub,
+  MCP).
 
-If you are on Termux and `[all,dev]` fails, retry with the narrower Termux extra first:
+See [`ACI_BASE44_IMPORT_HANDOFF.md`](ACI_BASE44_IMPORT_HANDOFF.md) for
+the canonical scope description Base44 was given.
 
-```bash
-uv pip install -e ".[termux]"
-hermes doctor
-```
+Upstream Nous Research authorship and the MIT license are preserved
+intact — see [`LICENSE`](LICENSE) and the headers / docs that name
+the original authors.
 
-## Native Android status
+---
 
-Native Android service/foreground-service work is not implemented in this repository at this time. Before adding `app/src/main/assets/hermes-cli.sh`, `AndroidManifest.xml`, foreground services, or Gradle configuration, create a real Android module and document the execution boundary between:
+## 8. When something breaks
 
-- Android UI/service code.
-- Termux shell execution.
-- ADB-triggered commands.
-- Hermes Python runtime.
-- Codex/Claude Code CLI sessions.
+In order:
 
-# Architecture
+1. `hermes doctor` — environment + config sanity check.
+2. [`docs/orchestration/troubleshooting.md`](docs/orchestration/troubleshooting.md)
+   — orchestration-specific failures.
+3. `~/.hermes/jobs/<job-id>/ledger.jsonl` — orchestrator decision log
+   for a single job.
+4. `~/.hermes/logs/` — agent / gateway / Termux logs (depending on
+   what's running).
+5. GitHub issue with `hermes doctor` output and a tar of the job
+   folder attached (scrub anything that looks like a secret first).
 
-## Current repository shape
+For native Android issues, also attach:
 
-This repository is currently a Python/CLI Hermes Agent codebase with an added global Claude Code operating layer under `dotclaude/`.
+- `adb logcat -s HermesService` (the service's own log tag).
+- The Gradle output of the failing `./gradlew` invocation.
+- Output of `bash scripts/hermes-mobile-workspace-init.sh --json`.
 
-It is not currently a native Android application project. During the modernization audit, the expected native Android files were not found:
-
-- `app/src/main/AndroidManifest.xml`
-- `build.gradle`
-- `gradlew`
-
-## Runtime layers
-
-### 1. Hermes Python CLI/runtime
-
-The Python package is configured in `pyproject.toml` and exposes CLI entry points:
-
-- `hermes`
-- `hermes-agent`
-- `hermes-acp`
-
-This is the real runtime layer for the current repository.
-
-### 2. Termux/mobile shell layer
-
-Android support today should be understood as Termux/mobile-shell support, not native Android foreground-service support.
-
-Termux can run the Python CLI workflow directly when dependencies resolve for Android. Prefer the `[termux]` optional dependency set before trying the full `[all]` set.
-
-### 3. Global Claude Code operating layer
-
-`dotclaude/` installs files into `~/.claude/` for Claude Code. This layer controls developer workflow behavior and multi-agent prompting discipline. It is intentionally separate from the Hermes runtime.
-
-### 4. Codex/Claude Code workspace coordination
-
-`scripts/hermes-mobile-workspace-init.sh` captures the current git workspace and checks for optional CLIs. It does not authenticate tools or provide API tokens.
-
-## Provider/model configuration principle
-
-Model and provider choices must remain configurable. Do not hardcode a single provider/model into orchestration logic unless there is a narrow test fixture reason.
-
-A correct workflow separates:
-
-- Provider credentials.
-- Provider/model selection.
-- Orchestration logic.
-- Validation results.
-
-## Native Android future architecture
-
-If native Android orchestration becomes a product requirement, add it as a real module with explicit boundaries:
-
-- Android Activity/UI.
-- Foreground service for long-running visible work if required by Android policy.
-- Termux or embedded runtime bridge, if intentionally supported.
-- ADB developer hooks.
-- Permission model.
-- Logging and notification behavior.
-- Clear unsupported-background-execution language.
-
-Do not add fake `am startservice` commands unless a real service class and manifest declaration exist.
-
-# Troubleshooting
-
-## `hermes doctor` is not found
-
-The CLI is not installed in the active environment.
-
-```bash
-source .venv/bin/activate
-uv pip install -e ".[termux]"
-hermes doctor
-```
-
-On desktop/server environments, use:
-
-```bash
-uv pip install -e ".[all,dev]"
-```
-
-## Termux dependency installation fails
-
-Use the narrower Termux extra first:
-
-```bash
-uv pip install -e ".[termux]"
-```
-
-Avoid installing the full `[all]` profile first on Android if voice, desktop, or platform-specific wheels fail to build.
-
-## Codex or Claude commands are missing
-
-`scripts/hermes-mobile-workspace-init.sh` only checks whether optional CLIs exist. Install and authenticate each tool using its official instructions.
-
-Run:
-
-```bash
-codex --help
-claude --help
-```
-
-If either command is missing, install that CLI first. Do not add fake wrapper commands to the repository.
-
-## API key confusion
-
-A ChatGPT, Codex, Claude, or Claude Code subscription is not the same thing as a provider API key available to this Python runtime.
-
-Use supported environment variables or config files for API-backed providers. Never commit the secret value.
-
-## Android service command fails
-
-This repository currently has no native Android service. Commands like:
-
-```bash
-adb shell am startservice ...
-```
-
-will not work until a real Android app module, manifest, and service class exist.
-
-Use Termux CLI execution for now.
-
-## Tests fail because no virtualenv exists
-
-Create and activate one:
-
-```bash
-uv venv .venv --python 3.11
-source .venv/bin/activate
-uv pip install -e ".[dev]"
-scripts/run_tests.sh
-```
-
-## Git workspace script fails
-
-`scripts/hermes-mobile-workspace-init.sh` must be run from the root of a cloned git repository:
-
-```bash
-cd /path/to/hermes-agent
-bash scripts/hermes-mobile-workspace-init.sh
-```
-
-# Repository Audit — Hermes Orchestration Readiness
-
-Date: 2026-05-23
-Branch: `repo-modernization-hermes-orchestration-readiness`
-Repository: `echerd27-design/hermes-agent`
-
-## Executive verdict
-
-Yellow: this repository is credible as a Python/CLI Hermes Agent fork with a useful global Claude Code operating layer, but it is not currently a native Android app. The safe modernization path is to make the Termux/mobile CLI workflow honest, documented, and validated rather than adding fake Android service files.
-
-## Repository mapping performed
-
-Inspected or probed:
-
-- Branches: `main`, `claude/tender-planck-W3MHK`, `repo-modernization-test`, `repo-modernization-hermes-orchestration-readiness`.
-- Pull requests: PR #1, `Add Hermes/AOS/Nourish global Claude Code install (dotclaude/)`.
-- Root documentation: `README.md`, `SECURITY.md`.
-- Build/test configuration: `pyproject.toml`, `.github/workflows/tests.yml`, `scripts/run_tests.sh`.
-- Claude operating layer: `dotclaude/` via PR #1 merge contents.
-- Android probes: `app/src/main/AndroidManifest.xml`, `build.gradle`, `gradlew` were not found.
-
-## Current architecture observed
-
-- Python package project using `pyproject.toml`.
-- CLI entry points: `hermes`, `hermes-agent`, `hermes-acp`.
-- Test runner: `scripts/run_tests.sh`.
-- CI workflow: `.github/workflows/tests.yml`.
-- Termux-specific optional extra exists in `pyproject.toml` as `[termux]`.
-- PR #1 already merged `dotclaude/` as a global Claude Code operating layer.
-
-## Important correction
-
-The modernization prompt referenced Android app surfaces such as:
-
-- `AndroidManifest.xml`
-- Gradle
-- foreground/background Android services
-- `app/src/main/assets/hermes-cli.sh`
-
-Those surfaces do not exist in the current repository root. Adding placeholder Android files would create a false signal and would not be production-ready. This pass instead adds mobile/Termux setup docs and a safe workspace initializer script.
-
-## Fixes applied in this pass
-
-- Added mobile-first setup instructions.
-- Added `scripts/hermes-mobile-workspace-init.sh` to bind Codex/Claude/Hermes workflows to the same git workspace without fake authentication commands.
-- Preserved what was inspected and what was not present.
-- Documented PR/branch reconciliation.
-- Added an archive policy for stale drafts/plans.
-
-## Security findings
-
-No committed secret values were intentionally added. The new script:
-
-- Uses `set -euo pipefail`.
-- Requires execution from a git workspace.
-- Does not echo secret values.
-- Does not run shell commands from untrusted input.
-- Does not fabricate device-code or subscription-token authentication.
-
-## Validation status
-
-Validation was limited by connector access. This audit was performed through GitHub repository tools, not a checked-out execution environment, so local commands were not run here.
-
-Commands for local validation are listed above and in the PR body.
-
-# Pull Request and Branch Audit
-
-## Pull requests inspected
-
-### PR #1 — Add Hermes/AOS/Nourish global Claude Code install (dotclaude/)
-
-Status observed: merged into `main`.
-
-Verdict: useful, already integrated, but must remain clearly separated from runtime application logic.
-
-What it contains:
-
-- `dotclaude/CLAUDE.md`
-- `dotclaude/hermes/HERMES_GLOBAL.md`
-- global Claude Code agents
-- skills
-- commands
-- rules
-- installer script
-
-Reconciliation decision:
-
-- Keep it.
-- Treat it as a developer-machine operating layer for Claude Code.
-- Do not treat it as Android app code.
-- Do not rely on it as proof that Hermes has native Android orchestration services.
-- Keep the separation documented in this file.
-
-## Branches inspected
-
-### `main`
-
-Primary source of truth.
-
-### `claude/tender-planck-W3MHK`
-
-Source branch for PR #1. Work already merged. No blind re-merge needed.
-
-### `repo-modernization-hermes-orchestration-readiness`
-
-Current modernization branch created for this pass.
-
-### `repo-modernization-test`
-
-Temporary branch created during tool retry. It was created from a prior merge commit and has no intended changes from this pass. It can be deleted manually after this PR is merged if desired.
-
-# Changelog
-
-## Unreleased
-
-### Added
-
-- Mobile-first setup guide for desktop, cloud shell, and Android/Termux use.
-- Architecture notes documenting the current Python/CLI architecture and native Android boundary.
-- Troubleshooting guidance for common setup, Termux, CLI, and API-key issues.
-- Repository modernization findings.
-- PR/branch reconciliation notes.
-- `scripts/hermes-mobile-workspace-init.sh` safe workspace binding helper.
-- `docs/archive/README.md` archive policy for stale drafts and planning notes.
-
-### Changed
-
-- Clarified that current mobile operation is Termux/CLI-based, not native Android foreground-service execution.
-- Clarified that Codex/Claude Code authentication is separate from Hermes provider API keys.
-
-### Security
-
-- Added documentation warning against committing provider keys, OAuth credentials, Android signing keys, and `.env` files.
-- Added a helper script that checks optional CLI availability without printing or collecting secrets.
+Welcome aboard.
