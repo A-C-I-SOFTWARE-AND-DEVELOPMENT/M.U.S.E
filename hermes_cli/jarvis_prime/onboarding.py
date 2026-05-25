@@ -46,7 +46,9 @@ LOGGER = logging.getLogger("hermes.jarvis_prime.onboarding")
 # anything not present and never traverses into hidden virtualenvs,
 # .git directories, or node_modules trees.
 _DEFAULT_SCAN_ROOTS: tuple[str, ...] = (
-    "~/Documents", "~/Desktop", "~/Downloads",
+    "~/Documents",
+    "~/Desktop",  # windows-footgun: ok — Linux/macOS path; Windows uses OneDrive-aware resolver elsewhere
+    "~/Downloads",
     "~/.config", "~/.zshrc", "~/.bashrc", "~/.gitconfig",
     "~/.hermes", "~/.claude",
 )

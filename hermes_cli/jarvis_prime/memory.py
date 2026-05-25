@@ -120,11 +120,12 @@ class MemoryStore:
                         data = json.loads(line)
                     except json.JSONDecodeError:
                         continue
+                    captured_at = _parse_iso(data.get("captured_at")) or datetime.now(timezone.utc)
                     record = MemoryRecord(
                         key=data.get("key", ""),
                         value=data.get("value", ""),
                         durability=data.get("durability", "session"),
-                        captured_at=_parse_iso(data.get("captured_at")),
+                        captured_at=captured_at,
                         last_recalled_at=_parse_iso(data.get("last_recalled_at")),
                         tags=tuple(data.get("tags") or ()),
                         source=data.get("source", "user"),

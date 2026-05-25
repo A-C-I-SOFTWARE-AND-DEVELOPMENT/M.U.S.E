@@ -247,7 +247,7 @@ class JarvisPrime:
         # Optional: pass model-router hint when the existing router is
         # available — kept best-effort so missing module doesn't break.
         try:
-            from hermes_cli import model_router as _mr  # type: ignore
+            from hermes_cli import model_router as _mr
 
             if route.target in (
                 RouteTarget.AOS_COUNCIL,
