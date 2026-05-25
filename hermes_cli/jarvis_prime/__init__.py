@@ -95,6 +95,13 @@ from hermes_cli.jarvis_prime.self_update import (
     ProposalKind,
     ProposalStatus,
 )
+from hermes_cli.jarvis_prime.work_packet import (
+    REQUIRED_FIELDS as WORK_PACKET_REQUIRED_FIELDS,
+    VALID_RISK_CLASSES,
+    FindingSeverity,
+    WorkPacket,
+    WorkPacketValidationFinding,
+)
 
 __all__ = [
     "AUTHORIZATION_PHRASE",
@@ -141,6 +148,11 @@ __all__ = [
     "Rule",
     "TelemetrySnapshot",
     "UserProfile",
+    "VALID_RISK_CLASSES",
+    "WORK_PACKET_REQUIRED_FIELDS",
+    "WorkPacket",
+    "WorkPacketValidationFinding",
+    "FindingSeverity",
     "audit_response",
     "deduce",
     "induce",
