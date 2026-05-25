@@ -50,7 +50,13 @@ slugify() {
 }
 
 json_escape() {
-  python -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'
+  local py
+  py="$(command -v python3 || command -v python || true)"
+  if [[ -z "$py" ]]; then
+    echo "error: python3 (or python) is required for json_escape" >&2
+    return 1
+  fi
+  "$py" -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))'
 }
 
 command_path() {
