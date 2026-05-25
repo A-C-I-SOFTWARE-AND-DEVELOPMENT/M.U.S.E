@@ -30,7 +30,7 @@ mkdir -p "$DEST" "$BACKUP"
 for p in CLAUDE.md agents skills commands hermes rules; do
   if [ -e "$DEST/$p" ]; then
     echo "  backing up: $p"
-    cp -a "$DEST/$p" "$BACKUP/" 2>/dev/null || true
+    cp -a "$DEST/$p" "$BACKUP/"
   fi
 done
 
