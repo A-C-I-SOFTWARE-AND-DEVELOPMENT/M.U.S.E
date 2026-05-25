@@ -8,6 +8,7 @@ re-export wired up by Wave 0.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 
@@ -19,8 +20,8 @@ from hermes_cli.jarvis_prime.work_packet import (
 )
 
 
-def _complete_packet(**overrides) -> WorkPacket:
-    defaults = dict(
+def _complete_packet(**overrides: Any) -> WorkPacket:
+    defaults: dict[str, Any] = dict(
         mission="lock the JARVIS Prime foundation",
         repo_root="/repo",
         branch="feature/jarvis-foundation-lock",
