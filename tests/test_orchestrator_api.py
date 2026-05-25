@@ -113,14 +113,20 @@ class TestJobStore:
 def test_all_events_match_spec():
     assert set(ALL_EVENTS) == {
         "job.created",
-        "evidence.updated",
+        "job.failed",
+        "phase.changed",
+        "error",
+        "approval.requested",
+        "approval.granted",
+        "approval.rejected",
         "worker.started",
+        "worker.heartbeat",
         "worker.blocked",
         "worker.completed",
+        "evidence.updated",
         "scoring.completed",
         "validation.completed",
         "publish.ready",
-        "job.failed",
     }
 
 
@@ -271,9 +277,264 @@ class TestLifecycleActions:
         assert body["publish_plan"]["channel"] == "stable"
 
     def test_action_on_missing_job(self, client):
-        for action in ("resume", "cancel", "validate", "publish-plan"):
+        for action in ("resume", "cancel", "validate", "publish-plan", "approve", "reject"):
             resp = client.post(f"/jobs/missing/{action}", json={})
             assert resp.status_code == 404, action
+
+
+# ---------------------------------------------------------------------------
+# Phase 18 — logs, approvals, voice intake, workers
+# ---------------------------------------------------------------------------
+
+
+class TestLogsEndpoint:
+    def test_logs_include_creation_event(self, client):
+        job_id = client.post("/jobs", json={"name": "lg"}).json()["id"]
+        resp = client.get(f"/jobs/{job_id}/logs")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["id"] == job_id
+        events = [e["event"] for e in body["logs"]]
+        assert events == ["job.created"]
+
+    def test_logs_grow_after_actions(self, client):
+        job_id = client.post("/jobs", json={"name": "lg2"}).json()["id"]
+        client.post(f"/jobs/{job_id}/resume")
+        resp = client.get(f"/jobs/{job_id}/logs")
+        events = [e["event"] for e in resp.json()["logs"]]
+        # job.created, phase.changed, worker.started — order preserved.
+        assert events == ["job.created", "phase.changed", "worker.started"]
+
+    def test_logs_since_filters_history(self, client):
+        job_id = client.post("/jobs", json={"name": "lg3"}).json()["id"]
+        initial = client.get(f"/jobs/{job_id}/logs").json()["logs"]
+        watermark = initial[-1]["ts"]
+        client.post(f"/jobs/{job_id}/resume")
+        resp = client.get(f"/jobs/{job_id}/logs", params={"since": watermark})
+        # Only events strictly after the watermark are returned.
+        events = [e["event"] for e in resp.json()["logs"]]
+        assert "job.created" not in events
+        assert "worker.started" in events
+
+    def test_logs_limit_returns_tail(self, client):
+        job_id = client.post("/jobs", json={"name": "lg4"}).json()["id"]
+        client.post(f"/jobs/{job_id}/resume")
+        client.post(f"/jobs/{job_id}/validate", json={"x": 1})
+        resp = client.get(f"/jobs/{job_id}/logs", params={"limit": 2})
+        assert len(resp.json()["logs"]) == 2
+
+    def test_logs_missing_job(self, client):
+        resp = client.get("/jobs/missing/logs")
+        assert resp.status_code == 404
+
+
+class TestApprovalEndpoints:
+    def test_approve_grants_pending(self, client):
+        # Seed an approval by reaching into the store directly via the
+        # API's update path: list_jobs returns the job, but tests don't
+        # have a store handle; use the store on app.state.
+        app = create_app()
+        store = app.state.store
+        # Drive via TestClient so the middleware runs.
+        with TestClient(app) as c:
+            job_id = c.post("/jobs", json={"name": "appr"}).json()["id"]
+
+            async def _seed():
+                await store.update(
+                    job_id,
+                    status="awaiting_approval",
+                    approvals=[{"id": "a1", "state": "pending", "summary": "ship"}],
+                )
+                await store.emit_event(
+                    job_id,
+                    "approval.requested",
+                    {"id": "a1", "summary": "ship"},
+                )
+            asyncio.run(_seed())
+
+            resp = c.post(
+                f"/jobs/{job_id}/approve",
+                json={"approval_id": "a1", "comment": "lgtm"},
+            )
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["status"] == "running"
+            assert body["approvals"][0]["state"] == "granted"
+            assert body["approvals"][0]["comment"] == "lgtm"
+
+    def test_approve_without_id_picks_oldest_pending(self, client):
+        app = create_app()
+        store = app.state.store
+        with TestClient(app) as c:
+            job_id = c.post("/jobs", json={"name": "appr2"}).json()["id"]
+
+            async def _seed():
+                await store.update(
+                    job_id,
+                    approvals=[
+                        {"id": "a1", "state": "pending"},
+                        {"id": "a2", "state": "pending"},
+                    ],
+                )
+            asyncio.run(_seed())
+
+            body = c.post(f"/jobs/{job_id}/approve", json={}).json()
+            states = {a["id"]: a["state"] for a in body["approvals"]}
+            assert states == {"a1": "granted", "a2": "pending"}
+
+    def test_approve_with_no_pending_is_409(self, client):
+        job_id = client.post("/jobs", json={"name": "appr3"}).json()["id"]
+        resp = client.post(f"/jobs/{job_id}/approve", json={})
+        assert resp.status_code == 409
+
+    def test_reject_marks_failed(self, client):
+        app = create_app()
+        store = app.state.store
+        with TestClient(app) as c:
+            job_id = c.post("/jobs", json={"name": "rej"}).json()["id"]
+
+            async def _seed():
+                await store.update(
+                    job_id,
+                    approvals=[{"id": "a1", "state": "pending"}],
+                )
+            asyncio.run(_seed())
+
+            resp = c.post(
+                f"/jobs/{job_id}/reject",
+                json={"approval_id": "a1", "comment": "nope"},
+            )
+            assert resp.status_code == 200
+            body = resp.json()
+            assert body["status"] == "failed"
+            assert body["error"] == "nope"
+            assert body["approvals"][0]["state"] == "rejected"
+
+
+class TestVoiceIntake:
+    def test_voice_intake_creates_job(self, client):
+        resp = client.post(
+            "/voice/intake",
+            json={
+                "transcript": "Build the release notes for v1.4 and ship it",
+                "context": {"locale": "en-US"},
+            },
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["source"] == "voice"
+        assert body["spec"]["transcript"].startswith("Build the release")
+        assert body["spec"]["context"] == {"locale": "en-US"}
+        assert body["name"]  # auto-summary, non-empty
+
+    def test_voice_intake_uses_explicit_name(self, client):
+        resp = client.post(
+            "/voice/intake",
+            json={"transcript": "hi", "name": "Voice job 42"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["name"] == "Voice job 42"
+
+    def test_voice_intake_rejects_empty_transcript(self, client):
+        resp = client.post("/voice/intake", json={"transcript": "   "})
+        assert resp.status_code == 400
+
+    def test_voice_intake_rejects_non_object(self, client):
+        # FastAPI enforces the Dict body shape before our handler runs,
+        # so a top-level non-object lands a 422 from the framework.
+        resp = client.post("/voice/intake", json="not-an-object")
+        assert resp.status_code in (400, 422)
+
+    def test_voice_intake_merges_spec_override(self, client):
+        resp = client.post(
+            "/voice/intake",
+            json={
+                "transcript": "deploy",
+                "spec": {"priority": "high"},
+            },
+        )
+        body = resp.json()
+        assert body["spec"]["priority"] == "high"
+        assert body["spec"]["transcript"] == "deploy"
+
+
+class TestWorkers:
+    def test_global_workers_empty(self, client):
+        resp = client.get("/workers")
+        assert resp.status_code == 200
+        assert resp.json() == {"workers": []}
+
+    def test_post_worker_heartbeat_and_listing(self, client):
+        job_id = client.post("/jobs", json={"name": "wk"}).json()["id"]
+        resp = client.post(
+            f"/jobs/{job_id}/workers/builder",
+            json={"state": "running", "progress": 0.4, "note": "compiling"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["worker"] == "builder"
+        assert body["info"]["progress"] == 0.4
+        assert body["info"]["state"] == "running"
+
+        listing = client.get("/workers").json()["workers"]
+        assert len(listing) == 1
+        assert listing[0]["job_id"] == job_id
+        assert listing[0]["worker"] == "builder"
+
+    def test_worker_heartbeat_emits_event(self, client):
+        job_id = client.post("/jobs", json={"name": "wkh"}).json()["id"]
+        with client.websocket_connect(f"/jobs/{job_id}/events") as ws:
+            ws.receive_json()  # job.created
+            client.post(
+                f"/jobs/{job_id}/workers/runner",
+                json={"state": "running", "progress": 0.1},
+            )
+            envelope = ws.receive_json()
+            assert envelope["event"] == "worker.heartbeat"
+            assert envelope["data"]["worker"] == "runner"
+
+    def test_worker_blocked_event(self, client):
+        job_id = client.post("/jobs", json={"name": "wkb"}).json()["id"]
+        with client.websocket_connect(f"/jobs/{job_id}/events") as ws:
+            ws.receive_json()
+            client.post(
+                f"/jobs/{job_id}/workers/runner",
+                json={"state": "blocked", "reason": "auth"},
+            )
+            envelope = ws.receive_json()
+            assert envelope["event"] == "worker.blocked"
+            assert envelope["data"]["reason"] == "auth"
+
+    def test_worker_completion_event(self, client):
+        job_id = client.post("/jobs", json={"name": "wkc"}).json()["id"]
+        with client.websocket_connect(f"/jobs/{job_id}/events") as ws:
+            ws.receive_json()
+            client.post(
+                f"/jobs/{job_id}/workers/runner",
+                json={"state": "done", "result": {"ok": True}},
+            )
+            envelope = ws.receive_json()
+            assert envelope["event"] == "worker.completed"
+            assert envelope["data"]["result"] == {"ok": True}
+
+    def test_worker_path_param_mismatch_rejected(self, client):
+        job_id = client.post("/jobs", json={"name": "mm"}).json()["id"]
+        resp = client.post(
+            f"/jobs/{job_id}/workers/alice",
+            json={"worker": "bob", "state": "running"},
+        )
+        assert resp.status_code == 400
+
+    def test_job_specific_worker_list(self, client):
+        job_id = client.post("/jobs", json={"name": "wkl"}).json()["id"]
+        client.post(
+            f"/jobs/{job_id}/workers/a", json={"state": "running"}
+        )
+        client.post(
+            f"/jobs/{job_id}/workers/b", json={"state": "blocked", "reason": "x"}
+        )
+        body = client.get(f"/jobs/{job_id}/workers").json()
+        assert set(body["workers"]) == {"a", "b"}
 
 
 # ---------------------------------------------------------------------------
@@ -337,18 +598,22 @@ class TestWebSocketEvents:
         with client.websocket_connect(f"/jobs/{job_id}/events") as ws:
             # drain history
             ws.receive_json()
-            # Trigger a fresh event via HTTP and expect to see it stream.
+            # Resume emits phase.changed then worker.started.
             client.post(f"/jobs/{job_id}/resume")
-            envelope = ws.receive_json()
-            assert envelope["event"] == EVENT_WORKER_STARTED
+            phase_envelope = ws.receive_json()
+            assert phase_envelope["event"] == "phase.changed"
+            worker_envelope = ws.receive_json()
+            assert worker_envelope["event"] == EVENT_WORKER_STARTED
 
     def test_ws_validation_and_publish_events(self, client):
         job_id = client.post("/jobs", json={"name": "ws3"}).json()["id"]
         with client.websocket_connect(f"/jobs/{job_id}/events") as ws:
             ws.receive_json()  # job.created
             client.post(f"/jobs/{job_id}/validate", json={"x": 1})
+            assert ws.receive_json()["event"] == "phase.changed"
             assert ws.receive_json()["event"] == EVENT_VALIDATION_COMPLETED
             client.post(f"/jobs/{job_id}/publish-plan", json={"channel": "beta"})
+            assert ws.receive_json()["event"] == "phase.changed"
             assert ws.receive_json()["event"] == EVENT_PUBLISH_READY
 
     def test_ws_rejects_missing_token(self):
@@ -385,15 +650,20 @@ def test_module_public_api():
         "ALL_EVENTS",
         "DEFAULT_HOST",
         "DEFAULT_PORT",
+        "EVENT_APPROVAL_REQUESTED",
+        "EVENT_ERROR",
         "EVENT_EVIDENCE_UPDATED",
         "EVENT_JOB_CREATED",
         "EVENT_JOB_FAILED",
+        "EVENT_PHASE_CHANGED",
         "EVENT_PUBLISH_READY",
         "EVENT_SCORING_COMPLETED",
         "EVENT_VALIDATION_COMPLETED",
         "EVENT_WORKER_BLOCKED",
         "EVENT_WORKER_COMPLETED",
+        "EVENT_WORKER_HEARTBEAT",
         "EVENT_WORKER_STARTED",
+        "EventBroker",
         "Job",
         "JobStore",
         "create_app",

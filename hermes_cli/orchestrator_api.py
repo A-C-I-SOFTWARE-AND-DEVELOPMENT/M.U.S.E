@@ -33,7 +33,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional
 
 try:
     from fastapi import (
@@ -54,35 +54,38 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     WebSocketDisconnect = Exception  # type: ignore[assignment]
     FASTAPI_AVAILABLE = False
 
+from hermes_cli.orchestrator_events import (
+    ALL_EVENTS,
+    ALL_PHASES,
+    EVENT_APPROVAL_GRANTED,
+    EVENT_APPROVAL_REJECTED,
+    EVENT_APPROVAL_REQUESTED,
+    EVENT_ERROR,
+    EVENT_EVIDENCE_UPDATED,
+    EVENT_JOB_CREATED,
+    EVENT_JOB_FAILED,
+    EVENT_PHASE_CHANGED,
+    EVENT_PUBLISH_READY,
+    EVENT_SCORING_COMPLETED,
+    EVENT_VALIDATION_COMPLETED,
+    EVENT_WORKER_BLOCKED,
+    EVENT_WORKER_COMPLETED,
+    EVENT_WORKER_HEARTBEAT,
+    EVENT_WORKER_STARTED,
+    EventBroker,
+    PHASE_AWAITING_APPROVAL,
+    PHASE_CANCELLED,
+    PHASE_COMPLETED,
+    PHASE_EXECUTING,
+    PHASE_PUBLISH_READY,
+    PHASE_VALIDATING,
+    make_envelope,
+)
+
 logger = logging.getLogger(__name__)
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
-
-# Event names emitted on /jobs/{job_id}/events. Kept as constants so the
-# Android / TUI clients can import them and stay in sync without copying
-# string literals.
-EVENT_JOB_CREATED = "job.created"
-EVENT_EVIDENCE_UPDATED = "evidence.updated"
-EVENT_WORKER_STARTED = "worker.started"
-EVENT_WORKER_BLOCKED = "worker.blocked"
-EVENT_WORKER_COMPLETED = "worker.completed"
-EVENT_SCORING_COMPLETED = "scoring.completed"
-EVENT_VALIDATION_COMPLETED = "validation.completed"
-EVENT_PUBLISH_READY = "publish.ready"
-EVENT_JOB_FAILED = "job.failed"
-
-ALL_EVENTS: tuple = (
-    EVENT_JOB_CREATED,
-    EVENT_EVIDENCE_UPDATED,
-    EVENT_WORKER_STARTED,
-    EVENT_WORKER_BLOCKED,
-    EVENT_WORKER_COMPLETED,
-    EVENT_SCORING_COMPLETED,
-    EVENT_VALIDATION_COMPLETED,
-    EVENT_PUBLISH_READY,
-    EVENT_JOB_FAILED,
-)
 
 # Terminal statuses — POST /jobs/{id}/cancel/resume reject these.
 _TERMINAL_STATES = frozenset({"completed", "failed", "cancelled"})
@@ -98,14 +101,19 @@ class Job:
     name: str
     spec: Dict[str, Any]
     status: str = "pending"
+    phase: str = "intake"
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     evidence: Dict[str, Any] = field(default_factory=dict)
     artifacts: List[Dict[str, Any]] = field(default_factory=list)
+    logs: List[Dict[str, Any]] = field(default_factory=list)
+    workers: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    approvals: List[Dict[str, Any]] = field(default_factory=list)
     validation: Optional[Dict[str, Any]] = None
     publish_plan: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     events: List[Dict[str, Any]] = field(default_factory=list)
+    source: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -113,34 +121,56 @@ class Job:
             "name": self.name,
             "spec": self.spec,
             "status": self.status,
+            "phase": self.phase,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "evidence": self.evidence,
             "artifacts": self.artifacts,
+            "workers": self.workers,
+            "approvals": self.approvals,
             "validation": self.validation,
             "publish_plan": self.publish_plan,
             "error": self.error,
+            "source": self.source,
         }
 
 
 class JobStore:
     """Thread-safe in-memory job store with per-job event broadcasting.
 
-    The store is shared by every request handler. WebSocket subscribers
-    are tracked per job id and woken via :meth:`emit_event`.
+    The store is shared by every request handler. Event fan-out is
+    delegated to :class:`hermes_cli.orchestrator_events.EventBroker`;
+    the store keeps a per-job event log on the ``Job`` object for the
+    REST log endpoint, while the broker handles live WebSocket
+    subscribers.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, broker: Optional[EventBroker] = None) -> None:
         self._jobs: Dict[str, Job] = {}
-        self._subscribers: Dict[str, Set["asyncio.Queue[Dict[str, Any]]"]] = {}
         self._lock = asyncio.Lock()
+        self._broker = broker or EventBroker()
+
+    @property
+    def broker(self) -> EventBroker:
+        return self._broker
 
     # ------------------------------------------------------------------
     # Job CRUD
     # ------------------------------------------------------------------
-    async def create(self, name: str, spec: Dict[str, Any]) -> Job:
+    async def create(
+        self,
+        name: str,
+        spec: Dict[str, Any],
+        *,
+        source: Optional[str] = None,
+    ) -> Job:
         async with self._lock:
-            job = Job(id=str(uuid.uuid4()), name=name, spec=dict(spec or {}))
+            job = Job(
+                id=str(uuid.uuid4()),
+                name=name,
+                spec=dict(spec or {}),
+                source=source,
+            )
             self._jobs[job.id] = job
         await self.emit_event(
             job.id, EVENT_JOB_CREATED, {"name": job.name, "spec": job.spec}
@@ -170,6 +200,24 @@ class JobStore:
             job.updated_at = time.time()
         return job
 
+    async def record_worker(
+        self,
+        job_id: str,
+        worker: str,
+        info: Dict[str, Any],
+    ) -> Job:
+        """Merge worker state into ``job.workers[worker]``."""
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                raise KeyError(job_id)
+            current = dict(job.workers.get(worker, {}))
+            current.update(info)
+            current["updated_at"] = time.time()
+            job.workers[worker] = current
+            job.updated_at = current["updated_at"]
+        return job
+
     # ------------------------------------------------------------------
     # Events
     # ------------------------------------------------------------------
@@ -179,49 +227,23 @@ class JobStore:
         event: str,
         data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Append an event to the job log and fan it out to subscribers."""
-        if event not in ALL_EVENTS:
-            raise ValueError(f"unknown event: {event}")
-        envelope = {
-            "event": event,
-            "job_id": job_id,
-            "ts": time.time(),
-            "data": dict(data or {}),
-        }
+        """Fan an event out via the broker and append it to the job log."""
+        envelope = await self._broker.publish(event, job_id, data)
         async with self._lock:
             job = self._jobs.get(job_id)
             if job is not None:
                 job.events.append(envelope)
+                job.logs.append(envelope)
                 job.updated_at = envelope["ts"]
-            subs = list(self._subscribers.get(job_id, ()))
-        for queue in subs:
-            try:
-                queue.put_nowait(envelope)
-            except asyncio.QueueFull:
-                # Slow subscriber — drop the event rather than block the
-                # whole broadcaster. The subscriber will see the missed
-                # event reflected in the job state on its next poll.
-                logger.warning(
-                    "orchestrator_api: dropping event for slow subscriber on job %s",
-                    job_id,
-                )
         return envelope
 
     async def subscribe(self, job_id: str) -> "asyncio.Queue[Dict[str, Any]]":
-        queue: "asyncio.Queue[Dict[str, Any]]" = asyncio.Queue(maxsize=256)
-        async with self._lock:
-            self._subscribers.setdefault(job_id, set()).add(queue)
-        return queue
+        return await self._broker.subscribe(job_id)
 
     async def unsubscribe(
         self, job_id: str, queue: "asyncio.Queue[Dict[str, Any]]"
     ) -> None:
-        async with self._lock:
-            subs = self._subscribers.get(job_id)
-            if subs is not None:
-                subs.discard(queue)
-                if not subs:
-                    self._subscribers.pop(job_id, None)
+        await self._broker.unsubscribe(job_id, queue)
 
     async def replay(self, job_id: str) -> List[Dict[str, Any]]:
         async with self._lock:
@@ -233,6 +255,43 @@ class JobStore:
 
 def _is_loopback_host(host: str) -> bool:
     return host in _LOOPBACK_HOSTS
+
+
+def _find_pending_approval(
+    approvals: List[Dict[str, Any]],
+    approval_id: Optional[str],
+) -> Optional[Dict[str, Any]]:
+    """Locate the approval entry an approve/reject call should mutate.
+
+    With an explicit id we look that up by id. Without one we pick the
+    oldest entry still in ``state == "pending"`` so a "just do the next
+    one" client doesn't have to track ids.
+    """
+    if approval_id is not None:
+        for entry in approvals:
+            if entry.get("id") == approval_id:
+                if entry.get("state", "pending") == "pending":
+                    return entry
+                return None
+        return None
+    for entry in approvals:
+        if entry.get("state", "pending") == "pending":
+            return entry
+    return None
+
+
+def _summarise_voice(transcript: str, *, max_words: int = 8) -> str:
+    """Turn a voice transcript into a short job title.
+
+    Real intake will run the transcript through an LLM; for the bare
+    HTTP endpoint we just take the first N words so the job list is
+    readable. Punctuation is stripped from the trailing word.
+    """
+    words = transcript.strip().split()
+    if not words:
+        return "voice intake"
+    snippet = " ".join(words[:max_words])
+    return snippet.rstrip(",.;:!?")
 
 
 def _client_is_local(request_or_ws: Any) -> bool:
@@ -387,11 +446,42 @@ def create_app(
         job = await _get_job_or_404(job_id)
         return {"id": job.id, "artifacts": list(job.artifacts)}
 
+    @app.get("/jobs/{job_id}/logs")
+    async def get_job_logs(
+        job_id: str,
+        since: float = 0.0,
+        limit: int = 0,
+    ) -> Dict[str, Any]:
+        """Return the event log for a job.
+
+        ``since`` filters out envelopes with ``ts <= since`` so a cockpit
+        can poll for incremental updates without re-streaming history.
+        ``limit`` (when > 0) caps the number of envelopes returned.
+        """
+        job = await _get_job_or_404(job_id)
+        entries = job.logs
+        if since:
+            entries = [e for e in entries if e.get("ts", 0) > since]
+        if limit and limit > 0:
+            entries = entries[-limit:]
+        return {"id": job.id, "logs": list(entries)}
+
     @app.post("/jobs/{job_id}/resume")
     async def resume_job(job_id: str) -> Dict[str, Any]:
         job = await _get_job_or_404(job_id)
         _reject_terminal(job, "resume")
-        job = await store.update(job_id, status="running", error=None)
+        previous_phase = job.phase
+        job = await store.update(
+            job_id,
+            status="running",
+            phase=PHASE_EXECUTING,
+            error=None,
+        )
+        await store.emit_event(
+            job_id,
+            EVENT_PHASE_CHANGED,
+            {"from": previous_phase, "to": PHASE_EXECUTING, "reason": "resume"},
+        )
         await store.emit_event(job_id, EVENT_WORKER_STARTED, {"reason": "resume"})
         return job.to_dict()
 
@@ -400,8 +490,90 @@ def create_app(
         job = await _get_job_or_404(job_id)
         if job.status in _TERMINAL_STATES:
             return job.to_dict()
-        job = await store.update(job_id, status="cancelled")
+        previous_phase = job.phase
+        job = await store.update(job_id, status="cancelled", phase=PHASE_CANCELLED)
+        await store.emit_event(
+            job_id,
+            EVENT_PHASE_CHANGED,
+            {"from": previous_phase, "to": PHASE_CANCELLED, "reason": "cancel"},
+        )
         await store.emit_event(job_id, EVENT_JOB_FAILED, {"reason": "cancelled"})
+        return job.to_dict()
+
+    @app.post("/jobs/{job_id}/approve")
+    async def approve_job(
+        job_id: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Approve a pending gate.
+
+        The body may include ``approval_id`` to mark a specific request
+        granted, plus an optional ``comment``. Without an id the first
+        pending request wins.
+        """
+        job = await _get_job_or_404(job_id)
+        _reject_terminal(job, "approve")
+        payload = dict(payload or {})
+        approval_id = payload.get("approval_id")
+        approvals = list(job.approvals)
+        target = _find_pending_approval(approvals, approval_id)
+        if target is None:
+            raise HTTPException(
+                status_code=409, detail="no pending approval to grant"
+            )
+        target["state"] = "granted"
+        target["decided_at"] = time.time()
+        if "comment" in payload:
+            target["comment"] = payload["comment"]
+        next_phase = PHASE_EXECUTING
+        job = await store.update(
+            job_id,
+            approvals=approvals,
+            status="running",
+            phase=next_phase,
+        )
+        await store.emit_event(
+            job_id,
+            EVENT_APPROVAL_GRANTED,
+            {"approval_id": target.get("id"), "comment": target.get("comment")},
+        )
+        return job.to_dict()
+
+    @app.post("/jobs/{job_id}/reject")
+    async def reject_job(
+        job_id: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Reject a pending gate. Job moves to ``failed``."""
+        job = await _get_job_or_404(job_id)
+        _reject_terminal(job, "reject")
+        payload = dict(payload or {})
+        approval_id = payload.get("approval_id")
+        approvals = list(job.approvals)
+        target = _find_pending_approval(approvals, approval_id)
+        if target is None:
+            raise HTTPException(
+                status_code=409, detail="no pending approval to reject"
+            )
+        target["state"] = "rejected"
+        target["decided_at"] = time.time()
+        if "comment" in payload:
+            target["comment"] = payload["comment"]
+        job = await store.update(
+            job_id,
+            approvals=approvals,
+            status="failed",
+            phase=PHASE_CANCELLED,
+            error=payload.get("comment") or "approval rejected",
+        )
+        await store.emit_event(
+            job_id,
+            EVENT_APPROVAL_REJECTED,
+            {"approval_id": target.get("id"), "comment": target.get("comment")},
+        )
+        await store.emit_event(
+            job_id, EVENT_JOB_FAILED, {"reason": "approval rejected"}
+        )
         return job.to_dict()
 
     @app.post("/jobs/{job_id}/validate")
@@ -410,7 +582,18 @@ def create_app(
         _reject_terminal(job, "validate")
         result = dict(payload or {})
         result.setdefault("requested_at", time.time())
-        job = await store.update(job_id, validation=result, status="validating")
+        previous_phase = job.phase
+        job = await store.update(
+            job_id,
+            validation=result,
+            status="validating",
+            phase=PHASE_VALIDATING,
+        )
+        await store.emit_event(
+            job_id,
+            EVENT_PHASE_CHANGED,
+            {"from": previous_phase, "to": PHASE_VALIDATING, "reason": "validate"},
+        )
         await store.emit_event(
             job_id, EVENT_VALIDATION_COMPLETED, {"result": result}
         )
@@ -422,8 +605,129 @@ def create_app(
         _reject_terminal(job, "publish")
         plan = dict(payload or {})
         plan.setdefault("prepared_at", time.time())
-        job = await store.update(job_id, publish_plan=plan, status="publish_ready")
+        previous_phase = job.phase
+        job = await store.update(
+            job_id,
+            publish_plan=plan,
+            status="publish_ready",
+            phase=PHASE_PUBLISH_READY,
+        )
+        await store.emit_event(
+            job_id,
+            EVENT_PHASE_CHANGED,
+            {"from": previous_phase, "to": PHASE_PUBLISH_READY, "reason": "publish"},
+        )
         await store.emit_event(job_id, EVENT_PUBLISH_READY, {"plan": plan})
+        return job.to_dict()
+
+    @app.get("/workers")
+    async def list_workers() -> Dict[str, Any]:
+        """Aggregate worker state across every active job.
+
+        Each worker entry reflects the last heartbeat or status update
+        recorded via :meth:`JobStore.record_worker` (or by clients that
+        called ``POST /jobs/{id}/workers/{worker}``).
+        """
+        jobs = await store.list()
+        workers: List[Dict[str, Any]] = []
+        for job in jobs:
+            for name, info in job.workers.items():
+                entry = {"job_id": job.id, "job_name": job.name, "worker": name}
+                entry.update(info)
+                workers.append(entry)
+        return {"workers": workers}
+
+    @app.get("/jobs/{job_id}/workers")
+    async def list_job_workers(job_id: str) -> Dict[str, Any]:
+        job = await _get_job_or_404(job_id)
+        return {"id": job.id, "workers": dict(job.workers)}
+
+    @app.post("/jobs/{job_id}/workers/{worker}")
+    async def update_worker(
+        job_id: str,
+        worker: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Record a worker heartbeat / status update.
+
+        ``state`` is free-form (``"running"``, ``"blocked"``, ``"done"``,
+        …). When set to ``"running"`` we also emit ``worker.heartbeat``
+        so cockpits can drive a liveness indicator without polling.
+        """
+        await _get_job_or_404(job_id)
+        body = dict(payload or {})
+        if "worker" in body and body["worker"] != worker:
+            raise HTTPException(
+                status_code=400, detail="payload 'worker' must match path"
+            )
+        body.setdefault("state", "running")
+        job = await store.record_worker(job_id, worker, body)
+        state = body.get("state")
+        if state == "running":
+            await store.emit_event(
+                job_id,
+                EVENT_WORKER_HEARTBEAT,
+                {"worker": worker, **{k: v for k, v in body.items() if k != "state"}},
+            )
+        elif state == "blocked":
+            await store.emit_event(
+                job_id,
+                EVENT_WORKER_BLOCKED,
+                {"worker": worker, "reason": body.get("reason")},
+            )
+        elif state in ("done", "completed"):
+            await store.emit_event(
+                job_id,
+                EVENT_WORKER_COMPLETED,
+                {"worker": worker, "result": body.get("result")},
+            )
+        return {"id": job.id, "worker": worker, "info": job.workers[worker]}
+
+    @app.post("/voice/intake", status_code=201)
+    async def voice_intake(payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a job from a voice transcript.
+
+        Body shape::
+
+            {
+              "transcript": "…",
+              "name": "optional explicit title",
+              "context": {…},      # optional metadata (locale, device, …)
+              "spec": {…}          # optional override of the auto spec
+            }
+
+        The transcript becomes ``spec.transcript`` (and ``name`` if no
+        title is supplied) so a worker downstream can act on it.
+        """
+        if not isinstance(payload, dict):
+            raise HTTPException(
+                status_code=400, detail="payload must be a JSON object"
+            )
+        transcript = payload.get("transcript")
+        if not isinstance(transcript, str) or not transcript.strip():
+            raise HTTPException(
+                status_code=400, detail="'transcript' must be a non-empty string"
+            )
+        raw_name = payload.get("name") or _summarise_voice(transcript)
+        name = raw_name.strip()
+        if not name:
+            name = "voice intake"
+        spec_override = payload.get("spec")
+        if spec_override is not None and not isinstance(spec_override, dict):
+            raise HTTPException(
+                status_code=400, detail="'spec' must be an object"
+            )
+        spec: Dict[str, Any] = {"transcript": transcript.strip()}
+        context = payload.get("context")
+        if context is not None:
+            if not isinstance(context, dict):
+                raise HTTPException(
+                    status_code=400, detail="'context' must be an object"
+                )
+            spec["context"] = context
+        if spec_override:
+            spec.update(spec_override)
+        job = await store.create(name=name, spec=spec, source="voice")
         return job.to_dict()
 
     # ------------------------------------------------------------------
@@ -523,19 +827,28 @@ def run(
 
 __all__ = [
     "ALL_EVENTS",
+    "ALL_PHASES",
     "DEFAULT_HOST",
     "DEFAULT_PORT",
+    "EVENT_APPROVAL_GRANTED",
+    "EVENT_APPROVAL_REJECTED",
+    "EVENT_APPROVAL_REQUESTED",
+    "EVENT_ERROR",
     "EVENT_EVIDENCE_UPDATED",
     "EVENT_JOB_CREATED",
     "EVENT_JOB_FAILED",
+    "EVENT_PHASE_CHANGED",
     "EVENT_PUBLISH_READY",
     "EVENT_SCORING_COMPLETED",
     "EVENT_VALIDATION_COMPLETED",
     "EVENT_WORKER_BLOCKED",
     "EVENT_WORKER_COMPLETED",
+    "EVENT_WORKER_HEARTBEAT",
     "EVENT_WORKER_STARTED",
+    "EventBroker",
     "Job",
     "JobStore",
     "create_app",
+    "make_envelope",
     "run",
 ]
