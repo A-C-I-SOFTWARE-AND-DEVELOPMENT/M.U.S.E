@@ -3,7 +3,7 @@
 ## Selected: `<winner_id>` (profile: `<profile>`)
 
 - Weighted score: **<weighted>** (unweighted mean <mean>)
-- Tests passed: <true|false|null>
+- Validation passed: <true|false|null>
 - Files changed: <n>
 - Diff lines: <n>
 - Touches high-risk paths: <true|false>
@@ -20,9 +20,9 @@
 
 ## Score breakdown
 
-| worker | profile | correctness | completeness | testability | maintainability | repo_fit | architecture_fit | risk_control | ux_quality | speed | cost_efficiency | local_first_fit | jeremiah_fit |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `<worker_a>` | `<profile>` | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
+| worker | profile | correctness | completeness | maintainability | testability | architecture_fit | repo_fit | security | secrets_safety | mobile_fit | voice_fit | remote_execution_fit | developer_experience | ui_ux | speed | cost_efficiency | jeremiah_fit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `<worker_a>` | `<profile>` | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
 
 ## Rejected workers
 

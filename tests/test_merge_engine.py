@@ -1,13 +1,16 @@
 """Unit tests for the merge engine (`hermes_cli.merge_engine`).
 
-Coverage:
+Phase 14 coverage:
 
-  * policy gates: high-risk-no-tests rejection, score floor
+  * policy gates: high-risk-no-tests rejection, secrets-safety rejection,
+    score floor
   * ranking and winner selection
   * conflict detection across surviving candidates
   * manual-review gate triggers
   * output artifact contents (scorecard.json, council-review.md,
-    conflict-report.md, final-plan.md, final-patch.diff)
+    conflict-report.md, final-plan.md, final-patch.diff,
+    plain-english-summary.md)
+  * user_profile / decision_ledger pass-through
 
 Tests run entirely against ``tmp_path``; no LLM calls; no subprocess.
 """
@@ -23,6 +26,7 @@ from hermes_cli.merge_engine import (
     HIGH_RISK_TEST_REQUIRED,
     MANUAL_REVIEW_FLOOR,
     SCORE_FLOOR,
+    SECRETS_SAFETY_FLOOR,
     FileConflict,
     RejectedWorker,
     run_merge,
@@ -47,7 +51,7 @@ def _write_worker(
     output_md: str = "Made the change. Tests pass.\n",
     patch_diff: str = "diff --git a/foo.py b/foo.py\n@@ -1 +1 @@\n-old\n+new\n",
     changed_files=("foo.py",),
-    test_output: str = "1 passed in 0.01s\n",
+    validation_output: str = "1 passed in 0.01s\n",
     status: dict | None = None,
 ) -> Path:
     d = root / worker_id
@@ -57,7 +61,7 @@ def _write_worker(
     (d / "changed-files.txt").write_text(
         "\n".join(changed_files) + "\n", encoding="utf-8"
     )
-    (d / "test-output.txt").write_text(test_output, encoding="utf-8")
+    (d / "validation-output.txt").write_text(validation_output, encoding="utf-8")
     if status is None:
         status = {"success": True, "profile": "test-runner"}
     (d / "status.json").write_text(json.dumps(status), encoding="utf-8")
@@ -79,14 +83,14 @@ def test_high_risk_worker_without_tests_is_rejected(tmp_path):
         tmp_path,
         "risky",
         changed_files=["hermes_cli/auth.py"],
-        test_output="",
+        validation_output="",
         status={"success": True},
     )
     safe = _write_worker(
         tmp_path,
         "safe",
         changed_files=["hermes_cli/scoring.py"],
-        test_output="1 passed in 0.01s",
+        validation_output="1 passed in 0.01s",
     )
     arts, cards = _load_pair([risky, safe])
     result = select_winner(arts, cards)
@@ -103,7 +107,7 @@ def test_high_risk_with_tests_is_eligible(tmp_path):
         tmp_path,
         "careful",
         changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
-        test_output="2 passed in 0.05s",
+        validation_output="2 passed in 0.05s",
     )
     arts, cards = _load_pair([careful])
     result = select_winner(arts, cards)
@@ -140,6 +144,38 @@ def test_no_survivors_triggers_manual_review_with_no_winner(tmp_path):
     assert any("no worker survived" in r for r in result.review_reasons)
 
 
+def test_secrets_leak_rejects_worker(tmp_path):
+    """A worker whose diff contains a recognisable secret is rejected
+    outright, even if every other category is perfect."""
+    leaky = _write_worker(
+        tmp_path,
+        "leaky",
+        patch_diff=(
+            "diff --git a/cfg.py b/cfg.py\n"
+            "@@ -1 +1 @@\n"
+            "-x = 1\n"
+            "+AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'\n"
+        ),
+        validation_output="1 passed in 0.01s",
+    )
+    clean = _write_worker(tmp_path, "clean")
+    arts, cards = _load_pair([leaky, clean])
+    result = select_winner(arts, cards)
+    assert result.winner is not None
+    assert result.winner.worker_id == "clean"
+    leak_reason = next(r.reason for r in result.rejected if r.worker_id == "leaky")
+    assert "secret" in leak_reason.lower() or "secrets_safety" in leak_reason
+
+
+def test_secrets_safety_floor_is_low_enough_to_let_clean_workers_through(tmp_path):
+    """A normal worker with no secrets must always clear the
+    secrets_safety floor. Regression guard against tuning the heuristic
+    too aggressively."""
+    d = _write_worker(tmp_path, "ordinary")
+    arts, cards = _load_pair([d])
+    assert cards[0].scores["secrets_safety"] >= SECRETS_SAFETY_FLOOR
+
+
 # ── Ranking / winner selection ────────────────────────────────────────
 
 
@@ -174,12 +210,15 @@ def test_winner_below_manual_review_floor_triggers_review(tmp_path):
         output_md="something",
         patch_diff="diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n",
         changed_files=("x",),
-        test_output="",
+        validation_output="",
         status={"profile": "p"},
     )
     # Hand-build a score profile that sits in the [floor, review-floor) band.
     target = (SCORE_FLOOR + MANUAL_REVIEW_FLOOR) / 2
     scores = {cat: target for cat in SCORE_CATEGORIES}
+    # Keep secrets_safety above the SECRETS_SAFETY_FLOOR or this gets
+    # rejected by the wrong gate.
+    scores["secrets_safety"] = max(target, SECRETS_SAFETY_FLOOR)
     card = Scorecard(
         worker_id="mid",
         profile="p",
@@ -196,11 +235,11 @@ def test_winner_below_manual_review_floor_triggers_review(tmp_path):
     assert any("manual-review floor" in r for r in result.review_reasons)
 
 
-def test_failing_tests_on_winner_triggers_manual_review(tmp_path):
+def test_failing_validation_on_winner_triggers_manual_review(tmp_path):
     failing = _write_worker(
         tmp_path,
         "failing",
-        test_output="FAILED tests/test_x.py::test_y - AssertionError",
+        validation_output="FAILED tests/test_x.py::test_y - AssertionError",
     )
     arts, cards = _load_pair([failing])
     # If correctness drops the worker below SCORE_FLOOR they're rejected.
@@ -209,7 +248,7 @@ def test_failing_tests_on_winner_triggers_manual_review(tmp_path):
     result = select_winner(arts, cards)
     if result.winner is not None:
         assert result.manual_review_required is True
-        assert any("tests reported failures" in r for r in result.review_reasons)
+        assert any("validation reported failures" in r for r in result.review_reasons)
 
 
 # ── Conflict detection ────────────────────────────────────────────────
@@ -247,7 +286,7 @@ def test_rejected_workers_do_not_create_conflicts(tmp_path):
         tmp_path,
         "rejected",
         changed_files=["hermes_cli/auth.py", "foo.py"],
-        test_output="",
+        validation_output="",
     )
     survivor = _write_worker(tmp_path, "survivor", changed_files=["foo.py"])
     arts, cards = _load_pair([rejected, survivor])
@@ -260,7 +299,7 @@ def test_rejected_workers_do_not_create_conflicts(tmp_path):
 # ── run_merge: end-to-end output artifacts ────────────────────────────
 
 
-def test_run_merge_writes_five_canonical_artifacts(tmp_path):
+def test_run_merge_writes_six_canonical_artifacts(tmp_path):
     workers_dir = tmp_path / "workers"
     workers_dir.mkdir()
     _write_worker(workers_dir, "a")
@@ -278,6 +317,7 @@ def test_run_merge_writes_five_canonical_artifacts(tmp_path):
     assert (out_dir / "conflict-report.md").exists()
     assert (out_dir / "final-plan.md").exists()
     assert (out_dir / "final-patch.diff").exists()
+    assert (out_dir / "plain-english-summary.md").exists()
     assert result.output_dir == out_dir
 
 
@@ -290,7 +330,7 @@ def test_run_merge_scorecard_json_is_well_formed(tmp_path):
     run_merge(workers_dir, out_dir)
 
     payload = json.loads((out_dir / "scorecard.json").read_text())
-    assert payload["schema"] == "hermes.merge.scorecard.v1"
+    assert payload["schema"] == "hermes.merge.scorecard.v2"
     assert payload["categories"] == list(SCORE_CATEGORIES)
     assert payload["winner"] in {"a", "b"}
     assert len(payload["scorecards"]) == 2
@@ -342,7 +382,7 @@ def test_run_merge_council_review_lists_rejected_and_runners_up(tmp_path):
         workers_dir,
         "risky",
         changed_files=["hermes_cli/auth.py"],
-        test_output="",
+        validation_output="",
     )
     out_dir = tmp_path / "merge"
     run_merge(workers_dir, out_dir)
@@ -411,6 +451,32 @@ def test_run_merge_no_survivors_writes_empty_final_patch(tmp_path):
     assert "REJECTED" in plan
 
 
+def test_run_merge_plain_english_summary_mentions_winner(tmp_path):
+    workers_dir = tmp_path / "workers"
+    workers_dir.mkdir()
+    _write_worker(workers_dir, "alice")
+    out_dir = tmp_path / "merge"
+    result = run_merge(workers_dir, out_dir)
+
+    summary = (out_dir / "plain-english-summary.md").read_text()
+    assert "alice" in summary
+    assert result.winner is not None
+    # Should never spit raw schema names at the owner.
+    assert "scorecard.v" not in summary
+
+
+def test_run_merge_plain_english_summary_flags_manual_review(tmp_path):
+    workers_dir = tmp_path / "workers"
+    workers_dir.mkdir()
+    _write_worker(workers_dir, "a", changed_files=["shared.py"])
+    _write_worker(workers_dir, "b", changed_files=["shared.py"])
+    out_dir = tmp_path / "merge"
+    run_merge(workers_dir, out_dir)
+
+    summary = (out_dir / "plain-english-summary.md").read_text()
+    assert "eyes" in summary.lower() or "needs your" in summary.lower()
+
+
 def test_run_merge_handles_empty_workers_dir(tmp_path):
     workers_dir = tmp_path / "workers"
     workers_dir.mkdir()
@@ -419,15 +485,42 @@ def test_run_merge_handles_empty_workers_dir(tmp_path):
 
     assert result.winner is None
     assert result.manual_review_required is True
-    # All five artifacts must still exist so downstream tools don't blow up.
+    # All six artifacts must still exist so downstream tools don't blow up.
     for name in (
         "scorecard.json",
         "council-review.md",
         "conflict-report.md",
         "final-plan.md",
         "final-patch.diff",
+        "plain-english-summary.md",
     ):
         assert (out_dir / name).exists(), name
+
+
+def test_run_merge_threads_user_profile_through_to_scoring(tmp_path):
+    workers_dir = tmp_path / "workers"
+    workers_dir.mkdir()
+    _write_worker(workers_dir, "alpha")
+    out_dir = tmp_path / "merge"
+    profile = {"category_preferences": {"jeremiah_fit": 0.97}}
+    run_merge(workers_dir, out_dir, user_profile=profile)
+
+    payload = json.loads((out_dir / "scorecard.json").read_text())
+    card = next(c for c in payload["scorecards"] if c["worker_id"] == "alpha")
+    assert card["scores"]["jeremiah_fit"] == pytest.approx(0.97)
+
+
+def test_run_merge_threads_decision_ledger_through_to_scoring(tmp_path):
+    workers_dir = tmp_path / "workers"
+    workers_dir.mkdir()
+    _write_worker(workers_dir, "alpha")
+    out_dir = tmp_path / "merge"
+    ledger = [{"worker_id": "alpha", "outcome": "rejected"}]
+    run_merge(workers_dir, out_dir, decision_ledger=ledger)
+
+    payload = json.loads((out_dir / "scorecard.json").read_text())
+    card = next(c for c in payload["scorecards"] if c["worker_id"] == "alpha")
+    assert any("prior rejection" in n for n in card["notes"])
 
 
 # ── Dataclass-as-dict / typing sanity ─────────────────────────────────
