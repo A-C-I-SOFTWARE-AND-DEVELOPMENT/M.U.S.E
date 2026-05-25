@@ -1,186 +1,138 @@
 ---
 name: hermes-orchestration-pipeline
-description: Run a prompt-first, local-first multi-worker development pipeline from inside Hermes.
+description: "Phase-02 foundation contract for the Hermes multi-worker orchestration pipeline. Use when scaffolding a job folder, deciding what artifacts a worker is allowed to read or write, or when planning the controller that will run on top of this contract."
+version: 0.2.0
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [orchestration, pipeline, foundation, council, scaffold]
+    related_skills:
+      - model-router
+      - github-publisher
+      - developer-ux-command-center
 ---
 
-# Hermes Orchestration Pipeline
+# Hermes orchestration pipeline
 
-## Purpose
+This skill is the orchestrator-side companion to
+`scripts/hermes-orchestrate.sh` and
+`docs/orchestration/hermes-orchestration-pipeline.md`. It tells you the
+folder contract every worker reads from and writes to, and the rules
+you must follow when reasoning about a job in this phase.
 
-Use this skill when the user wants Hermes to turn one prompt into a full local development workflow: classify the task, choose the best worker mix, create a job folder, prepare prompts, run available official local tools, collect outputs, score quality, merge the best work, validate locally, and prepare GitHub publishing.
+## What this phase is
 
-Hermes is the command center. External tools such as Codex CLI, Claude Code, Aider, Goose, GitHub CLI, or ChatGPT handoff are workers. Do not let any worker become the source of truth until Hermes has reviewed and validated its output.
+Phase 02 is a **scaffold pass**. The script creates the full job folder
+contract under `.hermes-orchestrator/jobs/<job-id>/` with empty or
+templated artifacts. It does **not** invoke any external model tool
+yet. The controller that will fill the artifacts is a later phase
+built on top of this contract.
 
-## Operating Principle
+If your reasoning depends on a worker having actually run, you are
+ahead of the implementation. Stop and ask which phase the project is
+on.
 
-Every prompt becomes a job. Every job has a folder. Every worker has a folder. Every output is scored. Every merge is validated. Every publish is reversible.
+## How a job is created
 
-## Job Folder Contract
+The script accepts these flags (any other flag is an error):
 
-Create jobs under:
+- `--help` / `-h`
+- `--list`
+- `--status <job-id>`
+- `--job-id <id>` (optional; auto-generated if omitted)
+- `--root <path>` (default `.hermes-orchestrator`)
+- `--mode plan|audit|build|debug|review|publish` (default `audit`)
+- `--trusted-local` (sets `trusted_local: true` in `job.json`)
 
-```text
+The first non-flag argument is the mission text. Multi-word missions
+must be quoted.
+
+Both invocation styles are supported and produce identical output:
+
+```bash
+bash scripts/hermes-orchestrate.sh "..."
+chmod +x scripts/hermes-orchestrate.sh && ./scripts/hermes-orchestrate.sh "..."
+```
+
+Python detection is `python3` first, then `python`. The detected
+binary is used for JSON escaping. If neither exists, the script exits.
+
+## Folder contract (read this before touching a job)
+
+Every job has exactly this shape. Workers may write only inside their
+own `workers/<worker>/` subfolder; the orchestrator owns everything
+else.
+
+```
 .hermes-orchestrator/jobs/<job-id>/
+├── job.json
+├── mission.md
+├── status.json
+├── decision-ledger.md
+├── shared-context/
+│   ├── repo-map.md
+│   ├── evidence.md
+│   ├── constraints.md
+│   └── user-preferences.md
+├── workers/
+│   └── <worker>/
+│       ├── prompt.md          # written by orchestrator, read by worker
+│       ├── output.md          # written by worker
+│       ├── patch.diff         # written by worker
+│       └── status.json        # written by worker; orchestrator may overwrite on reclaim
+├── merge/
+│   ├── council-review.md
+│   ├── scorecard.json
+│   ├── conflict-report.md
+│   ├── final-plan.md
+│   └── final-patch.diff
+├── github/
+│   ├── branch.txt
+│   ├── commit-message.txt
+│   ├── pr-title.txt
+│   └── pr-body.md
+└── logs/
+    └── orchestrator.log
 ```
 
-Recommended structure:
+Workers registered in this phase: `hermes-local`, `claude-code`,
+`codex-cli`. The list lives in the script's `WORKERS` array; keep this
+skill in sync if you change it.
 
-```text
-.hermes-orchestrator/jobs/<job-id>/
-  job.json
-  mission.md
-  status.json
-  shared-context/
-    repo-map.md
-    evidence.md
-    constraints.md
-    user-preferences.md
-  workers/
-    hermes-local/
-      prompt.md
-      output.md
-      patch.diff
-      status.json
-    codex/
-      prompt.md
-      output.md
-      patch.diff
-      status.json
-    claude-code/
-      prompt.md
-      output.md
-      patch.diff
-      status.json
-    aider/
-      prompt.md
-      output.md
-      patch.diff
-      status.json
-    goose/
-      prompt.md
-      output.md
-      status.json
-    chatgpt-handoff/
-      prompt.md
-      output.md
-      status.json
-  merge/
-    council-review.md
-    scorecard.json
-    conflict-report.md
-    final-plan.md
-    final-patch.diff
-  github/
-    branch.txt
-    commit-message.txt
-    pr-title.txt
-    pr-body.md
-  logs/
-    orchestrator.log
-```
+## Rules
 
-## Required Workflow
+1. **Treat the folder contract as a wire protocol.** Any file an
+   external worker (Claude Code, Codex) writes must land at the path
+   above, with the name above, regardless of what the worker's
+   internal preference would be. The next phase's controller relies on
+   exact paths.
+2. **Workers do not see each other's folders.** Cross-worker context
+   is exchanged through `shared-context/` (orchestrator-controlled) or
+   surfaced in `merge/council-review.md` during synthesis. Never have
+   one worker read another worker's `output.md` directly.
+3. **`decision-ledger.md` is append-only.** Phase 02 seeds the first
+   row. Future entries should add rows; do not rewrite existing rows.
+4. **`logs/orchestrator.log` is append-only and orchestrator-owned.**
+   Workers must not write to it. Phase 02 writes the scaffold trace
+   line.
+5. **`trusted_local` is a single boolean in `job.json`.** Workers that
+   intend to mutate local state outside the job folder must check it
+   first. The `--trusted-local` flag is the only way to set it.
+6. **Modes are recorded, not enforced.** Phase 02 records `mode` in
+   `job.json` and `status.json` but does not branch on it. Later
+   phases pick the mode up from `job.json` and route work
+   accordingly.
+7. **Do not promote a Phase-02 job to a PR.** `github/pr-body.md`
+   explicitly says so; respect that until the merge artifacts are
+   real.
 
-1. Mission brief
-   - Restate the user's objective.
-   - Classify the task type: audit, build, debug, refactor, architecture, release, documentation, Android/APK, Termux, GitHub PR, or mixed.
-   - Identify expected deliverables.
+## When in doubt
 
-2. Evidence bundle
-   - Inspect the repository before making claims.
-   - Build `shared-context/repo-map.md` and `shared-context/evidence.md`.
-   - Record current branch, dirty state, test commands, package managers, app entry points, and docs.
-
-3. Worker routing
-   - Use Hermes Local for evidence, local file operations, tests, validation, Git, and GitHub publishing.
-   - Use Codex for implementation-heavy coding tasks when official Codex tooling is detected.
-   - Use Claude Code for architecture, cross-file reasoning, refactor plans, code review, and high-risk design decisions when official Claude Code tooling is detected.
-   - Use Aider for git-native patching, repo-map-assisted edits, lint/test repair loops, and tight local implementation loops when installed.
-   - Use Goose for local desktop/CLI agent workflows, extension-driven work, and provider experiments when installed.
-   - Use ChatGPT handoff for product thinking, writing, prompt refinement, launch copy, and high-level review when no direct official local automation is available.
-
-4. Prompt generation
-   - Write a `prompt.md` for each selected worker.
-   - Include mission, repo evidence, constraints, exact deliverables, files to inspect, files likely to edit, validation commands, and what not to change.
-   - Avoid sending every worker the same vague prompt. Route the correct slice of the work to the correct worker.
-
-5. Parallel execution
-   - Prefer isolated folders or git worktrees for workers that edit code.
-   - If a worker cannot be executed automatically, create a copy/paste handoff prompt and mark `status.json` as `handoff-required`.
-   - Do not pretend to control subscription apps through unsupported automation.
-
-6. Collection and scoring
-   - Collect each worker's output, patch, changed-file list, test output, and self-review.
-   - Score outputs using correctness, completeness, testability, maintainability, repo fit, risk, UX quality, and Jeremiah-fit.
-
-7. Merge loop
-   - Compare worker outputs.
-   - Detect conflicts.
-   - Keep the best ideas and reject weak or unsafe changes.
-   - Produce `merge/council-review.md`, `merge/conflict-report.md`, and `merge/final-plan.md`.
-
-8. Validation
-   - Run the smallest useful checks first.
-   - Prefer existing project commands from README, AGENTS.md, pyproject, package.json, Gradle files, or docs.
-   - Run secret scans before commit.
-   - Record validation results in the job folder.
-
-9. GitHub publishing
-   - Create or use a branch per job.
-   - Commit only validated, intentional files.
-   - Prepare a PR title/body.
-   - Require explicit approval before push or PR creation unless the user has already granted that approval.
-
-10. Retrospective
-   - Record what worked, which worker performed best, what failed, and what Hermes should remember next time.
-
-## Output Format
-
-When invoked, produce:
-
-- Executive verdict
-- Task classification
-- Available local tools
-- Selected workers
-- Job folder path
-- Evidence reviewed
-- Worker prompt plan
-- Merge/quality plan
-- Validation commands
-- GitHub publish plan
-- Risks and rollback notes
-
-## Quality Scorecard
-
-Score worker outputs from 0 to 10:
-
-```json
-{
-  "correctness": 0,
-  "completeness": 0,
-  "testability": 0,
-  "maintainability": 0,
-  "repo_fit": 0,
-  "risk_control": 0,
-  "ux_quality": 0,
-  "jeremiah_fit": 0
-}
-```
-
-## Private Local Mode
-
-For Jeremiah's private local workflow, use `trusted_local` posture:
-
-- Reduce friction around public auth, multi-tenant isolation, RBAC, and enterprise SaaS controls.
-- Keep self-protection: branch-per-job, checkpoints, command logs, secret scan before commit, destructive command approval, and rollback notes.
-- Never commit `.env` or secrets.
-- Never force-push unless explicitly approved.
-
-## UX Requirement
-
-The product experience should feel like a developer command center:
-
-- One prompt starts a job.
-- The user can see active workers, statuses, logs, patches, validation, and GitHub publish state.
-- Every step has a visible artifact in the job folder.
-- The Android APK should be a cockpit for the Hermes backend, not a replacement for the backend.
+- Reach for `docs/orchestration/hermes-orchestration-pipeline.md`
+  first — it is the human-readable spec.
+- The script itself is the executable spec. If they disagree, prefer
+  the script's behavior and file a bug against the docs.
+- The related skills cover narrower slices:
+  - `model-router` — choosing which worker(s) to dispatch.
+  - `github-publisher` — turning `github/*` into a real branch + PR.
+  - `developer-ux-command-center` — the surface the developer sees.

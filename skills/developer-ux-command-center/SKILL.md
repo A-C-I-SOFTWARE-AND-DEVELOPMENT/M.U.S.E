@@ -1,136 +1,136 @@
 ---
 name: developer-ux-command-center
-description: Design and review Hermes UI/UX as a local developer command center for orchestration, Android, Termux, and GitHub workflows.
+description: "Developer-facing surface for the Hermes orchestration pipeline. Use to drive scripts/hermes-orchestrate.sh from a terminal: scaffold a job, list jobs, inspect status, and explain artifacts in plain prose."
+version: 0.2.0
+platforms: [linux, macos, windows]
+metadata:
+  hermes:
+    tags: [orchestration, developer-ux, cli, command-center]
+    related_skills:
+      - hermes-orchestration-pipeline
+      - model-router
+      - github-publisher
 ---
 
-# Developer UX Command Center
+# Developer UX command center
 
-## Purpose
+The command surface a developer interacts with when driving the Hermes
+orchestration pipeline from a terminal. Wraps `scripts/hermes-orchestrate.sh`
+and the job folder contract; explains what the artifacts mean.
 
-Use this skill to design, audit, and improve Hermes UI/UX for local development. Hermes should feel like the best developer command center: one prompt launches work, active workers are visible, evidence is inspectable, diffs are understandable, validation is clear, and GitHub publishing is controlled.
+## Phase-02 reality check
 
-## Product Thesis
+In Phase 02 the script only scaffolds artifacts — it does not run any
+external model tool. Every command below is real and works today; the
+artifacts they produce are intentionally empty templates for the
+controller in the next phase to fill in.
 
-Hermes is not just chat. Hermes is a cockpit for local autonomous development.
+If a user asks "what did the worker say?" before the controller phase
+ships, the honest answer is "nothing yet — Phase 02 only scaffolds the
+folder." Do not invent worker output.
 
-The user should always be able to answer:
+## The four developer commands
 
-- What is Hermes doing?
-- Which worker is doing it?
-- What files are being changed?
-- What evidence was used?
-- What tests passed or failed?
-- What will be committed?
-- How do I stop, approve, retry, or rollback?
+### 1. Scaffold a new job
 
-## Core Screens
+```bash
+bash scripts/hermes-orchestrate.sh --mode <m> "<mission text>"
+```
 
-### 1. Prompt Command Center
+- `<m>` is one of `plan`, `audit`, `build`, `debug`, `review`, `publish`
+  (defaults to `audit`).
+- Multi-word missions must be quoted.
+- Add `--trusted-local` if the user has explicitly said this job may
+  mutate local state without further prompts.
+- Add `--job-id <id>` to pin the job id (useful for reproducible
+  testing and for shared scripts).
+- Add `--root <path>` to override the default `.hermes-orchestrator`
+  root — e.g. for a sandboxed run during a demo.
 
-Required elements:
+The script prints the job id, the folder it created, the mode, and the
+worker roster.
 
-- Primary prompt box
-- Mode selector: Plan, Audit, Build, Debug, Review, Publish
-- Worker preset: Auto, Local Only, Codex + Hermes, Claude Review, Full Parallel
-- Repo selector
-- Privacy/autonomy toggle: Safe, Trusted Local, YOLO with warnings
-- Run button
-- Recent jobs list
+### 2. List existing jobs
 
-### 2. Worker Dashboard
+```bash
+bash scripts/hermes-orchestrate.sh --list
+```
 
-Required elements:
+Prints one job id per line. Honors `--root`.
 
-- Worker cards for Hermes Local, Codex, Claude Code, Aider, Goose, ChatGPT Handoff, GitHub
-- Status: idle, queued, running, blocked, needs handoff, failed, complete
-- Current step
-- Last log line
-- Output artifact links
-- Diff size
-- Quality score
-- Retry/stop/open controls
+### 3. Inspect a job's status
 
-### 3. Job Folder Browser
+```bash
+bash scripts/hermes-orchestrate.sh --status <job-id>
+```
 
-Required elements:
+Prints `status.json` for the job. In Phase 02 this is always
+`"state": "scaffolded"` — that will gain more states as the controller
+ships.
 
-- Mission
-- Shared context
-- Worker prompts
-- Worker outputs
-- Patches
-- Logs
-- Merge review
-- Validation output
-- GitHub PR body
+### 4. Read the help
 
-### 4. Diff and Merge Review
+```bash
+bash scripts/hermes-orchestrate.sh --help
+```
 
-Required elements:
+The script's own usage block is the canonical reference. If this skill
+ever disagrees with `--help`, trust `--help` and file a doc bug.
 
-- Changed file list
-- Worker-by-worker comparison
-- Conflict report
-- Final selected patch
-- Risk notes
-- Accept/reject controls
+### Invocation variants
 
-### 5. Validation Gate
+Both `bash scripts/hermes-orchestrate.sh ...` and
+`./scripts/hermes-orchestrate.sh ...` are supported. The second form
+needs a one-time `chmod +x scripts/hermes-orchestrate.sh`. Suggest the
+explicit `bash` form first — it works on a fresh checkout without any
+permission changes.
 
-Required elements:
+## Reading a job folder for the user
 
-- Commands run
-- Pass/fail status
-- Test output
-- Secret scan result
-- APK/build result if applicable
-- Manual QA checklist
+When a developer says "what's in the job folder?" walk them through
+the contract in this order — it mirrors the way the controller will
+populate it:
 
-### 6. GitHub Publisher
+1. `job.json` — the immutable header (mode, mission, workers,
+   `trusted_local`).
+2. `mission.md` — human-readable mission.
+3. `decision-ledger.md` — what the orchestrator has decided so far
+   (Phase 02 has one row: the scaffold).
+4. `shared-context/*` — the context every worker shares.
+5. `workers/<worker>/` — per-worker prompt, output, patch, status.
+   In Phase 02 every `status.json` says `not_started`.
+6. `merge/*` — council synthesis (empty templates in Phase 02).
+7. `github/*` — branch + PR draft (templates in Phase 02; do not push).
+8. `logs/orchestrator.log` — append-only log; Phase 02 logs the
+   scaffold trace.
 
-Required elements:
+Always link the developer to
+`docs/orchestration/hermes-orchestration-pipeline.md` for the full
+contract — this skill is the conversational entry point, not the spec.
 
-- Current repo
-- Current branch
-- New branch name
-- Files to commit
-- Commit message
-- PR title
-- PR body
-- Push approval
-- Open PR approval
+## Anti-patterns
 
-### 7. Android / Termux Control Panel
+- **Inventing flags.** The script accepts exactly the flags listed in
+  the table above. `--dry-run`, `--watch`, `--worker` do not exist
+  yet. If a developer asks for one, that is a feature request, not a
+  forgotten flag.
+- **Editing scaffolded artifacts by hand.** The controller assumes
+  the artifacts are produced by orchestrator code. Hand-editing
+  `status.json` or `decision-ledger.md` will desync the system. If
+  the developer needs to mutate state, ask why and surface the
+  underlying request.
+- **Pushing a scaffold PR.** `github/pr-body.md` includes a
+  do-not-merge banner. Honor it. See the `github-publisher` skill for
+  the (future) publish flow.
+- **Claiming a worker ran.** In Phase 02 no worker runs. If
+  `workers/<w>/output.md` has content, someone wrote it out-of-band
+  — trust `status.json`, not the prose.
 
-Required elements:
+## When to suggest the script vs. an MCP tool
 
-- Backend status
-- Termux package detection
-- Wake lock status
-- Hermes gateway status
-- Local API URL
-- Logs
-- Start/stop/restart controls
-
-## UX Rules
-
-- Never hide worker state.
-- Never make GitHub publishing feel automatic unless the user enabled trusted publishing.
-- Every long-running job needs visible progress.
-- Every blocking issue needs a single clear next action.
-- Prefer artifact links over long walls of logs.
-- Let the user inspect and copy every worker prompt.
-- Keep phone UX thumb-friendly: large buttons, short status labels, collapsible detail panels.
-
-## Output Format
-
-When reviewing UI/UX, return:
-
-- UX verdict
-- Missing screens
-- Missing controls
-- Risky interactions
-- Best next UI changes
-- Android-specific improvements
-- Acceptance criteria
-- Manual QA checklist
+The orchestration script is a local-disk pipeline. It does not call
+GitHub, the API, or any MCP server directly. If the developer wants
+something that lives outside the job folder — open an issue, post a
+comment, look up a PR — reach for the GitHub MCP tools (`mcp__github__*`)
+or the native plugin instead. Use the script only to create, list,
+and inspect orchestration jobs.

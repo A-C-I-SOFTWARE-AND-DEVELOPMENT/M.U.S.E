@@ -73,3 +73,8 @@ models-dev-upstream/
 hermes_cli/tui_dist/*
 hermes_cli/scripts/
 docs/superpowers/*
+
+# Hermes orchestrator runtime state (per-run radar requests, etc.).
+# Individual radar reports can be force-added with `git add -f` when
+# they need to live in version control as an audit trail.
+.hermes-orchestrator/

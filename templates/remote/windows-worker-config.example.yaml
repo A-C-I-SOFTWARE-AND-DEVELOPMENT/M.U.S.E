@@ -1,0 +1,115 @@
+# ──────────────────────────────────────────────────────────────────────
+# Hermes ↔ Windows Claude Code worker — endpoint config (example).
+#
+# Copy to ~/.hermes/remote/<endpoint-name>.yaml on the Hermes side and
+# edit the marked values. The Hermes-side bridge loads this via
+# ``RemoteEndpoint.from_mapping(yaml.safe_load(...))``.
+#
+# See:
+#   - docs/remote/claude-code-windows-bridge.md  (architecture)
+#   - docs/remote/secure-tunnel-options.md       (tunnel choices)
+#   - docs/remote/windows-agent-setup.md         (Windows daemon)
+#
+# Every value here is INERT until you also bring up:
+#   1. an authenticated tunnel (Tailscale / WireGuard / SSH / …),
+#   2. the Windows worker daemon polling the same shared directory.
+#
+# This file MUST NOT contain secrets. Tokens are minted per-job by the
+# bridge and never round-trip through config. If you need to ship an
+# auth secret (e.g. for a Cloudflare Tunnel service token), set it via
+# an env var named in ``auth_token_env`` and let the tunnel layer
+# consume it — the bridge itself never reads it.
+# ──────────────────────────────────────────────────────────────────────
+
+# Human-readable endpoint name. Shows up in audit-log entries and the
+# orchestrator UI. Pick something specific — "jeremiah-windows",
+# "studio-tower", not just "remote".
+name: jeremiah-windows
+
+# Transport for the bridge. The only one implemented today is
+# ``file_drop`` — Hermes and the Windows daemon agree on a single
+# shared directory and exchange JSON files in it.
+#
+# Accepted but stubbed (will raise TransportNotImplementedError):
+#   http, websocket, ssh
+#
+# See docs/remote/secure-tunnel-options.md for why each of those is
+# intentionally not enabled in v1.
+transport: file_drop
+
+# Local path to the shared directory. Both sides MUST agree on this
+# path mapping to the same underlying folder. Typical mounts:
+#
+#   ~/SyncthingShare/hermes-remote          # Tailscale + Syncthing
+#   /mnt/jeremiah-desktop/hermes-remote     # SMB-over-Tailscale
+#   /mnt/jeremiah-bridge/hermes-remote      # SSH reverse tunnel + sshfs
+#
+# Tilde-expansion happens automatically when loaded via from_mapping.
+workspace_root: ~/SyncthingShare/hermes-remote
+
+# Stable identifier for THIS Hermes host. The Windows worker echoes it
+# in audit metadata so a multi-Hermes setup can tell who dispatched a
+# job. Pick a hostname or a UUID — anything stable.
+device_id: hermes-android
+
+# Identities the bridge will accept STATUS replies from. Status
+# payloads carrying a device_id outside this set are rejected as
+# forgeries (audit-logged as ``status_device_not_allowlisted``).
+#
+# An empty list disables the device check — token check still applies,
+# but defence in depth recommends listing the worker explicitly.
+allowed_device_ids:
+  - jeremiah-windows
+
+# Commands the bridge is allowed to ask the Windows worker to run.
+# v1 defaults to claude only. Adding entries here MUST be paired with
+# a matching allowlist on the Windows daemon and a code review.
+#
+# DO NOT add ``cmd``, ``powershell``, ``pwsh``, ``python``, ``bash`` —
+# those undo the whole point of having an allowlist.
+command_allowlist:
+  - claude
+
+# Master "remote execution allowed" gate. When false (default in
+# production), every dispatch parks in ``awaiting_approval`` and the
+# user must explicitly approve via /orchestrator approve or the
+# cockpit UI.
+#
+# Flip to true only when you trust the dispatching path end-to-end:
+# tunnel up, daemon healthy, code-review window short.
+allow_remote_execute: false
+
+# Whether the bridge may ship .env files to the remote worker. Even
+# when true, the caller ALSO has to opt in per-dispatch
+# (``env_files=[...], allow_remote_execute=True``). Both gates must
+# fire — a single-side mistake fails closed.
+#
+# Default: false. Almost every job should run without this.
+permit_env_transfer: false
+
+# How often the orchestrator polls status.json after a dispatch.
+# Lower = snappier UX, higher = less Syncthing churn.
+poll_interval_seconds: 5.0
+
+# Hard ceiling per job. If the worker has not reached a terminal
+# state within this many seconds, the orchestrator marks the job
+# stuck and surfaces it for manual intervention.
+status_timeout_seconds: 3600.0
+
+# Optional env-var name that holds an auth secret consumed by the
+# TUNNEL layer (not by the bridge itself). The bridge never reads
+# this variable; it only records the NAME in audit metadata so an
+# operator can correlate "which token was active when this dispatch
+# happened" without ever logging the token value.
+#
+# Leave empty if your tunnel auths some other way (Tailscale SSO,
+# WireGuard keys, SSH cert).
+auth_token_env: ""
+
+# Free-text notes that travel with the endpoint in audit metadata.
+# Useful for documenting "this points at the basement tower; reboot
+# Tuesdays at 03:00 UTC for Windows Update."
+notes:
+  - "Tailscale tailnet: example.ts.net"
+  - "Daemon polls every 3s; expect ~5s end-to-end roundtrip"
+  - "Daemon service account: SVC_HermesBridge (non-admin)"
