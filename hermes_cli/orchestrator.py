@@ -49,6 +49,8 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from hermes_cli import orchestrator_ledger as _ledger
+
 
 # ---------------------------------------------------------------------------
 # Storage layout
@@ -225,30 +227,55 @@ def _find_job(jobs: list[Job], job_id: str) -> Optional[Job]:
 # ---------------------------------------------------------------------------
 # Decision ledger
 # ---------------------------------------------------------------------------
+#
+# Canonical store is per-job JSONL at ``~/.hermes/jobs/<job-id>/ledger.jsonl``
+# (see :mod:`hermes_cli.orchestrator_ledger` and ``docs/orchestration/README.md``).
+# That's the path :mod:`hermes_cli.jarvis_prime.awareness` reads when it
+# builds the active-jobs panel.  Before this consolidation, writes went to
+# ``~/.hermes/orchestrator/decision_ledger.json`` (a single combined dict)
+# and the awareness reader saw nothing.
+#
+# The legacy combined file is still merged in by ``_load_ledger`` so users
+# upgrading don't lose history, but no new writes go to it.
 
-def _load_ledger() -> dict[str, list[dict[str, Any]]]:
+def _load_legacy_ledger() -> dict[str, list[dict[str, Any]]]:
+    """Read the deprecated combined-JSON ledger if it still exists on disk.
+
+    Returns ``{}`` when the file is absent or unreadable.  Only dict-shaped
+    entries are kept (hand-edits sometimes leave stray scalars behind).
+    """
     raw = _read_json(_orch_dir() / _LEDGER_FILE, default={})
     if not isinstance(raw, dict):
         return {}
     result: dict[str, list[dict[str, Any]]] = {}
     for k, v in raw.items():
         if isinstance(v, list):
-            # Defensive: only keep dict entries so callers always get the
-            # documented shape, even if the file was hand-edited.
             result[str(k)] = [e for e in v if isinstance(e, dict)]
-        else:
-            result[str(k)] = []
     return result
 
 
-def _save_ledger(ledger: dict[str, list[dict[str, Any]]]) -> None:
-    _write_json(_orch_dir() / _LEDGER_FILE, ledger)
+def _load_ledger() -> dict[str, list[dict[str, Any]]]:
+    """Return ``{job_id: [entries…]}`` across the canonical + legacy stores.
+
+    Canonical (per-job JSONL) is authoritative for new entries.  Legacy
+    entries are prepended within each job so the timeline still reads
+    oldest→newest.
+    """
+    canonical = _ledger.all_ledgers()
+    legacy = _load_legacy_ledger()
+    if not legacy:
+        return canonical
+    merged: dict[str, list[dict[str, Any]]] = {k: list(v) for k, v in canonical.items()}
+    for job_id, entries in legacy.items():
+        if job_id in merged:
+            merged[job_id] = list(entries) + merged[job_id]
+        else:
+            merged[job_id] = list(entries)
+    return merged
 
 
 def _append_ledger(job_id: str, entry: dict[str, Any]) -> None:
-    ledger = _load_ledger()
-    ledger.setdefault(job_id, []).append({"ts": _now(), **entry})
-    _save_ledger(ledger)
+    _ledger.append(job_id, entry)
 
 
 # ---------------------------------------------------------------------------
@@ -775,9 +802,22 @@ def best_coding_tool_mission_status() -> dict[str, Any]:
 # Formatting helpers (used by run_slash + cli.py + gateway/run.py)
 # ---------------------------------------------------------------------------
 
-def _fmt_ts(ts: Optional[int]) -> str:
+def _fmt_ts(ts: Any) -> str:
+    """Render a timestamp for display.
+
+    Accepts the historical formats this code base emits:
+      * ``None`` / ``0`` / ``""`` — placeholder ``"—"``
+      * ``int`` (microseconds since epoch — ``_now()``'s native format)
+      * ``str`` (ISO-8601, e.g. ledger entries from ``orchestrator_ledger``)
+    """
     if not ts:
         return "—"
+    if isinstance(ts, str):
+        from datetime import datetime
+        try:
+            return datetime.fromisoformat(ts).strftime("%Y-%m-%d %H:%M")
+        except ValueError:
+            return ts
     # ``_now()`` returns microseconds; convert before handing it to
     # ``time.localtime`` which expects seconds.
     return time.strftime("%Y-%m-%d %H:%M", time.localtime(int(ts) / 1_000_000.0))
