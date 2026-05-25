@@ -330,3 +330,5 @@ so you can verify your wiring with `adb logcat -s HermesService`. Wiring
 them into a real bridge that hands work off to a Python orchestrator
 process (over Termux loopback, or via the Hermes gateway) is tracked
 separately and is not part of the alpha.
+
+<!-- ci: trigger android-build.yml so a fresh debug APK lands as a workflow artifact. -->
