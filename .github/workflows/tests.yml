@@ -46,31 +46,12 @@ jobs:
       - name: Run tests
         run: |
           source .venv/bin/activate
-          set +e
-          python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 --timeout-method=signal 2>&1 | tee /tmp/pytest-output.log
-          exitcode=${PIPESTATUS[0]}
-          set -e
-          if [ "$exitcode" -ne 0 ]; then
-            echo "::group::Pytest FAILED/ERROR summary (annotated for visibility)"
-            grep -E "^(FAILED|ERROR) " /tmp/pytest-output.log | head -50 | while IFS= read -r line; do
-              echo "::error::${line}"
-            done
-            echo "::endgroup::"
-          fi
-          exit "$exitcode"
+          python -m pytest tests/ -q --ignore=tests/integration --ignore=tests/e2e --tb=short -n auto --timeout=30 --timeout-method=signal
         env:
           # Ensure tests don't accidentally call real APIs
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""
-
-      - name: Upload pytest log on failure
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
-        with:
-          name: pytest-output
-          path: /tmp/pytest-output.log
-          retention-days: 7
 
   e2e:
     runs-on: ubuntu-latest
