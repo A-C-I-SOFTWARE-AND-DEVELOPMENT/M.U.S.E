@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from typing import Any, cast
 
 import pytest
 
@@ -35,8 +36,9 @@ def test_workpacket_constructs_with_no_args() -> None:
 
 def test_workpacket_default_created_at_is_timezone_aware_utc() -> None:
     packet = WorkPacket()
-    assert packet.created_at.utcoffset() is not None
-    assert packet.created_at.utcoffset().total_seconds() == 0
+    offset = packet.created_at.utcoffset()
+    assert offset is not None
+    assert offset.total_seconds() == 0
 
 
 def test_workpacket_default_lists_are_independent_instances() -> None:
@@ -151,7 +153,7 @@ def test_from_dict_promotes_naive_iso_datetime_to_utc() -> None:
 
 def test_from_dict_rejects_non_mapping() -> None:
     with pytest.raises(TypeError):
-        WorkPacket.from_dict(["not", "a", "mapping"])  # type: ignore[arg-type]
+        WorkPacket.from_dict(cast(Any, ["not", "a", "mapping"]))
 
 
 # ---------------------------------------------------------------------------
@@ -159,18 +161,18 @@ def test_from_dict_rejects_non_mapping() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _complete_packet(**overrides: object) -> WorkPacket:
-    base = dict(
-        mission="lock the foundation",
-        repo_root="/home/user/hermes-agent",
-        branch="feature/jarvis-foundation-lock",
-        risk_class="RC1",
-        acceptance_criteria=["import succeeds"],
-        rollback_plan="git revert",
-        confidence=0.8,
-    )
+def _complete_packet(**overrides: Any) -> WorkPacket:
+    base: dict[str, Any] = {
+        "mission": "lock the foundation",
+        "repo_root": "/home/user/hermes-agent",
+        "branch": "feature/jarvis-foundation-lock",
+        "risk_class": "RC1",
+        "acceptance_criteria": ["import succeeds"],
+        "rollback_plan": "git revert",
+        "confidence": 0.8,
+    }
     base.update(overrides)
-    return WorkPacket(**base)  # type: ignore[arg-type]
+    return WorkPacket(**base)
 
 
 def test_validate_passes_for_complete_packet() -> None:
@@ -275,7 +277,7 @@ def test_validate_reports_non_numeric_confidence() -> None:
     # validate() is where we catch it. mirror typical "agent fed us
     # junk" scenarios.
     packet = _complete_packet()
-    packet.confidence = "high"  # type: ignore[assignment]
+    packet.confidence = cast(Any, "high")
     findings = packet.validate()
     conf_findings = [f for f in findings if f.field == "confidence"]
     assert len(conf_findings) == 1
@@ -284,7 +286,7 @@ def test_validate_reports_non_numeric_confidence() -> None:
 
 def test_validate_rejects_bool_as_confidence() -> None:
     packet = _complete_packet()
-    packet.confidence = True  # type: ignore[assignment]
+    packet.confidence = cast(Any, True)
     findings = packet.validate()
     assert any(f.field == "confidence" for f in findings)
 
