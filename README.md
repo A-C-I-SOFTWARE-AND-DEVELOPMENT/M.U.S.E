@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
@@ -28,22 +28,44 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 
 ---
 
+## JARVIS Prime Operating Layer
+
+> **Status — spec layer present, runtime now landing.** The operating contract, mode taxonomy, routing rules, and skill descriptions for JARVIS Prime live as `docs/jarvis-*.md` and `skills/jarvis-*`. Runtime wiring (slash commands, mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism) ships in `hermes_cli/jarvis_prime/` and is enabled in `v0.14.1+aci.1`.
+
+Hermes can support a JARVIS-style, local-first personal AI operating layer for users who want an active command center rather than a passive chatbot. In this pattern, Hermes coordinates the conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
+
+The operating model is intentionally small and reviewable:
+
+- **Hermes** is the command center and execution shell.
+- **AOS** is the reasoning council for multi-perspective judgment.
+- **Claude Code** is the primary builder for implementation work.
+- **Codex** is the reviewer, bounded fix worker, or second-pass engineer.
+- **Slack and Termux** are mobile command surfaces for Android-first workflows.
+- **Mobile voice capture** supports jogging, walking, driving breaks, and away-from-desk idea capture.
+- **Focused mode** handles long technical review, build planning, local verification, and PR handoff.
+
+JARVIS Prime is loyal to the user's long-term mission, not blindly obedient to the moment. It should challenge weak ideas, route code work through builder/reviewer workflows, and defer risky actions such as merges, deploys, public posting, credential changes, and publishing until explicit owner approval.
+
+Invoke from any gateway DM or REPL with `/jarvis-prime` (alias `/jarvis`, `/jp`), or pin a specific mode with `/companion`, `/strategy`, `/critic`, `/operator`, `/builder`, `/voice`. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md) for the full identity, hierarchy, modes, and gates.
+
+---
+
 ## Quick Install
 
 ### Linux, macOS, WSL2, Termux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh)
 ```
 
 ### Windows (native, PowerShell) — Early Beta
 
-> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/NousResearch/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
+> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
 
 Run this in PowerShell:
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.ps1)
 ```
 
 The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
@@ -271,7 +293,7 @@ We welcome contributions! See the [Contributing Guide](https://hermes-agent.nous
 Quick start for contributors — clone and go with `setup-hermes.sh`:
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
 cd hermes-agent
 ./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
 ./hermes              # auto-detects the venv, no need to `source` first
@@ -293,7 +315,7 @@ scripts/run_tests.sh
 
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+- 🐛 [Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
 - 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
 
