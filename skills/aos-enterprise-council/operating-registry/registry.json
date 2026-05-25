@@ -1,0 +1,301 @@
+{
+  "version": "3.0.0",
+  "purpose": "Small verified AOS operating registry for Hermes daily Slack work.",
+  "source_of_truth": {
+    "operating_registry": "operating-registry/registry.json",
+    "historical_registry": "registry/AOS_AGENT_REGISTRY_COMPLETE.md",
+    "historical_subagents": "registry/AOS_SUBAGENT_REGISTRY_COMPLETE.md",
+    "historical_prompts": "registry/AOS_PROMPT_LIBRARY_COMPLETE.md",
+    "historical_workflows": "registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md",
+    "historical_memory_context": "registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md"
+  },
+  "policies": {
+    "no_more_always_active_agents": true,
+    "narrow_procedures_are_skills": true,
+    "execution_lanes_are_workers": true,
+    "default_slack_council_max": 6,
+    "owner_gate_phrase": "Yes, with authorization.",
+    "skill_description_rule": "Every SKILL.md description is <=60 characters, one sentence, ending with a period."
+  },
+  "active_council": [
+    {
+      "id": "council-director",
+      "path": "runnable-agents/council-director.md",
+      "role": "Router and final synthesizer.",
+      "slack_default": true
+    },
+    {
+      "id": "evidence-architect",
+      "path": "runnable-agents/evidence-architect.md",
+      "role": "Evidence intake and source control.",
+      "slack_default": true
+    },
+    {
+      "id": "delivery-scope-controller",
+      "path": "runnable-agents/delivery-scope-controller.md",
+      "role": "Scope guard and task sizing.",
+      "slack_default": true
+    },
+    {
+      "id": "product-experience-architect",
+      "path": "runnable-agents/product-experience-architect.md",
+      "role": "Product and UX decision lens.",
+      "slack_default": true
+    },
+    {
+      "id": "assurance-risk-director",
+      "path": "runnable-agents/assurance-risk-director.md",
+      "role": "Risk, safety, and compliance triage.",
+      "slack_default": true
+    },
+    {
+      "id": "contrarian-reviewer",
+      "path": "runnable-agents/contrarian-reviewer.md",
+      "role": "Red-team challenge before owner handoff.",
+      "slack_default": true
+    }
+  ],
+  "domain_specialists": [
+    {
+      "id": "principal-systems-architect",
+      "domain": "architecture",
+      "when_to_use": "Architecture changes, cross-service design, scaling, data models, or technical tradeoffs.",
+      "when_not_to_use": "Simple edits, copy-only changes, or tasks with no structural design choice.",
+      "required_inputs": [
+        "mission brief",
+        "repo paths",
+        "constraints",
+        "current architecture evidence"
+      ],
+      "required_output": "Architecture decision memo with options, risks, chosen design, and verification steps.",
+      "verification_method": "Check cited files, run relevant build/tests, and confirm design constraints are addressed.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "security-compliance-auditor",
+      "domain": "security",
+      "when_to_use": "Authz, secrets, regulated data, trust boundaries, network exposure, or compliance claims.",
+      "when_not_to_use": "Purely cosmetic UI work or local-only refactors without data/access impact.",
+      "required_inputs": [
+        "risk class",
+        "changed files",
+        "threat model or data-flow notes",
+        "test evidence"
+      ],
+      "required_output": "Security/compliance finding list with severity, mitigations, and go/no-go verdict.",
+      "verification_method": "Review diffs and run security-relevant tests or static checks where available.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "research-evidence-bureau",
+      "domain": "research",
+      "when_to_use": "External facts, citations, market claims, medical/nutrition facts, laws, or vendor comparisons.",
+      "when_not_to_use": "Internal repo facts that can be verified directly from files or tests.",
+      "required_inputs": [
+        "research question",
+        "acceptable source types",
+        "freshness requirement",
+        "claim list"
+      ],
+      "required_output": "Research dossier with cited claims, confidence, recency, and unresolved uncertainty.",
+      "verification_method": "Confirm every nontrivial claim has a primary or reputable secondary source.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "commercial-strategist",
+      "domain": "business",
+      "when_to_use": "Pricing, packaging, GTM, sales narrative, buyer personas, procurement, or monetization tradeoffs.",
+      "when_not_to_use": "Engineering implementation details with no commercial decision.",
+      "required_inputs": [
+        "product brief",
+        "target customer",
+        "constraints",
+        "competitor or pricing evidence"
+      ],
+      "required_output": "Commercial recommendation with positioning, risks, assumptions, and next experiments.",
+      "verification_method": "Check assumptions against evidence and identify claims requiring substantiation.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "release-readiness-judge",
+      "domain": "release",
+      "when_to_use": "Pre-release go/no-go, pilot demo readiness, app store handoff, or production launch checks.",
+      "when_not_to_use": "Early design planning or unmerged local exploratory work.",
+      "required_inputs": [
+        "release scope",
+        "test results",
+        "known issues",
+        "rollback plan",
+        "owner constraints"
+      ],
+      "required_output": "Go/no-go report with blockers, mitigations, owner gates, and release checklist.",
+      "verification_method": "Verify tests, artifacts, rollback path, and owner-only walls are satisfied.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "hazmat-command-specialist",
+      "domain": "regulated hazmat",
+      "when_to_use": "Hazmat, dangerous goods, placards, ERG, TDG/49 CFR, shipping papers, or regulated output.",
+      "when_not_to_use": "General logistics, ordinary product copy, or unsupported legal advice requests.",
+      "required_inputs": [
+        "jurisdiction",
+        "material context",
+        "claim/output draft",
+        "required source set"
+      ],
+      "required_output": "Cited hazmat review with allowed wording, blocked claims, and escalation notes.",
+      "verification_method": "Check every regulated assertion against cited authoritative sources.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "nourish-product-specialist",
+      "domain": "nutrition product",
+      "when_to_use": "Nourish product flows, nutrition behavior, meal planning, nutrient claims, or health-adjacent UX.",
+      "when_not_to_use": "Medical diagnosis, treatment advice, or unrelated product areas.",
+      "required_inputs": [
+        "product surface",
+        "target user",
+        "claim list",
+        "research evidence"
+      ],
+      "required_output": "Nourish product review with behavior guidance, claim safety, and UX recommendations.",
+      "verification_method": "Verify health/nutrition claims against cited sources and label uncertainty.",
+      "owner_gate": "Yes, with authorization."
+    },
+    {
+      "id": "psychology-ux-specialist",
+      "domain": "psychology and UX",
+      "when_to_use": "Behavior design, motivation, friction, trust, onboarding, or user comprehension issues.",
+      "when_not_to_use": "Backend-only tasks or UI changes with no behavior/user impact.",
+      "required_inputs": [
+        "user segment",
+        "journey step",
+        "observed problem",
+        "success metric"
+      ],
+      "required_output": "Psychology/UX critique with risks, interventions, and measurable acceptance criteria.",
+      "verification_method": "Check recommendations against user evidence, product constraints, and measurable outcomes.",
+      "owner_gate": "Yes, with authorization."
+    }
+  ],
+  "super_specialist_skills": [
+    {
+      "id": "claims-substantiation",
+      "path": "skills/claims-substantiation/SKILL.md",
+      "description": "Substantiates public claims with evidence.",
+      "status": "planned"
+    },
+    {
+      "id": "threat-modeling",
+      "path": "skills/threat-modeling/SKILL.md",
+      "description": "Builds threat models for risky changes.",
+      "status": "planned"
+    },
+    {
+      "id": "pricing-study",
+      "path": "skills/pricing-study/SKILL.md",
+      "description": "Compares pricing and packaging tradeoffs.",
+      "status": "planned"
+    },
+    {
+      "id": "pilot-readiness",
+      "path": "skills/pilot-readiness/SKILL.md",
+      "description": "Checks pilot readiness and launch blockers.",
+      "status": "planned"
+    },
+    {
+      "id": "research-dossier",
+      "path": "skills/research-dossier/SKILL.md",
+      "description": "Produces cited research dossiers.",
+      "status": "planned"
+    },
+    {
+      "id": "bug-fix-protocol",
+      "path": "skills/bug-fix-protocol/SKILL.md",
+      "description": "Guides evidence-first bug fixes.",
+      "status": "planned"
+    },
+    {
+      "id": "legal-document-intake",
+      "path": "skills/legal-document-intake/SKILL.md",
+      "description": "Structures legal document intake.",
+      "status": "planned"
+    },
+    {
+      "id": "hazmat-citation-check",
+      "path": "skills/hazmat-citation-check/SKILL.md",
+      "description": "Checks hazmat outputs against sources.",
+      "status": "planned"
+    },
+    {
+      "id": "security-authz-change",
+      "path": "skills/security-authz-change/SKILL.md",
+      "description": "Reviews security and authz changes.",
+      "status": "planned"
+    },
+    {
+      "id": "compliance-rule-change",
+      "path": "skills/compliance-rule-change/SKILL.md",
+      "description": "Reviews compliance rule changes.",
+      "status": "planned"
+    },
+    {
+      "id": "post-merge-verification",
+      "path": "skills/post-merge-verification/SKILL.md",
+      "description": "Verifies post-merge system health.",
+      "status": "planned"
+    },
+    {
+      "id": "pr-readiness-handoff",
+      "path": "skills/pr-readiness-handoff/SKILL.md",
+      "description": "Prepares PR readiness handoffs.",
+      "status": "planned"
+    }
+  ],
+  "worker_templates": [
+    {
+      "id": "codex-implementation-worker",
+      "path": "workers/codex-implementation-worker.md",
+      "purpose": "Execute scoped code changes from a task packet; not a decision maker."
+    },
+    {
+      "id": "claude-code-worker",
+      "path": "workers/claude-code-worker.md",
+      "purpose": "Run bounded implementation or refactor lanes; not a council vote."
+    },
+    {
+      "id": "test-verification-worker",
+      "path": "workers/test-verification-worker.md",
+      "purpose": "Run tests and collect evidence; not a release approver."
+    },
+    {
+      "id": "docs-update-worker",
+      "path": "workers/docs-update-worker.md",
+      "purpose": "Update docs from approved source material; not a claims authority."
+    },
+    {
+      "id": "slack-triage-worker",
+      "path": "workers/slack-triage-worker.md",
+      "purpose": "Summarize Slack threads and extract tasks; not an owner proxy."
+    },
+    {
+      "id": "repo-audit-worker",
+      "path": "workers/repo-audit-worker.md",
+      "purpose": "Collect repo evidence and findings; not a final auditor."
+    },
+    {
+      "id": "migration-worker",
+      "path": "workers/migration-worker.md",
+      "purpose": "Execute approved migrations; not a migration approver."
+    }
+  ],
+  "separated_collections": {
+    "runnable_agents": "runnable-agents/",
+    "skills": "skills/",
+    "workers": "workers/",
+    "personas": "personas/",
+    "product_roles": "product-roles/",
+    "archived_recovered_sources": "archive/recovered-sources/",
+    "specialists": "specialists/"
+  }
+}
