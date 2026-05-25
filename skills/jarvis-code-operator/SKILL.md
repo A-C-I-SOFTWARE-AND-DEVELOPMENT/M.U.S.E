@@ -51,18 +51,28 @@ If the repo root is unknown, inspect first. If the working tree is dirty, separa
 
 ## How to Run
 
-1. Inspect the repo root and branch.
-2. Run `git status --short --branch`.
+1. Inspect the repo root and branch through Hermes tools: use `search_files` (or `read_file` on a known path) to confirm the tree, and route the git status check through `terminal` rather than calling a bare shell.
+2. Capture the status snapshot by invoking `terminal` with `git status --short --branch` as the command; the wrapper enforces the session's approval and sandboxing rules.
 3. Scope the task to one mission with explicit non-goals.
 4. Choose the worker route.
-5. Prepare a Claude Code build packet or Codex review packet.
-6. Apply only approved local edits or dispatch the worker packet.
-7. Run local verification.
+5. Prepare a Claude Code build packet or Codex review packet, and dispatch via `delegate_task` when the work fans out to a sub-agent.
+6. Apply only approved local edits through `patch` / `write_file` (or hand the packet to the chosen worker).
+7. Run local verification by invoking `terminal` for each check command.
 8. Prepare rollback notes and PR handoff.
-9. Commit only the intended files when authorized.
-10. Push only after the commit succeeds and pushing is authorized.
+9. Commit only the intended files when authorized — drive `git add <paths>` and `git commit` through `terminal`.
+10. Push only after the commit succeeds and pushing is authorized; invoke `git push` through `terminal` so approval gating applies.
 
 ## Quick Reference
+
+Primary Hermes tool surface for this skill:
+
+- `terminal` — run git, build, lint, and test commands inside Hermes' approval and sandbox layer (replaces ad-hoc shell invocations).
+- `read_file` — inspect specific files before editing.
+- `search_files` — locate code, configs, and tests across the repo (replaces `grep`/`find`/`ls`).
+- `patch` / `write_file` — apply scoped edits.
+- `delegate_task` — hand a Claude Code build packet or Codex review packet to a sub-agent.
+- `skill_view` / `skills_list` — pull in narrower skills (e.g., a language-specific build skill) before dispatching.
+- `memory` — record rollback notes, owner-gate decisions, and follow-ups that must survive the session.
 
 Worker routes:
 
@@ -83,13 +93,13 @@ Branch rules:
 
 ### Repo Inspection
 
-Run or collect:
+Drive the inspection through Hermes tools so approval, sandboxing, and output capture all apply. Invoke `terminal` once per command:
 
-```bash
-git rev-parse --show-toplevel
-git branch --show-current
-git status --short --branch
-```
+- `terminal` → `git rev-parse --show-toplevel`
+- `terminal` → `git branch --show-current`
+- `terminal` → `git status --short --branch`
+
+Use `search_files` when you need to locate files by name or content rather than shelling out to `find` or `grep`. Use `read_file` to inspect any file the status surfaces.
 
 Confirm the requested repo and branch match the live environment before edits.
 
@@ -180,20 +190,18 @@ Not allowed:
 
 ### Local Verification
 
+Run each check through the `terminal` tool — never as a raw subprocess — so output is captured and approval gates apply.
+
 Minimum whitespace check:
 
-```bash
-git diff --check
-```
+- `terminal` → `git diff --check`
 
 Then run project-appropriate checks, such as:
 
-```bash
-python -m py_compile <changed-python-files>
-pytest <targeted-tests>
-npm test
-npm run lint
-```
+- `terminal` → `python -m py_compile <changed-python-files>`
+- `terminal` → `pytest <targeted-tests>`
+- `terminal` → `npm test`
+- `terminal` → `npm run lint`
 
 If tests are skipped, state why.
 
@@ -219,6 +227,10 @@ Prefer a simple rollback:
 - Restore only changed files.
 - Remove generated docs or scripts.
 - Disable a workflow rather than deleting history.
+
+### Escape hatch: raw shell
+
+Only fall back to a bare shell when the Hermes runtime is unavailable (cold-boot recovery, broken tool registry, off-host triage). When you do, run the same `git`, `pytest`, `npm`, and `git push` commands documented above directly — but log what you ran and re-enter the Hermes flow as soon as the runtime is back so approval, sandboxing, and history capture resume.
 
 ## Pitfalls
 

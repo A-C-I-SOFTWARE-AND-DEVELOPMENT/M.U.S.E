@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AOS Operating Registry",
+  "type": "object",
+  "required": [
+    "version",
+    "purpose",
+    "source_of_truth",
+    "policies",
+    "active_council",
+    "domain_specialists",
+    "super_specialist_skills",
+    "worker_templates",
+    "separated_collections"
+  ],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "source_of_truth": {
+      "type": "object"
+    },
+    "policies": {
+      "type": "object"
+    },
+    "active_council": {
+      "type": "array",
+      "maxItems": 6
+    },
+    "domain_specialists": {
+      "type": "array"
+    },
+    "super_specialist_skills": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/skillEntry"
+      }
+    },
+    "worker_templates": {
+      "type": "array"
+    },
+    "separated_collections": {
+      "type": "object"
+    }
+  },
+  "definitions": {
+    "skillEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "path",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "active",
+            "planned",
+            "deprecated"
+          ],
+          "description": "Lifecycle marker. Default active. \"planned\" entries are not required to exist on disk yet."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

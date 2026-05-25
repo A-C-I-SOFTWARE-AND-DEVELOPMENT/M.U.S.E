@@ -59,6 +59,14 @@ If required context is missing, make a reasonable short assumption or turn it in
 
 ## Quick Reference
 
+Primary Hermes tool surface for mobile capture (use these from inside the Hermes runtime — no shelling out required):
+
+- `skill_view` → load `mobile-voice-development` to ground the capture flow, then respond in the short format below.
+- `delegate_task` → hand the raw dump to a Mobile Voice sub-agent when the parent session is busy or the capture should run isolated.
+- `memory` → persist the clean task title, raw intent, and next focused action so focused-mode can resume later.
+- `send_message` → relay the captured packet back to the originating channel (Slack thread, Discord DM, etc.) without leaving Hermes.
+- `clarify` → ask one tight follow-up only when the capture is unsalvageable; otherwise prefer a short assumption.
+
 Default short response:
 
 ```text
@@ -70,7 +78,7 @@ Recommended worker:
 Next focused action:
 ```
 
-Slack commands:
+JARVIS subcommands (issued as user messages inside any Hermes-attached surface — Slack, Discord, desktop, or Termux):
 
 ```text
 JARVIS capture: <raw idea>
@@ -84,19 +92,23 @@ JARVIS forget: <memory to remove>
 JARVIS correct: <old belief> -> <new belief>
 ```
 
-Termux capture:
+The Hermes runtime classifies the mode from the prefix and routes through the tools above; you do not need to invoke a shell to dispatch them.
+
+### Termux fallback (mobile shell)
+
+Only when Jeremiah is on Termux without an active Hermes session attached — typically a cold start from a phone — fall back to the `hermes` CLI directly:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
 hermes "JARVIS capture: <raw idea>"
 ```
 
-Termux focused follow-up:
-
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
 hermes "JARVIS focused: <task title>"
 ```
+
+This launches a fresh Hermes runtime, which then routes through the same tool surface listed above. Prefer reattaching to an existing session over spawning a new one when bandwidth or battery is tight.
 
 ## Procedure
 

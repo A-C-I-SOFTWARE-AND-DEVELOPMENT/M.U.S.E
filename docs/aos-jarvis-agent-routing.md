@@ -13,19 +13,23 @@ This document defines the routing plan for JARVIS Prime and the AOS council. It 
 
 The default active council should stay small and mission-focused. It is the daily operating set for Slack, Termux, GitHub planning, and local verification.
 
-Default active council:
+**Current operating council** — the runnable Claude Code subagents that exist under `.claude/agents/` today:
 
-- executive-router
-- principal-systems-architect
-- security-compliance-reviewer
-- product-ux-reviewer
-- contrarian-reviewer
-- qa-release-gate
-- memory-evidence-curator
-- claude-code-builder
-- codex-reviewer
+| Subagent (file)             | Role bucket               |
+| --------------------------- | ------------------------- |
+| `aos-council-director`      | executive routing / chair |
+| `principal-systems-architect` | architecture              |
+| `assurance-risk-director`   | security / risk review    |
+| `product-experience-architect` | product / UX review    |
+| `contrarian-reviewer`       | red-team / counter-position |
+| `delivery-scope-controller` | scope + release gate      |
+| `evidence-architect`        | evidence / memory curator |
+| `codex-dispatch-governor`   | codex routing / review    |
+| `commercial-strategist`     | product strategy          |
 
-These are runnable decision agents or bounded builder/reviewer roles. They should not be expanded automatically just because additional recovered roles exist.
+These are the 9 invocable subagents Claude Code can route to via `Agent(subagent_type=<name>)`. They should not be expanded automatically just because additional recovered roles exist.
+
+**Target role names** (aspirational, used in this doc for clarity; map to the current files above): `executive-router` → `aos-council-director`; `security-compliance-reviewer` → `assurance-risk-director`; `product-ux-reviewer` → `product-experience-architect`; `qa-release-gate` → `delivery-scope-controller`; `memory-evidence-curator` → `evidence-architect`; `codex-reviewer` → `codex-dispatch-governor`. `claude-code-builder` has no dedicated subagent file yet — invoke via `Agent(subagent_type=general-purpose)` with a build-mission prompt until one is added.
 
 ## Domain Specialists
 

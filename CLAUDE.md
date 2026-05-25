@@ -32,7 +32,7 @@ Use these project agents as the default AOS Council bench:
 - `commercial-strategist`
 - `assurance-risk-director`
 - `delivery-scope-controller`
-- `contrarian-red-flag-analyst`
+- `contrarian-reviewer`
 - `codex-dispatch-governor`
 
 ## Routing
@@ -41,7 +41,7 @@ Use `aos-council-director` for broad planning, deep research, governance, repo-r
 
 Use `evidence-architect` when conclusions depend on repo state, logs, docs, code, or external assumptions.
 
-Use `assurance-risk-director` and `contrarian-red-flag-analyst` before high-impact implementation.
+Use `assurance-risk-director` and `contrarian-reviewer` before high-impact implementation.
 
 Use `codex-dispatch-governor` after a task has been narrowed into implementation work with acceptance criteria and validation commands.
 

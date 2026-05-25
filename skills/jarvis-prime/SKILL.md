@@ -1,6 +1,6 @@
 ---
 name: jarvis-prime
-description: "Operate as a personal AI partner."
+description: "Route owner work across JARVIS Prime's six modes."
 version: 1.0.0
 author: Jeremiah Echerd + Hermes Agent
 license: MIT

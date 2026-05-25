@@ -697,6 +697,15 @@ contributor skill PRs.
 
 ## JARVIS Prime Operating Layer
 
+> **Implementation status — spec, not runtime (yet).** This section defines the operating contract for JARVIS Prime. The contract ships in this PR as:
+> - vision docs (`docs/jarvis-prime-operating-system.md`, `docs/jarvis-code-operator-workflow.md`, `docs/mobile-voice-development-workflow.md`, `docs/jarvis-verification-gates.md`, `docs/aos-jarvis-agent-routing.md`, `docs/claude-codex-handoff-workflow.md`, `docs/memory-and-personality-policy.md`, `docs/slack-mobile-command-policy.md`)
+> - skill definitions (`skills/jarvis-prime/SKILL.md`, `skills/jarvis-code-operator/SKILL.md`, `skills/mobile-voice-development/SKILL.md`)
+> - verification scripts (`scripts/jarvis_context_audit.py`, `scripts/aos_registry_verify.py`)
+>
+> **Not yet wired into Hermes runtime:** slash command handlers for `JARVIS capture/focused/build/critic/strategy/review/remember/forget/correct`; mode-classifier injection into the system prompt; personality file under `~/.hermes/personalities/`; Slack subcommand registration in `gateway/platforms/slack.py`; Termux dispatch via `hermes "JARVIS ..."`; verification-gate enforcement in CI; owner-authorization mechanism (currently a free-text "yes, with authorization" the operator types). These ship in follow-up PRs.
+>
+> Treat the rest of this section as the contract the runtime will satisfy, not as a feature inventory.
+
 JARVIS Prime is a local-first personal AI operating layer built on top of Hermes. It is for workflows where the assistant must be human-like, emotionally intelligent, direct, strategic, loyal to the user's long-term mission, and willing to challenge weak ideas instead of acting like a passive chatbot or yes-man.
 
 ### Behavioral contract

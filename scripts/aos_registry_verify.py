@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Verify AOS registry classification hygiene.
 
-The script is local-only and stdlib-only. It reports missing optional registry
-paths as warnings so it can run before the registry cleanup PR is complete.
+The script is local-only and stdlib-only. Strict by default: missing registry
+paths are FAILs. Pass --lax to demote them to WARNs (useful while the registry
+cleanup PR is still mid-flight, e.g. before the operating-registry directory
+has been created).
 """
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -100,18 +103,29 @@ def audit_skill_file(path: Path, failures: list[str], warnings: list[str], stric
         check(False, f"SKILL.md description present: {rel}", failures, warnings, warn=not strict)
 
 
-def audit() -> int:
+def _distinct_existing_dirs(paths: list[Path]) -> bool:
+    """True iff every path exists, is a directory, and resolves to a unique inode."""
+    resolved = []
+    for p in paths:
+        if not p.exists() or not p.is_dir():
+            return False
+        resolved.append(p.resolve())
+    return len(set(resolved)) == len(resolved)
+
+
+def audit(lax: bool = False) -> int:
     failures: list[str] = []
     warnings: list[str] = []
 
     print("AOS Registry Verification")
     print(f"repo={ROOT}")
     print(f"aos_root={AOS_ROOT}")
+    print(f"mode={'lax' if lax else 'strict'}")
 
-    check(AOS_ROOT.exists(), "AOS council root exists", failures, warnings, warn=True)
+    check(AOS_ROOT.exists(), "AOS council root exists", failures, warnings, warn=lax)
 
     for name, path in EXPECTED_PATHS.items():
-        check(path.exists(), f"AOS registry path exists: {name} -> {path.relative_to(ROOT)}", failures, warnings, warn=True)
+        check(path.exists(), f"AOS registry path exists: {name} -> {path.relative_to(ROOT)}", failures, warnings, warn=lax)
 
     runnable = EXPECTED_PATHS["runnable_agents"]
     skills_dir = EXPECTED_PATHS["skills"]
@@ -119,8 +133,18 @@ def audit() -> int:
     personas = EXPECTED_PATHS["personas"]
     product_roles = EXPECTED_PATHS["product_roles"]
 
-    check(runnable != skills_dir and runnable != workers, "runnable agents path is separate from skills/workers", failures)
-    check(personas != runnable and product_roles != runnable, "personas/product roles path is separate from runnable agents", failures)
+    # On-disk uniqueness check: each directory must exist and resolve to a
+    # distinct inode. Hardcoded Path-object inequality would always pass.
+    check(
+        _distinct_existing_dirs([runnable, skills_dir, workers]),
+        "runnable agents / skills / workers are distinct existing directories",
+        failures, warnings, warn=lax,
+    )
+    check(
+        _distinct_existing_dirs([personas, product_roles, runnable]),
+        "personas / product roles / runnable agents are distinct existing directories",
+        failures, warnings, warn=lax,
+    )
 
     for ref_dir in REFERENCE_ONLY_DIRS:
         for file_path in markdown_files(ref_dir):
@@ -173,4 +197,11 @@ def audit() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(audit())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--lax", action="store_true",
+        help="demote missing-path failures to warnings (use while the AOS "
+             "registry classification migration is still in progress)",
+    )
+    args = parser.parse_args()
+    sys.exit(audit(lax=args.lax))
