@@ -101,8 +101,27 @@ Slack / WhatsApp / Signal), Android cockpit, Termux shell. Works
 fully offline against a local llama.cpp / vLLM / Ollama server.
 
 **📖 Full guide:** [docs/orchestration/](docs/orchestration/) —
-overview, getting started, prompt-to-PR demo, Android + Termux
-demo, worker adapters, private/local mode, troubleshooting, FAQ.
+overview, getting started, Prompt to PR demo, Android + Termux
+demo, worker adapters, private-local mode, troubleshooting, FAQ.
+
+## Plain-English operating manual
+
+The [`docs/`](docs/) folder is the human-readable manual that
+explains every Hermes surface in plain English. Start with
+[`docs/README.md`](docs/README.md) — it's a single-page map that
+points to one guide per topic:
+
+| Want to… | Read |
+|---|---|
+| Run your first job | [docs/orchestration/getting-started.md](docs/orchestration/getting-started.md) |
+| See end-to-end Prompt to PR | [docs/orchestration/prompt-to-pr-demo.md](docs/orchestration/prompt-to-pr-demo.md) |
+| Drive Hermes from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
+| Use voice-first (driving mode) | [docs/voice/voice-first-user-guide.md](docs/voice/voice-first-user-guide.md) |
+| Bridge to Claude Code Windows | [docs/remote/windows-claude-code-bridge-guide.md](docs/remote/windows-claude-code-bridge-guide.md) |
+| Profile your GitHub history | [docs/profile/github-history-profile-guide.md](docs/profile/github-history-profile-guide.md) |
+| Lock down private-local | [docs/security/private-local-security-guide.md](docs/security/private-local-security-guide.md) |
+| Wire GitHub / Supabase / Vercel | [docs/integrations/github-supabase-vercel-guide.md](docs/integrations/github-supabase-vercel-guide.md) |
+| Fix something broken | [docs/troubleshooting/hermes-orchestration-troubleshooting.md](docs/troubleshooting/hermes-orchestration-troubleshooting.md) |
 
 ## CLI vs Messaging Quick Reference
 
