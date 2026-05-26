@@ -2,11 +2,14 @@ package com.aci.hermes.ui.screens.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.gateway.GatewayController
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
+import com.aci.hermes.data.preferences.GatewayModePref
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.data.preferences.ThemeMode
+import com.aci.hermes.di.toGatewayMode
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +26,13 @@ data class SettingsUiState(
     val allowExternalAppOpening: Boolean = false,
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
+    val gatewayMode: GatewayModePref = GatewayModePref.MOCK,
 )
 
 class SettingsViewModel(
     private val settings: SettingsRepository,
     private val tasks: HermesTaskRepository,
+    private val gatewayController: GatewayController,
     private val logBuffer: LogBuffer,
 ) : ViewModel() {
 
@@ -36,17 +41,7 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
-                themeMode = snap.themeMode,
-                preferredBuilder = snap.preferredBuilder,
-                preferredReviewer = snap.preferredReviewer,
-                useApiKeys = snap.useApiKeys,
-                localOnlyMode = snap.localOnlyMode,
-                allowExternalAppOpening = snap.allowExternalAppOpening,
-                clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
-                showSafetyWarnings = snap.showSafetyWarnings,
-            )
+            _state.value = settings.snapshot().toUi()
         }
     }
 
@@ -90,22 +85,34 @@ class SettingsViewModel(
         viewModelScope.launch { settings.setShowSafetyWarnings(value) }
     }
 
+    fun setGatewayMode(value: GatewayModePref) {
+        _state.update { it.copy(gatewayMode = value) }
+        viewModelScope.launch {
+            settings.setGatewayMode(value)
+            gatewayController.switchMode(value.toGatewayMode())
+            logBuffer.info("Settings", "Gateway mode set to ${value.name}")
+        }
+    }
+
     fun resetAll() {
         viewModelScope.launch {
             settings.resetAll()
             tasks.deleteAll()
             logBuffer.warn("Settings", "User reset all orchestrator settings and tasks")
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
-                themeMode = snap.themeMode,
-                preferredBuilder = snap.preferredBuilder,
-                preferredReviewer = snap.preferredReviewer,
-                useApiKeys = snap.useApiKeys,
-                localOnlyMode = snap.localOnlyMode,
-                allowExternalAppOpening = snap.allowExternalAppOpening,
-                clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
-                showSafetyWarnings = snap.showSafetyWarnings,
-            )
+            _state.value = settings.snapshot().toUi()
+            gatewayController.switchMode(_state.value.gatewayMode.toGatewayMode())
         }
     }
+
+    private fun SettingsRepository.Snapshot.toUi(): SettingsUiState = SettingsUiState(
+        themeMode = themeMode,
+        preferredBuilder = preferredBuilder,
+        preferredReviewer = preferredReviewer,
+        useApiKeys = useApiKeys,
+        localOnlyMode = localOnlyMode,
+        allowExternalAppOpening = allowExternalAppOpening,
+        clipboardHandoffEnabled = clipboardHandoffEnabled,
+        showSafetyWarnings = showSafetyWarnings,
+        gatewayMode = gatewayMode,
+    )
 }

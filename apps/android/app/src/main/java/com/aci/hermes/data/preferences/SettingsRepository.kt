@@ -32,6 +32,7 @@ class SettingsRepository(private val context: Context) {
         val ALLOW_EXTERNAL_APP_OPENING = booleanPreferencesKey("allow_external_app_opening")
         val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
         val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
+        val GATEWAY_MODE = stringPreferencesKey("gateway_mode")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -66,6 +67,10 @@ class SettingsRepository(private val context: Context) {
     }
     val showSafetyWarnings: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.SHOW_SAFETY_WARNINGS] ?: true
+    }
+    val gatewayMode: Flow<GatewayModePref> = context.dataStore.data.map {
+        runCatching { GatewayModePref.valueOf(it[Keys.GATEWAY_MODE] ?: "") }
+            .getOrDefault(GatewayModePref.MOCK)
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -104,6 +109,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.SHOW_SAFETY_WARNINGS] = value }
     }
 
+    suspend fun setGatewayMode(value: GatewayModePref) {
+        context.dataStore.edit { it[Keys.GATEWAY_MODE] = value.name }
+    }
+
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }
     }
@@ -128,6 +137,9 @@ class SettingsRepository(private val context: Context) {
             allowExternalAppOpening = data[Keys.ALLOW_EXTERNAL_APP_OPENING] ?: false,
             clipboardHandoffEnabled = data[Keys.CLIPBOARD_HANDOFF_ENABLED] ?: true,
             showSafetyWarnings = data[Keys.SHOW_SAFETY_WARNINGS] ?: true,
+            gatewayMode = runCatching {
+                GatewayModePref.valueOf(data[Keys.GATEWAY_MODE] ?: "")
+            }.getOrDefault(GatewayModePref.MOCK),
         )
     }
 
@@ -141,8 +153,17 @@ class SettingsRepository(private val context: Context) {
         val allowExternalAppOpening: Boolean,
         val clipboardHandoffEnabled: Boolean,
         val showSafetyWarnings: Boolean,
+        val gatewayMode: GatewayModePref,
     )
 }
 
 enum class PreferredBuilder { CODEX, CHATGPT, MANUAL }
 enum class PreferredReviewer { CLAUDE_CODE, CLAUDE, CHATGPT, MANUAL }
+
+/**
+ * Persisted selection between the in-process mock spine and a real
+ * Jarvis Prime gateway transport. Default is [MOCK] — the app refuses
+ * to claim a live connection until the user explicitly opts into REAL
+ * mode in Settings.
+ */
+enum class GatewayModePref { MOCK, REAL }

@@ -53,6 +53,14 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        // Without this, every call into android.util.Log throws a "not
+        // mocked" RuntimeException from the stubbed android.jar that
+        // the JVM unit tests link against, which silently kills the
+        // GatewayController's pump coroutine.
+        unitTests.isReturnDefaultValues = true
+    }
+
     packaging {
         resources {
             excludes += setOf(
@@ -91,6 +99,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.serialization.json)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

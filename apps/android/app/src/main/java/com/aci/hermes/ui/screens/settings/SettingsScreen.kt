@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.R
+import com.aci.hermes.data.preferences.GatewayModePref
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.ThemeMode
@@ -138,6 +139,21 @@ fun SettingsScreen(
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
                 )
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_gateway)) {
+                Text(
+                    stringResource(R.string.settings_gateway_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                RadioRow(
+                    label = stringResource(R.string.settings_gateway_mode_mock),
+                    selected = state.gatewayMode == GatewayModePref.MOCK,
+                ) { viewModel.setGatewayMode(GatewayModePref.MOCK) }
+                RadioRow(
+                    label = stringResource(R.string.settings_gateway_mode_real),
+                    selected = state.gatewayMode == GatewayModePref.REAL,
+                ) { viewModel.setGatewayMode(GatewayModePref.REAL) }
             }
 
             SettingsSection(stringResource(R.string.settings_section_appearance)) {
