@@ -49,29 +49,60 @@ last-known-good phase.
 
 ---
 
-## Phase 2 — Documentation
+## Phase 2 — Documentation — DONE
 
-| Step | PR | Method | Target SHA | Status | Result SHA |
-|------|----|----|-----|--------|-----|
-| 2.1 | #108 | merge --no-ff | `fbbfae4` | PENDING | — |
-| 2.2 | #110 | merge --no-ff | `82bf452` | PENDING | — |
-| 2.3 | #111 | merge --no-ff | `7919e56` | PENDING | — |
-
-**Phase 2 checkpoint SHA:** TBD
-
----
-
-## Phase 3 — Android base (theme + navigation)
+**Start SHA:** `d8fd69d`
 
 | Step | PR | Method | Target SHA | Status | Result SHA | Notes |
 |------|----|----|-----|--------|-----|-------|
-| 3.1 | #112 | `cherry-pick -x` | `249f7f5` | PENDING | — | 5→10 route shell; **Q2 after** |
-| 3.2 | #113 | `cherry-pick -x` | `8478240` | PENDING | — | design tokens |
-| 3.3 | guard | `git checkout HEAD~1 --` | — | PENDING | — | Restore `.github/ .claude/ agents/ recovered-agent-sources/` from any orphan deletion |
+| 2.1 | #108 | merge --no-ff | `fbbfae4` | DONE | (merge) | 5 docs added; product spec, screen map, user flows, onboarding spec, launch standard |
+| 2.2 | #110 | merge --no-ff | `82bf452` | DONE | (merge) | 5 docs added; deep audit, final gap map, finish roadmap, permission risk register, research translation map |
+| 2.3 | #111 | merge --no-ff | `7919e56` | DONE | `0801d3c` | 1 doc added; launch readiness audit (verdict RED, 87/280) |
 
-**Phase 3 gate:** `cd apps/android && ./gradlew --no-daemon --stacktrace lint testDebugUnitTest assembleDebug`
+**Phase 2 gate result:** Docs render; 11 new `docs/jarvis-prime-app-*.md` files; no `apps/android/` or `hermes_cli/` touched.
 
-**Phase 3 checkpoint SHA:** TBD
+**Phase 2 checkpoint SHA:** `0801d3c`
+
+---
+
+## Phase 3 — Android base (theme + navigation) — DONE
+
+**Start SHA:** `0801d3c`
+
+| Step | PR | Method | Target SHA | Status | Result SHA | Notes |
+|------|----|----|-----|--------|-----|-------|
+| 3.1 | #112 | `cherry-pick -x` | `249f7f5` | DONE | `e3e3870` | Clean cherry-pick; 13 files, no protected paths touched; 5→10 route shell |
+| 3.2 | #113 | `cherry-pick -x` | `8478240` | DONE | `699515a` | 2 conflicts resolved (SplashScreen.kt — dropped redundant ☤; strings.xml — took #113 polish + preserved #112 nav/onboarding additions); 35 files total |
+| 3.3 | guard | `git diff --name-only` | — | DONE | — | All changes confined to `apps/android/` + `docs/jarvis-prime-app-*.md`; no protected paths touched |
+
+**Phase 3 gate result (local pre-CI check):**
+- XML well-formed (195 string entries)
+- AndroidManifest permissions = baseline (3 unchanged: POST_NOTIFICATIONS, FOREGROUND_SERVICE, FOREGROUND_SERVICE_DATA_SYNC)
+- HomeScreen.kt imports resolve (orchestrator package preserved for ViewModel)
+- ScreenTest.kt validates required routes catalog
+- **Note: cannot run `./gradlew` locally (no Android SDK); CI workflow `android-build.yml` will validate APK build on push**
+
+**Phase 3 checkpoint SHA:** `699515a`
+
+## Phase 4 — Android feature screens — PARTIAL (1 of 12)
+
+**Start SHA:** `699515a`
+
+| Step | PR | Method | Target SHA | Status | Result SHA | Notes |
+|------|----|----|-----|--------|-----|-------|
+| 4.1 | #107 | merge --no-ff | `b82b6e2` | DONE | `632fca0` | 5 conflicts resolved: AppContainer.kt (kept both orchestratorServiceController + new approval store/sink), Screen.kt (dropped #107's duplicate route declarations — already in #112), HermesNavGraph.kt (unified imports + dropped #107's onboarding callback additions + replaced Approvals placeholder with real ApprovalsScreen wrapped by ShellHost), HomeScreen.kt (kept HEAD's shell-aware signature, dropped #107's Scaffold/TopAppBar pattern), strings.xml (preserved both sets, added 2 new approvals_empty_* keys from #107) |
+| 4.2 | #115 | merge --no-ff (ATTEMPTED) | `8248cdb` | ABORTED | — | 5 conflicts surfaced; #115 uses different route strings (`jarvis_control`, `jarvis_audit`, `jarvis_memory`) that collide with #112's `control`, `audit`, `memory`; also adds Memory/Audit screens that are duplicates of what #122 and #118 will land. Marking BLOCKED-conflict-too-deep pending escalation. |
+| 4.3-4.12 | #116, #122, #123, #109 part, #117, #118, #119, #120, #124, #106, #114 | — | — | PAUSED | — | Pending owner decision on conflict-resolution strategy after Phase 4.2 escalation |
+
+**Phase 4 checkpoint SHA:** `632fca0` (Phase 4 paused after step 4.1)
+
+### Phase 4 escalation note
+
+The file-by-file conflict policy is working but per-PR cost is high. #107 required 5 conflict resolutions in centralized files (Screen.kt, HermesNavGraph.kt, AppContainer.kt, HomeScreen.kt, strings.xml). #115 surfaced 5 more conflicts — and inspection showed #115 was authored against a different baseline (different route strings, different Memory/Audit implementations than #122/#118 will land later).
+
+Projecting forward: 11 more screen PRs × ~5 conflicts each = ~55 more manual conflict resolutions, each requiring careful inspection of which side to prefer. Some PRs (#115's Memory/Audit, #126 entirely, possibly #114) are functionally superseded by other PRs in the same wave and contribute net negative value.
+
+**Pausing for owner decision** at Q2-bis: how to proceed given the actual scaling cost.
 
 ---
 
