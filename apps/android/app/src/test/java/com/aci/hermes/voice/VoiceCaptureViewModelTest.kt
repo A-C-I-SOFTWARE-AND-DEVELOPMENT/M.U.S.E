@@ -2,6 +2,7 @@ package com.aci.hermes.voice
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -25,7 +26,7 @@ class VoiceCaptureViewModelTest {
 
     private lateinit var recognizer: FakeVoiceRecognizer
     private lateinit var router: RecordingRouter
-    private lateinit var dispatcher: UnconfinedTestDispatcher
+    private lateinit var dispatcher: TestDispatcher
     private lateinit var workScope: CoroutineScope
     private lateinit var viewModel: VoiceCaptureViewModel
 
