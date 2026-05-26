@@ -1070,8 +1070,13 @@ def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> str:
             skipped.append(skill_name)
             continue
         if not loaded.get("success"):
-            error = loaded.get("error") or f"Failed to load skill '{skill_name}'"
-            logger.warning("Cron job '%s': skill not found, skipping — %s", job.get("name", job.get("id")), error)
+            from agent.redact import safe_audit_identifier
+            error = loaded.get("error") or f"Failed to load skill '{safe_audit_identifier(skill_name)}'"
+            logger.warning(
+                "Cron job '%s': skill not found, skipping — %s",
+                safe_audit_identifier(job.get("name", job.get("id"))),
+                error,
+            )
             skipped.append(skill_name)
             continue
 

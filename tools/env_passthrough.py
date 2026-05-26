@@ -83,6 +83,7 @@ def register_env_passthrough(var_names: Iterable[str]) -> None:
     Non-Hermes third-party API keys (TENOR_API_KEY, NOTION_TOKEN, etc.)
     pass through normally — they were never in the sandbox scrub list.
     """
+    from agent.redact import safe_audit_identifier
     for name in var_names:
         name = name.strip()
         if not name:
@@ -93,11 +94,11 @@ def register_env_passthrough(var_names: Iterable[str]) -> None:
                 "credential %r (blocked by _HERMES_PROVIDER_ENV_BLOCKLIST). "
                 "Skills must not override the execute_code sandbox's "
                 "credential scrubbing; see GHSA-rhgp-j443-p4rf.",
-                name,
+                safe_audit_identifier(name),
             )
             continue
         _get_allowed().add(name)
-        logger.debug("env passthrough: registered %s", name)
+        logger.debug("env passthrough: registered %s", safe_audit_identifier(name))
 
 
 def _load_config_passthrough() -> frozenset[str]:

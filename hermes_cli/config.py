@@ -297,7 +297,15 @@ def format_managed_message(action: str = "modify this Hermes installation") -> s
 
 def managed_error(action: str = "modify configuration"):
     """Print user-friendly error for managed mode."""
-    print(format_managed_message(action), file=sys.stderr)
+    # ``action`` is built from user-controlled env-var names at the call
+    # sites (e.g. ``managed_error(f"set {key}")``). Strip anything that
+    # isn't ASCII printable so a malicious key name can't smuggle a
+    # credential-shaped value into the logged error.
+    safe_action = "".join(
+        c for c in str(action)
+        if c.isascii() and c.isprintable() and c not in "<>%"
+    )[:96] or "modify configuration"
+    print(format_managed_message(safe_action), file=sys.stderr)
 
 
 # =============================================================================
@@ -4742,19 +4750,23 @@ def _check_non_ascii_credential(key: str, value: str) -> str:
     except UnicodeEncodeError:
         pass
 
-    # Build a readable list of the offending characters
+    # Build a readable list of the offending positions. We deliberately
+    # log only the byte position and the Unicode code point — never the
+    # character itself — so the diagnostic does not echo any portion of
+    # the credential value back to stderr or log files.
     bad_chars: list[str] = []
     for i, ch in enumerate(value):
         if ord(ch) > 127:
-            bad_chars.append(f"  position {i}: {ch!r} (U+{ord(ch):04X})")
+            bad_chars.append(f"  position {i}: U+{ord(ch):04X}")
     sanitized = value.encode("ascii", errors="ignore").decode("ascii")
 
+    from agent.redact import safe_audit_identifier
     print(
-        f"\n  Warning: {key} contains non-ASCII characters that will break API requests.\n"
+        f"\n  Warning: {safe_audit_identifier(key)} contains non-ASCII characters that will break API requests.\n"
         f"  This usually happens when copy-pasting from a PDF, rich-text editor,\n"
         f"  or web page that substitutes lookalike Unicode glyphs for ASCII letters.\n"
         f"\n"
-        + "\n".join(f"  {line}" for line in bad_chars[:5])
+        + "\n".join(bad_chars[:5])
         + ("\n  ... and more" if len(bad_chars) > 5 else "")
         + f"\n\n  The non-ASCII characters have been stripped automatically.\n"
         f"  If authentication fails, re-copy the key from the provider's dashboard.\n",
