@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/NousResearch/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
@@ -30,7 +30,7 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 
 ## JARVIS Prime Operating Layer
 
-> **Status — spec layer, runtime in progress.** The operating contract, mode taxonomy, routing rules, and skill descriptions for JARVIS Prime land in this layer as `docs/jarvis-*.md` and `skills/jarvis-*`. Runtime wiring (slash commands, mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism) is tracked separately and ships incrementally. Treat the sections below as the contract the runtime will satisfy, not as a feature inventory of what's live today.
+> **Status — spec layer present, runtime now landing.** The operating contract, mode taxonomy, routing rules, and skill descriptions for JARVIS Prime live as `docs/jarvis-*.md` and `skills/jarvis-*`. Runtime wiring (slash commands, mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism) ships in `hermes_cli/jarvis_prime/` and is enabled in `v0.14.1+aci.1`.
 
 Hermes can support a JARVIS-style, local-first personal AI operating layer for users who want an active command center rather than a passive chatbot. In this pattern, Hermes coordinates the conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
@@ -46,6 +46,8 @@ The operating model is intentionally small and reviewable:
 
 JARVIS Prime is loyal to the user's long-term mission, not blindly obedient to the moment. It should challenge weak ideas, route code work through builder/reviewer workflows, and defer risky actions such as merges, deploys, public posting, credential changes, and publishing until explicit owner approval.
 
+Invoke from any gateway DM or REPL with `/jarvis-prime` (alias `/jarvis`, `/jp`), or pin a specific mode with `/companion`, `/strategy`, `/critic`, `/operator`, `/builder`, `/voice`. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md) for the full identity, hierarchy, modes, and gates.
+
 ---
 
 ## Quick Install
@@ -53,24 +55,24 @@ JARVIS Prime is loyal to the user's long-term mission, not blindly obedient to t
 ### Linux, macOS, WSL2, Termux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh)
 ```
 
 ### Windows (native, PowerShell) — Early Beta
 
-> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/NousResearch/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
+> **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
 
 Run this in PowerShell:
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.ps1)
 ```
 
 The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
 
 If you already have Git installed, the installer detects it and uses that instead.  Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
 >
 > **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only Hermes feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
 
@@ -98,6 +100,50 @@ hermes doctor       # Diagnose any issues
 ```
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
+
+## Hermes Orchestration
+
+Turn a sentence into a graph of validated, auditable jobs run by
+specialist workers. The orchestrator decomposes the goal, the kanban
+dispatcher fans it out, every step goes through a validation gate,
+every decision lands in a tamper-evident ledger, and the result
+publishes to wherever you asked (PR, Telegram, file, Android
+cockpit).
+
+```bash
+bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
+hermes                                                    # interactive
+/reload-skills                                            # after editing skills
+/orchestrate Build this repo into production quality      # from inside a session
+/orchestrator status                                      # see what's running
+```
+
+Same brain on every surface — CLI, gateway DM (Telegram / Discord /
+Slack / WhatsApp / Signal), Android cockpit, Termux shell. Works
+fully offline against a local llama.cpp / vLLM / Ollama server.
+
+**📖 Full guide:** [docs/orchestration/](docs/orchestration/) —
+overview, getting started, Prompt to PR demo, Android + Termux
+demo, worker adapters, private-local mode, troubleshooting, FAQ.
+
+## Plain-English operating manual
+
+The [`docs/`](docs/) folder is the human-readable manual that
+explains every Hermes surface in plain English. Start with
+[`docs/README.md`](docs/README.md) — it's a single-page map that
+points to one guide per topic:
+
+| Want to… | Read |
+|---|---|
+| Run your first job | [docs/orchestration/getting-started.md](docs/orchestration/getting-started.md) |
+| See end-to-end Prompt to PR | [docs/orchestration/prompt-to-pr-demo.md](docs/orchestration/prompt-to-pr-demo.md) |
+| Drive Hermes from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
+| Use voice-first (driving mode) | [docs/voice/voice-first-user-guide.md](docs/voice/voice-first-user-guide.md) |
+| Bridge to Claude Code Windows | [docs/remote/windows-claude-code-bridge-guide.md](docs/remote/windows-claude-code-bridge-guide.md) |
+| Profile your GitHub history | [docs/profile/github-history-profile-guide.md](docs/profile/github-history-profile-guide.md) |
+| Lock down private-local | [docs/security/private-local-security-guide.md](docs/security/private-local-security-guide.md) |
+| Wire GitHub / Supabase / Vercel | [docs/integrations/github-supabase-vercel-guide.md](docs/integrations/github-supabase-vercel-guide.md) |
+| Fix something broken | [docs/troubleshooting/hermes-orchestration-troubleshooting.md](docs/troubleshooting/hermes-orchestration-troubleshooting.md) |
 
 ## CLI vs Messaging Quick Reference
 
@@ -143,6 +189,74 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 
 ---
 
+## Android Native App
+
+A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running Hermes backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
+
+**Three runtime modes:**
+
+1. **Remote gateway** — point the app at a Hermes install on your VPS / home server. Recommended.
+2. **Local Termux gateway** — `hermes gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
+3. **Mock mode** — UI sandbox with canned responses, no backend required (great for trying the UI before committing to a setup).
+
+**Build the debug APK:**
+
+```bash
+cd apps/android
+./gradlew assembleDebug
+# APK at: apps/android/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Release AAB for Google Play:** see [`apps/android/README.md`](apps/android/README.md#release-aab-for-google-play). CI builds the debug APK on every change via [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml).
+
+Architecture, wire format, and the deliberate "no embedded Python" decision are documented in [`apps/android/docs/ARCHITECTURE.md`](apps/android/docs/ARCHITECTURE.md).
+
+---
+
+## Hermes Orchestration Pipeline
+
+Hermes can be used as a private local-first developer command center. The
+Hermes backend is the engine; the Android APK is the cockpit. Everything
+runs on devices you own — VPS, home server, laptop, or Termux on
+phone — and the Android cockpit talks to it over a gateway you control.
+
+The pipeline ties together:
+
+- **Agent skills** — composable procedures the agent calls at runtime.
+- **Decision ledger** — every non-trivial decision is recorded with
+  rationale, alternatives, and outcome so future runs can learn from it.
+- **Model router** — picks the right model for the job (planner,
+  builder, reviewer, summarizer) from the model registry.
+- **AI improvement radar** — a continuous scan of new AI capabilities,
+  models, and tools that Hermes should adopt.
+- **Competitive feature harvester** — tracks shipping features from
+  comparable tools and feeds them into the improvement radar.
+- **Self-improvement loop** — Hermes proposes patches to its own
+  skills, ledger, and routing policy, gated by the decision quality gate.
+- **GitHub publisher** — turns approved changes into branches, PRs,
+  and releases without leaving the cockpit.
+
+Invocation (from the CLI or any messaging gateway):
+
+```text
+/reload-skills
+/aos-full-agent-team <goal>
+/hermes-orchestration-pipeline <job-id>
+/model-router <task-type>
+/decision-quality-gate <decision-id>
+/ai-improvement-radar
+/github-publisher <branch>
+```
+
+Posture is **private and local-first** by default — no telemetry,
+no remote config, no third-party data sharing beyond the official AI
+tools the user is already logged into. See
+[`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+for the Android cockpit contract.
+
+---
+
 ## Migrating from OpenClaw
 
 If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
@@ -179,7 +293,7 @@ We welcome contributions! See the [Contributing Guide](https://hermes-agent.nous
 Quick start for contributors — clone and go with `setup-hermes.sh`:
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
 cd hermes-agent
 ./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
 ./hermes              # auto-detects the venv, no need to `source` first
@@ -201,7 +315,7 @@ scripts/run_tests.sh
 
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/NousResearch/hermes-agent/issues)
+- 🐛 [Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues)
 - 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
 - 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
 

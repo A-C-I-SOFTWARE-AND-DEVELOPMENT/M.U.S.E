@@ -1,0 +1,315 @@
+# Hermes Model / Worker Intelligence Registry
+#
+# This file is the source of truth for which workers Hermes can route work
+# to. The model-router skill (skills/model-router/SKILL.md) reads it on
+# every routing decision. The companion docs in this directory describe
+# the decision policy (model-routing-policy.md) and the per-worker
+# capability matrix (tool-capability-matrix.md).
+#
+# Schema:
+#   id           — stable worker identifier used throughout Hermes
+#   provider     — vendor or origin (hermes, openai, anthropic, etc.)
+#   surface      — how the worker is exposed (internal, cli, app, web, local)
+#   strengths    — what this worker is genuinely good at
+#   best_for     — task types from the router's classification list
+#   detection    — how Hermes confirms the worker is reachable on the host
+#   run_mode     — how Hermes drives the worker once selected
+#   quality      — quality tier: draft | standard | high | critical
+#   speed        — speed tier:   slow  | medium   | fast | instant
+#   cost         — cost tier:    free  | low      | medium | high
+#   validation   — how results are validated (always hermes-local for
+#                  final sign-off; this field describes intermediate checks)
+#   fallbacks    — preferred fallback order if this worker is the primary
+#
+# Notes:
+#   - "internal" workers (hermes-local, github-publisher) are always
+#     present.
+#   - Detection is performed at session start and cached per process.
+#   - Cost is qualitative; the router does not model dollars/token here.
+
+models:
+  - id: hermes-local
+    provider: hermes
+    surface: internal
+    strengths:
+      - repo evidence
+      - terminal validation
+      - file operations
+      - memory
+      - GitHub publishing
+      - planning and routing
+      - skill orchestration
+    best_for:
+      - every job
+      - validation
+      - local context
+      - plumbing
+      - redaction_safe_draft
+      - github_publish
+    detection:
+      internal: true
+    run_mode:
+      internal: true
+    quality: high
+    speed: fast
+    cost: free
+    validation:
+      runs_tests: true
+      runs_lints: true
+      reads_diff: true
+      smoke_runs: true
+    fallbacks: []
+
+  - id: codex
+    provider: openai
+    surface: cli/app/web
+    strengths:
+      - implementation
+      - tests
+      - fast code changes
+      - GitHub tasks
+      - patch-oriented edits
+    best_for:
+      - feature implementation
+      - bug fixes
+      - test repair
+      - refactor_small
+    detection:
+      command: codex
+      any_of:
+        - env: OPENAI_API_KEY
+        - file: ~/.codex/auth.json
+        - file: ~/.hermes/auth.json   # hermes-managed openai-codex OAuth
+      requires_git_repo: true
+    run_mode:
+      official_cli: true
+      invocation: "codex exec '{prompt}'"
+      pty: true
+      flags:
+        full_auto: "--full-auto"
+        yolo: "--yolo"
+    quality: high
+    speed: fast
+    cost: medium
+    validation:
+      runs_tests: optional
+      reads_diff: true
+    fallbacks:
+      - claude-code
+      - aider
+      - hermes-local
+
+  - id: claude-code
+    provider: anthropic
+    surface: cli
+    strengths:
+      - architecture
+      - long-context review
+      - multi-file reasoning
+      - refactor planning
+      - risk review
+      - careful diffs
+    best_for:
+      - architecture
+      - code_review
+      - long_context_review
+      - refactor_large
+      - complex refactor
+    detection:
+      command: claude
+      any_of:
+        - env: ANTHROPIC_API_KEY
+        - file: ~/.claude/.credentials.json
+        - command_help: claude
+    run_mode:
+      official_cli: true
+      print_mode: "claude -p '{prompt}' --allowed-tools 'Read,Edit' --max-turns {max_turns}"
+      interactive: "tmux + claude"
+      prefers_print_mode: true
+    quality: critical
+    speed: medium
+    cost: high
+    validation:
+      reads_diff: true
+      runs_tests: optional
+    fallbacks:
+      - codex
+      - aider
+      - hermes-local
+
+  - id: aider
+    provider: paul-gauthier
+    surface: cli
+    strengths:
+      - git-aware paired edits
+      - surgical multi-file patches
+      - explicit diff output
+      - works against any chat model
+    best_for:
+      - refactor_small
+      - bug_fix
+      - test_repair
+      - implementation
+    detection:
+      command: aider
+      requires_git_repo: true
+      any_of:
+        - env: OPENAI_API_KEY
+        - env: ANTHROPIC_API_KEY
+        - env: DEEPSEEK_API_KEY
+        - env: OPENROUTER_API_KEY
+        - env: AIDER_MODEL
+    run_mode:
+      official_cli: true
+      invocation: "aider --yes --message '{prompt}'"
+      pty: false
+    quality: high
+    speed: medium
+    cost: low
+    validation:
+      reads_diff: true
+      runs_tests: optional
+    fallbacks:
+      - codex
+      - claude-code
+      - hermes-local
+
+  - id: goose
+    provider: block
+    surface: cli
+    strengths:
+      - local shell + file agent
+      - plumbing tasks on the host
+      - long-running shell sessions
+      - extensible via MCP
+    best_for:
+      - plumbing
+      - implementation
+      - bug_fix
+    detection:
+      command: goose
+      any_of:
+        - file: ~/.config/goose/config.yaml
+        - env: GOOSE_PROVIDER
+    run_mode:
+      official_cli: true
+      invocation: "goose run --text '{prompt}'"
+      pty: true
+    quality: standard
+    speed: medium
+    cost: low
+    validation:
+      reads_diff: true
+      runs_tests: optional
+    fallbacks:
+      - aider
+      - codex
+      - hermes-local
+
+  - id: chatgpt-handoff
+    provider: openai
+    surface: user-driven (web/app)
+    strengths:
+      - user-driven reasoning
+      - leverages an existing ChatGPT subscription
+      - no API key required
+      - safe for tasks the user wants to review manually
+    best_for:
+      - manual_handoff
+      - research
+      - architecture        # when the user wants to think alongside ChatGPT
+    detection:
+      manual_only: true     # only selectable when the user asks for it
+      requires_user_opt_in: true
+      config_flag: model_router.allow_manual_handoff
+    run_mode:
+      handoff: true
+      mechanism: clipboard_or_deeplink
+      no_api_calls: true
+    quality: high
+    speed: slow             # bounded by user paste cycle
+    cost: free              # uses the user's existing subscription
+    validation:
+      user_pastes_back_result: true
+      hermes_validates_pasted_result: true
+    fallbacks:
+      - hermes-local
+
+  - id: local-model
+    provider: local
+    surface: local inference (ollama / llama.cpp / vllm / lmstudio)
+    strengths:
+      - offline reasoning
+      - redaction-safe drafting
+      - free-tier fallback
+      - privacy-preserving
+    best_for:
+      - redaction_safe_draft
+      - research
+      - implementation        # for small tasks where a local model is enough
+      - bug_fix               # for small tasks
+    detection:
+      any_of:
+        - port: 11434         # ollama default
+        - command: ollama
+        - command: llama-server
+        - command: lms        # lm studio
+        - env: HERMES_LOCAL_MODEL_URL
+    run_mode:
+      provider_endpoint: true
+      respects:
+        - model.base_url
+        - model.api_key
+        - HERMES_LOCAL_MODEL_URL
+    quality: standard
+    speed: medium
+    cost: free
+    validation:
+      reads_diff: true
+      runs_tests: optional
+    fallbacks:
+      - aider
+      - codex
+      - claude-code
+      - hermes-local
+
+  - id: github-publisher
+    provider: hermes
+    surface: internal
+    strengths:
+      - branch / push / PR / comment
+      - gated writes
+      - allowlisted repos
+      - audit-friendly token redaction
+    best_for:
+      - github_publish
+    detection:
+      internal: true
+      requires:
+        - github.enabled: true
+        - "GITHUB_PERSONAL_ACCESS_TOKEN env var present"
+      writes_require:
+        - github.allow_writes: true
+        - "repo on github.allowed_repositories (or allowlist empty)"
+    run_mode:
+      internal: true
+      plugin: github_assistant
+    quality: high
+    speed: fast
+    cost: free
+    validation:
+      reads_diff: true        # confirms what is being pushed
+      respects_allowlist: true
+    fallbacks:
+      - hermes-local          # leaves a TODO if the publisher can't act
+
+# Routing knobs the model-router skill reads from config.yaml.
+# These are documented here so the registry, the policy doc, and the
+# capability matrix all reference the same option names.
+config_keys:
+  - model_router.preferred_workers
+  - model_router.prefer_local
+  - model_router.allow_manual_handoff
+  - model_router.cost_ceiling          # low | medium | high | unlimited
+  - model_router.quality_floor         # draft | standard | high | critical
+  - model_router.max_fallbacks
