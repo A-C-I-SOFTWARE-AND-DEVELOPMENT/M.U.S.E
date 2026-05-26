@@ -26,20 +26,26 @@ last-known-good phase.
 
 ---
 
-## Phase 1 — Python foundation
+## Phase 1 — Python foundation — DONE
 
 **Plan:** WorkPacket schema (#104), Python log redactions (#109 part), CLI proposals (#105).
+**Start SHA:** `3fce42f`
 
 | Step | PR | Method | Target SHA | Status | Result SHA | Notes |
 |------|----|----|-----|--------|-----|-------|
-| 1.1 | #104 | `git merge --no-ff` | `e3e62ba` | PENDING | — | feature/jarvis-workpacket-foundation-current-main |
-| 1.2 | #109 part | `git cherry-pick -x` | `bbfc6ed` | PENDING | — | Python redaction (security-critical) |
-| 1.3 | #109 part | `git cherry-pick -x` | `d687a8a` | PENDING | — | CodeQL fix follow-up |
-| 1.4 | #105 | `git cherry-pick -x` | `52d5f1b` | PENDING | — | CLI proposals; orphan |
+| 1.1 | #104 | `merge --no-ff` | `e3e62ba` | DONE | `87c353a` | clean merge; +5 files / +657 lines (additive) |
+| 1.2 | #109 part | `cherry-pick -x` | `bbfc6ed` | DONE | `28b2cf1` | 10 files; auto-merge in `gateway/run.py`, `tools/skills_tool.py` |
+| 1.3 | #109 part | `cherry-pick -x` | `d687a8a` | DONE | `8e3dcb9` | 1 file; CodeQL taint-break |
+| 1.4 | #105 | `merge --no-ff` | branch tip `52d5f1b` (3 commits) | DONE | `d8fd69d` | 4 files / +761 lines; brings 9ac789e (feat) + 31424cb (15 tests) + 52d5f1b (docs) |
 
-**Phase 1 gate:** `pytest tests/test_jarvis_prime_*.py tests/test_orchestrator_*.py -x`, `ruff check`, `python scripts/check-windows-footguns.py --all`
+**Phase 1 gate result:**
+- `ruff check hermes_cli/jarvis_prime/ tests/test_jarvis_prime_*.py` → **All checks passed**
+- `python3 scripts/check-windows-footguns.py --all` → **No Windows footguns (556 files)**
+- `python3 -m pytest tests/test_jarvis_prime_*.py tests/test_orchestrator_*.py -q` → **398 passed, 1 skipped in 9.95s**
 
-**Phase 1 checkpoint SHA:** TBD
+**Phase 1 checkpoint SHA:** `d8fd69d`
+
+**Reclassification note:** #109 confirmed orphan (no merge-base, 39 commits ahead from fork history). #105 reclassified from ORPHAN → clean-base; the audit was wrong (shallow fetch). #105 merge-base = `bc97e43`, 3 feature commits on top.
 
 ---
 
