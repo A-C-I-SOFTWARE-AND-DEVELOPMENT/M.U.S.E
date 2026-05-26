@@ -84,7 +84,59 @@ last-known-good phase.
 
 **Phase 3 checkpoint SHA:** `699515a`
 
-## Phase 4 — Android feature screens — PARTIAL (1 of 12)
+## Phase 4 — Android feature screens — DONE (via selective cherry-pick strategy)
+
+After Phase 4.2 abort, owner approved selective cherry-pick strategy: extract
+NEW FILES only from each remaining PR, skip centralized-config edits, do one
+wiring commit at the end.
+
+| Step | PR | Method | Result SHA | Notes |
+|------|----|--------|------------|-------|
+| 4.bundle | #115, #122, #124, #120, #121, #114, #118, #129, #128(tests) | `git checkout <sha> -- <new files>` | `8769342` | 57 files / +8831 lines; all new packages, no conflicts |
+| 4.audit | #118 (re-pull after deeper fetch) | `git checkout 56c1e07 -- audit/*` | `2194771` | 8 audit production files + AuditFormattingTest |
+| 4.wiring | (integration) | `Edit AppContainer/Screen/NavGraph/strings.xml` | `fa74a70` | Adds repos + 6 new VM factories; new Capability route; replaces Memory/Audit placeholders with real screens; new AuditDetail full-screen push |
+| 4.fix | #128 (non-test parts) | `git checkout 516c04d -- README + gradle + workflow + backup` | `2276e04` | README rewrite, backup_rules.xml tightened, unit-tests CI job added, stale gateway-URL comment dropped |
+
+**DEMOTED (incompatible / orphan re-baseline):**
+- #109a Android onboarding — different package (`com.jeremiahecherd.jarvisprime`)
+- #106 notifications — separate gradle module
+- #117 chat — orphan re-baseline pattern
+- #119 interactive icon — orphan re-baseline pattern
+
+**DEFERRED:**
+- #123 voice (RECORD_AUDIO) — owner Q4
+- #127 gateway event spine — owner Q5
+
+**Phase 4 final checkpoint SHA:** `2276e04`
+
+**Phase 4 verification:**
+- Local pytest: 398 passed, 1 skipped
+- ruff: clean
+- windows-footguns: clean (556 files)
+- AndroidManifest permissions: IDENTICAL to baseline
+- strings.xml: well-formed (198 entries)
+- No protected paths touched (`.github/workflows/*` only ADDS `unit-tests` job)
+
+## Phase 7 — Demo trace — DONE
+
+Wrote `docs/jarvis-prime-integration-demo-trace.md` (`f43fdc8`):
+- 8 sections matching the plan's structure
+- Per-PR provenance table
+- Safety inventory with literal authorization phrase + owner-gated actions
+- Open items including the CodeQL 12-thread context and pre-existing LSP failures
+
+## Phase 8 — Final PR composition
+
+PR #131 (DRAFT) is the deliverable. Body updated with:
+- Audit table link, log link, demo trace link
+- Provenance summary
+- Open items + owner-gated decisions pending
+- Owner authorization request: `Yes, with authorization.`
+
+**Final SHA (will be updated as PR receives reviewer feedback):** `f43fdc8`
+
+**Owner action required for any merge:** the literal phrase
+`Yes, with authorization.` per `hermes_cli/jarvis_prime/owner_auth.py`.
 
 **Start SHA:** `699515a`
 
