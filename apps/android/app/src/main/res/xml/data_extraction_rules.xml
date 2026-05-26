@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ data-extraction rules.
+
+  Mirrors backup_rules.xml. Both stores Hermes uses for user-generated
+  content are excluded from cloud backup AND device-to-device transfer
+  so the data never leaves the originating device unless the user
+  exports it explicitly from inside the app.
+
+  Asserted by app/src/test/java/com/aci/hermes/backup/BackupRulesTest.kt.
+-->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="hermes_secure_prefs.xml" />
+        <exclude domain="file" path="datastore/hermes_settings.preferences_pb" />
+        <exclude domain="file" path="hermes_tasks.json" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="hermes_secure_prefs.xml" />
+        <exclude domain="file" path="datastore/hermes_settings.preferences_pb" />
+        <exclude domain="file" path="hermes_tasks.json" />
     </device-transfer>
 </data-extraction-rules>
