@@ -1,7 +1,10 @@
 package com.aci.hermes.ui.navigation
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -23,6 +26,7 @@ import com.aci.hermes.ui.screens.splash.SplashScreen
 @Composable
 fun HermesNavHost(container: AppContainer) {
     val nav = rememberNavController()
+    val context = LocalContext.current
 
     NavHost(navController = nav, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
@@ -49,6 +53,19 @@ fun HermesNavHost(container: AppContainer) {
                 },
                 onOpenSettings = { nav.navigate(Screen.Settings.route) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenApprovals = { taskId -> nav.navigate(Screen.TaskDetail.forTask(taskId)) },
+                onOpenAudit = { route ->
+                    if (route.startsWith("http://") || route.startsWith("https://")) {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(route)).apply {
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        runCatching { context.startActivity(intent) }
+                    } else {
+                        // Local audit/<taskId> route maps back into the task editor.
+                        val taskId = route.substringAfter('/')
+                        nav.navigate(Screen.TaskDetail.forTask(taskId))
+                    }
+                },
             )
         }
         composable(

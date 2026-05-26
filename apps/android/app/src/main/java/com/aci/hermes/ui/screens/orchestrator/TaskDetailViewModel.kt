@@ -4,11 +4,14 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.AiToolProfile
+import com.aci.hermes.data.model.ApprovalState
 import com.aci.hermes.data.model.DefaultToolProfiles
 import com.aci.hermes.data.model.HermesTask
+import com.aci.hermes.data.model.RiskTier
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.orchestrator.HandoffLauncher
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
@@ -71,6 +74,17 @@ class TaskDetailViewModel(
     fun setStatus(value: TaskStatus) = updateTask { it.copy(status = value) }
     fun setTargetTool(value: TargetTool) = updateTask { it.copy(targetTool = value) }
 
+    // Jarvis Prime worker-card fields.
+    fun setRiskTier(value: RiskTier) = updateTask { it.copy(riskTier = value) }
+    fun setApprovalState(value: ApprovalState) = updateTask { it.copy(approvalState = value) }
+    fun setWorkerPhase(value: WorkerPhase) = updateTask { it.copy(workerPhase = value) }
+    fun setEvidenceSummary(value: String) = updateTask { it.copy(evidenceSummary = value.ifBlank { null }) }
+    fun setBlockedReason(value: String) = updateTask { it.copy(blockedReason = value.ifBlank { null }) }
+    fun setRollbackSummary(value: String) = updateTask { it.copy(rollbackSummary = value.ifBlank { null }) }
+    fun setVerificationResult(value: String) = updateTask { it.copy(verificationResult = value.ifBlank { null }) }
+    fun setProofLink(value: String) = updateTask { it.copy(proofLink = value.ifBlank { null }) }
+    fun setEmergencyStopActive(active: Boolean) = updateTask { it.copy(emergencyStopActive = active) }
+
     fun save() {
         val current = _state.value.task
         viewModelScope.launch {
@@ -100,11 +114,14 @@ class TaskDetailViewModel(
     }
 
     fun markHandedOff() {
+        // Hermes-era "handed off" maps to the Jarvis Prime EXECUTING lane for
+        // build-style targets and REVIEWING for review-style targets. Manual
+        // targets stay queued — the user owns next steps.
         val task = _state.value.task
         val newStatus = when (task.targetTool) {
-            TargetTool.CODEX, TargetTool.CHATGPT -> TaskStatus.HANDED_TO_CODEX
-            TargetTool.CLAUDE_CODE, TargetTool.CLAUDE -> TaskStatus.HANDED_TO_CLAUDE
-            TargetTool.MANUAL -> TaskStatus.READY_FOR_HANDOFF
+            TargetTool.CODEX, TargetTool.CHATGPT -> TaskStatus.EXECUTING
+            TargetTool.CLAUDE_CODE, TargetTool.CLAUDE -> TaskStatus.REVIEWING
+            TargetTool.MANUAL -> TaskStatus.QUEUED
         }
         setStatus(newStatus)
         viewModelScope.launch {

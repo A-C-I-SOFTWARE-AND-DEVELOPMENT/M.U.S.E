@@ -10,6 +10,11 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.DefaultToolProfiles
 import com.aci.hermes.data.model.HermesTask
+import com.aci.hermes.data.model.TaskSection
+import com.aci.hermes.data.model.TaskStatus
+import com.aci.hermes.data.model.WorkerPhase
+import com.aci.hermes.data.model.lane
+import com.aci.hermes.data.model.section
 import com.aci.hermes.data.orchestrator.HandoffLauncher
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
@@ -28,11 +33,26 @@ data class OrchestratorUiState(
     val mode: String = HermesService.DEFAULT_MODE,
     val tools: List<AiToolProfile> = DefaultToolProfiles.all,
     val tasks: List<HermesTask> = emptyList(),
+    val sections: Map<TaskSection, List<HermesTask>> = emptyMap(),
+    val workerLanes: List<WorkerLaneState> = WorkerLaneState.empty(),
+    val emergencyStopActive: Boolean = false,
     val allowExternalAppOpening: Boolean = false,
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
     val snackbar: String? = null,
 )
+
+/** One row on the Worker Lanes dashboard card. */
+data class WorkerLaneState(
+    val phase: WorkerPhase,
+    val activeTasks: List<HermesTask>,
+) {
+    val isBusy: Boolean get() = activeTasks.isNotEmpty()
+
+    companion object {
+        fun empty(): List<WorkerLaneState> = WorkerPhase.entries.map { WorkerLaneState(it, emptyList()) }
+    }
+}
 
 class OrchestratorViewModel(
     application: Application,
@@ -48,7 +68,14 @@ class OrchestratorViewModel(
     init {
         viewModelScope.launch {
             tasksRepo.tasks.collect { list ->
-                _state.update { it.copy(tasks = list) }
+                _state.update {
+                    it.copy(
+                        tasks = list,
+                        sections = sectionTasks(list),
+                        workerLanes = laneStates(list),
+                        emergencyStopActive = list.any { t -> t.emergencyStopActive },
+                    )
+                }
             }
         }
         viewModelScope.launch {
@@ -133,6 +160,16 @@ class OrchestratorViewModel(
         _state.update { it.copy(snackbar = null) }
     }
 
+    /** Disarms the emergency-stop banner across every persisted task. */
+    fun clearEmergencyStop() {
+        viewModelScope.launch {
+            tasksRepo.tasks.value
+                .filter { it.emergencyStopActive }
+                .forEach { tasksRepo.upsert(it.copy(emergencyStopActive = false)) }
+            _state.update { it.copy(snackbar = "Emergency stop cleared.") }
+        }
+    }
+
     @Suppress("DEPRECATION")
     private fun isServiceRunning(context: Context, cls: Class<*>): Boolean {
         // ActivityManager.getRunningServices is deprecated for cross-app
@@ -141,5 +178,26 @@ class OrchestratorViewModel(
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
         return am.getRunningServices(Integer.MAX_VALUE)
             .any { it.service.className == cls.name }
+    }
+
+    companion object {
+        /** Groups [tasks] into the Tasks-screen sections. Pure / test-friendly. */
+        fun sectionTasks(tasks: List<HermesTask>): Map<TaskSection, List<HermesTask>> {
+            val grouped = tasks.groupBy { it.status.section() }
+            // Preserve display order (Active → Waiting → Blocked → Failed → Complete).
+            return TaskSection.entries.associateWith { grouped[it].orEmpty() }
+        }
+
+        /** Computes the per-lane busy state. Pure / test-friendly. */
+        fun laneStates(tasks: List<HermesTask>): List<WorkerLaneState> {
+            // A task belongs to the lane its current TaskStatus maps to, OR
+            // — if its status doesn't pin it to one — its persisted workerPhase.
+            val byLane: Map<WorkerPhase, List<HermesTask>> = tasks
+                .filter { it.status != TaskStatus.COMPLETE && !it.emergencyStopActive }
+                .groupBy { task -> task.status.lane() ?: task.workerPhase }
+            return WorkerPhase.entries.map { phase ->
+                WorkerLaneState(phase = phase, activeTasks = byLane[phase].orEmpty())
+            }
+        }
     }
 }

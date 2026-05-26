@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -42,14 +43,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.data.model.ApprovalState
+import com.aci.hermes.data.model.RiskTier
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.data.model.WorkerPhase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,6 +157,28 @@ fun TaskDetailScreen(
                 onSelect = viewModel::setStatus,
             )
 
+            EnumDropdown(
+                label = stringResource(R.string.task_field_risk_tier),
+                selected = state.task.riskTier,
+                values = RiskTier.entries,
+                toLabel = { it.name.lowercase().replaceFirstChar(Char::titlecase) },
+                onSelect = viewModel::setRiskTier,
+            )
+            EnumDropdown(
+                label = stringResource(R.string.task_field_worker_phase),
+                selected = state.task.workerPhase,
+                values = WorkerPhase.entries,
+                toLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase) },
+                onSelect = viewModel::setWorkerPhase,
+            )
+            EnumDropdown(
+                label = stringResource(R.string.task_field_approval_state),
+                selected = state.task.approvalState,
+                values = ApprovalState.entries,
+                toLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase) },
+                onSelect = viewModel::setApprovalState,
+            )
+
             OutlinedTextField(
                 value = state.task.reviewNotes ?: "",
                 onValueChange = viewModel::setReviewNotes,
@@ -172,6 +199,61 @@ fun TaskDetailScreen(
                 label = { Text(stringResource(R.string.task_field_next_action)) },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            OutlinedTextField(
+                value = state.task.evidenceSummary ?: "",
+                onValueChange = viewModel::setEvidenceSummary,
+                label = { Text(stringResource(R.string.task_field_evidence_summary)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.blockedReason ?: "",
+                onValueChange = viewModel::setBlockedReason,
+                label = { Text(stringResource(R.string.task_field_blocked_reason)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.rollbackSummary ?: "",
+                onValueChange = viewModel::setRollbackSummary,
+                label = { Text(stringResource(R.string.task_field_rollback_summary)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.verificationResult ?: "",
+                onValueChange = viewModel::setVerificationResult,
+                label = { Text(stringResource(R.string.task_field_verification_result)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.proofLink ?: "",
+                onValueChange = viewModel::setProofLink,
+                label = { Text(stringResource(R.string.task_field_proof_link)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        stringResource(R.string.task_field_emergency_stop),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        stringResource(R.string.task_field_emergency_stop_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Switch(
+                    checked = state.task.emergencyStopActive,
+                    onCheckedChange = viewModel::setEmergencyStopActive,
+                )
+            }
 
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

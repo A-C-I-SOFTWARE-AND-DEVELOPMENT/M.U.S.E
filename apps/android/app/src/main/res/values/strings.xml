@@ -85,6 +85,51 @@
     <string name="diagnostics_no_logs">No logs yet.</string>
     <string name="diagnostics_refresh">Refresh</string>
 
+    <!-- Jarvis Prime worker / task card additions -->
+    <string name="orchestrator_worker_lanes_title">Worker lanes</string>
+    <string name="orchestrator_worker_lanes_subtitle">Each lane shows the Jarvis Prime workers Hermes can route the next task through.</string>
+    <string name="orchestrator_worker_lane_idle">Idle</string>
+    <string name="orchestrator_worker_lane_active">%1$d active</string>
+
+    <string name="orchestrator_section_active">Active</string>
+    <string name="orchestrator_section_waiting_for_approval">Waiting for approval</string>
+    <string name="orchestrator_section_blocked">Blocked</string>
+    <string name="orchestrator_section_failed">Failed</string>
+    <string name="orchestrator_section_complete">Complete</string>
+    <string name="orchestrator_section_active_empty">No active tasks.</string>
+    <string name="orchestrator_section_waiting_empty">Nothing waiting on you right now.</string>
+    <string name="orchestrator_section_blocked_empty">No blocked tasks.</string>
+    <string name="orchestrator_section_failed_empty">No failed tasks.</string>
+    <string name="orchestrator_section_complete_empty">No completed tasks yet.</string>
+
+    <string name="orchestrator_emergency_stop_title">Emergency stop active</string>
+    <string name="orchestrator_emergency_stop_body">One or more tasks tripped the emergency stop. No worker will resume until you clear it.</string>
+    <string name="orchestrator_emergency_stop_clear">Clear stop</string>
+
+    <string name="task_card_risk_chip">Risk: %1$s</string>
+    <string name="task_card_phase_chip">Phase: %1$s</string>
+    <string name="task_card_approval_chip">Approval: %1$s</string>
+    <string name="task_card_evidence_label">Evidence summary</string>
+    <string name="task_card_blocked_label">Blocked reason</string>
+    <string name="task_card_failure_label">Failure</string>
+    <string name="task_card_failure_unspecified">No failure notes recorded.</string>
+    <string name="task_card_rollback_label">Rollback summary</string>
+    <string name="task_card_verification_label">Verification result</string>
+    <string name="task_card_next_action_label">Next action</string>
+    <string name="task_card_open_approvals">Open Approvals</string>
+    <string name="task_card_open_audit">Open Audit</string>
+
+    <string name="task_field_risk_tier">Risk tier</string>
+    <string name="task_field_worker_phase">Worker phase</string>
+    <string name="task_field_approval_state">Approval state</string>
+    <string name="task_field_evidence_summary">Evidence summary (optional)</string>
+    <string name="task_field_blocked_reason">Blocked reason (optional)</string>
+    <string name="task_field_rollback_summary">Rollback summary (optional)</string>
+    <string name="task_field_verification_result">Verification result (optional)</string>
+    <string name="task_field_proof_link">Proof / audit link (optional)</string>
+    <string name="task_field_emergency_stop">Emergency stop</string>
+    <string name="task_field_emergency_stop_subtitle">If on, this task contributes to the dashboard emergency-stop banner.</string>
+
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>

@@ -16,6 +16,12 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.io.File
 
 /**
@@ -23,6 +29,11 @@ import java.io.File
  * private filesDir. Chosen over Room to keep the build minimal — the
  * dataset is small, and `kotlinx.serialization.json` is already on the
  * classpath.
+ *
+ * The on-disk envelope is versioned. When older Hermes-era tasks are
+ * loaded (status names like `READY_FOR_HANDOFF`, no Jarvis fields),
+ * [migrateRawTasks] rewrites each task object to the current schema
+ * before deserialization so we never throw on the legacy enum names.
  */
 class HermesTaskRepository(context: Context) {
 
@@ -80,14 +91,13 @@ class HermesTaskRepository(context: Context) {
         runCatching {
             val text = file.readText()
             if (text.isBlank()) return@runCatching
-            val envelope = json.decodeFromString(Envelope.serializer(), text)
-            _tasks.value = envelope.tasks
+            _tasks.value = decodeEnvelopeText(text)
         }
     }
 
     private suspend fun writeToDisk(list: List<HermesTask>) = withContext(Dispatchers.IO) {
         runCatching {
-            val envelope = Envelope(version = 1, tasks = list)
+            val envelope = Envelope(version = SCHEMA_VERSION, tasks = list)
             val text = json.encodeToString(Envelope.serializer(), envelope)
             val tmp = File(file.parentFile, "$FILE_NAME.tmp")
             tmp.writeText(text)
@@ -100,10 +110,23 @@ class HermesTaskRepository(context: Context) {
     }
 
     @Serializable
-    private data class Envelope(val version: Int = 1, val tasks: List<HermesTask> = emptyList())
+    private data class Envelope(val version: Int = SCHEMA_VERSION, val tasks: List<HermesTask> = emptyList())
 
     companion object {
         private const val FILE_NAME = "hermes_tasks.json"
+        internal const val SCHEMA_VERSION = 2
+
+        // Old Hermes-era status names are mapped to the closest Jarvis Prime
+        // lifecycle stage. Anything we don't recognize falls back to DRAFT
+        // so the user can re-route it manually.
+        private val LEGACY_STATUS_MIGRATIONS = mapOf(
+            "READY_FOR_HANDOFF" to TaskStatus.QUEUED.name,
+            "HANDED_TO_CODEX" to TaskStatus.EXECUTING.name,
+            "HANDED_TO_CLAUDE" to TaskStatus.REVIEWING.name,
+            "IN_REVIEW" to TaskStatus.REVIEWING.name,
+            "NEEDS_REVISION" to TaskStatus.BLOCKED.name,
+        )
+
         private val json = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
@@ -113,5 +136,34 @@ class HermesTaskRepository(context: Context) {
         /** Exposed for tests / advanced uses. */
         @Suppress("unused")
         fun listSerializer() = ListSerializer(HermesTask.serializer())
+
+        /**
+         * Decodes the on-disk envelope and migrates any legacy task records.
+         * Visible for tests so the migration can be exercised without a
+         * full Android context.
+         */
+        internal fun decodeEnvelopeText(text: String): List<HermesTask> {
+            val root = runCatching { json.parseToJsonElement(text) }.getOrNull() ?: return emptyList()
+            val rootObj = root as? JsonObject ?: return emptyList()
+            val rawTasks = rootObj["tasks"] as? JsonArray ?: return emptyList()
+            val migrated = migrateRawTasks(rawTasks)
+            return migrated.mapNotNull { element ->
+                runCatching { json.decodeFromJsonElement(HermesTask.serializer(), element) }.getOrNull()
+            }
+        }
+
+        private fun migrateRawTasks(rawTasks: JsonArray): List<JsonElement> = rawTasks.map { element ->
+            val obj = element as? JsonObject ?: return@map element
+            val statusPrim = obj["status"] as? JsonPrimitive
+            val statusName = statusPrim?.content
+            if (statusName != null && statusName in LEGACY_STATUS_MIGRATIONS) {
+                buildJsonObject {
+                    obj.forEach { (k, v) ->
+                        if (k == "status") put("status", LEGACY_STATUS_MIGRATIONS.getValue(statusName))
+                        else put(k, v)
+                    }
+                }
+            } else obj
+        }
     }
 }
