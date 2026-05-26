@@ -35,6 +35,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from urllib.parse import urlsplit
 from typing import Any, Dict, List, Optional
 
 from agent.web_search_provider import WebSearchProvider
@@ -237,9 +238,11 @@ class XAIWebSearchProvider(WebSearchProvider):
                 "error": "httpx is not installed (required for xAI web search)",
             }
 
+        parsed_base_url = urlsplit(base_url)
+        logged_base_url = parsed_base_url.hostname or "unknown"
         logger.info(
             "xAI web search via %s: '%s' (limit=%d, model=%s)",
-            base_url, query, limit, model,
+            logged_base_url, query, limit, model,
         )
 
         # Two-attempt loop: if the first call returns 401 and our creds came
