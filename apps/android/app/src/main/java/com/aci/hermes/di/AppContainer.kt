@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aci.hermes.approvals.ApprovalQueue
+import com.aci.hermes.audit.AuditLog
 import com.aci.hermes.conversation.ConversationEngine
 import com.aci.hermes.conversation.ConversationStore
 import com.aci.hermes.conversation.MockConversationEngine
@@ -17,6 +19,8 @@ import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.safety.EmergencyStop
 import com.aci.hermes.safety.PermissionKernel
+import com.aci.hermes.ui.screens.approvals.ApprovalsViewModel
+import com.aci.hermes.ui.screens.audit.AuditViewModel
 import com.aci.hermes.ui.screens.conversation.ConversationViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
@@ -74,6 +78,12 @@ class AppContainer(private val application: Application) {
      */
     val gatewayClient: JarvisGatewayClient = MockJarvisGatewayClient()
 
+    /** Pending approvals. Hooked into the emergency stop at construction. */
+    val approvalQueue: ApprovalQueue = ApprovalQueue(eventSpine, emergencyStop)
+
+    /** Persistent audit log. Subscribes to the event spine at construction. */
+    val auditLog: AuditLog = AuditLog(context, eventSpine)
+
     private val activityLauncher = AtomicReference<PermissionKernel.SystemPromptLauncher?>(null)
 
     fun bindActivityPromptLauncher(launcher: PermissionKernel.SystemPromptLauncher) {
@@ -130,6 +140,14 @@ class AppContainer(private val application: Application) {
 
     fun operationsVmFactory(): ViewModelProvider.Factory = factory {
         OperationsViewModel(client = gatewayClient, spine = eventSpine)
+    }
+
+    fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
+        ApprovalsViewModel(queue = approvalQueue, audit = auditLog)
+    }
+
+    fun auditVmFactory(): ViewModelProvider.Factory = factory {
+        AuditViewModel(audit = auditLog)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
