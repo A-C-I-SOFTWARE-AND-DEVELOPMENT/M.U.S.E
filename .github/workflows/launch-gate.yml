@@ -1,0 +1,74 @@
+name: LaunchGate
+
+# Aggregator status check. The downstream workflows do the real work
+# (Android build / Lint / Jarvis Prime unit / Tests / Orchestration tests
+# / ruff enforcement / supply-chain audit). LaunchGate just rolls them
+# up into a single check that branch protection can require, so the
+# operator can enable GitHub auto-merge with one tick rather than
+# hand-mapping seven CI columns.
+#
+# Hard rules pinned by docs/launch/AUTOMATED_MERGE_POLICY.md:
+#   - No bypass of branch protection.
+#   - No merging on red CI.
+#   - No skipping of the runtime owner-gate (spend, deploy, credentials,
+#     etc.) — that is enforced at runtime via OwnerAuth and is out of
+#     scope for this workflow.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: read
+  statuses: read
+  pull-requests: read
+
+concurrency:
+  group: launch-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  aggregate:
+    name: LaunchGate aggregate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Note
+        run: |
+          echo "LaunchGate is the aggregator status check required by branch protection."
+          echo "It passes when every downstream required check has reported success on this commit."
+          echo "If any downstream check is failing, cancelled, or pending, this job stays pending"
+          echo "and auto-merge does not fire."
+          echo
+          echo "Required downstream checks (must all be in branch-protection's required list):"
+          echo "  - Build debug APK            (android-build.yml)"
+          echo "  - Lint                       (android-build.yml)"
+          echo "  - Android JVM unit (testDebugUnitTest)  (jarvis-prime-unit.yml)"
+          echo "  - Python unit (Jarvis Prime + redact + orchestrator)  (jarvis-prime-unit.yml)"
+          echo "  - ruff enforcement (blocking) (lint.yml)"
+          echo "  - Tests                      (tests.yml)"
+          echo "  - Orchestration tests        (orchestration-tests.yml)"
+          echo "  - Scan PR for critical supply chain risks  (supply-chain-audit.yml)"
+          echo
+          echo "If you are an operator: see docs/launch/AUTO_MERGE_RUNBOOK.md for"
+          echo "the per-PR auto-merge enable steps. Never bypass branch protection."
+
+      - name: Confirm doc + policy presence
+        run: |
+          set -e
+          test -f docs/launch/AUTOMATED_MERGE_POLICY.md || { echo "missing AUTOMATED_MERGE_POLICY.md"; exit 1; }
+          test -f docs/launch/AUTO_MERGE_RUNBOOK.md     || { echo "missing AUTO_MERGE_RUNBOOK.md"; exit 1; }
+          test -f docs/launch/LAUNCH_GATE_CHECKLIST.md  || { echo "missing LAUNCH_GATE_CHECKLIST.md"; exit 1; }
+          echo "All LaunchGate policy + runbook + checklist docs present."
+
+      - name: Confirm runtime owner gates untouched in this PR
+        run: |
+          set -e
+          # Audit hatch: if this PR drops AUTHORIZATION_PHRASE / OwnerAuth, fail loud.
+          grep -q "AUTHORIZATION_PHRASE" hermes_cli/jarvis_prime/owner_auth.py \
+            || { echo "AUTHORIZATION_PHRASE was removed from owner_auth.py — runtime gate violated"; exit 1; }
+          grep -q "class OwnerAuth" hermes_cli/jarvis_prime/owner_auth.py \
+            || { echo "OwnerAuth class was removed from owner_auth.py — runtime gate violated"; exit 1; }
+          echo "Runtime owner-gate constants present."
