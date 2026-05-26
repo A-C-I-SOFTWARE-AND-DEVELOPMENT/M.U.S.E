@@ -1,0 +1,196 @@
+name: Jarvis Prime — unit tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'hermes_cli/jarvis_prime/**'
+      - 'agent/redact.py'
+      - 'tests/test_jarvis_prime_*.py'
+      - 'tests/test_orchestrator_*.py'
+      - 'tests/agent/test_redact.py'
+      - 'apps/android/**'
+      - '.github/workflows/jarvis-prime-unit.yml'
+  pull_request:
+    paths:
+      - 'hermes_cli/jarvis_prime/**'
+      - 'agent/redact.py'
+      - 'tests/test_jarvis_prime_*.py'
+      - 'tests/test_orchestrator_*.py'
+      - 'tests/agent/test_redact.py'
+      - 'apps/android/**'
+      - '.github/workflows/jarvis-prime-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-prime-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-unit:
+    name: Python unit (Jarvis Prime + redact + orchestrator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Hermetic env — scrub anything that could let a test reach the network.
+    env:
+      OPENAI_API_KEY: ''
+      ANTHROPIC_API_KEY: ''
+      OPENROUTER_API_KEY: ''
+      GITHUB_TOKEN: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install runtime + test deps
+        run: |
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          # Match the canonical repo test workflow's install path so we
+          # pick up the exact pinned versions in pyproject.toml's [dev]
+          # extra plus the [all] runtime extras the orchestrator tests
+          # transitively need.
+          uv pip install -e ".[all,dev]"
+
+      - name: ruff (launch-gate surface)
+        run: |
+          source .venv/bin/activate
+          python -m ruff check \
+            hermes_cli/jarvis_prime/ \
+            agent/redact.py \
+            tests/test_jarvis_prime_*.py \
+            tests/agent/test_redact.py
+
+      - name: pytest (launch-gate surface)
+        run: |
+          source .venv/bin/activate
+          set +e
+          python -m pytest \
+            tests/test_jarvis_prime_*.py \
+            tests/test_orchestrator_*.py \
+            tests/agent/test_redact.py \
+            -p no:cacheprovider --timeout=60 \
+            --tb=short --junitxml=pytest-results.xml \
+            --deselect tests/test_jarvis_prime_onboarding.py::test_full_local_policy_scans_documents \
+            2>&1 | tee /tmp/pytest-output.log
+          exitcode=${PIPESTATUS[0]}
+          set -e
+          if [ "$exitcode" -ne 0 ]; then
+            echo "::group::Pytest FAILED/ERROR summary"
+            grep -E "^(FAILED|ERROR) " /tmp/pytest-output.log | head -60 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            echo "::endgroup::"
+          fi
+          exit "$exitcode"
+
+      - name: Upload pytest junit on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-unit-junit
+          path: pytest-results.xml
+          if-no-files-found: ignore
+          retention-days: 7
+
+  android-unit:
+    name: Android JVM unit (testDebugUnitTest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Cache Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/**/*.gradle*', 'apps/android/gradle/libs.versions.toml', 'apps/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Run JVM unit tests
+        run: |
+          set +e
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest 2>&1 | tee /tmp/gradle.log
+          exitcode=${PIPESTATUS[0]}
+          set -e
+          exit "$exitcode"
+
+      - name: Print failing test reports inline
+        if: failure()
+        run: |
+          echo "::group::Last 250 lines of gradle output"
+          tail -250 /tmp/gradle.log || true
+          echo "::endgroup::"
+          # Promote key error lines from gradle log to annotations so they
+          # surface on the PR check page (stdout alone is not visible
+          # outside the raw log).
+          if [ -f /tmp/gradle.log ]; then
+            echo "::group::Gradle error annotations"
+            grep -E "^(e: |error:|FAILED|\* What went wrong:|Caused by:|Compilation error|> Task :.* FAILED)" /tmp/gradle.log \
+              | head -30 \
+              | while IFS= read -r line; do
+                  echo "::error::${line}"
+                done
+            echo "::endgroup::"
+          fi
+          echo "::group::Failing JVM unit test XML reports"
+          if [ -d app/build/test-results/testDebugUnitTest ]; then
+            for xml in app/build/test-results/testDebugUnitTest/TEST-*.xml; do
+              [ -f "$xml" ] || continue
+              if grep -q '<failure\|<error' "$xml"; then
+                echo "------ $xml ------"
+                cat "$xml"
+                # Also surface failure text as annotations.
+                grep -oE '<failure[^>]*>[^<]*' "$xml" | while IFS= read -r f; do
+                  echo "::error::JVM test failure in $(basename "$xml"): ${f}"
+                done
+              fi
+            done
+          else
+            echo "(no test-results directory — failure happened before testDebugUnitTest ran)"
+            echo "::error::testDebugUnitTest did not produce test-results — failure happened before tests ran (likely compile error)"
+          fi
+          echo "::endgroup::"
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: |
+            apps/android/app/build/reports/tests/
+            apps/android/app/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
