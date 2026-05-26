@@ -49,16 +49,22 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Install runtime + test deps
         run: |
-          python -m pip install --upgrade pip
-          # Install the package with its dev extra so pytest +
-          # pytest-asyncio + pytest-xdist + pytest-timeout + ruff are all
-          # version-pinned to match local development.
-          pip install -e '.[dev]'
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          # Match the canonical repo test workflow's install path so we
+          # pick up the exact pinned versions in pyproject.toml's [dev]
+          # extra plus the [all] runtime extras the orchestrator tests
+          # transitively need.
+          uv pip install -e ".[all,dev]"
 
       - name: ruff (launch-gate surface)
         run: |
+          source .venv/bin/activate
           python -m ruff check \
             hermes_cli/jarvis_prime/ \
             agent/redact.py \
@@ -67,11 +73,34 @@ jobs:
 
       - name: pytest (launch-gate surface)
         run: |
+          source .venv/bin/activate
+          set +e
           python -m pytest \
             tests/test_jarvis_prime_*.py \
             tests/test_orchestrator_*.py \
             tests/agent/test_redact.py \
-            -q -p no:cacheprovider --timeout=60
+            -p no:cacheprovider --timeout=60 \
+            --tb=short --junitxml=pytest-results.xml \
+            2>&1 | tee /tmp/pytest-output.log
+          exitcode=${PIPESTATUS[0]}
+          set -e
+          if [ "$exitcode" -ne 0 ]; then
+            echo "::group::Pytest FAILED/ERROR summary"
+            grep -E "^(FAILED|ERROR) " /tmp/pytest-output.log | head -60 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            echo "::endgroup::"
+          fi
+          exit "$exitcode"
+
+      - name: Upload pytest junit on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-unit-junit
+          path: pytest-results.xml
+          if-no-files-found: ignore
+          retention-days: 7
 
   android-unit:
     name: Android JVM unit (testDebugUnitTest)
@@ -110,7 +139,22 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run JVM unit tests
-        run: ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest
+        run: ./gradlew --no-daemon --stacktrace --info :app:testDebugUnitTest
+
+      - name: Print failing test reports inline
+        if: failure()
+        run: |
+          echo "::group::Failing JVM unit test output"
+          if [ -d app/build/test-results/testDebugUnitTest ]; then
+            for xml in app/build/test-results/testDebugUnitTest/TEST-*.xml; do
+              [ -f "$xml" ] || continue
+              if grep -q '<failure\|<error' "$xml"; then
+                echo "------ $xml ------"
+                cat "$xml"
+              fi
+            done
+          fi
+          echo "::endgroup::"
 
       - name: Upload test reports on failure
         if: failure()
