@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Exclude encrypted preferences from cloud backup; they are tied to the
-  device's keystore and cannot be restored on a different device.
+  Cloud-backup exclusions for Hermes Agent.
+
+  The orchestrator stores everything locally; nothing here should land
+  on Google Drive. Two stores hold user-generated content:
+
+  * Jetpack DataStore preferences at `app_files/datastore/hermes_settings.preferences_pb`
+    — theme, preferred builder/reviewer, the opt-in toggles.
+  * The task file at `files/hermes_tasks.json` — user-typed task
+    titles, descriptions, workspace paths, review notes, and result
+    notes. Treated as sensitive because the SAFETY_BLOCK in
+    PromptBuilder warns the receiving model not to act on pasted
+    credentials — the user-typed text still belongs on this device.
+
+  These exclusions are asserted by app/src/test/java/com/aci/hermes/backup/BackupRulesTest.kt.
 -->
 <full-backup-content>
-    <exclude domain="sharedpref" path="hermes_secure_prefs.xml" />
+    <exclude domain="file" path="datastore/hermes_settings.preferences_pb" />
+    <exclude domain="file" path="hermes_tasks.json" />
 </full-backup-content>
