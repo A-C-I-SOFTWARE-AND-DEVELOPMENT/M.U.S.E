@@ -98,9 +98,24 @@ On the Android lane: the compile-blocker described above (missing
 **Inherited from PR #131's head (not introduced by this gate, not fixed
 by it):**
 
-- `Build debug APK` (`android-build / assemble-debug`) — fails on PR #131
-  itself. Pre-existing.
-- `Lint` (`android-build / lint`) — fails on PR #131 itself. Pre-existing.
+- **Missing `data/model/audit/` source files (CRITICAL — single root cause
+  for three failing checks).** `apps/android/app/src/main/java/com/aci/hermes/data/audit/AuditRepository.kt`,
+  `ui/screens/audit/AuditScreen.kt`, `ui/screens/audit/AuditViewModel.kt`,
+  `ui/screens/audit/AuditDetailScreen.kt`,
+  `ui/screens/audit/AuditDetailViewModel.kt`, and
+  `data/audit/AuditRepositoryTest.kt` all import from
+  `com.aci.hermes.data.model.audit.*` — but **no file under
+  `apps/android/app/src/main/java/com/aci/hermes/data/model/audit/`
+  exists in the repository**. The 13 missing types are: `ActionResult`,
+  `ApprovalHistoryItem`, `ApprovalState`, `AuditRecord`, `EvidenceItem`,
+  `EvidenceKind`, `ProofRecord`, `RiskTier`, `RollbackPlan`,
+  `RouteDestination`, `RouteSummary`, `VerificationResult`,
+  `VerificationStatus`. This breaks `:app:compileDebugKotlin`, which in
+  turn breaks **`Build debug APK`**, **`Lint`**, and
+  **`Android JVM unit (testDebugUnitTest)`**. The launch gate cannot
+  compile the JVM lane until these files are added on PR #131. Adding
+  ~13 missing source files is well outside this PR's "tests + CI +
+  docs" scope.
 - `tests/test_jarvis_prime_onboarding.py::test_full_local_policy_scans_documents`
   — passes locally, fails in CI. The test asserts `'user_email' in <keys>`
   after running the onboarding scanner over a tmp `.gitconfig` with an
