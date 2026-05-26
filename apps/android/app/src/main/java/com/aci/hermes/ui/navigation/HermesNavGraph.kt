@@ -38,6 +38,8 @@ fun HermesNavHost(container: AppContainer) {
             val vm: OrchestratorViewModel = viewModel(factory = remember { container.orchestratorVmFactory() })
             OrchestratorScreen(
                 viewModel = vm,
+                voiceCaptureVmFactory = remember { container.voiceCaptureVmFactory() },
+                voicePendingDraft = container.voicePendingDraft,
                 onOpenTask = { taskId ->
                     nav.navigate(
                         if (taskId == null) Screen.TaskDetail.forNew()

@@ -267,7 +267,12 @@ supported via `workflow_dispatch`.
   manifest but no FCM/WebPush integration exists.
 - **Skill picker UI.** `/skills` from the CLI doesn't have a mobile-native
   equivalent yet — you can still invoke `/skill-name` in the chat input.
-- **Voice input.** Future work; needs careful permission flow.
+- **Voice input — Phase 1 shipped.** Tap-to-talk voice capture lives on
+  the orchestrator dashboard. There is no always-on listening and no
+  wake word; the mic only opens after the user taps **Voice**,
+  acknowledges the education panel, and grants RECORD_AUDIO. See
+  [`docs/JARVIS_VOICE_CAPTURE.md`](docs/JARVIS_VOICE_CAPTURE.md) for the
+  state machine, classifier, and approval-required routing.
 - **Release signing.** The release build type compiles but is not signed by
   default — see "Release AAB" above.
 - **HTTPS-only.** Cleartext is on for local-network testing; a future build

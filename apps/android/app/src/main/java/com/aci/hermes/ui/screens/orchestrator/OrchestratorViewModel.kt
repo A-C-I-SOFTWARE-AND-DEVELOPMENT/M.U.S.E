@@ -133,6 +133,12 @@ class OrchestratorViewModel(
         _state.update { it.copy(snackbar = null) }
     }
 
+    /** Surface a one-shot message from the voice-capture sheet on the dashboard snackbar. */
+    fun postVoiceMessage(message: String) {
+        if (message.isBlank()) return
+        _state.update { it.copy(snackbar = message) }
+    }
+
     @Suppress("DEPRECATION")
     private fun isServiceRunning(context: Context, cls: Class<*>): Boolean {
         // ActivityManager.getRunningServices is deprecated for cross-app

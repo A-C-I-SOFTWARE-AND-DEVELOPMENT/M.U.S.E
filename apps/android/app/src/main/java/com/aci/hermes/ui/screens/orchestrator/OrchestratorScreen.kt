@@ -46,15 +46,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel as composeViewModel
 import com.aci.hermes.R
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.voice.VoiceCaptureViewModel
+import com.aci.hermes.voice.VoicePendingDraft
+import com.aci.hermes.voice.ui.VoiceCaptureButton
+import com.aci.hermes.voice.ui.VoiceCaptureSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrchestratorScreen(
     viewModel: OrchestratorViewModel,
+    voiceCaptureVmFactory: androidx.lifecycle.ViewModelProvider.Factory,
+    voicePendingDraft: VoicePendingDraft,
     onOpenTask: (taskId: String?) -> Unit,
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenSettings: () -> Unit,
@@ -63,6 +70,16 @@ fun OrchestratorScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var overflowOpen by remember { mutableStateOf(false) }
+    val voiceVm: VoiceCaptureViewModel = composeViewModel(
+        factory = voiceCaptureVmFactory,
+        key = "voice-capture",
+    )
+    val pendingVoiceDraft by voicePendingDraft.pending.collectAsState()
+    LaunchedEffect(pendingVoiceDraft) {
+        if (pendingVoiceDraft != null) {
+            onOpenTask(null) // TaskDetailViewModel.init will consume the draft.
+        }
+    }
 
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
@@ -125,6 +142,12 @@ fun OrchestratorScreen(
         ) {
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
             item {
+                VoiceCaptureButton(
+                    onClick = { voiceVm.open() },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
                 SectionTitle(stringResource(R.string.orchestrator_tools_title))
             }
             items(state.tools) { profile ->
@@ -157,6 +180,12 @@ fun OrchestratorScreen(
                 item { SafetyBanner() }
             }
         }
+
+        VoiceCaptureSheet(
+            viewModel = voiceVm,
+            onMessage = { msg -> viewModel.postVoiceMessage(msg) },
+            onDismiss = { /* sheet closes itself; nothing else to do */ },
+        )
     }
 }
 

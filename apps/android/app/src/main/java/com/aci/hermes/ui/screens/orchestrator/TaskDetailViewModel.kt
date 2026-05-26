@@ -14,6 +14,7 @@ import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
+import com.aci.hermes.voice.VoicePendingDraft
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,7 @@ class TaskDetailViewModel(
     private val logBuffer: LogBuffer,
     initialTaskId: String?,
     initialTarget: TargetTool?,
+    voicePendingDraft: VoicePendingDraft? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(TaskDetailUiState())
@@ -46,8 +48,26 @@ class TaskDetailViewModel(
     init {
         val existing = initialTaskId?.takeIf { it.isNotBlank() && it != "new" }
             ?.let { tasksRepo.byId(it) }
+        val pendingVoiceDraft = if (existing == null) voicePendingDraft?.consume() else null
+        val voicePrefill = pendingVoiceDraft?.let { draft ->
+            val approvalNote = if (draft.requiresApproval) {
+                "\n\n⚠ Voice capture flagged this as approval-required" +
+                    (draft.reason?.let { " — $it" } ?: "") +
+                    ". Do not hand off until you have reviewed."
+            } else {
+                ""
+            }
+            draft.transcript.trim() + approvalNote
+        }
         val base = existing ?: HermesTask(
             targetTool = initialTarget ?: TargetTool.CODEX,
+            description = voicePrefill.orEmpty(),
+            title = pendingVoiceDraft?.let {
+                val first = it.transcript.trim().split(Regex("[.!?\\n]"))
+                    .firstOrNull { line -> line.isNotBlank() }
+                    ?.take(80) ?: ""
+                if (it.requiresApproval) "[Approval needed] $first".trim() else first
+            }.orEmpty(),
         )
         _state.value = TaskDetailUiState(
             task = base,

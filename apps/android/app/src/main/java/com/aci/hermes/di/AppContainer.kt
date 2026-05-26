@@ -13,6 +13,13 @@ import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.util.LogBuffer
+import com.aci.hermes.voice.AndroidSpeechRecognizer
+import com.aci.hermes.voice.DefaultVoiceCaptureRouter
+import com.aci.hermes.voice.ManualVoiceRecognizer
+import com.aci.hermes.voice.VoiceCaptureViewModel
+import com.aci.hermes.voice.VoiceIntentClassifier
+import com.aci.hermes.voice.VoicePendingDraft
+import com.aci.hermes.voice.VoiceRecognizer
 
 /**
  * Hand-rolled DI container. Held by [com.aci.hermes.HermesApplication]
@@ -34,6 +41,25 @@ class AppContainer(private val application: Application) {
 
     val promptBuilder: PromptBuilder = PromptBuilder()
 
+    val voicePendingDraft: VoicePendingDraft = VoicePendingDraft()
+
+    private val voiceIntentClassifier: VoiceIntentClassifier = VoiceIntentClassifier()
+
+    fun voiceCaptureVmFactory(): ViewModelProvider.Factory = factory {
+        val recognizer: VoiceRecognizer = runCatching { AndroidSpeechRecognizer(context) }
+            .getOrElse { ManualVoiceRecognizer() }
+        val effectiveRecognizer: VoiceRecognizer =
+            if (recognizer.isAvailable) recognizer else ManualVoiceRecognizer()
+        VoiceCaptureViewModel(
+            recognizer = effectiveRecognizer,
+            router = DefaultVoiceCaptureRouter(
+                tasksRepo = taskRepository,
+                pendingChatDraft = voicePendingDraft,
+            ),
+            classifier = voiceIntentClassifier,
+        )
+    }
+
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
             application = application,
@@ -53,6 +79,7 @@ class AppContainer(private val application: Application) {
             logBuffer = logBuffer,
             initialTaskId = taskId,
             initialTarget = initialTarget,
+            voicePendingDraft = voicePendingDraft,
         )
     }
 

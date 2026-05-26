@@ -90,4 +90,32 @@
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
+
+    <!-- JARVIS Prime voice capture (Phase 1) -->
+    <string name="voice_capture_button">Voice</string>
+    <string name="voice_education_title">Voice capture</string>
+    <string name="voice_education_body">Tap Allow to grant microphone access. Hermes will record only while the listening screen is open — there is no always-on listening and no wake word.</string>
+    <string name="voice_education_invariants">What you say becomes editable text. Vague or serious commands (delete, deploy, publish, spend) are never executed automatically — they turn into a draft task that needs your explicit approval.</string>
+    <string name="voice_education_no_stt">No on-device speech recogniser is installed. You can still type a transcript on the next screen.</string>
+    <string name="voice_allow_microphone">Allow microphone</string>
+    <string name="voice_requesting_permission_title">Requesting microphone…</string>
+    <string name="voice_requesting_permission_body">Android is showing the permission prompt. Choose While using the app.</string>
+    <string name="voice_permission_denied_title">Microphone permission denied</string>
+    <string name="voice_permission_denied_body">Voice capture needs microphone access while the sheet is open. You can retry, or cancel and type the request instead.</string>
+    <string name="voice_permission_denied_permanent">Microphone permission is blocked in system settings. Enable it in Settings → Apps → Hermes Agent → Permissions to use voice capture.</string>
+    <string name="voice_retry_permission">Retry permission</string>
+    <string name="voice_listening_title">Listening</string>
+    <string name="voice_listening_hint">Speak now. Tap Stop when finished, or Cancel to discard.</string>
+    <string name="voice_stop">Stop</string>
+    <string name="voice_captured_title">Review transcript</string>
+    <string name="voice_transcript_label">Captured text</string>
+    <string name="voice_send_to_chat">Send to chat</string>
+    <string name="voice_create_task">Create task</string>
+    <string name="voice_approval_banner_title">Approval required</string>
+    <string name="voice_approval_banner_body">This sounded like a serious or vague action. Hermes will save a draft task instead of executing it; review before handing it off.</string>
+    <string name="voice_manual_entry_title">Manual transcript</string>
+    <string name="voice_manual_entry_body">No on-device speech recogniser was found. Type the request and Hermes will route it through the same safety checks.</string>
+    <string name="voice_accept_transcript">Continue</string>
+    <string name="voice_error_title">Voice capture error</string>
+    <string name="voice_retry">Retry</string>
 </resources>
