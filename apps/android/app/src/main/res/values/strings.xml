@@ -203,10 +203,12 @@
     <string name="chat_description">A focused thread surface for talking to Jarvis Prime about the active task.</string>
     <string name="chat_coming_soon">The conversational pane is still being built. Until then, use Prepare handoff on the Home screen to draft a prompt for your tool of choice.</string>
 
-    <!-- Approvals placeholder -->
+    <!-- Approvals placeholder + real-list empty states (#107) -->
     <string name="approvals_title">Approvals</string>
     <string name="approvals_description">Review and approve actions Jarvis Prime wants to take on your behalf.</string>
     <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
+    <string name="approvals_empty_pending">No approvals waiting. Hermes is idle.</string>
+    <string name="approvals_empty_history">No decisions yet.</string>
 
     <!-- Memory placeholder -->
     <string name="memory_title">Memory</string>

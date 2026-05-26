@@ -4,6 +4,10 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aci.hermes.approval.event.ApprovalEventSink
+import com.aci.hermes.approval.event.RecordingApprovalEventSink
+import com.aci.hermes.approval.state.ApprovalStore
+import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
@@ -38,6 +42,19 @@ class AppContainer(private val application: Application) {
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
 
+    /**
+     * Approval-event sink. The cockpit doesn't ship a real gateway transport
+     * yet; this in-memory recorder lets the UI run end-to-end and lets the
+     * runtime swap in a real sink later via a setter or a Hilt-style binding.
+     */
+    val approvalEventSink: ApprovalEventSink = RecordingApprovalEventSink()
+
+    /**
+     * Process-wide approval store. Cards are seeded by the gateway/runtime
+     * in production; for now, start empty.
+     */
+    val approvalStore: ApprovalStore = ApprovalStore(sink = approvalEventSink)
+
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
             application = application,
@@ -66,6 +83,10 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
+        ApprovalViewModel(approvalStore)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =

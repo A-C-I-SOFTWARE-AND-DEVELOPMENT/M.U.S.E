@@ -1,11 +1,14 @@
 package com.aci.hermes.ui.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -16,6 +19,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aci.hermes.R
+import com.aci.hermes.approval.state.ApprovalViewModel
+import com.aci.hermes.approval.ui.screens.ApprovalsScreen
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.ui.screens.control.ControlScreen
@@ -153,6 +158,10 @@ fun HermesNavHost(container: AppContainer) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
+        // Approvals is registered as a shell destination (with bottom-nav + emergency
+        // stop) inside `shellDestinations` below. The legacy top-level Approvals
+        // composable introduced by #107 was removed during integration to avoid a
+        // duplicate-route registration that would shadow the shell-wrapped version.
     }
 }
 
@@ -227,6 +236,9 @@ private fun NavGraphBuilder.shellDestinations(
     }
 
     composable(Screen.Approvals.route) {
+        val vm: ApprovalViewModel = viewModel(
+            factory = remember { container.approvalsVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Approvals.route,
             titleRes = R.string.nav_approvals,
@@ -235,12 +247,11 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            PlaceholderScreen(
-                paddingValues = padding,
-                title = stringResource(R.string.approvals_title),
-                description = stringResource(R.string.approvals_description),
-                comingSoonNote = stringResource(R.string.approvals_coming_soon),
-            )
+            // ApprovalsScreen owns its own internal padding; pass the shell padding
+            // so the underlying surface respects bottom-nav inset.
+            Box(modifier = Modifier.padding(padding)) {
+                ApprovalsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            }
         }
     }
 
