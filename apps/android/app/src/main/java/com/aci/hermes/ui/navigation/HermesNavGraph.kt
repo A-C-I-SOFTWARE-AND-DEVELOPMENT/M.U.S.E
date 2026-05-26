@@ -10,8 +10,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.live.JarvisLiveScreen
+import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -49,7 +52,20 @@ fun HermesNavHost(container: AppContainer) {
                 },
                 onOpenSettings = { nav.navigate(Screen.Settings.route) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
             )
+        }
+        composable(Screen.JarvisLive.route) {
+            val vm: JarvisLiveViewModel = viewModel(factory = remember { container.jarvisLiveVmFactory() })
+            JarvisLiveScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
+                onOpenSettings = { nav.navigate(Screen.Settings.route) },
+            )
+        }
+        composable(Screen.AvatarPicker.route) {
+            AvatarPickerScreen(onBack = { nav.popBackStack() })
         }
         composable(
             route = Screen.TaskDetail.route,

@@ -9,6 +9,7 @@ import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -62,6 +63,10 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun jarvisLiveVmFactory(): ViewModelProvider.Factory = factory {
+        JarvisLiveViewModel(application)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =

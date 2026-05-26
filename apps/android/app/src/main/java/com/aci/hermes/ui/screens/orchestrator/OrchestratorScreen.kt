@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -59,6 +60,7 @@ fun OrchestratorScreen(
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenJarvisLive: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -124,6 +126,7 @@ fun OrchestratorScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
         ) {
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
+            item { JarvisLiveEntryCard(onClick = onOpenJarvisLive) }
             item {
                 SectionTitle(stringResource(R.string.orchestrator_tools_title))
             }
@@ -273,6 +276,39 @@ private fun TaskRow(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onCopyPrompt) { Text(stringResource(R.string.orchestrator_copy_prompt)) }
                 OutlinedButton(onClick = onTap) { Text(stringResource(R.string.orchestrator_open_task)) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun JarvisLiveEntryCard(onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.jarvis_live_entry_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.jarvis_live_entry_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
     }

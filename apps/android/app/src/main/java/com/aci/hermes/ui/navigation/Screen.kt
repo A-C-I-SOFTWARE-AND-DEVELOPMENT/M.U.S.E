@@ -12,4 +12,6 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+    data object JarvisLive : Screen("jarvis_live")
+    data object AvatarPicker : Screen("avatar_picker")
 }

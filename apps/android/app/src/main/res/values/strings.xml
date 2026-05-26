@@ -90,4 +90,59 @@
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
+    <string name="action_back">Back</string>
+
+    <!-- Jarvis Live command screen -->
+    <string name="jarvis_live_entry_title">Open Jarvis Live</string>
+    <string name="jarvis_live_entry_subtitle">See what Jarvis is thinking, saying, and working on.</string>
+    <string name="jarvis_input_hint">Ask Jarvis</string>
+
+    <string name="jarvis_state_idle">Idle</string>
+    <string name="jarvis_state_listening">Listening</string>
+    <string name="jarvis_state_thinking">Thinking</string>
+    <string name="jarvis_state_working">Working</string>
+    <string name="jarvis_state_speaking">Speaking</string>
+    <string name="jarvis_state_approval">Approval needed</string>
+    <string name="jarvis_state_blocked">Blocked</string>
+    <string name="jarvis_state_emergency">Emergency stop</string>
+
+    <string name="jarvis_voice_idle">Standing by.</string>
+    <string name="jarvis_voice_listening">Listening.</string>
+    <string name="jarvis_voice_thinking">Thinking through it.</string>
+    <string name="jarvis_voice_working">Working on the task.</string>
+    <string name="jarvis_voice_speaking">Speaking.</string>
+    <string name="jarvis_voice_approval">Waiting for your approval.</string>
+    <string name="jarvis_voice_blocked">Action needed before I can continue.</string>
+    <string name="jarvis_voice_emergency">Emergency stop active.</string>
+
+    <string name="jarvis_avatar_cd_idle">Jarvis is idle.</string>
+    <string name="jarvis_avatar_cd_listening">Jarvis is listening.</string>
+    <string name="jarvis_avatar_cd_thinking">Jarvis is thinking.</string>
+    <string name="jarvis_avatar_cd_working">Jarvis is working.</string>
+    <string name="jarvis_avatar_cd_speaking">Jarvis is speaking.</string>
+    <string name="jarvis_avatar_cd_approval">Jarvis is waiting for your approval.</string>
+    <string name="jarvis_avatar_cd_blocked">Jarvis is blocked and needs your input.</string>
+    <string name="jarvis_avatar_cd_emergency">Jarvis emergency stop is active.</string>
+
+    <string name="jarvis_cta_approve">Approve</string>
+    <string name="jarvis_cta_fix">Review block</string>
+    <string name="jarvis_cta_emergency_stop">Emergency stop</string>
+    <string name="jarvis_cta_emergency_release">Release emergency stop</string>
+
+    <string name="jarvis_menu_cd">Open menu</string>
+    <string name="jarvis_more_cd">More options</string>
+    <string name="jarvis_edit_avatar_cd">Edit avatar</string>
+    <string name="jarvis_status_pill_cd">Current Jarvis state: %1$s</string>
+    <string name="jarvis_overflow_status_detail">Status detail</string>
+    <string name="jarvis_status_sheet_title">Jarvis status</string>
+    <string name="jarvis_motion_label">Motion</string>
+    <string name="jarvis_particles_label">Particles</string>
+
+    <string name="jarvis_emergency_dialog_title">Stop Jarvis?</string>
+    <string name="jarvis_emergency_dialog_body">Emergency stop halts every running task. You can release the stop afterwards.</string>
+
+    <!-- Avatar picker (stub) -->
+    <string name="avatar_picker_title">Avatar</string>
+    <string name="avatar_picker_coming_soon_title">Avatar customization coming soon</string>
+    <string name="avatar_picker_coming_soon_body">The Jarvis avatar picker — orb, pixel preset, and privacy-safe photo upload — ships in the next update. The current orb already reacts to Jarvis state.</string>
 </resources>
