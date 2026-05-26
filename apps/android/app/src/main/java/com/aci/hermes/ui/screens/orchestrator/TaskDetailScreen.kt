@@ -10,13 +10,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -45,11 +47,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.ui.theme.LocalSpacing
+import com.aci.hermes.ui.theme.rememberHermesHaptics
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +63,8 @@ fun TaskDetailScreen(
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDelete by remember { mutableStateOf(false) }
+    val spacing = LocalSpacing.current
+    val haptics = rememberHermesHaptics()
 
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
@@ -85,16 +90,32 @@ fun TaskDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = viewModel::save, enabled = !state.saving) {
-                        Icon(Icons.Default.Save, contentDescription = stringResource(R.string.action_save))
+                    IconButton(
+                        onClick = {
+                            haptics.confirm()
+                            viewModel.save()
+                        },
+                        enabled = !state.saving,
+                    ) {
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = stringResource(R.string.action_save),
+                        )
                     }
                     if (!state.isNew) {
                         IconButton(onClick = { confirmDelete = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.action_delete))
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.action_delete),
+                                tint = MaterialTheme.colorScheme.error,
+                            )
                         }
                     }
                 },
@@ -106,15 +127,16 @@ fun TaskDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(spacing.screen)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(spacing.md),
         ) {
             OutlinedTextField(
                 value = state.task.title,
                 onValueChange = viewModel::setTitle,
                 label = { Text(stringResource(R.string.task_field_title)) },
                 modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
             )
             OutlinedTextField(
                 value = state.task.description,
@@ -128,6 +150,7 @@ fun TaskDetailScreen(
                 onValueChange = viewModel::setWorkspacePath,
                 label = { Text(stringResource(R.string.task_field_workspace_path)) },
                 modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
             )
 
             EnumDropdown(
@@ -173,19 +196,33 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(spacing.cardPadding),
+                    verticalArrangement = Arrangement.spacedBy(spacing.sm),
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
                         AssistChip(
-                            onClick = viewModel::copyPrompt,
+                            onClick = {
+                                haptics.tick()
+                                viewModel.copyPrompt()
+                            },
                             label = { Text(stringResource(R.string.orchestrator_copy_prompt)) },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                            leadingIcon = {
+                                Icon(Icons.Default.ContentCopy, contentDescription = null)
+                            },
                         )
                         if (state.allowExternalAppOpening) {
                             AssistChip(
                                 onClick = viewModel::openTool,
                                 label = { Text(stringResource(R.string.orchestrator_open_tool)) },
-                                leadingIcon = { Icon(Icons.Default.OpenInNew, contentDescription = null) },
+                                leadingIcon = {
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null)
+                                },
                             )
                         }
                     }
@@ -202,11 +239,20 @@ fun TaskDetailScreen(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = viewModel::markHandedOff) {
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.sm)) {
+                Button(onClick = {
+                    haptics.confirm()
+                    viewModel.markHandedOff()
+                }) {
                     Text(stringResource(R.string.task_detail_mark_handed_off))
                 }
-                OutlinedButton(onClick = viewModel::save, enabled = !state.saving) {
+                OutlinedButton(
+                    onClick = {
+                        haptics.confirm()
+                        viewModel.save()
+                    },
+                    enabled = !state.saving,
+                ) {
                     Text(stringResource(R.string.action_save))
                 }
             }
@@ -216,13 +262,36 @@ fun TaskDetailScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
+            icon = {
+                Icon(
+                    Icons.Default.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                )
+            },
             title = { Text(stringResource(R.string.action_delete)) },
-            text = { Text(stringResource(R.string.task_detail_delete_confirm)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.xs)) {
+                    Text(stringResource(R.string.task_detail_delete_confirm))
+                    Text(
+                        text = stringResource(R.string.task_detail_delete_destructive_warning),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    confirmDelete = false
-                    viewModel.delete()
-                }) { Text(stringResource(R.string.action_delete)) }
+                Button(
+                    onClick = {
+                        confirmDelete = false
+                        haptics.reject()
+                        viewModel.delete()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                ) { Text(stringResource(R.string.action_delete)) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) {

@@ -2,6 +2,11 @@
 <resources>
     <string name="app_name">Hermes Agent</string>
 
+    <!-- Branding -->
+    <string name="brand_persona">Jarvis Prime</string>
+    <string name="brand_tagline">Your local AI operating partner</string>
+    <string name="brand_cockpit_subtitle">Jarvis Prime Cockpit</string>
+
     <!-- Foreground service notification -->
     <string name="orchestrator_notification_title">Hermes Orchestrator Running</string>
     <string name="orchestrator_notification_text">Hermes is coordinating your local AI workflow.</string>
@@ -9,26 +14,33 @@
 
     <!-- Orchestrator dashboard -->
     <string name="orchestrator_title">Hermes Orchestrator</string>
+    <string name="orchestrator_subtitle">Jarvis Prime Cockpit</string>
     <string name="orchestrator_tools_title">Official AI tools</string>
+    <string name="orchestrator_tools_caption">Open the apps you already pay for — Hermes never proxies them.</string>
     <string name="orchestrator_tasks_title">Tasks</string>
-    <string name="orchestrator_tasks_empty">No tasks yet. Tap the + button to create one.</string>
-    <string name="orchestrator_status_running">HermesService running</string>
-    <string name="orchestrator_status_stopped">HermesService stopped</string>
+    <string name="orchestrator_tasks_empty">No tasks yet</string>
+    <string name="orchestrator_tasks_empty_subtitle">Tap “New task” below to capture work, then hand it off to Codex, Claude Code, or Claude.</string>
+    <string name="orchestrator_tasks_empty_demo">Try a demo handoff</string>
+    <string name="orchestrator_status_running">Orchestrator running</string>
+    <string name="orchestrator_status_stopped">Orchestrator stopped</string>
+    <string name="orchestrator_status_running_a11y">Hermes orchestrator service is running</string>
+    <string name="orchestrator_status_stopped_a11y">Hermes orchestrator service is stopped</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
     <string name="orchestrator_status_export_label">External service export</string>
     <string name="orchestrator_status_export_value">Disabled</string>
-    <string name="orchestrator_start_service">Start</string>
-    <string name="orchestrator_stop_service">Stop</string>
+    <string name="orchestrator_start_service">Start orchestrator</string>
+    <string name="orchestrator_stop_service">Stop orchestrator</string>
+    <string name="orchestrator_emergency_stop">Emergency stop</string>
     <string name="orchestrator_new_task">New task</string>
     <string name="orchestrator_prepare_handoff">Prepare handoff</string>
     <string name="orchestrator_copy_prompt">Copy prompt</string>
     <string name="orchestrator_open_tool">Open tool</string>
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
-    <string name="orchestrator_safety_title">About this app</string>
-    <string name="orchestrator_safety_body">Hermes does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into.</string>
+    <string name="orchestrator_safety_title">Heads up — read before handing off</string>
+    <string name="orchestrator_safety_body">Hermes does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into. Never paste API keys or session cookies into a task description.</string>
 
     <!-- Task detail screen -->
     <string name="task_detail_new_title">New task</string>
@@ -36,6 +48,7 @@
     <string name="task_detail_prompt_preview">Generated prompt</string>
     <string name="task_detail_mark_handed_off">Mark handed off</string>
     <string name="task_detail_delete_confirm">Delete this task? This cannot be undone.</string>
+    <string name="task_detail_delete_destructive_warning">This permanently removes the task and its prompt from this device.</string>
 
     <string name="task_field_title">Title</string>
     <string name="task_field_description">Description</string>
@@ -50,6 +63,7 @@
     <!-- Navigation -->
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_more">More actions</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -58,6 +72,7 @@
     <string name="settings_section_about">About</string>
     <string name="settings_reset">Reset all settings and tasks</string>
     <string name="settings_reset_confirm">This will clear orchestrator preferences and all saved tasks. Continue?</string>
+    <string name="settings_reset_destructive_caption">Destructive — cannot be undone.</string>
 
     <string name="settings_preferred_builder_label">Preferred builder</string>
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
@@ -69,7 +84,7 @@
     <string name="settings_allow_external_label">Allow external app opening</string>
     <string name="settings_allow_external_subtitle">When on, Hermes can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
     <string name="settings_clipboard_label">Clipboard handoff enabled</string>
-    <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
+    <string name="settings_clipboard_subtitle">Allows the “Copy prompt” action. Each copy still requires a tap.</string>
     <string name="settings_safety_warnings_label">Show safety warnings</string>
     <string name="settings_safety_warnings_subtitle">Show the reminder that Hermes does not bypass provider authentication.</string>
 
@@ -82,12 +97,15 @@
     <string name="diagnostics_copy_logs">Copy logs</string>
     <string name="diagnostics_clear_logs">Clear logs</string>
     <string name="diagnostics_no_error">No errors recorded.</string>
-    <string name="diagnostics_no_logs">No logs yet.</string>
+    <string name="diagnostics_no_logs">No logs yet — actions you take in the cockpit will show up here.</string>
     <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_logs_copied">Logs copied to clipboard</string>
+    <string name="diagnostics_logs_cleared">Logs cleared</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
+    <string name="action_back">Back</string>
 </resources>
