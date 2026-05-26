@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Strings for the on-device avatar picker.
+
+    No "Upload" / "Share" / "Send" wording — the picker is local-only.
+    All copy reinforces "pixelate locally, save to this phone."
+-->
+<resources>
+    <string name="avatar_picker_title">Choose your Jarvis avatar</string>
+    <string name="avatar_picker_pick_photo">Pick from photos</string>
+    <string name="avatar_picker_pixelate_save">Pixelate &amp; save</string>
+    <string name="avatar_picker_delete">Delete avatar</string>
+    <string name="avatar_picker_reset">Reset to default</string>
+    <string name="avatar_picker_defaults_header">Bundled avatars</string>
+    <string name="avatar_picker_custom_header">Your avatar</string>
+    <string name="avatar_picker_custom_empty">No custom avatar saved. Pick a photo to pixelate.</string>
+    <string name="avatar_picker_local_only_note">Photos are pixelated on this device and saved only on this device. Nothing is uploaded.</string>
+
+    <!-- Default avatar names -->
+    <string name="avatar_default_cyan">Cyan</string>
+    <string name="avatar_default_gold">Gold</string>
+    <string name="avatar_default_slate">Slate</string>
+    <string name="avatar_default_violet">Violet</string>
+</resources>

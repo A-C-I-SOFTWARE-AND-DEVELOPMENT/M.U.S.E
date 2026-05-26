@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Built-in Jarvis avatar — gold / approval ring. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="192dp"
+    android:height="192dp"
+    android:viewportWidth="192"
+    android:viewportHeight="192">
+    <path
+        android:fillColor="#0A0F1F"
+        android:pathData="M0,0h192v192h-192z" />
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="6"
+        android:pathData="M96,30 a66,66 0 1,0 0.1,0 z" />
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M96,64 a32,32 0 1,0 0.1,0 z" />
+</vector>
