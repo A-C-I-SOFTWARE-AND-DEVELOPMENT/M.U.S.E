@@ -398,7 +398,11 @@ def _mutate(skill_name: str, mutator) -> None:
             data[skill_name] = rec
             save_usage(data)
     except Exception as e:
-        logger.debug("skill_usage._mutate(%s) failed: %s", skill_name, e, exc_info=True)
+        from agent.redact import safe_audit_identifier
+        logger.debug(
+            "skill_usage._mutate(%s) failed: %s",
+            safe_audit_identifier(skill_name), e, exc_info=True,
+        )
 
 
 # ---------------------------------------------------------------------------
