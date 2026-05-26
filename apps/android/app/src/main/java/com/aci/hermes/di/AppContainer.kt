@@ -25,6 +25,8 @@ import com.aci.hermes.ui.screens.conversation.ConversationViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.operations.OperationsViewModel
+import com.aci.hermes.ui.screens.voice.VoiceViewModel
+import com.aci.hermes.voice.VoiceCapture
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -83,6 +85,8 @@ class AppContainer(private val application: Application) {
 
     /** Persistent audit log. Subscribes to the event spine at construction. */
     val auditLog: AuditLog = AuditLog(context, eventSpine)
+
+    val voiceCapture: VoiceCapture = VoiceCapture()
 
     private val activityLauncher = AtomicReference<PermissionKernel.SystemPromptLauncher?>(null)
 
@@ -148,6 +152,10 @@ class AppContainer(private val application: Application) {
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {
         AuditViewModel(audit = auditLog)
+    }
+
+    fun voiceVmFactory(): ViewModelProvider.Factory = factory {
+        VoiceViewModel(capture = voiceCapture, permissionKernel = permissionKernel)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
