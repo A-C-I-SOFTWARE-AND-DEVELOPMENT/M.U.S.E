@@ -50,6 +50,25 @@
     <!-- Navigation -->
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_capabilities">Capabilities</string>
+
+    <!-- Capability screen -->
+    <string name="capability_title">JARVIS capabilities</string>
+    <string name="capability_header_title">One assistant. Curated capabilities.</string>
+    <string name="capability_header_body">JARVIS Prime is one visible partner. Pick a capability to preview how it routes — nothing runs without your dispatch.</string>
+    <string name="capability_search_hint">Search capabilities</string>
+    <string name="capability_filter_all">All</string>
+    <string name="capability_advanced_label">Show advanced</string>
+    <string name="capability_count_template">Showing %1$d of %2$d</string>
+    <string name="capability_empty">No capabilities match this filter.</string>
+    <string name="capability_route_title">Route preview</string>
+    <string name="capability_prompt_title">Staged prompt</string>
+    <string name="capability_safe_invoke_note">Nothing is sent automatically. Stage the prompt, review it, then paste it into chat to dispatch.</string>
+    <string name="capability_stage_prompt">Stage to clipboard</string>
+    <string name="capability_owner_gated_title">Owner-gated</string>
+    <string name="capability_owner_gated_body">This lane will not act without explicit owner authorization. JARVIS will pause and ask before proceeding.</string>
+    <string name="action_close">Close</string>
+    <string name="action_back">Back</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

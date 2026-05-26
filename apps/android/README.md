@@ -258,6 +258,7 @@ supported via `workflow_dispatch`.
 | `status` | Live connection state + provider/model + mock indicator |
 | `settings` | Theme, mock toggle shortcut, build info, full reset |
 | `diagnostics` | Backend status, app version, build type, last error, in-app log buffer |
+| `capability` | JARVIS Prime capability picker — curated capabilities, search, route preview, owner-gated badges. See [`docs/JARVIS_CAPABILITY_UI.md`](docs/JARVIS_CAPABILITY_UI.md). |
 
 ---
 
@@ -265,8 +266,6 @@ supported via `workflow_dispatch`.
 
 - **Push from gateway → device.** Notifications path is permitted in the
   manifest but no FCM/WebPush integration exists.
-- **Skill picker UI.** `/skills` from the CLI doesn't have a mobile-native
-  equivalent yet — you can still invoke `/skill-name` in the chat input.
 - **Voice input.** Future work; needs careful permission flow.
 - **Release signing.** The release build type compiles but is not signed by
   default — see "Release AAB" above.

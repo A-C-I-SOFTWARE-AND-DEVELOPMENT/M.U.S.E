@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -59,6 +60,7 @@ fun OrchestratorScreen(
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenCapabilities: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -80,6 +82,12 @@ fun OrchestratorScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.orchestrator_title)) },
                 actions = {
+                    IconButton(onClick = onOpenCapabilities) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = stringResource(R.string.nav_capabilities),
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
                     }
@@ -91,6 +99,16 @@ fun OrchestratorScreen(
                             expanded = overflowOpen,
                             onDismissRequest = { overflowOpen = false },
                         ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nav_capabilities)) },
+                                onClick = {
+                                    overflowOpen = false
+                                    onOpenCapabilities()
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Default.AutoAwesome, contentDescription = null)
+                                },
+                            )
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.nav_diagnostics)) },
                                 onClick = {

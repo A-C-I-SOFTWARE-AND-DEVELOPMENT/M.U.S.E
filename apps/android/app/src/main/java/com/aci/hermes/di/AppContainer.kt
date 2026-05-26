@@ -4,10 +4,12 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
@@ -33,6 +35,8 @@ class AppContainer(private val application: Application) {
     val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
 
     val promptBuilder: PromptBuilder = PromptBuilder()
+
+    val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
@@ -62,6 +66,14 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun capabilityVmFactory(): ViewModelProvider.Factory = factory {
+        CapabilityViewModel(
+            application = application,
+            repository = capabilityRepository,
+            logBuffer = logBuffer,
+        )
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =

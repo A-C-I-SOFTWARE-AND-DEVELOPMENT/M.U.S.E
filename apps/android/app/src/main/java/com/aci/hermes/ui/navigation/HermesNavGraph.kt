@@ -10,6 +10,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.capability.CapabilityScreen
+import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
@@ -49,6 +51,7 @@ fun HermesNavHost(container: AppContainer) {
                 },
                 onOpenSettings = { nav.navigate(Screen.Settings.route) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenCapabilities = { nav.navigate(Screen.Capability.route) },
             )
         }
         composable(
@@ -88,6 +91,10 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+        composable(Screen.Capability.route) {
+            val vm: CapabilityViewModel = viewModel(factory = remember { container.capabilityVmFactory() })
+            CapabilityScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
     }
 }
