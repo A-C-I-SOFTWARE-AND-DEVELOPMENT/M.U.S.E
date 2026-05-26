@@ -50,6 +50,21 @@
     <!-- Navigation -->
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_memory">Memory</string>
+
+    <!-- Memory screen -->
+    <string name="memory_title">Memory</string>
+    <string name="memory_search_placeholder">Search memory</string>
+    <string name="memory_filter_all">All</string>
+    <string name="memory_empty">No memory matches the current filter.</string>
+    <string name="memory_redacted_badge">Redacted</string>
+    <string name="memory_redacted_notice">This memory contained a value that looked like a secret. The content is hidden from view.</string>
+    <string name="memory_correct_title">Correct memory</string>
+    <string name="memory_correct_save">Save correction</string>
+    <string name="memory_delete_title">Delete memory</string>
+    <string name="memory_delete_body">Jarvis will forget this memory. Deletion cannot be undone from the app.</string>
+    <string name="memory_delete_confirm_label">Type DELETE to confirm</string>
+    <string name="memory_reason_label">Reason (optional)</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

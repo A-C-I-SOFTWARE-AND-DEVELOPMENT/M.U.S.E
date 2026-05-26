@@ -12,6 +12,8 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.memory.MemoryScreen
+import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -49,6 +51,7 @@ fun HermesNavHost(container: AppContainer) {
                 },
                 onOpenSettings = { nav.navigate(Screen.Settings.route) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenMemory = { nav.navigate(Screen.Memory.route) },
             )
         }
         composable(
@@ -88,6 +91,10 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+        composable(Screen.Memory.route) {
+            val vm: MemoryViewModel = viewModel(factory = remember { container.memoryVmFactory() })
+            MemoryScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
     }
 }
