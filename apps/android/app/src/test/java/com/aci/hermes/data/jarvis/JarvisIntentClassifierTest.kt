@@ -99,9 +99,12 @@ class JarvisIntentClassifierTest {
 
     @Test
     fun very_long_prompt_routes_to_architecture_by_length_alone() {
-        val long = "I am thinking about a deeper question, no destructive words, " +
-            "no security words, no obvious task verbs — just rambling " +
-            "exploration of an idea. " + "x".repeat(160)
+        // Prompt body intentionally avoids every keyword list (CRITICAL,
+        // APPROVAL, SERIOUS, ARCHITECTURE, TASK, CASUAL) so the only
+        // reason it should route to ARCHITECTURE is the length-only
+        // fallback (`trimmed.length > 240`).
+        val long = "I am pondering a quieter question — just rambling " +
+            "around an idea, no verbs that map to a job. " + "x".repeat(220)
         val c = JarvisIntentClassifier.classify(long)
         assertEquals(Intent.ARCHITECTURE, c.intent)
     }

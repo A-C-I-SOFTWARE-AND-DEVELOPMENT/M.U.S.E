@@ -9,7 +9,7 @@ import java.io.File
  * Cockpit-layer safety net for the approval surface.
  *
  * The existing [com.aci.hermes.approval.NoDirectDestructiveActionTest]
- * already scans `src/main/java/com/aci/hermes/approval/**` for direct
+ * already scans every .kt file under `src/main/java/com/aci/hermes/approval/` for direct
  * destructive calls. This test adds a second, broader scan from the
  * cockpit's perspective so a refactor that moves approval code around
  * cannot accidentally drop the invariant. Both must hold:
