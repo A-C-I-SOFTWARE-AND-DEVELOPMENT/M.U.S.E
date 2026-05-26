@@ -23,10 +23,18 @@ import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.approval.ui.screens.ApprovalsScreen
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.audit.AuditDetailScreen
+import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
+import com.aci.hermes.ui.screens.audit.AuditScreen
+import com.aci.hermes.ui.screens.audit.AuditViewModel
+import com.aci.hermes.ui.screens.capability.CapabilityScreen
+import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.control.ControlScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
+import com.aci.hermes.ui.screens.memory.MemoryScreen
+import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -158,6 +166,22 @@ fun HermesNavHost(container: AppContainer) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
+
+        composable(
+            route = Screen.AuditDetail.route,
+            arguments = listOf(
+                navArgument(Screen.AuditDetail.ARG_AUDIT_ID) {
+                    type = NavType.StringType
+                    nullable = false
+                },
+            ),
+        ) { entry ->
+            val auditId = entry.arguments?.getString(Screen.AuditDetail.ARG_AUDIT_ID).orEmpty()
+            val vm: AuditDetailViewModel = viewModel(
+                factory = remember(auditId) { container.auditDetailVmFactory(auditId) },
+            )
+            AuditDetailScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
         // Approvals is registered as a shell destination (with bottom-nav + emergency
         // stop) inside `shellDestinations` below. The legacy top-level Approvals
         // composable introduced by #107 was removed during integration to avoid a
@@ -256,6 +280,9 @@ private fun NavGraphBuilder.shellDestinations(
     }
 
     composable(Screen.Memory.route) {
+        val vm: MemoryViewModel = viewModel(
+            factory = remember { container.memoryVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Memory.route,
             titleRes = R.string.nav_memory,
@@ -264,16 +291,16 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            PlaceholderScreen(
-                paddingValues = padding,
-                title = stringResource(R.string.memory_title),
-                description = stringResource(R.string.memory_description),
-                comingSoonNote = stringResource(R.string.memory_coming_soon),
-            )
+            Box(modifier = Modifier.padding(padding)) {
+                MemoryScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            }
         }
     }
 
     composable(Screen.Audit.route) {
+        val vm: AuditViewModel = viewModel(
+            factory = remember { container.auditVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Audit.route,
             titleRes = R.string.nav_audit,
@@ -282,12 +309,33 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            PlaceholderScreen(
-                paddingValues = padding,
-                title = stringResource(R.string.audit_title),
-                description = stringResource(R.string.audit_description),
-                comingSoonNote = stringResource(R.string.audit_coming_soon),
-            )
+            Box(modifier = Modifier.padding(padding)) {
+                AuditScreen(
+                    viewModel = vm,
+                    onBack = { nav.popBackStack() },
+                    onOpenAudit = { auditId ->
+                        nav.navigate(Screen.AuditDetail.forAudit(auditId))
+                    },
+                )
+            }
+        }
+    }
+
+    composable(Screen.Capability.route) {
+        val vm: CapabilityViewModel = viewModel(
+            factory = remember { container.capabilityVmFactory() },
+        )
+        ShellHost(
+            currentRoute = Screen.Capability.route,
+            titleRes = R.string.nav_capability,
+            onNavigateTab = onNavigateTab,
+            openSettings = openSettings,
+            openDiagnostics = openDiagnostics,
+            emergencyStop = emergencyStop,
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+                CapabilityScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            }
         }
     }
 

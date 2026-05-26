@@ -25,11 +25,17 @@ sealed class Screen(val route: String) {
     data object Approvals : Screen("approvals")
     data object Memory : Screen("memory")
     data object Audit : Screen("audit")
+    data object Capability : Screen("capability")
     data object Control : Screen("control")
 
     // Full-screen pushes.
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+
+    data object AuditDetail : Screen("audit_detail/{auditId}") {
+        const val ARG_AUDIT_ID = "auditId"
+        fun forAudit(id: String): String = "audit_detail/$id"
+    }
 
     data object TaskDetail : Screen("task_detail/{taskId}?target={target}") {
         const val ARG_TASK_ID = "taskId"
@@ -48,6 +54,7 @@ sealed class Screen(val route: String) {
             Approvals.route,
             Memory.route,
             Audit.route,
+            Capability.route,
             Control.route,
         )
 
@@ -68,5 +75,7 @@ data class BottomTab(
     val icon: Icon,
     val labelKey: String,
 ) {
+    // `Capability` is not in the bottom-nav row by design (deep-linked from
+    // Home quick links + Settings); it is a shell destination but not a tab.
     enum class Icon { HOME, TASKS, CHAT, APPROVALS, CONTROL }
 }

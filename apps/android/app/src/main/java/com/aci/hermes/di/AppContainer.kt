@@ -8,12 +8,21 @@ import com.aci.hermes.approval.event.ApprovalEventSink
 import com.aci.hermes.approval.event.RecordingApprovalEventSink
 import com.aci.hermes.approval.state.ApprovalStore
 import com.aci.hermes.approval.state.ApprovalViewModel
+import com.aci.hermes.data.audit.AuditRepository
+import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.service.OrchestratorServiceController
+import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
+import com.aci.hermes.ui.screens.audit.AuditViewModel
+import com.aci.hermes.ui.screens.capability.CapabilityViewModel
+import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
+import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -41,6 +50,12 @@ class AppContainer(private val application: Application) {
 
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
+
+    // Memory / Audit / Capability repositories ship with mock seeds today
+    // (no Termux / gateway transport wired yet). They are local-only.
+    val memoryRepository: MemoryRepository = MemoryRepository()
+    val auditRepository: AuditRepository = AuditRepository()
+    val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
@@ -87,6 +102,35 @@ class AppContainer(private val application: Application) {
 
     fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
         ApprovalViewModel(approvalStore)
+    }
+
+    fun memoryVmFactory(): ViewModelProvider.Factory = factory {
+        MemoryViewModel(memoryRepository, logBuffer)
+    }
+
+    fun auditVmFactory(): ViewModelProvider.Factory = factory {
+        AuditViewModel(auditRepository)
+    }
+
+    fun auditDetailVmFactory(auditId: String): ViewModelProvider.Factory = factory {
+        AuditDetailViewModel(auditRepository, auditId)
+    }
+
+    fun capabilityVmFactory(): ViewModelProvider.Factory = factory {
+        CapabilityViewModel(application, capabilityRepository, logBuffer)
+    }
+
+    fun controlVmFactory(): ViewModelProvider.Factory = factory {
+        ControlViewModel(application, settingsRepository, logBuffer)
+    }
+
+    fun jarvisPrimeHomeVmFactory(): ViewModelProvider.Factory = factory {
+        JarvisPrimeHomeViewModel(
+            application = application,
+            settings = settingsRepository,
+            tasksRepo = taskRepository,
+            logBuffer = logBuffer,
+        )
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
