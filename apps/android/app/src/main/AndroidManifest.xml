@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Phase 1 Jarvis Prime permissions.
+         POST_NOTIFICATIONS and RECORD_AUDIO are runtime-gated by the
+         Jarvis Prime Permission Kernel — neither is requested on first
+         launch. SMS, Call Log, and overlay permissions are intentionally
+         not declared in Phase 1. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 

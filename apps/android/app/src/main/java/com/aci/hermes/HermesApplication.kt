@@ -11,8 +11,11 @@ class HermesApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
-        // Make sure the orchestrator notification channel exists before
-        // MainActivity asks for the POST_NOTIFICATIONS permission.
+        // Register the notification channel up-front. Channel creation
+        // does not show any user-visible dialog — the system prompt for
+        // POST_NOTIFICATIONS is routed through the Jarvis Prime
+        // Permission Kernel and only fires after the user has read the
+        // education sheet and tapped Continue.
         HermesService.ensureNotificationChannel(this)
     }
 }
