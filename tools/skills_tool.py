@@ -444,6 +444,31 @@ def _parse_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     return parse_frontmatter(content)
 
 
+def _is_skill_registry_index(path: Path) -> bool:
+    """Return True if ``path`` is an AOS-style registry-index .md.
+
+    Recovery-pack indexes (introduced by PR #88's AOS Enterprise Council
+    pack) carry a ``canonical_source:`` frontmatter key pointing at the
+    real SKILL.md they describe. They must not be treated as runnable
+    skills — doing so collides with the canonical SKILL.md and makes
+    ``skill_view`` refuse to load either.
+
+    Cheap by design: reads only the YAML frontmatter, not the body.
+    """
+    try:
+        head = path.read_text(encoding="utf-8", errors="ignore")[:1024]
+    except OSError:
+        return False
+    if not head.startswith("---"):
+        return False
+    end = head.find("\n---", 3)
+    frontmatter = head[3:end] if end != -1 else head[3:]
+    for raw_line in frontmatter.splitlines():
+        if raw_line.lstrip().startswith("canonical_source:"):
+            return True
+    return False
+
+
 def _get_category_from_path(skill_path: Path) -> Optional[str]:
     """
     Extract category from skill path based on directory structure.
@@ -1004,9 +1029,17 @@ def skill_view(
                     _record(found_skill_md.parent, found_skill_md)
 
             # Strategy 3: legacy flat <name>.md files anywhere under the dir.
+            # Skip registry-index entries — flat .md files whose frontmatter
+            # carries a ``canonical_source:`` key are recovery-pack indexes
+            # (introduced by the AOS Enterprise Council pack in PR #88) that
+            # mirror real skills living elsewhere; loading them would shadow
+            # or collide with the canonical SKILL.md they point at.
             for found_md in search_dir.rglob(f"{name}.md"):
-                if found_md.name != "SKILL.md":
-                    _record(None, found_md)
+                if found_md.name == "SKILL.md":
+                    continue
+                if _is_skill_registry_index(found_md):
+                    continue
+                _record(None, found_md)
 
         if len(candidates) > 1:
             paths = [str(smd) for _, smd in candidates]
