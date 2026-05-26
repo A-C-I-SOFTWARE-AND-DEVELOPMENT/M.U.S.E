@@ -50,6 +50,33 @@
     <!-- Navigation -->
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_memory">Memory</string>
+
+    <!-- Memory / Jarvis Prime Social Speech Pattern -->
+    <string name="memory_title">Memory</string>
+    <string name="memory_category_label">Category</string>
+    <string name="memory_empty">No patterns yet. Jarvis Prime will learn abstract speech patterns over time.</string>
+    <string name="memory_privacy_title">Privacy guarantees</string>
+    <string name="memory_privacy_body">Jarvis Prime learns abstract communication patterns only. It never stores usernames, real names, private profiles, or raw comments. Sources are public references. Delete or correct any pattern at any time.</string>
+    <string name="memory_detail_title">Pattern detail</string>
+    <string name="memory_detail_missing">Pattern not found. It may have been deleted.</string>
+    <string name="memory_section_summary">Pattern summary</string>
+    <string name="memory_section_safe_usage">Safe usage</string>
+    <string name="memory_section_unsafe_usage">Unsafe usage — never do this</string>
+    <string name="memory_section_provenance">Provenance (public sources)</string>
+    <string name="memory_provenance_empty">No source recorded.</string>
+    <string name="memory_section_correct">Correct this pattern</string>
+    <string name="memory_field_title">Title</string>
+    <string name="memory_field_summary">Summary</string>
+    <string name="memory_field_safe_usage">Safe usage</string>
+    <string name="memory_field_unsafe_usage">Unsafe usage</string>
+    <string name="memory_action_correct">Correct</string>
+    <string name="memory_action_save_correction">Save correction</string>
+    <string name="memory_delete_title">Delete pattern?</string>
+    <string name="memory_delete_body">This removes the pattern from Jarvis Prime memory. This cannot be undone.</string>
+    <string name="memory_high_risk_title">Identity detected</string>
+    <string name="memory_high_risk_body">This pattern contains identity tokens. The summary is hidden. Correct or delete it.</string>
+    <string name="memory_high_risk_summary_hidden">Summary hidden because identity was detected. Correct or delete this pattern to continue.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

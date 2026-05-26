@@ -12,4 +12,9 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+    data object Memory : Screen("memory")
+    data object MemoryDetail : Screen("memory_detail/{patternId}") {
+        const val ARG_PATTERN_ID = "patternId"
+        fun forPattern(id: String): String = "memory_detail/$id"
+    }
 }

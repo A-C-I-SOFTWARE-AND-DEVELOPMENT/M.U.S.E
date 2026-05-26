@@ -7,6 +7,7 @@ import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.data.preferences.ThemeMode
+import com.aci.hermes.data.social.SocialPatternRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,7 @@ class SettingsViewModel(
     private val settings: SettingsRepository,
     private val tasks: HermesTaskRepository,
     private val logBuffer: LogBuffer,
+    private val socialPatterns: SocialPatternRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -94,6 +96,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             settings.resetAll()
             tasks.deleteAll()
+            socialPatterns?.deleteAll()
             logBuffer.warn("Settings", "User reset all orchestrator settings and tasks")
             val snap = settings.snapshot()
             _state.value = SettingsUiState(

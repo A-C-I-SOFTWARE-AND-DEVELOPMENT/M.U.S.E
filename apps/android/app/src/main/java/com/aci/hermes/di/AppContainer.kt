@@ -8,7 +8,9 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.data.social.SocialPatternRepository
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -31,6 +33,8 @@ class AppContainer(private val application: Application) {
     val settingsRepository: SettingsRepository = SettingsRepository(context)
 
     val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
+
+    val socialPatternRepository: SocialPatternRepository = SocialPatternRepository(context)
 
     val promptBuilder: PromptBuilder = PromptBuilder()
 
@@ -57,11 +61,15 @@ class AppContainer(private val application: Application) {
     }
 
     fun settingsVmFactory(): ViewModelProvider.Factory = factory {
-        SettingsViewModel(settingsRepository, taskRepository, logBuffer)
+        SettingsViewModel(settingsRepository, taskRepository, logBuffer, socialPatternRepository)
     }
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun memoryVmFactory(): ViewModelProvider.Factory = factory {
+        MemoryViewModel(socialPatternRepository)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
