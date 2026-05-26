@@ -95,6 +95,16 @@ None on the Python lane.
 On the Android lane: the compile-blocker described above (missing
 `kotlinx-coroutines-test`) is fixed in this gate.
 
+**Inherited from PR #131's head (not introduced by this gate, not fixed
+by it):**
+
+- `Build debug APK` (`android-build / assemble-debug`) — fails on PR #131
+  itself. Pre-existing.
+- `Lint` (`android-build / lint`) — fails on PR #131 itself. Pre-existing.
+
+These two pre-existing failures should be addressed in a follow-up PR on
+PR #131; they are NOT regressions caused by the launch gate.
+
 ## Tracked follow-ups (not launch blockers)
 
 - **Python process-level kill switch.** No `HERMES_DISABLE=1`

@@ -52,9 +52,10 @@ jobs:
       - name: Install runtime + test deps
         run: |
           python -m pip install --upgrade pip
-          # Install the package so hermes_cli.jarvis_prime imports cleanly.
-          pip install -e . || pip install .
-          pip install pytest pytest-xdist pytest-timeout ruff
+          # Install the package with its dev extra so pytest +
+          # pytest-asyncio + pytest-xdist + pytest-timeout + ruff are all
+          # version-pinned to match local development.
+          pip install -e '.[dev]'
 
       - name: ruff (launch-gate surface)
         run: |
