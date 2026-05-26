@@ -95,7 +95,6 @@ class AppContainer(private val application: Application) {
             socialRepository.load()
             skillsRepository.load()
 
-            val mock = settingsRepository.mockMode
             // Seeding is gated on mock mode being enabled. We read once;
             // subsequent toggles do not retroactively wipe / seed.
             val seeder = MockDataSeeder(

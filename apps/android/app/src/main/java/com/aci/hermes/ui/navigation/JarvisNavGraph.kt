@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.RuleFolder
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -314,7 +315,7 @@ internal fun JarvisScaffold(
     current: Screen?,
     content: @Composable (Modifier) -> Unit,
 ) {
-    androidx.compose.material3.Scaffold(
+    Scaffold(
         bottomBar = { JarvisBottomBar(nav = nav, current = current) },
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
