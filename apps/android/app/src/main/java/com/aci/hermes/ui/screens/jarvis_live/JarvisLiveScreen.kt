@@ -36,7 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -88,7 +90,7 @@ fun JarvisLiveScreen(
     val status = remember(state, reducedMotion) { viewModel.projectStatus(reducedMotion) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var confirmEmergency by remember { androidx.compose.runtime.mutableStateOf(false) }
+    var confirmEmergency by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.snackbar) {
         state.snackbar?.let {
