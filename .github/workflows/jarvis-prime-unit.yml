@@ -150,9 +150,21 @@ jobs:
       - name: Print failing test reports inline
         if: failure()
         run: |
-          echo "::group::Last 200 lines of gradle output"
-          tail -200 /tmp/gradle.log || true
+          echo "::group::Last 250 lines of gradle output"
+          tail -250 /tmp/gradle.log || true
           echo "::endgroup::"
+          # Promote key error lines from gradle log to annotations so they
+          # surface on the PR check page (stdout alone is not visible
+          # outside the raw log).
+          if [ -f /tmp/gradle.log ]; then
+            echo "::group::Gradle error annotations"
+            grep -E "^(e: |error:|FAILED|\* What went wrong:|Caused by:|Compilation error|> Task :.* FAILED)" /tmp/gradle.log \
+              | head -30 \
+              | while IFS= read -r line; do
+                  echo "::error::${line}"
+                done
+            echo "::endgroup::"
+          fi
           echo "::group::Failing JVM unit test XML reports"
           if [ -d app/build/test-results/testDebugUnitTest ]; then
             for xml in app/build/test-results/testDebugUnitTest/TEST-*.xml; do
@@ -160,10 +172,15 @@ jobs:
               if grep -q '<failure\|<error' "$xml"; then
                 echo "------ $xml ------"
                 cat "$xml"
+                # Also surface failure text as annotations.
+                grep -oE '<failure[^>]*>[^<]*' "$xml" | while IFS= read -r f; do
+                  echo "::error::JVM test failure in $(basename "$xml"): ${f}"
+                done
               fi
             done
           else
             echo "(no test-results directory — failure happened before testDebugUnitTest ran)"
+            echo "::error::testDebugUnitTest did not produce test-results — failure happened before tests ran (likely compile error)"
           fi
           echo "::endgroup::"
 
