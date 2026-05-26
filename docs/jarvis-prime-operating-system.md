@@ -311,6 +311,127 @@ When authorization is granted, record:
 Yes, with authorization.
 ```
 
+## CLI Reference
+
+JARVIS Prime ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.
+Each subcommand exits 0 on success, 1 on a validation or business-rule
+failure, and 2 on input/IO error.
+
+### perceive — print an AwarenessSnapshot
+
+```text
+python -m hermes_cli.jarvis_prime perceive --dry-run
+```
+
+Runs all six awareness streams (memory, gateways, jobs, github, telemetry,
+user profile) in parallel with a 2-second cap. `--dry-run` (or `--json`)
+prints the full snapshot as JSON; without it, prints a compact text
+summary. No writes to disk.
+
+### classify — classify intent into a mode
+
+```text
+python -m hermes_cli.jarvis_prime classify "review this build"
+```
+
+Returns the matched mode (Companion / Strategy / Critic / Operator /
+Builder / Mobile Voice) with confidence and the keyword reason. Use
+`--surface`, `--voice`, `--repo-root`, `--risk-class`, or `--mode` to
+pin context.
+
+### gate — run a verification gate against a work-packet
+
+```text
+python -m hermes_cli.jarvis_prime gate all --packet path/to/packet.json
+python -m hermes_cli.jarvis_prime gate planning --packet path/to/packet.json --json
+```
+
+`gate all` evaluates all eight gates (Planning, Build, Review, Test,
+Security, Release, Owner Approval, Rollback) and prints a summary.
+`gate <name>` runs one specific gate. Exit 0 iff the gate(s) pass.
+
+### handle — full perceive → classify → decide turn
+
+```text
+python -m hermes_cli.jarvis_prime handle "audit this repo"
+python -m hermes_cli.jarvis_prime handle "ship the build" --packet packet.json --handoff
+```
+
+Runs the complete turn and prints the routing decision. `--handoff`
+prints the operational handoff template. `--packet PATH` also runs the
+verification gates against the packet. Owner-gated actions surfaced in
+the route stay data — `handle` never executes them.
+
+### tick — one proactive tick
+
+```text
+python -m hermes_cli.jarvis_prime tick --enabled
+```
+
+Runs one iteration of the proactive briefing loop. Reads
+`~/.hermes/config.yaml` if present. Use `--force` to run even when
+disabled in config.
+
+### proposals — owner review surface for self-update proposals
+
+```text
+python -m hermes_cli.jarvis_prime proposals list
+python -m hermes_cli.jarvis_prime proposals approve <id> --phrase "Yes, with authorization."
+python -m hermes_cli.jarvis_prime proposals reject <id>
+```
+
+JARVIS Prime never silently rewrites its own runtime. Every proposed
+change to a skill, agent, runtime file, or routing rule is recorded as
+a Proposal in `${HERMES_HOME:-~/.hermes}/jarvis_prime/proposals.jsonl`,
+where the owner reviews and decides.
+
+- `list` shows each proposal's 10-char id, status, risk class, kind,
+  and target path. Add `--json` for the full record.
+- `approve <id>` requires the exact phrase `Yes, with authorization.`
+  via `--phrase` or the `JARVIS_OWNER_PHRASE` environment variable
+  (the env-var path keeps the phrase out of shell history). Any other
+  phrase, including casing or punctuation variants, is refused.
+- `reject <id>` does not require the phrase — rejection is always
+  allowed.
+
+Both `approve` and `reject` only mutate the proposal's `status`,
+`resolved_at`, and `owner_decision_note` fields. **They do not execute
+the proposed change.** Execution of approved proposals (running the
+build, opening the PR, applying the diff) is owned by a later lane and
+remains explicitly out of scope for the CLI.
+
+### handoff — render the structured handoff for an intent + work-packet
+
+```text
+python -m hermes_cli.jarvis_prime handoff \
+    --intent "audit this repo" --packet path/to/packet.json
+```
+
+Convenience wrapper for `handle --handoff`. Reads the packet, runs the
+turn, prints the Mission / Route / Actions / Verification / Owner gates
+/ Result / Next step block. Add `--skip-perceive` to skip the awareness
+snapshot when speed matters. Owner-gated actions surfaced in the
+rendered handoff remain data — the command does not execute them.
+
+### Failure modes
+
+| Scenario | Exit code | Message location |
+|---|---|---|
+| `--packet` file missing | 2 | stderr: `error: packet file not found: <path>` |
+| `--packet` file is invalid JSON | 2 | stderr: `error: invalid JSON in <path>: <reason>` |
+| `proposals approve` without `--phrase` or env var | 1 | stderr: `error: owner authorization phrase required for approve` |
+| `proposals approve` with wrong phrase | 1 | stderr: `error: phrase does not match owner authorization phrase` |
+| Unknown proposal id | 1 | stderr: `unknown proposal: '<id>'` |
+| Invalid JSONL in proposals store | 2 | stderr: `error: invalid JSON on line <N> of <path>` |
+| Required argument missing (argparse) | 2 | stderr: argparse usage block |
+
+### Not yet wired
+
+`packet validate` and `immune-check` are not part of the CLI. They
+depend on `WorkPacket` and `semantic_immune.py` respectively, which
+are out of scope for the current CLI lane and will be wired by the
+lanes that own those contracts.
+
 ## Verification Gates
 
 Before calling work done, JARVIS Prime must identify the verification evidence.
