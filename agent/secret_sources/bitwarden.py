@@ -30,6 +30,7 @@ is easier to lazy-install than a wheels-with-Rust-extension dependency.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -48,6 +49,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+_TOKEN_FINGERPRINT_KEY = os.urandom(32)
 
 
 # ---------------------------------------------------------------------------
@@ -402,8 +404,11 @@ def _pick_zip_member(zf: zipfile.ZipFile, binary_name: str) -> str:
 
 
 def _token_fingerprint(token: str) -> str:
-    """SHA-256 prefix used as a cache key — never logged, never displayed."""
-    return hashlib.sha256(token.encode("utf-8")).hexdigest()[:16]
+    """HMAC-SHA-256 prefix used as a cache key — never logged, never displayed."""
+    digest = hmac.new(
+        _TOKEN_FINGERPRINT_KEY, token.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
+    return digest[:16]
 
 
 def fetch_bitwarden_secrets(
