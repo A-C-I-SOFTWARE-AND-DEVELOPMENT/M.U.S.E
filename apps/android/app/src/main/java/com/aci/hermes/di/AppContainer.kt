@@ -8,6 +8,7 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
@@ -33,6 +34,9 @@ class AppContainer(private val application: Application) {
     val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
 
     val promptBuilder: PromptBuilder = PromptBuilder()
+
+    val orchestratorServiceController: OrchestratorServiceController =
+        OrchestratorServiceController(context, logBuffer)
 
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
