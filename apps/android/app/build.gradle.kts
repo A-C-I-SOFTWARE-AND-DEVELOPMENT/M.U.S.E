@@ -65,6 +65,13 @@ android {
             )
         }
     }
+
+    testOptions {
+        // android.util.Log is unmocked in pure-JVM unit tests; returning
+        // default values lets LogBuffer / view models exercise their
+        // observability paths without Robolectric.
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -91,6 +98,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

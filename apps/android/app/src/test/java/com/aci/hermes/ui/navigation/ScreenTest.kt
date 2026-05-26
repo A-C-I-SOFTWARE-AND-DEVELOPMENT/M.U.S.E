@@ -64,6 +64,7 @@ class ScreenTest {
             Screen.Approvals.route,
             Screen.Memory.route,
             Screen.Audit.route,
+            Screen.Capability.route,
             Screen.Control.route,
         )
         assertEquals(expectedShellRoutes, Screen.shellRoutes)
