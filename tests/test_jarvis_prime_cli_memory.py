@@ -6,13 +6,14 @@ import io
 import json
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from hermes_cli.jarvis_prime.__main__ import main as cli_main
 
 
-def _run(argv: list[str]) -> tuple[int, dict | list]:
+def _run(argv: list[str]) -> tuple[int, Any]:
     buf = io.StringIO()
     with redirect_stdout(buf):
         code = cli_main(argv)
