@@ -10,6 +10,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
+import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
@@ -83,11 +85,16 @@ fun HermesNavHost(container: AppContainer) {
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
             )
         }
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+        composable(Screen.AvatarPicker.route) {
+            val vm: AvatarPickerViewModel = viewModel(factory = remember { container.avatarPickerVmFactory() })
+            AvatarPickerScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
     }
 }

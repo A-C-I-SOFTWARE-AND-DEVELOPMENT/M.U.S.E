@@ -47,6 +47,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenAvatarPicker: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -138,6 +139,16 @@ fun SettingsScreen(
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
                 )
+            }
+
+            SettingsSection("Personalization") {
+                SettingsRow(
+                    title = "Jarvis avatar",
+                    subtitle = "Choose a built-in avatar or create a private pixel avatar from a photo.",
+                )
+                OutlinedButton(onClick = onOpenAvatarPicker, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open avatar picker")
+                }
             }
 
             SettingsSection(stringResource(R.string.settings_section_appearance)) {
