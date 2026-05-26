@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="hermes_ink">#0E0E12</color>
+    <!-- Jarvis Prime palette. Keep in sync with ui/theme/Color.kt. -->
+    <color name="jarvis_ink">#06070C</color>
+    <color name="jarvis_navy">#0B1220</color>
+    <color name="jarvis_gold">#FFD24A</color>
+
+    <!-- Legacy alias retained so resource references in XML drawables
+         that have not been migrated yet still resolve. -->
+    <color name="hermes_ink">#06070C</color>
 </resources>

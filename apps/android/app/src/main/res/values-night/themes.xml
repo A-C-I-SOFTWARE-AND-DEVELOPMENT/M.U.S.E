@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.HermesAgent" parent="android:Theme.Material.NoActionBar">
+    <!-- Jarvis Prime is dark by design. The night-mode override mostly
+         exists to make the system-painted status bar light up properly
+         under "follow system theme". -->
+    <style name="Theme.JarvisPrime" parent="android:Theme.Material.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowBackground">@color/jarvis_ink</item>
     </style>
 
-    <style name="Theme.HermesAgent.Splash" parent="Theme.HermesAgent">
+    <style name="Theme.JarvisPrime.Splash" parent="Theme.JarvisPrime">
         <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
+
+    <style name="Theme.HermesAgent" parent="Theme.JarvisPrime" />
+    <style name="Theme.HermesAgent.Splash" parent="Theme.JarvisPrime.Splash" />
 </resources>

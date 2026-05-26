@@ -9,6 +9,13 @@
 !app/src/androidTest/java/com/aci/hermes/data/
 !app/src/androidTest/java/com/aci/hermes/data/**
 
+# Test fixtures and Compose UI test helpers under the `test` source set
+# follow the same exemption pattern.
+!app/src/test/java/com/aci/hermes/ui/
+!app/src/test/java/com/aci/hermes/ui/**
+!app/src/androidTest/java/com/aci/hermes/ui/
+!app/src/androidTest/java/com/aci/hermes/ui/**
+
 # Gradle
 .gradle/
 build/

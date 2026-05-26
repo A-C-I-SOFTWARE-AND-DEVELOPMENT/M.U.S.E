@@ -15,8 +15,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aci.hermes.ui.theme.HermesGold
+import com.aci.hermes.R
+import com.aci.hermes.ui.theme.JarvisGold
 import kotlinx.coroutines.delay
 
 @Composable
@@ -38,17 +41,23 @@ fun SplashScreen(onReady: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "☤",
+                text = "J",
                 style = MaterialTheme.typography.displayLarge,
-                color = HermesGold
+                color = JarvisGold,
+                fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Hermes Agent",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            Text(
+                text = stringResource(R.string.app_tagline),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             CircularProgressIndicator(
-                color = HermesGold,
+                color = JarvisGold,
                 strokeWidth = 3.dp,
                 modifier = Modifier.padding(top = 8.dp)
             )
