@@ -42,7 +42,14 @@ def test_policy_disabled_only_records_platform(store: MemoryStore) -> None:
     assert "device_platform" in keys
 
 
-def test_full_local_policy_scans_documents(fake_home: Path, store: MemoryStore) -> None:
+def test_full_local_policy_scans_documents(
+    fake_home: Path, store: MemoryStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # _read_git_history_local resolves ``~/.gitconfig`` via
+    # os.path.expanduser, so point HOME at the fixture's fake home for
+    # the duration of this test — otherwise the test reads whatever
+    # gitconfig happens to exist on the CI runner.
+    monkeypatch.setenv("HOME", str(fake_home))
     policy = OnboardingPolicy.full_local()
     policy = OnboardingPolicy(
         scan_home_directory=policy.scan_home_directory,
