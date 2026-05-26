@@ -13,6 +13,11 @@ _ENTER_CHARS = {"\r", "\n"}
 _EOF_CHARS = {"\x04", "\x1a"}
 
 
+def _sanitize_prompt_text(prompt: str) -> str:
+    """Return a terminal-safe prompt string without control characters."""
+    return "".join(ch if ch.isprintable() or ch in {"\t", " "} else "?" for ch in prompt)
+
+
 def _collect_masked_input(
     read_char: Callable[[], str],
     write: Callable[[str], object],
@@ -22,7 +27,7 @@ def _collect_masked_input(
 ) -> str:
     """Read one secret line while writing a mask character per typed char."""
     value: list[str] = []
-    write(prompt)
+    write(_sanitize_prompt_text(prompt))
 
     while True:
         ch = read_char()
