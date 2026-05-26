@@ -63,9 +63,9 @@ def test_handle_owner_pending_routes_to_owner_decision(jp: JarvisPrime) -> None:
 
 
 def test_authorize_clears_pending_action(jp: JarvisPrime) -> None:
-    jp.config.owner_auth.request("main_branch_merge", rationale="merge sync PR")
+    jp.config.owner_auth.request("production_deploy", rationale="hot fix")
     granted = jp.authorize("Yes, with authorization.")
-    assert granted == ["main_branch_merge"]
+    assert granted == ["production_deploy"]
     assert jp.config.owner_auth.pending_actions() == []
 
 
