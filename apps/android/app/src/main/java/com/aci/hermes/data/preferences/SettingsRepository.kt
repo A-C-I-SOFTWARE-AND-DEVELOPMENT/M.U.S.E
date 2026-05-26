@@ -32,6 +32,7 @@ class SettingsRepository(private val context: Context) {
         val ALLOW_EXTERNAL_APP_OPENING = booleanPreferencesKey("allow_external_app_opening")
         val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
         val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
+        val EMERGENCY_STOP_ACTIVE = booleanPreferencesKey("emergency_stop_active")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -66,6 +67,9 @@ class SettingsRepository(private val context: Context) {
     }
     val showSafetyWarnings: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.SHOW_SAFETY_WARNINGS] ?: true
+    }
+    val emergencyStopActive: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.EMERGENCY_STOP_ACTIVE] ?: false
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -104,6 +108,10 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.SHOW_SAFETY_WARNINGS] = value }
     }
 
+    suspend fun setEmergencyStopActive(value: Boolean) {
+        context.dataStore.edit { it[Keys.EMERGENCY_STOP_ACTIVE] = value }
+    }
+
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }
     }
@@ -128,6 +136,7 @@ class SettingsRepository(private val context: Context) {
             allowExternalAppOpening = data[Keys.ALLOW_EXTERNAL_APP_OPENING] ?: false,
             clipboardHandoffEnabled = data[Keys.CLIPBOARD_HANDOFF_ENABLED] ?: true,
             showSafetyWarnings = data[Keys.SHOW_SAFETY_WARNINGS] ?: true,
+            emergencyStopActive = data[Keys.EMERGENCY_STOP_ACTIVE] ?: false,
         )
     }
 
@@ -141,6 +150,7 @@ class SettingsRepository(private val context: Context) {
         val allowExternalAppOpening: Boolean,
         val clipboardHandoffEnabled: Boolean,
         val showSafetyWarnings: Boolean,
+        val emergencyStopActive: Boolean,
     )
 }
 

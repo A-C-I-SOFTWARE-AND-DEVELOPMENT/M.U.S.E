@@ -12,10 +12,14 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.home.JarvisHomeNavigation
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeScreen
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
+import com.aci.hermes.ui.screens.placeholder.PlaceholderScreen
 import com.aci.hermes.ui.screens.settings.SettingsScreen
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.splash.SplashScreen
@@ -28,10 +32,75 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Splash.route) {
             SplashScreen(
                 onReady = {
-                    nav.navigate(Screen.Orchestrator.route) {
+                    nav.navigate(Screen.Home.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
+            )
+        }
+        composable(Screen.Home.route) {
+            val vm: JarvisPrimeHomeViewModel = viewModel(factory = remember { container.homeVmFactory() })
+            JarvisPrimeHomeScreen(
+                viewModel = vm,
+                navigation = JarvisHomeNavigation(
+                    openChat = { nav.navigate(Screen.Chat.route) },
+                    openVoiceCapture = { nav.navigate(Screen.Voice.route) },
+                    openTasks = { taskId ->
+                        nav.navigate(
+                            if (taskId == null) Screen.Orchestrator.route
+                            else Screen.TaskDetail.forTask(taskId)
+                        )
+                    },
+                    openApprovals = { taskId -> nav.navigate(Screen.Approvals.forTask(taskId)) },
+                    openMemory = { nav.navigate(Screen.Memory.route) },
+                    openControl = { nav.navigate(Screen.Control.route) },
+                    openSettings = { nav.navigate(Screen.Settings.route) },
+                ),
+            )
+        }
+        composable(Screen.Chat.route) {
+            PlaceholderScreen(
+                title = "Chat",
+                body = "Ask Jarvis from this surface. Full chat lands on its own branch.",
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable(Screen.Voice.route) {
+            PlaceholderScreen(
+                title = "Voice capture",
+                body = "Press to speak. Voice capture pipeline lands on its own branch.",
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable(Screen.Memory.route) {
+            PlaceholderScreen(
+                title = "Memory",
+                body = "Recent facts, decisions, and pulse events.",
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable(Screen.Control.route) {
+            PlaceholderScreen(
+                title = "Control",
+                body = "Gateway, service, worker control panel.",
+                onBack = { nav.popBackStack() },
+            )
+        }
+        composable(
+            route = Screen.Approvals.route,
+            arguments = listOf(
+                navArgument(Screen.Approvals.ARG_TASK_ID) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+            ),
+        ) { entry ->
+            val taskId = entry.arguments?.getString(Screen.Approvals.ARG_TASK_ID)
+            PlaceholderScreen(
+                title = "Approvals",
+                body = taskId?.let { "Approval for task $it" } ?: "Approvals queue",
+                onBack = { nav.popBackStack() },
             )
         }
         composable(Screen.Orchestrator.route) {

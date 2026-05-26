@@ -9,6 +9,7 @@ import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -33,6 +34,15 @@ class AppContainer(private val application: Application) {
     val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
 
     val promptBuilder: PromptBuilder = PromptBuilder()
+
+    fun homeVmFactory(): ViewModelProvider.Factory = factory {
+        JarvisPrimeHomeViewModel(
+            application = application,
+            settings = settingsRepository,
+            tasksRepo = taskRepository,
+            logBuffer = logBuffer,
+        )
+    }
 
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(

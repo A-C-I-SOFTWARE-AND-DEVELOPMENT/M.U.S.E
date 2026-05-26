@@ -2,6 +2,16 @@ package com.aci.hermes.ui.navigation
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
+    data object Home : Screen("home")
+    data object Chat : Screen("chat")
+    data object Voice : Screen("voice")
+    data object Memory : Screen("memory")
+    data object Control : Screen("control")
+    data object Approvals : Screen("approvals?taskId={taskId}") {
+        const val ARG_TASK_ID = "taskId"
+        fun forTask(id: String?): String =
+            if (id == null) "approvals" else "approvals?taskId=$id"
+    }
     data object Orchestrator : Screen("orchestrator")
     data object TaskDetail : Screen("task_detail/{taskId}?target={target}") {
         const val ARG_TASK_ID = "taskId"
