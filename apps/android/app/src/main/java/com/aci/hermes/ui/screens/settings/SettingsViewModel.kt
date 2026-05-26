@@ -23,6 +23,10 @@ data class SettingsUiState(
     val allowExternalAppOpening: Boolean = false,
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
+    val mockMode: Boolean = true,
+    val termuxMode: Boolean = false,
+    val emergencyStopArmed: Boolean = false,
+    val notificationEducation: Boolean = true,
 )
 
 class SettingsViewModel(
@@ -35,9 +39,27 @@ class SettingsViewModel(
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     init {
+        viewModelScope.launch { refresh() }
         viewModelScope.launch {
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
+            settings.mockMode.collect { v -> _state.update { it.copy(mockMode = v) } }
+        }
+        viewModelScope.launch {
+            settings.termuxMode.collect { v -> _state.update { it.copy(termuxMode = v) } }
+        }
+        viewModelScope.launch {
+            settings.emergencyStop.collect { v -> _state.update { it.copy(emergencyStopArmed = v) } }
+        }
+        viewModelScope.launch {
+            settings.notificationEducation.collect { v ->
+                _state.update { it.copy(notificationEducation = v) }
+            }
+        }
+    }
+
+    private suspend fun refresh() {
+        val snap = settings.snapshot()
+        _state.update {
+            it.copy(
                 themeMode = snap.themeMode,
                 preferredBuilder = snap.preferredBuilder,
                 preferredReviewer = snap.preferredReviewer,
@@ -48,6 +70,26 @@ class SettingsViewModel(
                 showSafetyWarnings = snap.showSafetyWarnings,
             )
         }
+    }
+
+    fun setMockMode(value: Boolean) {
+        _state.update { it.copy(mockMode = value) }
+        viewModelScope.launch { settings.setMockMode(value) }
+    }
+
+    fun setTermuxMode(value: Boolean) {
+        _state.update { it.copy(termuxMode = value) }
+        viewModelScope.launch { settings.setTermuxMode(value) }
+    }
+
+    fun setEmergencyStop(value: Boolean) {
+        _state.update { it.copy(emergencyStopArmed = value) }
+        viewModelScope.launch { settings.setEmergencyStop(value) }
+    }
+
+    fun setNotificationEducation(value: Boolean) {
+        _state.update { it.copy(notificationEducation = value) }
+        viewModelScope.launch { settings.setNotificationEducation(value) }
     }
 
     fun setThemeMode(mode: ThemeMode) {
@@ -94,18 +136,8 @@ class SettingsViewModel(
         viewModelScope.launch {
             settings.resetAll()
             tasks.deleteAll()
-            logBuffer.warn("Settings", "User reset all orchestrator settings and tasks")
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
-                themeMode = snap.themeMode,
-                preferredBuilder = snap.preferredBuilder,
-                preferredReviewer = snap.preferredReviewer,
-                useApiKeys = snap.useApiKeys,
-                localOnlyMode = snap.localOnlyMode,
-                allowExternalAppOpening = snap.allowExternalAppOpening,
-                clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
-                showSafetyWarnings = snap.showSafetyWarnings,
-            )
+            logBuffer.warn("Settings", "User reset all Jarvis Prime settings and tasks")
+            refresh()
         }
     }
 }

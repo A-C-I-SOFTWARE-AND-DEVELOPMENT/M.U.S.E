@@ -17,20 +17,24 @@ import com.aci.hermes.service.HermesService
 import com.aci.hermes.ui.navigation.HermesNavHost
 import com.aci.hermes.ui.theme.HermesTheme
 
+/**
+ * Jarvis Prime entry activity. Permission rules:
+ *  - Notifications are ONLY requested when the user taps "Enable" on
+ *    the home banner or the settings row. There is no automatic
+ *    permission prompt on launch.
+ *  - No SMS, call log, background microphone, or overlay permissions
+ *    are declared.
+ */
 class MainActivity : ComponentActivity() {
 
     private val requestNotificationPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // Service is already running; this just unlocks the user-visible
-            // notification on Android 13+. We do not retry on denial.
-        }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* handled by VM */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        startHermesOrchestrator()
-        maybeRequestNotificationPermission()
+        startJarvisOrchestrator()
 
         val container = (application as HermesApplication).container
 
@@ -39,12 +43,15 @@ class MainActivity : ComponentActivity() {
                 initial = ThemeMode.SYSTEM
             )
             HermesTheme(themeMode = themePref) {
-                HermesNavHost(container = container)
+                HermesNavHost(
+                    container = container,
+                    onRequestNotificationPermission = { requestNotificationPermissionIfNeeded() },
+                )
             }
         }
     }
 
-    private fun startHermesOrchestrator() {
+    private fun startJarvisOrchestrator() {
         val intent = Intent(this, HermesService::class.java).apply {
             putExtra(HermesService.EXTRA_LAUNCH_SOURCE, HermesService.DEFAULT_LAUNCH_SOURCE)
             putExtra(HermesService.EXTRA_MODE, HermesService.DEFAULT_MODE)
@@ -52,7 +59,7 @@ class MainActivity : ComponentActivity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
-    private fun maybeRequestNotificationPermission() {
+    private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         val granted = ContextCompat.checkSelfPermission(
             this,

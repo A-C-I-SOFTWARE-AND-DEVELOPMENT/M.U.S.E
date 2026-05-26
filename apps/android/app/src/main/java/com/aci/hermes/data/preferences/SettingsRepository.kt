@@ -32,6 +32,12 @@ class SettingsRepository(private val context: Context) {
         val ALLOW_EXTERNAL_APP_OPENING = booleanPreferencesKey("allow_external_app_opening")
         val CLIPBOARD_HANDOFF_ENABLED = booleanPreferencesKey("clipboard_handoff_enabled")
         val SHOW_SAFETY_WARNINGS = booleanPreferencesKey("show_safety_warnings")
+
+        // Jarvis Prime integration.
+        val MOCK_MODE = booleanPreferencesKey("jarvis_mock_mode")
+        val TERMUX_MODE = booleanPreferencesKey("jarvis_termux_mode")
+        val EMERGENCY_STOP = booleanPreferencesKey("jarvis_emergency_stop")
+        val NOTIFICATION_EDU = booleanPreferencesKey("jarvis_notification_education")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -66,6 +72,29 @@ class SettingsRepository(private val context: Context) {
     }
     val showSafetyWarnings: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.SHOW_SAFETY_WARNINGS] ?: true
+    }
+
+    val mockMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOCK_MODE] ?: true }
+    val termuxMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.TERMUX_MODE] ?: false }
+    val emergencyStop: Flow<Boolean> = context.dataStore.data.map { it[Keys.EMERGENCY_STOP] ?: false }
+    val notificationEducation: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.NOTIFICATION_EDU] ?: true
+    }
+
+    suspend fun setMockMode(value: Boolean) {
+        context.dataStore.edit { it[Keys.MOCK_MODE] = value }
+    }
+
+    suspend fun setTermuxMode(value: Boolean) {
+        context.dataStore.edit { it[Keys.TERMUX_MODE] = value }
+    }
+
+    suspend fun setEmergencyStop(value: Boolean) {
+        context.dataStore.edit { it[Keys.EMERGENCY_STOP] = value }
+    }
+
+    suspend fun setNotificationEducation(value: Boolean) {
+        context.dataStore.edit { it[Keys.NOTIFICATION_EDU] = value }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {

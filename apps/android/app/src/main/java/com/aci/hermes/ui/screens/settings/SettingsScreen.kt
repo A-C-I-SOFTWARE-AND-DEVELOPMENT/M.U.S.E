@@ -47,6 +47,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onRequestNotificationPermission: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -137,6 +138,49 @@ fun SettingsScreen(
                     subtitle = stringResource(R.string.settings_safety_warnings_subtitle),
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
+                )
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_gateway)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_mock_mode_label),
+                    subtitle = stringResource(R.string.settings_mock_mode_subtitle),
+                    checked = state.mockMode,
+                    onChange = viewModel::setMockMode,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_termux_mode_label),
+                    subtitle = stringResource(R.string.settings_termux_mode_subtitle),
+                    checked = state.termuxMode,
+                    onChange = viewModel::setTermuxMode,
+                )
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_safety)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_emergency_stop_label),
+                    subtitle = stringResource(R.string.settings_emergency_stop_subtitle),
+                    checked = state.emergencyStopArmed,
+                    onChange = viewModel::setEmergencyStop,
+                )
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_notifications)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_notifications_education_label),
+                    subtitle = stringResource(R.string.settings_notifications_education_subtitle),
+                    checked = state.notificationEducation,
+                    onChange = viewModel::setNotificationEducation,
+                )
+                OutlinedButton(
+                    onClick = onRequestNotificationPermission,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.settings_notifications_request))
+                }
+                Text(
+                    stringResource(R.string.settings_notifications_request_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
 

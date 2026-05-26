@@ -43,7 +43,7 @@ fun SplashScreen(onReady: () -> Unit) {
                 color = HermesGold
             )
             Text(
-                text = "Hermes Agent",
+                text = "Jarvis Prime",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
