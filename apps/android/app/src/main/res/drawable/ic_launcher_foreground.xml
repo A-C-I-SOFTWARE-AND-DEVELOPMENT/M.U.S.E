@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Caduceus glyph for the Hermes Agent launcher icon.
+  Adaptive icon foreground: 108dp x 108dp viewport,
+  the safe zone is the inner 66dp x 66dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Center staff -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M53,28 h2 v54 h-2 z" />
+    <!-- Wings -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,32 C48,30 42,30 38,32 C42,34 48,34 54,36 z" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,32 C60,30 66,30 70,32 C66,34 60,34 54,36 z" />
+    <!-- Upper serpent loop -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M54,40 C46,46 62,52 54,58" />
+    <!-- Lower serpent loop -->
+    <path
+        android:strokeColor="#FFD700"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M54,58 C46,64 62,70 54,76" />
+    <!-- Top knob -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,28 m -3,0 a 3,3 0 1,0 6,0 a 3,3 0 1,0 -6,0" />
+</vector>
