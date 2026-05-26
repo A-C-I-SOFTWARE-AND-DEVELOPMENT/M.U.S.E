@@ -4,6 +4,9 @@ import android.app.Application
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.aci.hermes.conversation.ConversationEngine
+import com.aci.hermes.conversation.ConversationStore
+import com.aci.hermes.conversation.MockConversationEngine
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -11,6 +14,7 @@ import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.safety.EmergencyStop
 import com.aci.hermes.safety.PermissionKernel
+import com.aci.hermes.ui.screens.conversation.ConversationViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
@@ -46,6 +50,16 @@ class AppContainer(private val application: Application) {
     val emergencyStop: EmergencyStop = EmergencyStop()
 
     val memoryRepository: MemoryRepository = MemoryRepository(context)
+
+    /**
+     * Conversation engine. Defaults to the offline mock so the UI works
+     * before the gateway is wired in. The gateway-backed implementation
+     * (see Wave 7) will replace this binding without changing the
+     * `ConversationEngine` interface.
+     */
+    val conversationEngine: ConversationEngine = MockConversationEngine()
+
+    val conversationStore: ConversationStore = ConversationStore()
 
     private val activityLauncher = AtomicReference<PermissionKernel.SystemPromptLauncher?>(null)
 
@@ -91,6 +105,14 @@ class AppContainer(private val application: Application) {
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
         MemoryViewModel(memoryRepository)
+    }
+
+    fun conversationVmFactory(): ViewModelProvider.Factory = factory {
+        ConversationViewModel(
+            engine = conversationEngine,
+            store = conversationStore,
+            logBuffer = logBuffer,
+        )
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
