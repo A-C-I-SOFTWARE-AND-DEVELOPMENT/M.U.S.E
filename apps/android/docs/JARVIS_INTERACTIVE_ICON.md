@@ -11,164 +11,206 @@ Build Jarvis Prime's visible presence as an in-app icon that:
 The floating-bubble overlay surface ships **later**, behind a dedicated
 education flow. This document covers the in-app icon only.
 
-## Files
+## Where it lives
+
+This lane introduces a single, isolated composable plus a minimal
+event contract. The state layer it consumes (`IconState`,
+`IconStateMapper`, `JarvisIconColors`, `OrchestratorIconStateMapping`)
+already exists at `ui/jarvis/` and is reused unchanged.
 
 ```
-apps/android/app/src/main/java/com/aci/hermes/ui/jarvis/
-├── IconState.kt                       # State enum, accessibility labels, priority
-├── IconStateMapper.kt                 # IconStateInputs → IconState (pure)
-├── JarvisIconColors.kt                # State → IconAppearance recipe + palette
-├── JarvisHaptics.kt                   # Thin shim over HapticFeedback
-├── JarvisPrimeIcon.kt                 # The @Composable + gesture detector
-├── OrchestratorIconStateMapping.kt    # HermesTask snapshot → IconStateInputs
-└── ReducedMotion.kt                   # rememberReducedMotion() helper
+apps/android/app/src/main/java/com/aci/hermes/ui/
+├── jarvis/                                # state layer (reused, unmodified)
+│   ├── IconState.kt
+│   ├── IconStateMapper.kt
+│   ├── JarvisIconColors.kt
+│   └── OrchestratorIconStateMapping.kt
+└── components/
+    ├── JarvisPrimeIcon.kt                 # static brand glyph (untouched)
+    └── icon/                              # this lane
+        ├── JarvisInteractiveIcon.kt       # entry-point composable
+        ├── JarvisIconEvent.kt             # sealed event contract
+        └── IconAccessibility.kt           # state → label + action hint
 ```
 
-## States
+The interactive composable is deliberately named `JarvisInteractiveIcon`
+(not `JarvisPrimeIcon`) so it does not collide with the existing static
+brand glyph at `ui/components/JarvisPrimeIcon.kt`.
 
-| State                       | Color (core / ring) | Pulse | Notes                                  |
-|-----------------------------|--------------------|-------|----------------------------------------|
-| `IDLE`                      | core / gold        | low   | default ambient                        |
-| `LISTENING`                 | cyan / cyan        | high  | mic open — the "cyan listening glow"   |
-| `THINKING`                  | violet / violet    | med   | model reasoning                        |
-| `SPEAKING`                  | cyan / cyan        | high  | TTS playback                           |
-| `WORKING`                   | slate / slate      | med   | background task in flight              |
-| `WAITING_FOR_APPROVAL`      | core / **gold**    | med   | non-destructive approval — gold ring   |
-| `SERIOUS_ACTION_PENDING`    | gold / **gold**    | high  | reversible-but-serious — gold ring     |
-| `CRITICAL_ACTION_PENDING`   | red / **red**      | high  | destructive — red ring                 |
-| `BLOCKED`                   | charcoal / red     | off   | precondition fail                      |
-| `WARNING`                   | amber / amber      | med   | non-fatal                              |
-| `COMPLETE`                  | green / green      | high  | transient green flash on task complete |
-| `OFFLINE`                   | dim gray (50% α)   | off   | gateway unreachable                    |
-
-`SERIOUS_*` and `CRITICAL_*` are deliberately visually distinct — the
-former uses gold (filled core), the latter uses red. Their
-accessibility labels are also distinct so TalkBack announces them
-differently.
-
-## Interactions
-
-| Gesture            | Callback          | Default wiring (current wave)             |
-|--------------------|-------------------|-------------------------------------------|
-| tap                | `onTap`           | open Chat (placeholder snackbar)          |
-| press + hold ≥350ms| `onHold`          | start Voice Capture (placeholder)         |
-| press + hold ≥1.5s | `onLongPress`     | open Emergency Stop confirm (placeholder) |
-| double tap         | `onDoubleTap`     | announce current status                   |
-| swipe up           | `onSwipeUp`       | open Tasks (already shown on Orchestrator)|
-
-Thresholds live in `JarvisIconGestures` (`HOLD_THRESHOLD_MS`,
-`LONG_PRESS_THRESHOLD_MS`, `SWIPE_UP_DISTANCE`). All five gestures are
-mutually exclusive within a single press — if `onSwipeUp` or `onHold`
-fires, `onTap` will not. `onHold` and `onLongPress` can both fire on a
-single >1.5s press (hold begins voice capture; long-press escalates to
-emergency stop).
-
-Haptic feedback is invoked on every gesture path via `JarvisHaptics`,
-which is a thin wrapper around Compose's `LocalHapticFeedback`. The
-wrapper exists so the composable doesn't have to spell out
-`HapticFeedbackType` guards inline and so tests can swap a fake.
-
-## State mapping
-
-The composable is dumb — it accepts an `IconState` and renders. The
-"what state are we in" decision is owned by `IconStateMapper`, a pure
-function over `IconStateInputs`:
+## Entry point
 
 ```kotlin
-data class IconStateInputs(
-    val gatewayOnline: Boolean = true,
-    val listening: Boolean = false,
-    val thinking: Boolean = false,
-    val speaking: Boolean = false,
-    val working: Boolean = false,
-    val pendingApproval: Boolean = false,
-    val seriousActionPending: Boolean = false,
-    val criticalActionPending: Boolean = false,
-    val blocked: Boolean = false,
-    val warning: Boolean = false,
-    val recentCompletion: Boolean = false,
+@Composable
+fun JarvisInteractiveIcon(
+    state: IconState,
+    onEvent: JarvisIconEventHandler,
+    modifier: Modifier = Modifier,
+    size: Dp = 72.dp,
+    reducedMotion: Boolean = false,
 )
 ```
 
-Priority is encoded in `IconState.priority()`. The rules:
+The composable is dumb — it accepts a state and renders. State
+resolution lives in `IconStateMapper`, the orchestrator bridge lives
+in `OrchestratorIconStateMapping`.
 
-1. If `!gatewayOnline` → `OFFLINE` (overrides everything).
-2. Otherwise the highest-priority active signal wins.
-3. `IDLE` is the floor.
+## Event contract
 
-`OrchestratorIconStateMapping.inputsFor(...)` is the bridge from the
-orchestrator domain (`HermesTask`, `TaskStatus`, service-running flag)
-to the icon's domain-neutral `IconStateInputs`. The orchestrator
-package never imports the icon package directly — the bridge lives in
-the icon package, by design.
+```kotlin
+sealed class JarvisIconEvent {
+    object Tap : JarvisIconEvent()
+    object LongPress : JarvisIconEvent()
+    object DoubleTap : JarvisIconEvent()
+    object SwipeUp : JarvisIconEvent()
+    object SwipeDown : JarvisIconEvent()
+}
 
-Current orchestrator → icon mapping:
+fun interface JarvisIconEventHandler {
+    fun onEvent(event: JarvisIconEvent)
+}
+```
 
-| Orchestrator signal                          | Icon input flag         |
-|----------------------------------------------|-------------------------|
-| `serviceRunning == false`                    | `gatewayOnline = false` |
-| any task `IN_REVIEW`                         | `pendingApproval`       |
-| any task `HANDED_TO_CODEX` or `HANDED_TO_CLAUDE` | `working`           |
-| any task `NEEDS_REVISION`                    | `warning`               |
-| any task `COMPLETE` updated within 5s        | `recentCompletion`      |
+| Gesture     | Event       | Suggested wiring (caller decides)       |
+|-------------|-------------|-----------------------------------------|
+| tap         | `Tap`       | open chat                               |
+| long-press  | `LongPress` | emergency-stop confirm                  |
+| double-tap  | `DoubleTap` | announce status / quick toggle          |
+| swipe up    | `SwipeUp`   | open Tasks                              |
+| swipe down  | `SwipeDown` | mute briefly / collapse to status pill  |
 
-`seriousActionPending`, `criticalActionPending`, `blocked`,
-`voiceListening`, `voiceSpeaking`, `thinking` are passthrough
-parameters — the wiring for those lives next to the future voice and
-approval pipelines.
+Vertical-drag threshold is `size / 3`. A drag that does not pass the
+threshold is dropped without emitting any event.
+
+## States
+
+The composable handles every `IconState` via the appearance recipe,
+but the mission's six required states are the explicit acceptance
+surface:
+
+| Mission state    | `IconState`               | Ring / Core         | Pulse |
+|------------------|---------------------------|---------------------|-------|
+| idle             | `IDLE`                    | gold-deep / core    | low   |
+| listening        | `LISTENING`               | **cyan** / cyan     | high  |
+| working          | `WORKING`                 | slate / slate       | med   |
+| needs_approval   | `WAITING_FOR_APPROVAL`    | **gold** / core     | med   |
+| blocked          | `BLOCKED`                 | red / charcoal      | off   |
+| emergency_stop   | `CRITICAL_ACTION_PENDING` | **red** / red       | max   |
+
+`SERIOUS_ACTION_PENDING`, `WARNING`, `COMPLETE`, `THINKING`,
+`SPEAKING`, and `OFFLINE` also render correctly — they're inherited
+from the full enum.
+
+## State mapping
+
+`IconStateMapper` collapses a snapshot of signals into one state:
+
+```kotlin
+val state = IconStateMapper.map(
+    IconStateInputs(
+        gatewayOnline = serviceRunning,
+        listening = voiceListening,
+        criticalActionPending = emergencyStopArmed,
+        pendingApproval = approvalsInQueue,
+        blocked = policyBlocked,
+        // … etc.
+    ),
+)
+```
+
+`OrchestratorIconStateMapping.inputsFor(...)` builds those inputs from
+the orchestrator's task list. The mapper is pure and side-effect-free,
+so the same logic will drive the in-app icon today and the future
+overlay surface unchanged.
 
 ## Accessibility
 
 - Every `IconState` has a unique, non-blank `accessibilityLabel()`.
 - The composable applies the label as both `contentDescription` and
-  `stateDescription` so TalkBack reads the right phrase whether the
-  user focuses the icon for the first time or after a state change.
-- `onClick(label = "Open chat")` is set on the semantics modifier so
-  TalkBack can announce the primary action.
-- `rememberReducedMotion()` reads
-  `Settings.Global.ANIMATOR_DURATION_SCALE` and
-  `TRANSITION_ANIMATION_SCALE`. When both are zero the infinite halo
-  pulse is suppressed — the icon still renders at its base size and
-  remains fully labeled.
+  `stateDescription` so TalkBack announces it on focus and again on
+  state change.
+- A state-specific action hint (`semanticActionHint()`) is attached
+  to the `onClick` semantic so TalkBack tells the user what `Tap`
+  will do *right now* (review approval / stop listening / open Jarvis).
+- `OFFLINE` is dimmed (`alpha = 0.6`); `BLOCKED` and `OFFLINE` have
+  pulse amplitude `0f` by design.
+
+## Reduced motion
+
+Pass `reducedMotion = true` to suppress the infinite halo pulse. The
+icon still renders at its base size and remains fully labeled — only
+the breathing animation is dropped. Callers should propagate the
+system-level reduced-motion preference.
+
+## Non-goals (this wave)
+
+- **No overlay / system bubble.** No `SYSTEM_ALERT_WINDOW`, no
+  `ACTION_MANAGE_OVERLAY_PERMISSION`. The composable lives entirely
+  inside the app process.
+- **No permission additions.** A guard test asserts the manifest
+  permission set is unchanged.
+- **No nav, AppContainer, or Screen edits.** This lane is the icon
+  itself plus its docs and tests — wiring it into the home/orchestrator
+  screens is the next lane.
+- **No persistence.** The state is recomputed from the latest
+  `IconStateInputs`. Anything durable lives in its owning repository.
 
 ## Tests
 
-Pure-JVM unit tests (`app/src/test/java/com/aci/hermes/ui/jarvis/`):
+Pure-JVM unit tests under
+`apps/android/app/src/test/java/com/aci/hermes/ui/components/icon/`:
 
-- `IconStateMapperTest` — every priority rule, idle floor, offline
-  override.
-- `IconStateAccessibilityTest` — every state has a unique non-blank
-  label; serious vs critical are distinct in label AND ring color;
-  offline is the only `dim` state; offline/blocked have zero pulse.
-- `OrchestratorIconStateMappingTest` — `HermesTask` shapes map to the
-  right `IconStateInputs` → `IconState`.
-
-Compose UI tests (`app/src/androidTest/java/com/aci/hermes/ui/jarvis/`):
-
-- `JarvisPrimeIconTest` — every state renders with its accessibility
-  label; tap / double-tap / long-press / swipe-up callbacks fire;
-  reduced-motion still renders and is labeled; serious and critical
-  expose distinct content descriptions.
+- `IconAccessibilityLabelTest` — every required state has a non-blank
+  label; emergency-stop label is distinct from approval + blocked;
+  action hint differs across listening / approval / idle.
+- `EmergencyStopAppearanceTest` — `CRITICAL_ACTION_PENDING` uses the
+  red ring + core, pulse amplitude `1.0f`, not dim, and is visually
+  distinct from `BLOCKED` and `WAITING_FOR_APPROVAL`.
+- `NeedsApprovalMappingTest` — `IconStateInputs(pendingApproval = true)`
+  resolves to `WAITING_FOR_APPROVAL`; critical wins when both flags
+  are set.
+- `JarvisIconEventModelTest` — every `JarvisIconEvent` subclass is a
+  singleton; an exhaustive `when` covers all five branches.
+- `ManifestPermissionsUnchangedTest` — the Android manifest still
+  declares exactly `{POST_NOTIFICATIONS, FOREGROUND_SERVICE,
+  FOREGROUND_SERVICE_DATA_SYNC}` and does **not** declare
+  `SYSTEM_ALERT_WINDOW`.
 
 ## Verifying locally
 
 ```bash
 cd apps/android
-./gradlew assembleDebug              # builds the debug APK
-./gradlew testDebugUnitTest          # runs the pure-JVM tests above
-./gradlew connectedDebugAndroidTest  # runs the Compose UI tests on a device
+./gradlew testDebugUnitTest    # pure-JVM unit tests
+./gradlew assembleDebug        # builds the debug APK
 ```
 
-## Non-goals (this wave)
+## Integration snippet (for the follow-up lane)
 
-- **No overlay / system bubble.** The composable lives inside the app
-  process and is reachable only when the user is on a Hermes screen.
-  Adding `SYSTEM_ALERT_WINDOW` or invoking `ACTION_MANAGE_OVERLAY_PERMISSION`
-  is explicitly out of scope.
-- **No Chat / Voice / Emergency Stop screens.** Those land in later
-  waves. The icon's callbacks surface placeholder snackbars from the
-  Orchestrator screen until the destinations exist.
-- **No persistence of icon state.** The mapper is recomputed on every
-  state snapshot. State that needs to persist across process death
-  (e.g. an in-flight approval) lives in its owning repository, not in
-  the icon.
+The next lane wires `JarvisInteractiveIcon` into the cockpit. Sketch:
+
+```kotlin
+val inputs = OrchestratorIconStateMapping.inputsFor(
+    serviceRunning = uiState.serviceRunning,
+    tasks = uiState.tasks,
+    voiceListening = uiState.voiceListening,
+    pendingApproval = uiState.pendingApprovals.isNotEmpty(),
+    criticalActionPending = uiState.emergencyStopArmed,
+)
+val state = IconStateMapper.map(inputs)
+
+JarvisInteractiveIcon(
+    state = state,
+    onEvent = { event ->
+        when (event) {
+            JarvisIconEvent.Tap -> openChat()
+            JarvisIconEvent.LongPress -> confirmEmergencyStop()
+            JarvisIconEvent.DoubleTap -> announceStatus()
+            JarvisIconEvent.SwipeUp -> openTasks()
+            JarvisIconEvent.SwipeDown -> collapseToStatusPill()
+        }
+    },
+    reducedMotion = uiState.reducedMotion,
+)
+```
+
+Wiring lives in the caller — this lane intentionally does not touch
+`HermesNavGraph`, `Screen`, `AppContainer`, or `AndroidManifest.xml`.

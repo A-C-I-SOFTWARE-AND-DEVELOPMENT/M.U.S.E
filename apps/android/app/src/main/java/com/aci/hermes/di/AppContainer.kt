@@ -15,6 +15,7 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.data.social.SocialPatternRepository
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditViewModel
@@ -56,6 +57,7 @@ class AppContainer(private val application: Application) {
     val memoryRepository: MemoryRepository = MemoryRepository()
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
+    val socialPatternRepository: SocialPatternRepository = SocialPatternRepository(context)
 
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
@@ -105,7 +107,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
-        MemoryViewModel(memoryRepository, logBuffer)
+        MemoryViewModel(memoryRepository, logBuffer, socialPatternRepository)
     }
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {
