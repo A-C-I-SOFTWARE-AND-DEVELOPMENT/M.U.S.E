@@ -1,9 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Notifications: only requested after the in-app education sheet. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground service for the on-watch presence. dataSync type chosen
+         deliberately over microphone/location: the service does not listen,
+         track, or run background mic capture. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Microphone is only ever requested after the user taps the voice
+         capture button. There is no always-listening, no service mic. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Explicit opt-out: the app does not need SMS, call log, or overlay
+         permissions. Listing as <uses-permission ... tools:node="remove" />
+         is unnecessary because we never asked, but the comment makes the
+         intent durable for reviewers. -->
 
     <application
         android:name=".HermesApplication"

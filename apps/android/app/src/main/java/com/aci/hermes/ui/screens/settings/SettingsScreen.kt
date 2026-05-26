@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.R
+import com.aci.hermes.data.preferences.GatewayPreference
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.ThemeMode
@@ -72,11 +73,61 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
 
-            SettingsSection(stringResource(R.string.settings_section_orchestrator)) {
-                Text(
-                    stringResource(R.string.settings_preferred_builder_label),
-                    style = MaterialTheme.typography.titleSmall,
+            SettingsSection(stringResource(R.string.settings_section_runtime)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_mock_mode_label),
+                    subtitle = stringResource(R.string.settings_mock_mode_subtitle),
+                    checked = state.mockMode,
+                    onChange = viewModel::setMockMode,
                 )
+                HorizontalDivider()
+                Text(stringResource(R.string.settings_section_gateway), style = MaterialTheme.typography.titleSmall)
+                RadioRow("Mock gateway", state.gatewayMode == GatewayPreference.MOCK) {
+                    viewModel.setGatewayMode(GatewayPreference.MOCK)
+                }
+                RadioRow(stringResource(R.string.settings_termux_label), state.gatewayMode == GatewayPreference.TERMUX) {
+                    viewModel.setGatewayMode(GatewayPreference.TERMUX)
+                }
+                RadioRow("Remote", state.gatewayMode == GatewayPreference.REMOTE) {
+                    viewModel.setGatewayMode(GatewayPreference.REMOTE)
+                }
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_safety)) {
+                SwitchRow(
+                    title = stringResource(R.string.settings_status_notification_label),
+                    subtitle = stringResource(R.string.settings_status_notification_subtitle),
+                    checked = state.statusNotificationOptIn,
+                    onChange = viewModel::setStatusNotificationOptIn,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_double_confirm_label),
+                    subtitle = stringResource(R.string.approvals_severity_serious),
+                    checked = state.doubleConfirmSerious,
+                    onChange = viewModel::setDoubleConfirmSerious,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_critical_phrase_label),
+                    subtitle = stringResource(R.string.settings_critical_phrase_subtitle),
+                    checked = state.criticalPhraseRequired,
+                    onChange = viewModel::setCriticalPhraseRequired,
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_voice_required_label),
+                    subtitle = stringResource(R.string.settings_voice_required_subtitle),
+                    checked = state.voiceTapRequired,
+                    onChange = { /* read-only invariant */ },
+                )
+                SwitchRow(
+                    title = stringResource(R.string.settings_safety_warnings_label),
+                    subtitle = stringResource(R.string.settings_safety_warnings_subtitle),
+                    checked = state.showSafetyWarnings,
+                    onChange = viewModel::setShowSafetyWarnings,
+                )
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_handoff)) {
+                Text(stringResource(R.string.settings_preferred_builder_label), style = MaterialTheme.typography.titleSmall)
                 RadioRow("Codex", state.preferredBuilder == PreferredBuilder.CODEX) {
                     viewModel.setPreferredBuilder(PreferredBuilder.CODEX)
                 }
@@ -89,10 +140,7 @@ fun SettingsScreen(
 
                 HorizontalDivider()
 
-                Text(
-                    stringResource(R.string.settings_preferred_reviewer_label),
-                    style = MaterialTheme.typography.titleSmall,
-                )
+                Text(stringResource(R.string.settings_preferred_reviewer_label), style = MaterialTheme.typography.titleSmall)
                 RadioRow("Claude Code", state.preferredReviewer == PreferredReviewer.CLAUDE_CODE) {
                     viewModel.setPreferredReviewer(PreferredReviewer.CLAUDE_CODE)
                 }
@@ -132,12 +180,6 @@ fun SettingsScreen(
                     checked = state.clipboardHandoffEnabled,
                     onChange = viewModel::setClipboardHandoffEnabled,
                 )
-                SwitchRow(
-                    title = stringResource(R.string.settings_safety_warnings_label),
-                    subtitle = stringResource(R.string.settings_safety_warnings_subtitle),
-                    checked = state.showSafetyWarnings,
-                    onChange = viewModel::setShowSafetyWarnings,
-                )
             }
 
             SettingsSection(stringResource(R.string.settings_section_appearance)) {
@@ -164,12 +206,17 @@ fun SettingsScreen(
                 OutlinedButton(onClick = onOpenDiagnostics, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.nav_diagnostics))
                 }
+            }
+
+            SettingsSection(stringResource(R.string.settings_section_data)) {
+                OutlinedButton(
+                    onClick = { viewModel.replayOnboarding() },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.settings_replay_onboarding)) }
                 OutlinedButton(
                     onClick = { confirmReset = true },
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.settings_reset))
-                }
+                ) { Text(stringResource(R.string.settings_reset)) }
             }
         }
     }
@@ -216,9 +263,7 @@ private fun SettingsRow(title: String, subtitle: String) {
 @Composable
 private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 2.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = onSelect)

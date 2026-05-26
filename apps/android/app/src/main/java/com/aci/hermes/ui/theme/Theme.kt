@@ -7,34 +7,48 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import com.aci.hermes.data.preferences.ThemeMode
 
-private val HermesLightColors = lightColorScheme(
-    primary = HermesGoldDeep,
-    onPrimary = HermesInk,
-    secondary = HermesViolet,
-    onSecondary = HermesPaper,
-    background = HermesPaper,
-    onBackground = HermesInk,
-    surface = HermesSurfaceBright,
-    onSurface = HermesInk,
-    surfaceVariant = HermesPaper,
-    error = HermesError
+private val JarvisLightColors = lightColorScheme(
+    primary = JarvisGoldDeep,
+    onPrimary = JarvisInk,
+    primaryContainer = JarvisGoldSoft,
+    onPrimaryContainer = JarvisInk,
+    secondary = JarvisAzureDeep,
+    onSecondary = JarvisPaper,
+    secondaryContainer = JarvisPaperDeep,
+    onSecondaryContainer = JarvisInk,
+    tertiary = JarvisJade,
+    background = JarvisPaper,
+    onBackground = JarvisInk,
+    surface = JarvisSurfaceBrightLight,
+    onSurface = JarvisInk,
+    surfaceVariant = JarvisPaperDeep,
+    onSurfaceVariant = JarvisInkSoft,
+    error = JarvisCrimson,
+    onError = JarvisPaper,
 )
 
-private val HermesDarkColors = darkColorScheme(
-    primary = HermesGold,
-    onPrimary = HermesInk,
-    secondary = HermesViolet,
-    onSecondary = HermesPaper,
-    background = HermesInk,
-    onBackground = HermesPaper,
-    surface = HermesSurfaceDim,
-    onSurface = HermesPaper,
-    surfaceVariant = HermesInkSoft,
-    error = HermesError
+private val JarvisDarkColors = darkColorScheme(
+    primary = JarvisGold,
+    onPrimary = JarvisInk,
+    primaryContainer = JarvisGoldDeep,
+    onPrimaryContainer = JarvisInk,
+    secondary = JarvisAzure,
+    onSecondary = JarvisInk,
+    secondaryContainer = JarvisInkMid,
+    onSecondaryContainer = JarvisPaper,
+    tertiary = JarvisJade,
+    background = JarvisInk,
+    onBackground = JarvisPaper,
+    surface = JarvisSurfaceDimDark,
+    onSurface = JarvisPaper,
+    surfaceVariant = JarvisInkSoft,
+    onSurfaceVariant = JarvisPaperDeep,
+    error = JarvisCrimson,
+    onError = JarvisPaper,
 )
 
 @Composable
-fun HermesTheme(
+fun JarvisTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
@@ -46,8 +60,18 @@ fun HermesTheme(
     }
 
     MaterialTheme(
-        colorScheme = if (useDark) HermesDarkColors else HermesLightColors,
+        colorScheme = if (useDark) JarvisDarkColors else JarvisLightColors,
         typography = HermesTypography,
-        content = content
+        content = content,
     )
 }
+
+/**
+ * Backwards-compatible alias for the original name. Prefer [JarvisTheme]
+ * in new code.
+ */
+@Composable
+fun HermesTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit,
+) = JarvisTheme(themeMode = themeMode, content = content)

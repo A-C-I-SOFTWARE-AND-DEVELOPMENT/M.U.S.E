@@ -3,6 +3,7 @@ package com.aci.hermes.ui.screens.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
+import com.aci.hermes.data.preferences.GatewayPreference
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.SettingsRepository
@@ -23,6 +24,12 @@ data class SettingsUiState(
     val allowExternalAppOpening: Boolean = false,
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
+    val mockMode: Boolean = true,
+    val gatewayMode: GatewayPreference = GatewayPreference.MOCK,
+    val statusNotificationOptIn: Boolean = false,
+    val doubleConfirmSerious: Boolean = true,
+    val criticalPhraseRequired: Boolean = true,
+    val voiceTapRequired: Boolean = true,
 )
 
 class SettingsViewModel(
@@ -36,18 +43,28 @@ class SettingsViewModel(
 
     init {
         viewModelScope.launch {
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
-                themeMode = snap.themeMode,
-                preferredBuilder = snap.preferredBuilder,
-                preferredReviewer = snap.preferredReviewer,
-                useApiKeys = snap.useApiKeys,
-                localOnlyMode = snap.localOnlyMode,
-                allowExternalAppOpening = snap.allowExternalAppOpening,
-                clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
-                showSafetyWarnings = snap.showSafetyWarnings,
-            )
+            refreshFromSnapshot()
         }
+    }
+
+    private suspend fun refreshFromSnapshot() {
+        val snap = settings.snapshot()
+        _state.value = SettingsUiState(
+            themeMode = snap.themeMode,
+            preferredBuilder = snap.preferredBuilder,
+            preferredReviewer = snap.preferredReviewer,
+            useApiKeys = snap.useApiKeys,
+            localOnlyMode = snap.localOnlyMode,
+            allowExternalAppOpening = snap.allowExternalAppOpening,
+            clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
+            showSafetyWarnings = snap.showSafetyWarnings,
+            mockMode = snap.mockMode,
+            gatewayMode = snap.gatewayMode,
+            statusNotificationOptIn = snap.statusNotificationOptIn,
+            doubleConfirmSerious = snap.doubleConfirmSerious,
+            criticalPhraseRequired = snap.criticalPhraseRequired,
+            voiceTapRequired = snap.voiceTapRequired,
+        )
     }
 
     fun setThemeMode(mode: ThemeMode) {
@@ -90,22 +107,41 @@ class SettingsViewModel(
         viewModelScope.launch { settings.setShowSafetyWarnings(value) }
     }
 
+    fun setMockMode(value: Boolean) {
+        _state.update { it.copy(mockMode = value) }
+        viewModelScope.launch { settings.setMockMode(value) }
+    }
+
+    fun setGatewayMode(value: GatewayPreference) {
+        _state.update { it.copy(gatewayMode = value) }
+        viewModelScope.launch { settings.setGatewayMode(value) }
+    }
+
+    fun setStatusNotificationOptIn(value: Boolean) {
+        _state.update { it.copy(statusNotificationOptIn = value) }
+        viewModelScope.launch { settings.setStatusNotificationOptIn(value) }
+    }
+
+    fun setDoubleConfirmSerious(value: Boolean) {
+        _state.update { it.copy(doubleConfirmSerious = value) }
+        viewModelScope.launch { settings.setDoubleConfirmSerious(value) }
+    }
+
+    fun setCriticalPhraseRequired(value: Boolean) {
+        _state.update { it.copy(criticalPhraseRequired = value) }
+        viewModelScope.launch { settings.setCriticalPhraseRequired(value) }
+    }
+
+    fun replayOnboarding() {
+        viewModelScope.launch { settings.setOnboarded(false) }
+    }
+
     fun resetAll() {
         viewModelScope.launch {
             settings.resetAll()
             tasks.deleteAll()
-            logBuffer.warn("Settings", "User reset all orchestrator settings and tasks")
-            val snap = settings.snapshot()
-            _state.value = SettingsUiState(
-                themeMode = snap.themeMode,
-                preferredBuilder = snap.preferredBuilder,
-                preferredReviewer = snap.preferredReviewer,
-                useApiKeys = snap.useApiKeys,
-                localOnlyMode = snap.localOnlyMode,
-                allowExternalAppOpening = snap.allowExternalAppOpening,
-                clipboardHandoffEnabled = snap.clipboardHandoffEnabled,
-                showSafetyWarnings = snap.showSafetyWarnings,
-            )
+            logBuffer.warn("Settings", "User reset all settings and tasks")
+            refreshFromSnapshot()
         }
     }
 }

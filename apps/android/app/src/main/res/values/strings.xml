@@ -1,19 +1,302 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hermes Agent</string>
+    <string name="app_name">Jarvis Prime</string>
+    <string name="app_tagline">Your local AI operating partner</string>
 
-    <!-- Foreground service notification -->
-    <string name="orchestrator_notification_title">Hermes Orchestrator Running</string>
-    <string name="orchestrator_notification_text">Hermes is coordinating your local AI workflow.</string>
-    <string name="orchestrator_notification_stop">Stop</string>
+    <!-- Foreground service notification (channel + content) -->
+    <string name="service_notification_channel">Jarvis Prime status</string>
+    <string name="service_notification_channel_desc">Persistent indicator that Jarvis Prime is on watch.</string>
+    <string name="service_notification_title">Jarvis Prime is on watch</string>
+    <string name="service_notification_text">Listening for tasks, approvals and gateway events.</string>
+    <string name="service_notification_stop">Stand down</string>
 
-    <!-- Orchestrator dashboard -->
-    <string name="orchestrator_title">Hermes Orchestrator</string>
+    <!-- Bottom navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_approvals">Approvals</string>
+    <string name="nav_audit">Audit</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_memory">Memory</string>
+    <string name="nav_social">Social</string>
+    <string name="nav_skills">Skills</string>
+    <string name="nav_gateway">Gateway</string>
+    <string name="nav_notifications">Notification center</string>
+    <string name="nav_emergency_stop">Emergency stop</string>
+    <string name="nav_voice">Voice capture</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_welcome_title">Welcome to Jarvis Prime</string>
+    <string name="onboarding_welcome_body">Jarvis Prime is your mobile-first AI operating partner. It plans, drafts, reviews, and asks before acting. It runs on your phone and respects your boundaries.</string>
+    <string name="onboarding_safety_title">How Jarvis Prime treats permissions</string>
+    <string name="onboarding_safety_body">Jarvis Prime never reads SMS, never reads your call log, and never asks to draw over other apps. The microphone is only turned on after you tap voice. Risky asks are confirmed once. Critical asks require an impact report and two confirmations.</string>
+    <string name="onboarding_notifications_title">Notification updates</string>
+    <string name="onboarding_notifications_body">When Jarvis Prime is on watch, a quiet, ongoing notification lets you check status at a glance and reach the emergency stop. You can enable this now or later from settings.</string>
+    <string name="onboarding_notifications_allow">Enable status notification</string>
+    <string name="onboarding_notifications_skip">Maybe later</string>
+    <string name="onboarding_voice_title">Voice, only when you ask</string>
+    <string name="onboarding_voice_body">The mic stays off until you press the voice button. There is no always-listening mode.</string>
+    <string name="onboarding_done">Continue to Jarvis Prime</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_next">Continue</string>
+    <string name="onboarding_back">Back</string>
+
+    <!-- Home -->
+    <string name="home_greeting_morning">Good morning</string>
+    <string name="home_greeting_afternoon">Good afternoon</string>
+    <string name="home_greeting_evening">Good evening</string>
+    <string name="home_status_idle">Standing by</string>
+    <string name="home_status_active">Working</string>
+    <string name="home_status_waiting">Awaiting your approval</string>
+    <string name="home_status_paused">Paused — emergency stop active</string>
+    <string name="home_section_focus">Where Jarvis Prime is focused</string>
+    <string name="home_section_quick_actions">Quick actions</string>
+    <string name="home_section_pulse">Pulse</string>
+    <string name="home_section_pending">Pending decisions</string>
+    <string name="home_no_pending">Nothing waiting on you right now.</string>
+    <string name="home_open_chat">Open chat</string>
+    <string name="home_start_voice">Start voice</string>
+    <string name="home_review_approvals">Review approvals</string>
+    <string name="home_view_tasks">View tasks</string>
+    <string name="home_view_audit">Audit log</string>
+    <string name="home_view_memory">Memory</string>
+    <string name="home_view_social">Social signals</string>
+    <string name="home_view_gateway">Gateway</string>
+    <string name="home_view_notifications">Notification center</string>
+    <string name="home_view_skills">Skills</string>
+    <string name="home_emergency_stop">Emergency stop</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Chat with Jarvis Prime</string>
+    <string name="chat_input_hint">Tell Jarvis Prime what you need</string>
+    <string name="chat_send">Send</string>
+    <string name="chat_voice">Voice</string>
+    <string name="chat_empty">Say hello. Jarvis Prime is listening.</string>
+    <string name="chat_clear">Clear conversation</string>
+    <string name="chat_role_user">You</string>
+    <string name="chat_role_jarvis">Jarvis Prime</string>
+    <string name="chat_role_system">System</string>
+    <string name="chat_mock_banner">Mock mode — replies are simulated locally.</string>
+
+    <!-- Tasks (worker execution lane) -->
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_subtitle">Worker execution lane</string>
+    <string name="tasks_empty">No tasks yet. Tell Jarvis Prime what you need or tap the new task button.</string>
+    <string name="tasks_new">New task</string>
+    <string name="tasks_filter_all">All</string>
+    <string name="tasks_filter_active">Active</string>
+    <string name="tasks_filter_waiting">Waiting</string>
+    <string name="tasks_filter_done">Done</string>
+    <string name="tasks_untitled">(untitled task)</string>
+    <string name="tasks_copy_prompt">Copy prompt</string>
+    <string name="tasks_open">Open</string>
+    <string name="tasks_handoff">Prepare handoff</string>
+
+    <!-- Task detail -->
+    <string name="task_detail_new_title">New task</string>
+    <string name="task_detail_edit_title">Edit task</string>
+    <string name="task_detail_prompt_preview">Generated prompt</string>
+    <string name="task_detail_mark_handed_off">Mark handed off</string>
+    <string name="task_detail_delete_confirm">Delete this task? This cannot be undone.</string>
+    <string name="task_field_title">Title</string>
+    <string name="task_field_description">Description</string>
+    <string name="task_field_workspace_path">Workspace path (optional)</string>
+    <string name="task_field_task_type">Task type</string>
+    <string name="task_field_target_tool">Target tool</string>
+    <string name="task_field_status">Status</string>
+    <string name="task_field_review_notes">Review notes (optional)</string>
+    <string name="task_field_result_notes">Result notes (optional)</string>
+    <string name="task_field_next_action">Next action (optional)</string>
+
+    <!-- Approvals -->
+    <string name="approvals_title">Approvals</string>
+    <string name="approvals_subtitle">Jarvis Prime asks before acting</string>
+    <string name="approvals_empty">Nothing waiting on your approval.</string>
+    <string name="approvals_severity_routine">Routine</string>
+    <string name="approvals_severity_risky">Risky — single confirm</string>
+    <string name="approvals_severity_serious">Serious — double confirm</string>
+    <string name="approvals_severity_critical">Critical — impact + two confirms</string>
+    <string name="approvals_approve">Approve</string>
+    <string name="approvals_deny">Deny</string>
+    <string name="approvals_inspect">Inspect impact report</string>
+    <string name="approvals_confirm_again">Confirm again</string>
+    <string name="approvals_decline">Decline</string>
+    <string name="approvals_impact_title">Impact report</string>
+    <string name="approvals_impact_summary">Summary</string>
+    <string name="approvals_impact_risks">Risks</string>
+    <string name="approvals_impact_rollback">Rollback plan</string>
+    <string name="approvals_critical_warning">This is a critical action. Confirm twice to authorize. Saying \"Yes, with authorization.\" makes Jarvis Prime act.</string>
+    <string name="approvals_authorize_phrase">Yes, with authorization.</string>
+    <string name="approvals_authorize_hint">Type the phrase exactly</string>
+
+    <!-- Memory transparency -->
+    <string name="memory_title">Memory</string>
+    <string name="memory_subtitle">Everything Jarvis Prime remembers about you, visible.</string>
+    <string name="memory_empty">Nothing remembered yet. Memory grows as you interact.</string>
+    <string name="memory_branch_facts">Facts</string>
+    <string name="memory_branch_preferences">Preferences</string>
+    <string name="memory_branch_goals">Goals</string>
+    <string name="memory_branch_history">History</string>
+    <string name="memory_branch_inferences">Inferences</string>
+    <string name="memory_forget">Forget</string>
+    <string name="memory_confirm">Confirm</string>
+    <string name="memory_inferred_label">Inferred</string>
+    <string name="memory_confirmed_label">Confirmed</string>
+    <string name="memory_pending_label">Pending</string>
+    <string name="memory_expires">Expires</string>
+    <string name="memory_search_hint">Search memory</string>
+
+    <!-- Social intelligence -->
+    <string name="social_title">Social signals</string>
+    <string name="social_subtitle">Patterns Jarvis Prime is noticing</string>
+    <string name="social_empty">No patterns surfaced yet.</string>
+    <string name="social_signal_strength">Signal strength</string>
+    <string name="social_dismiss">Dismiss</string>
+    <string name="social_acknowledge">Acknowledge</string>
+
+    <!-- Audit / proof history -->
+    <string name="audit_title">Audit</string>
+    <string name="audit_subtitle">Every action Jarvis Prime took, every approval, every override.</string>
+    <string name="audit_empty">No audit entries yet.</string>
+    <string name="audit_filter_all">All</string>
+    <string name="audit_filter_actions">Actions</string>
+    <string name="audit_filter_approvals">Approvals</string>
+    <string name="audit_filter_overrides">Overrides</string>
+    <string name="audit_filter_stops">Stops</string>
+    <string name="audit_export">Export proof bundle</string>
+    <string name="audit_proof_id">Proof ID</string>
+
+    <!-- Emergency stop -->
+    <string name="emergency_stop_title">Emergency stop</string>
+    <string name="emergency_stop_subtitle">Halt everything Jarvis Prime is doing.</string>
+    <string name="emergency_stop_armed">Emergency stop armed</string>
+    <string name="emergency_stop_inactive">Jarvis Prime is operational</string>
+    <string name="emergency_stop_engage">Engage emergency stop</string>
+    <string name="emergency_stop_release">Release emergency stop</string>
+    <string name="emergency_stop_confirm_title">Engage emergency stop?</string>
+    <string name="emergency_stop_confirm_body">All work pauses. Pending approvals reject. The gateway disconnects. You can release the stop at any time.</string>
+    <string name="emergency_stop_release_confirm">Release the stop and resume?</string>
+    <string name="emergency_stop_engage_cta">Engage</string>
+    <string name="emergency_stop_release_cta">Release</string>
+    <string name="emergency_stop_status_label">Status</string>
+    <string name="emergency_stop_reason_label">Reason</string>
+    <string name="emergency_stop_engaged_at">Engaged at</string>
+
+    <!-- Gateway -->
+    <string name="gateway_title">Gateway</string>
+    <string name="gateway_subtitle">Event spine — every external signal feeding Jarvis Prime.</string>
+    <string name="gateway_mode_mock">Mock mode</string>
+    <string name="gateway_mode_termux">Termux gateway</string>
+    <string name="gateway_status_connected">Connected</string>
+    <string name="gateway_status_disconnected">Disconnected</string>
+    <string name="gateway_empty">No events yet.</string>
+    <string name="gateway_clear">Clear events</string>
+    <string name="gateway_termux_install_hint">Install Termux to connect a local gateway.</string>
+
+    <!-- Notifications command center -->
+    <string name="notifications_title">Notification center</string>
+    <string name="notifications_subtitle">Inbox for everything Jarvis Prime wants you to see.</string>
+    <string name="notifications_empty">No notifications.</string>
+    <string name="notifications_mark_read">Mark all read</string>
+    <string name="notifications_clear">Clear</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_runtime">Runtime</string>
+    <string name="settings_section_safety">Safety</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_handoff">Handoff preferences</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_section_data">Data &amp; reset</string>
+    <string name="settings_section_gateway">Gateway</string>
+
+    <string name="settings_mock_mode_label">Mock mode</string>
+    <string name="settings_mock_mode_subtitle">On by default. Demo data, no external calls. Turn off only when you have wired the real gateway.</string>
+    <string name="settings_termux_label">Termux gateway mode</string>
+    <string name="settings_termux_subtitle">Use the local Jarvis Prime gateway running in Termux.</string>
+    <string name="settings_status_notification_label">Status notification</string>
+    <string name="settings_status_notification_subtitle">Keep a quiet ongoing notification while Jarvis Prime is on watch.</string>
+    <string name="settings_voice_required_label">Voice always requires a tap</string>
+    <string name="settings_voice_required_subtitle">There is no always-listening mode. The mic only turns on when you press voice.</string>
+    <string name="settings_double_confirm_label">Double confirm serious asks</string>
+    <string name="settings_critical_phrase_label">Critical phrase required</string>
+    <string name="settings_critical_phrase_subtitle">Critical actions require you to type \"Yes, with authorization.\" word for word.</string>
+
+    <string name="settings_preferred_builder_label">Preferred builder</string>
+    <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
+    <string name="settings_use_api_keys_label">Use API keys</string>
+    <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime does not call provider APIs from the phone.</string>
+    <string name="settings_local_only_mode_label">Local-only mode</string>
+    <string name="settings_local_only_mode_subtitle">On by default. All state stays on this device.</string>
+    <string name="settings_allow_external_label">Allow external app opening</string>
+    <string name="settings_allow_external_subtitle">When on, Jarvis Prime can launch the official tool app or web fallback. Each launch still requires a tap.</string>
+    <string name="settings_clipboard_label">Clipboard handoff enabled</string>
+    <string name="settings_clipboard_subtitle">Allows the \"Copy prompt\" action. Each copy still requires a tap.</string>
+    <string name="settings_safety_warnings_label">Show safety reminders</string>
+    <string name="settings_safety_warnings_subtitle">Show the reminder that Jarvis Prime does not bypass provider authentication.</string>
+    <string name="settings_reset">Reset all settings and data</string>
+    <string name="settings_reset_confirm">This will clear preferences, tasks, conversation, memory, and approval history. Continue?</string>
+    <string name="settings_reset_done">Cleared.</string>
+    <string name="settings_replay_onboarding">Replay onboarding</string>
+
+    <!-- Diagnostics -->
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="diagnostics_app_version">App version</string>
+    <string name="diagnostics_build_type">Build type</string>
+    <string name="diagnostics_last_error">Last error</string>
+    <string name="diagnostics_logs">Recent logs</string>
+    <string name="diagnostics_copy_logs">Copy logs</string>
+    <string name="diagnostics_clear_logs">Clear logs</string>
+    <string name="diagnostics_no_error">No errors recorded.</string>
+    <string name="diagnostics_no_logs">No logs yet.</string>
+    <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_mock_mode">Mock mode</string>
+    <string name="diagnostics_runtime_mode">Runtime mode</string>
+
+    <!-- Skills -->
+    <string name="skills_title">Skills</string>
+    <string name="skills_subtitle">Capabilities Jarvis Prime can use.</string>
+    <string name="skills_empty">No skills loaded.</string>
+    <string name="skills_enabled">Enabled</string>
+    <string name="skills_disabled">Disabled</string>
+
+    <!-- Voice -->
+    <string name="voice_title">Voice capture</string>
+    <string name="voice_subtitle">Tap to capture. Mic stays off until you press capture.</string>
+    <string name="voice_tap_to_start">Tap to capture</string>
+    <string name="voice_recording">Listening…</string>
+    <string name="voice_stop">Stop</string>
+    <string name="voice_permission_title">Microphone permission needed</string>
+    <string name="voice_permission_body">Voice capture needs the microphone. Permission is only requested when you press capture. Jarvis Prime never enables always-listening.</string>
+    <string name="voice_permission_grant">Grant microphone</string>
+    <string name="voice_permission_deny">Not now</string>
+    <string name="voice_unavailable">Voice capture is unavailable in this build. Try mock mode or wire a Termux gateway.</string>
+    <string name="voice_transcript_label">Transcript</string>
+
+    <!-- Notification permission education -->
+    <string name="notification_education_title">Status notification</string>
+    <string name="notification_education_body">Jarvis Prime can keep a quiet notification on screen while it is on watch, so you can reach status and emergency stop fast. This notification never shows secret content.</string>
+    <string name="notification_education_continue">Allow status notification</string>
+    <string name="notification_education_skip">Not now</string>
+
+    <!-- Generic -->
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_close">Close</string>
+    <string name="action_back">Back</string>
+    <string name="action_continue">Continue</string>
+    <string name="action_clear">Clear</string>
+
+    <!-- Legacy compatibility keys (preserved for in-progress refs) -->
+    <string name="orchestrator_title">Worker execution lane</string>
     <string name="orchestrator_tools_title">Official AI tools</string>
     <string name="orchestrator_tasks_title">Tasks</string>
-    <string name="orchestrator_tasks_empty">No tasks yet. Tap the + button to create one.</string>
-    <string name="orchestrator_status_running">HermesService running</string>
-    <string name="orchestrator_status_stopped">HermesService stopped</string>
+    <string name="orchestrator_tasks_empty">No tasks yet. Tell Jarvis Prime what you need.</string>
+    <string name="orchestrator_status_running">Jarvis Prime on watch</string>
+    <string name="orchestrator_status_stopped">Jarvis Prime stood down</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
@@ -27,67 +310,6 @@
     <string name="orchestrator_open_tool">Open tool</string>
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
-    <string name="orchestrator_safety_title">About this app</string>
-    <string name="orchestrator_safety_body">Hermes does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into.</string>
-
-    <!-- Task detail screen -->
-    <string name="task_detail_new_title">New task</string>
-    <string name="task_detail_edit_title">Edit task</string>
-    <string name="task_detail_prompt_preview">Generated prompt</string>
-    <string name="task_detail_mark_handed_off">Mark handed off</string>
-    <string name="task_detail_delete_confirm">Delete this task? This cannot be undone.</string>
-
-    <string name="task_field_title">Title</string>
-    <string name="task_field_description">Description</string>
-    <string name="task_field_workspace_path">Workspace path (optional)</string>
-    <string name="task_field_task_type">Task type</string>
-    <string name="task_field_target_tool">Target tool</string>
-    <string name="task_field_status">Status</string>
-    <string name="task_field_review_notes">Review notes (optional)</string>
-    <string name="task_field_result_notes">Result notes (optional)</string>
-    <string name="task_field_next_action">Next action (optional)</string>
-
-    <!-- Navigation -->
-    <string name="nav_settings">Settings</string>
-    <string name="nav_diagnostics">Diagnostics</string>
-
-    <!-- Settings -->
-    <string name="settings_title">Settings</string>
-    <string name="settings_section_orchestrator">Orchestrator preferences</string>
-    <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_section_about">About</string>
-    <string name="settings_reset">Reset all settings and tasks</string>
-    <string name="settings_reset_confirm">This will clear orchestrator preferences and all saved tasks. Continue?</string>
-
-    <string name="settings_preferred_builder_label">Preferred builder</string>
-    <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
-
-    <string name="settings_use_api_keys_label">Use API keys</string>
-    <string name="settings_use_api_keys_subtitle">Off by default. Hermes never requires an OpenAI or Anthropic API key for the primary workflow.</string>
-    <string name="settings_local_only_mode_label">Local-only mode</string>
-    <string name="settings_local_only_mode_subtitle">On by default. All orchestrator state stays on this device.</string>
-    <string name="settings_allow_external_label">Allow external app opening</string>
-    <string name="settings_allow_external_subtitle">When on, Hermes can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
-    <string name="settings_clipboard_label">Clipboard handoff enabled</string>
-    <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
-    <string name="settings_safety_warnings_label">Show safety warnings</string>
-    <string name="settings_safety_warnings_subtitle">Show the reminder that Hermes does not bypass provider authentication.</string>
-
-    <!-- Diagnostics -->
-    <string name="diagnostics_title">Diagnostics</string>
-    <string name="diagnostics_app_version">App version</string>
-    <string name="diagnostics_build_type">Build type</string>
-    <string name="diagnostics_last_error">Last error</string>
-    <string name="diagnostics_logs">Recent logs</string>
-    <string name="diagnostics_copy_logs">Copy logs</string>
-    <string name="diagnostics_clear_logs">Clear logs</string>
-    <string name="diagnostics_no_error">No errors recorded.</string>
-    <string name="diagnostics_no_logs">No logs yet.</string>
-    <string name="diagnostics_refresh">Refresh</string>
-
-    <!-- Generic -->
-    <string name="action_cancel">Cancel</string>
-    <string name="action_ok">OK</string>
-    <string name="action_save">Save</string>
-    <string name="action_delete">Delete</string>
+    <string name="orchestrator_safety_title">About Jarvis Prime</string>
+    <string name="orchestrator_safety_body">Jarvis Prime never bypasses provider authentication. It organizes work for the official tools you are already signed into.</string>
 </resources>

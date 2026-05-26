@@ -78,7 +78,16 @@ fun OrchestratorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.orchestrator_title)) },
+                title = {
+                    Column {
+                        Text(stringResource(R.string.tasks_title))
+                        Text(
+                            stringResource(R.string.tasks_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))

@@ -102,8 +102,8 @@ class HermesService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(getString(R.string.orchestrator_notification_title))
-            .setContentText(getString(R.string.orchestrator_notification_text))
+            .setContentTitle(getString(R.string.service_notification_title))
+            .setContentText(getString(R.string.service_notification_text))
             .setContentIntent(openAppIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -111,7 +111,7 @@ class HermesService : Service() {
             .addAction(
                 NotificationCompat.Action.Builder(
                     0,
-                    getString(R.string.orchestrator_notification_stop),
+                    getString(R.string.service_notification_stop),
                     stopIntent
                 ).build()
             )
@@ -119,9 +119,9 @@ class HermesService : Service() {
     }
 
     companion object {
-        const val TAG = "HermesService"
-        const val CHANNEL_ID = "hermes_orchestrator"
-        private const val CHANNEL_NAME = "Hermes Orchestrator"
+        const val TAG = "JarvisService"
+        const val CHANNEL_ID = "jarvis_prime_status"
+        private const val CHANNEL_NAME = "Jarvis Prime status"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "com.aci.hermes.action.STOP_ORCHESTRATOR"
 
@@ -149,7 +149,7 @@ class HermesService : Service() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Persistent indicator that Hermes is coordinating local AI workflows."
+                description = "Persistent indicator that Jarvis Prime is on watch."
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)
