@@ -36,25 +36,28 @@ sealed class Screen(val route: String) {
     companion object {
         /**
          * Stable list of every route the navigation graph registers.
-         * The navigation test asserts against this set so future
-         * additions are intentional.
+         * Held as raw strings (not Screen.X.route) so the list is
+         * usable from the companion-object initializer before the
+         * nested `data object`s have been class-loaded — a sealed
+         * Kotlin class wouldn't otherwise let us reference them from
+         * the companion at init time.
          */
         val allRoutes: List<String> = listOf(
-            Splash.route,
-            Onboarding.route,
-            Home.route,
-            Chat.route,
-            Voice.route,
-            Tasks.route,
-            Approvals.route,
-            Memory.route,
-            Social.route,
-            Audit.route,
-            ApprovalDetail.route,
-            AuditDetail.route,
-            TaskDetail.route,
-            Settings.route,
-            Diagnostics.route,
+            "splash",
+            "onboarding",
+            "home",
+            "chat",
+            "voice",
+            "tasks",
+            "approvals",
+            "memory",
+            "social",
+            "audit",
+            "approval_detail/{approvalId}",
+            "audit_detail/{auditId}",
+            "task_detail/{taskId}?target={target}",
+            "settings",
+            "diagnostics",
         )
     }
 }
