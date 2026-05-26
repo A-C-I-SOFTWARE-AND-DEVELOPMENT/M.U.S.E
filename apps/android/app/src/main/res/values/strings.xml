@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hermes Agent</string>
+    <string name="app_name">Jarvis Prime</string>
 
     <!-- Foreground service notification -->
-    <string name="orchestrator_notification_title">Hermes Orchestrator Running</string>
-    <string name="orchestrator_notification_text">Hermes is coordinating your local AI workflow.</string>
+    <string name="orchestrator_notification_title">Jarvis Prime running</string>
+    <string name="orchestrator_notification_text">Jarvis Prime is coordinating your local AI workflow.</string>
     <string name="orchestrator_notification_stop">Stop</string>
 
-    <!-- Orchestrator dashboard -->
-    <string name="orchestrator_title">Hermes Orchestrator</string>
+    <!-- Orchestrator (shared between Home / Tasks / Control) -->
+    <string name="orchestrator_title">Jarvis Prime</string>
     <string name="orchestrator_tools_title">Official AI tools</string>
     <string name="orchestrator_tasks_title">Tasks</string>
     <string name="orchestrator_tasks_empty">No tasks yet. Tap the + button to create one.</string>
-    <string name="orchestrator_status_running">HermesService running</string>
-    <string name="orchestrator_status_stopped">HermesService stopped</string>
+    <string name="orchestrator_status_running">Orchestrator running</string>
+    <string name="orchestrator_status_stopped">Orchestrator stopped</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
@@ -28,7 +28,7 @@
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
     <string name="orchestrator_safety_title">About this app</string>
-    <string name="orchestrator_safety_body">Hermes does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into.</string>
+    <string name="orchestrator_safety_body">Jarvis Prime does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into.</string>
 
     <!-- Task detail screen -->
     <string name="task_detail_new_title">New task</string>
@@ -48,8 +48,66 @@
     <string name="task_field_next_action">Next action (optional)</string>
 
     <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_approvals">Approvals</string>
+    <string name="nav_memory">Memory</string>
+    <string name="nav_audit">Audit</string>
+    <string name="nav_control">Control</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
+    <string name="nav_emergency_stop">Emergency stop</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Welcome to Jarvis Prime</string>
+    <string name="onboarding_subtitle">A local orchestration shell for the AI tools you already use. Nothing leaves this device unless you say so.</string>
+    <string name="onboarding_bullet_local_title">Local-first</string>
+    <string name="onboarding_bullet_local_body">All tasks, prompts, and preferences live on this device. No backend, no API key required.</string>
+    <string name="onboarding_bullet_handoff_title">Tool handoff, not proxy</string>
+    <string name="onboarding_bullet_handoff_body">Jarvis Prime prepares prompts and hands off to the official Codex, ChatGPT, Claude Code, or Claude apps you already use.</string>
+    <string name="onboarding_bullet_safety_title">Emergency stop, always</string>
+    <string name="onboarding_bullet_safety_body">The orchestrator runs as a foreground service so you always know it is on, and a global Emergency Stop is one tap away from any screen.</string>
+    <string name="onboarding_cta">Get started</string>
+    <string name="onboarding_skip">Skip</string>
+
+    <!-- Home -->
+    <string name="home_greeting_title">Mission control</string>
+    <string name="home_greeting_subtitle">Pick up where you left off, hand off to a tool, or jump into a focused workflow.</string>
+    <string name="home_quick_links">Quick links</string>
+    <string name="home_status_mode_value">Local Subscription Tools</string>
+
+    <!-- Tasks tab -->
+    <string name="tasks_empty_title">No tasks yet</string>
+    <string name="tasks_empty_body">Tap the New task button to draft a brief, generate a prompt, and hand it off to Codex or Claude Code.</string>
+
+    <!-- Chat placeholder -->
+    <string name="chat_title">Chat</string>
+    <string name="chat_description">A focused thread surface for talking to Jarvis Prime about the active task.</string>
+    <string name="chat_coming_soon">The conversational pane is still being built. Until then, use Prepare handoff on the Home screen to draft a prompt for your tool of choice.</string>
+
+    <!-- Approvals placeholder -->
+    <string name="approvals_title">Approvals</string>
+    <string name="approvals_description">Review and approve actions Jarvis Prime wants to take on your behalf.</string>
+    <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
+
+    <!-- Memory placeholder -->
+    <string name="memory_title">Memory</string>
+    <string name="memory_description">Inspect long-term context, facts, and preferences Jarvis Prime has on file for you.</string>
+    <string name="memory_coming_soon">Memory inspection arrives once the local store is wired up. Tasks remain visible on the Tasks tab.</string>
+
+    <!-- Audit placeholder -->
+    <string name="audit_title">Audit</string>
+    <string name="audit_description">A chronological log of every decision, handoff, and approval Jarvis Prime made on this device.</string>
+    <string name="audit_coming_soon">Audit timeline lands next. Use Diagnostics for the raw service log in the meantime.</string>
+
+    <!-- Control -->
+    <string name="control_service_title">Orchestrator service</string>
+
+    <!-- Emergency stop -->
+    <string name="emergency_stop_title">Emergency stop</string>
+    <string name="emergency_stop_body">Immediately stops the Jarvis Prime orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>
+    <string name="emergency_stop_confirm">Stop now</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -63,15 +121,15 @@
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
 
     <string name="settings_use_api_keys_label">Use API keys</string>
-    <string name="settings_use_api_keys_subtitle">Off by default. Hermes never requires an OpenAI or Anthropic API key for the primary workflow.</string>
+    <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime never requires an OpenAI or Anthropic API key for the primary workflow.</string>
     <string name="settings_local_only_mode_label">Local-only mode</string>
     <string name="settings_local_only_mode_subtitle">On by default. All orchestrator state stays on this device.</string>
     <string name="settings_allow_external_label">Allow external app opening</string>
-    <string name="settings_allow_external_subtitle">When on, Hermes can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
+    <string name="settings_allow_external_subtitle">When on, Jarvis Prime can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
     <string name="settings_clipboard_label">Clipboard handoff enabled</string>
     <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
     <string name="settings_safety_warnings_label">Show safety warnings</string>
-    <string name="settings_safety_warnings_subtitle">Show the reminder that Hermes does not bypass provider authentication.</string>
+    <string name="settings_safety_warnings_subtitle">Show the reminder that Jarvis Prime does not bypass provider authentication.</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
