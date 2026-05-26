@@ -1,39 +1,156 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Hermes Agent</string>
+    <!--
+      Jarvis Prime — user-facing strings.
+      The Android package stays com.aci.hermes for install / signing
+      continuity, but every label the user sees in this file says
+      "Jarvis Prime". Technical / developer-facing wording (notification
+      service name, internal diagnostics) may still reference Hermes as
+      the backend identifier.
+    -->
 
-    <!-- Foreground service notification -->
-    <string name="orchestrator_notification_title">Hermes Orchestrator Running</string>
-    <string name="orchestrator_notification_text">Hermes is coordinating your local AI workflow.</string>
-    <string name="orchestrator_notification_stop">Stop</string>
+    <string name="app_name">Jarvis Prime</string>
+    <string name="app_tagline">Your command-center agent.</string>
+    <string name="app_backend_label">Hermes runtime</string>
+
+    <!-- Splash / welcome -->
+    <string name="welcome_title">Welcome to Jarvis Prime</string>
+    <string name="welcome_subtitle">An agent that asks permission, confirms intent, and shows the work.</string>
+    <string name="welcome_continue">Begin</string>
+
+    <!-- Foreground service notification (keeps Hermes backend label for clarity) -->
+    <string name="orchestrator_notification_title">Jarvis Prime is on duty</string>
+    <string name="orchestrator_notification_text">Coordinating local AI workflow on this device.</string>
+    <string name="orchestrator_notification_stop">Stand down</string>
 
     <!-- Orchestrator dashboard -->
-    <string name="orchestrator_title">Hermes Orchestrator</string>
-    <string name="orchestrator_tools_title">Official AI tools</string>
-    <string name="orchestrator_tasks_title">Tasks</string>
-    <string name="orchestrator_tasks_empty">No tasks yet. Tap the + button to create one.</string>
-    <string name="orchestrator_status_running">HermesService running</string>
-    <string name="orchestrator_status_stopped">HermesService stopped</string>
+    <string name="orchestrator_title">Jarvis Prime</string>
+    <string name="orchestrator_subtitle">Command center</string>
+    <string name="orchestrator_tools_title">Connected AI tools</string>
+    <string name="orchestrator_tasks_title">Active tasks</string>
+    <string name="orchestrator_tasks_empty">Nothing on the docket yet. Tap + to brief Jarvis on a task.</string>
+    <string name="orchestrator_status_running">Jarvis Prime online</string>
+    <string name="orchestrator_status_stopped">Jarvis Prime standing by</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
     <string name="orchestrator_status_export_label">External service export</string>
     <string name="orchestrator_status_export_value">Disabled</string>
-    <string name="orchestrator_start_service">Start</string>
-    <string name="orchestrator_stop_service">Stop</string>
+    <string name="orchestrator_start_service">Bring online</string>
+    <string name="orchestrator_stop_service">Stand down</string>
     <string name="orchestrator_new_task">New task</string>
     <string name="orchestrator_prepare_handoff">Prepare handoff</string>
     <string name="orchestrator_copy_prompt">Copy prompt</string>
     <string name="orchestrator_open_tool">Open tool</string>
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
-    <string name="orchestrator_safety_title">About this app</string>
-    <string name="orchestrator_safety_body">Hermes does not bypass OpenAI or Anthropic. It organizes work for the official tools you are already logged into.</string>
+    <string name="orchestrator_safety_title">About Jarvis Prime</string>
+    <string name="orchestrator_safety_body">Jarvis Prime does not bypass your AI provider logins. It organizes the work and hands off to the official tools you are already signed into.</string>
+
+    <!-- Ask Jarvis (chat input bar) -->
+    <string name="ask_jarvis_hint">Ask Jarvis…</string>
+    <string name="ask_jarvis_voice_cd">Tap to dictate to Jarvis</string>
+    <string name="ask_jarvis_send_cd">Send to Jarvis</string>
+    <string name="ask_jarvis_listening">Listening… speak naturally</string>
+    <string name="ask_jarvis_thinking">Jarvis is thinking…</string>
+    <string name="ask_jarvis_cancel">Stop</string>
+
+    <!-- Voice capture -->
+    <string name="voice_title">Voice intake</string>
+    <string name="voice_prompt_ready">Ready when you are.</string>
+    <string name="voice_prompt_listening">I’m listening.</string>
+    <string name="voice_prompt_processing">Processing what you said…</string>
+    <string name="voice_prompt_error">I didn’t catch that. Try once more.</string>
+    <string name="voice_action_done">Done</string>
+    <string name="voice_action_retry">Retry</string>
+
+    <!-- Approval card -->
+    <string name="approval_title">Approval needed</string>
+    <string name="approval_body">Jarvis wants to proceed. Review and approve before anything runs.</string>
+    <string name="approval_approve">Approve</string>
+    <string name="approval_deny">Decline</string>
+    <string name="approval_details">See details</string>
+
+    <!-- Serious action card -->
+    <string name="serious_title">Serious action</string>
+    <string name="serious_body">This will make a meaningful change. Confirm intent before Jarvis proceeds.</string>
+    <string name="serious_confirm">Confirm</string>
+    <string name="serious_review">Review change</string>
+
+    <!-- Critical action card -->
+    <string name="critical_title">Critical action</string>
+    <string name="critical_body">This action is destructive or irreversible. Jarvis will not proceed without explicit go-ahead.</string>
+    <string name="critical_confirm">I understand — proceed</string>
+    <string name="critical_cancel">Hold</string>
+
+    <!-- Emergency stop -->
+    <string name="emergency_stop">Emergency stop</string>
+    <string name="emergency_stop_cd">Halt every active task immediately</string>
+    <string name="emergency_stop_confirm_title">Halt everything?</string>
+    <string name="emergency_stop_confirm_body">Jarvis will stop every running task and stand down. You can bring it back online at any time.</string>
+    <string name="emergency_stop_confirm_yes">Halt now</string>
+    <string name="emergency_stop_confirm_no">Keep going</string>
+    <string name="emergency_stop_engaged">All tasks halted. Jarvis is standing by.</string>
+
+    <!-- Gateway status -->
+    <string name="gateway_pill_label">Gateway</string>
+    <string name="gateway_status_online">Online</string>
+    <string name="gateway_status_listening">Listening</string>
+    <string name="gateway_status_working">Working</string>
+    <string name="gateway_status_disconnected">Disconnected</string>
+    <string name="gateway_status_mock">Mock</string>
+    <string name="gateway_status_termux">Termux</string>
+    <string name="gateway_disconnected_title">Jarvis is offline</string>
+    <string name="gateway_disconnected_body">I can’t reach the local gateway right now. Existing work is safe. I’ll reconnect as soon as it’s available.</string>
+    <string name="gateway_disconnected_retry">Try again</string>
+    <string name="gateway_disconnected_diagnose">Run diagnostics</string>
+
+    <!-- Mock mode -->
+    <string name="mock_mode_title">Mock mode</string>
+    <string name="mock_mode_body">Jarvis is running on simulated data. Nothing you do here touches your real accounts or files.</string>
+
+    <!-- Termux gateway mode -->
+    <string name="termux_mode_title">Termux gateway</string>
+    <string name="termux_mode_body">Jarvis is talking to the Hermes runtime hosted in Termux on this device. Everything stays local.</string>
+
+    <!-- Memory -->
+    <string name="memory_card_title">Memory updated</string>
+    <string name="memory_card_body">Jarvis remembered: %1$s</string>
+    <string name="memory_corrected_title">Memory corrected</string>
+    <string name="memory_corrected_body">Got it. Jarvis updated what it remembered about “%1$s”.</string>
+    <string name="memory_view">Review memory</string>
+    <string name="memory_forget">Forget this</string>
+
+    <!-- Audit -->
+    <string name="audit_card_title">Audit trail</string>
+    <string name="audit_card_subtitle">Every action Jarvis takes is logged here.</string>
+    <string name="audit_open">Open audit log</string>
+
+    <!-- Task lifecycle -->
+    <string name="task_status_drafting">Drafting</string>
+    <string name="task_status_awaiting_approval">Awaiting approval</string>
+    <string name="task_status_running">Running</string>
+    <string name="task_status_complete">Complete</string>
+    <string name="task_status_blocked">Blocked</string>
+    <string name="task_complete_title">Task complete</string>
+    <string name="task_complete_body">Jarvis finished “%1$s”. Tap to review what changed.</string>
+    <string name="task_complete_view">View result</string>
+    <string name="worker_failed_title">Worker failed</string>
+    <string name="worker_failed_body">Something went wrong while Jarvis was working on “%1$s”. Nothing destructive happened — you can retry or open diagnostics.</string>
+    <string name="worker_failed_retry">Retry</string>
+    <string name="worker_failed_diagnose">Diagnose</string>
+
+    <!-- Permission education -->
+    <string name="permission_education_title">Why Jarvis needs this</string>
+    <string name="permission_education_microphone_body">Jarvis listens only while you hold the dictate button. No background recording. No upload off-device unless you ask for it.</string>
+    <string name="permission_education_notifications_body">Notifications let Jarvis tell you when an approval is needed or a task finishes. You can turn them off anytime in Settings.</string>
+    <string name="permission_education_continue">Continue</string>
+    <string name="permission_education_not_now">Not now</string>
 
     <!-- Task detail screen -->
-    <string name="task_detail_new_title">New task</string>
-    <string name="task_detail_edit_title">Edit task</string>
-    <string name="task_detail_prompt_preview">Generated prompt</string>
+    <string name="task_detail_new_title">Brief Jarvis</string>
+    <string name="task_detail_edit_title">Edit briefing</string>
+    <string name="task_detail_prompt_preview">Prompt Jarvis will hand off</string>
     <string name="task_detail_mark_handed_off">Mark handed off</string>
     <string name="task_detail_delete_confirm">Delete this task? This cannot be undone.</string>
 
@@ -55,7 +172,7 @@
     <string name="settings_title">Settings</string>
     <string name="settings_section_orchestrator">Orchestrator preferences</string>
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_section_about">About</string>
+    <string name="settings_section_about">About Jarvis Prime</string>
     <string name="settings_reset">Reset all settings and tasks</string>
     <string name="settings_reset_confirm">This will clear orchestrator preferences and all saved tasks. Continue?</string>
 
@@ -63,15 +180,15 @@
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
 
     <string name="settings_use_api_keys_label">Use API keys</string>
-    <string name="settings_use_api_keys_subtitle">Off by default. Hermes never requires an OpenAI or Anthropic API key for the primary workflow.</string>
+    <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime never requires an API key for the primary workflow.</string>
     <string name="settings_local_only_mode_label">Local-only mode</string>
     <string name="settings_local_only_mode_subtitle">On by default. All orchestrator state stays on this device.</string>
     <string name="settings_allow_external_label">Allow external app opening</string>
-    <string name="settings_allow_external_subtitle">When on, Hermes can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
+    <string name="settings_allow_external_subtitle">When on, Jarvis can launch the official app or browser fallback for a tool. Each launch still requires a tap.</string>
     <string name="settings_clipboard_label">Clipboard handoff enabled</string>
     <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
     <string name="settings_safety_warnings_label">Show safety warnings</string>
-    <string name="settings_safety_warnings_subtitle">Show the reminder that Hermes does not bypass provider authentication.</string>
+    <string name="settings_safety_warnings_subtitle">Show the reminder that Jarvis Prime does not bypass provider authentication.</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
@@ -90,4 +207,6 @@
     <string name="action_ok">OK</string>
     <string name="action_save">Save</string>
     <string name="action_delete">Delete</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_dismiss">Dismiss</string>
 </resources>
