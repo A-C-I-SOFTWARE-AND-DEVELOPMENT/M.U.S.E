@@ -12,4 +12,7 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+    data object Control : Screen("jarvis_control")
+    data object Audit : Screen("jarvis_audit")
+    data object Memory : Screen("jarvis_memory")
 }

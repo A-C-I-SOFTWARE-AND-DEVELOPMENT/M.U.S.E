@@ -4,6 +4,10 @@
 # model/network/preferences/repository sources.
 !app/src/main/java/com/aci/hermes/data/
 !app/src/main/java/com/aci/hermes/data/**
+!app/src/test/java/com/aci/hermes/data/
+!app/src/test/java/com/aci/hermes/data/**
+!app/src/androidTest/java/com/aci/hermes/data/
+!app/src/androidTest/java/com/aci/hermes/data/**
 
 # Gradle
 .gradle/

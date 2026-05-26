@@ -85,6 +85,37 @@
     <string name="diagnostics_no_logs">No logs yet.</string>
     <string name="diagnostics_refresh">Refresh</string>
 
+    <!-- Jarvis Prime settings -->
+    <string name="settings_section_jarvis_response">Response style</string>
+    <string name="settings_response_length_label">Response length</string>
+    <string name="settings_mobile_mode_label">Mobile mode</string>
+    <string name="settings_mobile_mode_subtitle">Optimise Jarvis responses for the phone — shorter, scannable, voice-friendly.</string>
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_label">Owner notifications</string>
+    <string name="settings_notifications_subtitle">Surface approvals, audit highlights, and emergency stop state through the system tray.</string>
+    <string name="settings_section_voice">Voice</string>
+    <string name="settings_voice_label">Voice replies</string>
+    <string name="settings_voice_subtitle">Jarvis can speak responses aloud. Off by default to keep the device silent.</string>
+    <string name="settings_section_icon">Interactive icon</string>
+    <string name="settings_icon_label">Show interactive icon</string>
+    <string name="settings_icon_subtitle">A persistent Jarvis Prime tile in the launcher / overlay for quick capture.</string>
+    <string name="settings_section_gateway">Gateway</string>
+    <string name="settings_gateway_endpoint_label">Gateway endpoint</string>
+    <string name="settings_gateway_endpoint_subtitle">Changing the endpoint reconnects Jarvis. Make sure the URL is one you control.</string>
+    <string name="settings_gateway_apply">Apply endpoint</string>
+    <string name="settings_mock_mode_label">Mock mode</string>
+    <string name="settings_mock_mode_subtitle">Short-circuits the gateway with a local stub for development.</string>
+    <string name="settings_termux_gateway_label">Termux gateway mode</string>
+    <string name="settings_termux_gateway_subtitle">Route Jarvis through a local Python process instead of HTTP.</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_privacy_local_memory_label">Memory stays local-only</string>
+    <string name="settings_privacy_local_memory_subtitle">Long-term memory never leaves this device.</string>
+    <string name="settings_section_approvals">Owner approvals</string>
+    <string name="settings_approvals_required_label">Require owner approval for destructive steps</string>
+    <string name="settings_approvals_required_subtitle">Critical change — disabling routes through a serious warning.</string>
+    <string name="settings_about_app_label">About Jarvis Prime</string>
+    <string name="settings_about_jarvis_body">Jarvis Prime is the owner-loyal apex persona for this device. Local-first; owner-gated for spend, deploy, publish, OAuth, main-branch merge, and credential changes.</string>
+
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>
     <string name="action_ok">OK</string>

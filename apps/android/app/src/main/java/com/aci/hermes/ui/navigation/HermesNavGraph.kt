@@ -10,8 +10,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.audit.AuditScreen
+import com.aci.hermes.ui.screens.control.ControlScreen
+import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.memory.MemoryScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -49,6 +53,7 @@ fun HermesNavHost(container: AppContainer) {
                 },
                 onOpenSettings = { nav.navigate(Screen.Settings.route) },
                 onOpenDiagnostics = { nav.navigate(Screen.Diagnostics.route) },
+                onOpenControl = { nav.navigate(Screen.Control.route) },
             )
         }
         composable(
@@ -88,6 +93,22 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+        composable(Screen.Control.route) {
+            val vm: ControlViewModel = viewModel(factory = remember { container.controlVmFactory() })
+            ControlScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenSettings = { nav.navigate(Screen.Settings.route) },
+                onOpenAudit = { nav.navigate(Screen.Audit.route) },
+                onOpenMemory = { nav.navigate(Screen.Memory.route) },
+            )
+        }
+        composable(Screen.Audit.route) {
+            AuditScreen(onBack = { nav.popBackStack() })
+        }
+        composable(Screen.Memory.route) {
+            MemoryScreen(onBack = { nav.popBackStack() })
         }
     }
 }
