@@ -42,12 +42,14 @@ def test_builder_test_intent_routes_to_local_test_runner() -> None:
     assert decision.target == RouteTarget.LOCAL_TEST_RUNNER
 
 
-def test_builder_pr_intent_routes_to_publisher_and_gates() -> None:
+def test_builder_pr_intent_routes_to_publisher_without_owner_gate() -> None:
+    # Opening a PR no longer requires the owner phrase. The merge itself
+    # is governed by LaunchGate (docs/launch/AUTOMATED_MERGE_POLICY.md).
     router = Router()
     decision = router.route(mode=Mode.BUILDER, intent="open a pull request")
     assert decision.target == RouteTarget.GITHUB_PR_PUBLISHER
-    assert decision.requires_owner_authorization is True
-    assert "main_branch_merge" in decision.pending_actions
+    assert decision.requires_owner_authorization is False
+    assert "main_branch_merge" not in decision.pending_actions
 
 
 def test_builder_rollback_routes_to_bounded_fix() -> None:

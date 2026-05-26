@@ -136,7 +136,7 @@ def test_owner_approval_gate_no_pending_passes() -> None:
 
 def test_owner_approval_gate_needs_exact_phrase() -> None:
     packet = {
-        "owner_gated_actions": ["main_branch_merge"],
+        "owner_gated_actions": ["production_deploy"],
         "owner_authorization_phrase": "go ahead",
     }
     result = owner_approval_gate(packet)
@@ -145,10 +145,23 @@ def test_owner_approval_gate_needs_exact_phrase() -> None:
 
 def test_owner_approval_gate_exact_phrase_passes() -> None:
     packet = {
-        "owner_gated_actions": ["main_branch_merge"],
+        "owner_gated_actions": ["production_deploy"],
         "owner_authorization_phrase": "Yes, with authorization.",
     }
     assert owner_approval_gate(packet).outcome == GateOutcome.PASS
+
+
+def test_owner_approval_gate_treats_main_branch_merge_as_unknown() -> None:
+    # main_branch_merge has been moved out of OWNER_GATED_ACTIONS and
+    # is now governed by LaunchGate. If a packet still lists it as an
+    # owner-gated action, the gate must fail closed — it must not
+    # silently accept the exact phrase for an action that is no longer
+    # in the runtime owner-gated set.
+    packet = {
+        "owner_gated_actions": ["main_branch_merge"],
+        "owner_authorization_phrase": "Yes, with authorization.",
+    }
+    assert owner_approval_gate(packet).outcome == GateOutcome.FAIL
 
 
 def test_owner_approval_gate_unknown_action_fails() -> None:

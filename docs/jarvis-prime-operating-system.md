@@ -300,10 +300,13 @@ Require explicit owner authorization before:
 - OAuth or credential changes
 - production deploys
 - DNS changes
-- main-branch merges
 - package publishing
 - app store submissions
 - legal, compliance, security, health, financial, or regulated claims
+
+Repository merges to `main` are **not** in this set. They are governed
+by the automated LaunchGate policy — see
+[`docs/launch/AUTOMATED_MERGE_POLICY.md`](launch/AUTOMATED_MERGE_POLICY.md).
 
 When authorization is granted, record:
 

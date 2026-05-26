@@ -21,6 +21,10 @@ AUTHORIZATION_PHRASE: str = "Yes, with authorization."
 # Canonical set of owner-gated action categories — kept in sync with
 # the spec doc § Owner Gates. The set is used by the owner_approval
 # gate and ``OwnerAuth.is_gated_action``.
+#
+# Repository merge approval (``main_branch_merge``) is NOT in this set:
+# it is governed by the automated LaunchGate policy — see
+# ``docs/launch/AUTOMATED_MERGE_POLICY.md``.
 OWNER_GATED_ACTIONS: frozenset[str] = frozenset({
     "spend_money",
     "post_publicly",
@@ -29,7 +33,6 @@ OWNER_GATED_ACTIONS: frozenset[str] = frozenset({
     "credential_change",
     "production_deploy",
     "dns_change",
-    "main_branch_merge",
     "force_push",
     "package_publish",
     "app_store_submission",
