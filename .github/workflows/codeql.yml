@@ -1,0 +1,73 @@
+name: CodeQL (advanced setup)
+
+# This workflow replaces GitHub's "default setup" CodeQL scanning so we
+# can honour the suppression policy declared in
+# .github/codeql/codeql-config.yml (full audit trail in
+# docs/security/codeql-suppressions.md).
+#
+# Default setup ignores .github/codeql/codeql-config.yml; only advanced
+# setup (a workflow like this one) reads it. Both setups cannot run at
+# the same time — GitHub disables advanced setup whenever default
+# setup is active. To make this workflow the canonical scanner:
+#
+#   1. Repo admin opens Settings → Code security → Code scanning.
+#   2. Switch "CodeQL analysis" from "Default" to "Advanced".
+#   3. This workflow then becomes the active scanner on every push to
+#      main and every PR targeting main.
+#
+# Language matrix mirrors the languages the prior default setup
+# scanned for this repo: python, javascript-typescript, ruby, and
+# actions (= GitHub Actions workflows themselves).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly scheduled scan keeps parity with default setup's cadence.
+    - cron: "0 4 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: ruby
+            build-mode: none
+          - language: actions
+            build-mode: none
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}

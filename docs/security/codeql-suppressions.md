@@ -5,6 +5,19 @@ in `.github/codeql/codeql-config.yml`. **No suppression may be added to
 that file without a corresponding entry here**, signed off with a
 date, a per-site audit, and the runtime mitigation that justifies it.
 
+## How CodeQL is configured in this repo
+
+This repo runs CodeQL via **advanced setup**: a workflow file at
+`.github/workflows/codeql.yml` whose `init` step references
+`.github/codeql/codeql-config.yml`. Default setup ignores
+configuration files entirely, so any suppression policy must be
+applied through the workflow path.
+
+If a future admin re-enables default setup in repo Settings → Code
+security → Code scanning, the workflow disables itself and the
+suppressions stop being honoured. To keep this document accurate, the
+admin should leave advanced setup active.
+
 ## Policy
 
 A suppression is acceptable only when **all** of the following hold:
