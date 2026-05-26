@@ -30,7 +30,7 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 
 ## JARVIS Prime Operating Layer
 
-> **Status — spec layer present, runtime now landing.** The operating contract, mode taxonomy, routing rules, and skill descriptions for JARVIS Prime live as `docs/jarvis-*.md` and `skills/jarvis-*`. Runtime wiring (slash commands, mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism) ships in `hermes_cli/jarvis_prime/` and is enabled in `v0.14.1+aci.1`.
+> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for JARVIS Prime live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `hermes` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
 
 Hermes can support a JARVIS-style, local-first personal AI operating layer for users who want an active command center rather than a passive chatbot. In this pattern, Hermes coordinates the conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        Static launcher shortcuts for JARVIS Prime control surfaces.
+        Long-press the launcher icon to expose these. They deep-link
+        into MainActivity with an action extra; the activity inspects
+        the extra and routes to the appropriate flow. Quick-settings
+        tile is intentionally deferred to v1.1.
+    -->
+
+    <shortcut
+        android:shortcutId="owner_approve"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_owner_approve_short"
+        android:shortcutLongLabel="@string/shortcut_owner_approve_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aci.hermes"
+            android:targetClass="com.aci.hermes.MainActivity">
+            <extra
+                android:name="jarvis_action"
+                android:value="owner_approve" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="stop_jarvis"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_stop_short"
+        android:shortcutLongLabel="@string/shortcut_stop_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.aci.hermes"
+            android:targetClass="com.aci.hermes.MainActivity">
+            <extra
+                android:name="jarvis_action"
+                android:value="stop" />
+        </intent>
+    </shortcut>
+
+</shortcuts>

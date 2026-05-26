@@ -267,6 +267,13 @@ COMMAND_REGISTRY: list[CommandDef] = [
                "(requires prior /orchestrator approve <job-id> self_improve)",
                "Tools & Skills", cli_only=True, args_hint="run <job-id>",
                subcommands=("run",)),
+    CommandDef("jarvis-prime",
+               "Invoke JARVIS Prime — local-first AI operating partner. "
+               "Prints persona prompt, route decision, and any owner-gate phrase.",
+               "Tools & Skills",
+               aliases=("jarvis", "jp"),
+               args_hint="<intent> | stop",
+               subcommands=("stop",)),
 
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",

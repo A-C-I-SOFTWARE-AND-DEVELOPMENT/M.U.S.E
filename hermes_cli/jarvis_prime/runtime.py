@@ -343,6 +343,42 @@ class JarvisPrime:
         )
 
     # ------------------------------------------------------------------
+    # Emergency stop — clear pending owner gates and disable autonomy
+    # ------------------------------------------------------------------
+
+    def stop(self, reason: str = "owner_requested") -> dict[str, Any]:
+        """Emergency-stop primitive.
+
+        Clears every pending owner-gate, disables the proactive tick, and
+        journals a STOP record to session memory so any later audit
+        of this process knows it was halted.
+
+        Returns a small JSON-serialisable dict (used by the CLI
+        ``stop`` subcommand and any UI surface).
+        """
+
+        pending = list(self.config.owner_auth.pending)
+        cleared = len(pending)
+        self.config.owner_auth.pending = []
+        self.config.proactive_tick_enabled = False
+        try:
+            self.config.memory.remember(
+                key="emergency_stop",
+                value=reason,
+                durability="session",
+                source="system",
+                tags=("emergency_stop",),
+            )
+        except Exception:  # pragma: no cover - defensive
+            pass
+        return {
+            "cleared": cleared,
+            "tick_disabled": True,
+            "reason": reason,
+            "cleared_actions": [g.action for g in pending],
+        }
+
+    # ------------------------------------------------------------------
     # Handoff rendering — operational handoff template
     # ------------------------------------------------------------------
 

@@ -6,6 +6,13 @@
     <string name="orchestrator_notification_title">Hermes Orchestrator Running</string>
     <string name="orchestrator_notification_text">Hermes is coordinating your local AI workflow.</string>
     <string name="orchestrator_notification_stop">Stop</string>
+    <string name="orchestrator_notification_owner_approve">Owner Approve</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_owner_approve_short">Approve</string>
+    <string name="shortcut_owner_approve_long">Owner Approve action</string>
+    <string name="shortcut_stop_short">Stop JARVIS</string>
+    <string name="shortcut_stop_long">Emergency stop for JARVIS Prime</string>
 
     <!-- Orchestrator dashboard -->
     <string name="orchestrator_title">Hermes Orchestrator</string>
