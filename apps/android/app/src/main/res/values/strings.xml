@@ -270,4 +270,45 @@
     <string name="action_delete">Delete</string>
     <string name="action_retry">Retry</string>
     <string name="action_dismiss">Dismiss</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+
+    <!-- Audit screen and audit-detail screen -->
+    <string name="audit_empty">No audited actions yet. Jarvis Prime will log every decision here.</string>
+    <string name="audit_failed_badge">Failed</string>
+    <string name="audit_detail_title">Audit detail</string>
+    <string name="audit_detail_missing">That audit record is no longer available.</string>
+    <string name="audit_detail_user_request">User request</string>
+    <string name="audit_detail_action">Action taken</string>
+    <string name="audit_detail_route">Routing</string>
+    <string name="audit_proof_rationale">Why Jarvis routed it this way</string>
+    <string name="audit_proof_files">Files changed</string>
+    <string name="audit_proof_tests">Tests run</string>
+    <string name="audit_proof_evidence">Evidence</string>
+    <string name="audit_failed_verification_title">Verification failed</string>
+    <string name="audit_failed_verification_failing">Failing checks</string>
+    <string name="audit_approval_history_title">Approval history</string>
+    <string name="audit_approval_history_required">Required</string>
+    <string name="audit_worker_runs_title">Worker runs</string>
+    <string name="audit_rollback_title">Rollback plan</string>
+    <string name="audit_rollback_executed">Rollback executed</string>
+    <string name="audit_rollback_armed">Rollback armed (automatic)</string>
+    <string name="audit_rollback_manual">Rollback prepared (manual)</string>
+    <string name="audit_impact_report_title">Impact report</string>
+
+    <!-- Capability catalog screen -->
+    <string name="capability_title">Capabilities</string>
+    <string name="capability_header_title">What Jarvis Prime can do</string>
+    <string name="capability_header_body">Browse every capability Jarvis Prime knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
+    <string name="capability_search_hint">Search capabilities</string>
+    <string name="capability_filter_all">All</string>
+    <string name="capability_advanced_label">Show advanced</string>
+    <string name="capability_count_template">%1$d capabilities</string>
+    <string name="capability_empty">No capabilities match your filters.</string>
+    <string name="capability_route_title">Routing</string>
+    <string name="capability_prompt_title">Sample prompt</string>
+    <string name="capability_safe_invoke_note">Invoking from here stages a prompt for review — Jarvis never runs it without your confirmation.</string>
+    <string name="capability_stage_prompt">Stage prompt</string>
+    <string name="capability_owner_gated_title">Owner-gated action</string>
+    <string name="capability_owner_gated_body">This capability is owner-gated. Jarvis will draft the work, then wait for your explicit approval before running it.</string>
 </resources>
