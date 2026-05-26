@@ -1,211 +1,162 @@
-# Architecture — Hermes Agent Android module
+# Architecture — Jarvis Prime Android
 
-This document describes the **Android-side** architecture. The Python core
-(agent loop, skills, memory, tools, scheduling) is unchanged and runs on
-the gateway side; the Android app is a thin client over its REST surface.
+This document describes the Jarvis Prime mobile app — the Android body
+of the Jarvis Prime operating partner. The phone is the command
+center, the app is the body, the interactive icon is the visible
+presence, the gateway is the brain, and workers run outside this
+process.
+
+The app lives at `apps/android` (do not move it). Package is
+`com.aci.hermes` (preserved for compatibility with existing intents,
+foreground service registrations, and ADB scripts). The user-facing
+identity is Jarvis Prime; legacy Hermes naming is preserved only
+where renaming would break a wire contract.
 
 ## Module layout
 
 ```
 apps/android/
 ├── app/
-│   ├── build.gradle.kts                     # AGP config, deps, build types
-│   ├── proguard-rules.pro
+│   ├── build.gradle.kts
 │   └── src/main/
 │       ├── AndroidManifest.xml
 │       ├── java/com/aci/hermes/
-│       │   ├── HermesApplication.kt          # process-wide AppContainer
-│       │   ├── MainActivity.kt               # entry point, hosts NavHost
-│       │   ├── di/AppContainer.kt            # hand-rolled DI
-│       │   ├── data/
-│       │   │   ├── model/                    # ChatMessage, Provider, HermesStatus
-│       │   │   ├── preferences/              # DataStore + EncryptedSharedPreferences
-│       │   │   └── network/                  # HermesClient + Mock + Gateway impl
-│       │   ├── ui/
-│       │   │   ├── theme/                    # Material 3 colors / typography
-│       │   │   ├── navigation/               # NavHost + route sealed class
-│       │   │   └── screens/                  # one folder per screen, each with VM
-│       │   └── util/LogBuffer.kt             # in-memory log ring for diagnostics
-│       └── res/                              # strings, icons, themes, backup rules
-├── gradle/libs.versions.toml                 # version catalog
-├── gradle.properties
-└── settings.gradle.kts
+│       │   ├── HermesApplication.kt              # process-wide DI host
+│       │   ├── MainActivity.kt                   # quiet entry — no auto-prompts
+│       │   ├── di/AppContainer.kt                # hand-rolled DI
+│       │   ├── safety/                           # Permission Kernel + Emergency Stop
+│       │   ├── conversation/                     # Conversation Engine + Store
+│       │   ├── data/memory/                      # Memory Tree + Repository
+│       │   ├── gateway/                          # Gateway client + state
+│       │   ├── workers/                          # Worker Execution Lane
+│       │   ├── events/                           # Event Spine
+│       │   ├── approvals/                        # Approval queue + Proof Engine
+│       │   ├── audit/                            # Audit Log (append-only, persisted)
+│       │   ├── voice/                            # Hold-to-talk capture
+│       │   ├── social/                           # Social Intelligence (summariser)
+│       │   ├── service/HermesService.kt          # foreground service (gateway watch)
+│       │   └── ui/
+│       │       ├── theme/                        # Jarvis palette + Material 3
+│       │       ├── components/                   # Interactive icon + Emergency stop bar
+│       │       ├── permissions/                  # Education sheet + Router
+│       │       ├── navigation/                   # NavHost + route sealed class
+│       │       └── screens/                      # one folder per screen, each with VM
+│       └── res/                                  # strings, themes, backup rules
+├── docs/
+└── gradle/
 ```
+
+## Jarvis Prime modules
+
+| Module | What it owns | Where |
+|---|---|---|
+| Permission Kernel | Single point for every Android runtime permission. Sealed `NextStep` API. The Activity is a thin bridge — never calls the OS dialog directly. | `safety/` |
+| Emergency Stop | Always-reachable controller. Listener fan-out, idempotent engage, exception-isolated. | `safety/EmergencyStop.kt` |
+| Memory Tree | The owner-visible record of what Jarvis Prime remembers. Pinned-promotion-on-forget so important memories survive their parent. | `data/memory/` |
+| Conversation Engine | Cold-flow boundary between UI and runtime. Built-in key redaction. Mock provider for offline. | `conversation/` |
+| Gateway | Narrow client for the off-device runtime. Mock client by default; real OkHttp client lands in a follow-up. | `gateway/` |
+| Worker Lane | Per-worker rollup with health (OFFLINE / IDLE / QUEUED / WORKING). | `workers/` |
+| Event Spine | In-process append-only bus. Bounded buffer; severity rollup. | `events/` |
+| Approvals + Proof Engine | Tier-aware confirmation flow (RISKY 1 / SERIOUS 2 / CRITICAL 2 + impact + rollback). Proof Engine renders what the owner sees at decision time; the same text is written into the audit log. | `approvals/` |
+| Audit Log | Append-only, persisted under `<filesDir>/jarvis_audit/audit.jsonl`. Subscribes to the Event Spine at construction. | `audit/` |
+| Voice | Phase-1 hold-to-talk only. Lifecycle controller (IDLE → ARMED → CAPTURING → ENDED). | `voice/` |
+| Interactive Icon | The visible presence. Five states: IDLE, LISTENING, WORKING, ALERT, CRITICAL. | `ui/components/JarvisInteractiveIcon.kt` |
+| Social Intelligence | Read-only summariser that fuses memory + conversation into a one-line dashboard sentence. | `social/` |
 
 ## MVVM pattern
 
-Each screen is `<Name>Screen.kt` (Composable) + `<Name>ViewModel.kt`. The
-ViewModel:
+Each screen is `<Name>Screen.kt` (Composable) + `<Name>ViewModel.kt`.
+The ViewModel:
 
 - Holds a single `StateFlow<UiState>` data class.
 - Mutates state via `_state.update { it.copy(...) }`.
-- Exposes side-effecting methods (`save()`, `refresh()`, etc.) that launch
-  inside `viewModelScope`.
+- Exposes side-effecting methods that launch inside `viewModelScope`.
 
-ViewModels are constructed by `AppContainer.<screen>VmFactory()` and handed
-to `androidx.lifecycle.viewmodel.compose.viewModel(factory = ...)`. There's
-no Hilt because the dependency graph is small enough that the indirection
-costs more than the wiring.
+ViewModels are constructed by `AppContainer.<screen>VmFactory()` and
+handed to `androidx.lifecycle.viewmodel.compose.viewModel(factory = ...)`.
+There's no Hilt because the dependency graph is small enough that the
+indirection costs more than the wiring.
 
-## Data flow
+## Phase 1 safety rules
 
-```
- ┌─────────┐    suspend     ┌──────────────────────┐    HTTP/SSE    ┌──────────┐
- │ Screen  │───────────────▶│   ViewModel          │───────────────▶│ Gateway  │
- │ (Compose│  StateFlow     │   ↓                  │                │ (Python) │
- │  state) │◀───────────────│ HermesClientFactory  │                └──────────┘
- └─────────┘                │  → HermesClient      │
-                            │      ├ Gateway       │
-                            │      └ Mock          │
-                            └──────────────────────┘
-                                      │
-                                      ▼
-                              SettingsRepository
-                              (DataStore + EncryptedSharedPreferences)
-```
+These are enforced by the code, not just policy. Tests in
+`safety/`, `approvals/`, and `voice/` lock them down:
 
-The factory is queried **per request** (not cached): it inspects the latest
-settings snapshot, so toggling mock mode or changing gateway URL takes
-effect on the next `send()` without recreating ViewModels.
+1. No SMS permission. (`JarvisPermission.phase1Banned` asserts.)
+2. No Call Log permission. (Same.)
+3. No overlay (SYSTEM_ALERT_WINDOW) permission. (Same.)
+4. No automatic notification permission dialog on first launch.
+   (`MainActivity` no longer calls `RequestPermission().launch()` at
+   startup; the kernel refuses to launch the OS dialog from
+   NOT_REQUESTED without going through the education sheet first.)
+5. Notification permission only after education / user action.
+   (`PermissionRouter` enforces.)
+6. Microphone permission only after user taps Voice.
+   (`VoiceViewModel` checks `PermissionState` before arming capture.)
+7. No always-listening. (`VoiceCapture` is hold-to-talk only —
+   `start()` refuses without an explicit `arm()`.)
+8. Risky actions ask once. (`RiskTier.RISKY.confirmationsRequired = 1`.)
+9. Serious actions ask twice. (`RiskTier.SERIOUS.confirmationsRequired = 2`.)
+10. Critical actions require impact report + rollback + two confirmations.
+    (`Approval`'s init block refuses CRITICAL without an
+    `ImpactReport`; the report carries a `rollback`.)
+11. Emergency stop is always reachable. (`EmergencyStopBar` sits
+    directly under the hero card on the dashboard; the controller is
+    idempotent and exception-isolated.)
+12. App never bypasses the Permission Kernel. (All callers route
+    through `PermissionRouter`; the kernel is the only thing holding
+    the `SystemPromptLauncher` reference.)
+13. App never directly executes destructive actions. (The approval
+    queue is the only path; the app surfaces the decision and writes
+    proof — it does not run the action.)
+14. App never stores gateway-side secrets. (`GatewayConfig.bearerToken`
+    is held only in process; no DataStore key persists it.)
+15. No done claim without tests or evidence. (Every module ships JVM
+    unit tests under `app/src/test/java/`.)
 
-## Secure storage
+## Storage
 
-Two stores, deliberate split:
+Three stores, deliberate split:
 
-- **DataStore (`hermes_settings`)** — non-secret prefs: gateway URL, theme,
-  default provider id, mock-mode flag, onboarding flag.
-- **EncryptedSharedPreferences (`hermes_secure_prefs.xml`)** — secrets:
-  gateway bearer token, provider API key. Sealed with a hardware-backed
-  master key when available (`MasterKey.KeyScheme.AES256_GCM`). Excluded
-  from cloud backup and device transfer via `data_extraction_rules.xml`
-  and `backup_rules.xml`.
+- DataStore (`hermes_settings`) — non-secret prefs: theme, builder /
+  reviewer preference, allow-external-app, etc.
+- DataStore (`jarvis_memory_v1`) — Memory Tree JSON snapshot.
+- File (`<filesDir>/jarvis_audit/audit.jsonl`) — append-only audit
+  records. Excluded from cloud backup and device transfer via the
+  updated `data_extraction_rules.xml` and `backup_rules.xml`.
 
-Both stores are wiped by **Settings → Reset all settings**.
+There is no `EncryptedSharedPreferences` in Phase 1 — the chat /
+provider flow that needed it was retired before this transform.
+Reset clears every store and the audit file.
 
-## Wire format
+## Foreground service
 
-The Android app talks to the gateway over HTTP. Two endpoints are used
-today:
+`HermesService` is the persistent "gateway is running" surface. It is
+intentionally local-only — no HTTP calls, no shell, no scraping. The
+service exists so the owner always knows when Jarvis Prime is on
+watch, and so the platform doesn't kill the process while a worker
+run is in flight.
 
-### `GET /v1/health`
-
-Plain JSON, no auth required (gateway choice). Response:
-
-```json
-{
-  "ok": true,
-  "version": "0.14.0",
-  "provider_id": "openrouter",
-  "model": "anthropic/claude-3.5-sonnet",
-  "message": null
-}
-```
-
-All fields except `ok` are optional. The Android client treats `ok=false`
-as "show as disconnected" without crashing.
-
-### `POST /v1/chat`
-
-Request body:
-
-```json
-{
-  "provider_id": "openrouter",
-  "messages": [
-    { "role": "user", "content": "hello" },
-    { "role": "assistant", "content": "hi there" },
-    { "role": "user", "content": "summarize my last week of cron runs" }
-  ]
-}
-```
-
-Headers:
-
-- `Authorization: Bearer <gateway-token>` (optional)
-- `X-Hermes-Provider-Key: <provider-api-key>` (optional — forwarded so the
-  gateway can call the provider without storing the user's key)
-- `X-Hermes-Provider-Id: <provider-id>` (optional — convenience for the
-  gateway to route to the right backend)
-- `Accept: text/event-stream`
-
-Response: a Server-Sent Events stream. Each event is JSON in the data
-field. Three event types are consumed by the app today:
-
-```
-event: message
-data: {"type":"delta","text":"Of course — "}
-
-event: message
-data: {"type":"delta","text":"here is your summary…"}
-
-event: message
-data: {"type":"done"}
-```
-
-On error the gateway emits `{"type":"error","message":"..."}` and the app
-renders it as a red note under the partial reply rather than discarding
-the accumulated content.
-
-**Gateway TODO:** The Python gateway in this repo currently exposes a
-similar but not identical surface (it serves WebSocket gateway connections
-for chat platforms). Wiring up `/v1/chat` SSE specifically for the Android
-client is tracked as future work; until then the mobile app is most useful
-in mock mode or against a thin REST shim sitting in front of the gateway.
+The notification text is in `R.string.orchestrator_notification_*`
+and now reads in the Jarvis Prime voice. Start / stop is driven from
+the dashboard, not from `MainActivity.onCreate`.
 
 ## Build types
 
-| Build type | App id | Default mock mode | Default gateway URL |
-|---|---|---|---|
-| `debug` | `com.aci.hermes.debug` | ON | `$HERMES_GATEWAY_URL`, else `http://10.0.2.2:8080` (emulator → host) |
-| `release` | `com.aci.hermes` | OFF | `$HERMES_GATEWAY_URL`, else `""` (user must enter) |
+| Build type | App id | Notes |
+|---|---|---|
+| `debug` | `com.aci.hermes.debug` | Side-by-side install for local development. |
+| `release` | `com.aci.hermes` | Minified + resource-shrunk. |
 
-The default URL is resolved at build time from (in order):
+CI builds the debug APK on every push / PR via
+`.github/workflows/android-build.yml`. The Android SDK and the JDK 21
+toolchain are installed by that workflow; local builds need the same.
 
-1. `-PhermesGatewayUrl=...` (Gradle property)
-2. `$HERMES_GATEWAY_URL` (env var)
-3. `$ANDROID_API_BASE_URL` (env var alias)
-4. Build-type fallback above.
+## Why preserve the `com.aci.hermes` package
 
-It is exposed via `BuildConfig.DEFAULT_GATEWAY_URL` and only used as the
-seed value on first launch — once the user touches the URL field on the
-**Provider** screen, the override is persisted in DataStore and the
-build-time default no longer applies.
-
-> `10.0.2.2` is an Android-emulator-only loopback alias. The
-> `data/network` layer detects it and refuses to dial it from a real
-> device (see `util/GatewayUrl.kt`), surfacing a **"Wrong backend URL"**
-> banner instead of waiting out the OS-level TCP connect timeout.
-
-## Connection state model
-
-`ConnectionState` (in `data/model/HermesStatus.kt`) is the single source
-of truth the status, diagnostics, and provider screens render from:
-
-| State                   | Meaning                                                          |
-|-------------------------|------------------------------------------------------------------|
-| `Unknown`               | Nothing has been probed yet.                                     |
-| `Connecting`            | `/v1/health` probe in flight.                                    |
-| `Connected(status)`     | Probe returned 2xx; `status` carries version/model/etc.          |
-| `Failed(reason, kind)`  | Probe failed. `kind` ∈ {UNREACHABLE, WRONG_URL, TLS, HTTP, UNKNOWN} |
-
-`HermesGatewayClient.status()` uses a *short-timeout* OkHttp client
-clone (5s connect, 8s call timeout) so the UI can show a real error
-in ~8 seconds instead of waiting the OS default ~100 seconds.
-
-## Why not embed a Python runtime?
-
-A few times a year someone asks. The short answer:
-
-- Android sandboxes (`/data/data/<pkg>`) cannot host the toolchain CPython
-  needs to load extension modules built for arbitrary ABIs.
-- Chaquopy, BeeWare/Briefcase, and pyodide-on-Android all exist but each
-  has significant compromises (limited wheel availability, slow startup,
-  no `ffmpeg`/`ripgrep`, voice deps unbuildable).
-- Hermes already has a tested manual path on Android via Termux — that
-  *is* the embedded option, just sandboxed properly under
-  `/data/data/com.termux/files/...`.
-
-If a future Hermes core ever ships an Android-native runtime (e.g. via a
-Rust port of a subset, or a Termux-prebuilt bundle the APK can extract),
-the `HermesClient` interface is intentionally narrow enough that a
-`LocalHermesClient` can be added without touching the UI.
+Renaming the application id is a one-way migration that invalidates
+every existing intent, foreground-service registration, and ADB
+script. The product identity is Jarvis Prime; the wire identity is
+`com.aci.hermes`. The user-facing label (`R.string.app_name`), every
+notification, every screen title, the splash, and the Material theme
+all say Jarvis Prime — the package id is the only legacy survivor.

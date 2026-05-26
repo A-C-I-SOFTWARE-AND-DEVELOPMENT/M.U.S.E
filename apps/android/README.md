@@ -1,20 +1,25 @@
-# Hermes Agent — Android (native companion app)
+# Jarvis Prime — Android command center
 
-> **Status:** alpha. The Android app is a **native companion** to a running
-> Hermes backend (CLI/gateway). It is intentionally *not* a wrapped webview
-> and not a port of the full desktop terminal UX — see
-> [Runtime modes](#runtime-modes) below.
+> **Status:** in active transform. The Android app is the **mobile body**
+> of the Jarvis Prime operating partner. The phone is the command
+> center, the interactive icon is the visible presence, the gateway is
+> the brain, and workers run outside this process.
 
-This module contains the native Android app shell for Hermes Agent.
+This module contains the native Android app for Jarvis Prime.
 
-- **Package:** `com.aci.hermes`
-- **App name:** Hermes Agent
-- **min SDK:** 26 (Android 8.0)  
+- **Package:** `com.aci.hermes` (preserved for compatibility with
+  existing intents and ADB scripts; the user-facing identity is Jarvis
+  Prime).
+- **App name:** Jarvis Prime
+- **min SDK:** 26 (Android 8.0)
 - **target SDK / compileSdk:** 35
 - **Language / UI:** Kotlin + Jetpack Compose (Material 3)
 - **Architecture:** MVVM, hand-rolled DI ([`AppContainer`](app/src/main/java/com/aci/hermes/di/AppContainer.kt))
-- **Networking:** OkHttp + OkHttp-SSE, kotlinx-serialization
-- **Settings:** Jetpack DataStore for non-secrets, EncryptedSharedPreferences for API keys/tokens
+- **Settings:** Jetpack DataStore for non-secrets; the audit log lives
+  under `<filesDir>/jarvis_audit/audit.jsonl`.
+
+Architecture details, including the Phase 1 safety rules enforced by
+code, live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 The rest of this README covers builds, runtime modes, and what is and isn't
 wired up yet. Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
