@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    User-facing status text for the living Jarvis avatar.
+
+    Wording rules:
+      * First-person from Jarvis ("Jarvis is …") so the screen reads as
+        a presence indicator, not a debug log.
+      * Plain English. No jargon, no acronyms.
+      * Idle / blocked / waiting-for-approval are never silently false —
+        the operator must always be able to see what's actually
+        happening.
+-->
+<resources>
+    <string name="avatar_status_idle">Jarvis is here.</string>
+    <string name="avatar_status_thinking">Jarvis is thinking…</string>
+    <string name="avatar_status_talking">Jarvis is talking.</string>
+    <string name="avatar_status_working">Jarvis is working.</string>
+    <string name="avatar_status_coding">Jarvis is coding.</string>
+    <string name="avatar_status_testing">Jarvis is testing.</string>
+    <string name="avatar_status_blocked">Jarvis is blocked.</string>
+    <string name="avatar_status_waiting_for_approval">Jarvis is waiting for your approval.</string>
+</resources>
