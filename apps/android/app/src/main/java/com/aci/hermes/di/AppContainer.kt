@@ -9,6 +9,9 @@ import com.aci.hermes.conversation.ConversationStore
 import com.aci.hermes.conversation.MockConversationEngine
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.events.EventSpine
+import com.aci.hermes.gateway.JarvisGatewayClient
+import com.aci.hermes.gateway.MockJarvisGatewayClient
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
@@ -17,6 +20,7 @@ import com.aci.hermes.safety.PermissionKernel
 import com.aci.hermes.ui.screens.conversation.ConversationViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
+import com.aci.hermes.ui.screens.operations.OperationsViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -60,6 +64,15 @@ class AppContainer(private val application: Application) {
     val conversationEngine: ConversationEngine = MockConversationEngine()
 
     val conversationStore: ConversationStore = ConversationStore()
+
+    /** Event spine for in-process subsystem fan-out. */
+    val eventSpine: EventSpine = EventSpine()
+
+    /**
+     * Jarvis Prime Gateway client. Defaults to the offline mock so
+     * the Operations screen renders before a real gateway is configured.
+     */
+    val gatewayClient: JarvisGatewayClient = MockJarvisGatewayClient()
 
     private val activityLauncher = AtomicReference<PermissionKernel.SystemPromptLauncher?>(null)
 
@@ -113,6 +126,10 @@ class AppContainer(private val application: Application) {
             store = conversationStore,
             logBuffer = logBuffer,
         )
+    }
+
+    fun operationsVmFactory(): ViewModelProvider.Factory = factory {
+        OperationsViewModel(client = gatewayClient, spine = eventSpine)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
