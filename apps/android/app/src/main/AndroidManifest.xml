@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Jarvis Prime Android manifest.
+
+  Permission policy (see docs/jarvis-prime-app-permission-flow.md):
+  - POST_NOTIFICATIONS is declared so a user who completes the
+    notification education card can grant it. It is NEVER requested at
+    app start; only after explicit opt-in from onboarding/control.
+  - RECORD_AUDIO is declared for voice capture and is requested only
+    when the user taps "Start voice setup" / "Capture" after the voice
+    education card. Mock mode never triggers this request.
+  - No SYSTEM_ALERT_WINDOW (overlay) request in this wave.
+  - No READ_SMS / RECEIVE_SMS / SEND_SMS.
+  - No READ_CALL_LOG / WRITE_CALL_LOG / READ_PHONE_STATE.
+  - INTERNET is required only for gateway mode and stays declared as
+    a normal permission (no runtime prompt).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <application
+        android:name=".JarvisPrimeApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.JarvisPrime">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.JarvisPrime">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

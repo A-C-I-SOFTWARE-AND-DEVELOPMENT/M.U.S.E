@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Jarvis Prime</string>
+
+    <!-- Onboarding shared strings -->
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_finish">Finish</string>
+    <string name="onboarding_optional">Optional — you can skip this step.</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Welcome to Jarvis Prime</string>
+    <string name="welcome_body">Jarvis Prime is your local-first AI operating partner. This setup will explain what it does, what it asks for, and how you stay in control before any sensitive permission is requested.</string>
+
+    <!-- What Jarvis Prime does -->
+    <string name="what_title">What Jarvis Prime does</string>
+    <string name="what_body">Jarvis Prime helps you capture ideas, route work to the right agent, coordinate Hermes / AOS Council / Claude Code / Codex, and keep durable memory of your decisions. It runs as a companion, strategist, critic, operator, builder, and mobile voice capture surface.</string>
+
+    <!-- Owner control -->
+    <string name="owner_title">Owner control and approvals</string>
+    <string name="owner_body">You own final judgment. Risky actions — deploys, merges, OAuth, spending money, public posts, regulated claims — require explicit owner approval. Jarvis Prime will never silently take an owner-gated action.</string>
+
+    <!-- Mode selection -->
+    <string name="mode_title">Choose how Jarvis Prime connects</string>
+    <string name="mode_body">You can change this later in settings.</string>
+    <string name="mode_mock_title">Mock mode (recommended for first run)</string>
+    <string name="mode_mock_body">No network calls, no real agents, no permissions required. Safe to explore the app.</string>
+    <string name="mode_gateway_title">Gateway mode</string>
+    <string name="mode_gateway_body">Talk to a remote Hermes gateway you control. Needs a URL you provide and uses the INTERNET permission only.</string>
+    <string name="mode_termux_title">Termux mode</string>
+    <string name="mode_termux_body">Bridge to a local Termux Hermes install on this device via a local socket. No network permission needed beyond loopback.</string>
+
+    <!-- Notification education -->
+    <string name="notif_title">Notifications (you decide)</string>
+    <string name="notif_body">Jarvis Prime can post notifications when an owner approval is needed or when a long task finishes. We will not ask Android for this permission until you tap Enable. The app works fully without it.</string>
+    <string name="notif_enable">Enable notifications</string>
+    <string name="notif_skip">Not now</string>
+
+    <!-- Voice education -->
+    <string name="voice_title">Voice capture (you decide)</string>
+    <string name="voice_body">Mobile Voice Mode turns rough speech into clean task packets. The microphone permission is requested only when you tap Start voice setup. Mock mode never records audio.</string>
+    <string name="voice_setup">Start voice setup</string>
+    <string name="voice_skip">Not now</string>
+
+    <!-- Interactive icon education -->
+    <string name="icon_title">Interactive Jarvis icon</string>
+    <string name="icon_body">The animated icon in the top bar is a status surface, not a system overlay. It tells you which mode is active, whether an approval is pending, and whether emergency stop is engaged. We are not asking for the system overlay permission in this wave.</string>
+
+    <!-- Emergency stop -->
+    <string name="estop_title">Emergency stop</string>
+    <string name="estop_body">Tap and hold the Jarvis icon for two seconds at any time to engage Emergency Stop. All pending agent actions are halted, any in-flight owner-gated request is cancelled, and notifications and voice are paused until you resume from settings.</string>
+
+    <!-- Finish -->
+    <string name="finish_title">You are set up</string>
+    <string name="finish_body">Jarvis Prime is ready in the mode you picked. You can enable optional permissions later from settings, and Emergency Stop is always one long-press away.</string>
+
+    <!-- Home -->
+    <string name="home_title">Jarvis Prime</string>
+    <string name="home_mode_label">Active mode</string>
+    <string name="home_notif_state">Notifications</string>
+    <string name="home_voice_state">Voice capture</string>
+    <string name="home_estop">Emergency stop</string>
+    <string name="home_estop_engage">Engage</string>
+    <string name="home_estop_release">Release</string>
+    <string name="home_replay_onboarding">Replay onboarding</string>
+    <string name="state_on">On</string>
+    <string name="state_off">Off</string>
+    <string name="state_engaged">Engaged</string>
+    <string name="state_clear">Clear</string>
+</resources>

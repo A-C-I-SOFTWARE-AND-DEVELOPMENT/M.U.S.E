@@ -1,0 +1,33 @@
+# Built application files
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Files for the ART/Dalvik VM
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+release/
+
+# Gradle / build artifacts
+.gradle/
+build/
+local.properties
+
+# IDE files
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Keystore / signing
+*.jks
+*.keystore
+
+# Kotlin
+.kotlin/
