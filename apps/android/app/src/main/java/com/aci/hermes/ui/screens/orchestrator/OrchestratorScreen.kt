@@ -3,6 +3,7 @@ package com.aci.hermes.ui.screens.orchestrator
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +13,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -50,15 +56,25 @@ import com.aci.hermes.R
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.safety.EmergencyStop
+import com.aci.hermes.ui.components.EmergencyStopBar
+import com.aci.hermes.ui.components.JarvisInteractiveIcon
+import com.aci.hermes.ui.theme.JarvisGold
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrchestratorScreen(
     viewModel: OrchestratorViewModel,
+    emergencyStop: EmergencyStop,
     onOpenTask: (taskId: String?) -> Unit,
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenSettings: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenConversation: () -> Unit,
+    onOpenMemory: () -> Unit,
+    onOpenOperations: () -> Unit,
+    onOpenApprovals: () -> Unit,
+    onOpenAudit: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -78,7 +94,16 @@ fun OrchestratorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.orchestrator_title)) },
+                title = {
+                    Column {
+                        Text(stringResource(R.string.orchestrator_title))
+                        Text(
+                            stringResource(R.string.orchestrator_subtitle),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
@@ -93,13 +118,23 @@ fun OrchestratorScreen(
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.nav_diagnostics)) },
-                                onClick = {
-                                    overflowOpen = false
-                                    onOpenDiagnostics()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.BugReport, contentDescription = null)
-                                },
+                                onClick = { overflowOpen = false; onOpenDiagnostics() },
+                                leadingIcon = { Icon(Icons.Default.BugReport, contentDescription = null) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nav_audit)) },
+                                onClick = { overflowOpen = false; onOpenAudit() },
+                                leadingIcon = { Icon(Icons.Default.History, contentDescription = null) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nav_memory)) },
+                                onClick = { overflowOpen = false; onOpenMemory() },
+                                leadingIcon = { Icon(Icons.Default.Park, contentDescription = null) },
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.nav_operations)) },
+                                onClick = { overflowOpen = false; onOpenOperations() },
+                                leadingIcon = { Icon(Icons.Default.SettingsRemote, contentDescription = null) },
                             )
                         }
                     }
@@ -121,12 +156,17 @@ fun OrchestratorScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+            contentPadding = PaddingValues(vertical = 12.dp),
         ) {
-            item { StatusCard(state, viewModel::startService, viewModel::stopService) }
+            item { JarvisHeroCard(state, onOpenConversation = onOpenConversation) }
             item {
-                SectionTitle(stringResource(R.string.orchestrator_tools_title))
+                EmergencyStopBar(emergencyStop = emergencyStop)
             }
+            if (state.pendingApprovals.isNotEmpty()) {
+                item { ApprovalsBanner(state.pendingApprovals.size, onOpenApprovals) }
+            }
+            item { StatusCard(state, viewModel::startService, viewModel::stopService) }
+            item { SectionTitle(stringResource(R.string.orchestrator_tools_title)) }
             items(state.tools) { profile ->
                 ToolCard(
                     profile = profile,
@@ -156,6 +196,50 @@ fun OrchestratorScreen(
             if (state.showSafetyWarnings) {
                 item { SafetyBanner() }
             }
+        }
+    }
+}
+
+@Composable
+private fun JarvisHeroCard(state: OrchestratorUiState, onOpenConversation: () -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            JarvisInteractiveIcon(state = state.iconState, size = 120.dp)
+            if (state.socialSentence.isNotBlank()) {
+                Text(
+                    text = state.socialSentence,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Button(onClick = onOpenConversation) {
+                Icon(Icons.Default.Chat, contentDescription = null)
+                Text(
+                    text = stringResource(R.string.nav_conversation),
+                    modifier = Modifier.padding(start = 6.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApprovalsBanner(count: Int, onOpen: () -> Unit) {
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = JarvisGold)
+                Text("$count approval${if (count == 1) "" else "s"} waiting", style = MaterialTheme.typography.titleMedium)
+            }
+            Button(onClick = onOpen) { Text(stringResource(R.string.nav_approvals)) }
         }
     }
 }

@@ -12,4 +12,12 @@ sealed class Screen(val route: String) {
     }
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+
+    // Jarvis Prime modules.
+    data object Conversation : Screen("conversation")
+    data object Memory : Screen("memory")
+    data object Operations : Screen("operations")
+    data object Approvals : Screen("approvals")
+    data object Audit : Screen("audit")
+    data object Voice : Screen("voice")
 }

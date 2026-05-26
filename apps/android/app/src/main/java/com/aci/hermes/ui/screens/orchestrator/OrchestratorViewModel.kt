@@ -7,6 +7,8 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.approvals.Approval
+import com.aci.hermes.approvals.ApprovalQueue
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.DefaultToolProfiles
 import com.aci.hermes.data.model.HermesTask
@@ -14,7 +16,12 @@ import com.aci.hermes.data.orchestrator.HandoffLauncher
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.gateway.GatewayState
+import com.aci.hermes.gateway.JarvisGatewayClient
+import com.aci.hermes.safety.EmergencyStop
 import com.aci.hermes.service.HermesService
+import com.aci.hermes.social.SocialIntelligence
+import com.aci.hermes.ui.components.JarvisIconState
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +39,11 @@ data class OrchestratorUiState(
     val clipboardHandoffEnabled: Boolean = true,
     val showSafetyWarnings: Boolean = true,
     val snackbar: String? = null,
+    val gateway: GatewayState = GatewayState(),
+    val pendingApprovals: List<Approval> = emptyList(),
+    val iconState: JarvisIconState = JarvisIconState.IDLE,
+    val socialSentence: String = "",
+    val emergencyEngaged: Boolean = false,
 )
 
 class OrchestratorViewModel(
@@ -40,6 +52,10 @@ class OrchestratorViewModel(
     private val tasksRepo: HermesTaskRepository,
     private val promptBuilder: PromptBuilder,
     private val logBuffer: LogBuffer,
+    private val gatewayClient: JarvisGatewayClient,
+    private val approvalQueue: ApprovalQueue,
+    private val emergencyStop: EmergencyStop,
+    private val socialIntelligence: SocialIntelligence,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(OrchestratorUiState())
@@ -64,6 +80,36 @@ class OrchestratorViewModel(
                         showSafetyWarnings = warnings,
                     )
                 }
+            }
+        }
+        viewModelScope.launch {
+            combine(
+                gatewayClient.state,
+                approvalQueue.approvals,
+                emergencyStop.engaged,
+            ) { gw, approvals, engaged ->
+                val pending = approvals.filter { it.decision == Approval.Decision.PENDING }
+                val icon = computeIconState(
+                    engaged = engaged,
+                    pendingCritical = pending.any { it.tier.requiresImpactReport },
+                    pendingAny = pending.isNotEmpty(),
+                    queueRunning = gw.queue.running > 0,
+                )
+                Triple(gw, pending, icon to engaged)
+            }.collect { (gw, pending, iconPair) ->
+                _state.update {
+                    it.copy(
+                        gateway = gw,
+                        pendingApprovals = pending,
+                        iconState = iconPair.first,
+                        emergencyEngaged = iconPair.second,
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            socialIntelligence.brief.collect { brief ->
+                _state.update { it.copy(socialSentence = brief.sentence) }
             }
         }
         refreshServiceStatus()
@@ -103,7 +149,7 @@ class OrchestratorViewModel(
         val prompt = promptBuilder.build(task, profile)
         val ok = HandoffLauncher.copyPrompt(
             getApplication(),
-            label = "Hermes prompt",
+            label = "Jarvis Prime prompt",
             text = prompt,
         )
         if (ok) {
@@ -124,13 +170,17 @@ class OrchestratorViewModel(
             is HandoffLauncher.LaunchResult.Opened -> "Opened ${profile.displayName} (${result.via})"
             is HandoffLauncher.LaunchResult.ManualOnly -> result.message
             HandoffLauncher.LaunchResult.Blocked ->
-                "External app opening is disabled in Settings → Orchestrator preferences."
+                "External app opening is disabled in Settings → Jarvis Prime preferences."
         }
         _state.update { it.copy(snackbar = msg) }
     }
 
     fun consumeSnackbar() {
         _state.update { it.copy(snackbar = null) }
+    }
+
+    fun resetAfterEmergencyStop() {
+        emergencyStop.reset()
     }
 
     @Suppress("DEPRECATION")
@@ -141,5 +191,19 @@ class OrchestratorViewModel(
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
         return am.getRunningServices(Integer.MAX_VALUE)
             .any { it.service.className == cls.name }
+    }
+
+    companion object {
+        fun computeIconState(
+            engaged: Boolean,
+            pendingCritical: Boolean,
+            pendingAny: Boolean,
+            queueRunning: Boolean,
+        ): JarvisIconState = when {
+            engaged || pendingCritical -> JarvisIconState.CRITICAL
+            pendingAny -> JarvisIconState.ALERT
+            queueRunning -> JarvisIconState.WORKING
+            else -> JarvisIconState.IDLE
+        }
     }
 }

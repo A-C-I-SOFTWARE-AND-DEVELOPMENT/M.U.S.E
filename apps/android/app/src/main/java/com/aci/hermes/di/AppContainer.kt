@@ -14,6 +14,7 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.events.EventSpine
 import com.aci.hermes.gateway.JarvisGatewayClient
 import com.aci.hermes.gateway.MockJarvisGatewayClient
+import com.aci.hermes.social.SocialIntelligence
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
@@ -88,6 +89,9 @@ class AppContainer(private val application: Application) {
 
     val voiceCapture: VoiceCapture = VoiceCapture()
 
+    val socialIntelligence: SocialIntelligence =
+        SocialIntelligence(memory = memoryRepository, conversation = conversationStore)
+
     private val activityLauncher = AtomicReference<PermissionKernel.SystemPromptLauncher?>(null)
 
     fun bindActivityPromptLauncher(launcher: PermissionKernel.SystemPromptLauncher) {
@@ -107,6 +111,10 @@ class AppContainer(private val application: Application) {
             tasksRepo = taskRepository,
             promptBuilder = promptBuilder,
             logBuffer = logBuffer,
+            gatewayClient = gatewayClient,
+            approvalQueue = approvalQueue,
+            emergencyStop = emergencyStop,
+            socialIntelligence = socialIntelligence,
         )
     }
 
