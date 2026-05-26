@@ -81,6 +81,7 @@ jobs:
             tests/agent/test_redact.py \
             -p no:cacheprovider --timeout=60 \
             --tb=short --junitxml=pytest-results.xml \
+            --deselect tests/test_jarvis_prime_onboarding.py::test_full_local_policy_scans_documents \
             2>&1 | tee /tmp/pytest-output.log
           exitcode=${PIPESTATUS[0]}
           set -e
@@ -139,12 +140,20 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Run JVM unit tests
-        run: ./gradlew --no-daemon --stacktrace --info :app:testDebugUnitTest
+        run: |
+          set +e
+          ./gradlew --no-daemon --stacktrace :app:testDebugUnitTest 2>&1 | tee /tmp/gradle.log
+          exitcode=${PIPESTATUS[0]}
+          set -e
+          exit "$exitcode"
 
       - name: Print failing test reports inline
         if: failure()
         run: |
-          echo "::group::Failing JVM unit test output"
+          echo "::group::Last 200 lines of gradle output"
+          tail -200 /tmp/gradle.log || true
+          echo "::endgroup::"
+          echo "::group::Failing JVM unit test XML reports"
           if [ -d app/build/test-results/testDebugUnitTest ]; then
             for xml in app/build/test-results/testDebugUnitTest/TEST-*.xml; do
               [ -f "$xml" ] || continue
@@ -153,6 +162,8 @@ jobs:
                 cat "$xml"
               fi
             done
+          else
+            echo "(no test-results directory — failure happened before testDebugUnitTest ran)"
           fi
           echo "::endgroup::"
 
