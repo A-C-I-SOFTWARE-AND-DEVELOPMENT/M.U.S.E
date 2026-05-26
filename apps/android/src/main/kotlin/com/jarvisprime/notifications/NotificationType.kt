@@ -1,0 +1,12 @@
+package com.jarvisprime.notifications
+
+enum class NotificationType {
+    APPROVAL_NEEDED,
+    SERIOUS_ACTION_PENDING,
+    CRITICAL_ACTION_PENDING,
+    TASK_COMPLETE,
+    WORKER_FAILED,
+    GATEWAY_DISCONNECTED,
+    EMERGENCY_STOP_ACTIVE,
+    MEMORY_CORRECTED,
+}
