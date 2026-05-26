@@ -33,10 +33,16 @@ from agent.secret_sources import bitwarden as bw  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
-def _reset_caches():
-    bw._reset_cache_for_tests()
+def _reset_caches(tmp_path_factory, monkeypatch):
+    # Isolate HERMES_HOME per test so the disk cache at
+    # <HERMES_HOME>/cache/bws_cache.json doesn't get shared between xdist
+    # workers (which race on a single shared file otherwise and cause
+    # the apply_bitwarden_secrets tests to flake on `assert 'NEW_KEY' in []`).
+    isolated_home = tmp_path_factory.mktemp("hermes_home_bw")
+    monkeypatch.setenv("HERMES_HOME", str(isolated_home))
+    bw._reset_cache_for_tests(home_path=isolated_home)
     yield
-    bw._reset_cache_for_tests()
+    bw._reset_cache_for_tests(home_path=isolated_home)
 
 
 @pytest.fixture
