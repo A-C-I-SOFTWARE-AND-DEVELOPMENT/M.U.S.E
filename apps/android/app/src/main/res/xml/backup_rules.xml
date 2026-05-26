@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Exclude encrypted preferences from cloud backup; they are tied to the
+  device's keystore and cannot be restored on a different device.
+-->
+<full-backup-content>
+    <exclude domain="sharedpref" path="hermes_secure_prefs.xml" />
+</full-backup-content>
