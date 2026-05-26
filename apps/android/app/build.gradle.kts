@@ -69,6 +69,15 @@ android {
             )
         }
     }
+
+    testOptions {
+        unitTests {
+            // android.util.Log.* throws "not mocked" in JVM unit tests unless
+            // stubs return defaults. LogBuffer (used by every ViewModel) wraps
+            // android.util.Log; without this, any VM test that logs would crash.
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
