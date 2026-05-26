@@ -14,6 +14,7 @@ from __future__ import annotations
 import sys
 import webbrowser
 from typing import Optional
+from urllib.parse import urlparse
 
 from hermes_cli.colors import Colors, color
 from hermes_cli.config import load_config
@@ -21,6 +22,22 @@ from hermes_cli.config import load_config
 DEFAULT_PORTAL_URL = "https://portal.nousresearch.com"
 SUBSCRIPTION_URL = "https://portal.nousresearch.com/manage-subscription"
 DOCS_URL = "https://hermes-agent.nousresearch.com/docs/user-guide/features/tool-gateway"
+
+
+def _safe_display_url(value: object) -> str:
+    """Return a safe URL string for display, or a redacted placeholder."""
+    if not isinstance(value, str):
+        return "[redacted]"
+    candidate = value.strip()
+    if not candidate:
+        return "[redacted]"
+    try:
+        parsed = urlparse(candidate)
+    except Exception:
+        return "[redacted]"
+    if parsed.scheme in {"http", "https"} and parsed.netloc:
+        return candidate
+    return "[redacted]"
 
 
 def _nous_portal_base_url() -> str:
@@ -56,10 +73,10 @@ def _cmd_status(args) -> int:
     if logged_in:
         portal = auth.get("portal_base_url") or DEFAULT_PORTAL_URL
         print(f"  Auth:    {color('✓ logged in', Colors.GREEN)}")
-        print(f"  Portal:  {portal}")
+        print(f"  Portal:  {_safe_display_url(portal)}")
         inference = auth.get("inference_base_url")
         if inference:
-            print(f"  API:     {inference}")
+            print(f"  API:     {_safe_display_url(inference)}")
     else:
         print(f"  Auth:    {color('not logged in', Colors.YELLOW)}")
         print(f"  Sign up: {SUBSCRIPTION_URL}")
