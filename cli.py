@@ -7819,6 +7819,63 @@ class HermesCLI:
         if output:
             print(output)
 
+    def _handle_jarvis_prime_slash(self, cmd: str) -> None:
+        """Dispatch /jarvis, /jp, /jarvis-prime to the JARVIS Prime runtime.
+
+        Imports lazily so the cost only lands when the user invokes the
+        slash command. ``/<cmd> stop`` is a special form that maps to
+        :meth:`JarvisPrime.stop`; everything else is forwarded as the
+        intent to :meth:`JarvisPrime.handle`.
+        """
+        rest = cmd.strip()
+        if rest.startswith("/"):
+            rest = rest.lstrip("/")
+        # Strip the canonical / alias from the front of the payload.
+        first, _, after = rest.partition(" ")
+        if first.lower() in {"jarvis-prime", "jarvis", "jp"}:
+            rest = after.strip()
+        intent = rest.strip()
+
+        try:
+            from hermes_cli.jarvis_prime.runtime import JarvisPrime
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"(._.) /jarvis: import failed — {exc}")
+            return
+
+        jp = JarvisPrime()
+        if intent.lower() in {"stop", "halt", "panic"}:
+            result = jp.stop(reason="cli_user_requested")
+            print(
+                f"(•̀ᴗ•́)✧ JARVIS Prime stopped. "
+                f"cleared={result['cleared']} actions={result['cleared_actions']} "
+                f"tick_disabled={result['tick_disabled']}"
+            )
+            return
+        if not intent:
+            print("usage: /jarvis <intent> | /jarvis stop")
+            return
+
+        try:
+            turn = jp.handle(intent)
+        except Exception as exc:  # pragma: no cover - defensive
+            print(f"(._.) /jarvis error: {exc}")
+            return
+
+        print(f"Mode: {turn.classification.mode.value} "
+              f"(confidence {turn.classification.confidence:.2f})")
+        print(f"Route: {turn.route.target.value} — {turn.route.rationale}")
+        if turn.route.delegate_to:
+            print(f"Delegate to: {turn.route.delegate_to}")
+        if turn.route.pending_actions:
+            print(
+                "Owner gates pending: "
+                + ", ".join(turn.route.pending_actions)
+                + '  → reply exactly: "Yes, with authorization."'
+            )
+        if turn.research_brief is not None:
+            print(f"Research opened: {turn.research_brief.topic} "
+                  f"(triggered_by={turn.research_brief.triggered_by})")
+
     def _show_gateway_status(self):
         """Show status of the gateway and connected messaging platforms."""
         from gateway.config import load_gateway_config, Platform
@@ -8114,6 +8171,8 @@ class HermesCLI:
         elif canonical == "skills":
             with self._busy_command(self._slow_command_status(cmd_original)):
                 self._handle_skills_command(cmd_original)
+        elif canonical == "jarvis-prime":
+            self._handle_jarvis_prime_slash(cmd_original)
         elif canonical == "platforms":
             self._show_gateway_status()
         elif canonical == "status":

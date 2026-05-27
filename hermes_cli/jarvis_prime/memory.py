@@ -36,11 +36,25 @@ LOGGER = logging.getLogger("hermes.jarvis_prime.memory")
 
 
 # Patterns we NEVER write to memory (mirrors memory-and-personality-policy.md).
+# Coverage expanded during final-launch review: SSN, credit cards, AWS access
+# keys, PEM/SSH private keys, and JWT-shaped tokens were missing.
 _FORBIDDEN_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"(?i)(api[_ -]?key|secret|password|token|bearer)\s*[:=]\s*\S+"),
     re.compile(r"(?i)sk-[a-zA-Z0-9_-]{20,}"),  # OpenAI-style secrets
     re.compile(r"(?i)ghp_[a-zA-Z0-9]{20,}"),    # GitHub tokens
     re.compile(r"(?i)xox[a-z]-[a-zA-Z0-9-]{10,}"),  # Slack tokens
+    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),         # AWS access key id
+    re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),        # US SSN
+    re.compile(                                  # major-brand credit card numbers
+        r"(?<!\d)(?:4\d{12}(?:\d{3})?"           #   Visa
+        r"|5[1-5]\d{14}"                          #   Mastercard
+        r"|3[47]\d{13}"                           #   AmEx
+        r"|6(?:011|5\d{2})\d{12})(?!\d)"          #   Discover
+    ),
+    re.compile(
+        r"-----BEGIN (?:RSA|OPENSSH|EC|DSA|PGP|ENCRYPTED) PRIVATE KEY-----"
+    ),
+    re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"),  # JWT
 )
 
 
@@ -111,6 +125,7 @@ class MemoryStore:
     def _load_journal(self) -> None:
         if not self.journal_path.is_file():
             return
+        _tighten_perms(self.journal_path)
         try:
             with self.journal_path.open("r", encoding="utf-8") as fh:
                 for line in fh:
@@ -146,6 +161,9 @@ class MemoryStore:
             self.journal_path.parent.mkdir(parents=True, exist_ok=True)
             with self.journal_path.open("a", encoding="utf-8") as fh:
                 fh.write(json.dumps(record.to_dict()) + "\n")
+            # Memory may include user context the OS umask would leave
+            # world-readable; force 0o600 owner-only after every write.
+            _tighten_perms(self.journal_path)
         except Exception as exc:  # pragma: no cover - defensive
             LOGGER.debug("memory journal write failed: %s", exc)
 
@@ -261,6 +279,15 @@ class MemoryStore:
 
 def _tokenize(text: str) -> set[str]:
     return {w for w in re.split(r"\W+", text.lower()) if len(w) > 2}
+
+
+def _tighten_perms(path: Path) -> None:
+    """Best-effort chmod 0o600 on the journal file. No-op on platforms
+    where the call fails (Windows native, restricted FS)."""
+    try:
+        os.chmod(path, 0o600)
+    except OSError:  # pragma: no cover - platform-dependent
+        pass
 
 
 def _parse_iso(value: object) -> Optional[datetime]:

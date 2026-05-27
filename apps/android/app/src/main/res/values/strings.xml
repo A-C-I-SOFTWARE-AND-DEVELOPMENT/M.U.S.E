@@ -22,6 +22,13 @@
     <string name="orchestrator_notification_title">Jarvis Prime is on duty</string>
     <string name="orchestrator_notification_text">Coordinating local AI workflow on this device.</string>
     <string name="orchestrator_notification_stop">Stand down</string>
+    <string name="orchestrator_notification_owner_approve">Owner Approve</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_owner_approve_short">Approve</string>
+    <string name="shortcut_owner_approve_long">Owner Approve action</string>
+    <string name="shortcut_stop_short">Stop JARVIS</string>
+    <string name="shortcut_stop_long">Emergency stop for JARVIS Prime</string>
 
     <!-- Orchestrator dashboard -->
     <string name="orchestrator_title">Jarvis Prime</string>

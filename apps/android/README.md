@@ -182,6 +182,21 @@ job uploads `lint-results-debug.html`.
   wake-lock, and status polling land with the cockpit-screen work
   in a follow-up phase.
 
+## Interactive surface (v1.0)
+
+For JARVIS Prime control without opening the full app:
+
+- **Launcher shortcuts** (`res/xml/shortcuts.xml`) â€” long-press the
+  launcher icon for **Approve** (Owner Approve flow) and **Stop JARVIS**
+  (emergency stop deep-link). Both route through `MainActivity` with
+  a `jarvis_action` intent extra.
+- **Notification actions** on the foreground-service ongoing
+  notification â€” **Owner Approve** (deep-link into the approval flow)
+  and **Stop** (terminates the service).
+
+Quick-settings tile (`TileService`) is intentionally deferred to v1.1
+once the deep-link approval flow inside `MainActivity` has soaked.
+
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the deliberate
 split between this Android module and the Python core.
 

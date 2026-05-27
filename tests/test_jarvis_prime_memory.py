@@ -25,6 +25,30 @@ def test_remember_token_pattern_rejected(store: MemoryStore) -> None:
     assert record is None
 
 
+@pytest.mark.parametrize(
+    "secret_value",
+    [
+        "AKIAIOSFODNN7EXAMPLE",                                    # AWS access key
+        "SSN on file: 123-45-6789",                                # US SSN
+        "card 4111 1111 1111 1111 expires soon".replace(" ", ""),  # Visa
+        "card 5500000000000004",                                   # Mastercard
+        "card 340000000000009",                                    # AmEx
+        "-----BEGIN RSA PRIVATE KEY-----\\nMIIEpAIBAAKC",          # PEM
+        "-----BEGIN OPENSSH PRIVATE KEY-----\\nb3BlbnNzaC1rZXkt",  # OpenSSH
+        # JWT (header.payload.signature with realistic lengths)
+        "eyJhbGciOiJIUzI1NiJ9."
+        "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0."
+        "TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ",
+    ],
+)
+def test_remember_extended_secret_patterns_rejected(
+    store: MemoryStore, secret_value: str
+) -> None:
+    """Final-release review (W1): SSN, AWS, cards, PEM, JWT must be rejected."""
+    record = store.remember("leak", secret_value)
+    assert record is None
+
+
 def test_remember_temporary_emotion_downgrades_to_session(store: MemoryStore) -> None:
     record = store.remember(
         "mood",

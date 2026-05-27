@@ -100,6 +100,20 @@ class HermesService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Owner-approve action deep-links into MainActivity with a
+        // jarvis_action extra. MainActivity inspects the extra and
+        // routes to the approval entry flow (requires the exact phrase
+        // "Yes, with authorization." per the JARVIS Prime owner gate).
+        val ownerApproveIntent = PendingIntent.getActivity(
+            this,
+            2,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("jarvis_action", "owner_approve")
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(getString(R.string.orchestrator_notification_title))
@@ -108,6 +122,13 @@ class HermesService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    getString(R.string.orchestrator_notification_owner_approve),
+                    ownerApproveIntent
+                ).build()
+            )
             .addAction(
                 NotificationCompat.Action.Builder(
                     0,

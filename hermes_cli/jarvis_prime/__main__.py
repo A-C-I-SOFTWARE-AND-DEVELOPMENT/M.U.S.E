@@ -7,6 +7,10 @@ Subcommands:
 - ``gate <name> --packet <path>`` — run one gate against a JSON packet.
 - ``handle "<intent>"`` — full perceive→classify→decide on stdin/args.
 - ``tick`` — one proactive tick (uses ~/.hermes/config.yaml if present).
+- ``stop [--reason X]`` — emergency stop: clear pending gates, disable tick.
+- ``forget --key K`` — remove all records with that key from memory.
+- ``remember --key K --value V [--durable]`` — capture a memory record.
+- ``recollect QUERY [--limit N]`` — print top relevant memories.
 - ``proposals {list|approve|reject}`` — owner review surface for
   JARVIS Prime self-update proposals. ``approve`` requires the exact
   phrase ``Yes, with authorization.`` Status updates only — execution
@@ -137,6 +141,43 @@ def _cmd_handle(args: argparse.Namespace) -> int:
             print(f"Owner gates pending: {', '.join(turn.route.pending_actions)}")
         if turn.gate_summary:
             print("\n" + turn.gate_summary.render())
+    return 0
+
+
+def _cmd_stop(args: argparse.Namespace) -> int:
+    jp = JarvisPrime()
+    result = jp.stop(reason=args.reason)
+    _print_json(result)
+    return 0
+
+
+def _cmd_forget(args: argparse.Namespace) -> int:
+    jp = JarvisPrime()
+    removed = jp.config.memory.forget(args.key)
+    _print_json({"key": args.key, "removed": removed})
+    return 0
+
+
+def _cmd_remember(args: argparse.Namespace) -> int:
+    jp = JarvisPrime()
+    durability = "durable" if args.durable else "session"
+    record = jp.config.memory.remember(
+        key=args.key,
+        value=args.value,
+        durability=durability,
+        source="user",
+    )
+    if record is None:
+        _print_json({"stored": False, "reason": "rejected (secret-like or low confidence)"})
+        return 1
+    _print_json({"stored": True, "record": record.to_dict()})
+    return 0
+
+
+def _cmd_recollect(args: argparse.Namespace) -> int:
+    jp = JarvisPrime()
+    hits = jp.config.memory.recollect(args.query, limit=args.limit)
+    _print_json([r.to_dict() for r in hits])
     return 0
 
 
@@ -344,6 +385,24 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_tick.add_argument("--json", action="store_true")
     p_tick.set_defaults(func=_cmd_tick)
 
+    p_stop = sub.add_parser("stop", help="Emergency stop: clear pending owner gates and disable tick")
+    p_stop.add_argument("--reason", default="owner_requested")
+    p_stop.set_defaults(func=_cmd_stop)
+
+    p_forget = sub.add_parser("forget", help="Remove all records with a given key from memory")
+    p_forget.add_argument("--key", required=True)
+    p_forget.set_defaults(func=_cmd_forget)
+
+    p_remember = sub.add_parser("remember", help="Capture a memory record")
+    p_remember.add_argument("--key", required=True)
+    p_remember.add_argument("--value", required=True)
+    p_remember.add_argument("--durable", action="store_true", help="Promote to long-term memory")
+    p_remember.set_defaults(func=_cmd_remember)
+
+    p_recollect = sub.add_parser("recollect", help="Print top relevant memories for a query")
+    p_recollect.add_argument("query")
+    p_recollect.add_argument("--limit", type=int, default=5)
+    p_recollect.set_defaults(func=_cmd_recollect)
     p_proposals = sub.add_parser(
         "proposals",
         help="List, approve, or reject JARVIS Prime self-update proposals",

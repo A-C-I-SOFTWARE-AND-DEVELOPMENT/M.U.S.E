@@ -470,3 +470,43 @@ JARVIS Prime should not:
 - treat historical registry mentions as runnable agents
 - save secrets or temporary emotions
 - produce long mobile responses while Jeremiah is moving
+
+## Disabling / Rolling Back JARVIS Prime
+
+JARVIS Prime is opt-in. Nothing it does activates without an
+explicit slash command (`/jarvis`, `/jp`, `/jarvis-prime`), an
+explicit Python import, or an explicit config toggle. If something
+goes wrong, you have four levers, in order of increasing severity:
+
+1. **Emergency stop (in place).** From the interactive CLI:
+   `/jarvis stop`. From any shell:
+   `python -m hermes_cli.jarvis_prime stop`. This clears every
+   pending owner-gate, disables the proactive tick, and writes a
+   STOP record to session memory.
+
+2. **Disable the proactive tick.** In `~/.hermes/config.yaml`:
+
+   ```yaml
+   jarvis_prime:
+     proactive_tick: disabled
+   ```
+
+   This is the default, so this lever only matters if you
+   previously turned it on.
+
+3. **Avoid the slash commands.** Without `/jarvis`, `/jp`,
+   `/jarvis-prime`, or a Python import, the runtime is dormant.
+   The rest of Hermes continues to work normally.
+
+4. **Package downgrade (last resort).** `pip install
+   hermes-agent==0.14.0` (or the previous tag of your choice).
+   The `jarvis_prime` package is additive; downgrading does not
+   break any other Hermes feature.
+
+You can also delete the memory journal at any time:
+
+```bash
+rm ~/.hermes/jarvis_prime/memory.jsonl
+```
+
+JARVIS Prime will warm-start with an empty store on the next call.
