@@ -57,6 +57,11 @@ class ScreenTest {
 
     @Test
     fun all_main_destinations_are_shell_routes() {
+        // Capability is rendered inside JarvisShell (the nav graph wraps
+        // it in ShellHost) but intentionally not on the bottom nav — it
+        // is reached from Home quick-links and Settings. It still
+        // belongs in shellRoutes so the shell wrapper drives its
+        // top-bar / emergency-stop chrome.
         val expectedShellRoutes = setOf(
             Screen.Home.route,
             Screen.Chat.route,
@@ -64,9 +69,24 @@ class ScreenTest {
             Screen.Approvals.route,
             Screen.Memory.route,
             Screen.Audit.route,
+            Screen.Capability.route,
             Screen.Control.route,
         )
         assertEquals(expectedShellRoutes, Screen.shellRoutes)
+    }
+
+    @Test
+    fun emergency_stop_path_exists_via_orchestrator_service_controller() {
+        // Compile-time pin: every shell-wrapped destination surfaces
+        // emergency stop via OrchestratorServiceController.emergencyStop.
+        // If that symbol disappears or is renamed, the launch surface
+        // loses its emergency stop and this test stops passing.
+        val method = com.aci.hermes.service.OrchestratorServiceController::class.java.declaredMethods
+            .firstOrNull { it.name == "emergencyStop" }
+        assertNotNull(
+            "OrchestratorServiceController.emergencyStop() must exist on the launch surface",
+            method,
+        )
     }
 
     @Test
