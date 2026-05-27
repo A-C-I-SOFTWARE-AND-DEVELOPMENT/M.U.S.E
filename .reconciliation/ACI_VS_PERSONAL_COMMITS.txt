@@ -1,0 +1,244 @@
+> bc94cff chore(deps): add psutil to dev extras to unblock CI live-system guard
+< f05a473 fix(gateway): refresh cached agent tools on /reload-mcp
+< 556bf7c test(cron): guard schedule-required description text on CRONJOB_SCHEMA
+< 5101326 fix(cron): clarify schedule is required for create in tool schema
+< ccd3d04 chore(models): swap qwen3.6-plus → qwen3.7-max in openrouter+nous lists (#32809)
+< 8b69ec0 feat(mcp): Nous-approved MCP catalog with interactive picker (#30870)
+< 2517917 fix(cli): restore fallback paste collapse + handle long single-line pastes (#32447)
+< 31c8d5f chore(wecom): make defusedxml dep acquireable and tolerant of absence
+< 5744b17 harden: restrict markdown link schemes; parse untrusted XML with defusedxml
+< f4953bc fix(subdirectory_hints): prevent loading AGENTS.md outside workspace
+< 9d10c45 fix(telegram): tighten table row-group spacing and drop redundant first bullet
+< 66851dc chore: add krislidimo to AUTHOR_MAP for PR #29775 (#32434)
+< d8703e2 feat(skills-hub): health checks, freshness badge, and a watchdog cron (#32345)
+< cea87d9 fix(skills-hub): show every catalog source on /docs/skills (skills.sh, ClawHub, browse.sh, OpenAI, …) (#32336)
+< c26af46 fix(skills): reject symlinks in skill bundles before install
+< fe9744c chore(release): map ffr31mr + TheOnlyMika in AUTHOR_MAP
+< ccd8993 fix(cron): split scanner into two tiers so skill prose stops false-positiving (#32339)
+< e3236e9 fix(anthropic): API-key path skips OAuth autodiscovery + prunes stale entries
+< 2c6bbaf fix(gateway): coerce scalar `model:` to dict before /model --global persist (#32272)
+< de76f4d fix(secrets): only apply external secrets once per HERMES_HOME per process (#32271)
+< 6bd0be3 feat(patch): indentation preservation, CRLF preservation, per-file failure escalation (#507) (#32273)
+< c2aa235 fix(agent): log outer-loop exceptions at ERROR with traceback (#32264)
+< 30928f9 fix(dashboard): suffix-allowlist plugin assets + denylist subprocess-influencing env vars (#32277)
+< 27df4b3 fix(telegram): exempt reply_to_mode=off DM topic sends from anchor-required guard
+< 926da69 test(telegram): switch transient-flake retry test to group chat
+< 5b1c75d refactor: simplify Telegram DM topic refresh
+< c394e79 fix: refresh stale Telegram DM topic threads
+< dcd504c fix: auto-create Telegram DM topics for delivery
+< 96c71d8 fix: require anchors for Telegram DM topic deliveries
+< 6b7da11 test: isolate API server env in gateway tests
+< 415be55 fix: route Telegram DM topic deliveries directly
+< 0dee92d feat(security): promptware defense — shared threat patterns + memory load-time scan + tool-result delimiters (#32269)
+< b6ce7a4 chore(release): add ronhi for PR #29523 salvage
+< bbc8f2f chore(models): drop retired grok-4-1-fast from metadata, tests, docs
+< 263e008 feat(skills): add web-pentest optional skill (#32265)
+< 386f245 feat(skills): add optional openhands skill — closes #477
+< 5671461 feat(skills): add code-wiki skill — closes #486 (#32240)
+< 5caeb65 test(tts): regression coverage for #29417 double-[pause] fix
+< 1d73d5f fix(tts): prevent double [pause] in xAI auto speech tags for multi-paragraph text
+> bc97e43 fix(orchestrator): unify decision ledger at canonical JSONL path (#92)
+> 0534d18 Merge pull request #90 from A-C-I-SOFTWARE-AND-DEVELOPMENT/chore/sync-personal-to-aci-v0.14.1-aci.1
+> 5747831 ci(diagnostics): surface pytest FAILED lines as GitHub annotations
+< b62af47 chore: drop stale line-number reference in PRIORITY path comment
+< 737ee81 test(gateway): regression tests for #30170 subagent interrupt protection
+< 99d62f6 fix(gateway): protect in-flight subagents from busy-mode interrupts (#30170)
+< 50aaf0c fix(tui): delineate assistant responses from details (#31087)
+< 0ec0caf Merge pull request #31084 from NousResearch/bb/tui-right-click-copy-selection
+> d9145da ci: align acp_registry/agent.json version with pyproject (0.14.1+aci.1)
+> 5a74b88 fix(ci): unblock PR #90 — uv.lock + attribution + windows footgun
+> 45a11b0 feat(jarvis-prime): runtime v1.0.0 — 18 modules + 159 tests
+> 01254bb chore(rebrand): A-C-I fork install URLs + version 0.14.1+aci.1 + JARVIS Prime pointer
+> 91776f5 chore(sync): port 110 files from echerd27-design/hermes-agent
+< 4117fc3 fix(credential-pool): correct pool rotation when weekly usage limit is reached
+< 8f19485 chore(release): map kylekahraman email to GitHub login
+< ab42658 feat: configurable paste collapse thresholds (TUI + CLI)
+< 973bb12 fix(credential-pool): rotate immediately when credential already exhausted
+< 0a6a0ba test(skills): widen assertion in PR#6656 regression to accept new validator msg
+< 3b9b9a7 fix(skills): guard uninstall lock paths
+< 0d137f1 feat(errors): actionable guidance for Nous OAuth 401s (#32082)
+> 5687d05 Merge pull request #81 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/queue-checkpoints-recovery-Hj0NV
+> b1c004c Merge pull request #89 from A-C-I-SOFTWARE-AND-DEVELOPMENT/chore/trigger-android-build
+> d4a68a1 Merge pull request #75 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/local-api-websocket-backend-OcXde
+> 8dc861a Merge pull request #76 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/voice-intake-driving-safe-9DUKl
+> 4618e89 chore(android): trigger android-build.yml for APK artifact
+> 4479ce0 Merge pull request #77 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-scoring-merge-council-y5r2k
+> dee148b Merge pull request #78 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/windows-claude-code-bridge-QBeuU
+> 067b3fc Merge pull request #80 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-documentation-manual-zk4PA
+> f4dd88b Merge pull request #87 from A-C-I-SOFTWARE-AND-DEVELOPMENT/integration/all-phases
+> 5062634 Merge pull request #88 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/aos-agent-recovery-hermes-jmocw
+> fe1a815 docs(aos-recovery): mirror registries to docs/aos-recovery/
+> 82c5f85 docs(aos-recovery): add AOS Council pack pointer sections
+> dae45fd feat(aos-recovery): install skills/aos-enterprise-council/ Hermes pack
+> 68991f8 feat(aos-recovery): root recovery registries and reports (9 files)
+> f63c7d5 feat(aos-recovery): preserve 166+20 file AOS source snapshot
+> 2880ac1 fix(integration): drop hermes_cli/recovery.py — broken at import time
+> cec7a7c Revert "feat: salvage new files from PR #4"
+> eb4c8a8 test: trim integration-branch test fallout
+> a16f69d feat: salvage new files from PR #4
+> add977b feat: salvage new files from PR #84
+> d940f68 feat: salvage new files from PR #80
+> 3addac7 feat: salvage new files from PR #61
+> 6ceb08f feat: salvage new files from PR #77
+> ec205c4 feat: salvage new files from PR #75
+> 67e22c1 feat: salvage new files from PR #62
+> d03f841 feat: salvage new files from PR #57
+> 5c8c55b feat: salvage new files from PR #70
+> 0bc72a7 feat: salvage new files from PR #63
+> 863f58c feat: salvage new files from PR #64
+> eebbf82 feat: salvage new files from PR #58
+> d339b06 feat: salvage new files from PR #76
+> bd7c869 feat: salvage new files from PR #78
+> 8001939 feat: salvage new files from PR #72
+> fc466c0 feat: salvage new files from PR #69
+> d99f9ac feat: salvage new files from PR #81
+> e9ef3ae feat: salvage new files from PR #68
+> b7e1516 feat: salvage new files from PR #60
+> 1ed3695 feat: salvage new files from PR #67
+> 50e060f feat: salvage new files from PR #82
+> 0004db9 Merge PR #53: docs(orchestration): Phase 10 final integration report — accurate audit
+> 8ce41f1 Merge PR #56: docs(mobile): Phase 02 — Android-native vs Flutter architecture decision
+> 3d5d1ba Merge PR #49: docs(mission): adopt local-first cockpit mission and 10 product principles
+> dfe6e62 Merge remote-tracking branch 'origin/pr/20' into integration/all-phases
+> fd9370e Merge PR #79: docs(audits): Phase 00 — full repo truth audit (verdict + inventory + 10/10 gap report)
+> 9beee54 Merge pull request #83 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/native-slash-commands-dgeIv
+> 5d9fa56 Merge pull request #85 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-repo-stabilization-3ovYj
+> a4866c5 Merge pull request #86 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/final-audit-report-idUnT
+> 7f7489b test(orchestration): bypass live-system guard for subprocess-killing tests
+> c44d507 test(remote): use monkeypatch for HERMES_HOME env override
+> e3f064f fix(tests): drop importlib.reload from voice-intake fixture
+> 89ed8eb ci: retrigger checks for PR #78
+> a6f7647 fix: stabilize ACI Hermes CLI and Termux orchestration foundation
+> cc40bcd Merge branch 'main' into claude/voice-intake-driving-safe-9DUKl
+> 1b80eab chore(orchestrator): drop unused type:ignore on ValidationRunner import
+> 6474e85 feat(orchestration): native slash commands for orchestrator/voice/remote/self-improve
+> d11281a fix(checkpoints): use timezone-aware datetime instead of deprecated utcnow
+> 354ebf7 style(voice): ruff format pass + drop unused type: ignore
+> 5f86550 docs: Phase 26 — plain-English operating manual
+> 2cd7c0d docs(audits): Phase 00 — full repo truth audit (verdict + inventory + 10/10 gap report)
+> de74569 feat(remote): Windows Claude Code bridge with secure file-drop transport
+> 96c80a4 feat(orchestration): Phase 14 scoring, merge, and quality council
+> 19b6b9f feat(voice): Phase 19 — voice intake pipeline and driving-safe capture
+> b31ac3d feat(orchestrator-api): Phase 18 local API + WebSocket backend
+> ac7e15a Merge pull request #73 from A-C-I-SOFTWARE-AND-DEVELOPMENT/fix/hermes-pr-check-blockers
+> 14efc7b Merge pull request #74 from A-C-I-SOFTWARE-AND-DEVELOPMENT/termux-psutil-compat
+> fd9fe43 Adjust Hermes dependencies for Termux compatibility
+> fd08e79 docs(product): add 10/10 Hermes product specification
+> 65b7d41 docs(mobile): add Phase 20 cockpit implementation plan
+> 6f26e6d docs(audits): add Phase 27 readiness gate
+> 7601046 docs(competitive): refresh Phase 23 feature harvest
+> eeb707c Stabilize interrupt propagation timing assertion
+> 0f55a3f Stabilize update hangup stdout wrapper test
+> 692047b Add ACI Base44 import handoff
+> f282414 docs: Add PR merge strategy and status report
+> 5c7b6f4 fix(ci): add PyYAML to orchestration test dependencies
+> c7ea82e feat(orchestration): queue, checkpoints, and disconnect recovery (phase 08)
+> 4cbc459 docs(mobile): Phase 02 — Android-native vs Flutter architecture decision
+> 7c1ed0a docs(orchestration): Phase 10 final integration report — accurate audit
+> e4c477b docs(mission): adopt local-first cockpit mission and 10 product principles
+> 7166a99 Merge pull request #45 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-phase-merge-coordinator-dCnC4
+> e2272e1 feat(github-publisher): executable runtime for branch/commit/PR plan
+> d0fd3fe feat(orchestration): scoring and merge engine for parallel worker outputs
+> 3f3797e docs(orchestration): Phase 24 release-hardening docs (10/10 readiness report + PHASES index)
+> f4ffa3c docs(orchestration): Phase 23 — orchestration guide, demos, and user docs
+> e833f16 ci(orchestration): add Orchestration tests workflow scoped to our layout
+> f9ce870 docs(competitive): phase-21 feature harvest of competing AI agents
+> 851091d feat(self-improvement): add AI radar, retrospective loop, mission docs
+> 95a08a5 feat(termux): phone-first service + doctor scripts and runtime docs
+> 4a78364 docs(android): Phase 18 — APK cockpit spec, API contract, wireframes, Termux bridge
+> 59759e0 feat(orchestrator): native slash commands for local orchestration
+> 6d9891a refactor(orchestrator): rename Phase 6 controller to job_controller, restore orchestrator for slash CLI
+> a4bff01 feat(orchestrator): add local-only API + WebSocket control plane
+> bd85696 fix(github-publisher): declare SecretBlocked.findings instead of patching it
+> 16bf6a3 feat(validation): local validation gates with publish-block on critical failures
+> 304f64d chore(orchestration): fix ty invalid-parameter-default in test_scoring
+> 054db27 feat(orchestrator): parallel worker execution + git worktree isolation
+> f014a32 fix(workers): merge Phase 7 adapter framework with Phase 11 primitives
+> a88c8b8 feat(workers): add Aider and Goose worker adapters
+> 3bb4665 feat(workers): add Claude Code local handoff worker adapter
+> 842410c feat(workers): add Codex worker adapter (handoff-first)
+> 9733a2c feat(workers): Hermes Local worker for repo evidence + validation discovery
+> b1a79a6 feat(workers): worker adapter base + registry for pluggable tools
+> 82b95cf test(orchestrator): assert worker spec before attribute access
+> 0689db0 feat(orchestrator): core job controller for local orchestrator
+> ef22e2c feat(skills): port AoS council agents to Hermes-native skills
+> 0183d37 feat(orchestrator): Phase 02 foundation — script, pipeline doc, four skills
+> 5cfbb84 docs(product): add canonical Hermes 10/10 product spec
+> a45e241 docs+skills: add Phase 1 placeholders so cross-doc references resolve
+> 2636ed8 docs(orchestration): phase 10 final integration report + next-phase prompt
+> 602ec4f docs(orchestration): add phase 9 validation report
+> 2f0d0a6 docs(orchestration): integrate pipeline references across README, AGENTS.md, local-orchestrator
+> e1882f4 chore(orchestration): use timezone-aware UTC datetimes in JobRecord
+> 1dd430e docs(orchestration): Phase 7 job controller + worker adapter roadmap
+> 347a423 docs+skills: Hermes best-coding-tool mission + self-improvement loop
+> 07c3014 docs(competitive): add harvester skill and OpenHuman/Paperclip research
+> f4b2e24 feat(ai-intelligence): add AI improvement radar skill, docs, and local hook
+> da9c83b feat(skills): add model-router skill and AI intelligence registry
+> 263568d feat(orchestration): decision quality, research & validation system
+> 4c78e53 docs(orchestration): add Phase 0 evidence audit
+> 9464ef8 Merge pull request #8 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-local-orchestrator-3byC9
+> eb2f0c7 feat(android): replace chat workflow with local orchestrator
+> 2316ec2 Merge pull request #7 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/github-plugin
+> 51fd9b2 Merge pull request #6 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/hermes-gateway-config-audit-ywIom
+> c4359eb chore(plugin/github): refactor gates to raise _GateFailure for clean type narrowing
+> 9db950c feat(plugin/github): native GitHub plugin + MCP integration docs + safety gates
+> cd254b5 fix(android): make gateway URL configurable and fail fast on wrong host
+> ea952f3 Merge pull request #5 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/enterprise-council
+> 2f9f246 chore(enterprise-council): fix ty findings flagged by lint-diff bot
+> 4b55478 feat(enterprise-council): autonomous multi-agent system on top of Hermes primitives
+> 1ed260f Merge pull request #3 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/android-direct-api-mode
+> da004a2 feat(android): Direct Personal API Mode + 3-mode connection setup
+> 78d9fe3 Merge pull request #2 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/android-audit-fixes
+> 08da775 chore(android): cleanup dead code, unused resources, lint, CI cache
+> 1a365d2 fix(android): correctness + safety from audit (C1-W2)
+> a769a6d Merge pull request #1 from A-C-I-SOFTWARE-AND-DEVELOPMENT/claude/update-ayiI4
+> a6f235f ci(android): disable config cache, add verbose flags + report artifacts
+> f4a3754 feat(android): add native Android companion app under apps/android
+> e2fd462 ci(tests): add pytest-timeout 60s hard cap to break suite-teardown deadlock (#28861)
+> 6cb9917 perf(compression): defer feasibility check to first compression attempt (#28957)
+> 93734c2 fix(dingtalk): transcribe native voice notes
+> 448a3f9 fix(discord): transcribe native voice notes
+> d35f893 test(kanban): cover sticky blocks for worker-initiated kanban_block (#28712)
+> 34120a0 fix(kanban): worker-initiated block must not be auto-promoted (#28712)
+> 64a9a19 fix(xai-oauth): pin inference base_url to x.ai origin (#28952)
+> c9d5ef2 🐛 fix(cli): handle missing remote tracking refs
+> 28ab420 🐛 fix(cli): handle no-remote worktree cleanup
+> d9829ab fix(model): match custom provider by active base url
+> 60bb98e fix(install.ps1): pin PortableGit instead of hitting rate-limited GitHub API (#28943)
+> 544c31b perf(agent-loop): cut 47% of per-conversation function calls via 3 targeted hot-path optimizations (#28866)
+> 784febe perf(cli): defer openai._base_client import via sys.meta_path finder (#28864)
+> 6a159be fix(runtime): treat 'ollama'/'vllm'/'llamacpp' aliases like 'custom' for base_url trust (#27132)
+> e13f242 fix(cli): preserve setup config picker writes
+> 3f55256 docs(skills): document browse.sh source (#28939)
+> 890b2eb fix(browse-sh): fetch SKILL.md via /api/skills/{slug}+skillMdUrl
+> 90be1be fix: register browse-sh in per-source limits and --source choices
+> 57145ca feat: add BrowseShSource adapter for browse.sh skills catalog
+> 2b41f9d Merge pull request #28914 from justincc/fix/fix-blank-tool-names-at-msg-construction
+> 7c2ff74 fix(tui): termux-gate scrollback preservation, touch-friendly defaults
+> a614209 fix(agent): set tool_name on tool-result messages at construction time
+> a19eb54 test(gateway-windows): make ctypes.windll monkeypatch tolerant on non-Windows
+> d948de3 fix(gateway): harden Windows gateway install lifecycle
+> 95683c0 fix(windows): hide local subprocess consoles
+> f007ef8 fix(windows): hide cron script subprocess consoles
+> 2a7308b fix(update): quarantine hermes.exe vs concurrent Windows instance (#26670) (#26677)
+> 57af46f Revert "feat(firecrawl): add integration tag for Hermes usage in browser and web providers" (#28862)
+> ebe0b77 fix(model-switch): mark bare custom provider as current
+> 273ff5c feat(firecrawl): add integration tag for Hermes usage in browser and web providers
+> ae74b15 chore: add erikengervall to AUTHOR_MAP (#28855)
+> b0af1d0 Merge pull request #28829 from NousResearch/bb/tui-no-history-truncation
+> 5a33176 fix(discord): define view classes after lazy discord.py install
+> 7552e0f fix(kanban): also hoist idx_events_run + drop redundant inner create
+> 7c622b6 fix(kanban): migrate task session index after columns
+> 39c41d0 chore(deps): bump mermaid from 11.13.0 to 11.15.0 in /website (#24011)
+> a3ef217 chore(deps): bump ws in /ui-tui/packages/hermes-ink (#28183)
+> ec244e5 chore(deps): bump webpack-dev-server from 5.2.3 to 5.2.4 in /website (#28104)
+> ff0a703 fix(web): consume bundled design system assets (#26391)
+> 070eeaa chore(deps): bump @babel/plugin-transform-modules-systemjs in /website
+> 43f8edb chore(deps): bump fast-uri from 3.1.0 to 3.1.2 in /website
+> a9c38c7 chore(deps): bump python-dotenv from 1.2.1 to 1.2.2
+> dffcb6f chore(deps): bump python-multipart from 0.0.22 to 0.0.27
+> 7f1d124 chore(deps): bump lodash-es and langium in /website
+> c4bcc77 chore(deps): bump lodash from 4.17.23 to 4.18.1 in /website
+> 0b75d24 chore(deps): bump follow-redirects from 1.15.11 to 1.16.0 in /website
+> fc90f1b chore(deps): bump dompurify from 3.3.3 to 3.4.2 in /website
+> f1254b1 fix(cli): exit prompt_toolkit cleanly on SIGTERM/SIGHUP instead of raising KeyboardInterrupt (#28688)

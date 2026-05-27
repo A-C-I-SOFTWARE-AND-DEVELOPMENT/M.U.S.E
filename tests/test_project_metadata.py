@@ -98,7 +98,7 @@ def test_dev_extra_restores_psutil_off_android():
     dev_extra = optional_dependencies["dev"]
     psutil_specs = [dep for dep in dev_extra if dep.startswith("psutil")]
 
-    assert psutil_specs == ['psutil>=7.2.2,<8; sys_platform != "android"']
+    assert psutil_specs == ['psutil==7.2.2; sys_platform != "android"']
 
 
 def test_messaging_extra_includes_qrcode_for_weixin_setup():

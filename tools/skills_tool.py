@@ -1007,9 +1007,16 @@ def skill_view(
                     _record(found_skill_md.parent, found_skill_md)
 
             # Strategy 3: legacy flat <name>.md files anywhere under the dir.
-            for found_md in search_dir.rglob(f"{name}.md"):
-                if found_md.name != "SKILL.md":
-                    _record(None, found_md)
+            # Only run if Strategies 1+2 haven't already recorded an
+            # authoritative SKILL.md for this name — otherwise pointer/index
+            # files that ship with bundled packs (e.g. the AOS council's
+            # agents/ tree, where each agent .md re-declares its canonical
+            # source's `name:`) shadow the real skill and trigger the
+            # collision branch below.
+            if not any(smd.name == "SKILL.md" for _, smd in candidates):
+                for found_md in search_dir.rglob(f"{name}.md"):
+                    if found_md.name != "SKILL.md":
+                        _record(None, found_md)
 
         if len(candidates) > 1:
             paths = [str(smd) for _, smd in candidates]
