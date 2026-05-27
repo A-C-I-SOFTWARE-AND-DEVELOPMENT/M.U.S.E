@@ -4,15 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-agent"
-version = "0.14.1+aci.1"
-description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere. ACI fork with JARVIS Prime + AOS Enterprise Council."
+version = "0.14.0"
+description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [
-  { name = "Nous Research" },
-  { name = "Jeremiah Echerd" },
-  { name = "A-C-I Software and Development" },
-]
+authors = [{ name = "Nous Research" }]
 license = { text = "MIT" }
 dependencies = [
   # Core — every direct dep is exact-pinned to ==X.Y.Z (no ranges).
@@ -58,9 +54,12 @@ dependencies = [
   # Python resolves automatically.  No-op on Linux/macOS (which have
   # /usr/share/zoneinfo).  Credits: PR #13182 (@sprmn24).
   "tzdata==2025.3; sys_platform == 'win32'",
-  # Cross-platform process / PID management.
-  # Disabled for Android/Termux because psutil currently fails to build there.
-  # Desktop/server installs should restore psutil through a non-Android extra.
+  # Cross-platform process / PID management.  `psutil` is the canonical
+  # answer for "is this PID alive" and process-tree walking across Linux,
+  # macOS and Windows.  It replaces POSIX-only idioms like `os.kill(pid, 0)`
+  # (which is a silent killer on Windows — see CONTRIBUTING.md) and
+  # `os.killpg` (which doesn't exist on Windows).
+  "psutil>=7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -81,11 +80,7 @@ modal = ["modal==1.3.4"]
 daytona = ["daytona==0.155.0"]
 vercel = ["vercel==0.5.7"]
 hindsight = ["hindsight-client==0.6.1"]
-# psutil is restored here (rather than in base deps) because it fails to
-# build under Termux/Android — dev extras are only for CI and developer
-# workstations, where psutil is available and is required by the
-# tests/conftest.py live-system guard to walk the process tree.
-dev = ["debugpy==1.8.20", "pytest==9.0.2", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.21", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
+dev = ["debugpy==1.8.20", "pytest==9.0.2", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.21", "ruff==0.15.10"]
 messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.13.3", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
 slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.13.3"]
