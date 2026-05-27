@@ -59,7 +59,7 @@ dependencies = [
   # macOS and Windows.  It replaces POSIX-only idioms like `os.kill(pid, 0)`
   # (which is a silent killer on Windows — see CONTRIBUTING.md) and
   # `os.killpg` (which doesn't exist on Windows).
-  "psutil==7.2.2",
+  "psutil>=7.0.0",
 ]
 
 [project.optional-dependencies]
