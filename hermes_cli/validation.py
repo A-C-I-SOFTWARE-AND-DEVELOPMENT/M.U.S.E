@@ -101,6 +101,24 @@ CATEGORY_SECRETS = "secrets"
 CATEGORY_LANGUAGE = "language"
 CATEGORY_HERMES = "hermes"
 CATEGORY_APK = "apk"
+CATEGORY_REMOTE = "remote"
+
+# Remote runtime artefacts the runner inspects when discovering
+# ``CATEGORY_REMOTE`` checks. These are deliberately read-only — the
+# runner never opens a tunnel, never enqueues a job, never starts a
+# worker. It only reports on whatever the remote stack has already
+# written under ``<workspace>/remote/``.
+REMOTE_DIRNAME = "remote"
+REMOTE_TUNNEL_FILENAME = "tunnel.json"
+REMOTE_WORKERS_DIRNAME = "workers"
+REMOTE_QUEUE_FILENAME = "queue.json"
+
+# Heartbeat / queue-age thresholds. A heartbeat older than
+# ``REMOTE_WORKER_STALE_S`` produces a warn; a queue head older than
+# ``REMOTE_QUEUE_STALE_S`` produces a warn. Neither blocks publish —
+# the gate's job is to flag, not to gate on transient remote state.
+REMOTE_WORKER_STALE_S = 5 * 60
+REMOTE_QUEUE_STALE_S = 30 * 60
 
 
 # ── Dataclasses ─────────────────────────────────────────────────────────────
@@ -423,7 +441,35 @@ class ValidationRunner:
                 }
             )
 
-        # 5. APK audit pack — optional, only runs when the user opts in
+        # 5. Remote runtime checks — only meaningful when the workspace
+        #    has a ``remote/`` directory the worker stack writes to.
+        if (self.workspace / REMOTE_DIRNAME).is_dir():
+            checks.append(
+                {
+                    "name": "remote.tunnel",
+                    "category": CATEGORY_REMOTE,
+                    "critical": False,
+                    "runner": self._check_remote_tunnel,
+                }
+            )
+            checks.append(
+                {
+                    "name": "remote.workers",
+                    "category": CATEGORY_REMOTE,
+                    "critical": False,
+                    "runner": self._check_remote_workers,
+                }
+            )
+            checks.append(
+                {
+                    "name": "remote.queue",
+                    "category": CATEGORY_REMOTE,
+                    "critical": False,
+                    "runner": self._check_remote_queue,
+                }
+            )
+
+        # 6. APK audit pack — optional, only runs when the user opts in
         #    via ``allow_expensive`` AND the relevant tools are on PATH
         #    AND the workspace has an APK to audit. Each individual
         #    check no-ops cleanly if its tool is missing.
@@ -1203,6 +1249,209 @@ class ValidationRunner:
             summary=f"{ok} worker(s) fresh",
         )
 
+    # — Remote runtime checks ──────────────────────────────────────────────
+
+    def _check_remote_tunnel(self) -> CheckResult:
+        path = self.workspace / REMOTE_DIRNAME / REMOTE_TUNNEL_FILENAME
+        if not path.exists():
+            return CheckResult(
+                name="remote.tunnel",
+                category=CATEGORY_REMOTE,
+                status=STATUS_SKIPPED,
+                summary="no remote/tunnel.json",
+            )
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return CheckResult(
+                name="remote.tunnel",
+                category=CATEGORY_REMOTE,
+                status=STATUS_FAIL,
+                summary=f"tunnel.json parse error: {exc}",
+            )
+        if not isinstance(data, dict):
+            return CheckResult(
+                name="remote.tunnel",
+                category=CATEGORY_REMOTE,
+                status=STATUS_FAIL,
+                summary="tunnel.json must be an object",
+            )
+        state = str(data.get("state") or data.get("status") or "").lower()
+        url = data.get("url") or data.get("public_url") or ""
+        meta: dict[str, Any] = {"state": state, "url": url}
+        if state in {"up", "open", "healthy", "connected", "ready"}:
+            return CheckResult(
+                name="remote.tunnel",
+                category=CATEGORY_REMOTE,
+                status=STATUS_PASS,
+                summary=f"tunnel {state}",
+                metadata=meta,
+            )
+        if state in {"down", "closed", "error", "failed"}:
+            return CheckResult(
+                name="remote.tunnel",
+                category=CATEGORY_REMOTE,
+                status=STATUS_WARN,
+                summary=f"tunnel {state}",
+                metadata=meta,
+            )
+        return CheckResult(
+            name="remote.tunnel",
+            category=CATEGORY_REMOTE,
+            status=STATUS_WARN,
+            summary=f"tunnel state unknown: {state or '<missing>'}",
+            metadata=meta,
+        )
+
+    def _check_remote_workers(self) -> CheckResult:
+        workers_dir = self.workspace / REMOTE_DIRNAME / REMOTE_WORKERS_DIRNAME
+        if not workers_dir.is_dir():
+            return CheckResult(
+                name="remote.workers",
+                category=CATEGORY_REMOTE,
+                status=STATUS_SKIPPED,
+                summary="no remote/workers/ directory",
+            )
+        heartbeat_files = sorted(workers_dir.rglob("heartbeat.json"))
+        if not heartbeat_files:
+            return CheckResult(
+                name="remote.workers",
+                category=CATEGORY_REMOTE,
+                status=STATUS_SKIPPED,
+                summary="no remote worker heartbeats",
+            )
+        stale: list[str] = []
+        fresh = 0
+        now = time.time()
+        for hb in heartbeat_files:
+            try:
+                data = json.loads(hb.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                stale.append(f"{hb.relative_to(self.workspace)}: {exc}")
+                continue
+            if not isinstance(data, dict):
+                stale.append(
+                    f"{hb.relative_to(self.workspace)}: "
+                    f"heartbeat must be a JSON object, got {type(data).__name__}"
+                )
+                continue
+            ts = (
+                data.get("timestamp")
+                or data.get("heartbeat")
+                or data.get("updated_at")
+                or 0
+            )
+            try:
+                ts_f = float(ts)
+            except (TypeError, ValueError):
+                ts_f = 0.0
+            age = now - ts_f if ts_f else None
+            if age is None or age > REMOTE_WORKER_STALE_S:
+                stale.append(
+                    f"{hb.relative_to(self.workspace)}: "
+                    f"{'no timestamp' if age is None else f'{age:.0f}s old'}"
+                )
+            else:
+                fresh += 1
+        meta: dict[str, Any] = {
+            "fresh": fresh,
+            "stale": stale[:20],
+            "threshold_s": REMOTE_WORKER_STALE_S,
+        }
+        if stale:
+            return CheckResult(
+                name="remote.workers",
+                category=CATEGORY_REMOTE,
+                status=STATUS_WARN,
+                summary=f"{len(stale)} stale remote worker(s), {fresh} fresh",
+                metadata=meta,
+            )
+        return CheckResult(
+            name="remote.workers",
+            category=CATEGORY_REMOTE,
+            status=STATUS_PASS,
+            summary=f"{fresh} remote worker(s) fresh",
+            metadata=meta,
+        )
+
+    def _check_remote_queue(self) -> CheckResult:
+        path = self.workspace / REMOTE_DIRNAME / REMOTE_QUEUE_FILENAME
+        if not path.exists():
+            return CheckResult(
+                name="remote.queue",
+                category=CATEGORY_REMOTE,
+                status=STATUS_SKIPPED,
+                summary="no remote/queue.json",
+            )
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return CheckResult(
+                name="remote.queue",
+                category=CATEGORY_REMOTE,
+                status=STATUS_FAIL,
+                summary=f"queue.json parse error: {exc}",
+            )
+        # Accept either {"jobs": [...]} or a bare list.
+        if isinstance(data, list):
+            jobs: list[Any] = data
+            extra: dict[str, Any] = {}
+        elif isinstance(data, dict):
+            raw_jobs = data.get("jobs", [])
+            if not isinstance(raw_jobs, list):
+                return CheckResult(
+                    name="remote.queue",
+                    category=CATEGORY_REMOTE,
+                    status=STATUS_FAIL,
+                    summary=(
+                        f"queue.json: `jobs` must be a list, "
+                        f"got {type(raw_jobs).__name__}"
+                    ),
+                )
+            jobs = raw_jobs
+            extra = {k: v for k, v in data.items() if k != "jobs"}
+        else:
+            return CheckResult(
+                name="remote.queue",
+                category=CATEGORY_REMOTE,
+                status=STATUS_FAIL,
+                summary="queue.json: top level must be list or object",
+            )
+        depth = len(jobs)
+        oldest_age: float | None = None
+        now = time.time()
+        for job in jobs:
+            if not isinstance(job, dict):
+                continue
+            ts = job.get("enqueued_at") or job.get("created_at")
+            try:
+                ts_f = float(ts) if ts is not None else None
+            except (TypeError, ValueError):
+                ts_f = None
+            if ts_f is None:
+                continue
+            age = now - ts_f
+            if oldest_age is None or age > oldest_age:
+                oldest_age = age
+        meta: dict[str, Any] = {"depth": depth, **extra}
+        if oldest_age is not None:
+            meta["oldest_age_s"] = int(oldest_age)
+        if oldest_age is not None and oldest_age > REMOTE_QUEUE_STALE_S:
+            return CheckResult(
+                name="remote.queue",
+                category=CATEGORY_REMOTE,
+                status=STATUS_WARN,
+                summary=f"queue depth={depth}, oldest {oldest_age/60:.1f}m",
+                metadata=meta,
+            )
+        return CheckResult(
+            name="remote.queue",
+            category=CATEGORY_REMOTE,
+            status=STATUS_PASS,
+            summary=f"queue depth={depth}",
+            metadata=meta,
+        )
+
     # — APK audit pack ─────────────────────────────────────────────────────
 
     def _first_apk(self) -> Path | None:
@@ -1556,9 +1805,16 @@ __all__ = [
     "CATEGORY_GIT",
     "CATEGORY_HERMES",
     "CATEGORY_LANGUAGE",
+    "CATEGORY_REMOTE",
     "CATEGORY_SECRETS",
     "CheckResult",
     "DEFAULT_CHECK_TIMEOUT_S",
+    "REMOTE_DIRNAME",
+    "REMOTE_QUEUE_FILENAME",
+    "REMOTE_QUEUE_STALE_S",
+    "REMOTE_TUNNEL_FILENAME",
+    "REMOTE_WORKERS_DIRNAME",
+    "REMOTE_WORKER_STALE_S",
     "STATUS_BLOCKED",
     "STATUS_ERROR",
     "STATUS_FAIL",
