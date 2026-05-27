@@ -280,6 +280,19 @@ class OnboardingRunner:
                     citations=(source,),
                 )
                 report.findings_count += 1
+        # Email — first occurrence wins (gitconfig-style lines like
+        # ``email = foo@bar.com`` are matched by _EMAIL_RX directly).
+        m = _EMAIL_RX.search(text)
+        if m:
+            self.memory.remember(
+                key="user_email",
+                value=m.group(0).strip(),
+                durability="durable",
+                confidence=0.7,
+                tags=("onboarding", "profile"),
+                citations=(source,),
+            )
+            report.findings_count += 1
         # Timezone
         m = _TIMEZONE_RX.search(text)
         if m:

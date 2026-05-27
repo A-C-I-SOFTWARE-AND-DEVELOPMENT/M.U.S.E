@@ -87,6 +87,20 @@ def test_lazy_installable_extras_excluded_from_all():
         )
 
 
+def test_dev_extra_restores_psutil_off_android():
+    """Desktop/server dev installs need psutil for CI and process tests.
+
+    Base dependencies keep psutil out so Termux/Android installs can use
+    the compatibility shim, but `.[all,dev]` is the non-Android CI profile.
+    """
+    optional_dependencies = _load_optional_dependencies()
+
+    dev_extra = optional_dependencies["dev"]
+    psutil_specs = [dep for dep in dev_extra if dep.startswith("psutil")]
+
+    assert psutil_specs == ['psutil==7.2.2; sys_platform != "android"']
+
+
 def test_messaging_extra_includes_qrcode_for_weixin_setup():
     optional_dependencies = _load_optional_dependencies()
 
