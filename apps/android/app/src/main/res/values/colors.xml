@@ -1,4 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="hermes_ink">#0E0E12</color>
+    <!--
+      XML-side mirror of the Jarvis Prime palette.
+      Compose draws from ui/theme/Color.kt; this file only exists for
+      drawables (splash background, adaptive icon background) that can't
+      reach Compose tokens. Keep names in sync with Color.kt.
+    -->
+
+    <!-- Foundation -->
+    <color name="jarvis_ink_abyss">#FF05070D</color>
+    <color name="jarvis_ink_night">#FF0B1020</color>
+    <color name="jarvis_ink_deep">#FF101630</color>
+    <color name="jarvis_ink_raised">#FF161E3D</color>
+    <color name="jarvis_ink_edge">#FF1F2A4C</color>
+
+    <!-- Accents -->
+    <color name="jarvis_gold">#FFE6B341</color>
+    <color name="jarvis_gold_deep">#FFB2802A</color>
+    <color name="jarvis_cyan">#FF38C6E0</color>
+    <color name="jarvis_crimson">#FFE5484D</color>
+    <color name="jarvis_jade">#FF3DD68C</color>
+
+    <!-- Back-compat: existing drawables reference @color/hermes_ink. -->
+    <color name="hermes_ink">#FF05070D</color>
 </resources>

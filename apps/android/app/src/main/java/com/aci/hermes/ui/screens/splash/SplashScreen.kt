@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,8 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.aci.hermes.ui.theme.HermesGold
+import com.aci.hermes.R
+import com.aci.hermes.ui.components.JarvisPrimeIcon
+import com.aci.hermes.ui.theme.JarvisCyan
+import com.aci.hermes.ui.theme.JarvisGold
+import com.aci.hermes.ui.theme.JarvisTokens
 import kotlinx.coroutines.delay
 
 @Composable
@@ -34,23 +40,26 @@ fun SplashScreen(onReady: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            JarvisPrimeIcon(size = 84.dp)
             Text(
-                text = "☤",
-                style = MaterialTheme.typography.displayLarge,
-                color = HermesGold
-            )
-            Text(
-                text = "Hermes Agent",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
+            Text(
+                text = stringResource(R.string.app_tagline),
+                style = MaterialTheme.typography.bodyMedium,
+                color = JarvisCyan
+            )
             CircularProgressIndicator(
-                color = HermesGold,
+                color = JarvisGold,
                 strokeWidth = 3.dp,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier
+                    .padding(top = JarvisTokens.SpaceSm)
+                    .size(28.dp)
             )
         }
     }
