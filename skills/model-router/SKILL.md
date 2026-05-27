@@ -55,7 +55,7 @@ entry in `model-registry.yaml`.
 |--------|---------|----------------|
 | `hermes-local` | internal | The planner, dispatcher, validator, and GitHub publisher. Always present. Runs on every job. |
 | `codex` | OpenAI CLI / app / web | Default implementation worker — fast feature work, test repair, bug fixes. |
-| `claude-code` | Anthropic CLI | Long-context architecture, multi-file refactor planning, risk review. |
+| `claude-code-windows` | Anthropic CLI on the user's Windows host (or any host where Claude Code is detected) | Long-context architecture, multi-file refactor planning, risk review. |
 | `aider` | local CLI | Git-aware paired-edit worker. Surgical edits with explicit diffs. |
 | `goose` | local CLI | Local agent with shell + file tools. Good for plumbing tasks on the host. |
 | `chatgpt-handoff` | user-driven, web/app | Manual paste handoff to ChatGPT (no API). Used when the user wants ChatGPT in the loop without an API key. |
@@ -66,6 +66,14 @@ entry in `model-registry.yaml`.
 are internal to Hermes. The other six are **detected at runtime** (see
 `detection:` in the registry). The router will never route to a worker
 whose detection fails.
+
+The six workers scaffolded into every orchestration job folder under
+`workers/<worker>/` are: `hermes-local`, `claude-code-windows`, `codex`,
+`aider`, `goose`, `chatgpt-handoff`. `local-model` and
+`github-publisher` are routable but are not scaffolded as per-job
+worker slots — `local-model` is consumed indirectly (e.g. by
+`hermes-local`) and `github-publisher` writes into the job's `github/`
+folder instead of its own `workers/` slot.
 
 ## The decision procedure
 
