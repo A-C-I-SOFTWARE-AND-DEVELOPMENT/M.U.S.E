@@ -23,13 +23,13 @@ def jp(tmp_path: Path) -> JarvisPrime:
 
 def test_stop_clears_pending_owner_gates(jp: JarvisPrime) -> None:
     jp.config.owner_auth.request("production_deploy", risk_class="RC3", rationale="ship")
-    jp.config.owner_auth.request("main_branch_merge", risk_class="RC3", rationale="merge")
+    jp.config.owner_auth.request("force_push", risk_class="RC3", rationale="rewrite history")
     assert len(jp.config.owner_auth.pending) == 2
 
     result = jp.stop()
 
     assert result["cleared"] == 2
-    assert set(result["cleared_actions"]) == {"production_deploy", "main_branch_merge"}
+    assert set(result["cleared_actions"]) == {"production_deploy", "force_push"}
     assert jp.config.owner_auth.pending == []
 
 

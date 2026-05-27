@@ -1,154 +1,61 @@
-# Hermes Agent — Android (native companion app)
+# Hermes Agent — Android (local-only orchestrator cockpit)
 
-> **Status:** alpha. The Android app is a **native companion** to a running
-> Hermes backend (CLI/gateway). It is intentionally *not* a wrapped webview
-> and not a port of the full desktop terminal UX — see
-> [Runtime modes](#runtime-modes) below.
+> **Status:** alpha. The Android app is a **local-only orchestrator
+> cockpit**: it organizes work for the official AI tools you already
+> subscribe to (Codex, Claude Code, ChatGPT, Claude), and hands off
+> via clipboard, deep links, or the Termux bridge. It does **not**
+> proxy any provider, does **not** require any API key, and does
+> **not** make HTTP calls of its own.
 
-This module contains the native Android app shell for Hermes Agent.
+This module is the native Android shell.
 
 - **Package:** `com.aci.hermes`
 - **App name:** Hermes Agent
-- **min SDK:** 26 (Android 8.0)  
+- **min SDK:** 26 (Android 8.0)
 - **target SDK / compileSdk:** 35
 - **Language / UI:** Kotlin + Jetpack Compose (Material 3)
-- **Architecture:** MVVM, hand-rolled DI ([`AppContainer`](app/src/main/java/com/aci/hermes/di/AppContainer.kt))
-- **Networking:** OkHttp + OkHttp-SSE, kotlinx-serialization
-- **Settings:** Jetpack DataStore for non-secrets, EncryptedSharedPreferences for API keys/tokens
+- **Architecture:** MVVM with hand-rolled DI ([`AppContainer`](app/src/main/java/com/aci/hermes/di/AppContainer.kt))
+- **Persistence:** Jetpack DataStore (`hermes_settings`) + a single JSON file (`hermes_tasks.json`) in `filesDir`
+- **No networking client.** No OkHttp / Retrofit / Ktor / WebSocket / SSE dependency in `app/build.gradle.kts`.
 
-The rest of this README covers builds, runtime modes, and what is and isn't
-wired up yet. Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
----
-
-## Runtime modes
-
-The Android app supports two modes, switchable at runtime in **Settings →
-Connection**:
-
-### 1. Remote Hermes gateway mode (recommended)
-
-The app talks to a Hermes gateway you already run somewhere:
-
-- On your **home server / VPS**, with the public Hermes install one-liner.
-- On your **phone** under **Termux**, using `pkg install ... && curl ... | bash`
-  and then `hermes gateway start`.
-- On a friend's server you have a bearer token for.
-
-The Android app POSTs to `/v1/chat` and reads `/v1/health`. See
-[`docs/ARCHITECTURE.md#wire-format`](docs/ARCHITECTURE.md#wire-format).
-
-This is the recommended mode because it inherits everything Hermes already
-does — skill loop, memory, tools, model switching — without duplicating it
-in Kotlin.
-
-### 2. Local Android/Termux-compatible mode
-
-If the user runs `hermes gateway start` inside Termux on the *same device*,
-the Android app can point at `http://127.0.0.1:8080`. The two processes share
-the device but live in different sandboxes — they only talk over loopback
-HTTP. This works today.
-
-> **Direct embedding of the Python runtime inside the APK** is **not**
-> supported. CPython on Android requires a Termux-style userland with a full
-> POSIX toolchain (clang, rust, openssl), which the Android app sandbox
-> cannot provide. The pragmatic native install on Android is "APK + Termux
-> gateway", not "APK with embedded Python."
-
-### 3. Mock mode (UI sandbox)
-
-For UI development and demos, **mock mode** can be toggled on. In this mode
-the app does not make any network calls and instead streams canned responses
-locally. This makes the whole UI navigable without a gateway running.
+Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ---
 
-## Native APK limitations (read this before filing issues)
+## What the app does
 
-- **No embedded Python runtime.** See above — Android sandboxes can't run
-  CPython directly. Use Termux gateway mode if you want the whole stack on
-  one device.
-- **Skill execution, tool use, memory, cron scheduling, and the Hermes
-  learning loop run on the gateway side**, not in the Android process. The
-  app is a thin client.
-- **Voice features** (`.[voice]` extra) require backends not available on
-  Android. Hermes itself uses `.[termux]` instead of `.[all]` for the same
-  reason.
-- **Cleartext HTTP** is enabled (`usesCleartextTraffic="true"`) to allow
-  pointing at `http://10.0.2.2:8080` (emulator → host) and at LAN gateways
-  during development. Production gateways should use HTTPS; we plan to
-  flip this off by default before a 1.0 Play Store release.
+1. Keeps a **local foreground service** running (`HermesService`) with
+   a persistent notification so the user can always see — and stop —
+   the orchestrator.
+2. Lets you draft **tasks** (title, description, workspace path,
+   target tool) on the device.
+3. Renders a **handoff prompt** with a fixed `## Safety requirements`
+   block (no auth bypass, no token exfiltration, stay within ToS).
+4. **Copies** that prompt to the clipboard on an explicit tap. There
+   is no silent or automated handoff.
+5. Optionally **opens** the official tool (Codex / Claude Code /
+   ChatGPT / Claude) via launch intent or web fallback, but only when
+   *Allow external app opening* is on and the user taps the action.
+6. Surfaces an in-memory **diagnostics** log (ring buffer, 200
+   entries) and a **full reset** that clears DataStore + the task
+   file in one tap.
 
----
+## What the app explicitly does **not** do
 
-## Backend URL — picking the right one
-
-This is the #1 setup mistake on real devices, so it gets its own section.
-
-The default backend URL baked into the APK depends on how it was built —
-see [Configuring the backend URL](#configuring-the-backend-url) below —
-but the underlying rules are:
-
-| Where the app runs                     | Use this URL                                      |
-|----------------------------------------|---------------------------------------------------|
-| Android emulator on your laptop        | `http://10.0.2.2:8080` (loopback to host)         |
-| Real phone, same Wi-Fi as the gateway  | `http://<LAN-IP>:8080`, e.g. `http://192.168.1.42:8080` |
-| Real phone, away from home             | ngrok / Cloudflare tunnel, or a public HTTPS URL  |
-| Production                             | `https://<your-domain>` (HTTPS required)          |
-
-> `10.0.2.2` is a magic emulator-only alias for "the host running the AVD".
-> It is **not routable** from a physical phone — dialling it will hang on
-> the TCP connect and the app will surface **"Wrong backend URL — 10.0.2.2
-> only works inside the Android emulator"** after ~8 seconds. If you see
-> that, swap the URL in **Settings → Edit connection**.
-
-The app surfaces four explicit connection states so failures are
-debuggable from the UI alone:
-
-- **Connected** — `/v1/health` returned 200.
-- **Connecting…** — probe in flight.
-- **Backend unreachable** — TCP timed out / connection refused / no route.
-- **Wrong backend URL** — DNS failure, emulator-only host on a real
-  device, or empty URL.
-
-### Configuring the backend URL
-
-The Android module reads the default URL at *build time* in this order:
-
-1. `-PhermesGatewayUrl=...` — Gradle property (CLI or `gradle.properties`).
-2. `$HERMES_GATEWAY_URL` — primary env var name.
-3. `$ANDROID_API_BASE_URL` — alias env var, useful when the same gateway
-   is shared with other Android-native clients.
-4. **Debug-only fallback:** `http://10.0.2.2:8080` (emulator convenience).
-5. **Release fallback:** empty — the user must enter the URL on first run.
-
-Example builds:
-
-```bash
-# Real phone on the LAN — bake the LAN IP into the debug APK so the
-# emulator-only default never gets a chance to mislead you.
-HERMES_GATEWAY_URL="http://192.168.1.42:8080" \
-  ./gradlew :app:assembleDebug
-
-# Production release pointing at your public gateway.
-HERMES_GATEWAY_URL="https://hermes.example.com" \
-  ./gradlew :app:bundleRelease
-```
-
-Whatever the build-time default is, it only seeds the URL on first launch.
-The user can override it any time from **Settings → Edit connection**, and
-the override is persisted in DataStore.
-
-### Tokens never live in the app
-
-- **Gateway bearer tokens** the user enters are stored in
-  `EncryptedSharedPreferences` on the device, scoped to the app sandbox.
-- **GitHub PATs, MCP credentials, and any other gateway-side secrets**
-  stay **server-side** in `~/.hermes/.env` (or the gateway process
-  environment / your hosting provider's secret store). They are never
-  baked into the APK, shipped in `strings.xml`, or stored client-side.
-  If you find yourself needing one of these on the phone, that's a sign
-  the request should be flowing through the gateway instead.
+- It does **not** call OpenAI, Anthropic, OpenRouter, or any other
+  AI provider. There is no API client. The build comment in
+  [`app/build.gradle.kts`](app/build.gradle.kts) is the source of
+  truth here.
+- It does **not** ship a chat screen, a provider settings screen, a
+  bearer-token field, mock mode, or a "Test connection" button.
+  Earlier iterations of this README described those — they were
+  removed when the chat / gateway architecture was retired.
+- It does **not** store API keys, session tokens, or cookies. The
+  `Use API keys` toggle in Settings is opt-in and currently exists
+  only as a forward-compatible preference; the orchestrator does not
+  read or send any key on its own.
+- It does **not** declare cleartext-traffic, network-security-config,
+  or `<queries>` blocks. There's nothing for them to gate.
 
 ---
 
@@ -158,7 +65,8 @@ the override is persisted in DataStore.
 
 - **JDK 17** (Temurin recommended).
 - **Android SDK** with platform `android-35` and build-tools `35.0.0`.
-  Android Studio Ladybug | 2024.2.x or newer installs these automatically.
+  Android Studio Ladybug | 2024.2.x or newer installs these
+  automatically.
 
 ### Debug APK
 
@@ -181,12 +89,22 @@ Install on a connected device or emulator:
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The debug build is keyed with the standard Android debug keystore, has
-`applicationIdSuffix=".debug"` (so it installs alongside any release build),
-and ships with **mock mode enabled by default** so you can poke around
-without a backend.
+The debug build uses `applicationIdSuffix=".debug"` (so it installs
+alongside any release build) and `versionNameSuffix="-debug"`.
 
-### Release AAB for Google Play
+### Unit tests
+
+```bash
+cd apps/android
+./gradlew testDebugUnitTest
+```
+
+JVM unit tests live under `app/src/test/java/`. They cover the
+pure-logic surfaces — `PromptBuilder`, `HermesTaskRepository`,
+`HandoffLauncher`, `TermuxIntentBridge`, the safety-content
+guarantee, and the backup-rules manifest assertions.
+
+### Release AAB
 
 You need a release signing keystore. **Do not commit it.**
 
@@ -197,53 +115,47 @@ keytool -genkey -v \
   -keyalg RSA -keysize 2048 -validity 36500
 ```
 
-Create `apps/android/keystore.properties` (already in `.gitignore`):
-
-```properties
-storeFile=/absolute/path/to/hermes-release.keystore
-storePassword=...
-keyAlias=hermes
-keyPassword=...
-```
-
-Wire up signing in `app/build.gradle.kts` (left as a TODO — we don't ship
-sample release-signing code so nobody accidentally checks it in), then:
+Create `apps/android/keystore.properties` (already in `.gitignore`)
+and wire signing in `app/build.gradle.kts` (left as a TODO — we don't
+ship sample release-signing code so nobody accidentally checks it
+in), then:
 
 ```bash
 ./gradlew bundleRelease
 ```
 
-The signed bundle lands at:
-
-```
-apps/android/app/build/outputs/bundle/release/app-release.aab
-```
-
-Upload that file to the Google Play Console.
+The signed bundle lands at
+`apps/android/app/build/outputs/bundle/release/app-release.aab`.
+Upload that to the Google Play Console.
 
 ### CI
 
-`.github/workflows/android-build.yml` builds the debug APK on every change
-under `apps/android/` and uploads it as a workflow artifact (`hermes-agent-debug-apk`).
-A separate lint job uploads `lint-results-debug.html`. Manual trigger is also
-supported via `workflow_dispatch`.
+`.github/workflows/android-build.yml` builds the debug APK and runs
+the unit-test suite on every change under `apps/android/`. It
+uploads the APK as a workflow artifact (`hermes-agent-debug-apk`)
+and the test results as `android-unit-test-report`. A separate lint
+job uploads `lint-results-debug.html`.
 
 ---
 
 ## First run (on device)
 
-1. Launch **Hermes Agent**. You'll see a brief splash, then onboarding.
-2. Pick **"Get started"** to enter your gateway URL, or **"Skip and use
-   mock mode"** to explore the UI offline.
-3. On the connection screen, enter:
-   - **Gateway URL** — e.g. `https://hermes.example.com`, `http://10.0.2.2:8080`
-     (emulator → host loopback), or `http://127.0.0.1:8080` (Termux on
-     same device).
-   - **Gateway token** — optional bearer token configured on the gateway.
-   - **Provider + API key** — defaults to OpenRouter. The key is forwarded
-     to the gateway in an `X-Hermes-Provider-Key` header.
-4. Tap **Test connection** to hit `/v1/health`. Green = good.
-5. Tap **Save and continue** — you land in **Chat**.
+1. Launch **Hermes Agent**. A short splash bootstraps the theme,
+   then the **Orchestrator** dashboard loads.
+2. The persistent **Hermes Orchestrator Running** notification
+   appears. Tap it once to come back to the app from anywhere; tap
+   *Stop* to end the foreground service.
+3. Tap **+** (new task) → enter a title, description, workspace
+   path, and target tool → save.
+4. Open the saved task → review the **Generated prompt** (it
+   includes a `## Safety requirements` block that is invariant
+   across targets).
+5. Tap **Copy prompt**. The prompt is copied to the system
+   clipboard. Paste it into Codex / Claude Code / ChatGPT / Claude
+   in their official app or web client.
+6. (Optional) Tap **Open tool** to launch the official app — only
+   works if *Settings → Allow external app opening* is on, and even
+   then each launch needs an explicit tap.
 
 ---
 
@@ -251,68 +163,60 @@ supported via `workflow_dispatch`.
 
 | Route | Purpose |
 |---|---|
-| `splash` | Branding + theme bootstrap |
-| `setup` | Welcome / onboarding entry |
-| `provider` | Gateway URL, token, provider/API key, mock toggle, test connection |
-| `chat` | Streaming chat (user/assistant bubbles, abort button, new convo) |
-| `status` | Live connection state + provider/model + mock indicator |
-| `settings` | Theme, mock toggle shortcut, build info, full reset |
-| `diagnostics` | Backend status, app version, build type, last error, in-app log buffer |
+| `splash` | Branding + theme bootstrap (no network calls) |
+| `orchestrator` | Tool tiles, task list, service start/stop, prepare-handoff entry |
+| `task_detail/{taskId}?target={target}` | Create / edit a task, render the handoff prompt, copy / mark-handed-off / delete |
+| `settings` | Theme, preferred builder / reviewer, opt-in toggles (`Use API keys`, `Local-only mode`, `Allow external app opening`, `Clipboard handoff enabled`, `Show safety warnings`), full reset |
+| `diagnostics` | App version, build type, last error, in-app log buffer (200 entries) |
 
 ---
 
 ## What's not wired up yet
 
-- **Push from gateway → device.** Notifications path is permitted in the
-  manifest but no FCM/WebPush integration exists.
-- **Skill picker UI.** `/skills` from the CLI doesn't have a mobile-native
-  equivalent yet — you can still invoke `/skill-name` in the chat input.
+- **Skill picker UI.** No mobile-native skill chooser yet.
 - **Voice input.** Future work; needs careful permission flow.
-- **Release signing.** The release build type compiles but is not signed by
-  default — see "Release AAB" above.
-- **HTTPS-only.** Cleartext is on for local-network testing; a future build
-  will gate it behind a build flag.
-- **`testDebugUnitTest`.** No `src/test/` or `src/androidTest/` sources
-  exist yet, so the Gradle task would be a no-op. The CI workflow runs
-  `assembleDebug` + `lintDebug`; unit tests will land alongside the
-  first non-trivial business logic that's testable in isolation.
+- **Release signing.** The release build type compiles but is not
+  signed by default — see "Release AAB" above.
+- **Termux bridge fire-and-forget.** `TermuxIntentBridge` builds the
+  RUN_COMMAND envelopes today; the actual `sendBroadcast` path,
+  wake-lock, and status polling land with the cockpit-screen work
+  in a follow-up phase.
 
 ## Interactive surface (v1.0)
 
 For JARVIS Prime control without opening the full app:
 
-- **Launcher shortcuts** (`res/xml/shortcuts.xml`) — long-press the
+- **Launcher shortcuts** (`res/xml/shortcuts.xml`) â€” long-press the
   launcher icon for **Approve** (Owner Approve flow) and **Stop JARVIS**
   (emergency stop deep-link). Both route through `MainActivity` with
   a `jarvis_action` intent extra.
 - **Notification actions** on the foreground-service ongoing
-  notification — **Owner Approve** (deep-link into the approval flow)
+  notification â€” **Owner Approve** (deep-link into the approval flow)
   and **Stop** (terminates the service).
 
 Quick-settings tile (`TileService`) is intentionally deferred to v1.1
 once the deep-link approval flow inside `MainActivity` has soaked.
 
-See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the gateway wire
-format and the deliberate split between this Android module and the Python
-core.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the deliberate
+split between this Android module and the Python core.
 
 ---
 
 ## Service intent contract
 
 `HermesService` is a local-only foreground service (manifest declares
-`android:exported="false"`, `foregroundServiceType="dataSync"`). It can be
-started in two ways:
+`android:exported="false"`, `foregroundServiceType="dataSync"`). It
+can be started in two ways:
 
 1. **From the app process** — the activity calls
    `startForegroundService(Intent(this, HermesService::class.java))`.
-2. **From ADB on a development device** — useful for smoke-testing the
-   service or for a future Termux bridge that wants to hand work off to
-   the foreground notification.
+2. **From ADB on a development device** — useful for smoke-testing
+   the service or for a future Termux bridge that wants to hand work
+   off to the foreground notification.
 
-Because the service is `exported=false`, ADB invocations must use the
-debug build's component name and run on a device where the same UID owns
-the app:
+Because the service is `exported=false`, ADB invocations must use
+the debug build's component name and run on a device where the same
+UID owns the app:
 
 ```bash
 # Debug build component name uses the .debug applicationIdSuffix.
@@ -343,11 +247,35 @@ adb shell am start-service \
 
 The user can also stop it from the persistent notification.
 
-**Reality check.** These extras are intentionally *observational only* in
-the current build. The service prints them via `Log.i(HermesService, …)`
-so you can verify your wiring with `adb logcat -s HermesService`. Wiring
-them into a real bridge that hands work off to a Python orchestrator
-process (over Termux loopback, or via the Hermes gateway) is tracked
-separately and is not part of the alpha.
+**Reality check.** These extras are intentionally *observational
+only* in the current build. The service prints them via
+`Log.i(HermesService, …)` so you can verify your wiring with
+`adb logcat -s HermesService`. Routing them into a real Python /
+CLI bridge is tracked separately and is not part of the alpha.
+
+---
+
+## Privacy and on-device data
+
+- `hermes_settings.preferences_pb` — Jetpack DataStore file under
+  `app_files/datastore/`. Stores theme, the four preferred-tool
+  enums, and the five boolean toggles. **Excluded** from cloud
+  backup and device transfer (see `res/xml/backup_rules.xml` and
+  `res/xml/data_extraction_rules.xml`).
+- `files/hermes_tasks.json` — task list. Contains user-typed task
+  titles, descriptions, workspace paths, and any review / result
+  notes the user entered. **Excluded** from cloud backup and device
+  transfer for the same reasons. We treat task descriptions as
+  potentially sensitive because the SAFETY_BLOCK in the prompt
+  builder explicitly tells the receiving model not to act on
+  pasted credentials; the in-app text the user wrote is still
+  user-owned content.
+- Logs in the Diagnostics ring buffer are in-memory only. They do
+  not persist across restarts and are never written to disk by the
+  app.
+
+If you find one of those rules drifting from the actual data
+layout, please open an issue — the rules ship as runtime
+manifest-assertion tests under `app/src/test/java/.../backup/`.
 
 <!-- ci: trigger android-build.yml so a fresh debug APK lands as a workflow artifact. -->

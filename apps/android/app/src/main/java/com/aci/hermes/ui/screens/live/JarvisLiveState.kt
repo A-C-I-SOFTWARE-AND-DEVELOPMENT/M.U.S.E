@@ -1,0 +1,75 @@
+package com.aci.hermes.ui.screens.live
+
+import androidx.annotation.StringRes
+import com.aci.hermes.R
+
+/**
+ * Discrete states the Jarvis presence surface can occupy. Ordered by
+ * priority — higher ordinal wins when multiple flags are set on the
+ * raw [JarvisLiveUiState].
+ */
+enum class JarvisLiveState {
+    Idle,
+    Listening,
+    Thinking,
+    Working,
+    Speaking,
+    ApprovalNeeded,
+    Blocked,
+    EmergencyStop,
+}
+
+/**
+ * The raw, multi-dimensional state held by [JarvisLiveViewModel].
+ * It carries every flag the user-supplied agent runtime might raise at
+ * once; the projector resolves it to a single [JarvisLiveState] for
+ * display.
+ */
+data class JarvisLiveUiState(
+    val listening: Boolean = false,
+    val thinking: Boolean = false,
+    val working: Boolean = false,
+    val speaking: Boolean = false,
+    val approvalNeeded: Boolean = false,
+    val blocked: Boolean = false,
+    val emergencyStop: Boolean = false,
+    val voiceLine: String = "",
+    val reducedMotion: Boolean = false,
+    val command: String = "",
+    val voiceAvailable: Boolean = false,
+    val avatarKind: AvatarKind = AvatarKind.Orb,
+)
+
+enum class AvatarKind { Orb, Pixel, Photo }
+
+/**
+ * The display-ready projection consumed by [JarvisLiveScreen]. All
+ * user-visible text is returned as [StringRes] ids so this object can
+ * be produced and unit-tested without an Android Context.
+ */
+data class JarvisLiveProjection(
+    val state: JarvisLiveState,
+    @StringRes val pillText: Int,
+    @StringRes val voiceLineFallback: Int,
+    @StringRes val contentDescription: Int,
+    val motionEnabled: Boolean,
+    val particlesEnabled: Boolean,
+    val showApprovalCta: Boolean,
+    val showFixCta: Boolean,
+    val showEmergencyReleaseCta: Boolean,
+) {
+    val isEmergency: Boolean get() = state == JarvisLiveState.EmergencyStop
+}
+
+/** Default voice line resource keyed by projected state. */
+@StringRes
+fun defaultVoiceLineFor(state: JarvisLiveState): Int = when (state) {
+    JarvisLiveState.Idle -> R.string.jarvis_voice_idle
+    JarvisLiveState.Listening -> R.string.jarvis_voice_listening
+    JarvisLiveState.Thinking -> R.string.jarvis_voice_thinking
+    JarvisLiveState.Working -> R.string.jarvis_voice_working
+    JarvisLiveState.Speaking -> R.string.jarvis_voice_speaking
+    JarvisLiveState.ApprovalNeeded -> R.string.jarvis_voice_approval
+    JarvisLiveState.Blocked -> R.string.jarvis_voice_blocked
+    JarvisLiveState.EmergencyStop -> R.string.jarvis_voice_emergency
+}

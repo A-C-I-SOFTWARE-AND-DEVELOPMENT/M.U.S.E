@@ -140,8 +140,12 @@ yes/no question with an obvious answer. Tick the box as you go.
 
 - [ ] **CI green** on the PR before flipping out of draft.
 
-- [ ] **At least one human reviewer approves** before merge. The
-      orchestrator does not auto-merge.
+- [ ] **Repository merges are governed by LaunchGate automated
+      validation. Runtime owner-gated actions remain protected.**
+      Enable GitHub auto-merge per
+      [`docs/launch/AUTOMATED_MERGE_POLICY.md`](../launch/AUTOMATED_MERGE_POLICY.md);
+      branch protection still requires the configured reviewer
+      approvals before the queued merge will fire.
 
 ---
 

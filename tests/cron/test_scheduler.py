@@ -2099,6 +2099,24 @@ class TestBuildJobPromptMissingSkill:
                 _build_job_prompt({"name": "My Job", "skills": ["ghost-skill"], "prompt": "do something"})
         assert any("ghost-skill" in record.message for record in caplog.records)
 
+    def test_missing_skill_log_does_not_echo_loader_error(self, caplog):
+        """Loader errors may include secret-adjacent text; logs should not echo it."""
+
+        def _missing_view_with_secret(name: str) -> str:
+            return json.dumps({
+                "success": False,
+                "error": f"Skill '{name}' not found with token sk-proj-secret-123456",
+            })
+
+        with caplog.at_level(logging.WARNING, logger="cron.scheduler"):
+            with patch("tools.skills_tool.skill_view", side_effect=_missing_view_with_secret):
+                _build_job_prompt({"name": "My Job", "skills": ["ghost-skill"], "prompt": "do something"})
+
+        messages = "\n".join(record.message for record in caplog.records)
+        assert "ghost-skill" in messages
+        assert "sk-proj-secret-123456" not in messages
+        assert "not found with token" not in messages
+
     def test_valid_skill_loaded_alongside_missing(self):
         """A valid skill is still loaded when another skill in the list is missing."""
 

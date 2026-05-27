@@ -93,6 +93,27 @@ Result:
 Next step:
 ```
 
+CLI quick reference (`python -m hermes_cli.jarvis_prime`):
+
+| Command | What it does |
+|---|---|
+| `perceive --dry-run` | Print the full AwarenessSnapshot as JSON |
+| `classify "<intent>"` | Print the matched mode, confidence, and keyword reason |
+| `gate all --packet packet.json` | Run all eight verification gates against a work-packet |
+| `handle "<intent>" [--packet ...] [--handoff]` | Full perceive → classify → decide turn |
+| `tick --enabled` | One proactive briefing tick |
+| `proposals list` | List self-update proposals (read-only) |
+| `proposals approve <id> --phrase "Yes, with authorization."` | Approve a proposal — exact phrase required, no execution |
+| `proposals reject <id>` | Reject a proposal — no phrase required |
+| `handoff --intent "<intent>" --packet packet.json` | Render the structured handoff for an intent + packet |
+
+`approve` also accepts the phrase from the `JARVIS_OWNER_PHRASE`
+environment variable so it stays out of shell history. Proposals
+`approve` and `reject` only update status; execution of the proposed
+change belongs to a later lane. See
+[`docs/jarvis-prime-operating-system.md`](../../docs/jarvis-prime-operating-system.md) § CLI Reference for full
+details and failure modes.
+
 ## Procedure
 
 ### Companion Mode

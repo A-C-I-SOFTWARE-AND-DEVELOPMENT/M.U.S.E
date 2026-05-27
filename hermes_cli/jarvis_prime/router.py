@@ -135,9 +135,7 @@ class Router:
             if "pr" in text or "pull request" in text or "publish" in text:
                 return RouteDecision(
                     target=RouteTarget.GITHUB_PR_PUBLISHER,
-                    rationale="builder mode + PR/publish intent → github PR publisher",
-                    requires_owner_authorization=True,
-                    pending_actions=("main_branch_merge",),
+                    rationale="builder mode + PR/publish intent → github PR publisher (merge governed by LaunchGate)",
                 )
             return RouteDecision(
                 target=RouteTarget.CLAUDE_CODE_BUILDER,
