@@ -1059,25 +1059,29 @@ def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> str:
 
     from tools.skills_tool import skill_view
     from tools.skill_usage import bump_use
+    from agent.redact import safe_audit_identifier
 
     parts = []
     skipped: list[str] = []
     for skill_name in skill_names:
+        safe_skill_name = safe_audit_identifier(skill_name)
         try:
             loaded = json.loads(skill_view(skill_name))
         except (json.JSONDecodeError, TypeError):
-            logger.warning("Cron job '%s': skill '%s' returned invalid JSON, skipping", job.get("name", job.get("id")), skill_name)
-            skipped.append(skill_name)
+            logger.warning(
+                "Cron job '%s': skill '%s' returned invalid JSON, skipping",
+                safe_audit_identifier(job.get("name", job.get("id"))),
+                safe_skill_name,
+            )
+            skipped.append(safe_skill_name)
             continue
         if not loaded.get("success"):
-            from agent.redact import safe_audit_identifier
-            error = loaded.get("error") or f"Failed to load skill '{safe_audit_identifier(skill_name)}'"
             logger.warning(
-                "Cron job '%s': skill not found, skipping — %s",
+                "Cron job '%s': skill '%s' not found, skipping",
                 safe_audit_identifier(job.get("name", job.get("id"))),
-                error,
+                safe_skill_name,
             )
-            skipped.append(skill_name)
+            skipped.append(safe_skill_name)
             continue
 
         # Bump usage so the curator sees this skill as actively used.

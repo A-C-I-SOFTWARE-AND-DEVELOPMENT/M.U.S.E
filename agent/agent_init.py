@@ -860,9 +860,8 @@ def init_agent(
     
     # Show ephemeral system prompt status
     if agent.ephemeral_system_prompt and not agent.quiet_mode:
-        from agent.redact import safe_log_summary
-        prompt_summary = safe_log_summary(agent.ephemeral_system_prompt)
-        print(f"🔒 Ephemeral system prompt: {prompt_summary} (not saved to trajectories)")
+        prompt_chars = len(agent.ephemeral_system_prompt)
+        print(f"🔒 Ephemeral system prompt: <{prompt_chars} chars> (not saved to trajectories)")
     
     # Show prompt caching status
     if agent._use_prompt_caching and not agent.quiet_mode:
