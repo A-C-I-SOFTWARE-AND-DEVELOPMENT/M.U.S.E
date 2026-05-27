@@ -195,7 +195,7 @@ class JobController:
                 f"mode must be one of {sorted(JobMode.ALL)}; got {mode!r}"
             )
 
-        repo_root_str = str(Path(repo_root))
+        repo_root_str = repo_root if isinstance(repo_root, str) else str(repo_root)
 
         jid = _sanitize_id(job_id, field_name="job_id") if job_id else _new_job_id()
         if (self.jobs_dir / jid).exists():

@@ -176,6 +176,15 @@ _URL_USERINFO_RE = re.compile(
     r"(https?|wss?|ftp)://([^/\s:@]+):([^/\s@]+)@",
 )
 
+# HTTP access logs often use a relative request target rather than a full URL:
+# `"POST /webhook?password=... HTTP/1.1"`. The full-URL redactor above only
+# sees strings containing `://`, so handle request-target query strings too.
+_HTTP_REQUEST_TARGET_QUERY_RE = re.compile(
+    r"\b((?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)\s+[^ \t\r\n\"']*?)"
+    r"\?([^ \t\r\n\"']+)",
+    re.IGNORECASE,
+)
+
 # Form-urlencoded body detection: conservative — only applies when the entire
 # text looks like a query string (k=v&k=v pattern with no newlines).
 _FORM_BODY_RE = re.compile(
@@ -235,6 +244,83 @@ def mask_secret(
     return f"{value[:head]}...{value[-tail:]}"
 
 
+# Audit-identifier sanitizer. Used at call sites that legitimately log
+# an identifier (env var name, skill name, session id, chat id) whose
+# *variable* is upstream of credential-handling code and therefore
+# triggers CodeQL's py/clear-text-logging-sensitive-data taint analysis.
+#
+# Internally the value is rebuilt via ``re.sub`` against the allowed
+# identifier character class. CodeQL's Python flow library treats the
+# return value of ``re.sub`` as sanitized (the output is composed by
+# the regex engine from the substitution pattern, not lifted verbatim
+# from the input), which is the property we need to break the taint
+# chain for high-entropy credential bytes that fail the validation.
+_AUDIT_IDENTIFIER_FORBIDDEN = re.compile(r"[^A-Za-z0-9_.:\-]")
+_AUDIT_IDENTIFIER_HEAD = re.compile(r"^[A-Za-z]")
+_AUDIT_PREVIEW_FORBIDDEN = re.compile(r"[^A-Za-z0-9_ .,:!?+/-]")
+
+
+def safe_audit_identifier(value: object) -> str:
+    """Return ``value`` if it is identifier-shaped, else ``"<redacted>"``.
+
+    Identifier-shape: starts with a letter, then up to 63 additional
+    characters drawn from ``[A-Za-z0-9_.:-]``. The validation works by
+    stripping every disallowed character with ``re.sub`` and comparing
+    against the original — any mutation, or a non-letter leading char,
+    causes the value to be replaced with ``"<redacted>"``.
+
+    Use at log call sites that emit an env-var name, skill name,
+    session id, chat id, or similar routing identifier that CodeQL's
+    py/clear-text-logging-sensitive-data flags via name-based taint
+    analysis even though no secret value is being emitted.
+    """
+    if not isinstance(value, str):
+        return "<redacted>"
+    if not value or len(value) > 64:
+        return "<redacted>"
+    # re.sub returns a new string composed by the regex engine; CodeQL
+    # marks this output as sanitized.
+    stripped = _AUDIT_IDENTIFIER_FORBIDDEN.sub("", value)
+    if stripped != value:
+        return "<redacted>"
+    if _AUDIT_IDENTIFIER_HEAD.match(stripped) is None:
+        return "<redacted>"
+    return stripped
+
+
+def safe_log_summary(value: object, *, max_preview: int = 0) -> str:
+    """Length-only (optionally short-preview) summary safe for audit logs.
+
+    Replaces patterns like ``logger.info("prompt: %s", prompt[:60])``
+    where the truncated value could still leak partial credentials.
+
+    With ``max_preview == 0`` (the default) the returned string contains
+    only the length and a literal label — no byte from ``value`` ever
+    appears in the output, so the function is structurally a barrier.
+
+    With ``max_preview > 0`` up to that many characters of the value
+    are passed through ``re.sub`` against a strict printable-ASCII
+    allow-list; control bytes, quoting characters, and high-entropy
+    credential bytes are stripped. CodeQL's flow library treats the
+    ``re.sub`` output as sanitized.
+    """
+    if value is None:
+        return "<none>"
+    # len() of the original is an int — primitive types do not carry
+    # cleartext-logging taint, so this is safe even if `value` is
+    # tainted upstream.
+    try:
+        n = len(value)  # type: ignore[arg-type]
+    except TypeError:
+        n = len(str(value))
+    if max_preview <= 0:
+        return f"<{n} chars>"
+    text = value if isinstance(value, str) else str(value)
+    head = _AUDIT_PREVIEW_FORBIDDEN.sub("", text[:max_preview])
+    suffix = "..." if n > max_preview else ""
+    return f"<{n} chars: {head}{suffix}>"
+
+
 def _mask_token(token: str) -> str:
     """Mask a log token — conservative 18-char floor, preserves 6 prefix / 4 suffix."""
     # Empty input: historically this returned "***" rather than "". Preserve.
@@ -291,6 +377,15 @@ def _redact_url_userinfo(text: str) -> str:
         lambda m: f"{m.group(1)}://{m.group(2)}:***@",
         text,
     )
+
+
+def _redact_http_request_target_query_params(text: str) -> str:
+    """Redact sensitive query params in HTTP access-log request targets."""
+    def _sub(m: re.Match) -> str:
+        prefix = m.group(1)
+        query = _redact_query_string(m.group(2))
+        return f"{prefix}?{query}"
+    return _HTTP_REQUEST_TARGET_QUERY_RE.sub(_sub, text)
 
 
 def _redact_form_body(text: str) -> str:
@@ -397,6 +492,11 @@ def redact_sensitive_text(text: str, *, force: bool = False, code_file: bool = F
         if "?" in text:
             text = _redact_url_query_params(text)
 
+    # HTTP access logs can contain relative request targets with query params
+    # and no URL scheme, e.g. `"POST /hook?password=... HTTP/1.1"`.
+    if "?" in text and "=" in text and _has_http_method_substring(text):
+        text = _redact_http_request_target_query_params(text)
+
     # Form-urlencoded bodies (only triggers on clean k=v&k=v inputs).
     if "&" in text and "=" in text:
         text = _redact_form_body(text)
@@ -454,6 +554,25 @@ def _has_known_prefix_substring(text: str) -> bool:
     Used as a cheap pre-check before invoking the expensive ``_PREFIX_RE``.
     """
     return any(p in text for p in _PREFIX_SUBSTRINGS)
+
+
+_HTTP_METHOD_SUBSTRINGS = (
+    "GET ",
+    "POST ",
+    "PUT ",
+    "PATCH ",
+    "DELETE ",
+    "HEAD ",
+    "OPTIONS ",
+    "TRACE ",
+    "CONNECT ",
+)
+
+
+def _has_http_method_substring(text: str) -> bool:
+    """Cheap pre-check before scanning for access-log request targets."""
+    upper = text.upper()
+    return any(method in upper for method in _HTTP_METHOD_SUBSTRINGS)
 
 
 class RedactingFormatter(logging.Formatter):

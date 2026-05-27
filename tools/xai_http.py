@@ -2,8 +2,48 @@
 
 from __future__ import annotations
 
+import json
 import os
 from typing import Dict
+
+
+def has_xai_credentials() -> bool:
+    """Cheap probe — return True when xAI credentials are *likely* usable.
+
+    Deliberately avoids :func:`resolve_xai_http_credentials` so callers in
+    hot-paint paths (``hermes tools`` repaint, tool-registration scans,
+    ``WebSearchProvider.is_available()``) don't incur disk locks or — in
+    the OAuth path — a network token refresh. The ABC contract on
+    :meth:`agent.web_search_provider.WebSearchProvider.is_available`
+    explicitly forbids network calls for exactly this reason.
+
+    Resolution order, fast-to-slow:
+
+    1. ``XAI_API_KEY`` env var (cheapest; covers explicit-key users).
+    2. ``~/.hermes/auth.json`` has a non-empty ``providers.xai-oauth.tokens.access_token``
+       (single file read, no expiry check, no refresh).
+
+    Returns False on any exception so a corrupted auth store can't block
+    other availability scans. Truthful refresh + expiry handling happens
+    in ``search()`` (or whichever caller actually makes the request).
+    """
+    if os.environ.get("XAI_API_KEY", "").strip():
+        return True
+    try:
+        from hermes_constants import get_hermes_home
+
+        auth_path = get_hermes_home() / "auth.json"
+        if not auth_path.exists():
+            return False
+        store = json.loads(auth_path.read_text())
+        providers = store.get("providers") if isinstance(store, dict) else None
+        xai_state = providers.get("xai-oauth") if isinstance(providers, dict) else None
+        tokens = xai_state.get("tokens") if isinstance(xai_state, dict) else None
+        access_token = tokens.get("access_token") if isinstance(tokens, dict) else None
+        return bool(str(access_token or "").strip())
+    except Exception:
+        return False
+
 
 def get_env_value(name: str, default=None):
     """Read ``name`` from ``~/.hermes/.env`` first, then ``os.environ``.
