@@ -135,6 +135,26 @@ Only discovered if the workspace contains an `*.apk`:
 Each individually downgrades to `skipped` if the backing tool is
 missing on `PATH`.
 
+### Remote runtime (optional)
+Only discovered if the workspace has a `remote/` directory the
+worker / tunnel stack writes to. None of these are critical — they
+report the state of the remote stack, they do not gate publish.
+- `remote.tunnel` — reads `remote/tunnel.json`. Pass on `up` /
+  `healthy` / `ready` / `open` / `connected`; warn on `down` /
+  unknown; fail on parse error.
+- `remote.workers` — walks `remote/workers/**/heartbeat.json`;
+  warns when any heartbeat is older than 5 minutes.
+- `remote.queue` — reads `remote/queue.json`; reports queue
+  depth and warns when the oldest job has been waiting more than
+  30 minutes.
+
+For the broader pipeline (validation + testing + monitoring) see
+[`docs/orchestration/validation-testing-monitoring.md`](../../docs/orchestration/validation-testing-monitoring.md).
+The runtime observer that consumes these signals lives in
+[`hermes_cli/monitoring.py`](../../hermes_cli/monitoring.py) and
+writes `monitoring/health.json` + `monitoring/events.jsonl`
+alongside the validation artefacts.
+
 ## Failure response
 
 When the gate closes, the skill's job is to **report the
