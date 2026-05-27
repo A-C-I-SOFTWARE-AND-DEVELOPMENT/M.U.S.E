@@ -23,6 +23,8 @@ import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.approval.ui.screens.ApprovalsScreen
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
+import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.ui.screens.audit.AuditDetailScreen
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditScreen
@@ -159,12 +161,18 @@ fun HermesNavHost(container: AppContainer) {
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
                 onOpenDiagnostics = openDiagnostics,
+                onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
             )
         }
 
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        composable(Screen.AvatarPicker.route) {
+            val vm: AvatarPickerViewModel = viewModel(factory = remember { container.avatarPickerVmFactory() })
+            AvatarPickerScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
         composable(

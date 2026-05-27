@@ -9,12 +9,16 @@ import com.aci.hermes.approval.event.RecordingApprovalEventSink
 import com.aci.hermes.approval.state.ApprovalStore
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.audit.AuditRepository
+import com.aci.hermes.data.avatar.AvatarImageStore
+import com.aci.hermes.data.avatar.AvatarPixelator
+import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditViewModel
@@ -47,6 +51,12 @@ class AppContainer(private val application: Application) {
     val taskRepository: HermesTaskRepository = HermesTaskRepository(context)
 
     val promptBuilder: PromptBuilder = PromptBuilder()
+
+    val avatarImageStore: AvatarImageStore = AvatarImageStore(context)
+
+    val avatarPixelator: AvatarPixelator = AvatarPixelator(context, avatarImageStore)
+
+    val avatarRepository: AvatarRepository = AvatarRepository(context, avatarImageStore)
 
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
@@ -98,6 +108,16 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun avatarPickerVmFactory(): ViewModelProvider.Factory = factory {
+        AvatarPickerViewModel(
+            application = application,
+            pixelator = avatarPixelator,
+            imageStore = avatarImageStore,
+            repo = avatarRepository,
+            logBuffer = logBuffer,
+        )
     }
 
     fun approvalsVmFactory(): ViewModelProvider.Factory = factory {

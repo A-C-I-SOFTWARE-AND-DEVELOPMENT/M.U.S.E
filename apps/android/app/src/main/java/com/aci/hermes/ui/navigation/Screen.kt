@@ -44,6 +44,7 @@ sealed class Screen(val route: String) {
         fun forNew(target: String? = null): String =
             if (target == null) "task_detail/new" else "task_detail/new?target=$target"
     }
+    data object AvatarPicker : Screen("avatar_picker")
 
     companion object {
         /** Routes that render inside [JarvisShell]. */
