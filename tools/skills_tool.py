@@ -336,8 +336,11 @@ def _capture_required_environment_variables(
                 metadata,
             )
         except Exception:
+            from agent.redact import safe_audit_identifier
             logger.warning(
-                f"Secret capture callback failed for {entry['name']}", exc_info=True
+                "Secret capture callback failed for %s",
+                safe_audit_identifier(entry["name"]),
+                exc_info=True,
             )
             callback_result = {
                 "success": False,
@@ -1448,47 +1451,13 @@ def skill_view(
 
 
 
-if __name__ == "__main__":
-    """Test the skills tool"""
-    print("🎯 Skills Tool Test")
-    print("=" * 60)
-
-    # Test listing skills
-    print("\n📋 Listing all skills:")
-    result = json.loads(skills_list())
-    if result["success"]:
-        print(
-            f"Found {result['count']} skills in {len(result.get('categories', []))} categories"
-        )
-        print(f"Categories: {result.get('categories', [])}")
-        print("\nFirst 10 skills:")
-        for skill in result["skills"][:10]:
-            cat = f"[{skill['category']}] " if skill.get("category") else ""
-            print(f"  • {cat}{skill['name']}: {skill['description'][:60]}...")
-    else:
-        print(f"Error: {result['error']}")
-
-    # Test viewing a skill
-    print("\n📖 Viewing skill 'axolotl':")
-    result = json.loads(skill_view("axolotl"))
-    if result["success"]:
-        print(f"Name: {result['name']}")
-        print(f"Description: {result.get('description', 'N/A')[:100]}...")
-        print(f"Content length: {len(result['content'])} chars")
-        if result.get("linked_files"):
-            print(f"Linked files: {result['linked_files']}")
-    else:
-        print(f"Error: {result['error']}")
-
-    # Test viewing a reference file
-    print("\n📄 Viewing reference file 'axolotl/references/dataset-formats.md':")
-    result = json.loads(skill_view("axolotl", "references/dataset-formats.md"))
-    if result["success"]:
-        print(f"File: {result['file']}")
-        print(f"Content length: {len(result['content'])} chars")
-        print(f"Preview: {result['content'][:150]}...")
-    else:
-        print(f"Error: {result['error']}")
+# Dev-only test scaffold previously lived here as ``if __name__ ==
+# "__main__":`` block invoking ``skills_list()`` / ``skill_view()`` with
+# print() output. Removed in favour of the real pytest suite under
+# tests/test_plugin_skills.py — running this module as a script was
+# never part of the production surface, and the prints tripped
+# CodeQL's clear-text-logging-sensitive-data scanner on skill metadata
+# flowing from the same code path as secret-capture entries.
 
 
 # ---------------------------------------------------------------------------

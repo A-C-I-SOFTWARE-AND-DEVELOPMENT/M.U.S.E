@@ -7421,9 +7421,11 @@ class GatewayRunner:
                         event.text = msg
                         _bundle_handled = True
                         if missing:
+                            from agent.redact import safe_audit_identifier
                             logger.info(
                                 "Bundle %s skipped missing skills: %s",
-                                bundle_key, ", ".join(missing),
+                                safe_audit_identifier(bundle_key),
+                                ", ".join(safe_audit_identifier(m) for m in missing),
                             )
                         # Fall through to normal message processing with bundle content
             except Exception as exc:
@@ -7851,9 +7853,13 @@ class GatewayRunner:
         # doesn't fragment the conversation across sessions.
         recovered = self._recover_telegram_topic_thread_id(source)
         if recovered is not None:
+            from agent.redact import safe_audit_identifier
             logger.info(
                 "telegram topic recovery: chat=%s user=%s %r -> %s",
-                source.chat_id, source.user_id, source.thread_id, recovered,
+                safe_audit_identifier(source.chat_id),
+                safe_audit_identifier(source.user_id),
+                source.thread_id,
+                recovered,
             )
             source = dataclasses.replace(source, thread_id=recovered)
             try:
@@ -8489,9 +8495,11 @@ class GatewayRunner:
             _response_time = time.time() - _msg_start_time
             _api_calls = agent_result.get("api_calls", 0)
             _resp_len = len(response)
+            from agent.redact import safe_audit_identifier
             logger.info(
                 "response ready: platform=%s chat=%s time=%.1fs api_calls=%d response=%d chars",
-                _platform_name, source.chat_id or "unknown",
+                safe_audit_identifier(_platform_name),
+                safe_audit_identifier(source.chat_id) if source.chat_id else "unknown",
                 _response_time, _api_calls, _resp_len,
             )
 
@@ -8647,16 +8655,18 @@ class GatewayRunner:
                 or ("400" in _err_str_for_classify and len(history) > 50)
             )
             if is_context_overflow_failure:
+                from agent.redact import safe_audit_identifier
                 logger.info(
                     "Skipping transcript persistence for context-overflow "
                     "failure in session %s to prevent session growth loop.",
-                    session_entry.session_id,
+                    safe_audit_identifier(session_entry.session_id),
                 )
             elif agent_failed_early:
+                from agent.redact import safe_audit_identifier
                 logger.info(
                     "Transient agent failure in session %s — persisting user "
                     "message so conversation context is preserved on retry.",
-                    session_entry.session_id,
+                    safe_audit_identifier(session_entry.session_id),
                 )
 
             # When compression is exhausted, the session is permanently too
@@ -8664,9 +8674,10 @@ class GatewayRunner:
             # fresh instead of replaying the same oversized context in an
             # infinite fail loop.  (#9893)
             if agent_result.get("compression_exhausted") and session_entry and session_key:
+                from agent.redact import safe_audit_identifier
                 logger.info(
                     "Auto-resetting session %s after compression exhaustion.",
-                    session_entry.session_id,
+                    safe_audit_identifier(session_entry.session_id),
                 )
                 self.session_store.reset_session(session_key)
                 self._evict_cached_agent(session_key)

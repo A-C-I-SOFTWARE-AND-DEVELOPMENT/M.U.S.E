@@ -559,3 +559,87 @@ class TestXaiToken:
     def test_prefix_visible_in_masked_output(self):
         result = redact_sensitive_text(self.KEY, force=True)
         assert result.startswith("xai-AB")
+
+
+class TestSafeAuditIdentifier:
+    """Whitelist sanitizer for audit-log identifiers (env vars, skill names, session ids)."""
+
+    def test_passes_simple_identifier(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("OPENAI_API_KEY") == "OPENAI_API_KEY"
+
+    def test_passes_dotted_and_dashed(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("claude-code") == "claude-code"
+        assert safe_audit_identifier("agent.skills.bundle") == "agent.skills.bundle"
+
+    def test_passes_session_id(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("sess_2026-05-26T03-30-00") == "sess_2026-05-26T03-30-00"
+
+    def test_rejects_actual_secret_value(self):
+        from agent.redact import safe_audit_identifier
+        secret = "sk-proj-abcdef1234567890ABCDEF1234567890+/="
+        assert safe_audit_identifier(secret) == "<redacted>"
+
+    def test_rejects_value_with_spaces(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("hello world") == "<redacted>"
+
+    def test_rejects_value_with_special_chars(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("name<script>") == "<redacted>"
+        assert safe_audit_identifier("name%0a") == "<redacted>"
+
+    def test_rejects_non_string(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier(None) == "<redacted>"
+        assert safe_audit_identifier(12345) == "<redacted>"
+        assert safe_audit_identifier(["x"]) == "<redacted>"
+
+    def test_rejects_overlong_identifier(self):
+        from agent.redact import safe_audit_identifier
+        assert safe_audit_identifier("a" * 100) == "<redacted>"
+
+    def test_rejects_leading_digit(self):
+        from agent.redact import safe_audit_identifier
+        # Must start with a letter — a value beginning with a digit is
+        # not identifier-shaped and is replaced.
+        assert safe_audit_identifier("1234abcd") == "<redacted>"
+
+
+class TestSafeLogSummary:
+    """Length-only summary used in place of content previews in logs."""
+
+    def test_none_returns_placeholder(self):
+        from agent.redact import safe_log_summary
+        assert safe_log_summary(None) == "<none>"
+
+    def test_default_emits_length_only(self):
+        from agent.redact import safe_log_summary
+        result = safe_log_summary("hello world")
+        assert result == "<11 chars>"
+
+    def test_preserves_length_for_secret(self):
+        from agent.redact import safe_log_summary
+        secret = "sk-proj-abcdef1234567890"
+        assert safe_log_summary(secret) == f"<{len(secret)} chars>"
+
+    def test_preview_strips_special_chars(self):
+        from agent.redact import safe_log_summary
+        # Special chars that could enable injection or echo credentials
+        # are dropped from the preview.
+        result = safe_log_summary("hello <script>", max_preview=20)
+        assert "<script>" not in result
+        assert "hello" in result
+
+    def test_preview_caps_at_max_preview(self):
+        from agent.redact import safe_log_summary
+        long_text = "abcdefghij" * 10  # 100 chars
+        result = safe_log_summary(long_text, max_preview=8)
+        assert "<100 chars: abcdefgh...>" == result
+
+    def test_non_string_is_stringified(self):
+        from agent.redact import safe_log_summary
+        result = safe_log_summary(12345)
+        assert "<5 chars>" == result

@@ -7,34 +7,87 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import com.aci.hermes.data.preferences.ThemeMode
 
-private val HermesLightColors = lightColorScheme(
-    primary = HermesGoldDeep,
-    onPrimary = HermesInk,
-    secondary = HermesViolet,
-    onSecondary = HermesPaper,
-    background = HermesPaper,
-    onBackground = HermesInk,
-    surface = HermesSurfaceBright,
-    onSurface = HermesInk,
-    surfaceVariant = HermesPaper,
-    error = HermesError
+// Jarvis Prime is dark-first. The dark scheme is the canonical experience;
+// the light scheme keeps the product usable in bright daylight but is not
+// the primary identity.
+
+private val JarvisDarkColors = darkColorScheme(
+    primary           = JarvisGold,
+    onPrimary         = JarvisInkAbyss,
+    primaryContainer  = JarvisGoldDeep,
+    onPrimaryContainer = JarvisInkAbyss,
+
+    secondary         = JarvisCyan,
+    onSecondary       = JarvisInkAbyss,
+    secondaryContainer = JarvisCyanDeep,
+    onSecondaryContainer = JarvisSignal,
+
+    tertiary          = JarvisViolet,
+    onTertiary        = JarvisInkAbyss,
+
+    background        = JarvisInkAbyss,
+    onBackground      = JarvisSignal,
+
+    surface           = JarvisInkDeep,
+    onSurface         = JarvisSignal,
+    surfaceVariant    = JarvisInkRaised,
+    onSurfaceVariant  = JarvisSignalDim,
+    surfaceTint       = JarvisGold,
+
+    inverseSurface    = JarvisPaperSoft,
+    inverseOnSurface  = JarvisInkOnPaper,
+    inversePrimary    = JarvisGoldDeep,
+
+    outline           = JarvisInkEdge,
+    outlineVariant    = JarvisSignalGhost,
+
+    error             = JarvisCrimson,
+    onError           = JarvisInkAbyss,
+    errorContainer    = JarvisCrimsonDeep,
+    onErrorContainer  = JarvisSignal,
+
+    scrim             = JarvisInkAbyss
 )
 
-private val HermesDarkColors = darkColorScheme(
-    primary = HermesGold,
-    onPrimary = HermesInk,
-    secondary = HermesViolet,
-    onSecondary = HermesPaper,
-    background = HermesInk,
-    onBackground = HermesPaper,
-    surface = HermesSurfaceDim,
-    onSurface = HermesPaper,
-    surfaceVariant = HermesInkSoft,
-    error = HermesError
+private val JarvisLightColors = lightColorScheme(
+    primary           = JarvisGoldDeep,
+    onPrimary         = JarvisInkOnPaper,
+    primaryContainer  = JarvisGold,
+    onPrimaryContainer = JarvisInkOnPaper,
+
+    secondary         = JarvisCyanDeep,
+    onSecondary       = JarvisPaper,
+    secondaryContainer = JarvisCyan,
+    onSecondaryContainer = JarvisInkOnPaper,
+
+    tertiary          = JarvisViolet,
+    onTertiary        = JarvisPaper,
+
+    background        = JarvisPaper,
+    onBackground      = JarvisInkOnPaper,
+
+    surface           = JarvisPaperSoft,
+    onSurface         = JarvisInkOnPaper,
+    surfaceVariant    = JarvisPaper,
+    onSurfaceVariant  = JarvisInkOnPaper,
+    surfaceTint       = JarvisGoldDeep,
+
+    outline           = JarvisSignalMute,
+    outlineVariant    = JarvisSignalGhost,
+
+    error             = JarvisCrimson,
+    onError           = JarvisPaper,
+    errorContainer    = JarvisCrimsonBright,
+    onErrorContainer  = JarvisInkOnPaper
 )
 
+/**
+ * Root theme. Renamed semantically to JarvisPrimeTheme; the old
+ * [HermesTheme] entry point is kept as an alias so existing call sites
+ * (MainActivity, previews) keep compiling.
+ */
 @Composable
-fun HermesTheme(
+fun JarvisPrimeTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
     content: @Composable () -> Unit
 ) {
@@ -46,8 +99,15 @@ fun HermesTheme(
     }
 
     MaterialTheme(
-        colorScheme = if (useDark) HermesDarkColors else HermesLightColors,
-        typography = HermesTypography,
+        colorScheme = if (useDark) JarvisDarkColors else JarvisLightColors,
+        typography = JarvisTypography,
         content = content
     )
 }
+
+/** Back-compat shim — old name, new identity. */
+@Composable
+fun HermesTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit
+) = JarvisPrimeTheme(themeMode = themeMode, content = content)

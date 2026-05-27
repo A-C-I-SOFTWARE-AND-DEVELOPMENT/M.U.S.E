@@ -7,14 +7,23 @@ Subcommands:
 - ``gate <name> --packet <path>`` — run one gate against a JSON packet.
 - ``handle "<intent>"`` — full perceive→classify→decide on stdin/args.
 - ``tick`` — one proactive tick (uses ~/.hermes/config.yaml if present).
+- ``proposals {list|approve|reject}`` — owner review surface for
+  JARVIS Prime self-update proposals. ``approve`` requires the exact
+  phrase ``Yes, with authorization.`` Status updates only — execution
+  of the proposed change belongs to a future lane.
+- ``handoff --intent ... --packet ...`` — render the structured
+  handoff template for an intent + work-packet pair. Does not execute
+  owner-gated actions surfaced in the rendered handoff.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -25,6 +34,7 @@ from hermes_cli.jarvis_prime.modes import (
     Mode,
     ModeClassifier,
 )
+from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 from hermes_cli.jarvis_prime.tick import run_once as tick_once
 
@@ -151,6 +161,140 @@ def _cmd_tick(args: argparse.Namespace) -> int:
     return 0
 
 
+def _proposals_store_path() -> Path:
+    """Return the JSONL path the CLI uses to persist proposals."""
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base) / "jarvis_prime" / "proposals.jsonl"
+
+
+def _proposal_id(prop: dict[str, Any]) -> str:
+    """Deterministic 10-char id derived from the proposal dict."""
+
+    raw = (
+        f"{prop.get('kind', '')}|"
+        f"{prop.get('target_path', '')}|"
+        f"{prop.get('created_at', '')}"
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
+
+
+def _load_proposals(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        return []
+    items: list[dict[str, Any]] = []
+    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            items.append(json.loads(line))
+        except json.JSONDecodeError as exc:
+            print(
+                f"error: invalid JSON on line {line_no} of {path}: {exc.msg}",
+                file=sys.stderr,
+            )
+            raise SystemExit(2)
+    return items
+
+
+def _save_proposals(path: Path, items: list[dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", encoding="utf-8") as fh:
+        for item in items:
+            fh.write(json.dumps(item, default=str))
+            fh.write("\n")
+    os.replace(tmp, path)
+
+
+def _resolve_owner_phrase(args: argparse.Namespace) -> Optional[str]:
+    phrase = getattr(args, "phrase", None)
+    if phrase is None:
+        phrase = os.environ.get("JARVIS_OWNER_PHRASE")
+    return phrase
+
+
+def _cmd_proposals_list(args: argparse.Namespace) -> int:
+    items = _load_proposals(_proposals_store_path())
+    if args.json:
+        decorated = [{"id": _proposal_id(p), **p} for p in items]
+        _print_json(decorated)
+        return 0
+    if not items:
+        print("no pending proposals")
+        return 0
+    for p in items:
+        pid = _proposal_id(p)
+        kind = p.get("kind", "?")
+        target = p.get("target_path", "?")
+        status = p.get("status", "?")
+        risk = p.get("risk_class", "?")
+        print(f"{pid}  {status:<10}  {risk}  {kind} @ {target}")
+    return 0
+
+
+def _cmd_proposals_approve(args: argparse.Namespace) -> int:
+    phrase = _resolve_owner_phrase(args)
+    if phrase is None:
+        print(
+            "error: owner authorization phrase required for approve "
+            "(pass --phrase or set JARVIS_OWNER_PHRASE)",
+            file=sys.stderr,
+        )
+        return 1
+    if phrase.strip() != AUTHORIZATION_PHRASE:
+        print(
+            "error: phrase does not match owner authorization phrase",
+            file=sys.stderr,
+        )
+        return 1
+    return _set_proposal_status(args.proposal_id, "approved", note="approved via CLI")
+
+
+def _cmd_proposals_reject(args: argparse.Namespace) -> int:
+    return _set_proposal_status(args.proposal_id, "rejected", note="rejected via CLI")
+
+
+def _set_proposal_status(proposal_id: str, new_status: str, note: str) -> int:
+    path = _proposals_store_path()
+    items = _load_proposals(path)
+    matched = False
+    for p in items:
+        if _proposal_id(p) == proposal_id:
+            p["status"] = new_status
+            p["resolved_at"] = datetime.now(timezone.utc).isoformat()
+            p["owner_decision_note"] = note
+            matched = True
+            break
+    if not matched:
+        print(
+            f"unknown proposal: {proposal_id!r} "
+            f"(run `python -m hermes_cli.jarvis_prime proposals list` to see ids)",
+            file=sys.stderr,
+        )
+        return 1
+    _save_proposals(path, items)
+    print(f"{proposal_id}: {new_status}")
+    return 0
+
+
+def _cmd_handoff(args: argparse.Namespace) -> int:
+    packet_path = Path(args.packet)
+    if not packet_path.is_file():
+        print(f"error: packet file not found: {args.packet}", file=sys.stderr)
+        return 2
+    try:
+        packet = json.loads(packet_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"error: invalid JSON in {args.packet}: {exc.msg}", file=sys.stderr)
+        return 2
+    jp = JarvisPrime()
+    turn = jp.handle(args.intent, packet=packet, skip_perceive=args.skip_perceive)
+    print(jp.render_handoff(turn))
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -199,6 +343,65 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_tick.add_argument("--force", action="store_true", help="Run even if disabled")
     p_tick.add_argument("--json", action="store_true")
     p_tick.set_defaults(func=_cmd_tick)
+
+    p_proposals = sub.add_parser(
+        "proposals",
+        help="List, approve, or reject JARVIS Prime self-update proposals",
+        description=(
+            "Owner review surface for JARVIS Prime's self-update proposals. "
+            "The runtime stores proposals at "
+            "${HERMES_HOME:-~/.hermes}/jarvis_prime/proposals.jsonl. "
+            "'approve' requires the exact phrase 'Yes, with authorization.' "
+            "via --phrase or the JARVIS_OWNER_PHRASE env var. "
+            "approve/reject only update proposal status — they do NOT "
+            "execute the proposed change. Execution belongs to a future lane."
+        ),
+    )
+    p_proposals_sub = p_proposals.add_subparsers(
+        dest="proposals_command", required=True
+    )
+
+    p_proposals_list = p_proposals_sub.add_parser(
+        "list", help="List proposals from the JSONL store"
+    )
+    p_proposals_list.add_argument("--json", action="store_true")
+    p_proposals_list.set_defaults(func=_cmd_proposals_list)
+
+    p_proposals_approve = p_proposals_sub.add_parser(
+        "approve",
+        help="Approve a proposal (requires owner authorization phrase)",
+    )
+    p_proposals_approve.add_argument("proposal_id")
+    p_proposals_approve.add_argument(
+        "--phrase",
+        help="Owner authorization phrase. Must be exactly 'Yes, with authorization.'",
+    )
+    p_proposals_approve.set_defaults(func=_cmd_proposals_approve)
+
+    p_proposals_reject = p_proposals_sub.add_parser(
+        "reject", help="Reject a proposal"
+    )
+    p_proposals_reject.add_argument("proposal_id")
+    p_proposals_reject.set_defaults(func=_cmd_proposals_reject)
+
+    p_handoff = sub.add_parser(
+        "handoff",
+        help="Render the structured handoff for an intent + work-packet",
+        description=(
+            "Convenience wrapper for `handle --handoff`. Reads --packet, runs "
+            "the full perceive→classify→decide turn, and prints "
+            "render_handoff(turn). Owner-gated actions in the rendered "
+            "handoff remain data — handoff does NOT execute them."
+        ),
+    )
+    p_handoff.add_argument("--intent", required=True)
+    p_handoff.add_argument("--packet", required=True)
+    p_handoff.add_argument(
+        "--skip-perceive",
+        action="store_true",
+        help="Skip the awareness snapshot (faster, less context)",
+    )
+    p_handoff.set_defaults(func=_cmd_handoff)
 
     args = parser.parse_args(argv)
     return args.func(args)
