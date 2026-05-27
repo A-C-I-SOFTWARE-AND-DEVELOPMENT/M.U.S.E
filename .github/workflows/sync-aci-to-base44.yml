@@ -1,0 +1,94 @@
+name: Sync ACI Hermes to Base44
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aci-to-base44-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[base44-to-aci]')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ACI Hermes
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync ACI source and Base44 app folder to Jarvis
+        env:
+          SYNC_PAT: ${{ secrets.TWO_WAY_SYNC_PAT }}
+          BASE44_REPO: A-C-I-SOFTWARE-AND-DEVELOPMENT/Jarvis
+          SOURCE_FOLDER: aci-hermes-agent-source
+          APP_FOLDER: base44-hermes-connect-app
+        run: |
+          set -euo pipefail
+
+          if [ -z "$SYNC_PAT" ]; then
+            echo "Missing TWO_WAY_SYNC_PAT secret"
+            exit 1
+          fi
+
+          git config --global user.name "aci-base44-sync-bot"
+          git config --global user.email "aci-base44-sync-bot@users.noreply.github.com"
+
+          SOURCE="$PWD"
+          TARGET="../jarvis-base44"
+
+          git clone "https://x-access-token:${SYNC_PAT}@github.com/${BASE44_REPO}.git" "$TARGET"
+          cd "$TARGET"
+          git checkout main
+
+          mkdir -p "$SOURCE_FOLDER"
+          find "$SOURCE_FOLDER" -mindepth 1 -maxdepth 1 -exec rm -rf {} + 2>/dev/null || true
+
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='base44-hermes-connect-app/' \
+            "$SOURCE/" "$TARGET/$SOURCE_FOLDER/"
+
+          if [ -d "$SOURCE/$APP_FOLDER" ]; then
+            rsync -a --delete \
+              --exclude='.git/' \
+              --exclude='.github/' \
+              "$SOURCE/$APP_FOLDER/" "$TARGET/"
+          fi
+
+          cat > BASE44_ACI_SOURCE_OF_TRUTH.md <<'EOF'
+# Base44 Hermes Connect Source of Truth
+
+Canonical ACI repo:
+
+A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
+
+Base44-connected repo:
+
+A-C-I-SOFTWARE-AND-DEVELOPMENT/Jarvis
+
+ACI Hermes source is mirrored into:
+
+aci-hermes-agent-source/
+
+Base44 app source is mirrored back into ACI under:
+
+base44-hermes-connect-app/
+EOF
+
+          git add .
+          if git diff --cached --quiet; then
+            echo "No ACI to Base44 changes."
+            exit 0
+          fi
+
+          git commit -m "[aci-to-base44] Sync ACI Hermes source to Base44"
+          git push origin main
