@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
@@ -59,6 +60,7 @@ fun HomeScreen(
     onNavigate: (Screen) -> Unit,
     onOpenTask: (taskId: String?) -> Unit,
     onPrepareHandoff: (target: TargetTool) -> Unit,
+    onOpenJarvisLive: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -81,6 +83,7 @@ fun HomeScreen(
         ) {
             item { GreetingCard() }
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
+            item { JarvisLiveEntryCard(onClick = onOpenJarvisLive) }
             item { SectionTitle(stringResource(R.string.home_quick_links)) }
             item { QuickLinksGrid(onNavigate) }
             item { SectionTitle(stringResource(R.string.orchestrator_tools_title)) }
@@ -254,6 +257,38 @@ private fun QuickLinkCard(
         ) {
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(title, style = MaterialTheme.typography.titleSmall)
+        }
+    }
+}
+
+@Composable
+private fun JarvisLiveEntryCard(onClick: () -> Unit) {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                Icons.Filled.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.jarvis_live_entry_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    stringResource(R.string.jarvis_live_entry_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
     }
 }

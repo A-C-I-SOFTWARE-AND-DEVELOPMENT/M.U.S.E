@@ -35,6 +35,8 @@ import com.aci.hermes.ui.screens.control.ControlScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
+import com.aci.hermes.ui.screens.live.JarvisLiveScreen
+import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryScreen
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
@@ -175,6 +177,16 @@ fun HermesNavHost(container: AppContainer) {
             AvatarPickerScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
+        composable(Screen.JarvisLive.route) {
+            val vm: JarvisLiveViewModel = viewModel(factory = remember { container.jarvisLiveVmFactory() })
+            JarvisLiveScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
+                onOpenSettings = openSettings,
+            )
+        }
+
         composable(
             route = Screen.AuditDetail.route,
             arguments = listOf(
@@ -225,6 +237,7 @@ private fun NavGraphBuilder.shellDestinations(
                 onNavigate = onNavigateTab,
                 onOpenTask = openTask,
                 onPrepareHandoff = prepareHandoff,
+                onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
             )
         }
     }

@@ -44,6 +44,7 @@ sealed class Screen(val route: String) {
         fun forNew(target: String? = null): String =
             if (target == null) "task_detail/new" else "task_detail/new?target=$target"
     }
+    data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
     companion object {
