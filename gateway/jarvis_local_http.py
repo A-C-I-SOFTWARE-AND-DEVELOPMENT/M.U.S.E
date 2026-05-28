@@ -101,6 +101,9 @@ def _make_handler(config: _Config) -> type[BaseHTTPRequestHandler]:
             pass  # silence default stderr logging
 
         def do_POST(self):  # noqa: N802 (http.server API)
+            # Streaming responses don't benefit from keep-alive here; close
+            # after each response so clients never block waiting for more.
+            self.close_connection = True
             if self.path.rstrip("/") != CHAT_PATH:
                 self._send_error(404, "unknown path")
                 return
@@ -135,10 +138,17 @@ def _make_handler(config: _Config) -> type[BaseHTTPRequestHandler]:
             self.wfile.flush()
 
         def _send_error(self, code: int, message: str) -> None:
+            body = next(encode_stream([error(message)]))
+            # Frame the error response fully (Content-Length) and close the
+            # connection, so a keep-alive client never blocks reading the body.
+            self.close_connection = True
             self.send_response(code)
             self.send_header("Content-Type", "application/x-ndjson")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Connection", "close")
             self.end_headers()
-            self.wfile.write(next(encode_stream([error(message)])))
+            self.wfile.write(body)
+            self.wfile.flush()
 
     return Handler
 
