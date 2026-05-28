@@ -12,6 +12,8 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.jarvis_live.JarvisLiveScreen
+import com.aci.hermes.ui.screens.jarvis_live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -28,10 +30,19 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Splash.route) {
             SplashScreen(
                 onReady = {
-                    nav.navigate(Screen.Orchestrator.route) {
+                    nav.navigate(Screen.JarvisLive.route) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
+            )
+        }
+        composable(Screen.JarvisLive.route) {
+            val vm: JarvisLiveViewModel = viewModel(
+                factory = remember { container.jarvisLiveVmFactory() },
+            )
+            JarvisLiveScreen(
+                viewModel = vm,
+                onOpenSettings = { nav.navigate(Screen.Settings.route) },
             )
         }
         composable(Screen.Orchestrator.route) {
