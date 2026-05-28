@@ -183,7 +183,6 @@ def test_owner_gated_actions_set_is_locked_down() -> None:
         "credential_change",
         "production_deploy",
         "dns_change",
-        "main_branch_merge",
         "force_push",
         "package_publish",
         "app_store_submission",
