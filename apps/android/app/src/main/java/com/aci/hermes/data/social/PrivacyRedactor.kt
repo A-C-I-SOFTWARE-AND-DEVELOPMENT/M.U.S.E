@@ -45,6 +45,15 @@ object PrivacyRedactor {
         "Open Source", "Stack Overflow", "Github Actions",
     )
 
+    // Placeholders left by the runtime's MemoryRedactor when it strips
+    // identity from a stored memory before it reaches the UI.
+    private val upstreamRedactionMarkers = listOf(
+        "[identity]" to "identity",
+        "[handle]" to "handle",
+        "[email]" to "email",
+        "[phone]" to "phone",
+    )
+
     private val privateUrlMarkers = listOf(
         "auth=", "token=", "session=", "private=", "/dm/", "/messages/",
         "mail.google.com", "docs.google.com/", "/admin/", "/account/",
@@ -94,6 +103,17 @@ object PrivacyRedactor {
             !nameWhitelist.contains(match.value)
         }
         if (realNameMatch) flags.add("real_name")
+        // The runtime's MemoryRedactor replaces stripped identity with
+        // placeholder markers before data reaches the UI. Their
+        // presence means identity was found in the source and removed —
+        // surface that as a flag so the pattern is still labeled
+        // "private identity flagged" even though the literal value is
+        // already gone.
+        upstreamRedactionMarkers.forEach { (marker, flag) ->
+            if (text.contains(marker, ignoreCase = true) && !flags.contains(flag)) {
+                flags.add(flag)
+            }
+        }
         return flags
     }
 

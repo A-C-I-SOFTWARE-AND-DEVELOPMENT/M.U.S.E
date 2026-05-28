@@ -27,7 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
+import com.aci.hermes.data.model.PrivacyRisk
+import com.aci.hermes.data.social.PrivacyRedactor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +67,12 @@ fun MemoryDetail(
                     color = MaterialTheme.colorScheme.error,
                 )
             }
-            Text(text = item.content, style = MaterialTheme.typography.bodyLarge)
+
+            if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
+                SocialPatternDetailSection(item)
+            } else {
+                Text(text = item.content, style = MaterialTheme.typography.bodyLarge)
+            }
 
             HorizontalDivider()
 
@@ -102,6 +110,77 @@ fun MemoryDetail(
             }
         }
     }
+}
+
+/**
+ * Rich Social Speech Pattern body. Surfaces the privacy-risk label,
+ * the inferred pattern kind, the abstract summary (hidden when
+ * identity was detected), explicit safe / unsafe usage, the
+ * "private identity flagged" notice, and public-source provenance.
+ */
+@Composable
+private fun SocialPatternDetailSection(item: MemoryItem) {
+    val pattern = PrivacyRedactor.sanitize(SocialPatternProjection.from(item))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AssistChip(onClick = {}, label = { Text(pattern.kind.displayName) })
+        PrivacyRiskChip(pattern.privacyRisk)
+    }
+
+    if (pattern.identityFlags.isNotEmpty()) {
+        Text(
+            text = "Private identity flagged: ${pattern.identityFlags.joinToString(", ")}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+        )
+    }
+
+    SocialSectionLabel("Pattern summary")
+    Text(
+        text = if (pattern.privacyRisk == PrivacyRisk.HIGH) {
+            "Summary hidden because identity was detected. Correct or delete this pattern to continue."
+        } else {
+            pattern.summary
+        },
+        style = MaterialTheme.typography.bodyLarge,
+    )
+
+    SocialSectionLabel("Safe usage")
+    Text(text = pattern.safeUsage, style = MaterialTheme.typography.bodyMedium)
+
+    SocialSectionLabel("Unsafe usage — never do this")
+    Text(
+        text = pattern.unsafeUsage,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.error,
+    )
+
+    if (pattern.provenance.isNotEmpty()) {
+        SocialSectionLabel("Provenance (public sources)")
+        pattern.provenance.forEach { entry ->
+            Column {
+                Text(entry.sourceTitle, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    entry.sourceKind.displayName,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                entry.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SocialSectionLabel(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }
 
 @Composable
