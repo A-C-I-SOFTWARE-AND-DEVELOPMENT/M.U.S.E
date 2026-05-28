@@ -89,7 +89,9 @@ class ModelCatalog:
     def models_for_provider(self, provider: str) -> list[CatalogModel]:
         return [m for m in self.models if m.provider == provider]
 
-    def default_for(self, tier: str, env: dict[str, str] | None = None) -> CatalogModel | None:
+    def default_for(
+        self, tier: str, env: dict[str, str] | None = None
+    ) -> CatalogModel | None:
         """First READY model in the tier's preference list, else None."""
         for ref in self.defaults.get(tier, []):
             model = self.by_ref(ref)
@@ -97,7 +99,9 @@ class ModelCatalog:
                 return model
         return None
 
-    def ready_media(self, kind: str, env: dict[str, str] | None = None) -> list[MediaProvider]:
+    def ready_media(
+        self, kind: str, env: dict[str, str] | None = None
+    ) -> list[MediaProvider]:
         return [m for m in self.media if m.kind == kind and m.is_ready(env)]
 
     def readiness_report(self, env: dict[str, str] | None = None) -> dict[str, Any]:
@@ -107,15 +111,15 @@ class ModelCatalog:
             "models_total": len(self.models),
             "models_ready": len(ready),
             "ready_refs": [m.ref for m in ready],
-            "missing_env": sorted(
-                {
-                    m.requires_env
-                    for m in self.models
-                    if m.requires_env and not m.is_ready(env)
-                }
-            ),
+            "missing_env": sorted({
+                m.requires_env
+                for m in self.models
+                if m.requires_env and not m.is_ready(env)
+            }),
             "defaults": {
-                tier: (self.default_for(tier, env).ref if self.default_for(tier, env) else None)
+                tier: (
+                    default.ref if (default := self.default_for(tier, env)) else None
+                )
                 for tier in self.defaults
             },
             "media_ready": {
@@ -183,12 +187,16 @@ def load_catalog(path: str | Path | None = None) -> ModelCatalog:
         for tier, refs in (raw.get("defaults", {}) or {}).items()
     }
 
-    catalog = ModelCatalog(version=version, models=models, defaults=defaults, media=media)
+    catalog = ModelCatalog(
+        version=version, models=models, defaults=defaults, media=media
+    )
     _validate_defaults(catalog)
     return catalog
 
 
-def _require_fields(provider: str, entry: dict[str, Any], fields: tuple[str, ...]) -> None:
+def _require_fields(
+    provider: str, entry: dict[str, Any], fields: tuple[str, ...]
+) -> None:
     missing = [f for f in fields if not entry.get(f)]
     if missing:
         raise ValueError(

@@ -97,8 +97,8 @@ def _make_handler(config: _Config) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
-        def log_message(self, *args):  # silence default stderr logging
-            pass
+        def log_message(self, format, *args):  # noqa: A002 - match base signature
+            pass  # silence default stderr logging
 
         def do_POST(self):  # noqa: N802 (http.server API)
             if self.path.rstrip("/") != CHAT_PATH:
@@ -154,6 +154,8 @@ def serve(
     the Termux runtime, never the network.
     """
     server = ThreadingHTTPServer((host, port), _make_handler(_Config(responder)))
-    thread = threading.Thread(target=server.serve_forever, name="jarvis-local-http", daemon=True)
+    thread = threading.Thread(
+        target=server.serve_forever, name="jarvis-local-http", daemon=True
+    )
     thread.start()
     return server

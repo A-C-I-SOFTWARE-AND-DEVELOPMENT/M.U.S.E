@@ -10,7 +10,9 @@ from tools.avatar_conversion import (
 
 
 def test_navy_gold_rive_request():
-    req = build_conversion_request(AvatarConversionStyle.NAVY_GOLD, AvatarRenderKind.RIVE)
+    req = build_conversion_request(
+        AvatarConversionStyle.NAVY_GOLD, AvatarRenderKind.RIVE
+    )
     assert "navy" in req.prompt.lower()
     assert "rigging" in req.prompt.lower()  # rive render directive
     assert req.aspect_ratio == "1:1"

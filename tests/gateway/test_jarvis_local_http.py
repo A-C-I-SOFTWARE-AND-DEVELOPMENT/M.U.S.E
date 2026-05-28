@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import urllib.error
 import urllib.request
 
 from gateway import jarvis_local_http as jh
@@ -15,7 +16,11 @@ def test_chunk_builders_match_kotlin_contract():
     assert jh.body("hi") == {"type": "body", "text": "hi"}
     assert jh.detail("more") == {"type": "detail", "text": "more"}
     assert jh.done() == {"type": "done"}
-    assert jh.error("boom", "retry") == {"type": "error", "message": "boom", "retryHint": "retry"}
+    assert jh.error("boom", "retry") == {
+        "type": "error",
+        "message": "boom",
+        "retryHint": "retry",
+    }
     # retryHint omitted when not supplied
     assert "retryHint" not in jh.error("boom")
 
