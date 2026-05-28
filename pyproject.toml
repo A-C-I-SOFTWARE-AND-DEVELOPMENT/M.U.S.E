@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hermes-agent"
-version = "0.14.0"
+version = "0.14.1+aci.1"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -58,8 +58,9 @@ dependencies = [
   # answer for "is this PID alive" and process-tree walking across Linux,
   # macOS and Windows.  It replaces POSIX-only idioms like `os.kill(pid, 0)`
   # (which is a silent killer on Windows — see CONTRIBUTING.md) and
-  # `os.killpg` (which doesn't exist on Windows).
-  "psutil>=7.0.0",
+  # `os.killpg` (which doesn't exist on Windows).  It is intentionally kept
+  # OUT of base deps because psutil currently fails to build on Android/Termux;
+  # desktop/server installs restore it via the `dev` extra (android-guarded).
 ]
 
 [project.optional-dependencies]
@@ -80,7 +81,7 @@ modal = ["modal==1.3.4"]
 daytona = ["daytona==0.155.0"]
 vercel = ["vercel==0.5.7"]
 hindsight = ["hindsight-client==0.6.1"]
-dev = ["debugpy==1.8.20", "pytest==9.0.2", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.21", "ruff==0.15.10"]
+dev = ["debugpy==1.8.20", "pytest==9.0.2", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.21", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
 messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.13.3", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
 slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.13.3"]
