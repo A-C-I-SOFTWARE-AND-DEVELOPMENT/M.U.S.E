@@ -171,10 +171,39 @@ job uploads `lint-results-debug.html`.
 
 ---
 
-## What's not wired up yet
+## Sentient avatar (the living body)
 
-- **Skill picker UI.** No mobile-native skill chooser yet.
-- **Voice input.** Future work; needs careful permission flow.
+The cockpit now ships JARVIS Prime's **living body** — a character that
+floats over your apps, physically operates the phone, and talks to you
+hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avatar/sentient-avatar-architecture.md).
+
+- **Renderers** (`ui/screens/live/`): self-contained Compose bodies —
+  animated pixel sprite (default), procedural humanoid character, orb
+  fallback — selected by `DeviceCapability`. Rive/3D are documented
+  drop-ins behind the same input contract.
+- **Hands** (`service/JarvisAccessibilityService`): real taps/swipes,
+  app launches, node-tree targeting.
+- **Presence** (`service/JarvisOverlayService`): the floating overlay +
+  the run/push/page-turn performance + the idle/sleep/wander life loop.
+- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey Jarvis" →
+  STT → agent → TTS over a Bluetooth headset.
+- **Create**: image/video generation and photo→avatar conversion are
+  surfaced in the capability catalog (`create.*`).
+
+## What's still rough / follow-up
+
+- **Renderers are Compose-only.** Procedural character + animated sprite
+  now; real **Rive**/3D bodies are documented drop-ins behind the same
+  `AvatarInputs` contract
+  ([`docs/avatar/rive-state-contract.md`](../../docs/avatar/rive-state-contract.md),
+  [`res/raw/README.md`](app/src/main/res/raw/README.md)).
+- **Voice engines** are interfaces with `Wiring` factory slots; the
+  Porcupine/Vosk/TTS concrete impls bind in `AppContainer` as follow-up.
+- **Live gateway** is wired (`AppContainer.liveJarvisChatGateway`, pure
+  JDK `HttpURLConnection`) but defaults to the mock for offline-safe first
+  run — flip `useLiveGateway` or bind it to a setting once the daemon runs.
+- **Android build is not verified in CI here** (no SDK in the build
+  container). Pure-logic units run locally via `./gradlew :app:testDebugUnitTest`.
 - **Release signing.** The release build type compiles but is not
   signed by default — see "Release AAB" above.
 - **Termux bridge fire-and-forget.** `TermuxIntentBridge` builds the

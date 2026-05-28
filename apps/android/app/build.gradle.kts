@@ -89,6 +89,12 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Sentient avatar: the overlay + voice foreground services use
+    // LifecycleService / lifecycleScope. Renderers, gateway client, and
+    // voice loop are otherwise self-contained (Compose + JDK only) — no
+    // third-party avatar / audio SDK in the compile path yet.
+    implementation(libs.androidx.lifecycle.service)
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

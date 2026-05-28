@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Config for JarvisAccessibilityService — Jarvis' "hands".
+
+    canPerformGestures + flagRequestFilterKeyEvents let Jarvis dispatch
+    the real taps/swipes a MotionPlan calls for. We observe all window
+    content so the service can read the on-screen node tree to locate
+    targets (app icons, buttons) before pushing them.
+
+    This is the personal-tool fork: the avatar is meant to operate the
+    whole device, so the event/feedback scope is intentionally broad.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowContentChanged|typeWindowStateChanged|typeViewClicked"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows|flagReportViewIds"
+    android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/jarvis_accessibility_description"
+    android:notificationTimeout="100"
+    android:settingsActivity="com.aci.hermes.MainActivity" />

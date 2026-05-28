@@ -40,7 +40,16 @@ data class JarvisLiveUiState(
     val avatarKind: AvatarKind = AvatarKind.Orb,
 )
 
-enum class AvatarKind { Orb, Pixel, Photo }
+/**
+ * How the living avatar is rendered. [Orb] is the original abstract
+ * renderer (also the reduced-motion / low-end fallback). [Pixel] /
+ * [Photo] are the still pixel-art picker outputs. The three additive
+ * kinds below are the "truly alive" character renderers:
+ *  - [AnimatedPixel] — sprite-sheet character (run/push/sleep frames)
+ *  - [Rive] — vector state-machine character (the default "alive" body)
+ *  - [Character3D] — Filament-rendered glTF character (high-end devices)
+ */
+enum class AvatarKind { Orb, Pixel, Photo, AnimatedPixel, Rive, Character3D }
 
 /**
  * The display-ready projection consumed by [JarvisLiveScreen]. All

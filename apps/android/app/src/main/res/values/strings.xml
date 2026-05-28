@@ -398,4 +398,16 @@
     <string name="capability_stage_prompt">Stage prompt</string>
     <string name="capability_owner_gated_title">Owner-gated action</string>
     <string name="capability_owner_gated_body">This capability is owner-gated. Jarvis will draft the work, then wait for your explicit approval before running it.</string>
+
+    <!-- Sentient avatar: overlay + accessibility + voice -->
+    <string name="jarvis_accessibility_description">Lets Jarvis act as your hands — tapping, swiping, opening apps, and turning home-screen pages on your behalf. Jarvis only acts when you ask; the emergency stop halts every gesture instantly.</string>
+    <string name="jarvis_overlay_enable_title">Let Jarvis live on your screen</string>
+    <string name="jarvis_overlay_enable_body">Jarvis appears as a floating companion over your apps. He runs to what you ask for, pushes it, and turns pages — and rests, wanders, or sleeps when you\'re away. Needs the \"Display over other apps\" permission.</string>
+    <string name="jarvis_overlay_enable_cta">Enable overlay</string>
+    <string name="jarvis_accessibility_enable_title">Give Jarvis his hands</string>
+    <string name="jarvis_accessibility_enable_body">To actually open apps and turn pages for you, Jarvis needs the accessibility service. This is what makes the avatar\'s pushes land as real taps.</string>
+    <string name="jarvis_accessibility_enable_cta">Open accessibility settings</string>
+    <string name="jarvis_voice_enable_title">Talk to Jarvis hands-free</string>
+    <string name="jarvis_voice_enable_body">Say \"Hey Jarvis\" through your headset to run any command by voice. Needs the microphone permission.</string>
+    <string name="jarvis_voice_enable_cta">Enable voice</string>
 </resources>

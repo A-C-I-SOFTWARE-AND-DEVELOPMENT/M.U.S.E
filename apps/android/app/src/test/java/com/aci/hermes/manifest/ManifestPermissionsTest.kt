@@ -9,20 +9,26 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Manifest assertions for the Jarvis Prime launch candidate.
+ * Manifest assertions for the sentient-avatar build.
  *
- * Jarvis Prime ships with the smallest possible permission surface
- * for a local foreground orchestrator:
+ * The original launch candidate shipped the smallest possible surface.
+ * The sentient-avatar fork intentionally opts into the power-user
+ * permissions the on-screen, device-driving, voice-controlled avatar
+ * requires — so this test is **re-baselined** to the new intended set
+ * rather than deleted: it still fails loudly if a permission outside
+ * the agreed surface sneaks in.
  *
- *   - POST_NOTIFICATIONS  (Android 13+ runtime-gated, for the
- *     foreground-service notification)
- *   - FOREGROUND_SERVICE   (declares the foreground service)
- *   - FOREGROUND_SERVICE_DATA_SYNC  (foreground service type)
+ * Intended surface:
+ *   - POST_NOTIFICATIONS / FOREGROUND_SERVICE / *_DATA_SYNC (orchestrator)
+ *   - SYSTEM_ALERT_WINDOW            (the avatar floats over other apps)
+ *   - FOREGROUND_SERVICE_SPECIAL_USE (overlay presence service)
+ *   - FOREGROUND_SERVICE_MICROPHONE + RECORD_AUDIO (headset voice loop)
+ *   - BLUETOOTH_CONNECT              (route voice over a headset)
+ *   - QUERY_ALL_PACKAGES             (resolve "open Facebook" → package)
  *
- * Anything beyond this list is a launch blocker and must be removed
- * before this test re-enters CI. The forbidden list below covers the
- * sensitive permissions that Jarvis Prime is explicitly NOT allowed
- * to request — see the launch task brief.
+ * The forbidden list keeps pinning the permissions the avatar genuinely
+ * never needs (SMS, contacts, call log, camera, location, broad storage)
+ * so scope creep beyond the avatar's job is still caught.
  */
 class ManifestPermissionsTest {
 
@@ -30,11 +36,15 @@ class ManifestPermissionsTest {
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.QUERY_ALL_PACKAGES",
     )
 
     private val forbiddenPermissions: Set<String> = setOf(
-        "android.permission.RECORD_AUDIO",
-        "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_SMS",
         "android.permission.SEND_SMS",
         "android.permission.RECEIVE_SMS",
