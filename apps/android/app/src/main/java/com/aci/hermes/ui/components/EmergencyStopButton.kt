@@ -42,9 +42,13 @@ fun EmergencyStopButton(
     enabled: Boolean = true,
 ) {
     var confirming by remember { mutableStateOf(false) }
+    val haptics = rememberJarvisHaptics()
 
     Button(
-        onClick = { confirming = true },
+        onClick = {
+            haptics.tick()
+            confirming = true
+        },
         enabled = enabled,
         shape = JarvisTokens.ShapeButton,
         colors = ButtonDefaults.buttonColors(
@@ -86,6 +90,7 @@ fun EmergencyStopButton(
             confirmButton = {
                 TextButton(onClick = {
                     confirming = false
+                    haptics.reject()
                     onConfirmed()
                 }) {
                     Text(

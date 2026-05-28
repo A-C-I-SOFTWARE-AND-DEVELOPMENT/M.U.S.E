@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.approval.model.ApprovalCard
 import com.aci.hermes.approval.model.ApprovalRiskTier
 import com.aci.hermes.approval.model.ApprovalStatus
+import com.aci.hermes.ui.components.rememberJarvisHaptics
 
 /**
  * Card UI for [ApprovalRiskTier.RISKY] requests.
@@ -49,6 +50,7 @@ fun RiskyApprovalCard(
 
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(card.proposedAction) }
+    val haptics = rememberJarvisHaptics()
 
     val expired = card.isExpired(nowMillis)
     val finished = card.status != ApprovalStatus.PENDING
@@ -80,6 +82,7 @@ fun RiskyApprovalCard(
                     }
                     Button(onClick = {
                         editing = false
+                        haptics.confirm()
                         onEdit(draft)
                     }) { Text("Save edit") }
                 }
@@ -90,7 +93,10 @@ fun RiskyApprovalCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     enabled = !expired && !finished,
-                    onClick = { onApprove(card.editedNote) }
+                    onClick = {
+                        haptics.confirm()
+                        onApprove(card.editedNote)
+                    }
                 ) { Text("Approve") }
                 OutlinedButton(
                     enabled = !expired && !finished,
@@ -101,7 +107,10 @@ fun RiskyApprovalCard(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    onClick = { onReject(null) }
+                    onClick = {
+                        haptics.reject()
+                        onReject(null)
+                    }
                 ) { Text("Reject") }
             }
         }
