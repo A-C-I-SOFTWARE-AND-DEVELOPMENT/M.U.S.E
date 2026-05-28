@@ -70,6 +70,14 @@
     <string name="voice_prompt_error">I didn’t catch that. Try once more.</string>
     <string name="voice_action_done">Done</string>
     <string name="voice_action_retry">Retry</string>
+    <!-- Voice capture screen (hands-free task capture) -->
+    <string name="voice_privacy_note">Voice runs through your device\'s system speech recognizer. Jarvis Prime never records audio itself and uploads nothing.</string>
+    <string name="voice_prompt">Speak your task or note</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_tap_to_speak">Tap the mic to speak</string>
+    <string name="voice_start">Start voice capture</string>
+    <string name="voice_save_task">Save as task</string>
+    <string name="voice_clear">Clear</string>
 
     <!-- Approval card -->
     <string name="approval_title">Approval needed</string>
@@ -190,6 +198,7 @@
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
     <string name="nav_capability">Capability</string>
+    <string name="nav_voice">Voice</string>
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->
