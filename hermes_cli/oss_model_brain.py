@@ -339,7 +339,7 @@ def _routing_from_yaml(raw: Any) -> tuple[tuple[str, tuple[str, ...]], ...]:
 
 def _load_yaml_catalog(path: Path) -> Optional[OssCatalog]:
     try:
-        import yaml  # type: ignore
+        import yaml
     except ImportError:
         return None
     try:

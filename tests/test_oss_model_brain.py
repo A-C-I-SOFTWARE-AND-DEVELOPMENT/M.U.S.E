@@ -76,7 +76,8 @@ def test_available_providers_filters_and_resolves() -> None:
     # (deepseek not installed, openrouter is a listed fallback).
     via = cat.recommend("coding", available_providers={"ollama-cloud", "openrouter"})
     dv4 = next(m for m in via if m.id == "deepseek-v4")
-    assert dv4.resolve_provider({"ollama-cloud", "openrouter"}).provider == "openrouter"
+    dv4_ref = dv4.resolve_provider({"ollama-cloud", "openrouter"})
+    assert dv4_ref is not None and dv4_ref.provider == "openrouter"
 
 
 def test_resolve_provider_semantics() -> None:
@@ -84,7 +85,8 @@ def test_resolve_provider_semantics() -> None:
     m = cat.by_id("deepseek-v4")
     assert m is not None
     # None available → first listed provider (preference order).
-    assert m.resolve_provider(None).provider == "deepseek"
+    first = m.resolve_provider(None)
+    assert first is not None and first.provider == "deepseek"
     # Empty / non-matching set → None.
     assert m.resolve_provider(set()) is None
     assert m.resolve_provider({"not-a-provider"}) is None
@@ -92,7 +94,8 @@ def test_resolve_provider_semantics() -> None:
 
 def test_best_and_unknown_task() -> None:
     cat = ob.builtin_catalog()
-    assert cat.best("agentic_coding").id == "glm-5"
+    top = cat.best("agentic_coding")
+    assert top is not None and top.id == "glm-5"
     # Unknown task with no best_for match → empty / None.
     assert cat.recommend("interpretive_dance") == []
     assert cat.best("interpretive_dance") is None
