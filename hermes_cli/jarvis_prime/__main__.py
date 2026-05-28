@@ -18,6 +18,12 @@ Subcommands:
 - ``handoff --intent ... --packet ...`` — render the structured
   handoff template for an intent + work-packet pair. Does not execute
   owner-gated actions surfaced in the rendered handoff.
+- ``models <task> [--local] [--license MIT] [--all-providers]`` —
+  recommend the best open-weight models for a task (coding, bug_fix,
+  reasoning, …) from the cross-referenced OSS model brain catalog,
+  resolved against the providers installed on this host. ``models tasks``
+  lists the known task categories. Recommendation only — selecting a
+  model for live inference stays with the existing /model machinery.
 """
 
 from __future__ import annotations
@@ -336,6 +342,69 @@ def _cmd_handoff(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_models(args: argparse.Namespace) -> int:
+    from hermes_cli import oss_model_brain as ob
+    from hermes_cli.jarvis_prime import model_brain as mb
+
+    task = (args.task or "").strip()
+    if not task or task == "tasks":
+        catalog = ob.load_oss_catalog()
+        if args.json:
+            _print_json(
+                {
+                    "updated_at": catalog.updated_at,
+                    "source": catalog.source,
+                    "tasks": catalog.tasks(),
+                }
+            )
+        else:
+            print(
+                f"OSS model brain — known tasks "
+                f"(catalog {catalog.updated_at or '?'}, {catalog.source}):"
+            )
+            for t in catalog.tasks():
+                print(f"  - {t}")
+        return 0
+
+    license_allow: Optional[list[str]] = None
+    if args.license:
+        license_allow = [
+            tok.strip()
+            for chunk in args.license
+            for tok in chunk.split(",")
+            if tok.strip()
+        ]
+    only_installed = not args.all_providers
+
+    if args.json:
+        models = mb.recommend_models(
+            task,
+            local_only=args.local,
+            license_allow=license_allow,
+            only_installed=only_installed,
+        )
+        available = ob.installed_provider_names() if only_installed else None
+        results = []
+        for m in models[: args.limit]:
+            entry = m.to_dict()
+            ref = m.resolve_provider(available)
+            entry["resolved_provider"] = ref.to_dict() if ref else None
+            results.append(entry)
+        _print_json({"task": task, "results": results})
+        return 0
+
+    print(
+        mb.render_recommendation(
+            task,
+            local_only=args.local,
+            license_allow=license_allow,
+            only_installed=only_installed,
+            limit=args.limit,
+        )
+    )
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -461,6 +530,40 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Skip the awareness snapshot (faster, less context)",
     )
     p_handoff.set_defaults(func=_cmd_handoff)
+
+    p_models = sub.add_parser(
+        "models",
+        help="Recommend best open-weight models for a task (OSS model brain)",
+        description=(
+            "Recommend open-weight models for a task from the cross-referenced "
+            "OSS model brain catalog (docs/ai-intelligence/oss-model-catalog.yaml), "
+            "resolved against the providers installed on this host. "
+            "Recommendation only — it does not switch the live inference model."
+        ),
+    )
+    p_models.add_argument(
+        "task",
+        nargs="?",
+        help="Task category (coding, agentic_coding, bug_fix, code_edit, "
+        "reasoning, math, local_coding, local_reasoning). Use 'tasks' to list.",
+    )
+    p_models.add_argument(
+        "--local", action="store_true", help="Only models with a local variant"
+    )
+    p_models.add_argument(
+        "--license",
+        action="append",
+        metavar="SPDX",
+        help="Filter by license (e.g. MIT, Apache-2.0). Repeatable or comma-separated.",
+    )
+    p_models.add_argument(
+        "--all-providers",
+        action="store_true",
+        help="Don't restrict to installed providers (show every reachable option)",
+    )
+    p_models.add_argument("--limit", type=int, default=5)
+    p_models.add_argument("--json", action="store_true")
+    p_models.set_defaults(func=_cmd_models)
 
     args = parser.parse_args(argv)
     return args.func(args)
