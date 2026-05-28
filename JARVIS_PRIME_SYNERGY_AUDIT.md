@@ -138,8 +138,17 @@ DeepSeek-R1 (MATH-500 97.3%) + R1-Distill-8B (local), Qwen3-235B, GPT-OSS-120B/2
 
 ## 8. Roadmap
 
-- **PR #1 (this):** OSS Model Brain. ✅
-- **PR #2 (next, this session):** Voice + avatar embodiment — clean-room Python for local Whisper
-  STT + TTS config and a Jarvis avatar/branding pass, wired into the Android Jarvis Prime screens.
-- **Later:** a local `ollama` provider plugin (local-first inference), and feeding `ai_radar.py`
-  findings into a scheduled catalog-refresh proposal (human-gated promotion).
+- **OSS Model Brain.** ✅ Shipped (catalog + loader + CLI + research doc + 17 tests).
+- **Avatar + voice embodiment.** ✅ Shipped — canonical, stdlib-only, JSON-serializable avatar
+  (`hermes_cli/jarvis_prime/avatar.py` + `docs/jarvis-prime/avatar.json`) with locale-aware voice
+  (en/es/fr/ja/zh/ko) and an OpenHuman-inspired local-first voice stack (faster-whisper + Piper).
+  The Android cockpit was *already* fully branded "Jarvis Prime" (launcher icon, `JarvisPrimeIcon`,
+  `JarvisShell`, theme tokens), so this makes that identity a portable artifact the app **and** CLI
+  consume — rather than rewriting Kotlin that can't be compiled in this environment.
+- **Later:** a local `ollama` provider plugin (local-first inference); feed `ai_radar.py` findings
+  into a scheduled, human-gated catalog-refresh proposal; render the avatar glyph spec into the
+  launcher mipmaps (needs a Gradle build to verify).
+
+> **Branch note.** This session is pinned to one feature branch, so both deliverables land on
+> `claude/loving-feynman-GXHq7` as two clean commit groups in the **same draft PR (#171)** rather
+> than two separate PRs.

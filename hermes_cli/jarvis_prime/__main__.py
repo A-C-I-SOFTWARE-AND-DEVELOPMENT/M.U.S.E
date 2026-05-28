@@ -24,6 +24,9 @@ Subcommands:
   resolved against the providers installed on this host. ``models tasks``
   lists the known task categories. Recommendation only — selecting a
   model for live inference stays with the existing /model machinery.
+- ``avatar [--locale en-US] [--json]`` — print the canonical JARVIS
+  Prime avatar (brand glyph, palette, tagline) and the locale-aware
+  voice + local voice-stack embodiment shared with the Android cockpit.
 """
 
 from __future__ import annotations
@@ -342,6 +345,34 @@ def _cmd_handoff(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_avatar(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.avatar import default_avatar
+
+    avatar = default_avatar()
+    if args.json:
+        payload = avatar.voice_for(args.locale).to_dict() if args.locale else avatar.to_dict()
+        _print_json(payload)
+        return 0
+
+    p = avatar.palette
+    voice = avatar.voice_for(args.locale)
+    lv = avatar.local_voice
+    print(f"{avatar.name} — {avatar.tagline}")
+    print(f"Glyph: {avatar.glyph}")
+    print(f"Palette: gold {p.gold} · cyan {p.cyan} · ink {p.ink} · signal {p.signal}")
+    print(
+        f"Voice [{voice.locale} · {voice.language_name}]: \"{voice.greeting}\" "
+        f"(tts: {voice.tts_voice}; listening: \"{voice.listening_prompt}\")"
+    )
+    print(
+        f"Local voice stack: STT {lv.stt_engine}:{lv.stt_model} ({lv.stt_compute}) · "
+        f"TTS {lv.tts_engine} · offline_first={lv.offline_first} · wake \"{lv.wake_phrase}\""
+    )
+    if not args.locale:
+        print("Locales: " + ", ".join(avatar.locales()))
+    return 0
+
+
 def _cmd_models(args: argparse.Namespace) -> int:
     from hermes_cli import oss_model_brain as ob
     from hermes_cli.jarvis_prime import model_brain as mb
@@ -530,6 +561,22 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Skip the awareness snapshot (faster, less context)",
     )
     p_handoff.set_defaults(func=_cmd_handoff)
+
+    p_avatar = sub.add_parser(
+        "avatar",
+        help="Print the JARVIS Prime avatar + locale-aware voice embodiment",
+        description=(
+            "Print the canonical JARVIS Prime avatar (brand glyph, palette, "
+            "tagline) and the locale-aware voice + local voice-stack "
+            "embodiment shared with the Android cockpit "
+            "(docs/jarvis-prime/avatar.json)."
+        ),
+    )
+    p_avatar.add_argument(
+        "--locale", help="Resolve the voice profile for a locale (e.g. en-US, fr, ja-JP)"
+    )
+    p_avatar.add_argument("--json", action="store_true")
+    p_avatar.set_defaults(func=_cmd_avatar)
 
     p_models = sub.add_parser(
         "models",
