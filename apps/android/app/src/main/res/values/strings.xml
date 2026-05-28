@@ -215,7 +215,7 @@
     <string name="approvals_title">Approvals</string>
     <string name="approvals_description">Review and approve actions Jarvis Prime wants to take on your behalf.</string>
     <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
-    <string name="approvals_empty_pending">No approvals waiting. Hermes is idle.</string>
+    <string name="approvals_empty_pending">No approvals waiting. Jarvis is idle.</string>
     <string name="approvals_empty_history">No decisions yet.</string>
 
     <!-- Memory placeholder -->
