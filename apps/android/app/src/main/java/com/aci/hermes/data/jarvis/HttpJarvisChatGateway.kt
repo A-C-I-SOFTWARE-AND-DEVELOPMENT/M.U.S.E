@@ -54,7 +54,7 @@ class HttpJarvisChatGateway(
 
         val connection = runCatching { openConnection(url, payload) }
             .getOrElse {
-                logBuffer.append("Gateway call failed: ${it.message}")
+                logBuffer.warn("gateway", "Gateway call failed: ${it.message}")
                 emit(JarvisChatChunk.Failure("Couldn't reach Hermes at $url", "Check the gateway is running."))
                 return@flow
             }

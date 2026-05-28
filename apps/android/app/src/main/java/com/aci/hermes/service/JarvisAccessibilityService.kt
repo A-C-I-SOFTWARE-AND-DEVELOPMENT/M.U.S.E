@@ -36,7 +36,7 @@ class JarvisAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
-        log.append("JarvisAccessibilityService connected")
+        log.info("jarvis-a11y", "JarvisAccessibilityService connected")
     }
 
     override fun onDestroy() {
@@ -51,7 +51,7 @@ class JarvisAccessibilityService : AccessibilityService() {
     /** Dispatch a single gesture, suspending until the system reports done. */
     suspend fun perform(gesture: DeviceGesture): Boolean {
         if (gestureGuard?.invoke() == false) {
-            log.append("Gesture blocked by emergency stop: $gesture")
+            log.warn("jarvis-a11y", "Gesture blocked by emergency stop: $gesture")
             return false
         }
         return when (gesture) {
