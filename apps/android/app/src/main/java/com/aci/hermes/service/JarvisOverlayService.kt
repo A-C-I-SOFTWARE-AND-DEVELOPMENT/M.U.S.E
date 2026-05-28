@@ -211,14 +211,18 @@ class JarvisOverlayService : LifecycleService() {
             .setContentText("Tap the avatar to talk · long-press to dismiss")
             .setSmallIcon(com.aci.hermes.R.mipmap.ic_launcher)
             .build()
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        // The typed 3-arg startForeground is API 29+, and the SPECIAL_USE
+        // type is API 34+. Guard directly on SDK_INT so lint's flow
+        // analysis is satisfied; below 34 fall back to the 2-arg form
+        // (the manifest's specialUse type is simply ignored there).
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                OVERLAY_NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
         } else {
-            0
-        }
-        if (type != 0) {
-            startForeground(OVERLAY_NOTIFICATION_ID, notification, type)
-        } else {
+            @Suppress("DEPRECATION")
             startForeground(OVERLAY_NOTIFICATION_ID, notification)
         }
     }

@@ -149,13 +149,19 @@ class VoiceLoopService : LifecycleService() {
             .setContentText("Say \"Hey Jarvis\"")
             .setSmallIcon(com.aci.hermes.R.mipmap.ic_launcher)
             .build()
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+        // The MICROPHONE foreground-service type is API 30+, and the typed
+        // 3-arg startForeground is API 29+. Guard directly on SDK_INT so
+        // lint's flow analysis is satisfied; below 30 use the 2-arg form.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            startForeground(
+                VOICE_NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            )
         } else {
-            0
+            @Suppress("DEPRECATION")
+            startForeground(VOICE_NOTIFICATION_ID, notification)
         }
-        if (type != 0) startForeground(VOICE_NOTIFICATION_ID, notification, type)
-        else startForeground(VOICE_NOTIFICATION_ID, notification)
     }
 
     /**
