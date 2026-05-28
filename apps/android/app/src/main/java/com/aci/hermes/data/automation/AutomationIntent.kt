@@ -80,13 +80,30 @@ object AutomationIntentParser {
     private fun open(lower: String): AutomationIntent? {
         val triggers = listOf("open ", "launch ", "start ", "go to ", "look at ", "show me ")
         val hit = triggers.firstOrNull { lower.startsWith(it) } ?: return null
-        val query = lower.removePrefix(hit)
-            .removePrefix("the ")
-            .removeSuffix(" app")
-            .removeSuffix(" please")
-            .trim()
+        val query = stripFiller(lower.removePrefix(hit).removePrefix("the ").trim())
         if (query.isEmpty()) return null
         return AutomationIntent.OpenApp(query)
+    }
+
+    /**
+     * Strip trailing filler words ("the facebook app please" → "facebook"),
+     * order-independently — a fixed `removeSuffix` chain misses cases where
+     * an outer word (" please") hides an inner one (" app").
+     */
+    private fun stripFiller(input: String): String {
+        val trailing = listOf(" please", " for me", " now", " app", " application")
+        var query = input.trim()
+        var changed = true
+        while (changed) {
+            changed = false
+            for (suffix in trailing) {
+                if (query.endsWith(suffix)) {
+                    query = query.removeSuffix(suffix).trim()
+                    changed = true
+                }
+            }
+        }
+        return query
     }
 
     private fun push(lower: String): AutomationIntent? {
