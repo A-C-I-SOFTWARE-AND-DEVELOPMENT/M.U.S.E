@@ -11,6 +11,39 @@ Build Jarvis Prime's visible presence as an in-app icon that:
 The floating-bubble overlay surface ships **later**, behind a dedicated
 education flow. This document covers the in-app icon only.
 
+## Implementation status (current)
+
+The sections below describe the original single-icon design. As the app
+matured, the icon's responsibilities were split across dedicated,
+already-shipped surfaces — so the canonical state lives here:
+
+- **State model** — `ui/jarvis/IconState.kt`, `IconStateMapper.kt`,
+  `JarvisIconColors.kt`, `OrchestratorIconStateMapping.kt`. Shipped and
+  unit-tested (`IconStateMapperTest`, `IconStateAccessibilityTest`,
+  `OrchestratorIconStateMappingTest`).
+- **Presence icon** — `ui/screens/home/JarvisPrimeHomeScreen.kt`
+  (`JarvisPrimeIcon` + `JarvisStatusHeader`). Tapping it opens Chat;
+  it carries an accessibility `contentDescription` derived from the
+  live `JarvisPresence`, and fires a light haptic on tap.
+- **Brand glyph** — `ui/components/JarvisPrimeIcon.kt` (static logo for
+  splash / headers / empty states).
+- **Rich live feedback** — `ui/screens/live/` (living avatar +
+  particles, with reduced-motion support).
+- **The other interactions** are served by dedicated affordances rather
+  than gestures on one icon: **Tasks** is a bottom-nav tab, **Emergency
+  Stop** is a top-bar action with a confirm dialog (see `JarvisShell`
+  and the home screen's emergency-stop card).
+- **Haptics** — `ui/jarvis/JarvisHaptics.kt`. A small, testable shim
+  over `LocalHapticFeedback` (`JarvisHapticEvent` → `feedbackType()`),
+  wired into the presence-icon tap and the emergency-stop confirm.
+  Unit-tested by `JarvisHapticsTest`. Honours "where available": a null
+  handle is a safe no-op, and the platform no-ops without a vibrator.
+
+The full single-icon gesture composable (`ui/jarvis/JarvisPrimeIcon.kt`
+with hold/long-press/double-tap/swipe-up) described below is a design
+reference for the future overlay surface; it is **not** the shipped
+in-app path today.
+
 ## Files
 
 ```
