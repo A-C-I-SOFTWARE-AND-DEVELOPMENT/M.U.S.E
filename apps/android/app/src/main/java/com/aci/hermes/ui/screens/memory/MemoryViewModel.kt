@@ -7,6 +7,8 @@ import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
 import com.aci.hermes.data.memory.MemoryRedactor
 import com.aci.hermes.data.memory.MemoryRepository
+import com.aci.hermes.data.model.SocialPattern
+import com.aci.hermes.data.social.SocialPatternRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +30,19 @@ data class MemoryUiState(
 class MemoryViewModel(
     private val repository: MemoryRepository,
     private val logBuffer: LogBuffer,
+    private val socialPatterns: SocialPatternRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MemoryUiState())
     val state: StateFlow<MemoryUiState> = _state.asStateFlow()
+
+    private val _detailState = MutableStateFlow<SocialPattern?>(null)
+    /**
+     * Currently-selected social pattern, surfaced to
+     * [com.aci.hermes.ui.screens.memory.SocialPatternDetail]. `null`
+     * means no pattern is selected (or the selected id was not found).
+     */
+    val detailState: StateFlow<SocialPattern?> = _detailState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -42,6 +53,14 @@ class MemoryViewModel(
         viewModelScope.launch {
             repository.actions.collect { action ->
                 logBuffer.info(TAG, describe(action))
+            }
+        }
+        socialPatterns?.let { repo ->
+            viewModelScope.launch {
+                repo.patterns.collect { _ ->
+                    val current = _detailState.value?.id ?: return@collect
+                    _detailState.value = repo.byId(current)
+                }
             }
         }
         refresh()
@@ -111,6 +130,54 @@ class MemoryViewModel(
 
     fun consumeSnackbar() {
         _state.update { it.copy(snackbar = null) }
+    }
+
+    // ─── Social-pattern detail ────────────────────────────────────────
+
+    /**
+     * Load the [SocialPattern] with [patternId] into [detailState]. If
+     * the repository is not wired or the id is unknown, [detailState]
+     * is cleared to `null`. Safe to call repeatedly (e.g. inside a
+     * `LaunchedEffect`).
+     */
+    fun selectPattern(patternId: String) {
+        _detailState.value = socialPatterns?.byId(patternId)
+    }
+
+    /**
+     * Apply an owner correction to the selected social pattern.
+     * Delegates to [SocialPatternRepository.correct] which re-runs
+     * the privacy redactor before persisting.
+     */
+    fun correct(
+        id: String,
+        title: String,
+        summary: String,
+        safeUsage: String,
+        unsafeUsage: String,
+    ) {
+        val repo = socialPatterns ?: return
+        viewModelScope.launch {
+            val updated = repo.correct(
+                id = id,
+                title = title,
+                summary = summary,
+                safeUsage = safeUsage,
+                unsafeUsage = unsafeUsage,
+            )
+            if (updated != null) _detailState.value = updated
+            logBuffer.info(TAG, "Social pattern corrected: $id")
+        }
+    }
+
+    /** Delete the social pattern with the given id. */
+    fun delete(patternId: String) {
+        val repo = socialPatterns ?: return
+        viewModelScope.launch {
+            repo.delete(patternId)
+            if (_detailState.value?.id == patternId) _detailState.value = null
+            logBuffer.warn(TAG, "Social pattern deleted: $patternId")
+        }
     }
 
     private fun refresh() {

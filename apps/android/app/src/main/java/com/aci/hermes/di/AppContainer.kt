@@ -13,11 +13,13 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.emergency.EmergencyStopRepository
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.data.social.SocialPatternRepository
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
@@ -67,6 +69,21 @@ class AppContainer(private val application: Application) {
     val memoryRepository: MemoryRepository = MemoryRepository()
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
+    val socialPatternRepository: SocialPatternRepository = SocialPatternRepository(context)
+
+    /** Emergency-stop persistence + audit. Lives in app-private storage. */
+    val emergencyStopRepository: EmergencyStopRepository =
+        EmergencyStopRepository(baseDir = context.filesDir)
+
+    /**
+     * Process-wide flags the live cockpit observes. Held here so a
+     * future wiring (real service liveness flow, accessibility-derived
+     * reduced-motion flow) can swap them without touching the VM.
+     */
+    val serviceRunningFlag: kotlinx.coroutines.flow.MutableStateFlow<Boolean> =
+        kotlinx.coroutines.flow.MutableStateFlow(false)
+    val reducedMotionFlag: kotlinx.coroutines.flow.MutableStateFlow<Boolean> =
+        kotlinx.coroutines.flow.MutableStateFlow(false)
 
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
@@ -126,7 +143,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
-        MemoryViewModel(memoryRepository, logBuffer)
+        MemoryViewModel(memoryRepository, logBuffer, socialPatternRepository)
     }
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {

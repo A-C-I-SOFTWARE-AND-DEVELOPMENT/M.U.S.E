@@ -70,6 +70,16 @@ android {
             )
         }
     }
+
+    // android.util.Log returns 0 (instead of throwing "Method not mocked")
+    // in JVM unit tests. LogBuffer (used by EmergencyStopController,
+    // MemoryViewModel, etc.) routes through Log.i/w/e on every call —
+    // without this, every test that touches LogBuffer fails at runtime.
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {

@@ -246,17 +246,24 @@ fun JarvisPrimeHomeContent(
                     onClick = navigation.openMemory,
                 )
             }
-            item {
-                EmergencyStopButton(
-                    active = state.emergencyStopActive,
-                    onPressed = {
-                        if (state.emergencyStopActive) {
-                            onDeactivateEmergencyStop()
-                        } else {
-                            emergencyConfirmOpen = true
-                        }
-                    },
-                )
+            if (HomeEmergencyStopGuard.isQuietDay(state)) {
+                item {
+                    QuietDayHint()
+                }
+            }
+            if (HomeEmergencyStopGuard.shouldShowEmergencyStop(state)) {
+                item {
+                    EmergencyStopButton(
+                        active = state.emergencyStopActive,
+                        onPressed = {
+                            if (state.emergencyStopActive) {
+                                onDeactivateEmergencyStop()
+                            } else {
+                                emergencyConfirmOpen = true
+                            }
+                        },
+                    )
+                }
             }
         }
     }
@@ -264,9 +271,9 @@ fun JarvisPrimeHomeContent(
     if (emergencyConfirmOpen) {
         AlertDialog(
             onDismissRequest = { emergencyConfirmOpen = false },
-            title = { Text("Engage emergency stop?") },
+            title = { Text(HomeEmergencyStopGuard.EMERGENCY_STOP_CONFIRM_TITLE) },
             text = {
-                Text("Halts HermesService immediately and blocks ask, voice, and worker actions until you deactivate.")
+                Text(HomeEmergencyStopGuard.EMERGENCY_STOP_CONFIRM_BODY)
             },
             confirmButton = {
                 Button(
@@ -275,11 +282,28 @@ fun JarvisPrimeHomeContent(
                         onEmergencyConfirmed()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = HermesError),
-                ) { Text("Engage") }
+                ) { Text(HomeEmergencyStopGuard.EMERGENCY_STOP_CONFIRM_BUTTON) }
             },
             dismissButton = {
                 OutlinedButton(onClick = { emergencyConfirmOpen = false }) { Text("Cancel") }
             },
+        )
+    }
+}
+
+@Composable
+private fun QuietDayHint() {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("home_quiet_empty"),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Text(
+            text = HomeEmergencyStopGuard.QUIET_DAY_HINT,
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodyMedium,
         )
     }
 }

@@ -113,7 +113,10 @@ fun MemoryScreen(
             )
             HeaderRow(total = state.allItems.size, shown = state.visibleItems.size)
             if (state.visibleItems.isEmpty()) {
-                EmptyState()
+                EmptyState(
+                    filterActive = state.query.isNotBlank() || state.activeCategory != null,
+                    totalItems = state.allItems.size,
+                )
             } else {
                 LazyColumn(
                     modifier = Modifier
@@ -228,17 +231,28 @@ private fun HeaderRow(total: Int, shown: Int) {
 }
 
 @Composable
-private fun EmptyState() {
+private fun EmptyState(filterActive: Boolean = false, totalItems: Int = 0) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .testTag(MemoryScreenTags.EMPTY),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "No memory matches the current filter.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(24.dp),
+        ) {
+            Text(
+                text = MemoryEmptyStateCopy.chooseFor(filterActive, totalItems),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Text(
+                text = MemoryEmptyStateCopy.OWNER_NOTE_REDACTED,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
     }
 }
 

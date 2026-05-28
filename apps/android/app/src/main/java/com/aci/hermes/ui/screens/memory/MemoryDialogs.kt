@@ -41,6 +41,11 @@ fun CorrectMemoryDialog(
                     text = item.title.ifBlank { "(untitled memory)" },
                     style = MaterialTheme.typography.labelLarge,
                 )
+                Text(
+                    text = MemoryEmptyStateCopy.CORRECT_OWNER_NOTE,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
@@ -85,7 +90,7 @@ fun DeleteMemoryDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Jarvis will forget this memory. Deletion cannot be undone from the app.",
+                    text = MemoryEmptyStateCopy.DELETE_OWNER_WARNING,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(

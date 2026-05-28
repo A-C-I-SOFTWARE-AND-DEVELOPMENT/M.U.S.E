@@ -36,6 +36,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.data.jarvis.ConnectedService
+import com.aci.hermes.data.jarvis.GatewayState
+import com.aci.hermes.data.jarvis.JarvisControlState
+import com.aci.hermes.data.jarvis.ServiceState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
@@ -97,8 +101,15 @@ fun ControlScreen(
                         enabled = state.serviceRunning,
                     ) { Text(stringResource(R.string.orchestrator_stop_service)) }
                 }
+                Text(
+                    text = ControlEmptyStateCopy.serviceSummary(orchestratorAsControlState(state.serviceRunning)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
+
+        ConnectedServicesSection(state = orchestratorAsControlState(state.serviceRunning))
 
         Card(
             colors = CardDefaults.cardColors(
@@ -147,7 +158,13 @@ fun ControlScreen(
                 )
             },
             title = { Text(stringResource(R.string.emergency_stop_title)) },
-            text = { Text(stringResource(R.string.emergency_stop_body)) },
+            text = {
+                Text(
+                    "Owner action: Jarvis Prime will halt the orchestrator " +
+                        "service and decline any further outbound action until " +
+                        "you release the stop. Pending tasks stay saved.",
+                )
+            },
             confirmButton = {
                 TextButton(onClick = {
                     confirmStop = false
@@ -162,3 +179,25 @@ fun ControlScreen(
         )
     }
 }
+
+/**
+ * Until [com.aci.hermes.ui.screens.control.ControlViewModel] is fully
+ * wired (it depends on settings fields that don't ship on this branch
+ * yet), the screen projects what the orchestrator already exposes —
+ * service liveness — into a [JarvisControlState] so the new
+ * [ConnectedServicesSection] surface has something honest to render.
+ * The rest of the state stays at its safe defaults: gateway
+ * unconfigured, no connected services, autonomy MANUAL, emergency
+ * stop released. When the upstream settings/projector land, this
+ * helper goes away and the real projector replaces it.
+ */
+internal fun orchestratorAsControlState(serviceRunning: Boolean): JarvisControlState =
+    JarvisControlState(
+        jarvisRunning = serviceRunning,
+        service = if (serviceRunning) ServiceState.RUNNING else ServiceState.STOPPED,
+        gateway = GatewayState.UNCONFIGURED,
+        connectedServices = listOf(
+            ConnectedService(id = "termux", displayName = "Termux bridge", connected = false),
+        ),
+    )
+

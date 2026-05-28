@@ -77,10 +77,23 @@ fun AuditScreen(
                     .testTag(AuditScreenTags.EMPTY),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    stringResource(R.string.audit_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        AuditEmptyStateCopy.chooseFor(
+                            filterActive = false,
+                            totalRecords = 0,
+                        ),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        AuditEmptyStateCopy.OWNER_NOTE_REDACTED,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
         } else {
             LazyColumn(
