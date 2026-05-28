@@ -68,6 +68,7 @@ import com.aci.hermes.data.jarvis.PendingApproval
 import com.aci.hermes.data.jarvis.SuggestedAction
 import com.aci.hermes.data.jarvis.SuggestedKind
 import com.aci.hermes.data.jarvis.WorkerStatus
+import com.aci.hermes.ui.jarvis.rememberJarvisHaptics
 import com.aci.hermes.ui.theme.HermesError
 import com.aci.hermes.ui.theme.HermesGold
 import com.aci.hermes.ui.theme.HermesGoldDeep
@@ -148,6 +149,7 @@ fun JarvisPrimeHomeContent(
     onStartService: () -> Unit,
 ) {
     var emergencyConfirmOpen by remember { mutableStateOf(false) }
+    val haptics = rememberJarvisHaptics()
 
     Scaffold(
         topBar = {
@@ -271,6 +273,7 @@ fun JarvisPrimeHomeContent(
             confirmButton = {
                 Button(
                     onClick = {
+                        haptics.confirm()
                         emergencyConfirmOpen = false
                         onEmergencyConfirmed()
                     },
@@ -293,6 +296,8 @@ fun JarvisPrimeIcon(
     onClick: (() -> Unit)? = null,
 ) {
     val tint = presence.tint()
+    val haptics = rememberJarvisHaptics()
+    val label = "Jarvis Prime — ${presence.headline()}"
     Box(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ICON)
@@ -300,7 +305,17 @@ fun JarvisPrimeIcon(
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(2.dp, tint, CircleShape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable {
+                        haptics.tap()
+                        onClick()
+                    }
+                } else {
+                    Modifier
+                },
+            )
+            .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
         Text(
