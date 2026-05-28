@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.approval.model.ApprovalCard
 import com.aci.hermes.approval.model.ApprovalRiskTier
 import com.aci.hermes.approval.model.ApprovalStatus
+import com.aci.hermes.ui.components.rememberJarvisHaptics
 
 /**
  * Card UI for [ApprovalRiskTier.SERIOUS] requests.
@@ -45,6 +46,7 @@ fun SeriousActionCard(
     val state = card.seriousState
     val expired = card.isExpired(nowMillis)
     val finished = card.status != ApprovalStatus.PENDING
+    val haptics = rememberJarvisHaptics()
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -70,7 +72,10 @@ fun SeriousActionCard(
             Spacer(Modifier.height(4.dp))
             Button(
                 enabled = !expired && !finished && !state.step1Approved,
-                onClick = onApproveStep1,
+                onClick = {
+                    haptics.confirm()
+                    onApproveStep1()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Approve") }
 
@@ -84,7 +89,10 @@ fun SeriousActionCard(
             Spacer(Modifier.height(4.dp))
             Button(
                 enabled = !expired && !finished && state.canConfirmStep2 && !state.step2Approved,
-                onClick = onApproveStep2,
+                onClick = {
+                    haptics.confirm()
+                    onApproveStep2()
+                },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Confirm consequences") }
 
@@ -95,14 +103,20 @@ fun SeriousActionCard(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    onClick = { onReject(null) }
+                    onClick = {
+                        haptics.reject()
+                        onReject(null)
+                    }
                 ) { Text("Reject") }
                 OutlinedButton(
                     enabled = !finished,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.error
                     ),
-                    onClick = onEmergencyStop
+                    onClick = {
+                        haptics.reject()
+                        onEmergencyStop()
+                    }
                 ) { Text("Emergency stop") }
             }
         }

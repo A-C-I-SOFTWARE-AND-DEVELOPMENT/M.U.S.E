@@ -224,14 +224,28 @@ launchers, deep links, and notification channels stay valid.
 
 ## 19. Haptics
 
-- [x] `HermesHaptics` wraps `View.performHapticFeedback` with a
-      small vocabulary: `confirm()`, `reject()`, `longPress()`,
-      `tick()`.
-- [x] FAB tap and chip taps fire `tick()`.
-- [x] Start orchestrator, Save task, Mark handed off fire
-      `confirm()`.
-- [x] Stop orchestrator, Delete task, Reset settings, Clear logs
-      fire `reject()`.
+> Implemented against the shipped Jarvis Prime app surfaces (the
+> earlier sections of this doc describe an interim proposal that the
+> merged app superseded — the real token layer is `JarvisTokens`
+> in `ui/theme/Tokens.kt`, and haptics live in
+> `ui/components/JarvisHaptics.kt`).
+
+- [x] `JarvisHaptics` (`ui/components/JarvisHaptics.kt`) wraps
+      `View.performHapticFeedback` with a small vocabulary:
+      `confirm()`, `reject()`, `tick()`. Obtained from any composable
+      via `rememberJarvisHaptics()`.
+- [x] `confirm()` / `reject()` map to the API-30 `CONFIRM` / `REJECT`
+      constants, falling back to `VIRTUAL_KEY` / `LONG_PRESS` on the
+      app's min SDK (26) so the feel is consistent down-level.
+- [x] **Approve** actions fire `confirm()` — RiskyApprovalCard
+      approve + save-edit, SeriousActionCard step 1 + step 2,
+      CriticalActionCard step 1 + final confirmation.
+- [x] **Destructive / refusing** actions fire `reject()` — every
+      Reject and Emergency stop button on the approval cards, and the
+      EmergencyStopButton confirmation.
+- [x] **Light acknowledgements** fire `tick()` — opening the
+      EmergencyStopButton confirm dialog, the Ask Jarvis send + mic
+      toggle, and the keyboard Send action.
 - [x] Honors the system haptic-feedback-enabled setting
       automatically — no opt-out wiring needed because the
       platform suppresses the calls.
@@ -256,26 +270,29 @@ launchers, deep links, and notification channels stay valid.
 
 ## Files changed in this pass
 
-### New files
+> **History note.** This checklist was authored against an interim
+> polish proposal (a `ui/theme/Spacing.kt` / `Shape.kt` / `Motion.kt`
+> layer). The app that actually shipped consolidated those ideas into
+> `ui/theme/Tokens.kt` (`JarvisTokens`), `ui/theme/Theme.kt`
+> (`JarvisPrimeTheme`), and `ui/theme/Type.kt` (`JarvisTypography`),
+> plus a full "Jarvis Prime" identity, onboarding, Ask-Jarvis bar,
+> living-avatar screen, and a tiered approval surface. The
+> reduced-motion preference is read in
+> `ui/screens/live/JarvisLiveViewModel.kt`. The only checklist item
+> that was still genuinely unimplemented in the shipped app was
+> **haptics**, which this pass adds.
 
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Spacing.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Motion.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Haptics.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/JarvisBranding.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Shape.kt`
-- `apps/android/docs/JARVIS_APP_POLISH_CHECKLIST.md` (this file)
+### New files (this pass)
 
-### Edited files
+- `apps/android/app/src/main/java/com/aci/hermes/ui/components/JarvisHaptics.kt`
 
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Color.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Theme.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/theme/Type.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/screens/splash/SplashScreen.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/screens/orchestrator/OrchestratorScreen.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/screens/orchestrator/TaskDetailScreen.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/screens/settings/SettingsScreen.kt`
-- `apps/android/app/src/main/java/com/aci/hermes/ui/screens/diagnostics/DiagnosticsScreen.kt`
-- `apps/android/app/src/main/res/values/strings.xml`
+### Edited files (this pass — haptics wiring)
+
+- `apps/android/app/src/main/java/com/aci/hermes/ui/components/EmergencyStopButton.kt`
+- `apps/android/app/src/main/java/com/aci/hermes/ui/components/AskJarvisBar.kt`
+- `apps/android/app/src/main/java/com/aci/hermes/approval/ui/components/RiskyApprovalCard.kt`
+- `apps/android/app/src/main/java/com/aci/hermes/approval/ui/components/SeriousActionCard.kt`
+- `apps/android/app/src/main/java/com/aci/hermes/approval/ui/components/CriticalActionCard.kt`
 
 ---
 
@@ -287,7 +304,8 @@ launchers, deep links, and notification channels stay valid.
 | Key screens render (splash, orchestrator, task detail, settings, diagnostics) | PASS — composables compile against the new tokens with no signature changes |
 | No new restricted permissions introduced | PASS — `AndroidManifest.xml` is byte-for-byte unchanged; still declares only `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` |
 | Accessibility labels exist on actionable icons | PASS — every `IconButton` in the polished screens carries a `stringResource` content description |
-| Reduced motion works | PASS — splash animation is gated on `LocalMotion.reduced` and falls back to the final state |
+| Reduced motion works | PASS — the living-avatar animation/particles are gated on `reducedMotion`, read from `Settings.Global.ANIMATOR_DURATION_SCALE` in `JarvisLiveViewModel`, and disabled in the emergency-stop state |
+| Haptics wired | PASS — `JarvisHaptics` fires `confirm` on approvals, `reject` on rejects / emergency stop, `tick` on the Ask-Jarvis bar; verified by `assembleDebug` + unit tests green |
 
 ---
 

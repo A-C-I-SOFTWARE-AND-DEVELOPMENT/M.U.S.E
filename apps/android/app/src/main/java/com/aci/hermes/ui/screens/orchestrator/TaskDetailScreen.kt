@@ -47,9 +47,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.approval.model.ApprovalRiskTier
+import com.aci.hermes.approval.model.ApprovalStatus
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.data.model.WorkerPhase
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,6 +176,63 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
+            // --- Jarvis Prime worker-card fields ---
+            EnumDropdown(
+                label = stringResource(R.string.task_field_risk_tier),
+                selected = state.task.riskTier,
+                values = ApprovalRiskTier.entries,
+                toLabel = { it.name.lowercase().replaceFirstChar(Char::titlecase) },
+                onSelect = viewModel::setRiskTier,
+            )
+            EnumDropdown(
+                label = stringResource(R.string.task_field_worker_phase),
+                selected = state.task.workerPhase,
+                values = WorkerPhase.entries,
+                toLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase) },
+                onSelect = viewModel::setWorkerPhase,
+            )
+            EnumDropdown(
+                label = stringResource(R.string.task_field_approval_state),
+                selected = state.task.approvalState,
+                values = approvalStateOptions,
+                toLabel = { approvalStateLabel(it) },
+                onSelect = viewModel::setApprovalState,
+            )
+            OutlinedTextField(
+                value = state.task.evidenceSummary ?: "",
+                onValueChange = viewModel::setEvidenceSummary,
+                label = { Text(stringResource(R.string.task_field_evidence_summary)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.blockedReason ?: "",
+                onValueChange = viewModel::setBlockedReason,
+                label = { Text(stringResource(R.string.task_field_blocked_reason)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.rollbackSummary ?: "",
+                onValueChange = viewModel::setRollbackSummary,
+                label = { Text(stringResource(R.string.task_field_rollback_summary)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.verificationResult ?: "",
+                onValueChange = viewModel::setVerificationResult,
+                label = { Text(stringResource(R.string.task_field_verification_result)) },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+            )
+            OutlinedTextField(
+                value = state.task.proofLink ?: "",
+                onValueChange = viewModel::setProofLink,
+                label = { Text(stringResource(R.string.task_field_proof_link)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -231,6 +291,14 @@ fun TaskDetailScreen(
             },
         )
     }
+}
+
+/** Approval-state options for the dropdown; null = "Not required". */
+private val approvalStateOptions: List<ApprovalStatus?> = listOf<ApprovalStatus?>(null) + ApprovalStatus.entries
+
+private fun approvalStateLabel(state: ApprovalStatus?): String = when (state) {
+    null -> "Not required"
+    else -> state.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

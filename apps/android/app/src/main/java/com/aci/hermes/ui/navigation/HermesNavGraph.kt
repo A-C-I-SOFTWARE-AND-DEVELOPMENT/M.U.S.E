@@ -31,6 +31,8 @@ import com.aci.hermes.ui.screens.audit.AuditScreen
 import com.aci.hermes.ui.screens.audit.AuditViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityScreen
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
+import com.aci.hermes.ui.screens.chat.JarvisChatScreen
+import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
@@ -43,7 +45,6 @@ import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
-import com.aci.hermes.ui.screens.placeholder.PlaceholderScreen
 import com.aci.hermes.ui.screens.settings.SettingsScreen
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.splash.SplashScreen
@@ -258,11 +259,16 @@ private fun NavGraphBuilder.shellDestinations(
                 viewModel = vm,
                 paddingValues = padding,
                 onOpenTask = openTask,
+                onOpenApprovals = { onNavigateTab(Screen.Approvals) },
+                onOpenAudit = { onNavigateTab(Screen.Audit) },
             )
         }
     }
 
     composable(Screen.Chat.route) {
+        val vm: JarvisChatViewModel = viewModel(
+            factory = remember { container.jarvisChatVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Chat.route,
             titleRes = R.string.nav_chat,
@@ -271,12 +277,7 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            PlaceholderScreen(
-                paddingValues = padding,
-                title = stringResource(R.string.chat_title),
-                description = stringResource(R.string.chat_description),
-                comingSoonNote = stringResource(R.string.chat_coming_soon),
-            )
+            JarvisChatScreen(viewModel = vm, paddingValues = padding)
         }
     }
 

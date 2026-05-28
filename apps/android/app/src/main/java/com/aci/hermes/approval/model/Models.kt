@@ -1,11 +1,18 @@
 package com.aci.hermes.approval.model
 
+import kotlinx.serialization.Serializable
+
 /**
  * Risk tiers that determine the approval flow.
  *
  * The app NEVER executes destructive work directly. It emits gateway/runtime
  * approval events; the runtime decides what to actually do.
+ *
+ * [Serializable] so the persisted [com.aci.hermes.data.model.HermesTask] can
+ * carry a task's risk tier on disk and reuse the same canonical scale the
+ * Approvals flow gates on.
  */
+@Serializable
 enum class ApprovalRiskTier {
     SAFE,       // no approval, runtime auto-runs
     LOW,        // execute + report
@@ -15,6 +22,7 @@ enum class ApprovalRiskTier {
     FORBIDDEN   // refuse, never approvable
 }
 
+@Serializable
 enum class ApprovalStatus {
     PENDING,
     APPROVED,

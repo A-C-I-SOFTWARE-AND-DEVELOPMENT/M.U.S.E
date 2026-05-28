@@ -170,6 +170,14 @@
     <string name="task_field_review_notes">Review notes (optional)</string>
     <string name="task_field_result_notes">Result notes (optional)</string>
     <string name="task_field_next_action">Next action (optional)</string>
+    <string name="task_field_risk_tier">Risk tier</string>
+    <string name="task_field_worker_phase">Worker phase</string>
+    <string name="task_field_approval_state">Approval state</string>
+    <string name="task_field_evidence_summary">Evidence summary (optional)</string>
+    <string name="task_field_blocked_reason">Blocked reason (optional)</string>
+    <string name="task_field_rollback_summary">Rollback summary (optional)</string>
+    <string name="task_field_verification_result">Verification result (optional)</string>
+    <string name="task_field_proof_link">Proof / audit link (optional)</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
@@ -205,6 +213,20 @@
     <!-- Tasks tab -->
     <string name="tasks_empty_title">No tasks yet</string>
     <string name="tasks_empty_body">Tap the New task button to draft a brief, generate a prompt, and hand it off to Codex or Claude Code.</string>
+    <string name="tasks_section_active">Active</string>
+    <string name="tasks_section_waiting_for_approval">Waiting for approval</string>
+    <string name="tasks_section_blocked">Blocked</string>
+    <string name="tasks_section_failed">Failed</string>
+    <string name="tasks_section_complete">Complete</string>
+    <string name="task_card_risk_chip">Risk: %1$s</string>
+    <string name="task_card_phase_chip">Phase: %1$s</string>
+    <string name="task_card_evidence_label">Evidence</string>
+    <string name="task_card_blocked_label">Blocked reason</string>
+    <string name="task_card_rollback_label">Rollback plan</string>
+    <string name="task_card_verification_label">Verification</string>
+    <string name="task_card_next_action_label">Next action</string>
+    <string name="task_card_open_approvals">Open Approvals</string>
+    <string name="task_card_open_audit">Open Audit</string>
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
@@ -215,7 +237,7 @@
     <string name="approvals_title">Approvals</string>
     <string name="approvals_description">Review and approve actions Jarvis Prime wants to take on your behalf.</string>
     <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
-    <string name="approvals_empty_pending">No approvals waiting. Hermes is idle.</string>
+    <string name="approvals_empty_pending">No approvals waiting. Jarvis is idle.</string>
     <string name="approvals_empty_history">No decisions yet.</string>
 
     <!-- Memory placeholder -->

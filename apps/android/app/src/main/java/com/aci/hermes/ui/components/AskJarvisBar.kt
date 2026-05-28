@@ -55,6 +55,7 @@ fun AskJarvisBar(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val haptics = rememberJarvisHaptics()
     Surface(
         shape = JarvisTokens.ShapeCardLarge,
         color = JarvisInkDeep,
@@ -92,7 +93,10 @@ fun AskJarvisBar(
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                keyboardActions = KeyboardActions(onSend = { onSend() }),
+                keyboardActions = KeyboardActions(onSend = {
+                    haptics.tick()
+                    onSend()
+                }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = JarvisGold.copy(alpha = 0.45f),
                     unfocusedBorderColor = JarvisInkRaised,
@@ -107,7 +111,10 @@ fun AskJarvisBar(
                 ),
             )
             IconButton(
-                onClick = onMicToggle,
+                onClick = {
+                    haptics.tick()
+                    onMicToggle()
+                },
                 enabled = enabled,
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = if (isListening) JarvisCyan else JarvisSignalMute
@@ -120,7 +127,10 @@ fun AskJarvisBar(
                 )
             }
             IconButton(
-                onClick = onSend,
+                onClick = {
+                    haptics.tick()
+                    onSend()
+                },
                 enabled = enabled && value.isNotBlank() && !isListening,
                 colors = IconButtonDefaults.iconButtonColors(contentColor = JarvisGold),
                 modifier = Modifier.size(40.dp),

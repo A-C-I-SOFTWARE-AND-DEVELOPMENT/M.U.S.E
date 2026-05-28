@@ -266,7 +266,7 @@ fun JarvisPrimeHomeContent(
             onDismissRequest = { emergencyConfirmOpen = false },
             title = { Text("Engage emergency stop?") },
             text = {
-                Text("Halts HermesService immediately and blocks ask, voice, and worker actions until you deactivate.")
+                Text("Halts Jarvis Prime immediately and blocks ask, voice, and worker actions until you deactivate.")
             },
             confirmButton = {
                 Button(
