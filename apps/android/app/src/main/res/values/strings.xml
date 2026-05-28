@@ -208,8 +208,14 @@
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
-    <string name="chat_description">A focused thread surface for talking to Jarvis Prime about the active task.</string>
-    <string name="chat_coming_soon">The conversational pane is still being built. Until then, use Prepare handoff on the Home screen to draft a prompt for your tool of choice.</string>
+    <string name="chat_empty_hint">Ask Jarvis anything, or describe a task to draft a handoff.</string>
+    <string name="chat_show_detail">Show detail</string>
+    <string name="chat_hide_detail">Hide detail</string>
+    <string name="chat_aborted_note">Stopped at your request.</string>
+    <string name="chat_retry">Retry</string>
+    <string name="chat_card_task_target">Target: %1$s</string>
+    <string name="chat_card_task_promote">Add to tasks</string>
+    <string name="chat_card_critical_ack">Requires typed acknowledgement: %1$s</string>
 
     <!-- Approvals placeholder + real-list empty states (#107) -->
     <string name="approvals_title">Approvals</string>

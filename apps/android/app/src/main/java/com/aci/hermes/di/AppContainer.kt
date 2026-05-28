@@ -13,6 +13,8 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.jarvis.JarvisChatGateway
+import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -23,6 +25,7 @@ import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
+import com.aci.hermes.ui.screens.chat.ChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
@@ -61,6 +64,11 @@ class AppContainer(private val application: Application) {
 
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
+
+    // Chat gateway. Ships with the streaming mock until a real Termux /
+    // gateway transport lands; the Chat surface only ever talks to the
+    // JarvisChatGateway interface so the implementation can be swapped here.
+    val jarvisChatGateway: JarvisChatGateway = MockJarvisChatGateway()
 
     // Memory / Audit / Capability repositories ship with mock seeds today
     // (no Termux / gateway transport wired yet). They are local-only.
@@ -123,6 +131,10 @@ class AppContainer(private val application: Application) {
 
     fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
         ApprovalViewModel(approvalStore)
+    }
+
+    fun chatVmFactory(): ViewModelProvider.Factory = factory {
+        ChatViewModel(jarvisChatGateway, logBuffer)
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
