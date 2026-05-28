@@ -141,8 +141,12 @@ class HermesService : Service() {
 
     companion object {
         const val TAG = "HermesService"
+        // Channel ID stays `hermes_orchestrator` so a user's customized
+        // importance/visibility survives the rebrand. The display NAME is
+        // what shows in Android Settings → Notifications, so it carries the
+        // Jarvis Prime identity.
         const val CHANNEL_ID = "hermes_orchestrator"
-        private const val CHANNEL_NAME = "Hermes Orchestrator"
+        private const val CHANNEL_NAME = "Jarvis Prime"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "com.aci.hermes.action.STOP_ORCHESTRATOR"
 
@@ -170,7 +174,7 @@ class HermesService : Service() {
                 CHANNEL_NAME,
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Persistent indicator that Hermes is coordinating local AI workflows."
+                description = "Persistent indicator that Jarvis Prime is coordinating local AI workflows."
                 setShowBadge(false)
             }
             manager.createNotificationChannel(channel)

@@ -48,7 +48,7 @@ object HomeEmergencyStopGuard {
      */
     const val EMERGENCY_STOP_CONFIRM_TITLE = "Engage emergency stop?"
     const val EMERGENCY_STOP_CONFIRM_BODY =
-        "Owner action: halts HermesService immediately and blocks ask, voice, " +
+        "Owner action: halts Jarvis Prime immediately and blocks ask, voice, " +
             "and worker actions until you deactivate. Pending tasks stay saved."
     const val EMERGENCY_STOP_CONFIRM_BUTTON = "Engage"
 
