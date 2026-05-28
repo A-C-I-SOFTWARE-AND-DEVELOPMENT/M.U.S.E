@@ -167,6 +167,15 @@ fun HermesNavHost(container: AppContainer) {
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
+        composable(Screen.JarvisLive.route) {
+            val vm: com.aci.hermes.ui.screens.live.JarvisLiveViewModel =
+                viewModel(factory = remember { container.jarvisLiveVmFactory() })
+            com.aci.hermes.ui.screens.live.JarvisLiveScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
+        }
+
         composable(
             route = Screen.AuditDetail.route,
             arguments = listOf(

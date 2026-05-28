@@ -10,6 +10,7 @@ import com.aci.hermes.approval.state.ApprovalStore
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.audit.AuditRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.emergency.EmergencyStopRepository
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -23,6 +24,7 @@ import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
+import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
@@ -58,6 +60,20 @@ class AppContainer(private val application: Application) {
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
     val socialPatternRepository: SocialPatternRepository = SocialPatternRepository(context)
+
+    /** Emergency-stop persistence + audit. Lives in app-private storage. */
+    val emergencyStopRepository: EmergencyStopRepository =
+        EmergencyStopRepository(baseDir = context.filesDir)
+
+    /**
+     * Process-wide flags the live cockpit observes. Held here so a
+     * future wiring (real service liveness flow, accessibility-derived
+     * reduced-motion flow) can swap them without touching the VM.
+     */
+    val serviceRunningFlag: kotlinx.coroutines.flow.MutableStateFlow<Boolean> =
+        kotlinx.coroutines.flow.MutableStateFlow(false)
+    val reducedMotionFlag: kotlinx.coroutines.flow.MutableStateFlow<Boolean> =
+        kotlinx.coroutines.flow.MutableStateFlow(false)
 
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
@@ -134,6 +150,12 @@ class AppContainer(private val application: Application) {
             logBuffer = logBuffer,
         )
     }
+
+    fun jarvisLiveVmFactory(): ViewModelProvider.Factory = JarvisLiveViewModel.Factory(
+        emergencyStop = emergencyStopRepository,
+        serviceRunning = serviceRunningFlag,
+        reducedMotion = reducedMotionFlag,
+    )
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
         object : ViewModelProvider.Factory {
