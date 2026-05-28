@@ -122,12 +122,21 @@ fun MemoryScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(state.visibleItems, key = { it.id }) { item ->
-                        MemoryCard(
-                            item = item,
-                            onOpen = { viewModel.open(item) },
-                            onCorrect = { viewModel.beginCorrect(item) },
-                            onDelete = { viewModel.beginDelete(item) },
-                        )
+                        if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
+                            Box(modifier = Modifier.testTag(MemoryScreenTags.card(item.id))) {
+                                SocialPatternCard(
+                                    pattern = SocialPatternProjection.from(item),
+                                    onTap = { viewModel.open(item) },
+                                )
+                            }
+                        } else {
+                            MemoryCard(
+                                item = item,
+                                onOpen = { viewModel.open(item) },
+                                onCorrect = { viewModel.beginCorrect(item) },
+                                onDelete = { viewModel.beginDelete(item) },
+                            )
+                        }
                     }
                 }
             }
