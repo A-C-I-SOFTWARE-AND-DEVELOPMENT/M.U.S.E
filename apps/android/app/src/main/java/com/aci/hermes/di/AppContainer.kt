@@ -38,6 +38,7 @@ import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
+import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import com.aci.hermes.util.LogBuffer
 
 /**
@@ -177,6 +178,13 @@ class AppContainer(private val application: Application) {
             taskSink = jarvisTaskSink,
             logBuffer = logBuffer,
             clipboard = jarvisClipboard,
+        )
+    }
+
+    fun voiceCaptureVmFactory(): ViewModelProvider.Factory = factory {
+        VoiceCaptureViewModel(
+            taskSink = jarvisTaskSink,
+            logBuffer = logBuffer,
         )
     }
 

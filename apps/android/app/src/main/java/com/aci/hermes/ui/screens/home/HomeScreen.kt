@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,6 +62,7 @@ fun HomeScreen(
     onOpenTask: (taskId: String?) -> Unit,
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenJarvisLive: () -> Unit = {},
+    onOpenVoice: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -85,7 +87,7 @@ fun HomeScreen(
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
             item { JarvisLiveEntryCard(onClick = onOpenJarvisLive) }
             item { SectionTitle(stringResource(R.string.home_quick_links)) }
-            item { QuickLinksGrid(onNavigate) }
+            item { QuickLinksGrid(onNavigate = onNavigate, onOpenVoice = onOpenVoice) }
             item { SectionTitle(stringResource(R.string.orchestrator_tools_title)) }
             items(state.tools, key = { it.id }) { profile ->
                 ToolCard(
@@ -192,7 +194,7 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun QuickLinksGrid(onNavigate: (Screen) -> Unit) {
+private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             QuickLinkCard(
@@ -234,6 +236,14 @@ private fun QuickLinksGrid(onNavigate: (Screen) -> Unit) {
                 title = stringResource(R.string.nav_control),
                 icon = Icons.Filled.AdminPanelSettings,
                 onClick = { onNavigate(Screen.Control) },
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            QuickLinkCard(
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.nav_voice),
+                icon = Icons.Filled.Mic,
+                onClick = onOpenVoice,
             )
         }
     }

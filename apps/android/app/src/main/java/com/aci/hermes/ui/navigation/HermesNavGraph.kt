@@ -49,6 +49,8 @@ import com.aci.hermes.ui.screens.settings.SettingsScreen
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.splash.SplashScreen
 import com.aci.hermes.ui.screens.tasks.TasksScreen
+import com.aci.hermes.ui.screens.voice.VoiceCaptureScreen
+import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import kotlinx.coroutines.launch
 
 /**
@@ -188,6 +190,19 @@ fun HermesNavHost(container: AppContainer) {
             )
         }
 
+        composable(Screen.Voice.route) {
+            val vm: VoiceCaptureViewModel = viewModel(factory = remember { container.voiceCaptureVmFactory() })
+            VoiceCaptureScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onTaskCreated = { taskId ->
+                    // Drop the capture screen, then open the new task's detail.
+                    nav.popBackStack()
+                    openTask(taskId)
+                },
+            )
+        }
+
         composable(
             route = Screen.AuditDetail.route,
             arguments = listOf(
@@ -239,6 +254,7 @@ private fun NavGraphBuilder.shellDestinations(
                 onOpenTask = openTask,
                 onPrepareHandoff = prepareHandoff,
                 onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
+                onOpenVoice = { nav.navigate(Screen.Voice.route) },
             )
         }
     }

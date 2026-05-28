@@ -47,6 +47,9 @@ sealed class Screen(val route: String) {
     data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
+    /** Hands-free voice capture; full-screen push reached from Home. */
+    data object Voice : Screen("voice")
+
     companion object {
         /** Routes that render inside [JarvisShell]. */
         val shellRoutes: Set<String> = setOf(
