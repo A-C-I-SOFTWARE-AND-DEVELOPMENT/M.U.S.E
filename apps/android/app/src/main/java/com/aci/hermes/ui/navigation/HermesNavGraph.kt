@@ -258,6 +258,8 @@ private fun NavGraphBuilder.shellDestinations(
                 viewModel = vm,
                 paddingValues = padding,
                 onOpenTask = openTask,
+                onOpenApprovals = { onNavigateTab(Screen.Approvals) },
+                onOpenAudit = { onNavigateTab(Screen.Audit) },
             )
         }
     }

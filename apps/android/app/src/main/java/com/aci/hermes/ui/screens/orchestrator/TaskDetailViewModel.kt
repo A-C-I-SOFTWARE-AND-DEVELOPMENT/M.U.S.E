@@ -3,12 +3,15 @@ package com.aci.hermes.ui.screens.orchestrator
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.approval.model.ApprovalRiskTier
+import com.aci.hermes.approval.model.ApprovalStatus
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.DefaultToolProfiles
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.orchestrator.HandoffLauncher
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
@@ -70,6 +73,16 @@ class TaskDetailViewModel(
     fun setTaskType(value: TaskType) = updateTask { it.copy(taskType = value) }
     fun setStatus(value: TaskStatus) = updateTask { it.copy(status = value) }
     fun setTargetTool(value: TargetTool) = updateTask { it.copy(targetTool = value) }
+
+    // Jarvis Prime worker-card field setters.
+    fun setRiskTier(value: ApprovalRiskTier) = updateTask { it.copy(riskTier = value) }
+    fun setWorkerPhase(value: WorkerPhase) = updateTask { it.copy(workerPhase = value) }
+    fun setApprovalState(value: ApprovalStatus?) = updateTask { it.copy(approvalState = value) }
+    fun setEvidenceSummary(value: String) = updateTask { it.copy(evidenceSummary = value.ifBlank { null }) }
+    fun setBlockedReason(value: String) = updateTask { it.copy(blockedReason = value.ifBlank { null }) }
+    fun setRollbackSummary(value: String) = updateTask { it.copy(rollbackSummary = value.ifBlank { null }) }
+    fun setVerificationResult(value: String) = updateTask { it.copy(verificationResult = value.ifBlank { null }) }
+    fun setProofLink(value: String) = updateTask { it.copy(proofLink = value.ifBlank { null }) }
 
     fun save() {
         val current = _state.value.task
