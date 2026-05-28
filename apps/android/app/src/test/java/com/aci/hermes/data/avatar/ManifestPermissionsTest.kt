@@ -19,18 +19,26 @@ import java.io.File
 class ManifestPermissionsTest {
 
     @Test
-    fun usesPermissionSetIsExactlyTheOriginalThree() {
+    fun usesPermissionSetMatchesTheSentientAvatarSurface() {
         val manifest = findManifest()
         assertNotNull("AndroidManifest.xml not found from user.dir=${System.getProperty("user.dir")}", manifest)
         val text = manifest!!.readText()
 
-        val regex = Regex("""<uses-permission\s+android:name="([^"]+)"\s*/>""")
+        // Match the name regardless of any trailing attributes (e.g.
+        // tools:ignore on QUERY_ALL_PACKAGES).
+        val regex = Regex("""<uses-permission\s+android:name="([^"]+)"""")
         val found = regex.findAll(text).map { it.groupValues[1] }.toSet()
 
         val expected = setOf(
             "android.permission.POST_NOTIFICATIONS",
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+            "android.permission.SYSTEM_ALERT_WINDOW",
+            "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+            "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+            "android.permission.RECORD_AUDIO",
+            "android.permission.BLUETOOTH_CONNECT",
+            "android.permission.QUERY_ALL_PACKAGES",
         )
         assertEquals(expected, found)
     }
@@ -40,10 +48,10 @@ class ManifestPermissionsTest {
         val manifest = findManifest()
         assertNotNull(manifest)
         val text = manifest!!.readText()
+        // The picker still never needs broad media/storage or the camera.
         assertFalse("READ_MEDIA_IMAGES must not appear", text.contains("READ_MEDIA_IMAGES"))
         assertFalse("READ_EXTERNAL_STORAGE must not appear", text.contains("READ_EXTERNAL_STORAGE"))
         assertFalse("CAMERA must not appear", text.contains("android.permission.CAMERA"))
-        assertFalse("RECORD_AUDIO must not appear", text.contains("RECORD_AUDIO"))
     }
 
     private fun findManifest(): File? {

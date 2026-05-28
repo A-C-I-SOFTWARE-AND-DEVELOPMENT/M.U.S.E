@@ -14,6 +14,16 @@ androidxJunit = "1.2.1"
 espresso = "3.6.1"
 robolectric = "4.14.1"
 androidxTestCore = "1.6.1"
+# Sentient avatar stack. Pin exact versions at first green build —
+# rive-android ships a Compose API, Filament renders the glTF body,
+# MediaPipe segments the uploaded photo, Vosk/Porcupine power the
+# offline voice loop, OkHttp talks to the local gateway.
+rive = "9.6.5"
+filament = "1.51.4"
+mediapipeVision = "0.10.18"
+vosk = "0.3.47"
+porcupine = "3.0.3"
+okhttp = "4.12.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -39,6 +49,14 @@ androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+rive-android = { group = "app.rive", name = "rive-android", version.ref = "rive" }
+filament-android = { group = "com.google.android.filament", name = "filament-android", version.ref = "filament" }
+filament-utils = { group = "com.google.android.filament", name = "filament-utils-android", version.ref = "filament" }
+filament-gltfio = { group = "com.google.android.filament", name = "gltfio-android", version.ref = "filament" }
+mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipeVision" }
+vosk-android = { group = "com.alphacephei", name = "vosk-android", version.ref = "vosk" }
+porcupine-android = { group = "ai.picovoice", name = "porcupine-android", version.ref = "porcupine" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

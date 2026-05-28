@@ -89,6 +89,16 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Sentient avatar + voice + gateway stack.
+    implementation(libs.rive.android)
+    implementation(libs.filament.android)
+    implementation(libs.filament.utils)
+    implementation(libs.filament.gltfio)
+    implementation(libs.mediapipe.tasks.vision)
+    implementation(libs.vosk.android)
+    implementation(libs.porcupine.android)
+    implementation(libs.okhttp)
+
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)

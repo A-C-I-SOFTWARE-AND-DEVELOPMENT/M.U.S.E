@@ -1,0 +1,198 @@
+# Hermes model catalog — pre-wired OSS models, ready to go.
+#
+# Every entry below is a one-tap model the app's `/model` picker and the
+# agent router can select immediately. Each model names the provider
+# plugin that serves it (under `plugins/model-providers/<provider>/`) and
+# the `requires_env` key that unlocks it. Drop the keys in
+# `~/.hermes/.env` (see `.env.example`) and `hermes doctor` reports each
+# model as ready/blocked.
+#
+# `hermes_model_catalog.py` loads and validates this file. Keep entries
+# alphabetical within a provider so diffs stay readable. This is data,
+# not code — adding a model is a YAML edit, no Python change.
+
+version: 1
+
+# Default the router reaches for first, by tier. The loader picks the
+# first READY model in each tier (its env key is present), so the user
+# always has a working default no matter which keys they've set.
+defaults:
+  frontier:
+    - openrouter/llama-3.3-70b
+    - novita/llama-3.3-70b
+    - nvidia/llama-3.1-nemotron-70b
+  fast:
+    - openrouter/llama-3.1-8b
+    - novita/qwen-2.5-7b
+    - ollama-local/llama3.2
+  local:
+    - ollama-local/llama3.2
+    - llamacpp-local/qwen2.5-7b
+
+providers:
+
+  openrouter:
+    requires_env: OPENROUTER_API_KEY
+    plugin: model-providers/openrouter
+    models:
+      - id: llama-3.3-70b
+        model: meta-llama/llama-3.3-70b-instruct
+        family: llama
+        params_b: 70
+        context: 131072
+        tags: [oss, general, tools]
+      - id: llama-3.1-8b
+        model: meta-llama/llama-3.1-8b-instruct
+        family: llama
+        params_b: 8
+        context: 131072
+        tags: [oss, fast]
+      - id: qwen-2.5-72b
+        model: qwen/qwen-2.5-72b-instruct
+        family: qwen
+        params_b: 72
+        context: 131072
+        tags: [oss, general, coding]
+      - id: deepseek-r1
+        model: deepseek/deepseek-r1
+        family: deepseek
+        params_b: 671
+        context: 65536
+        tags: [oss, reasoning]
+      - id: mixtral-8x22b
+        model: mistralai/mixtral-8x22b-instruct
+        family: mistral
+        params_b: 141
+        context: 65536
+        tags: [oss, general]
+
+  novita:
+    requires_env: NOVITA_API_KEY
+    plugin: model-providers/novita
+    models:
+      - id: llama-3.3-70b
+        model: meta-llama/llama-3.3-70b-instruct
+        family: llama
+        params_b: 70
+        context: 131072
+        tags: [oss, general]
+      - id: qwen-2.5-7b
+        model: qwen/qwen-2.5-7b-instruct
+        family: qwen
+        params_b: 7
+        context: 32768
+        tags: [oss, fast]
+      - id: deepseek-v3
+        model: deepseek/deepseek-v3
+        family: deepseek
+        params_b: 671
+        context: 65536
+        tags: [oss, general, coding]
+
+  nvidia:
+    requires_env: NVIDIA_API_KEY
+    plugin: model-providers/nvidia
+    models:
+      - id: llama-3.1-nemotron-70b
+        model: nvidia/llama-3.1-nemotron-70b-instruct
+        family: llama
+        params_b: 70
+        context: 131072
+        tags: [oss, general, tuned]
+      - id: mistral-nemo-12b
+        model: nv-mistralai/mistral-nemo-12b-instruct
+        family: mistral
+        params_b: 12
+        context: 131072
+        tags: [oss, fast]
+
+  huggingface:
+    requires_env: HF_TOKEN
+    plugin: model-providers/huggingface
+    models:
+      - id: qwen-2.5-coder-32b
+        model: Qwen/Qwen2.5-Coder-32B-Instruct
+        family: qwen
+        params_b: 32
+        context: 131072
+        tags: [oss, coding]
+      - id: llama-3.1-8b
+        model: meta-llama/Llama-3.1-8B-Instruct
+        family: llama
+        params_b: 8
+        context: 131072
+        tags: [oss, fast]
+
+  ollama-cloud:
+    requires_env: OLLAMA_CLOUD_API_KEY
+    plugin: model-providers/ollama-cloud
+    models:
+      - id: llama3.3-70b
+        model: llama3.3:70b
+        family: llama
+        params_b: 70
+        context: 131072
+        tags: [oss, general]
+      - id: deepseek-r1-70b
+        model: deepseek-r1:70b
+        family: deepseek
+        params_b: 70
+        context: 65536
+        tags: [oss, reasoning]
+
+  # On-device / desktop. No API key — connectivity is the local daemon.
+  ollama-local:
+    requires_env: null
+    plugin: model-providers/custom
+    base_url: http://127.0.0.1:11434
+    models:
+      - id: llama3.2
+        model: llama3.2:3b
+        family: llama
+        params_b: 3
+        context: 131072
+        tags: [oss, local, fast, offline]
+      - id: qwen2.5-7b
+        model: qwen2.5:7b
+        family: qwen
+        params_b: 7
+        context: 32768
+        tags: [oss, local, offline]
+
+  llamacpp-local:
+    requires_env: null
+    plugin: model-providers/custom
+    base_url: http://127.0.0.1:8080
+    models:
+      - id: qwen2.5-7b
+        model: qwen2.5-7b-instruct
+        family: qwen
+        params_b: 7
+        context: 32768
+        tags: [oss, local, offline]
+
+# Media generation — surfaced in the app's capability catalog and
+# reachable by voice ("make me an image of…", "create a video of…").
+media:
+  image:
+    - provider: fal
+      requires_env: FAL_KEY
+      plugin: image_gen/fal
+      models: [flux-2-pro, flux-2-klein, nano-banana, recraft-v3]
+    - provider: openai
+      requires_env: OPENAI_API_KEY
+      plugin: image_gen/openai
+      models: [gpt-image-1.5]
+    - provider: xai
+      requires_env: XAI_API_KEY
+      plugin: image_gen/xai
+      models: [grok-2-image]
+  video:
+    - provider: fal
+      requires_env: FAL_KEY
+      plugin: video_gen/fal
+      models: [veo-3, kling-2.1, wan-2.2]
+    - provider: xai
+      requires_env: XAI_API_KEY
+      plugin: video_gen/xai
+      models: [grok-video]

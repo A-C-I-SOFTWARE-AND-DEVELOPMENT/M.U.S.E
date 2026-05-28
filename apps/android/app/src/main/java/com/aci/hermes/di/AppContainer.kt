@@ -14,6 +14,7 @@ import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
+import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisClipboard
 import com.aci.hermes.data.jarvis.JarvisTaskSink
@@ -76,9 +77,20 @@ class AppContainer(private val application: Application) {
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
-    // Jarvis Prime chat. Mock gateway today; the live cockpit-backed gateway
-    // drops into [jarvisChatGateway] later without touching the chat screen.
-    val jarvisChatGateway: JarvisChatGateway = MockJarvisChatGateway()
+    // Jarvis Prime chat.
+    //
+    // [liveJarvisChatGateway] streams from the local Hermes gateway
+    // (see gateway/jarvis_local_http.py). [MockJarvisChatGateway] stays
+    // the offline-safe default so previews / first-run / tests work with
+    // no daemon. Flip [useLiveGateway] (or wire it to a setting) to make
+    // the avatar reflect the real agent.
+    val liveJarvisChatGateway: JarvisChatGateway = HttpJarvisChatGateway(
+        endpointProvider = { SettingsRepository.DEFAULT_GATEWAY_ENDPOINT },
+        logBuffer = logBuffer,
+    )
+    private val useLiveGateway: Boolean = false
+    val jarvisChatGateway: JarvisChatGateway =
+        if (useLiveGateway) liveJarvisChatGateway else MockJarvisChatGateway()
     val jarvisClipboard: JarvisClipboard = AndroidJarvisClipboard(context)
     val jarvisTaskSink: JarvisTaskSink = RepositoryTaskSink(taskRepository)
 

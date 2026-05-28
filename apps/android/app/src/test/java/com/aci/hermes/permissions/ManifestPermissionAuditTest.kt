@@ -6,10 +6,12 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Pure-JVM permission-audit guard. The Jarvis Live command screen
- * must not add any of the permissions listed in [FORBIDDEN]. This
- * test parses AndroidManifest.xml from disk and snapshots the
- * approved permission list — any drift fails CI.
+ * Pure-JVM permission-audit guard, re-baselined for the sentient-avatar
+ * build. The avatar opts into overlay + microphone + headset + package
+ * query, so those move into [approved]; the audit still snapshots the
+ * exact declared set so any *further* drift fails CI, and still forbids
+ * the permissions the avatar has no business holding (broad media/storage
+ * reads, camera).
  */
 class ManifestPermissionAuditTest {
 
@@ -17,15 +19,19 @@ class ManifestPermissionAuditTest {
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.QUERY_ALL_PACKAGES",
     )
 
     private val forbidden = setOf(
-        "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.CAMERA",
-        "android.permission.SYSTEM_ALERT_WINDOW",
     )
 
     @Test

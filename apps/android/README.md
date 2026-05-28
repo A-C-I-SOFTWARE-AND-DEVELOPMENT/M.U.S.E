@@ -171,10 +171,37 @@ job uploads `lint-results-debug.html`.
 
 ---
 
-## What's not wired up yet
+## Sentient avatar (the living body)
 
-- **Skill picker UI.** No mobile-native skill chooser yet.
-- **Voice input.** Future work; needs careful permission flow.
+The cockpit now ships JARVIS Prime's **living body** — a character that
+floats over your apps, physically operates the phone, and talks to you
+hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avatar/sentient-avatar-architecture.md).
+
+- **Renderers** (`ui/screens/live/`): Rive vector character (default),
+  Filament 3D glb (high-end), animated pixel sprite, orb fallback —
+  selected by `DeviceCapability`.
+- **Hands** (`service/JarvisAccessibilityService`): real taps/swipes,
+  app launches, node-tree targeting.
+- **Presence** (`service/JarvisOverlayService`): the floating overlay +
+  the run/push/page-turn performance + the idle/sleep/wander life loop.
+- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey Jarvis" →
+  STT → agent → TTS over a Bluetooth headset.
+- **Create**: image/video generation and photo→avatar conversion are
+  surfaced in the capability catalog (`create.*`).
+
+## What's still rough / follow-up
+
+- **`res/raw/jarvis.riv` is a placeholder.** Drop in real art that
+  honours the `JarvisStateMachine` input contract
+  ([`docs/avatar/rive-state-contract.md`](../../docs/avatar/rive-state-contract.md)).
+- **3D body + image-to-3D quality.** Filament renderer + `CHARACTER_3D`
+  conversion are scaffolded against a clip-name contract; final art/model
+  tuning is follow-up.
+- **Live gateway** is wired (`AppContainer.liveJarvisChatGateway`) but
+  defaults to the mock for offline-safe first run — flip `useLiveGateway`
+  or bind it to a setting once the daemon runs.
+- **Android build is not verified in CI here** (no SDK in the build
+  container). Pure-logic units run locally via `./gradlew :app:testDebugUnitTest`.
 - **Release signing.** The release build type compiles but is not
   signed by default — see "Release AAB" above.
 - **Termux bridge fire-and-forget.** `TermuxIntentBridge` builds the

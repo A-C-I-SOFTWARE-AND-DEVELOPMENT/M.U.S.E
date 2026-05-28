@@ -305,6 +305,96 @@ object CapabilityCatalog {
             ),
             tags = listOf("slack", "email", "summary"),
         ),
+
+        // ---------------- Create (unrestricted media) ----------------
+        // Surfaced for the personal-tool fork: no owner gate. These map
+        // to the image_gen / video_gen plugins (fal / openai / xai).
+        Capability(
+            id = "create.image",
+            name = "Generate an image",
+            category = CapabilityCategory.BUILD,
+            summary = "Create an image from a prompt (FLUX 2, GPT Image, Grok, Recraft).",
+            examplePrompt = "JARVIS, make an image of: <describe the image>.",
+            route = CapabilityRoute(
+                surface = RouteSurface.CHAT,
+                lane = "image_gen",
+                requiresGateway = true,
+                notes = "Routes to the configured image provider (fal / openai / xai).",
+            ),
+            tags = listOf("image", "art", "picture", "flux", "create", "media"),
+        ),
+        Capability(
+            id = "create.video",
+            name = "Generate a video",
+            category = CapabilityCategory.BUILD,
+            summary = "Create a short video from a prompt (Veo 3, Kling, Wan, Grok).",
+            examplePrompt = "JARVIS, make a video of: <describe the shot>.",
+            route = CapabilityRoute(
+                surface = RouteSurface.CHAT,
+                lane = "video_gen",
+                requiresGateway = true,
+                notes = "Routes to the configured video provider (fal / xai).",
+            ),
+            tags = listOf("video", "clip", "veo", "kling", "create", "media"),
+        ),
+        Capability(
+            id = "create.avatar",
+            name = "Make me into Jarvis",
+            category = CapabilityCategory.MOBILE,
+            summary = "Turn an uploaded photo into your animated avatar (2D pixel, Rive, or 3D).",
+            examplePrompt = "JARVIS, turn this photo into my avatar in the navy-gold style.",
+            route = CapabilityRoute(
+                surface = RouteSurface.CHAT,
+                lane = "image_gen: avatar-convert",
+                requiresGateway = true,
+                notes = "2D pixel runs on-device; stylized/3D reuse the image-gen path.",
+            ),
+            tags = listOf("avatar", "photo", "convert", "3d", "pixel", "character"),
+        ),
+
+        // ---------------- On-screen presence (device control) ----------------
+        Capability(
+            id = "presence.live",
+            name = "Live on my screen",
+            category = CapabilityCategory.MOBILE,
+            summary = "Let Jarvis float over your apps and operate the phone for you.",
+            examplePrompt = "JARVIS, come live on my screen.",
+            route = CapabilityRoute(
+                surface = RouteSurface.LOCAL_HANDOFF,
+                lane = "overlay: presence",
+                requiresGateway = false,
+                notes = "Starts the floating avatar (needs overlay + accessibility permissions).",
+            ),
+            tags = listOf("overlay", "avatar", "presence", "screen", "float"),
+        ),
+        Capability(
+            id = "presence.operate",
+            name = "Open / drive an app",
+            category = CapabilityCategory.MOBILE,
+            summary = "Run to an app, push it open, scroll, or turn the home-screen page.",
+            examplePrompt = "JARVIS, open Facebook.",
+            route = CapabilityRoute(
+                surface = RouteSurface.LOCAL_HANDOFF,
+                lane = "overlay: automation",
+                requiresGateway = false,
+                notes = "Performed by the accessibility service as a real gesture.",
+            ),
+            tags = listOf("open", "tap", "swipe", "page", "automation", "control"),
+        ),
+        Capability(
+            id = "presence.voice",
+            name = "Hands-free voice",
+            category = CapabilityCategory.MOBILE,
+            summary = "Talk to Jarvis through your headset — say \"Hey Jarvis\" for any command.",
+            examplePrompt = "JARVIS, start voice mode.",
+            route = CapabilityRoute(
+                surface = RouteSurface.LOCAL_HANDOFF,
+                lane = "voice: loop",
+                requiresGateway = false,
+                notes = "Wake word + streaming STT + TTS over Bluetooth SCO.",
+            ),
+            tags = listOf("voice", "talk", "headset", "wake word", "hands-free"),
+        ),
     )
 
     fun byId(id: String): Capability? = ALL.firstOrNull { it.id == id }
