@@ -10,9 +10,13 @@ import androidx.compose.ui.Modifier
  * screen and the floating overlay both use, so the renderer choice and
  * the fallback ladder live in exactly one place.
  *
- * Fallbacks degrade gracefully: a missing sprite sheet for
- * [AvatarKind.AnimatedPixel] falls back to [JarvisRiveAvatar]; anything
- * the device can't drive has already been collapsed by
+ * All "alive" kinds are drawn with self-contained Compose renderers
+ * today: [JarvisPixelAvatar] (the default body, an animated sprite) and
+ * [JarvisCharacterAvatar] (a procedural humanoid). The [AvatarKind.Rive]
+ * and [AvatarKind.Character3D] kinds map to the procedural character for
+ * now — a finished Rive/3D body drops in here later against the same
+ * [AvatarInputs] contract. Fallbacks degrade gracefully and anything the
+ * device can't drive has already been collapsed by
  * [DeviceCapability.effectiveKind] before it reaches here.
  */
 @Composable
@@ -23,25 +27,19 @@ fun LivingAvatarHost(
     modifier: Modifier = Modifier,
     spriteSheet: Bitmap? = null,
     spriteLayout: SpriteSheetLayout? = null,
-    glbAssetPath: String? = null,
 ) {
     when (kind) {
         AvatarKind.AnimatedPixel ->
             if (spriteSheet != null && spriteLayout != null) {
                 JarvisPixelAvatar(spriteSheet, spriteLayout, inputs, contentDescription, modifier)
             } else {
-                JarvisRiveAvatar(inputs, contentDescription, modifier)
+                JarvisCharacterAvatar(inputs, contentDescription, modifier)
             }
 
-        AvatarKind.Character3D ->
-            if (glbAssetPath != null) {
-                JarvisFilamentAvatar(inputs, glbAssetPath, contentDescription, modifier)
-            } else {
-                JarvisRiveAvatar(inputs, contentDescription, modifier)
-            }
-
-        AvatarKind.Rive ->
-            JarvisRiveAvatar(inputs, contentDescription, modifier)
+        // Vector / 3D bodies are served by the procedural character until
+        // finished art lands (same input contract, zero call-site change).
+        AvatarKind.Rive, AvatarKind.Character3D ->
+            JarvisCharacterAvatar(inputs, contentDescription, modifier)
 
         // Orb / Pixel / Photo keep the original abstract renderer as the
         // calm, low-cost, reduced-motion-safe body.

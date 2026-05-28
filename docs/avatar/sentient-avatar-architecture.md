@@ -13,7 +13,7 @@ This doc is the map. It is implemented across the Android app
 
 | Organ | Where | What it does |
 |---|---|---|
-| **Body / renderers** | `ui/screens/live/` | Draws the character: `JarvisRiveAvatar` (default, vector state-machine), `JarvisFilamentAvatar` (3D glb, high-end only), `JarvisPixelAvatar` (animated sprite), `JarvisLivingAvatar` (orb fallback). `LivingAvatarHost` picks one via `DeviceCapability`. |
+| **Body / renderers** | `ui/screens/live/` | Draws the character with **self-contained Compose** renderers: `JarvisPixelAvatar` (animated sprite, default body), `JarvisCharacterAvatar` (procedural humanoid — runs/pushes/sleeps), `JarvisLivingAvatar` (orb fallback). `LivingAvatarHost` picks one via `DeviceCapability`. The `Rive` / `Character3D` kinds map to the procedural character today; a finished Rive/3D body is a documented drop-in behind the same `AvatarInputs` contract (no external SDK in the compile path yet). |
 | **Hands** | `service/JarvisAccessibilityService` | Performs the real taps/swipes, launches apps, reads the on-screen node tree. |
 | **Presence** | `service/JarvisOverlayService` | Floats the body over other apps (`TYPE_APPLICATION_OVERLAY`), animates the "run", runs the life loop, executes `MotionPlan`s. |
 | **Voice** | `service/VoiceLoopService` + `voice/` | Wake word → STT → agent → TTS over a Bluetooth headset. |
@@ -80,13 +80,21 @@ dispatch — the body can move but cannot touch the device.
 
 ## Known rough edges (honest TODO)
 
-- **`res/raw/jarvis.riv` is a placeholder** — drop in real art (same
-  filename, the `JarvisStateMachine` input contract below).
-- **3D glb + image-to-3D quality** — the Filament renderer + the
-  `CHARACTER_3D` conversion path are scaffolded against a clip-name
-  contract; final art/model tuning is follow-up.
-- **Live gateway** is wired in DI (`AppContainer.liveJarvisChatGateway`)
-  but defaults to the mock (`useLiveGateway = false`) for offline-safe
-  first run; flip it (or bind it to a setting) once the daemon runs.
-- **Android build not verified in CI here** (no SDK in the build
-  container) — pure-logic units + the Python endpoint/catalog tests are.
+- **Renderers are Compose-only today.** The body is a procedural
+  character / animated sprite, not finished art. Real **Rive** (vector)
+  and **Filament** (3D glb) bodies are documented drop-ins behind the
+  same `AvatarInputs` contract (`res/raw/README.md`,
+  `docs/avatar/rive-state-contract.md`) — adding them is a new renderer +
+  one Gradle dep, with no call-site change. Dropped from this PR to keep
+  the module compiling without unverifiable external-SDK API calls.
+- **Voice engines** (`WakeWordEngine` / `SttEngine` / `TtsEngine`) are
+  interfaces with `Wiring` factory slots; the Porcupine/Vosk/TTS concrete
+  impls bind in `AppContainer` as a follow-up (same reason).
+- **Image-to-3D** conversion path is request-shaped (`tools/avatar_conversion.py`)
+  but the 3D body it would feed is the drop-in above.
+- **Live gateway** is wired in DI (`AppContainer.liveJarvisChatGateway`,
+  pure JDK `HttpURLConnection`) but defaults to the mock
+  (`useLiveGateway = false`) for offline-safe first run; flip it (or bind
+  it to a setting) once the daemon runs.
+- **Android build not verified in this container** (no SDK) — pure-logic
+  Kotlin units + the Python endpoint/catalog tests are.
