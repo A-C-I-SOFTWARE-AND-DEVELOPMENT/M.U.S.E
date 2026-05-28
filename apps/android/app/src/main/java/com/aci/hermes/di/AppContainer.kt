@@ -13,6 +13,12 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
+import com.aci.hermes.data.jarvis.JarvisChatGateway
+import com.aci.hermes.data.jarvis.JarvisClipboard
+import com.aci.hermes.data.jarvis.JarvisTaskSink
+import com.aci.hermes.data.jarvis.MockJarvisChatGateway
+import com.aci.hermes.data.jarvis.RepositoryTaskSink
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -23,6 +29,7 @@ import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
+import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
@@ -67,6 +74,12 @@ class AppContainer(private val application: Application) {
     val memoryRepository: MemoryRepository = MemoryRepository()
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
+
+    // Jarvis Prime chat. Mock gateway today; the live cockpit-backed gateway
+    // drops into [jarvisChatGateway] later without touching the chat screen.
+    val jarvisChatGateway: JarvisChatGateway = MockJarvisChatGateway()
+    val jarvisClipboard: JarvisClipboard = AndroidJarvisClipboard(context)
+    val jarvisTaskSink: JarvisTaskSink = RepositoryTaskSink(taskRepository)
 
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
@@ -156,6 +169,15 @@ class AppContainer(private val application: Application) {
 
     fun jarvisLiveVmFactory(): ViewModelProvider.Factory = factory {
         JarvisLiveViewModel(application)
+    }
+
+    fun jarvisChatVmFactory(): ViewModelProvider.Factory = factory {
+        JarvisChatViewModel(
+            gateway = jarvisChatGateway,
+            taskSink = jarvisTaskSink,
+            logBuffer = logBuffer,
+            clipboard = jarvisClipboard,
+        )
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =
