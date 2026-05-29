@@ -75,6 +75,7 @@ def test_model_failures_from_book(tmp_path) -> None:
         persist=False,
     )
     fails = collect_model_failures(book=book)
+    assert fails is not None
     assert any("bad" in f for f in fails)
     assert not any("good" in f for f in fails)
 
