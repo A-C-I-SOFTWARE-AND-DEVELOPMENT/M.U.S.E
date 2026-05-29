@@ -82,11 +82,23 @@ class BranchLease:
         return cls(
             branch=str(data.get("branch", "")),
             worker=str(data.get("worker", "")),
-            acquired_at=float(data.get("acquired_at", 0.0) or 0.0),
-            expires_at=float(data.get("expires_at", 0.0) or 0.0),
-            pid=int(data.get("pid", 0) or 0),
+            acquired_at=_as_float(data.get("acquired_at")),
+            expires_at=_as_float(data.get("expires_at")),
+            pid=int(_as_float(data.get("pid"))),
             note=str(data.get("note", "")),
         )
+
+
+def _as_float(value: object) -> float:
+    """Best-effort float coercion for values read back from JSON."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+    return 0.0
 
 
 def default_locks_dir() -> Path:
@@ -154,7 +166,7 @@ def acquire_branch_lease(
     *,
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
     locks_dir: Optional[Path] = None,
-    now: Optional[Callable[[], float] | float] = None,
+    now: Optional[Callable[[], float]] = None,
     note: str = "",
 ) -> BranchLease:
     """Acquire (or refresh) a lease on ``branch`` for ``worker``.
@@ -162,13 +174,16 @@ def acquire_branch_lease(
     Raises :class:`BranchLockedError` when a *different* worker holds a
     live (non-expired) lease. Re-acquiring your own lease refreshes the
     TTL. Expired leases (crashed/abandoned workers) are silently stolen.
+
+    ``now`` is an injectable clock (a callable returning epoch seconds)
+    used by tests; production passes ``None`` and uses ``time.time()``.
     """
     if not branch.strip():
         raise ValueError("branch must be non-empty")
     if not worker.strip():
         raise ValueError("worker must be non-empty")
 
-    now_ts = now() if callable(now) else (now if now is not None else time.time())
+    now_ts = now() if now is not None else time.time()
     locks_dir = locks_dir or default_locks_dir()
     locks_dir.mkdir(parents=True, exist_ok=True)
     path = _lease_path(branch, locks_dir)
