@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from hermes_cli.models.bootstrap import execute_bootstrap, plan_bootstrap
-from hermes_cli.models.catalog import OpenWeightCatalog, load_open_weight_catalog
-from hermes_cli.models.hardware_probe import HardwareProfile
+from hermes_cli.local_models.bootstrap import execute_bootstrap, plan_bootstrap
+from hermes_cli.local_models.catalog import OpenWeightCatalog, load_open_weight_catalog
+from hermes_cli.local_models.hardware_probe import HardwareProfile
 
 
 def test_shipped_catalog_loads_and_validates():

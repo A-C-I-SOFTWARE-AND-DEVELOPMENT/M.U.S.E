@@ -64,9 +64,9 @@ Tests (all passing): `tests/test_goal_boundary.py`.
 | Monitors + daily owner brief | **in open PR #177** — not duplicated | `jarvis_prime/monitors.py`, `owner_brief.py` (other branch) |
 | Worker actuators (Claude/Codex/Aider/Goose/local) | **scaffolded (pre-existing)**; real git diffs via `collect_git_artifacts` | `hermes_cli/workers/` |
 | Worktree/sandbox isolation | **scaffolded (pre-existing)** | `hermes_cli/workers/isolation.py` |
-| Hardware probe + open-weight catalog | **shipped (tested)** | `hermes_cli/models/{hardware_probe,catalog}.py` (this branch) |
-| Local model bootstrap (`hermes models bootstrap`, consent-gated) | **shipped (tested)** | `hermes_cli/models/bootstrap.py` + `server_adapters.py` (this branch) |
-| Model scorecards (local selection by composite) | **shipped (tested)** | `hermes_cli/models/scorecards.py` (this branch; distinct from PR #177's worker scorecard) |
+| Hardware probe + open-weight catalog | **shipped (tested)** | `hermes_cli/local_models/{hardware_probe,catalog}.py` (this branch) |
+| Local model download layer (consent-gated) | **shipped (tested)** | `hermes_cli/local_models/bootstrap.py` + `server_adapters.py` (note: the `hermes models bootstrap` CLI command is the free-first router in `jarvis_prime/model_bootstrap.py`) |
+| Model scorecards (local selection by composite) | **shipped (tested)** | `hermes_cli/local_models/scorecards.py` (this branch; distinct from PR #177's worker scorecard) |
 | Orchestrator → navigator wiring before dispatch | **shipped (tested)** | `orchestrator.navigate_job()` (this branch) |
 | Repair loop (test→localize→patch→rerun→stop) | **shipped (tested)** | `hermes_cli/workers/repair_loop.py` (this branch) |
 | Job replay (`hermes orchestrate replay <job-id>`) | **shipped (tested)** | `hermes_cli/orchestrator_replay.py` (this branch) |

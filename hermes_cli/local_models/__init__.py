@@ -14,27 +14,27 @@ Nothing here downloads on import or normal startup.
 
 from __future__ import annotations
 
-from hermes_cli.models.bootstrap import (
+from hermes_cli.local_models.bootstrap import (
     BootstrapItem,
     BootstrapPlan,
     DownloadOutcome,
     execute_bootstrap,
     plan_bootstrap,
 )
-from hermes_cli.models.catalog import (
+from hermes_cli.local_models.catalog import (
     OpenWeightCatalog,
     OpenWeightModel,
     load_open_weight_catalog,
 )
-from hermes_cli.models.hardware_probe import HardwareProfile, probe
-from hermes_cli.models.scorecards import (
+from hermes_cli.local_models.hardware_probe import HardwareProfile, probe
+from hermes_cli.local_models.scorecards import (
     Scorecard,
     ScorecardSample,
     ScorecardStore,
     aggregate,
     select_model,
 )
-from hermes_cli.models.server_adapters import (
+from hermes_cli.local_models.server_adapters import (
     SUPPORTED_RUNTIMES,
     LaunchPlan,
     ServerAdapter,
