@@ -62,11 +62,14 @@ Tests (all passing): `tests/test_goal_boundary.py`.
 | Research Vault | **in open PR #177** — not duplicated | `jarvis_prime/research_vault.py` (other branch) |
 | Model scorecards | **in open PR #177** — not duplicated | `jarvis_prime/model_scorecard.py` (other branch) |
 | Monitors + daily owner brief | **in open PR #177** — not duplicated | `jarvis_prime/monitors.py`, `owner_brief.py` (other branch) |
-| Worker actuators (Claude/Codex/Aider/Goose/local) | **scaffolded (pre-existing)** | `hermes_cli/workers/` |
+| Worker actuators (Claude/Codex/Aider/Goose/local) | **scaffolded (pre-existing)**; real git diffs via `collect_git_artifacts` | `hermes_cli/workers/` |
 | Worktree/sandbox isolation | **scaffolded (pre-existing)** | `hermes_cli/workers/isolation.py` |
-| Local model bootstrap (`hermes models bootstrap`) | **missing** | (Phase 6 — `hermes_cli/models/` not created) |
-| Orchestrator → navigator wiring before dispatch | **missing (documented)** | see "Next steps" |
-| Repair loop / replay command | **missing** | (Phase 5) |
+| Hardware probe + open-weight catalog | **shipped (tested)** | `hermes_cli/models/{hardware_probe,catalog}.py` (this branch) |
+| Local model bootstrap (`hermes models bootstrap`, consent-gated) | **shipped (tested)** | `hermes_cli/models/bootstrap.py` + `server_adapters.py` (this branch) |
+| Model scorecards (local selection by composite) | **shipped (tested)** | `hermes_cli/models/scorecards.py` (this branch; distinct from PR #177's worker scorecard) |
+| Orchestrator → navigator wiring before dispatch | **shipped (tested)** | `orchestrator.navigate_job()` (this branch) |
+| Repair loop (test→localize→patch→rerun→stop) | **shipped (tested)** | `hermes_cli/workers/repair_loop.py` (this branch) |
+| Job replay (`hermes orchestrate replay <job-id>`) | **shipped (tested)** | `hermes_cli/orchestrator_replay.py` (this branch) |
 
 ## What was deliberately NOT done (and why)
 
@@ -89,13 +92,47 @@ Tests (all passing): `tests/test_goal_boundary.py`.
 - **Skipped/closed PRs:** none ignored; only #177 is open.
 - This branch opens its own draft PR; it does not merge anything.
 
-## Next steps (not claimed as done)
+## Closed-loop flow (now wired, end-to-end testable)
 
-1. Wire `Navigator.navigate()` into `hermes_cli/orchestrator.py` immediately
-   before worker dispatch, appending `to_ledger_record()` to the job ledger.
-2. Add a CLI lane (`hermes jarvis navigate "<issue>"`) — kept out of this
-   branch to avoid touching the 666 KB `cli.py` without integration tests.
-3. Phase 5 repair loop + `hermes orchestrate replay <job-id>`.
-4. Phase 6 `hermes_cli/models/` bootstrap + `config/model-catalog.yaml`
-   expansion (a root `hermes_model_catalog.py` and `config/model-catalog.yaml`
-   already exist; extend, don't replace).
+```
+submit_job(prompt)                       # orchestrator records "submit"
+  → navigate_job(job_id, repo_root)      # Navigator localizes → ledger "navigation_decision"
+      → worker packet (candidate files + tests to run)
+  → run_repair_loop(boundary, runner, patcher, localizer)
+      # GoalBoundary-governed: test → localize → patch → rerun → STOP at limit
+  → JobReplay.load(job_id).render()      # read-only audit of every decision
+```
+
+This is exercised by `tests/test_orchestrator_navigation.py` (submit → navigate
+→ ledger → replay) and `tests/test_repair_loop.py`.
+
+## Phase 6 — local model bootstrap (this branch)
+
+- `config/model-catalog.yaml` gained an `open_weight_candidates:` section
+  (Qwen / DeepSeek / Kimi / GLM coding+reasoning, plus local embeddings +
+  reranker), each with **license**, runtime, min RAM/VRAM, context, lanes, and
+  checksum/source `verify` guidance. The existing provider catalog is untouched.
+- `hermes models bootstrap --tier <t> [--accept-downloads]` plans against
+  detected hardware and **never downloads without `--accept-downloads`**.
+- Docs: `docs/ai-intelligence/oss-model-catalog.md` (extended, not replaced) +
+  `model-routing-policy.md` (pre-existing).
+
+## Still deferred (honest)
+
+- Phases 1/2/7/8 remain in PR #177 (not duplicated here).
+- A `hermes jarvis navigate "<issue>"` interactive CLI lane is intentionally not
+  wired into the 666 KB `cli.py` without integration tests; the orchestrator
+  `navigate_job()` hook is the programmatic integration point and is tested.
+- Repair-loop ledger persistence (`ledger_records()`) is provided but the
+  orchestrator does not yet auto-run the repair loop on a real worker dispatch —
+  that requires a live worker and is out of scope for a hermetic test run.
+
+## One-command demo
+
+```bash
+hermes orchestrate "make a tiny safe code change, test it, and open a draft PR"
+```
+
+The navigator localizes the change, the goal boundary bounds the loop, the
+repair loop verifies via tests, and the decision trail is replayable with
+`hermes orchestrate replay <job-id>`.

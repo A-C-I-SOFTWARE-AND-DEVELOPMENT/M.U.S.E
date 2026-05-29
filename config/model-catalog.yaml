@@ -196,3 +196,149 @@ media:
       requires_env: XAI_API_KEY
       plugin: video_gen/xai
       models: [grok-video]
+
+# ---------------------------------------------------------------------------
+# Open-weight candidates — models you can DOWNLOAD and run locally.
+#
+# This section is read by `hermes_cli/models/catalog.py` (NOT the provider
+# loader above). It powers `hermes models bootstrap`. Nothing here is fetched
+# on a normal install — bootstrap requires --accept-downloads.
+#
+# Every entry MUST carry a license field. RAM/VRAM are conservative floors.
+# `source` is "<runtime-source>:<ref>"; `verify` gives source/checksum guidance.
+# Sizes/context reflect the commonly published open-weight builds of each
+# family; confirm the exact build's card before relying on it.
+# ---------------------------------------------------------------------------
+open_weight_candidates:
+  # ---- Qwen coding / reasoning ----
+  - name: qwen2.5-coder-7b
+    source: ollama:qwen2.5-coder:7b
+    access: open-weight
+    license: Apache-2.0
+    runtime: ollama
+    kind: coder
+    min_ram_gb: 8
+    min_vram_gb: 6
+    context: 131072
+    strengths: [coding, fill-in-the-middle, tool-use]
+    weaknesses: [weaker-long-context-reasoning]
+    routing_lanes: [builder, fast]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "ollama pulls signed manifests; verify digest with `ollama show qwen2.5-coder:7b`."
+  - name: qwen2.5-coder-32b
+    source: ollama:qwen2.5-coder:32b
+    access: open-weight
+    license: Apache-2.0
+    runtime: ollama
+    kind: coder
+    min_ram_gb: 32
+    min_vram_gb: 24
+    context: 131072
+    strengths: [strong-coding, refactor, repo-scale-edits]
+    weaknesses: [needs-24GB+-vram-for-speed]
+    routing_lanes: [builder, reviewer]
+    tiers: [workstation, server]
+    verify: "Verify via `ollama show qwen2.5-coder:32b`; HF source Qwen/Qwen2.5-Coder-32B-Instruct."
+  # ---- DeepSeek coding / reasoning ----
+  - name: deepseek-coder-v2-16b
+    source: ollama:deepseek-coder-v2:16b
+    access: open-weight
+    license: deepseek-license
+    runtime: ollama
+    kind: coder
+    min_ram_gb: 16
+    min_vram_gb: 12
+    context: 131072
+    strengths: [coding, MoE-efficiency]
+    weaknesses: [custom-license-review-needed]
+    routing_lanes: [builder]
+    tiers: [desktop, workstation, server]
+    verify: "Review DeepSeek model license before commercial use; verify digest via ollama show."
+  - name: deepseek-r1-distill-qwen-7b
+    source: ollama:deepseek-r1:7b
+    access: open-weight
+    license: MIT
+    runtime: ollama
+    kind: reasoning
+    min_ram_gb: 8
+    min_vram_gb: 6
+    context: 65536
+    strengths: [chain-of-thought, planning]
+    weaknesses: [verbose, slower-token-rate]
+    routing_lanes: [strategy, critic]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "Distill is MIT; base R1 weights MIT. Verify via ollama show deepseek-r1:7b."
+  # ---- Kimi (Moonshot) ----
+  - name: kimi-k2-instruct
+    source: huggingface:moonshotai/Kimi-K2-Instruct
+    access: open-weight
+    license: modified-mit
+    runtime: vllm
+    kind: reasoning
+    min_ram_gb: 64
+    min_vram_gb: 80
+    context: 131072
+    strengths: [agentic, long-context, tool-use]
+    weaknesses: [very-large, server-class-only]
+    routing_lanes: [strategy, operator]
+    tiers: [server]
+    verify: "Confirm exact Kimi K2/K2.5/K2-Thinking build + license on the HF card; large download."
+  # ---- GLM / Z.ai ----
+  - name: glm-4-9b-chat
+    source: ollama:glm4:9b
+    access: open-weight
+    license: glm-license
+    runtime: ollama
+    kind: chat
+    min_ram_gb: 10
+    min_vram_gb: 8
+    context: 131072
+    strengths: [bilingual, general-reasoning, tool-use]
+    weaknesses: [license-review-needed]
+    routing_lanes: [companion, builder]
+    tiers: [desktop, workstation, server]
+    verify: "Review GLM license; verify digest via ollama show glm4:9b."
+  # ---- Local embeddings ----
+  - name: nomic-embed-text
+    source: ollama:nomic-embed-text
+    access: open-weight
+    license: Apache-2.0
+    runtime: ollama
+    kind: embedding
+    min_ram_gb: 2
+    min_vram_gb: 0
+    context: 8192
+    strengths: [fast, cpu-friendly, retrieval]
+    weaknesses: [english-leaning]
+    routing_lanes: [memory, retrieval]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "Apache-2.0; verify via ollama show nomic-embed-text."
+  - name: bge-m3
+    source: huggingface:BAAI/bge-m3
+    access: open-weight
+    license: MIT
+    runtime: openai-compatible
+    kind: embedding
+    min_ram_gb: 4
+    min_vram_gb: 0
+    context: 8192
+    strengths: [multilingual, multi-granularity]
+    weaknesses: [larger-than-nomic]
+    routing_lanes: [memory, retrieval]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "MIT; checksum HF safetensors against the model card."
+  # ---- Local reranker ----
+  - name: bge-reranker-v2-m3
+    source: huggingface:BAAI/bge-reranker-v2-m3
+    access: open-weight
+    license: Apache-2.0
+    runtime: openai-compatible
+    kind: reranker
+    min_ram_gb: 4
+    min_vram_gb: 0
+    context: 8192
+    strengths: [reranking, multilingual]
+    weaknesses: [needs-serving-shim]
+    routing_lanes: [retrieval]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "Apache-2.0; checksum HF safetensors against the model card."
