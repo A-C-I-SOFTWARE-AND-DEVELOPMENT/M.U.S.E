@@ -166,8 +166,11 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     # ACP adapter (VS Code / Zed / JetBrains integration)
     "tool.acp": ("agent-client-protocol==0.9.0",),
     # Dashboard (`hermes dashboard`)
+    # starlette pinned explicitly (fastapi's transitive) for the CVE fix;
+    # fastapi 0.133.1 only requires starlette>=0.40.0, so ==1.0.0 resolves.
     "tool.dashboard": (
         "fastapi==0.133.1",
+        "starlette==1.0.0",
         "uvicorn[standard]==0.41.0",
     ),
 }
