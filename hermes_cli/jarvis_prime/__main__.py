@@ -27,6 +27,19 @@ Subcommands:
 - ``avatar [--locale en-US] [--json]`` — print the canonical JARVIS
   Prime avatar (brand glyph, palette, tagline) and the locale-aware
   voice + local voice-stack embodiment shared with the Android cockpit.
+- ``presence [--mission ... --target-app ... --real-action] [signals]``
+  — compute the living-companion presence state and, with ``--mission``,
+  a task animation plan. Policy/state only: no camera, microphone,
+  overlay, or device control is performed; real device actions stay
+  behind Android permissions and owner gates.
+- ``packet "<request>" [--branch-prefix jarvis] [--json]`` — turn a
+  plain-English request into a bounded coding work packet (intent,
+  branch, risk class, allowed files, acceptance + verification plan,
+  builder/reviewer split, owner gates). Describes scope only — it does
+  not execute anything.
+- ``memory-tree [--add NS::TITLE::TEXT ...] [--search Q | --outline]``
+  — build an in-memory Memory Tree of source-backed notes and search it
+  or print its outline. Stateless per invocation; no durable recall.
 """
 
 from __future__ import annotations
@@ -449,6 +462,94 @@ def _cmd_models(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_presence(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.companion_presence import (
+        CompanionPresencePolicy,
+        PresenceSignals,
+    )
+
+    policy = CompanionPresencePolicy(attention_threshold=args.attention_threshold)
+    signals = PresenceSignals(
+        gateway_online=not args.offline,
+        emergency_stop=args.emergency_stop,
+        microphone_active=args.listening,
+        camera_attention_opt_in=args.attention_opt_in,
+        user_attention_confidence=args.attention_confidence,
+        thinking=args.thinking,
+        working=args.working,
+        target_app=args.target_app,
+        target_on_next_screen=args.next_screen,
+        pending_owner_approval=args.pending_approval,
+        blocked_reason=args.blocked_reason or "",
+    )
+    state = policy.state_for(signals)
+    payload: dict[str, Any] = {"state": state.value}
+    if args.mission:
+        plan = policy.plan_task_animation(
+            args.mission,
+            target_app=args.target_app,
+            target_on_next_screen=args.next_screen,
+            real_device_action_requested=args.real_action,
+        )
+        payload["plan"] = plan.to_dict()
+
+    if args.json or args.mission:
+        _print_json(payload)
+        return 0
+    print(f"state: {state.value}")
+    return 0
+
+
+def _cmd_packet(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+
+    packet = build_work_packet(args.prompt, branch_prefix=args.branch_prefix)
+    if args.json:
+        _print_json(packet.to_dict())
+        return 0
+    print(f"mission: {packet.mission}")
+    print(
+        f"intent: {packet.intent.value}  risk: {packet.risk_class}  "
+        f"branch: {packet.branch}"
+    )
+    print(f"builder: {packet.primary_worker}  reviewer: {packet.reviewer_worker}")
+    if packet.owner_gated_actions:
+        print("owner-gated: " + ", ".join(packet.owner_gated_actions))
+    print("allowed files: " + ", ".join(packet.allowed_files))
+    return 0
+
+
+def _cmd_memory_tree(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.memory_tree import MemoryTree
+
+    tree = MemoryTree()
+    for raw in args.add or []:
+        parts = raw.split("::", 2)
+        if len(parts) != 3:
+            print(
+                f"error: --add expects 'namespace::title::text', got {raw!r}",
+                file=sys.stderr,
+            )
+            return 2
+        namespace, title, text = parts
+        tree.add(text, namespace=namespace, title=title)
+
+    if args.search:
+        hits = tree.search(args.search, namespace=args.namespace, limit=args.limit)
+        if args.json:
+            _print_json([chunk.to_dict() for chunk in hits])
+        else:
+            for chunk in hits:
+                print(f"[{chunk.namespace}] {chunk.title} ({chunk.source_uri})")
+        return 0
+
+    if args.json:
+        _print_json([chunk.to_dict() for chunk in tree.chunks])
+    else:
+        print(tree.outline())
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -631,6 +732,108 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_models.add_argument("--limit", type=int, default=5)
     p_models.add_argument("--json", action="store_true")
     p_models.set_defaults(func=_cmd_models)
+
+    p_presence = sub.add_parser(
+        "presence",
+        help="Companion presence state + task animation plan (policy only)",
+        description=(
+            "Compute the JARVIS Prime living-companion presence state from "
+            "signals and, with --mission, a task animation plan. This is "
+            "policy/state only — no camera, microphone, overlay, or device "
+            "control is performed. Real device actions stay behind Android "
+            "permissions and owner gates."
+        ),
+    )
+    p_presence.add_argument(
+        "--mission", help="Build a task animation plan for this mission"
+    )
+    p_presence.add_argument("--target-app", dest="target_app")
+    p_presence.add_argument(
+        "--next-screen",
+        dest="next_screen",
+        action="store_true",
+        help="Target app is on the next screen (adds a page-turn step)",
+    )
+    p_presence.add_argument(
+        "--real-action",
+        dest="real_action",
+        action="store_true",
+        help="Request a real device action (forces an owner gate)",
+    )
+    p_presence.add_argument("--offline", action="store_true", help="Gateway offline")
+    p_presence.add_argument(
+        "--emergency-stop", dest="emergency_stop", action="store_true"
+    )
+    p_presence.add_argument(
+        "--listening", action="store_true", help="Microphone is active"
+    )
+    p_presence.add_argument("--thinking", action="store_true")
+    p_presence.add_argument("--working", action="store_true")
+    p_presence.add_argument(
+        "--attention-opt-in",
+        dest="attention_opt_in",
+        action="store_true",
+        help="Camera attention detection is opted in",
+    )
+    p_presence.add_argument(
+        "--attention-confidence",
+        dest="attention_confidence",
+        type=float,
+        default=0.0,
+    )
+    p_presence.add_argument(
+        "--attention-threshold",
+        dest="attention_threshold",
+        type=float,
+        default=0.72,
+    )
+    p_presence.add_argument(
+        "--pending-approval", dest="pending_approval", action="store_true"
+    )
+    p_presence.add_argument("--blocked-reason", dest="blocked_reason")
+    p_presence.add_argument("--json", action="store_true")
+    p_presence.set_defaults(func=_cmd_presence)
+
+    p_packet = sub.add_parser(
+        "packet",
+        help="Turn a plain-English request into a bounded coding work packet",
+        description=(
+            "Classify a natural-language request into a bounded work packet "
+            "(intent, branch, risk class, allowed files, acceptance + "
+            "verification plan, builder/reviewer split, owner gates). "
+            "Describes scope only — it does not execute anything."
+        ),
+    )
+    p_packet.add_argument("prompt", help="Plain-English request")
+    p_packet.add_argument(
+        "--branch-prefix",
+        dest="branch_prefix",
+        default="jarvis",
+        help="Prefix for the suggested branch name (default: jarvis)",
+    )
+    p_packet.add_argument("--json", action="store_true")
+    p_packet.set_defaults(func=_cmd_packet)
+
+    p_memtree = sub.add_parser(
+        "memory-tree",
+        help="Group source-backed notes by namespace/topic (in-memory only)",
+        description=(
+            "Build an in-memory Memory Tree from --add entries and either "
+            "search it (--search) or print its outline. Stateless per "
+            "invocation: no durable recall and no external services."
+        ),
+    )
+    p_memtree.add_argument(
+        "--add",
+        action="append",
+        metavar="NS::TITLE::TEXT",
+        help="Add a note 'namespace::title::text'. Repeatable.",
+    )
+    p_memtree.add_argument("--search", help="Search query (default: print the outline)")
+    p_memtree.add_argument("--namespace", help="Restrict the search to one namespace")
+    p_memtree.add_argument("--limit", type=int, default=5)
+    p_memtree.add_argument("--json", action="store_true")
+    p_memtree.set_defaults(func=_cmd_memory_tree)
 
     args = parser.parse_args(argv)
     return args.func(args)

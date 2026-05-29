@@ -32,6 +32,15 @@ from hermes_cli.jarvis_prime.awareness import (
     UserProfile,
     perceive,
 )
+from hermes_cli.jarvis_prime.companion_presence import (
+    ActionRisk,
+    AnimationStep,
+    CompanionPresencePolicy,
+    PresenceSignals,
+    PresenceState,
+    TaskAnimationPlan,
+    default_avatar_traits,
+)
 from hermes_cli.jarvis_prime.epistemics import (
     AuditOutcome,
     AuditReport,
@@ -48,10 +57,21 @@ from hermes_cli.jarvis_prime.memory import (
     MemoryRecord,
     MemoryStore,
 )
+from hermes_cli.jarvis_prime.memory_tree import (
+    MemoryChunk,
+    MemoryTree,
+)
 from hermes_cli.jarvis_prime.modes import (
     Mode,
     ModeClassification,
     ModeClassifier,
+)
+from hermes_cli.jarvis_prime.natural_language_coder import (
+    CodingIntent,
+    CodingWorkPacket,
+    build_work_packet,
+    classify_intent,
+    requires_owner_gate,
 )
 from hermes_cli.jarvis_prime.owner_auth import (
     AUTHORIZATION_PHRASE,
@@ -104,10 +124,15 @@ from hermes_cli.jarvis_prime.work_packet import (
 
 __all__ = [
     "AUTHORIZATION_PHRASE",
+    "ActionRisk",
+    "AnimationStep",
     "AuditOutcome",
     "AuditReport",
     "AwarenessMemoryRecord",
     "AwarenessSnapshot",
+    "CodingIntent",
+    "CodingWorkPacket",
+    "CompanionPresencePolicy",
     "DEFAULT_FORMAT",
     "Gate",
     "GateOutcome",
@@ -119,8 +144,10 @@ __all__ = [
     "JarvisPrime",
     "JobStatus",
     "MOBILE_VOICE_FORMAT",
+    "MemoryChunk",
     "MemoryRecord",
     "MemoryStore",
+    "MemoryTree",
     "Mode",
     "ModeClassification",
     "ModeClassifier",
@@ -131,6 +158,8 @@ __all__ = [
     "Persona",
     "PersonaPrompt",
     "Premise",
+    "PresenceSignals",
+    "PresenceState",
     "Proposal",
     "ProposalBook",
     "ProposalEvidence",
@@ -145,6 +174,7 @@ __all__ = [
     "RouteTarget",
     "Router",
     "Rule",
+    "TaskAnimationPlan",
     "TelemetrySnapshot",
     "UserProfile",
     "WORK_PACKET_REQUIRED_FIELDS",
@@ -152,11 +182,15 @@ __all__ = [
     "WorkPacket",
     "WorkPacketValidationFinding",
     "audit_response",
+    "build_work_packet",
+    "classify_intent",
     "deduce",
+    "default_avatar_traits",
     "induce",
     "needs_research",
     "open_brief",
     "perceive",
+    "requires_owner_gate",
     "run_gate_summary",
     "should_research",
 ]
