@@ -81,3 +81,25 @@ def test_unknown_path_returns_error_chunk():
             assert payload["type"] == "error"
     finally:
         server.shutdown()
+
+
+def test_serve_refuses_non_loopback_bind_by_default():
+    import pytest
+
+    with pytest.raises(ValueError):
+        jh.serve(host="0.0.0.0", port=0)
+
+
+def test_serve_defaults_to_loopback():
+    server = jh.serve(port=0)
+    try:
+        assert server.server_address[0] in ("127.0.0.1", "::1")
+    finally:
+        server.shutdown()
+
+
+def test_is_loopback_host_helper():
+    assert jh._is_loopback_host("127.0.0.1") is True
+    assert jh._is_loopback_host("localhost") is True
+    assert jh._is_loopback_host("0.0.0.0") is False
+    assert jh._is_loopback_host("10.0.0.5") is False

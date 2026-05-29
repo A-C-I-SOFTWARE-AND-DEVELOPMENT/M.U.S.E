@@ -21,13 +21,28 @@ Design goals:
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import threading
+import warnings
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Iterable, Iterator
 
 CHAT_PATH = "/v1/jarvis/chat"
+
+
+def _is_loopback_host(host: str) -> bool:
+    """True if ``host`` is a loopback/localhost bind address."""
+
+    if host in ("localhost", ""):
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        # Unknown hostname — treat as non-loopback (fail safe).
+        return False
+
 
 # A responder takes (prompt, history) and yields chat chunks (dicts).
 Responder = Callable[[str, list[dict]], Iterable[dict]]
@@ -157,12 +172,29 @@ def serve(
     responder: Responder = echo_responder,
     host: str = "127.0.0.1",
     port: int = 8765,
+    *,
+    allow_external: bool = False,
 ) -> ThreadingHTTPServer:
     """Start the local chat server in a background thread and return it.
 
     Bind to loopback only — this endpoint is for the on-device app and
-    the Termux runtime, never the network.
+    the Termux runtime, never the network. Binding to a non-loopback
+    address (exposing JARVIS to the network) is refused unless the caller
+    explicitly passes ``allow_external=True``, and even then a warning is
+    emitted. This is a safety gate, not a feature: a local agent endpoint
+    on a routable interface is a credential/attack-surface risk.
     """
+    if not _is_loopback_host(host) and not allow_external:
+        raise ValueError(
+            f"refusing to bind JARVIS local HTTP to non-loopback host {host!r}; "
+            "pass allow_external=True only if you understand the exposure risk"
+        )
+    if not _is_loopback_host(host):
+        warnings.warn(
+            f"JARVIS local HTTP is binding to non-loopback host {host!r} — "
+            "this exposes the agent endpoint to the network",
+            stacklevel=2,
+        )
     server = ThreadingHTTPServer((host, port), _make_handler(_Config(responder)))
     thread = threading.Thread(
         target=server.serve_forever, name="jarvis-local-http", daemon=True

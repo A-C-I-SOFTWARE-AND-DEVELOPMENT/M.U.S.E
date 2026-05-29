@@ -501,9 +501,40 @@ def _cmd_presence(args: argparse.Namespace) -> int:
 
 
 def _cmd_packet(args: argparse.Namespace) -> int:
-    from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+    from hermes_cli.jarvis_prime.natural_language_coder import (
+        build_work_packet,
+        render_packet_markdown,
+        validate_work_packet,
+    )
 
     packet = build_work_packet(args.prompt, branch_prefix=args.branch_prefix)
+
+    # --gate-check: run the planning/build/etc. gate summary over the packet.
+    if getattr(args, "gate_check", False):
+        from hermes_cli.jarvis_prime.gates import run_gate_summary
+
+        summary = run_gate_summary(packet.to_gate_packet())
+        if args.json:
+            _print_json({"packet": packet.to_dict(), "gates": summary.to_dict()})
+        else:
+            print(summary.render())
+        return 0
+
+    # --validate: structural validation of the packet.
+    if getattr(args, "validate", False):
+        result = validate_work_packet(packet)
+        if args.json:
+            _print_json({"packet": packet.to_dict(), "validation": result.to_dict()})
+        else:
+            print(f"valid: {result.ok}")
+            for f in result.findings:
+                print(f"  [{f.severity}] {f.field}: {f.message}")
+        return 0
+
+    if getattr(args, "markdown", False):
+        print(render_packet_markdown(packet))
+        return 0
+
     if args.json:
         _print_json(packet.to_dict())
         return 0
@@ -515,11 +546,19 @@ def _cmd_packet(args: argparse.Namespace) -> int:
     print(f"builder: {packet.primary_worker}  reviewer: {packet.reviewer_worker}")
     if packet.owner_gated_actions:
         print("owner-gated: " + ", ".join(packet.owner_gated_actions))
+    if packet.owner_gates:
+        print("owner gates: " + ", ".join(g.value for g in packet.owner_gates))
     print("allowed files: " + ", ".join(packet.allowed_files))
     return 0
 
 
 def _cmd_memory_tree(args: argparse.Namespace) -> int:
+    # Persistent Memory OS operations are addressed by a positional verb
+    # (add / search / outline / export-markdown). Without a verb the command
+    # keeps its original stateless, in-memory behavior driven by --add/--search.
+    if getattr(args, "op", None):
+        return _cmd_memory_tree_store(args)
+
     from hermes_cli.jarvis_prime.memory_tree import MemoryTree
 
     tree = MemoryTree()
@@ -547,6 +586,217 @@ def _cmd_memory_tree(args: argparse.Namespace) -> int:
         _print_json([chunk.to_dict() for chunk in tree.chunks])
     else:
         print(tree.outline())
+    return 0
+
+
+def _cmd_memory_tree_store(args: argparse.Namespace) -> int:
+    """Persistent Memory Tree operations (durable JSONL-backed store)."""
+
+    from hermes_cli.jarvis_prime.memory_tree import (
+        MemoryLayer,
+        MemoryTreeStore,
+        SourceTrust,
+    )
+
+    store_path = Path(args.store) if getattr(args, "store", None) else None
+    store = MemoryTreeStore.load(store_path)
+
+    if args.op == "add":
+        if not args.arg or args.arg.count("::") < 2:
+            print(
+                "error: add expects 'namespace::title::text'",
+                file=sys.stderr,
+            )
+            return 2
+        namespace, title, text = args.arg.split("::", 2)
+        layer = (
+            MemoryLayer(args.layer)
+            if getattr(args, "layer", None)
+            else MemoryLayer.SESSION
+        )
+        trust = (
+            SourceTrust(args.trust)
+            if getattr(args, "trust", None)
+            else SourceTrust.UNVERIFIED
+        )
+        result = store.write(
+            text,
+            namespace=namespace,
+            title=title,
+            layer=layer,
+            source_uri=getattr(args, "source", None),
+            source_trust=trust,
+            confidence=getattr(args, "confidence", 0.5),
+            owner_approved=getattr(args, "owner_approved", False),
+        )
+        if args.json:
+            _print_json(result.to_dict())
+        else:
+            if result.ok:
+                print(f"ok: wrote {result.node.id} ({result.effective_layer.value})")
+                if result.contradiction:
+                    print(f"  contradiction: {result.contradiction.id}")
+                for r in result.reasons:
+                    print(f"  note: {r}")
+            else:
+                print("rejected: " + "; ".join(result.reasons))
+        return 0 if result.ok else 1
+
+    if args.op == "search":
+        hits = store.search(
+            args.arg or "", include_contested=getattr(args, "contested", False)
+        )
+        if args.json:
+            _print_json([h.to_dict() for h in hits])
+        else:
+            for h in hits:
+                print(f"[{h.node.namespace}] {h.node.title} (score={h.score:.2f})")
+        return 0
+
+    if args.op == "outline":
+        print(store.outline())
+        return 0
+
+    if args.op == "export-markdown":
+        print(store.export_markdown())
+        return 0
+
+    print(f"error: unknown memory-tree op {args.op!r}", file=sys.stderr)
+    return 2
+
+
+def _cmd_research(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.research_vault import (
+        EvidenceStrength,
+        ResearchVault,
+        SourceType,
+    )
+
+    vault_path = Path(args.store) if getattr(args, "store", None) else None
+    vault = ResearchVault.load(vault_path)
+
+    if args.op == "add":
+        art = vault.add(
+            args.title,
+            args.uri,
+            source_type=SourceType(args.source_type),
+            evidence_strength=EvidenceStrength(args.strength),
+            excerpt=args.excerpt or "",
+        )
+        if args.json:
+            _print_json(art.to_dict())
+        else:
+            print(f"ok: added {art.id} {art.title}")
+        return 0
+
+    if args.op == "list":
+        items = vault.list()
+        if args.json:
+            _print_json([a.to_dict() for a in items])
+        else:
+            for a in items:
+                print(
+                    f"{a.id} [{a.source_type.value}/{a.evidence_strength.value}] {a.title}"
+                )
+        return 0
+
+    if args.op == "export-markdown":
+        print(vault.export_markdown())
+        return 0
+
+    print(f"error: unknown research op {args.op!r}", file=sys.stderr)
+    return 2
+
+
+def _cmd_model_scorecard(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.model_scorecard import (
+        ModelScorecard,
+        ScorecardBook,
+        local_endpoint_packet,
+    )
+
+    if args.op == "local-endpoint":
+        _print_json(
+            local_endpoint_packet(
+                args.model, endpoint=args.endpoint, server=args.server
+            )
+        )
+        return 0
+
+    book_path = Path(args.store) if getattr(args, "store", None) else None
+    book = ScorecardBook.load(book_path)
+
+    if args.op == "add":
+        card = ModelScorecard(
+            model=args.model,
+            provider=args.provider,
+            task_type=args.task,
+            risk_class=getattr(args, "risk_class", "RC1"),
+            tests_passed=getattr(args, "tests_passed", 0),
+            tests_failed=getattr(args, "tests_failed", 0),
+            owner_corrections=getattr(args, "owner_corrections", 0),
+            hallucination_corrections=getattr(args, "hallucination_corrections", 0),
+            accepted_diff_rate=getattr(args, "accepted_diff_rate", None),
+        )
+        book.record(card)
+        if args.json:
+            _print_json(card.to_dict())
+        else:
+            print(f"ok: recorded {card.model} score={card.score:.2f}")
+        return 0
+
+    if args.op == "list":
+        if args.json:
+            _print_json([c.to_dict() for c in book.scorecards])
+        else:
+            print(book.render(task_type=getattr(args, "task", None)))
+        return 0
+
+    if args.op == "recommend":
+        ranked = book.recommend(args.task, risk_class=getattr(args, "risk_class", None))
+        if args.json:
+            _print_json([{"model": m, "score": s, "samples": n} for m, s, n in ranked])
+        else:
+            for m, s, n in ranked:
+                print(f"{m}: score={s:.2f} (n={n})")
+        return 0
+
+    print(f"error: unknown model-scorecard op {args.op!r}", file=sys.stderr)
+    return 2
+
+
+def _cmd_owner_brief(args: argparse.Namespace) -> int:
+    """Render a daily owner brief from a supplied monitor context.
+
+    Read-only. The monitor context is read from a JSON file via --context, or
+    defaults to an empty context (every source then reports as a blind spot,
+    which is itself the honest signal).
+    """
+
+    from hermes_cli.jarvis_prime.monitors import MonitorBoard
+    from hermes_cli.jarvis_prime.owner_brief import build_owner_brief
+
+    context: dict = {}
+    if getattr(args, "context", None):
+        with open(args.context, "r", encoding="utf-8") as fh:
+            context = json.load(fh)
+
+    board = MonitorBoard.default()
+    results = board.run(context)
+    brief = build_owner_brief(
+        results,
+        board=board,
+        changed=context.get("changed", []),
+        learned=context.get("learned", []),
+        blocked=context.get("blocked", []),
+    )
+    if args.json:
+        _print_json({
+            "brief": brief.to_dict(),
+            "monitors": [r.to_dict() for r in results],
+        })
+    else:
+        print(brief.render())
     return 0
 
 
@@ -811,8 +1061,35 @@ def main(argv: Optional[list[str]] = None) -> int:
         default="jarvis",
         help="Prefix for the suggested branch name (default: jarvis)",
     )
+    p_packet.add_argument(
+        "--markdown", action="store_true", help="Render the packet as Markdown"
+    )
+    p_packet.add_argument(
+        "--validate",
+        action="store_true",
+        help="Validate packet structure and print findings",
+    )
+    p_packet.add_argument(
+        "--gate-check",
+        dest="gate_check",
+        action="store_true",
+        help="Run the verification-gate summary over the packet",
+    )
     p_packet.add_argument("--json", action="store_true")
     p_packet.set_defaults(func=_cmd_packet)
+
+    # `packetize` is an alias of `packet` with the same handler/flags.
+    p_packetize = sub.add_parser(
+        "packetize",
+        help="Alias of `packet`: bound a plain-English request into a work packet",
+    )
+    p_packetize.add_argument("prompt", help="Plain-English request")
+    p_packetize.add_argument("--branch-prefix", dest="branch_prefix", default="jarvis")
+    p_packetize.add_argument("--markdown", action="store_true")
+    p_packetize.add_argument("--validate", action="store_true")
+    p_packetize.add_argument("--gate-check", dest="gate_check", action="store_true")
+    p_packetize.add_argument("--json", action="store_true")
+    p_packetize.set_defaults(func=_cmd_packet)
 
     p_memtree = sub.add_parser(
         "memory-tree",
@@ -823,17 +1100,125 @@ def main(argv: Optional[list[str]] = None) -> int:
             "invocation: no durable recall and no external services."
         ),
     )
+    # Optional persistent-store verb. Without it, the legacy --add/--search
+    # in-memory behavior runs (kept for backward compatibility).
+    p_memtree.add_argument(
+        "op",
+        nargs="?",
+        choices=["add", "search", "outline", "export-markdown"],
+        help="Persistent Memory OS operation (durable JSONL store). "
+        "Omit to use the stateless --add/--search form.",
+    )
+    p_memtree.add_argument(
+        "arg",
+        nargs="?",
+        help="For `add`: 'namespace::title::text'. For `search`: the query.",
+    )
     p_memtree.add_argument(
         "--add",
         action="append",
         metavar="NS::TITLE::TEXT",
-        help="Add a note 'namespace::title::text'. Repeatable.",
+        help="Add a note 'namespace::title::text'. Repeatable. (stateless form)",
     )
     p_memtree.add_argument("--search", help="Search query (default: print the outline)")
     p_memtree.add_argument("--namespace", help="Restrict the search to one namespace")
     p_memtree.add_argument("--limit", type=int, default=5)
+    p_memtree.add_argument(
+        "--store", help="Path to a persistent memory-tree JSONL file"
+    )
+    p_memtree.add_argument("--layer", choices=["working", "session", "durable"])
+    p_memtree.add_argument("--source", help="Source URI/path for a durable add")
+    p_memtree.add_argument(
+        "--trust",
+        choices=[
+            "owner",
+            "primary",
+            "official_doc",
+            "reputable",
+            "community",
+            "unverified",
+        ],
+    )
+    p_memtree.add_argument("--confidence", type=float, default=0.5)
+    p_memtree.add_argument(
+        "--owner-approved", dest="owner_approved", action="store_true"
+    )
+    p_memtree.add_argument(
+        "--contested", action="store_true", help="Include contested nodes"
+    )
     p_memtree.add_argument("--json", action="store_true")
     p_memtree.set_defaults(func=_cmd_memory_tree)
+
+    # research — Research Vault operations.
+    p_research = sub.add_parser(
+        "research", help="Research Vault: add/list/export source-cited artifacts"
+    )
+    p_research.add_argument("op", choices=["add", "list", "export-markdown"])
+    p_research.add_argument("--title", default="")
+    p_research.add_argument("--uri", default="")
+    p_research.add_argument(
+        "--source-type",
+        dest="source_type",
+        default="manual",
+        choices=[
+            "paper",
+            "official_doc",
+            "blog",
+            "repo",
+            "course",
+            "benchmark",
+            "oss_practice",
+            "manual",
+        ],
+    )
+    p_research.add_argument(
+        "--strength",
+        default="moderate",
+        choices=["primary", "strong", "moderate", "weak", "vendor_reported"],
+    )
+    p_research.add_argument("--excerpt", default="")
+    p_research.add_argument(
+        "--store", help="Path to a persistent research-vault JSONL file"
+    )
+    p_research.add_argument("--json", action="store_true")
+    p_research.set_defaults(func=_cmd_research)
+
+    # model-scorecard — evidence-backed model routing records.
+    p_score = sub.add_parser(
+        "model-scorecard",
+        help="Record/list/recommend model scorecards; emit local endpoint",
+    )
+    p_score.add_argument("op", choices=["add", "list", "recommend", "local-endpoint"])
+    p_score.add_argument("--model", default="")
+    p_score.add_argument("--provider", default="unknown")
+    p_score.add_argument("--task", default="coding")
+    p_score.add_argument("--risk-class", dest="risk_class", default="RC1")
+    p_score.add_argument("--tests-passed", dest="tests_passed", type=int, default=0)
+    p_score.add_argument("--tests-failed", dest="tests_failed", type=int, default=0)
+    p_score.add_argument(
+        "--owner-corrections", dest="owner_corrections", type=int, default=0
+    )
+    p_score.add_argument(
+        "--hallucination-corrections",
+        dest="hallucination_corrections",
+        type=int,
+        default=0,
+    )
+    p_score.add_argument("--accepted-diff-rate", dest="accepted_diff_rate", type=float)
+    p_score.add_argument("--endpoint", default="http://localhost:8000/v1")
+    p_score.add_argument("--server", default="vllm")
+    p_score.add_argument("--store", help="Path to a persistent scorecard JSONL file")
+    p_score.add_argument("--json", action="store_true")
+    p_score.set_defaults(func=_cmd_model_scorecard)
+
+    # owner-brief — daily owner brief from a monitor context.
+    p_brief = sub.add_parser(
+        "owner-brief",
+        help="Render the daily owner brief from a monitor context (read-only)",
+    )
+    p_brief.add_argument("--context", help="Path to a JSON monitor-context file")
+    p_brief.add_argument("--json", action="store_true")
+    p_brief.set_defaults(func=_cmd_owner_brief)
 
     args = parser.parse_args(argv)
     return args.func(args)

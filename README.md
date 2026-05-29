@@ -48,6 +48,39 @@ JARVIS Prime is loyal to the user's long-term mission, not blindly obedient to t
 
 Invoke from any gateway DM or REPL with `/jarvis-prime` (alias `/jarvis`, `/jp`), or pin a specific mode with `/companion`, `/strategy`, `/critic`, `/operator`, `/builder`, `/voice`. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md) for the full identity, hierarchy, modes, and gates.
 
+### Cognition plane — Memory OS, packetizer, research, routing, monitors
+
+JARVIS Prime ships a provenance-first cognition plane (all stdlib-only,
+local, no network) — see [`docs/jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md`](docs/jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md):
+
+- **Memory Tree** (`memory_tree.py`) — working/session/durable memory with
+  source provenance, confidence floors, sensitivity, approval, contradiction
+  reports + supersession (no silent overwrite), ranked retrieval, and
+  token-bounded context packs. Memory **cites sources**; it is not the source
+  of truth.
+- **Natural-language coder** (`natural_language_coder.py`) — turns plain
+  English into a bounded, gate-compatible work packet (intent, risk class,
+  owner gates, allowed/forbidden files, verification, rollback). It never
+  executes; bypass/exfiltration requests are blocked.
+- **Research Vault** (`research_vault.py`) — source-cited evidence; vendor
+  benchmarks recorded as vendor-reported.
+- **TokenJuice** (`tokenjuice.py`) — deterministic, token-bounded context
+  compiler that carries provenance and screens secrets.
+- **Model scorecards** (`model_scorecard.py`) — evidence-backed routing;
+  local OSS models are "wired" via config/local-endpoint packets, **not**
+  claimed running without a smoke request.
+- **Proposal executor** (`proposal_executor.py`) — approved self-update
+  proposals → bounded plans; never merges/deploys/publishes.
+- **Monitors + daily owner brief** (`monitors.py`, `owner_brief.py`) —
+  read-only, fail-visible monitors with a coverage attestation that surfaces
+  blind spots.
+
+These are **local OSS-capable, owner-gated, and reversible** — JARVIS is
+loyal and verification-first, not "fully autonomous." New CLI lanes:
+`packetize`, `packet --gate-check/--validate/--markdown`, `memory-tree
+{add,search,outline,export-markdown} --store`, `research`, `model-scorecard`,
+`owner-brief`.
+
 ---
 
 ## Quick Install
