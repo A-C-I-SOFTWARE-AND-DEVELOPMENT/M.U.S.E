@@ -74,7 +74,7 @@ def test_research_artifacts_are_packed(tmp_path) -> None:
         "serving", token_budget=2000, research_artifacts=[art]
     )
     research = [s for s in ctx.sections if s.kind == "research"]
-    assert research and "https://docs.vllm.ai" in research[0].sources
+    assert research and any(src == "https://docs.vllm.ai" for src in research[0].sources)
 
 
 def test_secrets_are_screened_out() -> None:
