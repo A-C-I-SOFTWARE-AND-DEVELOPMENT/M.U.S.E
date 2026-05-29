@@ -39,7 +39,13 @@ param(
 
     # --- Ensure mode (dep_ensure.py entry point) ---
     [string]$Ensure = "",
-    [switch]$PostInstall
+    [switch]$PostInstall,
+
+    # After install, bootstrap free-first model routing and verify JARVIS
+    # Prime launch readiness. Missing local runtimes are warnings; a Hermes
+    # that cannot launch is a hard failure. Parity with install.sh
+    # --jarvis-launch.
+    [switch]$JarvisLaunch
 )
 
 $ErrorActionPreference = "Stop"
@@ -2262,9 +2268,65 @@ function Invoke-PostInstallMode {
     Write-Info "Post-install complete"
 }
 
+function Resolve-HermesCmd {
+    $candidate = "$InstallDir\venv\Scripts\hermes.exe"
+    if (Test-Path $candidate) { return $candidate }
+    $onPath = Get-Command hermes -ErrorAction SilentlyContinue
+    if ($onPath) { return $onPath.Source }
+    return ""
+}
+
+function Invoke-JarvisLaunch {
+    # Bootstrap free-first model routing and verify launch readiness.
+    # Safe non-interactively: neither command prompts. Optional missing
+    # runtimes/workers are warnings; a Hermes that cannot launch (the
+    # doctor's hard checks fail) is a hard failure.
+    if (-not $JarvisLaunch) { return }
+
+    Write-Host ""
+    Write-Info "JARVIS Prime - free-first launch"
+
+    $hermesCmd = Resolve-HermesCmd
+    if ($hermesCmd -eq "") {
+        Write-Warn "hermes command not found after install - skipping JARVIS launch"
+        Write-Info "Recovery: & '$InstallDir\venv\Scripts\hermes.exe' models bootstrap --free-first --jarvis"
+        return
+    }
+
+    # 1. Model bootstrap (--no-pull keeps unattended installs lean).
+    Write-Info "Bootstrapping free-first model routing (local OSS first; paid opt-in only)..."
+    & $hermesCmd models bootstrap --free-first --jarvis --no-pull
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Model routing bootstrapped"
+    } else {
+        Write-Warn "Model bootstrap reported issues (often just missing optional runtimes)"
+        Write-Info "Re-run later: $hermesCmd models bootstrap --free-first --jarvis"
+    }
+
+    # 2. Launch-readiness doctor. Nonzero == hard launch blocker == failure.
+    Write-Info "Verifying JARVIS Prime launch readiness..."
+    & $hermesCmd doctor --jarvis-launch
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "JARVIS launch doctor found a hard launch blocker"
+        Write-Info "Recovery commands:"
+        Write-Info "  $hermesCmd doctor --jarvis-launch"
+        Write-Info "  $hermesCmd models bootstrap --free-first --jarvis"
+        throw "JARVIS launch doctor failed"
+    }
+    Write-Success "JARVIS Prime is launch-ready"
+
+    Write-Host ""
+    Write-Success "JARVIS Prime is ready."
+    Write-Info "Start Hermes:   $hermesCmd"
+    Write-Info "Invoke JARVIS:  /jarvis   (aliases: /jp, /jarvis-prime)"
+    Write-Info "Run doctor:     $hermesCmd doctor --jarvis-launch"
+    Write-Info "Stop JARVIS:    /jarvis stop   (or: python -m hermes_cli.jarvis_prime stop)"
+}
+
 function Main {
     Write-Banner
     Invoke-AllStages
+    Invoke-JarvisLaunch
     if (-not $Json) {
         Write-Completion
     } else {
