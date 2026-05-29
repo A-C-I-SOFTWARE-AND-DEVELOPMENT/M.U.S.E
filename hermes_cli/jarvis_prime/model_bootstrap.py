@@ -1,27 +1,26 @@
-"""Free-first model bootstrap for JARVIS Prime.
+"""Free-first model bootstrap for JARVIS Prime — one unified system.
 
-Implements ``hermes models bootstrap --free-first --jarvis``: a real
-bootstrap, not just a recommendation. It
+Implements ``hermes models bootstrap --free-first --jarvis``. It ties two
+layers into a single model policy so local model download/detection and
+free-first provider routing feel like one system, not two adjacent pieces:
 
-1. **Detects** what is actually runnable on this host —
-   local runtimes (ollama, llama.cpp, vllm, lmstudio), hosted open-route
-   providers (only when a key/config is *already* present), and the
-   official worker CLIs (Claude Code, Codex) — all via ``shutil.which``
-   and read-only env inspection. It never installs or authenticates a
-   paid service and never asks for or stores API keys.
-2. **Plans** a free-first route order:
-   ``local_oss`` → ``hosted_free_or_user_configured_oss`` →
-   ``claude_code_worker`` → ``codex_worker`` → ``paid_api_explicit_only``.
-   Paid APIs are disabled unless the owner explicitly opted in.
-3. **Writes** (unless ``--dry-run``) a JARVIS model routing config to
-   ``${HERMES_HOME:-~/.hermes}/jarvis_prime/model_policy.json``.
-4. Optionally **pulls** small, safe default local models via Ollama
-   (skippable with ``--no-pull``). Model *choices* come from the OSS
-   model brain catalog — the single source of truth.
+* **Provider routing (this module).** A free-first route order:
+  ``local_oss`` → ``hosted_free_or_user_configured_oss`` →
+  ``claude_code_worker`` → ``codex_worker`` → ``paid_api_explicit_only``.
+  Paid APIs are disabled unless the owner explicitly opts in. Hosted
+  providers are detected read-only (env presence only — never stored).
+* **Local model layer (``hermes_cli.local_models``).** Hardware probe,
+  open-weight candidate catalog, server adapters (Ollama / llama.cpp /
+  vLLM / SGLang / OpenAI-compat), and a hardware-aware, **consent-gated**
+  download plan. The router drives it and folds its plan into the policy,
+  so ``local_oss`` lists the concrete local models that fit this box.
 
-Stdlib-only at import time. ``subprocess`` is only touched behind thin,
-injectable wrappers so tests never shell out, pull a model, or hit the
-network.
+The result is written (unless ``--dry-run``) to
+``${HERMES_HOME:-~/.hermes}/jarvis_prime/model_policy.json``.
+
+Stdlib-only at import time. The local layer + ``subprocess`` are reached
+only behind thin, injectable wrappers so tests never shell out, download
+a model, probe real hardware, or hit the network.
 """
 
 from __future__ import annotations
@@ -29,14 +28,13 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 
-CONFIG_VERSION = 1
+CONFIG_VERSION = 2
 
 # Free-first route order. Lower index = preferred. Paid is always last and
 # disabled unless the owner explicitly opted in.
@@ -48,11 +46,15 @@ ROUTE_ORDER: tuple[str, ...] = (
     "paid_api_explicit_only",
 )
 
-# Local runtimes we know how to detect. value = candidate CLI binaries.
+# Local runtimes we detect via ``which``. Mirrors the runtimes the local
+# model layer (``local_models.server_adapters``) knows how to launch, plus
+# LM Studio. ``openai-compat`` is a base-URL, not a CLI, so it isn't probed
+# here. ``which`` is injectable so this stays hermetic in tests.
 _LOCAL_RUNTIME_BINARIES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("ollama", ("ollama",)),
     ("llama.cpp", ("llama-server", "llama-cli", "llama")),
     ("vllm", ("vllm",)),
+    ("sglang", ("sglang", "sglang.launch_server")),
     ("lmstudio", ("lms", "lmstudio")),
 )
 
@@ -89,7 +91,11 @@ PAID_OPT_IN_ENV = "HERMES_JARVIS_ENABLE_PAID"
 def detect_local_runtimes(
     which: Callable[[str], Optional[str]] = shutil.which,
 ) -> dict[str, dict[str, Any]]:
-    """Detect installed local model runtimes. ``which`` is injectable."""
+    """Detect installed local model runtimes. ``which`` is injectable.
+
+    The runtime set is unified with ``local_models.server_adapters`` so a
+    runtime detected here can also be launched by the local model layer.
+    """
     out: dict[str, dict[str, Any]] = {}
     for name, binaries in _LOCAL_RUNTIME_BINARIES:
         path = None
@@ -159,7 +165,7 @@ def detect_workers() -> dict[str, dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Local model defaults (from the OSS model brain catalog)
+# Local model route preferences (from the OSS model brain catalog)
 # ---------------------------------------------------------------------------
 
 
@@ -168,7 +174,6 @@ class LocalDefault:
     purpose: str  # "local_reasoning" | "local_coding" | "embeddings"
     model_id: str  # catalog family id, or a runtime-native tag for embeddings
     ollama_tag: Optional[str]  # concrete ollama model tag, if resolvable
-    small: bool  # safe to pull by default on common hardware
     why: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -183,20 +188,16 @@ def _ollama_tag_for(model: Any) -> Optional[str]:
     return None
 
 
-# Models that fit comfortably on common hardware (≈8GB-16GB). Used to decide
-# what is safe to pull by default. Tags are matched against the catalog's
-# resolved ollama tags; anything not in this set is "suggested, not auto-pulled".
-_SMALL_OLLAMA_TAGS: frozenset[str] = frozenset({"deepseek-r1:8b", "gpt-oss:20b"})
-_EMBEDDING_TAG = (
-    "nomic-embed-text"  # tiny, ubiquitous; not in the catalog (no embeddings tier)
-)
+_EMBEDDING_TAG = "nomic-embed-text"  # tiny, ubiquitous; no catalog tier for embeddings
 
 
 def compute_local_defaults() -> list[LocalDefault]:
-    """Pick sane local defaults for reasoning, coding, and embeddings.
+    """Preferred local model *families* for reasoning/coding/embeddings.
 
-    Reasoning/coding choices come from the catalog (source of truth);
-    embeddings has no catalog tier so we use the standard small model.
+    These are the route-layer preferences (from the OSS model brain — the
+    cross-referenced catalog). The concrete, hardware-fit *download* plan
+    comes from the local model layer (see :func:`build_local_plan`); the
+    two are folded together in the written policy.
     """
     from hermes_cli import oss_model_brain as ob
 
@@ -219,7 +220,6 @@ def compute_local_defaults() -> list[LocalDefault]:
                     purpose=purpose,
                     model_id=model.id,
                     ollama_tag=tag,
-                    small=bool(tag and tag in _SMALL_OLLAMA_TAGS),
                     why=model.why,
                 )
             )
@@ -229,7 +229,6 @@ def compute_local_defaults() -> list[LocalDefault]:
             purpose="embeddings",
             model_id=_EMBEDDING_TAG,
             ollama_tag=_EMBEDDING_TAG,
-            small=True,
             why="Standard small local embedding model for JARVIS memory.",
         )
     )
@@ -237,99 +236,79 @@ def compute_local_defaults() -> list[LocalDefault]:
 
 
 # ---------------------------------------------------------------------------
-# Pull plan + execution (Ollama only, behind an injectable runner)
+# Local model layer integration (hardware-aware, consent-gated downloads)
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class PullTarget:
-    model: str
-    purpose: str
-    will_pull: bool
-    pulled: bool = False
-    reason: str = ""
+def probe_hardware(hardware: Any = None) -> Any:
+    """Probe this host's hardware via the local model layer (injectable).
 
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-def plan_pulls(
-    defaults: list[LocalDefault],
-    *,
-    no_pull: bool,
-    force: bool,
-    ollama_available: bool,
-) -> list[PullTarget]:
-    """Decide which default models to pull. Conservative by default."""
-    targets: list[PullTarget] = []
-    seen: set[str] = set()
-    for d in defaults:
-        if not d.ollama_tag or d.ollama_tag in seen:
-            continue
-        seen.add(d.ollama_tag)
-        if not ollama_available:
-            targets.append(
-                PullTarget(
-                    d.ollama_tag, d.purpose, False, reason="ollama not installed"
-                )
-            )
-        elif no_pull:
-            targets.append(
-                PullTarget(d.ollama_tag, d.purpose, False, reason="--no-pull")
-            )
-        elif force or d.small:
-            targets.append(
-                PullTarget(
-                    d.ollama_tag,
-                    d.purpose,
-                    True,
-                    reason="safe default" if d.small else "--force",
-                )
-            )
-        else:
-            targets.append(
-                PullTarget(
-                    d.ollama_tag,
-                    d.purpose,
-                    False,
-                    reason="large model — pull manually or use --force",
-                )
-            )
-    return targets
-
-
-def _default_pull_runner(model: str) -> tuple[bool, str]:
-    """Run ``ollama pull <model>``. Returns (ok, detail). Never raises."""
+    Returns a ``local_models.HardwareProfile``. ``hardware`` may be passed
+    pre-built (tests). Never raises — degrades to ``None`` if the local
+    layer is unavailable (stripped-down install).
+    """
+    if hardware is not None:
+        return hardware
     try:
-        proc = subprocess.run(
-            ["ollama", "pull", model],
-            capture_output=True,
-            text=True,
-            timeout=1800,
-            check=False,
-        )
-        if proc.returncode == 0:
-            return True, "pulled"
-        return False, (proc.stderr or proc.stdout or "non-zero exit").strip()[:200]
-    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover - defensive
-        return False, f"pull failed: {exc}"
+        from hermes_cli.local_models import probe
+
+        return probe()
+    except Exception:  # pragma: no cover - defensive (Termux/slim installs)
+        return None
 
 
-def execute_pulls(
-    targets: list[PullTarget],
+def build_local_plan(
     *,
-    dry_run: bool,
-    runner: Optional[Callable[[str], tuple[bool, str]]] = None,
-) -> list[PullTarget]:
-    """Execute the planned pulls. In dry-run mode nothing is pulled."""
-    runner = runner or _default_pull_runner
-    for t in targets:
-        if not t.will_pull or dry_run:
-            continue
-        ok, detail = runner(t.model)
-        t.pulled = ok
-        t.reason = detail if not ok else "pulled"
-    return targets
+    hardware: Any,
+    accept_downloads: bool,
+) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    """Build the hardware-aware local model plan via the local model layer.
+
+    Returns ``(plan_dict, recommended_model_names, warnings)``. Defensive:
+    any failure (missing catalog/PyYAML, probe error) degrades to
+    ``(None, [], [warning])`` so the route policy is still written.
+    """
+    warnings: list[str] = []
+    if hardware is None:
+        warnings.append(
+            "Local model layer unavailable — hardware plan skipped "
+            "(routing policy still written)."
+        )
+        return None, [], warnings
+    try:
+        from hermes_cli.local_models import plan_bootstrap
+
+        plan = plan_bootstrap(
+            hardware.tier, hardware=hardware, accept_downloads=accept_downloads
+        )
+        plan_dict = plan.to_dict()
+        recommended = [item.model.name for item in plan.recommended]
+        return plan_dict, recommended, warnings
+    except Exception as exc:  # pragma: no cover - defensive
+        warnings.append(f"Local model plan unavailable ({exc}); routing policy only.")
+        return None, [], warnings
+
+
+def execute_local_downloads(
+    plan_obj: Any,
+    *,
+    accept_downloads: bool,
+    runner: Optional[Callable[[Sequence[str]], tuple[bool, str]]] = None,
+) -> list[dict[str, Any]]:
+    """Run the consent-gated downloads from a local plan. Never raises."""
+    if plan_obj is None:
+        return []
+    try:
+        from hermes_cli.local_models import execute_bootstrap
+
+        outcomes = execute_bootstrap(
+            plan_obj, accept_downloads=accept_downloads, runner=runner
+        )
+        return [o.to_dict() if hasattr(o, "to_dict") else dict(o) for o in outcomes]
+    except Exception as exc:  # pragma: no cover - defensive
+        return [
+            {"attempted": False, "ok": False, "detail": f"download step failed: {exc}"}
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -345,8 +324,14 @@ def build_route_plan(
     paid_providers: dict[str, dict[str, Any]],
     paid_enabled: bool,
     local_only: bool,
+    recommended_local_models: Optional[list[str]] = None,
 ) -> dict[str, dict[str, Any]]:
-    """Build the free-first route map. Free routes precede paid ones."""
+    """Build the free-first route map. Free routes precede paid ones.
+
+    ``recommended_local_models`` (from the local model layer) is folded into
+    the ``local_oss`` route so provider routing and the hardware-aware local
+    plan read as one system.
+    """
     any_local = any(v.get("available") for v in local_runtimes.values())
     any_hosted = any(v.get("configured") for v in hosted_oss.values())
     claude_ok = workers.get("claude_code_builder", {}).get("available", False)
@@ -357,6 +342,7 @@ def build_route_plan(
             "rank": 1,
             "enabled": any_local,
             "runtimes": [k for k, v in local_runtimes.items() if v.get("available")],
+            "recommended_local_models": list(recommended_local_models or []),
         },
         "hosted_free_or_user_configured_oss": {
             "rank": 2,
@@ -411,16 +397,12 @@ class BootstrapResult:
     config_path: str
     config_written: bool
     config: dict[str, Any] = field(default_factory=dict)
-    pulls: list[PullTarget] = field(default_factory=list)
+    download_outcomes: list[dict[str, Any]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
-        d = asdict(self)
-        d["pulls"] = [
-            p.to_dict() if isinstance(p, PullTarget) else p for p in self.pulls
-        ]
-        return d
+        return asdict(self)
 
     def render(self) -> str:
         lines = ["JARVIS Prime — free-first model bootstrap"]
@@ -429,33 +411,44 @@ class BootstrapResult:
             f"  mode: {'dry-run' if self.dry_run else 'apply'}"
             f"{' · local-only' if self.local_only else ''}"
         )
+        local = cfg.get("local", {})
+        hw = local.get("hardware") or {}
+        if hw:
+            lines.append(
+                f"  hardware: tier={hw.get('tier', '?')} "
+                f"ram={hw.get('ram_gb', '?')}GB accel={hw.get('accelerator_gb', '?')}GB"
+                f"{' gpu=' + str(hw.get('gpu_name')) if hw.get('gpu_name') else ''}"
+            )
         routes = cfg.get("routes", {})
         lines.append("  route order (free-first):")
         for name in ROUTE_ORDER:
             r = routes.get(name, {})
             mark = "✓" if r.get("enabled") else "·"
             extra = ""
-            if name == "local_oss" and r.get("runtimes"):
-                extra = f"  [{', '.join(r['runtimes'])}]"
+            if name == "local_oss":
+                if r.get("runtimes"):
+                    extra = f"  [{', '.join(r['runtimes'])}]"
+                if r.get("recommended_local_models"):
+                    extra += "  → " + ", ".join(r["recommended_local_models"][:3])
             elif name == "hosted_free_or_user_configured_oss" and r.get("providers"):
                 extra = f"  [{', '.join(r['providers'])}]"
             elif name == "paid_api_explicit_only":
                 extra = "  (explicit opt-in only)"
             lines.append(f"    {mark} {name}{extra}")
         if cfg.get("local_defaults"):
-            lines.append("  local defaults:")
+            lines.append("  local model preferences:")
             for d in cfg["local_defaults"]:
                 tag = d.get("ollama_tag") or d.get("model_id")
                 lines.append(f"    - {d['purpose']}: {d['model_id']} ({tag})")
-        if self.pulls:
-            lines.append("  model pulls:")
-            for p in self.pulls:
+        if self.download_outcomes:
+            lines.append("  local downloads:")
+            for o in self.download_outcomes:
                 state = (
-                    "pulled"
-                    if p.pulled
-                    else ("would pull" if p.will_pull and self.dry_run else "skipped")
+                    "downloaded" if o.get("ok") and o.get("attempted") else "skipped"
                 )
-                lines.append(f"    - {p.model} [{p.purpose}]: {state} — {p.reason}")
+                lines.append(
+                    f"    - {o.get('model', '?')}: {state} — {o.get('detail', '')}"
+                )
         for w in self.warnings:
             lines.append(f"  ⚠ {w}")
         for e in self.errors:
@@ -477,14 +470,18 @@ def bootstrap(
     local_only: bool = False,
     which: Callable[[str], Optional[str]] = shutil.which,
     env: Optional[dict[str, str]] = None,
-    pull_runner: Optional[Callable[[str], tuple[bool, str]]] = None,
+    hardware: Any = None,
+    pull_runner: Optional[Callable[[Sequence[str]], tuple[bool, str]]] = None,
     record_memory: bool = True,
 ) -> BootstrapResult:
-    """Run the bootstrap. Pure detection + a single config write (unless dry-run).
+    """Run the unified bootstrap: provider routing + local model layer.
 
-    Returns a :class:`BootstrapResult`. Missing optional providers are
-    warnings, not errors — ``ok`` is False only on a real failure
-    (e.g. the config could not be written when it was supposed to be).
+    Detection is pure; a single config write happens unless ``--dry-run``.
+    Local model downloads are **consent-gated**: they run only with
+    ``force`` and not ``no_pull`` and not ``dry_run`` (so an unattended
+    ``curl | bash`` never pulls multi-GB weights). Missing optional
+    providers/runtimes are warnings — ``ok`` is False only on a real
+    failure (e.g. the config could not be written when it should be).
     """
     env = env if env is not None else dict(os.environ)
 
@@ -499,6 +496,28 @@ def bootstrap(
 
     catalog = ob.load_oss_catalog()
 
+    # Local model layer: hardware-aware plan + consent-gated downloads.
+    accept_downloads = force and (not no_pull) and (not dry_run)
+    hw = probe_hardware(hardware)
+    plan_dict, recommended_local, local_warnings = build_local_plan(
+        hardware=hw, accept_downloads=accept_downloads
+    )
+    # Re-derive the plan object once for execution (build_local_plan returns
+    # a dict for the policy; execution needs the live object).
+    download_outcomes: list[dict[str, Any]] = []
+    if plan_dict is not None and hw is not None:
+        try:
+            from hermes_cli.local_models import plan_bootstrap
+
+            plan_obj = plan_bootstrap(
+                hw.tier, hardware=hw, accept_downloads=accept_downloads
+            )
+            download_outcomes = execute_local_downloads(
+                plan_obj, accept_downloads=accept_downloads, runner=pull_runner
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            local_warnings.append(f"Local download step skipped ({exc}).")
+
     routes = build_route_plan(
         local_runtimes=local_runtimes,
         hosted_oss=hosted_oss,
@@ -506,20 +525,16 @@ def bootstrap(
         paid_providers=paid_providers,
         paid_enabled=paid_enabled,
         local_only=local_only,
+        recommended_local_models=recommended_local,
     )
 
-    ollama_available = local_runtimes.get("ollama", {}).get("available", False)
-    pulls = plan_pulls(
-        defaults, no_pull=no_pull, force=force, ollama_available=ollama_available
-    )
-    pulls = execute_pulls(pulls, dry_run=dry_run, runner=pull_runner)
-
-    warnings: list[str] = []
+    warnings: list[str] = list(local_warnings)
     if not any(v.get("available") for v in local_runtimes.values()):
         warnings.append(
-            "No local model runtime detected (ollama/llama.cpp/vllm/lmstudio). "
-            "JARVIS will fall back to configured hosted/worker routes. Install "
-            "Ollama (https://ollama.com) for a fully local, free-first setup."
+            "No local model runtime detected (ollama/llama.cpp/vllm/sglang/"
+            "lmstudio). JARVIS will fall back to configured hosted/worker "
+            "routes. Install Ollama (https://ollama.com) for a fully local, "
+            "free-first setup."
         )
     if not workers.get("claude_code_builder", {}).get("available"):
         warnings.append("Claude Code CLI not detected — builder worker lane disabled.")
@@ -534,7 +549,13 @@ def bootstrap(
         "local_only": local_only,
         "route_order": list(ROUTE_ORDER),
         "routes": routes,
-        "local_runtimes": local_runtimes,
+        "local": {
+            "runtimes": local_runtimes,
+            "hardware": (hw.to_dict() if hw is not None else None),
+            "plan": plan_dict,
+            "downloads_accepted": accept_downloads,
+            "download_outcomes": download_outcomes,
+        },
         "hosted_oss": hosted_oss,
         "workers": workers,
         "paid": {
@@ -584,7 +605,7 @@ def bootstrap(
         config_path=str(path),
         config_written=config_written,
         config=config,
-        pulls=pulls,
+        download_outcomes=download_outcomes,
         warnings=warnings,
         errors=errors,
     )
@@ -602,7 +623,8 @@ def _record_launch_policy_memory() -> None:
     store.remember(
         key="jarvis_launch_model_policy",
         value=(
-            "free-first local OSS routing enabled; Claude Code/Codex are "
+            "free-first local OSS routing enabled; local model layer "
+            "(hardware-aware, consent-gated) wired in; Claude Code/Codex are "
             "worker lanes; paid APIs explicit opt-in only"
         ),
         durability="durable",
@@ -627,8 +649,8 @@ __all__ = [
     "ROUTE_ORDER",
     "BootstrapResult",
     "LocalDefault",
-    "PullTarget",
     "bootstrap",
+    "build_local_plan",
     "build_route_plan",
     "compute_local_defaults",
     "config_path",
@@ -636,8 +658,8 @@ __all__ = [
     "detect_local_runtimes",
     "detect_paid_providers",
     "detect_workers",
-    "execute_pulls",
+    "execute_local_downloads",
     "load_policy",
     "paid_opt_in",
-    "plan_pulls",
+    "probe_hardware",
 ]
