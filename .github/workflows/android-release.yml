@@ -1,0 +1,128 @@
+name: Android release
+
+# Build a signed release APK and publish it as a downloadable release asset
+# on every Android version tag (e.g. `android-v0.1.0`). Also runnable on
+# demand via the Actions tab.
+#
+# Signing is driven entirely by repository secrets — nothing sensitive lives
+# in the repo. Set these four secrets (Settings → Secrets and variables →
+# Actions); see apps/android/docs/RELEASE_SIGNING.md:
+#   ANDROID_KEYSTORE_BASE64    base64 of your .jks keystore
+#   ANDROID_KEYSTORE_PASSWORD  keystore (store) password
+#   ANDROID_KEY_ALIAS          key alias
+#   ANDROID_KEY_PASSWORD       key password
+#
+# If the keystore secret is absent the job still builds, but the APK falls
+# back to debug signing (clearly marked) instead of failing — so forks
+# without secrets are not blocked.
+
+on:
+  push:
+    tags:
+      - 'android-v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional release tag to attach the APK to (e.g. android-v0.1.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write  # needed to create/upload the GitHub Release asset
+
+jobs:
+  release-apk:
+    name: Build & publish signed release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Cache Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/**/*.gradle*', 'apps/android/gradle/libs.versions.toml', 'apps/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Decode release keystore (if configured)
+        id: keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/jarvis-release.jks"
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "Release keystore decoded — building a signed release APK."
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret set — release APK will fall back to debug signing."
+          fi
+
+      - name: Assemble release APK
+        env:
+          ANDROID_KEYSTORE_FILE: ${{ steps.keystore.outputs.configured == 'true' && format('{0}/jarvis-release.jks', runner.temp) || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon --stacktrace --info :app:assembleRelease
+
+      - name: Locate and name the APK
+        id: apk
+        run: |
+          src="$(find app/build/outputs/apk/release -name '*.apk' | head -1)"
+          if [ -z "$src" ]; then echo "No release APK produced" >&2; exit 1; fi
+          ver="$(grep -E '^\s*versionName' app/build.gradle.kts | head -1 | sed -E 's/.*"(.*)".*/\1/')"
+          dest="jarvis-${ver:-release}.apk"
+          cp "$src" "$dest"
+          echo "path=apps/android/$dest" >> "$GITHUB_OUTPUT"
+          echo "name=$dest" >> "$GITHUB_OUTPUT"
+          echo "signed=${{ steps.keystore.outputs.configured }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Attach APK to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.inputs.tag != '' && github.event.inputs.tag || github.ref_name }}
+          SIGNED: ${{ steps.apk.outputs.signed }}
+        run: |
+          notes="Jarvis Prime Android APK."
+          if [ "$SIGNED" = "true" ]; then
+            notes="$notes Signed release build."
+          else
+            notes="$notes NOTE: built without release keystore secret — debug-signed."
+          fi
+          # Create the release if it doesn't exist yet, then upload/clobber the asset.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Jarvis Prime $TAG" --notes "$notes"
+          gh release upload "$TAG" "${{ steps.apk.outputs.name }}" --repo "$GITHUB_REPOSITORY" --clobber
