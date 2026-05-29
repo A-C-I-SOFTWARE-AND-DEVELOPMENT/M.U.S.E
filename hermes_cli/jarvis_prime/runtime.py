@@ -361,6 +361,15 @@ class JarvisPrime:
         cleared = len(pending)
         self.config.owner_auth.pending = []
         self.config.proactive_tick_enabled = False
+        # Release every worker branch lease so a halted JARVIS never leaves
+        # Claude Code / Codex holding a branch they can no longer act on.
+        leases_cleared = 0
+        try:
+            from hermes_cli.jarvis_prime import worker_locks as _wl
+
+            leases_cleared = _wl.clear_all_leases()
+        except Exception:  # pragma: no cover - defensive
+            pass
         try:
             self.config.memory.remember(
                 key="emergency_stop",
@@ -376,6 +385,7 @@ class JarvisPrime:
             "tick_disabled": True,
             "reason": reason,
             "cleared_actions": [g.action for g in pending],
+            "branch_leases_cleared": leases_cleared,
         }
 
     # ------------------------------------------------------------------

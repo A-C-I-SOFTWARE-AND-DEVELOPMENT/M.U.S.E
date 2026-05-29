@@ -185,6 +185,20 @@ from hermes_cli.jarvis_prime.work_packet import (
     WorkPacket,
     WorkPacketValidationFinding,
 )
+from hermes_cli.jarvis_prime.goal_boundary import (
+    BoundaryError,
+    Decision as LoopDecision,
+    GoalBoundary,
+    LoopController,
+    LoopVerdict,
+    StopReason,
+)
+from hermes_cli.jarvis_prime.navigation import (
+    EditSite,
+    IssueLocalizer,
+    NavigationResult,
+    Navigator,
+)
 
 __all__ = [
     "AUTHORIZATION_PHRASE",
@@ -195,6 +209,7 @@ __all__ = [
     "AuditReport",
     "AwarenessMemoryRecord",
     "AwarenessSnapshot",
+    "BoundaryError",
     "CodingIntent",
     "CodingOwnerGate",
     "CodingRouteDecision",
@@ -209,15 +224,24 @@ __all__ = [
     "EvidenceStrength",
     "ExecutionPlan",
     "DEFAULT_FORMAT",
+    "EditSite",
     "Gate",
     "GateOutcome",
     "GateResult",
     "GateSummary",
     "GatewayState",
     "GitHubSnapshot",
+    "GoalBoundary",
     "Inference",
+    "IssueLocalizer",
     "JarvisPrime",
     "JobStatus",
+    "LoopController",
+    "LoopDecision",
+    "LoopVerdict",
+    "NavigationResult",
+    "Navigator",
+    "StopReason",
     "MOBILE_VOICE_FORMAT",
     "MemoryChunk",
     "MemoryLayer",

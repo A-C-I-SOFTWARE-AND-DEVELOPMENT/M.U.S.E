@@ -552,6 +552,52 @@ def _cmd_packet(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_bootstrap(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import model_bootstrap as mb
+
+    result = mb.bootstrap(
+        free_first=args.free_first,
+        jarvis=args.jarvis,
+        dry_run=args.dry_run,
+        no_pull=args.no_pull,
+        force=args.force,
+        local_only=args.local_only,
+    )
+    if args.json:
+        _print_json(result.to_dict())
+    else:
+        print(result.render())
+    return 0 if result.ok else 1
+
+
+def _cmd_launch(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.launch import launch as _launch
+
+    summary = _launch(
+        free_first=args.free_first,
+        no_pull=args.no_pull,
+        force=args.force,
+        local_only=args.local_only,
+        dry_run=args.dry_run,
+    )
+    if args.json:
+        _print_json(summary.to_dict())
+    else:
+        print(summary.render())
+    return 0 if summary.ok else 1
+
+
+def _cmd_launch_doctor(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.launch_doctor import run_launch_doctor
+
+    report = run_launch_doctor()
+    if args.json:
+        _print_json(report.to_dict())
+    else:
+        print(report.render())
+    return 0 if report.ok else 1
+
+
 def _cmd_memory_tree(args: argparse.Namespace) -> int:
     # Persistent Memory OS operations are addressed by a positional verb
     # (add / search / outline / export-markdown). Without a verb the command
@@ -1219,6 +1265,56 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_brief.add_argument("--context", help="Path to a JSON monitor-context file")
     p_brief.add_argument("--json", action="store_true")
     p_brief.set_defaults(func=_cmd_owner_brief)
+
+    def _add_bootstrap_flags(p: argparse.ArgumentParser) -> None:
+        p.add_argument(
+            "--free-first", dest="free_first", action="store_true", default=True
+        )
+        p.add_argument("--no-free-first", dest="free_first", action="store_false")
+        p.add_argument("--jarvis", dest="jarvis", action="store_true", default=True)
+        p.add_argument("--dry-run", action="store_true")
+        p.add_argument("--no-pull", action="store_true")
+        p.add_argument("--force", action="store_true")
+        p.add_argument("--local-only", dest="local_only", action="store_true")
+        p.add_argument("--json", action="store_true")
+
+    p_bootstrap = sub.add_parser(
+        "bootstrap",
+        help="Free-first model bootstrap (local OSS first; paid opt-in only)",
+        description=(
+            "Detect local runtimes, configured hosted OSS providers, and the "
+            "official Claude Code / Codex worker CLIs, then write the JARVIS "
+            "free-first model routing policy. No API keys are requested or "
+            "stored; paid APIs are explicit opt-in only."
+        ),
+    )
+    _add_bootstrap_flags(p_bootstrap)
+    p_bootstrap.set_defaults(func=_cmd_bootstrap)
+
+    p_launch = sub.add_parser(
+        "launch",
+        help="Run the free-first JARVIS Prime launch path",
+        description=(
+            "Runtime check → model bootstrap → memory init → owner gate → "
+            "emergency stop → slash commands → worker detection → launch "
+            "doctor, then print the next commands."
+        ),
+    )
+    _add_bootstrap_flags(p_launch)
+    p_launch.set_defaults(func=_cmd_launch)
+
+    p_launch_doctor = sub.add_parser(
+        "launch-doctor",
+        help="Verify free-first JARVIS launch readiness",
+        description=(
+            "Run the launch-readiness checks (runtime, owner gate, emergency "
+            "stop, model brain, model policy, local runtimes, worker lanes, "
+            "installer, Termux compatibility). Exits nonzero only on a hard "
+            "launch blocker."
+        ),
+    )
+    p_launch_doctor.add_argument("--json", action="store_true")
+    p_launch_doctor.set_defaults(func=_cmd_launch_doctor)
 
     args = parser.parse_args(argv)
     return args.func(args)

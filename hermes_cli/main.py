@@ -5810,9 +5810,84 @@ def cmd_hooks(args):
 
 def cmd_doctor(args):
     """Check configuration and dependencies."""
+    if getattr(args, "jarvis_launch", False):
+        return cmd_jarvis_launch_doctor(args)
     from hermes_cli.doctor import run_doctor
 
     run_doctor(args)
+
+
+def cmd_jarvis_launch_doctor(args):
+    """Run the free-first JARVIS Prime launch-readiness doctor."""
+    import json as _json
+
+    from hermes_cli.jarvis_prime.launch_doctor import run_launch_doctor
+
+    report = run_launch_doctor()
+    if getattr(args, "json", False):
+        print(_json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    # Exit nonzero only on a hard launch blocker.
+    raise SystemExit(0 if report.ok else 1)
+
+
+def cmd_jarvis(args):
+    """JARVIS Prime launch + operations (free-first)."""
+    import json as _json
+
+    action = getattr(args, "jarvis_command", None)
+    if action == "launch":
+        from hermes_cli.jarvis_prime.launch import launch as _launch
+
+        summary = _launch(
+            free_first=getattr(args, "free_first", True),
+            no_pull=getattr(args, "no_pull", False),
+            force=getattr(args, "force", False),
+            local_only=getattr(args, "local_only", False),
+            dry_run=getattr(args, "dry_run", False),
+        )
+        if getattr(args, "json", False):
+            print(_json.dumps(summary.to_dict(), indent=2))
+        else:
+            print(summary.render())
+        raise SystemExit(0 if summary.ok else 1)
+    if action == "stop":
+        from hermes_cli.jarvis_prime.runtime import JarvisPrime
+
+        result = JarvisPrime().stop(reason=getattr(args, "reason", "owner_requested"))
+        print(_json.dumps(result, indent=2, default=str))
+        raise SystemExit(0)
+    # No subcommand → show help.
+    print("usage: hermes jarvis {launch|stop} [options]")
+    print("  hermes jarvis launch   Run the free-first JARVIS launch path")
+    print("  hermes jarvis stop     Emergency stop (clear gates, leases, autonomy)")
+    raise SystemExit(2)
+
+
+def cmd_models(args):
+    """Free-first model operations (bootstrap, ...)."""
+    import json as _json
+
+    action = getattr(args, "models_command", None)
+    if action == "bootstrap":
+        from hermes_cli.jarvis_prime.model_bootstrap import bootstrap as _bootstrap
+
+        result = _bootstrap(
+            free_first=getattr(args, "free_first", True),
+            jarvis=getattr(args, "jarvis", True),
+            dry_run=getattr(args, "dry_run", False),
+            no_pull=getattr(args, "no_pull", False),
+            force=getattr(args, "force", False),
+            local_only=getattr(args, "local_only", False),
+        )
+        if getattr(args, "json", False):
+            print(_json.dumps(result.to_dict(), indent=2))
+        else:
+            print(result.render())
+        raise SystemExit(0 if result.ok else 1)
+    print("usage: hermes models bootstrap [--free-first] [--jarvis] [options]")
+    raise SystemExit(2)
 
 
 def cmd_dump(args):
@@ -10295,8 +10370,8 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "computer-use",
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "hooks", "import", "insights",
-        "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
-        "model", "pairing", "plugins", "postinstall", "profile", "proxy",
+        "jarvis", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
+        "model", "models", "pairing", "plugins", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
         "skills", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "chat",
@@ -11347,7 +11422,105 @@ def main():
             "doctor` first to see active advisories and their IDs."
         ),
     )
+    doctor_parser.add_argument(
+        "--jarvis-launch",
+        action="store_true",
+        help=(
+            "Run the free-first JARVIS Prime launch-readiness doctor instead "
+            "of the general diagnostics. Verifies the one-command launch path "
+            "(runtime, owner gate, emergency stop, model brain, model policy, "
+            "local runtimes, Claude Code/Codex worker lanes, installer)."
+        ),
+    )
+    doctor_parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit machine-readable JSON (used with --jarvis-launch).",
+    )
     doctor_parser.set_defaults(func=cmd_doctor)
+
+    # =========================================================================
+    # jarvis command — free-first JARVIS Prime launch + emergency stop
+    # =========================================================================
+    jarvis_parser = subparsers.add_parser(
+        "jarvis",
+        help="JARVIS Prime: free-first launch and emergency stop",
+        description=(
+            "Launch and operate JARVIS Prime, the local-first AI operating "
+            "partner. `jarvis launch` runs the free-first launch path "
+            "(runtime check, model bootstrap, memory init, owner gate, "
+            "emergency stop, worker detection, launch doctor)."
+        ),
+    )
+    jarvis_subparsers = jarvis_parser.add_subparsers(dest="jarvis_command")
+    jarvis_launch_parser = jarvis_subparsers.add_parser(
+        "launch", help="Run the free-first JARVIS Prime launch path"
+    )
+    jarvis_launch_parser.add_argument(
+        "--no-free-first", dest="free_first", action="store_false",
+        help="Disable free-first ordering (free/OSS routes still precede paid).",
+    )
+    jarvis_launch_parser.add_argument(
+        "--no-pull", action="store_true", help="Do not pull any local models."
+    )
+    jarvis_launch_parser.add_argument(
+        "--force", action="store_true", help="Pull larger default local models too."
+    )
+    jarvis_launch_parser.add_argument(
+        "--local-only", dest="local_only", action="store_true",
+        help="Only configure local routes (no hosted/worker/paid routes).",
+    )
+    jarvis_launch_parser.add_argument(
+        "--dry-run", action="store_true", help="Plan only — write nothing, pull nothing."
+    )
+    jarvis_launch_parser.add_argument("--json", action="store_true")
+    jarvis_stop_parser = jarvis_subparsers.add_parser(
+        "stop", help="Emergency stop: clear owner gates, branch leases, autonomy"
+    )
+    jarvis_stop_parser.add_argument("--reason", default="owner_requested")
+    jarvis_parser.set_defaults(func=cmd_jarvis)
+
+    # =========================================================================
+    # models command — free-first model bootstrap
+    # =========================================================================
+    models_parser = subparsers.add_parser(
+        "models",
+        help="Free-first model bootstrap (local OSS first, paid opt-in only)",
+        description=(
+            "Bootstrap JARVIS Prime's model routing. Detects local runtimes "
+            "(ollama/llama.cpp/vllm/lmstudio), already-configured hosted OSS "
+            "providers, and the official Claude Code / Codex worker CLIs, then "
+            "writes a free-first routing policy. Paid APIs are explicit opt-in "
+            "only; no keys are requested or stored."
+        ),
+    )
+    models_subparsers = models_parser.add_subparsers(dest="models_command")
+    models_bootstrap_parser = models_subparsers.add_parser(
+        "bootstrap", help="Detect runtimes and write the free-first model policy"
+    )
+    models_bootstrap_parser.add_argument(
+        "--free-first", dest="free_first", action="store_true", default=True,
+        help="Order free/OSS routes before paid (default).",
+    )
+    models_bootstrap_parser.add_argument(
+        "--jarvis", dest="jarvis", action="store_true", default=True,
+        help="Write the JARVIS Prime model policy (default).",
+    )
+    models_bootstrap_parser.add_argument(
+        "--dry-run", action="store_true", help="Plan only — write nothing, pull nothing."
+    )
+    models_bootstrap_parser.add_argument(
+        "--no-pull", action="store_true", help="Do not call the local model pull command."
+    )
+    models_bootstrap_parser.add_argument(
+        "--force", action="store_true", help="Pull larger default local models too."
+    )
+    models_bootstrap_parser.add_argument(
+        "--local-only", dest="local_only", action="store_true",
+        help="Only configure local routes (no hosted/worker/paid routes).",
+    )
+    models_bootstrap_parser.add_argument("--json", action="store_true")
+    models_parser.set_defaults(func=cmd_models)
 
     # =========================================================================
     # dump command

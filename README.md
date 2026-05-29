@@ -91,6 +91,29 @@ loyal and verification-first, not "fully autonomous." New CLI lanes:
 bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh)
 ```
 
+### One-click JARVIS Prime launch (free-first)
+
+Add `--jarvis-launch` to install **and** bring up JARVIS Prime in one
+command — free / open-source model routes first, paid APIs explicit
+opt-in only, Claude Code and Codex wired as official worker lanes:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh) --jarvis-launch
+```
+
+Already installed? Bring JARVIS up (or re-verify) with:
+
+```bash
+hermes jarvis launch                            # full free-first launch path
+hermes models bootstrap --free-first --jarvis   # (re)configure model routing only
+hermes doctor --jarvis-launch                   # verify launch readiness
+```
+
+Then invoke JARVIS with `/jarvis` (aliases `/jp`, `/jarvis-prime`) and stop
+it instantly with `/jarvis stop`. A missing local model runtime (Ollama,
+etc.) is a warning, not a blocker. Full guide:
+[`docs/jarvis-free-first-launch.md`](docs/jarvis-free-first-launch.md).
+
 ### Windows (native, PowerShell) — Early Beta
 
 > **Heads up:** Native Windows support is **early beta**. It installs and runs, but hasn't been road-tested as broadly as our Linux/macOS/WSL2 paths. Please [file issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/issues) when you hit rough edges. For the most battle-tested Windows setup today, run the Linux/macOS one-liner above inside **WSL2**.
@@ -99,6 +122,13 @@ Run this in PowerShell:
 
 ```powershell
 iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.ps1)
+```
+
+For the one-click JARVIS Prime launch on Windows, download and run with the
+`-JarvisLaunch` switch (parity with `--jarvis-launch`):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.ps1))) -JarvisLaunch
 ```
 
 The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
