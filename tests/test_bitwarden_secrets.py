@@ -34,15 +34,24 @@ from agent.secret_sources import bitwarden as bw  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def _reset_caches(tmp_path_factory, monkeypatch):
+    # apply_bitwarden_secrets writes applied keys straight into os.environ
+    # (bitwarden.py: `os.environ[key] = value`) — NOT via monkeypatch — so
+    # without an explicit restore those keys (e.g. NEW_KEY) leak across tests
+    # that share an xdist worker. A later override-sensitive test then sees the
+    # leaked key already present and skips it, flaking on `assert 'NEW_KEY' in
+    # []`. Snapshot the environment up front and restore it on teardown so each
+    # test is hermetic regardless of worker/test ordering.
+    env_snapshot = dict(os.environ)
     # Isolate HERMES_HOME per test so the disk cache at
     # <HERMES_HOME>/cache/bws_cache.json doesn't get shared between xdist
-    # workers (which race on a single shared file otherwise and cause
-    # the apply_bitwarden_secrets tests to flake on `assert 'NEW_KEY' in []`).
+    # workers (which race on a single shared file otherwise).
     isolated_home = tmp_path_factory.mktemp("hermes_home_bw")
     monkeypatch.setenv("HERMES_HOME", str(isolated_home))
     bw._reset_cache_for_tests(home_path=isolated_home)
     yield
     bw._reset_cache_for_tests(home_path=isolated_home)
+    os.environ.clear()
+    os.environ.update(env_snapshot)
 
 
 @pytest.fixture
@@ -440,6 +449,9 @@ def test_apply_missing_project_id(monkeypatch):
 def test_apply_does_not_override_existing(monkeypatch, tmp_path):
     monkeypatch.setenv("BWS_ACCESS_TOKEN", "0.t")
     monkeypatch.setenv("OPENAI_API_KEY", "existing-value")
+    # NEW_KEY must be absent so apply() applies (not skips) it; defend against a
+    # value leaked by an earlier test on the same xdist worker.
+    monkeypatch.delenv("NEW_KEY", raising=False)
     fake_binary = tmp_path / "bws"
     fake_binary.write_text("")
     payload = _fake_bws_payload([
