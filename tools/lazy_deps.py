@@ -168,6 +168,7 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     # Dashboard (`hermes dashboard`)
     "tool.dashboard": (
         "fastapi==0.133.1",
+        "starlette==1.0.0",  # CVE fix; FastAPI 0.133.1 resolver-compatible
         "uvicorn[standard]==0.41.0",
     ),
 }
