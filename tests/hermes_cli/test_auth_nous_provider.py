@@ -95,8 +95,13 @@ class TestResolveVerifyFallback:
     def test_no_ca_bundle_returns_true(self, monkeypatch):
         from hermes_cli.auth import _resolve_verify
 
+        # Clear every CA-bundle env var _resolve_verify consults, so the
+        # test is hermetic: some environments (containers, CI images) ship
+        # REQUESTS_CA_BUNDLE/SSL_CERT_FILE pointing at the system trust
+        # store, which would otherwise make this return an SSLContext.
         monkeypatch.delenv("HERMES_CA_BUNDLE", raising=False)
         monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+        monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
         result = _resolve_verify(auth_state={"tls": {}})
         assert result is True
 
