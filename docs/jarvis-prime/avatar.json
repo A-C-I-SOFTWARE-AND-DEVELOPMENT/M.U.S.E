@@ -1,0 +1,83 @@
+{
+  "name": "JARVIS Prime",
+  "short_name": "Jarvis",
+  "tagline": "Your command-center agent.",
+  "glyph": "Two concentric rings — gold outer, cyan inner — around a luminous gold prime dot: the watchful eye.",
+  "palette": {
+    "ink": "#05070D",
+    "surface": "#101630",
+    "signal": "#E7ECF7",
+    "gold": "#E6B341",
+    "cyan": "#38C6E0",
+    "crimson": "#E5484D",
+    "jade": "#3DD68C"
+  },
+  "default_locale": "en-US",
+  "voices": [
+    {
+      "locale": "en-US",
+      "language_name": "English",
+      "tts_voice": "en_US-amy-medium",
+      "greeting": "Ready when you are.",
+      "listening_prompt": "I'm listening.",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    {
+      "locale": "es-ES",
+      "language_name": "Español",
+      "tts_voice": "es_ES-davefx-medium",
+      "greeting": "Listo cuando tú lo estés.",
+      "listening_prompt": "Te escucho.",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    {
+      "locale": "fr-FR",
+      "language_name": "Français",
+      "tts_voice": "fr_FR-siwis-medium",
+      "greeting": "Prêt quand vous l'êtes.",
+      "listening_prompt": "Je vous écoute.",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    {
+      "locale": "ja-JP",
+      "language_name": "日本語",
+      "tts_voice": "ja_JP-test-medium",
+      "greeting": "準備はいつでも。",
+      "listening_prompt": "聞いています。",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    {
+      "locale": "zh-CN",
+      "language_name": "简体中文",
+      "tts_voice": "zh_CN-huayan-medium",
+      "greeting": "随时待命。",
+      "listening_prompt": "我在听。",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    },
+    {
+      "locale": "ko-KR",
+      "language_name": "한국어",
+      "tts_voice": "ko_KR-glow-medium",
+      "greeting": "언제든 준비됐어요.",
+      "listening_prompt": "듣고 있어요.",
+      "speaking_rate": 1.0,
+      "pitch": 0.0
+    }
+  ],
+  "local_voice": {
+    "stt_engine": "faster-whisper",
+    "stt_model": "base",
+    "stt_compute": "int8",
+    "tts_engine": "piper",
+    "sample_rate_hz": 22050,
+    "offline_first": true,
+    "wake_phrase": "Jarvis",
+    "vad": true
+  },
+  "persona_spec": "docs/jarvis-prime-operating-system.md"
+}

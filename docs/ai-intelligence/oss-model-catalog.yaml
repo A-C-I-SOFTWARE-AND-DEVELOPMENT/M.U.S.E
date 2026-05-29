@@ -1,0 +1,344 @@
+# JARVIS Prime — Open-Source / Open-Weight Model Brain
+#
+# Canonical, cross-referenced catalog of the open-weight models JARVIS
+# Prime can learn from and route work to. This is the *model* layer
+# (which open model is best for a task); the *worker* layer (which agent
+# executes it) lives in model-registry.yaml, and the *transport* layer
+# (how to reach a provider) lives in plugins/model-providers/<name>/.
+#
+# WHY A CATALOG (not hardcoded strings):
+#   Frontier open models churn fast — version numbers move month to month
+#   (GLM-4.7 -> 5 -> 5.1, Kimi K2 -> K2.5 -> K2.6, Qwen 3.5 -> 3.6 -> 3.7,
+#   DeepSeek V3.2 -> V4). So each entry is a *family* with a
+#   ``current_variant`` plus an ``updated_at`` date and the ``sources``
+#   used to validate it. Refresh the variant/benchmarks; keep the routing.
+#
+# HOW JARVIS USES IT:
+#   hermes_cli/oss_model_brain.py loads this file into typed objects and
+#   answers "best open model(s) for task X, given my installed providers
+#   and privacy constraints." The jarvis-prime CLI exposes it as
+#   ``python -m hermes_cli.jarvis_prime models <task>``.
+#
+# LICENSE PROVENANCE:
+#   This catalog and loader are original work, MIT-licensed with the rest
+#   of hermes-agent. The local-first emphasis (run capable models on your
+#   own hardware) is inspired by OpenHuman (github.com/tinyhumansai/openhuman,
+#   GPL-3.0) — concept only, no code copied. Credit to the OpenHuman team.
+#
+# SCHEMA (version 1):
+#   families[].id              stable family id used in routing[]
+#   families[].vendor          who trains it
+#   families[].license         human license string
+#   families[].license_spdx    normalized SPDX-ish token for filtering
+#   families[].open_weights    true if weights are downloadable
+#   families[].tier            frontier | strong | local
+#   families[].current_variant best-known variant as of updated_at
+#   families[].context_window  tokens
+#   families[].params          human description
+#   families[].local           true if a variant runs on a single workstation
+#   families[].local_runner    ollama | llamacpp | vllm (when local)
+#   families[].best_for         task categories this family excels at
+#   families[].benchmarks       cross-referenced scores (percent unless noted)
+#   families[].providers        ordered [{provider, model}] — provider must
+#                               match a plugins/model-providers/<name> id
+#   families[].why              one-line rationale
+#   families[].sources          validation URLs
+#   routing                     task category -> ordered family ids (pref+fallback)
+#
+# Unknown fields are ignored; add metadata without bumping version.
+
+version: 1
+updated_at: "2026-05-28"
+notes: >
+  Snapshot validated 2026-05-28 against the SWE-bench Verified, LiveCodeBench,
+  HumanEval, AIME-2025 and MATH-500 results aggregated by the sources below.
+  Scores move; treat them as a snapshot, not a contract. Refresh with
+  `hermes_cli/ai_radar.py` findings + the documented promotion flow.
+
+sources:
+  - "https://llm-stats.com/benchmarks/swe-bench-verified"
+  - "https://kilo.ai/open-source-models"
+  - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+  - "https://huggingface.co/blog/daya-shankar/open-source-llms"
+  - "https://benchlm.ai/benchmarks/sweVerified"
+
+families:
+  # ───────────────────────── Frontier coding / agentic ─────────────────────
+  - id: deepseek-v4
+    vendor: DeepSeek
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: frontier
+    current_variant: deepseek-v4
+    context_window: 1000000
+    params: "~1.6T total / ~49B active (MoE)"
+    local: false
+    best_for: [coding, agentic_coding, bug_fix, reasoning]
+    benchmarks:
+      swe_bench_verified: 80.6
+      livecodebench: 93.5
+    providers:
+      - {provider: deepseek, model: deepseek-chat}
+      - {provider: openrouter, model: deepseek/deepseek-v4}
+      - {provider: novita, model: deepseek/deepseek-v4}
+      - {provider: nvidia, model: deepseek-ai/deepseek-v4}
+    why: "Top open-weight SWE-bench Verified; frontier agentic coding with 1M context."
+    sources:
+      - "https://llm-stats.com/benchmarks/swe-bench-verified"
+      - "https://kilo.ai/open-source-models"
+
+  - id: glm-5
+    vendor: Z.ai (Zhipu)
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: frontier
+    current_variant: glm-5
+    context_window: 200000
+    params: "~744B total / ~40B active (MoE)"
+    local: false
+    best_for: [agentic_coding, bug_fix, coding, reasoning]
+    benchmarks:
+      swe_bench_verified: 77.8
+      livecodebench: 84.9
+    providers:
+      - {provider: zai, model: glm-5}
+      - {provider: openrouter, model: z-ai/glm-5}
+      - {provider: novita, model: zai-org/glm-5}
+    why: "Best open model for fixing real bugs + long-horizon agentic/terminal work."
+    sources:
+      - "https://kilo.ai/open-source-models"
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+  - id: kimi-k2
+    vendor: Moonshot AI
+    license: Modified MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: frontier
+    current_variant: kimi-k2
+    context_window: 256000
+    params: "~1T total / ~32B active (MoE)"
+    local: false
+    best_for: [coding, agentic_coding, code_edit, reasoning]
+    benchmarks:
+      humaneval: 99.0
+      livecodebench: 89.6
+      swe_bench_verified: 76.8
+    providers:
+      - {provider: kimi-coding, model: kimi-k2}
+      - {provider: openrouter, model: moonshotai/kimi-k2}
+      - {provider: novita, model: moonshotai/kimi-k2}
+    why: "Elite raw code generation (HumanEval/LiveCodeBench); strong thinking variant."
+    sources:
+      - "https://llm-stats.com/benchmarks/swe-bench-verified"
+      - "https://kilo.ai/open-source-models"
+
+  - id: minimax-m2
+    vendor: MiniMax
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: strong
+    current_variant: minimax-m2
+    context_window: 1000000
+    params: "~230B total / ~10B active (MoE)"
+    local: false
+    best_for: [agentic_coding, coding]
+    benchmarks:
+      swe_bench_verified: 80.2
+    providers:
+      - {provider: minimax, model: minimax-m2}
+      - {provider: openrouter, model: minimax/minimax-m2}
+    why: "Frontier-matching SWE-bench at far smaller active params; agentic-optimized."
+    sources:
+      - "https://llm-stats.com/benchmarks/swe-bench-verified"
+
+  - id: qwen3-coder
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: strong
+    current_variant: qwen3-coder
+    context_window: 256000
+    params: "MoE ~80B / ~3B active (also 480B variant)"
+    local: true
+    local_runner: vllm
+    best_for: [coding, code_edit, agentic_coding, local_coding]
+    benchmarks:
+      swe_bench_verified: 71.3
+    providers:
+      - {provider: qwen-oauth, model: qwen3-coder}
+      - {provider: openrouter, model: qwen/qwen3-coder}
+      - {provider: novita, model: qwen/qwen3-coder}
+      - {provider: ollama-cloud, model: qwen3-coder}
+    why: "Best permissive (Apache-2.0) coder; small active params run on a workstation."
+    sources:
+      - "https://kilo.ai/open-source-models"
+
+  # ───────────────────────── Local-first coding ────────────────────────────
+  - id: qwen3-27b
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: local
+    current_variant: qwen3.6-27b
+    context_window: 262000
+    params: "27B dense"
+    local: true
+    local_runner: ollama
+    best_for: [local_coding, coding, code_edit, local_reasoning]
+    benchmarks:
+      swe_bench_verified: 77.2
+    providers:
+      - {provider: ollama-cloud, model: qwen3:27b}
+      - {provider: openrouter, model: qwen/qwen3-27b}
+      - {provider: novita, model: qwen/qwen3-27b}
+    why: "Dense 27B you can run locally that still posts 77% SWE-bench Verified."
+    sources:
+      - "https://kilo.ai/open-source-models"
+
+  - id: devstral-small
+    vendor: Mistral
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: local
+    current_variant: devstral-small-2
+    context_window: 128000
+    params: "24B dense"
+    local: true
+    local_runner: ollama
+    best_for: [local_coding, code_edit, bug_fix]
+    benchmarks:
+      swe_bench_verified: 68.0
+    providers:
+      - {provider: ollama-cloud, model: devstral-small}
+      - {provider: huggingface, model: mistralai/Devstral-Small-2}
+      - {provider: openrouter, model: mistralai/devstral-small-2}
+    why: "Purpose-built local coding agent; fits a single 24GB GPU."
+    sources:
+      - "https://kilo.ai/open-source-models"
+
+  # ───────────────────────── Reasoning / math ──────────────────────────────
+  - id: deepseek-r1
+    vendor: DeepSeek
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: frontier
+    current_variant: deepseek-r1
+    context_window: 128000
+    params: "~671B total / ~37B active (MoE)"
+    local: false
+    best_for: [reasoning, math]
+    benchmarks:
+      math_500: 97.3
+    providers:
+      - {provider: deepseek, model: deepseek-reasoner}
+      - {provider: openrouter, model: deepseek/deepseek-r1}
+      - {provider: nvidia, model: deepseek-ai/deepseek-r1}
+    why: "Near-perfect MATH-500; the reference open reasoning model."
+    sources:
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+  - id: deepseek-r1-distill-8b
+    vendor: DeepSeek
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: local
+    current_variant: deepseek-r1-distill-qwen3-8b
+    context_window: 128000
+    params: "8B dense (distilled)"
+    local: true
+    local_runner: ollama
+    best_for: [local_reasoning, reasoning, math]
+    benchmarks:
+      aime_2025: 87.5
+    providers:
+      - {provider: ollama-cloud, model: deepseek-r1:8b}
+      - {provider: huggingface, model: deepseek-ai/DeepSeek-R1-Distill-Qwen3-8B}
+      - {provider: openrouter, model: deepseek/deepseek-r1-distill-qwen3-8b}
+    why: "8B that matches far larger models on AIME — best local reasoner."
+    sources:
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+  - id: qwen3-235b
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: frontier
+    current_variant: qwen3-235b-a22b
+    context_window: 262000
+    params: "235B total / ~22B active (MoE)"
+    local: false
+    best_for: [reasoning, math, coding]
+    benchmarks:
+      aime_2025: 89.2
+      humaneval: 91.5
+    providers:
+      - {provider: qwen-oauth, model: qwen3-235b-a22b}
+      - {provider: openrouter, model: qwen/qwen3-235b-a22b}
+      - {provider: nvidia, model: qwen/qwen3-235b-a22b}
+    why: "Top open reasoning+math (AIME 89%) under permissive Apache-2.0."
+    sources:
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+  - id: gpt-oss-120b
+    vendor: OpenAI (open weights)
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: strong
+    current_variant: gpt-oss-120b
+    context_window: 131000
+    params: "117B total / 5.1B active (MoE)"
+    local: false
+    best_for: [reasoning, agentic_coding]
+    benchmarks: {}
+    providers:
+      - {provider: openrouter, model: openai/gpt-oss-120b}
+      - {provider: novita, model: openai/gpt-oss-120b}
+      - {provider: nvidia, model: openai/gpt-oss-120b}
+      - {provider: ollama-cloud, model: gpt-oss:120b}
+    why: "Near o4-mini reasoning, Apache-2.0; pairs with the 20B local sibling."
+    sources:
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+  - id: gpt-oss-20b
+    vendor: OpenAI (open weights)
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: local
+    current_variant: gpt-oss-20b
+    context_window: 131000
+    params: "21B total / 3.6B active (MoE) — runs on 16GB RAM"
+    local: true
+    local_runner: ollama
+    best_for: [local_reasoning, local_coding, reasoning]
+    benchmarks: {}
+    providers:
+      - {provider: ollama-cloud, model: gpt-oss:20b}
+      - {provider: huggingface, model: openai/gpt-oss-20b}
+      - {provider: openrouter, model: openai/gpt-oss-20b}
+    why: "Capable reasoning on a 16GB laptop — the everyday local default."
+    sources:
+      - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
+
+# Task category -> ordered family ids (preference first, then fallbacks).
+# Tasks prefixed local_ bias toward families with local:true.
+routing:
+  coding:          [deepseek-v4, glm-5, kimi-k2, minimax-m2, qwen3-coder]
+  agentic_coding:  [glm-5, deepseek-v4, kimi-k2, minimax-m2, qwen3-coder]
+  bug_fix:         [glm-5, deepseek-v4, kimi-k2, qwen3-coder, devstral-small]
+  code_edit:       [qwen3-coder, kimi-k2, glm-5, devstral-small, deepseek-v4]
+  reasoning:       [deepseek-r1, qwen3-235b, glm-5, gpt-oss-120b, deepseek-v4]
+  math:            [deepseek-r1, qwen3-235b, deepseek-r1-distill-8b]
+  local_coding:    [qwen3-coder, qwen3-27b, devstral-small, gpt-oss-20b]
+  local_reasoning: [deepseek-r1-distill-8b, gpt-oss-20b, qwen3-27b]

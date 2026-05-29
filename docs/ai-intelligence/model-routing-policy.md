@@ -8,6 +8,11 @@ task. The companion files are:
   the host.
 - `skills/model-router/SKILL.md` — the runtime entry point that loads
   this policy and applies it per task.
+- `oss-model-catalog.yaml` / `oss-model-catalog.md` — the **OSS model
+  brain**: the cross-referenced catalog of open-weight models (which
+  *open model* is best per task) that JARVIS Prime can route to via the
+  installed providers. The worker layer here answers "which agent";
+  the OSS brain answers "which open model that agent should run."
 
 The policy is intentionally deterministic. Two Hermes sessions on the
 same machine with the same registry and the same task should produce
