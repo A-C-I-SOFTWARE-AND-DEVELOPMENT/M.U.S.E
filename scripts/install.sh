@@ -73,6 +73,7 @@ SKIP_BROWSER=false
 BRANCH="main"
 ENSURE_DEPS=""
 POSTINSTALL_MODE=false
+JARVIS_LAUNCH=false
 
 # Detect non-interactive mode (e.g. curl | bash)
 # When stdin is not a terminal, read -p will fail with EOF,
@@ -119,6 +120,10 @@ while [[ $# -gt 0 ]]; do
             POSTINSTALL_MODE=true
             shift
             ;;
+        --jarvis-launch)
+            JARVIS_LAUNCH=true
+            shift
+            ;;
         -h|--help)
             echo "Hermes Agent Installer"
             echo ""
@@ -149,6 +154,12 @@ while [[ $# -gt 0 ]]; do
             echo "  --postinstall  Run post-install setup only (for pip users)"
             echo "                   Installs optional deps + runs hermes setup"
             echo "                   Does NOT clone repo or create venv"
+            echo "  --jarvis-launch After install, bootstrap free-first model"
+            echo "                   routing and verify JARVIS Prime launch"
+            echo "                   readiness (runs: hermes models bootstrap"
+            echo "                   --free-first --jarvis; hermes doctor"
+            echo "                   --jarvis-launch). Missing local runtimes are"
+            echo "                   warnings; a broken Hermes is a hard failure."
             exit 0
             ;;
         *)
@@ -2033,6 +2044,81 @@ postinstall_mode() {
 }
 
 # ============================================================================
+# JARVIS Prime free-first launch (opt-in via --jarvis-launch)
+# ============================================================================
+
+# Resolve a usable `hermes` command after install, in preference order.
+resolve_hermes_cmd() {
+    if [ -n "${HERMES_BIN:-}" ] && [ -x "$HERMES_BIN" ]; then
+        echo "$HERMES_BIN"; return 0
+    fi
+    local link_dir
+    link_dir="$(get_command_link_dir 2>/dev/null || echo "")"
+    if [ -n "$link_dir" ] && [ -x "$link_dir/hermes" ]; then
+        echo "$link_dir/hermes"; return 0
+    fi
+    if command -v hermes >/dev/null 2>&1; then
+        command -v hermes; return 0
+    fi
+    if [ -x "$INSTALL_DIR/venv/bin/hermes" ]; then
+        echo "$INSTALL_DIR/venv/bin/hermes"; return 0
+    fi
+    echo ""
+}
+
+# Bootstrap free-first model routing and verify launch readiness.
+# Safe in non-interactive (curl | bash) mode: neither command prompts.
+# Missing local runtimes / workers are warnings; a Hermes that cannot
+# launch (the doctor's hard checks fail) is a hard failure.
+run_jarvis_launch() {
+    [ "$JARVIS_LAUNCH" = true ] || return 0
+
+    echo ""
+    log_info "JARVIS Prime — free-first launch"
+
+    local hermes_cmd
+    hermes_cmd="$(resolve_hermes_cmd)"
+    if [ -z "$hermes_cmd" ]; then
+        log_warn "hermes command not found after install — skipping JARVIS launch"
+        log_info "Recovery: cd $INSTALL_DIR && ./venv/bin/hermes models bootstrap --free-first --jarvis"
+        return 0
+    fi
+
+    # 1. Model bootstrap. --no-pull keeps unattended installs from pulling
+    #    multi-GB models; the user pulls on demand later. Optional missing
+    #    providers/runtimes are warnings, so a nonzero here is non-fatal.
+    log_info "Bootstrapping free-first model routing (local OSS first; paid opt-in only)..."
+    if "$hermes_cmd" models bootstrap --free-first --jarvis --no-pull; then
+        log_success "Model routing bootstrapped"
+    else
+        log_warn "Model bootstrap reported issues (often just missing optional runtimes)"
+        log_info "Re-run later: $hermes_cmd models bootstrap --free-first --jarvis"
+    fi
+
+    # 2. Launch-readiness doctor. Exits nonzero ONLY on a hard launch
+    #    blocker (Hermes/JARVIS cannot launch) — that is a real failure.
+    log_info "Verifying JARVIS Prime launch readiness..."
+    if "$hermes_cmd" doctor --jarvis-launch; then
+        log_success "JARVIS Prime is launch-ready"
+    else
+        log_error "JARVIS launch doctor found a hard launch blocker"
+        log_info "Recovery commands:"
+        log_info "  $hermes_cmd doctor --jarvis-launch       # see the failing checks"
+        log_info "  $hermes_cmd models bootstrap --free-first --jarvis"
+        log_info "  cd $INSTALL_DIR && ${UV_CMD:-uv} pip install -e '.[all]'   # repair the install"
+        exit 1
+    fi
+
+    echo ""
+    log_success "JARVIS Prime is ready."
+    log_info "Start Hermes:   $hermes_cmd"
+    log_info "Invoke JARVIS:  /jarvis   (aliases: /jp, /jarvis-prime)"
+    log_info "Run doctor:     $hermes_cmd doctor --jarvis-launch"
+    log_info "Stop JARVIS:    /jarvis stop   (or: python -m hermes_cli.jarvis_prime stop)"
+    log_info "Pull a local model later:  ollama pull deepseek-r1:8b"
+}
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -2058,6 +2144,8 @@ main() {
     maybe_start_gateway
 
     print_success
+
+    run_jarvis_launch
 
     echo "git" > "$HERMES_HOME/.install_method"
 }

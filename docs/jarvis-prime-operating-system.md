@@ -231,6 +231,45 @@ JARVIS Prime should route to Codex when the task needs independent review, bound
 
 JARVIS Prime should route to Mobile Voice Mode when Jeremiah is moving or the message appears to be a rough voice capture.
 
+## Model Bootstrap & Free-First Launch
+
+JARVIS Prime's model routing is **free-first**: free / open-source routes
+come before paid ones, and paid APIs are explicit opt-in only. Claude Code
+and Codex are official **worker lanes** (used through their own installed
+CLIs and your own subscription/session), never generic model API backends.
+
+Bring JARVIS up, or (re)configure routing, with:
+
+```bash
+hermes jarvis launch                            # full free-first launch path
+hermes models bootstrap --free-first --jarvis   # (re)configure model routing only
+hermes doctor --jarvis-launch                   # verify launch readiness
+```
+
+Or one-click from a fresh machine:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh) --jarvis-launch
+```
+
+The dependency-free equivalents (Termux / slim images) are
+`python -m hermes_cli.jarvis_prime {bootstrap,launch,launch-doctor,stop}`.
+
+The bootstrap writes `${HERMES_HOME:-~/.hermes}/jarvis_prime/model_policy.json`
+with this route order:
+
+1. `local_oss` — Ollama / llama.cpp / vLLM / LM Studio
+2. `hosted_free_or_user_configured_oss` — OpenRouter / Hugging Face / Nous / … (only if a key is already present)
+3. `claude_code_worker` — official Claude Code CLI (builder lane)
+4. `codex_worker` — official Codex CLI (reviewer / bounded-fix lanes)
+5. `paid_api_explicit_only` — disabled unless `HERMES_JARVIS_ENABLE_PAID=1`
+
+Model choices come from the OSS model brain catalog
+(`docs/ai-intelligence/oss-model-catalog.yaml`). No API keys are requested
+or stored; no secrets are written to config, logs, or memory. A missing
+local runtime is a warning, not a launch blocker. Full guide:
+[`jarvis-free-first-launch.md`](jarvis-free-first-launch.md).
+
 ## Specialist Activation Rules
 
 HazMat Command activates only for:
