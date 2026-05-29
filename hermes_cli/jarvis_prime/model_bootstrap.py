@@ -261,7 +261,7 @@ def build_local_plan(
     *,
     hardware: Any,
     accept_downloads: bool,
-) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]], list[str]]:
+) -> tuple[Optional[dict[str, Any]], list[str], list[str]]:
     """Build the hardware-aware local model plan via the local model layer.
 
     Returns ``(plan_dict, recommended_model_names, warnings)``. Defensive:
@@ -282,7 +282,7 @@ def build_local_plan(
             hardware.tier, hardware=hardware, accept_downloads=accept_downloads
         )
         plan_dict = plan.to_dict()
-        recommended = [item.model.name for item in plan.recommended]
+        recommended: list[str] = [item.model.name for item in plan.recommended]
         return plan_dict, recommended, warnings
     except Exception as exc:  # pragma: no cover - defensive
         warnings.append(f"Local model plan unavailable ({exc}); routing policy only.")
@@ -304,7 +304,11 @@ def execute_local_downloads(
         outcomes = execute_bootstrap(
             plan_obj, accept_downloads=accept_downloads, runner=runner
         )
-        return [o.to_dict() if hasattr(o, "to_dict") else dict(o) for o in outcomes]
+        result: list[dict[str, Any]] = []
+        for o in outcomes:
+            to_dict = getattr(o, "to_dict", None)
+            result.append(to_dict() if callable(to_dict) else {"detail": str(o)})
+        return result
     except Exception as exc:  # pragma: no cover - defensive
         return [
             {"attempted": False, "ok": False, "detail": f"download step failed: {exc}"}
