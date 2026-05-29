@@ -111,7 +111,10 @@ def _cmd_gate(args: argparse.Namespace) -> int:
                     print(f"  - {f}")
             return 0 if result.outcome.value == "pass" else 1
 
-    print(f"Unknown gate: {args.name!r}. Known: {[g.name for g in GATES]+['all']}", file=sys.stderr)
+    print(
+        f"Unknown gate: {args.name!r}. Known: {[g.name for g in GATES] + ['all']}",
+        file=sys.stderr,
+    )
     return 2
 
 
@@ -135,13 +138,17 @@ def _cmd_handle(args: argparse.Namespace) -> int:
     if args.packet:
         packet = json.loads(Path(args.packet).read_text(encoding="utf-8"))
 
-    turn = jp.handle(args.intent, context=context, packet=packet, skip_perceive=args.skip_perceive)
+    turn = jp.handle(
+        args.intent, context=context, packet=packet, skip_perceive=args.skip_perceive
+    )
     if args.handoff:
         print(jp.render_handoff(turn))
     elif args.json:
         _print_json(turn.to_dict())
     else:
-        print(f"Mode: {turn.classification.mode.value} (confidence {turn.classification.confidence:.2f})")
+        print(
+            f"Mode: {turn.classification.mode.value} (confidence {turn.classification.confidence:.2f})"
+        )
         print(f"Reason: {turn.classification.reason}")
         print(f"Route: {turn.route.target.value} — {turn.route.rationale}")
         if turn.route.delegate_to:
@@ -177,7 +184,10 @@ def _cmd_remember(args: argparse.Namespace) -> int:
         source="user",
     )
     if record is None:
-        _print_json({"stored": False, "reason": "rejected (secret-like or low confidence)"})
+        _print_json({
+            "stored": False,
+            "reason": "rejected (secret-like or low confidence)",
+        })
         return 1
     _print_json({"stored": True, "record": record.to_dict()})
     return 0
@@ -197,12 +207,15 @@ def _cmd_tick(args: argparse.Namespace) -> int:
         enabled=args.enabled or args.force,
     )
     if args.json:
-        _print_json([{
-            "kind": n.kind,
-            "title": n.title,
-            "body": n.body,
-            "severity": n.severity,
-        } for n in notes])
+        _print_json([
+            {
+                "kind": n.kind,
+                "title": n.title,
+                "body": n.body,
+                "severity": n.severity,
+            }
+            for n in notes
+        ])
     else:
         if not notes:
             print("tick: no material change since last run")
@@ -350,7 +363,9 @@ def _cmd_avatar(args: argparse.Namespace) -> int:
 
     avatar = default_avatar()
     if args.json:
-        payload = avatar.voice_for(args.locale).to_dict() if args.locale else avatar.to_dict()
+        payload = (
+            avatar.voice_for(args.locale).to_dict() if args.locale else avatar.to_dict()
+        )
         _print_json(payload)
         return 0
 
@@ -361,12 +376,12 @@ def _cmd_avatar(args: argparse.Namespace) -> int:
     print(f"Glyph: {avatar.glyph}")
     print(f"Palette: gold {p.gold} · cyan {p.cyan} · ink {p.ink} · signal {p.signal}")
     print(
-        f"Voice [{voice.locale} · {voice.language_name}]: \"{voice.greeting}\" "
-        f"(tts: {voice.tts_voice}; listening: \"{voice.listening_prompt}\")"
+        f'Voice [{voice.locale} · {voice.language_name}]: "{voice.greeting}" '
+        f'(tts: {voice.tts_voice}; listening: "{voice.listening_prompt}")'
     )
     print(
         f"Local voice stack: STT {lv.stt_engine}:{lv.stt_model} ({lv.stt_compute}) · "
-        f"TTS {lv.tts_engine} · offline_first={lv.offline_first} · wake \"{lv.wake_phrase}\""
+        f'TTS {lv.tts_engine} · offline_first={lv.offline_first} · wake "{lv.wake_phrase}"'
     )
     if not args.locale:
         print("Locales: " + ", ".join(avatar.locales()))
@@ -381,13 +396,11 @@ def _cmd_models(args: argparse.Namespace) -> int:
     if not task or task == "tasks":
         catalog = ob.load_oss_catalog()
         if args.json:
-            _print_json(
-                {
-                    "updated_at": catalog.updated_at,
-                    "source": catalog.source,
-                    "tasks": catalog.tasks(),
-                }
-            )
+            _print_json({
+                "updated_at": catalog.updated_at,
+                "source": catalog.source,
+                "tasks": catalog.tasks(),
+            })
         else:
             print(
                 f"OSS model brain — known tasks "
@@ -485,21 +498,29 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_tick.add_argument("--json", action="store_true")
     p_tick.set_defaults(func=_cmd_tick)
 
-    p_stop = sub.add_parser("stop", help="Emergency stop: clear pending owner gates and disable tick")
+    p_stop = sub.add_parser(
+        "stop", help="Emergency stop: clear pending owner gates and disable tick"
+    )
     p_stop.add_argument("--reason", default="owner_requested")
     p_stop.set_defaults(func=_cmd_stop)
 
-    p_forget = sub.add_parser("forget", help="Remove all records with a given key from memory")
+    p_forget = sub.add_parser(
+        "forget", help="Remove all records with a given key from memory"
+    )
     p_forget.add_argument("--key", required=True)
     p_forget.set_defaults(func=_cmd_forget)
 
     p_remember = sub.add_parser("remember", help="Capture a memory record")
     p_remember.add_argument("--key", required=True)
     p_remember.add_argument("--value", required=True)
-    p_remember.add_argument("--durable", action="store_true", help="Promote to long-term memory")
+    p_remember.add_argument(
+        "--durable", action="store_true", help="Promote to long-term memory"
+    )
     p_remember.set_defaults(func=_cmd_remember)
 
-    p_recollect = sub.add_parser("recollect", help="Print top relevant memories for a query")
+    p_recollect = sub.add_parser(
+        "recollect", help="Print top relevant memories for a query"
+    )
     p_recollect.add_argument("query")
     p_recollect.add_argument("--limit", type=int, default=5)
     p_recollect.set_defaults(func=_cmd_recollect)
@@ -537,9 +558,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_proposals_approve.set_defaults(func=_cmd_proposals_approve)
 
-    p_proposals_reject = p_proposals_sub.add_parser(
-        "reject", help="Reject a proposal"
-    )
+    p_proposals_reject = p_proposals_sub.add_parser("reject", help="Reject a proposal")
     p_proposals_reject.add_argument("proposal_id")
     p_proposals_reject.set_defaults(func=_cmd_proposals_reject)
 
@@ -573,7 +592,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         ),
     )
     p_avatar.add_argument(
-        "--locale", help="Resolve the voice profile for a locale (e.g. en-US, fr, ja-JP)"
+        "--locale",
+        help="Resolve the voice profile for a locale (e.g. en-US, fr, ja-JP)",
     )
     p_avatar.add_argument("--json", action="store_true")
     p_avatar.set_defaults(func=_cmd_avatar)

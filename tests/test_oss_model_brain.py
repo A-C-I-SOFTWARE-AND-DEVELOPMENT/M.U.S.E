@@ -31,7 +31,9 @@ def test_routing_ids_all_exist_in_builtin() -> None:
     cat = ob.builtin_catalog()
     for task, ids in cat.routing:
         for mid in ids:
-            assert cat.by_id(mid) is not None, f"routing[{task}] references unknown {mid!r}"
+            assert cat.by_id(mid) is not None, (
+                f"routing[{task}] references unknown {mid!r}"
+            )
 
 
 def test_recommend_follows_routing_order() -> None:
@@ -105,10 +107,21 @@ def test_fallback_by_best_for_when_task_not_routed() -> None:
     # Build a catalog whose routing omits a task that families still list
     # in best_for, to prove the best_for fallback path orders by tier.
     fams = (
-        ob.OssModel(id="big", tier="frontier", best_for=("vision",),
-                    benchmarks=(("x", 50.0),), providers=(ob.ProviderRef("p", "m"),)),
-        ob.OssModel(id="small", tier="local", best_for=("vision",), local=True,
-                    benchmarks=(("x", 90.0),), providers=(ob.ProviderRef("p", "m"),)),
+        ob.OssModel(
+            id="big",
+            tier="frontier",
+            best_for=("vision",),
+            benchmarks=(("x", 50.0),),
+            providers=(ob.ProviderRef("p", "m"),),
+        ),
+        ob.OssModel(
+            id="small",
+            tier="local",
+            best_for=("vision",),
+            local=True,
+            benchmarks=(("x", 90.0),),
+            providers=(ob.ProviderRef("p", "m"),),
+        ),
     )
     cat = ob.OssCatalog(families=fams, routing=())
     ranked = [m.id for m in cat.recommend("vision")]
@@ -140,7 +153,9 @@ def test_shipped_yaml_loads_and_is_internally_consistent() -> None:
 
     for task, ids in cat.routing:
         for mid in ids:
-            assert cat.by_id(mid) is not None, f"YAML routing[{task}] -> unknown {mid!r}"
+            assert cat.by_id(mid) is not None, (
+                f"YAML routing[{task}] -> unknown {mid!r}"
+            )
 
     for fam in cat.families:
         assert fam.providers, f"{fam.id} has no provider mapping"
