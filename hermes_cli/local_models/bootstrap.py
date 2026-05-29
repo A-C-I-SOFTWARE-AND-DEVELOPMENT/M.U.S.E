@@ -17,9 +17,9 @@ import subprocess
 from dataclasses import dataclass, field
 from typing import Optional
 
-from hermes_cli.models.catalog import OpenWeightCatalog, OpenWeightModel
-from hermes_cli.models.hardware_probe import HardwareProfile, probe
-from hermes_cli.models.server_adapters import LaunchPlan, get_adapter
+from hermes_cli.local_models.catalog import OpenWeightCatalog, OpenWeightModel
+from hermes_cli.local_models.hardware_probe import HardwareProfile, probe
+from hermes_cli.local_models.server_adapters import LaunchPlan, get_adapter
 
 
 @dataclass(frozen=True)

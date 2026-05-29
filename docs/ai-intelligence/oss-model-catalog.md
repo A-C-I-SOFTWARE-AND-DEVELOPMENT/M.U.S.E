@@ -146,10 +146,10 @@ routing policy. The brain proposes; the owner disposes.
 
 ---
 
-## Local bootstrap layer (`hermes_cli/models/`)
+## Local bootstrap layer (`hermes_cli/local_models/`)
 
 The brain above answers *which* open model to prefer. The
-`hermes_cli/models/` package added in Phase 6 answers *how to actually run one
+`hermes_cli/local_models/` package added in Phase 6 answers *how to actually run one
 locally* — without bloating a normal install:
 
 | Module | Role |

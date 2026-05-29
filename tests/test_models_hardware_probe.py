@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli.models.hardware_probe import HardwareProfile, probe
-from hermes_cli.models.server_adapters import (
+from hermes_cli.local_models.hardware_probe import HardwareProfile, probe
+from hermes_cli.local_models.server_adapters import (
     SUPPORTED_RUNTIMES,
     get_adapter,
     installed_runtimes,
