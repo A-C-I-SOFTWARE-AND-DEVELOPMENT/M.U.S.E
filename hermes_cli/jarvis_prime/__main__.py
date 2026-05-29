@@ -631,15 +631,15 @@ def _cmd_memory_tree_store(args: argparse.Namespace) -> int:
         )
         if args.json:
             _print_json(result.to_dict())
+        elif result.ok and result.node is not None:
+            layer_name = result.effective_layer.value if result.effective_layer else "?"
+            print(f"ok: wrote {result.node.id} ({layer_name})")
+            if result.contradiction:
+                print(f"  contradiction: {result.contradiction.id}")
+            for r in result.reasons:
+                print(f"  note: {r}")
         else:
-            if result.ok:
-                print(f"ok: wrote {result.node.id} ({result.effective_layer.value})")
-                if result.contradiction:
-                    print(f"  contradiction: {result.contradiction.id}")
-                for r in result.reasons:
-                    print(f"  note: {r}")
-            else:
-                print("rejected: " + "; ".join(result.reasons))
+            print("rejected: " + "; ".join(result.reasons))
         return 0 if result.ok else 1
 
     if args.op == "search":
@@ -690,7 +690,7 @@ def _cmd_research(args: argparse.Namespace) -> int:
         return 0
 
     if args.op == "list":
-        items = vault.list()
+        items = vault.entries()
         if args.json:
             _print_json([a.to_dict() for a in items])
         else:

@@ -7,6 +7,8 @@ rendering, gate-packet compatibility, and the no-execution guarantee.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from hermes_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
 from hermes_cli.jarvis_prime.natural_language_coder import (
     CodingIntent,
@@ -189,7 +191,7 @@ def test_to_gate_packet_passes_planning_gate() -> None:
 
 def test_validation_catches_main_branch_target() -> None:
     packet = build_work_packet("add a helper")
-    bad = CodingWorkPacket(**{**_as_kwargs(packet), "branch": "main"})
+    bad = replace(packet, branch="main")
     result = validate_work_packet(bad)
     assert result.ok is False
     assert any("main" in f.message for f in result.errors)
@@ -198,10 +200,7 @@ def test_validation_catches_main_branch_target() -> None:
 def test_validation_catches_same_builder_reviewer_for_rc2() -> None:
     packet = build_work_packet("refactor the router module")
     assert packet.risk_class == "RC2"
-    bad = CodingWorkPacket(**{
-        **_as_kwargs(packet),
-        "reviewer_worker": packet.primary_worker,
-    })
+    bad = replace(packet, reviewer_worker=packet.primary_worker)
     result = validate_work_packet(bad)
     assert result.ok is False
     assert any(f.field == "reviewer_worker" for f in result.errors)
@@ -209,7 +208,7 @@ def test_validation_catches_same_builder_reviewer_for_rc2() -> None:
 
 def test_validation_catches_missing_rollback_for_write() -> None:
     packet = build_work_packet("add a helper")
-    bad = CodingWorkPacket(**{**_as_kwargs(packet), "rollback_plan": ()})
+    bad = replace(packet, rollback_plan=())
     result = validate_work_packet(bad)
     assert result.ok is False
     assert any(f.field == "rollback_plan" for f in result.errors)
@@ -217,7 +216,7 @@ def test_validation_catches_missing_rollback_for_write() -> None:
 
 def test_validation_catches_empty_allowed_files_for_write() -> None:
     packet = build_work_packet("add a helper")
-    bad = CodingWorkPacket(**{**_as_kwargs(packet), "allowed_files": ()})
+    bad = replace(packet, allowed_files=())
     result = validate_work_packet(bad)
     assert result.ok is False
     assert any(f.field == "allowed_files" for f in result.errors)
@@ -276,11 +275,3 @@ def test_requires_owner_gate_backward_compat() -> None:
     assert requires_owner_gate("click Facebook", CodingIntent.DEVICE_ACTION) is True
     assert requires_owner_gate("add a helper", CodingIntent.IMPLEMENT) is False
     assert requires_owner_gate("deploy to production", CodingIntent.RELEASE) is True
-
-
-def _as_kwargs(packet: CodingWorkPacket) -> dict:
-    """Shallow field dict for rebuilding a packet with one field overridden."""
-
-    from dataclasses import fields
-
-    return {f.name: getattr(packet, f.name) for f in fields(packet)}

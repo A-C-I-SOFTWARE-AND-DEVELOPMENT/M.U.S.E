@@ -44,7 +44,7 @@ def test_plan_is_bounded_and_never_merges() -> None:
     assert plan.test_commands
     assert any("revert" in r or "drop the branch" in r for r in plan.rollback_plan)
     d = plan.to_dict()
-    assert "does not merge" in d["warning"]
+    assert "does not merge" in str(d["warning"])
 
 
 def test_plan_targets_correct_tests_for_area() -> None:

@@ -39,7 +39,7 @@ def test_board_runs_all_and_reports_coverage() -> None:
     coverage = board.coverage(results)
     assert coverage["total"] == 8
     assert coverage["blind_spots"]  # the omitted sources surface as blind spots
-    assert 0.0 < coverage["coverage_ratio"] < 1.0
+    assert 0.0 < float(coverage["coverage_ratio"]) < 1.0  # type: ignore[arg-type]
 
 
 def test_throwing_monitor_becomes_blind_spot() -> None:

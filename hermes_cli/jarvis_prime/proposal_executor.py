@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -158,7 +158,7 @@ def build_execution_plan(
     branch = (
         f"{branch_prefix}/{_slug(proposal.target_path + ' ' + proposal.diff_intent)}"
     )
-    packet = CodingWorkPacket(**{**_packet_kwargs(packet), "branch": branch})
+    packet = replace(packet, branch=branch)
 
     test_commands = _test_commands_for(proposal.target_path)
     rollback = (
@@ -185,9 +185,3 @@ def validate_execution_plan(plan: ExecutionPlan):
     """Validate the underlying work packet. Returns a PacketValidationResult."""
 
     return validate_work_packet(plan.packet)
-
-
-def _packet_kwargs(packet: CodingWorkPacket) -> dict:
-    from dataclasses import fields
-
-    return {f.name: getattr(packet, f.name) for f in fields(packet)}

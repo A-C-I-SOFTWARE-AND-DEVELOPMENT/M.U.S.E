@@ -356,7 +356,9 @@ def test_jsonl_persistence_round_trip(tmp_path) -> None:
 
     reloaded = MemoryTreeStore.load(path)
     assert len(reloaded.nodes) == 2
-    assert reloaded.get(a.node.id).superseded_by == b.node.id
+    reloaded_a = reloaded.get(a.node.id)
+    assert reloaded_a is not None
+    assert reloaded_a.superseded_by == b.node.id
     assert reloaded.contradictions
 
 

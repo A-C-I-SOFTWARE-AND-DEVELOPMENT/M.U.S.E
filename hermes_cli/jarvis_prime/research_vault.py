@@ -233,7 +233,7 @@ class ResearchVault:
             self.save()
         return art
 
-    def list(
+    def entries(
         self, *, source_type: Optional[SourceType] = None
     ) -> list[ResearchArtifact]:
         items = list(self.artifacts.values())
@@ -255,11 +255,11 @@ class ResearchVault:
         return [a for _, a in scored[:limit]]
 
     def export_audit_cards(self) -> list[dict]:
-        return [a.audit_card() for a in self.list()]
+        return [a.audit_card() for a in self.entries()]
 
     def export_markdown(self) -> str:
         lines = ["# JARVIS Research Vault", ""]
-        for art in self.list():
+        for art in self.entries():
             lines.append(f"## {art.title}")
             lines.append(
                 f"- source: {art.source_uri} "

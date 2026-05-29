@@ -73,9 +73,9 @@ def test_local_endpoint_packet_is_wired_not_confirmed() -> None:
     packet = local_endpoint_packet("qwen3-coder", endpoint="http://localhost:8000/v1")
     assert packet["status"] == "wired_not_confirmed"
     assert packet["openai_compatible"] is True
-    assert "smoke_check" in packet and "curl" in packet["smoke_check"]
+    assert "smoke_check" in packet and "curl" in str(packet["smoke_check"])
     # never claims the model is running
-    assert "running" in packet["note"].lower()
+    assert "running" in str(packet["note"]).lower()
 
 
 def test_render_handles_empty_and_populated(tmp_path) -> None:

@@ -23,10 +23,10 @@ def test_compile_orders_mission_first_and_includes_packet() -> None:
 def test_compile_is_deterministic() -> None:
     packet = build_work_packet("add a helper")
     c = TokenJuiceCompiler()
-    a = c.compile("mission text", 1000, work_packet=packet).to_dict()
-    b = c.compile("mission text", 1000, work_packet=packet).to_dict()
-    # generated_at is absent here; output should be identical run-to-run
-    assert [s["title"] for s in a["sections"]] == [s["title"] for s in b["sections"]]
+    a = c.compile("mission text", 1000, work_packet=packet)
+    b = c.compile("mission text", 1000, work_packet=packet)
+    # output should be identical run-to-run (deterministic ordering)
+    assert [s.title for s in a.sections] == [s.title for s in b.sections]
 
 
 def test_budget_is_enforced_and_dropped_tracked(tmp_path) -> None:

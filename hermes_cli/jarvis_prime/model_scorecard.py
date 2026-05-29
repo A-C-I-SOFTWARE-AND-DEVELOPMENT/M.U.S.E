@@ -65,7 +65,7 @@ class ModelScorecard:
         return max(0.0, min(1.0, raw - penalties))
 
     def to_dict(self) -> dict[str, object]:
-        d = {
+        d: dict[str, object] = {
             "model": self.model,
             "provider": self.provider,
             "task_type": self.task_type,
