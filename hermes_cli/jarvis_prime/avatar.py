@@ -49,13 +49,13 @@ __all__ = [
 
 @dataclass(frozen=True)
 class BrandPalette:
-    ink: str = "#05070D"      # JarvisInkAbyss — background / scrim
+    ink: str = "#05070D"  # JarvisInkAbyss — background / scrim
     surface: str = "#101630"  # JarvisInkDeep — cards
-    signal: str = "#E7ECF7"   # JarvisSignal — primary text
-    gold: str = "#E6B341"     # JarvisGold — primary accent / brand
-    cyan: str = "#38C6E0"     # JarvisCyan — secondary accent
+    signal: str = "#E7ECF7"  # JarvisSignal — primary text
+    gold: str = "#E6B341"  # JarvisGold — primary accent / brand
+    cyan: str = "#38C6E0"  # JarvisCyan — secondary accent
     crimson: str = "#E5484D"  # JarvisCrimson — stop / danger
-    jade: str = "#3DD68C"     # JarvisJade — success / online
+    jade: str = "#3DD68C"  # JarvisJade — success / online
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -146,13 +146,13 @@ class LocalVoiceStack:
     """
 
     stt_engine: str = "faster-whisper"
-    stt_model: str = "base"        # tiny|base|small|medium|large-v3
-    stt_compute: str = "int8"      # int8|int8_float16|float16|float32
+    stt_model: str = "base"  # tiny|base|small|medium|large-v3
+    stt_compute: str = "int8"  # int8|int8_float16|float16|float32
     tts_engine: str = "piper"
     sample_rate_hz: int = 22050
     offline_first: bool = True
     wake_phrase: str = "Jarvis"
-    vad: bool = True               # voice-activity-detection auto-stop
+    vad: bool = True  # voice-activity-detection auto-stop
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -278,37 +278,43 @@ class JarvisAvatar:
 
 _DEFAULT_VOICES: tuple[VoiceProfile, ...] = (
     VoiceProfile(
-        locale="en-US", language_name="English",
+        locale="en-US",
+        language_name="English",
         tts_voice="en_US-amy-medium",
         greeting="Ready when you are.",
         listening_prompt="I'm listening.",
     ),
     VoiceProfile(
-        locale="es-ES", language_name="Español",
+        locale="es-ES",
+        language_name="Español",
         tts_voice="es_ES-davefx-medium",
         greeting="Listo cuando tú lo estés.",
         listening_prompt="Te escucho.",
     ),
     VoiceProfile(
-        locale="fr-FR", language_name="Français",
+        locale="fr-FR",
+        language_name="Français",
         tts_voice="fr_FR-siwis-medium",
         greeting="Prêt quand vous l'êtes.",
         listening_prompt="Je vous écoute.",
     ),
     VoiceProfile(
-        locale="ja-JP", language_name="日本語",
+        locale="ja-JP",
+        language_name="日本語",
         tts_voice="ja_JP-test-medium",
         greeting="準備はいつでも。",
         listening_prompt="聞いています。",
     ),
     VoiceProfile(
-        locale="zh-CN", language_name="简体中文",
+        locale="zh-CN",
+        language_name="简体中文",
         tts_voice="zh_CN-huayan-medium",
         greeting="随时待命。",
         listening_prompt="我在听。",
     ),
     VoiceProfile(
-        locale="ko-KR", language_name="한국어",
+        locale="ko-KR",
+        language_name="한국어",
         tts_voice="ko_KR-glow-medium",
         greeting="언제든 준비됐어요.",
         listening_prompt="듣고 있어요.",

@@ -231,7 +231,10 @@ class OssCatalog:
                 continue
             if local_only and not model.local:
                 continue
-            if allow_tokens is not None and model.license_spdx.lower() not in allow_tokens:
+            if (
+                allow_tokens is not None
+                and model.license_spdx.lower() not in allow_tokens
+            ):
                 continue
             if avail is not None and model.resolve_provider(avail) is None:
                 continue
@@ -250,13 +253,9 @@ class OssCatalog:
             return [m for m in resolved if m is not None]
 
         # Fallback: match best_for, including the base of a local_* task.
-        base = task[len("local_"):] if task.startswith("local_") else task
+        base = task[len("local_") :] if task.startswith("local_") else task
         want_local = task.startswith("local_")
-        cands = [
-            f
-            for f in self.families
-            if task in f.best_for or base in f.best_for
-        ]
+        cands = [f for f in self.families if task in f.best_for or base in f.best_for]
         if want_local:
             local_cands = [f for f in cands if f.local]
             if local_cands:
@@ -385,9 +384,15 @@ def _load_yaml_catalog(path: Path) -> Optional[OssCatalog]:
 
 _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
     OssModel(
-        id="deepseek-v4", vendor="DeepSeek", license="MIT", license_spdx="MIT",
-        tier="frontier", current_variant="deepseek-v4", context_window=1000000,
-        params="~1.6T total / ~49B active (MoE)", local=False,
+        id="deepseek-v4",
+        vendor="DeepSeek",
+        license="MIT",
+        license_spdx="MIT",
+        tier="frontier",
+        current_variant="deepseek-v4",
+        context_window=1000000,
+        params="~1.6T total / ~49B active (MoE)",
+        local=False,
         best_for=("coding", "agentic_coding", "bug_fix", "reasoning"),
         benchmarks=(("swe_bench_verified", 80.6), ("livecodebench", 93.5)),
         providers=(
@@ -398,9 +403,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Top open-weight SWE-bench Verified; frontier agentic coding.",
     ),
     OssModel(
-        id="glm-5", vendor="Z.ai (Zhipu)", license="MIT", license_spdx="MIT",
-        tier="frontier", current_variant="glm-5", context_window=200000,
-        params="~744B total / ~40B active (MoE)", local=False,
+        id="glm-5",
+        vendor="Z.ai (Zhipu)",
+        license="MIT",
+        license_spdx="MIT",
+        tier="frontier",
+        current_variant="glm-5",
+        context_window=200000,
+        params="~744B total / ~40B active (MoE)",
+        local=False,
         best_for=("agentic_coding", "bug_fix", "coding", "reasoning"),
         benchmarks=(("swe_bench_verified", 77.8), ("livecodebench", 84.9)),
         providers=(
@@ -410,11 +421,21 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Best open model for fixing real bugs + agentic/terminal work.",
     ),
     OssModel(
-        id="kimi-k2", vendor="Moonshot AI", license="Modified MIT",
-        license_spdx="MIT", tier="frontier", current_variant="kimi-k2",
-        context_window=256000, params="~1T total / ~32B active (MoE)", local=False,
+        id="kimi-k2",
+        vendor="Moonshot AI",
+        license="Modified MIT",
+        license_spdx="MIT",
+        tier="frontier",
+        current_variant="kimi-k2",
+        context_window=256000,
+        params="~1T total / ~32B active (MoE)",
+        local=False,
         best_for=("coding", "agentic_coding", "code_edit", "reasoning"),
-        benchmarks=(("humaneval", 99.0), ("livecodebench", 89.6), ("swe_bench_verified", 76.8)),
+        benchmarks=(
+            ("humaneval", 99.0),
+            ("livecodebench", 89.6),
+            ("swe_bench_verified", 76.8),
+        ),
         providers=(
             ProviderRef("kimi-coding", "kimi-k2"),
             ProviderRef("openrouter", "moonshotai/kimi-k2"),
@@ -422,9 +443,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Elite raw code generation; strong thinking variant.",
     ),
     OssModel(
-        id="minimax-m2", vendor="MiniMax", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="strong", current_variant="minimax-m2",
-        context_window=1000000, params="~230B total / ~10B active (MoE)", local=False,
+        id="minimax-m2",
+        vendor="MiniMax",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="strong",
+        current_variant="minimax-m2",
+        context_window=1000000,
+        params="~230B total / ~10B active (MoE)",
+        local=False,
         best_for=("agentic_coding", "coding"),
         benchmarks=(("swe_bench_verified", 80.2),),
         providers=(
@@ -434,9 +461,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Frontier-matching SWE-bench at small active params.",
     ),
     OssModel(
-        id="qwen3-coder", vendor="Alibaba", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="strong", current_variant="qwen3-coder",
-        context_window=256000, params="MoE ~80B / ~3B active", local=True,
+        id="qwen3-coder",
+        vendor="Alibaba",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="strong",
+        current_variant="qwen3-coder",
+        context_window=256000,
+        params="MoE ~80B / ~3B active",
+        local=True,
         local_runner="vllm",
         best_for=("coding", "code_edit", "agentic_coding", "local_coding"),
         benchmarks=(("swe_bench_verified", 71.3),),
@@ -448,9 +481,16 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Best permissive (Apache-2.0) coder; runs on a workstation.",
     ),
     OssModel(
-        id="qwen3-27b", vendor="Alibaba", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="local", current_variant="qwen3.6-27b",
-        context_window=262000, params="27B dense", local=True, local_runner="ollama",
+        id="qwen3-27b",
+        vendor="Alibaba",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="local",
+        current_variant="qwen3.6-27b",
+        context_window=262000,
+        params="27B dense",
+        local=True,
+        local_runner="ollama",
         best_for=("local_coding", "coding", "code_edit", "local_reasoning"),
         benchmarks=(("swe_bench_verified", 77.2),),
         providers=(
@@ -460,9 +500,16 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Dense 27B you can run locally that still posts 77% SWE-bench.",
     ),
     OssModel(
-        id="devstral-small", vendor="Mistral", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="local", current_variant="devstral-small-2",
-        context_window=128000, params="24B dense", local=True, local_runner="ollama",
+        id="devstral-small",
+        vendor="Mistral",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="local",
+        current_variant="devstral-small-2",
+        context_window=128000,
+        params="24B dense",
+        local=True,
+        local_runner="ollama",
         best_for=("local_coding", "code_edit", "bug_fix"),
         benchmarks=(("swe_bench_verified", 68.0),),
         providers=(
@@ -472,9 +519,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Purpose-built local coding agent; fits a single 24GB GPU.",
     ),
     OssModel(
-        id="deepseek-r1", vendor="DeepSeek", license="MIT", license_spdx="MIT",
-        tier="frontier", current_variant="deepseek-r1", context_window=128000,
-        params="~671B total / ~37B active (MoE)", local=False,
+        id="deepseek-r1",
+        vendor="DeepSeek",
+        license="MIT",
+        license_spdx="MIT",
+        tier="frontier",
+        current_variant="deepseek-r1",
+        context_window=128000,
+        params="~671B total / ~37B active (MoE)",
+        local=False,
         best_for=("reasoning", "math"),
         benchmarks=(("math_500", 97.3),),
         providers=(
@@ -484,10 +537,16 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Near-perfect MATH-500; the reference open reasoning model.",
     ),
     OssModel(
-        id="deepseek-r1-distill-8b", vendor="DeepSeek", license="MIT",
-        license_spdx="MIT", tier="local",
-        current_variant="deepseek-r1-distill-qwen3-8b", context_window=128000,
-        params="8B dense (distilled)", local=True, local_runner="ollama",
+        id="deepseek-r1-distill-8b",
+        vendor="DeepSeek",
+        license="MIT",
+        license_spdx="MIT",
+        tier="local",
+        current_variant="deepseek-r1-distill-qwen3-8b",
+        context_window=128000,
+        params="8B dense (distilled)",
+        local=True,
+        local_runner="ollama",
         best_for=("local_reasoning", "reasoning", "math"),
         benchmarks=(("aime_2025", 87.5),),
         providers=(
@@ -497,10 +556,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="8B that matches far larger models on AIME — best local reasoner.",
     ),
     OssModel(
-        id="qwen3-235b", vendor="Alibaba", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="frontier",
-        current_variant="qwen3-235b-a22b", context_window=262000,
-        params="235B total / ~22B active (MoE)", local=False,
+        id="qwen3-235b",
+        vendor="Alibaba",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="frontier",
+        current_variant="qwen3-235b-a22b",
+        context_window=262000,
+        params="235B total / ~22B active (MoE)",
+        local=False,
         best_for=("reasoning", "math", "coding"),
         benchmarks=(("aime_2025", 89.2), ("humaneval", 91.5)),
         providers=(
@@ -510,9 +574,15 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Top open reasoning+math under permissive Apache-2.0.",
     ),
     OssModel(
-        id="gpt-oss-120b", vendor="OpenAI (open weights)", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="strong", current_variant="gpt-oss-120b",
-        context_window=131000, params="117B total / 5.1B active (MoE)", local=False,
+        id="gpt-oss-120b",
+        vendor="OpenAI (open weights)",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="strong",
+        current_variant="gpt-oss-120b",
+        context_window=131000,
+        params="117B total / 5.1B active (MoE)",
+        local=False,
         best_for=("reasoning", "agentic_coding"),
         providers=(
             ProviderRef("openrouter", "openai/gpt-oss-120b"),
@@ -521,10 +591,16 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         why="Near o4-mini reasoning, Apache-2.0; pairs with the 20B local sibling.",
     ),
     OssModel(
-        id="gpt-oss-20b", vendor="OpenAI (open weights)", license="Apache-2.0",
-        license_spdx="Apache-2.0", tier="local", current_variant="gpt-oss-20b",
-        context_window=131000, params="21B total / 3.6B active (MoE) — 16GB RAM",
-        local=True, local_runner="ollama",
+        id="gpt-oss-20b",
+        vendor="OpenAI (open weights)",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="local",
+        current_variant="gpt-oss-20b",
+        context_window=131000,
+        params="21B total / 3.6B active (MoE) — 16GB RAM",
+        local=True,
+        local_runner="ollama",
         best_for=("local_reasoning", "local_coding", "reasoning"),
         providers=(
             ProviderRef("ollama-cloud", "gpt-oss:20b"),
@@ -536,10 +612,16 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
 
 _BUILTIN_ROUTING: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("coding", ("deepseek-v4", "glm-5", "kimi-k2", "minimax-m2", "qwen3-coder")),
-    ("agentic_coding", ("glm-5", "deepseek-v4", "kimi-k2", "minimax-m2", "qwen3-coder")),
+    (
+        "agentic_coding",
+        ("glm-5", "deepseek-v4", "kimi-k2", "minimax-m2", "qwen3-coder"),
+    ),
     ("bug_fix", ("glm-5", "deepseek-v4", "kimi-k2", "qwen3-coder", "devstral-small")),
     ("code_edit", ("qwen3-coder", "kimi-k2", "glm-5", "devstral-small", "deepseek-v4")),
-    ("reasoning", ("deepseek-r1", "qwen3-235b", "glm-5", "gpt-oss-120b", "deepseek-v4")),
+    (
+        "reasoning",
+        ("deepseek-r1", "qwen3-235b", "glm-5", "gpt-oss-120b", "deepseek-v4"),
+    ),
     ("math", ("deepseek-r1", "qwen3-235b", "deepseek-r1-distill-8b")),
     ("local_coding", ("qwen3-coder", "qwen3-27b", "devstral-small", "gpt-oss-20b")),
     ("local_reasoning", ("deepseek-r1-distill-8b", "gpt-oss-20b", "qwen3-27b")),

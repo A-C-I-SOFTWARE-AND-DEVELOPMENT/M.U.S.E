@@ -96,8 +96,7 @@ def render_recommendation(
     )
     if not models:
         return (
-            header
-            + "\n  (no catalog match — try `models tasks` for known categories, "
+            header + "\n  (no catalog match — try `models tasks` for known categories, "
             "or drop --installed / filters)"
         )
 
@@ -106,7 +105,9 @@ def render_recommendation(
     for i, m in enumerate(models[:limit], 1):
         ref = m.resolve_provider(available)
         via = f"{ref.provider}:{ref.model}" if ref else "(no installed provider)"
-        fallbacks = [p.provider for p in m.providers if not ref or p.provider != ref.provider]
+        fallbacks = [
+            p.provider for p in m.providers if not ref or p.provider != ref.provider
+        ]
         fb = f"   (fallbacks: {', '.join(fallbacks)})" if fallbacks else ""
         ctx = f"{m.context_window // 1000}K ctx" if m.context_window else "ctx ?"
         bench = " · ".join(f"{k}={v:g}" for k, v in m.benchmarks)

@@ -25,7 +25,7 @@ class Mode(Enum):
     MOBILE_VOICE = "mobile_voice"
 
     @property
-    def name(self) -> str:  # type: ignore[override]
+    def name(self) -> str:
         return self.value
 
 
