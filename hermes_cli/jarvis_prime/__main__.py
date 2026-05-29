@@ -812,18 +812,37 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
 
 
 def _cmd_owner_brief(args: argparse.Namespace) -> int:
-    """Render a daily owner brief from a supplied monitor context.
+    """Render a daily owner brief from a monitor context.
 
-    Read-only. The monitor context is read from a JSON file via --context, or
-    defaults to an empty context (every source then reports as a blind spot,
-    which is itself the honest signal).
+    Read-only. The context comes from one of:
+    * ``--auto`` — assemble live local state via monitor_collectors
+      (git status, Memory Tree contradictions, model scorecards, proposals).
+    * ``--context PATH`` — a supplied JSON monitor-context file.
+    * neither — an empty context, so every source reports BLIND (the honest
+      signal that nothing was observed).
     """
 
     from hermes_cli.jarvis_prime.monitors import MonitorBoard
     from hermes_cli.jarvis_prime.owner_brief import build_owner_brief
 
     context: dict = {}
-    if getattr(args, "context", None):
+    if getattr(args, "auto", False):
+        from hermes_cli.jarvis_prime.monitor_collectors import collect_context
+        from pathlib import Path as _Path
+
+        context = collect_context(
+            repo_root=getattr(args, "repo_root", ".") or ".",
+            memory_store_path=_Path(args.memory_store)
+            if getattr(args, "memory_store", None)
+            else None,
+            scorecard_path=_Path(args.scorecard_store)
+            if getattr(args, "scorecard_store", None)
+            else None,
+            proposals_path=_Path(args.proposals)
+            if getattr(args, "proposals", None)
+            else None,
+        )
+    elif getattr(args, "context", None):
         with open(args.context, "r", encoding="utf-8") as fh:
             context = json.load(fh)
 
@@ -1263,6 +1282,19 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Render the daily owner brief from a monitor context (read-only)",
     )
     p_brief.add_argument("--context", help="Path to a JSON monitor-context file")
+    p_brief.add_argument(
+        "--auto",
+        action="store_true",
+        help="Assemble live local state (git, memory contradictions, scorecards, proposals)",
+    )
+    p_brief.add_argument("--repo-root", dest="repo_root", default=".")
+    p_brief.add_argument(
+        "--memory-store", dest="memory_store", help="Memory Tree JSONL path"
+    )
+    p_brief.add_argument(
+        "--scorecard-store", dest="scorecard_store", help="Scorecard JSONL path"
+    )
+    p_brief.add_argument("--proposals", help="Proposals JSONL path")
     p_brief.add_argument("--json", action="store_true")
     p_brief.set_defaults(func=_cmd_owner_brief)
 

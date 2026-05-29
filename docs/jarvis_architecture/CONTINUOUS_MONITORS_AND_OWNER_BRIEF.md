@@ -32,8 +32,26 @@ Each `check(context)` returns a `MonitorResult` with a `Severity`
 
 `render()` formats it; `to_dict()` is JSON-friendly.
 
+## Live collectors (`monitor_collectors.py`)
+`monitor_collectors.collect_context()` assembles a real context from
+locally observable, **read-only** sources:
+
+- `repo` — `git status --porcelain` + current branch (no mutation; the
+  command runner is injectable for tests).
+- `open_contradictions` — `MemoryTreeStore.open_contradictions()`.
+- `model_failures` — scorecards with test failures / repeated errors.
+- `pending_proposals` — a proposals JSONL, if present.
+- `tests` — supplied test results, if any.
+
+Sources with no local collector yet (`open_prs`, `docs`, `android`) are
+intentionally omitted so their monitors report BLIND — an honest coverage
+gap rather than a fabricated OK.
+
 ## CLI
 ```bash
+# Live local state (git, memory contradictions, scorecards, proposals):
+python -m hermes_cli.jarvis_prime owner-brief --auto
+python -m hermes_cli.jarvis_prime owner-brief --auto --memory-store ~/.hermes/jarvis_prime/memory_tree.jsonl --json
 # Empty context → every source reports blind (the honest signal):
 python -m hermes_cli.jarvis_prime owner-brief --json
 # With a supplied monitor context file:
@@ -45,8 +63,9 @@ The context JSON may include `repo`, `open_prs`, `tests`, `docs`,
 plus `changed` / `learned` / `blocked` lists for the brief.
 
 ## Owner gates / rollback / risks / remaining
-- Owner gates: none (read-only).
+- Owner gates: none (read-only; git is read-only `status`/`rev-parse`).
 - Rollback: additive modules; revert branch.
-- Remaining: wire live collectors (git status, GitHub PR list, pytest
-  results, docs freshness, Memory Tree `open_contradictions()`, proposal
-  book, scorecard failures, Android capability snapshot) into the context.
+- Remaining: GitHub PR list, docs-freshness, and Android-capability
+  collectors (these need network / a docs manifest / a device snapshot).
+  Until added they surface as honest blind spots in the coverage
+  attestation.

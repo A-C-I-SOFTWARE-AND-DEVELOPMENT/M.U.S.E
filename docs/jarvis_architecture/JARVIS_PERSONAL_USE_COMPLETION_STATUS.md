@@ -26,8 +26,11 @@ publish, destructive file ops, Android accessibility gestures, app-store
 release, regulated claims. Authorization phrase: `Yes, with authorization.`
 
 ## Remaining integration work (documented, not hidden)
-1. Wire live monitor collectors (git status, GitHub PRs, pytest results)
-   into `monitors.py` context. Today the context is supplied by the caller.
+1. Live monitor collectors **shipped** (`monitor_collectors.py` +
+   `owner-brief --auto`): git status, Memory Tree contradictions, model
+   scorecards, and proposals are collected read-only. GitHub PR list,
+   docs-freshness, and Android-capability collectors remain (they need
+   network / a manifest / a device snapshot) and surface as blind spots.
 2. Confirm a local OSS model with a smoke request before claiming it runs.
 3. Android personal-action broker end-to-end (see Android packet) — the
    policy/state layer exists and is tested; real gesture execution stays
