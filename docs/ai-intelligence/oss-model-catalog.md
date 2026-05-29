@@ -146,6 +146,32 @@ routing policy. The brain proposes; the owner disposes.
 
 ---
 
+## Local bootstrap layer (`hermes_cli/models/`)
+
+The brain above answers *which* open model to prefer. The
+`hermes_cli/models/` package added in Phase 6 answers *how to actually run one
+locally* — without bloating a normal install:
+
+| Module | Role |
+|---|---|
+| `hardware_probe.py` | stdlib-only, Termux-safe detection of CPU/RAM/VRAM/OS/disk → hardware **tier** |
+| `server_adapters.py` | launch-plan builders for Ollama / llama.cpp / vLLM / SGLang / OpenAI-compatible (never executes) |
+| `catalog.py` | loads the `open_weight_candidates:` section of `config/model-catalog.yaml` (license, runtime, RAM/VRAM, lanes, `verify`) |
+| `bootstrap.py` | tiered plan; downloads **only** with `--accept-downloads` |
+| `scorecards.py` | record outcomes; `select_model()` ranks by composite, not hype |
+
+```bash
+hermes models bootstrap --tier laptop                 # plan only, zero downloads
+hermes models bootstrap --tier workstation --accept-downloads   # explicit consent
+```
+
+See [`oss-model-catalog.md` companion → operating guide](./model-routing-policy.md)
+for how scorecards feed routing. The candidate list, its license fields, and
+checksum/source-verification guidance live in `config/model-catalog.yaml` under
+`open_weight_candidates:`. **Nothing is downloaded on a normal install.**
+
+---
+
 ## Credits
 
 The **local-first** emphasis of this brain — that a capable assistant

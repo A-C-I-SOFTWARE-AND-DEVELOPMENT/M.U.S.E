@@ -300,6 +300,40 @@ def submit_job(prompt: str) -> Job:
     return job
 
 
+def navigate_job(
+    job_id: str,
+    *,
+    repo_root: Optional[str] = None,
+    issue: Optional[str] = None,
+    limit: int = 5,
+) -> Optional[dict[str, Any]]:
+    """Localize a job's objective in the repo **before** dispatching a worker.
+
+    This is the navigator → orchestrator integration point. It builds the
+    HyperAgent-style :class:`~hermes_cli.jarvis_prime.navigation.Navigator`,
+    ranks likely edit sites for the job's objective, records a
+    ``navigation_decision`` entry in the job ledger, and returns the worker
+    packet. It is **best-effort and read-only** — it never edits the repo and
+    never blocks dispatch: a navigation failure is logged and ``None`` is
+    returned so the caller can proceed.
+    """
+
+    job = get_job(job_id)
+    objective = (issue or (job.prompt if job else "") or "").strip()
+    if not objective:
+        return None
+    try:
+        from hermes_cli.jarvis_prime.navigation import Navigator
+
+        nav = Navigator.for_repo(repo_root or Path.cwd())
+        result = nav.navigate(objective, limit=limit)
+    except Exception as exc:  # best-effort: navigation never blocks dispatch
+        _append_ledger(job_id, {"kind": "navigation_error", "error": str(exc)})
+        return None
+    _append_ledger(job_id, result.to_ledger_record(job_id=job_id))
+    return result.worker_packet()
+
+
 def list_jobs(limit: int = 25) -> list[Job]:
     jobs = _load_jobs()
     jobs.sort(key=lambda j: j.created_at, reverse=True)
