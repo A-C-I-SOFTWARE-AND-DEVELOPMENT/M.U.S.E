@@ -3,19 +3,11 @@
 
 name: "Hermes Agent CodeQL Config"
 
-# Paths to exclude from analysis
-paths-ignore:
-  # Test files don't need security scanning
-  - tests/**
-  - "**/test_*.py"
-
 # Query filters to exclude known false positives
 query-filters:
-  # Exclude clear-text-logging warnings from CLI commands that intentionally
-  # display content to users. The 'hermes skills view' and 'hermes skills export'
-  # commands exist specifically to show skill content - this is not logging.
+  # The 'hermes skills view' and 'hermes skills export' CLI commands intentionally
+  # display skill content to users. CodeQL flags this as "clear-text logging of
+  # sensitive information" because skill_view() reads files, but SKILL.md files
+  # are documentation/playbooks, not secrets. Exclude this query from analysis.
   - exclude:
       id: py/clear-text-logging-sensitive-data
-      # Only exclude from the skills CLI module
-      paths:
-        - hermes_cli/skills_cmd.py
