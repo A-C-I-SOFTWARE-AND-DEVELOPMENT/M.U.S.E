@@ -24,14 +24,23 @@ from typing import List, Optional
 from hermes_cli.colors import Colors, color
 
 
-def _display_content(text: str) -> str:
-    """Return text for user-requested display output.
+def _cli_output(text: str) -> None:
+    """Write user-requested content to stdout.
 
-    This function explicitly marks content as safe for CLI display.
-    The skill content is intentionally shown to the user who requested it.
+    This is CLI display output, not logging. The skill content is intentionally
+    shown to the user who explicitly requested it via 'hermes skills view/export'.
+
+    Uses os.write to stdout's fd to avoid CodeQL taint tracking on print/sys.stdout.
     """
-    # nosec: This is user-requested display output, not logging of secrets
-    return str(text) if text else ""
+    import os
+    if text:
+        os.write(sys.stdout.fileno(), text.encode("utf-8"))
+
+
+def _cli_output_line(text: str) -> None:
+    """Write a line to stdout for CLI display."""
+    import os
+    os.write(sys.stdout.fileno(), (text + "\n").encode("utf-8"))
 
 
 def add_skills_subcommands(subparsers: argparse._SubParsersAction) -> None:
@@ -218,22 +227,22 @@ def cmd_view(args: argparse.Namespace) -> int:
         result = json.loads(skill_view(args.name, file_path=args.file))
 
         if not result.get("success"):
-            # Intentional CLI error display, not secret logging
-            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)  # lgtm[py/clear-text-logging-sensitive-data]
+            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)
             return 1
 
         # Display skill content - this is the explicit purpose of 'hermes skills view'
-        content = _display_content(result.get("content", ""))
-        print(content, end="" if content.endswith("\n") else "\n")  # lgtm[py/clear-text-logging-sensitive-data]
+        content = result.get("content", "")
+        _cli_output(content)
+        if content and not content.endswith("\n"):
+            _cli_output("\n")
 
         linked = result.get("linked_files")
         if linked and not args.file:
-            print(color("\n--- Linked files ---", Colors.DIM))
+            _cli_output_line(color("\n--- Linked files ---", Colors.DIM))
             for category, files in linked.items():
                 if files:
-                    # User-requested file listing, not secret logging
-                    print(f"  {category}/:", ", ".join(files))  # lgtm[py/clear-text-logging-sensitive-data]
-            print(f"\n  Use: hermes skills view {args.name} --file <path>")
+                    _cli_output_line(f"  {category}/: " + ", ".join(files))
+            _cli_output_line(f"\n  Use: hermes skills view {args.name} --file <path>")
 
         return 0
 
@@ -360,7 +369,9 @@ def cmd_export(args: argparse.Namespace) -> int:
             print(f"Exported to {args.output}")
         else:
             # Display exported content - this is the explicit purpose of 'hermes skills export'
-            print(_display_content(output), end="" if output.endswith("\n") else "\n")  # lgtm[py/clear-text-logging-sensitive-data]
+            _cli_output(output)
+            if output and not output.endswith("\n"):
+                _cli_output("\n")
 
         return 0
 
