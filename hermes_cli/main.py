@@ -11986,6 +11986,46 @@ Examples:
         help="Interactive skill configuration — enable/disable individual skills",
     )
 
+    # view sub-action: view skill content
+    skills_view = skills_subparsers.add_parser("view", help="View skill content")
+    skills_view.add_argument("name", help="Skill name")
+    skills_view.add_argument("--file", "-f", help="Linked file to view")
+
+    # info sub-action: show skill usage stats
+    skills_info = skills_subparsers.add_parser("info", help="Show skill usage stats")
+    skills_info.add_argument("name", help="Skill name")
+    skills_info.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # validate sub-action: validate skill structure
+    skills_validate = skills_subparsers.add_parser("validate", help="Validate skill structure")
+    skills_validate.add_argument("name", help="Skill name to validate")
+
+    # export sub-action: export skill to file
+    skills_export = skills_subparsers.add_parser("export", help="Export skill to file")
+    skills_export.add_argument("name", help="Skill name to export")
+    skills_export.add_argument("--format", "-f", choices=["md", "json"], default="md", help="Output format")
+    skills_export.add_argument("--output", "-o", help="Output file (default: stdout)")
+
+    # import sub-action: import skill from file
+    skills_import = skills_subparsers.add_parser("import", help="Import skill from file")
+    skills_import.add_argument("file", help="SKILL.md file to import")
+    skills_import.add_argument("--name", "-n", help="Override skill name")
+    skills_import.add_argument("--category", "-c", help="Category for the skill")
+
+    # trending sub-action: show most-used skills
+    skills_trending = skills_subparsers.add_parser("trending", help="Show most-used skills")
+    skills_trending.add_argument("--days", "-d", type=int, default=30, help="Time window in days")
+    skills_trending.add_argument("--limit", "-n", type=int, default=10, help="Max results")
+    skills_trending.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # tags sub-action: list all skill tags
+    skills_tags = skills_subparsers.add_parser("tags", help="List all skill tags")
+    skills_tags.add_argument("--json", action="store_true", help="Output as JSON")
+
+    # categories sub-action: list all skill categories
+    skills_categories = skills_subparsers.add_parser("categories", help="List all skill categories")
+    skills_categories.add_argument("--json", action="store_true", help="Output as JSON")
+
     def cmd_skills(args):
         # Route 'config' action to skills_config module
         if getattr(args, "skills_action", None) == "config":
