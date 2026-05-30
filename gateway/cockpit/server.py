@@ -53,6 +53,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("DELETE", _compile("/v1/cockpit/memory/{id}"), h.memory_delete, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
     ("GET", _compile("/v1/cockpit/jobs"), h.jobs_list, True),
+    ("GET", _compile("/v1/cockpit/approvals"), h.approvals_list, True),
+    ("POST", _compile("/v1/cockpit/approvals/{id}"), h.approvals_decide, True),
+    ("GET", _compile("/v1/cockpit/sessions"), h.sessions_list, True),
 ]
 
 
@@ -71,7 +74,7 @@ def _make_handler(token: Optional[str], responder):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
-        def log_message(self, fmt, *args):  # noqa: A002 - match base signature
+        def log_message(self, format, *args):  # noqa: A002 - match base signature
             pass
 
         # -- auth -------------------------------------------------------

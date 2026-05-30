@@ -188,6 +188,73 @@ def test_chat_requires_auth(server) -> None:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# approvals — persistent proposal queue, owner phrase preserved
+# ---------------------------------------------------------------------------
+
+
+def _seed_proposal(home: Path) -> str:
+    import hashlib
+    import json as _json
+
+    path = home / "jarvis_prime" / "proposals.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    prop = {
+        "kind": "skill_update",
+        "target_path": "skills/foo/SKILL.md",
+        "rationale": "improve",
+        "risk_class": "RC2",
+        "requires_owner_approval": True,
+        "status": "proposed",
+        "created_at": "2026-05-30T00:00:00+00:00",
+    }
+    path.write_text(_json.dumps(prop) + "\n", encoding="utf-8")
+    raw = f"{prop['kind']}|{prop['target_path']}|{prop['created_at']}"
+    return hashlib.sha1(raw.encode()).hexdigest()[:10]
+
+
+def test_approvals_list_real_queue(server, home: Path) -> None:
+    pid = _seed_proposal(home)
+    _, payload = _get(server, "/v1/cockpit/approvals")
+    ids = {a["id"] for a in payload["approvals"]}
+    assert pid in ids
+    item = next(a for a in payload["approvals"] if a["id"] == pid)
+    assert item["risk_level"] == "medium"
+
+
+def test_approve_requires_exact_owner_phrase(server, home: Path) -> None:
+    pid = _seed_proposal(home)
+    # Wrong phrase → 403, never bypasses the owner gate.
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            f"/v1/cockpit/approvals/{pid}",
+            {"decision": "approve", "authorization": "yes go ahead"},
+        )
+    assert exc.value.code == 403
+    # Exact phrase → approved.
+    status, raw = _post(
+        server,
+        f"/v1/cockpit/approvals/{pid}",
+        {"decision": "approve", "authorization": "Yes, with authorization."},
+    )
+    assert status == 200
+    assert json.loads(raw)["status"] == "approve"
+
+
+def test_reject_needs_no_phrase(server, home: Path) -> None:
+    pid = _seed_proposal(home)
+    status, raw = _post(
+        server, f"/v1/cockpit/approvals/{pid}", {"decision": "reject"}
+    )
+    assert status == 200
+
+
+def test_sessions_list_real_or_empty(server) -> None:
+    _, payload = _get(server, "/v1/cockpit/sessions")
+    assert "sessions" in payload and isinstance(payload["sessions"], list)
+
+
 def test_refuses_non_loopback_bind(home: Path) -> None:
     with pytest.raises(ValueError):
         serve(host="0.0.0.0", port=0, token=TOKEN)

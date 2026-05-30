@@ -237,6 +237,154 @@ def jobs_list(_req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Approvals (persistent JARVIS proposal queue; owner phrase preserved)
+# ---------------------------------------------------------------------------
+
+
+def _proposals_path():
+    import os as _os
+
+    base = _os.environ.get("HERMES_HOME") or _os.path.expanduser("~/.hermes")
+    from pathlib import Path as _Path
+
+    return _Path(base) / "jarvis_prime" / "proposals.jsonl"
+
+
+def _proposal_id(prop: dict[str, Any]) -> str:
+    import hashlib
+
+    raw = (
+        f"{prop.get('kind', '')}|"
+        f"{prop.get('target_path', '')}|"
+        f"{prop.get('created_at', '')}"
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:10]
+
+
+def _load_proposals() -> list[dict[str, Any]]:
+    import json as _json
+
+    path = _proposals_path()
+    if not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(_json.loads(line))
+        except _json.JSONDecodeError:
+            continue
+    return out
+
+
+def _save_proposals(items: list[dict[str, Any]]) -> None:
+    import json as _json
+    import os as _os
+
+    path = _proposals_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".jsonl.tmp")
+    tmp.write_text(
+        "".join(_json.dumps(i, default=str) + "\n" for i in items), encoding="utf-8"
+    )
+    _os.replace(tmp, path)
+
+
+_RISK_LEVEL = {
+    "RC0": "low",
+    "RC1": "low",
+    "RC2": "medium",
+    "RC3": "high",
+    "RC4": "high",
+}
+
+
+def approvals_list(_req: Request) -> JsonResponse:
+    """The real owner-approval queue (JARVIS self-update proposals)."""
+    items = []
+    for p in _load_proposals():
+        items.append({
+            "id": _proposal_id(p),
+            "kind": p.get("kind", ""),
+            "target": p.get("target_path", ""),
+            "rationale": p.get("rationale", ""),
+            "risk_class": p.get("risk_class", "RC1"),
+            "risk_level": _RISK_LEVEL.get(p.get("risk_class", "RC1"), "medium"),
+            "status": p.get("status", "proposed"),
+            "requires_owner_approval": bool(p.get("requires_owner_approval", True)),
+            "created_at": p.get("created_at", ""),
+        })
+    return JsonResponse(200, {"approvals": items})
+
+
+def approvals_decide(req: Request) -> JsonResponse:
+    """Approve/reject a proposal. Approve requires the exact owner phrase."""
+    proposal_id = req.path_params.get("id", "")
+    decision = str(req.body.get("decision", "")).lower().strip()
+    if decision not in ("approve", "reject"):
+        return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
+
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if decision == "approve":
+        phrase = str(req.body.get("authorization", "")).strip()
+        if phrase != AUTHORIZATION_PHRASE:
+            # Owner-gate contract: exact phrase required. Never bypass.
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner authorization required",
+                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                },
+            )
+
+    items = _load_proposals()
+    matched = False
+    for p in items:
+        if _proposal_id(p) == proposal_id:
+            p["status"] = "approved" if decision == "approve" else "rejected"
+            p["resolved_at"] = _now_iso()
+            p["owner_decision_note"] = f"{decision} via cockpit"
+            matched = True
+            break
+    if not matched:
+        return JsonResponse(404, {"error": f"unknown proposal: {proposal_id}"})
+    _save_proposals(items)
+    return JsonResponse(200, {"id": proposal_id, "status": items and decision})
+
+
+# ---------------------------------------------------------------------------
+# Sessions (decision-ledger sessions)
+# ---------------------------------------------------------------------------
+
+
+def sessions_list(_req: Request) -> JsonResponse:
+    sessions: list[dict[str, Any]] = []
+    try:
+        from hermes_cli import decision_ledger as dl
+
+        d = dl.decisions_dir()
+        if d.is_dir():
+            for child in sorted(d.iterdir()):
+                if child.is_dir():
+                    ledgers = dl.list_ledgers(child.name)
+                    sessions.append({
+                        "id": child.name,
+                        "decision_count": len(ledgers),
+                        "last_updated": _safe(
+                            lambda c=child: datetime.fromtimestamp(
+                                c.stat().st_mtime, tz=timezone.utc
+                            ).isoformat()
+                        ),
+                    })
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"sessions": [], "error": str(exc)})
+    return JsonResponse(200, {"sessions": sessions})
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -250,15 +398,17 @@ def _safe(fn):
 
 def _gateway_version() -> str:
     try:
-        from hermes_cli import __version__ as v  # type: ignore
+        import hermes_cli
 
-        return str(v)
+        v = getattr(hermes_cli, "__version__", None)
+        if v:
+            return str(v)
     except Exception:
         pass
     try:
-        from hermes_cli.jarvis_prime import __version__ as v  # type: ignore
+        import hermes_cli.jarvis_prime as jp
 
-        return str(v)
+        return str(getattr(jp, "__version__", "unknown"))
     except Exception:
         return "unknown"
 

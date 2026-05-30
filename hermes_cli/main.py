@@ -5887,7 +5887,8 @@ def cmd_cockpit(args):
             token=token,
             allow_external=getattr(args, "allow_external", False),
         )
-        bound_host, bound_port = server.server_address
+        _addr = server.server_address
+        bound_host, bound_port = _addr[0], _addr[1]
         print(f"Hermes cockpit API listening on http://{bound_host}:{bound_port}")
         print(f"Pairing token: {token}")
         print("Pair the Jarvis Prime Android app with this base URL + token.")
