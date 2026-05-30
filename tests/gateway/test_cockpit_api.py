@@ -24,7 +24,11 @@ TOKEN = "test-cockpit-token-123"
 
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    # Isolate every state root the cockpit touches so the suite is hermetic
+    # regardless of cwd: HERMES_HOME (memory, proposals, auth) and
+    # HERMES_ORCHESTRATOR_HOME (the JobQueue keys off its own env, else cwd).
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
     return tmp_path
 
 

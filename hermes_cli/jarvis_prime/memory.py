@@ -108,6 +108,18 @@ def _is_temporary_emotion(text: str) -> bool:
     return any(hint in low for hint in _EMOTIONAL_HINTS)
 
 
+def _default_journal_path() -> Path:
+    """Journal location, honoring ``HERMES_HOME`` like the rest of the stack.
+
+    Defaults to ``~/.hermes`` when unset, so production behavior is
+    unchanged — but tests / Termux / the cockpit can relocate the whole
+    store by setting ``HERMES_HOME`` (otherwise memory leaks across the
+    real home dir and isn't test-isolated).
+    """
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base) / "jarvis_prime" / "memory.jsonl"
+
+
 @dataclass
 class MemoryStore:
     """In-process layered memory store with persistence to disk.
@@ -119,9 +131,7 @@ class MemoryStore:
     decoupled here so the package stays stdlib-only at import time.
     """
 
-    journal_path: Path = field(
-        default_factory=lambda: Path(os.path.expanduser("~/.hermes/jarvis_prime/memory.jsonl"))
-    )
+    journal_path: Path = field(default_factory=_default_journal_path)
     working: list[MemoryRecord] = field(default_factory=list)
     session: list[MemoryRecord] = field(default_factory=list)
     durable: list[MemoryRecord] = field(default_factory=list)
@@ -265,7 +275,13 @@ class MemoryStore:
         return top
 
     def forget(self, key: str) -> int:
-        """Remove all records with a given key. Returns count."""
+        """Remove all records with a given key. Returns count.
+
+        Persists the removal: the journal is rewritten so a forget is
+        durable across processes (a fresh ``MemoryStore`` won't reload the
+        forgotten record). Without this, per-request stores — like the
+        cockpit DELETE handler — would never actually delete anything.
+        """
 
         removed = 0
         for collection_name in ("working", "session", "durable"):
@@ -273,7 +289,27 @@ class MemoryStore:
             new_collection = [r for r in collection if r.key != key]
             removed += len(collection) - len(new_collection)
             setattr(self, collection_name, new_collection)
+        if removed:
+            self._rewrite_journal()
         return removed
+
+    def _rewrite_journal(self) -> None:
+        """Atomically rewrite the journal from the persisted tiers.
+
+        Working memory is never journaled, so only session + durable are
+        written. Used after a forget (and any other mutation that removes
+        a previously-journaled record).
+        """
+        try:
+            self.journal_path.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.journal_path.with_suffix(".jsonl.tmp")
+            with tmp.open("w", encoding="utf-8") as fh:
+                for record in list(self.session) + list(self.durable):
+                    fh.write(json.dumps(record.to_dict()) + "\n")
+            os.replace(tmp, self.journal_path)
+            _tighten_perms(self.journal_path)
+        except Exception as exc:  # pragma: no cover - defensive
+            LOGGER.debug("memory journal rewrite failed: %s", exc)
 
     def summarize_for_prompt(self, query: str, limit: int = 5) -> str:
         """Render the top recollections as a compact string for the persona prompt."""
