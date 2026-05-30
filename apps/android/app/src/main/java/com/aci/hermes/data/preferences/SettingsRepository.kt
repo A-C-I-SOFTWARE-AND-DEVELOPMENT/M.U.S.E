@@ -50,6 +50,7 @@ class SettingsRepository(private val context: Context) {
         val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
         val INTERACTIVE_ICON_ENABLED = booleanPreferencesKey("interactive_icon_enabled")
         val GATEWAY_ENDPOINT = stringPreferencesKey("gateway_endpoint")
+        val COCKPIT_TOKEN = stringPreferencesKey("cockpit_token")
         val MOCK_MODE = booleanPreferencesKey("mock_mode")
         val TERMUX_GATEWAY_MODE = booleanPreferencesKey("termux_gateway_mode")
         val APPROVALS_REQUIRED = booleanPreferencesKey("approvals_required")
@@ -108,6 +109,16 @@ class SettingsRepository(private val context: Context) {
     }
     val gatewayEndpoint: Flow<String> = context.dataStore.data.map {
         it[Keys.GATEWAY_ENDPOINT] ?: DEFAULT_GATEWAY_ENDPOINT
+    }
+    /**
+     * The cockpit bearer token paired with a Hermes gateway (printed by
+     * `hermes cockpit serve` / `hermes cockpit token`). This is the
+     * **only** secret the cockpit stores — provider API keys never reach
+     * the app (contract §intro). Null/blank means "not paired"; the chat
+     * + cockpit client stay on their offline-safe paths until set.
+     */
+    val cockpitToken: Flow<String?> = context.dataStore.data.map {
+        it[Keys.COCKPIT_TOKEN]?.takeIf { token -> token.isNotBlank() }
     }
     val mockMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOCK_MODE] ?: false }
     val termuxGatewayMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.TERMUX_GATEWAY_MODE] ?: false }
@@ -190,6 +201,16 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setGatewayEndpoint(value: String) {
         context.dataStore.edit { it[Keys.GATEWAY_ENDPOINT] = value }
+    }
+
+    /** Pair the cockpit with a gateway by storing its bearer token. */
+    suspend fun setCockpitToken(value: String) {
+        context.dataStore.edit { it[Keys.COCKPIT_TOKEN] = value.trim() }
+    }
+
+    /** Unpair: drop the stored token (chat + cockpit client fall back to offline-safe). */
+    suspend fun clearCockpitToken() {
+        context.dataStore.edit { it.remove(Keys.COCKPIT_TOKEN) }
     }
 
     suspend fun setMockMode(value: Boolean) {

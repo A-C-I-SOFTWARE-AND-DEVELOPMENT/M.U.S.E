@@ -15,6 +15,31 @@ import kotlinx.serialization.Serializable
  * a separate class that lands with the cockpit-screen implementation.
  */
 
+// ─── Health ───────────────────────────────────────────────────────────
+
+/**
+ * Response of `GET /v1/health` — the negotiation entrypoint (contract
+ * §2/§11). Fields are tolerant of contract drift: the live gateway
+ * (`gateway/cockpit/handlers.py`) returns `service` / `api_version` /
+ * `gateway_version`, while the older spec variant used `version` /
+ * `message`. Both are accepted; absent fields stay null.
+ */
+@Serializable
+data class HealthStatus(
+    val ok: Boolean = false,
+    val service: String? = null,
+    @SerialName("api_version") val apiVersion: String? = null,
+    @SerialName("gateway_version") val gatewayVersion: String? = null,
+    val time: String? = null,
+    // Older spec variant (kept so a pre-cockpit gateway still negotiates).
+    val version: String? = null,
+    val message: String? = null,
+) {
+    /** Best-effort gateway version across both response variants. */
+    val resolvedVersion: String?
+        get() = gatewayVersion ?: version
+}
+
 // ─── Runtime ──────────────────────────────────────────────────────────
 
 @Serializable
