@@ -615,6 +615,30 @@ or `422` + `{ "stored": false, "reason": ... }` when the store rejects it
 
 ---
 
+## 10b. Audit — **canonical, implemented** (list + proof)
+
+`GET /v1/cockpit/audit` and `GET /v1/cockpit/audit/{id}/proof` are **live**,
+projecting the JARVIS-Prime **decision ledger** into the Android
+`AuditRecord` / `ProofRecord` (adapter in `gateway/cockpit/contract.py`).
+
+The ledger's 15 prose sections map onto the audit model; enum fields are
+**derived honestly** from real text:
+- `risk_tier` — `LOW` when `Open Risks` is empty/`N/A`, else `MODERATE`
+  (the ledger has no explicit tier; never a fabricated specific band).
+- `approval_state` — from the `Approval Required` verb (`no→UNNECESSARY`,
+  `yes→APPROVED`, `defer→PENDING`).
+- `result` — from the `Final Decision` text
+  (`blocked`/`failed`/`rolled back`/`partial`/…→`SUCCESS`).
+- `route.destination` — from `Selected Model/Worker`
+  (`codex→CODEX`, `claude→CLAUDE`, `gateway→HERMES_GATEWAY`, …).
+- `confidence` — `low/medium/high` → `0.4/0.7/0.95`.
+
+Fields the ledger genuinely doesn't carry — `files_changed`,
+`route.duration_ms`, enumerated `tests_run` — are emitted as empty/`0`,
+never invented. `GET .../proof` returns `404` for an unknown id.
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any

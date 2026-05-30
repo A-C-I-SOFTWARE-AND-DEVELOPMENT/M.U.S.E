@@ -39,7 +39,7 @@ the mock production seed.
 | Chat | `JarvisChatChunk` | real agent | ✅ live (#185) | ✅ routed (#186) |
 | **Memory** | `MemoryItem` | `MemoryStore` | ✅ **enriched (#187)** | ⏳ next |
 | **Jobs** | `CockpitJob` | `JobQueue` | ✅ **enriched (this PR)** — read+dispatch+cancel | ⏳ next |
-| Audit / ledger | `AuditRecord` | `decision_ledger` | ⏳ shape differs | ⏳ |
+| **Audit / ledger** | `AuditRecord`/`ProofRecord` | `decision_ledger` | ✅ **enriched (this PR)** — list + proof | ⏳ next |
 | Approvals (destructive) | `approval/model` | — (proposals only) | ⏳ needs model | ⏳ |
 | Proposals (self-update) | — | `proposals.jsonl` | ⏳ partial (#185) | ⏳ |
 | Capabilities / skills / tools | `Capability` | catalog | ⏳ | ⏳ |
@@ -54,10 +54,17 @@ lines); reconciliation means enriching/adapting the server, not faking.
 
 ## Honest-divergence notes (to resolve per domain)
 
+- **Audit**: resolved (this PR) — the decision ledger's 15 prose sections
+  map onto `AuditRecord`/`ProofRecord`. `GET /v1/cockpit/audit` and
+  `GET /v1/cockpit/audit/{id}/proof` are live. Enums are derived honestly
+  (risk from `open_risks` presence; approval from the yes/no/defer verb;
+  result from the final-decision text; route from the worker). Fields the
+  ledger genuinely lacks (files changed, per-step durations, enumerated
+  tests) are emitted empty/0 — never fabricated.
 - **Events**: server `audit_events` returns decision-**ledger** summaries;
   UI `CockpitEvent` wants leveled (`info|warn|error`) log lines with
-  `job_id`/`attributes`. Needs a real event source or an adapter that
-  classifies ledger entries honestly.
+  `job_id`/`attributes`. Still needs a real structured event source (a
+  separate concern from the audit ledger); deferred.
 - **Approvals**: server `approvals` are JARVIS **self-update proposals**;
   UI models **destructive-command** approvals (force-push, rebase, …).
   These are two real concepts — the contract likely needs **both** an

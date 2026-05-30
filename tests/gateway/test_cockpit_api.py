@@ -261,6 +261,53 @@ def test_job_get_unknown_is_404(server) -> None:
 
 
 # ---------------------------------------------------------------------------
+# audit — real decision ledger, canonical AuditRecord / ProofRecord
+# ---------------------------------------------------------------------------
+
+
+def test_audit_list_and_proof_from_real_ledger(server) -> None:
+    from hermes_cli.decision_ledger import DecisionLedger, write_ledger
+
+    ledger = DecisionLedger(
+        decision="Add OAuth callback",
+        plain_english_summary="Finish the OAuth return path",
+        context="User asked to finish OAuth login",
+        evidence_reviewed="Reviewed src/auth and the provider docs",
+        options_considered="Codex vs manual",
+        selected_model_worker="codex_cli",
+        why_this_choice="Bounded edit, Codex is fastest",
+        rejected_alternatives="Manual would be slower",
+        cost_latency_quality_tradeoff="cheap/fast/high",
+        validation_plan="Run the auth tests",
+        approval_required="no - trivial",
+        final_decision="proceed - implemented",
+        confidence="high - understood",
+        open_risks="N/A - additive",
+        rollback_plan="Revert the commit",
+    )
+    write_ledger(ledger, session_id="smoke", validate=False)
+
+    _, listing = _get(server, "/v1/cockpit/audit")
+    assert listing["records"], "expected the written ledger to surface"
+    rec = listing["records"][0]
+    assert rec["route"]["destination"] == "CODEX"
+    assert rec["result"] == "SUCCESS"
+    assert rec["confidence"] == 0.95
+    proof_id = rec["proof_id"]
+
+    _, proof = _get(server, f"/v1/cockpit/audit/{proof_id}/proof")
+    assert proof["audit_id"] == proof_id
+    assert proof["rollback"] is not None  # "Revert the commit"
+    assert any(e["kind"] == "DOC_LINK" for e in proof["evidence"])
+
+
+def test_audit_proof_unknown_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/audit/does-not-exist/proof")
+    assert exc.value.code == 404
+
+
+# ---------------------------------------------------------------------------
 # real-agent chat stream (NDJSON, not an echo)
 # ---------------------------------------------------------------------------
 

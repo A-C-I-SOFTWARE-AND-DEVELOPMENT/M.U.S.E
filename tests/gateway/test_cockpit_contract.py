@@ -12,8 +12,31 @@ from datetime import datetime, timezone
 import pytest
 
 from gateway.cockpit import contract
+from hermes_cli.decision_ledger import DecisionLedger
 from hermes_cli.jarvis_prime.memory import MemoryRecord
 from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry
+
+
+def _ledger(**kw) -> DecisionLedger:
+    base = dict(
+        decision="Add OAuth callback handler",
+        plain_english_summary="Wire the OAuth return path",
+        context="User asked to finish OAuth login",
+        evidence_reviewed="Looked at src/auth/*.py and the provider docs",
+        selected_model_worker="codex_cli",
+        why_this_choice="Codex is fastest for bounded edits",
+        validation_plan="Run the auth unit tests",
+        approval_required="no - trivial bounded change",
+        final_decision="proceed - implement the handler",
+        confidence="high - well understood",
+        open_risks="N/A - additive, behind a flag",
+        rollback_plan="N/A - additive change",
+        cost_latency_quality_tradeoff="cheap, fast, high quality",
+        created_at=1000.0,
+        slug="add-oauth",
+    )
+    base.update(kw)
+    return DecisionLedger(**base)
 
 
 def test_confidence_to_enum_buckets() -> None:
@@ -225,3 +248,72 @@ def test_cockpit_job_key_set_matches_contract() -> None:
         "validation_summary",
         "publish_state",
     }
+
+
+# ---------------------------------------------------------------------------
+# Audit — DecisionLedger → canonical AuditRecord / ProofRecord
+# ---------------------------------------------------------------------------
+
+
+def test_audit_record_maps_ledger_honestly() -> None:
+    rec = contract.audit_record(_ledger())
+    assert rec["id"] == "add-oauth"
+    assert rec["user_request"].startswith("User asked")
+    assert rec["action"].startswith("proceed")
+    assert rec["risk_tier"] == "LOW"  # open_risks "N/A — ..." reads as none
+    assert rec["route"]["destination"] == "CODEX"
+    assert rec["route"]["model"] == "codex_cli"
+    assert rec["route"]["duration_ms"] == 0  # honest: not tracked
+    assert rec["approval_state"] == "UNNECESSARY"  # "no"
+    assert rec["result"] == "SUCCESS"  # "proceed"
+    assert rec["confidence"] == 0.95  # "high"
+    assert rec["proof_id"] == "add-oauth"
+    assert set(rec.keys()) == {
+        "id", "timestamp", "user_request", "action", "risk_tier",
+        "route", "approval_state", "result", "confidence", "proof_id",
+    }
+    assert set(rec["route"].keys()) == {"destination", "model", "reason", "duration_ms"}
+
+
+def test_audit_record_derivation_for_risk_approval_result() -> None:
+    rec = contract.audit_record(_ledger(
+        open_risks="May hit the provider rate limit under load",
+        approval_required="yes - owner must confirm the scope",
+        final_decision="blocked - waiting on a secret",
+        confidence="medium - some unknowns",
+        selected_model_worker="claude_code",
+    ))
+    assert rec["risk_tier"] == "MODERATE"  # real flagged risk
+    assert rec["approval_state"] == "APPROVED"  # "yes"
+    assert rec["result"] == "BLOCKED"
+    assert rec["confidence"] == 0.7  # "medium"
+    assert rec["route"]["destination"] == "CLAUDE"
+
+
+def test_audit_proof_maps_nested_bundle_with_honest_absences() -> None:
+    proof = contract.audit_proof(_ledger())
+    assert proof["audit_id"] == "add-oauth"
+    assert proof["rationale"].startswith("Codex is fastest")
+    assert len(proof["evidence"]) == 1
+    assert proof["evidence"][0]["kind"] == "DOC_LINK"
+    assert proof["verification"]["status"] == "PASSED"  # validation_plan present
+    assert len(proof["approvals"]) == 1
+    assert proof["approvals"][0]["state"] == "UNNECESSARY"
+    assert proof["rollback"] is None  # "N/A — additive change" → none
+    assert len(proof["worker_runs"]) == 1
+    assert proof["worker_runs"][0]["worker"] == "codex_cli"
+    assert proof["files_changed"] == []  # never fabricated
+    assert proof["tests_run"] == []
+    assert set(proof.keys()) == {
+        "id", "audit_id", "rationale", "evidence", "tests_run", "files_changed",
+        "verification", "approvals", "rollback", "impact_report", "worker_runs",
+    }
+
+
+def test_audit_proof_surfaces_rollback_when_present() -> None:
+    proof = contract.audit_proof(_ledger(
+        rollback_plan="Revert the commit\nRedeploy the previous build",
+    ))
+    assert proof["rollback"] is not None
+    assert proof["rollback"]["steps"] == ["Revert the commit", "Redeploy the previous build"]
+    assert proof["rollback"]["automatic"] is False

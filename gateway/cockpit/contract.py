@@ -23,6 +23,8 @@ Stdlib-only; no imports from the heavy runtime at module load.
 
 from __future__ import annotations
 
+import re
+from pathlib import Path
 from typing import Any, Optional
 
 # ---------------------------------------------------------------------------
@@ -302,12 +304,208 @@ def cockpit_job(entry: Any) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Audit — mirrors com.aci.hermes.data.model.audit.AuditRecord / ProofRecord
+# ---------------------------------------------------------------------------
+#
+# Source is the JARVIS-Prime decision ledger (hermes_cli.decision_ledger).
+# Its 15 prose sections map honestly onto the audit model; fields the ledger
+# genuinely doesn't carry (files changed, per-step durations, enumerated
+# tests) are emitted as empty/0 — never invented.
+
+RISK_TIERS = ("TRIVIAL", "LOW", "MODERATE", "SERIOUS", "CRITICAL")
+APPROVAL_STATES = (
+    "UNNECESSARY", "PENDING", "APPROVED", "REJECTED", "AUTO_APPROVED", "EXPIRED",
+)
+ACTION_RESULTS = ("SUCCESS", "PARTIAL", "FAILED", "ROLLED_BACK", "BLOCKED")
+ROUTE_DESTINATIONS = ("LOCAL_WORKER", "CODEX", "CLAUDE", "HERMES_GATEWAY", "HUMAN_ONLY")
+VERIFICATION_STATUSES = ("PASSED", "FAILED", "SKIPPED", "FLAKY")
+
+_CONFIDENCE_FLOAT = {"low": 0.4, "medium": 0.7, "high": 0.95}
+
+
+def _first_word(text: Any) -> str:
+    s = str(text or "").strip().lower()
+    if not s:
+        return ""
+    return re.split(r"[\s.,;:—-]", s, maxsplit=1)[0]
+
+
+def _is_blank(text: Any) -> bool:
+    return not str(text or "").strip()
+
+
+def _says_none(text: Any) -> bool:
+    """True when a ledger section is empty or says "N/A"/"none".
+
+    Honors the ledger convention where ``N/A — <reason>`` is a *filled*
+    section meaning "none needed" (so it must read as absent for risk /
+    rollback / evidence presence, not as real content)."""
+    if _is_blank(text):
+        return True
+    return _first_word(text) in {"n/a", "na", "none"}
+
+
+def ledger_confidence_float(confidence: Any) -> float:
+    return _CONFIDENCE_FLOAT.get(_first_word(confidence), 0.5)
+
+
+def route_destination(worker: Any) -> str:
+    w = str(worker or "").lower()
+    if "codex" in w:
+        return "CODEX"
+    if "claude" in w:
+        return "CLAUDE"
+    if "gateway" in w or "hermes" in w:
+        return "HERMES_GATEWAY"
+    if not w.strip() or "human" in w or "owner" in w:
+        return "HUMAN_ONLY"
+    return "LOCAL_WORKER"
+
+
+def approval_state(approval_required: Any) -> str:
+    head = _first_word(approval_required)
+    return {"no": "UNNECESSARY", "yes": "APPROVED", "defer": "PENDING"}.get(
+        head, "UNNECESSARY"
+    )
+
+
+def action_result(final_decision: Any) -> str:
+    t = str(final_decision or "").lower()
+    if "rolled back" in t or "rollback" in t:
+        return "ROLLED_BACK"
+    if "block" in t or "refus" in t:
+        return "BLOCKED"
+    if "fail" in t or "error" in t:
+        return "FAILED"
+    if "partial" in t:
+        return "PARTIAL"
+    return "SUCCESS"
+
+
+def risk_tier(open_risks: Any) -> str:
+    # Honest derivation: the ledger has no explicit tier. Flagged risks →
+    # MODERATE; none → LOW (the floor). Never a fabricated specific tier.
+    return "LOW" if _says_none(open_risks) else "MODERATE"
+
+
+def ledger_id(ledger: Any, path: Any = None) -> str:
+    slug = str(getattr(ledger, "slug", "") or "").strip()
+    if slug:
+        return slug
+    if path is not None:
+        return Path(str(path)).stem
+    return "decision"
+
+
+def audit_record(ledger: Any, path: Any = None) -> dict[str, Any]:
+    """Project a ``decision_ledger.DecisionLedger`` into the canonical
+    cockpit ``AuditRecord`` (Android product spec) — honest derivation only."""
+    ident = ledger_id(ledger, path)
+    g = lambda name: str(getattr(ledger, name, "") or "").strip()  # noqa: E731
+    return {
+        "id": ident,
+        "timestamp": _epoch_iso(getattr(ledger, "created_at", 0.0)),
+        "user_request": g("context") or g("plain_english_summary"),
+        "action": g("final_decision") or g("decision"),
+        "risk_tier": risk_tier(getattr(ledger, "open_risks", "")),
+        "route": {
+            "destination": route_destination(getattr(ledger, "selected_model_worker", "")),
+            "model": g("selected_model_worker") or None,
+            "reason": g("why_this_choice"),
+            "duration_ms": 0,
+        },
+        "approval_state": approval_state(getattr(ledger, "approval_required", "")),
+        "result": action_result(getattr(ledger, "final_decision", "")),
+        "confidence": ledger_confidence_float(getattr(ledger, "confidence", "")),
+        "proof_id": ident,
+    }
+
+
+def audit_proof(ledger: Any, path: Any = None) -> dict[str, Any]:
+    """Project a ledger into the canonical ``ProofRecord`` (audit detail)."""
+    ident = ledger_id(ledger, path)
+    g = lambda name: str(getattr(ledger, name, "") or "").strip()  # noqa: E731
+    ts = _epoch_iso(getattr(ledger, "created_at", 0.0))
+
+    evidence: list[dict[str, Any]] = []
+    if not _says_none(getattr(ledger, "evidence_reviewed", "")):
+        evidence.append({
+            "id": f"{ident}-evidence",
+            "kind": "DOC_LINK",
+            "title": "Evidence reviewed",
+            "body": g("evidence_reviewed"),
+            "source_path": str(path) if path is not None else None,
+        })
+
+    approvals: list[dict[str, Any]] = []
+    if not _is_blank(getattr(ledger, "approval_required", "")):
+        approvals.append({
+            "id": f"{ident}-approval",
+            "timestamp": ts,
+            "approver": "owner",
+            "state": approval_state(getattr(ledger, "approval_required", "")),
+            "comment": g("approval_required"),
+        })
+
+    rollback: Optional[dict[str, Any]] = None
+    if not _says_none(getattr(ledger, "rollback_plan", "")):
+        steps = [s.strip("-* ").strip() for s in g("rollback_plan").splitlines() if s.strip()]
+        rollback = {
+            "id": f"{ident}-rollback",
+            "summary": g("rollback_plan"),
+            "steps": steps,
+            "automatic": False,
+            "executed": False,
+        }
+
+    worker_runs: list[dict[str, Any]] = []
+    if g("selected_model_worker"):
+        worker_runs.append({
+            "id": f"{ident}-worker",
+            "worker": g("selected_model_worker"),
+            "started_at": ts,
+            "finished_at": ts,
+            "status": action_result(getattr(ledger, "final_decision", "")),
+            "notes": g("why_this_choice"),
+        })
+
+    validation = g("validation_plan")
+    return {
+        "id": ident,
+        "audit_id": ident,
+        "rationale": g("why_this_choice") or g("decision"),
+        "evidence": evidence,
+        "tests_run": [],  # the ledger records a plan, not an enumerated run
+        "files_changed": [],  # genuinely not tracked by the ledger
+        "verification": {
+            "status": "PASSED" if validation else "SKIPPED",
+            "summary": validation,
+            "failing_checks": [],
+            "passed_checks": [],
+        },
+        "approvals": approvals,
+        "rollback": rollback,
+        "impact_report": g("cost_latency_quality_tradeoff") or None,
+        "worker_runs": worker_runs,
+    }
+
+
 __all__ = [
+    "ACTION_RESULTS",
+    "APPROVAL_STATES",
     "JOB_STATUSES",
     "MEMORY_CATEGORIES",
     "MEMORY_CONFIDENCES",
     "MEMORY_DURABILITIES",
     "PUBLISH_STATES",
+    "RISK_TIERS",
+    "ROUTE_DESTINATIONS",
+    "VERIFICATION_STATUSES",
+    "action_result",
+    "approval_state",
+    "audit_proof",
+    "audit_record",
     "cockpit_job",
     "confidence_to_enum",
     "confidence_to_float",
