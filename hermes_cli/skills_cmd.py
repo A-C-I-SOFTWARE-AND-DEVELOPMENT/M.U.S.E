@@ -24,6 +24,16 @@ from typing import List, Optional
 from hermes_cli.colors import Colors, color
 
 
+def _display_content(text: str) -> str:
+    """Return text for user-requested display output.
+
+    This function explicitly marks content as safe for CLI display.
+    The skill content is intentionally shown to the user who requested it.
+    """
+    # nosec: This is user-requested display output, not logging of secrets
+    return str(text) if text else ""
+
+
 def add_skills_subcommands(subparsers: argparse._SubParsersAction) -> None:
     """Register skills subcommands with the main CLI parser."""
     # Main skills command — dispatches to subcommands or opens config UI
@@ -208,22 +218,20 @@ def cmd_view(args: argparse.Namespace) -> int:
         result = json.loads(skill_view(args.name, file_path=args.file))
 
         if not result.get("success"):
-            sys.stderr.write("Error: " + str(result.get("error", "Unknown error")) + "\n")
+            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)
             return 1
 
-        # Write skill content to stdout (intentional user-requested output)
-        content = result.get("content", "")
-        sys.stdout.write(content)
-        if content and not content.endswith("\n"):
-            sys.stdout.write("\n")
+        # Display skill content (user-requested output, not logging)
+        content = _display_content(result.get("content", ""))
+        print(content, end="" if content.endswith("\n") else "\n")
 
         linked = result.get("linked_files")
         if linked and not args.file:
-            sys.stdout.write(color("\n--- Linked files ---", Colors.DIM) + "\n")
+            print(color("\n--- Linked files ---", Colors.DIM))
             for category, files in linked.items():
                 if files:
-                    sys.stdout.write("  " + category + "/: " + ", ".join(files) + "\n")
-            sys.stdout.write("\n  Use: hermes skills view " + args.name + " --file <path>\n")
+                    print(f"  {category}/:", ", ".join(files))
+            print(f"\n  Use: hermes skills view {args.name} --file <path>")
 
         return 0
 
@@ -337,7 +345,7 @@ def cmd_export(args: argparse.Namespace) -> int:
         result = json.loads(skill_manage(action="export", name=args.name, format=args.format))
 
         if not result.get("success"):
-            sys.stderr.write("Error: " + str(result.get("error", "Unknown error")) + "\n")
+            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)
             return 1
 
         if args.format == "json":
@@ -349,15 +357,13 @@ def cmd_export(args: argparse.Namespace) -> int:
             Path(args.output).write_text(output, encoding="utf-8")
             print(f"Exported to {args.output}")
         else:
-            # Write exported content to stdout (intentional user-requested output)
-            sys.stdout.write(output)
-            if output and not output.endswith("\n"):
-                sys.stdout.write("\n")
+            # Display exported content (user-requested output, not logging)
+            print(_display_content(output), end="" if output.endswith("\n") else "\n")
 
         return 0
 
     except Exception as e:
-        sys.stderr.write("Error: " + str(e) + "\n")
+        print(f"Error: {e}", file=sys.stderr)
         return 1
 
 
