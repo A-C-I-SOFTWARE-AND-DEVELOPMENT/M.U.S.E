@@ -522,6 +522,74 @@ green-light. The cockpit reads pending approvals from:
 
 ---
 
+## 10a. Memory — **canonical, implemented**
+
+The cockpit memory routes are **live** and emit the canonical schema
+below (server is the source of truth; the Android `MemoryItem` mirrors
+it field-for-field). Backed by the real JARVIS-Prime `MemoryStore` via
+the adapter in `gateway/cockpit/contract.py` — no fabricated fields; a
+field with no source signal is an explicit `null` or the `UNCATEGORIZED`
+category, never a guess. Secrets are rejected at write time (→ `422`),
+never stored or redacted-after-the-fact.
+
+### Memory item
+
+```json
+{
+  "id": "deploy_window",
+  "category": "OWNER_PREFERENCE",
+  "title": "deploy_window",
+  "content": "Owner prefers deploys after 6pm ET",
+  "durability": "PERMANENT",
+  "confidence": "HIGH",
+  "provenance": {
+    "source": "agent",
+    "session_id": null,
+    "recorded_at": "2026-05-30T12:00:00Z",
+    "note": "seen in chat"
+  },
+  "created_at": "2026-05-30T12:00:00Z",
+  "updated_at": "2026-05-30T12:00:00Z",
+  "last_accessed_at": "2026-05-30T13:00:00Z",
+  "tags": ["ops"],
+  "redacted": false,
+  "hidden": false
+}
+```
+
+- `category ∈ {OWNER_PREFERENCE, PROJECT_MEMORY, WORKFLOW_LESSON,
+  TASK_CONTEXT, DECISION_RECORD, SOCIAL_SPEECH_PATTERN, SESSION_MEMORY,
+  UNCATEGORIZED}` — `UNCATEGORIZED` is the honest "no classification"
+  member (added to the canonical vocabulary so the server never invents a
+  category). The Android `MemoryCategory` enum gains `UNCATEGORIZED` when
+  it is aligned to this contract.
+- `durability ∈ {EPHEMERAL, SESSION, SHORT_TERM, LONG_TERM, PERMANENT}`
+  (store tiers `working`/`session`/`durable` map to
+  `EPHEMERAL`/`SESSION`/`PERMANENT`).
+- `confidence ∈ {LOW, MEDIUM, HIGH, CONFIRMED}` (derived from the store's
+  confidence float).
+- `id == title == key`: the store key is the stable identity, so
+  `DELETE /v1/cockpit/memory/{id}` addresses the real record.
+
+### `GET /v1/cockpit/memory`
+
+Query: `q`/`query` (optional recollection), `limit`. Returns
+`{ "items": [ ...Memory item... ] }`.
+
+### `POST /v1/cockpit/memory`
+
+Accepts the canonical fields (`title`, `content`, `category`,
+`durability` enum, `confidence` enum, `tags`, `hidden`); the legacy flat
+`key`/`value` is still accepted. `201` + `{ "stored": true, "item": {...} }`,
+or `422` + `{ "stored": false, "reason": ... }` when the store rejects it
+(secret-like or below the durable-confidence floor).
+
+### `DELETE /v1/cockpit/memory/{id}`
+
+`{ "removed": <int> }`.
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any

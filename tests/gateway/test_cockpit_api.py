@@ -135,14 +135,53 @@ def test_jobs_and_events_have_real_or_empty(server) -> None:
 
 
 def test_memory_create_and_list(server) -> None:
+    # Legacy flat key/value still accepted (backward compatible)...
     status, raw = _post(
         server, "/v1/cockpit/memory", {"key": "fav_editor", "value": "neovim"}
     )
     assert status == 201
     created = json.loads(raw)
     assert created["stored"] is True
+    # ...and the response is the canonical enriched MemoryItem, not flat.
+    item = created["item"]
+    assert item["title"] == "fav_editor"
+    assert item["content"] == "neovim"
+    assert item["id"] == "fav_editor"
+    assert item["category"] == "UNCATEGORIZED"  # honest, not guessed
+    assert item["confidence"] in {"LOW", "MEDIUM", "HIGH", "CONFIRMED"}
+    assert item["durability"] in {
+        "EPHEMERAL",
+        "SESSION",
+        "SHORT_TERM",
+        "LONG_TERM",
+        "PERMANENT",
+    }
+    assert item["provenance"]["source"]
+    assert item["redacted"] is False
+
     _, listing = _get(server, "/v1/cockpit/memory")
-    assert any(i["key"] == "fav_editor" for i in listing["items"])
+    assert any(i["title"] == "fav_editor" for i in listing["items"])
+
+
+def test_memory_create_canonical_fields(server) -> None:
+    status, raw = _post(
+        server,
+        "/v1/cockpit/memory",
+        {
+            "title": "deploy_window",
+            "content": "Owner prefers deploys after 6pm ET",
+            "category": "OWNER_PREFERENCE",
+            "durability": "PERMANENT",
+            "confidence": "HIGH",
+            "tags": ["ops", "scheduling"],
+        },
+    )
+    assert status == 201
+    item = json.loads(raw)["item"]
+    assert item["category"] == "OWNER_PREFERENCE"  # persisted, round-trips
+    assert item["durability"] == "PERMANENT"
+    assert item["confidence"] == "HIGH"
+    assert "ops" in item["tags"]
 
 
 def test_memory_rejects_secret(server) -> None:

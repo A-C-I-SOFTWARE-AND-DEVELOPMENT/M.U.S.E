@@ -145,38 +145,54 @@ def models(_req: Request) -> JsonResponse:
 
 
 def memory_list(req: Request) -> JsonResponse:
+    """List memory as canonical cockpit ``MemoryItem`` objects (contract)."""
     query = req.query.get("q") or req.query.get("query")
     try:
         from hermes_cli.jarvis_prime.memory import MemoryStore
+
+        from . import contract
 
         store = MemoryStore()
         if query:
             records = store.recollect(query, limit=int(req.query.get("limit", "50")))
         else:
             records = list(store.durable) + list(store.session)
-        items = [r.to_dict() for r in records]
+        items = [contract.memory_item(r) for r in records]
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(200, {"items": [], "error": str(exc)})
     return JsonResponse(200, {"items": items})
 
 
 def memory_create(req: Request) -> JsonResponse:
-    key = str(req.body.get("key", "")).strip()
-    value = str(req.body.get("value", "")).strip()
+    """Create memory from a canonical ``MemoryItem`` body.
+
+    Accepts the canonical UI fields (``title``/``content``/``category``/
+    ``durability`` enum/``confidence`` enum/``tags``/``hidden``) and, for
+    backward compatibility, the legacy flat ``key``/``value``. Returns the
+    enriched item on success, or 422 when the store rejects it (secret-like
+    or below the durable-confidence floor) — honest, never faked.
+    """
+    body = req.body
+    key = str(body.get("title") or body.get("key") or "").strip()
+    value = str(body.get("content") or body.get("value") or "").strip()
     if not key or not value:
-        return JsonResponse(400, {"error": "key and value are required"})
-    durability = str(req.body.get("durability", "session"))
+        return JsonResponse(400, {"error": "title/content (or key/value) are required"})
     try:
         from hermes_cli.jarvis_prime.memory import MemoryStore
 
+        from . import contract
+
+        normalized = contract.normalize_category(body.get("category"))
         store = MemoryStore()
         record = store.remember(
             key=key,
             value=value,
-            durability=durability
-            if durability in ("session", "durable")
-            else "session",
-            source="cockpit",
+            durability=contract.durability_to_store(body.get("durability")),
+            source=str(body.get("source") or "cockpit"),
+            confidence=contract.confidence_to_float(body.get("confidence", 1.0)),
+            tags=tuple(str(t) for t in (body.get("tags") or ())),
+            category=None if normalized == "UNCATEGORIZED" else normalized,
+            hidden=bool(body.get("hidden", False)),
         )
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
@@ -185,7 +201,7 @@ def memory_create(req: Request) -> JsonResponse:
         return JsonResponse(
             422, {"stored": False, "reason": "rejected (secret-like or low confidence)"}
         )
-    return JsonResponse(201, {"stored": True, "item": record.to_dict()})
+    return JsonResponse(201, {"stored": True, "item": contract.memory_item(record)})
 
 
 def memory_delete(req: Request) -> JsonResponse:

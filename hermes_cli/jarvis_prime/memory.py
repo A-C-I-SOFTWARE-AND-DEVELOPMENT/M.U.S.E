@@ -77,6 +77,11 @@ class MemoryRecord:
     source: str = "user"  # "user" | "agent" | "system"
     confidence: float = 1.0
     citations: tuple[str, ...] = ()
+    # Cockpit-facing classification (canonical contract). Optional and
+    # additive: legacy/agent-written records leave it None and the
+    # cockpit projects an honest "uncategorized" rather than guessing.
+    category: Optional[str] = None
+    hidden: bool = False
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -89,6 +94,8 @@ class MemoryRecord:
             "source": self.source,
             "confidence": self.confidence,
             "citations": list(self.citations),
+            "category": self.category,
+            "hidden": self.hidden,
         }
 
 
@@ -146,6 +153,8 @@ class MemoryStore:
                         source=data.get("source", "user"),
                         confidence=float(data.get("confidence", 1.0)),
                         citations=tuple(data.get("citations") or ()),
+                        category=data.get("category"),
+                        hidden=bool(data.get("hidden", False)),
                     )
                     if record.durability == "durable":
                         self.durable.append(record)
@@ -176,6 +185,8 @@ class MemoryStore:
         source: str = "user",
         confidence: float = 1.0,
         citations: Iterable[str] = (),
+        category: Optional[str] = None,
+        hidden: bool = False,
     ) -> Optional[MemoryRecord]:
         """Capture a memory. Returns the record, or None if rejected.
 
@@ -204,6 +215,8 @@ class MemoryStore:
             source=source,
             confidence=confidence,
             citations=tuple(citations),
+            category=category,
+            hidden=hidden,
         )
         getattr(self, durability).append(record)
         self._journal(record)
