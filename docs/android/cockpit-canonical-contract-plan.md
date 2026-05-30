@@ -40,8 +40,8 @@ the mock production seed.
 | **Memory** | `MemoryItem` | `MemoryStore` | ✅ **enriched (#187)** | ⏳ next |
 | **Jobs** | `CockpitJob` | `JobQueue` | ✅ **enriched (this PR)** — read+dispatch+cancel | ⏳ next |
 | **Audit / ledger** | `AuditRecord`/`ProofRecord` | `decision_ledger` | ✅ **enriched (this PR)** — list + proof | ⏳ next |
-| Approvals (destructive) | `approval/model` | — (proposals only) | ⏳ needs model | ⏳ |
-| Proposals (self-update) | — | `proposals.jsonl` | ⏳ partial (#185) | ⏳ |
+| **Approvals** | `ApprovalCard` | `proposals.jsonl` | ✅ **enriched (this PR)** — canonical cards + owner-phrase decide | ⏳ next |
+| **Proposals** (self-update) | (native) | `proposals.jsonl` | ✅ **native view (this PR)** — `/v1/cockpit/proposals` | ⏳ |
 | Capabilities / skills / tools | `Capability` | catalog | ⏳ | ⏳ |
 | Automations | `AutomationIntent` | — | ⏳ | ⏳ |
 | Sessions | — | `decision_ledger` dirs | ⏳ partial (#185) | ⏳ |
@@ -65,10 +65,13 @@ lines); reconciliation means enriching/adapting the server, not faking.
   UI `CockpitEvent` wants leveled (`info|warn|error`) log lines with
   `job_id`/`attributes`. Still needs a real structured event source (a
   separate concern from the audit ledger); deferred.
-- **Approvals**: server `approvals` are JARVIS **self-update proposals**;
-  UI models **destructive-command** approvals (force-push, rebase, …).
-  These are two real concepts — the contract likely needs **both** an
-  `approvals` (destructive) and a `proposals` (self-update) surface.
+- **Approvals**: resolved (this PR) — the Android Approvals screen is one
+  `ApprovalCard` queue; the server's one real owner-gated queue is the
+  self-update proposal store. `/v1/cockpit/approvals` projects proposals
+  into canonical cards (risk class → tier; owner-phrase decide preserved);
+  `/v1/cockpit/proposals` keeps the self-update-native shape. Future
+  destructive-command approvals join the same card queue — no second store
+  fabricated.
 - **Memory**: resolved (#187) — `category` persisted; 3 store tiers map to a
   subset of the 5 UI durability levels (honest, lossless on read).
 - **Jobs**: resolved (this PR) — the canonical `status` is a **superset** of

@@ -432,31 +432,30 @@ def _save_proposals(items: list[dict[str, Any]]) -> None:
     _os.replace(tmp, path)
 
 
-_RISK_LEVEL = {
-    "RC0": "low",
-    "RC1": "low",
-    "RC2": "medium",
-    "RC3": "high",
-    "RC4": "high",
-}
-
-
 def approvals_list(_req: Request) -> JsonResponse:
-    """The real owner-approval queue (JARVIS self-update proposals)."""
-    items = []
-    for p in _load_proposals():
-        items.append({
-            "id": _proposal_id(p),
-            "kind": p.get("kind", ""),
-            "target": p.get("target_path", ""),
-            "rationale": p.get("rationale", ""),
-            "risk_class": p.get("risk_class", "RC1"),
-            "risk_level": _RISK_LEVEL.get(p.get("risk_class", "RC1"), "medium"),
-            "status": p.get("status", "proposed"),
-            "requires_owner_approval": bool(p.get("requires_owner_approval", True)),
-            "created_at": p.get("created_at", ""),
-        })
-    return JsonResponse(200, {"approvals": items})
+    """The owner-approval queue as canonical ``ApprovalCard``s.
+
+    Source today is the real JARVIS self-update proposal queue; future
+    destructive-command approvals join the same card shape.
+    """
+    from . import contract
+
+    cards = [
+        contract.approval_card(p, approval_id=_proposal_id(p))
+        for p in _load_proposals()
+    ]
+    return JsonResponse(200, {"approvals": cards})
+
+
+def proposals_list(_req: Request) -> JsonResponse:
+    """Self-update-native view of the proposal queue (proposal shape)."""
+    from . import contract
+
+    items = [
+        contract.proposal_view(p, proposal_id=_proposal_id(p))
+        for p in _load_proposals()
+    ]
+    return JsonResponse(200, {"proposals": items})
 
 
 def approvals_decide(req: Request) -> JsonResponse:
@@ -607,6 +606,7 @@ __all__ = [
     "memory_delete",
     "memory_list",
     "models",
+    "proposals_list",
     "runtime_status",
     "runtime_workers",
 ]
