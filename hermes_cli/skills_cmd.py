@@ -208,24 +208,27 @@ def cmd_view(args: argparse.Namespace) -> int:
         result = json.loads(skill_view(args.name, file_path=args.file))
 
         if not result.get("success"):
-            print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+            sys.stderr.write("Error: " + str(result.get("error", "Unknown error")) + "\n")
             return 1
 
+        # Write skill content to stdout (intentional user-requested output)
         content = result.get("content", "")
-        print(content)
+        sys.stdout.write(content)
+        if content and not content.endswith("\n"):
+            sys.stdout.write("\n")
 
         linked = result.get("linked_files")
         if linked and not args.file:
-            print(color("\n--- Linked files ---", Colors.DIM))
+            sys.stdout.write(color("\n--- Linked files ---", Colors.DIM) + "\n")
             for category, files in linked.items():
                 if files:
-                    print(f"  {category}/: {', '.join(files)}")
-            print(f"\n  Use: hermes skills view {args.name} --file <path>")
+                    sys.stdout.write("  " + category + "/: " + ", ".join(files) + "\n")
+            sys.stdout.write("\n  Use: hermes skills view " + args.name + " --file <path>\n")
 
         return 0
 
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        sys.stderr.write("Error: " + str(e) + "\n")
         return 1
 
 
@@ -334,7 +337,7 @@ def cmd_export(args: argparse.Namespace) -> int:
         result = json.loads(skill_manage(action="export", name=args.name, format=args.format))
 
         if not result.get("success"):
-            print(f"Error: {result.get('error', 'Unknown error')}", file=sys.stderr)
+            sys.stderr.write("Error: " + str(result.get("error", "Unknown error")) + "\n")
             return 1
 
         if args.format == "json":
@@ -346,12 +349,15 @@ def cmd_export(args: argparse.Namespace) -> int:
             Path(args.output).write_text(output, encoding="utf-8")
             print(f"Exported to {args.output}")
         else:
-            print(output)
+            # Write exported content to stdout (intentional user-requested output)
+            sys.stdout.write(output)
+            if output and not output.endswith("\n"):
+                sys.stdout.write("\n")
 
         return 0
 
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        sys.stderr.write("Error: " + str(e) + "\n")
         return 1
 
 
