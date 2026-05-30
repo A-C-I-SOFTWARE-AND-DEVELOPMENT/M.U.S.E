@@ -491,8 +491,100 @@ def audit_proof(ledger: Any, path: Any = None) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Approvals — mirrors com.aci.hermes.approval.model.ApprovalCard
+# ---------------------------------------------------------------------------
+#
+# The Android Approvals screen is one queue (`ApprovalCard`). The server's
+# one real owner-gated queue is the JARVIS self-update *proposals*
+# (proposals.jsonl). `approval_card()` projects a proposal into the
+# canonical card; `proposal_view()` keeps the self-update-native shape for a
+# proposal-specific surface. Future destructive-command approvals join the
+# same card queue — no second store is fabricated.
+
+APPROVAL_CARD_TIERS = ("SAFE", "LOW", "RISKY", "SERIOUS", "CRITICAL", "FORBIDDEN")
+APPROVAL_CARD_STATUSES = (
+    "PENDING", "APPROVED", "REJECTED", "EXPIRED", "EMERGENCY_STOPPED",
+)
+
+# Proposal risk class → ApprovalRiskTier. A proposal always requires owner
+# approval, so the floor is LOW (never SAFE, which means "no approval").
+_RISK_CLASS_TIER = {
+    "RC0": "LOW",
+    "RC1": "LOW",
+    "RC2": "RISKY",
+    "RC3": "SERIOUS",
+    "RC4": "CRITICAL",
+}
+
+_PROPOSAL_STATUS = {
+    "proposed": "PENDING",
+    "pending": "PENDING",
+    "approved": "APPROVED",
+    "rejected": "REJECTED",
+    "expired": "EXPIRED",
+}
+
+
+def approval_card_tier(risk_class: Any) -> str:
+    return _RISK_CLASS_TIER.get(str(risk_class or "").strip().upper(), "RISKY")
+
+
+def approval_card_status(status: Any) -> str:
+    return _PROPOSAL_STATUS.get(str(status or "").strip().lower(), "PENDING")
+
+
+def approval_card(proposal: dict[str, Any], *, approval_id: str) -> dict[str, Any]:
+    """Project a self-update proposal into the canonical ``ApprovalCard``.
+
+    Multi-step state (serious/critical confirmations, impact report,
+    rollback plan) is UI-runtime, not server-sourced — omitted here so the
+    Android model fills its defaults rather than receiving fabricated steps.
+    """
+    kind = str(proposal.get("kind", "") or "").strip()
+    target = str(proposal.get("target_path", "") or "").strip()
+    target_name = target.rsplit("/", 1)[-1] if target else ""
+    title = "Self-update"
+    if kind:
+        title = f"Self-update: {kind}"
+    if target_name:
+        title = f"{title} ({target_name})"
+    action = " ".join(part for part in (kind, target) if part) or "self-update"
+    return {
+        "id": approval_id,
+        "title": title,
+        "summary": str(proposal.get("rationale", "") or "").strip(),
+        "requester": "jarvis",
+        "tier": approval_card_tier(proposal.get("risk_class", "RC1")),
+        "status": approval_card_status(proposal.get("status", "proposed")),
+        "created_at": str(proposal.get("created_at", "") or "") or None,
+        "expires_at": None,  # self-update proposals don't time out
+        "proposed_action": action,
+        "edited_note": None,
+    }
+
+
+def proposal_view(proposal: dict[str, Any], *, proposal_id: str) -> dict[str, Any]:
+    """Self-update-native projection (the `/v1/cockpit/proposals` surface)."""
+    risk_class = str(proposal.get("risk_class", "RC1") or "RC1")
+    risk_level = {"RC0": "low", "RC1": "low", "RC2": "medium", "RC3": "high", "RC4": "high"}
+    return {
+        "id": proposal_id,
+        "kind": str(proposal.get("kind", "") or ""),
+        "target": str(proposal.get("target_path", "") or ""),
+        "rationale": str(proposal.get("rationale", "") or ""),
+        "risk_class": risk_class,
+        "risk_level": risk_level.get(risk_class, "medium"),
+        "status": str(proposal.get("status", "proposed") or "proposed"),
+        "requires_owner_approval": bool(proposal.get("requires_owner_approval", True)),
+        "created_at": str(proposal.get("created_at", "") or ""),
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
+    "APPROVAL_CARD_STATUSES",
+    "APPROVAL_CARD_TIERS",
     "APPROVAL_STATES",
     "JOB_STATUSES",
     "MEMORY_CATEGORIES",
@@ -503,6 +595,9 @@ __all__ = [
     "ROUTE_DESTINATIONS",
     "VERIFICATION_STATUSES",
     "action_result",
+    "approval_card",
+    "approval_card_status",
+    "approval_card_tier",
     "approval_state",
     "audit_proof",
     "audit_record",
@@ -515,4 +610,5 @@ __all__ = [
     "memory_item",
     "normalize_category",
     "normalize_publish_state",
+    "proposal_view",
 ]

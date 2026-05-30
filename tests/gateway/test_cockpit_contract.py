@@ -317,3 +317,61 @@ def test_audit_proof_surfaces_rollback_when_present() -> None:
     assert proof["rollback"] is not None
     assert proof["rollback"]["steps"] == ["Revert the commit", "Redeploy the previous build"]
     assert proof["rollback"]["automatic"] is False
+
+
+# ---------------------------------------------------------------------------
+# Approvals — proposal -> canonical ApprovalCard (+ native proposal view)
+# ---------------------------------------------------------------------------
+
+
+def _proposal(**kw) -> dict:
+    base = {
+        "kind": "skill_update",
+        "target_path": "skills/foo/SKILL.md",
+        "rationale": "improve the foo skill",
+        "risk_class": "RC2",
+        "requires_owner_approval": True,
+        "status": "proposed",
+        "created_at": "2026-05-30T00:00:00+00:00",
+    }
+    base.update(kw)
+    return base
+
+
+def test_approval_card_tier_mapping() -> None:
+    assert contract.approval_card_tier("RC0") == "LOW"
+    assert contract.approval_card_tier("RC2") == "RISKY"
+    assert contract.approval_card_tier("RC3") == "SERIOUS"
+    assert contract.approval_card_tier("RC4") == "CRITICAL"
+    assert contract.approval_card_tier("???") == "RISKY"  # floor, never SAFE
+
+
+def test_approval_card_status_mapping() -> None:
+    assert contract.approval_card_status("proposed") == "PENDING"
+    assert contract.approval_card_status("approved") == "APPROVED"
+    assert contract.approval_card_status("rejected") == "REJECTED"
+    assert contract.approval_card_status("weird") == "PENDING"
+
+
+def test_approval_card_projection() -> None:
+    card = contract.approval_card(_proposal(), approval_id="abc123")
+    assert card["id"] == "abc123"
+    assert card["tier"] == "RISKY"
+    assert card["status"] == "PENDING"
+    assert card["requester"] == "jarvis"
+    assert card["summary"] == "improve the foo skill"
+    assert card["title"] == "Self-update: skill_update (SKILL.md)"
+    assert "skills/foo/SKILL.md" in card["proposed_action"]
+    assert card["expires_at"] is None
+    assert set(card.keys()) == {
+        "id", "title", "summary", "requester", "tier", "status",
+        "created_at", "expires_at", "proposed_action", "edited_note",
+    }
+
+
+def test_proposal_view_keeps_native_shape() -> None:
+    view = contract.proposal_view(_proposal(), proposal_id="abc123")
+    assert view["risk_class"] == "RC2"
+    assert view["risk_level"] == "medium"
+    assert view["target"] == "skills/foo/SKILL.md"
+    assert view["requires_owner_approval"] is True

@@ -365,13 +365,29 @@ def _seed_proposal(home: Path) -> str:
     return hashlib.sha1(raw.encode()).hexdigest()[:10]
 
 
-def test_approvals_list_real_queue(server, home: Path) -> None:
+def test_approvals_list_canonical_cards(server, home: Path) -> None:
     pid = _seed_proposal(home)
     _, payload = _get(server, "/v1/cockpit/approvals")
-    ids = {a["id"] for a in payload["approvals"]}
-    assert pid in ids
-    item = next(a for a in payload["approvals"] if a["id"] == pid)
+    card = next(a for a in payload["approvals"] if a["id"] == pid)
+    # Canonical ApprovalCard shape (not the raw proposal shape).
+    assert card["tier"] == "RISKY"  # RC2
+    assert card["status"] == "PENDING"  # proposed
+    assert card["requester"] == "jarvis"
+    assert card["summary"] == "improve"
+    assert card["title"].startswith("Self-update")
+    assert card["proposed_action"]
+    assert card["expires_at"] is None
+
+
+def test_proposals_native_view(server, home: Path) -> None:
+    pid = _seed_proposal(home)
+    _, payload = _get(server, "/v1/cockpit/proposals")
+    item = next(p for p in payload["proposals"] if p["id"] == pid)
+    # Self-update-native shape: keeps risk_class/risk_level/target.
+    assert item["risk_class"] == "RC2"
     assert item["risk_level"] == "medium"
+    assert item["target"] == "skills/foo/SKILL.md"
+    assert item["requires_owner_approval"] is True
 
 
 def test_approve_requires_exact_owner_phrase(server, home: Path) -> None:

@@ -639,6 +639,28 @@ never invented. `GET .../proof` returns `404` for an unknown id.
 
 ---
 
+## 10c. Approvals — **canonical, implemented** (cards + owner-phrase decide)
+
+The Android Approvals screen is one `ApprovalCard` queue. The server's one
+real owner-gated queue is the JARVIS **self-update proposal** store, so:
+
+- `GET /v1/cockpit/approvals` → canonical `ApprovalCard`s projected from
+  proposals (risk class `RC0–RC4` → `tier` `LOW/LOW/RISKY/SERIOUS/CRITICAL`
+  — never `SAFE`, since a queued item always needs approval; status
+  `proposed/approved/rejected` → `PENDING/APPROVED/REJECTED`). Multi-step
+  serious/critical state is UI-runtime and defaulted client-side, not
+  fabricated server-side.
+- `POST /v1/cockpit/approvals/{id}` → approve/reject. **Approve requires the
+  exact owner phrase** `Yes, with authorization.` (else `403`); the owner
+  gate is never bypassed.
+- `GET /v1/cockpit/proposals` → the self-update-native shape (`risk_class`,
+  `risk_level`, `target`, …) for a proposal-specific view.
+
+Future destructive-command approvals join the same card queue — no second
+store is invented.
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any
