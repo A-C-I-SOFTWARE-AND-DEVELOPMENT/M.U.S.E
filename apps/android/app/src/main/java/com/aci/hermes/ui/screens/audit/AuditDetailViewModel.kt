@@ -26,6 +26,11 @@ class AuditDetailViewModel(
     val state: StateFlow<AuditDetailUiState> = _state.asStateFlow()
 
     init {
+        // Ensure the list + this proof are loaded from the gateway when paired.
+        viewModelScope.launch {
+            repository.refresh()
+            repository.fetchProof(auditId)
+        }
         viewModelScope.launch {
             repository.records
                 .combine(repository.proofFor(auditId)) { records, proof ->

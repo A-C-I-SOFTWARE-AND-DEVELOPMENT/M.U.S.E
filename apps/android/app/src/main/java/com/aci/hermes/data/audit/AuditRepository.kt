@@ -1,5 +1,7 @@
 package com.aci.hermes.data.audit
 
+import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.model.audit.ActionResult
 import com.aci.hermes.data.model.audit.ApprovalHistoryItem
 import com.aci.hermes.data.model.audit.ApprovalState
@@ -20,31 +22,97 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 
+/** Sync state of the audit ledger against the cockpit gateway. */
+sealed interface AuditSync {
+    data object Idle : AuditSync
+    data object Loading : AuditSync
+    /** No gateway paired — records are the local/preview seed, not live. */
+    data object MockOnly : AuditSync
+    data class Loaded(val count: Int) : AuditSync
+    data class Error(val message: String) : AuditSync
+}
+
 /**
- * Read access to the JARVIS Prime audit + proof ledger. Until the
- * gateway is wired the data is generated locally and seeded with
- * representative cases (success, serious approval, failed
- * verification, critical with rollback) so the UI exercises every
- * state the operator needs to recognize.
+ * Read access to the JARVIS Prime audit + proof ledger.
+ *
+ * - **Paired** (a [client] + [paired]==true): [refresh] pulls the real
+ *   decision-ledger audit list (`GET /v1/cockpit/audit`); proofs are fetched
+ *   on demand via [fetchProof] (`GET /v1/cockpit/audit/{id}/proof`) and
+ *   cached. No mock data is shown.
+ * - **Unpaired / preview / tests**: falls back to the [seed]. Production
+ *   wires [EmptyAuditSeed] + a client, so nothing fake reaches a paired user.
+ *
+ * All reads pass through [SecretRedactor] before display.
  */
 class AuditRepository(
     seed: AuditSeed = DefaultMockAuditSeed,
+    private val client: HermesCockpitClient? = null,
+    private val paired: () -> Boolean = { false },
 ) {
 
     private val recordsState: MutableStateFlow<List<AuditRecord>> =
         MutableStateFlow(seed.records().redactedForDisplay())
 
-    private val proofsByAuditId: Map<String, ProofRecord> =
-        seed.proofs()
-            .map { it.redactedForDisplay() }
-            .associateBy(ProofRecord::auditId)
+    private val proofsState: MutableStateFlow<Map<String, ProofRecord>> =
+        MutableStateFlow(
+            seed.proofs().map { it.redactedForDisplay() }.associateBy(ProofRecord::auditId)
+        )
 
     val records: StateFlow<List<AuditRecord>> = recordsState.asStateFlow()
 
-    fun proofFor(auditId: String): Flow<ProofRecord?> =
-        recordsState.map { proofsByAuditId[auditId] }
+    private val _sync: MutableStateFlow<AuditSync> = MutableStateFlow(AuditSync.Idle)
+    val sync: StateFlow<AuditSync> = _sync.asStateFlow()
 
-    fun proofSnapshot(auditId: String): ProofRecord? = proofsByAuditId[auditId]
+    val isLive: Boolean get() = client != null && paired()
+
+    /** Pull the live audit list from the gateway when paired. */
+    suspend fun refresh() {
+        val c = client
+        if (c == null || !paired()) {
+            _sync.value = AuditSync.MockOnly
+            return
+        }
+        _sync.value = AuditSync.Loading
+        when (val res = c.auditList()) {
+            is CockpitResult.Success -> {
+                recordsState.value = res.value.records.map { it.toDomain() }.redactedForDisplay()
+                _sync.value = AuditSync.Loaded(recordsState.value.size)
+            }
+            is CockpitResult.Failure ->
+                _sync.value = AuditSync.Error("Gateway error ${res.httpStatus}: ${res.error.message}")
+            is CockpitResult.Unreachable ->
+                _sync.value = AuditSync.Error(res.message)
+        }
+    }
+
+    /**
+     * The proof bundle for [auditId] — served from cache, else fetched from
+     * the gateway on demand (when paired) and cached. Drives [proofFor].
+     */
+    suspend fun fetchProof(auditId: String): ProofRecord? {
+        proofsState.value[auditId]?.let { return it }
+        val c = client
+        if (c != null && paired()) {
+            val res = c.auditProof(auditId)
+            if (res is CockpitResult.Success) {
+                val proof = res.value.toDomain().redactedForDisplay()
+                proofsState.value = proofsState.value + (proof.auditId to proof)
+                return proof
+            }
+        }
+        return null
+    }
+
+    fun proofFor(auditId: String): Flow<ProofRecord?> =
+        proofsState.map { it[auditId] }
+
+    fun proofSnapshot(auditId: String): ProofRecord? = proofsState.value[auditId]
+}
+
+/** Empty seed for production: nothing fake before the gateway responds. */
+object EmptyAuditSeed : AuditSeed {
+    override fun records(): List<AuditRecord> = emptyList()
+    override fun proofs(): List<ProofRecord> = emptyList()
 }
 
 interface AuditSeed {
