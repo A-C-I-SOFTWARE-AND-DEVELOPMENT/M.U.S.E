@@ -375,3 +375,25 @@ def test_proposal_view_keeps_native_shape() -> None:
     assert view["risk_level"] == "medium"
     assert view["target"] == "skills/foo/SKILL.md"
     assert view["requires_owner_approval"] is True
+
+
+# ---------------------------------------------------------------------------
+# Skills — installed-skill projection
+# ---------------------------------------------------------------------------
+
+
+def test_skill_entry_projection() -> None:
+    e = contract.skill_entry("/jarvis-prime", {"name": "jarvis-prime", "description": "Route owner work."})
+    assert e == {
+        "id": "jarvis-prime",
+        "command": "/jarvis-prime",
+        "name": "jarvis-prime",
+        "description": "Route owner work.",
+    }
+
+
+def test_skill_entry_tolerates_missing_fields() -> None:
+    e = contract.skill_entry("/foo", {})
+    assert e["id"] == "foo"
+    assert e["command"] == "/foo"
+    assert e["name"] == "" and e["description"] == ""

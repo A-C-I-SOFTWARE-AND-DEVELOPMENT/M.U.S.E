@@ -458,6 +458,25 @@ def proposals_list(_req: Request) -> JsonResponse:
     return JsonResponse(200, {"proposals": items})
 
 
+def skills_list(_req: Request) -> JsonResponse:
+    """The gateway's real installed skills (read-only).
+
+    Backed by the live skill scanner; an honest empty list when none are
+    installed (or the scanner is unavailable) — never fabricated.
+    """
+    skills: list[dict[str, Any]] = []
+    try:
+        from agent.skill_commands import scan_skill_commands
+
+        from . import contract
+
+        for command, info in sorted(scan_skill_commands().items()):
+            skills.append(contract.skill_entry(command, info))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"skills": [], "error": str(exc)})
+    return JsonResponse(200, {"skills": skills})
+
+
 def approvals_decide(req: Request) -> JsonResponse:
     """Approve/reject a proposal. Approve requires the exact owner phrase."""
     proposal_id = req.path_params.get("id", "")
@@ -609,4 +628,5 @@ __all__ = [
     "proposals_list",
     "runtime_status",
     "runtime_workers",
+    "skills_list",
 ]
