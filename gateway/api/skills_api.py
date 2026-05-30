@@ -13,9 +13,11 @@ Provides HTTP endpoints for browsing, searching, and managing skills:
 These endpoints are mounted at /api/skills/* by the main API server.
 """
 
+from __future__ import annotations
+
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -24,29 +26,35 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    web = None  # type: ignore
+
+if TYPE_CHECKING:
+    from aiohttp import web
 
 
-def create_skills_routes() -> List:
+def create_skills_routes() -> List[Any]:
     """Create aiohttp routes for skills API. Returns empty list if aiohttp unavailable."""
     if not AIOHTTP_AVAILABLE:
         return []
 
+    from aiohttp import web as _web
+
     routes = [
-        web.get("/api/skills", handle_list_skills),
-        web.get("/api/skills/search", handle_search_skills),
-        web.get("/api/skills/tags", handle_list_tags),
-        web.get("/api/skills/categories", handle_list_categories),
-        web.get("/api/skills/{name}", handle_get_skill),
-        web.get("/api/skills/{name}/recommendations", handle_get_recommendations),
-        web.post("/api/skills/{name}/toggle", handle_toggle_skill),
-        web.get("/api/curator/status", handle_curator_status),
+        _web.get("/api/skills", handle_list_skills),
+        _web.get("/api/skills/search", handle_search_skills),
+        _web.get("/api/skills/tags", handle_list_tags),
+        _web.get("/api/skills/categories", handle_list_categories),
+        _web.get("/api/skills/{name}", handle_get_skill),
+        _web.get("/api/skills/{name}/recommendations", handle_get_recommendations),
+        _web.post("/api/skills/{name}/toggle", handle_toggle_skill),
+        _web.get("/api/curator/status", handle_curator_status),
     ]
     return routes
 
 
-async def handle_list_skills(request: "web.Request") -> "web.Response":
+async def handle_list_skills(request: web.Request) -> web.Response:
     """GET /api/skills — List all skills with optional category filter."""
+    from aiohttp import web as _web
+
     try:
         category = request.query.get("category")
 
@@ -57,7 +65,7 @@ async def handle_list_skills(request: "web.Request") -> "web.Response":
         else:
             skills = get_cached_skills()
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "skills": skills,
             "count": len(skills),
@@ -65,14 +73,16 @@ async def handle_list_skills(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to list skills: %s", e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_search_skills(request: "web.Request") -> "web.Response":
+async def handle_search_skills(request: web.Request) -> web.Response:
     """GET /api/skills/search — Search skills by query, tag, or category."""
+    from aiohttp import web as _web
+
     try:
         query = request.query.get("q") or request.query.get("query")
         tag = request.query.get("tag")
@@ -98,7 +108,7 @@ async def handle_search_skills(request: "web.Request") -> "web.Response":
             skills = []
             mode = "empty"
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "mode": mode,
             "query": query,
@@ -110,20 +120,22 @@ async def handle_search_skills(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to search skills: %s", e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_list_tags(request: "web.Request") -> "web.Response":
+async def handle_list_tags(request: web.Request) -> web.Response:
     """GET /api/skills/tags — List all tags with usage counts."""
+    from aiohttp import web as _web
+
     try:
         from tools.skill_cache import get_all_tags
 
         tags = get_all_tags()
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "tags": [{"tag": t, "count": c} for t, c in tags],
             "count": len(tags),
@@ -131,20 +143,22 @@ async def handle_list_tags(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to list tags: %s", e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_list_categories(request: "web.Request") -> "web.Response":
+async def handle_list_categories(request: web.Request) -> web.Response:
     """GET /api/skills/categories — List all categories with skill counts."""
+    from aiohttp import web as _web
+
     try:
         from tools.skill_cache import get_all_categories
 
         categories = get_all_categories()
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "categories": [{"category": c, "count": n} for c, n in categories],
             "count": len(categories),
@@ -152,14 +166,16 @@ async def handle_list_categories(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to list categories: %s", e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_get_skill(request: "web.Request") -> "web.Response":
+async def handle_get_skill(request: web.Request) -> web.Response:
     """GET /api/skills/{name} — Get full skill content."""
+    from aiohttp import web as _web
+
     try:
         name = request.match_info["name"]
         file_path = request.query.get("file")
@@ -169,20 +185,22 @@ async def handle_get_skill(request: "web.Request") -> "web.Response":
         result = json.loads(skill_view(name, file_path=file_path))
 
         if not result.get("success"):
-            return web.json_response(result, status=404)
+            return _web.json_response(result, status=404)
 
-        return web.json_response(result)
+        return _web.json_response(result)
 
     except Exception as e:
         logger.error("Failed to get skill %s: %s", request.match_info.get("name"), e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_get_recommendations(request: "web.Request") -> "web.Response":
+async def handle_get_recommendations(request: web.Request) -> web.Response:
     """GET /api/skills/{name}/recommendations — Get similar skills."""
+    from aiohttp import web as _web
+
     try:
         name = request.match_info["name"]
         limit = int(request.query.get("limit", "5"))
@@ -191,7 +209,7 @@ async def handle_get_recommendations(request: "web.Request") -> "web.Response":
 
         recommendations = get_skill_recommendations(name, limit=limit)
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "for_skill": name,
             "recommendations": recommendations,
@@ -200,14 +218,16 @@ async def handle_get_recommendations(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to get recommendations for %s: %s", request.match_info.get("name"), e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_toggle_skill(request: "web.Request") -> "web.Response":
+async def handle_toggle_skill(request: web.Request) -> web.Response:
     """POST /api/skills/{name}/toggle — Enable or disable a skill."""
+    from aiohttp import web as _web
+
     try:
         name = request.match_info["name"]
 
@@ -235,7 +255,7 @@ async def handle_toggle_skill(request: "web.Request") -> "web.Response":
         from tools.skill_cache import invalidate_cache
         invalidate_cache()
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "name": name,
             "enabled": enabled,
@@ -244,14 +264,16 @@ async def handle_toggle_skill(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to toggle skill %s: %s", request.match_info.get("name"), e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )
 
 
-async def handle_curator_status(request: "web.Request") -> "web.Response":
+async def handle_curator_status(request: web.Request) -> web.Response:
     """GET /api/curator/status — Get curator status and recent activity."""
+    from aiohttp import web as _web
+
     try:
         from agent.curator import (
             load_state,
@@ -276,7 +298,7 @@ async def handle_curator_status(request: "web.Request") -> "web.Response":
         archived_count = sum(1 for s in agent_created if s.get("state") == "archived")
         pinned_count = sum(1 for s in agent_created if s.get("pinned"))
 
-        return web.json_response({
+        return _web.json_response({
             "success": True,
             "enabled": is_enabled(),
             "paused": is_paused(),
@@ -299,7 +321,7 @@ async def handle_curator_status(request: "web.Request") -> "web.Response":
 
     except Exception as e:
         logger.error("Failed to get curator status: %s", e, exc_info=True)
-        return web.json_response(
+        return _web.json_response(
             {"success": False, "error": str(e)},
             status=500,
         )

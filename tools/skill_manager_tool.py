@@ -998,7 +998,7 @@ def _import_skill(content: str, name: str = None, category: str = None) -> Dict[
     frontmatter, _ = parse_frontmatter(content)
 
     if not name:
-        name = frontmatter.get("name")
+        name = str(frontmatter.get("name") or "")
     if not name:
         return {"success": False, "error": "name is required (either in frontmatter or as argument)."}
 

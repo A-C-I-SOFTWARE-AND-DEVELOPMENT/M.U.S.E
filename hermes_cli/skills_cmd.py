@@ -92,8 +92,8 @@ def handle_skills_command(args: argparse.Namespace) -> int:
     action = getattr(args, "skills_action", None)
 
     if action is None:
-        from hermes_cli.skills_config import skills_config_main
-        return skills_config_main()
+        from hermes_cli.skills_config import skills_command
+        return skills_command()
 
     if action == "list":
         return cmd_list(args)
