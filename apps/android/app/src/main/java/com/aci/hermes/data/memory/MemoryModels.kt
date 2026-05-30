@@ -39,6 +39,13 @@ enum class MemoryCategory(val display: String) {
     DECISION_RECORD("Decision Record"),
     SOCIAL_SPEECH_PATTERN("Social Speech Pattern"),
     SESSION_MEMORY("Session Memory"),
+
+    /**
+     * Honest "no classification" bucket. The canonical server contract
+     * emits this for memories with no category signal (rather than
+     * guessing one); the cockpit renders it as a plain uncategorized item.
+     */
+    UNCATEGORIZED("Uncategorized"),
 }
 
 @Serializable

@@ -285,6 +285,65 @@ data class DecideApprovalRequest(
     val notes: String? = null,
 )
 
+// ─── Memory ───────────────────────────────────────────────────────────
+
+/**
+ * Wire model for a cockpit memory item (contract §10a). One-to-one with
+ * the server's canonical `MemoryItem`. Enum-like fields are raw Strings
+ * here so an unknown future value never crashes deserialisation; the
+ * repository maps them to the typed domain
+ * [com.aci.hermes.data.memory.MemoryItem]. Timestamps are ISO-8601 UTC.
+ */
+@Serializable
+data class CockpitMemoryItem(
+    val id: String,
+    val category: String,
+    val title: String,
+    val content: String,
+    val durability: String,
+    val confidence: String,
+    val provenance: CockpitMemoryProvenance,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("last_accessed_at") val lastAccessedAt: String? = null,
+    val tags: List<String> = emptyList(),
+    val redacted: Boolean = false,
+    val hidden: Boolean = false,
+)
+
+@Serializable
+data class CockpitMemoryProvenance(
+    val source: String,
+    @SerialName("session_id") val sessionId: String? = null,
+    @SerialName("recorded_at") val recordedAt: String? = null,
+    val note: String? = null,
+)
+
+@Serializable
+data class CockpitMemoryList(val items: List<CockpitMemoryItem> = emptyList())
+
+/** POST body for creating memory (canonical fields). */
+@Serializable
+data class CreateMemoryRequest(
+    val title: String,
+    val content: String,
+    val category: String? = null,
+    val durability: String? = null,
+    val confidence: String? = null,
+    val tags: List<String> = emptyList(),
+    val hidden: Boolean = false,
+)
+
+@Serializable
+data class CreateMemoryResponse(
+    val stored: Boolean = false,
+    val item: CockpitMemoryItem? = null,
+    val reason: String? = null,
+)
+
+@Serializable
+data class DeleteMemoryResponse(val removed: Int = 0)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable
@@ -298,35 +357,46 @@ data class CockpitError(
 )
 
 /**
- * Job status lifecycle. Mirrors the FSM in
- * docs/android/hermes-apk-api-contract.md §4. Kept as a string-valued
- * enum so that an unknown future value doesn't crash deserialisation —
- * the JSON layer treats `status` as a raw String, and screens map it
- * through this enum where they need typed behaviour.
+ * Job status lifecycle. Mirrors the canonical contract (§4) — a superset
+ * of the JARVIS-Prime queue's execution states and the cockpit's
+ * publish-workflow states. Wire values are the enum constant names
+ * (UPPER_SNAKE, per §1); [fromWire] is case-insensitive so a legacy
+ * lowercase gateway still maps. Kept string-valued so an unknown future
+ * value never crashes deserialisation.
  */
 enum class JobStatus(val wire: String) {
-    DRAFT("draft"),
-    QUEUED("queued"),
-    RUNNING("running"),
-    WAITING_FOR_APPROVAL("waiting_for_approval"),
-    APPROVED("approved"),
-    PUBLISHING("publishing"),
-    PUBLISHED("published"),
-    FAILED("failed"),
-    CANCELLED("cancelled");
+    DRAFT("DRAFT"),
+    QUEUED("QUEUED"),
+    RUNNING("RUNNING"),
+    PAUSED("PAUSED"),
+    BLOCKED("BLOCKED"),
+    DISCONNECTED("DISCONNECTED"),
+    COMPLETED("COMPLETED"),
+    WAITING_FOR_APPROVAL("WAITING_FOR_APPROVAL"),
+    APPROVED("APPROVED"),
+    PUBLISHING("PUBLISHING"),
+    PUBLISHED("PUBLISHED"),
+    FAILED("FAILED"),
+    CANCELLED("CANCELLED");
+
+    /** Terminal states never auto-advance. */
+    val isTerminal: Boolean
+        get() = this == PUBLISHED || this == FAILED || this == CANCELLED || this == COMPLETED
 
     companion object {
-        fun fromWire(value: String?): JobStatus? = entries.firstOrNull { it.wire == value }
+        fun fromWire(value: String?): JobStatus? =
+            entries.firstOrNull { it.wire.equals(value, ignoreCase = true) }
     }
 }
 
 enum class PublishState(val wire: String) {
-    NOT_STARTED("not_started"),
-    IN_PROGRESS("in_progress"),
-    SUCCEEDED("succeeded"),
-    FAILED("failed");
+    NOT_STARTED("NOT_STARTED"),
+    IN_PROGRESS("IN_PROGRESS"),
+    SUCCEEDED("SUCCEEDED"),
+    FAILED("FAILED");
 
     companion object {
-        fun fromWire(value: String?): PublishState? = entries.firstOrNull { it.wire == value }
+        fun fromWire(value: String?): PublishState? =
+            entries.firstOrNull { it.wire.equals(value, ignoreCase = true) }
     }
 }
