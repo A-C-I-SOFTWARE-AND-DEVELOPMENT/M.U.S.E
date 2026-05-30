@@ -195,6 +195,68 @@ def test_memory_rejects_secret(server) -> None:
 
 
 # ---------------------------------------------------------------------------
+# jobs — real JobQueue, canonical CockpitJob shape
+# ---------------------------------------------------------------------------
+
+
+def test_jobs_dispatch_list_get_cancel_roundtrip(server) -> None:
+    _, listing = _get(server, "/v1/cockpit/jobs")
+    assert listing["jobs"] == []
+    assert "next_cursor" in listing and "prev_cursor" in listing
+
+    status, raw = _post(
+        server,
+        "/v1/cockpit/jobs",
+        {
+            "title": "Add OAuth callback",
+            "worker_id": "codex_cli",
+            "prompt": "## Goal\nAdd handler",
+            "workspace_path": "/tmp/proj",
+            "branch_hint": "feature/oauth",
+        },
+    )
+    assert status == 201
+    job = json.loads(raw)
+    assert job["title"] == "Add OAuth callback"
+    assert job["worker_id"] == "codex_cli"
+    assert job["status"] == "QUEUED"
+    assert job["workspace_path"] == "/tmp/proj"
+    assert job["branch"] == "feature/oauth"
+    assert job["created_at"]
+    assert job["validation_summary"] is None  # honest null until the pipeline runs
+    jid = job["id"]
+
+    _, listing = _get(server, "/v1/cockpit/jobs")
+    assert any(j["id"] == jid for j in listing["jobs"])
+
+    _, fetched = _get(server, f"/v1/cockpit/jobs/{jid}")
+    assert fetched["id"] == jid and fetched["status"] == "QUEUED"
+
+    status, raw = _post(
+        server, f"/v1/cockpit/jobs/{jid}/cancel", {"reason": "wrong workspace"}
+    )
+    assert status == 200
+    assert json.loads(raw)["status"] == "CANCELLED"
+
+    # cancelling a terminal job → 409
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/cancel", {})
+    assert exc.value.code == 409
+
+
+def test_jobs_dispatch_requires_title_and_prompt(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/jobs", {"title": "no prompt here"})
+    assert exc.value.code == 400
+
+
+def test_job_get_unknown_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/jobs/job_does_not_exist")
+    assert exc.value.code == 404
+
+
+# ---------------------------------------------------------------------------
 # real-agent chat stream (NDJSON, not an echo)
 # ---------------------------------------------------------------------------
 

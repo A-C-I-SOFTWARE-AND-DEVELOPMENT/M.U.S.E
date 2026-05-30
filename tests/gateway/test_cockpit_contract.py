@@ -13,6 +13,7 @@ import pytest
 
 from gateway.cockpit import contract
 from hermes_cli.jarvis_prime.memory import MemoryRecord
+from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry
 
 
 def test_confidence_to_enum_buckets() -> None:
@@ -126,4 +127,101 @@ def test_memory_item_keys_match_android_memoryitem() -> None:
         "session_id",
         "recorded_at",
         "note",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Jobs — JobQueueEntry → canonical CockpitJob
+# ---------------------------------------------------------------------------
+
+
+def test_job_status_maps_queue_states() -> None:
+    assert contract.job_status("queued") == "QUEUED"
+    assert contract.job_status("running") == "RUNNING"
+    assert contract.job_status("paused") == "PAUSED"
+    assert contract.job_status("blocked") == "BLOCKED"
+    assert contract.job_status("disconnected") == "DISCONNECTED"
+    assert contract.job_status("completed") == "COMPLETED"
+    assert contract.job_status("failed") == "FAILED"
+    assert contract.job_status("cancelled") == "CANCELLED"
+    assert contract.job_status("nonsense") == "QUEUED"  # honest fallback
+
+
+def test_job_status_workflow_override() -> None:
+    # A pipeline-set workflow status wins when canonical...
+    assert contract.job_status("running", "waiting_for_approval") == "WAITING_FOR_APPROVAL"
+    assert contract.job_status("completed", "published") == "PUBLISHED"
+    # ...but an unknown workflow value is ignored (falls back to the state).
+    assert contract.job_status("running", "bogus") == "RUNNING"
+
+
+def test_normalize_publish_state() -> None:
+    assert contract.normalize_publish_state("in_progress") == "IN_PROGRESS"
+    assert contract.normalize_publish_state("SUCCEEDED") == "SUCCEEDED"
+    assert contract.normalize_publish_state(None) is None
+    assert contract.normalize_publish_state("made-up") is None
+
+
+def test_cockpit_job_full_shape() -> None:
+    entry = JobQueueEntry(
+        job_id="job_1",
+        prompt="First line\nsecond line",
+        state="running",
+        created_at=1000.0,
+        updated_at=2000.0,
+        repo_root="/w",
+        workers=[WorkerQueueEntry(worker_id="codex_cli")],
+        metadata={
+            "title": "Add OAuth",
+            "branch": "feature/oauth",
+            "base_branch": "main",
+            "remote": "origin",
+            "validation": {"pass": 3, "fail": 1, "pending": 0},
+            "publish_state": "in_progress",
+        },
+    )
+    job = contract.cockpit_job(entry)
+    assert job["id"] == "job_1"
+    assert job["title"] == "Add OAuth"
+    assert job["worker_id"] == "codex_cli"
+    assert job["status"] == "RUNNING"
+    assert job["workspace_path"] == "/w"
+    assert job["branch"] == "feature/oauth"
+    assert job["base_branch"] == "main"
+    assert job["validation_summary"] == {"pass": 3, "fail": 1, "pending": 0}
+    assert job["publish_state"] == "IN_PROGRESS"
+    assert job["created_at"].startswith("1970-")  # epoch 1000s → honest ISO
+
+
+def test_cockpit_job_derives_title_and_honest_nulls() -> None:
+    entry = JobQueueEntry(
+        job_id="job_2", prompt="Do the thing", state="queued",
+        created_at=10.0, updated_at=10.0,
+    )
+    job = contract.cockpit_job(entry)
+    assert job["title"] == "Do the thing"  # derived from the prompt's first line
+    assert job["worker_id"] == ""
+    assert job["branch"] is None
+    assert job["base_branch"] is None
+    assert job["remote"] is None
+    assert job["validation_summary"] is None  # never fabricated
+    assert job["publish_state"] is None
+    assert job["workspace_path"] is None
+
+
+def test_cockpit_job_key_set_matches_contract() -> None:
+    entry = JobQueueEntry(job_id="j", created_at=5.0)
+    assert set(contract.cockpit_job(entry).keys()) == {
+        "id",
+        "title",
+        "worker_id",
+        "status",
+        "created_at",
+        "updated_at",
+        "workspace_path",
+        "branch",
+        "base_branch",
+        "remote",
+        "validation_summary",
+        "publish_state",
     }

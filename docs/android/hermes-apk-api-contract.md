@@ -164,10 +164,29 @@ falls back to a bundled default list if this returns 404.
 
 ---
 
-## 4. Jobs
+## 4. Jobs — **canonical, implemented** (read + dispatch + cancel)
 
 A **job** is one prompt × one worker × one execution. The cockpit
 treats it as the unit of progress.
+
+`GET /v1/cockpit/jobs`, `GET /v1/cockpit/jobs/{id}`,
+`POST /v1/cockpit/jobs` (dispatch), and `POST /v1/cockpit/jobs/{id}/cancel`
+are **live**, backed by the real `JobQueue` via the adapter in
+`gateway/cockpit/contract.py`. The SSE stream, files, diff, validation,
+and publish sub-resources remain specified-but-pending. Git/publish
+metadata (`branch`, `validation_summary`, `publish_state`, …) is surfaced
+from the job's `metadata` when the pipeline has populated it, and is
+`null` otherwise — never fabricated.
+
+> **Canonical status is a superset.** The wire `status` vocabulary is the
+> union of the JARVIS-Prime queue's **execution** states
+> (`QUEUED`, `RUNNING`, `PAUSED`, `BLOCKED`, `DISCONNECTED`, `COMPLETED`,
+> `FAILED`, `CANCELLED`) and the cockpit's **workflow** states
+> (`DRAFT`, `WAITING_FOR_APPROVAL`, `APPROVED`, `PUBLISHING`, `PUBLISHED`).
+> The execution states come straight from the queue; the workflow states
+> from a pipeline-set `metadata.workflow_status`. The Android `JobStatus`
+> enum gains `PAUSED`/`BLOCKED`/`DISCONNECTED`/`COMPLETED` when aligned.
+> Wire values are the **enum constant names** (UPPER_SNAKE), per §1.
 
 ### Job object
 

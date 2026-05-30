@@ -37,11 +37,11 @@ the mock production seed.
 | Worker detection | `DetectedWorker` | `worker_registry` | ✅ live (#185) | ✅ client (#186) |
 | Health/negotiation | `HealthStatus` | gateway | ✅ live (#185) | ✅ client (#186) |
 | Chat | `JarvisChatChunk` | real agent | ✅ live (#185) | ✅ routed (#186) |
-| **Memory** | `MemoryItem` | `MemoryStore` | ✅ **enriched (this PR)** | ⏳ next |
+| **Memory** | `MemoryItem` | `MemoryStore` | ✅ **enriched (#187)** | ⏳ next |
+| **Jobs** | `CockpitJob` | `JobQueue` | ✅ **enriched (this PR)** — read+dispatch+cancel | ⏳ next |
 | Audit / ledger | `AuditRecord` | `decision_ledger` | ⏳ shape differs | ⏳ |
 | Approvals (destructive) | `approval/model` | — (proposals only) | ⏳ needs model | ⏳ |
 | Proposals (self-update) | — | `proposals.jsonl` | ⏳ partial (#185) | ⏳ |
-| Jobs / tasks | `CockpitJob`/`HermesTask` | `JobQueue` | ⏳ partial (#185) | ⏳ |
 | Capabilities / skills / tools | `Capability` | catalog | ⏳ | ⏳ |
 | Automations | `AutomationIntent` | — | ⏳ | ⏳ |
 | Sessions | — | `decision_ledger` dirs | ⏳ partial (#185) | ⏳ |
@@ -62,5 +62,13 @@ lines); reconciliation means enriching/adapting the server, not faking.
   UI models **destructive-command** approvals (force-push, rebase, …).
   These are two real concepts — the contract likely needs **both** an
   `approvals` (destructive) and a `proposals` (self-update) surface.
-- **Memory**: resolved here — `category` persisted; 3 store tiers map to a
+- **Memory**: resolved (#187) — `category` persisted; 3 store tiers map to a
   subset of the 5 UI durability levels (honest, lossless on read).
+- **Jobs**: resolved (this PR) — the canonical `status` is a **superset** of
+  the queue's execution states and the UI's publish-workflow states, so both
+  are expressible with real data. Execution states come from `JobQueue`;
+  workflow states from a pipeline-set `metadata.workflow_status`. Git/publish
+  fields are surfaced from `metadata` or `null` (never fabricated). The
+  Android `JobStatus` enum gains `PAUSED`/`BLOCKED`/`DISCONNECTED`/`COMPLETED`
+  on alignment. Job **files/diff/validation/publish** sub-resources and the
+  SSE stream remain pending.
