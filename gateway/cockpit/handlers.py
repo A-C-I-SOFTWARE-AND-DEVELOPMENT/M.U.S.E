@@ -145,38 +145,54 @@ def models(_req: Request) -> JsonResponse:
 
 
 def memory_list(req: Request) -> JsonResponse:
+    """List memory as canonical cockpit ``MemoryItem`` objects (contract)."""
     query = req.query.get("q") or req.query.get("query")
     try:
         from hermes_cli.jarvis_prime.memory import MemoryStore
+
+        from . import contract
 
         store = MemoryStore()
         if query:
             records = store.recollect(query, limit=int(req.query.get("limit", "50")))
         else:
             records = list(store.durable) + list(store.session)
-        items = [r.to_dict() for r in records]
+        items = [contract.memory_item(r) for r in records]
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(200, {"items": [], "error": str(exc)})
     return JsonResponse(200, {"items": items})
 
 
 def memory_create(req: Request) -> JsonResponse:
-    key = str(req.body.get("key", "")).strip()
-    value = str(req.body.get("value", "")).strip()
+    """Create memory from a canonical ``MemoryItem`` body.
+
+    Accepts the canonical UI fields (``title``/``content``/``category``/
+    ``durability`` enum/``confidence`` enum/``tags``/``hidden``) and, for
+    backward compatibility, the legacy flat ``key``/``value``. Returns the
+    enriched item on success, or 422 when the store rejects it (secret-like
+    or below the durable-confidence floor) — honest, never faked.
+    """
+    body = req.body
+    key = str(body.get("title") or body.get("key") or "").strip()
+    value = str(body.get("content") or body.get("value") or "").strip()
     if not key or not value:
-        return JsonResponse(400, {"error": "key and value are required"})
-    durability = str(req.body.get("durability", "session"))
+        return JsonResponse(400, {"error": "title/content (or key/value) are required"})
     try:
         from hermes_cli.jarvis_prime.memory import MemoryStore
 
+        from . import contract
+
+        normalized = contract.normalize_category(body.get("category"))
         store = MemoryStore()
         record = store.remember(
             key=key,
             value=value,
-            durability=durability
-            if durability in ("session", "durable")
-            else "session",
-            source="cockpit",
+            durability=contract.durability_to_store(body.get("durability")),
+            source=str(body.get("source") or "cockpit"),
+            confidence=contract.confidence_to_float(body.get("confidence", 1.0)),
+            tags=tuple(str(t) for t in (body.get("tags") or ())),
+            category=None if normalized == "UNCATEGORIZED" else normalized,
+            hidden=bool(body.get("hidden", False)),
         )
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
@@ -185,7 +201,7 @@ def memory_create(req: Request) -> JsonResponse:
         return JsonResponse(
             422, {"stored": False, "reason": "rejected (secret-like or low confidence)"}
         )
-    return JsonResponse(201, {"stored": True, "item": record.to_dict()})
+    return JsonResponse(201, {"stored": True, "item": contract.memory_item(record)})
 
 
 def memory_delete(req: Request) -> JsonResponse:
@@ -224,16 +240,100 @@ def audit_events(req: Request) -> JsonResponse:
 
 
 def jobs_list(_req: Request) -> JsonResponse:
+    """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []
     try:
         from hermes_cli.job_queue import JobQueue
 
-        queue = JobQueue()
-        for entry in queue.list_jobs():
-            jobs.append(_job_summary(entry))
+        from . import contract
+
+        for entry in JobQueue().list_jobs():
+            jobs.append(contract.cockpit_job(entry))
     except Exception as exc:  # pragma: no cover - defensive
-        return JsonResponse(200, {"jobs": [], "error": str(exc)})
-    return JsonResponse(200, {"jobs": jobs})
+        return JsonResponse(
+            200, {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)}
+        )
+    return JsonResponse(200, {"jobs": jobs, "next_cursor": None, "prev_cursor": None})
+
+
+def job_get(req: Request) -> JsonResponse:
+    """Return one canonical ``CockpitJob`` (contract §4)."""
+    job_id = req.path_params.get("id", "")
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError
+
+        from . import contract
+
+        try:
+            entry = JobQueue().get_job(job_id)
+        except JobQueueNotFoundError:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def jobs_dispatch(req: Request) -> JsonResponse:
+    """Dispatch (enqueue) a new job (contract §4).
+
+    Enqueues a ``queued`` entry only — nothing executes here; a worker
+    runner advances it. ``watch`` is a cockpit-side intent and ignored.
+    """
+    body = req.body
+    title = str(body.get("title", "")).strip()
+    prompt = str(body.get("prompt", "")).strip()
+    worker_id = str(body.get("worker_id", "")).strip()
+    if not title or not prompt:
+        return JsonResponse(400, {"error": "title and prompt are required"})
+    try:
+        import secrets as _secrets
+
+        from hermes_cli.job_queue import JobQueue, WorkerQueueEntry
+
+        from . import contract
+
+        job_id = "job_" + _secrets.token_hex(8)
+        workspace = str(body.get("workspace_path") or "")
+        metadata: dict[str, Any] = {"title": title, "source": "cockpit"}
+        if worker_id:
+            metadata["worker_id"] = worker_id
+        if workspace:
+            metadata["workspace_path"] = workspace
+        if body.get("branch_hint"):
+            metadata["branch"] = str(body["branch_hint"])
+        workers = [WorkerQueueEntry(worker_id=worker_id)] if worker_id else []
+        entry = JobQueue().add_job(
+            job_id=job_id,
+            prompt=prompt,
+            repo_root=workspace,
+            workers=workers,
+            metadata=metadata,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, contract.cockpit_job(entry))
+
+
+def job_cancel(req: Request) -> JsonResponse:
+    """Cancel a job (contract §4). 409 if already terminal."""
+    job_id = req.path_params.get("id", "")
+    reason = req.body.get("reason")
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError, QueueState
+
+        from . import contract
+
+        queue = JobQueue()
+        try:
+            entry = queue.get_job(job_id)
+        except JobQueueNotFoundError:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+        if entry.state in QueueState.TERMINAL:
+            return JsonResponse(409, {"error": f"job already {entry.state}"})
+        entry = queue.cancel_job(job_id, note=str(reason) if reason else None)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
 
 
 # ---------------------------------------------------------------------------
@@ -439,20 +539,6 @@ def _queue_snapshot() -> dict[str, int]:
     return snap
 
 
-def _job_summary(entry: Any) -> dict[str, Any]:
-    to_dict = getattr(entry, "to_dict", None)
-    if callable(to_dict):
-        try:
-            return to_dict()
-        except Exception:
-            pass
-    return {
-        "id": str(getattr(entry, "id", "")),
-        "title": str(getattr(entry, "title", getattr(entry, "goal", ""))),
-        "status": str(getattr(entry, "status", "unknown")),
-    }
-
-
 def _ledger_summary(ledger: Any, path: Any) -> dict[str, Any]:
     return {
         "id": str(getattr(ledger, "id", "") or path),
@@ -471,6 +557,9 @@ __all__ = [
     "audit_events",
     "diagnostics",
     "health",
+    "job_cancel",
+    "job_get",
+    "jobs_dispatch",
     "jobs_list",
     "memory_create",
     "memory_delete",

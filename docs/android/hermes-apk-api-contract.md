@@ -164,10 +164,29 @@ falls back to a bundled default list if this returns 404.
 
 ---
 
-## 4. Jobs
+## 4. Jobs — **canonical, implemented** (read + dispatch + cancel)
 
 A **job** is one prompt × one worker × one execution. The cockpit
 treats it as the unit of progress.
+
+`GET /v1/cockpit/jobs`, `GET /v1/cockpit/jobs/{id}`,
+`POST /v1/cockpit/jobs` (dispatch), and `POST /v1/cockpit/jobs/{id}/cancel`
+are **live**, backed by the real `JobQueue` via the adapter in
+`gateway/cockpit/contract.py`. The SSE stream, files, diff, validation,
+and publish sub-resources remain specified-but-pending. Git/publish
+metadata (`branch`, `validation_summary`, `publish_state`, …) is surfaced
+from the job's `metadata` when the pipeline has populated it, and is
+`null` otherwise — never fabricated.
+
+> **Canonical status is a superset.** The wire `status` vocabulary is the
+> union of the JARVIS-Prime queue's **execution** states
+> (`QUEUED`, `RUNNING`, `PAUSED`, `BLOCKED`, `DISCONNECTED`, `COMPLETED`,
+> `FAILED`, `CANCELLED`) and the cockpit's **workflow** states
+> (`DRAFT`, `WAITING_FOR_APPROVAL`, `APPROVED`, `PUBLISHING`, `PUBLISHED`).
+> The execution states come straight from the queue; the workflow states
+> from a pipeline-set `metadata.workflow_status`. The Android `JobStatus`
+> enum gains `PAUSED`/`BLOCKED`/`DISCONNECTED`/`COMPLETED` when aligned.
+> Wire values are the **enum constant names** (UPPER_SNAKE), per §1.
 
 ### Job object
 
@@ -519,6 +538,74 @@ green-light. The cockpit reads pending approvals from:
 ```
 
 `decision ∈ {"approve", "deny"}`. `409` if already decided or expired.
+
+---
+
+## 10a. Memory — **canonical, implemented**
+
+The cockpit memory routes are **live** and emit the canonical schema
+below (server is the source of truth; the Android `MemoryItem` mirrors
+it field-for-field). Backed by the real JARVIS-Prime `MemoryStore` via
+the adapter in `gateway/cockpit/contract.py` — no fabricated fields; a
+field with no source signal is an explicit `null` or the `UNCATEGORIZED`
+category, never a guess. Secrets are rejected at write time (→ `422`),
+never stored or redacted-after-the-fact.
+
+### Memory item
+
+```json
+{
+  "id": "deploy_window",
+  "category": "OWNER_PREFERENCE",
+  "title": "deploy_window",
+  "content": "Owner prefers deploys after 6pm ET",
+  "durability": "PERMANENT",
+  "confidence": "HIGH",
+  "provenance": {
+    "source": "agent",
+    "session_id": null,
+    "recorded_at": "2026-05-30T12:00:00Z",
+    "note": "seen in chat"
+  },
+  "created_at": "2026-05-30T12:00:00Z",
+  "updated_at": "2026-05-30T12:00:00Z",
+  "last_accessed_at": "2026-05-30T13:00:00Z",
+  "tags": ["ops"],
+  "redacted": false,
+  "hidden": false
+}
+```
+
+- `category ∈ {OWNER_PREFERENCE, PROJECT_MEMORY, WORKFLOW_LESSON,
+  TASK_CONTEXT, DECISION_RECORD, SOCIAL_SPEECH_PATTERN, SESSION_MEMORY,
+  UNCATEGORIZED}` — `UNCATEGORIZED` is the honest "no classification"
+  member (added to the canonical vocabulary so the server never invents a
+  category). The Android `MemoryCategory` enum gains `UNCATEGORIZED` when
+  it is aligned to this contract.
+- `durability ∈ {EPHEMERAL, SESSION, SHORT_TERM, LONG_TERM, PERMANENT}`
+  (store tiers `working`/`session`/`durable` map to
+  `EPHEMERAL`/`SESSION`/`PERMANENT`).
+- `confidence ∈ {LOW, MEDIUM, HIGH, CONFIRMED}` (derived from the store's
+  confidence float).
+- `id == title == key`: the store key is the stable identity, so
+  `DELETE /v1/cockpit/memory/{id}` addresses the real record.
+
+### `GET /v1/cockpit/memory`
+
+Query: `q`/`query` (optional recollection), `limit`. Returns
+`{ "items": [ ...Memory item... ] }`.
+
+### `POST /v1/cockpit/memory`
+
+Accepts the canonical fields (`title`, `content`, `category`,
+`durability` enum, `confidence` enum, `tags`, `hidden`); the legacy flat
+`key`/`value` is still accepted. `201` + `{ "stored": true, "item": {...} }`,
+or `422` + `{ "stored": false, "reason": ... }` when the store rejects it
+(secret-like or below the durable-confidence floor).
+
+### `DELETE /v1/cockpit/memory/{id}`
+
+`{ "removed": <int> }`.
 
 ---
 

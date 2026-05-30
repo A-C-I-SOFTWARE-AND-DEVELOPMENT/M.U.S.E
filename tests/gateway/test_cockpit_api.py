@@ -24,7 +24,11 @@ TOKEN = "test-cockpit-token-123"
 
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    # Isolate every state root the cockpit touches so the suite is hermetic
+    # regardless of cwd: HERMES_HOME (memory, proposals, auth) and
+    # HERMES_ORCHESTRATOR_HOME (the JobQueue keys off its own env, else cwd).
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
     return tmp_path
 
 
@@ -135,14 +139,53 @@ def test_jobs_and_events_have_real_or_empty(server) -> None:
 
 
 def test_memory_create_and_list(server) -> None:
+    # Legacy flat key/value still accepted (backward compatible)...
     status, raw = _post(
         server, "/v1/cockpit/memory", {"key": "fav_editor", "value": "neovim"}
     )
     assert status == 201
     created = json.loads(raw)
     assert created["stored"] is True
+    # ...and the response is the canonical enriched MemoryItem, not flat.
+    item = created["item"]
+    assert item["title"] == "fav_editor"
+    assert item["content"] == "neovim"
+    assert item["id"] == "fav_editor"
+    assert item["category"] == "UNCATEGORIZED"  # honest, not guessed
+    assert item["confidence"] in {"LOW", "MEDIUM", "HIGH", "CONFIRMED"}
+    assert item["durability"] in {
+        "EPHEMERAL",
+        "SESSION",
+        "SHORT_TERM",
+        "LONG_TERM",
+        "PERMANENT",
+    }
+    assert item["provenance"]["source"]
+    assert item["redacted"] is False
+
     _, listing = _get(server, "/v1/cockpit/memory")
-    assert any(i["key"] == "fav_editor" for i in listing["items"])
+    assert any(i["title"] == "fav_editor" for i in listing["items"])
+
+
+def test_memory_create_canonical_fields(server) -> None:
+    status, raw = _post(
+        server,
+        "/v1/cockpit/memory",
+        {
+            "title": "deploy_window",
+            "content": "Owner prefers deploys after 6pm ET",
+            "category": "OWNER_PREFERENCE",
+            "durability": "PERMANENT",
+            "confidence": "HIGH",
+            "tags": ["ops", "scheduling"],
+        },
+    )
+    assert status == 201
+    item = json.loads(raw)["item"]
+    assert item["category"] == "OWNER_PREFERENCE"  # persisted, round-trips
+    assert item["durability"] == "PERMANENT"
+    assert item["confidence"] == "HIGH"
+    assert "ops" in item["tags"]
 
 
 def test_memory_rejects_secret(server) -> None:
@@ -153,6 +196,68 @@ def test_memory_rejects_secret(server) -> None:
             {"key": "leak", "value": "api_key=sk-secret-value-1234567890"},
         )
     assert exc.value.code == 422  # rejected, not stored, not faked
+
+
+# ---------------------------------------------------------------------------
+# jobs — real JobQueue, canonical CockpitJob shape
+# ---------------------------------------------------------------------------
+
+
+def test_jobs_dispatch_list_get_cancel_roundtrip(server) -> None:
+    _, listing = _get(server, "/v1/cockpit/jobs")
+    assert listing["jobs"] == []
+    assert "next_cursor" in listing and "prev_cursor" in listing
+
+    status, raw = _post(
+        server,
+        "/v1/cockpit/jobs",
+        {
+            "title": "Add OAuth callback",
+            "worker_id": "codex_cli",
+            "prompt": "## Goal\nAdd handler",
+            "workspace_path": "/tmp/proj",
+            "branch_hint": "feature/oauth",
+        },
+    )
+    assert status == 201
+    job = json.loads(raw)
+    assert job["title"] == "Add OAuth callback"
+    assert job["worker_id"] == "codex_cli"
+    assert job["status"] == "QUEUED"
+    assert job["workspace_path"] == "/tmp/proj"
+    assert job["branch"] == "feature/oauth"
+    assert job["created_at"]
+    assert job["validation_summary"] is None  # honest null until the pipeline runs
+    jid = job["id"]
+
+    _, listing = _get(server, "/v1/cockpit/jobs")
+    assert any(j["id"] == jid for j in listing["jobs"])
+
+    _, fetched = _get(server, f"/v1/cockpit/jobs/{jid}")
+    assert fetched["id"] == jid and fetched["status"] == "QUEUED"
+
+    status, raw = _post(
+        server, f"/v1/cockpit/jobs/{jid}/cancel", {"reason": "wrong workspace"}
+    )
+    assert status == 200
+    assert json.loads(raw)["status"] == "CANCELLED"
+
+    # cancelling a terminal job → 409
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/cancel", {})
+    assert exc.value.code == 409
+
+
+def test_jobs_dispatch_requires_title_and_prompt(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/jobs", {"title": "no prompt here"})
+    assert exc.value.code == 400
+
+
+def test_job_get_unknown_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/jobs/job_does_not_exist")
+    assert exc.value.code == 404
 
 
 # ---------------------------------------------------------------------------

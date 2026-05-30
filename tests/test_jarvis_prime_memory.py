@@ -119,3 +119,25 @@ def test_forget_removes_by_key(store: MemoryStore) -> None:
     removed = store.forget("topic")
     assert removed == 2
     assert store.session == []
+
+
+def test_forget_persists_across_a_new_store(tmp_path: Path) -> None:
+    """A forget must be durable — a fresh store (e.g. the per-request cockpit
+    handler) must not reload the forgotten record."""
+    path = tmp_path / "memory.jsonl"
+    s1 = MemoryStore(journal_path=path)
+    s1.remember("deploy_window", "after 6pm", durability="durable", confidence=0.9)
+    s1.remember("keep", "this one stays", durability="durable", confidence=0.9)
+    assert s1.forget("deploy_window") == 1
+
+    s2 = MemoryStore(journal_path=path)
+    keys = {r.key for r in s2.durable}
+    assert "deploy_window" not in keys  # persisted removal
+    assert "keep" in keys  # untouched record survives the rewrite
+
+
+def test_journal_path_honors_hermes_home(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    store = MemoryStore()
+    assert str(tmp_path) in str(store.journal_path)
+    assert store.journal_path.name == "memory.jsonl"
