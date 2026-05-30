@@ -9,6 +9,7 @@ import com.aci.hermes.approval.event.RecordingApprovalEventSink
 import com.aci.hermes.approval.state.ApprovalStore
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.audit.AuditRepository
+import com.aci.hermes.data.audit.EmptyAuditSeed
 import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
@@ -79,10 +80,9 @@ class AppContainer(private val application: Application) {
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
 
-    // Audit / Capability repositories still ship mock seeds (their server
-    // contracts aren't reconciled yet). Memory is cut over below, once the
-    // cockpit client is constructed.
-    val auditRepository: AuditRepository = AuditRepository()
+    // Capability is a deliberately curated in-app catalog (not server-backed,
+    // not mock). Memory + Audit are cut over to the cockpit client below,
+    // once it's constructed.
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
     // ── Cockpit connection (settings-backed) ───────────────────────────
@@ -137,6 +137,14 @@ class AppContainer(private val application: Application) {
 
     /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
+
+    // Audit: live off the cockpit decision-ledger when paired (empty seed in
+    // production — no mock reaches a paired user; mock seed stays for tests).
+    val auditRepository: AuditRepository = AuditRepository(
+        seed = EmptyAuditSeed,
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
 
     // Jarvis Prime chat.
     //

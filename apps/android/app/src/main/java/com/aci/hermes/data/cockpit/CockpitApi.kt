@@ -344,6 +344,99 @@ data class CreateMemoryResponse(
 @Serializable
 data class DeleteMemoryResponse(val removed: Int = 0)
 
+// ─── Audit ────────────────────────────────────────────────────────────
+
+/**
+ * Wire models for the cockpit audit surface (contract §10b). One-to-one
+ * with the server's canonical `AuditRecord` / `ProofRecord`. Enum-like
+ * fields are raw Strings; the repository maps them to the typed domain
+ * models in `com.aci.hermes.data.model.audit`. Timestamps are ISO-8601.
+ */
+@Serializable
+data class CockpitAuditList(val records: List<CockpitAuditRecord> = emptyList())
+
+@Serializable
+data class CockpitAuditRecord(
+    val id: String,
+    val timestamp: String? = null,
+    @SerialName("user_request") val userRequest: String = "",
+    val action: String = "",
+    @SerialName("risk_tier") val riskTier: String = "LOW",
+    val route: CockpitRouteSummary = CockpitRouteSummary(),
+    @SerialName("approval_state") val approvalState: String = "UNNECESSARY",
+    val result: String = "SUCCESS",
+    val confidence: Float = 0f,
+    @SerialName("proof_id") val proofId: String = "",
+)
+
+@Serializable
+data class CockpitRouteSummary(
+    val destination: String = "HUMAN_ONLY",
+    val model: String? = null,
+    val reason: String = "",
+    @SerialName("duration_ms") val durationMs: Long = 0,
+)
+
+@Serializable
+data class CockpitProofRecord(
+    val id: String = "",
+    @SerialName("audit_id") val auditId: String,
+    val rationale: String = "",
+    val evidence: List<CockpitEvidenceItem> = emptyList(),
+    @SerialName("tests_run") val testsRun: List<String> = emptyList(),
+    @SerialName("files_changed") val filesChanged: List<String> = emptyList(),
+    val verification: CockpitVerificationResult = CockpitVerificationResult(),
+    val approvals: List<CockpitApprovalHistoryItem> = emptyList(),
+    val rollback: CockpitRollbackPlan? = null,
+    @SerialName("impact_report") val impactReport: String? = null,
+    @SerialName("worker_runs") val workerRuns: List<CockpitWorkerRun> = emptyList(),
+)
+
+@Serializable
+data class CockpitEvidenceItem(
+    val id: String = "",
+    val kind: String = "LOG",
+    val title: String = "",
+    val body: String = "",
+    @SerialName("source_path") val sourcePath: String? = null,
+)
+
+@Serializable
+data class CockpitVerificationResult(
+    val status: String = "SKIPPED",
+    val summary: String = "",
+    @SerialName("failing_checks") val failingChecks: List<String> = emptyList(),
+    @SerialName("passed_checks") val passedChecks: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitApprovalHistoryItem(
+    val id: String = "",
+    val timestamp: String? = null,
+    val approver: String = "",
+    val state: String = "PENDING",
+    val comment: String? = null,
+)
+
+@Serializable
+data class CockpitRollbackPlan(
+    val id: String = "",
+    val summary: String = "",
+    val steps: List<String> = emptyList(),
+    val automatic: Boolean = false,
+    val executed: Boolean = false,
+)
+
+@Serializable
+data class CockpitWorkerRun(
+    val id: String = "",
+    val worker: String = "",
+    @SerialName("started_at") val startedAt: String? = null,
+    @SerialName("finished_at") val finishedAt: String? = null,
+    val status: String = "SUCCESS",
+    val notes: String = "",
+)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable

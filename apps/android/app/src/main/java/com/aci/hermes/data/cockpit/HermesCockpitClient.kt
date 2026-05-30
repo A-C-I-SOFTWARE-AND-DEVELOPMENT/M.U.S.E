@@ -99,8 +99,15 @@ class HermesCockpitClient(
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
 
-    // ─── Jobs (contract §4) ──────────────────────────────────────────────
+    // ─── Audit (contract §10b) ───────────────────────────────────────────
 
+    suspend fun auditList(): CockpitResult<CockpitAuditList> =
+        request("GET", "/v1/cockpit/audit", CockpitAuditList.serializer())
+
+    suspend fun auditProof(id: String): CockpitResult<CockpitProofRecord> =
+        request("GET", "/v1/cockpit/audit/" + enc(id) + "/proof", CockpitProofRecord.serializer())
+
+    // ─── Jobs (contract §4) ──────────────────────────────────────────────
     suspend fun jobsList(): CockpitResult<JobList> =
         request("GET", "/v1/cockpit/jobs", JobList.serializer())
 
