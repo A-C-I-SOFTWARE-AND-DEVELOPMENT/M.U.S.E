@@ -73,6 +73,61 @@ class HermesCockpitClient(
     suspend fun getRaw(path: String): CockpitResult<JsonObject> =
         request("GET", path, JsonObject.serializer())
 
+    // ─── Memory (contract §10a) ──────────────────────────────────────────
+
+    /** List memory items; optional `query` runs server-side recollection. */
+    suspend fun memoryList(query: String? = null): CockpitResult<CockpitMemoryList> {
+        val path = if (query.isNullOrBlank()) {
+            "/v1/cockpit/memory"
+        } else {
+            "/v1/cockpit/memory?q=" + enc(query)
+        }
+        return request("GET", path, CockpitMemoryList.serializer())
+    }
+
+    /** Create a memory item. A `422 unprocessable` Failure means the store
+     *  rejected it (secret-like / low confidence) — honest, not an error. */
+    suspend fun memoryCreate(req: CreateMemoryRequest): CockpitResult<CreateMemoryResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/memory",
+            CreateMemoryResponse.serializer(),
+            body = json.encodeToString(CreateMemoryRequest.serializer(), req),
+        )
+
+    /** Delete a memory item by id (== store key). */
+    suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
+        request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
+
+    // ─── Jobs (contract §4) ──────────────────────────────────────────────
+
+    suspend fun jobsList(): CockpitResult<JobList> =
+        request("GET", "/v1/cockpit/jobs", JobList.serializer())
+
+    suspend fun jobGet(id: String): CockpitResult<CockpitJob> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id), CockpitJob.serializer())
+
+    /** Dispatch (enqueue) a new job. Returns the created job (201). */
+    suspend fun jobDispatch(req: DispatchJobRequest): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs",
+            CockpitJob.serializer(),
+            body = json.encodeToString(DispatchJobRequest.serializer(), req),
+        )
+
+    /** Cancel a job. A `409 conflict` Failure means it was already terminal. */
+    suspend fun jobCancel(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/cancel",
+            CockpitJob.serializer(),
+            body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
+        )
+
+    private fun enc(value: String): String =
+        java.net.URLEncoder.encode(value, "UTF-8")
+
     // ─── internals ──────────────────────────────────────────────────────
 
     private suspend fun <T> request(

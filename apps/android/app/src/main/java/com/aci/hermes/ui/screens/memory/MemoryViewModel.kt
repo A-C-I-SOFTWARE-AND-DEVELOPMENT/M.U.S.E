@@ -7,6 +7,7 @@ import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
 import com.aci.hermes.data.memory.MemoryRedactor
 import com.aci.hermes.data.memory.MemoryRepository
+import com.aci.hermes.data.memory.MemorySync
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ data class MemoryUiState(
     val correctingItem: MemoryItem? = null,
     val deletingItem: MemoryItem? = null,
     val snackbar: String? = null,
+    val sync: MemorySync = MemorySync.Idle,
 )
 
 class MemoryViewModel(
@@ -44,7 +46,18 @@ class MemoryViewModel(
                 logBuffer.info(TAG, describe(action))
             }
         }
+        viewModelScope.launch {
+            repository.sync.collect { sync ->
+                _state.update { it.copy(sync = sync) }
+            }
+        }
         refresh()
+        sync()
+    }
+
+    /** Pull the live memory list from the gateway (no-op when unpaired). */
+    fun sync() {
+        viewModelScope.launch { repository.refresh() }
     }
 
     fun setQuery(q: String) {

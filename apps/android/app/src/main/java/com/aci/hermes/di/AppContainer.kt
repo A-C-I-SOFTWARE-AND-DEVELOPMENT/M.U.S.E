@@ -13,6 +13,7 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
@@ -78,9 +79,9 @@ class AppContainer(private val application: Application) {
     val orchestratorServiceController: OrchestratorServiceController =
         OrchestratorServiceController(context, logBuffer)
 
-    // Memory / Audit / Capability repositories ship with mock seeds today
-    // (no Termux / gateway transport wired yet). They are local-only.
-    val memoryRepository: MemoryRepository = MemoryRepository()
+    // Audit / Capability repositories still ship mock seeds (their server
+    // contracts aren't reconciled yet). Memory is cut over below, once the
+    // cockpit client is constructed.
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
@@ -123,6 +124,19 @@ class AppContainer(private val application: Application) {
         endpointProvider = ::cockpitEndpoint,
         tokenProvider = ::cockpitToken,
     )
+
+    // Memory: live off the cockpit gateway when paired. Production wires an
+    // EMPTY seed (no mock data ever reaches a paired user); the mock seed
+    // default stays for @Preview / tests only. The ViewModel calls
+    // refresh() to pull the real list.
+    val memoryRepository: MemoryRepository = MemoryRepository(
+        seed = emptyList(),
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
+    /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
+    val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
 
     // Jarvis Prime chat.
     //
