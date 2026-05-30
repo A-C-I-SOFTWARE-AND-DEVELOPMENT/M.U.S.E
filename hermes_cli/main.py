@@ -5865,6 +5865,44 @@ def cmd_jarvis(args):
     raise SystemExit(2)
 
 
+def cmd_cockpit(args):
+    """Serve the loopback cockpit API for the Jarvis Prime Android app."""
+    action = getattr(args, "cockpit_command", None)
+    if action == "token":
+        from gateway.cockpit import auth as _auth
+
+        token = _auth.rotate_token() if getattr(args, "rotate", False) else _auth.load_or_create_token()
+        print(token)
+        raise SystemExit(0)
+    if action == "serve" or action is None:
+        import time as _time
+
+        from gateway.cockpit import auth as _auth
+        from gateway.cockpit.server import serve as _serve
+
+        token = _auth.load_or_create_token()
+        server = _serve(
+            host=getattr(args, "host", "127.0.0.1"),
+            port=getattr(args, "port", 8765),
+            token=token,
+            allow_external=getattr(args, "allow_external", False),
+        )
+        bound_host, bound_port = server.server_address
+        print(f"Hermes cockpit API listening on http://{bound_host}:{bound_port}")
+        print(f"Pairing token: {token}")
+        print("Pair the Jarvis Prime Android app with this base URL + token.")
+        print("Press Ctrl-C to stop.")
+        try:
+            while True:
+                _time.sleep(3600)
+        except KeyboardInterrupt:
+            server.shutdown()
+            print("\ncockpit API stopped")
+        raise SystemExit(0)
+    print("usage: hermes cockpit {serve|token} [options]")
+    raise SystemExit(2)
+
+
 def cmd_models(args):
     """Free-first model operations (bootstrap, ...)."""
     import json as _json
@@ -10366,7 +10404,8 @@ def _build_provider_choices() -> list[str]:
 # to parse.
 _BUILTIN_SUBCOMMANDS = frozenset(
     {
-        "acp", "auth", "backup", "bundles", "checkpoints", "claw", "completion",
+        "acp", "auth", "backup", "bundles", "checkpoints", "claw", "cockpit",
+        "completion",
         "computer-use",
         "config", "cron", "curator", "dashboard", "debug", "doctor",
         "dump", "fallback", "gateway", "hooks", "import", "insights",
@@ -11479,6 +11518,34 @@ def main():
     )
     jarvis_stop_parser.add_argument("--reason", default="owner_requested")
     jarvis_parser.set_defaults(func=cmd_jarvis)
+
+    # =========================================================================
+    # cockpit command — loopback API for the Jarvis Prime Android app
+    # =========================================================================
+    cockpit_parser = subparsers.add_parser(
+        "cockpit",
+        help="Serve the loopback cockpit API for the Jarvis Prime Android app",
+        description=(
+            "Run the bearer-token-authenticated, loopback-only HTTP API the "
+            "Jarvis Prime Android cockpit pairs with. Backed by the real "
+            "Hermes/JARVIS subsystems (chat, runtime status, memory, "
+            "diagnostics, models, jobs, audit). Never binds non-loopback "
+            "without --allow-external."
+        ),
+    )
+    cockpit_sub = cockpit_parser.add_subparsers(dest="cockpit_command")
+    cockpit_serve = cockpit_sub.add_parser("serve", help="Start the cockpit API server")
+    cockpit_serve.add_argument("--host", default="127.0.0.1")
+    cockpit_serve.add_argument("--port", type=int, default=8765)
+    cockpit_serve.add_argument(
+        "--allow-external", dest="allow_external", action="store_true",
+        help="Bind a non-loopback host (exposes the agent endpoint — risky).",
+    )
+    cockpit_token = cockpit_sub.add_parser(
+        "token", help="Print (or --rotate) the cockpit pairing token"
+    )
+    cockpit_token.add_argument("--rotate", action="store_true")
+    cockpit_parser.set_defaults(func=cmd_cockpit)
 
     # =========================================================================
     # models command — free-first model bootstrap
