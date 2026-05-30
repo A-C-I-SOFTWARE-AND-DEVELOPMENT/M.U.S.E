@@ -52,6 +52,8 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/memory"), h.memory_create, True),
     ("DELETE", _compile("/v1/cockpit/memory/{id}"), h.memory_delete, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
+    ("GET", _compile("/v1/cockpit/audit"), h.audit_list, True),
+    ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
     ("GET", _compile("/v1/cockpit/jobs"), h.jobs_list, True),
     ("POST", _compile("/v1/cockpit/jobs"), h.jobs_dispatch, True),
     ("POST", _compile("/v1/cockpit/jobs/{id}/cancel"), h.job_cancel, True),

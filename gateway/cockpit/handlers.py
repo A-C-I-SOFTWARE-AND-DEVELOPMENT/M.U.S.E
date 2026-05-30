@@ -239,6 +239,46 @@ def audit_events(req: Request) -> JsonResponse:
     return JsonResponse(200, {"events": events})
 
 
+def audit_list(req: Request) -> JsonResponse:
+    """Audit records (canonical ``AuditRecord``) from the decision ledger."""
+    limit = int(req.query.get("limit", "100"))
+    records: list[dict[str, Any]] = []
+    try:
+        from hermes_cli import decision_ledger as dl
+
+        from . import contract
+
+        for path in dl.list_ledgers()[:limit]:
+            try:
+                ledger = dl.read_ledger(path)
+                records.append(contract.audit_record(ledger, path))
+            except Exception:
+                continue
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"records": [], "error": str(exc)})
+    return JsonResponse(200, {"records": records})
+
+
+def audit_proof(req: Request) -> JsonResponse:
+    """Full proof bundle (canonical ``ProofRecord``) for one audit id."""
+    proof_id = req.path_params.get("id", "")
+    try:
+        from hermes_cli import decision_ledger as dl
+
+        from . import contract
+
+        for path in dl.list_ledgers():
+            try:
+                ledger = dl.read_ledger(path)
+            except Exception:
+                continue
+            if contract.ledger_id(ledger, path) == proof_id:
+                return JsonResponse(200, contract.audit_proof(ledger, path))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(404, {"error": f"unknown proof: {proof_id}"})
+
+
 def jobs_list(_req: Request) -> JsonResponse:
     """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []
@@ -555,6 +595,8 @@ __all__ = [
     "JsonResponse",
     "Request",
     "audit_events",
+    "audit_list",
+    "audit_proof",
     "diagnostics",
     "health",
     "job_cancel",
