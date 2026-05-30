@@ -581,6 +581,28 @@ def proposal_view(proposal: dict[str, Any], *, proposal_id: str) -> dict[str, An
     }
 
 
+# ---------------------------------------------------------------------------
+# Skills — the gateway's real installed skill set
+# ---------------------------------------------------------------------------
+#
+# Unlike the other domains, the Android capability picker is a deliberately
+# *curated* in-app catalog (com.aci.hermes.data.model.Capability), not a
+# server mirror. This surface is the complementary truth: the actual skills
+# installed on the gateway host (from the real skill scanner). It lets the
+# cockpit show "what this gateway can do" and lets the curated catalog be
+# validated against reality — without fabricating capabilities.
+
+
+def skill_entry(command: str, info: dict[str, Any]) -> dict[str, Any]:
+    """Project one scanned skill (``/command`` + info) into a cockpit entry."""
+    return {
+        "id": str(command).lstrip("/"),
+        "command": str(command),
+        "name": str(info.get("name", "") or ""),
+        "description": str(info.get("description", "") or ""),
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
@@ -611,4 +633,5 @@ __all__ = [
     "normalize_category",
     "normalize_publish_state",
     "proposal_view",
+    "skill_entry",
 ]

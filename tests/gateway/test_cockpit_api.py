@@ -437,3 +437,21 @@ def test_token_persisted_owner_only(home: Path) -> None:
     if os.name == "posix":
         mode = stat.S_IMODE(os.stat(cockpit_auth.token_path()).st_mode)
         assert mode == 0o600
+
+
+# ---------------------------------------------------------------------------
+# skills — real installed-skill list (read-only)
+# ---------------------------------------------------------------------------
+
+
+def test_skills_list_returns_canonical_list(server) -> None:
+    _, payload = _get(server, "/v1/cockpit/skills")
+    assert "skills" in payload and isinstance(payload["skills"], list)
+    for s in payload["skills"]:
+        assert set(s.keys()) == {"id", "command", "name", "description"}
+
+
+def test_skills_list_requires_auth(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/skills", token=None)
+    assert exc.value.code == 401

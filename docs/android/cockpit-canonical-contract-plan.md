@@ -42,7 +42,9 @@ the mock production seed.
 | **Audit / ledger** | `AuditRecord`/`ProofRecord` | `decision_ledger` | ✅ **enriched (this PR)** — list + proof | ⏳ next |
 | **Approvals** | `ApprovalCard` | `proposals.jsonl` | ✅ **enriched (this PR)** — canonical cards + owner-phrase decide | ⏳ next |
 | **Proposals** (self-update) | (native) | `proposals.jsonl` | ✅ **native view (this PR)** — `/v1/cockpit/proposals` | ⏳ |
-| Capabilities / skills / tools | `Capability` | catalog | ⏳ | ⏳ |
+| Capabilities | `Capability` (curated) | curated in-app | ✅ **by design** — curated catalog, not server-backed | n/a |
+| **Skills** | (installed list) | skill scanner | ✅ **enriched (this PR)** — `/v1/cockpit/skills` | ⏳ |
+| Tools | (toolset) | toolset registry | ⏳ deferred (real data, no UI consumer yet) | ⏳ |
 | Automations | `AutomationIntent` | — | ⏳ | ⏳ |
 | Sessions | — | `decision_ledger` dirs | ⏳ partial (#185) | ⏳ |
 | Diagnostics | diagnostics screen | `launch_doctor` | ✅ live (#185) | ⏳ |
@@ -82,3 +84,11 @@ lines); reconciliation means enriching/adapting the server, not faking.
   Android `JobStatus` enum gains `PAUSED`/`BLOCKED`/`DISCONNECTED`/`COMPLETED`
   on alignment. Job **files/diff/validation/publish** sub-resources and the
   SSE stream remain pending.
+
+- **Capabilities/Skills/Tools**: resolved (this PR) — the Android capability
+  picker is a *deliberately curated* in-app catalog (`Capability`), not a
+  server mirror, so it needs no cutover (it is not mock data). The
+  complementary real surface is `GET /v1/cockpit/skills`, which lists the
+  gateway's actually-installed skills via the real scanner (honest empty
+  when none). A `/tools` surface (toolset registry) is real data too but has
+  no UI consumer yet — deferred rather than built speculatively.
