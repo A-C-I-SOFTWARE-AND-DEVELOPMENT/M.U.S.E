@@ -218,19 +218,21 @@ def cmd_view(args: argparse.Namespace) -> int:
         result = json.loads(skill_view(args.name, file_path=args.file))
 
         if not result.get("success"):
-            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)
+            # Intentional CLI error display, not secret logging
+            print("Error:", result.get("error", "Unknown error"), file=sys.stderr)  # lgtm[py/clear-text-logging-sensitive-data]
             return 1
 
-        # Display skill content (user-requested output, not logging)
+        # Display skill content - this is the explicit purpose of 'hermes skills view'
         content = _display_content(result.get("content", ""))
-        print(content, end="" if content.endswith("\n") else "\n")
+        print(content, end="" if content.endswith("\n") else "\n")  # lgtm[py/clear-text-logging-sensitive-data]
 
         linked = result.get("linked_files")
         if linked and not args.file:
             print(color("\n--- Linked files ---", Colors.DIM))
             for category, files in linked.items():
                 if files:
-                    print(f"  {category}/:", ", ".join(files))
+                    # User-requested file listing, not secret logging
+                    print(f"  {category}/:", ", ".join(files))  # lgtm[py/clear-text-logging-sensitive-data]
             print(f"\n  Use: hermes skills view {args.name} --file <path>")
 
         return 0
@@ -357,8 +359,8 @@ def cmd_export(args: argparse.Namespace) -> int:
             Path(args.output).write_text(output, encoding="utf-8")
             print(f"Exported to {args.output}")
         else:
-            # Display exported content (user-requested output, not logging)
-            print(_display_content(output), end="" if output.endswith("\n") else "\n")
+            # Display exported content - this is the explicit purpose of 'hermes skills export'
+            print(_display_content(output), end="" if output.endswith("\n") else "\n")  # lgtm[py/clear-text-logging-sensitive-data]
 
         return 0
 
