@@ -40,6 +40,7 @@ import kotlin.coroutines.coroutineContext
 class HttpJarvisChatGateway(
     private val endpointProvider: () -> String,
     private val logBuffer: LogBuffer,
+    private val tokenProvider: () -> String? = { null },
 ) : JarvisChatGateway {
 
     override val displayName: String = "Hermes gateway"
@@ -62,7 +63,12 @@ class HttpJarvisChatGateway(
         try {
             val code = connection.responseCode
             if (code !in 200..299) {
-                emit(JarvisChatChunk.Failure("Gateway returned $code", "Check the gateway logs."))
+                val (msg, hint) = when (code) {
+                    401 -> "Gateway rejected the pairing token" to "Re-pair in Settings → Connection."
+                    403 -> "Gateway refused the request" to "Check the gateway is loopback-only."
+                    else -> "Gateway returned $code" to "Check the gateway logs."
+                }
+                emit(JarvisChatChunk.Failure(msg, hint))
                 return@flow
             }
             val reader: BufferedReader = connection.inputStream.bufferedReader()
@@ -87,6 +93,12 @@ class HttpJarvisChatGateway(
             readTimeout = 0 // streaming: no read timeout
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("Accept", "application/x-ndjson")
+            // The cockpit chat route is bearer-authenticated; attach the
+            // paired token when present. Unpaired (token null) keeps the
+            // legacy unauthenticated jarvis_local_http path working.
+            tokenProvider()?.takeIf { it.isNotBlank() }?.let {
+                setRequestProperty("Authorization", "Bearer $it")
+            }
             outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
         }
 

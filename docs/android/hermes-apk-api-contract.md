@@ -57,17 +57,23 @@ parallel without drifting.
 
 Already exists. Treated by the cockpit as "is the gateway up at all?".
 
-Response:
+The **live** cockpit gateway (`gateway/cockpit/handlers.py`) returns:
 
 ```json
 {
   "ok": true,
-  "version": "0.14.0",
-  "provider_id": "openrouter",
-  "model": "anthropic/claude-3.5-sonnet",
-  "message": null
+  "service": "hermes-cockpit",
+  "api_version": "1.0.0",
+  "gateway_version": "0.14.0",
+  "time": "2026-05-23T18:45:00Z"
 }
 ```
+
+An older/alternate gateway may instead return `{ "ok", "version",
+"message", ... }`. The cockpit's `HealthStatus` model accepts **both**
+variants (unknown keys ignored; `resolvedVersion` prefers
+`gateway_version`, falling back to `version`) so negotiation works
+across gateway revisions.
 
 `ok=false` → cockpit renders *Backend reachable but reporting unhealthy*.
 
@@ -540,13 +546,24 @@ APK negotiates by:
 The matching Kotlin data classes land at
 `apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt`.
 They map field-for-field to the JSON above. The cockpit's
-`HermesCockpitClient` is responsible for:
+`HermesCockpitClient`
+(`apps/android/app/src/main/java/com/aci/hermes/data/cockpit/HermesCockpitClient.kt`,
+transport in `CockpitHttp.kt`) is responsible for:
 
-- attaching the bearer token,
-- decoding the error envelope into a typed `CockpitError`,
-- reconnecting SSE streams with exponential backoff,
+- attaching the bearer token — **implemented**,
+- decoding the error envelope into a typed `CockpitError` — **implemented**,
 - enforcing the 8-second short-timeout used by `/v1/health` probes
-  (so the UI can show a real *Backend unreachable* state quickly).
+  (so the UI can show a real *Backend unreachable* state quickly) —
+  **implemented**,
+- reconnecting SSE streams with exponential backoff — *pending* (lands
+  with the streaming surfaces).
+
+The token is paired through *Settings → Connection*
+(`SettingsRepository.cockpitToken`); chat routes live-vs-mock on pairing
+via `RoutingJarvisChatGateway`. Typed accessors currently cover the
+routes the gateway serves today (health, runtime status, worker
+detection); other routes are reachable via `getRaw` until their server
+shapes settle into typed models.
 
 See [`hermes-apk-cockpit.md`](hermes-apk-cockpit.md) §4 for cross-cutting
 behaviours (auth storage, destructive-action rules, network policy).

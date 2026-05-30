@@ -13,6 +13,7 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatGateway
@@ -20,6 +21,7 @@ import com.aci.hermes.data.jarvis.JarvisClipboard
 import com.aci.hermes.data.jarvis.JarvisTaskSink
 import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.data.jarvis.RepositoryTaskSink
+import com.aci.hermes.data.jarvis.RoutingJarvisChatGateway
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -41,6 +43,11 @@ import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import com.aci.hermes.util.LogBuffer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 /**
  * Hand-rolled DI container. Held by [com.aci.hermes.HermesApplication]
@@ -77,20 +84,65 @@ class AppContainer(private val application: Application) {
     val auditRepository: AuditRepository = AuditRepository()
     val capabilityRepository: CapabilityRepository = CapabilityRepository()
 
+    // ── Cockpit connection (settings-backed) ───────────────────────────
+    //
+    // The container is built synchronously, but the gateway endpoint and
+    // the paired token live in DataStore (async Flows). We mirror both
+    // into volatile caches kept current by a long-lived collector, so the
+    // synchronous `() -> ...` providers the client + gateways need always
+    // see the latest value without being rebuilt on every settings change.
+    private val containerScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    @Volatile
+    private var cachedEndpoint: String = SettingsRepository.DEFAULT_GATEWAY_ENDPOINT
+
+    @Volatile
+    private var cachedToken: String? = null
+
+    init {
+        settingsRepository.gatewayEndpoint
+            .onEach { cachedEndpoint = it }
+            .launchIn(containerScope)
+        settingsRepository.cockpitToken
+            .onEach { cachedToken = it }
+            .launchIn(containerScope)
+    }
+
+    private fun cockpitEndpoint(): String = cachedEndpoint
+    private fun cockpitToken(): String? = cachedToken
+    private fun cockpitPaired(): Boolean =
+        !cachedToken.isNullOrBlank() && cachedEndpoint.isNotBlank()
+
+    /**
+     * Live cockpit API client (runtime status, worker detection, health
+     * negotiation, and a raw passthrough for the rest). Screens read
+     * through this; an unpaired or unreachable gateway yields a typed
+     * `Unreachable`, never a stub.
+     */
+    val cockpitClient: HermesCockpitClient = HermesCockpitClient(
+        endpointProvider = ::cockpitEndpoint,
+        tokenProvider = ::cockpitToken,
+    )
+
     // Jarvis Prime chat.
     //
-    // [liveJarvisChatGateway] streams from the local Hermes gateway
-    // (see gateway/jarvis_local_http.py). [MockJarvisChatGateway] stays
-    // the offline-safe default so previews / first-run / tests work with
-    // no daemon. Flip [useLiveGateway] (or wire it to a setting) to make
-    // the avatar reflect the real agent.
+    // [liveJarvisChatGateway] streams the real agent from the cockpit
+    // gateway, attaching the paired bearer token. [MockJarvisChatGateway]
+    // stays the offline-safe path so previews / first-run / tests work
+    // with no daemon. [RoutingJarvisChatGateway] selects between them at
+    // send-time on whether the cockpit is paired — so pairing a token
+    // flips chat live with no rebuild.
     val liveJarvisChatGateway: JarvisChatGateway = HttpJarvisChatGateway(
-        endpointProvider = { SettingsRepository.DEFAULT_GATEWAY_ENDPOINT },
+        endpointProvider = ::cockpitEndpoint,
         logBuffer = logBuffer,
+        tokenProvider = ::cockpitToken,
     )
-    private val useLiveGateway: Boolean = false
-    val jarvisChatGateway: JarvisChatGateway =
-        if (useLiveGateway) liveJarvisChatGateway else MockJarvisChatGateway()
+    private val mockJarvisChatGateway: JarvisChatGateway = MockJarvisChatGateway()
+    val jarvisChatGateway: JarvisChatGateway = RoutingJarvisChatGateway(
+        live = liveJarvisChatGateway,
+        mock = mockJarvisChatGateway,
+        useLive = ::cockpitPaired,
+    )
     val jarvisClipboard: JarvisClipboard = AndroidJarvisClipboard(context)
     val jarvisTaskSink: JarvisTaskSink = RepositoryTaskSink(taskRepository)
 
