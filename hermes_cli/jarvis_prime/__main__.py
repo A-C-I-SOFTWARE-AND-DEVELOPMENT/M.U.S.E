@@ -846,6 +846,33 @@ def _cmd_owner_brief(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_navigate(args: argparse.Namespace) -> int:
+    """Localize an objective to candidate edit sites (HyperAgent-style).
+
+    Deterministic and read-only — the same navigation a ``/orchestrate`` job
+    now runs before dispatch. Ranks the files most likely to need editing,
+    with the tests to run; no LLM is used for localization.
+    """
+    from hermes_cli.jarvis_prime.navigation import Navigator
+
+    nav = Navigator.for_repo(args.repo or ".")
+    result = nav.navigate(args.issue, limit=args.limit)
+    if args.json:
+        _print_json(result.to_dict())
+        return 0
+    sites = result.edit_sites
+    if not sites:
+        print(f"No candidate edit sites found for: {result.issue}")
+        return 0
+    print(f"Navigation for: {result.issue}")
+    for s in sites:
+        print(f"  [{s.rank}] {s.path}  (confidence {s.confidence:.2f}) — {s.rationale}")
+    verify = result.worker_packet().get("verify_with") or []
+    if verify:
+        print("  verify with: " + ", ".join(str(v) for v in verify))
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1315,6 +1342,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_launch_doctor.add_argument("--json", action="store_true")
     p_launch_doctor.set_defaults(func=_cmd_launch_doctor)
+
+    # navigate — localize an objective to candidate edit sites (the same
+    # HyperAgent-style navigation a /orchestrate job runs before dispatch).
+    p_navigate = sub.add_parser(
+        "navigate",
+        help="Localize an objective to candidate edit sites (read-only)",
+        description=(
+            "Run the deterministic HyperAgent-style repo navigator: rank the "
+            "files most likely to need editing for an objective, with the tests "
+            "to run. Read-only; no LLM is used for localization."
+        ),
+    )
+    p_navigate.add_argument("issue", help="The objective / issue to localize")
+    p_navigate.add_argument("--repo", default=".", help="Repo root (default: cwd)")
+    p_navigate.add_argument("--limit", type=int, default=5, help="Max candidate sites")
+    p_navigate.add_argument("--json", action="store_true")
+    p_navigate.set_defaults(func=_cmd_navigate)
 
     args = parser.parse_args(argv)
     return args.func(args)

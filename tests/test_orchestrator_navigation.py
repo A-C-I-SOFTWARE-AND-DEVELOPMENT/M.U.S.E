@@ -55,3 +55,19 @@ def test_navigate_job_records_ledger_and_returns_packet(
 def test_navigate_job_blank_objective_is_noop(isolated_home: Path, sample_repo: Path):
     job = orch.submit_job("real prompt")
     assert orch.navigate_job(job.id, repo_root=str(sample_repo), issue="   ") is None
+
+
+def test_run_orchestrate_navigates_before_dispatch(
+    isolated_home: Path, sample_repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """The live /orchestrate path now runs the navigator before dispatch."""
+    monkeypatch.chdir(sample_repo)  # navigate_job defaults repo_root to cwd
+    out = orch.run_orchestrate("upload_file fails on large files")
+    assert "Orchestration job queued" in out
+
+    jobs = orch.list_jobs()
+    assert jobs, "a job should have been queued"
+    jid = jobs[0].id
+    kinds = [e.get("kind") for e in orch.get_ledger(jid)[jid]]
+    assert "submit" in kinds
+    assert "navigation_decision" in kinds  # navigation ran in the live path

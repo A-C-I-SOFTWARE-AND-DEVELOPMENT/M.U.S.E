@@ -997,10 +997,20 @@ def run_orchestrate(rest: str) -> str:
         job = submit_job(prompt)
     except ValueError as exc:
         return f"⚠ {exc}\n{_ORCHESTRATE_HELP}"
+    # Navigate before dispatch: localize the objective in the repo and record a
+    # navigation_decision in the job ledger (HyperAgent-style, deterministic,
+    # read-only, best-effort — never blocks the queue).
+    nav_line = ""
+    packet = navigate_job(job.id, issue=prompt)
+    if packet:
+        files = packet.get("candidate_files") or []
+        if files:
+            nav_line = f"\n  navigation:  {len(files)} candidate file(s) — top: {files[0]}"
     return (
         f"✓ Orchestration job queued: {job.id}\n"
         f"  status:  {job.status}\n"
-        f"  prompt:  {job.prompt[:120]}{'...' if len(job.prompt) > 120 else ''}\n"
+        f"  prompt:  {job.prompt[:120]}{'...' if len(job.prompt) > 120 else ''}"
+        f"{nav_line}\n"
         f"\n"
         f"No worker has started.  Use /orchestrator status {job.id} to inspect."
     )
