@@ -37,6 +37,12 @@ agent-browser/
 *.ppk
 *.pem
 privvy*
+
+# Android signing — NEVER commit a keystore or its passwords.
+*.jks
+*.keystore
+apps/android/keystore.properties
+keystore.properties
 images/
 __pycache__/
 hermes_agent.egg-info/
@@ -78,3 +84,6 @@ docs/superpowers/*
 # Individual radar reports can be force-added with `git add -f` when
 # they need to live in version control as an audit trail.
 .hermes-orchestrator/
+
+# Built APKs are delivered as CI artifacts / release assets, not via git
+*.apk
