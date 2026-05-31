@@ -35,6 +35,8 @@ class LocalPlannerWorker(WorkerAdapter):
 
     id = "hermes-local-planner"
     display_name = "Hermes local planner"
+    # Non-destructive (read-only navigation; no edits, no shell) → runs ungated.
+    requires_approval = False
 
     def __init__(self, repo_root: Optional[str] = None) -> None:
         self._repo_root = repo_root

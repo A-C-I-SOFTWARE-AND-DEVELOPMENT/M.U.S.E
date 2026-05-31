@@ -56,6 +56,16 @@ from hermes_cli.workers.registry import (
     unregister,
 )
 
+
+def load_builtins() -> None:
+    """Import the built-in worker adapters so they self-register.
+
+    Idempotent (module imports cache; adapters register with replace=True).
+    Call before resolving a worker by id from the registry.
+    """
+    from hermes_cli.workers import aider_handoff, local_planner  # noqa: F401
+
+
 __all__ = [
     "CollectedRun",
     "IsolatedSpawner",

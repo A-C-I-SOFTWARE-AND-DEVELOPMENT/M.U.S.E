@@ -115,3 +115,37 @@ def test_destructive_worker_blocked_without_owner_approval(isolated_home: Path) 
     orch.approve_phase(job.id, "execute")
     orch.dispatch_job(job.id, worker_id="fake-destructive")
     assert "worker_error" in [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
+
+
+def test_load_builtins_registers_both_workers() -> None:
+    from hermes_cli.workers import load_builtins, known_workers
+
+    load_builtins()
+    ids = known_workers()
+    assert "hermes-local-planner" in ids
+    assert "aider-handoff" in ids
+
+
+def test_aider_handoff_adapter_is_non_executing(sample_repo: Path) -> None:
+    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
+
+    w = AiderHandoffWorker(str(sample_repo))
+    assert w.requires_approval is False  # handoff only — safe ungated
+    det = w.detect()
+    assert det.available  # handoff prep doesn't need the binary
+    job = _Job("upload_file fails on large files")
+    run = w.run(job)
+    assert run.ok
+    assert "aider" in run.stdout  # a ready handoff command, not execution output
+    assert run.details["status"] == "handoff_required"  # never executed
+    arts = w.collect(job)
+    assert "handoff prepared" in arts.notes
+    assert 0.0 <= w.score(arts).value <= 1.0
+
+
+def test_dispatch_aider_handoff_runs_ungated(isolated_home: Path, sample_repo: Path) -> None:
+    job = orch.submit_job("upload_file fails on large files")
+    out = orch.dispatch_job(job.id, worker_id="aider-handoff", repo_root=str(sample_repo))
+    assert out is not None and out.status == "completed"  # ungated, no approval needed
+    kinds = [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
+    assert {"worker_dispatch", "worker_result", "worker_score"} <= set(kinds)
