@@ -149,3 +149,40 @@ def test_dispatch_aider_handoff_runs_ungated(isolated_home: Path, sample_repo: P
     assert out is not None and out.status == "completed"  # ungated, no approval needed
     kinds = [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
     assert {"worker_dispatch", "worker_result", "worker_score"} <= set(kinds)
+
+
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("worker_id", ["aider-handoff", "goose-handoff", "codex-handoff", "claude-handoff"])
+def test_all_handoff_workers_registered_and_non_executing(
+    worker_id: str, isolated_home: Path, sample_repo: Path
+) -> None:
+    from hermes_cli.workers import known_workers, load_builtins
+
+    load_builtins()
+    assert worker_id in known_workers()
+
+    job = orch.submit_job("upload_file fails on large files")
+    out = orch.dispatch_job(job.id, worker_id=worker_id, repo_root=str(sample_repo))
+    # Handoff workers are non-destructive → run ungated and complete.
+    assert out is not None and out.status == "completed"
+    led = orch.get_ledger(job.id)[job.id]
+    kinds = [e.get("kind") for e in led]
+    assert {"worker_dispatch", "worker_result", "worker_score"} <= set(kinds)
+    # And the result is a staged handoff, not an execution.
+    result = next(e for e in led if e.get("kind") == "worker_result")
+    assert result["ok"] is True
+
+
+def test_builtin_worker_roster() -> None:
+    from hermes_cli.workers import builtin_worker_classes
+
+    ids = {c.id for c in builtin_worker_classes()}
+    assert ids == {
+        "hermes-local-planner",
+        "aider-handoff",
+        "goose-handoff",
+        "codex-handoff",
+        "claude-handoff",
+    }
