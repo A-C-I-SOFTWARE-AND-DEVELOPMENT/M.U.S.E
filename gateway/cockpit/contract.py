@@ -603,6 +603,41 @@ def skill_entry(command: str, info: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Navigation — the HyperAgent navigator's pre-dispatch decision
+# ---------------------------------------------------------------------------
+#
+# Surfaces "where navigation decided to look" before a /orchestrate job was
+# dispatched. Source is the orchestrator job ledger's ``navigation_decision``
+# entries (real data; honest empty when no orchestrate job has navigated).
+
+
+def navigation_view(entry: dict[str, Any], *, job_id: str | None = None) -> dict[str, Any]:
+    """Project an orchestrator ``navigation_decision`` ledger entry."""
+    ranked = entry.get("ranked_files") or []
+    files: list[dict[str, Any]] = []
+    for r in ranked:
+        if not isinstance(r, dict):
+            continue
+        try:
+            files.append({
+                "path": str(r.get("path", "") or ""),
+                "rank": int(r.get("rank", 0) or 0),
+                "confidence": float(r.get("confidence", 0.0) or 0.0),
+                "rationale": str(r.get("rationale", "") or ""),
+            })
+        except (TypeError, ValueError):
+            continue
+    return {
+        "job_id": str(job_id or entry.get("job_id", "") or ""),
+        "objective": str(entry.get("objective", "") or ""),
+        "created_at": str(entry.get("created_at", "") or ""),
+        "method": str(entry.get("method", "") or ""),
+        "candidate_files": files,
+        "verify_with": [str(v) for v in (entry.get("verify_with") or [])],
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
@@ -630,6 +665,7 @@ __all__ = [
     "durability_to_store",
     "job_status",
     "memory_item",
+    "navigation_view",
     "normalize_category",
     "normalize_publish_state",
     "proposal_view",

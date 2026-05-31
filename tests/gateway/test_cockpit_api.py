@@ -455,3 +455,33 @@ def test_skills_list_requires_auth(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
         _get(server, "/v1/cockpit/skills", token=None)
     assert exc.value.code == 401
+
+
+# ---------------------------------------------------------------------------
+# navigation — surfaced from the orchestrator job ledger
+# ---------------------------------------------------------------------------
+
+
+def test_navigation_surface_from_orchestrator_ledger(server, home: Path) -> None:
+    from hermes_cli import orchestrator as orch
+
+    repo = home / "repo"
+    (repo / "svc").mkdir(parents=True)
+    (repo / "svc" / "uploader.py").write_text(
+        "def upload_file(p):\n    return open(p).read()\n"
+    )
+    job = orch.submit_job("upload_file fails on large files")
+    orch.navigate_job(job.id, repo_root=str(repo))
+
+    _, payload = _get(server, "/v1/cockpit/navigation")
+    navs = payload["navigations"]
+    assert navs, "the navigation decision should surface in the cockpit"
+    nav = navs[0]
+    assert nav["job_id"] == job.id
+    assert nav["objective"].startswith("upload_file")
+    assert any(f["path"].endswith("uploader.py") for f in nav["candidate_files"])
+
+
+def test_navigation_empty_when_no_orchestrate_job(server) -> None:
+    _, payload = _get(server, "/v1/cockpit/navigation")
+    assert payload["navigations"] == []  # honest empty, not fabricated

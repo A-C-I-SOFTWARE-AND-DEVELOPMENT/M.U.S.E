@@ -103,3 +103,10 @@ lines); reconciliation means enriching/adapting the server, not faking.
   (branded radii) and the dark/light schemes map the full M3
   `surface*`/`surfaceContainer*` hierarchy onto the JARVIS ink/paper ladder,
   so every M3 component picks up the brand surfaces + corners by default.
+
+- **Navigation surface**: resolved — `GET /v1/cockpit/navigation` lists the
+  HyperAgent navigator's pre-dispatch decisions (objective + ranked candidate
+  files + tests to run), read from the orchestrator job ledger's
+  `navigation_decision` entries. Honest empty when no `/orchestrate` job has
+  navigated. This closes the "navigation decision isn't visible in the
+  cockpit" follow-up from the navigation-wiring PR.

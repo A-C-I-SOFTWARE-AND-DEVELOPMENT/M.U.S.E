@@ -397,3 +397,40 @@ def test_skill_entry_tolerates_missing_fields() -> None:
     assert e["id"] == "foo"
     assert e["command"] == "/foo"
     assert e["name"] == "" and e["description"] == ""
+
+
+# ---------------------------------------------------------------------------
+# Navigation — orchestrator navigation_decision -> cockpit view
+# ---------------------------------------------------------------------------
+
+
+def test_navigation_view_projection() -> None:
+    entry = {
+        "kind": "navigation_decision",
+        "job_id": "j1",
+        "created_at": "2026-05-30T12:00:00Z",
+        "objective": "fix upload",
+        "method": "deterministic-multi-signal",
+        "ranked_files": [
+            {"path": "svc/uploader.py", "rank": 1, "confidence": 0.91,
+             "rationale": "matches symbol", "signals": {"lexical": 0.8}},
+        ],
+        "verify_with": ["pytest tests/test_uploader.py"],
+    }
+    v = contract.navigation_view(entry)
+    assert v["job_id"] == "j1"
+    assert v["objective"] == "fix upload"
+    assert v["method"] == "deterministic-multi-signal"
+    assert v["candidate_files"][0]["path"] == "svc/uploader.py"
+    assert v["candidate_files"][0]["confidence"] == 0.91
+    assert v["candidate_files"][0]["rank"] == 1
+    assert v["verify_with"] == ["pytest tests/test_uploader.py"]
+    assert set(v.keys()) == {
+        "job_id", "objective", "created_at", "method", "candidate_files", "verify_with",
+    }
+
+
+def test_navigation_view_job_id_override() -> None:
+    v = contract.navigation_view({"objective": "x"}, job_id="job_42")
+    assert v["job_id"] == "job_42"
+    assert v["candidate_files"] == []

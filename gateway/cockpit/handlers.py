@@ -477,6 +477,30 @@ def skills_list(_req: Request) -> JsonResponse:
     return JsonResponse(200, {"skills": skills})
 
 
+def navigation_list(req: Request) -> JsonResponse:
+    """Recent HyperAgent navigation decisions (the pre-dispatch "where to look"),
+    read from the orchestrator job ledger. Honest empty when no ``/orchestrate``
+    job has navigated yet.
+    """
+    limit = int(req.query.get("limit", "50"))
+    items: list[dict[str, Any]] = []
+    try:
+        from hermes_cli import orchestrator as orch
+
+        from . import contract
+
+        ledger = orch.get_ledger() or {}
+        for job_id, entries in ledger.items():
+            for entry in entries or []:
+                if isinstance(entry, dict) and entry.get("kind") == "navigation_decision":
+                    items.append(contract.navigation_view(entry, job_id=job_id))
+        items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        items = items[:limit]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"navigations": [], "error": str(exc)})
+    return JsonResponse(200, {"navigations": items})
+
+
 def approvals_decide(req: Request) -> JsonResponse:
     """Approve/reject a proposal. Approve requires the exact owner phrase."""
     proposal_id = req.path_params.get("id", "")
@@ -625,6 +649,7 @@ __all__ = [
     "memory_delete",
     "memory_list",
     "models",
+    "navigation_list",
     "proposals_list",
     "runtime_status",
     "runtime_workers",
