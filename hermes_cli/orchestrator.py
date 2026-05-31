@@ -72,7 +72,7 @@ _PROFILE_GITHUB_HISTORY_FILE = "profile_github_history.json"
 # Sentinel for actions that require explicit operator approval before
 # state can transition into a "published" / "remote" / "secret-touching"
 # phase.  See ``approve_phase`` and ``publish_plan``.
-APPROVAL_PHASES = ("plan", "publish", "remote", "self_improve")
+APPROVAL_PHASES = ("plan", "publish", "remote", "self_improve", "execute")
 VOICE_CAPTURE_MODES = (
     "push_to_talk",
     "wake_word",
@@ -332,6 +332,106 @@ def navigate_job(
         return None
     _append_ledger(job_id, result.to_ledger_record(job_id=job_id))
     return result.worker_packet()
+
+
+def dispatch_job(
+    job_id: str,
+    *,
+    worker_id: str = "hermes-local-planner",
+    repo_root: Optional[str] = None,
+) -> Optional[Job]:
+    """Dispatch a job to a worker via the five-step adapter contract.
+
+    Runs ``detect → prepare_prompt → run → collect → score`` and records a
+    ``worker_dispatch`` / ``worker_result`` / ``worker_score`` trail in the
+    job ledger (visible via ``/orchestrator replay``). The built-in
+    ``hermes-local-planner`` is non-destructive (read-only navigation; no edits,
+    no shell) and runs ungated; it makes the engine verifiable end-to-end.
+    Repo-mutating / external workers implement the same contract but require an
+    approved ``execute`` phase first (the owner gate is never bypassed).
+
+    Best-effort: an unknown/unavailable worker or a worker error is recorded
+    and the job is left in an honest state — never raised to the caller.
+    """
+    jobs = _load_jobs()
+    job = _find_job(jobs, job_id)
+    if not job:
+        return None
+
+    # Ensure the built-in adapters are registered (they self-register on import).
+    from hermes_cli.workers.local_planner import LocalPlannerWorker
+
+    if worker_id == LocalPlannerWorker.id:
+        adapter: Any = LocalPlannerWorker(repo_root)
+        destructive = False
+    else:
+        from hermes_cli.workers import registry as _wr
+
+        try:
+            adapter = _wr.get(worker_id)
+        except Exception:
+            _append_ledger(job_id, {
+                "kind": "worker_error", "worker_id": worker_id,
+                "error": "unknown worker",
+            })
+            return job
+        # Any non-builtin worker is treated as potentially repo-mutating.
+        destructive = True
+
+    # Owner gate: a repo-mutating / external worker may only run once the
+    # 'execute' phase is approved. Never bypass it.
+    if destructive and not has_approval(job, "execute"):
+        _append_ledger(job_id, {
+            "kind": "worker_blocked", "worker_id": worker_id,
+            "reason": "execute phase requires owner approval",
+        })
+        job.status = "blocked"
+        job.updated_at = _now()
+        _save_jobs(jobs)
+        return job
+
+    detection = adapter.detect()
+    _append_ledger(job_id, {
+        "kind": "worker_dispatch", "worker_id": worker_id,
+        "available": bool(detection.available), "reason": detection.reason,
+    })
+    if not detection.available:
+        job.status = "blocked"
+        job.updated_at = _now()
+        _save_jobs(jobs)
+        return job
+
+    try:
+        adapter.prepare_prompt(job)
+        run_result = adapter.run(job)
+        artifacts = adapter.collect(job)
+        score = adapter.score(artifacts)
+    except Exception as exc:  # best-effort: a worker error never crashes dispatch
+        _append_ledger(job_id, {
+            "kind": "worker_error", "worker_id": worker_id, "error": str(exc),
+        })
+        job.status = "failed"
+        job.updated_at = _now()
+        _save_jobs(jobs)
+        return job
+
+    _append_ledger(job_id, {
+        "kind": "worker_result", "worker_id": worker_id,
+        "ok": bool(run_result.ok), "summary": (run_result.stdout or "")[:500],
+        "error": run_result.error,
+    })
+    _append_ledger(job_id, {
+        "kind": "worker_score", "worker_id": worker_id,
+        "value": round(float(score.value), 4), "rationale": score.rationale,
+        "files": list(artifacts.files),
+    })
+    for f in artifacts.files:
+        if f not in job.artifacts:
+            job.artifacts.append(f)
+    job.status = "completed" if run_result.ok else "failed"
+    job.updated_at = _now()
+    _save_jobs(jobs)
+    return job
 
 
 def list_jobs(limit: int = 25) -> list[Job]:
@@ -905,6 +1005,7 @@ _ORCHESTRATOR_HELP = (
     "  status [job-id]               Show status of one job (or every job).\n"
     "  list                          List recent jobs.\n"
     "  open <job-id>                 Print a job's full record.\n"
+    "  dispatch <job-id> [worker]    Run a worker on a job (default: local planner).\n"
     "  replay <job-id>               Replay a job's decision ledger (read-only).\n"
     "  resume <job-id>               Re-queue a paused or failed job.\n"
     "  cancel <job-id>               Mark a job as cancelled.\n"
@@ -1049,6 +1150,18 @@ def _run_orchestrator_open(args: list[str]) -> str:
     return _fmt_job_detail(job)
 
 
+def _run_orchestrator_dispatch(args: list[str]) -> str:
+    """Dispatch a job to a worker (defaults to the built-in local planner)."""
+    if not args:
+        return "⚠ /orchestrator dispatch requires a job id"
+    job_id = args[0]
+    worker_id = args[1] if len(args) > 1 else "hermes-local-planner"
+    job = dispatch_job(job_id, worker_id=worker_id)
+    if not job:
+        return f"⚠ /orchestrator: unknown job id {job_id!r}"
+    return _fmt_job_detail(job)
+
+
 def _run_orchestrator_replay(args: list[str]) -> str:
     """Replay a job's decision ledger, read-only — navigation, dispatches,
     validation gates, repair-loop steps, in order."""
@@ -1165,6 +1278,7 @@ _ORCHESTRATOR_SUBCOMMANDS: dict[str, Any] = {
     "status":       _run_orchestrator_status,
     "list":         _run_orchestrator_list,
     "open":         _run_orchestrator_open,
+    "dispatch":     _run_orchestrator_dispatch,
     "replay":       _run_orchestrator_replay,
     "resume":       _run_orchestrator_resume,
     "cancel":       _run_orchestrator_cancel,
