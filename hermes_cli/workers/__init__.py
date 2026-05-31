@@ -57,13 +57,34 @@ from hermes_cli.workers.registry import (
 )
 
 
+def builtin_worker_classes() -> list:
+    """The built-in worker adapter classes (importing them self-registers each).
+
+    All accept an optional ``repo_root`` first arg, so the orchestrator can
+    bind them to a job's repo at dispatch.
+    """
+    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
+    from hermes_cli.workers.claude_handoff import ClaudeHandoffWorker
+    from hermes_cli.workers.codex_handoff import CodexHandoffWorker
+    from hermes_cli.workers.goose_handoff import GooseHandoffWorker
+    from hermes_cli.workers.local_planner import LocalPlannerWorker
+
+    return [
+        LocalPlannerWorker,
+        AiderHandoffWorker,
+        GooseHandoffWorker,
+        CodexHandoffWorker,
+        ClaudeHandoffWorker,
+    ]
+
+
 def load_builtins() -> None:
     """Import the built-in worker adapters so they self-register.
 
     Idempotent (module imports cache; adapters register with replace=True).
     Call before resolving a worker by id from the registry.
     """
-    from hermes_cli.workers import aider_handoff, local_planner  # noqa: F401
+    builtin_worker_classes()
 
 
 __all__ = [

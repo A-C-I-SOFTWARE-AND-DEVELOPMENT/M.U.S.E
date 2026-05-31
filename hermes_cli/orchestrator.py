@@ -359,17 +359,12 @@ def dispatch_job(
         return None
 
     # Ensure the built-in adapters are registered (they self-register on import).
-    from hermes_cli.workers import load_builtins
+    from hermes_cli.workers import builtin_worker_classes, load_builtins
     from hermes_cli.workers import registry as _wr
-    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
-    from hermes_cli.workers.local_planner import LocalPlannerWorker
 
     load_builtins()
     # The built-in adapters are repo-aware; bind them to the requested root.
-    _repo_aware = {
-        LocalPlannerWorker.id: LocalPlannerWorker,
-        AiderHandoffWorker.id: AiderHandoffWorker,
-    }
+    _repo_aware = {cls.id: cls for cls in builtin_worker_classes()}
     if worker_id in _repo_aware:
         adapter: Any = _repo_aware[worker_id](repo_root)
     else:
