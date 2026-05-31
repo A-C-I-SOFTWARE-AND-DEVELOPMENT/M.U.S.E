@@ -9,7 +9,7 @@ ungated, and is verifiable without the ``goose`` binary present.
 from __future__ import annotations
 
 from hermes_cli.workers import goose
-from hermes_cli.workers.handoff_base import ProceduralHandoffWorker
+from hermes_cli.workers.handoff_base import ProceduralExecuteWorker, ProceduralHandoffWorker
 from hermes_cli.workers.registry import register
 
 
@@ -21,4 +21,15 @@ class GooseHandoffWorker(ProceduralHandoffWorker):
     config_cls = goose.GooseConfig
 
 
+class GooseExecuteWorker(ProceduralExecuteWorker):
+    """Live: actually runs Goose (owner-gated; requires the `goose` binary)."""
+
+    id = "goose-execute"
+    display_name = "Goose (execute)"
+    tool_label = "Goose"
+    worker_module = goose
+    config_cls = goose.GooseConfig
+
+
 register(GooseHandoffWorker(), replace=True)
+register(GooseExecuteWorker(), replace=True)

@@ -63,10 +63,10 @@ def builtin_worker_classes() -> list:
     All accept an optional ``repo_root`` first arg, so the orchestrator can
     bind them to a job's repo at dispatch.
     """
-    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
+    from hermes_cli.workers.aider_handoff import AiderExecuteWorker, AiderHandoffWorker
     from hermes_cli.workers.claude_handoff import ClaudeHandoffWorker
-    from hermes_cli.workers.codex_handoff import CodexHandoffWorker
-    from hermes_cli.workers.goose_handoff import GooseHandoffWorker
+    from hermes_cli.workers.codex_handoff import CodexExecuteWorker, CodexHandoffWorker
+    from hermes_cli.workers.goose_handoff import GooseExecuteWorker, GooseHandoffWorker
     from hermes_cli.workers.local_planner import LocalPlannerWorker
 
     return [
@@ -75,6 +75,9 @@ def builtin_worker_classes() -> list:
         GooseHandoffWorker,
         CodexHandoffWorker,
         ClaudeHandoffWorker,
+        AiderExecuteWorker,
+        GooseExecuteWorker,
+        CodexExecuteWorker,
     ]
 
 
