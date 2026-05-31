@@ -437,6 +437,48 @@ data class CockpitWorkerRun(
     val notes: String = "",
 )
 
+// ─── Approval cards (canonical) ───────────────────────────────────────
+
+/**
+ * Wire model for the canonical owner-approval queue (contract §10c) —
+ * one-to-one with the server's `ApprovalCard`. Enum-like fields are raw
+ * Strings (mapped to `approval.model` enums by the repository); timestamps
+ * are ISO-8601 (null `expires_at` = never expires). Multi-step
+ * serious/critical state is UI-runtime and defaulted client-side.
+ */
+@Serializable
+data class CockpitApprovalCardList(val approvals: List<CockpitApprovalCard> = emptyList())
+
+@Serializable
+data class CockpitApprovalCard(
+    val id: String,
+    val title: String = "",
+    val summary: String = "",
+    val requester: String = "",
+    val tier: String = "RISKY",
+    val status: String = "PENDING",
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("expires_at") val expiresAt: String? = null,
+    @SerialName("proposed_action") val proposedAction: String = "",
+    @SerialName("edited_note") val editedNote: String? = null,
+)
+
+/** POST body for `approvals/{id}` — approve requires the owner phrase. */
+@Serializable
+data class CockpitApprovalDecision(
+    val decision: String,
+    val authorization: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class CockpitApprovalDecisionResult(
+    val id: String = "",
+    val status: String? = null,
+    val error: String? = null,
+    val hint: String? = null,
+)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable
