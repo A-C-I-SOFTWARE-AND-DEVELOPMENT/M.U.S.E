@@ -28,6 +28,7 @@ from hermes_cli.workers.base import (
     WorkerPrompt,
     WorkerRunResult,
     WorkerScore,
+    WorkerStatus,
     WorkerTask,
 )
 
@@ -179,4 +180,70 @@ class ProceduralHandoffWorker(HandoffWorkerBase):
                 "handoff_command": result.handoff_command,
                 "candidate_files": list(task.files),
             },
+        )
+
+
+class ProceduralExecuteWorker(ProceduralHandoffWorker):
+    """Execute-mode adapter for the Aider/Goose family.
+
+    Unlike the handoff variant, this **actually runs the tool**
+    (``module.run(..., execute=True)``) — so it is owner-gated
+    (``requires_approval = True``) and ``detect()`` reports the *real* binary
+    availability, so dispatch blocks honestly when the CLI is absent rather
+    than pretending. Subclasses set the same class attrs as the handoff family.
+    """
+
+    # Placeholder identity (see HandoffWorkerBase note); concrete subclasses
+    # override. Never registered.
+    id = "_procedural_execute_base"
+    display_name = "Procedural execute (base)"
+    requires_approval = True
+
+    def detect(self) -> WorkerDetection:
+        present = self.worker_module.detect_command(self.config_cls().command)
+        return WorkerDetection(
+            available=present,
+            version="execute",
+            reason=(
+                f"{self.tool_label} ready to execute"
+                if present
+                else f"{self.tool_label} not installed — cannot execute"
+            ),
+            details={"binary_present": present},
+        )
+
+    def run(self, job: Any) -> WorkerRunResult:
+        objective = self._objective(job)
+        if not objective:
+            return WorkerRunResult(ok=False, error="empty objective")
+        t0 = time.monotonic()
+        task = self._task(job)
+        result = self.worker_module.run(
+            task, self._workspace(job), execute=True, repo_root=self._root()
+        )
+        ok = result.status == WorkerStatus.EXECUTED
+        return WorkerRunResult(
+            ok=ok,
+            exit_code=int(result.exit_code or 0),
+            stdout=(result.handoff_command or ""),
+            error=(result.error or ""),
+            duration_seconds=time.monotonic() - t0,
+            details={
+                "status": result.status.value,
+                "output_path": str(result.output_path) if result.output_path else None,
+                "patch_path": str(result.patch_path) if result.patch_path else None,
+                "command_available": result.command_available,
+                "candidate_files": list(task.files),
+            },
+        )
+
+    def score(self, artifacts: WorkerArtifacts) -> WorkerScore:
+        # An execute worker's value is the change it produced, not just scoping.
+        n = len(artifacts.files)
+        value = 0.6 if n else 0.3
+        return WorkerScore(
+            value=value,
+            confidence=0.4 if n else 0.2,
+            rationale=f"executed against {n} candidate file(s)",
+            components={"execution": value},
         )

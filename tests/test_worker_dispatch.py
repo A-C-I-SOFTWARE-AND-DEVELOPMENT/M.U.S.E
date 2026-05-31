@@ -185,4 +185,84 @@ def test_builtin_worker_roster() -> None:
         "goose-handoff",
         "codex-handoff",
         "claude-handoff",
+        "aider-execute",
+        "goose-execute",
+        "codex-execute",
     }
+
+
+# ── Live execute layer (gated; degrades honestly when the CLI is absent) ──
+
+from pathlib import Path as _Path  # noqa: E402
+
+from hermes_cli.workers.base import WorkerResult, WorkerStatus  # noqa: E402
+from hermes_cli.workers.handoff_base import ProceduralExecuteWorker  # noqa: E402
+
+
+class _FakeConfig:
+    command = "fake-bin"
+
+
+class _FakeModule:
+    def __init__(self) -> None:
+        self.run_calls: list[bool] = []
+
+    def detect_command(self, command: str) -> bool:
+        return True  # pretend the binary is present
+
+    def render_prompt(self, task) -> str:
+        return "prompt body"
+
+    def run(self, task, workspace, *, execute=False, repo_root=None) -> WorkerResult:
+        self.run_calls.append(execute)
+        ws = _Path(workspace)
+        return WorkerResult(
+            worker="fake", status=WorkerStatus.EXECUTED, workspace=ws,
+            prompt_path=ws / "prompt.md", status_path=ws / "status.json",
+            command_available=True, exit_code=0,
+        )
+
+
+_FAKE_MODULE = _FakeModule()
+
+
+class _FakeExecuteWorker(ProceduralExecuteWorker):
+    id = "fake-execute"
+    display_name = "Fake (execute)"
+    tool_label = "Fake"
+    worker_module = _FAKE_MODULE
+    config_cls = _FakeConfig
+
+
+def test_execute_worker_actually_runs_with_execute_true(sample_repo: Path) -> None:
+    w = _FakeExecuteWorker(str(sample_repo))
+    assert w.requires_approval is True
+    assert w.detect().available is True
+    result = w.run(_Job("do the thing"))
+    assert _FAKE_MODULE.run_calls and _FAKE_MODULE.run_calls[-1] is True  # execute=True
+    assert result.ok is True  # EXECUTED → ok
+    assert result.exit_code == 0
+
+
+def test_execute_worker_is_gated_without_owner_approval(
+    isolated_home: Path, sample_repo: Path
+) -> None:
+    job = orch.submit_job("edit the uploader")
+    out = orch.dispatch_job(job.id, worker_id="aider-execute", repo_root=str(sample_repo))
+    assert out is not None and out.status == "blocked"
+    assert "worker_blocked" in [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
+
+
+def test_execute_worker_blocks_honestly_when_binary_absent(
+    isolated_home: Path, sample_repo: Path
+) -> None:
+    # Approve the execute phase, but the aider binary isn't installed here →
+    # detect() reports unavailable → dispatch blocks; no execution attempted.
+    job = orch.submit_job("edit the uploader")
+    orch.approve_phase(job.id, "execute")
+    out = orch.dispatch_job(job.id, worker_id="aider-execute", repo_root=str(sample_repo))
+    assert out is not None and out.status == "blocked"
+    dispatch = next(
+        e for e in orch.get_ledger(job.id)[job.id] if e.get("kind") == "worker_dispatch"
+    )
+    assert dispatch["available"] is False

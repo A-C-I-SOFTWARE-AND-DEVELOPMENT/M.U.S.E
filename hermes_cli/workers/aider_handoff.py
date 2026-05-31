@@ -10,7 +10,7 @@ Executing Aider (``execute=True``) is a separate, owner-gated capability.
 from __future__ import annotations
 
 from hermes_cli.workers import aider
-from hermes_cli.workers.handoff_base import ProceduralHandoffWorker
+from hermes_cli.workers.handoff_base import ProceduralExecuteWorker, ProceduralHandoffWorker
 from hermes_cli.workers.registry import register
 
 
@@ -22,4 +22,15 @@ class AiderHandoffWorker(ProceduralHandoffWorker):
     config_cls = aider.AiderConfig
 
 
+class AiderExecuteWorker(ProceduralExecuteWorker):
+    """Live: actually runs Aider (owner-gated; requires the `aider` binary)."""
+
+    id = "aider-execute"
+    display_name = "Aider (execute)"
+    tool_label = "Aider"
+    worker_module = aider
+    config_cls = aider.AiderConfig
+
+
 register(AiderHandoffWorker(), replace=True)
+register(AiderExecuteWorker(), replace=True)

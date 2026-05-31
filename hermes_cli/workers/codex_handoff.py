@@ -69,3 +69,51 @@ class CodexHandoffWorker(HandoffWorkerBase):
 
 
 register(CodexHandoffWorker(), replace=True)
+
+
+class CodexExecuteWorker(CodexHandoffWorker):
+    """Live: actually runs Codex (owner-gated; requires the `codex` binary)."""
+
+    id = "codex-execute"
+    display_name = "Codex (execute)"
+    requires_approval = True
+
+    def detect(self) -> WorkerDetection:
+        present = bool(getattr(codex.detect_codex(), "available", False))
+        return WorkerDetection(
+            available=present,
+            version="execute",
+            reason=(
+                "codex ready to execute"
+                if present
+                else "codex not installed — cannot execute"
+            ),
+            details={"binary_present": present},
+        )
+
+    def run(self, job: Any) -> WorkerRunResult:
+        objective = self._objective(job)
+        if not objective:
+            return WorkerRunResult(ok=False, error="empty objective")
+        t0 = time.monotonic()
+        result = codex.run_worker(self._codex_task(job), self._workspace(job), execute=True)
+        ok = (
+            getattr(result, "mode", "") == codex.MODE_EXECUTED
+            and not result.error
+            and (result.returncode in (0, None))
+        )
+        return WorkerRunResult(
+            ok=ok,
+            exit_code=int(result.returncode or 0),
+            stdout=f"Codex {getattr(result, 'mode', '?')}",
+            error=(result.error or ""),
+            duration_seconds=time.monotonic() - t0,
+            details={
+                "mode": getattr(result, "mode", ""),
+                "prompt_path": str(result.prompt_path),
+                "candidate_files": list(self._task(job).files),
+            },
+        )
+
+
+register(CodexExecuteWorker(), replace=True)
