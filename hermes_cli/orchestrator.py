@@ -905,6 +905,7 @@ _ORCHESTRATOR_HELP = (
     "  status [job-id]               Show status of one job (or every job).\n"
     "  list                          List recent jobs.\n"
     "  open <job-id>                 Print a job's full record.\n"
+    "  replay <job-id>               Replay a job's decision ledger (read-only).\n"
     "  resume <job-id>               Re-queue a paused or failed job.\n"
     "  cancel <job-id>               Mark a job as cancelled.\n"
     "  approve <job-id> <phase>      Approve a publish/remote/secret phase.\n"
@@ -1048,6 +1049,22 @@ def _run_orchestrator_open(args: list[str]) -> str:
     return _fmt_job_detail(job)
 
 
+def _run_orchestrator_replay(args: list[str]) -> str:
+    """Replay a job's decision ledger, read-only — navigation, dispatches,
+    validation gates, repair-loop steps, in order."""
+    if not args:
+        return "⚠ /orchestrator replay requires a job id"
+    job = get_job(args[0])
+    if not job:
+        return f"⚠ /orchestrator: unknown job id {args[0]!r}"
+    from hermes_cli.orchestrator_replay import JobReplay
+
+    replay = JobReplay.load(job.id)
+    if replay.is_empty:
+        return f"  (no ledger entries for {job.id})"
+    return replay.render()
+
+
 def _run_orchestrator_resume(args: list[str]) -> str:
     if not args:
         return "⚠ /orchestrator resume requires a job id"
@@ -1148,6 +1165,7 @@ _ORCHESTRATOR_SUBCOMMANDS: dict[str, Any] = {
     "status":       _run_orchestrator_status,
     "list":         _run_orchestrator_list,
     "open":         _run_orchestrator_open,
+    "replay":       _run_orchestrator_replay,
     "resume":       _run_orchestrator_resume,
     "cancel":       _run_orchestrator_cancel,
     "approve":      _run_orchestrator_approve,
