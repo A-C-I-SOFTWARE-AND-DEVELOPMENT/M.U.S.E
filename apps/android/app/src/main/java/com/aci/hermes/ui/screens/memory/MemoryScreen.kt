@@ -333,6 +333,7 @@ private fun CategoryPill(category: MemoryCategory) {
         MemoryCategory.DECISION_RECORD -> MaterialTheme.colorScheme.primaryContainer
         MemoryCategory.SOCIAL_SPEECH_PATTERN -> MaterialTheme.colorScheme.secondaryContainer
         MemoryCategory.SESSION_MEMORY -> MaterialTheme.colorScheme.surface
+        MemoryCategory.UNCATEGORIZED -> MaterialTheme.colorScheme.surfaceVariant
     }
     Box(
         modifier = Modifier
