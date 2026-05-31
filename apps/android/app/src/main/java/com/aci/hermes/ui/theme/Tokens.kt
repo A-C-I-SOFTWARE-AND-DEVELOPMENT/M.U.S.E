@@ -1,6 +1,7 @@
 package com.aci.hermes.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
@@ -45,3 +46,17 @@ object JarvisTokens {
     val ShapePill     = RoundedCornerShape(PillRadius)
     val ShapeButton   = RoundedCornerShape(RadiusSm)
 }
+
+/**
+ * Material 3 [Shapes] derived from [JarvisTokens] radii, wired into the
+ * theme so every M3 component (Card, Button, Menu, Sheet, …) picks up the
+ * branded corner language by default — not just the screens that reach for
+ * `JarvisTokens.Shape*` explicitly.
+ */
+val JarvisShapes = Shapes(
+    extraSmall = RoundedCornerShape(JarvisTokens.RadiusSm),
+    small = RoundedCornerShape(JarvisTokens.RadiusSm),
+    medium = RoundedCornerShape(JarvisTokens.RadiusMd),
+    large = RoundedCornerShape(JarvisTokens.RadiusLg),
+    extraLarge = RoundedCornerShape(JarvisTokens.RadiusXl),
+)

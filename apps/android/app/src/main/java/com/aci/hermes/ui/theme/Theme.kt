@@ -34,6 +34,16 @@ private val JarvisDarkColors = darkColorScheme(
     onSurfaceVariant  = JarvisSignalDim,
     surfaceTint       = JarvisGold,
 
+    // M3 surface hierarchy — mapped to the JARVIS ink ladder so elevation
+    // reads as deeper-to-lighter navy rather than default grey tints.
+    surfaceDim              = JarvisInkAbyss,
+    surfaceBright           = JarvisInkRaised,
+    surfaceContainerLowest  = JarvisInkAbyss,
+    surfaceContainerLow     = JarvisInkNight,
+    surfaceContainer        = JarvisInkDeep,
+    surfaceContainerHigh    = JarvisInkRaised,
+    surfaceContainerHighest = JarvisInkEdge,
+
     inverseSurface    = JarvisPaperSoft,
     inverseOnSurface  = JarvisInkOnPaper,
     inversePrimary    = JarvisGoldDeep,
@@ -72,6 +82,15 @@ private val JarvisLightColors = lightColorScheme(
     onSurfaceVariant  = JarvisInkOnPaper,
     surfaceTint       = JarvisGoldDeep,
 
+    // Light surface hierarchy — restrained paper ladder.
+    surfaceDim              = JarvisPaperSoft,
+    surfaceBright           = JarvisPaper,
+    surfaceContainerLowest  = JarvisPaper,
+    surfaceContainerLow     = JarvisPaperSoft,
+    surfaceContainer        = JarvisPaperSoft,
+    surfaceContainerHigh    = JarvisPaperSoft,
+    surfaceContainerHighest = JarvisPaper,
+
     outline           = JarvisSignalMute,
     outlineVariant    = JarvisSignalGhost,
 
@@ -101,6 +120,7 @@ fun JarvisPrimeTheme(
     MaterialTheme(
         colorScheme = if (useDark) JarvisDarkColors else JarvisLightColors,
         typography = JarvisTypography,
+        shapes = JarvisShapes,
         content = content
     )
 }

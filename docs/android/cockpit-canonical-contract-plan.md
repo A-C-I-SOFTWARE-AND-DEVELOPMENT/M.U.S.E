@@ -45,10 +45,10 @@ the mock production seed.
 | Capabilities | `Capability` (curated) | curated in-app | ✅ **by design** — curated catalog, not server-backed | n/a |
 | **Skills** | (installed list) | skill scanner | ✅ **enriched (this PR)** — `/v1/cockpit/skills` | ⏳ |
 | Tools | (toolset) | toolset registry | ⏳ deferred (real data, no UI consumer yet) | ⏳ |
-| Automations | `AutomationIntent` | — | ⏳ | ⏳ |
-| Sessions | — | `decision_ledger` dirs | ⏳ partial (#185) | ⏳ |
+| Automations | `AutomationIntent` | on-device a11y | ✅ **by design** — on-device accessibility/gesture automation, not server-backed | n/a |
+| Sessions | (none) | `decision_ledger` dirs | ✅ live (`/v1/cockpit/sessions`) | n/a — no UI consumer yet |
 | Diagnostics | diagnostics screen | `launch_doctor` | ✅ live (#185) | ⏳ |
-| Social patterns | `SocialPattern` | — | ⏳ | ⏳ |
+| Social patterns | `SocialPattern` | Memory (category) | ✅ **covered** — a Memory category (SOCIAL_SPEECH_PATTERN), rides the Memory cutover | ✅ via Memory |
 
 Legend: ✅ done · ⏳ pending. "shape differs" = the subsystem stores a
 different domain concept than the UI (e.g. ledger entries vs leveled log
@@ -92,3 +92,14 @@ lines); reconciliation means enriching/adapting the server, not faking.
   gateway's actually-installed skills via the real scanner (honest empty
   when none). A `/tools` surface (toolset registry) is real data too but has
   no UI consumer yet — deferred rather than built speculatively.
+
+- **Automations / Social / Sessions**: resolved (final pass) — Automations is
+  on-device accessibility/gesture automation (the avatar physically acting),
+  not a server data domain; Social patterns are a Memory *category*
+  (`SOCIAL_SPEECH_PATTERN`) already covered by the Memory cutover; Sessions
+  has a live endpoint but no dedicated UI consumer yet. None need a new
+  server contract.
+- **Material 3**: theme completed — `MaterialTheme` now wires `JarvisShapes`
+  (branded radii) and the dark/light schemes map the full M3
+  `surface*`/`surfaceContainer*` hierarchy onto the JARVIS ink/paper ladder,
+  so every M3 component picks up the brand surfaces + corners by default.
