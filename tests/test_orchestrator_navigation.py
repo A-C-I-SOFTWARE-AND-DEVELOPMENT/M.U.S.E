@@ -71,3 +71,21 @@ def test_run_orchestrate_navigates_before_dispatch(
     kinds = [e.get("kind") for e in orch.get_ledger(jid)[jid]]
     assert "submit" in kinds
     assert "navigation_decision" in kinds  # navigation ran in the live path
+
+
+def test_orchestrator_replay_command_renders_ledger(
+    isolated_home: Path, sample_repo: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """/orchestrator replay <job-id> surfaces the job's decision ledger."""
+    monkeypatch.chdir(sample_repo)
+    orch.run_orchestrate("upload_file fails on large files")
+    jid = orch.list_jobs()[0].id
+
+    out = orch.run_orchestrator(f"replay {jid}")
+    assert "submit" in out or "navigation" in out  # rendered ledger content
+    assert "⚠" not in out
+
+    # Unknown id is handled, not crashed.
+    assert "unknown job id" in orch.run_orchestrator("replay nope_123")
+    # Missing id is handled.
+    assert "requires a job id" in orch.run_orchestrator("replay")
