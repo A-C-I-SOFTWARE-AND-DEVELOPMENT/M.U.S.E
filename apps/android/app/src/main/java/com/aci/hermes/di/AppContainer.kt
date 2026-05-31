@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.aci.hermes.approval.event.ApprovalEventSink
 import com.aci.hermes.approval.event.RecordingApprovalEventSink
 import com.aci.hermes.approval.state.ApprovalStore
+import com.aci.hermes.approval.state.CockpitApprovalsRepository
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.audit.AuditRepository
 import com.aci.hermes.data.audit.EmptyAuditSeed
@@ -181,6 +182,10 @@ class AppContainer(private val application: Application) {
      */
     val approvalStore: ApprovalStore = ApprovalStore(sink = approvalEventSink)
 
+    /** Gateway-backed owner-approval queue (loads real pending cards). */
+    val cockpitApprovalsRepository: CockpitApprovalsRepository =
+        CockpitApprovalsRepository(cockpitClient)
+
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
             application = application,
@@ -222,7 +227,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
-        ApprovalViewModel(approvalStore)
+        ApprovalViewModel(approvalStore, cockpitApprovalsRepository)
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
