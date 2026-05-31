@@ -359,14 +359,20 @@ def dispatch_job(
         return None
 
     # Ensure the built-in adapters are registered (they self-register on import).
+    from hermes_cli.workers import load_builtins
+    from hermes_cli.workers import registry as _wr
+    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
     from hermes_cli.workers.local_planner import LocalPlannerWorker
 
-    if worker_id == LocalPlannerWorker.id:
-        adapter: Any = LocalPlannerWorker(repo_root)
-        destructive = False
+    load_builtins()
+    # The built-in adapters are repo-aware; bind them to the requested root.
+    _repo_aware = {
+        LocalPlannerWorker.id: LocalPlannerWorker,
+        AiderHandoffWorker.id: AiderHandoffWorker,
+    }
+    if worker_id in _repo_aware:
+        adapter: Any = _repo_aware[worker_id](repo_root)
     else:
-        from hermes_cli.workers import registry as _wr
-
         try:
             adapter = _wr.get(worker_id)
         except Exception:
@@ -375,12 +381,13 @@ def dispatch_job(
                 "error": "unknown worker",
             })
             return job
-        # Any non-builtin worker is treated as potentially repo-mutating.
-        destructive = True
 
-    # Owner gate: a repo-mutating / external worker may only run once the
-    # 'execute' phase is approved. Never bypass it.
-    if destructive and not has_approval(job, "execute"):
+    # Owner gate: a worker that mutates the repo / runs external tools declares
+    # `requires_approval = True` (the safe default). It may only run once the
+    # 'execute' phase is approved. Non-destructive workers (the local planner,
+    # handoff workers) opt out via `requires_approval = False`. Never bypass.
+    requires_approval = bool(getattr(adapter, "requires_approval", True))
+    if requires_approval and not has_approval(job, "execute"):
         _append_ledger(job_id, {
             "kind": "worker_blocked", "worker_id": worker_id,
             "reason": "execute phase requires owner approval",
