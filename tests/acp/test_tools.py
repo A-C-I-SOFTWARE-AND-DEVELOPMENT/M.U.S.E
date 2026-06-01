@@ -2,6 +2,8 @@
 
 import pytest
 
+pytest.importorskip("acp")
+
 from acp_adapter.edit_approval import EditProposal
 from acp_adapter.tools import (
     TOOL_KIND_MAP,

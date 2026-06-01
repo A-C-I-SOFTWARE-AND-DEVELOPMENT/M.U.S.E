@@ -52,7 +52,9 @@ except ImportError:  # pragma: no cover - platform-specific fallback
 STATE_ACTIVE = "active"
 STATE_STALE = "stale"
 STATE_ARCHIVED = "archived"
-_VALID_STATES = {STATE_ACTIVE, STATE_STALE, STATE_ARCHIVED}
+STATE_EXPERIMENTAL = "experimental"
+STATE_DEPRECATED = "deprecated"
+_VALID_STATES = {STATE_ACTIVE, STATE_STALE, STATE_ARCHIVED, STATE_EXPERIMENTAL, STATE_DEPRECATED}
 
 
 def _skills_dir() -> Path:
@@ -477,6 +479,31 @@ def forget(skill_name: str) -> None:
                 save_usage(data)
     except Exception as e:
         logger.debug("skill_usage.forget(%s) failed: %s", skill_name, e, exc_info=True)
+
+
+def _load_all_names() -> List[str]:
+    """Return all skill names that have usage records."""
+    data = load_usage()
+    return sorted(data.keys())
+
+
+def set_deprecated(skill_name: str, redirect_to: Optional[str] = None, reason: str = "") -> None:
+    """Mark a skill as deprecated with optional redirect target."""
+    def _apply(rec: Dict[str, Any]) -> None:
+        rec["state"] = STATE_DEPRECATED
+        rec["deprecated_at"] = _now_iso()
+        if redirect_to:
+            rec["deprecated_redirect_to"] = redirect_to
+        if reason:
+            rec["deprecated_reason"] = reason
+    _mutate(skill_name, _apply)
+
+
+def set_experimental(skill_name: str) -> None:
+    """Mark a skill as experimental (new, < 1 day old)."""
+    def _apply(rec: Dict[str, Any]) -> None:
+        rec["state"] = STATE_EXPERIMENTAL
+    _mutate(skill_name, _apply)
 
 
 # ---------------------------------------------------------------------------

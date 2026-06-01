@@ -2,8 +2,9 @@
 
 import sys
 
-import acp
 import pytest
+
+acp = pytest.importorskip("acp")
 
 from acp_adapter import entry
 

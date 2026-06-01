@@ -6,6 +6,9 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+pytest.importorskip("acp")
+
 from acp_adapter.edit_approval import (
     EditProposal,
     build_acp_edit_tool_call,

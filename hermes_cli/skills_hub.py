@@ -1364,8 +1364,12 @@ def skills_command(args) -> None:
             _console.print("Usage: hermes skills tap [list|add|remove]\n")
             return
         do_tap(tap_action, repo=repo)
+    # Extended subcommands from skills_cmd.py
+    elif action in ("view", "info", "validate", "export", "import", "trending", "tags", "categories"):
+        from hermes_cli.skills_cmd import handle_skills_command
+        handle_skills_command(args)
     else:
-        _console.print("Usage: hermes skills [browse|search|install|inspect|list|check|update|audit|uninstall|reset|publish|snapshot|tap]\n")
+        _console.print("Usage: hermes skills [browse|search|install|inspect|list|check|update|audit|uninstall|reset|publish|snapshot|tap|view|info|validate|export|import|trending|tags|categories]\n")
         _console.print("Run 'hermes skills <command> --help' for details.\n")
 
 

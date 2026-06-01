@@ -16,6 +16,8 @@ from io import StringIO
 
 import pytest
 
+pytest.importorskip("acp")
+
 from acp.exceptions import RequestError
 
 from acp_adapter.entry import _BenignProbeMethodFilter

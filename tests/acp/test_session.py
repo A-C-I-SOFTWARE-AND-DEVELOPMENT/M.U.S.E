@@ -8,6 +8,8 @@ from types import SimpleNamespace
 import pytest
 from unittest.mock import MagicMock, patch
 
+pytest.importorskip("acp")
+
 from acp_adapter import session as acp_session
 from acp_adapter.session import SessionManager, SessionState
 from hermes_state import SessionDB

@@ -1,5 +1,8 @@
 """Tests for acp_adapter.auth — provider detection."""
 
+import pytest
+pytest.importorskip("acp")
+
 from acp_adapter.auth import (
     TERMINAL_SETUP_AUTH_METHOD_ID,
     build_auth_methods,

@@ -706,6 +706,318 @@ def _remove_file(name: str, file_path: str) -> Dict[str, Any]:
     }
 
 
+def _validate_skill(name: str) -> Dict[str, Any]:
+    """Validate a skill's structure and frontmatter."""
+    existing = _find_skill(name)
+    if not existing:
+        return {"success": False, "error": f"Skill '{name}' not found."}
+
+    skill_dir = existing["path"]
+    skill_md = skill_dir / "SKILL.md"
+
+    if not skill_md.exists():
+        return {"success": False, "error": f"SKILL.md not found in skill directory."}
+
+    try:
+        content = skill_md.read_text(encoding="utf-8")
+    except Exception as e:
+        return {"success": False, "error": f"Failed to read SKILL.md: {e}"}
+
+    issues = []
+
+    # Check frontmatter
+    fm_err = _validate_frontmatter(content)
+    if fm_err:
+        issues.append(f"Frontmatter: {fm_err}")
+
+    # Check size
+    size_err = _validate_content_size(content)
+    if size_err:
+        issues.append(f"Size: {size_err}")
+
+    # Check supporting files
+    for subdir in ALLOWED_SUBDIRS:
+        subdir_path = skill_dir / subdir
+        if subdir_path.exists():
+            for f in subdir_path.rglob("*"):
+                if f.is_file():
+                    try:
+                        size = f.stat().st_size
+                        if size > MAX_SKILL_FILE_BYTES:
+                            issues.append(f"File {f.name} exceeds size limit ({size:,} > {MAX_SKILL_FILE_BYTES:,} bytes)")
+                    except OSError:
+                        pass
+
+    if issues:
+        return {
+            "success": False,
+            "valid": False,
+            "issues": issues,
+            "path": str(skill_dir),
+        }
+
+    return {
+        "success": True,
+        "valid": True,
+        "message": f"Skill '{name}' is valid.",
+        "path": str(skill_dir),
+    }
+
+
+def _duplicate_skill(name: str, new_name: str, category: str = None) -> Dict[str, Any]:
+    """Duplicate a skill with a new name."""
+    err = _validate_name(new_name)
+    if err:
+        return {"success": False, "error": err}
+
+    err = _validate_category(category)
+    if err:
+        return {"success": False, "error": err}
+
+    existing = _find_skill(name)
+    if not existing:
+        return {"success": False, "error": f"Source skill '{name}' not found."}
+
+    collision = _find_skill(new_name)
+    if collision:
+        return {"success": False, "error": f"A skill named '{new_name}' already exists."}
+
+    source_dir = existing["path"]
+    target_dir = _resolve_skill_dir(new_name, category)
+
+    try:
+        shutil.copytree(source_dir, target_dir)
+
+        # Update the name in SKILL.md frontmatter
+        skill_md = target_dir / "SKILL.md"
+        if skill_md.exists():
+            content = skill_md.read_text(encoding="utf-8")
+            # Replace name in frontmatter
+            content = re.sub(
+                r'^(name:\s*)["\']?[^"\'\n]+["\']?',
+                f'\\1{new_name}',
+                content,
+                count=1,
+                flags=re.MULTILINE
+            )
+            _atomic_write_text(skill_md, content)
+
+    except Exception as e:
+        if target_dir.exists():
+            shutil.rmtree(target_dir, ignore_errors=True)
+        return {"success": False, "error": f"Failed to duplicate skill: {e}"}
+
+    # Security scan
+    scan_error = _security_scan_skill(target_dir)
+    if scan_error:
+        shutil.rmtree(target_dir, ignore_errors=True)
+        return {"success": False, "error": scan_error}
+
+    result = {
+        "success": True,
+        "message": f"Skill '{name}' duplicated as '{new_name}'.",
+        "source": str(source_dir),
+        "path": str(target_dir),
+    }
+    if category:
+        result["category"] = category
+    return result
+
+
+def _rename_skill(name: str, new_name: str) -> Dict[str, Any]:
+    """Rename a skill and update cron job references."""
+    err = _validate_name(new_name)
+    if err:
+        return {"success": False, "error": err}
+
+    if name == new_name:
+        return {"success": False, "error": "New name must be different from the current name."}
+
+    existing = _find_skill(name)
+    if not existing:
+        return {"success": False, "error": f"Skill '{name}' not found."}
+
+    collision = _find_skill(new_name)
+    if collision:
+        return {"success": False, "error": f"A skill named '{new_name}' already exists."}
+
+    pinned_err = _pinned_guard(name)
+    if pinned_err:
+        return {"success": False, "error": pinned_err.replace("deleted", "renamed")}
+
+    source_dir = existing["path"]
+    skills_root = _containing_skills_root(source_dir)
+
+    # Preserve category structure
+    try:
+        rel_path = source_dir.relative_to(skills_root)
+        parts = rel_path.parts
+        if len(parts) > 1:
+            # Has category
+            category = parts[0]
+            target_dir = skills_root / category / new_name
+        else:
+            target_dir = skills_root / new_name
+    except ValueError:
+        target_dir = skills_root / new_name
+
+    try:
+        # Rename directory
+        source_dir.rename(target_dir)
+
+        # Update name in SKILL.md frontmatter
+        skill_md = target_dir / "SKILL.md"
+        if skill_md.exists():
+            content = skill_md.read_text(encoding="utf-8")
+            content = re.sub(
+                r'^(name:\s*)["\']?[^"\'\n]+["\']?',
+                f'\\1{new_name}',
+                content,
+                count=1,
+                flags=re.MULTILINE
+            )
+            _atomic_write_text(skill_md, content)
+
+    except Exception as e:
+        return {"success": False, "error": f"Failed to rename skill: {e}"}
+
+    # Update cron job references
+    cron_rewrites = {"jobs_updated": 0}
+    try:
+        from cron.jobs import rewrite_skill_refs
+        cron_rewrites = rewrite_skill_refs(
+            consolidated={name: new_name},
+            pruned=[],
+        )
+    except Exception as e:
+        logger.debug("Cron skill rewrite failed during rename: %s", e)
+
+    # Update skill usage telemetry
+    try:
+        from tools import skill_usage
+        old_record = skill_usage.get_record(name)
+        if old_record:
+            skill_usage.forget(name)
+            # Re-register with new name preserving stats
+            for _ in range(old_record.get("use_count", 0)):
+                skill_usage.bump_use(new_name)
+            for _ in range(old_record.get("view_count", 0)):
+                skill_usage.bump_view(new_name)
+    except Exception:
+        pass
+
+    return {
+        "success": True,
+        "message": f"Skill '{name}' renamed to '{new_name}'.",
+        "old_path": str(source_dir),
+        "new_path": str(target_dir),
+        "cron_jobs_updated": cron_rewrites.get("jobs_updated", 0),
+    }
+
+
+def _export_skill(name: str, format: str = "md") -> Dict[str, Any]:
+    """Export a skill as standalone content."""
+    existing = _find_skill(name)
+    if not existing:
+        return {"success": False, "error": f"Skill '{name}' not found."}
+
+    skill_dir = existing["path"]
+    skill_md = skill_dir / "SKILL.md"
+
+    if not skill_md.exists():
+        return {"success": False, "error": "SKILL.md not found."}
+
+    try:
+        content = skill_md.read_text(encoding="utf-8")
+    except Exception as e:
+        return {"success": False, "error": f"Failed to read SKILL.md: {e}"}
+
+    if format == "json":
+        from agent.skill_utils import parse_frontmatter
+        frontmatter, body = parse_frontmatter(content)
+
+        # Collect supporting files
+        files = {}
+        for subdir in ALLOWED_SUBDIRS:
+            subdir_path = skill_dir / subdir
+            if subdir_path.exists():
+                for f in subdir_path.rglob("*"):
+                    if f.is_file():
+                        try:
+                            rel_path = str(f.relative_to(skill_dir))
+                            files[rel_path] = f.read_text(encoding="utf-8")
+                        except (UnicodeDecodeError, OSError):
+                            files[rel_path] = f"[binary file: {f.stat().st_size} bytes]"
+
+        return {
+            "success": True,
+            "format": "json",
+            "name": name,
+            "frontmatter": frontmatter,
+            "body": body,
+            "files": files,
+        }
+
+    # Default: markdown format
+    export_content = content
+
+    # Append supporting files as sections
+    for subdir in ALLOWED_SUBDIRS:
+        subdir_path = skill_dir / subdir
+        if subdir_path.exists():
+            for f in sorted(subdir_path.rglob("*")):
+                if f.is_file():
+                    try:
+                        rel_path = str(f.relative_to(skill_dir))
+                        file_content = f.read_text(encoding="utf-8")
+                        export_content += f"\n\n---\n\n## {rel_path}\n\n{file_content}"
+                    except (UnicodeDecodeError, OSError):
+                        pass
+
+    return {
+        "success": True,
+        "format": "md",
+        "name": name,
+        "content": export_content,
+        "path": str(skill_dir),
+    }
+
+
+def _import_skill(content: str, name: str = None, category: str = None) -> Dict[str, Any]:
+    """Import a skill from standalone content."""
+    err = _validate_frontmatter(content)
+    if err:
+        return {"success": False, "error": f"Invalid content: {err}"}
+
+    err = _validate_content_size(content)
+    if err:
+        return {"success": False, "error": err}
+
+    # Extract name from frontmatter if not provided
+    from agent.skill_utils import parse_frontmatter
+    frontmatter, _ = parse_frontmatter(content)
+
+    if not name:
+        name = str(frontmatter.get("name") or "")
+    if not name:
+        return {"success": False, "error": "name is required (either in frontmatter or as argument)."}
+
+    err = _validate_name(name)
+    if err:
+        return {"success": False, "error": err}
+
+    err = _validate_category(category)
+    if err:
+        return {"success": False, "error": err}
+
+    existing = _find_skill(name)
+    if existing:
+        return {"success": False, "error": f"A skill named '{name}' already exists at {existing['path']}."}
+
+    # Create the skill
+    return _create_skill(name, content, category)
+
+
 # =============================================================================
 # Main entry point
 # =============================================================================
@@ -721,6 +1033,8 @@ def skill_manage(
     new_string: str = None,
     replace_all: bool = False,
     absorbed_into: str = None,
+    new_name: str = None,
+    format: str = "md",
 ) -> str:
     """
     Manage user-created skills. Dispatches to the appropriate action handler.
@@ -759,8 +1073,29 @@ def skill_manage(
             return tool_error("file_path is required for 'remove_file'.", success=False)
         result = _remove_file(name, file_path)
 
+    elif action == "validate":
+        result = _validate_skill(name)
+
+    elif action == "duplicate":
+        if not new_name:
+            return tool_error("new_name is required for 'duplicate'.", success=False)
+        result = _duplicate_skill(name, new_name, category)
+
+    elif action == "rename":
+        if not new_name:
+            return tool_error("new_name is required for 'rename'.", success=False)
+        result = _rename_skill(name, new_name)
+
+    elif action == "export":
+        result = _export_skill(name, format=format)
+
+    elif action == "import":
+        if not content:
+            return tool_error("content is required for 'import'. Provide the SKILL.md content.", success=False)
+        result = _import_skill(content, name=name, category=category)
+
     else:
-        result = {"success": False, "error": f"Unknown action '{action}'. Use: create, edit, patch, delete, write_file, remove_file"}
+        result = {"success": False, "error": f"Unknown action '{action}'. Use: create, edit, patch, delete, write_file, remove_file, validate, duplicate, rename, export, import"}
 
     if result.get("success"):
         try:
@@ -797,41 +1132,32 @@ def skill_manage(
 SKILL_MANAGE_SCHEMA = {
     "name": "skill_manage",
     "description": (
-        "Manage skills (create, update, delete). Skills are your procedural "
-        "memory — reusable approaches for recurring task types. "
+        "Manage skills (create, update, delete, rename, duplicate, validate, export, import). "
+        "Skills are your procedural memory — reusable approaches for recurring task types. "
         f"New skills go to {display_hermes_home()}/skills/; existing skills can be modified wherever they live.\n\n"
-        "Actions: create (full SKILL.md + optional category), "
-        "patch (old_string/new_string — preferred for fixes), "
-        "edit (full SKILL.md rewrite — major overhauls only), "
-        "delete, write_file, remove_file.\n\n"
-        "On delete, pass `absorbed_into=<umbrella>` when you're merging this "
-        "skill's content into another one, or `absorbed_into=\"\"` when you're "
-        "pruning it with no forwarding target. This lets the curator tell "
-        "consolidation from pruning without guessing, so downstream consumers "
-        "(cron jobs that reference the old skill name, etc.) get updated "
-        "correctly. The target you name in `absorbed_into` must already "
-        "exist — create/patch the umbrella first, then delete.\n\n"
-        "Create when: complex task succeeded (5+ calls), errors overcome, "
-        "user-corrected approach worked, non-trivial workflow discovered, "
-        "or user asks you to remember a procedure.\n"
-        "Update when: instructions stale/wrong, OS-specific failures, "
-        "missing steps or pitfalls found during use. "
-        "If you used a skill and hit issues not covered by it, patch it immediately.\n\n"
-        "After difficult/iterative tasks, offer to save as a skill. "
-        "Skip for simple one-offs. Confirm with user before creating/deleting.\n\n"
-        "Good skills: trigger conditions, numbered steps with exact commands, "
-        "pitfalls section, verification steps. Use skill_view() to see format examples.\n\n"
-        "Pinned skills are protected from deletion only — skill_manage(action='delete') "
-        "will refuse with a message pointing the user to `hermes curator unpin <name>`. "
-        "Patches and edits go through on pinned skills so you can still improve them as "
-        "pitfalls come up; pin only guards against irrecoverable loss."
+        "Actions:\n"
+        "- create: New skill with SKILL.md + optional category\n"
+        "- patch: Find-and-replace in SKILL.md (preferred for fixes)\n"
+        "- edit: Full SKILL.md rewrite (major overhauls only)\n"
+        "- delete: Archive skill (pass absorbed_into for consolidation tracking)\n"
+        "- write_file/remove_file: Manage supporting files (references/, templates/, scripts/, assets/)\n"
+        "- validate: Check skill structure and frontmatter\n"
+        "- duplicate: Fork a skill with a new name\n"
+        "- rename: Change skill name (updates cron refs automatically)\n"
+        "- export: Get skill content as standalone markdown or JSON\n"
+        "- import: Create skill from external content\n\n"
+        "On delete, pass `absorbed_into=<umbrella>` when merging into another skill, "
+        "or `absorbed_into=\"\"` when pruning with no forwarding target.\n\n"
+        "Create when: complex task succeeded, errors overcome, user-corrected approach worked.\n"
+        "Update when: instructions stale/wrong, missing steps found during use.\n\n"
+        "Good skills: trigger conditions, numbered steps, pitfalls, verification steps."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["create", "patch", "edit", "delete", "write_file", "remove_file"],
+                "enum": ["create", "patch", "edit", "delete", "write_file", "remove_file", "validate", "duplicate", "rename", "export", "import"],
                 "description": "The action to perform."
             },
             "name": {
@@ -897,11 +1223,20 @@ SKILL_MANAGE_SCHEMA = {
                     "Pass the umbrella skill name when this skill's content "
                     "was merged into another (the target must already exist). "
                     "Pass an empty string when the skill is truly stale and "
-                    "being pruned with no forwarding target. Omitting the arg "
-                    "on delete is supported for backward compatibility but "
-                    "downstream tooling (e.g. cron-job skill reference "
-                    "rewriting) will have to guess at intent."
+                    "being pruned with no forwarding target."
                 )
+            },
+            "new_name": {
+                "type": "string",
+                "description": (
+                    "For 'duplicate' and 'rename': the new skill name. "
+                    "Must be lowercase, with hyphens/underscores, max 64 chars."
+                )
+            },
+            "format": {
+                "type": "string",
+                "enum": ["md", "json"],
+                "description": "For 'export': output format. 'md' (default) returns markdown, 'json' returns structured data."
             },
         },
         "required": ["action", "name"],
@@ -926,6 +1261,8 @@ registry.register(
         old_string=args.get("old_string"),
         new_string=args.get("new_string"),
         replace_all=args.get("replace_all", False),
-        absorbed_into=args.get("absorbed_into")),
+        absorbed_into=args.get("absorbed_into"),
+        new_name=args.get("new_name"),
+        format=args.get("format", "md")),
     emoji="📝",
 )
