@@ -79,7 +79,7 @@ last-known-good phase.
 | Step | PR | Method | Target SHA | Status | Result SHA | Notes |
 |------|----|----|-----|--------|-----|-------|
 | 3.1 | #112 | `cherry-pick -x` | `249f7f5` | DONE | `e3e3870` | Clean cherry-pick; 13 files, no protected paths touched; 5→10 route shell |
-| 3.2 | #113 | `cherry-pick -x` | `8478240` | DONE | `699515a` | 2 conflicts resolved (SplashScreen.kt — dropped redundant ☚; strings.xml — took #113 polish + preserved #112 nav/onboarding additions); 35 files total |
+| 3.2 | #113 | `cherry-pick -x` | `8478240` | DONE | `699515a` | 2 conflicts resolved (SplashScreen.kt — dropped redundant ☤; strings.xml — took #113 polish + preserved #112 nav/onboarding additions); 35 files total |
 | 3.3 | guard | `git diff --name-only` | — | DONE | — | All changes confined to `apps/android/` + `docs/jarvis-prime-app-*.md`; no protected paths touched |
 
 **Phase 3 gate result (local pre-CI check):**
