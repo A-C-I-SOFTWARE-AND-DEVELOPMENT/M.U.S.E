@@ -1,5 +1,10 @@
 # Launch Branch Matrix — JARVIS Prime + Hermes runtime
 
+> ⚠️ **SUPERSEDED (2026-06-01).** The nine-lane integration plan below was
+> executed; PR #131's lanes have landed on `main` (211 commits past the
+> `bc97e43` base). This matrix is historical. For current readiness see
+> [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md).
+
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Head branch:** `claude/hopeful-bardeen-KBVqi`
 **Base:** `origin/main` at `bc97e43`
