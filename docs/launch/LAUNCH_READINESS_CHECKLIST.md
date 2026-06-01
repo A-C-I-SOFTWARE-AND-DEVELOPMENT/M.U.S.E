@@ -1,5 +1,11 @@
 # Launch Readiness Checklist — JARVIS Prime + Hermes runtime
 
+> ⚠️ **SUPERSEDED (2026-06-01).** Written 2026-05-26 against PR #131 / base
+> `bc97e43`; `main` is now 211 commits ahead. The GREEN/YELLOW/RED grades
+> below are stale (e.g. chat UI and the interactive icon, marked RED here,
+> have since landed). For current readiness see
+> [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md). Kept for history.
+
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Base:** `origin/main` at `bc97e43`
 **Branch matrix:** [`LAUNCH_BRANCH_MATRIX.md`](./LAUNCH_BRANCH_MATRIX.md)

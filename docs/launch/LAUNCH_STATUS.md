@@ -1,5 +1,13 @@
 # Launch Status — JARVIS Prime + Hermes runtime
 
+> ⚠️ **SUPERSEDED (2026-06-01).** This document was written on 2026-05-26
+> against PR #131 / base `bc97e43`. `main` is now 211 commits past that base
+> and most of the work described below as pending has landed. Its "🔴 RED —
+> 52%" verdict **no longer reflects the tree**. For current readiness see
+> [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md) and the audit at
+> [`../audits/CODEBASE_AUDIT_2026-06-01.md`](../audits/CODEBASE_AUDIT_2026-06-01.md).
+> Kept for historical reference only.
+
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Head branch:** `claude/hopeful-bardeen-KBVqi`
 **Base:** `origin/main` at `bc97e43`

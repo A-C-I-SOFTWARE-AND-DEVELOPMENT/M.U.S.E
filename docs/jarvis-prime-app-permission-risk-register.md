@@ -1,5 +1,20 @@
 # Jarvis Prime — Android permission risk register
 
+> ⚠️ **RECONCILIATION NOTE (2026-06-01).** The shipped app has **diverged**
+> from this register. The "Sentient JARVIS avatar" feature (#170, commit
+> `b8df5c78`) added permissions/services this document originally listed as
+> forbidden: `BIND_ACCESSIBILITY_SERVICE` (`JarvisAccessibilityService`),
+> `SYSTEM_ALERT_WINDOW` (`JarvisOverlayService`), `QUERY_ALL_PACKAGES`, and an
+> always-on `VoiceLoopService` using `RECORD_AUDIO` +
+> `FOREGROUND_SERVICE_MICROPHONE`. **The owner reviewed this on 2026-06-01 and
+> elected to ship as-is**, accepting the Play-policy and privacy risk (see
+> `docs/audits/CODEBASE_AUDIT_2026-06-01.md` §5 B6). The "must never declare"
+> entries below therefore describe the *original intent*, not the current
+> shipped state. Recommended (non-gating) follow-ups before public store
+> submission: runtime consent per capability, Play Console declarations for
+> accessibility + `QUERY_ALL_PACKAGES`, and a matching privacy-policy
+> disclosure.
+
 This register defines, by name, the Android permissions the Jarvis
 Prime cockpit may declare, the ones it must **never** declare, and
 the policy that governs adding new ones.
