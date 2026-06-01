@@ -106,6 +106,13 @@ from hermes_cli.jarvis_prime.model_scorecard import (
     ScorecardBook,
     local_endpoint_packet,
 )
+from hermes_cli.jarvis_prime.monitor_collectors import (
+    collect_context as collect_monitor_context,
+    collect_memory_contradictions,
+    collect_model_failures,
+    collect_pending_proposals,
+    collect_repo_state,
+)
 from hermes_cli.jarvis_prime.monitors import (
     Monitor,
     MonitorBoard,
@@ -316,6 +323,11 @@ __all__ = [
     "build_work_packet",
     "canonicalize_text",
     "classify_intent",
+    "collect_memory_contradictions",
+    "collect_model_failures",
+    "collect_monitor_context",
+    "collect_pending_proposals",
+    "collect_repo_state",
     "deduce",
     "default_avatar_traits",
     "estimate_tokens",
