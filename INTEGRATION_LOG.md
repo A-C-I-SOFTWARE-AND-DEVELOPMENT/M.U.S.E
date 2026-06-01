@@ -1,5 +1,12 @@
 # JARVIS Prime Integration Log
 
+> **Stale baseline (2026-05-26).** This log records the PR #131 integration
+> from base `bc97e43`; `main` has since advanced ~211 commits. Current launch
+> readiness lives in
+> [`docs/launch/LAUNCH_STATUS_CURRENT.md`](docs/launch/LAUNCH_STATUS_CURRENT.md)
+> and the full audit in
+> [`docs/audits/CODEBASE_AUDIT_2026-06-01.md`](docs/audits/CODEBASE_AUDIT_2026-06-01.md).
+
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Started:** 2026-05-26
 **Plan:** `/root/.claude/plans/mission-you-are-idempotent-bunny.md`
@@ -72,7 +79,7 @@ last-known-good phase.
 | Step | PR | Method | Target SHA | Status | Result SHA | Notes |
 |------|----|----|-----|--------|-----|-------|
 | 3.1 | #112 | `cherry-pick -x` | `249f7f5` | DONE | `e3e3870` | Clean cherry-pick; 13 files, no protected paths touched; 5→10 route shell |
-| 3.2 | #113 | `cherry-pick -x` | `8478240` | DONE | `699515a` | 2 conflicts resolved (SplashScreen.kt — dropped redundant ☤; strings.xml — took #113 polish + preserved #112 nav/onboarding additions); 35 files total |
+| 3.2 | #113 | `cherry-pick -x` | `8478240` | DONE | `699515a` | 2 conflicts resolved (SplashScreen.kt — dropped redundant ☚; strings.xml — took #113 polish + preserved #112 nav/onboarding additions); 35 files total |
 | 3.3 | guard | `git diff --name-only` | — | DONE | — | All changes confined to `apps/android/` + `docs/jarvis-prime-app-*.md`; no protected paths touched |
 
 **Phase 3 gate result (local pre-CI check):**

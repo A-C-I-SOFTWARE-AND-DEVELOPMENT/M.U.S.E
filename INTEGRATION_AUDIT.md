@@ -1,5 +1,12 @@
 # JARVIS Prime / Hermes Runtime — Mass-PR Integration Audit
 
+> **Stale baseline (2026-05-26).** This audit classifies the PR #131 wave
+> against `main` at `bc97e43`; `main` has since advanced ~211 commits and most
+> of this work has landed. Current launch readiness lives in
+> [`docs/launch/LAUNCH_STATUS_CURRENT.md`](docs/launch/LAUNCH_STATUS_CURRENT.md)
+> and the full audit in
+> [`docs/audits/CODEBASE_AUDIT_2026-06-01.md`](docs/audits/CODEBASE_AUDIT_2026-06-01.md).
+
 **Generated:** 2026-05-26
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Base SHA:** `bc97e43` (`origin/main` at audit time)

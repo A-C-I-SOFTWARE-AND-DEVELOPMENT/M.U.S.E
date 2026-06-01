@@ -1,5 +1,10 @@
 # CI Workflow Repair Report — PR #131
 
+> **Stale baseline (2026-05-26).** This report targets the now-dead trunk
+> PR #131 / base `bc97e43`. Current launch readiness lives in
+> [`LAUNCH_STATUS_CURRENT.md`](LAUNCH_STATUS_CURRENT.md) and the full audit in
+> [`../audits/CODEBASE_AUDIT_2026-06-01.md`](../audits/CODEBASE_AUDIT_2026-06-01.md).
+
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Trunk head:** `claude/hopeful-bardeen-KBVqi` at `d0caf92`
 **Repair branch:** `claude-review/launch-ci-workflow-repair`
