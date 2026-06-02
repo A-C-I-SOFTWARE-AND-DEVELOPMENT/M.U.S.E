@@ -1,5 +1,13 @@
 package com.aci.hermes.ui.screens.live
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.speech.SpeechRecognizer
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.aci.hermes.service.VoiceLoopService
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -87,6 +95,34 @@ fun JarvisLiveScreen(
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
 
+    // Hands-free voice: the on-device barge-in loop, started behind RECORD_AUDIO
+    // consent. Available only where the device has a speech recognizer.
+    val context = LocalContext.current
+    val voiceSupported = remember { SpeechRecognizer.isRecognitionAvailable(context) }
+    var voiceActive by remember { mutableStateOf(false) }
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            VoiceLoopService.start(context)
+            voiceActive = true
+        }
+    }
+    val onMic: () -> Unit = {
+        if (voiceActive) {
+            VoiceLoopService.stop(context)
+            voiceActive = false
+        } else if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            VoiceLoopService.start(context)
+            voiceActive = true
+        } else {
+            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
     Scaffold(
@@ -112,11 +148,13 @@ fun JarvisLiveScreen(
         bottomBar = {
             JarvisCommandBar(
                 command = state.command,
-                voiceAvailable = state.voiceAvailable,
+                voiceAvailable = voiceSupported,
+                voiceActive = voiceActive,
                 emergencyActive = projection.isEmergency,
                 onCommandChange = viewModel::onCommandChange,
                 onSend = viewModel::onSend,
                 onAttach = onOpenAvatarPicker,
+                onMic = onMic,
             )
         },
     ) { padding ->
@@ -371,10 +409,12 @@ private fun CircleIconButton(
 private fun JarvisCommandBar(
     command: String,
     voiceAvailable: Boolean,
+    voiceActive: Boolean,
     emergencyActive: Boolean,
     onCommandChange: (String) -> Unit,
     onSend: () -> Unit,
     onAttach: () -> Unit,
+    onMic: () -> Unit,
 ) {
     Surface(
         color = Color.Transparent,
@@ -422,17 +462,24 @@ private fun JarvisCommandBar(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 )
                 IconButton(
-                    onClick = { /* voice not available in this PR */ },
-                    enabled = voiceAvailable,
+                    onClick = onMic,
+                    enabled = voiceAvailable && !emergencyActive,
                     modifier = Modifier.semantics {
-                        contentDescription = if (voiceAvailable) "Voice input"
-                                              else "Voice input coming soon"
+                        contentDescription = when {
+                            !voiceAvailable -> "Voice input unavailable on this device"
+                            voiceActive -> "Stop hands-free voice"
+                            else -> "Start hands-free voice"
+                        }
                     },
                 ) {
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = null,
-                        tint = if (voiceAvailable) HermesCyan else Color.White.copy(alpha = 0.30f),
+                        tint = when {
+                            voiceActive -> HermesCyan
+                            voiceAvailable -> HermesCyan.copy(alpha = 0.7f)
+                            else -> Color.White.copy(alpha = 0.30f)
+                        },
                     )
                 }
                 IconButton(
