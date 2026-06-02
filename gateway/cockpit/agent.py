@@ -77,6 +77,18 @@ def jarvis_responder(
             persona_prompt = f"{persona_prompt}\n\n{refs}"
     except Exception:  # grounding is best-effort
         pass
+    # Anti-hallucination: require citations/hedging in the reply (epistemic rule).
+    try:
+        from hermes_cli.jarvis_prime.epistemics import CITATION_REQUIRED_INSTRUCTION
+
+        persona_prompt = f"{persona_prompt}\n\n{CITATION_REQUIRED_INSTRUCTION}"
+    except Exception:
+        pass
+
+    # Learn from explicit owner cues (secret-rejecting; surfaced, never silent).
+    note = _maybe_remember(jp, prompt)
+    if note:
+        yield detail(note)
 
     if generate is not None:
         hint = _brain_hint(turn, mode)
@@ -94,8 +106,53 @@ def jarvis_responder(
     if turn.recollection:
         yield detail(turn.recollection.splitlines()[0][:200])
 
+    # Audit the generated prose; flag honestly if it reads as uncited/risky.
+    caveat = _epistemic_caveat(jp, turn, text)
+    if caveat:
+        yield detail(caveat)
+
     yield body(text)
     yield done()
+
+
+_REMEMBER_CUES = (
+    "remember",
+    "i prefer",
+    "my name is",
+    "note that",
+    "for future",
+    "don't forget",
+    "keep in mind",
+)
+
+
+def _maybe_remember(jp, prompt: str) -> str:
+    """Persist a durable memory when the owner explicitly asks to. Honest about
+    rejection (secrets / below-floor) — returns a note only when stored."""
+    low = prompt.lower()
+    if not any(cue in low for cue in _REMEMBER_CUES):
+        return ""
+    try:
+        rec = jp.config.memory.remember(
+            key=prompt[:60], value=prompt, durability="durable", confidence=1.0
+        )
+        return "Noted to memory." if rec else ""
+    except Exception:  # memory write is best-effort
+        return ""
+
+
+def _epistemic_caveat(jp, turn, text: str) -> str:
+    """Run the anti-hallucination audit; return an honest caveat if not PASS."""
+    try:
+        report = jp.audit(text, confidence=turn.classification.confidence)
+        if report.outcome.value != "pass":
+            return (
+                f"⚠ epistemic check: {report.outcome.value.replace('_', ' ')} "
+                "— verify any specifics (paths/versions/links) before relying on them."
+            )
+    except Exception:
+        pass
+    return ""
 
 
 _CODE_TARGETS = {

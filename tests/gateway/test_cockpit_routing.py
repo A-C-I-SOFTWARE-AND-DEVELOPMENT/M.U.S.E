@@ -52,6 +52,53 @@ def test_hint_plain_chat_stays_local_kind() -> None:
     }
 
 
+def test_maybe_remember_only_on_explicit_cue() -> None:
+    from gateway.cockpit.agent import _maybe_remember
+
+    stored: list[tuple] = []
+
+    class _Mem:
+        def remember(self, *, key, value, durability, confidence):
+            stored.append((key, value, durability))
+            return object()  # accepted
+
+    jp = SimpleNamespace(config=SimpleNamespace(memory=_Mem()))
+    # no cue → nothing stored, no note
+    assert _maybe_remember(jp, "what's the weather?") == ""
+    assert stored == []
+    # explicit cue → stored durably + note returned
+    assert _maybe_remember(jp, "remember I prefer dark mode") == "Noted to memory."
+    assert stored and stored[0][2] == "durable"
+
+
+def test_maybe_remember_honest_when_rejected() -> None:
+    from gateway.cockpit.agent import _maybe_remember
+
+    class _Mem:
+        def remember(self, **kw):
+            return None  # rejected (e.g. secret / below floor)
+
+    jp = SimpleNamespace(config=SimpleNamespace(memory=_Mem()))
+    assert _maybe_remember(jp, "remember my api_key=sk-secret") == ""  # no false "noted"
+
+
+def test_epistemic_caveat_flags_non_pass() -> None:
+    from gateway.cockpit.agent import _epistemic_caveat
+
+    turn = _turn()
+
+    class _JpFail:
+        def audit(self, text, confidence=1.0):
+            return SimpleNamespace(outcome=SimpleNamespace(value="needs_citations"))
+
+    class _JpPass:
+        def audit(self, text, confidence=1.0):
+            return SimpleNamespace(outcome=SimpleNamespace(value="pass"))
+
+    assert "needs citations" in _epistemic_caveat(_JpFail(), turn, "some risky claim")
+    assert _epistemic_caveat(_JpPass(), turn, "a hedged, cited reply") == ""
+
+
 def test_reference_context_indexes_repo_docs() -> None:
     # Against the real repo root, the grounding block should list known docs.
     block = grounding.reference_context()
