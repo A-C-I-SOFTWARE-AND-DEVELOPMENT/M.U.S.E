@@ -304,6 +304,62 @@ def cockpit_job(entry: Any) -> dict[str, Any]:
     }
 
 
+# Orchestrator ``Job.status`` → canonical job status. The /orchestrate flow
+# uses a slightly narrower vocabulary than the JobQueue; ``published`` is
+# inferred from ``published_at`` and wins.
+_ORCH_STATUS_FROM_STATE: dict[str, str] = {
+    "queued": "QUEUED",
+    "running": "RUNNING",
+    "blocked": "BLOCKED",
+    "completed": "COMPLETED",
+    "failed": "FAILED",
+    "cancelled": "CANCELLED",
+    "published": "PUBLISHED",
+}
+
+
+def _epoch_iso_us(ts: Any) -> Optional[str]:
+    """ISO-8601 from a *microsecond* epoch (orchestrator ``_now()`` resolution)."""
+    try:
+        t = float(ts)
+    except (TypeError, ValueError):
+        return None
+    if t <= 0:
+        return None
+    return _epoch_iso(t / 1_000_000.0)
+
+
+def orchestrator_job(job: Any) -> dict[str, Any]:
+    """Project an orchestrator ``Job`` (the ``/orchestrate`` flow) into the
+    canonical cockpit ``CockpitJob`` so orchestration jobs appear in the
+    Android Jobs list alongside JobQueue jobs.
+
+    Read-only and honest: timestamps are microsecond epochs; ``published_at``
+    implies ``PUBLISHED``; fields the orchestrator Job genuinely doesn't carry
+    (branch/remote/validation) are ``null``, never invented.
+    """
+    raw = str(getattr(job, "status", "") or "")
+    status = _ORCH_STATUS_FROM_STATE.get(raw, "QUEUED")
+    if getattr(job, "published_at", None):
+        status = "PUBLISHED"
+    prompt = str(getattr(job, "prompt", "") or "")
+    created = _epoch_iso_us(getattr(job, "created_at", 0))
+    return {
+        "id": getattr(job, "id", ""),
+        "title": _first_line(prompt) or getattr(job, "id", ""),
+        "worker_id": "",
+        "status": status,
+        "created_at": created,
+        "updated_at": _epoch_iso_us(getattr(job, "updated_at", 0)) or created,
+        "workspace_path": None,
+        "branch": None,
+        "base_branch": None,
+        "remote": None,
+        "validation_summary": None,
+        "publish_state": "SUCCEEDED" if getattr(job, "published_at", None) else None,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Audit — mirrors com.aci.hermes.data.model.audit.AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
@@ -667,6 +723,7 @@ __all__ = [
     "memory_item",
     "navigation_view",
     "normalize_category",
+    "orchestrator_job",
     "normalize_publish_state",
     "proposal_view",
     "skill_entry",
