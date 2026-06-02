@@ -169,6 +169,29 @@ class AppContainer(private val application: Application) {
     val jarvisClipboard: JarvisClipboard = AndroidJarvisClipboard(context)
     val jarvisTaskSink: JarvisTaskSink = RepositoryTaskSink(taskRepository)
 
+    // Voice loop wiring: bind the on-device STT/TTS engines and the agent
+    // dispatch so VoiceLoopService (barge-in conversation) can run once started.
+    // The loop is started explicitly from the UI behind RECORD_AUDIO consent —
+    // this only makes the engines available, it does not open the mic.
+    init {
+        com.aci.hermes.service.VoiceLoopService.Wiring.apply {
+            sttFactory = { ctx -> com.aci.hermes.voice.AndroidSpeechRecognizerStt(ctx) }
+            ttsFactory = { ctx -> com.aci.hermes.voice.AndroidTtsEngine(ctx) }
+            dispatch = { utterance -> voiceDispatchToAgent(utterance) }
+        }
+    }
+
+    /** Send a spoken utterance to the real agent and return its reply text. */
+    private suspend fun voiceDispatchToAgent(utterance: String): String {
+        val reply = StringBuilder()
+        jarvisChatGateway.send(emptyList(), utterance).collect { chunk ->
+            if (chunk is com.aci.hermes.data.jarvis.JarvisChatChunk.Body) {
+                reply.append(chunk.text)
+            }
+        }
+        return reply.toString().trim()
+    }
+
     /**
      * Approval-event sink. The cockpit doesn't ship a real gateway transport
      * yet; this in-memory recorder lets the UI run end-to-end and lets the
