@@ -251,6 +251,59 @@ def test_cockpit_job_key_set_matches_contract() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Orchestrator Job → canonical CockpitJob (the /orchestrate-flow bridge)
+# ---------------------------------------------------------------------------
+
+
+def test_orchestrator_job_projects_canonical_shape() -> None:
+    from hermes_cli.orchestrator import Job
+
+    # created_at/updated_at are MICROSECOND epochs (orchestrator _now()).
+    job = Job(
+        id="orc-abc123",
+        prompt="Add a worker-runs projection\nignored second line",
+        status="completed",
+        created_at=1_700_000_000_000_000,
+        updated_at=1_700_000_001_000_000,
+    )
+    out = contract.orchestrator_job(job)
+    assert out["id"] == "orc-abc123"
+    assert out["title"] == "Add a worker-runs projection"  # first line only
+    assert out["status"] == "COMPLETED"
+    assert out["worker_id"] == ""
+    # microsecond epoch → seconds → honest ISO (2023, not a year ~55000)
+    assert out["created_at"].startswith("2023-")
+    # fields the orchestrator Job genuinely doesn't carry are null, not faked
+    assert out["branch"] is None
+    assert out["remote"] is None
+    assert out["validation_summary"] is None
+    # key set is identical to the JobQueue projection (one canonical shape)
+    assert set(out.keys()) == set(
+        contract.cockpit_job(JobQueueEntry(job_id="j", created_at=5.0)).keys()
+    )
+
+
+def test_orchestrator_job_status_mapping_and_published() -> None:
+    from hermes_cli.orchestrator import Job
+
+    assert contract.orchestrator_job(Job(id="o", prompt="p", status="blocked"))[
+        "status"
+    ] == "BLOCKED"
+    assert contract.orchestrator_job(Job(id="o", prompt="p", status="queued"))[
+        "status"
+    ] == "QUEUED"
+    # an unknown orchestrator state falls back honestly to QUEUED (never crashes)
+    assert contract.orchestrator_job(Job(id="o", prompt="p", status="weird"))[
+        "status"
+    ] == "QUEUED"
+    # published_at wins and drives publish_state
+    published = Job(id="o", prompt="p", status="completed", published_at=1_700_000_000_000_000)
+    out = contract.orchestrator_job(published)
+    assert out["status"] == "PUBLISHED"
+    assert out["publish_state"] == "SUCCEEDED"
+
+
+# ---------------------------------------------------------------------------
 # Audit — DecisionLedger → canonical AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 

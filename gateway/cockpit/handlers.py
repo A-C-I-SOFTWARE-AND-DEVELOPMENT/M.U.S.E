@@ -293,6 +293,18 @@ def jobs_list(_req: Request) -> JsonResponse:
         return JsonResponse(
             200, {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)}
         )
+    # Also surface orchestrator (/orchestrate) jobs — a separate store from the
+    # JobQueue — so the app's Jobs list reflects the whole pipeline, not just
+    # queue entries. Best-effort: an orchestrator read failure must not blank
+    # out the JobQueue jobs already collected.
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        for job in _orch.list_jobs():
+            jobs.append(contract.orchestrator_job(job))
+    except Exception:  # pragma: no cover - defensive
+        pass
+    jobs.sort(key=lambda j: (j.get("created_at") or ""), reverse=True)
     return JsonResponse(200, {"jobs": jobs, "next_cursor": None, "prev_cursor": None})
 
 
@@ -307,6 +319,13 @@ def job_get(req: Request) -> JsonResponse:
         try:
             entry = JobQueue().get_job(job_id)
         except JobQueueNotFoundError:
+            # Fall back to the orchestrator store (/orchestrate jobs live there,
+            # not in the JobQueue) before declaring the id unknown.
+            from hermes_cli import orchestrator as _orch
+
+            ojob = _orch.get_job(job_id)
+            if ojob is not None:
+                return JsonResponse(200, contract.orchestrator_job(ojob))
             return JsonResponse(404, {"error": f"unknown job: {job_id}"})
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
