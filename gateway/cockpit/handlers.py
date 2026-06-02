@@ -38,6 +38,19 @@ class JsonResponse:
     payload: dict[str, Any]
 
 
+# Whether the server is bound beyond loopback (``--allow-external``). Agentic
+# *execute* dispatch (running Codex/Claude against the repo) is refused when
+# this is True — a second guard on top of the owner-approval phrase, so a
+# remotely-reachable cockpit can never trigger repo-editing execution.
+_ALLOW_REMOTE_EXECUTE = False
+
+
+def configure_runtime(*, allow_remote_execute: bool) -> None:
+    """Set runtime guards from ``server.serve`` (called once at startup)."""
+    global _ALLOW_REMOTE_EXECUTE
+    _ALLOW_REMOTE_EXECUTE = bool(allow_remote_execute)
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -371,6 +384,77 @@ def jobs_dispatch(req: Request) -> JsonResponse:
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
     return JsonResponse(201, contract.cockpit_job(entry))
+
+
+def job_run(req: Request) -> JsonResponse:
+    """Run a job on a worker via the orchestrator's gated 5-step contract.
+
+    This is the bridge that gives the app **real agentic reasoning**: it
+    dispatches to a worker lane (e.g. ``codex-execute`` / ``claude-execute``,
+    which run the official Codex / Claude Code CLIs) and returns the job plus
+    its worker ledger trail.
+
+    Double-gated for execute lanes (``requires_approval``):
+      1. **Owner phrase** — ``authorization`` must equal the exact owner phrase;
+         on match the job's ``execute`` phase is granted, then dispatched.
+      2. **Loopback-only** — refused when the server is bound beyond loopback
+         (``--allow-external``), so a network-reachable cockpit can't trigger
+         repo-editing execution.
+    Non-gated lanes (local planner / handoff) dispatch directly.
+    """
+    job_id = req.path_params.get("id", "")
+    worker_id = str(req.body.get("worker_id", "")).strip() or "hermes-local-planner"
+    authorization = str(req.body.get("authorization", "")).strip()
+    try:
+        from hermes_cli import orchestrator as orch
+        from hermes_cli.workers import builtin_worker_classes, load_builtins
+
+        from . import contract
+
+        load_builtins()
+        job = orch.get_job(job_id)
+        if job is None:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+
+        classes = {c.id: c for c in builtin_worker_classes()}
+        worker_cls = classes.get(worker_id)
+        if worker_cls is None:
+            return JsonResponse(400, {"error": f"unknown worker: {worker_id}"})
+        requires_approval = bool(getattr(worker_cls, "requires_approval", True))
+
+        if requires_approval:
+            if _ALLOW_REMOTE_EXECUTE:
+                return JsonResponse(
+                    403,
+                    {
+                        "error": "agentic execution is disabled on a non-loopback "
+                        "cockpit; run the runtime locally (loopback) to use "
+                        f"{worker_id!r}.",
+                    },
+                )
+            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+            if authorization != AUTHORIZATION_PHRASE:
+                return JsonResponse(
+                    403,
+                    {
+                        "error": "owner approval required to run an execute lane",
+                        "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+                    },
+                )
+            orch.approve_phase(job_id, "execute")
+
+        out = orch.dispatch_job(job_id, worker_id=worker_id)
+        if out is None:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+        trail = [
+            e
+            for e in orch.get_ledger(job_id).get(job_id, [])
+            if str(e.get("kind", "")).startswith("worker_")
+        ]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]})
 
 
 def job_cancel(req: Request) -> JsonResponse:
