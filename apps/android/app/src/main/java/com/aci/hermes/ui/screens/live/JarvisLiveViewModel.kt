@@ -3,10 +3,18 @@ package com.aci.hermes.ui.screens.live
 import android.app.Application
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.life.BehaviorScheduler
+import java.util.Calendar
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class JarvisLiveViewModel(
     application: Application,
@@ -16,6 +24,47 @@ class JarvisLiveViewModel(
         JarvisLiveUiState(reducedMotion = systemReducedMotion()),
     )
     val state: StateFlow<JarvisLiveUiState> = _state.asStateFlow()
+
+    // Ambient life: when the user is away, Jarvis idles → wanders → sleeps so the
+    // body reads as alive rather than frozen. Driven by the pure, tested
+    // BehaviorScheduler; suppressed while the agent is busy or motion is reduced.
+    private val ambientScheduler = BehaviorScheduler()
+
+    @Volatile
+    private var lastInteractionAtMs = System.currentTimeMillis()
+
+    init {
+        startAmbientLife()
+    }
+
+    private fun markInteraction() {
+        lastInteractionAtMs = System.currentTimeMillis()
+    }
+
+    private fun startAmbientLife() {
+        viewModelScope.launch {
+            while (isActive) {
+                val s = _state.value
+                val idleFor = (System.currentTimeMillis() - lastInteractionAtMs)
+                    .coerceAtLeast(0L).milliseconds
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                val behavior = ambientScheduler.decide(
+                    BehaviorScheduler.Tick(
+                        idleFor = idleFor,
+                        localHour = hour,
+                        hasPendingRecommendation = false,
+                        sinceLastRecommendation = Duration.ZERO,
+                        agentBusy = s.thinking || s.working || s.speaking,
+                        ambientMuted = s.reducedMotion || s.emergencyStop,
+                    ),
+                )
+                if (behavior != s.avatarBehavior) {
+                    _state.update { it.copy(avatarBehavior = behavior) }
+                }
+                delay(AMBIENT_TICK_MS)
+            }
+        }
+    }
 
     private val _showStatusSheet = MutableStateFlow(false)
     val showStatusSheet: StateFlow<Boolean> = _showStatusSheet.asStateFlow()
@@ -29,10 +78,12 @@ class JarvisLiveViewModel(
     }
 
     fun onCommandChange(text: String) {
+        markInteraction()
         _state.update { it.copy(command = text) }
     }
 
     fun onSend() {
+        markInteraction()
         val current = _state.value
         if (current.command.isBlank() || current.emergencyStop) return
         _state.update { it.copy(thinking = true, listening = false) }
@@ -73,5 +124,9 @@ class JarvisLiveViewModel(
             1f,
         )
         return scale == 0f
+    }
+
+    private companion object {
+        const val AMBIENT_TICK_MS = 5_000L
     }
 }

@@ -144,9 +144,19 @@ fun JarvisLiveScreen(
                         )
                     },
                 ) {
-                    JarvisLivingAvatar(
-                        state = projection.state,
-                        motionEnabled = projection.motionEnabled,
+                    // The living, breathing 17-pose body. Reduced motion collapses
+                    // to the calm Orb; otherwise the energy-driven humanoid breathes,
+                    // reacts to the real agent state, and idles/wanders/sleeps when away.
+                    val avatarKind =
+                        if (projection.motionEnabled) state.avatarKind else AvatarKind.Orb
+                    LivingAvatarHost(
+                        kind = avatarKind,
+                        inputs = AvatarAnimation.inputsFor(
+                            state = projection.state,
+                            behavior = state.avatarBehavior,
+                            activeClip = null,
+                            motionEnabled = projection.motionEnabled,
+                        ),
                         contentDescription = stringResource(projection.contentDescription),
                     )
                 }
