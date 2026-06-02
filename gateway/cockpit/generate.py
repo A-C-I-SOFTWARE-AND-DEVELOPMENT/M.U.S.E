@@ -100,6 +100,33 @@ def pick_model(base: Optional[str] = None) -> str:
     return installed[0]
 
 
+# Name fragments that mark a model as suited to a task kind. Lets JARVIS pick a
+# coder model for code and a reasoning model for hard problems when several are
+# installed locally — "knowing when to switch" within the local tier too.
+_KIND_NAME_HINTS: dict[str, tuple[str, ...]] = {
+    "code": ("coder", "code", "qwen3-coder"),
+    "reasoning": ("r1", "deepseek", "reason", "think", "qwq"),
+}
+
+
+def select_local_model(installed: list[str], kind: str = "chat") -> str:
+    """Pick the best installed local model for a task ``kind``.
+
+    code → a coder model; reasoning → a reasoning model (e.g. DeepSeek-R1);
+    otherwise a policy-preferred tag, else the first installed model.
+    """
+    if not installed:
+        raise RuntimeError("no local Ollama chat model installed")
+    for frag in _KIND_NAME_HINTS.get(kind, ()):
+        for name in installed:
+            if frag in name.lower():
+                return name
+    for tag in _policy_preferred_tags():
+        if tag in installed:
+            return tag
+    return installed[0]
+
+
 def ollama_generate(
     prompt: str, persona: str, model: str, *, base: Optional[str] = None, timeout: float = 120.0
 ) -> str:
@@ -116,10 +143,10 @@ def ollama_generate(
     return ((out.get("message") or {}).get("content") or "").strip()
 
 
-def local_generate(prompt: str, persona: str) -> str:
-    """Tier 1: reply from the running local model. Raises if none reachable."""
+def local_generate(prompt: str, persona: str, *, kind: str = "chat") -> str:
+    """Tier 1: reply from the running local model best-suited to ``kind``."""
     base = _ollama_base()
-    model = pick_model(base)
+    model = select_local_model(installed_chat_models(base), kind)
     text = ollama_generate(prompt, persona, model, base=base)
     if not text:
         raise RuntimeError(f"empty response from local model {model!r}")
@@ -131,42 +158,63 @@ def local_generate(prompt: str, persona: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def policy_generate(prompt: str, persona: str, *, timeout: float = 120.0) -> str:
+def policy_generate(
+    prompt: str, persona: str, *, task: Optional[str] = None, timeout: float = 120.0
+) -> str:
     """Tier 2: reply from the configured brains via the centralized LLM call.
 
     ``call_llm`` resolves the user's main provider + model and falls back
     across configured providers (Codex/ChatGPT, DeepSeek, Gemini, Anthropic,
-    aggregators) on auth/credit errors. Lazy import so a pure-local Termux box
-    without the OpenAI SDK still works via tier 1.
+    aggregators) on auth/credit errors. ``task`` is a hint (e.g. ``"code"``)
+    that lets config route the kind to a specific provider. Lazy import so a
+    pure-local Termux box without the OpenAI SDK still works via tier 1.
     """
     from agent.auxiliary_client import call_llm
 
-    resp = call_llm(
-        messages=[
+    kwargs: dict = {
+        "messages": [
             {"role": "system", "content": persona},
             {"role": "user", "content": prompt},
         ],
-        timeout=timeout,
-    )
+        "timeout": timeout,
+    }
+    if task:
+        kwargs["task"] = task
+    resp = call_llm(**kwargs)
     text = ((resp.choices[0].message.content) or "").strip()
     if not text:
         raise RuntimeError("empty response from configured model")
     return text
 
 
-def default_prose_generator(prompt: str, persona: str) -> str:
-    """Free-first: local model, then configured cloud/subscription brains.
+def default_prose_generator(prompt: str, persona: str, hint: Optional[dict] = None) -> str:
+    """Route to the right brain, then generate.
 
-    Raises only if *every* tier fails; the responder then degrades to the
-    turn summary so chat never hard-fails.
+    ``hint`` (from the JARVIS turn) carries ``kind`` (``chat``/``code``/
+    ``reasoning``) and ``escalate`` (low confidence / council / research). The
+    policy is free-first — local model before cloud — **except** when the turn
+    escalates a hard problem, where a stronger cloud/subscription brain is
+    tried first. Either way the other tier is the fallback, and a total failure
+    raises so the responder degrades to the turn summary.
     """
-    try:
-        return local_generate(prompt, persona)
-    except Exception as local_exc:
+    hint = hint or {}
+    kind = str(hint.get("kind") or "chat")
+    escalate = bool(hint.get("escalate"))
+
+    def _local() -> str:
+        return local_generate(prompt, persona, kind=kind)
+
+    def _cloud() -> str:
+        return policy_generate(prompt, persona, task=kind if kind != "chat" else None)
+
+    tiers = [_cloud, _local] if escalate else [_local, _cloud]
+    last_exc: Optional[Exception] = None
+    for tier in tiers:
         try:
-            return policy_generate(prompt, persona)
-        except Exception:
-            raise local_exc
+            return tier()
+        except Exception as exc:  # try the next brain
+            last_exc = exc
+    raise last_exc or RuntimeError("no brain available")
 
 
 __all__ = [
@@ -176,4 +224,5 @@ __all__ = [
     "ollama_generate",
     "pick_model",
     "policy_generate",
+    "select_local_model",
 ]

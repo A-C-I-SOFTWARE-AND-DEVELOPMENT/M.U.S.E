@@ -99,26 +99,49 @@ def test_local_generate_calls_model_with_persona_and_prompt(monkeypatch) -> None
 # ── Free-first orchestration: local → cloud → raise ─────────────────────────
 
 
+def test_select_local_model_picks_coder_for_code() -> None:
+    installed = ["qwen2.5:3b", "qwen3-coder:7b", "deepseek-r1:8b"]
+    assert gen.select_local_model(installed, "code") == "qwen3-coder:7b"
+
+
+def test_select_local_model_picks_reasoning_for_reasoning() -> None:
+    installed = ["qwen2.5:3b", "qwen3-coder:7b", "deepseek-r1:8b"]
+    assert gen.select_local_model(installed, "reasoning") == "deepseek-r1:8b"
+
+
+def test_select_local_model_defaults_to_first_for_chat() -> None:
+    installed = ["qwen2.5:3b", "deepseek-r1:8b"]
+    assert gen.select_local_model(installed, "chat") == "qwen2.5:3b"
+
+
 def test_default_prefers_local(monkeypatch) -> None:
-    monkeypatch.setattr(gen, "local_generate", lambda p, s: "LOCAL")
-    monkeypatch.setattr(gen, "policy_generate", lambda p, s: "CLOUD")
+    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat": "LOCAL")
+    monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD")
     assert gen.default_prose_generator("hi", "persona") == "LOCAL"
 
 
+def test_escalate_tries_cloud_first(monkeypatch) -> None:
+    # A hard problem (escalate=True) should reach for the stronger brain first.
+    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat": "LOCAL")
+    monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD")
+    out = gen.default_prose_generator("solve this", "persona", {"kind": "reasoning", "escalate": True})
+    assert out == "CLOUD"
+
+
 def test_default_falls_back_to_cloud_when_no_local(monkeypatch) -> None:
-    def no_local(p, s):
+    def no_local(p, s, kind="chat"):
         raise RuntimeError("no local Ollama chat model installed")
 
     monkeypatch.setattr(gen, "local_generate", no_local)
-    monkeypatch.setattr(gen, "policy_generate", lambda p, s: "CLOUD-DEEPSEEK")
+    monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD-DEEPSEEK")
     assert gen.default_prose_generator("hi", "persona") == "CLOUD-DEEPSEEK"
 
 
 def test_default_raises_when_all_tiers_fail(monkeypatch) -> None:
-    def boom_local(p, s):
+    def boom_local(p, s, kind="chat"):
         raise RuntimeError("no local model")
 
-    def boom_cloud(p, s):
+    def boom_cloud(p, s, task=None):
         raise RuntimeError("no provider configured")
 
     monkeypatch.setattr(gen, "local_generate", boom_local)

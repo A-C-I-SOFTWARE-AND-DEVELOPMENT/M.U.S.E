@@ -68,9 +68,24 @@ def jarvis_responder(
         yield detail("Owner approval required for: " + ", ".join(route.pending_actions))
 
     persona_prompt = turn.persona_prompt.render()
+    # Ground the reply in the owner profile + project references (bounded).
+    try:
+        from gateway.cockpit.grounding import reference_context
+
+        refs = reference_context()
+        if refs:
+            persona_prompt = f"{persona_prompt}\n\n{refs}"
+    except Exception:  # grounding is best-effort
+        pass
+
     if generate is not None:
+        hint = _brain_hint(turn, mode)
         try:
-            text = generate(prompt, persona_prompt).strip()
+            # Prefer the routing-aware 3-arg form; fall back for plain generators.
+            try:
+                text = generate(prompt, persona_prompt, hint).strip()
+            except TypeError:
+                text = generate(prompt, persona_prompt).strip()
         except Exception as exc:  # pragma: no cover - defensive
             text = f"(model generation unavailable: {exc}) " + _turn_summary(turn, mode)
     else:
@@ -81,6 +96,38 @@ def jarvis_responder(
 
     yield body(text)
     yield done()
+
+
+_CODE_TARGETS = {
+    "claude_code_builder",
+    "codex_reviewer",
+    "codex_bounded_fix",
+    "local_test_runner",
+    "github_pr_publisher",
+}
+
+
+def _brain_hint(turn, mode: str) -> dict:
+    """Derive a routing hint from the JARVIS turn so the generator can switch
+    brains: ``kind`` (chat/code/reasoning) + ``escalate`` (hard problem).
+
+    This is how JARVIS "knows when to switch" — it reuses the turn's own
+    classification (mode), route target, confidence, and research trigger.
+    """
+    target = getattr(getattr(turn.route, "target", None), "value", "") or ""
+    confidence = float(getattr(turn.classification, "confidence", 1.0) or 1.0)
+    escalate = (
+        getattr(turn, "research_brief", None) is not None
+        or target == "aos_council"
+        or confidence < 0.5
+    )
+    if mode == "builder" or target in _CODE_TARGETS:
+        kind = "code"
+    elif mode in ("strategy", "critic") or escalate:
+        kind = "reasoning"
+    else:
+        kind = "chat"
+    return {"kind": kind, "escalate": escalate, "target": target, "mode": mode}
 
 
 def _turn_summary(turn, mode: str) -> str:
