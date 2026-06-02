@@ -1,0 +1,62 @@
+# Third-Party Notices
+
+Hermes Agent (MIT, Copyright (c) 2025 Nous Research) incorporates or
+adapts material from the third-party open-source projects listed below.
+Each remains under its own license; this file preserves the required
+attribution.
+
+---
+
+## SIA — Self-Improving AI (Hexo Labs)
+
+- **Project:** SIA (Self-Improving AI / Self-Improving Auto-researcher)
+- **Source:** https://github.com/hexo-ai/sia
+- **PyPI:** `sia-agent`
+- **License:** MIT License — Copyright (c) Hexo Labs and the `hexo-ai/sia`
+  contributors.
+
+**How Hermes uses it.** Hermes shells out to the separately-installed
+`sia` CLI (the upstream `sia-agent` package, unmodified) — it is an
+external tool detected on `PATH`, not vendored or pinned as a Hermes
+dependency. In addition, Hermes **adapts** the following from SIA, as
+permitted by the MIT license:
+
+- The **task-directory format** (`data/public/task.md`,
+  `reference/reference_target_agent.py`,
+  `reference/SAMPLE_TASK_DESCRIPTIONS.md`) and the three-role
+  (meta / target / feedback) generation design, reflected in
+  `hermes_cli/workers/sia_assets.py`. The template *text* in that module
+  is Hermes-original; only the directory layout and role design are
+  adapted from SIA.
+
+No SIA source files are copied verbatim into this repository; the
+runnable SIA code is consumed only via the `sia-agent` dependency.
+
+### MIT License (SIA)
+
+```
+MIT License
+
+Copyright (c) Hexo Labs and the hexo-ai/sia contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+> Note: the copyright line above reflects the upstream MIT grant. If the
+> upstream `LICENSE` names a specific holder, mirror that exact line here.
