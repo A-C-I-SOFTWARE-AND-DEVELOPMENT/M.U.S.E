@@ -223,7 +223,17 @@ def serve(
         )
     if token is None:
         token = cockpit_auth.load_or_create_token()
-    chat_responder = responder or jarvis_responder
+    if responder is not None:
+        chat_responder = responder
+    else:
+        # Default chat path: drive the real JARVIS turn AND generate reply prose
+        # from the running local model (Ollama). If no model is reachable, the
+        # responder degrades to the turn summary rather than failing.
+        from gateway.cockpit.generate import default_prose_generator
+
+        def chat_responder(prompt, history):
+            return jarvis_responder(prompt, history, generate=default_prose_generator)
+
     server = ThreadingHTTPServer((host, port), _make_handler(token, chat_responder))
     thread = threading.Thread(
         target=server.serve_forever, name="hermes-cockpit-http", daemon=True
