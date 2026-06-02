@@ -1,5 +1,14 @@
 # JARVIS Prime Integration — Demo Trace
 
+> **Historical trace (2026-05-26), partially refreshed 2026-06-01.** This
+> document was written against the PR #131 / base `bc97e43` integration and
+> reads as a point-in-time record. `main` has since advanced ~211 commits and
+> several surfaces it described as pending have landed (notably the **chat
+> screen** — see step 5 / 3a). Current launch readiness lives in
+> [`launch/LAUNCH_STATUS_CURRENT.md`](launch/LAUNCH_STATUS_CURRENT.md) and the
+> full audit in [`audits/CODEBASE_AUDIT_2026-06-01.md`](audits/CODEBASE_AUDIT_2026-06-01.md).
+> Inline `**LANDED on main**` notes mark claims corrected on 2026-06-01.
+
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Integration PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Base:** `origin/main` at `bc97e43` (2026-05-26 audit time)
@@ -74,7 +83,7 @@ per the design-system migration plan; every user-facing label is "Jarvis Prime".
 | 2 | `onboarding` | `OnboardingScreen` | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/onboarding/OnboardingScreen.kt` |
 | 3 | `home` | `HomeScreen` (sequel: `JarvisPrimeHomeScreen` aggregating presence state) | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/home/HomeScreen.kt`, `JarvisPrimeHomeScreen.kt` |
 | 4 | `tasks` | `TasksScreen` | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/tasks/TasksScreen.kt` |
-| 5 | `chat` | `PlaceholderScreen` (#117 chat demoted — orphan re-baseline; placeholder describes "use Prepare handoff" for now) | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/placeholder/PlaceholderScreen.kt` |
+| 5 | `chat` | `JarvisChatScreen` + `JarvisChatViewModel` (real chat surface — **LANDED on `main`** since this trace was first written; the old `PlaceholderScreen` no longer binds the `chat` route) | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/chat/JarvisChatScreen.kt`, `JarvisChatViewModel.kt`; gateways under `apps/android/app/src/main/java/com/aci/hermes/data/jarvis/` (`JarvisChatGateway`, `HttpJarvisChatGateway`, `RoutingJarvisChatGateway`, `MockJarvisChatGateway`) |
 | 6 | `approvals` | `ApprovalsScreen` (from #107) wrapped by `ShellHost` | `apps/android/app/src/main/java/com/aci/hermes/approval/ui/screens/ApprovalsScreen.kt` |
 | 7 | `memory` | `MemoryScreen` (from #122) — local-only mock seed; redactor wired | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/memory/MemoryScreen.kt` |
 | 8 | `audit` | `AuditScreen` (from #118) — links to `AuditDetail` | `apps/android/app/src/main/java/com/aci/hermes/ui/screens/audit/AuditScreen.kt` |
@@ -93,6 +102,7 @@ All routes register in `apps/android/app/src/main/java/com/aci/hermes/ui/navigat
 1. **Cold start → SplashScreen.** Shows the JARVIS Prime caduceus icon + "Jarvis Prime" name (from `strings.xml`) + tagline ("Your command-center agent."). 600ms delay then routes.
 2. **First-run → OnboardingScreen.** Mode selection, permission education, emergency-stop primer. Skipping still finishes onboarding.
 3. **Subsequent runs → HomeScreen.** Mission-control card, status, quick-links (Tasks, Chat, Approvals, Memory, Audit, Capability), tool launcher cards.
+3a. **User taps Chat tab.** `JarvisChatScreen` renders the live conversation surface (transcript, streaming "thinking" bubble, inline cards, stop/retry, copy, voice-capture entry). The `RoutingJarvisChatGateway` streams from the live `HttpJarvisChatGateway` (local Hermes gateway, default `http://127.0.0.1:8765`, JSONL wire format) once a token is paired, and falls back to `MockJarvisChatGateway` on a fresh/offline device — selection is re-checked per send.
 4. **User taps Approvals quick-link.** Bottom-nav stays visible; `ApprovalsScreen` renders any pending/historical approval cards. Approvals are read-only emit-from-app; the runtime decides whether to fulfill them.
 5. **User taps Memory quick-link.** `MemoryScreen` shows the mock-seeded local memory items, with filter chips and detail dialogs. PrivacyRedactor (from #114) ensures social patterns don't leak identifying info.
 6. **User taps Audit quick-link.** `AuditScreen` shows the redacted log of every approval/handoff/decision. Tapping a row pushes to `AuditDetailScreen` (full-screen).

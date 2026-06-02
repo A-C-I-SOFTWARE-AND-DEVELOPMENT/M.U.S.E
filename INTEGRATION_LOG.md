@@ -1,5 +1,12 @@
 # JARVIS Prime Integration Log
 
+> **Stale baseline (2026-05-26).** This log records the PR #131 integration
+> from base `bc97e43`; `main` has since advanced ~211 commits. Current launch
+> readiness lives in
+> [`docs/launch/LAUNCH_STATUS_CURRENT.md`](docs/launch/LAUNCH_STATUS_CURRENT.md)
+> and the full audit in
+> [`docs/audits/CODEBASE_AUDIT_2026-06-01.md`](docs/audits/CODEBASE_AUDIT_2026-06-01.md).
+
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Started:** 2026-05-26
 **Plan:** `/root/.claude/plans/mission-you-are-idempotent-bunny.md`

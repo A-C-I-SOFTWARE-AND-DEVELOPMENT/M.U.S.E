@@ -1,5 +1,10 @@
 # Claude Final Release Review — JARVIS Prime Launch Candidate
 
+> **Stale baseline (2026-05-26).** This review was written against `main` at
+> `bc97e43` (PR #131 era). Current launch readiness lives in
+> [`LAUNCH_STATUS_CURRENT.md`](LAUNCH_STATUS_CURRENT.md) and the full audit in
+> [`../audits/CODEBASE_AUDIT_2026-06-01.md`](../audits/CODEBASE_AUDIT_2026-06-01.md).
+
 > Independent reviewer: Claude Reviewer (final pass).
 > Candidate state: tip of `origin/main` at commit `bc97e43` (the
 > requested branch `launch/jarvis-prime-candidate` was not a remote
