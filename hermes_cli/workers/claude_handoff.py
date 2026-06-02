@@ -71,3 +71,66 @@ class ClaudeHandoffWorker(HandoffWorkerBase):
 
 
 register(ClaudeHandoffWorker(), replace=True)
+
+
+class ClaudeExecuteWorker(ClaudeHandoffWorker):
+    """Live: actually runs Claude Code agentically (owner-gated; needs `claude`).
+
+    The Claude Code execute path (``run_claude_cli``) already existed but had no
+    registered adapter, so the orchestrator could never dispatch it. This wraps
+    it as the ``claude-execute`` lane — double-gated like Codex: the owner must
+    approve the ``execute`` phase AND the ``claude`` binary must be present, and
+    the workspace is prepared in ``RUN_MODE_EXECUTE`` so ``run_claude_cli``'s own
+    second gate also passes only on purpose.
+    """
+
+    id = "claude-execute"
+    display_name = "Claude Code (execute)"
+    requires_approval = True
+
+    def detect(self) -> WorkerDetection:
+        present = bool(getattr(claude_code.detect(), "available", False))
+        return WorkerDetection(
+            available=present,
+            version="execute",
+            reason=(
+                "claude ready to execute"
+                if present
+                else "claude not installed — cannot execute"
+            ),
+            details={"binary_present": present},
+        )
+
+    def run(self, job: Any) -> WorkerRunResult:
+        objective = self._objective(job)
+        if not objective:
+            return WorkerRunResult(ok=False, error="empty objective")
+        t0 = time.monotonic()
+        prepared = claude_code.prepare_workspace(
+            self._claude_task(job),
+            self._workspace(job),
+            mode=claude_code.RUN_MODE_EXECUTE,
+        )
+        result = claude_code.run_claude_cli(prepared, allow_execute=True)
+        ok = (
+            bool(result.invoked)
+            and not result.error
+            and (result.returncode in (0, None))
+            and not result.timed_out
+        )
+        return WorkerRunResult(
+            ok=ok,
+            exit_code=int(result.returncode or 0),
+            stdout=(result.stdout or "")[:500],
+            error=(result.error or ""),
+            duration_seconds=time.monotonic() - t0,
+            details={
+                "invoked": result.invoked,
+                "timed_out": result.timed_out,
+                "workdir": str(prepared.workdir),
+                "candidate_files": list(self._task(job).files),
+            },
+        )
+
+
+register(ClaudeExecuteWorker(), replace=True)
