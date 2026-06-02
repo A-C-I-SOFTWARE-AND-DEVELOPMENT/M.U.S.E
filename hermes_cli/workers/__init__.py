@@ -64,7 +64,7 @@ def builtin_worker_classes() -> list:
     bind them to a job's repo at dispatch.
     """
     from hermes_cli.workers.aider_handoff import AiderExecuteWorker, AiderHandoffWorker
-    from hermes_cli.workers.claude_handoff import ClaudeHandoffWorker
+    from hermes_cli.workers.claude_handoff import ClaudeExecuteWorker, ClaudeHandoffWorker
     from hermes_cli.workers.codex_handoff import CodexExecuteWorker, CodexHandoffWorker
     from hermes_cli.workers.goose_handoff import GooseExecuteWorker, GooseHandoffWorker
     from hermes_cli.workers.local_planner import LocalPlannerWorker
@@ -79,6 +79,7 @@ def builtin_worker_classes() -> list:
         AiderExecuteWorker,
         GooseExecuteWorker,
         CodexExecuteWorker,
+        ClaudeExecuteWorker,
         SiaWorker,
     ]
 

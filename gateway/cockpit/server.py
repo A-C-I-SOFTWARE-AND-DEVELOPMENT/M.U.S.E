@@ -56,6 +56,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
     ("GET", _compile("/v1/cockpit/jobs"), h.jobs_list, True),
     ("POST", _compile("/v1/cockpit/jobs"), h.jobs_dispatch, True),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/run"), h.job_run, True),
     ("POST", _compile("/v1/cockpit/jobs/{id}/cancel"), h.job_cancel, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}"), h.job_get, True),
     ("GET", _compile("/v1/cockpit/approvals"), h.approvals_list, True),
@@ -223,7 +224,20 @@ def serve(
         )
     if token is None:
         token = cockpit_auth.load_or_create_token()
-    chat_responder = responder or jarvis_responder
+    # Second guard for agentic execute lanes: only loopback cockpits may run
+    # them (the owner-phrase gate is the first guard, enforced per-request).
+    h.configure_runtime(allow_remote_execute=bool(allow_external))
+    if responder is not None:
+        chat_responder = responder
+    else:
+        # Default chat path: drive the real JARVIS turn AND generate reply prose
+        # from the running local model (Ollama). If no model is reachable, the
+        # responder degrades to the turn summary rather than failing.
+        from gateway.cockpit.generate import default_prose_generator
+
+        def chat_responder(prompt, history):
+            return jarvis_responder(prompt, history, generate=default_prose_generator)
+
     server = ThreadingHTTPServer((host, port), _make_handler(token, chat_responder))
     thread = threading.Thread(
         target=server.serve_forever, name="hermes-cockpit-http", daemon=True

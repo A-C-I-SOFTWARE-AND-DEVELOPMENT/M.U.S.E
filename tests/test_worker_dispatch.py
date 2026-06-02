@@ -188,8 +188,21 @@ def test_builtin_worker_roster() -> None:
         "aider-execute",
         "goose-execute",
         "codex-execute",
+        "claude-execute",
         "sia",
     }
+
+
+def test_claude_execute_completes_the_orphaned_agentic_path() -> None:
+    """claude-execute wraps the previously-orphaned Claude Code execute path and
+    is owner-gated (never runs the tool without an approved execute phase)."""
+    from hermes_cli.workers.claude_handoff import ClaudeExecuteWorker
+
+    w = ClaudeExecuteWorker()
+    assert w.id == "claude-execute"
+    assert w.requires_approval is True
+    # detect() reports the *real* binary presence (honest either way).
+    assert isinstance(w.detect().available, bool)
 
 
 # ── Live execute layer (gated; degrades honestly when the CLI is absent) ──
