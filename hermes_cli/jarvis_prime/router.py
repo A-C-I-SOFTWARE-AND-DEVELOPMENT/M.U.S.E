@@ -115,6 +115,29 @@ class Router:
             )
 
         if mode == _Mode.BUILDER:
+            if any(
+                k in text
+                for k in (
+                    "self-improve",
+                    "self improve",
+                    "improve yourself",
+                    "improve your own",
+                    "improve its own",
+                    "improve jarvis",
+                    "self-improvement",
+                    "get better at",
+                    "sia self",
+                )
+            ):
+                return RouteDecision(
+                    target=RouteTarget.SKILL,
+                    rationale=(
+                        "builder mode + self-improvement intent → SIA self-improve "
+                        "skill (sandboxed iteration; promotion is owner-gated)"
+                    ),
+                    delegate_to="sia-self-improve",
+                    requires_owner_authorization=True,
+                )
             if any(k in text for k in ("review", "code review", "verdict", "second pass")):
                 return RouteDecision(
                     target=RouteTarget.CODEX_REVIEWER,

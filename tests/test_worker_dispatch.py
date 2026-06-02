@@ -188,6 +188,7 @@ def test_builtin_worker_roster() -> None:
         "aider-execute",
         "goose-execute",
         "codex-execute",
+        "sia",
     }
 
 

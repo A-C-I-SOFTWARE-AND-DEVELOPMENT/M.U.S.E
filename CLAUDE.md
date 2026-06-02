@@ -132,6 +132,9 @@ Inside `hermes` (interactive CLI) or any gateway DM:
   — symptom-to-fix table across every surface.
 - [`docs/github-integration.md`](docs/github-integration.md) — the
   native `github_assistant` plugin vs the GitHub MCP server.
+- [`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)
+  — the owner-gated SIA (Hexo Labs) self-improvement worker: SIA
+  iterates in a sandbox, JARVIS promotes the winner only by proposal.
 - [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
   — the Android-only handoff flow that predates the orchestration
   stack (still relevant for the "just hand off to ChatGPT/Codex via

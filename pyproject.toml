@@ -103,6 +103,13 @@ honcho = ["honcho-ai==2.0.1"]
 mcp = ["mcp==1.26.0"]
 homeassistant = ["aiohttp==3.13.4"]
 sms = ["aiohttp==3.13.4"]
+# NOTE: SIA (Hexo Labs Self-Improving AI), used by the `sia` worker and the
+# `/sia-self-improve` skill, is intentionally NOT a Hermes dependency. Like
+# goose/codex/aider/claude-code it is an external CLI detected on PATH —
+# install it in its own environment (`pip install 'sia-agent[claude]'`). Its
+# pins (e.g. openhands→openai==2.8) conflict with Hermes' locked env, which is
+# exactly why we shell out to it instead of vendoring it. See
+# docs/integrations/sia-self-improvement.md.
 # Computer use — macOS background desktop control via cua-driver (MCP stdio).
 # The cua-driver binary itself is installed via `hermes tools` post-setup
 # (curl install script); this extra just pins the MCP client used to talk
