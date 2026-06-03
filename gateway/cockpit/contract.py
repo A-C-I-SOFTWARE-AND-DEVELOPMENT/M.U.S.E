@@ -361,6 +361,224 @@ def orchestrator_job(job: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Job detail / ledger timeline — mirrors com.aci.hermes.data.cockpit.JobDetail
+# ---------------------------------------------------------------------------
+#
+# The Jobs list (`cockpit_job` / `orchestrator_job`) is the compact card; the
+# *detail* surface adds the read-only execution story the cockpit's Job Detail
+# screen renders: objective, plan, worker assignments, current step, evidence,
+# files touched, commands run, test results, approvals, the ledger timeline,
+# and rollback. Source-of-truth is the per-job decision ledger
+# (orchestrator) or the queue entry's worker records (JobQueue). Honest
+# derivation only — a field the source genuinely lacks is empty/null, never
+# invented (e.g. the orchestrator ledger does not record shell commands, so
+# `commands_run` is `[]` for orchestrator jobs).
+
+# Worker-status (orchestrator ledger / queue) → an UPPER token the UI renders.
+_WORKER_RESULT_STATUS = {
+    True: "SUCCESS",
+    False: "FAILED",
+}
+
+
+def _timeline_actor(kind: str) -> str:
+    """Who drove a ledger entry — owner-initiated vs worker/controller."""
+    k = kind.lower()
+    if k in {"approve", "resume", "cancel", "publish", "publish-plan", "submit"}:
+        return "owner"
+    if k.startswith("worker_"):
+        return "worker"
+    return "controller"
+
+
+def _timeline_summary(entry: dict[str, Any]) -> str:
+    """One-line human summary of a ledger entry, from its own fields."""
+    kind = str(entry.get("kind", "") or "")
+    for key in ("summary", "reason", "rationale", "error", "status", "phase", "prompt"):
+        val = entry.get(key)
+        if val:
+            return _first_line(str(val), limit=160) or kind
+    return kind
+
+
+def job_timeline(ledger_entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Project raw ledger entries into the canonical timeline (oldest→newest)."""
+    timeline: list[dict[str, Any]] = []
+    for entry in ledger_entries:
+        if not isinstance(entry, dict):
+            continue
+        kind = str(entry.get("kind", "") or "event")
+        timeline.append({
+            "ts": str(entry.get("ts", "") or ""),
+            "kind": kind,
+            "phase": str(entry.get("phase", "") or "") or None,
+            "actor": _timeline_actor(kind),
+            "summary": _timeline_summary(entry),
+        })
+    return timeline
+
+
+def _orch_workers(ledger_entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Reconstruct worker assignments from a job's ledger trail.
+
+    Folds the ``worker_dispatch`` / ``worker_result`` / ``worker_score`` /
+    ``worker_error`` / ``worker_blocked`` entries into one record per worker,
+    last-write-wins on status so the latest attempt is reflected.
+    """
+    workers: dict[str, dict[str, Any]] = {}
+    for entry in ledger_entries:
+        if not isinstance(entry, dict):
+            continue
+        kind = str(entry.get("kind", "") or "")
+        if not kind.startswith("worker_"):
+            continue
+        wid = str(entry.get("worker_id", "") or "")
+        if not wid:
+            continue
+        rec = workers.setdefault(
+            wid, {"id": wid, "worker": wid, "status": "PENDING", "summary": "", "error": None}
+        )
+        if kind == "worker_dispatch":
+            rec["status"] = "RUNNING" if entry.get("available") else "BLOCKED"
+            rec["summary"] = str(entry.get("reason", "") or "") or rec["summary"]
+        elif kind == "worker_result":
+            rec["status"] = _WORKER_RESULT_STATUS.get(bool(entry.get("ok")), "FAILED")
+            rec["summary"] = _first_line(str(entry.get("summary", "") or "")) or rec["summary"]
+            if entry.get("error"):
+                rec["error"] = str(entry["error"])
+        elif kind == "worker_score":
+            if entry.get("rationale"):
+                rec["summary"] = _first_line(str(entry["rationale"])) or rec["summary"]
+        elif kind == "worker_blocked":
+            rec["status"] = "BLOCKED"
+            rec["error"] = str(entry.get("reason", "") or "") or rec["error"]
+        elif kind == "worker_error":
+            rec["status"] = "FAILED"
+            rec["error"] = str(entry.get("error", "") or "") or rec["error"]
+    return list(workers.values())
+
+
+def _orch_files_touched(job: Any, ledger_entries: list[dict[str, Any]]) -> list[str]:
+    """Files the job's workers reported touching — job artifacts + score files."""
+    files: list[str] = list(getattr(job, "artifacts", None) or [])
+    for entry in ledger_entries:
+        if isinstance(entry, dict) and entry.get("kind") == "worker_score":
+            for f in entry.get("files", []) or []:
+                if isinstance(f, str) and f not in files:
+                    files.append(f)
+    return files
+
+
+def orchestrator_job_detail(job: Any, ledger_entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """Project an orchestrator ``Job`` + its ledger into the canonical
+    ``JobDetail`` (read-only). Honest: ``commands_run`` and ``test_results``
+    are empty/null because the orchestrator ledger does not record them."""
+    base = orchestrator_job(job)
+    workers = _orch_workers(ledger_entries)
+    approvals = [
+        {
+            "id": f"{base['id']}-{phase}",
+            "timestamp": None,
+            "approver": "owner",
+            "state": "APPROVED",
+            "comment": f"phase '{phase}' approved",
+        }
+        for phase in (getattr(job, "approvals", None) or {})
+    ]
+    current = None
+    for entry in reversed(ledger_entries):
+        if isinstance(entry, dict) and entry.get("kind"):
+            current = _timeline_summary(entry)
+            break
+    return {
+        "id": base["id"],
+        "objective": _first_line(str(getattr(job, "prompt", "") or ""), limit=400)
+        or base["title"],
+        "status": base["status"],
+        "plan": "",  # orchestrator stores no standalone plan artifact (honest empty)
+        "current_step": current,
+        "workers": workers,
+        "timeline": job_timeline(ledger_entries),
+        "evidence": [],
+        "files_touched": _orch_files_touched(job, ledger_entries),
+        "commands_run": [],  # not tracked by the orchestrator ledger
+        "test_results": None,  # not tracked here (see /validate for a real run)
+        "approvals": approvals,
+        "rollback": None,
+    }
+
+
+# JobQueue WorkerStatus → UI worker status token.
+_QUEUE_WORKER_STATUS = {
+    "pending": "PENDING",
+    "running": "RUNNING",
+    "succeeded": "SUCCESS",
+    "failed": "FAILED",
+    "disconnected": "DISCONNECTED",
+    "blocked": "BLOCKED",
+    "cancelled": "CANCELLED",
+}
+
+
+def queue_job_detail(entry: Any) -> dict[str, Any]:
+    """Project a ``job_queue.JobQueueEntry`` into the canonical ``JobDetail``.
+
+    The queue tracks scheduling state per worker (status, attempts, last
+    error) rather than a phase ledger, so the timeline is a compact derivation
+    of the worker records plus the entry's note."""
+    base = cockpit_job(entry)
+    workers_raw = list(getattr(entry, "workers", None) or [])
+    workers = [
+        {
+            "id": getattr(w, "worker_id", "") or "",
+            "worker": getattr(w, "worker_id", "") or "",
+            "status": _QUEUE_WORKER_STATUS.get(str(getattr(w, "status", "")), "PENDING"),
+            "summary": "",
+            "error": getattr(w, "last_error", None),
+            "attempts": int(getattr(w, "attempts", 0) or 0),
+        }
+        for w in workers_raw
+    ]
+    timeline: list[dict[str, Any]] = []
+    created = base.get("created_at")
+    timeline.append({
+        "ts": created or "",
+        "kind": "submit",
+        "phase": None,
+        "actor": "owner",
+        "summary": base["title"],
+    })
+    for w in workers_raw:
+        status = _QUEUE_WORKER_STATUS.get(str(getattr(w, "status", "")), "PENDING")
+        timeline.append({
+            "ts": base.get("updated_at") or created or "",
+            "kind": f"worker_{str(getattr(w, 'status', 'pending'))}",
+            "phase": None,
+            "actor": "worker",
+            "summary": f"{getattr(w, 'worker_id', '')}: {status.lower()}"
+            + (f" — {getattr(w, 'last_error')}" if getattr(w, "last_error", None) else ""),
+        })
+    note = getattr(entry, "note", None)
+    failed = [w for w in workers if w["status"] in {"FAILED", "BLOCKED", "DISCONNECTED"}]
+    return {
+        "id": base["id"],
+        "objective": _first_line(str(getattr(entry, "prompt", "") or ""), limit=400)
+        or base["title"],
+        "status": base["status"],
+        "plan": "",
+        "current_step": (note or (failed[0]["error"] if failed else None)),
+        "workers": workers,
+        "timeline": timeline,
+        "evidence": [],
+        "files_touched": [],
+        "commands_run": [],
+        "test_results": _validation_summary(dict(getattr(entry, "metadata", None) or {})),
+        "approvals": [],
+        "rollback": None,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Audit — mirrors com.aci.hermes.data.model.audit.AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 #
@@ -724,6 +942,9 @@ __all__ = [
     "navigation_view",
     "normalize_category",
     "orchestrator_job",
+    "orchestrator_job_detail",
+    "queue_job_detail",
+    "job_timeline",
     "normalize_publish_state",
     "proposal_view",
     "skill_entry",

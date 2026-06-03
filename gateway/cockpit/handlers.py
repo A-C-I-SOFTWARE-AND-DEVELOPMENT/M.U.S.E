@@ -552,6 +552,331 @@ def job_cancel(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Job detail + controls (read-only ledger; pause/resume/rerun/approve/diff/validate)
+# ---------------------------------------------------------------------------
+#
+# A job id addresses one of two stores: the JobQueue (cockpit-dispatched
+# queue entries) or the orchestrator (/orchestrate flow). Every control
+# resolves the id against both — JobQueue first, orchestrator as fallback —
+# exactly like ``job_get``. We never invent a third store.
+
+
+def _resolve_job(job_id: str) -> tuple[Optional[str], Any]:
+    """Return ``("queue"|"orchestrator", obj)`` or ``(None, None)`` if unknown."""
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError
+
+        try:
+            return "queue", JobQueue().get_job(job_id)
+        except JobQueueNotFoundError:
+            pass
+    except Exception:  # pragma: no cover - defensive (queue import/load failure)
+        pass
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        ojob = _orch.get_job(job_id)
+        if ojob is not None:
+            return "orchestrator", ojob
+    except Exception:  # pragma: no cover - defensive
+        pass
+    return None, None
+
+
+def job_ledger(req: Request) -> JsonResponse:
+    """Read-only job detail + decision-ledger timeline (contract §4).
+
+    Surfaces the execution story the Job Detail screen renders: objective,
+    plan, worker assignments, current step, evidence, files touched, commands
+    run, test results, approvals, timeline, rollback. Honest derivation only.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
+
+    if kind == "queue":
+        return JsonResponse(200, contract.queue_job_detail(obj))
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        entries = _orch.get_ledger(job_id).get(job_id, [])
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.orchestrator_job_detail(obj, entries))
+
+
+def job_pause(req: Request) -> JsonResponse:
+    """Pause a running/queued job (contract §4). Queue jobs only.
+
+    Orchestrator (/orchestrate) jobs have no scheduler-side pause — they
+    advance only on explicit owner approval — so pausing one is an honest
+    409 rather than a fabricated no-op.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if kind != "queue":
+        return JsonResponse(
+            409,
+            {"error": "pause applies to queue jobs; orchestrator jobs pause by "
+             "withholding approval, not by a scheduler toggle"},
+        )
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueError
+
+        from . import contract
+
+        reason = req.body.get("reason")
+        entry = JobQueue().pause_job(job_id, note=str(reason) if reason else None)
+    except JobQueueError as exc:
+        return JsonResponse(409, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def job_resume(req: Request) -> JsonResponse:
+    """Resume a paused/blocked/disconnected/failed job (contract §4).
+
+    The unblock action for a blocked job. Re-queues a queue entry (the
+    dispatcher claims it next) or re-queues an orchestrator job. Reversible
+    and local — no owner phrase required to *resume* already-approved work.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
+
+    if kind == "queue":
+        try:
+            from hermes_cli.job_queue import JobQueue, JobQueueError
+
+            reason = req.body.get("reason")
+            entry = JobQueue().resume_job(job_id, note=str(reason) if reason else None)
+        except JobQueueError as exc:
+            return JsonResponse(409, {"error": str(exc)})
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+        return JsonResponse(200, contract.cockpit_job(entry))
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        out = _orch.resume_job(job_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
+
+
+def job_rerun(req: Request) -> JsonResponse:
+    """Rerun a failed/disconnected step (contract §4). Queue jobs only.
+
+    Resets one failed worker so the dispatcher runs it again. ``worker_id``
+    may be passed explicitly; otherwise the first non-successful worker is
+    chosen. Reversible and local.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if kind != "queue":
+        return JsonResponse(
+            409, {"error": "rerun applies to queue jobs (per-worker retry)"}
+        )
+    try:
+        from hermes_cli.job_queue import (
+            JobQueue,
+            JobQueueError,
+            WorkerNotFoundError,
+            WorkerStatus,
+        )
+
+        from . import contract
+
+        worker_id = str(req.body.get("worker_id", "")).strip()
+        if not worker_id:
+            retryable = {
+                WorkerStatus.FAILED,
+                WorkerStatus.DISCONNECTED,
+                WorkerStatus.BLOCKED,
+            }
+            for w in getattr(obj, "workers", None) or []:
+                if getattr(w, "status", "") in retryable:
+                    worker_id = w.worker_id
+                    break
+        if not worker_id:
+            return JsonResponse(
+                400,
+                {"error": "no failed/blocked worker to rerun; pass worker_id"},
+            )
+        entry = JobQueue().retry_worker(job_id, worker_id)
+    except WorkerNotFoundError as exc:
+        return JsonResponse(404, {"error": str(exc)})
+    except JobQueueError as exc:
+        return JsonResponse(409, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def job_approve(req: Request) -> JsonResponse:
+    """Approve a gated job phase (contract §4) — owner gate preserved.
+
+    Double-gated exactly like ``job_run``:
+      1. **Owner phrase** — ``authorization`` must equal the exact owner phrase.
+      2. **Loopback-only** — refused on a non-loopback (``--allow-external``)
+         cockpit, so a network-reachable cockpit can't grant execute.
+    Targets orchestrator job phases (``execute``/``publish``/``remote``/…).
+    """
+    job_id = req.path_params.get("id", "")
+    phase = str(req.body.get("phase", "execute")).strip() or "execute"
+    authorization = str(req.body.get("authorization", "")).strip()
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403,
+            {"error": "owner approvals are disabled on a non-loopback cockpit; "
+             "run the runtime locally (loopback) to approve gated phases"},
+        )
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if authorization != AUTHORIZATION_PHRASE:
+        return JsonResponse(
+            403,
+            {"error": "owner approval required to grant a gated phase",
+             "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}"},
+        )
+    if kind != "orchestrator":
+        return JsonResponse(
+            409, {"error": "approve targets orchestrator job phases"}
+        )
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        from . import contract
+
+        out = _orch.approve_phase(job_id, phase)
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
+
+
+def job_diff(req: Request) -> JsonResponse:
+    """Read-only working-tree diff for a job's workspace (contract §4/§6).
+
+    "Open patch" on mobile. Runs ``git diff`` in the job's workspace (vs the
+    job's base branch when recorded). Honest empty when the job has no
+    workspace (orchestrator jobs don't carry one). Read-only — never edits.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = ""
+    base: Optional[str] = None
+    if kind == "queue":
+        workspace = str(getattr(obj, "repo_root", "") or "")
+        base = (dict(getattr(obj, "metadata", None) or {})).get("base_branch")
+    if not workspace:
+        return JsonResponse(200, {"files": [], "diff": "", "truncated": False})
+    return JsonResponse(200, _git_diff(workspace, base))
+
+
+def job_validate(req: Request) -> JsonResponse:
+    """Run verification gates against a job's workspace (contract §4/§7).
+
+    "Run verification" on mobile. Executes the real ``ValidationRunner`` and
+    projects its report into the canonical ``ValidationSnapshot`` shape — pass/
+    fail come from the actual checks, never fabricated. Honest 409 when the job
+    has no workspace to validate.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
+    if not workspace:
+        return JsonResponse(
+            409, {"error": "job has no workspace to validate"}
+        )
+    try:
+        from hermes_cli.validation import STATUS_FAIL, ValidationRunner
+
+        report = ValidationRunner(workspace).run()
+        gates = []
+        for r in report.results:
+            gates.append({
+                "id": r.name,
+                "name": r.name,
+                "status": str(r.status).upper(),
+                "summary": r.summary,
+                "log_excerpt": (r.stderr or r.stdout or "")[:2000] or None,
+                "override_allowed": not bool(r.critical),
+            })
+        payload = {
+            "gates": gates,
+            "policy": {"all_must_pass": True, "override_requires_note": True},
+            "publish_allowed": bool(report.publish_allowed),
+            "blocking_failures": list(report.blocking_failures),
+        }
+        _ = STATUS_FAIL  # referenced for intent; counts live in gates
+    except Exception as exc:  # pragma: no cover - defensive (runner/env failure)
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def _git_diff(workspace: str, base: Optional[str], *, limit: int = 200_000) -> dict[str, Any]:
+    """Run ``git diff`` (and ``--numstat``) in ``workspace``; honest on failure."""
+    import subprocess
+    from pathlib import Path
+
+    ws = Path(workspace)
+    if not ws.is_dir():
+        return {"files": [], "diff": "", "truncated": False}
+    rev = f"{base}...HEAD" if base else None
+
+    def _run(args: list[str]) -> str:
+        try:
+            out = subprocess.run(
+                ["git", "-C", str(ws), *args],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            return out.stdout if out.returncode == 0 else ""
+        except Exception:
+            return ""
+
+    diff_args = ["diff"] + ([rev] if rev else [])
+    diff_text = _run(diff_args)
+    numstat = _run(["diff", "--numstat"] + ([rev] if rev else []))
+    files: list[dict[str, Any]] = []
+    for line in numstat.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        added, removed, path = parts
+        files.append({
+            "path": path,
+            "additions": int(added) if added.isdigit() else 0,
+            "deletions": int(removed) if removed.isdigit() else 0,
+        })
+    truncated = len(diff_text) > limit
+    return {"files": files, "diff": diff_text[:limit], "truncated": truncated}
+
+
+# ---------------------------------------------------------------------------
 # Approvals (persistent JARVIS proposal queue; owner phrase preserved)
 # ---------------------------------------------------------------------------
 
@@ -816,8 +1141,15 @@ __all__ = [
     "audit_proof",
     "diagnostics",
     "health",
+    "job_approve",
     "job_cancel",
+    "job_diff",
     "job_get",
+    "job_ledger",
+    "job_pause",
+    "job_rerun",
+    "job_resume",
+    "job_validate",
     "jobs_dispatch",
     "jobs_list",
     "memory_create",

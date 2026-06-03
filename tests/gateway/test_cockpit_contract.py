@@ -304,6 +304,90 @@ def test_orchestrator_job_status_mapping_and_published() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Job detail — Job + ledger → canonical JobDetail (timeline / workers / files)
+# ---------------------------------------------------------------------------
+
+
+def test_orchestrator_job_detail_folds_ledger_into_workers_and_files() -> None:
+    from hermes_cli.orchestrator import Job
+
+    job = Job(
+        id="orc-detail",
+        prompt="Refactor the parser\nsecond line ignored",
+        status="completed",
+        created_at=1_700_000_000_000_000,
+        approvals={"execute": 1_700_000_000_000_000},
+    )
+    ledger = [
+        {"ts": "2023-11-14T22:13:20+00:00", "kind": "submit", "prompt": "Refactor"},
+        {"ts": "2023-11-14T22:13:21+00:00", "kind": "worker_dispatch",
+         "worker_id": "codex-execute", "available": True, "reason": "ready"},
+        {"ts": "2023-11-14T22:13:25+00:00", "kind": "worker_result",
+         "worker_id": "codex-execute", "ok": True, "summary": "done"},
+        {"ts": "2023-11-14T22:13:26+00:00", "kind": "worker_score",
+         "worker_id": "codex-execute", "value": 0.9, "rationale": "clean",
+         "files": ["src/parser.py"]},
+    ]
+    out = contract.orchestrator_job_detail(job, ledger)
+    assert out["id"] == "orc-detail"
+    assert out["objective"] == "Refactor the parser"
+    assert out["status"] == "COMPLETED"
+    # workers folded from the ledger trail; latest status wins (SUCCESS)
+    assert len(out["workers"]) == 1
+    assert out["workers"][0]["id"] == "codex-execute"
+    assert out["workers"][0]["status"] == "SUCCESS"
+    # files come from worker_score; honest empty commands (not tracked)
+    assert out["files_touched"] == ["src/parser.py"]
+    assert out["commands_run"] == []
+    assert out["test_results"] is None
+    # approval recorded on the job surfaces in the detail
+    assert out["approvals"][0]["state"] == "APPROVED"
+    # timeline preserves order and tags actors
+    assert [e["kind"] for e in out["timeline"]] == [
+        "submit", "worker_dispatch", "worker_result", "worker_score",
+    ]
+    assert out["timeline"][0]["actor"] == "owner"
+    assert out["timeline"][1]["actor"] == "worker"
+
+
+def test_queue_job_detail_projects_workers_and_timeline() -> None:
+    from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry, WorkerStatus
+
+    entry = JobQueueEntry(
+        job_id="job_q1",
+        prompt="Ship the thing",
+        repo_root="/tmp/proj",
+        created_at=5.0,
+        updated_at=6.0,
+        note="waiting on worker",
+        workers=[
+            WorkerQueueEntry(worker_id="codex_cli", status=WorkerStatus.FAILED,
+                             attempts=2, last_error="boom"),
+        ],
+    )
+    out = contract.queue_job_detail(entry)
+    assert out["id"] == "job_q1"
+    assert out["objective"] == "Ship the thing"
+    assert out["workers"][0]["status"] == "FAILED"
+    assert out["workers"][0]["attempts"] == 2
+    assert out["workers"][0]["error"] == "boom"
+    # submit anchors the timeline; a worker row follows
+    assert out["timeline"][0]["kind"] == "submit"
+    assert any("codex_cli" in e["summary"] for e in out["timeline"])
+    # current_step surfaces the human-readable note
+    assert out["current_step"] == "waiting on worker"
+    # canonical shape parity with the orchestrator detail projection
+    assert set(out.keys()) == set(
+        contract.orchestrator_job_detail(
+            __import__("hermes_cli.orchestrator", fromlist=["Job"]).Job(
+                id="o", prompt="p"
+            ),
+            [],
+        ).keys()
+    )
+
+
+# ---------------------------------------------------------------------------
 # Audit — DecisionLedger → canonical AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 
