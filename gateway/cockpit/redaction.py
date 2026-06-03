@@ -8,15 +8,15 @@ before it ever leaves the loopback API.
 
 Design choices:
 
-* **Single source of truth for *detection*.** The standalone-token
+* **Detection mirrors the memory write-gate.** The standalone-token
   patterns (private-key blocks, AWS keys, ``sk-``/``gh*``/``xox*`` tokens,
-  bearer headers) are imported from
-  :data:`hermes_cli.jarvis_prime.memory_tree._SECRET_PATTERNS` so the
-  cockpit and the memory write-gate agree on what a secret looks like. We
-  add a few capture-group patterns here purely so the *replacement* can
-  preserve the key name (``API_KEY=[REDACTED]`` reads better than
-  ``[REDACTED]``) — the Android ``SecretRedactor`` uses the same shape, so
-  both layers redact identically (defense in depth).
+  bearer headers) mirror
+  :data:`hermes_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`, so the
+  cockpit and the gate agree on what a secret looks like. The capture-group
+  patterns here exist so the *replacement* can preserve the key name
+  (``API_KEY=[REDACTED]`` reads better than ``[REDACTED]``) — the Android
+  ``SecretRedactor`` uses the same shape, so both layers redact identically
+  (defense in depth).
 * **Conservative.** Favors over-redaction; the cost of leaking one real
   secret dwarfs the cost of redacting a lookalike.
 * **Recursive.** :func:`redact_value` walks dicts/lists/strings so a whole
@@ -55,19 +55,14 @@ _AUTH_HEADER_RE = re.compile(
     r"(?i)(authorization\s*:\s*)(bearer\s+|basic\s+)?([A-Za-z0-9+/=._\-]{12,})",
 )
 
-# Standalone whole-match tokens — replaced wholesale. Imported from the
-# memory write-gate so detection stays single-sourced; we fall back to a
-# local copy if that module is unavailable (slim installs / import order).
-try:  # pragma: no cover - exercised indirectly
-    from hermes_cli.jarvis_prime.memory_tree import _SECRET_PATTERNS as _MT_PATTERNS
-except Exception:  # pragma: no cover - defensive
-    _MT_PATTERNS = ()
-
-# memory_tree's tuple includes the key=value and bearer shapes too; we apply
-# those via the capture-group patterns above to preserve the key, so here we
-# keep only the standalone-token / private-key-block patterns to replace
-# whole-match. (Re-listed locally rather than filtered by index so a change
-# to the upstream tuple order can't silently change behavior.)
+# Standalone whole-match tokens — replaced wholesale. These mirror
+# ``hermes_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`` (the memory
+# write-gate) so the cockpit and the gate agree on what a secret looks like.
+# They are re-listed locally rather than imported-and-filtered: the gate's
+# tuple also carries the key=value and bearer shapes, which we handle above
+# via capture groups so the *replacement* can preserve the key name. Keeping
+# an explicit local list means a change to the gate's tuple order can't
+# silently alter cockpit redaction.
 _WHOLE_MATCH_RE = (
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
