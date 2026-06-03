@@ -139,6 +139,29 @@ fun DeviceControlScreen(
         ) {
             ActiveIndicator(activeNow = state.activeNow, halted = state.halted)
 
+            // A sensitive action waiting for the owner's explicit OK.
+            state.pending?.let { pending ->
+                CommandCard(
+                    title = "Confirm action",
+                    subtitle = "Jarvis wants to: ${pending.previewLabel}",
+                    tier = CardTier.APPROVAL,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        androidx.compose.material3.Button(
+                            onClick = { viewModel.approvePending(pending.id) },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Approve") }
+                        OutlinedButton(
+                            onClick = { viewModel.dismissPending(pending.id) },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Dismiss") }
+                    }
+                }
+            }
+
             // Master switch + sensitive-action posture.
             CommandCard(
                 title = "Let Jarvis operate this phone",

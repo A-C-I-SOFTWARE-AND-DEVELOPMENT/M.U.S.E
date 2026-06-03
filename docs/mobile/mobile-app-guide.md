@@ -200,9 +200,15 @@ Reach it from **Control → Device control**. The screen has five parts:
    revoke consent instantly — the action layer honors the change
    immediately, even if the OS permission is still granted.
 3. **Confirm sensitive actions.** On by default: launching an app or
-   tapping a target waits for your OK rather than running from voice. You
-   can turn this off for hands-free high-power mode — that toggle is
-   owner-gated (a confirmation dialog), and every action is still logged.
+   tapping a target waits for your OK rather than running from voice. A held
+   command appears at the top of the screen as a **Confirm action** card with
+   **Approve** / **Dismiss** — Approve runs it (re-checked against the
+   emergency stop, master switch, and permissions, so a stale approval can't
+   bypass them); Dismiss logs it and drops it. You can turn confirmation off
+   for hands-free high-power mode — that toggle is owner-gated (a confirmation
+   dialog), and every action is still logged. An action whose target can't be
+   resolved (a misheard or uninstalled app) is refused outright, never run as
+   a blind tap.
 4. **Active indicator + emergency stop.** A live status dot shows whether
    device control is active right now. One **Emergency stop** drops every
    in-flight gesture, stops the floating avatar and the voice loop, and

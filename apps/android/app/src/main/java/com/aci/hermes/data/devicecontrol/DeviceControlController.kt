@@ -50,6 +50,7 @@ class DeviceControlController(
     private val ledger: DeviceActionLedger,
     private val logBuffer: LogBuffer,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val idGenerator: () -> String = { java.util.UUID.randomUUID().toString() },
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
 ) {
 
@@ -59,6 +60,14 @@ class DeviceControlController(
     private val _halted = MutableStateFlow(false)
     /** True while the device-control emergency stop is engaged. */
     val halted: StateFlow<Boolean> = _halted.asStateFlow()
+
+    private val _pending = MutableStateFlow<PendingDeviceAction?>(null)
+    /**
+     * A sensitive action held for explicit owner confirmation. The Device
+     * control screen surfaces this with Approve / Dismiss. At most one is
+     * outstanding at a time — a newer hold replaces an older one.
+     */
+    val pending: StateFlow<PendingDeviceAction?> = _pending.asStateFlow()
 
     /** Recent device actions, newest last — surfaced on the Device control screen. */
     val log: StateFlow<List<DeviceActionLogEntry>> = ledger.entries
@@ -190,24 +199,106 @@ class DeviceControlController(
         ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))
 
         when (decision) {
-            BrokerDecision.Approved -> {
-                val plan = JarvisChoreographer(screenMetrics()).choreograph(intent, resolved)
-                overlay.execute(plan)
-                ledger.record(
-                    DeviceActionLogEntry(
-                        timestamp = clock(),
-                        intentLabel = packet.previewLabel,
-                        sensitivity = packet.sensitivity,
-                        outcome = DeviceActionLogEntry.Outcome.EXECUTED,
-                    ),
+            BrokerDecision.Approved -> runPlan(packet, intent, resolved, overlay)
+            BrokerDecision.NeedsConfirmation -> {
+                // Hold the action and surface it for explicit owner approval
+                // on the Device control screen instead of dropping it.
+                _pending.value = PendingDeviceAction(
+                    id = idGenerator(),
+                    intent = intent,
+                    resolved = resolved,
+                    previewLabel = packet.previewLabel,
+                    sensitivity = packet.sensitivity,
+                    requestedAt = clock(),
                 )
-                logBuffer.info(TAG, "Executed device action: ${packet.previewLabel}")
-            }
-            BrokerDecision.NeedsConfirmation ->
                 logBuffer.warn(TAG, "Held for confirmation: ${packet.previewLabel}")
+            }
             is BrokerDecision.Blocked ->
                 logBuffer.warn(TAG, "Blocked (${decision.reason}): ${packet.previewLabel}")
         }
+    }
+
+    /**
+     * Approve a held sensitive action. The owner's tap *is* the confirmation,
+     * so the broker is re-checked with the confirm gate lifted — but the
+     * emergency stop, master switch, and permissions are all re-verified, so a
+     * stale approval can never bypass them.
+     */
+    fun approvePending(id: String) {
+        val held = _pending.value ?: return
+        if (held.id != id) return
+        _pending.value = null
+        scope.launch {
+            val packet = DeviceActionPacket.from(held.intent, held.resolved?.label)
+            val decision = DeviceActionBroker.evaluate(
+                packet = packet,
+                consent = consent.copy(confirmSensitiveActions = false),
+                emergencyEngaged = _halted.value,
+                grantedCapabilities = grantedCapabilities(),
+            )
+            if (decision is BrokerDecision.Approved) {
+                ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))
+                runPlan(packet, held.intent, held.resolved, JarvisOverlayService.active)
+            } else {
+                ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))
+                logBuffer.warn(TAG, "Pending approval refused ($decision): ${packet.previewLabel}")
+            }
+        }
+    }
+
+    /** Dismiss a held sensitive action without running it (logged). */
+    fun dismissPending(id: String) {
+        val held = _pending.value ?: return
+        if (held.id != id) return
+        _pending.value = null
+        scope.launch {
+            ledger.record(
+                DeviceActionLogEntry(
+                    timestamp = clock(),
+                    intentLabel = held.previewLabel,
+                    sensitivity = held.sensitivity,
+                    outcome = DeviceActionLogEntry.Outcome.BLOCKED,
+                    reason = "dismissed",
+                ),
+            )
+        }
+        logBuffer.info(TAG, "Pending action dismissed: ${held.previewLabel}")
+    }
+
+    /**
+     * Run an approved plan via the floating overlay. The decision/approval is
+     * already logged by the caller; this only records the execution outcome.
+     */
+    private suspend fun runPlan(
+        packet: DeviceActionPacket,
+        intent: AutomationIntent,
+        resolved: ResolvedTarget?,
+        overlay: JarvisOverlayService?,
+    ) {
+        if (overlay == null) {
+            ledger.record(
+                DeviceActionLogEntry(
+                    timestamp = clock(),
+                    intentLabel = packet.previewLabel,
+                    sensitivity = packet.sensitivity,
+                    outcome = DeviceActionLogEntry.Outcome.EXECUTION_FAILED,
+                    reason = "overlay_inactive",
+                ),
+            )
+            logBuffer.warn(TAG, "Cannot execute, overlay inactive: ${packet.previewLabel}")
+            return
+        }
+        val plan = JarvisChoreographer(screenMetrics()).choreograph(intent, resolved)
+        overlay.execute(plan)
+        ledger.record(
+            DeviceActionLogEntry(
+                timestamp = clock(),
+                intentLabel = packet.previewLabel,
+                sensitivity = packet.sensitivity,
+                outcome = DeviceActionLogEntry.Outcome.EXECUTED,
+            ),
+        )
+        logBuffer.info(TAG, "Executed device action: ${packet.previewLabel}")
     }
 
     // ── helpers ─────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.devicecontrol.DeviceActionLogEntry
 import com.aci.hermes.data.devicecontrol.DeviceControlCapability
 import com.aci.hermes.data.devicecontrol.DeviceControlController
+import com.aci.hermes.data.devicecontrol.PendingDeviceAction
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +33,8 @@ data class DeviceControlUiState(
     /** True when control is enabled, not halted, and the hands are connected. */
     val activeNow: Boolean = false,
     val recent: List<DeviceActionLogEntry> = emptyList(),
+    /** A sensitive action held for explicit Approve / Dismiss, if any. */
+    val pending: PendingDeviceAction? = null,
     /** Owner-gate dialog flag for turning sensitive-action confirmation OFF. */
     val confirmDisableSensitive: Boolean = false,
 )
@@ -64,6 +67,8 @@ class DeviceControlViewModel(
             controller.log,
         ) { enabled, confirm, consentedIds, halted, log ->
             project(enabled, confirm, consentedIds, halted, log, grantedState.value)
+        }.combine(controller.pending) { state, pending ->
+            state.copy(pending = pending)
         }.onEach { projected -> _state.value = projected }.launchIn(viewModelScope)
 
         // Recompute the projection when the live grant set changes.
@@ -117,6 +122,16 @@ class DeviceControlViewModel(
         }
     }
 
+    /** Owner confirms a held sensitive action — it runs now. */
+    fun approvePending(id: String) {
+        controller.approvePending(id)
+    }
+
+    /** Owner declines a held sensitive action — it never runs. */
+    fun dismissPending(id: String) {
+        controller.dismissPending(id)
+    }
+
     fun engageEmergencyStop() {
         controller.engageEmergencyStop()
     }
@@ -159,6 +174,9 @@ class DeviceControlViewModel(
             capabilities = rows,
             activeNow = enabled && !halted && DeviceControlCapability.ACCESSIBILITY in granted,
             recent = log.takeLast(MAX_RECENT).reversed(),
+            // Preserved across grant-only reprojections; the live combine with
+            // controller.pending re-applies the authoritative value.
+            pending = _state.value.pending,
             confirmDisableSensitive = _state.value.confirmDisableSensitive,
         )
     }
