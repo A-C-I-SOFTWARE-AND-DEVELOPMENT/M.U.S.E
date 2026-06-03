@@ -23,7 +23,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.approval.model.ApprovalCard
 import com.aci.hermes.approval.model.ApprovalRiskTier
 import com.aci.hermes.approval.model.ApprovalStatus
@@ -73,21 +75,24 @@ fun RiskyApprovalCard(
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
-                    label = { Text("Proposed action") },
+                    label = { Text(stringResource(R.string.approval_label_proposed_action)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = { editing = false; draft = card.proposedAction }) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.action_cancel))
                     }
                     Button(onClick = {
                         editing = false
                         haptics.confirm()
                         onEdit(draft)
-                    }) { Text("Save edit") }
+                    }) { Text(stringResource(R.string.approval_action_save_edit)) }
                 }
             } else {
-                Text("Action: ${card.proposedAction}", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.approval_label_action, card.proposedAction),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -97,11 +102,11 @@ fun RiskyApprovalCard(
                         haptics.confirm()
                         onApprove(card.editedNote)
                     }
-                ) { Text("Approve") }
+                ) { Text(stringResource(R.string.approval_action_approve)) }
                 OutlinedButton(
                     enabled = !expired && !finished,
                     onClick = { editing = true }
-                ) { Text("Edit") }
+                ) { Text(stringResource(R.string.approval_action_edit)) }
                 OutlinedButton(
                     enabled = !finished,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -111,7 +116,7 @@ fun RiskyApprovalCard(
                         haptics.reject()
                         onReject(null)
                     }
-                ) { Text("Reject") }
+                ) { Text(stringResource(R.string.approval_action_reject)) }
             }
         }
     }

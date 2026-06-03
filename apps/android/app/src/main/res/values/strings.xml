@@ -98,6 +98,49 @@
     <string name="critical_confirm">I understand — proceed</string>
     <string name="critical_cancel">Hold</string>
 
+    <!-- Tiered approval queue (Risky / Serious / Critical cards + history) -->
+    <string name="approval_tab_pending">Pending</string>
+    <string name="approval_tab_history">History</string>
+    <string name="approval_action_approve">Approve</string>
+    <string name="approval_action_reject">Reject</string>
+    <string name="approval_action_edit">Edit</string>
+    <string name="approval_action_save_edit">Save edit</string>
+    <string name="approval_action_emergency_stop">Emergency stop</string>
+    <string name="approval_action_final_confirmation">Final confirmation</string>
+    <string name="approval_action_confirm_consequences">Confirm consequences</string>
+    <string name="approval_label_proposed_action">Proposed action</string>
+    <string name="approval_label_action">Action: %1$s</string>
+    <string name="approval_label_note">Note: %1$s</string>
+    <string name="approval_impact_report">Impact report</string>
+    <string name="approval_impact_required">Impact report required before approval.</string>
+    <string name="approval_impact_surfaces">Surfaces: %1$s</string>
+    <string name="approval_impact_blast">Blast radius: %1$s · %2$s</string>
+    <string name="approval_reversible">reversible</string>
+    <string name="approval_not_reversible">NOT reversible</string>
+    <string name="approval_rollback_plan">Rollback plan</string>
+    <string name="approval_rollback_required">Rollback plan required before approval.</string>
+    <string name="approval_rollback_duration">Est duration: %1$ds · %2$s</string>
+    <string name="approval_verified">verified</string>
+    <string name="approval_unverified">UNVERIFIED</string>
+    <string name="approval_step1">Step 1: approve</string>
+    <string name="approval_step2_critical">Step 2: final confirmation</string>
+    <string name="approval_step2_serious">Step 2: confirm consequences</string>
+    <string name="approval_empty_pending_title">No approvals waiting</string>
+    <string name="approval_empty_history_title">No decisions yet</string>
+    <!-- Tier badges -->
+    <string name="approval_tier_safe">SAFE</string>
+    <string name="approval_tier_low">LOW</string>
+    <string name="approval_tier_risky">RISKY</string>
+    <string name="approval_tier_serious">SERIOUS</string>
+    <string name="approval_tier_critical">CRITICAL</string>
+    <string name="approval_tier_forbidden">FORBIDDEN</string>
+    <!-- Status badges -->
+    <string name="approval_status_pending">Pending</string>
+    <string name="approval_status_approved">Approved</string>
+    <string name="approval_status_rejected">Rejected</string>
+    <string name="approval_status_expired">Expired</string>
+    <string name="approval_status_emergency_stopped">Emergency stopped</string>
+
     <!-- Emergency stop (#113 confirm-flow variant; coexists with the simpler title/body/confirm strings added by #112 below) -->
     <string name="emergency_stop">Emergency stop</string>
     <string name="emergency_stop_cd">Halt every active task immediately</string>
@@ -115,10 +158,16 @@
     <string name="gateway_status_disconnected">Disconnected</string>
     <string name="gateway_status_mock">Mock</string>
     <string name="gateway_status_termux">Termux</string>
+    <string name="gateway_status_checking">Checking…</string>
     <string name="gateway_disconnected_title">Jarvis is offline</string>
     <string name="gateway_disconnected_body">I can’t reach the local gateway right now. Existing work is safe. I’ll reconnect as soon as it’s available.</string>
     <string name="gateway_disconnected_retry">Try again</string>
     <string name="gateway_disconnected_diagnose">Run diagnostics</string>
+
+    <!-- Backend connectivity (distinct from the local foreground service) -->
+    <string name="backend_pill_label">Hermes backend</string>
+    <string name="service_status_running">Local service running</string>
+    <string name="service_status_stopped">Local service stopped</string>
 
     <!-- Mock mode -->
     <string name="mock_mode_title">Mock mode</string>
@@ -186,6 +235,7 @@
     <string name="task_field_rollback_summary">Rollback summary (optional)</string>
     <string name="task_field_verification_result">Verification result (optional)</string>
     <string name="task_field_proof_link">Proof / audit link (optional)</string>
+    <string name="task_approval_state_not_required">Not required</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
@@ -236,6 +286,14 @@
     <string name="task_card_next_action_label">Next action</string>
     <string name="task_card_open_approvals">Open Approvals</string>
     <string name="task_card_open_audit">Open Audit</string>
+    <!-- Status chip labels (color-coded on the Tasks cards) -->
+    <string name="task_status_chip_draft">Draft</string>
+    <string name="task_status_chip_ready">Ready</string>
+    <string name="task_status_chip_with_codex">With Codex</string>
+    <string name="task_status_chip_with_claude">With Claude</string>
+    <string name="task_status_chip_in_review">In review</string>
+    <string name="task_status_chip_needs_revision">Needs revision</string>
+    <string name="task_status_chip_complete">Complete</string>
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
@@ -253,6 +311,16 @@
     <string name="memory_title">Memory</string>
     <string name="memory_description">Inspect long-term context, facts, and preferences Jarvis Prime has on file for you.</string>
     <string name="memory_coming_soon">Memory inspection arrives once the local store is wired up. Tasks remain visible on the Tasks tab.</string>
+    <!-- Memory screen (live) -->
+    <string name="memory_search_hint">Search memory</string>
+    <string name="memory_filter_all">All</string>
+    <string name="memory_visible_count">%1$d of %2$d visible</string>
+    <string name="memory_secrets_redacted">Secrets redacted</string>
+    <string name="memory_redacted_badge">Redacted</string>
+    <string name="memory_untitled">(untitled memory)</string>
+    <string name="memory_correct_cd">Correct</string>
+    <string name="memory_delete_cd">Delete</string>
+    <string name="memory_empty_filter">No memory matches the current filter.</string>
 
     <!-- Audit placeholder -->
     <string name="audit_title">Audit</string>
@@ -278,6 +346,11 @@
     <string name="settings_preferred_builder_label">Preferred builder</string>
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
 
+    <string name="settings_section_personalization">Personalization</string>
+    <string name="settings_avatar_title">Jarvis avatar</string>
+    <string name="settings_avatar_subtitle">Choose a built-in avatar or create a private pixel avatar from a photo.</string>
+    <string name="settings_open_avatar_picker">Open avatar picker</string>
+
     <string name="settings_use_api_keys_label">Use API keys</string>
     <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime never requires an API key for the primary workflow.</string>
     <string name="settings_local_only_mode_label">Local-only mode</string>
@@ -298,8 +371,10 @@
     <string name="diagnostics_copy_logs">Copy logs</string>
     <string name="diagnostics_clear_logs">Clear logs</string>
     <string name="diagnostics_no_error">No errors recorded.</string>
-    <string name="diagnostics_no_logs">No logs yet.</string>
+    <string name="diagnostics_no_logs">No logs yet — actions you take in the cockpit show up here.</string>
     <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_logs_copied">Logs copied to clipboard</string>
+    <string name="diagnostics_logs_cleared">Logs cleared</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>
@@ -310,6 +385,7 @@
     <string name="action_dismiss">Dismiss</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
+    <string name="action_clear">Clear</string>
 
     <!-- Jarvis Live command screen -->
     <string name="jarvis_live_entry_title">Open Jarvis Live</string>

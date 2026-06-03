@@ -1,7 +1,6 @@
 package com.aci.hermes.ui.screens.audit
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.audit.AuditRecord
+import com.aci.hermes.ui.components.EmptyState
 
 object AuditScreenTags {
     const val LIST = "audit-list"
@@ -69,19 +70,13 @@ fun AuditScreen(
         },
     ) { padding ->
         if (records.isEmpty()) {
-            Box(
+            EmptyState(
+                icon = Icons.Filled.History,
+                title = stringResource(R.string.audit_empty),
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp)
                     .testTag(AuditScreenTags.EMPTY),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    stringResource(R.string.audit_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
+            )
         } else {
             LazyColumn(
                 modifier = Modifier

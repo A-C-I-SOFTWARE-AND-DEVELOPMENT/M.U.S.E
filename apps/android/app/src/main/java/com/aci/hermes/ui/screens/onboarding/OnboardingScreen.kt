@@ -21,7 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.theme.HermesGold
+import com.aci.hermes.ui.components.JarvisPrimeIcon
 
 /**
  * One-page onboarding shown on first launch. Tap "Get started" to mark the
@@ -41,10 +41,8 @@ fun OnboardingScreen(
             horizontalAlignment = Alignment.Start,
         ) {
             Spacer(Modifier.height(8.dp))
-            Text(
-                text = "☤",
-                style = MaterialTheme.typography.displayLarge,
-                color = HermesGold,
+            JarvisPrimeIcon(
+                size = 72.dp,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
             Text(

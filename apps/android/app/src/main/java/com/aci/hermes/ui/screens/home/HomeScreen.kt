@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.ui.components.BackendOfflineBanner
+import com.aci.hermes.ui.components.BackendStatusPill
 import com.aci.hermes.ui.navigation.Screen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
@@ -63,6 +65,7 @@ fun HomeScreen(
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenJarvisLive: () -> Unit = {},
     onOpenVoice: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -84,6 +87,13 @@ fun HomeScreen(
             contentPadding = PaddingValues(vertical = 12.dp),
         ) {
             item { GreetingCard() }
+            item {
+                BackendOfflineBanner(
+                    status = state.backendStatus,
+                    onRetry = viewModel::retryBackend,
+                    onOpenDiagnostics = onOpenDiagnostics,
+                )
+            }
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
             item { JarvisLiveEntryCard(onClick = onOpenJarvisLive) }
             item { SectionTitle(stringResource(R.string.home_quick_links)) }
@@ -156,10 +166,15 @@ private fun StatusCard(
                     modifier = Modifier.size(12.dp),
                 ) {}
                 Text(
-                    text = if (state.serviceRunning) stringResource(R.string.orchestrator_status_running)
-                           else stringResource(R.string.orchestrator_status_stopped),
+                    text = if (state.serviceRunning) stringResource(R.string.service_status_running)
+                           else stringResource(R.string.service_status_stopped),
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
                 )
+                // Backend reachability is a separate signal from the local
+                // service above — show it side-by-side so neither is implied
+                // by the other.
+                BackendStatusPill(status = state.backendStatus)
             }
             StatusRow(stringResource(R.string.orchestrator_status_mode_label), stringResource(R.string.home_status_mode_value))
             StatusRow(stringResource(R.string.orchestrator_status_billing_label), stringResource(R.string.orchestrator_status_billing_value))

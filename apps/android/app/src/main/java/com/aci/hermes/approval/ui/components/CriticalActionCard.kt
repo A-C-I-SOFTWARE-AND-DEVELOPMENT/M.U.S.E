@@ -15,14 +15,19 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.approval.model.ApprovalCard
 import com.aci.hermes.approval.model.ApprovalRiskTier
 import com.aci.hermes.approval.model.ApprovalStatus
 import com.aci.hermes.ui.components.rememberJarvisHaptics
+import com.aci.hermes.ui.theme.JarvisCrimson
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Card UI for [ApprovalRiskTier.CRITICAL] requests.
@@ -53,7 +58,10 @@ fun CriticalActionCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // The apex-risk tier reads dangerous from the whole card, not just a
+        // small badge: a crimson frame around the surface.
+        border = BorderStroke(JarvisTokens.GlowRing, JarvisCrimson),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -65,48 +73,63 @@ fun CriticalActionCard(
             Text(card.title, style = MaterialTheme.typography.titleMedium)
             Text(card.summary, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            Text("Action: ${card.proposedAction}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(R.string.approval_label_action, card.proposedAction),
+                style = MaterialTheme.typography.bodySmall,
+            )
 
             Spacer(Modifier.height(12.dp))
             HorizontalDivider()
             Spacer(Modifier.height(8.dp))
 
-            Text("Impact report", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.approval_impact_report), style = MaterialTheme.typography.labelLarge)
             val report = cs.impactReport
             if (report != null) {
                 Text(report.summary, style = MaterialTheme.typography.bodySmall)
                 Text(
-                    "Surfaces: ${report.impactedSurfaces.joinToString(", ")}",
+                    stringResource(R.string.approval_impact_surfaces, report.impactedSurfaces.joinToString(", ")),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    "Blast radius: ${report.blastRadius} · " +
-                        if (report.reversible) "reversible" else "NOT reversible",
+                    stringResource(
+                        R.string.approval_impact_blast,
+                        report.blastRadius,
+                        stringResource(
+                            if (report.reversible) R.string.approval_reversible
+                            else R.string.approval_not_reversible
+                        ),
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 Text(
-                    "Impact report required before approval.",
+                    stringResource(R.string.approval_impact_required),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
             }
 
             Spacer(Modifier.height(8.dp))
-            Text("Rollback plan", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.approval_rollback_plan), style = MaterialTheme.typography.labelLarge)
             val plan = cs.rollbackPlan
             if (plan != null) {
                 plan.steps.forEachIndexed { i, step ->
                     Text("${i + 1}. $step", style = MaterialTheme.typography.bodySmall)
                 }
                 Text(
-                    "Est duration: ${plan.estimatedDurationSeconds}s · " +
-                        if (plan.verified) "verified" else "UNVERIFIED",
+                    stringResource(
+                        R.string.approval_rollback_duration,
+                        plan.estimatedDurationSeconds,
+                        stringResource(
+                            if (plan.verified) R.string.approval_verified
+                            else R.string.approval_unverified
+                        ),
+                    ),
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
                 Text(
-                    "Rollback plan required before approval.",
+                    stringResource(R.string.approval_rollback_required),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -115,7 +138,7 @@ fun CriticalActionCard(
             Spacer(Modifier.height(12.dp))
 
             Text(
-                "Step 1: approve" + if (cs.step1Approved) " ✓" else "",
+                stringResource(R.string.approval_step1) + if (cs.step1Approved) " ✓" else "",
                 style = MaterialTheme.typography.labelLarge
             )
             Spacer(Modifier.height(4.dp))
@@ -126,11 +149,11 @@ fun CriticalActionCard(
                     onApproveStep1()
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Approve") }
+            ) { Text(stringResource(R.string.approval_action_approve)) }
 
             Spacer(Modifier.height(12.dp))
             Text(
-                "Step 2: final confirmation" + if (cs.step2Approved) " ✓" else "",
+                stringResource(R.string.approval_step2_critical) + if (cs.step2Approved) " ✓" else "",
                 style = MaterialTheme.typography.labelLarge
             )
             Spacer(Modifier.height(4.dp))
@@ -141,7 +164,7 @@ fun CriticalActionCard(
                     onApproveStep2()
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Final confirmation") }
+            ) { Text(stringResource(R.string.approval_action_final_confirmation)) }
 
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,7 +177,7 @@ fun CriticalActionCard(
                         haptics.reject()
                         onReject(null)
                     }
-                ) { Text("Reject") }
+                ) { Text(stringResource(R.string.approval_action_reject)) }
                 OutlinedButton(
                     enabled = !finished,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -164,7 +187,7 @@ fun CriticalActionCard(
                         haptics.reject()
                         onEmergencyStop()
                     }
-                ) { Text("Emergency stop") }
+                ) { Text(stringResource(R.string.approval_action_emergency_stop)) }
             }
         }
     }

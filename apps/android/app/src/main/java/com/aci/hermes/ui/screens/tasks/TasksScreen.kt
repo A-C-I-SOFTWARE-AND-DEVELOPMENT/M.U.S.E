@@ -3,6 +3,8 @@ package com.aci.hermes.ui.screens.tasks
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,8 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,6 +42,10 @@ import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.model.linksApprovals
 import com.aci.hermes.data.model.linksAudit
 import com.aci.hermes.data.model.section
+import com.aci.hermes.ui.components.ChipTone
+import com.aci.hermes.ui.components.EmptyState
+import com.aci.hermes.ui.components.StatusChip
+import com.aci.hermes.ui.components.chipTone
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
@@ -73,22 +79,13 @@ fun TasksScreen(
 
     Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         if (state.tasks.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(R.string.tasks_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(R.string.tasks_empty_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-            }
+            EmptyState(
+                icon = Icons.AutoMirrored.Filled.Assignment,
+                title = stringResource(R.string.tasks_empty_title),
+                body = stringResource(R.string.tasks_empty_body),
+                actionLabel = stringResource(R.string.orchestrator_new_task),
+                onAction = { onOpenTask(null) },
+            )
         } else {
             val grouped = remember(state.tasks) { state.tasks.groupBy { it.section() } }
             LazyColumn(
@@ -154,7 +151,7 @@ private fun SectionHeader(title: String, count: Int) {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun TaskRow(
     task: HermesTask,
@@ -172,25 +169,26 @@ private fun TaskRow(
                 task.title.ifBlank { stringResource(R.string.orchestrator_untitled_task) },
                 style = MaterialTheme.typography.titleMedium,
             )
-            Row(
+            FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                AssistChip(onClick = onTap, label = { Text(task.taskType.name.lowercase()) })
-                AssistChip(onClick = onTap, label = { Text(task.status.name.lowercase().replace('_', ' ')) })
-                AssistChip(onClick = onTap, label = { Text(task.targetTool.name.lowercase().replace('_', ' ')) })
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AssistChip(
-                    onClick = onTap,
-                    label = { Text(stringResource(R.string.task_card_risk_chip, task.riskTier.name.lowercase())) },
+                // Status + risk are color-coded so a high-risk or stalled task
+                // reads at a glance; the rest are neutral context chips. All
+                // are display-only — the card owns the tap.
+                StatusChip(label = taskStatusLabel(task.status), tone = task.status.chipTone())
+                StatusChip(label = task.riskTier.name, tone = task.riskTier.chipTone())
+                StatusChip(
+                    label = task.taskType.name.lowercase().replaceFirstChar(Char::titlecase),
+                    tone = ChipTone.NEUTRAL,
                 )
-                AssistChip(
-                    onClick = onTap,
-                    label = { Text(stringResource(R.string.task_card_phase_chip, workerPhaseLabel(task.workerPhase))) },
+                StatusChip(
+                    label = task.targetTool.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase),
+                    tone = ChipTone.NEUTRAL,
+                )
+                StatusChip(
+                    label = stringResource(R.string.task_card_phase_chip, workerPhaseLabel(task.workerPhase)),
+                    tone = ChipTone.NEUTRAL,
                 )
             }
             if (task.description.isNotBlank()) {
@@ -255,3 +253,16 @@ private fun workerPhaseLabel(phase: WorkerPhase): String = when (phase) {
     WorkerPhase.REVIEWER -> "Reviewer"
     WorkerPhase.JARVIS_FINAL_SYNTHESIS -> "Jarvis Final Synthesis"
 }
+
+@Composable
+private fun taskStatusLabel(status: TaskStatus): String = stringResource(
+    when (status) {
+        TaskStatus.DRAFT -> R.string.task_status_chip_draft
+        TaskStatus.READY_FOR_HANDOFF -> R.string.task_status_chip_ready
+        TaskStatus.HANDED_TO_CODEX -> R.string.task_status_chip_with_codex
+        TaskStatus.HANDED_TO_CLAUDE -> R.string.task_status_chip_with_claude
+        TaskStatus.IN_REVIEW -> R.string.task_status_chip_in_review
+        TaskStatus.NEEDS_REVISION -> R.string.task_status_chip_needs_revision
+        TaskStatus.COMPLETE -> R.string.task_status_chip_complete
+    },
+)

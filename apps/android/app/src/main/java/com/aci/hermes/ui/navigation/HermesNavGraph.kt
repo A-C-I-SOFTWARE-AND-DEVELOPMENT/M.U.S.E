@@ -259,6 +259,7 @@ private fun NavGraphBuilder.shellDestinations(
                 onPrepareHandoff = prepareHandoff,
                 onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
                 onOpenVoice = { nav.navigate(Screen.Voice.route) },
+                onOpenDiagnostics = openDiagnostics,
             )
         }
     }
@@ -397,6 +398,7 @@ private fun NavGraphBuilder.shellDestinations(
                 viewModel = vm,
                 paddingValues = padding,
                 onEmergencyStop = emergencyStop,
+                onOpenDiagnostics = openDiagnostics,
             )
         }
     }

@@ -14,14 +14,19 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.approval.model.ApprovalCard
 import com.aci.hermes.approval.model.ApprovalRiskTier
 import com.aci.hermes.approval.model.ApprovalStatus
 import com.aci.hermes.ui.components.rememberJarvisHaptics
+import com.aci.hermes.ui.theme.JarvisAmber
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Card UI for [ApprovalRiskTier.SERIOUS] requests.
@@ -50,7 +55,10 @@ fun SeriousActionCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        // Serious (meaningful but not irreversible) gets an amber frame —
+        // loud, but a step below the critical crimson.
+        border = BorderStroke(JarvisTokens.BorderFocus, JarvisAmber),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -62,11 +70,14 @@ fun SeriousActionCard(
             Text(card.title, style = MaterialTheme.typography.titleMedium)
             Text(card.summary, style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(8.dp))
-            Text("Action: ${card.proposedAction}", style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(R.string.approval_label_action, card.proposedAction),
+                style = MaterialTheme.typography.bodySmall,
+            )
             Spacer(Modifier.height(12.dp))
 
             Text(
-                "Step 1: approve" + if (state.step1Approved) " ✓" else "",
+                stringResource(R.string.approval_step1) + if (state.step1Approved) " ✓" else "",
                 style = MaterialTheme.typography.labelLarge
             )
             Spacer(Modifier.height(4.dp))
@@ -77,11 +88,11 @@ fun SeriousActionCard(
                     onApproveStep1()
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Approve") }
+            ) { Text(stringResource(R.string.approval_action_approve)) }
 
             Spacer(Modifier.height(12.dp))
             Text(
-                "Step 2: confirm consequences" + if (state.step2Approved) " ✓" else "",
+                stringResource(R.string.approval_step2_serious) + if (state.step2Approved) " ✓" else "",
                 style = MaterialTheme.typography.labelLarge,
                 color = if (state.canConfirmStep2) MaterialTheme.colorScheme.onSurface
                         else MaterialTheme.colorScheme.onSurfaceVariant
@@ -94,7 +105,7 @@ fun SeriousActionCard(
                     onApproveStep2()
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Confirm consequences") }
+            ) { Text(stringResource(R.string.approval_action_confirm_consequences)) }
 
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -107,7 +118,7 @@ fun SeriousActionCard(
                         haptics.reject()
                         onReject(null)
                     }
-                ) { Text("Reject") }
+                ) { Text(stringResource(R.string.approval_action_reject)) }
                 OutlinedButton(
                     enabled = !finished,
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -117,7 +128,7 @@ fun SeriousActionCard(
                         haptics.reject()
                         onEmergencyStop()
                     }
-                ) { Text("Emergency stop") }
+                ) { Text(stringResource(R.string.approval_action_emergency_stop)) }
             }
         }
     }

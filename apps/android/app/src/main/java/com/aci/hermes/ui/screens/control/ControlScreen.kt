@@ -36,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.components.BackendOfflineBanner
+import com.aci.hermes.ui.components.BackendStatusPill
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
@@ -48,6 +50,7 @@ fun ControlScreen(
     viewModel: OrchestratorViewModel,
     paddingValues: PaddingValues,
     onEmergencyStop: () -> Unit,
+    onOpenDiagnostics: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmStop by remember { mutableStateOf(false) }
@@ -60,6 +63,11 @@ fun ControlScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        BackendOfflineBanner(
+            status = state.backendStatus,
+            onRetry = viewModel::retryBackend,
+            onOpenDiagnostics = onOpenDiagnostics,
+        )
         Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -81,10 +89,12 @@ fun ControlScreen(
                         modifier = Modifier.size(12.dp),
                     ) {}
                     Text(
-                        text = if (state.serviceRunning) stringResource(R.string.orchestrator_status_running)
-                               else stringResource(R.string.orchestrator_status_stopped),
+                        text = if (state.serviceRunning) stringResource(R.string.service_status_running)
+                               else stringResource(R.string.service_status_stopped),
                         style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f),
                     )
+                    BackendStatusPill(status = state.backendStatus)
                 }
                 HorizontalDivider()
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -9,10 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -34,6 +35,7 @@ import com.aci.hermes.approval.ui.components.ApprovalHistoryCard
 import com.aci.hermes.approval.ui.components.CriticalActionCard
 import com.aci.hermes.approval.ui.components.RiskyApprovalCard
 import com.aci.hermes.approval.ui.components.SeriousActionCard
+import com.aci.hermes.ui.components.EmptyState
 
 /**
  * Top-level Approvals screen, reachable from the cockpit overflow menu.
@@ -51,14 +53,20 @@ fun ApprovalsScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var tab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Pending", "History")
+    val tabs = listOf(
+        stringResource(R.string.approval_tab_pending),
+        stringResource(R.string.approval_tab_history),
+    )
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.approvals_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 }
             )
@@ -90,10 +98,10 @@ private fun PendingTab(
     nowMillis: Long
 ) {
     if (cards.isEmpty()) {
-        Text(
-            stringResource(R.string.approvals_empty_pending),
-            modifier = Modifier.padding(24.dp),
-            style = MaterialTheme.typography.bodyLarge
+        EmptyState(
+            icon = Icons.Filled.CheckCircle,
+            title = stringResource(R.string.approval_empty_pending_title),
+            body = stringResource(R.string.approvals_empty_pending),
         )
         return
     }
@@ -138,10 +146,10 @@ private fun PendingTab(
 @Composable
 private fun HistoryTab(items: List<com.aci.hermes.approval.model.ApprovalHistoryItem>) {
     if (items.isEmpty()) {
-        Text(
-            stringResource(R.string.approvals_empty_history),
-            modifier = Modifier.padding(24.dp),
-            style = MaterialTheme.typography.bodyLarge
+        EmptyState(
+            icon = Icons.Filled.History,
+            title = stringResource(R.string.approval_empty_history_title),
+            body = stringResource(R.string.approvals_empty_history),
         )
         return
     }
