@@ -335,6 +335,35 @@ tool_loop_guardrails:
     same_tool_failure: 8
     idempotent_no_progress: 5
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Tool-output compaction (TokenJuice)
+# ─────────────────────────────────────────────────────────────────────────────
+# A *first-pass* reducer that shrinks verbose tool output (git/cargo/npm/docker/
+# tsc logs, …) with rule-based reducers BEFORE it enters the model context. It
+# runs after credential scrubbing and before the existing size-threshold
+# persistence/turn-budget layers (which remain the fallback for anything still
+# large). Pass-through safe (tiny/incompressible output is untouched) and
+# fail-open (any error returns the original). Full pre-scrub raw output is kept
+# in a local, gitignored debug log when `preserve_raw` is true.
+#
+# Kill switch: set the env var `HERMES_TOKENJUICE=off` to disable globally.
+tool_output:
+  compaction:
+    enabled: true              # master switch for the compaction layer
+    min_input_chars: 512       # outputs smaller than this pass through untouched
+    min_ratio_improvement: 0.05  # keep compacted form only if it shrinks >= 5%
+    max_inline_chars: 1200     # clamp the final inline output to this many chars
+    preserve_raw: true         # write full pre-scrub raw to ~/.hermes/tool-raw/
+    compact_failures: true     # failure-aware: preserve more head/tail on errors
+    failure_head_lines: 80
+    failure_tail_lines: 120
+    builtin_rules: true        # bundled MIT rule set (tools/tokenjuice/rules/)
+    user_rules: true           # ~/.config/tokenjuice/rules/*.json overlay
+    project_rules: true        # ./.tokenjuice/rules/*.json overlay (highest prio)
+    # Tools whose output should never be compacted (verbatim file inspection):
+    skip_tools: [read_file, view, cat, sed, jq, head, tail, read, open_file]
+    debug: false               # emit per-compaction [tokenjuice] debug logs
+
 # =============================================================================
 # Context Compression (Auto-shrinks long conversations)
 # =============================================================================

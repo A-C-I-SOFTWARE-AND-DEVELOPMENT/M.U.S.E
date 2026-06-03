@@ -260,6 +260,30 @@ The dashboard embeds the real `hermes --tui` — **not** a rewrite.  See `hermes
 
 ---
 
+## Tool-output compaction (TokenJuice)
+
+Tool output is reduced before it enters the model context by a first-pass
+compaction layer in **`tools/tokenjuice/`** (clean-room Python port of the MIT
+`vincentkoc/tokenjuice` rules — see `THIRD_PARTY_NOTICES.md`). It runs inside
+both tool-execution paths in `agent/tool_executor.py` via the shared
+`_tokenjuice_compact(...)` helper, in this order, **before** the existing
+size-threshold persistence/budget layer (`tools/tool_result_storage.py`):
+
+1. **raw log** — full *pre-scrub* output is written to `~/.hermes/tool-raw/`
+   (gitignored, debug-only; never auto-read into context) when `preserve_raw`.
+2. **scrub** — `scrub_credentials` redacts secrets (closes the prior gap where
+   raw tool output reached the model unredacted).
+3. **compact** — rule-based reduction (`compact_tool_output`); pass-through safe
+   (tiny/incompressible/`skip_tools` output untouched) and fail-open (errors
+   return the original).
+
+Then `maybe_persist_tool_result` / `enforce_turn_budget` run unchanged as the
+fallback for anything still large. Config lives under `tool_output.compaction.*`
+in `cli-config.yaml` (see `cli-config.yaml.example`); global kill switch is
+`HERMES_TOKENJUICE=off`. Do **not** confuse this with
+`hermes_cli/jarvis_prime/tokenjuice.py` (a separate *context compiler*). Full
+design: `docs/audits/tokenjuice-integration-plan.md`.
+
 ## Adding New Tools
 
 For most custom or local-only tools, do **not** edit Hermes core. Use the plugin
