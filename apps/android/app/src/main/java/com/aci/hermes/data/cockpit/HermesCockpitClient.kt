@@ -170,6 +170,42 @@ class HermesCockpitClient(
     suspend fun auditProof(id: String): CockpitResult<CockpitProofRecord> =
         request("GET", "/v1/cockpit/audit/" + enc(id) + "/proof", CockpitProofRecord.serializer())
 
+    // ─── Ledger timeline (Activity) ──────────────────────────────────────
+    /**
+     * The redacted Activity timeline over the orchestrator event ledger.
+     * [filters] are translated to query params (job/risk/worker/category/
+     * file/since/until/order/limit); blank values are dropped.
+     */
+    suspend fun ledgerTimeline(filters: Map<String, String> = emptyMap()): CockpitResult<CockpitLedgerEventList> {
+        val query = filters.entries
+            .filter { it.value.isNotBlank() }
+            .joinToString("&") { enc(it.key) + "=" + enc(it.value) }
+        val path = if (query.isBlank()) "/v1/cockpit/ledger" else "/v1/cockpit/ledger?$query"
+        return request("GET", path, CockpitLedgerEventList.serializer())
+    }
+
+    /** Full redacted detail for one timeline event (`{job}/{index}`). */
+    suspend fun ledgerEvent(job: String, index: Int): CockpitResult<CockpitLedgerEventDetail> =
+        request("GET", "/v1/cockpit/ledger/" + enc(job) + "/" + index, CockpitLedgerEventDetail.serializer())
+
+    /**
+     * Raise an **owner-gated** rollback request for a timeline event. Returns
+     * the created [CockpitApprovalCard] (PENDING). The rollback only happens
+     * once the owner approves it with the exact phrase via [approvalsDecide];
+     * this call never executes anything.
+     */
+    suspend fun ledgerRollbackRequest(
+        job: String,
+        index: Int,
+        reason: String? = null,
+    ): CockpitResult<CockpitApprovalCard> =
+        request(
+            "POST",
+            "/v1/cockpit/ledger/" + enc(job) + "/" + index + "/rollback",
+            CockpitApprovalCard.serializer(),
+            body = json.encodeToString(LedgerRollbackRequest.serializer(), LedgerRollbackRequest(reason)),
+        )
+
     // ─── Jobs (contract §4) ──────────────────────────────────────────────
     suspend fun jobsList(): CockpitResult<JobList> =
         request("GET", "/v1/cockpit/jobs", JobList.serializer())

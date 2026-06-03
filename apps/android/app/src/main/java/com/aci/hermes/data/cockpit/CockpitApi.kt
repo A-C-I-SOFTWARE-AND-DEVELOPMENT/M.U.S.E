@@ -574,3 +574,77 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Ledger timeline (Activity) ───────────────────────────────────────────
+
+/**
+ * Wire models for the cockpit *Activity timeline* (`/v1/cockpit/ledger`) —
+ * the redacted projection of the orchestrator's per-job event ledger. One
+ * row per ledger entry; enum-like fields (`category`, `risk_tier`) are raw
+ * Strings mapped to typed domain enums by the repository. Timestamps are
+ * ISO-8601 strings. All text is already secret-scrubbed server-side; the
+ * repository re-applies `SecretRedactor` as defense in depth.
+ */
+@Serializable
+data class CockpitLedgerEventList(val events: List<CockpitLedgerEvent> = emptyList())
+
+@Serializable
+data class CockpitLedgerEvent(
+    val id: String,
+    @SerialName("job_id") val jobId: String = "",
+    val index: Int = 0,
+    val timestamp: String = "",
+    val category: String = "LIFECYCLE",
+    val kind: String = "",
+    val worker: String? = null,
+    @SerialName("risk_tier") val riskTier: String = "LOW",
+    val summary: String = "",
+    val files: List<String> = emptyList(),
+    @SerialName("has_rollback") val hasRollback: Boolean = false,
+    @SerialName("has_evidence") val hasEvidence: Boolean = false,
+    @SerialName("has_diff") val hasDiff: Boolean = false,
+)
+
+@Serializable
+data class CockpitLedgerEventDetail(
+    val id: String,
+    @SerialName("job_id") val jobId: String = "",
+    val index: Int = 0,
+    val timestamp: String = "",
+    val category: String = "LIFECYCLE",
+    val kind: String = "",
+    val worker: String? = null,
+    @SerialName("risk_tier") val riskTier: String = "LOW",
+    val summary: String = "",
+    val files: List<String> = emptyList(),
+    val payload: kotlinx.serialization.json.JsonObject =
+        kotlinx.serialization.json.JsonObject(emptyMap()),
+    val evidence: List<CockpitLedgerEvidence> = emptyList(),
+    val diff: CockpitLedgerDiff? = null,
+    val rollback: CockpitLedgerRollback? = null,
+    @SerialName("rollback_available") val rollbackAvailable: Boolean = false,
+)
+
+@Serializable
+data class CockpitLedgerEvidence(
+    val id: String = "",
+    val title: String = "",
+    val body: String = "",
+    @SerialName("source_path") val sourcePath: String? = null,
+)
+
+@Serializable
+data class CockpitLedgerDiff(
+    val body: String? = null,
+    val files: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitLedgerRollback(
+    val summary: String = "",
+    val steps: List<String> = emptyList(),
+)
+
+/** POST body for a gated rollback request on a ledger event. */
+@Serializable
+data class LedgerRollbackRequest(val reason: String? = null)

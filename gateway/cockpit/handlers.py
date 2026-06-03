@@ -676,6 +676,145 @@ def navigation_list(req: Request) -> JsonResponse:
     return JsonResponse(200, {"navigations": items})
 
 
+# ---------------------------------------------------------------------------
+# Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
+# ---------------------------------------------------------------------------
+
+
+def ledger_timeline(req: Request) -> JsonResponse:
+    """Redacted, filterable timeline over the orchestrator event ledger.
+
+    Reads every job's ``~/.hermes/jobs/<id>/ledger.jsonl`` via
+    ``orchestrator_ledger.all_ledgers`` and projects each entry into a
+    canonical, secret-scrubbed ``LedgerEvent``. Supports query filters:
+    ``job``, ``risk``, ``worker``, ``category`` (or ``kind``), ``file``
+    (substring), ``since``/``until`` (ISO-8601 prefix compare), ``limit``
+    (default 100), ``order`` (``desc`` newest-first default / ``asc``).
+    Honest empty list when nothing has run yet.
+    """
+    q = req.query
+    limit = _int(q.get("limit"), 100)
+    order = (q.get("order") or "desc").lower()
+    want_job = q.get("job")
+    want_risk = (q.get("risk") or "").upper() or None
+    want_worker = q.get("worker")
+    want_cat = (q.get("category") or q.get("kind") or "").upper() or None
+    want_file = (q.get("file") or "").lower() or None
+    since = q.get("since")
+    until = q.get("until")
+
+    events: list[dict[str, Any]] = []
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        ledgers = ol.all_ledgers()
+        for job_id, entries in ledgers.items():
+            if want_job and job_id != want_job:
+                continue
+            for index, entry in enumerate(entries or []):
+                if not isinstance(entry, dict):
+                    continue
+                ev = contract.ledger_event(entry, job_id=job_id, index=index)
+                if want_risk and ev["risk_tier"] != want_risk:
+                    continue
+                if want_cat and ev["category"] != want_cat and ev["kind"].upper() != want_cat:
+                    continue
+                if want_worker and (ev["worker"] or "") != want_worker and want_worker.lower() not in (ev["worker"] or "").lower():
+                    continue
+                if want_file and not any(want_file in f.lower() for f in ev["files"]):
+                    continue
+                ts = ev["timestamp"]
+                if since and ts and ts < since:
+                    continue
+                if until and ts and ts > until:
+                    continue
+                events.append(ev)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"events": [], "error": str(exc)})
+
+    events.sort(key=lambda e: (e.get("timestamp") or "", e.get("id") or ""), reverse=(order != "asc"))
+    if limit > 0:
+        events = events[:limit]
+    return JsonResponse(200, {"events": events})
+
+
+def ledger_event_detail(req: Request) -> JsonResponse:
+    """Full redacted detail for one timeline event (``{job}/{index}``)."""
+    job_id = req.path_params.get("job", "")
+    index = _int(req.path_params.get("index"), -1)
+    if not job_id or index < 0:
+        return JsonResponse(400, {"error": "job and integer index are required"})
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        entries = ol.read(job_id)
+        if index >= len(entries):
+            return JsonResponse(404, {"error": f"no ledger event {job_id}:{index}"})
+        return JsonResponse(200, contract.ledger_event_detail(entries[index], job_id=job_id, index=index))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def ledger_rollback_request(req: Request) -> JsonResponse:
+    """Raise an **owner-gated** rollback request for a timeline event.
+
+    This never executes a rollback. It enqueues a proposal into the same
+    owner-approval queue the Approvals screen reads (``proposals.jsonl``),
+    so the rollback must still be approved with the exact owner phrase via
+    ``POST /v1/cockpit/approvals/{id}`` before anything happens. Returns the
+    canonical ``ApprovalCard`` for the new request.
+    """
+    job_id = req.path_params.get("job", "")
+    index = _int(req.path_params.get("index"), -1)
+    if not job_id or index < 0:
+        return JsonResponse(400, {"error": "job and integer index are required"})
+    reason = str(req.body.get("reason", "")).strip()
+
+    # Confirm the event exists (and capture a short label) before queuing.
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        entries = ol.read(job_id)
+        if index >= len(entries):
+            return JsonResponse(404, {"error": f"no ledger event {job_id}:{index}"})
+        ev = contract.ledger_event(entries[index], job_id=job_id, index=index)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    proposal = {
+        "kind": "rollback",
+        "target_path": ev["id"],
+        "rationale": reason or f"Rollback requested for {ev['kind']} on job {job_id}",
+        "risk_class": "RC3",
+        "status": "proposed",
+        "requires_owner_approval": True,
+        "created_at": _now_iso(),
+        "source": "cockpit-ledger",
+    }
+    items = _load_proposals()
+    items.append(proposal)
+    _save_proposals(items)
+
+    from . import contract
+
+    return JsonResponse(
+        201, contract.approval_card(proposal, approval_id=_proposal_id(proposal))
+    )
+
+
+def _int(value: Any, default: int) -> int:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return default
+
+
 def approvals_decide(req: Request) -> JsonResponse:
     """Approve/reject a proposal. Approve requires the exact owner phrase."""
     proposal_id = req.path_params.get("id", "")
@@ -820,6 +959,9 @@ __all__ = [
     "job_get",
     "jobs_dispatch",
     "jobs_list",
+    "ledger_event_detail",
+    "ledger_rollback_request",
+    "ledger_timeline",
     "memory_create",
     "memory_delete",
     "memory_list",

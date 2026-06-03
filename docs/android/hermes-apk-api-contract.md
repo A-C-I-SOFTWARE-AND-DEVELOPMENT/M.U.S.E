@@ -639,6 +639,69 @@ never invented. `GET .../proof` returns `404` for an unknown id.
 
 ---
 
+## 10b-ii. Activity timeline (ledger) — **canonical, implemented**
+
+The decision-ledger audit (§10b) records *deliberations*. The **Activity
+timeline** projects the orchestrator's per-job **event** ledger
+(`~/.hermes/jobs/<id>/ledger.jsonl`, written by
+`hermes_cli.orchestrator_ledger`) — *what each job actually did*. It is
+**read-only** and **secret-redacted** (`gateway/cockpit/redaction.py`, whose
+detection patterns are sourced from the memory write-gate). It never leaks a
+credential a worker echoed.
+
+### `GET /v1/cockpit/ledger`
+
+Query (all optional): `job`, `risk`
+(`LOW|MODERATE|SERIOUS|CRITICAL`), `worker`, `category` (or `kind`),
+`file` (substring), `since`/`until` (ISO-8601 prefix compare), `order`
+(`desc` newest-first default / `asc`), `limit` (default `100`).
+
+```json
+{
+  "events": [
+    {
+      "id": "job_01HXYZ:2",
+      "job_id": "job_01HXYZ",
+      "index": 2,
+      "timestamp": "2026-06-01T09:02:00+00:00",
+      "category": "WORKER_RUN",
+      "kind": "worker_result",
+      "worker": "codex-execute",
+      "risk_tier": "MODERATE",
+      "summary": "output token=[REDACTED]",
+      "files": ["src/app.py"],
+      "has_rollback": false,
+      "has_evidence": false,
+      "has_diff": true
+    }
+  ]
+}
+```
+
+`category` is one of `MODEL_CALL, TOOL_CALL, COMMAND, FILE_EDIT,
+WORKER_RUN, APPROVAL, MEMORY_WRITE, EVIDENCE_PROMOTION, DEPLOY_PUBLISH,
+NAVIGATION, VALIDATION, LIFECYCLE` (derived from the ledger `kind`; unknown
+kinds → `LIFECYCLE`, never a guessed specific category). Memory-write /
+evidence-promotion rows appear only when such entries are actually emitted.
+
+### `GET /v1/cockpit/ledger/{job}/{index}`
+
+Full redacted detail for one event: `payload` (the entry's fields,
+recursively redacted), linked `evidence`, linked `diff` (inline `body` or a
+`files` list), and the `rollback` plan when present, plus
+`rollback_available`. `404` for an unknown `{job}/{index}`.
+
+### `POST /v1/cockpit/ledger/{job}/{index}/rollback`
+
+Body: `{ "reason": "<optional>" }`. **Never executes a rollback.** It
+enqueues an owner-gated proposal (`kind: "rollback"`) into the same
+`proposals.jsonl` queue the Approvals screen reads, and returns the created
+`ApprovalCard` (`PENDING`). The rollback only happens once the owner approves
+it with the exact phrase via `POST /v1/cockpit/approvals/{id}` (§10c) — the
+owner gate is never bypassed.
+
+---
+
 ## 10c. Approvals — **canonical, implemented** (cards + owner-phrase decide)
 
 The Android Approvals screen is one `ApprovalCard` queue. The server's one

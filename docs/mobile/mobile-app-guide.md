@@ -171,6 +171,20 @@ shows what's being asked, the previewed change (diff, message, file
 write), and three buttons: **Approve**, **Deny**, **Defer**. Buttons
 write directly to the kanban; the backend resumes the job.
 
+### Activity timeline
+The answer to *"what did JARVIS do?"* — reached from the **Activity**
+action on the Audit screen. It streams the orchestrator's event ledger
+(every job's `ledger.jsonl`) as one redacted, filterable timeline: worker
+runs, commands, file edits, approvals, validations, deploy/publish
+attempts, navigation, and more. Filter by **job, risk, worker, date, or
+file**. Tap a row → what happened, why, the redacted inputs/outputs, any
+linked evidence and diff, and the rollback plan.
+
+The timeline is **read-only** and **never shows a secret** — credentials a
+worker may have echoed are scrubbed server-side and again on the device. A
+**Request rollback** button queues an *owner-gated* approval; nothing is
+rolled back until you approve it with your owner phrase in **Approvals**.
+
 ### Voice
 Hold-to-talk capture. The app streams audio chunks to the gateway,
 which transcribes (server-side Whisper or your configured STT) and

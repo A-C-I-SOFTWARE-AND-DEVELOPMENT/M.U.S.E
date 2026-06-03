@@ -694,11 +694,249 @@ def navigation_view(entry: dict[str, Any], *, job_id: str | None = None) -> dict
     }
 
 
+# ---------------------------------------------------------------------------
+# Ledger timeline — mirrors com.aci.hermes.data.model.ledger.LedgerEvent
+# ---------------------------------------------------------------------------
+#
+# Source is the orchestrator's per-job event ledger
+# (``hermes_cli.orchestrator_ledger`` → ``~/.hermes/jobs/<id>/ledger.jsonl``),
+# the canonical audit trail of *what a job actually did*. Each JSONL entry
+# carries a ``kind``; ``classify_kind`` maps it to one of the canonical
+# timeline categories the Android Activity screen renders. The summary reuses
+# ``orchestrator_replay._summarize`` so the mobile one-liner matches the CLI
+# ``hermes orchestrate replay`` output. Every text field is passed through
+# ``gateway.cockpit.redaction`` before it leaves the loopback API — the
+# timeline never emits a credential a worker echoed.
+
+# Android `LedgerCategory` constants (superset; some only appear when the
+# corresponding entries are actually emitted — never fabricated).
+LEDGER_CATEGORIES: tuple[str, ...] = (
+    "MODEL_CALL",
+    "TOOL_CALL",
+    "COMMAND",
+    "FILE_EDIT",
+    "WORKER_RUN",
+    "APPROVAL",
+    "MEMORY_WRITE",
+    "EVIDENCE_PROMOTION",
+    "DEPLOY_PUBLISH",
+    "NAVIGATION",
+    "VALIDATION",
+    "LIFECYCLE",
+)
+
+# Orchestrator ledger ``kind`` → canonical category. Unknown kinds fall back
+# to LIFECYCLE (an honest "something happened" rather than a guessed
+# specific category).
+_KIND_TO_CATEGORY: dict[str, str] = {
+    "submit": "LIFECYCLE",
+    "resume": "LIFECYCLE",
+    "cancel": "LIFECYCLE",
+    "self-improve": "LIFECYCLE",
+    "goal_boundary_declared": "LIFECYCLE",
+    "goal_boundary_verdict": "LIFECYCLE",
+    "report_written": "LIFECYCLE",
+    "navigation_decision": "NAVIGATION",
+    "navigation_error": "NAVIGATION",
+    "worker_dispatch": "WORKER_RUN",
+    "worker_result": "WORKER_RUN",
+    "worker_score": "WORKER_RUN",
+    "worker_error": "WORKER_RUN",
+    "worker_blocked": "WORKER_RUN",
+    "repair_loop_result": "WORKER_RUN",
+    "approve": "APPROVAL",
+    "require_approval": "APPROVAL",
+    "validate": "VALIDATION",
+    "validation": "VALIDATION",
+    "publish": "DEPLOY_PUBLISH",
+    "publish-plan": "DEPLOY_PUBLISH",
+    "memory": "MEMORY_WRITE",
+    "memory_write": "MEMORY_WRITE",
+    "evidence": "EVIDENCE_PROMOTION",
+    "evidence_promotion": "EVIDENCE_PROMOTION",
+    "research_finding": "EVIDENCE_PROMOTION",
+}
+
+
+def classify_kind(kind: Any, entry: Optional[dict[str, Any]] = None) -> str:
+    """Map an orchestrator ledger ``kind`` to a canonical timeline category.
+
+    ``repair_loop_step`` is split by its ``phase``: a ``test``/``command``
+    phase is a COMMAND, anything that names candidate files is a FILE_EDIT,
+    else COMMAND. Never invents a category — unknown kinds → LIFECYCLE.
+    """
+    k = str(kind or "").strip()
+    if k == "repair_loop_step":
+        phase = str((entry or {}).get("phase", "")).lower()
+        if phase in {"test", "command", "run"}:
+            return "COMMAND"
+        if (entry or {}).get("candidate_files"):
+            return "FILE_EDIT"
+        return "COMMAND"
+    return _KIND_TO_CATEGORY.get(k, "LIFECYCLE")
+
+
+# Categories whose actions are inherently external / irreversible → a higher
+# risk floor on the timeline so the owner can filter for "the scary stuff".
+_HIGH_RISK_CATEGORIES = {"DEPLOY_PUBLISH"}
+_MODERATE_RISK_CATEGORIES = {"WORKER_RUN", "FILE_EDIT", "COMMAND", "APPROVAL"}
+
+
+def ledger_risk_tier(category: str, entry: dict[str, Any]) -> str:
+    """Derive a risk tier for a timeline event (honest, coarse).
+
+    The orchestrator ledger has no explicit tier, so we derive one: a
+    deploy/publish event is SERIOUS; a worker run / file edit / command /
+    approval is MODERATE; an entry that *names* a secret-touching path or a
+    failed/blocked outcome is bumped one band; everything else is LOW.
+    """
+    base = (
+        "SERIOUS"
+        if category in _HIGH_RISK_CATEGORIES
+        else "MODERATE"
+        if category in _MODERATE_RISK_CATEGORIES
+        else "LOW"
+    )
+    blob = " ".join(str(v) for v in entry.values()).lower()
+    if any(t in blob for t in ("secret", "credential", "rotate", "token", ".env")):
+        base = {"LOW": "MODERATE", "MODERATE": "SERIOUS", "SERIOUS": "CRITICAL"}.get(base, base)
+    return base
+
+
+def _ledger_files(entry: dict[str, Any]) -> list[str]:
+    """Pull file paths out of the shapes the orchestrator ledger uses."""
+    out: list[str] = []
+    ranked = entry.get("ranked_files")
+    if isinstance(ranked, list):
+        for r in ranked:
+            if isinstance(r, dict) and r.get("path"):
+                out.append(str(r["path"]))
+            elif isinstance(r, str):
+                out.append(r)
+    for key in ("candidate_files", "files", "files_changed"):
+        val = entry.get(key)
+        if isinstance(val, list):
+            out.extend(str(f.get("path") if isinstance(f, dict) else f) for f in val)
+        elif isinstance(val, str):
+            out.append(val)
+    # de-dup, preserve order, drop falsy
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for f in out:
+        if f and f not in seen:
+            seen.add(f)
+            deduped.append(f)
+    return deduped
+
+
+def _ledger_summary(kind: str, entry: dict[str, Any]) -> str:
+    """Reuse the replay summarizer; degrade gracefully if unavailable."""
+    try:
+        from hermes_cli import orchestrator_replay as _replay
+
+        return _replay._summarize(kind, entry)
+    except Exception:  # pragma: no cover - defensive
+        for key in ("summary", "message", "action", "status", "reason"):
+            if key in entry:
+                return f"{key}={entry[key]}"
+        return kind
+
+
+def ledger_event(entry: dict[str, Any], *, job_id: str, index: int) -> dict[str, Any]:
+    """Project one orchestrator ledger entry into a canonical, **redacted**
+    ``LedgerEvent`` (Android Activity timeline row).
+
+    Honest derivation only; secret-scrubbed via :mod:`gateway.cockpit.redaction`.
+    """
+    from . import redaction
+
+    kind = str(entry.get("kind") or entry.get("type") or "entry")
+    category = classify_kind(kind, entry)
+    worker = entry.get("worker_id") or entry.get("worker") or None
+    has_rollback = bool(entry.get("rollback") or entry.get("rollback_plan"))
+    return {
+        "id": f"{job_id}:{index}",
+        "job_id": job_id,
+        "index": index,
+        "timestamp": str(entry.get("ts") or entry.get("timestamp") or ""),
+        "category": category,
+        "kind": kind,
+        "worker": str(worker) if worker else None,
+        "risk_tier": ledger_risk_tier(category, entry),
+        "summary": redaction.redact_text(_ledger_summary(kind, entry)),
+        "files": [redaction.redact_text(f) for f in _ledger_files(entry)],
+        "has_rollback": has_rollback,
+        "has_evidence": bool(entry.get("evidence") or entry.get("citations")),
+        "has_diff": bool(entry.get("diff") or entry.get("candidate_files")),
+    }
+
+
+def ledger_event_detail(entry: dict[str, Any], *, job_id: str, index: int) -> dict[str, Any]:
+    """Full redacted detail for one timeline event: the row plus inputs/
+    outputs, linked evidence, linked diff, and the rollback plan + whether a
+    rollback can be requested.
+    """
+    from . import redaction
+
+    base = ledger_event(entry, job_id=job_id, index=index)
+
+    # Inputs/outputs: the whole entry minus the structural fields, redacted.
+    structural = {"ts", "timestamp", "kind", "type"}
+    payload = {k: v for k, v in entry.items() if k not in structural}
+    redacted_payload = redaction.redact_value(payload)
+
+    evidence: list[dict[str, Any]] = []
+    raw_evidence = entry.get("evidence") or entry.get("citations") or []
+    if isinstance(raw_evidence, list):
+        for i, ev in enumerate(raw_evidence):
+            if isinstance(ev, dict):
+                evidence.append({
+                    "id": f"{base['id']}-ev{i}",
+                    "title": redaction.redact_text(ev.get("title") or ev.get("text") or f"evidence {i}"),
+                    "body": redaction.redact_text(ev.get("body") or ev.get("text") or ""),
+                    "source_path": redaction.redact_text(ev.get("source_path") or ev.get("citation") or "") or None,
+                })
+            elif isinstance(ev, str):
+                evidence.append({
+                    "id": f"{base['id']}-ev{i}",
+                    "title": f"evidence {i}",
+                    "body": redaction.redact_text(ev),
+                    "source_path": None,
+                })
+
+    diff: Optional[dict[str, Any]] = None
+    if entry.get("diff"):
+        diff = {"body": redaction.redact_text(entry.get("diff"))}
+    elif base["files"]:
+        diff = {"files": base["files"]}
+
+    rollback: Optional[dict[str, Any]] = None
+    raw_rb = entry.get("rollback") or entry.get("rollback_plan")
+    if isinstance(raw_rb, dict):
+        steps = raw_rb.get("steps") or []
+        rollback = {
+            "summary": redaction.redact_text(raw_rb.get("summary") or ""),
+            "steps": [redaction.redact_text(s) for s in steps if isinstance(s, str)],
+        }
+    elif isinstance(raw_rb, str):
+        rollback = {"summary": redaction.redact_text(raw_rb), "steps": []}
+
+    base.update({
+        "payload": redacted_payload,
+        "evidence": evidence,
+        "diff": diff,
+        "rollback": rollback,
+        "rollback_available": True,  # a gated request can always be raised
+    })
+    return base
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
     "APPROVAL_CARD_TIERS",
     "APPROVAL_STATES",
+    "LEDGER_CATEGORIES",
     "JOB_STATUSES",
     "MEMORY_CATEGORIES",
     "MEMORY_CONFIDENCES",
@@ -714,7 +952,11 @@ __all__ = [
     "approval_state",
     "audit_proof",
     "audit_record",
+    "classify_kind",
     "cockpit_job",
+    "ledger_event",
+    "ledger_event_detail",
+    "ledger_risk_tier",
     "confidence_to_enum",
     "confidence_to_float",
     "durability_from_store",
