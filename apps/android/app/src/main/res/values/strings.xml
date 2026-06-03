@@ -222,6 +222,21 @@
     <!-- Tasks tab -->
     <string name="tasks_empty_title">No tasks yet</string>
     <string name="tasks_empty_body">Tap the New task button to draft a brief, generate a prompt, and hand it off to Codex or Claude Code.</string>
+    <!-- Backend orchestration jobs (cockpit contract §4) surfaced in the Tasks tab. -->
+    <string name="jobs_section_title">Backend jobs</string>
+    <string name="jobs_not_paired">Pair a gateway in Settings → Connection to run orchestration jobs on the Hermes backend.</string>
+    <string name="jobs_empty">No backend jobs yet. Dispatch one to run real orchestration on Hermes.</string>
+    <string name="jobs_new">New backend job</string>
+    <string name="jobs_new_body">Describe a goal. Jarvis creates a real orchestration job on the Hermes backend that you can then run on a worker lane.</string>
+    <string name="jobs_dispatch">Create</string>
+    <string name="jobs_run">Run</string>
+    <string name="jobs_cancel">Cancel</string>
+    <string name="jobs_field_prompt">Goal / prompt</string>
+    <string name="jobs_field_worker">Worker lane</string>
+    <string name="jobs_run_owner_title">Owner authorization required</string>
+    <string name="jobs_run_owner_body">Running this lane edits a workspace. Type the owner phrase exactly to authorize.</string>
+    <string name="jobs_run_owner_phrase_hint">Yes, with authorization.</string>
+    <string name="jobs_error_loading">Couldn\'t load backend jobs: %1$s</string>
     <string name="tasks_section_active">Active</string>
     <string name="tasks_section_waiting_for_approval">Waiting for approval</string>
     <string name="tasks_section_blocked">Blocked</string>

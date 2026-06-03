@@ -37,6 +37,7 @@ import com.aci.hermes.ui.screens.control.ControlScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
+import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryScreen
@@ -267,6 +268,9 @@ private fun NavGraphBuilder.shellDestinations(
         val vm: OrchestratorViewModel = viewModel(
             factory = remember { container.orchestratorVmFactory() },
         )
+        val jobsVm: CockpitJobsViewModel = viewModel(
+            factory = remember { container.cockpitJobsVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Tasks.route,
             titleRes = R.string.nav_tasks,
@@ -281,6 +285,7 @@ private fun NavGraphBuilder.shellDestinations(
                 onOpenTask = openTask,
                 onOpenApprovals = { onNavigateTab(Screen.Approvals) },
                 onOpenAudit = { onNavigateTab(Screen.Audit) },
+                jobsViewModel = jobsVm,
             )
         }
     }

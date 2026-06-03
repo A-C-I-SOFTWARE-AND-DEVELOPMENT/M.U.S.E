@@ -130,6 +130,57 @@ data class DispatchJobRequest(
 @Serializable
 data class CancelJobRequest(val reason: String? = null)
 
+/**
+ * POST body for `jobs/{id}/run`. An execute lane (one whose worker
+ * `requires_approval`) only runs when [authorization] equals the exact owner
+ * phrase; the gateway returns `403` otherwise — and refuses entirely on a
+ * non-loopback cockpit. Non-gated lanes (local planner / handoff) ignore it.
+ */
+@Serializable
+data class RunJobRequest(
+    @SerialName("worker_id") val workerId: String,
+    val authorization: String? = null,
+)
+
+/**
+ * Result of `jobs/{id}/run` — the (advanced) job plus the tail of its worker
+ * ledger trail. `worker_trail` entries are free-form ledger dicts; only the
+ * fields the cockpit renders are modelled (the tolerant decoder ignores the
+ * rest).
+ */
+@Serializable
+data class RunJobResult(
+    val job: CockpitJob? = null,
+    @SerialName("worker_trail") val workerTrail: List<WorkerTrailEntry> = emptyList(),
+)
+
+@Serializable
+data class WorkerTrailEntry(
+    val kind: String = "",
+    @SerialName("worker_id") val workerId: String? = null,
+    val summary: String? = null,
+)
+
+/**
+ * A **runnable** worker lane (`GET /v1/cockpit/jobs/lanes`) — the ids
+ * `job_run` actually accepts (e.g. `codex-execute`, `hermes-local-planner`),
+ * NOT the detection lanes from `runtime/workers`. [requiresApproval] tells the
+ * UI which lanes need the owner phrase before running.
+ */
+@Serializable
+data class JobLane(
+    val id: String,
+    @SerialName("display_name") val displayName: String = "",
+    @SerialName("requires_approval") val requiresApproval: Boolean = true,
+)
+
+@Serializable
+data class JobLaneList(val lanes: List<JobLane> = emptyList())
+
+/** POST body for `/v1/cockpit/orchestrate` — create a runnable orchestrator job. */
+@Serializable
+data class OrchestrateRequest(val prompt: String)
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable

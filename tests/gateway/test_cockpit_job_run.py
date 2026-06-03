@@ -98,3 +98,41 @@ def test_ungated_lane_runs_without_phrase(home, monkeypatch) -> None:
     resp = h.job_run(_req(job.id, worker_id="hermes-local-planner"))
     assert resp.status == 200
     assert dispatched == ["hermes-local-planner"]
+
+
+def test_job_lanes_lists_runnable_lanes_job_run_accepts(home) -> None:
+    """The lanes endpoint advertises the ids ``job_run`` validates against."""
+    resp = h.job_lanes(h.Request(method="GET", path="x"))
+    assert resp.status == 200
+    lanes = {lane["id"]: lane for lane in resp.payload["lanes"]}
+    # Ids here must be the builtin worker ids (not the detection-lane ids).
+    assert "hermes-local-planner" in lanes
+    assert "codex-execute" in lanes
+    # requires_approval drives the owner-phrase prompt in the app.
+    assert lanes["codex-execute"]["requires_approval"] is True
+    assert lanes["hermes-local-planner"]["requires_approval"] is False
+
+
+def test_orchestrate_then_run_roundtrip(home, monkeypatch) -> None:
+    """A job created via /orchestrate is immediately runnable by job_run
+    (the dispatch→run store split that previously 404'd)."""
+    create = h.orchestrate_submit(h.Request(method="POST", path="x", body={"prompt": "edit the uploader"}))
+    assert create.status == 201
+    job_id = create.payload["id"]
+    assert job_id.startswith("orc-")  # orchestrator store, not JobQueue
+
+    dispatched: list[str] = []
+
+    def fake_dispatch(jid, *, worker_id, repo_root=None):
+        dispatched.append(worker_id)
+        return orch.get_job(jid)
+
+    monkeypatch.setattr(orch, "dispatch_job", fake_dispatch)
+    resp = h.job_run(_req(job_id, worker_id="hermes-local-planner"))
+    assert resp.status == 200
+    assert dispatched == ["hermes-local-planner"]
+
+
+def test_orchestrate_requires_prompt(home) -> None:
+    resp = h.orchestrate_submit(h.Request(method="POST", path="x", body={"prompt": "  "}))
+    assert resp.status == 400

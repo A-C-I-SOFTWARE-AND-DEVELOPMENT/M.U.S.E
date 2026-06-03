@@ -396,6 +396,33 @@ This file is the spec. Concrete code stubs landing in this phase:
 - `apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt`
   — typed data classes mirroring the API contract.
 
-Future phases will add the `HermesCockpitClient` implementation,
-screens 3.1 – 3.9, and the backend-side Phase 18 cockpit routes
-(`/v1/cockpit/*`).
+The `HermesCockpitClient` implementation and the backend-side cockpit
+routes (`/v1/cockpit/*`) now ship; the cockpit surfaces wired today
+include health/runtime, memory, audit + proof, owner approvals, control,
+avatar persona + room, and live chat streaming.
+
+**Backend orchestration jobs (contract §4) are wired into the Tasks tab.**
+The *Backend jobs* section lists real backend jobs (orchestrator + JobQueue,
+merged by `GET /v1/cockpit/jobs`). "New backend job" creates a **runnable
+orchestrator** job via `POST /v1/cockpit/orchestrate` (not a JobQueue entry,
+which `job_run` can't run) — so a job created here can then be run. The run
+picker is sourced from `GET /v1/cockpit/jobs/lanes` (the worker ids
+`job_run` actually accepts, e.g. `codex-execute` / `hermes-local-planner`),
+not the detection lanes from `runtime/workers`. Run is shown only for
+runnable orchestrator jobs (`orc-` ids); other entries show Cancel. The
+local clipboard-handoff task list is preserved below it, unchanged.
+
+Running an **execute lane** is owner-gated end to end: each lane carries
+`requires_approval`, the app collects the exact owner phrase
+(`Yes, with authorization.`) for gated lanes, and the gateway re-checks it
+server-side — refusing entirely on a non-loopback cockpit
+(`POST /v1/cockpit/jobs/{id}/run`). Code:
+`data/cockpit/HermesCockpitClient.{jobLanes,orchestrate,jobRun}`,
+`CockpitJobsRepository`, `ui/screens/jobs/CockpitJobsViewModel`, and the
+*Backend jobs* section in `ui/screens/tasks/TasksScreen.kt`. Backend:
+`gateway/cockpit/handlers.py::{job_lanes,orchestrate_submit,job_run}`.
+
+Remaining follow-ups (see `docs/audits/JARVIS_MOBILE_NATIVE_FULL_BUILD_AUDIT.md`):
+the live events feed, model scorecards / sessions read views, the skills
+catalog reconciliation, Research Vault + ledger-replay surfaces, and the
+build→diff→validate→publish-PR workflow.
