@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -28,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +50,7 @@ object EvidenceScreenTags {
     const val LIST = "evidence_list"
     const val EMPTY = "evidence_empty"
     const val DETAIL = "evidence_detail"
+    const val AUTH_DIALOG = "evidence_auth_dialog"
     fun card(id: String) = "evidence_card_$id"
 }
 
@@ -120,7 +123,9 @@ fun EvidenceScreen(
                     item = selected,
                     onClose = viewModel::closeDetail,
                     onVerify = { viewModel.verify(selected.summary.ifBlank { selected.title }) },
-                    onPromote = { auth -> viewModel.promote(selected, auth) },
+                    // No owner phrase on a normal tap — the gateway gates it, and an
+                    // owner-gated rejection raises the explicit authorization dialog.
+                    onPromote = { viewModel.promote(selected) },
                     verificationText = state.verification?.let { v ->
                         buildString {
                             append("${v.citations.count { it.supported }} cited, ")
@@ -143,6 +148,14 @@ fun EvidenceScreen(
                     }
                 }
             }
+        }
+
+        state.authPromptItem?.let { pending ->
+            OwnerAuthorizationDialog(
+                item = pending,
+                onConfirm = viewModel::confirmAuthorizedPromote,
+                onDismiss = viewModel::cancelAuthPrompt,
+            )
         }
     }
 }
@@ -182,7 +195,7 @@ private fun EvidenceDetail(
     item: EvidenceItem,
     onClose: () -> Unit,
     onVerify: () -> Unit,
-    onPromote: (String?) -> Unit,
+    onPromote: () -> Unit,
     verificationText: String?,
 ) {
     Column(
@@ -210,10 +223,41 @@ private fun EvidenceDetail(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = onVerify) { Text("Verify") }
-            // Owner phrase is supplied here for low-confidence promotions; high-trust
-            // items pass the server policy without it. The gateway is the gate.
-            Button(onClick = { onPromote("Yes, with authorization.") }) { Text("Promote to memory") }
+            // Sends no owner phrase: the gateway promotes high-trust items and
+            // rejects low-confidence/unverified ones, which raises an explicit
+            // owner-authorization dialog rather than promoting on a tap.
+            Button(onClick = onPromote) { Text("Promote to memory") }
             OutlinedButton(onClick = onClose) { Text("Close") }
         }
     }
+}
+
+/**
+ * Explicit owner-authorization gate for promoting low-confidence / unverified
+ * evidence to durable memory. The owner phrase is only sent after this
+ * deliberate confirmation — never on the Promote tap itself.
+ */
+@Composable
+private fun OwnerAuthorizationDialog(
+    item: EvidenceItem,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        modifier = Modifier.testTag(EvidenceScreenTags.AUTH_DIALOG),
+        onDismissRequest = onDismiss,
+        title = { Text("Owner authorization required") },
+        text = {
+            Text(
+                "\"${item.title}\" is ${item.trust.display.lowercase()} / low-confidence. " +
+                    "Promoting it to durable memory needs your explicit authorization.",
+            )
+        },
+        confirmButton = {
+            Button(onClick = onConfirm) { Text("Authorize & promote") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }

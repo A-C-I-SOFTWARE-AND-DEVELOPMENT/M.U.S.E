@@ -65,7 +65,25 @@ data class EvidenceHit(
     val score: Float,
     val artifactId: String? = null,
     val citationAnchors: List<String> = emptyList(),
-)
+) {
+    /**
+     * Project a ranked hit into a display [EvidenceItem] for the search list.
+     * Fields a hit genuinely doesn't carry (license, freshness, checksum)
+     * stay empty/null — never invented. `id` keeps the `artifactId` so detail
+     * lookup and promotion still address the real artifact.
+     */
+    fun toItem(): EvidenceItem = EvidenceItem(
+        id = artifactId ?: uri,
+        title = title,
+        sourceUri = uri,
+        sourceType = kind,
+        trust = trust,
+        evidenceStrength = "",
+        excerpt = excerpt,
+        summary = excerpt,
+        citationAnchors = citationAnchors,
+    )
+}
 
 /** Result of verifying claims against the evidence base. */
 @Serializable
