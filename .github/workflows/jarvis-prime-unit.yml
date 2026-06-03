@@ -1,0 +1,184 @@
+name: Jarvis Prime unit
+
+# The curated, launch-critical verification gate for mobile-first JARVIS
+# Prime. This workflow is deliberately NARROWER and FASTER than the
+# comprehensive suites (android-build.yml / tests.yml) — it runs only the
+# JARVIS-Prime-critical path so branch protection can require it without
+# waiting on the full matrix.
+#
+# It emits the two check names that LaunchGate + the launch-gate checklist
+# already require (see .github/workflows/launch-gate.yml and
+# docs/launch/LAUNCH_GATE_CHECKLIST.md). The job `name:` strings below are a
+# CONTRACT — branch protection keys on them, so do not rename without also
+# updating launch-gate.yml and LAUNCH_GATE_CHECKLIST.md.
+#
+#   - Android JVM unit (testDebugUnitTest)
+#   - Python unit (Jarvis Prime + redact + orchestrator)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/android/**'
+      - 'hermes_cli/**'
+      - 'gateway/**'
+      - 'tests/**'
+      - '.github/workflows/jarvis-prime-unit.yml'
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - 'hermes_cli/**'
+      - 'gateway/**'
+      - 'tests/**'
+      - '.github/workflows/jarvis-prime-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-prime-unit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-jvm-unit:
+    name: Android JVM unit (testDebugUnitTest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: apps/android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+
+      - name: Cache Gradle caches
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/**/*.gradle*', 'apps/android/gradle/libs.versions.toml', 'apps/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Run JVM unit tests (testDebugUnitTest)
+        id: gradle
+        run: ./gradlew --no-daemon --stacktrace testDebugUnitTest
+
+      - name: Summarize result
+        if: always()
+        run: |
+          if [ "${{ steps.gradle.outcome }}" = "success" ]; then
+            echo "### ✅ Android JVM unit (testDebugUnitTest) — passed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### ❌ Android JVM unit (testDebugUnitTest) — failed" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "See the uploaded \`jarvis-prime-android-unit-report\` artifact for the HTML/XML report." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload unit test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-prime-android-unit-report
+          path: |
+            apps/android/app/build/reports/tests/testDebugUnitTest/
+            apps/android/app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  python-unit:
+    name: Python unit (Jarvis Prime + redact + orchestrator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: |
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          uv pip install -e ".[all,dev]"
+
+      - name: Run curated Jarvis Prime + redact + orchestrator tests
+        run: |
+          source .venv/bin/activate
+          set +e
+          python -m pytest \
+            tests/test_jarvis_prime_*.py \
+            tests/gateway/test_jarvis_local_http.py \
+            tests/gateway/test_cockpit_*.py \
+            tests/gateway/test_pii_redaction.py \
+            tests/agent/test_redact.py \
+            tests/hermes_cli/test_redact_config_bridge.py \
+            tests/test_orchestrator_ledger.py \
+            tests/test_orchestrator_job_controller.py \
+            tests/test_validation_gates.py \
+            tests/test_scoring.py \
+            tests/test_merge_engine.py \
+            tests/test_worker_base.py \
+            tests/test_worker_dispatch.py \
+            tests/test_github_publisher.py \
+            tests/e2e/test_full_app_smoke.py \
+            tests/e2e/test_cockpit_jobs_approvals_smoke.py \
+            -q --tb=short -p no:cacheprovider \
+            --junitxml=/tmp/jarvis-prime-python-unit.xml 2>&1 | tee /tmp/jarvis-prime-python-unit.log
+          exitcode=${PIPESTATUS[0]}
+          set -e
+          {
+            echo "### Python unit (Jarvis Prime + redact + orchestrator)"
+            echo ""
+            tail -n 1 /tmp/jarvis-prime-python-unit.log
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$exitcode" -ne 0 ]; then
+            echo "::group::Pytest FAILED/ERROR summary"
+            grep -E "^(FAILED|ERROR) " /tmp/jarvis-prime-python-unit.log | head -50 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            echo "::endgroup::"
+          fi
+          exit "$exitcode"
+        env:
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
+          ANTHROPIC_API_KEY: ""
+          GITHUB_TOKEN: ""
+
+      - name: Upload pytest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-prime-python-unit-report
+          path: |
+            /tmp/jarvis-prime-python-unit.xml
+            /tmp/jarvis-prime-python-unit.log
+          if-no-files-found: ignore
+          retention-days: 14

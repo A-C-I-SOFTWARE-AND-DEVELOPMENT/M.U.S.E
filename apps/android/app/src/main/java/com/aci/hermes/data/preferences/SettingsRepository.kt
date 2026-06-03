@@ -26,7 +26,13 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  * so a fresh install matches the safety floor: lockdown off, approvals
  * required, safety gates on, local-only mode on, mock mode off.
  */
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(
+    context: Context,
+    // Injectable for tests/isolation, mirroring AvatarRepository. Production
+    // keeps the process-wide singleton; tests pass an isolated DataStore so a
+    // shared singleton can't leak or go stale across cases.
+    private val store: DataStore<Preferences> = context.dataStore,
+) {
 
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -59,7 +65,7 @@ class SettingsRepository(private val context: Context) {
         val EMERGENCY_STOP_ENGAGED = booleanPreferencesKey("emergency_stop_engaged")
     }
 
-    val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
+    val themeMode: Flow<ThemeMode> = store.data.map {
         when (it[Keys.THEME_MODE]) {
             "LIGHT" -> ThemeMode.LIGHT
             "DARK" -> ThemeMode.DARK
@@ -67,47 +73,47 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    val hasOnboarded: Flow<Boolean> = context.dataStore.data.map {
+    val hasOnboarded: Flow<Boolean> = store.data.map {
         it[Keys.ONBOARDED] ?: false
     }
 
-    val preferredBuilder: Flow<PreferredBuilder> = context.dataStore.data.map {
+    val preferredBuilder: Flow<PreferredBuilder> = store.data.map {
         runCatching { PreferredBuilder.valueOf(it[Keys.PREFERRED_BUILDER] ?: "") }
             .getOrDefault(PreferredBuilder.CODEX)
     }
 
-    val preferredReviewer: Flow<PreferredReviewer> = context.dataStore.data.map {
+    val preferredReviewer: Flow<PreferredReviewer> = store.data.map {
         runCatching { PreferredReviewer.valueOf(it[Keys.PREFERRED_REVIEWER] ?: "") }
             .getOrDefault(PreferredReviewer.CLAUDE_CODE)
     }
 
-    val useApiKeys: Flow<Boolean> = context.dataStore.data.map { it[Keys.USE_API_KEYS] ?: false }
-    val localOnlyMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.LOCAL_ONLY_MODE] ?: true }
-    val allowExternalAppOpening: Flow<Boolean> = context.dataStore.data.map {
+    val useApiKeys: Flow<Boolean> = store.data.map { it[Keys.USE_API_KEYS] ?: false }
+    val localOnlyMode: Flow<Boolean> = store.data.map { it[Keys.LOCAL_ONLY_MODE] ?: true }
+    val allowExternalAppOpening: Flow<Boolean> = store.data.map {
         it[Keys.ALLOW_EXTERNAL_APP_OPENING] ?: false
     }
-    val clipboardHandoffEnabled: Flow<Boolean> = context.dataStore.data.map {
+    val clipboardHandoffEnabled: Flow<Boolean> = store.data.map {
         it[Keys.CLIPBOARD_HANDOFF_ENABLED] ?: true
     }
-    val showSafetyWarnings: Flow<Boolean> = context.dataStore.data.map {
+    val showSafetyWarnings: Flow<Boolean> = store.data.map {
         it[Keys.SHOW_SAFETY_WARNINGS] ?: true
     }
 
-    val autonomyMode: Flow<AutonomyMode> = context.dataStore.data.map {
+    val autonomyMode: Flow<AutonomyMode> = store.data.map {
         AutonomyMode.fromName(it[Keys.AUTONOMY_MODE])
     }
 
-    val responseLength: Flow<ResponseLength> = context.dataStore.data.map {
+    val responseLength: Flow<ResponseLength> = store.data.map {
         ResponseLength.fromName(it[Keys.RESPONSE_LENGTH])
     }
 
-    val mobileMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOBILE_MODE] ?: true }
-    val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.NOTIFICATIONS_ENABLED] ?: true }
-    val voiceEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.VOICE_ENABLED] ?: false }
-    val interactiveIconEnabled: Flow<Boolean> = context.dataStore.data.map {
+    val mobileMode: Flow<Boolean> = store.data.map { it[Keys.MOBILE_MODE] ?: true }
+    val notificationsEnabled: Flow<Boolean> = store.data.map { it[Keys.NOTIFICATIONS_ENABLED] ?: true }
+    val voiceEnabled: Flow<Boolean> = store.data.map { it[Keys.VOICE_ENABLED] ?: false }
+    val interactiveIconEnabled: Flow<Boolean> = store.data.map {
         it[Keys.INTERACTIVE_ICON_ENABLED] ?: true
     }
-    val gatewayEndpoint: Flow<String> = context.dataStore.data.map {
+    val gatewayEndpoint: Flow<String> = store.data.map {
         it[Keys.GATEWAY_ENDPOINT] ?: DEFAULT_GATEWAY_ENDPOINT
     }
     /**
@@ -117,17 +123,17 @@ class SettingsRepository(private val context: Context) {
      * the app (contract §intro). Null/blank means "not paired"; the chat
      * + cockpit client stay on their offline-safe paths until set.
      */
-    val cockpitToken: Flow<String?> = context.dataStore.data.map {
+    val cockpitToken: Flow<String?> = store.data.map {
         it[Keys.COCKPIT_TOKEN]?.takeIf { token -> token.isNotBlank() }
     }
-    val mockMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOCK_MODE] ?: false }
-    val termuxGatewayMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.TERMUX_GATEWAY_MODE] ?: false }
-    val approvalsRequired: Flow<Boolean> = context.dataStore.data.map { it[Keys.APPROVALS_REQUIRED] ?: true }
-    val safetyGatesEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.SAFETY_GATES_ENABLED] ?: true }
-    val privacyLocalOnlyMemory: Flow<Boolean> = context.dataStore.data.map {
+    val mockMode: Flow<Boolean> = store.data.map { it[Keys.MOCK_MODE] ?: false }
+    val termuxGatewayMode: Flow<Boolean> = store.data.map { it[Keys.TERMUX_GATEWAY_MODE] ?: false }
+    val approvalsRequired: Flow<Boolean> = store.data.map { it[Keys.APPROVALS_REQUIRED] ?: true }
+    val safetyGatesEnabled: Flow<Boolean> = store.data.map { it[Keys.SAFETY_GATES_ENABLED] ?: true }
+    val privacyLocalOnlyMemory: Flow<Boolean> = store.data.map {
         it[Keys.PRIVACY_LOCAL_ONLY_MEMORY] ?: true
     }
-    val emergencyStopEngaged: Flow<Boolean> = context.dataStore.data.map {
+    val emergencyStopEngaged: Flow<Boolean> = store.data.map {
         it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
     }
     /**
@@ -140,112 +146,112 @@ class SettingsRepository(private val context: Context) {
     val emergencyStopActive: Flow<Boolean> get() = emergencyStopEngaged
 
     suspend fun setThemeMode(mode: ThemeMode) {
-        context.dataStore.edit { it[Keys.THEME_MODE] = mode.name }
+        store.edit { it[Keys.THEME_MODE] = mode.name }
     }
 
     suspend fun setOnboarded(value: Boolean) {
-        context.dataStore.edit { it[Keys.ONBOARDED] = value }
+        store.edit { it[Keys.ONBOARDED] = value }
     }
 
     suspend fun setPreferredBuilder(value: PreferredBuilder) {
-        context.dataStore.edit { it[Keys.PREFERRED_BUILDER] = value.name }
+        store.edit { it[Keys.PREFERRED_BUILDER] = value.name }
     }
 
     suspend fun setPreferredReviewer(value: PreferredReviewer) {
-        context.dataStore.edit { it[Keys.PREFERRED_REVIEWER] = value.name }
+        store.edit { it[Keys.PREFERRED_REVIEWER] = value.name }
     }
 
     suspend fun setUseApiKeys(value: Boolean) {
-        context.dataStore.edit { it[Keys.USE_API_KEYS] = value }
+        store.edit { it[Keys.USE_API_KEYS] = value }
     }
 
     suspend fun setLocalOnlyMode(value: Boolean) {
-        context.dataStore.edit { it[Keys.LOCAL_ONLY_MODE] = value }
+        store.edit { it[Keys.LOCAL_ONLY_MODE] = value }
     }
 
     suspend fun setAllowExternalAppOpening(value: Boolean) {
-        context.dataStore.edit { it[Keys.ALLOW_EXTERNAL_APP_OPENING] = value }
+        store.edit { it[Keys.ALLOW_EXTERNAL_APP_OPENING] = value }
     }
 
     suspend fun setClipboardHandoffEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.CLIPBOARD_HANDOFF_ENABLED] = value }
+        store.edit { it[Keys.CLIPBOARD_HANDOFF_ENABLED] = value }
     }
 
     suspend fun setShowSafetyWarnings(value: Boolean) {
-        context.dataStore.edit { it[Keys.SHOW_SAFETY_WARNINGS] = value }
+        store.edit { it[Keys.SHOW_SAFETY_WARNINGS] = value }
     }
 
     suspend fun setAutonomyMode(value: AutonomyMode) {
-        context.dataStore.edit { it[Keys.AUTONOMY_MODE] = value.name }
+        store.edit { it[Keys.AUTONOMY_MODE] = value.name }
     }
 
     suspend fun setResponseLength(value: ResponseLength) {
-        context.dataStore.edit { it[Keys.RESPONSE_LENGTH] = value.name }
+        store.edit { it[Keys.RESPONSE_LENGTH] = value.name }
     }
 
     suspend fun setMobileMode(value: Boolean) {
-        context.dataStore.edit { it[Keys.MOBILE_MODE] = value }
+        store.edit { it[Keys.MOBILE_MODE] = value }
     }
 
     suspend fun setNotificationsEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = value }
+        store.edit { it[Keys.NOTIFICATIONS_ENABLED] = value }
     }
 
     suspend fun setVoiceEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.VOICE_ENABLED] = value }
+        store.edit { it[Keys.VOICE_ENABLED] = value }
     }
 
     suspend fun setInteractiveIconEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.INTERACTIVE_ICON_ENABLED] = value }
+        store.edit { it[Keys.INTERACTIVE_ICON_ENABLED] = value }
     }
 
     suspend fun setGatewayEndpoint(value: String) {
-        context.dataStore.edit { it[Keys.GATEWAY_ENDPOINT] = value }
+        store.edit { it[Keys.GATEWAY_ENDPOINT] = value }
     }
 
     /** Pair the cockpit with a gateway by storing its bearer token. */
     suspend fun setCockpitToken(value: String) {
-        context.dataStore.edit { it[Keys.COCKPIT_TOKEN] = value.trim() }
+        store.edit { it[Keys.COCKPIT_TOKEN] = value.trim() }
     }
 
     /** Unpair: drop the stored token (chat + cockpit client fall back to offline-safe). */
     suspend fun clearCockpitToken() {
-        context.dataStore.edit { it.remove(Keys.COCKPIT_TOKEN) }
+        store.edit { it.remove(Keys.COCKPIT_TOKEN) }
     }
 
     suspend fun setMockMode(value: Boolean) {
-        context.dataStore.edit { it[Keys.MOCK_MODE] = value }
+        store.edit { it[Keys.MOCK_MODE] = value }
     }
 
     suspend fun setTermuxGatewayMode(value: Boolean) {
-        context.dataStore.edit { it[Keys.TERMUX_GATEWAY_MODE] = value }
+        store.edit { it[Keys.TERMUX_GATEWAY_MODE] = value }
     }
 
     suspend fun setApprovalsRequired(value: Boolean) {
-        context.dataStore.edit { it[Keys.APPROVALS_REQUIRED] = value }
+        store.edit { it[Keys.APPROVALS_REQUIRED] = value }
     }
 
     suspend fun setSafetyGatesEnabled(value: Boolean) {
-        context.dataStore.edit { it[Keys.SAFETY_GATES_ENABLED] = value }
+        store.edit { it[Keys.SAFETY_GATES_ENABLED] = value }
     }
 
     suspend fun setPrivacyLocalOnlyMemory(value: Boolean) {
-        context.dataStore.edit { it[Keys.PRIVACY_LOCAL_ONLY_MEMORY] = value }
+        store.edit { it[Keys.PRIVACY_LOCAL_ONLY_MEMORY] = value }
     }
 
     suspend fun setEmergencyStopEngaged(value: Boolean) {
-        context.dataStore.edit { it[Keys.EMERGENCY_STOP_ENGAGED] = value }
+        store.edit { it[Keys.EMERGENCY_STOP_ENGAGED] = value }
     }
 
     /** Home-dashboard-friendly alias for [setEmergencyStopEngaged]. */
     suspend fun setEmergencyStopActive(value: Boolean) = setEmergencyStopEngaged(value)
 
     suspend fun resetAll() {
-        context.dataStore.edit { it.clear() }
+        store.edit { it.clear() }
     }
 
     suspend fun snapshot(): Snapshot {
-        val data = context.dataStore.data.first()
+        val data = store.data.first()
         return Snapshot(
             themeMode = when (data[Keys.THEME_MODE]) {
                 "LIGHT" -> ThemeMode.LIGHT
