@@ -24,13 +24,11 @@ on:
       - 'gateway/**'
       - 'tests/**'
       - '.github/workflows/jarvis-prime-unit.yml'
+  # No path filter on pull_request: these two jobs are branch-protection
+  # required checks, so they must report a conclusion on EVERY PR. A `paths`
+  # filter would skip the workflow on PRs that don't touch these paths, leaving
+  # the required checks stuck "Pending" and the PR unmergeable.
   pull_request:
-    paths:
-      - 'apps/android/**'
-      - 'hermes_cli/**'
-      - 'gateway/**'
-      - 'tests/**'
-      - '.github/workflows/jarvis-prime-unit.yml'
   workflow_dispatch:
 
 permissions:
@@ -51,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -94,7 +92,7 @@ jobs:
 
       - name: Upload unit test report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: jarvis-prime-android-unit-report
           path: |
@@ -110,13 +108,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
 
       - name: Set up Python 3.11
         run: uv python install 3.11
@@ -174,7 +172,7 @@ jobs:
 
       - name: Upload pytest report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: jarvis-prime-python-unit-report
           path: |
