@@ -300,6 +300,9 @@ class HermesCockpitClient(
             body = json.encodeToString(
                 CockpitApprovalDecision.serializer(),
                 CockpitApprovalDecision(decision = decision, authorization = authorization, notes = notes),
+            ),
+        )
+
     // ─── Voice intake (mobile-native, hands-free) ───────────────────────
     //
     // Reuse the canonical backend pipeline for read-back, classification, and
@@ -604,6 +607,8 @@ class HermesCockpitClient(
             "GET",
             "/v1/cockpit/autonomy/decisions?limit=$limit",
             AutonomyDecisionList.serializer(),
+        )
+
     /** Read-only job detail + decision-ledger timeline (Job Detail screen). */
     suspend fun jobLedger(id: String): CockpitResult<JobDetail> =
         request("GET", "/v1/cockpit/jobs/" + enc(id) + "/ledger", JobDetail.serializer())
