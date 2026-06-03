@@ -329,6 +329,15 @@ Do not save:
 - raw voice dumps
 - unverified claims
 
+**Capture → proposed → owner approval (MEM-2).** Durable-worthy facts noticed
+during a turn are captured as **proposed** Memory Tree candidates, not durable
+memory. They become durable only when the owner approves them (Memory screen
+**Inbox** on mobile, or `POST /v1/cockpit/memory/tree/{id}/decision`). Approval
+re-checks for contradictions and **never silently overwrites** an existing
+fact — a conflict surfaces for the owner to resolve. Recollection cites
+sources and excludes contested facts. Disable the whole layer with
+`HERMES_MEMORY_LAYERS=0`.
+
 ## Owner Gates
 
 Require explicit owner authorization before:
