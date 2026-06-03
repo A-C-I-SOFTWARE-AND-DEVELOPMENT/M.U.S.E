@@ -1958,6 +1958,98 @@ class AIAgent:
             except Exception:
                 pass
 
+    def _memory_layers_enabled(self) -> bool:
+        """Whether MEM-1 layered capture is on (config: ``memory.layers.enabled``).
+
+        Defaults OFF so existing installs are byte-for-byte unchanged. The
+        result is cached on the instance after the first read — the config is
+        read once per agent, never per turn.
+        """
+        cached = getattr(self, "_memory_layers_enabled_cache", None)
+        if cached is not None:
+            return cached
+        enabled = False
+        try:
+            from hermes_cli.config import cfg_get, load_config
+
+            enabled = bool(
+                cfg_get(load_config(), "memory", "layers", "enabled", default=False)
+            )
+        except Exception:
+            enabled = False
+        self._memory_layers_enabled_cache = enabled
+        return enabled
+
+    @staticmethod
+    def _coerce_memory_text(value: Any) -> str:
+        """Best-effort flatten of a message/response into plain text for MEM-1.
+
+        Handles the common shapes: a plain string, a list of content blocks
+        (dicts with a ``text`` field, as Anthropic-style messages use), or any
+        other object (falls back to ``str``). Returns ``""`` for empties so the
+        caller can skip recording.
+        """
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value.strip()
+        if isinstance(value, list):
+            parts: list[str] = []
+            for block in value:
+                if isinstance(block, dict):
+                    text = block.get("text")
+                    if isinstance(text, str) and text.strip():
+                        parts.append(text.strip())
+                elif isinstance(block, str) and block.strip():
+                    parts.append(block.strip())
+            return "\n".join(parts).strip()
+        try:
+            return str(value).strip()
+        except Exception:
+            return ""
+
+    def _record_memory_layer_events(
+        self, *, original_user_message: Any, final_response: Any
+    ) -> None:
+        """MEM-1: append raw provenance events for a completed turn.
+
+        Local-first, append-only, gitignored (see ``agent/memory_layers``). The
+        owner's message is recorded at ``owner`` trust (already owner-approved
+        by virtue of being the owner's own input); the model's reply at
+        ``trusted``. Nothing is auto-promoted to durable memory here — promotion
+        stays owner-gated via the curator bridge. Fail-open: any logging failure
+        is swallowed so it can never break the user's turn.
+        """
+        if not self._memory_layers_enabled():
+            return
+        try:
+            from agent.memory_layers import MemoryEvent, record
+
+            scope = self.session_id or "global"
+            user_text = self._coerce_memory_text(original_user_message)
+            if user_text:
+                record(
+                    MemoryEvent(
+                        content=user_text,
+                        source="user",
+                        trust_level="owner",
+                        user_approval_state="approved",
+                    ),
+                    scope=scope,
+                )
+            reply_text = self._coerce_memory_text(final_response)
+            if reply_text:
+                record(
+                    MemoryEvent(
+                        content=reply_text,
+                        source="assistant",
+                        trust_level="trusted",
+                    ),
+                    scope=scope,
+                )
+        except Exception:
+            pass
+
     def _sync_external_memory_for_turn(
         self,
         *,
@@ -1993,6 +2085,13 @@ class AIAgent:
         """
         if interrupted:
             return
+        # MEM-1: append provenance-bearing raw events for the completed turn.
+        # Gated on memory.layers.enabled and independent of the external
+        # memory manager (layered capture works even with no external backend).
+        self._record_memory_layer_events(
+            original_user_message=original_user_message,
+            final_response=final_response,
+        )
         if not (self._memory_manager and final_response and original_user_message):
             return
         try:
