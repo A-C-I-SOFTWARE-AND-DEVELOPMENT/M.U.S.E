@@ -20,12 +20,19 @@ class SecureTokenMigrationTest {
     /** In-memory stand-in for the encrypted store; mirrors its semantics. */
     private class FakeSecureTokenStore(
         private var value: String? = null,
-        /** When set, [write] throws — exercises the safe-failure path. */
+        /** When set, [write] throws — exercises the throwing-failure path. */
         var failWrites: Boolean = false,
+        /**
+         * When set, [write] silently no-ops without throwing — mirrors the
+         * real store when the Keystore is unavailable (`prefs` is null), the
+         * exact case the read-back verification must catch.
+         */
+        var silentlyDropWrites: Boolean = false,
     ) : SecureTokenStore {
         override fun read(): String? = value?.takeIf { it.isNotBlank() }
         override fun write(token: String) {
             if (failWrites) throw IllegalStateException("keystore unavailable")
+            if (silentlyDropWrites) return
             value = token.trim()
         }
         override fun clear() { value = null }
@@ -90,7 +97,8 @@ class SecureTokenMigrationTest {
     }
 
     @Test
-    fun `migration is a no-op when the secure store already has a token`() = runTest {
+    fun `migration keeps the secure token but clears leftover plaintext`() = runTest {
+        // A prior run persisted the secure token but failed to clear DataStore.
         val secure = FakeSecureTokenStore(value = "already-secure")
         var legacy: String? = "stale-plaintext"
 
@@ -101,8 +109,26 @@ class SecureTokenMigrationTest {
         )
 
         assertEquals("already-secure", result)
-        // Legacy left untouched: we never read or clear it once secure wins.
-        assertEquals("stale-plaintext", legacy)
+        // The leftover plaintext must never linger once the secure copy exists.
+        assertNull("leftover plaintext must be swept up", legacy)
+    }
+
+    @Test
+    fun `migration preserves plaintext when the secure write silently fails`() = runTest {
+        // Keystore unavailable: write() no-ops without throwing. The read-back
+        // verification must catch this and NOT drop the plaintext.
+        val secure = FakeSecureTokenStore(silentlyDropWrites = true)
+        var legacy: String? = "legacy-token-xyz"
+
+        val result = CockpitTokenMigration.migrate(
+            secure = secure,
+            readLegacy = { legacy },
+            clearLegacy = { legacy = null },
+        )
+
+        assertEquals("legacy-token-xyz", result)
+        assertEquals("legacy-token-xyz", legacy)
+        assertNull(secure.read())
     }
 
     @Test

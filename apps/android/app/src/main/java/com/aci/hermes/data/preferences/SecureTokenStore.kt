@@ -66,7 +66,10 @@ class EncryptedPrefsSecureTokenStore(
         }.getOrNull()
 
     override fun write(token: String) {
-        runCatching { prefs?.edit()?.putString(KEY_COCKPIT_TOKEN, token.trim())?.apply() }
+        // commit() (synchronous) rather than apply(): the migration only
+        // drops the plaintext copy after verifying this landed, so we need
+        // the value durable on disk before that happens, not queued async.
+        runCatching { prefs?.edit()?.putString(KEY_COCKPIT_TOKEN, token.trim())?.commit() }
     }
 
     override fun clear() {
@@ -86,11 +89,15 @@ class EncryptedPrefsSecureTokenStore(
  * Pure (no Android dependencies) so it can be exercised directly by unit
  * tests — the live [SettingsRepository] path calls exactly this function.
  *
- * Safety: if the secure store already has a token, the legacy value is
- * left untouched and **not** read. If writing to the secure store fails,
- * the legacy plaintext value is preserved (returned) so the owner never
- * loses their pairing — better a still-encrypted-next-launch retry than a
- * lost token.
+ * Safety contract — the plaintext copy is removed **only** once the
+ * encrypted copy is proven safe:
+ *  - The encrypted store fails *soft* (a missing Keystore makes `write()` a
+ *    silent no-op, not an exception), so a non-throwing `write()` is not
+ *    proof of persistence. We verify by reading the value back; if it did
+ *    not land, the plaintext is kept for a next-launch retry.
+ *  - If the secure store already holds a token, we still clear any leftover
+ *    plaintext copy — a prior run may have persisted the token but failed
+ *    to clear DataStore, and that secret must never linger.
  */
 object CockpitTokenMigration {
     suspend fun migrate(
@@ -98,20 +105,29 @@ object CockpitTokenMigration {
         readLegacy: suspend () -> String?,
         clearLegacy: suspend () -> Unit,
     ): String? {
-        val existing = runCatching { secure.read() }.getOrNull()
-        if (!existing.isNullOrBlank()) return existing
-
         val legacy = runCatching { readLegacy() }.getOrNull()?.takeIf { it.isNotBlank() }
-            ?: return null
 
-        return runCatching {
-            secure.write(legacy)
-            clearLegacy()
-            legacy
-        }.getOrElse {
-            // Secure write / legacy clear failed — keep the plaintext value
-            // readable so the next launch can retry the migration.
-            legacy
+        val existing = runCatching { secure.read() }.getOrNull()?.takeIf { it.isNotBlank() }
+        if (existing != null) {
+            // Already migrated. Sweep up any plaintext that survived a prior
+            // failed clear so it never lingers on disk.
+            if (legacy != null) runCatching { clearLegacy() }
+            return existing
         }
+
+        if (legacy == null) return null
+
+        // Move plaintext -> encrypted, then VERIFY it persisted before
+        // dropping the plaintext. On any failure, keep the plaintext readable
+        // so the next launch retries — the owner never loses their pairing.
+        val persisted = runCatching {
+            secure.write(legacy)
+            secure.read() == legacy
+        }.getOrDefault(false)
+
+        if (!persisted) return legacy
+
+        runCatching { clearLegacy() }
+        return legacy
     }
 }

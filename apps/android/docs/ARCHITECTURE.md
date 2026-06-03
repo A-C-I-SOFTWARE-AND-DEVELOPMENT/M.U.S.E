@@ -92,9 +92,13 @@ with the bearer token and the gateway holds the model credentials.
 plaintext DataStore key (`cockpit_token`). On construction,
 `SettingsRepository` runs `CockpitTokenMigration`: if the encrypted store has
 no token but a legacy plaintext key exists, the value is copied into the
-encrypted store and the plaintext key is removed. The migration fails safe —
-if the encrypted write throws (e.g. Keystore unavailable), the plaintext copy
-is left in place so the pairing is never lost, and the next launch retries.
+encrypted store and the plaintext key is removed. The migration fails safe:
+the encrypted store fails *soft* (a missing Keystore makes the write a silent
+no-op, not an exception), so the plaintext copy is dropped **only after the
+write is verified by reading it back** — if it didn't land, the plaintext is
+kept and the next launch retries, so the pairing is never lost. If the
+encrypted store already holds the token, any leftover plaintext copy from a
+prior failed clear is still swept up so it never lingers.
 
 `setCockpitToken` writes the encrypted store; `clearCockpitToken` clears the
 encrypted store **and** removes any residual plaintext key. Both stores are
