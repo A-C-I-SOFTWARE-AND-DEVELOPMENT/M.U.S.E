@@ -487,3 +487,92 @@ def test_navigation_view_job_id_override() -> None:
     v = contract.navigation_view({"objective": "x"}, job_id="job_42")
     assert v["job_id"] == "job_42"
     assert v["candidate_files"] == []
+
+
+# ---------------------------------------------------------------------------
+# Coding packet + evidence adapters
+# ---------------------------------------------------------------------------
+
+
+def test_coding_packet_projects_work_packet() -> None:
+    from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+    packet = nlc.build_work_packet("add a unit test for the parser")
+    out = contract.coding_packet(packet)
+    assert out["mission"]
+    assert out["branch"]
+    assert out["risk_class"].startswith("RC")
+    assert isinstance(out["allowed_files"], list)
+    assert isinstance(out["verification_plan"], list)
+
+
+def test_evidence_artifact_projects_research_artifact() -> None:
+    from hermes_cli.jarvis_prime import research_vault as rv
+
+    art = rv.ResearchArtifact(
+        id="abc123",
+        title="PEP 659",
+        source_uri="https://peps.python.org/pep-0659/",
+        source_type=rv.SourceType.OFFICIAL_DOC,
+        evidence_strength=rv.EvidenceStrength.PRIMARY,
+        excerpt="specializing adaptive interpreter",
+    )
+    out = contract.evidence_artifact(art)
+    assert out["id"] == "abc123"
+    assert out["source_type"] == "official_doc"
+    assert out["evidence_strength"] == "primary"
+
+
+class _FakeReport:
+    """Minimal stand-in for epistemics.AuditReport (outcome + findings)."""
+
+    class _Outcome:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    def __init__(self, outcome: str, findings=()) -> None:
+        self.outcome = self._Outcome(outcome)
+        self.findings = list(findings)
+
+
+def _artifact(strength: str = "primary", freshness_due=None):
+    from hermes_cli.jarvis_prime import research_vault as rv
+
+    return rv.ResearchArtifact(
+        id="x",
+        title="t",
+        source_uri="https://example.com",
+        evidence_strength=rv.EvidenceStrength(strength),
+        freshness_due=freshness_due,
+    )
+
+
+def test_evidence_verdict_insufficient_when_no_matches() -> None:
+    v = contract.evidence_verdict("claim", [], _FakeReport("needs_research"))
+    assert v["verdict"] == "insufficient_evidence"
+    assert v["supporting_sources"] == []
+    assert v["contradicting_sources"] == []
+    assert v["confidence"] <= 0.4
+
+
+def test_evidence_verdict_supported_on_clean_audit_with_match() -> None:
+    v = contract.evidence_verdict("claim", [_artifact("primary")], _FakeReport("pass"))
+    assert v["verdict"] == "supported"
+    assert v["confidence"] >= 0.9
+    assert v["freshness_status"] == "unknown"  # no freshness date set
+
+
+def test_evidence_verdict_partial_when_needs_citations() -> None:
+    v = contract.evidence_verdict(
+        "claim", [_artifact("moderate")], _FakeReport("needs_citations")
+    )
+    assert v["verdict"] == "partially_supported"
+
+
+def test_evidence_verdict_stale_when_freshness_past_due() -> None:
+    from datetime import timedelta
+
+    past = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    v = contract.evidence_verdict("claim", [_artifact("primary", past)], _FakeReport("pass"))
+    assert v["verdict"] == "stale"
+    assert v["freshness_status"] == "stale"

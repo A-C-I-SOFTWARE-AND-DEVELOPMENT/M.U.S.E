@@ -407,41 +407,25 @@ def job_run(req: Request) -> JsonResponse:
     authorization = str(req.body.get("authorization", "")).strip()
     try:
         from hermes_cli import orchestrator as orch
-        from hermes_cli.workers import builtin_worker_classes, load_builtins
 
         from . import contract
 
-        load_builtins()
         job = orch.get_job(job_id)
         if job is None:
             return JsonResponse(404, {"error": f"unknown job: {job_id}"})
 
-        classes = {c.id: c for c in builtin_worker_classes()}
-        worker_cls = classes.get(worker_id)
-        if worker_cls is None:
-            return JsonResponse(400, {"error": f"unknown worker: {worker_id}"})
-        requires_approval = bool(getattr(worker_cls, "requires_approval", True))
-
-        if requires_approval:
-            if _ALLOW_REMOTE_EXECUTE:
-                return JsonResponse(
-                    403,
-                    {
-                        "error": "agentic execution is disabled on a non-loopback "
-                        "cockpit; run the runtime locally (loopback) to use "
-                        f"{worker_id!r}.",
-                    },
-                )
-            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-
-            if authorization != AUTHORIZATION_PHRASE:
-                return JsonResponse(
-                    403,
-                    {
-                        "error": "owner approval required to run an execute lane",
-                        "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
-                    },
-                )
+        gate = _evaluate_execute_gate(worker_id, authorization)
+        if gate.error is not None:
+            return gate.error
+        if gate.requires_approval and not gate.authorized:
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner approval required to run an execute lane",
+                    "hint": gate.authorization_hint,
+                },
+            )
+        if gate.requires_approval:
             orch.approve_phase(job_id, "execute")
 
         out = orch.dispatch_job(job_id, worker_id=worker_id)
@@ -742,6 +726,459 @@ def sessions_list(_req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Execute gate (shared by job_run and coding/execute — no logic divergence)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _ExecuteGate:
+    """Outcome of the owner-phrase + loopback gate for an execute lane.
+
+    ``error`` is a hard refusal (unknown worker, or a non-loopback cockpit
+    trying to run an execute lane). When ``requires_approval`` is True the
+    caller decides how to treat ``authorized``: ``job_run`` 403s, while
+    ``coding_execute`` returns a *staged* approval-required response so the
+    app can show "Ready to execute — approve to run".
+    """
+
+    requires_approval: bool
+    authorized: bool
+    error: Optional["JsonResponse"]
+    authorization_hint: str = ""
+
+
+def _evaluate_execute_gate(worker_id: str, authorization: str) -> _ExecuteGate:
+    """Resolve a worker lane and evaluate the double gate.
+
+    Reuses the real worker registry (``requires_approval`` per lane), the
+    loopback guard (``_ALLOW_REMOTE_EXECUTE``), and the exact owner phrase
+    (``owner_auth.AUTHORIZATION_PHRASE``). Never bypasses a gate.
+    """
+    from hermes_cli.workers import builtin_worker_classes, load_builtins
+
+    load_builtins()
+    classes = {c.id: c for c in builtin_worker_classes()}
+    worker_cls = classes.get(worker_id)
+    if worker_cls is None:
+        return _ExecuteGate(
+            requires_approval=False,
+            authorized=False,
+            error=JsonResponse(400, {"error": f"unknown worker: {worker_id}"}),
+        )
+    requires_approval = bool(getattr(worker_cls, "requires_approval", True))
+    if requires_approval and _ALLOW_REMOTE_EXECUTE:
+        return _ExecuteGate(
+            requires_approval=True,
+            authorized=False,
+            error=JsonResponse(
+                403,
+                {
+                    "error": "agentic execution is disabled on a non-loopback "
+                    "cockpit; run the runtime locally (loopback) to use "
+                    f"{worker_id!r}.",
+                },
+            ),
+        )
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    return _ExecuteGate(
+        requires_approval=requires_approval,
+        authorized=(authorization == AUTHORIZATION_PHRASE),
+        error=None,
+        authorization_hint=f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Job pause / resume (human-requested scheduling control)
+# ---------------------------------------------------------------------------
+
+
+def job_pause(req: Request) -> JsonResponse:
+    """Pause a job (human-requested). 404 unknown, 409 if already terminal.
+
+    Thin wrapper over ``JobQueue.pause_job`` — the queue stays the single
+    scheduling authority; nothing here advances or runs work.
+    """
+    job_id = req.path_params.get("id", "")
+    note = req.body.get("note") or req.body.get("reason")
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError, QueueState
+
+        from . import contract
+
+        queue = JobQueue()
+        try:
+            entry = queue.get_job(job_id)
+        except JobQueueNotFoundError:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+        if entry.state in QueueState.TERMINAL:
+            return JsonResponse(409, {"error": f"job already {entry.state}"})
+        entry = queue.pause_job(job_id, note=str(note) if note else None)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def job_resume(req: Request) -> JsonResponse:
+    """Resume a paused/blocked/disconnected/failed job (back to ``queued``).
+
+    Thin wrapper over ``JobQueue.resume_job``. 404 unknown; 409 when the
+    state isn't resumable (e.g. already running or terminal).
+    """
+    job_id = req.path_params.get("id", "")
+    note = req.body.get("note") or req.body.get("reason")
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError, QueueState
+
+        from . import contract
+
+        queue = JobQueue()
+        try:
+            entry = queue.get_job(job_id)
+        except JobQueueNotFoundError:
+            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+        if entry.state not in QueueState.RESUMABLE:
+            return JsonResponse(409, {"error": f"job not resumable from {entry.state}"})
+        entry = queue.resume_job(job_id, note=str(note) if note else None)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+# ---------------------------------------------------------------------------
+# Emergency stop — a real backend halt (not Android-local state)
+# ---------------------------------------------------------------------------
+
+
+def emergency_stop(req: Request) -> JsonResponse:
+    """Halt backend work: clear owner gates, disable the tick, release worker
+    branch leases, and pause every non-terminal queued/running job.
+
+    This genuinely stops backend *advancement* (and revokes the branch
+    leases workers hold) — it is not a local Android toggle. It does not
+    SIGKILL a worker subprocess already mid-command; pausing is reversible
+    via ``/jobs/{id}/resume``. Every effect is journaled to memory/ledger.
+    """
+    reason = str(req.body.get("reason", "") or "owner_requested").strip()
+    result: dict[str, Any] = {
+        "reason": reason,
+        "cleared_actions": [],
+        "branch_leases_cleared": 0,
+        "tick_disabled": False,
+        "jobs_paused": 0,
+        "jobs_paused_ids": [],
+    }
+    # 1) Runtime halt: owner gates, proactive tick, worker branch leases.
+    try:
+        from hermes_cli.jarvis_prime.runtime import JarvisPrime
+
+        stop_result = JarvisPrime().stop(reason=reason)
+        result["cleared_actions"] = stop_result.get("cleared_actions", [])
+        result["branch_leases_cleared"] = stop_result.get("branch_leases_cleared", 0)
+        result["tick_disabled"] = bool(stop_result.get("tick_disabled", False))
+    except Exception as exc:  # pragma: no cover - defensive
+        result["runtime_error"] = str(exc)
+    # 2) Pause every non-terminal queue entry so work stops advancing.
+    try:
+        from hermes_cli.job_queue import JobQueue, QueueState
+
+        queue = JobQueue()
+        paused: list[str] = []
+        for entry in queue.list_jobs():
+            if entry.state in QueueState.TERMINAL or entry.state == QueueState.PAUSED:
+                continue
+            try:
+                queue.pause_job(entry.job_id, note=f"emergency stop: {reason}")
+                paused.append(entry.job_id)
+            except Exception:  # pragma: no cover - defensive
+                continue
+        result["jobs_paused"] = len(paused)
+        result["jobs_paused_ids"] = paused
+    except Exception as exc:  # pragma: no cover - defensive
+        result["queue_error"] = str(exc)
+    result["halted_at"] = _now_iso()
+    return JsonResponse(200, result)
+
+
+# ---------------------------------------------------------------------------
+# Coding lanes — audit (read-only) / plan (stage only) / execute (gated)
+# ---------------------------------------------------------------------------
+
+
+def coding_audit(req: Request) -> JsonResponse:
+    """Classify + route a plain-English coding request (read-only).
+
+    Returns the intent, risk class, owner-gate requirement, and worker/model
+    lane hint via the natural-language coder. Builds **no** packet and runs
+    **nothing** — this is the "what would this do" lane.
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+        from hermes_cli.secrets_policy import redact
+
+        route = nlc.route_request(prompt)
+        payload = route.to_dict()
+        payload["mission"] = redact(prompt)
+        payload["owner_gate_required"] = bool(route.owner_gates) or route.blocked
+        payload["generated_at"] = _now_iso()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def coding_plan(req: Request) -> JsonResponse:
+    """Build + validate a bounded coding work packet (stage only, never runs).
+
+    Reuses ``natural_language_coder.build_work_packet`` /
+    ``validate_work_packet`` / ``render_packet_markdown``. 422 when the
+    packet fails validation (honest, not faked).
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
+    try:
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+        from . import contract
+
+        packet = nlc.build_work_packet(prompt, repo_root=repo_root)
+        validation = nlc.validate_work_packet(packet)
+        markdown = nlc.render_packet_markdown(packet)
+        payload = {
+            "packet": contract.coding_packet(packet),
+            "validation": validation.to_dict(),
+            "markdown": markdown,
+            "owner_gate_required": bool(packet.owner_gates) or packet.blocked,
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    status = 200 if validation.ok else 422
+    return JsonResponse(status, payload)
+
+
+def coding_execute(req: Request) -> JsonResponse:
+    """Dispatch a coding job **only** through the existing gated orchestrator.
+
+    No second execution engine: build/validate the packet, submit an
+    orchestrator job, then reuse the same double gate as ``job_run`` (owner
+    phrase + loopback). When the gate is *not* satisfied this returns a
+    ``200`` **staged** ``approval_required`` response (with the job id, risk
+    class, workspace, worker/model, verification commands, and the phrase the
+    owner must send) instead of running. When satisfied it approves the
+    ``execute`` phase and dispatches, returning the job + worker ledger trail.
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
+    authorization = str(req.body.get("authorization", "")).strip()
+    try:
+        from hermes_cli import orchestrator as orch
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+        from . import contract
+
+        packet = nlc.build_work_packet(prompt, repo_root=repo_root)
+        validation = nlc.validate_work_packet(packet)
+        if not validation.ok:
+            return JsonResponse(
+                422,
+                {
+                    "status": "invalid_packet",
+                    "packet": contract.coding_packet(packet),
+                    "validation": validation.to_dict(),
+                },
+            )
+        if packet.blocked:
+            return JsonResponse(
+                403,
+                {
+                    "status": "blocked",
+                    "error": "this request is blocked (disallowed intent)",
+                    "packet": contract.coding_packet(packet),
+                },
+            )
+
+        # Worker lane: explicit override, else derive an execute lane from the
+        # packet's model-lane hint ("claude" -> "claude-execute"). Execute lanes
+        # are owner-gated; the gate below stages when the phrase is absent.
+        worker_id = str(req.body.get("worker_id", "")).strip()
+        if not worker_id:
+            lane = str(packet.model_lane_hint or "claude").lower()
+            worker_id = f"{lane}-execute" if lane in ("claude", "codex", "aider", "goose") else "claude-execute"
+        gate = _evaluate_execute_gate(worker_id, authorization)
+        if gate.error is not None:
+            return gate.error
+
+        # Real, gated dispatch path: submit an orchestrator job first.
+        job = orch.submit_job(prompt)
+
+        if gate.requires_approval and not gate.authorized:
+            # Gate not satisfied → STAGE, do not run. The job is left awaiting
+            # the owner's execute approval; the app shows "Ready to execute".
+            return JsonResponse(
+                200,
+                {
+                    "status": "approval_required",
+                    "job": contract.orchestrator_job(job),
+                    "packet": contract.coding_packet(packet),
+                    "risk_class": packet.risk_class,
+                    "workspace_path": packet.repo_root,
+                    "worker_id": worker_id,
+                    "model_lane_hint": packet.model_lane_hint,
+                    "verification_plan": list(packet.verification_plan),
+                    "authorization_required": True,
+                    "authorization_hint": gate.authorization_hint,
+                },
+            )
+
+        if gate.requires_approval:
+            orch.approve_phase(job.id, "execute")
+        out = orch.dispatch_job(job.id, worker_id=worker_id)
+        if out is None:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": "dispatch returned no job"})
+        trail = [
+            e
+            for e in orch.get_ledger(out.id).get(out.id, [])
+            if str(e.get("kind", "")).startswith("worker_")
+        ]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(
+        200,
+        {
+            "status": "dispatched",
+            "job": contract.orchestrator_job(out),
+            "packet": contract.coding_packet(packet),
+            "worker_id": worker_id,
+            "worker_trail": trail[-6:],
+            "ledger": {"job_id": out.id},
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Evidence — search (read-only) / verify (non-mutating claim audit)
+# ---------------------------------------------------------------------------
+
+
+def evidence_search(req: Request) -> JsonResponse:
+    """Search the Research Vault for evidence artifacts (read-only).
+
+    Honest empty list when the vault is absent/empty. Never mutates state.
+    """
+    query = req.query.get("q") or req.query.get("query") or ""
+    limit = int(req.query.get("limit", "10"))
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        if query.strip():
+            artifacts = vault.search(query, limit=limit)
+        else:
+            artifacts = vault.entries()[:limit]
+        items = [contract.evidence_artifact(a) for a in artifacts]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"items": [], "error": str(exc)})
+    return JsonResponse(200, {"items": items})
+
+
+def evidence_verify(req: Request) -> JsonResponse:
+    """Audit a claim against the Research Vault + epistemics (**non-mutating**).
+
+    Cross-checks the vault for supporting/contradicting artifacts and runs
+    the citation/epistemic audit, returning a verdict with confidence,
+    supporting/contradicting sources, missing evidence, and a freshness
+    status. Never writes the vault and is safe to call repeatedly.
+    """
+    claim = str(req.body.get("claim", "")).strip()
+    if not claim:
+        return JsonResponse(400, {"error": "claim is required"})
+    source_ids = [str(s) for s in (req.body.get("source_ids") or [])]
+    try:
+        from hermes_cli.jarvis_prime import epistemics
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from hermes_cli.secrets_policy import redact
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        matches = vault.search(claim, limit=10)
+        if source_ids:
+            pinned = [vault.artifacts[i] for i in source_ids if i in vault.artifacts]
+            # Pinned sources take precedence, then de-duped search matches.
+            seen = {a.id for a in pinned}
+            matches = pinned + [a for a in matches if a.id not in seen]
+
+        citations = [a.source_uri for a in matches if a.source_uri]
+        report = epistemics.audit_response(claim, provided_citations=citations)
+        payload = contract.evidence_verdict(claim, matches, report)
+        payload["claim"] = redact(claim)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+# ---------------------------------------------------------------------------
+# Capabilities — server feature negotiation (not the curated in-app catalog)
+# ---------------------------------------------------------------------------
+
+
+def capabilities(_req: Request) -> JsonResponse:
+    """Describe what *this backend* can do, for the app to negotiate against.
+
+    Distinct from the Android curated ``Capability`` picker (an in-app
+    catalog by design): this reports the live server's API version, which
+    subsystems are importable, detected worker lanes, whether execute lanes
+    are permitted (loopback guard), and the route catalog. Redacted: never
+    emits the owner phrase value, tokens, or API keys.
+    """
+    subsystems: dict[str, bool] = {}
+    for name, module in (
+        ("memory", "hermes_cli.jarvis_prime.memory"),
+        ("jobs", "hermes_cli.job_queue"),
+        ("orchestrator", "hermes_cli.orchestrator"),
+        ("coding", "hermes_cli.jarvis_prime.natural_language_coder"),
+        ("evidence", "hermes_cli.jarvis_prime.research_vault"),
+        ("ledger", "hermes_cli.decision_ledger"),
+        ("models", "hermes_cli.jarvis_prime.model_bootstrap"),
+    ):
+        try:
+            __import__(module)
+            subsystems[name] = True
+        except Exception:  # pragma: no cover - defensive
+            subsystems[name] = False
+
+    workers: list[str] = []
+    try:
+        from hermes_cli.jarvis_prime import worker_registry as wr
+
+        workers = [s.lane.id for s in wr.detect_lanes() if s.available]
+    except Exception:  # pragma: no cover - defensive
+        workers = []
+
+    return JsonResponse(
+        200,
+        {
+            "api_version": COCKPIT_API_VERSION,
+            "gateway_version": _gateway_version(),
+            "subsystems": subsystems,
+            "available_workers": workers,
+            "execute_allowed": not _ALLOW_REMOTE_EXECUTE,
+            "owner_gate_required": True,
+            "generated_at": _now_iso(),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -814,10 +1251,19 @@ __all__ = [
     "audit_events",
     "audit_list",
     "audit_proof",
+    "capabilities",
+    "coding_audit",
+    "coding_execute",
+    "coding_plan",
     "diagnostics",
+    "emergency_stop",
+    "evidence_search",
+    "evidence_verify",
     "health",
     "job_cancel",
     "job_get",
+    "job_pause",
+    "job_resume",
     "jobs_dispatch",
     "jobs_list",
     "memory_create",

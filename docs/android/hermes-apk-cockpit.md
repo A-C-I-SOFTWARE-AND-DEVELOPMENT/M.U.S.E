@@ -399,3 +399,9 @@ This file is the spec. Concrete code stubs landing in this phase:
 Future phases will add the `HermesCockpitClient` implementation,
 screens 3.1 – 3.9, and the backend-side Phase 18 cockpit routes
 (`/v1/cockpit/*`).
+
+The authoritative, up-to-date list of live cockpit routes — including the
+newer `capabilities`, `jobs/{id}/pause|resume`, `emergency-stop`,
+`coding/audit|plan|execute`, and `evidence/search|verify` endpoints, plus the
+spec-shorthand → canonical mapping — lives in
+[`cockpit-canonical-contract-plan.md`](cockpit-canonical-contract-plan.md).

@@ -152,4 +152,150 @@ class HermesCockpitClientTest {
         }
         assertTrue(result.value.containsKey("approvals"))
     }
+
+    // ─── New cockpit endpoints ───────────────────────────────────────────
+
+    @Test
+    fun `capabilities parses subsystems and execute guard`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"api_version":"1.0.0","gateway_version":"0.14.0",
+                    "subsystems":{"memory":true,"coding":true},
+                    "available_workers":["claude-execute"],
+                    "execute_allowed":true,"owner_gate_required":true}""",
+            )
+        }
+        val result = client(fake).capabilities()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/capabilities", fake.lastRequest?.url)
+        assertTrue(result.value.subsystems["coding"] == true)
+        assertTrue(result.value.executeAllowed)
+        assertEquals("claude-execute", result.value.availableWorkers.first())
+    }
+
+    @Test
+    fun `jobPause and jobResume post to the right routes`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"id":"j1","title":"t","worker_id":"w","status":"PAUSED",
+                    "created_at":"a","updated_at":"b"}""",
+            )
+        }
+        val paused = client(fake).jobPause("j1", "hold")
+        assertTrue(paused is CockpitResult.Success)
+        assertEquals("POST", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/jobs/j1/pause", fake.lastRequest?.url)
+
+        client(fake).jobResume("j1")
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/jobs/j1/resume", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `emergencyStop parses the halt counts`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"reason":"panic","tick_disabled":true,"branch_leases_cleared":2,
+                    "jobs_paused":1,"jobs_paused_ids":["j1"]}""",
+            )
+        }
+        val result = client(fake).emergencyStop("panic")
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/emergency-stop", fake.lastRequest?.url)
+        assertTrue(result.value.tickDisabled)
+        assertEquals(1, result.value.jobsPaused)
+        assertEquals("j1", result.value.jobsPausedIds.first())
+    }
+
+    @Test
+    fun `codingAudit and codingPlan hit the coding lanes`() = runTest {
+        val auditFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"intent":"test","risk_class":"RC1","primary_worker":"claude",
+                    "owner_gate_required":false}""",
+            )
+        }
+        val audit = client(auditFake).codingAudit(CodingRequest(prompt = "add a test"))
+        if (audit !is CockpitResult.Success) {
+            fail("expected Success, got $audit"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/audit", auditFake.lastRequest?.url)
+        assertEquals("test", audit.value.intent)
+
+        val planFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"packet":{"mission":"m","branch":"jarvis/x","risk_class":"RC2"},
+                    "validation":{"ok":true,"findings":[]},"markdown":"# Packet"}""",
+            )
+        }
+        val plan = client(planFake).codingPlan(CodingRequest(prompt = "refactor x"))
+        if (plan !is CockpitResult.Success) {
+            fail("expected Success, got $plan"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/plan", planFake.lastRequest?.url)
+        assertTrue(plan.value.validation.ok)
+        assertEquals("jarvis/x", plan.value.packet.branch)
+    }
+
+    @Test
+    fun `codingExecute parses the staged approval response`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"status":"approval_required","worker_id":"claude-execute",
+                    "authorization_required":true,
+                    "authorization_hint":"send authorization exactly: 'Yes, with authorization.'",
+                    "job":{"id":"orc-1","status":"queued","prompt":"p"},
+                    "packet":{"mission":"m","risk_class":"RC3"}}""",
+            )
+        }
+        val result = client(fake).codingExecute(CodingRequest(prompt = "deploy"))
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/execute", fake.lastRequest?.url)
+        assertEquals("approval_required", result.value.status)
+        assertTrue(result.value.authorizationRequired)
+        assertEquals("orc-1", result.value.job?.id)
+    }
+
+    @Test
+    fun `evidenceSearch encodes the query and evidenceVerify parses a verdict`() = runTest {
+        val searchFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"items":[{"id":"a","title":"PEP 659","source_uri":"https://x",
+                    "evidence_strength":"primary"}]}""",
+            )
+        }
+        val search = client(searchFake).evidenceSearch("adaptive interpreter")
+        if (search !is CockpitResult.Success) {
+            fail("expected Success, got $search"); return@runTest
+        }
+        assertTrue(searchFake.lastRequest?.url?.contains("/v1/cockpit/evidence/search?q=") == true)
+        assertEquals("PEP 659", search.value.items.first().title)
+
+        val verifyFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"verdict":"supported","confidence":0.95,"freshness_status":"unknown",
+                    "supporting_sources":[],"contradicting_sources":[],"missing_evidence":[],
+                    "recommended_next_action":"none"}""",
+            )
+        }
+        val verify = client(verifyFake).evidenceVerify(EvidenceVerifyRequest(claim = "c"))
+        if (verify !is CockpitResult.Success) {
+            fail("expected Success, got $verify"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/evidence/verify", verifyFake.lastRequest?.url)
+        assertEquals("supported", verify.value.verdict)
+    }
 }
