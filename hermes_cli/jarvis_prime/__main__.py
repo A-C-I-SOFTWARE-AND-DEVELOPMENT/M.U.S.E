@@ -15,6 +15,13 @@ Subcommands:
   JARVIS Prime self-update proposals. ``approve`` requires the exact
   phrase ``Yes, with authorization.`` Status updates only — execution
   of the proposed change belongs to a future lane.
+- ``registry-update [--check] [--no-refresh] [--json]`` — REG-1: diff the
+  live published model catalog against the in-repo registry
+  (``config/model-catalog.yaml``) and queue owner-gated proposals for any
+  drift. Proposal-only — it never edits the YAML or contacts an endpoint.
+- ``calendar [--file ...] [--days N] [--json]`` — CAL-1: list the upcoming
+  agenda from a local ICS file (default ``~/.hermes/calendar.ics``).
+  Local-first; no Google/CalDAV network sync (an owner-gated follow-up).
 - ``handoff --intent ... --packet ...`` — render the structured
   handoff template for an intent + work-packet pair. Does not execute
   owner-gated actions surfaced in the rendered handoff.
