@@ -1824,9 +1824,14 @@ class TestExecuteToolCalls:
         big_result = "x" * 150_000
         with patch("run_agent.handle_function_call", return_value=big_result):
             agent._execute_tool_calls(mock_msg, messages, "task-1")
-        # Content should be replaced with persisted-output or truncation
+        # Content should be replaced with persisted-output, truncation, or
+        # the tokenjuice clamp marker (whichever compaction path applies).
         assert len(messages[0]["content"]) < 150_000
-        assert ("Truncated" in messages[0]["content"] or "<persisted-output>" in messages[0]["content"])
+        assert (
+            "Truncated" in messages[0]["content"]
+            or "<persisted-output>" in messages[0]["content"]
+            or "tokenjuice: clamped" in messages[0]["content"]
+        )
 
     def test_quiet_tool_output_suppressed_when_progress_callback_present(self, agent):
         tc = _mock_tool_call(name="web_search", arguments='{"q":"test"}', call_id="c1")
@@ -2148,7 +2153,11 @@ class TestConcurrentToolExecution:
         assert len(messages) == 2
         for m in messages:
             assert len(m["content"]) < 150_000
-            assert ("Truncated" in m["content"] or "<persisted-output>" in m["content"])
+            assert (
+                "Truncated" in m["content"]
+                or "<persisted-output>" in m["content"]
+                or "tokenjuice: clamped" in m["content"]
+            )
 
     def test_invoke_tool_dispatches_to_handle_function_call(self, agent):
         """_invoke_tool should route regular tools through handle_function_call."""

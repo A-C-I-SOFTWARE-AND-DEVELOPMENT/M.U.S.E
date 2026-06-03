@@ -41,7 +41,16 @@ class CockpitModelRoutesRepository(
         when (val res = client.modelRoutes()) {
             is CockpitResult.Success -> {
                 _routes.value = res.value
-                _sync.value = ModelRoutesSync.Loaded(res.value.routes.size)
+                // Honest-empty contract: the gateway returns HTTP 200 with an
+                // `error` string when route generation degrades. Surface that
+                // instead of masquerading a failure as an empty Loaded(0).
+                val degraded = res.value.error?.takeIf { it.isNotBlank() }
+                _sync.value =
+                    if (degraded != null) {
+                        ModelRoutesSync.Error(degraded)
+                    } else {
+                        ModelRoutesSync.Loaded(res.value.routes.size)
+                    }
             }
             is CockpitResult.Failure ->
                 _sync.value = ModelRoutesSync.Error(

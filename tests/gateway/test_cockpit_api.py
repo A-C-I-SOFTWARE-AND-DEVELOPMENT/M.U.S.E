@@ -529,6 +529,27 @@ def test_model_route_override_unknown_task_is_400(server) -> None:
     assert exc.value.code == 400
 
 
+def test_combined_invalid_task_does_not_flip_paid(server) -> None:
+    # A combined body — valid paid authorization + an *invalid* task class —
+    # must reject the whole request (400) and leave the money-spend gate
+    # untouched. The paid override must not be written before validation fails.
+    _, before = _get(server, "/v1/cockpit/model-routes")
+    assert before["paid_enabled"] is False
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/model-routes/override",
+            {
+                "paid_enabled": True,
+                "authorization": "Yes, with authorization.",
+                "task_class": "not_a_class",
+            },
+        )
+    assert exc.value.code == 400
+    _, after = _get(server, "/v1/cockpit/model-routes")
+    assert after["paid_enabled"] is False
+
+
 def test_paid_toggle_requires_owner_phrase(server) -> None:
     # Wrong/absent phrase → 403, money-spend gate never bypassed.
     with pytest.raises(urllib.error.HTTPError) as exc:

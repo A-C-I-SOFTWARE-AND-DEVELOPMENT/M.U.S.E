@@ -196,7 +196,19 @@ def model_route_override(req: Request) -> JsonResponse:
     body = req.body or {}
     changed: dict[str, Any] = {}
 
-    if "paid_enabled" in body and body["paid_enabled"] is not None:
+    # Validate the *entire* body before mutating anything. A combined body
+    # (paid flip + a bad task class) must not leave the money-spend gate
+    # changed while the request as a whole returns an error.
+    want_paid = "paid_enabled" in body and body["paid_enabled"] is not None
+    want_task = "task_class" in body
+
+    if not (want_paid or want_task):
+        return JsonResponse(
+            400,
+            {"error": "provide 'task_class'(+'model') and/or 'paid_enabled'"},
+        )
+
+    if want_paid:
         from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
         phrase = str(body.get("authorization", "")).strip()
@@ -208,32 +220,33 @@ def model_route_override(req: Request) -> JsonResponse:
                     "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
                 },
             )
+
+    task_class: str | None = None
+    model: str | None = None
+    if want_task:
+        task_class = str(body.get("task_class", "")).strip()
+        try:
+            tr.TaskClass.from_value(task_class)
+        except ValueError:
+            return JsonResponse(400, {"error": f"unknown task class: {task_class!r}"})
+        raw_model = body.get("model")
+        model = str(raw_model).strip() if raw_model else None
+
+    # All inputs validated — now apply the mutations.
+    if want_paid:
         try:
             tr.set_paid_enabled(bool(body["paid_enabled"]), authorized=True)
             changed["paid_enabled"] = bool(body["paid_enabled"])
         except Exception as exc:  # pragma: no cover - defensive
             return JsonResponse(500, {"error": str(exc)})
 
-    if "task_class" in body:
-        task_class = str(body.get("task_class", "")).strip()
-        try:
-            tr.TaskClass.from_value(task_class)
-        except ValueError:
-            return JsonResponse(400, {"error": f"unknown task class: {task_class!r}"})
-        model = body.get("model")
-        model = str(model).strip() if model else None
+    if want_task:
         try:
             tr.set_task_override(task_class, model)
             changed["task_class"] = task_class
             changed["model"] = model
         except Exception as exc:  # pragma: no cover - defensive
             return JsonResponse(500, {"error": str(exc)})
-
-    if not changed:
-        return JsonResponse(
-            400,
-            {"error": "provide 'task_class'(+'model') and/or 'paid_enabled'"},
-        )
 
     overrides = tr.load_overrides()
     return JsonResponse(
