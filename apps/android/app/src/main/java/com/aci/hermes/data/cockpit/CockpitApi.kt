@@ -859,6 +859,8 @@ data class CockpitLearningProvenance(
     @SerialName("source_kind") val sourceKind: String = "",
     @SerialName("source_uri") val sourceUri: String = "",
     val citations: List<String> = emptyList(),
+)
+
 // ─── Voice intake (mobile-native, hands-free) ─────────────────────────
 //
 // Mirrors the canonical pipeline exposed by gateway/cockpit (which wraps

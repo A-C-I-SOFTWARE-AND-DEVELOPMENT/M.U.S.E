@@ -529,6 +529,8 @@ class AppContainer(private val application: Application) {
             controller = deviceControlController,
             logBuffer = logBuffer,
         )
+    }
+
     fun jobsVmFactory(): ViewModelProvider.Factory = factory {
         JobsViewModel(cockpitJobsRepository, jobNotifier)
     }
