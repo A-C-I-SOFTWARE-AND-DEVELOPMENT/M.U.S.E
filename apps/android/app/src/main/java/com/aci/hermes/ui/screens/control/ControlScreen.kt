@@ -48,8 +48,10 @@ fun ControlScreen(
     viewModel: OrchestratorViewModel,
     paddingValues: PaddingValues,
     onEmergencyStop: () -> Unit,
+    controlViewModel: ControlViewModel? = null,
 ) {
     val state by viewModel.state.collectAsState()
+    val autonomyState = controlViewModel?.state?.collectAsState()
     var confirmStop by remember { mutableStateOf(false) }
 
     Column(
@@ -134,6 +136,18 @@ fun ControlScreen(
                 }
             }
         }
+
+        // High-Autonomy Coding controls — only when the autonomy VM is wired.
+        if (controlViewModel != null && autonomyState != null) {
+            AutonomyControlSection(
+                state = autonomyState.value,
+                onSelectMode = controlViewModel::requestAutonomyMode,
+                onWorkspaceChange = controlViewModel::setCodingWorkspaceRoot,
+                onRevoke = controlViewModel::revokeAutonomy,
+                onConfirmWarning = controlViewModel::confirmPendingWarning,
+                onDismissWarning = controlViewModel::dismissPendingWarning,
+            )
+        }
     }
 
     if (confirmStop) {
@@ -152,6 +166,8 @@ fun ControlScreen(
                 TextButton(onClick = {
                     confirmStop = false
                     onEmergencyStop()
+                    // Also cancel backend jobs and latch autonomy to read-only.
+                    controlViewModel?.emergencyStopNow()
                 }) { Text(stringResource(R.string.emergency_stop_confirm)) }
             },
             dismissButton = {

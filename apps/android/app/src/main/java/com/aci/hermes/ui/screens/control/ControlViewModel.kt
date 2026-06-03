@@ -124,6 +124,11 @@ class ControlViewModel(
         _state.update { it.copy(codingWorkspaceRoot = path) }
     }
 
+    /** Instantly drop autonomy back to Assisted (clears any backend latch). */
+    fun revokeAutonomy() {
+        commitAutonomy(AutonomyMode.ASSISTED)
+    }
+
     private fun commitAutonomy(mode: AutonomyMode) {
         _state.update { it.copy(autonomy = mode, pendingWarning = null) }
         viewModelScope.launch {
@@ -243,6 +248,14 @@ class ControlViewModel(
                 ),
             )
         }
+    }
+
+    /**
+     * Engage emergency stop directly (the host screen already confirmed). Runs
+     * the same local + backend stop as the warning-dialog path.
+     */
+    fun emergencyStopNow() {
+        commitEmergencyStop()
     }
 
     fun releaseEmergencyStop() {

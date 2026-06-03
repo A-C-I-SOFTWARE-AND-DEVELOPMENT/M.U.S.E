@@ -34,6 +34,7 @@ import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatScreen
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlScreen
+import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
@@ -385,6 +386,9 @@ private fun NavGraphBuilder.shellDestinations(
         val vm: OrchestratorViewModel = viewModel(
             factory = remember { container.orchestratorVmFactory() },
         )
+        val controlVm: ControlViewModel = viewModel(
+            factory = remember { container.controlVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Control.route,
             titleRes = R.string.nav_control,
@@ -397,6 +401,7 @@ private fun NavGraphBuilder.shellDestinations(
                 viewModel = vm,
                 paddingValues = padding,
                 onEmergencyStop = emergencyStop,
+                controlViewModel = controlVm,
             )
         }
     }
