@@ -43,7 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.CockpitJob
-import com.aci.hermes.data.cockpit.DetectedWorker
+import com.aci.hermes.data.cockpit.JobLane
 import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TaskSection
@@ -162,10 +162,9 @@ fun TasksScreen(
 
     if (showDispatch && jobsViewModel != null && jobsState != null) {
         DispatchJobDialog(
-            workers = jobsState.workers,
             onDismiss = { showDispatch = false },
-            onDispatch = { title, prompt, workerId, workspace ->
-                jobsViewModel.dispatch(title, prompt, workerId, workspace)
+            onDispatch = { prompt ->
+                jobsViewModel.dispatch(prompt)
                 showDispatch = false
             },
         )
@@ -174,7 +173,7 @@ fun TasksScreen(
     runTarget?.let { job ->
         RunJobDialog(
             job = job,
-            workers = jobsState?.workers.orEmpty(),
+            lanes = jobsState?.lanes.orEmpty(),
             onDismiss = { runTarget = null },
             onRun = { workerId, authorization ->
                 jobsViewModel?.run(job.id, workerId, authorization)
@@ -256,12 +255,17 @@ private fun JobsNotice(text: String, emphasised: Boolean = false) {
 @Composable
 private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
     val terminal = job.status.uppercase() in TERMINAL_JOB_STATUSES
+    // Only orchestrator jobs (orc- ids) are runnable by job_run; JobQueue
+    // entries from other surfaces show Cancel only (Run would 404).
+    val runnable = CockpitJobsViewModel.isRunnable(job)
     Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(job.title.ifBlank { job.id }, style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 AssistChip(onClick = {}, label = { Text(job.status.lowercase().replace('_', ' ')) })
-                AssistChip(onClick = {}, label = { Text(job.workerId.lowercase().replace('_', ' ')) })
+                if (job.workerId.isNotBlank()) {
+                    AssistChip(onClick = {}, label = { Text(job.workerId.lowercase().replace('_', ' ')) })
+                }
                 job.validationSummary?.let { v ->
                     AssistChip(onClick = {}, label = { Text("✓${v.pass} ✗${v.fail} …${v.pending}") })
                 }
@@ -271,7 +275,9 @@ private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
             }
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onRun, enabled = !terminal) { Text(stringResource(R.string.jobs_run)) }
+                if (runnable) {
+                    Button(onClick = onRun, enabled = !terminal) { Text(stringResource(R.string.jobs_run)) }
+                }
                 OutlinedButton(onClick = onCancel, enabled = !terminal) { Text(stringResource(R.string.jobs_cancel)) }
             }
         }
@@ -281,55 +287,27 @@ private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DispatchJobDialog(
-    workers: List<DetectedWorker>,
     onDismiss: () -> Unit,
-    onDispatch: (title: String, prompt: String, workerId: String, workspace: String?) -> Unit,
+    onDispatch: (prompt: String) -> Unit,
 ) {
-    var title by remember { mutableStateOf("") }
     var prompt by remember { mutableStateOf("") }
-    var workspace by remember { mutableStateOf("") }
-    var workerId by remember { mutableStateOf(workers.firstOrNull()?.id.orEmpty()) }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.jobs_new)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = title,
-                    onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.jobs_field_title)) },
-                    singleLine = true,
-                )
+                Text(stringResource(R.string.jobs_new_body), style = MaterialTheme.typography.bodySmall)
                 OutlinedTextField(
                     value = prompt,
                     onValueChange = { prompt = it },
                     label = { Text(stringResource(R.string.jobs_field_prompt)) },
                 )
-                if (workers.isNotEmpty()) {
-                    Text(stringResource(R.string.jobs_field_worker), style = MaterialTheme.typography.labelMedium)
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        workers.forEach { w ->
-                            FilterChip(
-                                selected = w.id == workerId,
-                                onClick = { workerId = w.id },
-                                label = { Text(w.displayName) },
-                            )
-                        }
-                    }
-                }
-                OutlinedTextField(
-                    value = workspace,
-                    onValueChange = { workspace = it },
-                    label = { Text(stringResource(R.string.jobs_field_workspace)) },
-                    singleLine = true,
-                )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onDispatch(title.trim(), prompt.trim(), workerId, workspace.trim().ifBlank { null }) },
-                enabled = title.isNotBlank() && prompt.isNotBlank(),
+                onClick = { onDispatch(prompt.trim()) },
+                enabled = prompt.isNotBlank(),
             ) { Text(stringResource(R.string.jobs_dispatch)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
@@ -340,16 +318,20 @@ private fun DispatchJobDialog(
 @Composable
 private fun RunJobDialog(
     job: CockpitJob,
-    workers: List<DetectedWorker>,
+    lanes: List<JobLane>,
     onDismiss: () -> Unit,
     onRun: (workerId: String, authorization: String?) -> Unit,
 ) {
+    // Default to the non-gated local planner when present, else the first lane.
     var workerId by remember {
-        mutableStateOf(workers.firstOrNull { it.id == job.workerId }?.id ?: job.workerId.ifBlank { workers.firstOrNull()?.id.orEmpty() })
+        mutableStateOf(
+            lanes.firstOrNull { !it.requiresApproval }?.id
+                ?: lanes.firstOrNull()?.id.orEmpty(),
+        )
     }
     var phrase by remember { mutableStateOf("") }
-    val selectedWorker = workers.firstOrNull { it.id == workerId }
-    val needsOwner = CockpitJobsViewModel.runRequiresAuthorization(selectedWorker)
+    val selectedLane = lanes.firstOrNull { it.id == workerId }
+    val needsOwner = CockpitJobsViewModel.runRequiresAuthorization(selectedLane)
     val ownerPhrase = stringResource(R.string.jobs_run_owner_phrase_hint)
 
     AlertDialog(
@@ -357,14 +339,14 @@ private fun RunJobDialog(
         title = { Text(stringResource(R.string.jobs_run) + ": " + job.title.ifBlank { job.id }) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (workers.isNotEmpty()) {
+                if (lanes.isNotEmpty()) {
                     Text(stringResource(R.string.jobs_field_worker), style = MaterialTheme.typography.labelMedium)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        workers.forEach { w ->
+                        lanes.forEach { lane ->
                             FilterChip(
-                                selected = w.id == workerId,
-                                onClick = { workerId = w.id },
-                                label = { Text(w.displayName) },
+                                selected = lane.id == workerId,
+                                onClick = { workerId = lane.id },
+                                label = { Text(lane.displayName.ifBlank { lane.id }) },
                             )
                         }
                     }

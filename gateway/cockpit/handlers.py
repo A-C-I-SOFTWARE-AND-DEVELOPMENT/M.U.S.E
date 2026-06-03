@@ -457,6 +457,58 @@ def job_run(req: Request) -> JsonResponse:
     return JsonResponse(200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]})
 
 
+def job_lanes(_req: Request) -> JsonResponse:
+    """The **runnable** worker lanes that ``job_run`` accepts (contract §4).
+
+    These are the built-in worker adapters (``hermes_cli.workers``) — e.g.
+    ``codex-execute`` / ``claude-execute`` / ``hermes-local-planner`` — NOT the
+    detection lanes from ``runtime_workers`` (a different registry used only to
+    show which CLIs are installed). The cockpit dispatch/run picker must source
+    worker ids from here so a selected lane is one ``job_run`` will accept;
+    ``requires_approval`` tells the app which lanes need the owner phrase.
+    """
+    lanes: list[dict[str, Any]] = []
+    try:
+        from hermes_cli.workers import builtin_worker_classes
+
+        for cls in builtin_worker_classes():
+            lanes.append({
+                "id": getattr(cls, "id", ""),
+                "display_name": getattr(cls, "display_name", "") or getattr(cls, "id", ""),
+                "requires_approval": bool(getattr(cls, "requires_approval", True)),
+            })
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"lanes": [], "error": str(exc)})
+    return JsonResponse(200, {"lanes": lanes})
+
+
+def orchestrate_submit(req: Request) -> JsonResponse:
+    """Create a real **orchestrator** job from a prompt (the ``/orchestrate``
+    path), so the app's *new backend job* is one ``job_run`` can actually run.
+
+    Unlike ``jobs_dispatch`` (which enqueues a ``JobQueue`` entry that ``job_run``
+    cannot find), this records the job in the orchestrator store via
+    :func:`hermes_cli.orchestrator.submit_job`. It spawns nothing — running a
+    worker is a separate, owner-gated ``job_run`` call. Returns the canonical
+    ``CockpitJob`` (orchestrator projection) so the new job appears in the list
+    and is immediately runnable.
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        from hermes_cli import orchestrator as orch
+
+        from . import contract
+
+        job = orch.submit_job(prompt)
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, contract.orchestrator_job(job))
+
+
 def avatar_persona_get(_req: Request) -> JsonResponse:
     """The companion's adopted persona (e.g. 'Goku'), or null if default."""
     from gateway.cockpit import persona_store as ps

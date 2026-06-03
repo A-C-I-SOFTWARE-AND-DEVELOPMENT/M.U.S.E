@@ -227,13 +227,12 @@
     <string name="jobs_not_paired">Pair a gateway in Settings → Connection to run orchestration jobs on the Hermes backend.</string>
     <string name="jobs_empty">No backend jobs yet. Dispatch one to run real orchestration on Hermes.</string>
     <string name="jobs_new">New backend job</string>
-    <string name="jobs_dispatch">Dispatch</string>
+    <string name="jobs_new_body">Describe a goal. Jarvis creates a real orchestration job on the Hermes backend that you can then run on a worker lane.</string>
+    <string name="jobs_dispatch">Create</string>
     <string name="jobs_run">Run</string>
     <string name="jobs_cancel">Cancel</string>
-    <string name="jobs_field_title">Title</string>
     <string name="jobs_field_prompt">Goal / prompt</string>
     <string name="jobs_field_worker">Worker lane</string>
-    <string name="jobs_field_workspace">Workspace path (optional)</string>
     <string name="jobs_run_owner_title">Owner authorization required</string>
     <string name="jobs_run_owner_body">Running this lane edits a workspace. Type the owner phrase exactly to authorize.</string>
     <string name="jobs_run_owner_phrase_hint">Yes, with authorization.</string>

@@ -94,6 +94,20 @@ class CockpitJobsRepository(
 
     suspend fun get(id: String): CockpitResult<CockpitJob> = client.jobGet(id)
 
-    /** Detected worker lanes the gateway offers (for the dispatch picker). */
+    /** Detected worker lanes the gateway offers (informational; see [lanes]). */
     suspend fun workers(): CockpitResult<WorkerDetectionList> = client.runtimeWorkers()
+
+    /** The **runnable** worker lanes `job_run` accepts (dispatch/run picker source). */
+    suspend fun lanes(): CockpitResult<JobLaneList> = client.jobLanes()
+
+    /**
+     * Create a runnable orchestrator job from [prompt]; refreshes the list on
+     * success. This is what the app's "new backend job" uses (so a created job
+     * can then be run), unlike [dispatch] which enqueues a JobQueue entry.
+     */
+    suspend fun orchestrate(prompt: String): CockpitResult<CockpitJob> {
+        val res = client.orchestrate(prompt)
+        if (res is CockpitResult.Success) refresh()
+        return res
+    }
 }

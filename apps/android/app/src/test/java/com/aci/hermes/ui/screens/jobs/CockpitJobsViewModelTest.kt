@@ -4,8 +4,8 @@ import com.aci.hermes.data.cockpit.CockpitHttpExecutor
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.CockpitRequest
-import com.aci.hermes.data.cockpit.DetectedWorker
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.data.cockpit.JobLane
 import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -31,8 +32,15 @@ class CockpitJobsViewModelTest {
     @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun job(id: String, status: String = "QUEUED") = """
-        {"id":"$id","title":"T","worker_id":"codex-execute","status":"$status",
+        {"id":"$id","title":"T","worker_id":"","status":"$status",
          "created_at":"2026-05-30T12:00:00Z","updated_at":"2026-05-30T12:00:00Z"}
+    """.trimIndent()
+
+    private val lanesJson = """
+        {"lanes":[
+          {"id":"hermes-local-planner","display_name":"Planner","requires_approval":false},
+          {"id":"codex-execute","display_name":"Codex (execute)","requires_approval":true}
+        ]}
     """.trimIndent()
 
     private fun repo(
@@ -48,18 +56,14 @@ class CockpitJobsViewModelTest {
     )
 
     @Test
-    fun `loads jobs and available workers when paired`() = runTest {
+    fun `loads orchestrator jobs and runnable lanes when paired`() = runTest {
         val vm = CockpitJobsViewModel(
             repo { req ->
                 when {
-                    req.url.endsWith("/runtime/workers") -> CockpitRawResponse(
-                        200,
-                        """{"workers":[{"id":"codex-execute","display_name":"Codex","kind":"cli","available":true},
-                           {"id":"old","display_name":"Old","kind":"cli","available":false}]}""",
-                    )
+                    req.url.endsWith("/jobs/lanes") -> CockpitRawResponse(200, lanesJson)
                     else -> CockpitRawResponse(
                         200,
-                        """{"jobs":[${job("job_1", "RUNNING")}],"next_cursor":null,"prev_cursor":null}""",
+                        """{"jobs":[${job("orc-1", "RUNNING")}],"next_cursor":null,"prev_cursor":null}""",
                     )
                 }
             },
@@ -68,8 +72,7 @@ class CockpitJobsViewModelTest {
         advanceUntilIdle()
         assertEquals(1, vm.ui.value.jobs.size)
         assertTrue(vm.ui.value.sync is JobsSync.Loaded)
-        // Only the available worker is offered to the dispatch picker.
-        assertEquals(listOf("codex-execute"), vm.ui.value.workers.map { it.id })
+        assertEquals(listOf("hermes-local-planner", "codex-execute"), vm.ui.value.lanes.map { it.id })
     }
 
     @Test
@@ -81,33 +84,65 @@ class CockpitJobsViewModelTest {
     }
 
     @Test
-    fun `run surfaces the gateway 403 hint when the owner phrase is missing`() = runTest {
+    fun `dispatch creates an orchestrator job via the orchestrate endpoint`() = runTest {
+        var orchestrateUrl: String? = null
         val vm = CockpitJobsViewModel(
             repo { req ->
-                if (req.url.contains("/run")) {
-                    CockpitRawResponse(
-                        403,
-                        """{"error":{"code":"forbidden","message":"owner approval required",
-                           "details":{"hint":"send authorization exactly: 'Yes, with authorization.'"}}}""",
-                    )
-                } else {
-                    CockpitRawResponse(200, """{"jobs":[],"next_cursor":null,"prev_cursor":null}""")
+                when {
+                    req.method == "POST" && req.url.endsWith("/orchestrate") -> {
+                        orchestrateUrl = req.url
+                        CockpitRawResponse(201, job("orc-new", "QUEUED"))
+                    }
+                    req.url.endsWith("/jobs/lanes") -> CockpitRawResponse(200, lanesJson)
+                    else -> CockpitRawResponse(200, """{"jobs":[],"next_cursor":null,"prev_cursor":null}""")
                 }
             },
             logBuffer,
         )
         advanceUntilIdle()
-        vm.run("job_1", workerId = "codex-execute", authorization = null)
+        vm.dispatch("edit the uploader")
+        advanceUntilIdle()
+        assertTrue(orchestrateUrl!!.endsWith("/v1/cockpit/orchestrate"))
+        assertTrue(vm.ui.value.snackbar!!.contains("Created"))
+    }
+
+    @Test
+    fun `run surfaces the gateway 403 hint when the owner phrase is missing`() = runTest {
+        val vm = CockpitJobsViewModel(
+            repo { req ->
+                when {
+                    req.url.contains("/run") -> CockpitRawResponse(
+                        403,
+                        """{"error":{"code":"forbidden","message":"owner approval required",
+                           "details":{"hint":"send authorization exactly: 'Yes, with authorization.'"}}}""",
+                    )
+                    req.url.endsWith("/jobs/lanes") -> CockpitRawResponse(200, lanesJson)
+                    else -> CockpitRawResponse(200, """{"jobs":[],"next_cursor":null,"prev_cursor":null}""")
+                }
+            },
+            logBuffer,
+        )
+        advanceUntilIdle()
+        vm.run("orc-1", workerId = "codex-execute", authorization = null)
         advanceUntilIdle()
         assertTrue(vm.ui.value.snackbar!!.contains("owner approval required"))
     }
 
     @Test
-    fun `runRequiresAuthorization is false for local planner and handoff lanes only`() {
-        fun w(id: String) = DetectedWorker(id = id, displayName = id, kind = "cli", available = true)
-        assertTrue(CockpitJobsViewModel.runRequiresAuthorization(w("codex-execute")))
-        assertTrue(CockpitJobsViewModel.runRequiresAuthorization(w("claude-execute")))
-        assertTrue(!CockpitJobsViewModel.runRequiresAuthorization(w("hermes-local-planner")))
-        assertTrue(!CockpitJobsViewModel.runRequiresAuthorization(w("clipboard-handoff")))
+    fun `runRequiresAuthorization follows the lane's requires_approval flag`() {
+        assertTrue(CockpitJobsViewModel.runRequiresAuthorization(JobLane("codex-execute", "Codex", true)))
+        assertFalse(CockpitJobsViewModel.runRequiresAuthorization(JobLane("hermes-local-planner", "Planner", false)))
+        // Null lane fails safe → authorization required.
+        assertTrue(CockpitJobsViewModel.runRequiresAuthorization(null))
+    }
+
+    @Test
+    fun `only orchestrator jobs are runnable`() {
+        fun j(id: String) = com.aci.hermes.data.cockpit.CockpitJob(
+            id = id, title = "t", workerId = "", status = "QUEUED",
+            createdAt = "2026-01-01T00:00:00Z", updatedAt = "2026-01-01T00:00:00Z",
+        )
+        assertTrue(CockpitJobsViewModel.isRunnable(j("orc-abc")))
+        assertFalse(CockpitJobsViewModel.isRunnable(j("job_abc")))
     }
 }

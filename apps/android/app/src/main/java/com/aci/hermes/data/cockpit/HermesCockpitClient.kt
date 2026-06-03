@@ -217,6 +217,23 @@ class HermesCockpitClient(
             ),
         )
 
+    /** The runnable worker lanes `job_run` accepts (the dispatch/run picker source). */
+    suspend fun jobLanes(): CockpitResult<JobLaneList> =
+        request("GET", "/v1/cockpit/jobs/lanes", JobLaneList.serializer())
+
+    /**
+     * Create a real **orchestrator** job from a prompt (`POST /v1/cockpit/orchestrate`).
+     * Unlike [jobDispatch] (a JobQueue entry that [jobRun] can't run), this job is
+     * immediately runnable. Spawns nothing — running is a separate gated [jobRun].
+     */
+    suspend fun orchestrate(prompt: String): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/orchestrate",
+            CockpitJob.serializer(),
+            body = json.encodeToString(OrchestrateRequest.serializer(), OrchestrateRequest(prompt)),
+        )
+
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")
 

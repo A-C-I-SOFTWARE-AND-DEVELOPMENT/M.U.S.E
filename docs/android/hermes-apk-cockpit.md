@@ -402,16 +402,25 @@ include health/runtime, memory, audit + proof, owner approvals, control,
 avatar persona + room, and live chat streaming.
 
 **Backend orchestration jobs (contract §4) are wired into the Tasks tab.**
-The *Backend jobs* section lists real `JobQueue` jobs and dispatches new
-ones to a detected worker lane; cancel and run are available per job. The
-local clipboard-handoff task list is preserved below it, unchanged. Running
-an **execute lane** is owner-gated end to end: the app collects the exact
-owner phrase (`Yes, with authorization.`) and the gateway re-checks it
-server-side, refusing entirely on a non-loopback cockpit
+The *Backend jobs* section lists real backend jobs (orchestrator + JobQueue,
+merged by `GET /v1/cockpit/jobs`). "New backend job" creates a **runnable
+orchestrator** job via `POST /v1/cockpit/orchestrate` (not a JobQueue entry,
+which `job_run` can't run) — so a job created here can then be run. The run
+picker is sourced from `GET /v1/cockpit/jobs/lanes` (the worker ids
+`job_run` actually accepts, e.g. `codex-execute` / `hermes-local-planner`),
+not the detection lanes from `runtime/workers`. Run is shown only for
+runnable orchestrator jobs (`orc-` ids); other entries show Cancel. The
+local clipboard-handoff task list is preserved below it, unchanged.
+
+Running an **execute lane** is owner-gated end to end: each lane carries
+`requires_approval`, the app collects the exact owner phrase
+(`Yes, with authorization.`) for gated lanes, and the gateway re-checks it
+server-side — refusing entirely on a non-loopback cockpit
 (`POST /v1/cockpit/jobs/{id}/run`). Code:
-`data/cockpit/HermesCockpitClient.jobRun`, `CockpitJobsRepository.run`,
-`ui/screens/jobs/CockpitJobsViewModel`, and the *Backend jobs* section in
-`ui/screens/tasks/TasksScreen.kt`.
+`data/cockpit/HermesCockpitClient.{jobLanes,orchestrate,jobRun}`,
+`CockpitJobsRepository`, `ui/screens/jobs/CockpitJobsViewModel`, and the
+*Backend jobs* section in `ui/screens/tasks/TasksScreen.kt`. Backend:
+`gateway/cockpit/handlers.py::{job_lanes,orchestrate_submit,job_run}`.
 
 Remaining follow-ups (see `docs/audits/JARVIS_MOBILE_NATIVE_FULL_BUILD_AUDIT.md`):
 the live events feed, model scorecards / sessions read views, the skills

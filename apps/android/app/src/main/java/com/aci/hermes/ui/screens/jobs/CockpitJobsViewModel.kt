@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.cockpit.CockpitJob
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitResult
-import com.aci.hermes.data.cockpit.DetectedWorker
+import com.aci.hermes.data.cockpit.JobLane
 import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,20 +18,25 @@ import kotlinx.coroutines.launch
 /**
  * Backend orchestration jobs (cockpit contract §4) for the Tasks tab.
  *
- * Wraps the already-tested [CockpitJobsRepository] — the real `JobQueue`
- * through the cockpit gateway — and the detected worker lanes used by the
- * dispatch picker. There is **no mock**: an unpaired/unreachable gateway
- * yields an empty list + an honest [JobsSync] state, never fabricated jobs.
+ * Wraps the already-tested [CockpitJobsRepository] — the real orchestrator
+ * jobs through the cockpit gateway — and the **runnable** worker lanes used by
+ * the dispatch/run picker. There is **no mock**: an unpaired/unreachable
+ * gateway yields an empty list + an honest [JobsSync] state, never fabricated
+ * jobs.
  *
- * The owner gate is preserved end-to-end: [runRequiresAuthorization] tells the
- * UI when a worker is an execute lane that needs the exact owner phrase, and
- * the gateway re-checks the phrase server-side (and refuses on a non-loopback
- * cockpit), so the gate is never bypassed from the app.
+ * The owner gate is preserved end-to-end: each [JobLane] carries
+ * `requiresApproval` (from the gateway), so the UI prompts for the exact owner
+ * phrase before running an execute lane, and the gateway re-checks the phrase
+ * server-side (refusing on a non-loopback cockpit). The gate is never bypassed.
+ *
+ * "New backend job" creates a runnable **orchestrator** job ([orchestrate]) —
+ * not a JobQueue entry — so a job created here can actually be [run]; only such
+ * orchestrator jobs (`orc-` ids) expose Run, since `job_run` operates on them.
  */
 data class JobsUiState(
     val jobs: List<CockpitJob> = emptyList(),
     val sync: JobsSync = JobsSync.Idle,
-    val workers: List<DetectedWorker> = emptyList(),
+    val lanes: List<JobLane> = emptyList(),
     val snackbar: String? = null,
 )
 
@@ -54,27 +59,27 @@ class CockpitJobsViewModel(
     fun refresh() {
         viewModelScope.launch {
             repo.refresh()
-            when (val w = repo.workers()) {
-                is CockpitResult.Success ->
-                    _ui.update { it.copy(workers = w.value.workers.filter { dw -> dw.available }) }
-                else -> Unit // keep the last-known worker list; jobs sync carries the error
+            when (val l = repo.lanes()) {
+                is CockpitResult.Success -> _ui.update { it.copy(lanes = l.value.lanes) }
+                else -> Unit // keep the last-known lanes; jobs sync carries the error
             }
         }
     }
 
-    fun dispatch(title: String, prompt: String, workerId: String, workspacePath: String? = null) {
-        if (title.isBlank() || prompt.isBlank()) {
-            _ui.update { it.copy(snackbar = "Title and prompt are required") }
+    /** Create a runnable orchestrator job from a goal/prompt. */
+    fun dispatch(prompt: String) {
+        if (prompt.isBlank()) {
+            _ui.update { it.copy(snackbar = "A goal / prompt is required") }
             return
         }
         viewModelScope.launch {
-            when (val res = repo.dispatch(title, workerId, prompt, workspacePath)) {
+            when (val res = repo.orchestrate(prompt.trim())) {
                 is CockpitResult.Success -> {
-                    logBuffer.info(TAG, "Dispatched job ${res.value.id} (${res.value.title})")
-                    _ui.update { it.copy(snackbar = "Queued: ${res.value.title}") }
+                    logBuffer.info(TAG, "Created orchestrator job ${res.value.id}")
+                    _ui.update { it.copy(snackbar = "Created: ${res.value.title}") }
                 }
                 is CockpitResult.Failure ->
-                    _ui.update { it.copy(snackbar = "Dispatch failed: ${res.error.message}") }
+                    _ui.update { it.copy(snackbar = "Create failed: ${res.error.message}") }
                 is CockpitResult.Unreachable ->
                     _ui.update { it.copy(snackbar = res.message) }
             }
@@ -125,15 +130,13 @@ class CockpitJobsViewModel(
         const val TAG = "JobsVm"
 
         /**
-         * True when [worker] is an execute lane — the UI must collect the owner
-         * phrase before [run]. Detection is conservative: anything but the
-         * read-only local planner / handoff lanes is treated as gated, matching
-         * the server's `requires_approval` default of True.
+         * True when [lane] needs the owner phrase before [run]. Sourced from the
+         * gateway's `requires_approval` (execute lanes True; planner/handoff
+         * False) — null defaults to required (fail safe).
          */
-        fun runRequiresAuthorization(worker: DetectedWorker?): Boolean {
-            val id = worker?.id?.lowercase().orEmpty()
-            val nonGated = id.contains("planner") || id.contains("handoff")
-            return !nonGated
-        }
+        fun runRequiresAuthorization(lane: JobLane?): Boolean = lane?.requiresApproval ?: true
+
+        /** Only orchestrator jobs (`orc-` ids) are runnable by `job_run`. */
+        fun isRunnable(job: CockpitJob): Boolean = job.id.startsWith("orc-")
     }
 }

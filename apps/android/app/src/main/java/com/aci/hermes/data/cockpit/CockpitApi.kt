@@ -161,6 +161,26 @@ data class WorkerTrailEntry(
     val summary: String? = null,
 )
 
+/**
+ * A **runnable** worker lane (`GET /v1/cockpit/jobs/lanes`) — the ids
+ * `job_run` actually accepts (e.g. `codex-execute`, `hermes-local-planner`),
+ * NOT the detection lanes from `runtime/workers`. [requiresApproval] tells the
+ * UI which lanes need the owner phrase before running.
+ */
+@Serializable
+data class JobLane(
+    val id: String,
+    @SerialName("display_name") val displayName: String = "",
+    @SerialName("requires_approval") val requiresApproval: Boolean = true,
+)
+
+@Serializable
+data class JobLaneList(val lanes: List<JobLane> = emptyList())
+
+/** POST body for `/v1/cockpit/orchestrate` — create a runnable orchestrator job. */
+@Serializable
+data class OrchestrateRequest(val prompt: String)
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable
