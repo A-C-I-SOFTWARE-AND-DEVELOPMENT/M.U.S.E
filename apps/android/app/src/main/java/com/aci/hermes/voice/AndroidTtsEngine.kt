@@ -35,6 +35,11 @@ class AndroidTtsEngine(context: Context) : TtsEngine {
         }
         if (ready) {
             engine.language = Locale.getDefault()
+            // A calm, grounded character — a touch slower than default, natural
+            // pitch. (Per-state prosody — faster/brighter when speaking, slower
+            // when thinking — is a follow-up that varies these per utterance.)
+            engine.setSpeechRate(0.97f)
+            engine.setPitch(1.0f)
         }
         val utteranceId = "jarvis-" + System.nanoTime()
         engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
