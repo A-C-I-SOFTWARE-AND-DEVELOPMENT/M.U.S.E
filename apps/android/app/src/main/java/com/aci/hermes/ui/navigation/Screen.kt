@@ -21,6 +21,9 @@ sealed class Screen(val route: String) {
     // Main shell destinations (bottom nav).
     data object Home : Screen("home")
     data object Chat : Screen("chat")
+    /** Mobile-native cockpit for every backend job (JobQueue + orchestrator). */
+    data object Jobs : Screen("jobs")
+    /** Legacy clipboard-handoff flow — preserved, reached from Home quick links. */
     data object Tasks : Screen("tasks")
     data object Approvals : Screen("approvals")
     data object Memory : Screen("memory")
@@ -44,6 +47,10 @@ sealed class Screen(val route: String) {
         fun forNew(target: String? = null): String =
             if (target == null) "task_detail/new" else "task_detail/new?target=$target"
     }
+    data object JobDetail : Screen("job_detail/{jobId}") {
+        const val ARG_JOB_ID = "jobId"
+        fun forJob(id: String): String = "job_detail/$id"
+    }
     data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
@@ -55,6 +62,7 @@ sealed class Screen(val route: String) {
         val shellRoutes: Set<String> = setOf(
             Home.route,
             Chat.route,
+            Jobs.route,
             Tasks.route,
             Approvals.route,
             Memory.route,
@@ -63,10 +71,11 @@ sealed class Screen(val route: String) {
             Control.route,
         )
 
-        /** Bottom-nav tabs, in display order. */
+        /** Bottom-nav tabs, in display order. Jobs is the primary cockpit tab;
+         *  the legacy handoff Tasks list stays reachable from Home quick links. */
         val bottomTabs: List<BottomTab> = listOf(
             BottomTab(Home, BottomTab.Icon.HOME, labelKey = "nav_home"),
-            BottomTab(Tasks, BottomTab.Icon.TASKS, labelKey = "nav_tasks"),
+            BottomTab(Jobs, BottomTab.Icon.JOBS, labelKey = "nav_jobs"),
             BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
             BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
             BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
@@ -82,5 +91,5 @@ data class BottomTab(
 ) {
     // `Capability` is not in the bottom-nav row by design (deep-linked from
     // Home quick links + Settings); it is a shell destination but not a tab.
-    enum class Icon { HOME, TASKS, CHAT, APPROVALS, CONTROL }
+    enum class Icon { HOME, TASKS, JOBS, CHAT, APPROVALS, CONTROL }
 }

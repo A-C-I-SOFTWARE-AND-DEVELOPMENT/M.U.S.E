@@ -71,11 +71,44 @@ class CockpitJobsRepository(
     }
 
     /** Cancel a job; refreshes the list on success. */
-    suspend fun cancel(id: String, reason: String? = null): CockpitResult<CockpitJob> {
-        val res = client.jobCancel(id, reason)
+    suspend fun cancel(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        mutating { client.jobCancel(id, reason) }
+
+    /** Pause a running/queued job; refreshes on success. */
+    suspend fun pause(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        mutating { client.jobPause(id, reason) }
+
+    /** Resume a paused/blocked job — the unblock action; refreshes on success. */
+    suspend fun resume(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        mutating { client.jobResume(id, reason) }
+
+    /** Rerun a failed/blocked worker; refreshes on success. */
+    suspend fun rerun(id: String, workerId: String? = null): CockpitResult<CockpitJob> =
+        mutating { client.jobRerun(id, workerId) }
+
+    /** Approve a gated phase (owner phrase required); refreshes on success. */
+    suspend fun approve(
+        id: String,
+        phase: String = "execute",
+        authorization: String? = null,
+    ): CockpitResult<CockpitJob> = mutating { client.jobApprove(id, phase, authorization) }
+
+    suspend fun get(id: String): CockpitResult<CockpitJob> = client.jobGet(id)
+
+    /** Read-only detail + ledger timeline for the Job Detail screen. */
+    suspend fun detail(id: String): CockpitResult<JobDetail> = client.jobLedger(id)
+
+    /** Working-tree diff ("open patch"). */
+    suspend fun diff(id: String): CockpitResult<DiffSnapshot> = client.jobDiff(id)
+
+    /** Run verification gates ("run verification"). */
+    suspend fun validate(id: String): CockpitResult<ValidationSnapshot> = client.jobValidate(id)
+
+    private suspend fun mutating(
+        action: suspend () -> CockpitResult<CockpitJob>,
+    ): CockpitResult<CockpitJob> {
+        val res = action()
         if (res is CockpitResult.Success) refresh()
         return res
     }
-
-    suspend fun get(id: String): CockpitResult<CockpitJob> = client.jobGet(id)
 }

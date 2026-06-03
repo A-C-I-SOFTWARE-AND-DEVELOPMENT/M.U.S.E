@@ -195,6 +195,69 @@ class HermesCockpitClient(
             body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
         )
 
+    /** Read-only job detail + decision-ledger timeline (Job Detail screen). */
+    suspend fun jobLedger(id: String): CockpitResult<JobDetail> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/ledger", JobDetail.serializer())
+
+    /** Pause a running/queued job. `409` if terminal or not a queue job. */
+    suspend fun jobPause(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/pause",
+            CockpitJob.serializer(),
+            body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
+        )
+
+    /** Resume a paused/blocked/disconnected/failed job — the unblock action. */
+    suspend fun jobResume(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/resume",
+            CockpitJob.serializer(),
+            body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
+        )
+
+    /** Rerun a failed/blocked worker. `400` if there is nothing to rerun. */
+    suspend fun jobRerun(id: String, workerId: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/rerun",
+            CockpitJob.serializer(),
+            body = json.encodeToString(RerunJobRequest.serializer(), RerunJobRequest(workerId)),
+        )
+
+    /**
+     * Approve a gated job phase. Requires the owner [authorization] phrase
+     * (the gateway returns 403 otherwise — the owner gate is never bypassed).
+     */
+    suspend fun jobApprove(
+        id: String,
+        phase: String = "execute",
+        authorization: String? = null,
+    ): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/approve",
+            CockpitJob.serializer(),
+            body = json.encodeToString(
+                ApprovePhaseRequest.serializer(),
+                ApprovePhaseRequest(phase = phase, authorization = authorization),
+            ),
+        )
+
+    /** Working-tree diff for a job's workspace ("open patch"). Honest empty when none. */
+    suspend fun jobDiff(id: String): CockpitResult<DiffSnapshot> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/diff", DiffSnapshot.serializer())
+
+    /** Run verification gates against a job's workspace ("run verification"). */
+    suspend fun jobValidate(id: String): CockpitResult<ValidationSnapshot> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/validate",
+            ValidationSnapshot.serializer(),
+            body = "{}",
+        )
+
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")
 

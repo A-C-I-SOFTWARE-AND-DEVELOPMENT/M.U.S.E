@@ -38,7 +38,10 @@ import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.service.JobNotifier
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
+import com.aci.hermes.ui.screens.jobs.JobDetailViewModel
+import com.aci.hermes.ui.screens.jobs.JobsViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
@@ -136,8 +139,11 @@ class AppContainer(private val application: Application) {
         paired = ::cockpitPaired,
     )
 
-    /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
+    /** Jobs (contract §4) — list/dispatch/cancel/controls over the real backend. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
+
+    /** Keeps active owner-started jobs visible (and deep-linkable) while backgrounded. */
+    val jobNotifier: JobNotifier = JobNotifier(application)
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -272,6 +278,14 @@ class AppContainer(private val application: Application) {
 
     fun controlVmFactory(): ViewModelProvider.Factory = factory {
         ControlViewModel(application, settingsRepository, logBuffer, cockpitClient)
+    }
+
+    fun jobsVmFactory(): ViewModelProvider.Factory = factory {
+        JobsViewModel(cockpitJobsRepository, jobNotifier)
+    }
+
+    fun jobDetailVmFactory(jobId: String): ViewModelProvider.Factory = factory {
+        JobDetailViewModel(cockpitJobsRepository, jobId)
     }
 
     fun jarvisPrimeHomeVmFactory(): ViewModelProvider.Factory = factory {

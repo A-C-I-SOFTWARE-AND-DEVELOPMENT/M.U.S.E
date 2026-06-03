@@ -130,6 +130,65 @@ data class DispatchJobRequest(
 @Serializable
 data class CancelJobRequest(val reason: String? = null)
 
+// ─── Job detail / ledger (contract §4 — GET /jobs/{id}/ledger) ─────────
+
+/**
+ * Read-only execution story for the Job Detail screen — the canonical
+ * mirror of `gateway/cockpit/contract.py::orchestrator_job_detail` /
+ * `queue_job_detail`. Reuses the audit-section wire models
+ * ([CockpitEvidenceItem], [CockpitApprovalHistoryItem], [CockpitRollbackPlan])
+ * so there is one shape per concept. Honest absences arrive as empty/null.
+ */
+@Serializable
+data class JobDetail(
+    val id: String,
+    val objective: String = "",
+    val status: String = "QUEUED",
+    val plan: String = "",
+    @SerialName("current_step") val currentStep: String? = null,
+    val workers: List<JobWorkerRef> = emptyList(),
+    val timeline: List<JobTimelineEntry> = emptyList(),
+    val evidence: List<CockpitEvidenceItem> = emptyList(),
+    @SerialName("files_touched") val filesTouched: List<String> = emptyList(),
+    @SerialName("commands_run") val commandsRun: List<String> = emptyList(),
+    @SerialName("test_results") val testResults: ValidationSummary? = null,
+    val approvals: List<CockpitApprovalHistoryItem> = emptyList(),
+    val rollback: CockpitRollbackPlan? = null,
+) {
+    /** Resolved [JobStatus], or null if the gateway sent an unknown value. */
+    val jobStatus: JobStatus? get() = JobStatus.fromWire(status)
+}
+
+@Serializable
+data class JobWorkerRef(
+    val id: String = "",
+    val worker: String = "",
+    val status: String = "PENDING",
+    val summary: String = "",
+    val error: String? = null,
+    val attempts: Int = 0,
+)
+
+@Serializable
+data class JobTimelineEntry(
+    val ts: String = "",
+    val kind: String = "",
+    val phase: String? = null,
+    val actor: String = "controller",
+    val summary: String = "",
+)
+
+/** POST body for `/jobs/{id}/approve` — owner phrase gates the grant. */
+@Serializable
+data class ApprovePhaseRequest(
+    val phase: String = "execute",
+    val authorization: String? = null,
+)
+
+/** POST body for `/jobs/{id}/rerun` — optional explicit worker to retry. */
+@Serializable
+data class RerunJobRequest(@SerialName("worker_id") val workerId: String? = null)
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable

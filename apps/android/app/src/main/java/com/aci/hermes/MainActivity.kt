@@ -11,9 +11,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import com.aci.hermes.data.preferences.ThemeMode
 import com.aci.hermes.service.HermesService
+import com.aci.hermes.service.JobNotifier
 import com.aci.hermes.ui.navigation.HermesNavHost
 import com.aci.hermes.ui.theme.HermesTheme
 
@@ -25,12 +27,17 @@ class MainActivity : ComponentActivity() {
             // notification on Android 13+. We do not retry on denial.
         }
 
+    // Notification deep-link, set on launch and refreshed by onNewIntent so a
+    // tap on a job notification routes to the exact Job Detail / Approvals.
+    private val pendingDeepLink = mutableStateOf<JobNotifier.DeepLink?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         startHermesOrchestrator()
         maybeRequestNotificationPermission()
+        pendingDeepLink.value = JobNotifier.parseDeepLink(intent)
 
         val container = (application as HermesApplication).container
 
@@ -39,9 +46,19 @@ class MainActivity : ComponentActivity() {
                 initial = ThemeMode.SYSTEM
             )
             HermesTheme(themeMode = themePref) {
-                HermesNavHost(container = container)
+                HermesNavHost(
+                    container = container,
+                    deepLink = pendingDeepLink.value,
+                    onDeepLinkHandled = { pendingDeepLink.value = null },
+                )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        JobNotifier.parseDeepLink(intent)?.let { pendingDeepLink.value = it }
     }
 
     private fun startHermesOrchestrator() {
