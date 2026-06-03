@@ -208,3 +208,30 @@ def test_resume_orchestrator_job(server) -> None:
     status, job = _post(server, f"/v1/cockpit/jobs/{jid}/resume", {})
     assert status == 200
     assert job["id"] == jid
+
+
+# ── cancel (resolves both stores) ─────────────────────────────────────────
+
+
+def test_cancel_queue_job(server) -> None:
+    jid = _dispatch(server)
+    status, job = _post(server, f"/v1/cockpit/jobs/{jid}/cancel", {"reason": "stop"})
+    assert status == 200
+    assert job["id"] == jid
+    assert job["status"] == "CANCELLED"
+
+
+def test_cancel_orchestrator_job(server) -> None:
+    # The Job Detail cockpit shows orchestrator jobs and an enabled Cancel
+    # control; cancelling one must resolve the orchestrator store, not 404.
+    jid = _orchestrator_job()
+    status, job = _post(server, f"/v1/cockpit/jobs/{jid}/cancel", {})
+    assert status == 200
+    assert job["id"] == jid
+    assert job["status"] == "CANCELLED"
+
+
+def test_cancel_unknown_job_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/jobs/nope/cancel", {})
+    assert exc.value.code == 404

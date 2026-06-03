@@ -132,15 +132,17 @@ class JobNotifier(private val context: Context) {
         const val DEST_DIAGNOSTICS = "diagnostics"
 
         /**
-         * The deep-link destination for a job's notification: a job blocked on
-         * an owner gate routes to the Approvals queue; every other active job
-         * routes to its Job Detail. Pure so it is unit-testable without an
-         * Android [Intent].
+         * The deep-link destination for a job's notification: always that
+         * job's own Job Detail — including when it's blocked on an owner gate,
+         * because the job-phase approve control (POST /jobs/{id}/approve) lives
+         * on Job Detail. The Approvals tab is the separate JARVIS *proposal*
+         * queue (/v1/cockpit/approvals); it carries no job-id context and can't
+         * approve a job phase, so routing a blocked job there is a dead end.
+         * Takes [status] so callers can pass it uniformly; pure and
+         * unit-testable without an Android [Intent].
          */
-        fun destinationFor(status: String?): String {
-            val state = JobUiState.from(JobStatus.fromWire(status))
-            return if (state.needsAttention) DEST_APPROVALS else DEST_DETAIL
-        }
+        @Suppress("UNUSED_PARAMETER")
+        fun destinationFor(status: String?): String = DEST_DETAIL
 
         /** Parse a launch intent into a [DeepLink], or null when it carries none. */
         fun parseDeepLink(intent: Intent?): DeepLink? {

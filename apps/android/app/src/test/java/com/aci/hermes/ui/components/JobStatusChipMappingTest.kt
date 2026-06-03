@@ -58,9 +58,12 @@ class JobStatusChipMappingTest {
     }
 
     @Test
-    fun `notification destination routes blocked jobs to approvals`() {
-        assertEquals(JobNotifier.DEST_APPROVALS, JobNotifier.destinationFor("WAITING_FOR_APPROVAL"))
-        assertEquals(JobNotifier.DEST_APPROVALS, JobNotifier.destinationFor("BLOCKED"))
+    fun `notification destination always opens the job detail`() {
+        // Even blocked / owner-gated jobs open Job Detail, which hosts the
+        // job-phase approve control; the Approvals tab is the proposal queue
+        // and can't approve a job, so it is never a job-notification target.
+        assertEquals(JobNotifier.DEST_DETAIL, JobNotifier.destinationFor("WAITING_FOR_APPROVAL"))
+        assertEquals(JobNotifier.DEST_DETAIL, JobNotifier.destinationFor("BLOCKED"))
         assertEquals(JobNotifier.DEST_DETAIL, JobNotifier.destinationFor("RUNNING"))
         assertEquals(JobNotifier.DEST_DETAIL, JobNotifier.destinationFor("QUEUED"))
     }

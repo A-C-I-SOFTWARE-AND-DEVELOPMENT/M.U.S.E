@@ -530,25 +530,40 @@ def room_place(req: Request) -> JsonResponse:
 
 
 def job_cancel(req: Request) -> JsonResponse:
-    """Cancel a job (contract §4). 409 if already terminal."""
+    """Cancel a job (contract §4). 409 if already terminal.
+
+    Resolves the id against both stores so the Job Detail cockpit's Cancel
+    control works for either: a JobQueue entry cancels via
+    ``JobQueue.cancel_job``; an orchestrator (/orchestrate) job via
+    ``orchestrator.cancel_job`` (which leaves an already-published job alone
+    so the publish record stays honest). 404 only when the id is in neither.
+    """
     job_id = req.path_params.get("id", "")
     reason = req.body.get("reason")
-    try:
-        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError, QueueState
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
 
-        from . import contract
-
-        queue = JobQueue()
+    if kind == "queue":
         try:
-            entry = queue.get_job(job_id)
-        except JobQueueNotFoundError:
-            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
-        if entry.state in QueueState.TERMINAL:
-            return JsonResponse(409, {"error": f"job already {entry.state}"})
-        entry = queue.cancel_job(job_id, note=str(reason) if reason else None)
+            from hermes_cli.job_queue import JobQueue, QueueState
+
+            if obj.state in QueueState.TERMINAL:
+                return JsonResponse(409, {"error": f"job already {obj.state}"})
+            entry = JobQueue().cancel_job(job_id, note=str(reason) if reason else None)
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+        return JsonResponse(200, contract.cockpit_job(entry))
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        out = _orch.cancel_job(job_id)
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
-    return JsonResponse(200, contract.cockpit_job(entry))
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
 
 
 # ---------------------------------------------------------------------------
