@@ -301,6 +301,12 @@ class AppContainer(private val application: Application) {
     fun emergencyStop(source: String = "ui_emergency_stop") {
         containerScope.launch {
             emergencyStopController.engage(source = source, target = EmergencyStopState.HARD_STOP)
+            // Keep the settings-backed flag in sync: the Control screen + Home
+            // dashboard read `emergencyStopEngaged` to show the stop and to gate
+            // `startJarvis()`. Without this, a global stop would engage the
+            // controller but leave those surfaces showing "inactive" and still
+            // able to restart HermesService.
+            settingsRepository.setEmergencyStopEngaged(true)
         }
         orchestratorServiceController.emergencyStop()
     }

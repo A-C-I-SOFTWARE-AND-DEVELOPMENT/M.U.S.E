@@ -1,11 +1,13 @@
 package com.aci.hermes.notify
 
+import com.aci.hermes.approval.state.ApprovalsSync
 import com.aci.hermes.approval.state.CockpitApprovalsRepository
 import com.aci.hermes.data.cockpit.CockpitJob
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitResult
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.cockpit.JobStatus
+import com.aci.hermes.data.cockpit.JobsSync
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -54,6 +56,24 @@ class WorkWatcher(
             return TickResult(hasActiveWork = false)
         }
 
+        jobsRepo.refresh()
+        approvalsRepo.refresh()
+
+        // The repositories swallow transport failures (they set an Error sync
+        // state but keep the last cached list, never throwing). If we ignored
+        // that, a dead gateway would look like "same jobs, still active" — the
+        // watch service would never back off or self-stop. Treat a refresh
+        // error as a tick error so the caller backs off, and skip diffing so
+        // we never notify off stale data.
+        val refreshFailed = jobsRepo.sync.value is JobsSync.Error ||
+            approvalsRepo.sync.value is ApprovalsSync.Error
+        if (refreshFailed) {
+            return TickResult(
+                hasActiveWork = previous?.let(WorkEventDetector::hasActiveWork) ?: false,
+                error = true,
+            )
+        }
+
         val snapshot = runCatching { buildSnapshot() }.getOrElse {
             return TickResult(hasActiveWork = previous?.let(WorkEventDetector::hasActiveWork) ?: false, error = true)
         }
@@ -72,8 +92,8 @@ class WorkWatcher(
     suspend fun reset() = mutex.withLock { previous = null }
 
     private suspend fun buildSnapshot(): WorkSnapshot {
-        jobsRepo.refresh()
-        approvalsRepo.refresh()
+        // jobs/approvals were already refreshed (and their error state checked)
+        // in tick(); here we only fold in best-effort worker detection.
         val workers = when (val r = client.runtimeWorkers()) {
             is CockpitResult.Success -> r.value.workers.map {
                 WorkerSnap(id = it.id, displayName = it.displayName, available = it.available)

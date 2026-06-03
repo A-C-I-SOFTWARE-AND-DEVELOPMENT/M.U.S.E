@@ -65,16 +65,27 @@ class WorkWatchService : LifecycleService() {
         val watcher = container.workWatcher
         var backoffMs = MIN_BACKOFF_MS
         var idleTicks = 0
+        var errorTicks = 0
 
         while (lifecycleScope.coroutineContext.isActive && running) {
             val result = watcher.tick()
 
             if (result.error) {
-                Log.w(TAG, "poll error — backing off ${backoffMs}ms")
+                // Don't pin a foreground service to a dead gateway forever:
+                // back off, but give up after enough consecutive failures.
+                // The in-app foreground poller restarts us when the app is
+                // reopened (and the gateway is hopefully reachable again).
+                if (++errorTicks >= MAX_ERROR_TICKS_BEFORE_STOP) {
+                    Log.w(TAG, "gateway unreachable for $errorTicks polls — standing down")
+                    stopSelf()
+                    break
+                }
+                Log.w(TAG, "poll error ($errorTicks) — backing off ${backoffMs}ms")
                 delay(backoffMs)
                 backoffMs = (backoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
                 continue
             }
+            errorTicks = 0
             backoffMs = MIN_BACKOFF_MS
 
             if (result.hasActiveWork) {
@@ -121,6 +132,7 @@ class WorkWatchService : LifecycleService() {
         private const val MIN_BACKOFF_MS = 5_000L
         private const val MAX_BACKOFF_MS = 120_000L
         private const val IDLE_TICKS_BEFORE_STOP = 2
+        private const val MAX_ERROR_TICKS_BEFORE_STOP = 5
         private const val MIN_INTERVAL_SEC = 10L
         private const val MAX_INTERVAL_SEC = 600L
 
