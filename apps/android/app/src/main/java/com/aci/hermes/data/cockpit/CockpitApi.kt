@@ -574,3 +574,96 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Research Mode (Evidence Engine) ──────────────────────────────────────
+
+/**
+ * Wire models for Research Mode — one-to-one with the engine's JSON in
+ * `gateway/cockpit/contract.py` (`research_report`). Enum-like fields stay raw
+ * Strings so an unknown future tier never crashes deserialisation. Nothing
+ * here is fabricated: an empty [cards] list with a populated [notes] string is
+ * the gateway telling us no source-backed evidence was available.
+ */
+@Serializable
+data class ResearchCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val excerpt: String = "",
+    val claim: String = "",
+    val relevance: Float = 0f,
+    @SerialName("sub_question") val subQuestion: String = "",
+)
+
+@Serializable
+data class ResearchClaim(
+    val text: String = "",
+    @SerialName("supporting_card_ids") val supportingCardIds: List<String> = emptyList(),
+    val confidence: Float = 0f,
+    val uncertainty: String = "",
+    @SerialName("sub_question") val subQuestion: String = "",
+)
+
+@Serializable
+data class ResearchContradiction(
+    val subject: String = "",
+    @SerialName("claim_a") val claimA: String = "",
+    @SerialName("claim_b") val claimB: String = "",
+    @SerialName("card_a_id") val cardAId: String = "",
+    @SerialName("card_b_id") val cardBId: String = "",
+    val reason: String = "",
+)
+
+@Serializable
+data class ResearchReport(
+    val id: String,
+    val query: String = "",
+    @SerialName("sub_questions") val subQuestions: List<String> = emptyList(),
+    val cards: List<ResearchCard> = emptyList(),
+    val claims: List<ResearchClaim> = emptyList(),
+    val contradictions: List<ResearchContradiction> = emptyList(),
+    @SerialName("final_answer") val finalAnswer: String = "",
+    val uncertainty: String = "",
+    val citations: List<String> = emptyList(),
+    val notes: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class ResearchReportList(val reports: List<ResearchReport> = emptyList())
+
+/** POST body for `/v1/cockpit/research`. */
+@Serializable
+data class RunResearchRequest(
+    val query: String,
+    @SerialName("manual_sources") val manualSources: List<ManualSource> = emptyList(),
+)
+
+@Serializable
+data class ManualSource(
+    val title: String = "",
+    val url: String,
+    val excerpt: String = "",
+)
+
+/** POST body for `/v1/cockpit/research/{id}/promote`. */
+@Serializable
+data class PromoteFindingRequest(@SerialName("card_id") val cardId: String)
+
+/** Mirrors the gateway's promote/create-memory envelope. */
+@Serializable
+data class PromoteFindingResponse(
+    val stored: Boolean = false,
+    val item: CockpitMemoryItem? = null,
+    val reason: String? = null,
+)
+
+/** POST body for `/v1/cockpit/research/{id}/task`. */
+@Serializable
+data class CreateResearchTaskRequest(
+    val title: String? = null,
+    @SerialName("worker_id") val workerId: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+)

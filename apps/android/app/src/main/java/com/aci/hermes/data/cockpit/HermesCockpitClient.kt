@@ -195,6 +195,50 @@ class HermesCockpitClient(
             body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
         )
 
+    // ─── Research Mode (Evidence Engine) ─────────────────────────────────
+
+    /** Run the research pipeline for a query. Returns the full report (201). */
+    suspend fun researchRun(req: RunResearchRequest): CockpitResult<ResearchReport> =
+        request(
+            "POST",
+            "/v1/cockpit/research",
+            ResearchReport.serializer(),
+            body = json.encodeToString(RunResearchRequest.serializer(), req),
+            timeoutMs = CockpitHttp.RESEARCH_TIMEOUT_MS,
+        )
+
+    /** List past research reports, newest first. */
+    suspend fun researchList(): CockpitResult<ResearchReportList> =
+        request("GET", "/v1/cockpit/research", ResearchReportList.serializer())
+
+    suspend fun researchGet(id: String): CockpitResult<ResearchReport> =
+        request("GET", "/v1/cockpit/research/" + enc(id), ResearchReport.serializer())
+
+    /** Promote one evidence card into the Memory Tree. A `422` Failure means
+     *  the store rejected it (secret-like / low confidence) — honest, not a bug. */
+    suspend fun researchPromote(
+        id: String,
+        req: PromoteFindingRequest,
+    ): CockpitResult<PromoteFindingResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/research/" + enc(id) + "/promote",
+            PromoteFindingResponse.serializer(),
+            body = json.encodeToString(PromoteFindingRequest.serializer(), req),
+        )
+
+    /** Create a coding task from a research report. Returns the queued job (201). */
+    suspend fun researchCreateTask(
+        id: String,
+        req: CreateResearchTaskRequest,
+    ): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/research/" + enc(id) + "/task",
+            CockpitJob.serializer(),
+            body = json.encodeToString(CreateResearchTaskRequest.serializer(), req),
+        )
+
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")
 

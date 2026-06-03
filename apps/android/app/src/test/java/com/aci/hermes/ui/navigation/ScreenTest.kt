@@ -25,6 +25,7 @@ class ScreenTest {
         Screen.Settings,
         Screen.Diagnostics,
         Screen.TaskDetail,
+        Screen.Research,
     )
 
     @Test
@@ -97,6 +98,7 @@ class ScreenTest {
             Screen.Settings.route,
             Screen.Diagnostics.route,
             Screen.TaskDetail.route,
+            Screen.Research.route,
         )
         for (route in fullScreenRoutes) {
             assertTrue(

@@ -45,6 +45,8 @@ import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
+import com.aci.hermes.ui.screens.research.ResearchScreen
+import com.aci.hermes.ui.screens.research.ResearchViewModel
 import com.aci.hermes.ui.screens.settings.SettingsScreen
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.splash.SplashScreen
@@ -207,6 +209,19 @@ fun HermesNavHost(container: AppContainer) {
             )
         }
 
+        composable(Screen.Research.route) {
+            val vm: ResearchViewModel = viewModel(factory = remember { container.researchVmFactory() })
+            ResearchScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onTaskCreated = { taskId ->
+                    // Drop the research screen, then open the new coding task.
+                    nav.popBackStack()
+                    openTask(taskId)
+                },
+            )
+        }
+
         composable(
             route = Screen.AuditDetail.route,
             arguments = listOf(
@@ -259,6 +274,7 @@ private fun NavGraphBuilder.shellDestinations(
                 onPrepareHandoff = prepareHandoff,
                 onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
                 onOpenVoice = { nav.navigate(Screen.Voice.route) },
+                onOpenResearch = { nav.navigate(Screen.Research.route) },
             )
         }
     }

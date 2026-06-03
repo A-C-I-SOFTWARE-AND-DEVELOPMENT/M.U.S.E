@@ -79,6 +79,23 @@
     <string name="voice_save_task">Save as task</string>
     <string name="voice_clear">Clear</string>
 
+    <!-- Research Mode (Evidence Engine) -->
+    <string name="research_title">Research</string>
+    <string name="research_query_hint">Ask a research question…</string>
+    <string name="research_run">Research</string>
+    <string name="research_running">Researching…</string>
+    <string name="research_unpaired">Research needs a paired Hermes gateway. Pair one in Settings → Connection.</string>
+    <string name="research_empty_hint">Ask a factual question. Jarvis gathers sources, ranks them, and answers with citations — or says it doesn\'t know.</string>
+    <string name="research_section_answer">Answer</string>
+    <string name="research_section_sources">Sources</string>
+    <string name="research_section_evidence">Evidence cards</string>
+    <string name="research_section_contradictions">Contradictions</string>
+    <string name="research_uncertainty">Uncertainty</string>
+    <string name="research_save_to_memory">Save to memory</string>
+    <string name="research_saved">Saved</string>
+    <string name="research_create_task">Create coding task</string>
+    <string name="research_no_sources">No source-backed evidence was available. Jarvis did not fabricate an answer.</string>
+
     <!-- Approval card -->
     <string name="approval_title">Approval needed</string>
     <string name="approval_body">Jarvis wants to proceed. Review and approve before anything runs.</string>
@@ -199,6 +216,7 @@
     <string name="nav_diagnostics">Diagnostics</string>
     <string name="nav_capability">Capability</string>
     <string name="nav_voice">Voice</string>
+    <string name="nav_research">Research</string>
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->
