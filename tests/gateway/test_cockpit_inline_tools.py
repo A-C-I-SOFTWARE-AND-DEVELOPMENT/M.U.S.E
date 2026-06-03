@@ -93,3 +93,26 @@ def test_code_turn_emits_tool_calls_with_start_and_terminal():
 def test_casual_turn_runs_no_inline_tools():
     chunks = list(ag.jarvis_responder("good morning", []))
     assert not [c for c in chunks if c["type"] == "tool_call"]
+
+
+def test_ledger_refs_point_at_newest_ledger(monkeypatch):
+    """list_ledgers() is ascending, so the chip must use the last entry.
+
+    Regression: selecting ledgers[0] pointed the evidence/ledger chips at
+    the oldest decision instead of the one for the turn that just ran.
+    """
+    from hermes_cli import decision_ledger as dl
+    from gateway.cockpit import contract
+
+    paths = [Path("0001-old.md"), Path("0002-mid.md"), Path("0003-new.md")]
+    monkeypatch.setattr(dl, "list_ledgers", lambda: list(paths))
+    # read_ledger / ledger_id just echo the path stem so we can assert which
+    # ledger was chosen without touching disk.
+    monkeypatch.setattr(dl, "read_ledger", lambda p: p)
+    monkeypatch.setattr(contract, "ledger_id", lambda ledger, path: path.stem)
+
+    refs = list(ag._ledger_evidence_refs())
+    ledger_refs = [c for c in refs if c["type"] == "ledger"]
+    evidence_refs = [c for c in refs if c["type"] == "evidence"]
+    assert ledger_refs and ledger_refs[0]["ledgerId"] == "0003-new"
+    assert evidence_refs and evidence_refs[0]["auditId"] == "0003-new"

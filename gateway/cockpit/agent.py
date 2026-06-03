@@ -221,7 +221,10 @@ def _ledger_evidence_refs() -> Iterator[dict]:
         ledgers = dl.list_ledgers()
         if not ledgers:
             return
-        path = ledgers[0]
+        # list_ledgers() is ascending (sessions sorted, sequence ascending
+        # within each), so the newest decision is the last entry — picking
+        # ledgers[0] would point the chip at the oldest, unrelated record.
+        path = ledgers[-1]
         ledger = dl.read_ledger(path)
         ident = contract.ledger_id(ledger, path)
         if not ident:
