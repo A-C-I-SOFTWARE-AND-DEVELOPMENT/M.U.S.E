@@ -115,21 +115,21 @@ def test_select_local_model_defaults_to_first_for_chat() -> None:
 
 
 def test_default_prefers_local(monkeypatch) -> None:
-    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat": "LOCAL")
+    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat", preferred=None: "LOCAL")
     monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD")
     assert gen.default_prose_generator("hi", "persona") == "LOCAL"
 
 
 def test_escalate_tries_cloud_first(monkeypatch) -> None:
     # A hard problem (escalate=True) should reach for the stronger brain first.
-    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat": "LOCAL")
+    monkeypatch.setattr(gen, "local_generate", lambda p, s, kind="chat", preferred=None: "LOCAL")
     monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD")
     out = gen.default_prose_generator("solve this", "persona", {"kind": "reasoning", "escalate": True})
     assert out == "CLOUD"
 
 
 def test_default_falls_back_to_cloud_when_no_local(monkeypatch) -> None:
-    def no_local(p, s, kind="chat"):
+    def no_local(p, s, kind="chat", preferred=None):
         raise RuntimeError("no local Ollama chat model installed")
 
     monkeypatch.setattr(gen, "local_generate", no_local)
@@ -138,7 +138,7 @@ def test_default_falls_back_to_cloud_when_no_local(monkeypatch) -> None:
 
 
 def test_default_raises_when_all_tiers_fail(monkeypatch) -> None:
-    def boom_local(p, s, kind="chat"):
+    def boom_local(p, s, kind="chat", preferred=None):
         raise RuntimeError("no local model")
 
     def boom_cloud(p, s, task=None):
@@ -161,3 +161,33 @@ def test_responder_uses_generator_output() -> None:
     )
     bodies = [c for c in chunks if c.get("type") == "body"]
     assert bodies and bodies[0]["text"] == "REPLY<anything>"
+
+
+def test_select_local_model_prefers_routed_substring() -> None:
+    installed = ["llama3", "qwen3-coder:7b", "phi"]
+    # An evidence-backed route of "qwen3-coder" matches the installed tag.
+    assert gen.select_local_model(installed, "chat", preferred="qwen3-coder") == "qwen3-coder:7b"
+
+
+def test_select_local_model_ignores_uninstalled_preferred() -> None:
+    installed = ["llama3", "phi"]
+    # Preferred not installed → fall back to kind/name-hint logic, never crash.
+    assert gen.select_local_model(installed, "chat", preferred="not-here") in installed
+
+
+def test_task_class_hint_drives_preferred(monkeypatch) -> None:
+    captured = {}
+
+    def fake_local(p, s, kind="chat", preferred=None):
+        captured["kind"] = kind
+        captured["preferred"] = preferred
+        return "LOCAL"
+
+    monkeypatch.setattr(gen, "local_generate", fake_local)
+    monkeypatch.setattr(gen, "policy_generate", lambda p, s, task=None: "CLOUD")
+    monkeypatch.setattr(gen, "_route_preference", lambda tc: ("routed-model", "code"))
+
+    out = gen.default_prose_generator("hi", "persona", {"task_class": "coding_build"})
+    assert out == "LOCAL"
+    assert captured["preferred"] == "routed-model"
+    assert captured["kind"] == "code"

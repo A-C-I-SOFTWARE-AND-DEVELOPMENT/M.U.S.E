@@ -63,6 +63,26 @@ class HermesCockpitClient(
     suspend fun runtimeWorkers(): CockpitResult<WorkerDetectionList> =
         request("GET", "/v1/cockpit/runtime/workers", WorkerDetectionList.serializer())
 
+    /** Evidence-backed model routes per task class (read-only; keyless). */
+    suspend fun modelRoutes(): CockpitResult<ModelRouteList> =
+        request("GET", "/v1/cockpit/model-routes", ModelRouteList.serializer())
+
+    /**
+     * Owner model-route override: pin a task to a model and/or flip paid
+     * routing. Flipping paid requires the exact owner authorization phrase in
+     * [ModelRouteOverrideRequest.authorization] — the server returns 403
+     * ([CockpitResult.Failure] with status 403) otherwise.
+     */
+    suspend fun modelRouteOverride(
+        req: ModelRouteOverrideRequest,
+    ): CockpitResult<ModelRouteOverrideResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/model-routes/override",
+            ModelRouteOverrideResponse.serializer(),
+            body = json.encodeToString(ModelRouteOverrideRequest.serializer(), req),
+        )
+
     /**
      * Generic authenticated GET for routes without a settled typed model
      * yet (memory, events, approvals, jobs, sessions). Returns the raw

@@ -109,14 +109,58 @@ _KIND_NAME_HINTS: dict[str, tuple[str, ...]] = {
 }
 
 
-def select_local_model(installed: list[str], kind: str = "chat") -> str:
+# Map a task class to the coarse local-selection ``kind`` used by the
+# name-hint fallback when the routed model isn't installed locally.
+_TASK_CLASS_KIND: dict[str, str] = {
+    "coding_plan": "reasoning",
+    "coding_build": "code",
+    "coding_review": "code",
+    "test_debug": "code",
+    "research": "reasoning",
+    "citation_verification": "reasoning",
+    "memory_curator": "reasoning",
+    "mobile_chat": "chat",
+    "voice_reply": "chat",
+    "summarization": "chat",
+}
+
+
+def _route_preference(task_class: str) -> tuple[Optional[str], str]:
+    """Evidence-backed (preferred model, kind) for a task class.
+
+    Defensive: any failure (no policy, stripped install) degrades to
+    ``(None, kind)`` so generation still works via the name-hint fallback.
+    """
+    kind = _TASK_CLASS_KIND.get(task_class, "chat")
+    try:
+        from hermes_cli.jarvis_prime import task_router as tr
+
+        decision = tr.route_for_task(task_class)
+        return decision.chosen, kind
+    except Exception:
+        return None, kind
+
+
+def select_local_model(
+    installed: list[str], kind: str = "chat", preferred: Optional[str] = None
+) -> str:
     """Pick the best installed local model for a task ``kind``.
 
-    code → a coder model; reasoning → a reasoning model (e.g. DeepSeek-R1);
-    otherwise a policy-preferred tag, else the first installed model.
+    When ``preferred`` (the evidence-backed task-class route) is installed
+    locally it wins; otherwise: code → a coder model; reasoning → a reasoning
+    model (e.g. DeepSeek-R1); else a policy-preferred tag, else the first
+    installed model. ``preferred`` is matched exactly first, then by substring
+    (so a route of ``qwen3-coder`` matches an installed ``qwen3-coder:7b``).
     """
     if not installed:
         raise RuntimeError("no local Ollama chat model installed")
+    if preferred:
+        if preferred in installed:
+            return preferred
+        low = preferred.lower()
+        for name in installed:
+            if low in name.lower() or name.lower() in low:
+                return name
     for frag in _KIND_NAME_HINTS.get(kind, ()):
         for name in installed:
             if frag in name.lower():
@@ -143,10 +187,18 @@ def ollama_generate(
     return ((out.get("message") or {}).get("content") or "").strip()
 
 
-def local_generate(prompt: str, persona: str, *, kind: str = "chat") -> str:
-    """Tier 1: reply from the running local model best-suited to ``kind``."""
+def local_generate(
+    prompt: str, persona: str, *, kind: str = "chat", preferred: Optional[str] = None
+) -> str:
+    """Tier 1: reply from the running local model best-suited to ``kind``.
+
+    ``preferred`` is the evidence-backed task-class route (from
+    ``task_router``); when it is installed locally it is used, otherwise we
+    fall back to the existing kind/name-hint selection — no behavior change
+    when ``preferred`` is absent.
+    """
     base = _ollama_base()
-    model = select_local_model(installed_chat_models(base), kind)
+    model = select_local_model(installed_chat_models(base), kind, preferred=preferred)
     text = ollama_generate(prompt, persona, model, base=base)
     if not text:
         raise RuntimeError(f"empty response from local model {model!r}")
@@ -191,18 +243,25 @@ def default_prose_generator(prompt: str, persona: str, hint: Optional[dict] = No
     """Route to the right brain, then generate.
 
     ``hint`` (from the JARVIS turn) carries ``kind`` (``chat``/``code``/
-    ``reasoning``) and ``escalate`` (low confidence / council / research). The
-    policy is free-first — local model before cloud — **except** when the turn
-    escalates a hard problem, where a stronger cloud/subscription brain is
-    tried first. Either way the other tier is the fallback, and a total failure
-    raises so the responder degrades to the turn summary.
+    ``reasoning``), ``escalate`` (low confidence / council / research), and
+    optionally ``task_class`` (a :class:`task_router.TaskClass` value). When a
+    ``task_class`` is present the evidence-backed router picks the preferred
+    model + refines the kind; the free-first local→cloud policy and all
+    fallbacks are otherwise unchanged, so behavior is identical without it.
     """
     hint = hint or {}
     kind = str(hint.get("kind") or "chat")
     escalate = bool(hint.get("escalate"))
 
+    preferred_model: Optional[str] = None
+    task_class = hint.get("task_class")
+    if task_class:
+        preferred_model, routed_kind = _route_preference(str(task_class))
+        if routed_kind:
+            kind = routed_kind
+
     def _local() -> str:
-        return local_generate(prompt, persona, kind=kind)
+        return local_generate(prompt, persona, kind=kind, preferred=preferred_model)
 
     def _cloud() -> str:
         return policy_generate(prompt, persona, task=kind if kind != "chat" else None)

@@ -31,6 +31,7 @@ sealed class Screen(val route: String) {
     // Full-screen pushes.
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+    data object ModelRoute : Screen("model_route")
 
     data object AuditDetail : Screen("audit_detail/{auditId}") {
         const val ARG_AUDIT_ID = "auditId"

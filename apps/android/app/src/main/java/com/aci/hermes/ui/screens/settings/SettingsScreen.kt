@@ -47,6 +47,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenModelRoutes: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
@@ -174,6 +175,9 @@ fun SettingsScreen(
                 )
                 OutlinedButton(onClick = onOpenDiagnostics, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.nav_diagnostics))
+                }
+                OutlinedButton(onClick = onOpenModelRoutes, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.model_route_open))
                 }
                 OutlinedButton(
                     onClick = { confirmReset = true },

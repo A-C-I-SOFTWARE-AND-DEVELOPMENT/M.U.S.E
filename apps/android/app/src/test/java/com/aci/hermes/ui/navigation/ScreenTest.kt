@@ -24,6 +24,7 @@ class ScreenTest {
         Screen.Control,
         Screen.Settings,
         Screen.Diagnostics,
+        Screen.ModelRoute,
         Screen.TaskDetail,
     )
 
@@ -96,6 +97,7 @@ class ScreenTest {
             Screen.Onboarding.route,
             Screen.Settings.route,
             Screen.Diagnostics.route,
+            Screen.ModelRoute.route,
             Screen.TaskDetail.route,
         )
         for (route in fullScreenRoutes) {

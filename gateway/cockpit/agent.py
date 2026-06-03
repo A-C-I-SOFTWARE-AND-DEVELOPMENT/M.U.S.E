@@ -232,7 +232,32 @@ def _brain_hint(turn, mode: str) -> dict:
         kind = "reasoning"
     else:
         kind = "chat"
-    return {"kind": kind, "escalate": escalate, "target": target, "mode": mode}
+    return {
+        "kind": kind,
+        "escalate": escalate,
+        "target": target,
+        "mode": mode,
+        "task_class": _task_class_for(turn, mode, target),
+    }
+
+
+# Map a JARVIS turn to one of the evidence-backed routing task classes, reusing
+# the turn's own classification (mode/target/research). Returns a
+# ``task_router.TaskClass`` value string the generator can route by.
+def _task_class_for(turn, mode: str, target: str) -> str:
+    if getattr(turn, "research_brief", None) is not None:
+        return "research"
+    if target == "codex_reviewer":
+        return "coding_review"
+    if target in ("local_test_runner", "codex_bounded_fix"):
+        return "test_debug"
+    if target == "claude_code_builder":
+        return "coding_build"
+    if mode == "builder" or target in _CODE_TARGETS:
+        return "coding_plan"
+    if mode == "mobile_voice":
+        return "voice_reply"
+    return "mobile_chat"
 
 
 def _turn_summary(turn, mode: str) -> str:

@@ -16,6 +16,7 @@ import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.CockpitModelRoutesRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
@@ -41,6 +42,7 @@ import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
+import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -138,6 +140,9 @@ class AppContainer(private val application: Application) {
 
     /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
+
+    val cockpitModelRoutesRepository: CockpitModelRoutesRepository =
+        CockpitModelRoutesRepository(cockpitClient)
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -237,6 +242,10 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun modelRouteVmFactory(): ViewModelProvider.Factory = factory {
+        ModelRouteViewModel(cockpitModelRoutesRepository)
     }
 
     fun avatarPickerVmFactory(): ViewModelProvider.Factory = factory {

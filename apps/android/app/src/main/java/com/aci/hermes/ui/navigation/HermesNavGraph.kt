@@ -41,6 +41,8 @@ import com.aci.hermes.ui.screens.live.JarvisLiveScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryScreen
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
+import com.aci.hermes.ui.screens.modelroute.ModelRouteScreen
+import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
@@ -76,6 +78,7 @@ fun HermesNavHost(container: AppContainer) {
     }
     val openSettings: () -> Unit = { nav.navigate(Screen.Settings.route) }
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }
+    val openModelRoutes: () -> Unit = { nav.navigate(Screen.ModelRoute.route) }
     val onNavigateTab: (Screen) -> Unit = { screen ->
         nav.navigate(screen.route) {
             popUpTo(Screen.Home.route) { saveState = true }
@@ -167,6 +170,7 @@ fun HermesNavHost(container: AppContainer) {
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
                 onOpenDiagnostics = openDiagnostics,
+                onOpenModelRoutes = openModelRoutes,
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
             )
         }
@@ -174,6 +178,11 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        composable(Screen.ModelRoute.route) {
+            val vm: ModelRouteViewModel = viewModel(factory = remember { container.modelRouteVmFactory() })
+            ModelRouteScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
         composable(Screen.AvatarPicker.route) {
