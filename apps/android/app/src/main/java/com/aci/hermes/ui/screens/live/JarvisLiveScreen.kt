@@ -207,24 +207,10 @@ fun JarvisLiveScreen(
                 .padding(padding)
                 .background(jarvisBackground()),
         ) {
-            JarvisLiveParticles(enabled = projection.particlesEnabled)
+            // The companion's pixel bedroom (wall, window, desk, bed, plant).
+            PixelRoom(modifier = Modifier.fillMaxSize())
 
-            // The Den's floor — a soft ground the companion stands and snoozes on.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp)
-                    .align(Alignment.BottomCenter)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Transparent,
-                                HermesCyan.copy(alpha = 0.06f),
-                                Color.Black.copy(alpha = 0.20f),
-                            ),
-                        ),
-                    ),
-            )
+            JarvisLiveParticles(enabled = projection.particlesEnabled)
 
             // Toggle the floating JARVIS that lives over every app.
             IconButton(
