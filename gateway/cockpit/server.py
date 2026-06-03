@@ -65,6 +65,8 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/skills"), h.skills_list, True),
     ("GET", _compile("/v1/cockpit/navigation"), h.navigation_list, True),
     ("GET", _compile("/v1/cockpit/sessions"), h.sessions_list, True),
+    ("GET", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_get, True),
+    ("POST", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_set, True),
 ]
 
 

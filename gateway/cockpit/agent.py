@@ -68,6 +68,15 @@ def jarvis_responder(
         yield detail("Owner approval required for: " + ", ".join(route.pending_actions))
 
     persona_prompt = turn.persona_prompt.render()
+    # Adopted character persona ("make my avatar Goku") frames the whole reply.
+    try:
+        from gateway.cockpit.persona_store import persona_directive
+
+        adopted = persona_directive()
+        if adopted:
+            persona_prompt = f"{adopted}\n\n{persona_prompt}"
+    except Exception:  # persona is best-effort
+        pass
     # Ground the reply in the owner profile + project references (bounded).
     try:
         from gateway.cockpit.grounding import reference_context
