@@ -109,4 +109,28 @@ class JobsViewModelTest {
         assertTrue("cancel must POST to the gateway", cancelled)
         assertEquals("CANCELLED", vm.jobs.value.firstOrNull()?.status)
     }
+
+    @Test
+    fun `failed cancel surfaces a message instead of silently dropping`() = runTest {
+        // 409 terminal-state conflict (also the shape of the 404-not-in-JobQueue
+        // case the reviewer flagged): the action must not be silently ignored.
+        val vm = JobsViewModel(
+            repo { req ->
+                when {
+                    req.method == "POST" && req.url.contains("/cancel") ->
+                        CockpitRawResponse(409, """{"error":{"code":"conflict","message":"already terminal"}}""")
+                    else -> CockpitRawResponse(200, jobList(job("job_1")))
+                }
+            },
+        )
+
+        vm.cancel("job_1")
+
+        assertTrue(
+            "a failed cancel must surface a reason",
+            vm.message.value?.contains("already terminal") == true,
+        )
+        vm.consumeMessage()
+        assertEquals(null, vm.message.value)
+    }
 }

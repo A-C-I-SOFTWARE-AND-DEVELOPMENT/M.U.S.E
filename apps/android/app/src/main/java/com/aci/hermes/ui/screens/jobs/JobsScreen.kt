@@ -19,9 +19,12 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,8 +68,21 @@ fun JobsScreen(
 ) {
     val jobs by viewModel.jobs.collectAsState()
     val sync by viewModel.sync.collectAsState()
+    val message by viewModel.message.collectAsState()
 
     var pendingCancel by remember { mutableStateOf<CockpitJob?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Surface a failed cancel (e.g. 404 for an /orchestrate job not in the
+    // JobQueue, or a 409 terminal conflict) so the action is never silently
+    // dropped after the dialog closes.
+    val cancelFailedTemplate = stringResource(R.string.jobs_cancel_failed)
+    LaunchedEffect(message) {
+        message?.let {
+            snackbarHostState.showSnackbar(String.format(cancelFailedTemplate, it))
+            viewModel.consumeMessage()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -97,6 +113,11 @@ fun JobsScreen(
                 is JobsSync.Loaded -> if (jobs.isEmpty()) EmptyState(onRetry = viewModel::refresh) else JobList(jobs) { pendingCancel = it }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
     }
 
     pendingCancel?.let { job ->

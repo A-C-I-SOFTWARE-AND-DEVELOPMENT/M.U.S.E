@@ -310,6 +310,7 @@
     <string name="jobs_cancel_title">Cancel this job?</string>
     <string name="jobs_cancel_body">This asks the gateway to cancel “%1$s”. In-flight work stops at the next safe point.</string>
     <string name="jobs_cancel_confirm">Cancel job</string>
+    <string name="jobs_cancel_failed">Couldn\'t cancel job: %1$s</string>
     <string name="jobs_empty_title">No jobs yet</string>
     <string name="jobs_empty_body">Dispatched orchestration jobs from the gateway will appear here.</string>
     <string name="jobs_not_paired_title">Not paired with a gateway</string>
