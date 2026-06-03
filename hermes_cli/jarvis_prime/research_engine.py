@@ -165,6 +165,20 @@ class EvidenceCard:
             "sub_question": self.sub_question,
         }
 
+    @classmethod
+    def from_dict(cls, d: dict) -> "EvidenceCard":
+        return cls(
+            id=str(d.get("id", "")),
+            title=str(d.get("title", "")),
+            source_uri=str(d.get("source_uri", "")),
+            source_type=str(d.get("source_type", "")),
+            evidence_strength=str(d.get("evidence_strength", "")),
+            excerpt=str(d.get("excerpt", "")),
+            claim=str(d.get("claim", "")),
+            relevance=float(d.get("relevance", 0.0) or 0.0),
+            sub_question=str(d.get("sub_question", "")),
+        )
+
 
 @dataclass
 class SynthesizedClaim:
@@ -182,6 +196,16 @@ class SynthesizedClaim:
             "uncertainty": self.uncertainty,
             "sub_question": self.sub_question,
         }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "SynthesizedClaim":
+        return cls(
+            text=str(d.get("text", "")),
+            supporting_card_ids=tuple(d.get("supporting_card_ids", []) or []),
+            confidence=float(d.get("confidence", 0.0) or 0.0),
+            uncertainty=str(d.get("uncertainty", "")),
+            sub_question=str(d.get("sub_question", "")),
+        )
 
 
 @dataclass
@@ -202,6 +226,17 @@ class ResearchContradiction:
             "card_b_id": self.card_b_id,
             "reason": self.reason,
         }
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "ResearchContradiction":
+        return cls(
+            subject=str(d.get("subject", "")),
+            claim_a=str(d.get("claim_a", "")),
+            claim_b=str(d.get("claim_b", "")),
+            card_a_id=str(d.get("card_a_id", "")),
+            card_b_id=str(d.get("card_b_id", "")),
+            reason=str(d.get("reason", "")),
+        )
 
 
 @dataclass
@@ -239,16 +274,10 @@ class ResearchReport:
             id=d["id"],
             query=d.get("query", ""),
             sub_questions=tuple(d.get("sub_questions", []) or []),
-            cards=[EvidenceCard(**{**c}) for c in d.get("cards", [])],
-            claims=[
-                SynthesizedClaim(**{
-                    **c,
-                    "supporting_card_ids": tuple(c.get("supporting_card_ids", [])),
-                })
-                for c in d.get("claims", [])
-            ],
+            cards=[EvidenceCard.from_dict(c) for c in d.get("cards", [])],
+            claims=[SynthesizedClaim.from_dict(c) for c in d.get("claims", [])],
             contradictions=[
-                ResearchContradiction(**c) for c in d.get("contradictions", [])
+                ResearchContradiction.from_dict(c) for c in d.get("contradictions", [])
             ],
             final_answer=d.get("final_answer", ""),
             uncertainty=d.get("uncertainty", ""),
