@@ -62,8 +62,13 @@ object MemoryScreenTags {
     const val DETAIL = "memory_detail"
     const val CORRECT_DIALOG = "memory_correct_dialog"
     const val DELETE_DIALOG = "memory_delete_dialog"
+    const val INBOX = "memory_inbox"
+    const val CONTRADICTIONS = "memory_contradictions"
+    const val FRESHNESS = "memory_freshness"
     fun card(id: String) = "memory_card_$id"
     fun filter(name: String) = "memory_filter_$name"
+    fun tab(name: String) = "memory_tab_$name"
+    fun proposedCard(id: String) = "memory_proposed_$id"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,42 +108,65 @@ fun MemoryScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MemorySearch(
-                query = state.query,
-                onQueryChange = viewModel::setQuery,
+            MemoryTabs(
+                active = state.tab,
+                inboxCount = state.proposed.size,
+                conflictCount = state.contradictions.size,
+                onSelect = viewModel::selectTab,
             )
-            MemoryFilter(
-                active = state.activeCategory,
-                onSelect = viewModel::setCategory,
-            )
-            HeaderRow(total = state.allItems.size, shown = state.visibleItems.size)
-            if (state.visibleItems.isEmpty()) {
-                EmptyState()
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(MemoryScreenTags.LIST),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.visibleItems, key = { it.id }) { item ->
-                        if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
-                            Box(modifier = Modifier.testTag(MemoryScreenTags.card(item.id))) {
-                                SocialPatternCard(
-                                    pattern = SocialPatternProjection.from(item),
-                                    onTap = { viewModel.open(item) },
-                                )
+            when (state.tab) {
+                MemoryTab.STORED -> {
+                    MemorySearch(
+                        query = state.query,
+                        onQueryChange = viewModel::setQuery,
+                    )
+                    MemoryFilter(
+                        active = state.activeCategory,
+                        onSelect = viewModel::setCategory,
+                    )
+                    HeaderRow(total = state.allItems.size, shown = state.visibleItems.size)
+                    if (state.visibleItems.isEmpty()) {
+                        EmptyState()
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(MemoryScreenTags.LIST),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(state.visibleItems, key = { it.id }) { item ->
+                                if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
+                                    Box(modifier = Modifier.testTag(MemoryScreenTags.card(item.id))) {
+                                        SocialPatternCard(
+                                            pattern = SocialPatternProjection.from(item),
+                                            onTap = { viewModel.open(item) },
+                                        )
+                                    }
+                                } else {
+                                    MemoryCard(
+                                        item = item,
+                                        onOpen = { viewModel.open(item) },
+                                        onCorrect = { viewModel.beginCorrect(item) },
+                                        onDelete = { viewModel.beginDelete(item) },
+                                    )
+                                }
                             }
-                        } else {
-                            MemoryCard(
-                                item = item,
-                                onOpen = { viewModel.open(item) },
-                                onCorrect = { viewModel.beginCorrect(item) },
-                                onDelete = { viewModel.beginDelete(item) },
-                            )
                         }
                     }
                 }
+                MemoryTab.INBOX -> ProposedInboxSection(
+                    proposed = state.proposed,
+                    sync = state.treeSync,
+                    onApprove = viewModel::approveProposed,
+                    onReject = { id -> viewModel.rejectProposed(id) },
+                )
+                MemoryTab.CONTRADICTIONS -> ContradictionsSection(
+                    contradictions = state.contradictions,
+                    onResolve = { id, winnerId -> viewModel.resolveContradiction(id, winnerId) },
+                )
+                MemoryTab.FRESHNESS -> FreshnessSection(
+                    nodes = state.freshness,
+                )
             }
         }
     }

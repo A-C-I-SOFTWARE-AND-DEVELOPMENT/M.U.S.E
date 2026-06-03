@@ -1,7 +1,7 @@
 package com.aci.hermes.data.evidence
 
 import com.aci.hermes.data.cockpit.CockpitClaimCitation
-import com.aci.hermes.data.cockpit.CockpitContradiction
+import com.aci.hermes.data.cockpit.CockpitEvidenceContradiction
 import com.aci.hermes.data.cockpit.CockpitEvidenceCard
 import com.aci.hermes.data.cockpit.CockpitEvidenceHit
 import com.aci.hermes.data.cockpit.CockpitEvidenceVerifyResult
@@ -50,7 +50,7 @@ class CockpitEvidenceMappingTest {
                 ),
             ),
             uncertain = listOf("Mars has two moons"),
-            contradictions = listOf(CockpitContradiction(subject = "batching", a = "u1", b = "u2", reason = "conflict")),
+            contradictions = listOf(CockpitEvidenceContradiction(subject = "batching", a = "u1", b = "u2", reason = "conflict")),
             rejected = listOf("api_key=sk-..."),
         )
         val v = wire.toDomain()

@@ -33,7 +33,7 @@ import os
 import re
 import tempfile
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Iterable, Optional
@@ -304,6 +304,26 @@ class MemoryNode:
             self.superseded_by is None and self.approval_state != ApprovalState.REJECTED
         )
 
+    @property
+    def awaiting_review(self) -> bool:
+        """Captured but not yet cleared for live recall.
+
+        ``observe_turn`` writes captured facts as **session/working-layer,
+        PROPOSED** candidates that await the owner's approval (typically on
+        mobile). Until the owner accepts or rejects them they must not feed
+        back into the prompt as plain context, or an unreviewed — possibly
+        assistant-originated — "memory" could steer later responses.
+
+        Durable nodes are *not* awaiting review: the durable write gate
+        already required provenance (or owner approval) plus the confidence
+        floor before they could be committed. Owner-approved / auto nodes are
+        likewise cleared.
+        """
+
+        if self.approval_state != ApprovalState.PROPOSED:
+            return False
+        return self.layer != MemoryLayer.DURABLE
+
     def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
@@ -432,6 +452,7 @@ class ContextPack:
     sections: list[dict] = field(default_factory=list)
     used_tokens: int = 0
     excluded_contested: int = 0
+    excluded_proposed: int = 0
 
     def add_section(self, node: MemoryNode, tokens: int) -> None:
         self.sections.append({
@@ -468,6 +489,12 @@ class ContextPack:
         if self.excluded_contested:
             lines.append("")
             lines.append(f"(excluded {self.excluded_contested} contested node(s))")
+        if self.excluded_proposed:
+            lines.append("")
+            lines.append(
+                f"(excluded {self.excluded_proposed} unapproved node(s) "
+                "pending owner review)"
+            )
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, object]:
@@ -476,6 +503,7 @@ class ContextPack:
             "token_budget": self.token_budget,
             "used_tokens": self.used_tokens,
             "excluded_contested": self.excluded_contested,
+            "excluded_proposed": self.excluded_proposed,
             "sections": self.sections,
         }
 
@@ -569,17 +597,24 @@ class MemoryWriteResult:
 # ---------------------------------------------------------------------------
 
 
-def _default_memory_tree_path() -> Path:
-    """Memory-tree location, honoring ``HERMES_HOME`` like the rest of the
-    stack so the durable store is test-isolated and deployment-configurable."""
+def _default_tree_path() -> Path:
+    """Default Memory Tree location, honoring ``HERMES_HOME`` like the rest of
+    the stack (``memory.py``, ``raw_event_log.py``).
+
+    Defaults to ``~/.hermes`` when unset so production behavior is unchanged,
+    but tests / Termux / the cockpit can relocate the whole store by setting
+    ``HERMES_HOME`` (otherwise the Tree leaks across the real home dir and
+    isn't test-isolated).
+    """
 
     base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
     return Path(base) / "jarvis_prime" / "memory_tree.jsonl"
 
 
-# Back-compat module constant (no external importers); the env-aware
-# ``_default_memory_tree_path`` is the source of truth at resolve time.
-DEFAULT_MEMORY_TREE_PATH = _default_memory_tree_path()
+# Backwards-compatible module constant (evaluated at import time). Callers that
+# need the live, ``HERMES_HOME``-aware path should use ``_default_tree_path()``
+# (the store does so via ``_resolve_path``).
+DEFAULT_MEMORY_TREE_PATH = _default_tree_path()
 
 
 @dataclass
@@ -797,6 +832,108 @@ class MemoryTreeStore:
             if r.status == ContradictionStatus.CONTESTED
         ]
 
+    # -- proposed inbox / owner decisions -----------------------------------
+
+    def proposed(
+        self, *, namespaces: Optional[Iterable[str]] = None
+    ) -> list[MemoryNode]:
+        """Active nodes still awaiting an owner decision (the inbox).
+
+        These are candidates captured from turns — recallable but clearly
+        *proposed*, never silently durable. Sorted newest-first.
+        """
+
+        ns_filter = set(namespaces) if namespaces else None
+        items = [
+            node
+            for node in self.nodes.values()
+            if node.active
+            and node.approval_state == ApprovalState.PROPOSED
+            and (ns_filter is None or node.namespace in ns_filter)
+        ]
+        items.sort(key=lambda n: n.created_at, reverse=True)
+        return items
+
+    def set_approval(self, node_id: str, state: ApprovalState) -> MemoryNode:
+        """Record an owner decision on a node's approval state and persist."""
+
+        node = self.nodes[node_id]
+        node.approval_state = state
+        node.updated_at = _now_iso()
+        self.save()
+        return node
+
+    def promote_to_durable(self, node_id: str) -> MemoryWriteResult:
+        """Owner-approve a proposed node and lift it to the durable layer.
+
+        Promotion re-runs the durable write policy and contradiction
+        detection so an approval can **never silently overwrite** an existing
+        durable fact — a conflict opens a :class:`ContradictionReport` and the
+        result carries it (both nodes become contested) instead of clobbering.
+        """
+
+        node = self.nodes[node_id]
+        node.approval_state = ApprovalState.OWNER_APPROVED
+        node.layer = MemoryLayer.DURABLE
+        node.updated_at = _now_iso()
+        # Owner approval satisfies the provenance/confidence floor by policy.
+        contradiction = self._detect_contradiction(node)
+        self.save()
+        return MemoryWriteResult(
+            ok=True,
+            node=node,
+            contradiction=contradiction,
+            effective_layer=MemoryLayer.DURABLE,
+        )
+
+    def supersede(
+        self, loser_id: str, winner_id: str, note: str = ""
+    ) -> MemoryNode:
+        """Manually supersede ``loser_id`` with ``winner_id``.
+
+        Mirrors the contradiction-resolution bookkeeping (loser
+        ``SUPERSEDED`` + ``superseded_by``, winner records ``supersedes``)
+        without requiring a pre-existing :class:`ContradictionReport`. Never
+        deletes the loser — supersession is reversible-by-audit, not a wipe.
+        """
+
+        if loser_id == winner_id:
+            raise ValueError("a node cannot supersede itself")
+        winner = self.nodes[winner_id]
+        loser = self.nodes[loser_id]
+        winner.supersedes = tuple(dict.fromkeys((*winner.supersedes, loser_id)))
+        winner.updated_at = _now_iso()
+        loser.contradiction_status = ContradictionStatus.SUPERSEDED
+        loser.superseded_by = winner_id
+        loser.updated_at = _now_iso()
+        if note:
+            loser.summary = (loser.summary + f" (superseded: {note})").strip()
+        self.save()
+        return loser
+
+    def due_for_review(self, within_days: int = 0) -> list[MemoryNode]:
+        """Active nodes whose freshness review is overdue or due within N days.
+
+        ``within_days=0`` returns only already-overdue nodes. Sorted by the
+        soonest ``freshness_due`` first so the owner triages the stalest data.
+        """
+
+        horizon = datetime.now(timezone.utc) + timedelta(days=max(0, within_days))
+        due: list[MemoryNode] = []
+        for node in self.nodes.values():
+            if not node.active or not node.freshness_due:
+                continue
+            try:
+                when = datetime.fromisoformat(node.freshness_due)
+            except ValueError:
+                continue
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=timezone.utc)
+            if when <= horizon:
+                due.append(node)
+        due.sort(key=lambda n: n.freshness_due or "")
+        return due
+
     # -- read / search ------------------------------------------------------
 
     def search(
@@ -806,6 +943,7 @@ class MemoryTreeStore:
         namespaces: Optional[Iterable[str]] = None,
         layers: Optional[Iterable[MemoryLayer]] = None,
         include_contested: bool = False,
+        include_pending: bool = True,
         limit: int = 10,
     ) -> list[MemorySearchResult]:
         q_terms = _terms(query)
@@ -817,6 +955,12 @@ class MemoryTreeStore:
             if not node.active:
                 continue
             if node.contested and not include_contested:
+                continue
+            # Live recall must never surface candidates still pending the
+            # owner's review gate (see ``MemoryNode.awaiting_review``). Audit
+            # and CLI callers leave ``include_pending=True`` so they can still
+            # inspect unreviewed captures.
+            if not include_pending and node.awaiting_review:
                 continue
             if ns_filter and node.namespace not in ns_filter:
                 continue
@@ -881,13 +1025,22 @@ class MemoryTreeStore:
     ) -> ContextPack:
         pack = ContextPack(query=query, token_budget=token_budget)
         hits = self.search(
-            query, namespaces=namespaces, include_contested=include_contested, limit=50
+            query,
+            namespaces=namespaces,
+            include_contested=include_contested,
+            include_pending=False,
+            limit=50,
         )
         # Account for contested exclusions for transparency.
         if not include_contested:
             pack.excluded_contested = sum(
                 1 for n in self.nodes.values() if n.active and n.contested
             )
+        # Candidates still awaiting the owner's review gate are excluded from
+        # live recall; record the count so the gate is visible, not silent.
+        pack.excluded_proposed = sum(
+            1 for n in self.nodes.values() if n.active and n.awaiting_review
+        )
         for hit in hits:
             node = hit.node
             body = node.summary or node.text
@@ -908,7 +1061,7 @@ class MemoryTreeStore:
     # -- persistence --------------------------------------------------------
 
     def _resolve_path(self) -> Path:
-        return Path(self.path) if self.path else _default_memory_tree_path()
+        return Path(self.path) if self.path else _default_tree_path()
 
     def save(self) -> Path:
         target = self._resolve_path()

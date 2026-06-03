@@ -371,6 +371,164 @@ def evidence_demote(req: Request) -> JsonResponse:
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
     return JsonResponse(200, {"removed": removed})
+# Memory Tree (MEM-2): proposed inbox, owner decisions, contradictions,
+# freshness. Backed by the provenance-first MemoryTreeStore — the same store
+# the live JARVIS loop captures into. The flat /memory endpoints above are
+# untouched (backward compatible).
+# ---------------------------------------------------------------------------
+
+
+def _load_memory_tree():
+    """Load the live Memory Tree from the HERMES_HOME-aware default path."""
+    from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+
+    return MemoryTreeStore.load()
+
+
+def memory_tree_search(req: Request) -> JsonResponse:
+    """Ranked Memory Tree search (contested excluded unless asked)."""
+    query = req.query.get("q") or req.query.get("query") or ""
+    include_contested = str(
+        req.query.get("include_contested", "")
+    ).strip().lower() in ("1", "true", "yes")
+    limit = int(req.query.get("limit", "25"))
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        hits = store.search(query, include_contested=include_contested, limit=limit)
+        nodes = [contract.memory_tree_node(h.node) for h in hits]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
+
+
+def memory_tree_proposed(req: Request) -> JsonResponse:
+    """The proposed-memory inbox: candidates awaiting an owner decision."""
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        nodes = [contract.memory_tree_node(n) for n in store.proposed()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
+
+
+def memory_tree_decision(req: Request) -> JsonResponse:
+    """Owner decision on a proposed node: approve | reject | supersede.
+
+    - ``approve`` promotes to durable. If promotion conflicts with an existing
+      durable fact the contradiction is returned — never a silent overwrite.
+    - ``reject`` marks the node rejected (excluded from recall).
+    - ``supersede`` requires ``supersedes_id`` (the older node this replaces).
+    """
+    node_id = req.path_params.get("id", "")
+    decision = str(req.body.get("decision", "")).strip().lower()
+    if decision not in ("approve", "reject", "supersede"):
+        return JsonResponse(
+            400, {"error": "decision must be approve, reject, or supersede"}
+        )
+    try:
+        from hermes_cli.jarvis_prime.memory_tree import ApprovalState
+
+        from . import contract
+
+        store = _load_memory_tree()
+        if store.get(node_id) is None:
+            return JsonResponse(404, {"error": f"unknown memory node: {node_id}"})
+
+        if decision == "approve":
+            result = store.promote_to_durable(node_id)
+            payload: dict[str, Any] = {
+                "decided": "approve",
+                "node": contract.memory_tree_node(result.node),
+            }
+            if result.contradiction is not None:
+                payload["contradiction"] = contract.contradiction_view(
+                    result.contradiction
+                )
+            return JsonResponse(200, payload)
+
+        if decision == "reject":
+            node = store.set_approval(node_id, ApprovalState.REJECTED)
+            return JsonResponse(
+                200, {"decided": "reject", "node": contract.memory_tree_node(node)}
+            )
+
+        # supersede
+        supersedes_id = str(req.body.get("supersedes_id", "")).strip()
+        if not supersedes_id:
+            return JsonResponse(
+                400, {"error": "supersede requires supersedes_id"}
+            )
+        if store.get(supersedes_id) is None:
+            return JsonResponse(
+                404, {"error": f"unknown node to supersede: {supersedes_id}"}
+            )
+        note = str(req.body.get("note", ""))
+        loser = store.supersede(supersedes_id, node_id, note=note)
+        # The approving node is also owner-confirmed by the supersession.
+        store.set_approval(node_id, ApprovalState.OWNER_APPROVED)
+        return JsonResponse(
+            200,
+            {
+                "decided": "supersede",
+                "winner": contract.memory_tree_node(store.get(node_id)),
+                "superseded": contract.memory_tree_node(loser),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def memory_contradictions(req: Request) -> JsonResponse:
+    """Open (contested) contradiction reports awaiting resolution."""
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        items = [contract.contradiction_view(r) for r in store.open_contradictions()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"contradictions": [], "error": str(exc)})
+    return JsonResponse(200, {"contradictions": items})
+
+
+def memory_contradiction_resolve(req: Request) -> JsonResponse:
+    """Resolve a contradiction: the winner stays, the loser is superseded."""
+    report_id = req.path_params.get("id", "")
+    winner_id = str(req.body.get("winner_id", "")).strip()
+    if not winner_id:
+        return JsonResponse(400, {"error": "winner_id is required"})
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        if report_id not in store.contradictions:
+            return JsonResponse(404, {"error": f"unknown contradiction: {report_id}"})
+        report = store.resolve_contradiction(
+            report_id, winner_id=winner_id, note=str(req.body.get("note", ""))
+        )
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"resolved": contract.contradiction_view(report)})
+
+
+def memory_freshness(req: Request) -> JsonResponse:
+    """Nodes overdue (or within ``within_days``) for a freshness review."""
+    within_days = int(req.query.get("within_days", "0"))
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        nodes = [
+            contract.memory_tree_node(n) for n in store.due_for_review(within_days)
+        ]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
 
 
 # ---------------------------------------------------------------------------

@@ -455,7 +455,7 @@ data class EvidenceVerifyRequest(
 data class CockpitEvidenceVerifyResult(
     val citations: List<CockpitClaimCitation> = emptyList(),
     val uncertain: List<String> = emptyList(),
-    val contradictions: List<CockpitContradiction> = emptyList(),
+    val contradictions: List<CockpitEvidenceContradiction> = emptyList(),
     val rejected: List<String> = emptyList(),
 )
 
@@ -467,7 +467,7 @@ data class CockpitClaimCitation(
 )
 
 @Serializable
-data class CockpitContradiction(
+data class CockpitEvidenceContradiction(
     val subject: String = "",
     val a: String = "",
     val b: String = "",
@@ -484,6 +484,88 @@ data class PromoteEvidenceResponse(
     @SerialName("node_id") val nodeId: String? = null,
     val reasons: List<String> = emptyList(),
     val hint: String? = null,
+)
+
+// ─── Memory Tree (MEM-2): provenance-first cognition plane ──────────────
+//
+// Distinct from CockpitMemoryItem: a tree node carries layer / approval /
+// contradiction / freshness so the cockpit can run the proposed-inbox,
+// contradiction, and freshness-review flows the flat store can't express.
+
+@Serializable
+data class CockpitMemoryNode(
+    val id: String,
+    val namespace: String,
+    val layer: String,
+    val title: String,
+    val summary: String = "",
+    val content: String = "",
+    val sources: List<String> = emptyList(),
+    val confidence: Float = 0f,
+    val trust: String = "unverified",
+    val sensitivity: String = "internal",
+    @SerialName("approval_state") val approvalState: String = "proposed",
+    @SerialName("contradiction_status") val contradictionStatus: String = "none",
+    val contested: Boolean = false,
+    val subject: String? = null,
+    @SerialName("superseded_by") val supersededBy: String? = null,
+    val supersedes: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val tags: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitMemoryNodeList(val nodes: List<CockpitMemoryNode> = emptyList())
+
+@Serializable
+data class CockpitContradiction(
+    val id: String,
+    val namespace: String = "",
+    val subject: String = "",
+    @SerialName("node_a_id") val nodeAId: String,
+    @SerialName("node_b_id") val nodeBId: String,
+    val reason: String = "",
+    val status: String = "contested",
+    @SerialName("winner_id") val winnerId: String? = null,
+    @SerialName("resolution_note") val resolutionNote: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("resolved_at") val resolvedAt: String? = null,
+)
+
+@Serializable
+data class CockpitContradictionList(
+    val contradictions: List<CockpitContradiction> = emptyList(),
+)
+
+/** POST body for an owner decision on a proposed node. */
+@Serializable
+data class MemoryDecisionRequest(
+    val decision: String, // approve | reject | supersede
+    @SerialName("supersedes_id") val supersedesId: String? = null,
+    val note: String? = null,
+)
+
+@Serializable
+data class MemoryDecisionResponse(
+    val decided: String = "",
+    val node: CockpitMemoryNode? = null,
+    val winner: CockpitMemoryNode? = null,
+    val superseded: CockpitMemoryNode? = null,
+    val contradiction: CockpitContradiction? = null,
+)
+
+/** POST body for resolving a contradiction. */
+@Serializable
+data class ResolveContradictionRequest(
+    @SerialName("winner_id") val winnerId: String,
+    val note: String? = null,
+)
+
+@Serializable
+data class ResolveContradictionResponse(
+    val resolved: CockpitContradiction? = null,
 )
 
 // ─── Audit ────────────────────────────────────────────────────────────

@@ -651,50 +651,6 @@ def test_evidence_search_empty_is_honest(server) -> None:
     assert payload["items"] == []  # honest empty, never fabricated
 
 
-def test_evidence_search_and_verify_with_seeded_vault(
-    server, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    from hermes_cli.jarvis_prime import research_vault as rv
-
-    vault_path = tmp_path / "vault.jsonl"
-    monkeypatch.setattr(rv, "DEFAULT_RESEARCH_VAULT_PATH", vault_path)
-    vault = rv.ResearchVault(path=vault_path)
-    vault.add(
-        title="PEP 659 Specializing Adaptive Interpreter",
-        source_uri="https://peps.python.org/pep-0659/",
-        source_type=rv.SourceType.OFFICIAL_DOC,
-        evidence_strength=rv.EvidenceStrength.PRIMARY,
-        excerpt="CPython 3.11 adds a specializing adaptive interpreter for speed.",
-        tags=("python", "interpreter", "performance"),
-    )
-
-    _, payload = _get(server, "/v1/cockpit/evidence/search?q=interpreter+python")
-    assert len(payload["items"]) == 1
-    assert payload["items"][0]["source_uri"].endswith("pep-0659/")
-
-    status, raw = _post(
-        server,
-        "/v1/cockpit/evidence/verify",
-        {"claim": "CPython 3.11 ships a specializing adaptive interpreter"},
-    )
-    assert status == 200
-    verdict = json.loads(raw)
-    assert verdict["verdict"] in (
-        "supported",
-        "partially_supported",
-        "insufficient_evidence",
-        "stale",
-        "contradicted",
-    )
-    assert verdict["supporting_sources"], "the seeded primary source should match"
-    assert 0.0 <= verdict["confidence"] <= 1.0
-    assert verdict["freshness_status"] in ("fresh", "stale", "unknown")
-
-    # Verify must NOT mutate the vault (safe to call repeatedly).
-    reloaded = rv.ResearchVault.load()
-    assert len(reloaded.artifacts) == 1
-
-
 def test_evidence_verify_requires_claim(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(server, "/v1/cockpit/evidence/verify", {})

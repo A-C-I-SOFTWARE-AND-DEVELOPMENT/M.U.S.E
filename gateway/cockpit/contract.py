@@ -229,6 +229,61 @@ def evidence_verify_result(result: Any) -> dict[str, Any]:
     if callable(to_dict):
         return to_dict()
     return {"citations": [], "uncertain": [], "contradictions": [], "rejected": [], "audit": None}
+# Memory Tree — provenance-first cognition plane (MEM-2). Distinct from the
+# flat MemoryItem above: nodes carry layer/approval/contradiction/freshness so
+# the mobile cockpit can run the proposed-inbox / contradiction / freshness
+# review flows the flat store can't express.
+# ---------------------------------------------------------------------------
+
+
+def memory_tree_node(node: Any) -> dict[str, Any]:
+    """Project a ``memory_tree.MemoryNode`` into a cockpit-facing dict.
+
+    Source-cited and honest: sources, approval state, contradiction status,
+    and freshness are surfaced verbatim so the owner decides on real data.
+    """
+    sources = [s.uri for s in getattr(node, "sources", ()) if getattr(s, "uri", "")]
+    if getattr(node, "source_uri", None):
+        sources.append(node.source_uri)
+    return {
+        "id": node.id,
+        "namespace": node.namespace,
+        "layer": node.layer.value,
+        "title": node.title,
+        "summary": node.summary or node.text,
+        "content": node.text,
+        "sources": sources,
+        "confidence": node.confidence,
+        "trust": node.source_trust.value,
+        "sensitivity": node.sensitivity.value,
+        "approval_state": node.approval_state.value,
+        "contradiction_status": node.contradiction_status.value,
+        "contested": node.contested,
+        "subject": node.subject,
+        "superseded_by": node.superseded_by,
+        "supersedes": list(node.supersedes),
+        "freshness_due": node.freshness_due,
+        "created_at": node.created_at,
+        "updated_at": node.updated_at,
+        "tags": list(node.tags),
+    }
+
+
+def contradiction_view(report: Any) -> dict[str, Any]:
+    """Project a ``memory_tree.ContradictionReport`` for the contradiction view."""
+    return {
+        "id": report.id,
+        "namespace": report.namespace,
+        "subject": report.subject,
+        "node_a_id": report.node_a_id,
+        "node_b_id": report.node_b_id,
+        "reason": report.reason,
+        "status": report.status.value,
+        "winner_id": report.winner_id,
+        "resolution_note": report.resolution_note,
+        "created_at": report.created_at,
+        "resolved_at": report.resolved_at,
+    }
 
 
 # ---------------------------------------------------------------------------

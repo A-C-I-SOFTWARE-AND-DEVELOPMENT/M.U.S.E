@@ -1,7 +1,7 @@
 package com.aci.hermes.data.evidence
 
 import com.aci.hermes.data.cockpit.CockpitClaimCitation
-import com.aci.hermes.data.cockpit.CockpitContradiction
+import com.aci.hermes.data.cockpit.CockpitEvidenceContradiction
 import com.aci.hermes.data.cockpit.CockpitEvidenceCard
 import com.aci.hermes.data.cockpit.CockpitEvidenceHit
 import com.aci.hermes.data.cockpit.CockpitEvidenceVerifyResult
@@ -56,7 +56,7 @@ fun CockpitClaimCitation.toDomain(): ClaimCitation = ClaimCitation(
     hits = hits.map { it.toDomain() },
 )
 
-fun CockpitContradiction.toDomain(): EvidenceContradiction = EvidenceContradiction(
+fun CockpitEvidenceContradiction.toDomain(): EvidenceContradiction = EvidenceContradiction(
     subject = subject,
     a = a,
     b = b,

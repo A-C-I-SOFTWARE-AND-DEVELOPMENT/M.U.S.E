@@ -55,9 +55,20 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     # path wins over the id capture (first-match dispatch).
     ("GET", _compile("/v1/cockpit/evidence"), h.evidence_list, True),
     ("POST", _compile("/v1/cockpit/evidence/verify"), h.evidence_verify, True),
+    # Literal `/evidence/search` MUST precede the `/evidence/{id}` captures
+    # below (first-match dispatch — otherwise "search" is read as an id).
+    ("GET", _compile("/v1/cockpit/evidence/search"), h.evidence_search, True),
     ("POST", _compile("/v1/cockpit/evidence/{id}/promote"), h.evidence_promote, True),
     ("GET", _compile("/v1/cockpit/evidence/{id}"), h.evidence_detail, True),
     ("DELETE", _compile("/v1/cockpit/evidence/{id}"), h.evidence_demote, True),
+    # Memory Tree (MEM-2): proposed inbox, owner decisions, contradictions,
+    # freshness review. More-specific paths; matcher is fully anchored.
+    ("GET", _compile("/v1/cockpit/memory/tree"), h.memory_tree_search, True),
+    ("GET", _compile("/v1/cockpit/memory/tree/proposed"), h.memory_tree_proposed, True),
+    ("POST", _compile("/v1/cockpit/memory/tree/{id}/decision"), h.memory_tree_decision, True),
+    ("GET", _compile("/v1/cockpit/memory/contradictions"), h.memory_contradictions, True),
+    ("POST", _compile("/v1/cockpit/memory/contradictions/{id}/resolve"), h.memory_contradiction_resolve, True),
+    ("GET", _compile("/v1/cockpit/memory/freshness"), h.memory_freshness, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
     ("GET", _compile("/v1/cockpit/audit"), h.audit_list, True),
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
@@ -76,7 +87,6 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/coding/audit"), h.coding_audit, True),
     ("POST", _compile("/v1/cockpit/coding/plan"), h.coding_plan, True),
     ("POST", _compile("/v1/cockpit/coding/execute"), h.coding_execute, True),
-    ("GET", _compile("/v1/cockpit/evidence/search"), h.evidence_search, True),
     ("GET", _compile("/v1/cockpit/approvals"), h.approvals_list, True),
     ("POST", _compile("/v1/cockpit/approvals/{id}"), h.approvals_decide, True),
     ("GET", _compile("/v1/cockpit/proposals"), h.proposals_list, True),

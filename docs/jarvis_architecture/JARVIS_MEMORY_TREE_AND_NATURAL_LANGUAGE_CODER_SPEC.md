@@ -92,3 +92,47 @@ python -m hermes_cli.jarvis_prime memory-tree export-markdown --store PATH
 - Rollback: additive modules; legacy classes untouched; revert branch.
 - Remaining risk: contradiction detection keys on `subject` (title by
   default); cross-subject semantic conflicts are out of scope by design.
+
+## Live-loop wiring (MEM-2)
+
+The Memory Tree is wired into the live JARVIS loop — it no longer sits
+beside it. The wiring **augments, never replaces** the legacy
+`MemoryStore`, and is on by default (`HERMES_MEMORY_LAYERS=0` reverts to
+byte-identical legacy recall).
+
+**Recollection.** `JarvisPrime.recollect(query)` appends a token-bounded,
+source-cited `MemoryTreeStore.context_pack` block after the legacy
+recollection. Contested facts are excluded from the pack; sources are always
+cited (memory cites, it never becomes the source of truth).
+
+**Capture.** After a completed turn, `JarvisPrime.observe_turn(user, reply)`
+extracts six typed candidates via deterministic cue heuristics
+(`memory_capture.py`): `user_preference`, `project_decision`,
+`architecture_fact`, `verified_code_fix`, `research_finding`,
+`failed_assumption`. User text is owner-trusted; assistant/tool text is
+low-trust so a model's own words can't self-promote. Candidates are written
+**session-layer, PROPOSED** — never auto-durable. The write policy rejects
+secrets / chain-of-thought / secret-class content. Wired into the cockpit
+chat responder (`gateway/cockpit/agent.py`).
+
+**Owner control (mobile).** Promotion to durable is owner-gated. The cockpit
+exposes:
+
+```
+GET  /v1/cockpit/memory/tree?q=&include_contested=   ranked, cited search
+GET  /v1/cockpit/memory/tree/proposed                proposed-memory inbox
+POST /v1/cockpit/memory/tree/{id}/decision           approve | reject | supersede
+GET  /v1/cockpit/memory/contradictions               open contradiction reports
+POST /v1/cockpit/memory/contradictions/{id}/resolve  pick a winner
+GET  /v1/cockpit/memory/freshness?within_days=        overdue review
+```
+
+`approve` promotes a candidate to durable and **re-runs contradiction
+detection** — a conflict opens a `ContradictionReport` and is returned to
+the caller rather than silently overwriting an existing durable fact. The
+Android Memory screen surfaces these as the **Inbox / Conflicts / Review**
+tabs (`apps/android/.../ui/screens/memory/`).
+
+**Safety invariants preserved:** never silently overwrite (contradiction +
+supersession); durable requires owner approval; secrets / chain-of-thought
+rejected; capture is best-effort and never breaks a turn.

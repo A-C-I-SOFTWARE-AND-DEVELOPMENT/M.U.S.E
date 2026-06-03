@@ -34,7 +34,17 @@ Additive; legacy `MemoryTree`/`MemoryChunk` and prior CLI unchanged. Revert
 the branch to fully undo.
 
 ## Remaining (bounded follow-ups)
-1. Optional: promote Memory Tree retrieval into the runtime's recollect
-   path behind a flag (today `MemoryStore` remains the default recall).
+1. ~~Optional: promote Memory Tree retrieval into the runtime's recollect
+   path behind a flag (today `MemoryStore` remains the default recall).~~
+   **Done (MEM-2).** `JarvisPrime.recollect` now *augments* the legacy
+   `MemoryStore` block with a token-bounded, source-cited Memory Tree
+   context pack; `JarvisPrime.observe_turn` captures six typed candidates
+   per turn as session-layer **PROPOSED** nodes (never auto-durable). Wired
+   into the cockpit chat responder, exposed over new cockpit Tree endpoints
+   (`/v1/cockpit/memory/tree*`, `/contradictions*`, `/freshness`), and
+   surfaced on the Android Memory screen (Inbox / Conflicts / Review tabs).
+   Default ON; `HERMES_MEMORY_LAYERS=0` reverts to legacy-only recall. See
+   `hermes_cli/jarvis_prime/memory_capture.py`, `runtime.py`,
+   `gateway/cockpit/handlers.py`, and `apps/android/.../data/memory/`.
 2. Optional: semantic (embedding) retrieval lane — currently deterministic
    lexical only by design (avoids a vector-store dependency).
