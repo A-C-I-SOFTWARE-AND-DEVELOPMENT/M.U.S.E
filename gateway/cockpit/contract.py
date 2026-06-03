@@ -1030,6 +1030,45 @@ def graph_answer_view(answer: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def learning_card(candidate: dict[str, Any], *, candidate_id: str) -> dict[str, Any]:
+    """Project a learning-dataset candidate into the cockpit card shape.
+
+    Read-only and provenance-first: the card always exposes the trace type,
+    quality labels, provenance (source + citations) and the owner-decision
+    status so the Android Learning Queue can render an honest approve/reject
+    view. Content excerpts are intentionally omitted — the candidate's raw
+    payload (already secret-scrubbed at write time) is not streamed to the
+    list surface.
+    """
+
+    prov = candidate.get("provenance") or {}
+    quality = candidate.get("quality") or {}
+    trace_type = str(candidate.get("trace_type", "") or "")
+    labels = [str(x) for x in (candidate.get("labels") or [])]
+    title = trace_type.replace("_", " ").strip() or "learning trace"
+    return {
+        "id": candidate_id,
+        "title": title,
+        "trace_type": trace_type,
+        "status": str(candidate.get("status", "pending") or "pending"),
+        "labels": labels,
+        "is_negative": "negative_example" in labels,
+        "quality": {
+            "tests_passed": bool(quality.get("tests_passed", False)),
+            "citations_verified": bool(quality.get("citations_verified", False)),
+            "owner_approved": bool(quality.get("owner_approved", False)),
+            "reviewer_passed": bool(quality.get("reviewer_passed", False)),
+            "rollback_available": bool(quality.get("rollback_available", False)),
+        },
+        "provenance": {
+            "source_kind": str(prov.get("source_kind", "") or ""),
+            "source_uri": str(prov.get("source_uri", "") or ""),
+            "citations": [str(x) for x in (prov.get("citations") or [])],
+        },
+        "created_at": str(candidate.get("created_at", "") or "") or None,
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
@@ -1067,6 +1106,7 @@ __all__ = [
     "graph_related_item",
     "graph_related_view",
     "job_status",
+    "learning_card",
     "memory_item",
     "navigation_view",
     "normalize_category",
