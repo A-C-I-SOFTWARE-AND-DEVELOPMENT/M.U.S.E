@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.R
@@ -60,7 +63,10 @@ fun SettingsScreen(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
@@ -143,13 +149,13 @@ fun SettingsScreen(
                 )
             }
 
-            SettingsSection("Personalization") {
+            SettingsSection(stringResource(R.string.settings_section_personalization)) {
                 SettingsRow(
-                    title = "Jarvis avatar",
-                    subtitle = "Choose a built-in avatar or create a private pixel avatar from a photo.",
+                    title = stringResource(R.string.settings_avatar_title),
+                    subtitle = stringResource(R.string.settings_avatar_subtitle),
                 )
                 OutlinedButton(onClick = onOpenAvatarPicker, modifier = Modifier.fillMaxWidth()) {
-                    Text("Open avatar picker")
+                    Text(stringResource(R.string.settings_open_avatar_picker))
                 }
             }
 
@@ -234,13 +240,21 @@ private fun SettingsRow(title: String, subtitle: String) {
 
 @Composable
 private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
+    // Whole row is a single 48dp+ selectable target so the label is tappable
+    // and TalkBack announces one radio node instead of a dot + loose text.
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .selectable(
+                selected = selected,
+                role = Role.RadioButton,
+                onClick = onSelect,
+            )
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = onSelect)
+        RadioButton(selected = selected, onClick = null)
         Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }

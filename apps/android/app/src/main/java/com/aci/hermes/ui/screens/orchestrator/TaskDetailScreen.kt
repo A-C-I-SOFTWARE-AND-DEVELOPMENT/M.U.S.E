@@ -89,7 +89,10 @@ fun TaskDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
@@ -192,11 +195,12 @@ fun TaskDetailScreen(
                 toLabel = { it.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase) },
                 onSelect = viewModel::setWorkerPhase,
             )
+            val notRequiredLabel = stringResource(R.string.task_approval_state_not_required)
             EnumDropdown(
                 label = stringResource(R.string.task_field_approval_state),
                 selected = state.task.approvalState,
                 values = approvalStateOptions,
-                toLabel = { approvalStateLabel(it) },
+                toLabel = { approvalStateLabel(it, notRequiredLabel) },
                 onSelect = viewModel::setApprovalState,
             )
             OutlinedTextField(
@@ -308,8 +312,8 @@ fun TaskDetailScreen(
 /** Approval-state options for the dropdown; null = "Not required". */
 private val approvalStateOptions: List<ApprovalStatus?> = listOf<ApprovalStatus?>(null) + ApprovalStatus.entries
 
-private fun approvalStateLabel(state: ApprovalStatus?): String = when (state) {
-    null -> "Not required"
+private fun approvalStateLabel(state: ApprovalStatus?, notRequiredLabel: String): String = when (state) {
+    null -> notRequiredLabel
     else -> state.name.lowercase().replace('_', ' ').replaceFirstChar(Char::titlecase)
 }
 

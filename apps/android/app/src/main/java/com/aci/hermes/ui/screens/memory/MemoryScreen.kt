@@ -46,8 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
 import java.text.SimpleDateFormat
@@ -92,10 +94,13 @@ fun MemoryScreen(
         modifier = Modifier.testTag(MemoryScreenTags.ROOT),
         topBar = {
             TopAppBar(
-                title = { Text("Memory") },
+                title = { Text(stringResource(R.string.memory_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
@@ -214,11 +219,11 @@ fun MemorySearch(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.action_clear))
                 }
             }
         },
-        placeholder = { Text("Search memory") },
+        placeholder = { Text(stringResource(R.string.memory_search_hint)) },
     )
 }
 
@@ -233,7 +238,7 @@ fun MemoryFilter(
             FilterChip(
                 selected = active == null,
                 onClick = { onSelect(null) },
-                label = { Text("All") },
+                label = { Text(stringResource(R.string.memory_filter_all)) },
                 modifier = Modifier.testTag(MemoryScreenTags.filter("ALL")),
             )
         }
@@ -255,11 +260,11 @@ private fun HeaderRow(total: Int, shown: Int) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = "$shown of $total visible",
+            text = stringResource(R.string.memory_visible_count, shown, total),
             style = MaterialTheme.typography.labelMedium,
         )
         Text(
-            text = "Secrets redacted",
+            text = stringResource(R.string.memory_secrets_redacted),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -268,17 +273,11 @@ private fun HeaderRow(total: Int, shown: Int) {
 
 @Composable
 private fun EmptyState() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag(MemoryScreenTags.EMPTY),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "No memory matches the current filter.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+    com.aci.hermes.ui.components.EmptyState(
+        icon = Icons.Default.Search,
+        title = stringResource(R.string.memory_empty_filter),
+        modifier = Modifier.testTag(MemoryScreenTags.EMPTY),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -315,13 +314,13 @@ fun MemoryCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 2.dp))
-                            Text("Redacted", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.memory_redacted_badge), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
             Text(
-                text = item.title.ifBlank { "(untitled memory)" },
+                text = item.title.ifBlank { stringResource(R.string.memory_untitled) },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -343,10 +342,10 @@ fun MemoryCard(
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onCorrect) {
-                    Icon(Icons.Default.Edit, contentDescription = "Correct")
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.memory_correct_cd))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.memory_delete_cd))
                 }
             }
         }

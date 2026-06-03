@@ -330,3 +330,65 @@ features, rebrands, or backend changes rather than polish:
 - Migrating away from the deprecated `Modifier.menuAnchor()`
   overload in TaskDetail — pre-existing warning, isolated, not a
   blocker for this demo.
+
+---
+
+## Mobile-native polish pass #2 (2026-06-03)
+
+Branch: `claude/jarvis-prime-mobile-polish-yiTeL`. A second, audit-first
+polish pass over the screens **wired into `HermesNavGraph.kt`**. No
+redesign, rebrand, permission, or backend/CLI/gateway behavior change;
+existing components, strings, and the existing cockpit client are reused.
+
+> Build: `cd apps/android && ./gradlew testDebugUnitTest lintDebug assembleDebug`
+
+### What changed
+
+1. **Backend vs local-service connectivity (was conflated).** The wired
+   Home/Control cards showed only the local foreground service yet labelled
+   it "Jarvis Prime online", implying the backend was reachable. Added a
+   throttled `/v1/health` probe (reusing `HermesCockpitClient.health()`) that
+   publishes a `BackendStatus` (`CHECKING/CONNECTED/DISCONNECTED/UNPAIRED/
+   ERROR`) kept **separate** from `serviceRunning`. Surfaced via a reused
+   `GatewayStatusPill` ("Hermes backend") plus an offline banner (reusing the
+   existing `gateway_disconnected_*` copy) with Retry + Run diagnostics. The
+   probe self-throttles (20s base, failure backoff to 5 min, no concurrent
+   probes) so it never spams the gateway.
+2. **Accessibility.** Back-arrow `contentDescription` added on Settings,
+   Diagnostics, Voice, TaskDetail, AvatarPicker, Memory, Approvals. Settings
+   `RadioRow` is now a single 48dp `selectable(role = RadioButton)` target.
+   (Chat's icon buttons already pair icons with visible text labels — left
+   `null` per Material guidance.)
+3. **High-risk action visual treatment.** `SeriousActionCard` (amber) and
+   `CriticalActionCard` (crimson) now carry a colored border so severity
+   reads from the whole card, not just the tier badge.
+4. **Status chips.** New `StatusChip` with pure, unit-tested tone mappings;
+   Tasks cards now color-code status + risk (high risk = crimson).
+5. **Empty / error / success states.** New shared `EmptyState` (icon + title
+   + helper + optional CTA) applied to Tasks (with a New-task CTA), Approvals,
+   Memory, Audit. Diagnostics now confirms copy/clear with a snackbar and
+   shows a green check ("no errors") or an error-tinted card when an error was
+   logged.
+6. **Consistency / localization.** Onboarding uses the `JarvisPrimeIcon` glyph
+   (matching Splash) instead of an ad-hoc caduceus. Hardcoded copy in the
+   approval cards, Settings (Personalization), and Memory moved to
+   `strings.xml`.
+
+### Verification
+
+| Check | Status |
+|---|---|
+| New unit tests (`BackendReachabilityTest`, `StatusChipMappingTest`) | Added — pure JVM, cover the probe mapping and chip tone logic |
+| `./gradlew testDebugUnitTest lintDebug assembleDebug` | **Not run in this environment** — no Android SDK (`ANDROID_HOME` unset, no `local.properties`); validate in CI / a local SDK build |
+| No new permissions | `AndroidManifest.xml` unchanged |
+| Existing tests | None reference the changed literals; no instrumented-test dir |
+
+### Deferred (report only)
+
+- Rewire or delete the unreachable duplicates `JarvisPrimeHomeScreen`,
+  `ControlViewModel`, `JarvisControlState`.
+- Delete dead `PlaceholderScreen.kt`; prune stale `*_coming_soon` /
+  `*_description` / `welcome_*` strings.
+- Re-point the GitHub-style approval badge colors to Jarvis tokens (kept as-is
+  to avoid a white-on-color contrast regression).
+- Repo-wide `JarvisTokens` sweep for remaining `dp` literals.

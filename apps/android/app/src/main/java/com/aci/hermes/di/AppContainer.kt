@@ -434,6 +434,8 @@ class AppContainer(private val application: Application) {
             tasksRepo = taskRepository,
             promptBuilder = promptBuilder,
             logBuffer = logBuffer,
+            cockpitClient = cockpitClient,
+            endpointConfigured = { cockpitEndpoint().isNotBlank() },
         )
     }
 

@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -21,23 +24,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.theme.JarvisJade
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
     val clipboard = LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val copiedMsg = stringResource(R.string.diagnostics_logs_copied)
+    val clearedMsg = stringResource(R.string.diagnostics_logs_cleared)
 
     Scaffold(
         topBar = {
@@ -45,7 +59,10 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
                 title = { Text(stringResource(R.string.diagnostics_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
                 actions = {
@@ -55,15 +72,20 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
                     IconButton(onClick = {
                         val combined = state.logs.joinToString("\n") { it.format() }
                         clipboard.setText(AnnotatedString(combined))
+                        scope.launch { snackbarHostState.showSnackbar(copiedMsg) }
                     }) {
                         Icon(Icons.Default.ContentCopy, contentDescription = stringResource(R.string.diagnostics_copy_logs))
                     }
-                    IconButton(onClick = viewModel::clearLogs) {
+                    IconButton(onClick = {
+                        viewModel.clearLogs()
+                        scope.launch { snackbarHostState.showSnackbar(clearedMsg) }
+                    }) {
                         Icon(Icons.Default.DeleteSweep, contentDescription = stringResource(R.string.diagnostics_clear_logs))
                     }
                 },
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -80,16 +102,43 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun DiagInfoCard(state: DiagnosticsUiState) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    val hasError = state.lastError != null
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (hasError) MaterialTheme.colorScheme.errorContainer
+                             else MaterialTheme.colorScheme.surfaceVariant,
+        ),
+    ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DiagRow(stringResource(R.string.diagnostics_app_version), state.appVersion)
             HorizontalDivider()
             DiagRow(stringResource(R.string.diagnostics_build_type), state.buildType)
             HorizontalDivider()
-            DiagRow(
-                stringResource(R.string.diagnostics_last_error),
-                state.lastError?.message ?: stringResource(R.string.diagnostics_no_error),
-            )
+            // The error row carries its own valence: a green check when clean,
+            // an error icon + error color when something was logged.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    imageVector = if (hasError) Icons.Filled.ErrorOutline else Icons.Filled.CheckCircle,
+                    contentDescription = null,
+                    tint = if (hasError) MaterialTheme.colorScheme.error else JarvisJade,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = stringResource(R.string.diagnostics_last_error),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = state.lastError?.message ?: stringResource(R.string.diagnostics_no_error),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (hasError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

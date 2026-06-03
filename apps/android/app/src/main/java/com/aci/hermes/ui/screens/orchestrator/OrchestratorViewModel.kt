@@ -7,6 +7,8 @@ import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.cockpit.BackendStatus
+import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.DefaultToolProfiles
 import com.aci.hermes.data.model.HermesTask
@@ -16,6 +18,7 @@ import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.service.HermesService
 import com.aci.hermes.util.LogBuffer
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +28,12 @@ import kotlinx.coroutines.launch
 
 data class OrchestratorUiState(
     val serviceRunning: Boolean = false,
+    /**
+     * Reachability of the Hermes backend gateway — kept strictly separate
+     * from [serviceRunning] (the local foreground service). The local
+     * service being up does NOT imply the backend is reachable.
+     */
+    val backendStatus: BackendStatus = BackendStatus.CHECKING,
     val mode: String = HermesService.DEFAULT_MODE,
     val tools: List<AiToolProfile> = DefaultToolProfiles.all,
     val tasks: List<HermesTask> = emptyList(),
@@ -40,12 +49,24 @@ class OrchestratorViewModel(
     private val tasksRepo: HermesTaskRepository,
     private val promptBuilder: PromptBuilder,
     private val logBuffer: LogBuffer,
+    private val cockpitClient: HermesCockpitClient,
+    /** Whether a gateway endpoint is configured (health needs no token). */
+    private val endpointConfigured: () -> Boolean = { true },
+    private val nowMillis: () -> Long = { System.currentTimeMillis() },
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(OrchestratorUiState())
     val state: StateFlow<OrchestratorUiState> = _state.asStateFlow()
 
+    // Backend-probe throttling: never re-probe inside the (backoff-scaled)
+    // window, and never run two probes at once — so the UI surfaces backend
+    // state without ever spamming the gateway.
+    private var lastProbeAt = 0L
+    private var consecutiveFailures = 0
+    private var probeJob: Job? = null
+
     init {
+        probeBackend(force = true)
         viewModelScope.launch {
             tasksRepo.tasks.collect { list ->
                 _state.update { it.copy(tasks = list) }
@@ -73,6 +94,46 @@ class OrchestratorViewModel(
         val ctx = getApplication<Application>()
         val running = isServiceRunning(ctx, HermesService::class.java)
         _state.update { it.copy(serviceRunning = running) }
+        // Resuming the dashboard is a natural moment to re-check the backend;
+        // the interval gate keeps this from turning into a poll.
+        probeBackend()
+    }
+
+    /**
+     * Probe the backend gateway's `/v1/health` and publish a
+     * [BackendStatus]. Throttled: skips if a probe ran inside the current
+     * (backoff-scaled) window or one is already in flight. [force] (user
+     * "Retry" / first launch) bypasses the interval but still coalesces
+     * with an in-flight probe.
+     */
+    fun probeBackend(force: Boolean = false) {
+        val now = nowMillis()
+        if (!force && now - lastProbeAt < currentIntervalMs()) return
+        if (probeJob?.isActive == true) return
+        lastProbeAt = now
+        // Keep a known-CONNECTED pill steady while we re-check in the
+        // background; only show CHECKING when we don't already have a verdict.
+        _state.update {
+            if (it.backendStatus == BackendStatus.CONNECTED) it
+            else it.copy(backendStatus = BackendStatus.CHECKING)
+        }
+        probeJob = viewModelScope.launch {
+            val result = cockpitClient.health()
+            val status = BackendStatus.from(endpointConfigured(), result)
+            consecutiveFailures =
+                if (status == BackendStatus.CONNECTED) 0
+                else (consecutiveFailures + 1).coerceAtMost(MAX_BACKOFF_STEPS)
+            _state.update { it.copy(backendStatus = status) }
+        }
+    }
+
+    /** User-initiated retry from the offline banner. */
+    fun retryBackend() = probeBackend(force = true)
+
+    /** 20s base, doubling per consecutive failure, capped at 5 minutes. */
+    private fun currentIntervalMs(): Long {
+        val mult = 1L shl consecutiveFailures.coerceIn(0, MAX_BACKOFF_STEPS)
+        return (MIN_PROBE_INTERVAL_MS * mult).coerceAtMost(MAX_PROBE_INTERVAL_MS)
     }
 
     fun startService() {
@@ -141,5 +202,11 @@ class OrchestratorViewModel(
         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return false
         return am.getRunningServices(Integer.MAX_VALUE)
             .any { it.service.className == cls.name }
+    }
+
+    private companion object {
+        const val MIN_PROBE_INTERVAL_MS = 20_000L
+        const val MAX_PROBE_INTERVAL_MS = 300_000L
+        const val MAX_BACKOFF_STEPS = 4
     }
 }
