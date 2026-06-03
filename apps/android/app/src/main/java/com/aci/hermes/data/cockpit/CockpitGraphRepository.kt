@@ -1,7 +1,7 @@
 package com.aci.hermes.data.cockpit
 
 /**
- * Repository over the cockpit GraphRAG API (`/v1/cockpit/graph/*`): related
+ * Repository over the cockpit GraphRAG API (`/v1/cockpit/graph/...`): related
  * items for an entity, the three query modes, and an on-demand rebuild —
  * backed by the real knowledge graph through [HermesCockpitClient].
  *

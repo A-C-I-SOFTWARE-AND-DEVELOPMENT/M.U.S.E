@@ -3,8 +3,6 @@ store round-trip."""
 
 from __future__ import annotations
 
-import pytest
-
 from hermes_cli.jarvis_prime.graphrag.graph import (
     Edge,
     EdgeType,

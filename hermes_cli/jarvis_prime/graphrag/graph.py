@@ -24,7 +24,17 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable, Optional
+from typing import Iterable, Optional, TypedDict
+
+
+class GraphStats(TypedDict):
+    """Precise shape of :meth:`KnowledgeGraph.stats` (keeps type-checkers
+    happy when callers index into the counts)."""
+
+    nodes: int
+    edges: int
+    by_node_type: dict[str, int]
+    by_edge_type: dict[str, int]
 
 
 class NodeType(str, Enum):
@@ -361,7 +371,7 @@ class KnowledgeGraph:
 
     # -- views --------------------------------------------------------------
 
-    def stats(self) -> dict[str, object]:
+    def stats(self) -> GraphStats:
         by_node_type: dict[str, int] = {}
         for n in self.nodes.values():
             by_node_type[n.type.value] = by_node_type.get(n.type.value, 0) + 1
@@ -382,9 +392,9 @@ class KnowledgeGraph:
         lines = [
             f"# Knowledge graph: {s['nodes']} nodes, {s['edges']} edges",
             "node types: "
-            + ", ".join(f"{k}={v}" for k, v in s["by_node_type"].items()),  # type: ignore[union-attr]
+            + ", ".join(f"{k}={v}" for k, v in s["by_node_type"].items()),
             "edge types: "
-            + ", ".join(f"{k}={v}" for k, v in s["by_edge_type"].items()),  # type: ignore[union-attr]
+            + ", ".join(f"{k}={v}" for k, v in s["by_edge_type"].items()),
             "",
         ]
         shown = 0
