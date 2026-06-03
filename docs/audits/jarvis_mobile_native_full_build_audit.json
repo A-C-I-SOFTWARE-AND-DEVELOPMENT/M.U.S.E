@@ -1,0 +1,111 @@
+{
+  "generated_at": "2026-06-03T14:40:53Z",
+  "repo": "A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent",
+  "branch": "claude/jarvis-prime-android-ZtoB7",
+  "audit_method": "read-only static inspection (grep/find/read); no functional code edited; no Android build run (ANDROID_HOME unset in this environment)",
+  "executive_summary": "The Android cockpit (apps/android) and the loopback cockpit API (gateway/cockpit) are far more complete than a greenfield mission implies. Chat (live streaming), Memory, Audit, Approvals (with owner phrase), Control/runtime status, Avatar persona, and the Den/Room are wired end-to-end to the real backend. The dominant gap is that several real backend capabilities are exposed by the cockpit server but consumed by NO Android screen: most importantly the orchestration Job Queue (contract v4: list/dispatch/run/cancel). The generic getRaw passthrough is used only in tests, so models, skills, sessions, navigation, proposals, events, and diagnostics endpoints are also unwired on mobile. Research Vault, TokenJuice, model scorecards, and ledger replay are not exposed through the cockpit at all (backend/CLI-only). The recommended path is to wire already-built backend surfaces into the existing app (extend, do not duplicate), starting with the Job Queue + owner-gated run.",
+  "architecture_map": {
+    "android_app": "apps/android (Kotlin/Compose). Single NavHost: apps/android/app/src/main/java/com/aci/hermes/ui/navigation/HermesNavGraph.kt; routes in Screen.kt. Hand-rolled DI: di/AppContainer.kt. Transport: data/cockpit/HermesCockpitClient.kt + CockpitHttp.kt; wire models CockpitApi.kt.",
+    "cockpit_api_server": "gateway/cockpit/ (stdlib HTTP, Termux-safe). server.py route table; handlers.py; contract.py (canonical schemas + adapters); auth.py (bearer token); agent.py (streaming JARVIS chat). Started by `hermes cockpit serve` (hermes_cli/main.py:5868).",
+    "jarvis_prime_runtime": "hermes_cli/jarvis_prime/ (runtime: __main__.py subcommands perceive/classify/gate/handle/stop/forget/remember/recollect/tick; memory.py; research_vault.py; avatar.py).",
+    "orchestration": "hermes_cli/job_queue.py (JobQueue), hermes_cli/orchestrator.py (/orchestrate jobs), orchestrator_api.py, orchestrator_replay.py (replay_job), workers.py. Decision ledger: hermes_cli/decision_ledger.py.",
+    "desktop_web_ui": "hermes_cli/web_server.py (FastAPI /api/* : status, sessions, config, model management, gateway restart, hermes update) — a SEPARATE API surface from the cockpit /v1/cockpit/*.",
+    "gateway": "gateway/ multi-channel bridge (Telegram/Discord/Slack/etc), gateway/run.py."
+  },
+  "mobile_state": {
+    "summary": "Mature. Full bottom-nav shell + pushes; all routes map to real ViewModels backed by the cockpit client or local stores.",
+    "routes": ["Splash","Onboarding","Home","Tasks","Chat","Approvals","Memory","Audit","Capability","Control","Settings","Diagnostics","TaskDetail","AuditDetail","JarvisLive","AvatarPicker","Voice"],
+    "wired_live_to_backend": [
+      {"feature":"Chat (streaming)","evidence":"di/AppContainer.kt HttpJarvisChatGateway + RoutingJarvisChatGateway (routes live vs MockJarvisChatGateway by pairing)"},
+      {"feature":"Memory CRUD","evidence":"MemoryRepository(client=cockpitClient) + HermesCockpitClient.memoryList/Create/Delete"},
+      {"feature":"Audit + proof","evidence":"AuditRepository(client=cockpitClient) + auditList/auditProof"},
+      {"feature":"Approvals (owner phrase)","evidence":"CockpitApprovalsRepository(cockpitClient); OWNER_PHRASE constant; approvalsDecide carries authorization"},
+      {"feature":"Control / runtime status + workers","evidence":"ControlViewModel.kt:55 client.runtimeWorkers(); runtimeStatus()"},
+      {"feature":"Avatar persona + Room","evidence":"HermesCockpitClient.personaGet/Set, roomList/Generate/Place"},
+      {"feature":"Voice loop -> agent","evidence":"AppContainer voiceDispatchToAgent -> jarvisChatGateway"}
+    ],
+    "local_only_stores": [
+      {"feature":"Tasks (clipboard handoff to ChatGPT/Codex)","evidence":"OrchestratorViewModel uses HermesTaskRepository (data/orchestrator/), NOT the cockpit JobQueue"},
+      {"feature":"Capability catalog","evidence":"CapabilityRepository() is a curated in-app catalog, explicitly not server-backed (AppContainer comment)"},
+      {"feature":"Diagnostics","evidence":"DiagnosticsViewModel(logBuffer) reads the local LogBuffer, not GET /v1/cockpit/diagnostics"}
+    ]
+  },
+  "backend_state": {
+    "summary": "Cockpit server exposes a broad real API; JobQueue/orchestrator/ledger are live and tested.",
+    "cockpit_routes": ["GET /v1/health","GET /v1/cockpit/runtime/status","GET /v1/cockpit/runtime/workers","GET /v1/cockpit/diagnostics","GET /v1/cockpit/models","GET/POST /v1/cockpit/memory","DELETE /v1/cockpit/memory/{id}","GET /v1/cockpit/events","GET /v1/cockpit/audit","GET /v1/cockpit/audit/{id}/proof","GET/POST /v1/cockpit/jobs","POST /v1/cockpit/jobs/{id}/run","POST /v1/cockpit/jobs/{id}/cancel","GET /v1/cockpit/jobs/{id}","GET/POST /v1/cockpit/approvals/{id}","GET /v1/cockpit/proposals","GET /v1/cockpit/skills","GET /v1/cockpit/navigation","GET /v1/cockpit/sessions","GET/POST /v1/cockpit/avatar/persona","GET/POST/DELETE /v1/cockpit/avatar/room","POST /v1/jarvis/chat (SSE)"],
+    "evidence": "gateway/cockpit/server.py route table; gateway/cockpit/handlers.py",
+    "owner_gates": "job_run double-gated: exact owner phrase + loopback-only refusal when --allow-external (handlers.py:389). approvals_decide approve requires owner phrase (handlers.py:679). Secrets stay backend-side; cockpit holds only the bearer token (docs/android/hermes-apk-api-contract.md)."
+  },
+  "built_not_wired": [
+    {"item":"Orchestration Job Queue surface","severity":"high","evidence":"CockpitJobsRepository constructed at di/AppContainer.kt:140 but consumed by no ViewModel/screen; server jobs_list/dispatch/run/cancel live (handlers.py:295-555); client lacks jobRun()","impact":"User cannot dispatch/run/cancel a real backend orchestration job from Android; only local clipboard handoff."},
+    {"item":"jobRun client method","severity":"high","evidence":"HermesCockpitClient has jobsList/jobGet/jobDispatch/jobCancel but no jobRun; server POST /v1/cockpit/jobs/{id}/run exists (handlers.py:389)","impact":"Even if jobs were listed, execute-lane jobs cannot be run through the owner gate."},
+    {"item":"Model scorecards / models endpoint","severity":"medium","evidence":"GET /v1/cockpit/models (handlers.py:140) has no Android consumer","impact":"No mobile view of model routing/scorecards."},
+    {"item":"Sessions endpoint","severity":"low","evidence":"GET /v1/cockpit/sessions (handlers.py) unconsumed; getRaw used only in HermesCockpitClientTest.kt:149","impact":"No session history on mobile."},
+    {"item":"Navigation (HyperAgent) endpoint","severity":"low","evidence":"GET /v1/cockpit/navigation (handlers.py:655) unconsumed","impact":"No pre-dispatch 'where to look' view on mobile."},
+    {"item":"Proposals endpoint","severity":"low","evidence":"GET /v1/cockpit/proposals (handlers.py:625) unconsumed (app uses approval-card shape via /approvals)","impact":"Self-update-native proposal view absent on mobile (approvals card view covers most of it)."},
+    {"item":"Events stream","severity":"medium","evidence":"GET /v1/cockpit/events (handlers.py:238) only reachable via unused getRaw","impact":"No live job/log event feed; Diagnostics uses local LogBuffer instead."},
+    {"item":"Server diagnostics","severity":"low","evidence":"GET /v1/cockpit/diagnostics (handlers.py:127, launch doctor) unconsumed; app Diagnostics shows local logs","impact":"Backend launch-readiness not surfaced on mobile."}
+  ],
+  "placeholders": [
+    {"item":"PlaceholderScreen.kt","status":"unreferenced","evidence":"ui/screens/placeholder/PlaceholderScreen.kt exists but is not wired into HermesNavGraph.kt (every route maps to a real screen)","action":"keep as a test/preview aid or remove; no functional impact"},
+    {"item":"TermuxIntentBridge","status":"documented stub","evidence":"data/termux/TermuxIntentBridge.kt header 'Phase 18 cockpit <-> Termux intent bridge - stub'; docs/android/termux-intent-bridge.md","action":"intentional; implement when on-phone Termux runtime path is prioritized"},
+    {"item":"Files/Diff/Validation/Publish workflow","status":"spec-only","evidence":"CockpitApi.kt defines TreeListing/FileSnapshot/DiffSnapshot/ValidationSnapshot/PublishPreview/PublishResult, but no server route in server.py and no client method","action":"largest follow-up: build server + client + UI for build->diff->validate->publish-PR"},
+    {"item":"NotImplementedError occurrences (py)","status":"mostly-legitimate","evidence":"~59 matches; sampled are abstract-method contracts (agent/memory_provider.py:137, tts_provider.py:238, web_search_provider.py) and POSIX/Windows signal guards (gateway/run.py:18119)","action":"not dead code; classify any genuine stubs during build phases"}
+  ],
+  "bugs_ux": [
+    {"item":"Two parallel 'task' mental models on mobile","severity":"medium","evidence":"local HermesTask (data/model/HermesTask.kt, clipboard handoff) vs backend CockpitJob (data/cockpit) — only the local one is shown in Tasks/Home","impact":"User sees handoff tasks but not real orchestration jobs; confusing 'where is my job' UX"},
+    {"item":"Capability catalog can drift from real skills","severity":"low","evidence":"in-app CapabilityRepository vs server GET /v1/cockpit/skills (handlers.py:636) — two sources of truth","impact":"Capability screen may not reflect actually-installed gateway skills"},
+    {"item":"Diagnostics surfaces local logs, not backend health","severity":"low","evidence":"DiagnosticsViewModel(logBuffer) vs GET /v1/cockpit/diagnostics","impact":"On a connectivity problem the user can't see the backend's own launch-doctor result"}
+  ],
+  "missing_mobile_capabilities": [
+    {"item":"Dispatch/run/cancel a real orchestration job","evidence":"see built_not_wired (Job Queue + jobRun)"},
+    {"item":"Research Vault access","evidence":"hermes_cli/jarvis_prime/research_vault.py has NO cockpit route (no reference in gateway/cockpit)"},
+    {"item":"TokenJuice usage/budget view","evidence":"tokenjuice in agent/tool_executor.py + jarvis_prime, no cockpit route"},
+    {"item":"Model scorecards","evidence":"hermes_cli/scoring.py; /v1/cockpit/models exists but unconsumed; no scorecard projection"},
+    {"item":"Ledger replay","evidence":"orchestrator_replay.replay_job, orchestrator_api.replay — no cockpit route, no mobile view"},
+    {"item":"Live event/log streaming on device","evidence":"/v1/cockpit/events unconsumed"}
+  ],
+  "rag_evidence_gaps": [
+    {"item":"No dedicated code index","evidence":"no code_index module found in repo search","impact":"coding-agent retrieval relies on grounding/retrieval in gateway/cockpit/grounding.py + model_tools.py, not a persistent code index"},
+    {"item":"Research Vault not surfaced as evidence on mobile","evidence":"research_vault.py backend-only","impact":"evidence/citations captured by the vault are not viewable in the cockpit"},
+    {"item":"Grounding/retrieval is backend-internal","evidence":"gateway/cockpit/grounding.py, model_tools.py retrieval","impact":"mobile cannot inspect what context was retrieved for a turn"}
+  ],
+  "testing_ci_gaps": [
+    {"item":"No instrumented/Compose UI tests","severity":"medium","evidence":"no apps/android/**/androidTest sources found; only JVM unit tests under app/src/test"},
+    {"item":"Job Queue UI/VM coverage gap","severity":"medium","evidence":"CockpitJobsRepositoryTest exists but there is no consuming ViewModel/screen to test"},
+    {"item":"Unwired endpoints lack client tests","severity":"low","evidence":"models/sessions/navigation/proposals/events have no typed client accessors or tests (only getRaw, tested once)"},
+    {"item":"Android build not runnable in this env","severity":"info","evidence":"ANDROID_HOME unset; android-build.yml runs them in CI"}
+  ],
+  "risks": [
+    {"area":"Privacy/permissions","severity":"high","issue":"Accessibility service can read window content + overlay + query all packages","evidence":"AndroidManifest.xml SYSTEM_ALERT_WINDOW, QUERY_ALL_PACKAGES; res/xml/jarvis_accessibility.xml canRetrieveWindowContent=true, typeWindowContentChanged","mitigation":"keep automation behind explicit per-session consent; document data handling; ensure PrivacyRedactor/SecretRedactor cover captured content; never persist screen content to memory/training"},
+    {"area":"Owner gate","severity":"high","issue":"Execute-lane job runs are irreversible/external","evidence":"handlers.py:389 job_run double-gate","mitigation":"surface jobRun in app ONLY with the exact owner phrase prompt + loopback enforcement; mirror existing approvals flow"},
+    {"area":"Duplication","severity":"medium","issue":"Two HTTP API surfaces (cockpit /v1 vs web_server /api) and two task models","evidence":"hermes_cli/web_server.py vs gateway/cockpit; HermesTask vs CockpitJob","mitigation":"do not build a third; extend the cockpit surface for mobile; treat web_server as desktop-only"},
+    {"area":"UX trust","severity":"medium","issue":"App may look connected while key backend powers are invisible","evidence":"built_not_wired list","mitigation":"wire JobQueue first; keep honest NotPaired/empty states (already the pattern)"},
+    {"area":"Secrets","severity":"low","issue":"Token handling on device","evidence":"EncryptedSharedPreferences per contract; cockpit holds only bearer token","mitigation":"preserve; never accept provider keys in cockpit bodies"}
+  ],
+  "recommended_sequence": [
+    {"phase":1,"title":"Wire the orchestration Job Queue into the Tasks tab","detail":"Add jobRun to HermesCockpitClient + CockpitJobsRepository.run (owner phrase, mirror approvalsDecide); new CockpitJobsViewModel; extend TasksScreen with a Backend Jobs section (list/dispatch/run/cancel) reusing runtimeWorkers(); preserve local handoff flow. Tests: repo run(), client jobRun body carries owner phrase, VM states.","risk":"low (additive)"},
+    {"phase":2,"title":"Surface live events + backend diagnostics","detail":"Typed events accessor + Diagnostics screen reads GET /v1/cockpit/diagnostics and event feed; replace getRaw with typed methods.","risk":"low"},
+    {"phase":3,"title":"Model scorecards + sessions read views","detail":"Consume /v1/cockpit/models and /v1/cockpit/sessions in read-only screens (Control or Settings sub-screens).","risk":"low"},
+    {"phase":4,"title":"Reconcile Capability catalog with /v1/cockpit/skills","detail":"Make the curated catalog fall back to / merge real installed skills.","risk":"low"},
+    {"phase":5,"title":"Expose Research Vault + ledger replay (new cockpit routes)","detail":"Add read-only cockpit routes for the vault and orchestrator replay, then mobile views.","risk":"medium (touches backend routes)"},
+    {"phase":6,"title":"Build->diff->validate->publish-PR workflow","detail":"Implement contract Files/Diff/Validation/Publish on server + client + UI. Largest; gate publish on GitHub PAT + owner approval.","risk":"high"}
+  ],
+  "do_not_overwrite": [
+    "gateway/cockpit/contract.py (canonical schema source of truth)",
+    "gateway/cockpit/handlers.py and server.py route table (live API)",
+    "apps/android/.../data/cockpit/CockpitApi.kt (wire mirror; keep in lockstep with contract)",
+    "apps/android/.../data/orchestrator/HermesTaskRepository.kt + OrchestratorViewModel (local handoff flow must stay)",
+    "apps/android/.../approval/state/CockpitApprovalsRepository.kt (OWNER_PHRASE + owner gate)",
+    "decision ledger files and hermes_cli/decision_ledger.py (do not silently rewrite ledger entries)",
+    "EncryptedSharedPreferences token storage path (SettingsRepository)"
+  ],
+  "extend_not_replace": [
+    {"target":"apps/android/.../ui/screens/tasks/TasksScreen.kt","why":"add Backend Jobs section here instead of a new tab"},
+    {"target":"apps/android/.../data/cockpit/HermesCockpitClient.kt + CockpitJobsRepository.kt","why":"add jobRun/run; reuse existing transport + tested repo"},
+    {"target":"apps/android/.../di/AppContainer.kt","why":"add factories; cockpitJobsRepository already constructed"},
+    {"target":"apps/android/.../ui/screens/diagnostics/DiagnosticsViewModel.kt","why":"augment with backend diagnostics/events rather than a new screen"},
+    {"target":"apps/android/.../data/capability/CapabilityRepository.kt","why":"merge with /v1/cockpit/skills instead of a parallel skills screen"},
+    {"target":"gateway/cockpit/handlers.py + contract.py","why":"add new read routes (vault/replay) via existing adapter pattern"}
+  ]
+}
