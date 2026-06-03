@@ -38,6 +38,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.asImageBitmap
@@ -110,11 +111,14 @@ fun JarvisLiveScreen(
     onBack: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenApprovals: () -> Unit = {},
+    onOpenCurrentJob: (String?) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val furniture by viewModel.furniture.collectAsState()
     val showStatusSheet by viewModel.showStatusSheet.collectAsState()
     val showEmergencyConfirm by viewModel.showEmergencyConfirm.collectAsState()
+    val currentJobId by viewModel.currentJobId.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
 
@@ -217,7 +221,13 @@ fun JarvisLiveScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(jarvisBackground()),
+                .background(jarvisBackground())
+                // Swipe left → jump to the current job (Tasks when none is active).
+                .pointerInput(currentJobId) {
+                    detectHorizontalDragGestures { _, dragAmount ->
+                        if (dragAmount < -SWIPE_TO_JOB_THRESHOLD) onOpenCurrentJob(currentJobId)
+                    }
+                },
         ) {
             // The companion's pixel bedroom (wall, window, desk, bed, plant).
             PixelRoom(modifier = Modifier.fillMaxSize())
@@ -355,22 +365,33 @@ fun JarvisLiveScreen(
                 Spacer(Modifier.height(24.dp))
 
                 if (projection.showApprovalCta) {
+                    // Do NOT approve from the avatar — route to the gated
+                    // Approvals screen which enforces the owner phrase.
                     Button(
-                        onClick = viewModel::approveApproval,
+                        onClick = onOpenApprovals,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = HermesGold,
                             contentColor = HermesInk,
                         ),
-                    ) { Text(stringResource(R.string.jarvis_cta_approve)) }
+                    ) { Text(stringResource(R.string.jarvis_cta_open_approvals)) }
                 }
                 if (projection.showFixCta) {
                     Button(
-                        onClick = { viewModel.openStatusSheet() },
+                        onClick = { onOpenCurrentJob(currentJobId) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = HermesCrimson,
                             contentColor = Color.White,
                         ),
                     ) { Text(stringResource(R.string.jarvis_cta_fix)) }
+                }
+                if (projection.showWarningCta) {
+                    Button(
+                        onClick = { onOpenCurrentJob(currentJobId) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HermesGold,
+                            contentColor = HermesInk,
+                        ),
+                    ) { Text(stringResource(R.string.jarvis_cta_warning)) }
                 }
                 if (projection.showEmergencyReleaseCta) {
                     Button(
@@ -567,12 +588,20 @@ private fun pillColorsFor(state: JarvisLiveState): Pair<Color, Color> = when (st
     JarvisLiveState.Idle -> HermesInkSoft to HermesGold.copy(alpha = 0.85f)
     JarvisLiveState.Listening -> HermesInkSoft to HermesCyan
     JarvisLiveState.Thinking -> HermesViolet.copy(alpha = 0.25f) to HermesGold
+    JarvisLiveState.Researching -> HermesViolet.copy(alpha = 0.25f) to HermesCyan
+    JarvisLiveState.Coding -> HermesGold.copy(alpha = 0.18f) to HermesGold
+    JarvisLiveState.Reviewing -> HermesCyan.copy(alpha = 0.18f) to HermesCyan
     JarvisLiveState.Working -> HermesGold.copy(alpha = 0.18f) to HermesGold
     JarvisLiveState.Speaking -> HermesCyan.copy(alpha = 0.20f) to HermesCyan
     JarvisLiveState.ApprovalNeeded -> HermesGold.copy(alpha = 0.30f) to HermesGold
     JarvisLiveState.Blocked -> HermesCrimson.copy(alpha = 0.30f) to Color.White
+    JarvisLiveState.Warning -> HermesGold.copy(alpha = 0.35f) to HermesGold
+    JarvisLiveState.Disconnected -> HermesInkSoft to Color.White.copy(alpha = 0.7f)
     JarvisLiveState.EmergencyStop -> HermesCrimson to Color.White
 }
+
+/** Horizontal drag (px) past which a left-swipe opens the current job. */
+private const val SWIPE_TO_JOB_THRESHOLD = 120f
 
 @Composable
 private fun CircleIconButton(

@@ -49,23 +49,34 @@ object AvatarAnimation {
             )
         }
 
+        // The finer work phases (Researching/Coding/Reviewing) and the two new
+        // attention states (Warning/Disconnected) reuse EXISTING poses so the
+        // Rive `pose` ordinal contract (docs/avatar/rive-state-contract.md) is
+        // untouched. Their differentiation lives in the non-animation channels
+        // (pill text, color, voice line, content description). Energy still
+        // varies per state below.
         val pose = when (state) {
             JarvisLiveState.EmergencyStop -> AvatarPose.EMERGENCY
             JarvisLiveState.Blocked -> AvatarPose.BLOCKED
+            JarvisLiveState.Warning -> AvatarPose.BLOCKED
             JarvisLiveState.ApprovalNeeded -> AvatarPose.APPROVE
             JarvisLiveState.Speaking -> AvatarPose.SPEAK
+            JarvisLiveState.Coding, JarvisLiveState.Reviewing,
             JarvisLiveState.Working -> AvatarPose.WORK
-            JarvisLiveState.Thinking -> AvatarPose.THINK
+            JarvisLiveState.Researching, JarvisLiveState.Thinking -> AvatarPose.THINK
             JarvisLiveState.Listening -> AvatarPose.LISTEN
+            JarvisLiveState.Disconnected -> AvatarPose.IDLE
             JarvisLiveState.Idle -> idlePoseFor(behavior)
         }
         return AvatarInputs(
             pose = pose,
             energy = energyFor(state, behavior),
-            // Sleep and emergency hold still even when motion is otherwise on.
+            // Sleep and emergency hold still even when motion is otherwise on;
+            // disconnected freezes too — nothing it shows is live.
             motionEnabled = motionEnabled &&
                 pose != AvatarPose.SLEEP &&
-                pose != AvatarPose.EMERGENCY,
+                pose != AvatarPose.EMERGENCY &&
+                state != JarvisLiveState.Disconnected,
         )
     }
 
@@ -80,11 +91,15 @@ object AvatarAnimation {
 
     private fun energyFor(state: JarvisLiveState, behavior: AvatarBehavior): Float = when (state) {
         JarvisLiveState.Speaking -> 1.0f
+        JarvisLiveState.Coding -> 0.9f
         JarvisLiveState.Working -> 0.85f
         JarvisLiveState.Listening -> 0.8f
+        JarvisLiveState.Reviewing -> 0.7f
+        JarvisLiveState.Researching -> 0.65f
         JarvisLiveState.Thinking -> 0.6f
-        JarvisLiveState.ApprovalNeeded, JarvisLiveState.Blocked -> 0.5f
-        JarvisLiveState.EmergencyStop -> 0.3f
+        JarvisLiveState.ApprovalNeeded, JarvisLiveState.Blocked,
+        JarvisLiveState.Warning -> 0.5f
+        JarvisLiveState.EmergencyStop, JarvisLiveState.Disconnected -> 0.3f
         JarvisLiveState.Idle -> when (behavior) {
             AvatarBehavior.SLEEP -> 0.1f
             AvatarBehavior.WANDER, AvatarBehavior.AMBIENT_TASK -> 0.45f

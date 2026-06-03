@@ -70,4 +70,34 @@ class AvatarAnimationTest {
         assertTrue(speak.energy > think.energy)
         assertEquals(1.0f, speak.energy)
     }
+
+    @Test
+    fun `new work phases reuse stable poses so the Rive ordinal contract holds`() {
+        // Researching/Coding/Reviewing must NOT introduce new AvatarPose
+        // ordinals — they reuse THINK/WORK so shipped .riv files keep working.
+        fun pose(s: JarvisLiveState) =
+            AvatarAnimation.inputsFor(s, AvatarBehavior.IDLE, null, true).pose
+        assertEquals(AvatarPose.THINK, pose(JarvisLiveState.Researching))
+        assertEquals(AvatarPose.WORK, pose(JarvisLiveState.Coding))
+        assertEquals(AvatarPose.WORK, pose(JarvisLiveState.Reviewing))
+        assertEquals(AvatarPose.BLOCKED, pose(JarvisLiveState.Warning))
+        assertEquals(AvatarPose.IDLE, pose(JarvisLiveState.Disconnected))
+    }
+
+    @Test
+    fun `disconnected freezes motion even when motion enabled`() {
+        val inputs = AvatarAnimation.inputsFor(
+            JarvisLiveState.Disconnected, AvatarBehavior.IDLE, null, true,
+        )
+        assertFalse(inputs.motionEnabled)
+    }
+
+    @Test
+    fun `coding carries more energy than researching`() {
+        val coding = AvatarAnimation.inputsFor(JarvisLiveState.Coding, AvatarBehavior.IDLE, null, true)
+        val researching = AvatarAnimation.inputsFor(
+            JarvisLiveState.Researching, AvatarBehavior.IDLE, null, true,
+        )
+        assertTrue(coding.energy > researching.energy)
+    }
 }

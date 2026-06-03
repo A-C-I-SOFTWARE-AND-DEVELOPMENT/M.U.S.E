@@ -136,10 +136,20 @@ private fun paletteFor(state: JarvisLiveState): AvatarPalette = when (state) {
         ring = HermesGoldDeep,
         halo = HermesViolet.copy(alpha = 0.55f),
     )
-    JarvisLiveState.Working -> AvatarPalette(
+    JarvisLiveState.Researching -> AvatarPalette(
+        core = HermesGold,
+        ring = HermesCyan,
+        halo = HermesViolet.copy(alpha = 0.55f),
+    )
+    JarvisLiveState.Coding, JarvisLiveState.Working -> AvatarPalette(
         core = HermesGold,
         ring = HermesGold,
         halo = HermesGoldDeep.copy(alpha = 0.65f),
+    )
+    JarvisLiveState.Reviewing -> AvatarPalette(
+        core = HermesCyan,
+        ring = HermesGold,
+        halo = HermesCyan.copy(alpha = 0.45f),
     )
     JarvisLiveState.Speaking -> AvatarPalette(
         core = HermesCyan,
@@ -156,6 +166,16 @@ private fun paletteFor(state: JarvisLiveState): AvatarPalette = when (state) {
         ring = HermesGold,
         halo = HermesCrimson.copy(alpha = 0.45f),
     )
+    JarvisLiveState.Warning -> AvatarPalette(
+        core = HermesGold,
+        ring = HermesCrimson.copy(alpha = 0.65f),
+        halo = HermesGold.copy(alpha = 0.45f),
+    )
+    JarvisLiveState.Disconnected -> AvatarPalette(
+        core = HermesGoldDeep.copy(alpha = 0.30f),
+        ring = HermesGold.copy(alpha = 0.25f),
+        halo = HermesViolet.copy(alpha = 0.15f),
+    )
     JarvisLiveState.EmergencyStop -> AvatarPalette(
         core = HermesCrimson,
         ring = HermesCrimson,
@@ -167,9 +187,14 @@ private fun pulseDurationFor(state: JarvisLiveState): Int = when (state) {
     JarvisLiveState.Idle -> 4200
     JarvisLiveState.Listening -> 1400
     JarvisLiveState.Thinking -> 1800
+    JarvisLiveState.Researching -> 1900
+    JarvisLiveState.Coding -> 1100
+    JarvisLiveState.Reviewing -> 1500
     JarvisLiveState.Working -> 1200
     JarvisLiveState.Speaking -> 700
     JarvisLiveState.ApprovalNeeded -> 1600
     JarvisLiveState.Blocked -> 2400
+    JarvisLiveState.Warning -> 2000
+    JarvisLiveState.Disconnected -> 5000
     JarvisLiveState.EmergencyStop -> 2800
 }
