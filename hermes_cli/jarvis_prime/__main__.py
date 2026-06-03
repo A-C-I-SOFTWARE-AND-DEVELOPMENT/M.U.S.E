@@ -422,6 +422,49 @@ def _set_proposal_status(proposal_id: str, new_status: str, note: str) -> int:
     return 0
 
 
+def _cmd_calendar(args: argparse.Namespace) -> int:
+    """CAL-1: print upcoming events from a local ICS file (no network).
+
+    Reads ``--file`` or, by default, ``${HERMES_HOME:-~/.hermes}/calendar.ics``.
+    Local-first by design: there is no Google/CalDAV sync here — that is an
+    owner-gated follow-up (OAuth + outbound network).
+    """
+    from datetime import datetime, timedelta, timezone
+
+    from agent.calendar import parse_ics_file, render_agenda, upcoming
+
+    if args.file:
+        path = Path(args.file)
+    else:
+        base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+        path = Path(base) / "calendar.ics"
+
+    if not path.is_file():
+        print(f"calendar: no ICS file at {path} (pass --file or drop one there)")
+        return 0
+
+    events = parse_ics_file(path)
+    now = datetime.now(timezone.utc)
+    window = upcoming(events, now=now, within=timedelta(days=args.days))
+
+    if getattr(args, "json", False):
+        _print_json([
+            {
+                "summary": e.summary,
+                "start": e.start_dt().isoformat(),
+                "location": e.location,
+                "all_day": e.all_day,
+                "recurring": bool(e.rrule),
+                "uid": e.uid,
+            }
+            for e in window
+        ])
+        return 0
+
+    print(render_agenda(window, title=f"Upcoming (next {args.days}d)"))
+    return 0
+
+
 def _cmd_handoff(args: argparse.Namespace) -> int:
     packet_path = Path(args.packet)
     if not packet_path.is_file():
@@ -1095,6 +1138,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_registry.add_argument("--json", action="store_true")
     p_registry.set_defaults(func=_cmd_registry_update)
+
+    p_calendar = sub.add_parser(
+        "calendar",
+        help="CAL-1: list upcoming events from a local ICS file (local-first, no sync)",
+        description=(
+            "Read a local ICS (iCalendar) file and print the upcoming agenda. "
+            "Local-first by design: no Google/CalDAV network sync (that needs "
+            "OAuth and is an owner-gated follow-up). Defaults to "
+            "${HERMES_HOME:-~/.hermes}/calendar.ics."
+        ),
+    )
+    p_calendar.add_argument("--file", help="Path to an .ics file (default: ~/.hermes/calendar.ics)")
+    p_calendar.add_argument("--days", type=int, default=7, help="Look-ahead window in days")
+    p_calendar.add_argument("--json", action="store_true")
+    p_calendar.set_defaults(func=_cmd_calendar)
 
     p_handoff = sub.add_parser(
         "handoff",
