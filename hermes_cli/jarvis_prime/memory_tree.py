@@ -569,9 +569,17 @@ class MemoryWriteResult:
 # ---------------------------------------------------------------------------
 
 
-DEFAULT_MEMORY_TREE_PATH = (
-    Path.home() / ".hermes" / "jarvis_prime" / "memory_tree.jsonl"
-)
+def _default_memory_tree_path() -> Path:
+    """Memory-tree location, honoring ``HERMES_HOME`` like the rest of the
+    stack so the durable store is test-isolated and deployment-configurable."""
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base) / "jarvis_prime" / "memory_tree.jsonl"
+
+
+# Back-compat module constant (no external importers); the env-aware
+# ``_default_memory_tree_path`` is the source of truth at resolve time.
+DEFAULT_MEMORY_TREE_PATH = _default_memory_tree_path()
 
 
 @dataclass
@@ -900,7 +908,7 @@ class MemoryTreeStore:
     # -- persistence --------------------------------------------------------
 
     def _resolve_path(self) -> Path:
-        return Path(self.path) if self.path else DEFAULT_MEMORY_TREE_PATH
+        return Path(self.path) if self.path else _default_memory_tree_path()
 
     def save(self) -> Path:
         target = self._resolve_path()

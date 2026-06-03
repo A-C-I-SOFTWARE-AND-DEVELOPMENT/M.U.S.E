@@ -231,6 +231,149 @@ def memory_delete(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Evidence Engine (real Research Vault; hybrid retrieval + citation verify)
+# ---------------------------------------------------------------------------
+
+
+def evidence_list(req: Request) -> JsonResponse:
+    """List/search evidence as canonical ``EvidenceItem`` objects (contract §10d).
+
+    A ``q`` runs the hybrid retrieval engine (BM25 over the vault blended with
+    Memory-Tree hits); without it, the full vault is listed. Honest empty on
+    any failure — never fabricated.
+    """
+    query = req.query.get("q") or req.query.get("query")
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        if query:
+            store = MemoryTreeStore.load()
+            hits = ee.retrieve(query, vault=vault, memory_store=store,
+                               limit=int(req.query.get("limit", "20")))
+            items = [contract.evidence_hit(h) for h in hits]
+            return JsonResponse(200, {"items": [], "hits": items})
+        items = [contract.evidence_card(a) for a in vault.entries()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"items": [], "error": str(exc)})
+    return JsonResponse(200, {"items": items})
+
+
+def evidence_detail(req: Request) -> JsonResponse:
+    """Return one evidence artifact by id."""
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        art = vault.artifacts.get(art_id)
+        if art is None:
+            return JsonResponse(404, {"error": f"unknown evidence: {art_id}"})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"item": contract.evidence_card(art)})
+
+
+def evidence_verify(req: Request) -> JsonResponse:
+    """Verify claims against evidence: citations, uncertain, contradictions.
+
+    Body: ``{"claims": [...], "query": "optional retrieval query"}``. Secrets
+    and chain-of-thought in claims are rejected (never become evidence).
+    """
+    claims = req.body.get("claims") or []
+    if isinstance(claims, str):
+        claims = [claims]
+    if not isinstance(claims, list) or not claims:
+        return JsonResponse(400, {"error": "claims (non-empty list) required"})
+    query = str(req.body.get("query") or " ".join(str(c) for c in claims))
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        store = MemoryTreeStore.load()
+        hits = ee.retrieve(query, vault=vault, memory_store=store, limit=20)
+        result = ee.CitationVerifier().verify(
+            [str(c) for c in claims], hits, memory_store=store
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.evidence_verify_result(result))
+
+
+def evidence_promote(req: Request) -> JsonResponse:
+    """Promote an evidence artifact into durable Memory Tree.
+
+    Routes through ``MemoryTreeStore.write`` so the write policy (secret /
+    chain-of-thought rejection, durable confidence floor, provenance) is
+    preserved. A low-confidence promotion needs the owner authorization
+    phrase — otherwise it is honestly rejected (422), never auto-promoted.
+    """
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    authorization = str(req.body.get("authorization") or "")
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        vault = ResearchVault.load()
+        art = vault.artifacts.get(art_id)
+        if art is None:
+            return JsonResponse(404, {"error": f"unknown evidence: {art_id}"})
+
+        owner_approved = authorization == AUTHORIZATION_PHRASE
+        store = MemoryTreeStore.load()
+        result = ee.promote_to_memory(art, store, owner_approved=owner_approved)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    if not result.ok:
+        return JsonResponse(
+            422,
+            {
+                "promoted": False,
+                "reasons": list(result.reasons),
+                "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+            },
+        )
+    payload: dict[str, Any] = {"promoted": True, "node_id": result.node.id if result.node else None}
+    if result.contradiction is not None:
+        payload["contradiction"] = result.contradiction.to_dict()
+    return JsonResponse(201, payload)
+
+
+def evidence_demote(req: Request) -> JsonResponse:
+    """Remove an evidence artifact from the vault (demotion)."""
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        vault = ResearchVault.load()
+        removed = 1 if vault.artifacts.pop(art_id, None) is not None else 0
+        if removed:
+            vault.save()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"removed": removed})
+
+
+# ---------------------------------------------------------------------------
 # Audit (decision ledger) + tasks (job queue)
 # ---------------------------------------------------------------------------
 
@@ -815,6 +958,11 @@ __all__ = [
     "audit_list",
     "audit_proof",
     "diagnostics",
+    "evidence_demote",
+    "evidence_detail",
+    "evidence_list",
+    "evidence_promote",
+    "evidence_verify",
     "health",
     "job_cancel",
     "job_get",

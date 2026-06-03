@@ -170,6 +170,68 @@ def memory_item(record: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# Evidence — mirrors com.aci.hermes.data.evidence.EvidenceItem (Evidence Engine)
+# ---------------------------------------------------------------------------
+#
+# Source is the JARVIS Research Vault (hermes_cli.jarvis_prime.research_vault).
+# Trust labels reuse the memory-tree SourceTrust vocabulary so the Android
+# Evidence screen renders the same owner/primary/official_doc/reputable/
+# community/unverified ladder used everywhere else.
+
+
+def evidence_card(artifact: Any) -> dict[str, Any]:
+    """Project a ``research_vault.ResearchArtifact`` into the cockpit
+    ``EvidenceItem`` (Android Evidence screen). Honest derivation only —
+    absent fields stay null/empty, never invented."""
+    strength = getattr(artifact, "evidence_strength", None)
+    trust = getattr(strength, "trust", None)
+    src_type = getattr(artifact, "source_type", None)
+    return {
+        "id": artifact.id,
+        "title": artifact.title,
+        "source_uri": artifact.source_uri,
+        "source_type": getattr(src_type, "value", str(src_type or "")),
+        "evidence_strength": getattr(strength, "value", str(strength or "")),
+        "trust": getattr(trust, "value", "unverified"),
+        "excerpt": getattr(artifact, "excerpt", "") or "",
+        "summary": getattr(artifact, "summary", "") or "",
+        "tags": list(getattr(artifact, "tags", ()) or ()),
+        "license_notes": getattr(artifact, "license_notes", "") or "",
+        "retrieved_at": getattr(artifact, "retrieved_at", None),
+        "freshness_due": getattr(artifact, "freshness_due", None),
+        "checksum": getattr(artifact, "checksum", "") or "",
+        "citation_anchors": list(getattr(artifact, "citation_anchors", ()) or ()),
+        "added_at": getattr(artifact, "added_at", None),
+    }
+
+
+def evidence_hit(hit: Any) -> dict[str, Any]:
+    """Project an ``evidence_engine.EvidenceHit`` for the verify response."""
+    to_dict = getattr(hit, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    trust = getattr(hit, "trust", None)
+    return {
+        "kind": getattr(hit, "kind", ""),
+        "title": getattr(hit, "title", ""),
+        "uri": getattr(hit, "uri", ""),
+        "excerpt": getattr(hit, "excerpt", ""),
+        "trust": getattr(trust, "value", "unverified"),
+        "score": round(float(getattr(hit, "score", 0.0)), 4),
+        "artifact_id": getattr(hit, "artifact_id", None),
+        "citation_anchors": list(getattr(hit, "citation_anchors", ()) or ()),
+    }
+
+
+def evidence_verify_result(result: Any) -> dict[str, Any]:
+    """Project an ``evidence_engine.VerificationResult`` into the cockpit shape."""
+    to_dict = getattr(result, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    return {"citations": [], "uncertain": [], "contradictions": [], "rejected": [], "audit": None}
+
+
+# ---------------------------------------------------------------------------
 # Jobs — mirrors com.aci.hermes.data.cockpit.CockpitJob (+ JobStatus / PublishState)
 # ---------------------------------------------------------------------------
 
@@ -719,6 +781,9 @@ __all__ = [
     "confidence_to_float",
     "durability_from_store",
     "durability_to_store",
+    "evidence_card",
+    "evidence_hit",
+    "evidence_verify_result",
     "job_status",
     "memory_item",
     "navigation_view",

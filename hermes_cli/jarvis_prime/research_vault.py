@@ -58,6 +58,13 @@ class EvidenceStrength(str, Enum):
         }[self.value]
 
 
+def _checksum(text: str) -> str:
+    """Stable sha256 of the canonicalized excerpt — integrity / dedupe anchor."""
+
+    canonical = " ".join((text or "").split())
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 @dataclass
 class ResearchArtifact:
     id: str
@@ -70,6 +77,11 @@ class ResearchArtifact:
     tags: tuple[str, ...] = ()
     freshness_due: Optional[str] = None
     added_at: str = field(default_factory=_now_iso)
+    # Evidence-engine provenance fields (all optional / back-compatible).
+    license_notes: str = ""  # usage/licensing constraints on the source text
+    retrieved_at: str = field(default_factory=_now_iso)  # when the excerpt was captured
+    checksum: str = ""  # sha256 of the canonical excerpt (filled in by ResearchVault.add)
+    citation_anchors: tuple[str, ...] = ()  # line refs / section ids inside the source
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -83,6 +95,10 @@ class ResearchArtifact:
             "tags": list(self.tags),
             "freshness_due": self.freshness_due,
             "added_at": self.added_at,
+            "license_notes": self.license_notes,
+            "retrieved_at": self.retrieved_at,
+            "checksum": self.checksum,
+            "citation_anchors": list(self.citation_anchors),
         }
 
     @classmethod
@@ -98,6 +114,11 @@ class ResearchArtifact:
             tags=tuple(d.get("tags", []) or []),
             freshness_due=d.get("freshness_due"),
             added_at=d.get("added_at", _now_iso()),
+            license_notes=d.get("license_notes", ""),
+            # Old records predate retrieved_at — fall back to added_at, never invent "now".
+            retrieved_at=d.get("retrieved_at") or d.get("added_at") or _now_iso(),
+            checksum=d.get("checksum", ""),
+            citation_anchors=tuple(d.get("citation_anchors", []) or []),
         )
 
     def as_memory_source(self) -> MemorySource:
@@ -107,6 +128,8 @@ class ResearchArtifact:
             uri=self.source_uri,
             trust=self.evidence_strength.trust,
             excerpt=self.excerpt[:280],
+            line_ref=self.citation_anchors[0] if self.citation_anchors else None,
+            retrieved_at=self.retrieved_at,
         )
 
     def audit_card(self) -> dict[str, object]:
@@ -119,6 +142,10 @@ class ResearchArtifact:
             "claim": self.summary or self.excerpt[:160],
             "freshness_due": self.freshness_due,
             "added_at": self.added_at,
+            "retrieved_at": self.retrieved_at,
+            "checksum": self.checksum,
+            "citation_anchors": list(self.citation_anchors),
+            "license_notes": self.license_notes,
         }
 
 
@@ -191,9 +218,17 @@ class SkillProposalCard:
         }
 
 
-DEFAULT_RESEARCH_VAULT_PATH = (
-    Path.home() / ".hermes" / "jarvis_prime" / "research_vault.jsonl"
-)
+def _default_vault_path() -> Path:
+    """Vault location, honoring ``HERMES_HOME`` like the rest of the stack
+    (otherwise the vault leaks across the real home dir and isn't isolated)."""
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base) / "jarvis_prime" / "research_vault.jsonl"
+
+
+# Back-compat module constant (no external importers); the env-aware
+# ``_default_vault_path`` is the source of truth at resolve time.
+DEFAULT_RESEARCH_VAULT_PATH = _default_vault_path()
 
 
 @dataclass
@@ -213,20 +248,28 @@ class ResearchVault:
         summary: str = "",
         tags: Iterable[str] = (),
         freshness_due: Optional[str] = None,
+        license_notes: str = "",
+        retrieved_at: Optional[str] = None,
+        citation_anchors: Iterable[str] = (),
         persist: bool = True,
     ) -> ResearchArtifact:
         # Summaries come only from the stored excerpt or an explicit summary.
         effective_summary = summary.strip() or _excerpt_summary(excerpt)
+        clean_excerpt = excerpt.strip()
         art = ResearchArtifact(
             id=hashlib.sha1(f"{title}|{source_uri}".encode()).hexdigest()[:16],
             title=title.strip(),
             source_uri=source_uri.strip(),
             source_type=source_type,
             evidence_strength=evidence_strength,
-            excerpt=excerpt.strip(),
+            excerpt=clean_excerpt,
             summary=effective_summary,
             tags=tuple(tags),
             freshness_due=freshness_due,
+            license_notes=license_notes.strip(),
+            retrieved_at=retrieved_at or _now_iso(),
+            checksum=_checksum(clean_excerpt),
+            citation_anchors=tuple(citation_anchors),
         )
         self.artifacts[art.id] = art
         if persist:
@@ -275,7 +318,7 @@ class ResearchVault:
     # -- persistence --------------------------------------------------------
 
     def _resolve_path(self) -> Path:
-        return Path(self.path) if self.path else DEFAULT_RESEARCH_VAULT_PATH
+        return Path(self.path) if self.path else _default_vault_path()
 
     def save(self) -> Path:
         target = self._resolve_path()

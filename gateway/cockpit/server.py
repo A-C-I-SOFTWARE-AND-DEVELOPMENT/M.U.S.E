@@ -51,6 +51,13 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/memory"), h.memory_list, True),
     ("POST", _compile("/v1/cockpit/memory"), h.memory_create, True),
     ("DELETE", _compile("/v1/cockpit/memory/{id}"), h.memory_delete, True),
+    # Evidence Engine. `verify` is registered before `{id}` so the literal
+    # path wins over the id capture (first-match dispatch).
+    ("GET", _compile("/v1/cockpit/evidence"), h.evidence_list, True),
+    ("POST", _compile("/v1/cockpit/evidence/verify"), h.evidence_verify, True),
+    ("POST", _compile("/v1/cockpit/evidence/{id}/promote"), h.evidence_promote, True),
+    ("GET", _compile("/v1/cockpit/evidence/{id}"), h.evidence_detail, True),
+    ("DELETE", _compile("/v1/cockpit/evidence/{id}"), h.evidence_demote, True),
     ("GET", _compile("/v1/cockpit/events"), h.audit_events, True),
     ("GET", _compile("/v1/cockpit/audit"), h.audit_list, True),
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
