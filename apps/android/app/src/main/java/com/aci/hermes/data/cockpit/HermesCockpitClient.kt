@@ -300,6 +300,40 @@ class HermesCockpitClient(
             body = json.encodeToString(
                 CockpitApprovalDecision.serializer(),
                 CockpitApprovalDecision(decision = decision, authorization = authorization, notes = notes),
+    // ─── Voice intake (mobile-native, hands-free) ───────────────────────
+    //
+    // Reuse the canonical backend pipeline for read-back, classification, and
+    // the driving-mode safety veto instead of reimplementing them client-side.
+
+    /** Open a voice intake from a transcript; returns the read-back + draft. */
+    suspend fun voiceIntakeCreate(
+        transcript: String,
+        mode: String? = null,
+    ): CockpitResult<VoiceIntakeResult> =
+        request(
+            "POST",
+            "/v1/cockpit/voice/intake",
+            VoiceIntakeResult.serializer(),
+            body = json.encodeToString(
+                VoiceIntakeRequest.serializer(),
+                VoiceIntakeRequest(transcript = transcript, mode = mode),
+            ),
+        )
+
+    /** Resolve a voice intake with an explicit phrase. A `409` Failure means a
+     *  safety veto (driving publish / confirmation required) — never a silent
+     *  execution. */
+    suspend fun voiceIntakeDecide(
+        id: String,
+        phrase: String?,
+    ): CockpitResult<VoiceDecisionResult> =
+        request(
+            "POST",
+            "/v1/cockpit/voice/" + enc(id) + "/decide",
+            VoiceDecisionResult.serializer(),
+            body = json.encodeToString(
+                VoiceDecisionRequest.serializer(),
+                VoiceDecisionRequest(phrase = phrase),
             ),
         )
 

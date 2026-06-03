@@ -294,6 +294,11 @@ label, its sensitivity, the outcome, and a reason.
 No new sensitive permissions were added for this — accessibility, overlay,
 microphone, notifications, and package visibility are the same ones the
 personal-tool fork already declares.
+For the **hands-free** cockpit — the avatar living over the launcher,
+the attention → wake-word → mic trigger fallback chain, presence
+gestures (tap = talk, double-tap/pill = status, long-press = emergency
+stop), and approval-by-voice — see
+[voice/presence-mode.md](../voice/presence-mode.md).
 
 ---
 
@@ -526,6 +531,8 @@ and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
 
 - [voice/voice-first-user-guide.md](../voice/voice-first-user-guide.md)
   — voice capture, driving mode, TTS.
+- [voice/presence-mode.md](../voice/presence-mode.md) — hands-free
+  Presence Mode, the trigger fallback chain, gestures, approval-by-voice.
 - [remote/windows-claude-code-bridge-guide.md](../remote/windows-claude-code-bridge-guide.md)
   — using Hermes on the phone to drive a Windows Claude Code session.
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)

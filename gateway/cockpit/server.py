@@ -107,6 +107,8 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/autonomy"), h.autonomy_get, True),
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
+    ("POST", _compile("/v1/cockpit/voice/intake"), h.voice_intake_create, True),
+    ("POST", _compile("/v1/cockpit/voice/{id}/decide"), h.voice_intake_decide, True),
     ("GET", _compile("/v1/cockpit/proposals"), h.proposals_list, True),
     ("GET", _compile("/v1/cockpit/learning"), h.learning_list, True),
     ("GET", _compile("/v1/cockpit/learning/export"), h.learning_export, True),

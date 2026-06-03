@@ -437,6 +437,7 @@
     <string name="jarvis_edit_avatar_cd">Edit avatar</string>
     <string name="jarvis_status_pill_cd">Current Jarvis state: %1$s</string>
     <string name="jarvis_overflow_status_detail">Status detail</string>
+    <string name="jarvis_overflow_cycle_character">Cycle character</string>
     <string name="jarvis_status_sheet_title">Jarvis status</string>
     <string name="jarvis_motion_label">Motion</string>
     <string name="jarvis_particles_label">Particles</string>
