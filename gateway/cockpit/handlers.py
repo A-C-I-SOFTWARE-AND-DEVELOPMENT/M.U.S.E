@@ -726,9 +726,9 @@ def ledger_timeline(req: Request) -> JsonResponse:
                 if want_file and not any(want_file in f.lower() for f in ev["files"]):
                     continue
                 ts = ev["timestamp"]
-                if since and ts and ts < since:
+                if ts and since and _before_bound(ts, since):
                     continue
-                if until and ts and ts > until:
+                if ts and until and _after_bound(ts, until):
                     continue
                 events.append(ev)
     except Exception as exc:  # pragma: no cover - defensive
@@ -813,6 +813,25 @@ def _int(value: Any, default: int) -> int:
         return int(str(value))
     except (TypeError, ValueError):
         return default
+
+
+def _date_only(value: str) -> bool:
+    """True for a bare ``YYYY-MM-DD`` (the filter panel's date fields)."""
+    return len(value) == 10 and value[4] == "-" and value[7] == "-"
+
+
+def _before_bound(ts: str, since: str) -> bool:
+    """True when ``ts`` is before the lower bound. A date-only ``since`` is
+    inclusive from the start of that calendar day."""
+    return ts[:10] < since if _date_only(since) else ts < since
+
+
+def _after_bound(ts: str, until: str) -> bool:
+    """True when ``ts`` is past the upper bound. A date-only ``until`` is
+    inclusive of the *whole* day, so ``until=2026-06-02`` keeps events like
+    ``2026-06-02T12:05:00+00:00`` (a plain ``ts > until`` would drop them —
+    the longer ISO string sorts greater than the bare date)."""
+    return ts[:10] > until if _date_only(until) else ts > until
 
 
 def approvals_decide(req: Request) -> JsonResponse:

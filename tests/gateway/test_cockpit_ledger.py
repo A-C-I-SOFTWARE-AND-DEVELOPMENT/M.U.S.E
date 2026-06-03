@@ -181,6 +181,23 @@ def test_timeline_date_filter(server) -> None:
     assert all(e["timestamp"] >= "2026-06-02" for e in body["events"])
 
 
+def test_date_only_until_is_inclusive_of_the_whole_day(server) -> None:
+    # Regression: a date-only `until` must keep same-day events whose full
+    # ISO timestamp (…T12:05:00+00:00) lexically sorts after the bare date.
+    _, body = _get(server, "/v1/cockpit/ledger?until=2026-06-02")
+    days = {e["timestamp"][:10] for e in body["events"]}
+    assert "2026-06-02" in days, "date-only until dropped same-day events"
+    assert all(e["timestamp"][:10] <= "2026-06-02" for e in body["events"])
+    # job_beta's events are all on 2026-06-02 — they must survive the filter.
+    assert any(e["job_id"] == "job_beta" for e in body["events"])
+
+
+def test_date_only_since_is_inclusive_of_the_whole_day(server) -> None:
+    _, body = _get(server, "/v1/cockpit/ledger?since=2026-06-01")
+    assert body["events"]
+    assert all(e["timestamp"][:10] >= "2026-06-01" for e in body["events"])
+
+
 def test_event_detail_404_for_missing(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as ei:
         _get(server, "/v1/cockpit/ledger/job_alpha/999")
