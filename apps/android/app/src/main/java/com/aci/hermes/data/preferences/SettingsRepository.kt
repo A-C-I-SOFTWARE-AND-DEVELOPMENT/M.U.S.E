@@ -9,24 +9,40 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.aci.hermes.data.jarvis.AutonomyMode
 import com.aci.hermes.data.jarvis.ResponseLength
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "hermes_settings")
 
 /**
- * Local-only orchestrator preferences. Hermes deliberately does not
- * store any provider API keys or session tokens — the legacy
- * EncryptedSharedPreferences store was removed when Chat / Provider
- * was retired.
+ * Local-only orchestrator preferences.
+ *
+ * Non-sensitive preferences live in DataStore. The one secret the app
+ * holds — the cockpit bearer token — does **not** live here in plaintext:
+ * it is stored encrypted-at-rest via [SecureTokenStore]
+ * ([EncryptedPrefsSecureTokenStore] in production). Provider API keys
+ * never reach the phone at all (see the mobile backend contract). A fresh
+ * install with a legacy plaintext token is migrated once, on construction,
+ * by [CockpitTokenMigration]; the plaintext copy is removed afterwards.
  *
  * Every Jarvis Prime control surface (Control screen, Home dashboard,
  * settings panel) reads through this repository. Defaults are chosen
  * so a fresh install matches the safety floor: lockdown off, approvals
  * required, safety gates on, local-only mode on, mock mode off.
  */
-class SettingsRepository(private val context: Context) {
+class SettingsRepository(
+    private val context: Context,
+    private val secureTokenStore: SecureTokenStore = EncryptedPrefsSecureTokenStore(context),
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) {
 
     private object Keys {
         val THEME_MODE = stringPreferencesKey("theme_mode")
@@ -116,10 +132,31 @@ class SettingsRepository(private val context: Context) {
      * **only** secret the cockpit stores — provider API keys never reach
      * the app (contract §intro). Null/blank means "not paired"; the chat
      * + cockpit client stay on their offline-safe paths until set.
+     *
+     * Backed by the encrypted [secureTokenStore], **not** DataStore. The
+     * StateFlow is seeded from the encrypted store at construction and
+     * updated by [setCockpitToken] / [clearCockpitToken] and the one-time
+     * legacy migration in `init`.
      */
-    val cockpitToken: Flow<String?> = context.dataStore.data.map {
-        it[Keys.COCKPIT_TOKEN]?.takeIf { token -> token.isNotBlank() }
+    private val _cockpitToken: MutableStateFlow<String?> =
+        MutableStateFlow(runCatching { secureTokenStore.read() }.getOrNull())
+    val cockpitToken: StateFlow<String?> = _cockpitToken.asStateFlow()
+
+    init {
+        // One-time migration of any legacy plaintext token into the
+        // encrypted store, then strip the plaintext copy. Runs off the
+        // main thread; the resulting value (if any) is published on
+        // [cockpitToken] so live subscribers (AppContainer) pick it up.
+        scope.launch {
+            val migrated = CockpitTokenMigration.migrate(
+                secure = secureTokenStore,
+                readLegacy = { context.dataStore.data.first()[Keys.COCKPIT_TOKEN] },
+                clearLegacy = { context.dataStore.edit { it.remove(Keys.COCKPIT_TOKEN) } },
+            )
+            if (migrated != null) _cockpitToken.value = migrated
+        }
     }
+
     val mockMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOCK_MODE] ?: false }
     val termuxGatewayMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.TERMUX_GATEWAY_MODE] ?: false }
     val approvalsRequired: Flow<Boolean> = context.dataStore.data.map { it[Keys.APPROVALS_REQUIRED] ?: true }
@@ -203,14 +240,22 @@ class SettingsRepository(private val context: Context) {
         context.dataStore.edit { it[Keys.GATEWAY_ENDPOINT] = value }
     }
 
-    /** Pair the cockpit with a gateway by storing its bearer token. */
+    /** Pair the cockpit with a gateway by storing its bearer token (encrypted at rest). */
     suspend fun setCockpitToken(value: String) {
-        context.dataStore.edit { it[Keys.COCKPIT_TOKEN] = value.trim() }
+        val trimmed = value.trim()
+        secureTokenStore.write(trimmed)
+        _cockpitToken.value = trimmed.takeIf { it.isNotBlank() }
     }
 
-    /** Unpair: drop the stored token (chat + cockpit client fall back to offline-safe). */
+    /**
+     * Unpair: drop the stored token from the encrypted store *and* remove
+     * any legacy plaintext copy (belt-and-suspenders). Chat + cockpit
+     * client fall back to their offline-safe paths.
+     */
     suspend fun clearCockpitToken() {
+        secureTokenStore.clear()
         context.dataStore.edit { it.remove(Keys.COCKPIT_TOKEN) }
+        _cockpitToken.value = null
     }
 
     suspend fun setMockMode(value: Boolean) {
@@ -242,6 +287,8 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }
+        secureTokenStore.clear()
+        _cockpitToken.value = null
     }
 
     suspend fun snapshot(): Snapshot {

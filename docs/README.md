@@ -75,6 +75,12 @@ typed in a terminal or spoke into a phone in the car.
 | Run your first orchestrated job | [orchestration/getting-started.md](orchestration/getting-started.md) |
 | See an end-to-end **Prompt to PR** walkthrough | [orchestration/prompt-to-pr-demo.md](orchestration/prompt-to-pr-demo.md) |
 | Drive Hermes from your phone | [mobile/mobile-app-guide.md](mobile/mobile-app-guide.md) |
+| Operate the native JARVIS phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
+| Understand JARVIS capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |
+| Write code from your phone (Codex / Claude Code lanes) | [mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md](mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md) |
+| Understand JARVIS evidence / cited research | [jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md) |
+| Use high-autonomy coding mode safely (scoped/logged/revocable) | [jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md](jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md) |
+| Ship the mobile cockpit (launch gate) | [launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md](launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md) |
 | Use Hermes hands-free (voice-first, driving mode) | [voice/voice-first-user-guide.md](voice/voice-first-user-guide.md) |
 | Run Hermes from Windows / drive Claude Code remotely | [remote/windows-claude-code-bridge-guide.md](remote/windows-claude-code-bridge-guide.md) |
 | Have Hermes profile your GitHub history & learn your patterns | [profile/github-history-profile-guide.md](profile/github-history-profile-guide.md) |

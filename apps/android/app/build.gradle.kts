@@ -135,6 +135,11 @@ dependencies {
 
     implementation(libs.androidx.datastore.preferences)
 
+    // Encrypted-at-rest storage for the cockpit bearer token (the only
+    // secret the app holds). Non-sensitive prefs stay in DataStore; the
+    // token lives in EncryptedSharedPreferences — see SecureTokenStore.
+    implementation(libs.androidx.security.crypto)
+
     // Sentient avatar: the overlay + voice foreground services use
     // LifecycleService / lifecycleScope. Renderers, gateway client, and
     // voice loop are otherwise self-contained (Compose + JDK only) — no
