@@ -1,12 +1,17 @@
 package com.aci.hermes.service
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.aci.hermes.MainActivity
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.CockpitJob
@@ -36,6 +41,10 @@ class JobNotifier(private val context: Context) {
      * updates a notification for each active or attention-needing job and
      * cancels notifications for jobs that have gone terminal or disappeared.
      */
+    // Lint can't see that posting is gated on canPostNotifications() below;
+    // that explicit POST_NOTIFICATIONS check is the real guard, and the
+    // runCatching keeps any late SecurityException from crashing.
+    @SuppressLint("MissingPermission")
     fun sync(jobs: List<CockpitJob>) {
         ensureChannel()
         val manager = NotificationManagerCompat.from(context)
@@ -45,12 +54,20 @@ class JobNotifier(private val context: Context) {
         (tracked - liveIds).forEach { id ->
             runCatching { manager.cancel(notificationId(id)) }
         }
-        live.forEach { job ->
-            runCatching { manager.notify(notificationId(job.id), build(job)) }
+        if (canPostNotifications()) {
+            live.forEach { job ->
+                runCatching { manager.notify(notificationId(job.id), build(job)) }
+            }
         }
         tracked.clear()
         tracked.addAll(liveIds)
     }
+
+    /** True when notifications can be posted (auto-granted below API 33). */
+    private fun canPostNotifications(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
 
     /** Drop every job notification (e.g. on unpair / emergency stop). */
     fun clearAll() {
