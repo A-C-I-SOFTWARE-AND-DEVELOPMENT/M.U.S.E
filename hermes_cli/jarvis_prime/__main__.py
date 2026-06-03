@@ -359,11 +359,10 @@ def _set_proposal_status(proposal_id: str, new_status: str, note: str) -> int:
 
 
 def _learning_store():
+    # Profile-aware default path (honors HERMES_HOME / active profile).
     from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
 
-    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
-    path = Path(base) / "jarvis_prime" / "learning_dataset.jsonl"
-    return DatasetStore.load(path)
+    return DatasetStore.load()
 
 
 def _cmd_learning_list(args: argparse.Namespace) -> int:
@@ -433,13 +432,36 @@ def _cmd_learning_export(args: argparse.Namespace) -> int:
 
 
 def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.learning_dataset import QualityGates
     from hermes_cli.jarvis_prime.learning_ingest import from_trajectory_file
 
+    # The operator asserts which verification gates the *completed* traces in
+    # this file have cleared. We never auto-mint a "passed" example: without
+    # these flags, completed coding traces lack their required gates and are
+    # skipped (failed traces still import as labeled negatives).
+    quality = QualityGates(
+        tests_passed=args.tests_passed,
+        reviewer_passed=args.reviewer_passed,
+        rollback_available=args.rollback_available,
+        citations_verified=args.citations_verified,
+    )
     store = _learning_store()
-    created = from_trajectory_file(Path(args.path), store)
+    created = from_trajectory_file(Path(args.path), store, quality=quality)
     print(f"ingested {len(created)} candidate(s) from {args.path}")
+    skipped_for_gates = False
     for note in store.load_diagnostics:
         print(f"  skipped: {note}", file=sys.stderr)
+        if "quality gates not met" in note:
+            skipped_for_gates = True
+    if skipped_for_gates and not (
+        args.tests_passed or args.reviewer_passed or args.rollback_available
+    ):
+        print(
+            "  hint: completed coding traces need their gates asserted — re-run "
+            "with --tests-passed --reviewer-passed --rollback-available once the "
+            "run is verified green.",
+            file=sys.stderr,
+        )
     return 0
 
 
@@ -1144,8 +1166,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_learning_ingest = p_learning_sub.add_parser(
         "ingest-trajectory",
         help="Ingest a save_trajectory-format JSONL into the candidate queue",
+        description=(
+            "Completed traces become coding_task_trace candidates; failed "
+            "traces become failed_attempt_trace candidates (labeled negative). "
+            "Completed coding traces require their verification gates — assert "
+            "them with the flags below once the run is verified, or they are "
+            "skipped (we never auto-mint a passed example)."
+        ),
     )
     p_learning_ingest.add_argument("path", help="Path to the trajectory JSONL")
+    p_learning_ingest.add_argument(
+        "--tests-passed", action="store_true",
+        help="Assert the completed traces' tests passed",
+    )
+    p_learning_ingest.add_argument(
+        "--reviewer-passed", action="store_true",
+        help="Assert a reviewer approved the completed traces",
+    )
+    p_learning_ingest.add_argument(
+        "--rollback-available", action="store_true",
+        help="Assert a rollback is available for the completed traces",
+    )
+    p_learning_ingest.add_argument(
+        "--citations-verified", action="store_true",
+        help="Assert citations were verified (research/evidence traces)",
+    )
     p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
 
     p_handoff = sub.add_parser(

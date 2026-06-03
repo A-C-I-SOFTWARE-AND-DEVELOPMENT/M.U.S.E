@@ -55,6 +55,49 @@ def test_from_trajectory_file_maps_completed_and_failed(tmp_path):
     assert failed.is_negative
 
 
+def test_completed_trace_imports_when_quality_asserted(tmp_path):
+    """A completed trajectory imports as a coding_task_trace only when the
+    operator asserts its verification gates (never auto-minted)."""
+    traj = tmp_path / "trajectory_samples.jsonl"
+    traj.write_text(
+        json.dumps(
+            {
+                "conversations": [{"from": "human", "value": "do X"}],
+                "completed": True,
+                "model": "m",
+                "timestamp": "t1",
+            }
+        )
+        + "\n"
+    )
+
+    # Without asserted gates → skipped (not stored).
+    bare = DatasetStore(path=tmp_path / "bare.jsonl")
+    assert from_trajectory_file(traj, bare) == []
+    assert any("quality gates not met" in d for d in bare.load_diagnostics)
+
+    # With asserted gates → imported as a coding_task_trace.
+    store = DatasetStore(path=tmp_path / "ds.jsonl")
+    created = from_trajectory_file(
+        traj,
+        store,
+        quality=QualityGates(
+            tests_passed=True, reviewer_passed=True, rollback_available=True
+        ),
+    )
+    assert len(created) == 1
+    assert created[0].trace_type == TraceType.CODING_TASK
+
+
+def test_default_path_is_profile_aware(tmp_path, monkeypatch):
+    """The default store path honors HERMES_HOME (per AGENTS.md), never the
+    raw process-user home."""
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    from hermes_cli.jarvis_prime.learning_dataset import default_dataset_path
+
+    assert default_dataset_path() == tmp_path / "jarvis_prime" / "learning_dataset.jsonl"
+
+
 def test_from_research_artifact_carries_citation(tmp_path):
     art = ResearchArtifact(
         id="abc123",

@@ -89,11 +89,20 @@ atomic writes, `0o600`. No secrets, no chain-of-thought, no private keys.
 
 ```
 python -m hermes_cli.jarvis_prime learning list [--json]
-python -m hermes_cli.jarvis_prime learning ingest-trajectory <path.jsonl>
+python -m hermes_cli.jarvis_prime learning ingest-trajectory <path.jsonl> \
+    [--tests-passed] [--reviewer-passed] [--rollback-available] [--citations-verified]
 python -m hermes_cli.jarvis_prime learning approve <id> --phrase "Yes, with authorization."
 python -m hermes_cli.jarvis_prime learning reject <id>
 python -m hermes_cli.jarvis_prime learning export --format jsonl|preference|eval|skill --out <file>
 ```
+
+Completed trajectories become `coding_task_trace` candidates **only when the
+operator asserts the verification gates** (`--tests-passed`,
+`--reviewer-passed`, `--rollback-available`) — the pipeline never auto-mints
+a "passed" example, so without these flags completed coding traces are
+skipped (failed traces still import as labeled negatives). The store path is
+profile-aware (`get_hermes_home()` / `HERMES_HOME`), so each profile keeps
+its own dataset.
 
 ### Cockpit gateway (mobile cockpit + any client)
 

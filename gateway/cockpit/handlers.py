@@ -718,16 +718,11 @@ def approvals_decide(req: Request) -> JsonResponse:
 
 
 def _learning_store():
-    """Load the learning-dataset store, honoring ``HERMES_HOME``."""
-
-    import os as _os
-    from pathlib import Path as _Path
+    """Load the learning-dataset store (profile-aware via ``get_hermes_home``)."""
 
     from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
 
-    base = _os.environ.get("HERMES_HOME") or _os.path.expanduser("~/.hermes")
-    path = _Path(base) / "jarvis_prime" / "learning_dataset.jsonl"
-    return DatasetStore.load(path)
+    return DatasetStore.load()
 
 
 def learning_list(req: Request) -> JsonResponse:
