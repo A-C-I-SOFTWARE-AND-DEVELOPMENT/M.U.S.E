@@ -713,6 +713,144 @@ def approvals_decide(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Voice intake (mobile-native, hands-free)
+# ---------------------------------------------------------------------------
+#
+# These two handlers expose the *canonical* voice-intake pipeline
+# (``hermes_cli.voice_intake`` + ``voice_models``) to the cockpit so the
+# Android app reuses one source of truth for read-back, intent
+# classification, secret redaction, and the driving-mode safety veto —
+# instead of reimplementing any of it client-side. Nothing here captures
+# audio; the app sends an already-transcribed string.
+
+
+def _voice_job_submitter(prompt: str) -> str:
+    """Enqueue an approved voice intake onto the same queue ``jobs_dispatch``
+    uses. Returns the new job id. No new orchestration primitive — this is
+    the existing ``JobQueue`` path with a voice provenance tag."""
+    import secrets as _secrets
+
+    from hermes_cli.job_queue import JobQueue
+
+    job_id = "job_" + _secrets.token_hex(8)
+    JobQueue().add_job(
+        job_id=job_id,
+        prompt=prompt,
+        repo_root="",
+        workers=[],
+        metadata={"title": "voice intake", "source": "cockpit-voice"},
+    )
+    return job_id
+
+
+def voice_intake_create(req: Request) -> JsonResponse:
+    """Open a voice intake from a transcript and return the read-back.
+
+    Body: ``{transcript, mode?}``. ``mode`` is normalised server-side
+    (unknown/typo'd modes collapse to ``push_to_talk`` — never silently
+    driving). The draft is classified and the read-back built, but nothing
+    is submitted: the app must call ``/decide`` with an explicit phrase.
+    """
+    text = str(req.body.get("transcript", "")).strip()
+    if not text:
+        return JsonResponse(400, {"error": "transcript is required"})
+
+    from hermes_cli import voice_intake as vi
+    from hermes_cli.voice_models import (
+        VoiceDisabledError,
+        VoiceIntakeConfig,
+        VoiceTranscript,
+        normalize_mode,
+    )
+
+    mode = normalize_mode(req.body.get("mode"))
+    try:
+        intake = vi.begin_intake(VoiceIntakeConfig(mode=mode))
+    except VoiceDisabledError as exc:
+        return JsonResponse(409, {"error": str(exc), "state": "disabled"})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    provider = str(req.body.get("provider", "cockpit")) or "cockpit"
+    intake = vi.ingest_transcript(intake, VoiceTranscript(text=text, provider=provider))
+    readback = vi.build_readback(intake)
+    return JsonResponse(
+        201,
+        {
+            "id": intake.id,
+            "mode": intake.mode,
+            "readback": readback,
+            "approval_state": intake.approval.state,
+            "draft": {
+                "intent": intake.draft.intent,
+                "summary": intake.draft.summary,
+                "publish_action": intake.draft.publish_action,
+                "requires_implementation": intake.draft.requires_implementation,
+            },
+        },
+    )
+
+
+def voice_intake_decide(req: Request) -> JsonResponse:
+    """Resolve a voice intake with an explicit spoken/typed phrase.
+
+    Body: ``{phrase}`` (may be omitted/null to mean "the window closed").
+    The phrase is interpreted by ``record_decision`` — only an explicit
+    affirmative approves. A driving-mode publish that *was* approved still
+    raises ``DrivingSafetyVeto`` → ``409``; the action queues for a
+    non-driving confirmation. Voice can never silently execute a publish.
+    """
+    voice_id = req.path_params.get("id", "")
+
+    from hermes_cli import voice_intake as vi
+    from hermes_cli.voice_models import DrivingSafetyVeto, VoiceConfirmationRequired
+
+    intake = vi.load_intake(voice_id)
+    if intake is None:
+        return JsonResponse(404, {"error": f"unknown voice intake: {voice_id}"})
+
+    raw_phrase = req.body.get("phrase", None)
+    phrase = None if raw_phrase is None else str(raw_phrase)
+    intake = vi.record_decision(intake, phrase)
+
+    job_id: Optional[str] = None
+    try:
+        job_id = vi.finalize(intake, submitter=_voice_job_submitter)
+    except DrivingSafetyVeto as exc:
+        return JsonResponse(
+            409,
+            {
+                "id": intake.id,
+                "state": intake.approval.state,
+                "veto": "driving_safety",
+                "hint": str(exc),
+            },
+        )
+    except VoiceConfirmationRequired as exc:
+        return JsonResponse(
+            409,
+            {
+                "id": intake.id,
+                "state": intake.approval.state,
+                "veto": "confirmation_required",
+                "hint": str(exc),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    return JsonResponse(
+        200,
+        {
+            "id": intake.id,
+            "state": intake.approval.state,
+            "job_id": job_id,
+            "notes": intake.approval.notes,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Sessions (decision-ledger sessions)
 # ---------------------------------------------------------------------------
 
