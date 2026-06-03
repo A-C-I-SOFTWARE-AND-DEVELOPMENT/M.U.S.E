@@ -30,6 +30,33 @@ sealed interface JarvisChatChunk {
     data class Inline(val card: JarvisInlineCard) : JarvisChatChunk
 
     /**
+     * Named pipeline phase the cockpit renders as a progress rail
+     * (receiving → thinking → routing → tool → … → final). Additive: the
+     * existing [Thinking]/[Working] indicators still drive the bubble; the
+     * rail is a complementary, glanceable summary of where the turn is.
+     */
+    data class Phase(val phase: JarvisPhase) : JarvisChatChunk
+
+    /**
+     * One inline tool invocation surfaced to the user. Streamed twice per
+     * call (a START then a terminal OK/FAIL) so the chip can animate.
+     * [summary]/[detail] are already secret-redacted by the gateway.
+     */
+    data class ToolCall(
+        val id: String,
+        val name: String,
+        val summary: String,
+        val status: JarvisToolStatus,
+        val detail: String? = null,
+    ) : JarvisChatChunk
+
+    /** Reference to an evidence/proof record the app resolves on tap. */
+    data class EvidenceRef(val auditId: String, val title: String) : JarvisChatChunk
+
+    /** Reference to a decision-ledger entry the app resolves on tap. */
+    data class LedgerRef(val ledgerId: String, val title: String) : JarvisChatChunk
+
+    /**
      * Reply finished cleanly. The view model uses this to drop any
      * thinking/working indicator and stop the abort timer.
      */

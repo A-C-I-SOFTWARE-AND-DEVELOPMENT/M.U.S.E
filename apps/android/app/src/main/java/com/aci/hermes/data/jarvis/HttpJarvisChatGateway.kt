@@ -110,6 +110,23 @@ class HttpJarvisChatGateway(
             "tone" -> JarvisChatChunk.Tone(toneOf(obj.optString("tone")))
             "body" -> JarvisChatChunk.Body(obj.optString("text"))
             "detail" -> JarvisChatChunk.Detail(obj.optString("text"))
+            "phase" -> JarvisPhase.fromWire(obj.optString("phase"))
+                ?.let { JarvisChatChunk.Phase(it) }
+            "tool_call" -> JarvisChatChunk.ToolCall(
+                id = obj.optString("id"),
+                name = obj.optString("name"),
+                summary = obj.optString("summary"),
+                status = JarvisToolStatus.fromWire(obj.optString("status")),
+                detail = obj.optString("detail").ifBlank { null },
+            )
+            "evidence" -> JarvisChatChunk.EvidenceRef(
+                auditId = obj.optString("auditId"),
+                title = obj.optString("title").ifBlank { "Evidence" },
+            )
+            "ledger" -> JarvisChatChunk.LedgerRef(
+                ledgerId = obj.optString("ledgerId"),
+                title = obj.optString("title").ifBlank { "Decision" },
+            )
             "done" -> JarvisChatChunk.Done
             "error" -> JarvisChatChunk.Failure(
                 obj.optString("message", "Gateway error"),

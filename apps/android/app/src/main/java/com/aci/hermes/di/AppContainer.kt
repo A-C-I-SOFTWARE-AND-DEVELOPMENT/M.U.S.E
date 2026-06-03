@@ -287,12 +287,31 @@ class AppContainer(private val application: Application) {
         JarvisLiveViewModel(application, avatarRepository, cockpitClient)
     }
 
+    // Cockpit-backed chat ports: job dispatch, owner approval, and evidence/
+    // ledger inspection. Each is "available" only while a gateway is paired,
+    // so the chat view model falls back to its offline path automatically.
+    private val jarvisJobDispatcher = com.aci.hermes.data.cockpit.CockpitJobDispatcher(
+        jobs = cockpitJobsRepository,
+        paired = ::cockpitPaired,
+    )
+    private val jarvisApprovalGateway = com.aci.hermes.data.cockpit.CockpitApprovalGateway(
+        approvals = cockpitApprovalsRepository,
+        paired = ::cockpitPaired,
+    )
+    private val jarvisRecordInspector = com.aci.hermes.data.cockpit.CockpitRecordInspector(
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
     fun jarvisChatVmFactory(): ViewModelProvider.Factory = factory {
         JarvisChatViewModel(
             gateway = jarvisChatGateway,
             taskSink = jarvisTaskSink,
             logBuffer = logBuffer,
             clipboard = jarvisClipboard,
+            jobDispatcher = jarvisJobDispatcher,
+            approvalGateway = jarvisApprovalGateway,
+            recordInspector = jarvisRecordInspector,
         )
     }
 

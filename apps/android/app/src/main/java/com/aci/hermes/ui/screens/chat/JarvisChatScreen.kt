@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,20 +28,27 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.WorkOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
@@ -63,6 +72,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.jarvis.JarvisChatMessage
 import com.aci.hermes.data.jarvis.JarvisInlineCard
+import com.aci.hermes.data.jarvis.JarvisPhase
+import com.aci.hermes.data.jarvis.JarvisRecordRef
+import com.aci.hermes.data.jarvis.JarvisToolCall
+import com.aci.hermes.data.jarvis.JarvisToolStatus
 import com.aci.hermes.data.jarvis.JarvisTone
 import com.aci.hermes.ui.components.AskJarvisBar
 import com.aci.hermes.ui.theme.JarvisAmber
@@ -155,12 +168,18 @@ fun JarvisChatScreen(
                     MessageRow(
                         message = msg,
                         expanded = msg.id in state.expanded,
+                        expandedTools = state.expandedTools,
                         approved = state.approved,
                         held = state.held,
                         ackedCritical = state.ackedCritical,
                         promotedTasks = state.promotedTasks,
+                        responding = state.responding,
                         onToggleExpand = { viewModel.toggleExpanded(msg.id) },
+                        onToggleTool = viewModel::toggleToolExpanded,
                         onCopy = { viewModel.copyMessage(msg.id) },
+                        onContinue = viewModel::continueReply,
+                        onCreateJob = { viewModel.createJob(msg.id) },
+                        onInspectRecord = viewModel::inspectRecord,
                         onPromoteTask = { card -> viewModel.promoteInlineTask(msg.id, card) },
                         onApprove = { card -> viewModel.approveInline(msg.id, card) },
                         onHold = { card -> viewModel.holdInline(msg.id, card) },
@@ -201,6 +220,36 @@ fun JarvisChatScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
+
+    state.recordSheet?.let { record ->
+        RecordSheet(record = record, onDismiss = viewModel::dismissRecord)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecordSheet(
+    record: com.aci.hermes.data.jarvis.JarvisRecordView,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = JarvisInkRaised) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(JarvisTokens.SpaceMd),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+        ) {
+            Text(record.title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+            record.subtitle?.let {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = JarvisCyan)
+            }
+            Spacer(Modifier.height(JarvisTokens.SpaceXs))
+            record.lines.forEach { line ->
+                Text(line, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
+            }
+            Spacer(Modifier.height(JarvisTokens.SpaceSm))
+        }
+    }
 }
 
 @Composable
@@ -222,12 +271,18 @@ private fun MockModeBanner() {
 private fun MessageRow(
     message: JarvisChatMessage,
     expanded: Boolean,
+    expandedTools: Set<String>,
     approved: Set<String>,
     held: Set<String>,
     ackedCritical: Set<String>,
     promotedTasks: Set<String>,
+    responding: Boolean,
     onToggleExpand: () -> Unit,
+    onToggleTool: (String) -> Unit,
     onCopy: () -> Unit,
+    onContinue: () -> Unit,
+    onCreateJob: () -> Unit,
+    onInspectRecord: (JarvisRecordRef) -> Unit,
     onPromoteTask: (JarvisInlineCard.Task) -> Unit,
     onApprove: (JarvisInlineCard.Approval) -> Unit,
     onHold: (JarvisInlineCard.Approval) -> Unit,
@@ -239,12 +294,18 @@ private fun MessageRow(
         is JarvisChatMessage.Jarvis -> JarvisBubble(
             message = message,
             expanded = expanded,
+            expandedTools = expandedTools,
             approved = approved,
             held = held,
             ackedCritical = ackedCritical,
             promotedTasks = promotedTasks,
+            responding = responding,
             onToggleExpand = onToggleExpand,
+            onToggleTool = onToggleTool,
             onCopy = onCopy,
+            onContinue = onContinue,
+            onCreateJob = onCreateJob,
+            onInspectRecord = onInspectRecord,
             onPromoteTask = onPromoteTask,
             onApprove = onApprove,
             onHold = onHold,
@@ -278,12 +339,18 @@ private fun UserBubble(message: JarvisChatMessage.User) {
 private fun JarvisBubble(
     message: JarvisChatMessage.Jarvis,
     expanded: Boolean,
+    expandedTools: Set<String>,
     approved: Set<String>,
     held: Set<String>,
     ackedCritical: Set<String>,
     promotedTasks: Set<String>,
+    responding: Boolean,
     onToggleExpand: () -> Unit,
+    onToggleTool: (String) -> Unit,
     onCopy: () -> Unit,
+    onContinue: () -> Unit,
+    onCreateJob: () -> Unit,
+    onInspectRecord: (JarvisRecordRef) -> Unit,
     onPromoteTask: (JarvisInlineCard.Task) -> Unit,
     onApprove: (JarvisInlineCard.Approval) -> Unit,
     onHold: (JarvisInlineCard.Approval) -> Unit,
@@ -306,6 +373,16 @@ private fun JarvisBubble(
                 modifier = Modifier.padding(JarvisTokens.SpaceMd),
                 verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
+                if (message.phases.isNotEmpty()) {
+                    PhaseRail(phases = message.phases, streaming = message.streaming)
+                }
+                message.toolCalls.forEach { tool ->
+                    ToolCallChip(
+                        tool = tool,
+                        expanded = tool.id in expandedTools,
+                        onToggle = { onToggleTool(tool.id) },
+                    )
+                }
                 if (message.body.isNotEmpty()) {
                     Text(message.body, style = MaterialTheme.typography.bodyMedium, color = JarvisSignal)
                 }
@@ -360,16 +437,175 @@ private fun JarvisBubble(
                         onAckCritical = onAckCritical,
                     )
                 }
+                if (message.records.isNotEmpty()) {
+                    RecordRow(records = message.records, onInspect = onInspectRecord)
+                }
                 if (!message.streaming && message.body.isNotEmpty()) {
-                    TextButton(onClick = onCopy, contentPadding = PaddingValues(0.dp)) {
-                        Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp), tint = JarvisSignalMute)
-                        Spacer(Modifier.size(JarvisTokens.SpaceXs))
-                        Text("Copy", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
-                    }
+                    MessageActions(
+                        enabled = !responding,
+                        onCopy = onCopy,
+                        onContinue = onContinue,
+                        onCreateJob = onCreateJob,
+                    )
                 }
             }
         }
     }
+}
+
+/**
+ * Compact progress rail: one chip per phase the turn passed through, the
+ * latest highlighted while streaming. Complements (doesn't replace) the
+ * thinking/working indicator — it's the glanceable "where are we" summary.
+ */
+@Composable
+private fun PhaseRail(phases: List<JarvisPhase>, streaming: Boolean) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        phases.forEachIndexed { index, phase ->
+            val isCurrent = streaming && index == phases.lastIndex
+            val color = if (isCurrent) JarvisCyan else JarvisSignalMute
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(color),
+            )
+            Text(
+                text = phase.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = color,
+                fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+            )
+        }
+        if (streaming) {
+            CircularProgressIndicator(modifier = Modifier.size(10.dp), strokeWidth = 1.5.dp, color = JarvisCyan)
+        }
+    }
+}
+
+/**
+ * One tool invocation: compact one-line chip by default, expandable to the
+ * redacted detail. Status drives the leading icon (running / ok / fail).
+ */
+@Composable
+private fun ToolCallChip(
+    tool: JarvisToolCall,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+) {
+    val (icon, tint) = when (tool.status) {
+        JarvisToolStatus.START -> Icons.Filled.PlayArrow to JarvisCyan
+        JarvisToolStatus.OK -> Icons.Filled.CheckCircle to JarvisJade
+        JarvisToolStatus.FAIL -> Icons.Filled.Error to JarvisCrimson
+    }
+    val hasDetail = !tool.detail.isNullOrBlank()
+    Surface(
+        color = JarvisInkNight,
+        shape = JarvisTokens.ShapeCard,
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(JarvisTokens.BorderHairline, JarvisInkEdge, JarvisTokens.ShapeCard),
+    ) {
+        Column(modifier = Modifier.padding(horizontal = JarvisTokens.SpaceSm, vertical = JarvisTokens.SpaceXs)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
+                modifier = if (hasDetail) Modifier.fillMaxWidth().clickableNoRipple(onToggle) else Modifier.fillMaxWidth(),
+            ) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = tint)
+                Text(tool.name, style = MaterialTheme.typography.labelMedium, color = JarvisSignal)
+                Text(
+                    tool.summary,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = JarvisSignalDim,
+                    modifier = Modifier.weight(1f),
+                )
+                if (hasDetail) {
+                    Icon(
+                        if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        contentDescription = if (expanded) "Hide tool detail" else "Show tool detail",
+                        modifier = Modifier.size(14.dp),
+                        tint = JarvisSignalMute,
+                    )
+                }
+            }
+            if (hasDetail) {
+                AnimatedVisibility(visible = expanded) {
+                    Text(
+                        text = tool.detail.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = JarvisSignalMute,
+                        modifier = Modifier.padding(top = JarvisTokens.SpaceXs),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecordRow(records: List<JarvisRecordRef>, onInspect: (JarvisRecordRef) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+        records.forEach { ref ->
+            val label = when (ref.kind) {
+                JarvisRecordRef.Kind.EVIDENCE -> "Evidence"
+                JarvisRecordRef.Kind.LEDGER -> "Ledger"
+            }
+            AssistChip(
+                onClick = { onInspect(ref) },
+                label = { Text(label) },
+                leadingIcon = {
+                    Icon(Icons.Filled.Description, contentDescription = null, modifier = Modifier.size(16.dp))
+                },
+                colors = AssistChipDefaults.assistChipColors(
+                    labelColor = JarvisCyan,
+                    leadingIconContentColor = JarvisCyan,
+                ),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MessageActions(
+    enabled: Boolean,
+    onCopy: () -> Unit,
+    onContinue: () -> Unit,
+    onCreateJob: () -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+        ActionTextButton(Icons.Filled.ContentCopy, "Copy", enabled = true, onClick = onCopy)
+        ActionTextButton(Icons.Filled.PlayArrow, "Continue", enabled = enabled, onClick = onContinue)
+        ActionTextButton(Icons.Filled.WorkOutline, "Create job", enabled = enabled, onClick = onCreateJob)
+    }
+}
+
+@Composable
+private fun ActionTextButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, enabled = enabled, contentPadding = PaddingValues(0.dp)) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp), tint = JarvisSignalMute)
+        Spacer(Modifier.size(JarvisTokens.SpaceXs))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
+    }
+}
+
+/** Click without the default ripple/indication, for chip-like rows. */
+@Composable
+private fun Modifier.clickableNoRipple(onClick: () -> Unit): Modifier {
+    val interaction = remember { MutableInteractionSource() }
+    return this.clickable(
+        interactionSource = interaction,
+        indication = null,
+        onClick = onClick,
+    )
 }
 
 @Composable
