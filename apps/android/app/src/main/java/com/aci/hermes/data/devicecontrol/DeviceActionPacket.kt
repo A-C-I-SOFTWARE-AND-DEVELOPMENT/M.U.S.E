@@ -22,6 +22,13 @@ data class DeviceActionPacket(
     val intent: AutomationIntent,
     val requiredCapabilities: Set<DeviceControlCapability>,
     val sensitivity: DeviceActionSensitivity,
+    /**
+     * True when the intent acts on a specific target (an app to launch, a
+     * node to tap). If the target can't be resolved, the action must be
+     * refused rather than executed — the choreographer would otherwise
+     * fall back to a blind center-screen tap.
+     */
+    val requiresResolvedTarget: Boolean,
     /** Human-readable one-liner, e.g. "Open Facebook" or "Scroll down". */
     val previewLabel: String,
 ) {
@@ -36,8 +43,22 @@ data class DeviceActionPacket(
                 intent = intent,
                 requiredCapabilities = DeviceControlCapability.requiredFor(intent),
                 sensitivity = sensitivityOf(intent),
+                requiresResolvedTarget = requiresResolvedTarget(intent),
                 previewLabel = previewLabelOf(intent, resolvedLabel),
             )
+
+        /**
+         * Intents that name a specific on-screen / installed target. These
+         * must not run when the target couldn't be located, because the
+         * choreographer's fallback is a center-screen tap.
+         */
+        fun requiresResolvedTarget(intent: AutomationIntent): Boolean = when (intent) {
+            is AutomationIntent.OpenApp,
+            is AutomationIntent.PushTarget -> true
+            is AutomationIntent.TurnPage,
+            is AutomationIntent.Scroll,
+            is AutomationIntent.Navigate -> false
+        }
 
         fun sensitivityOf(intent: AutomationIntent): DeviceActionSensitivity = when (intent) {
             is AutomationIntent.OpenApp,

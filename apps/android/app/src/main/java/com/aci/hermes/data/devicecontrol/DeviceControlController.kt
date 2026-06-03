@@ -162,6 +162,25 @@ class DeviceControlController(
         }
 
         val packet = DeviceActionPacket.from(intent, resolved?.label)
+
+        // Refuse target-dependent intents we couldn't resolve. Without this,
+        // an unmatched "open <app>" / "tap <thing>" would fall through to the
+        // choreographer's blind center-screen tap while the ledger claimed the
+        // requested action ran. This holds even in high-power mode.
+        if (packet.requiresResolvedTarget && resolved == null) {
+            ledger.record(
+                DeviceActionLogEntry(
+                    timestamp = clock(),
+                    intentLabel = packet.previewLabel,
+                    sensitivity = packet.sensitivity,
+                    outcome = DeviceActionLogEntry.Outcome.BLOCKED,
+                    reason = "unresolved_target",
+                ),
+            )
+            logBuffer.warn(TAG, "Refused unresolved target: ${packet.previewLabel}")
+            return
+        }
+
         val decision = DeviceActionBroker.evaluate(
             packet = packet,
             consent = consent,

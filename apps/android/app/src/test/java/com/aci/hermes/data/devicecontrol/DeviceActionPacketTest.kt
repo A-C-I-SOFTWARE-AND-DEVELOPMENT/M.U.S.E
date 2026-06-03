@@ -5,6 +5,8 @@ import com.aci.hermes.data.automation.GlobalAction
 import com.aci.hermes.data.automation.PageDirection
 import com.aci.hermes.data.automation.ScrollDirection
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Intent → sensitivity + required-capability + preview classification. */
@@ -43,6 +45,19 @@ class DeviceActionPacketTest {
         assertEquals("Scroll down", scroll.previewLabel)
         assertEquals("Turn page left", page.previewLabel)
         assertEquals("Go home", nav.previewLabel)
+    }
+
+    @Test
+    fun `target-dependent intents require a resolved target`() {
+        assertTrue(DeviceActionPacket.from(AutomationIntent.OpenApp("x")).requiresResolvedTarget)
+        assertTrue(DeviceActionPacket.from(AutomationIntent.PushTarget("x")).requiresResolvedTarget)
+    }
+
+    @Test
+    fun `navigation intents do not require a resolved target`() {
+        assertFalse(DeviceActionPacket.from(AutomationIntent.Scroll(ScrollDirection.DOWN)).requiresResolvedTarget)
+        assertFalse(DeviceActionPacket.from(AutomationIntent.TurnPage(PageDirection.LEFT)).requiresResolvedTarget)
+        assertFalse(DeviceActionPacket.from(AutomationIntent.Navigate(GlobalAction.HOME)).requiresResolvedTarget)
     }
 
     @Test
