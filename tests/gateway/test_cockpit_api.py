@@ -655,3 +655,98 @@ def test_evidence_verify_requires_claim(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
         _post(server, "/v1/cockpit/evidence/verify", {})
     assert exc.value.code == 400
+
+
+# ---------------------------------------------------------------------------
+# model routes (evidence-backed task-class routing)
+# ---------------------------------------------------------------------------
+
+
+def test_model_routes_covers_all_task_classes(server) -> None:
+    _, payload = _get(server, "/v1/cockpit/model-routes")
+    assert "routes" in payload and payload["routes"]
+    task_classes = {r["task_class"] for r in payload["routes"]}
+    assert task_classes == set(payload["task_classes"])
+    # Each decision carries an explanation and a fallback chain (contract).
+    for r in payload["routes"]:
+        assert r["why"]
+        assert "fallback_chain" in r
+        assert "paid_enabled" in r
+
+
+def test_model_route_override_pins_model(server, home: Path) -> None:
+    status, raw = _post(
+        server,
+        "/v1/cockpit/model-routes/override",
+        {"task_class": "summarization", "model": "my-local-model"},
+    )
+    assert status == 200
+    assert json.loads(raw)["changed"]["model"] == "my-local-model"
+    # The pin is reflected in the routes view.
+    _, payload = _get(server, "/v1/cockpit/model-routes")
+    summ = next(r for r in payload["routes"] if r["task_class"] == "summarization")
+    assert summ["chosen"] == "my-local-model"
+    assert summ["route_tier"] == "owner_override"
+
+
+def test_model_route_override_unknown_task_is_400(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/model-routes/override",
+            {"task_class": "not_a_class", "model": "x"},
+        )
+    assert exc.value.code == 400
+
+
+def test_combined_invalid_task_does_not_flip_paid(server) -> None:
+    # A combined body — valid paid authorization + an *invalid* task class —
+    # must reject the whole request (400) and leave the money-spend gate
+    # untouched. The paid override must not be written before validation fails.
+    _, before = _get(server, "/v1/cockpit/model-routes")
+    assert before["paid_enabled"] is False
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/model-routes/override",
+            {
+                "paid_enabled": True,
+                "authorization": "Yes, with authorization.",
+                "task_class": "not_a_class",
+            },
+        )
+    assert exc.value.code == 400
+    _, after = _get(server, "/v1/cockpit/model-routes")
+    assert after["paid_enabled"] is False
+
+
+def test_paid_toggle_requires_owner_phrase(server) -> None:
+    # Wrong/absent phrase → 403, money-spend gate never bypassed.
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/model-routes/override",
+            {"paid_enabled": True, "authorization": "go ahead"},
+        )
+    assert exc.value.code == 403
+    # Exact phrase → enabled + reflected.
+    status, raw = _post(
+        server,
+        "/v1/cockpit/model-routes/override",
+        {"paid_enabled": True, "authorization": "Yes, with authorization."},
+    )
+    assert status == 200
+    assert json.loads(raw)["changed"]["paid_enabled"] is True
+    _, payload = _get(server, "/v1/cockpit/model-routes")
+    assert payload["paid_enabled"] is True
+
+
+def test_model_route_override_no_secret_keys(server) -> None:
+    # Even with an api_key-looking field, nothing secret is stored/echoed.
+    status, raw = _post(
+        server,
+        "/v1/cockpit/model-routes/override",
+        {"task_class": "research", "model": "qwen", "api_key": "sk-should-be-ignored"},
+    )
+    assert status == 200
+    assert "sk-should-be-ignored" not in raw.decode()

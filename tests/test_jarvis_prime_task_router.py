@@ -1,0 +1,212 @@
+from __future__ import annotations
+
+from hermes_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
+from hermes_cli.jarvis_prime.task_router import (
+    TaskClass,
+    all_routes,
+    explain,
+    load_overrides,
+    route_for_task,
+    set_paid_enabled,
+    set_task_override,
+)
+
+
+def _policy(
+    *,
+    local=True,
+    local_models=("qwen3-coder",),
+    claude=False,
+    codex=False,
+    hosted=(),
+    paid=False,
+    paid_providers=(),
+):
+    return {
+        "route_order": [
+            "local_oss",
+            "hosted_free_or_user_configured_oss",
+            "claude_code_worker",
+            "codex_worker",
+            "paid_api_explicit_only",
+        ],
+        "routes": {
+            "local_oss": {
+                "enabled": local,
+                "recommended_local_models": list(local_models),
+            },
+            "hosted_free_or_user_configured_oss": {
+                "enabled": bool(hosted),
+                "providers": list(hosted),
+            },
+            "claude_code_worker": {"enabled": claude},
+            "codex_worker": {"enabled": codex},
+            "paid_api_explicit_only": {
+                "enabled": bool(paid_providers),
+                "providers_detected": list(paid_providers),
+            },
+        },
+        "paid": {"enabled": paid},
+        "local_defaults": [],
+    }
+
+
+def _empty_book(tmp_path):
+    return ScorecardBook(path=tmp_path / "s.jsonl")
+
+
+def test_local_first_with_no_evidence(tmp_path):
+    """Fresh install with only a local runtime routes local-first, deterministically."""
+    d = route_for_task(
+        TaskClass.MOBILE_CHAT,
+        policy=_policy(local_models=("qwen3:8b",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "qwen3:8b"
+    assert d.route_tier == "local_oss"
+    assert d.local_first is True
+    assert "policy preference" in d.why
+
+
+def test_coding_build_prefers_worker_lane(tmp_path):
+    """coding_build profile prefers the Claude worker lane over local when enabled."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local_models=("qwen3-coder",), claude=True, codex=True),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "claude"
+    assert "codex" in d.fallback_chain
+    assert "qwen3-coder" in d.fallback_chain  # local stays as a fallback
+
+
+def test_fallback_when_preferred_route_disabled(tmp_path):
+    """With the worker lanes off, coding_build falls back to the next enabled tier."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local_models=("qwen3-coder",), claude=False, codex=False),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "qwen3-coder"
+    assert d.route_tier == "local_oss"
+
+
+def test_evidence_changes_ranking(tmp_path):
+    """A measured-strong model overtakes the local-first prior (scorecards move it)."""
+    book = _empty_book(tmp_path)
+    policy = _policy(local_models=("weak-local",), claude=True)
+    # Before evidence: local-first prior would pick... coding tasks prefer claude.
+    before = route_for_task(
+        TaskClass.CODING_BUILD, policy=policy, book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert before.chosen == "claude"  # by tier preference (no samples)
+
+    # Record strong evidence for the local model on coding_build.
+    book.record(
+        ModelScorecard(
+            "weak-local", "ollama", "coding_build",
+            risk_class="RC3", tests_passed=19, tests_failed=1,
+            accepted_diff_rate=0.95, tool_reliability=0.95,
+        ),
+        persist=False,
+    )
+    after = route_for_task(
+        TaskClass.CODING_BUILD, policy=policy, book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert after.chosen == "weak-local"
+    assert after.evidence and after.evidence[0]["model"] == "weak-local"
+
+
+def test_weak_evidence_does_not_beat_local_prior(tmp_path):
+    """A measured-weak model must NOT be chosen over the unmeasured local prior."""
+    book = _empty_book(tmp_path)
+    book.record(
+        ModelScorecard(
+            "cloud-bad", "hosted", "mobile_chat",
+            tests_passed=1, tests_failed=9, owner_corrections=3,
+        ),
+        persist=False,
+    )
+    d = route_for_task(
+        TaskClass.MOBILE_CHAT,
+        policy=_policy(local_models=("qwen3:8b",), hosted=("cloud-bad",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "qwen3:8b"
+
+
+def test_paid_excluded_unless_enabled_and_allowed(tmp_path):
+    book = _empty_book(tmp_path)
+    # research allows paid, but it's disabled → paid provider not a candidate.
+    off = route_for_task(
+        TaskClass.RESEARCH,
+        policy=_policy(local_models=("qwen3:8b",), paid=False, paid_providers=("openai",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert "openai" not in off.fallback_chain
+
+    on = route_for_task(
+        TaskClass.RESEARCH,
+        policy=_policy(local_models=("qwen3:8b",), paid=True, paid_providers=("openai",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert "openai" in on.fallback_chain
+
+    # mobile_chat never allows paid, even when enabled.
+    chat = route_for_task(
+        TaskClass.MOBILE_CHAT,
+        policy=_policy(local_models=("qwen3:8b",), paid=True, paid_providers=("openai",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert "openai" not in chat.fallback_chain
+
+
+def test_owner_override_pins_model(tmp_path):
+    d = route_for_task(
+        TaskClass.SUMMARIZATION,
+        policy=_policy(local_models=("qwen3:8b",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {"summarization": "my-model"}},
+    )
+    assert d.chosen == "my-model"
+    assert d.route_tier == "owner_override"
+    assert d.owner_override == "my-model"
+
+
+def test_all_routes_covers_every_task_class(tmp_path):
+    routes = all_routes(
+        policy=_policy(local_models=("qwen3:8b",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert {r.task_class for r in routes} == {tc.value for tc in TaskClass}
+    assert all(isinstance(explain(r), str) for r in routes)
+
+
+def test_override_store_round_trip(tmp_path):
+    path = tmp_path / "ov.json"
+    set_task_override("coding_build", "claude", path=path)
+    data = load_overrides(path)
+    assert data["task_overrides"]["coding_build"] == "claude"
+    set_task_override("coding_build", None, path=path)
+    assert "coding_build" not in load_overrides(path)["task_overrides"]
+
+
+def test_paid_toggle_requires_authorization(tmp_path):
+    path = tmp_path / "ov.json"
+    try:
+        set_paid_enabled(True, authorized=False, path=path)
+        assert False, "expected PermissionError"
+    except PermissionError:
+        pass
+    set_paid_enabled(True, authorized=True, path=path)
+    assert load_overrides(path)["paid_enabled"] is True

@@ -47,6 +47,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBack: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    onOpenModelRoutes: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
     onOpenKnowledge: () -> Unit = {},
 ) {
@@ -178,6 +179,9 @@ fun SettingsScreen(
                 }
                 OutlinedButton(onClick = onOpenKnowledge, modifier = Modifier.fillMaxWidth()) {
                     Text("Knowledge graph")
+                }
+                OutlinedButton(onClick = onOpenModelRoutes, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.model_route_open))
                 }
                 OutlinedButton(
                     onClick = { confirmReset = true },

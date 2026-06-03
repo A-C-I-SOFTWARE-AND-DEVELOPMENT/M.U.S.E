@@ -270,6 +270,13 @@ or stored; no secrets are written to config, logs, or memory. A missing
 local runtime is a warning, not a launch blocker. Full guide:
 [`jarvis-free-first-launch.md`](jarvis-free-first-launch.md).
 
+Within that route order, **evidence-backed task-class routing** picks the
+specific model per task class (mobile chat, research, citation verification,
+coding build/review, test/debug, …) from measured scorecards, explains the
+choice, and exposes an owner override + paid toggle on the phone. See
+[`ai-intelligence/model-routing-task-classes.md`](ai-intelligence/model-routing-task-classes.md).
+Explain any choice with `python -m hermes_cli.jarvis_prime route --task <class>`.
+
 ## Specialist Activation Rules
 
 HazMat Command activates only for:

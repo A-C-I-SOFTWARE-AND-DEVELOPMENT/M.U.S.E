@@ -35,6 +35,7 @@ sealed class Screen(val route: String) {
     // Full-screen pushes.
     data object Settings : Screen("settings")
     data object Diagnostics : Screen("diagnostics")
+    data object ModelRoute : Screen("model_route")
 
     /** Device-control consent + action log; pushed from the Control tab. */
     data object DeviceControl : Screen("device_control")

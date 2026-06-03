@@ -2,6 +2,11 @@
 
 This document defines the routing plan for JARVIS Prime and the AOS council. It is a plan only: it does not mutate the AOS registry, does not activate new default agents, and does not claim the registry is fixed.
 
+> **Agent routing vs. model routing.** This page is about *which agent /
+> council member* handles a request. For *which LLM* runs a given task class
+> (evidence-backed, mobile-first), see
+> [`ai-intelligence/model-routing-task-classes.md`](ai-intelligence/model-routing-task-classes.md).
+
 ## Goals
 
 - Keep the active reasoning layer small enough for daily Slack and Termux work.

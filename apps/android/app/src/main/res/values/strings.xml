@@ -447,4 +447,27 @@
     <string name="jarvis_voice_enable_title">Talk to Jarvis hands-free</string>
     <string name="jarvis_voice_enable_body">Say \"Hey Jarvis\" through your headset to run any command by voice. Needs the microphone permission.</string>
     <string name="jarvis_voice_enable_cta">Enable voice</string>
+
+    <!-- Model routing (evidence-backed, per task class) -->
+    <string name="model_route_title">Model routing</string>
+    <string name="model_route_refresh">Refresh routes</string>
+    <string name="model_route_subtitle">Which model runs each task, and why</string>
+    <string name="model_route_chosen">Chosen</string>
+    <string name="model_route_none">No model available</string>
+    <string name="model_route_why">Why</string>
+    <string name="model_route_fallbacks">Fallbacks</string>
+    <string name="model_route_evidence">Evidence</string>
+    <string name="model_route_owner_override">Owner override</string>
+    <string name="model_route_override_hint">Pin a model (leave blank to clear)</string>
+    <string name="model_route_override_save">Pin</string>
+    <string name="model_route_override_clear">Clear</string>
+    <string name="model_route_paid_title">Paid routing</string>
+    <string name="model_route_paid_subtitle">Off by default. Enabling lets Jarvis Prime route to paid APIs — a money-spend gate that needs your authorization.</string>
+    <string name="model_route_paid_confirm_title">Authorize paid routing</string>
+    <string name="model_route_paid_confirm_body">Type the exact phrase to authorize this change.</string>
+    <string name="model_route_paid_confirm_cta">Authorize</string>
+    <string name="model_route_cancel">Cancel</string>
+    <string name="model_route_not_paired">Pair with a gateway to view model routes.</string>
+    <string name="model_route_local_first">Local-first</string>
+    <string name="model_route_open">Model routing</string>
 </resources>

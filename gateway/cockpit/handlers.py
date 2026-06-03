@@ -152,6 +152,118 @@ def models(_req: Request) -> JsonResponse:
     return JsonResponse(200, policy)
 
 
+def model_routes(_req: Request) -> JsonResponse:
+    """Evidence-backed per-task-class model routes (read-only).
+
+    Each task class carries its chosen model, route tier, fallback chain, a
+    human-readable ``why``, the scorecard evidence behind it, and the current
+    owner overrides + paid state. Never accepts or returns API keys.
+    """
+    try:
+        from hermes_cli.jarvis_prime import task_router as tr
+
+        overrides = tr.load_overrides()
+        decisions = tr.all_routes(overrides=overrides)
+        payload = {
+            "routes": [d.to_dict() for d in decisions],
+            "task_classes": [t.value for t in tr.TaskClass],
+            "paid_enabled": bool(decisions[0].paid_enabled) if decisions else False,
+            "overrides": {
+                "task_overrides": overrides.get("task_overrides", {}),
+                "paid_enabled": overrides.get("paid_enabled"),
+                "updated_at": overrides.get("updated_at"),
+            },
+            "generated_at": _now_iso(),
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"routes": [], "error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def model_route_override(req: Request) -> JsonResponse:
+    """Set/clear an owner model override, or flip paid routing (owner-gated).
+
+    Body (any of):
+      * ``task_class`` + ``model`` — pin a task to a model (``model`` empty or
+        null clears the override). Reversible preference; token-authenticated.
+      * ``paid_enabled`` (bool) — flip paid routing. Money-spend gate: requires
+        ``authorization`` to equal the exact owner phrase. Audited via the
+        override store (``authorized_by`` + ``updated_at``).
+    Never accepts API keys.
+    """
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    body = req.body or {}
+    changed: dict[str, Any] = {}
+
+    # Validate the *entire* body before mutating anything. A combined body
+    # (paid flip + a bad task class) must not leave the money-spend gate
+    # changed while the request as a whole returns an error.
+    want_paid = "paid_enabled" in body and body["paid_enabled"] is not None
+    want_task = "task_class" in body
+
+    if not (want_paid or want_task):
+        return JsonResponse(
+            400,
+            {"error": "provide 'task_class'(+'model') and/or 'paid_enabled'"},
+        )
+
+    if want_paid:
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+        phrase = str(body.get("authorization", "")).strip()
+        if phrase != AUTHORIZATION_PHRASE:
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner authorization required to change paid routing",
+                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                },
+            )
+
+    pending_task: tuple[str, str | None] | None = None
+    if want_task:
+        task_class = str(body.get("task_class", "")).strip()
+        try:
+            tr.TaskClass.from_value(task_class)
+        except ValueError:
+            return JsonResponse(400, {"error": f"unknown task class: {task_class!r}"})
+        raw_model = body.get("model")
+        model = str(raw_model).strip() if raw_model else None
+        pending_task = (task_class, model)
+
+    # All inputs validated — now apply the mutations.
+    if want_paid:
+        try:
+            tr.set_paid_enabled(bool(body["paid_enabled"]), authorized=True)
+            changed["paid_enabled"] = bool(body["paid_enabled"])
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+
+    if pending_task is not None:
+        task_class, model = pending_task
+        try:
+            tr.set_task_override(task_class, model)
+            changed["task_class"] = task_class
+            changed["model"] = model
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+
+    overrides = tr.load_overrides()
+    return JsonResponse(
+        200,
+        {
+            "ok": True,
+            "changed": changed,
+            "overrides": {
+                "task_overrides": overrides.get("task_overrides", {}),
+                "paid_enabled": overrides.get("paid_enabled"),
+                "updated_at": overrides.get("updated_at"),
+            },
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Memory (real JARVIS memory store; secret-rejection preserved)
 # ---------------------------------------------------------------------------

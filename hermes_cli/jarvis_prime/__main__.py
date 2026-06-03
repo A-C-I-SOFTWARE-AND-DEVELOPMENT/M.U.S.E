@@ -1081,6 +1081,10 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
             owner_corrections=getattr(args, "owner_corrections", 0),
             hallucination_corrections=getattr(args, "hallucination_corrections", 0),
             accepted_diff_rate=getattr(args, "accepted_diff_rate", None),
+            context_length=getattr(args, "context_length", 0) or 0,
+            tool_reliability=getattr(args, "tool_reliability", None),
+            citation_accuracy=getattr(args, "citation_accuracy", None),
+            mobile_ux_suitability=getattr(args, "mobile_ux_suitability", None),
         )
         book.record(card)
         if args.json:
@@ -1097,7 +1101,11 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
         return 0
 
     if args.op == "recommend":
-        ranked = book.recommend(args.task, risk_class=getattr(args, "risk_class", None))
+        ranked = book.recommend(
+            args.task,
+            risk_class=getattr(args, "risk_class", None),
+            task_class=getattr(args, "task_class", None) or args.task,
+        )
         if args.json:
             _print_json([{"model": m, "score": s, "samples": n} for m, s, n in ranked])
         else:
@@ -1107,6 +1115,34 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
 
     print(f"error: unknown model-scorecard op {args.op!r}", file=sys.stderr)
     return 2
+
+
+def _cmd_route(args: argparse.Namespace) -> int:
+    """Explain the evidence-backed model route for a task class."""
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    if getattr(args, "task", None):
+        try:
+            decision = tr.route_for_task(args.task)
+        except ValueError as exc:
+            print(
+                f"error: {exc}. Known task classes: "
+                + ", ".join(t.value for t in tr.TaskClass),
+                file=sys.stderr,
+            )
+            return 2
+        if args.json:
+            _print_json(decision.to_dict())
+        else:
+            print(tr.explain(decision))
+        return 0
+
+    decisions = tr.all_routes()
+    if args.json:
+        _print_json([d.to_dict() for d in decisions])
+    else:
+        print("\n\n".join(tr.explain(d) for d in decisions))
+    return 0
 
 
 def _cmd_owner_brief(args: argparse.Namespace) -> int:
@@ -1746,11 +1782,42 @@ def main(argv: Optional[list[str]] = None) -> int:
         default=0,
     )
     p_score.add_argument("--accepted-diff-rate", dest="accepted_diff_rate", type=float)
+    p_score.add_argument(
+        "--context-length", dest="context_length", type=int, default=0,
+        help="Max context window the model offers (tokens)",
+    )
+    p_score.add_argument(
+        "--tool-reliability", dest="tool_reliability", type=float,
+        help="Measured tool-call reliability [0..1]",
+    )
+    p_score.add_argument(
+        "--citation-accuracy", dest="citation_accuracy", type=float,
+        help="Measured citation accuracy [0..1]",
+    )
+    p_score.add_argument(
+        "--mobile-ux-suitability", dest="mobile_ux_suitability", type=float,
+        help="Measured suitability for the mobile cockpit [0..1]",
+    )
+    p_score.add_argument(
+        "--task-class", dest="task_class",
+        help="Task class to weight the 'recommend' ranking by (defaults to --task)",
+    )
     p_score.add_argument("--endpoint", default="http://localhost:8000/v1")
     p_score.add_argument("--server", default="vllm")
     p_score.add_argument("--store", help="Path to a persistent scorecard JSONL file")
     p_score.add_argument("--json", action="store_true")
     p_score.set_defaults(func=_cmd_model_scorecard)
+
+    p_route = sub.add_parser(
+        "route",
+        help="Explain the evidence-backed model route for a task class",
+    )
+    p_route.add_argument(
+        "--task",
+        help="Task class (e.g. coding_build); omit to show all task classes",
+    )
+    p_route.add_argument("--json", action="store_true")
+    p_route.set_defaults(func=_cmd_route)
 
     # owner-brief — daily owner brief from a monitor context.
     p_brief = sub.add_parser(

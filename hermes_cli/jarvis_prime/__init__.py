@@ -106,6 +106,12 @@ from hermes_cli.jarvis_prime.model_scorecard import (
     ScorecardBook,
     local_endpoint_packet,
 )
+from hermes_cli.jarvis_prime.task_router import (
+    ModelRouteDecision,
+    TaskClass,
+    all_routes,
+    route_for_task,
+)
 from hermes_cli.jarvis_prime.monitor_collectors import (
     collect_context as collect_monitor_context,
     collect_memory_contradictions,
@@ -303,6 +309,10 @@ __all__ = [
     "RouteTarget",
     "Router",
     "Rule",
+    "ModelRouteDecision",
+    "TaskClass",
+    "all_routes",
+    "route_for_task",
     "ScorecardBook",
     "SensitivityClass",
     "SkillProposalCard",

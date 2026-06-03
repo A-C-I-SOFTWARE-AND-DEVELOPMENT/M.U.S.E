@@ -16,6 +16,7 @@ import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.CockpitModelRoutesRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.devicecontrol.DeviceActionLedger
 import com.aci.hermes.data.devicecontrol.DeviceControlController
@@ -49,6 +50,7 @@ import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
+import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -162,6 +164,9 @@ class AppContainer(private val application: Application) {
     /** GraphRAG knowledge graph — related items + query modes + rebuild. */
     val cockpitGraphRepository: com.aci.hermes.data.cockpit.CockpitGraphRepository =
         com.aci.hermes.data.cockpit.CockpitGraphRepository(cockpitClient)
+
+    val cockpitModelRoutesRepository: CockpitModelRoutesRepository =
+        CockpitModelRoutesRepository(cockpitClient)
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -285,6 +290,10 @@ class AppContainer(private val application: Application) {
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
         DiagnosticsViewModel(logBuffer)
+    }
+
+    fun modelRouteVmFactory(): ViewModelProvider.Factory = factory {
+        ModelRouteViewModel(cockpitModelRoutesRepository)
     }
 
     fun avatarPickerVmFactory(): ViewModelProvider.Factory = factory {
