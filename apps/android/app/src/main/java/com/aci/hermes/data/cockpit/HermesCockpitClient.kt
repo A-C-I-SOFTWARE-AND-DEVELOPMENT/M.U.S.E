@@ -99,6 +99,22 @@ class HermesCockpitClient(
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
 
+    // ─── Avatar persona ("make my avatar Goku") ──────────────────────────
+
+    /** The companion's adopted persona, or an empty one if default. */
+    suspend fun personaGet(): CockpitResult<CockpitPersona> =
+        request("GET", "/v1/cockpit/avatar/persona", CockpitPersona.serializer())
+
+    /** Adopt a persona from a description — the model researches the character
+     *  and the companion speaks in-character. Empty description clears it. */
+    suspend fun personaSet(req: SetPersonaRequest): CockpitResult<CockpitPersona> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/persona",
+            CockpitPersona.serializer(),
+            body = json.encodeToString(SetPersonaRequest.serializer(), req),
+        )
+
     // ─── Approvals (contract §10c) ───────────────────────────────────────
 
     suspend fun approvalsList(): CockpitResult<CockpitApprovalCardList> =

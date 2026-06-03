@@ -535,3 +535,19 @@ enum class PublishState(val wire: String) {
             entries.firstOrNull { it.wire.equals(value, ignoreCase = true) }
     }
 }
+
+// ─── Avatar persona ("make my avatar Goku") ──────────────────────────────
+
+@Serializable
+data class CockpitPersona(
+    val name: String = "",
+    val description: String = "",
+    @SerialName("persona_prompt") val personaPrompt: String = "",
+    val generated: Boolean = false,
+)
+
+@Serializable
+data class SetPersonaRequest(
+    val description: String,
+    val name: String = "",
+)

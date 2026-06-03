@@ -246,6 +246,7 @@ class AppContainer(private val application: Application) {
             imageStore = avatarImageStore,
             repo = avatarRepository,
             logBuffer = logBuffer,
+            cockpitClient = cockpitClient,
         )
     }
 

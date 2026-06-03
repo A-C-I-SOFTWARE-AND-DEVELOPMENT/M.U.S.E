@@ -6,6 +6,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.Surface
 import com.aci.hermes.ui.screens.live.AvatarInputs
@@ -71,6 +75,7 @@ fun AvatarPickerScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val selectedSpriteId by viewModel.selectedSpriteId.collectAsState()
+    val persona by viewModel.persona.collectAsState()
 
     Scaffold(
         topBar = {
@@ -110,6 +115,11 @@ fun AvatarPickerScreen(
                     modifier = Modifier.size(168.dp),
                 )
             }
+
+            PersonaCreator(
+                persona = persona,
+                onBecome = viewModel::setPersona,
+            )
 
             Text("Choose your companion", style = MaterialTheme.typography.titleMedium)
             CharacterGrid(
@@ -182,6 +192,52 @@ fun AvatarPickerScreen(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
+    }
+}
+
+/** "Become a character" — describe who the companion should be; the runtime
+ *  researches them and the companion adopts that personality in chat. */
+@Composable
+private fun PersonaCreator(
+    persona: AvatarPickerViewModel.PersonaUi,
+    onBecome: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Become a character", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Describe who your companion should be — it researches them and adopts " +
+                "their personality (e.g. \"Goku from Dragon Ball\").",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Goku from Dragon Ball") },
+            singleLine = true,
+            enabled = !persona.busy,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { onBecome(text) },
+                enabled = !persona.busy && text.isNotBlank(),
+            ) { Text(if (persona.busy) "Working…" else "Become") }
+            OutlinedButton(
+                onClick = { onBecome(""); text = "" },
+                enabled = !persona.busy,
+            ) { Text("Reset") }
+        }
+        if (persona.name.isNotBlank()) {
+            Text("In character: ${persona.name}", style = MaterialTheme.typography.labelMedium)
+        }
+        if (persona.message.isNotBlank()) {
+            Text(
+                persona.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
