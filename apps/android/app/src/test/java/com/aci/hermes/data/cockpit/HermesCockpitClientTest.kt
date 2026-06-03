@@ -333,4 +333,34 @@ class HermesCockpitClientTest {
         assertTrue((fake.lastRequest?.body ?: "").contains("revoke"))
     }
 
+    @Test
+    fun `modelPolicy decodes a loose policy and tolerates unknown keys`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"routes":{"default":{"provider":"ollama","model":"llama3","enabled":true,"weird":1}},
+                   "free_first":true,"paid_opt_in":false,"surprise":"ignored"}""",
+            )
+        }
+        val result = client(fake).modelPolicy()
+        if (result !is CockpitResult.Success) { fail("expected Success, got $result"); return@runTest }
+        assertEquals(true, result.value.freeFirst)
+        assertEquals("ollama", result.value.routes["default"]?.provider)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/models", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `research decodes vault items`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"items":[{"id":"r1","title":"Benchmark","evidence_strength":"strong","summary":"s"}]}""",
+            )
+        }
+        val result = client(fake).research(limit = 5)
+        if (result !is CockpitResult.Success) { fail("expected Success, got $result"); return@runTest }
+        assertEquals("r1", result.value.items.single().id)
+        assertEquals("strong", result.value.items.single().evidenceStrength)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/research?limit=5", fake.lastRequest?.url)
+    }
 }

@@ -235,4 +235,143 @@ class JarvisHomeStateDeriverTest {
         )
         assertTrue(state.pendingApprovals.single().reason.isNotBlank())
     }
+
+    // ---- live backend overlay --------------------------------------------
+
+    private fun snapshot(
+        runningJobs: Int = 1,
+        workerId: String = "codex_cli",
+        approvalTier: String = "CRITICAL",
+        memoryTitle: String = "Owner prefers free-first",
+    ) = com.aci.hermes.data.cockpit.CockpitHomeSnapshot(
+        runtime = com.aci.hermes.data.cockpit.RuntimeStatus(
+            gateway = com.aci.hermes.data.cockpit.GatewayRuntime(
+                version = "0.1.0", startedAt = "t", mode = "local",
+            ),
+            host = com.aci.hermes.data.cockpit.HostInfo("Linux", "x86_64", "h"),
+            queue = com.aci.hermes.data.cockpit.QueueSnapshot(
+                running = runningJobs, queued = 0, waitingApproval = 1,
+            ),
+        ),
+        models = com.aci.hermes.data.cockpit.ModelPolicy(
+            routes = mapOf(
+                "default" to com.aci.hermes.data.cockpit.ModelRoute(
+                    provider = "ollama", model = "llama3", enabled = true,
+                ),
+            ),
+            freeFirst = true,
+        ),
+        workers = com.aci.hermes.data.cockpit.WorkerDetectionList(
+            workers = listOf(
+                com.aci.hermes.data.cockpit.DetectedWorker(
+                    id = workerId, displayName = "Codex", kind = "external_cli", available = true,
+                ),
+            ),
+        ),
+        jobs = com.aci.hermes.data.cockpit.JobList(
+            jobs = listOf(
+                com.aci.hermes.data.cockpit.CockpitJob(
+                    id = "job_1", title = "Refactor", workerId = workerId, status = "RUNNING",
+                    createdAt = "t", updatedAt = "t",
+                ),
+            ),
+        ),
+        approvals = com.aci.hermes.data.cockpit.CockpitApprovalCardList(
+            approvals = listOf(
+                com.aci.hermes.data.cockpit.CockpitApprovalCard(
+                    id = "appr_1", title = "Deploy to prod", tier = approvalTier,
+                    status = "PENDING", proposedAction = "push main",
+                ),
+            ),
+        ),
+        memory = com.aci.hermes.data.cockpit.CockpitMemoryList(
+            items = listOf(
+                com.aci.hermes.data.cockpit.CockpitMemoryItem(
+                    id = "m1", category = "preference", title = memoryTitle, content = "…",
+                    durability = "LONG", confidence = "HIGH",
+                    provenance = com.aci.hermes.data.cockpit.CockpitMemoryProvenance(source = "chat"),
+                    updatedAt = "2026-05-30T12:00:00Z",
+                ),
+            ),
+        ),
+        audit = com.aci.hermes.data.cockpit.CockpitAuditList(
+            records = listOf(
+                com.aci.hermes.data.cockpit.CockpitAuditRecord(
+                    id = "au1", timestamp = "2026-05-30T12:00:00Z", action = "job_1 dispatched",
+                    riskTier = "LOW",
+                ),
+            ),
+        ),
+        research = com.aci.hermes.data.cockpit.CockpitResearchList(
+            items = listOf(
+                com.aci.hermes.data.cockpit.CockpitResearchItem(
+                    id = "r1", title = "Benchmark", evidenceStrength = "strong",
+                    summary = "Model X tops the board",
+                ),
+            ),
+        ),
+    )
+
+    @Test fun `live snapshot overrides local approvals jobs workers memory`() {
+        val state = JarvisHomeStateDeriver.derive(
+            inputs(tasks = listOf(task(status = TaskStatus.DRAFT))).copy(
+                cockpit = snapshot(),
+                backendSync = HomeBackendSync.LIVE,
+            )
+        )
+        // Backend approval (CRITICAL) wins over the local DRAFT task.
+        assertEquals(1, state.pendingApprovals.size)
+        assertEquals(ApprovalRisk.CRITICAL, state.pendingApprovals.single().risk)
+        assertEquals(JarvisPresence.CRITICAL_ACTION_PENDING, state.presence)
+        // Jobs card supersedes the single local active-task card.
+        assertNull(state.activeTask)
+        assertEquals(1, state.cockpitJobs.size)
+        assertTrue(state.cockpitJobs.single().active)
+        // Worker is busy because a RUNNING job targets it.
+        assertTrue(state.workers.single().busy)
+        // Memory + model + audit + evidence come from the backend.
+        assertEquals("preference · Owner prefers free-first", state.memoryPulse.single().label)
+        assertNotNull(state.modelRouter)
+        assertEquals(true, state.modelRouter?.freeFirst)
+        assertEquals(1, state.auditEvents.size)
+        assertEquals(1, state.evidence.size)
+        assertEquals(HomeBackendSync.LIVE, state.backendSync)
+        assertEquals(GatewayStatus.CONNECTED, state.gateway)
+    }
+
+    @Test fun `backend liveness implies runtime up even when local service probe is false`() {
+        val state = JarvisHomeStateDeriver.derive(
+            inputs(running = false).copy(cockpit = snapshot(), backendSync = HomeBackendSync.LIVE)
+        )
+        // Not SERVICE_STOPPED — the headless gateway is answering.
+        assertEquals(JarvisPresence.CRITICAL_ACTION_PENDING, state.presence)
+    }
+
+    @Test fun `offline backend falls back to local derivation`() {
+        // A non-LIVE sync must not consume the snapshot — local tasks drive UI.
+        val state = JarvisHomeStateDeriver.derive(
+            inputs(tasks = listOf(task(status = TaskStatus.HANDED_TO_CODEX))).copy(
+                cockpit = snapshot(),
+                backendSync = HomeBackendSync.OFFLINE,
+                backendMessage = "unreachable",
+            )
+        )
+        assertEquals(JarvisPresence.WORKING, state.presence)
+        assertEquals("t1", state.activeTask?.taskId)
+        assertTrue(state.cockpitJobs.isEmpty())
+        assertEquals(HomeBackendSync.OFFLINE, state.backendSync)
+        assertEquals("unreachable", state.backendMessage)
+    }
+
+    @Test fun `device capability and voice phase pass through`() {
+        val cap = DeviceCapabilitySummary(headline = "Pixel · API 34", detail = "8000 MB RAM")
+        val state = JarvisHomeStateDeriver.derive(
+            inputs().copy(
+                deviceCapability = cap,
+                voicePhase = com.aci.hermes.voice.VoicePhase.LISTENING,
+            )
+        )
+        assertEquals(cap, state.deviceCapability)
+        assertEquals(com.aci.hermes.voice.VoicePhase.LISTENING, state.voicePhase)
+    }
 }

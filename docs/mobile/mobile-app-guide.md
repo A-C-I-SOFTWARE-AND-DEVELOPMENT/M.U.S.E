@@ -149,8 +149,40 @@ Release builds and Google Play info are in
 
 ## What you'll see on screen
 
-The cockpit has four primary screens (full wireframes in
+The cockpit's primary screens are described below (full wireframes in
 [`../android/hermes-apk-ui-wireframes.md`](../android/hermes-apk-ui-wireframes.md)).
+
+### Home — the command center
+The Home tab is the glanceable state of JARVIS plus the launchpad to every
+backend function. When the gateway is paired it shows **live** data pulled
+from the cockpit API on open and on pull-to-refresh:
+
+- JARVIS presence (idle / listening / thinking / working / waiting-for-
+  approval / serious / critical / service-stopped / emergency-stop / mock),
+- gateway connection pill and current **model/router** policy
+  (`GET /v1/cockpit/models`),
+- **active jobs** (`/jobs`), **pending approvals** (`/approvals`, risk-
+  coloured), **running workers** (`/runtime/workers` + queue),
+- **recent memory updates** (`/memory`), **recent evidence/research**
+  (`/research`), and the **last audit/ledger events** (`/events`),
+- on-device **voice/listening** state and **device capability** (RAM/API),
+- an always-present **Emergency Stop**.
+
+Quick actions launch the powerful paths: **Ask JARVIS**, **Audit repo**,
+**Continue coding**, **Run tests**, **Review patch**, **Approvals**,
+**Memory**, **Start voice**, and **Stop all work**. Actions that imply
+external or irreversible work open the owner-gated authoring/approval
+screens — Home never auto-dispatches them.
+
+Every card deep-links into its detail screen. When the gateway is **not
+paired or unreachable**, Home shows a useful banner (pair / retry) and falls
+back to local task-derived state instead of a blank screen — no fabricated
+data is ever shown.
+
+**Stop all work** engages the audited emergency-stop controller (state
+machine + decision ledger), cancels every non-terminal cockpit job, and
+stops the foreground service. Deactivating it writes a resume event to the
+same ledger.
 
 ### Dashboard
 Live list of jobs and active phases. Each row shows:

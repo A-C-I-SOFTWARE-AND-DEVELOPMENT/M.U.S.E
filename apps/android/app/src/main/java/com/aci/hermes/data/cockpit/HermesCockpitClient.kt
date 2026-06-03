@@ -310,6 +310,14 @@ class HermesCockpitClient(
     suspend fun auditProof(id: String): CockpitResult<CockpitProofRecord> =
         request("GET", "/v1/cockpit/audit/" + enc(id) + "/proof", CockpitProofRecord.serializer())
 
+    // ─── Model / router policy ───────────────────────────────────────────
+    suspend fun modelPolicy(): CockpitResult<ModelPolicy> =
+        request("GET", "/v1/cockpit/models", ModelPolicy.serializer())
+
+    // ─── Research Vault (evidence store) ─────────────────────────────────
+    suspend fun research(limit: Int = 10): CockpitResult<CockpitResearchList> =
+        request("GET", "/v1/cockpit/research?limit=$limit", CockpitResearchList.serializer())
+
     // ─── Jobs (contract §4) ──────────────────────────────────────────────
     suspend fun jobsList(): CockpitResult<JobList> =
         request("GET", "/v1/cockpit/jobs", JobList.serializer())

@@ -923,6 +923,59 @@ sets a level again via `POST /v1/cockpit/autonomy`. Returns:
 {"engaged": true, "cancelled_jobs": ["job_ab12"], "cancelled_count": 1,
  "autonomy_level": "read_only", "errors": []}
 ```
+## 10d. Research Vault — **canonical, implemented** (recent evidence, read-only)
+
+`GET /v1/cockpit/research` is **live**, projecting the JARVIS **Research
+Vault** (`hermes_cli/jarvis_prime/research_vault.py`) for the mobile home
+screen's evidence card and any research view.
+
+- Query: `?limit=` (default `10`). Items are **most-recent first**.
+- Response: `{ "items": [ ResearchItem ], "error"?: "…" }`. A missing or
+  empty vault returns `{ "items": [] }` — **never fabricated evidence**, and
+  a read failure degrades to an empty list with a non-fatal `error` string
+  (never a crash).
+
+### ResearchItem (one-to-one with `ResearchArtifact.to_dict()`)
+
+```json
+{
+  "id": "ab12…",
+  "title": "Model X benchmark",
+  "source_uri": "https://…",
+  "source_type": "manual",
+  "evidence_strength": "moderate",
+  "summary": "Model X tops the board on …",
+  "excerpt": "…stored citation text…",
+  "tags": ["models", "benchmark"],
+  "freshness_due": null,
+  "added_at": "2026-06-03T12:00:00Z"
+}
+```
+
+Kotlin mirror: `CockpitResearchItem` / `CockpitResearchList` in
+`CockpitApi.kt`; accessor `HermesCockpitClient.research(limit)`.
+
+This is a **read-only** projection — the app does not write the vault.
+
+---
+
+## 10e. Models / router policy — **read, typed**
+
+`GET /v1/cockpit/models` is **live** (handler `models`), returning the
+free-first router policy from `model_bootstrap.load_policy()` (or a
+`dry_run` preview when none is written yet). The shape is intentionally
+loose; the typed Kotlin mirror `ModelPolicy` / `ModelRoute`
+(`HermesCockpitClient.modelPolicy()`) is fully defaulted and the decoder
+ignores unknown keys, so an evolving policy never crashes the client. The
+handler **never accepts or stores API keys** — detection is env-presence
+only.
+
+> **Note (events vs audit):** the home command center's "Audit / ledger"
+> card reads the canonical **`GET /v1/cockpit/audit`** records (§10b,
+> `auditList()`), not `GET /v1/cockpit/events`. The events handler returns a
+> `_ledger_summary` shape (`id/title/type/status/source/timestamp`) that does
+> **not** match the contract's `CockpitEvent` (`ts/level/source/message`), so
+> the typed `audit` records are the reliable source for the card.
 
 ---
 

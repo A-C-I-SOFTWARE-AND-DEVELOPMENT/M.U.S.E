@@ -46,6 +46,9 @@ import com.aci.hermes.ui.screens.home.HomeScreen
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.jobs.JobsScreen
 import com.aci.hermes.ui.screens.jobs.JobsViewModel
+import com.aci.hermes.ui.screens.home.JarvisHomeNavigation
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeScreen
+import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryScreen
@@ -104,9 +107,6 @@ fun HermesNavHost(container: AppContainer) {
             if (taskId == null) Screen.TaskDetail.forNew()
             else Screen.TaskDetail.forTask(taskId),
         )
-    }
-    val prepareHandoff: (TargetTool) -> Unit = { target ->
-        nav.navigate(Screen.TaskDetail.forNew(target.name))
     }
 
     NavHost(navController = nav, startDestination = Screen.Splash.route) {
@@ -289,8 +289,8 @@ private fun NavGraphBuilder.shellDestinations(
     openDeviceControl: () -> Unit,
 ) {
     composable(Screen.Home.route) {
-        val vm: OrchestratorViewModel = viewModel(
-            factory = remember { container.orchestratorVmFactory() },
+        val vm: JarvisPrimeHomeViewModel = viewModel(
+            factory = remember { container.jarvisPrimeHomeVmFactory() },
         )
         ShellHost(
             currentRoute = Screen.Home.route,
@@ -300,14 +300,22 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            HomeScreen(
+            JarvisPrimeHomeScreen(
                 viewModel = vm,
                 paddingValues = padding,
-                onNavigate = onNavigateTab,
-                onOpenTask = openTask,
-                onPrepareHandoff = prepareHandoff,
-                onOpenJarvisLive = { nav.navigate(Screen.JarvisLive.route) },
-                onOpenVoice = { nav.navigate(Screen.Voice.route) },
+                navigation = JarvisHomeNavigation(
+                    openChat = { onNavigateTab(Screen.Chat) },
+                    openVoiceCapture = { nav.navigate(Screen.Voice.route) },
+                    openTasks = openTask,
+                    openTasksList = { onNavigateTab(Screen.Tasks) },
+                    openApprovals = { onNavigateTab(Screen.Approvals) },
+                    openMemory = { onNavigateTab(Screen.Memory) },
+                    openControl = { onNavigateTab(Screen.Control) },
+                    openSettings = openSettings,
+                    openAudit = { onNavigateTab(Screen.Audit) },
+                    openDiagnostics = openDiagnostics,
+                    openNewTask = { openTask(null) },
+                ),
             )
         }
     }

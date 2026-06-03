@@ -15,11 +15,14 @@ import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.data.cockpit.CockpitHomeRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitModelRoutesRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.devicecontrol.DeviceActionLedger
 import com.aci.hermes.data.devicecontrol.DeviceControlController
+import com.aci.hermes.data.emergency.EmergencyStopController
+import com.aci.hermes.data.emergency.EmergencyStopRepository
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatGateway
@@ -167,6 +170,22 @@ class AppContainer(private val application: Application) {
 
     val cockpitModelRoutesRepository: CockpitModelRoutesRepository =
         CockpitModelRoutesRepository(cockpitClient)
+    /**
+     * Aggregated read overlay behind the home command center — fans out to
+     * every cockpit read (runtime/models/workers/jobs/approvals/memory/
+     * events/research) and degrades honestly when unpaired/unreachable.
+     */
+    val cockpitHomeRepository: CockpitHomeRepository = CockpitHomeRepository(cockpitClient)
+
+    /**
+     * Audited emergency-stop controller (state machine + decision ledger +
+     * resume approval). Process-wide; loaded once so an engaged stop
+     * survives restarts. Backs the home "Stop all work" action.
+     */
+    val emergencyStopRepository: EmergencyStopRepository =
+        EmergencyStopRepository(context.filesDir)
+    val emergencyStopController: EmergencyStopController =
+        EmergencyStopController(emergencyStopRepository, logBuffer).also { it.load() }
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -366,6 +385,9 @@ class AppContainer(private val application: Application) {
             settings = settingsRepository,
             tasksRepo = taskRepository,
             logBuffer = logBuffer,
+            homeRepo = cockpitHomeRepository,
+            jobsRepo = cockpitJobsRepository,
+            emergencyController = emergencyStopController,
         )
     }
 

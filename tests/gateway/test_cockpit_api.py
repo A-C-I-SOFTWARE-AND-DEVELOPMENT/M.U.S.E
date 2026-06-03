@@ -423,6 +423,42 @@ def test_sessions_list_real_or_empty(server) -> None:
     assert "sessions" in payload and isinstance(payload["sessions"], list)
 
 
+# ---------------------------------------------------------------------------
+# research vault — recent evidence for the mobile home screen (read-only)
+# ---------------------------------------------------------------------------
+
+
+def test_research_empty_is_honest_empty(server, home: Path, monkeypatch) -> None:
+    # No vault file yet ⇒ an honest empty list, never a crash, never fakes.
+    monkeypatch.setenv("HOME", str(home))
+    status, payload = _get(server, "/v1/cockpit/research")
+    assert status == 200
+    assert payload.get("items") == []
+
+
+def test_research_lists_recent_with_limit(server, home: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(home))
+    from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+    vault = ResearchVault.load()  # default path resolves under the tmp HOME
+    vault.add(title="Benchmark A", source_uri="https://example.com/a", summary="A wins")
+    vault.add(title="Benchmark B", source_uri="https://example.com/b", summary="B wins")
+
+    status, payload = _get(server, "/v1/cockpit/research?limit=1")
+    assert status == 200
+    items = payload["items"]
+    assert len(items) == 1
+    one = items[0]
+    # Mirrors ResearchArtifact.to_dict() — the Android DTO depends on these keys.
+    assert {"id", "title", "evidence_strength", "summary", "added_at"} <= set(one.keys())
+
+
+def test_research_requires_auth(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/research", token=None)
+    assert exc.value.code == 401
+
+
 def test_refuses_non_loopback_bind(home: Path) -> None:
     with pytest.raises(ValueError):
         serve(host="0.0.0.0", port=0, token=TOKEN)

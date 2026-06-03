@@ -76,6 +76,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/audit/{id}/proof"), h.audit_proof, True),
     ("GET", _compile("/v1/cockpit/capabilities"), h.capabilities, True),
     ("POST", _compile("/v1/cockpit/emergency-stop"), h.emergency_stop, True),
+    ("GET", _compile("/v1/cockpit/research"), h.research_list, True),
     ("GET", _compile("/v1/cockpit/jobs"), h.jobs_list, True),
     ("POST", _compile("/v1/cockpit/jobs"), h.jobs_dispatch, True),
     # Static sub-paths MUST precede "/jobs/{id}" (else "lanes" is captured as id).
@@ -94,7 +95,6 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/autonomy"), h.autonomy_get, True),
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
-    ("POST", _compile("/v1/cockpit/emergency-stop"), h.emergency_stop, True),
     ("GET", _compile("/v1/cockpit/proposals"), h.proposals_list, True),
     ("GET", _compile("/v1/cockpit/learning"), h.learning_list, True),
     ("GET", _compile("/v1/cockpit/learning/export"), h.learning_export, True),

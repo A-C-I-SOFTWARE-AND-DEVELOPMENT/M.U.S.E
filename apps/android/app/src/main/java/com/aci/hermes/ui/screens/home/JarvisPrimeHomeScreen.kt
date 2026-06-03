@@ -23,7 +23,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -36,12 +35,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,14 +57,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.jarvis.ActiveTaskSnapshot
 import com.aci.hermes.data.jarvis.ApprovalRisk
+import com.aci.hermes.data.jarvis.AuditEventSummary
+import com.aci.hermes.data.jarvis.DeviceCapabilitySummary
+import com.aci.hermes.data.jarvis.EvidenceSummary
 import com.aci.hermes.data.jarvis.GatewayStatus
+import com.aci.hermes.data.jarvis.HomeBackendSync
 import com.aci.hermes.data.jarvis.JarvisHomeState
 import com.aci.hermes.data.jarvis.JarvisPresence
+import com.aci.hermes.data.jarvis.JobSummary
 import com.aci.hermes.data.jarvis.MemoryPulseEntry
+import com.aci.hermes.data.jarvis.ModelRouterSummary
 import com.aci.hermes.data.jarvis.PendingApproval
 import com.aci.hermes.data.jarvis.SuggestedAction
 import com.aci.hermes.data.jarvis.SuggestedKind
 import com.aci.hermes.data.jarvis.WorkerStatus
+import com.aci.hermes.voice.VoicePhase
 import com.aci.hermes.ui.jarvis.rememberJarvisHaptics
 import com.aci.hermes.ui.theme.HermesError
 import com.aci.hermes.ui.theme.HermesGold
@@ -87,10 +91,14 @@ data class JarvisHomeNavigation(
     val openChat: () -> Unit,
     val openVoiceCapture: () -> Unit,
     val openTasks: (taskId: String?) -> Unit,
+    val openTasksList: () -> Unit,
     val openApprovals: (taskId: String?) -> Unit,
     val openMemory: () -> Unit,
     val openControl: () -> Unit,
     val openSettings: () -> Unit,
+    val openAudit: () -> Unit,
+    val openDiagnostics: () -> Unit,
+    val openNewTask: () -> Unit,
 )
 
 object JarvisHomeTestTags {
@@ -105,6 +113,14 @@ object JarvisHomeTestTags {
     const val MEMORY_PULSE = "jarvis_memory_pulse"
     const val EMERGENCY_STOP = "jarvis_emergency_stop"
     const val SUGGESTED_ACTION = "jarvis_suggested_action"
+    const val BACKEND_BANNER = "jarvis_backend_banner"
+    const val MODEL_ROUTER = "jarvis_model_router"
+    const val JOBS = "jarvis_jobs"
+    const val AUDIT_EVENTS = "jarvis_audit_events"
+    const val EVIDENCE = "jarvis_evidence"
+    const val DEVICE_CAPABILITY = "jarvis_device_capability"
+    const val VOICE_STATE = "jarvis_voice_state"
+    const val QUICK_ACTIONS = "jarvis_quick_actions"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,13 +128,18 @@ object JarvisHomeTestTags {
 fun JarvisPrimeHomeScreen(
     viewModel: JarvisPrimeHomeViewModel,
     navigation: JarvisHomeNavigation,
+    paddingValues: PaddingValues = PaddingValues(),
 ) {
     val state by viewModel.state.collectAsState()
-    LaunchedEffect(Unit) { viewModel.refreshServiceStatus() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshServiceStatus()
+        viewModel.refreshBackend()
+    }
 
     JarvisPrimeHomeContent(
         state = state,
         navigation = navigation,
+        paddingValues = paddingValues,
         onAskSubmitted = { _ ->
             viewModel.startThinking()
             navigation.openChat()
@@ -133,6 +154,7 @@ fun JarvisPrimeHomeScreen(
         },
         onDeactivateEmergencyStop = viewModel::deactivateEmergencyStop,
         onStartService = viewModel::startService,
+        onRetryBackend = viewModel::refreshBackend,
     )
 }
 
@@ -147,41 +169,61 @@ fun JarvisPrimeHomeContent(
     onEmergencyConfirmed: () -> Unit,
     onDeactivateEmergencyStop: () -> Unit,
     onStartService: () -> Unit,
+    paddingValues: PaddingValues = PaddingValues(),
+    onRetryBackend: () -> Unit = {},
 ) {
     var emergencyConfirmOpen by remember { mutableStateOf(false) }
     val haptics = rememberJarvisHaptics()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Jarvis Prime") },
-                actions = {
-                    IconButton(onClick = navigation.openSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
-        ) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
+    ) {
             item {
                 JarvisStatusHeader(
                     presence = state.presence,
                     onIconTap = onIconTapped,
                 )
             }
+            if (state.backendSync == HomeBackendSync.NOT_PAIRED ||
+                state.backendSync == HomeBackendSync.OFFLINE
+            ) {
+                item {
+                    BackendUnavailableBanner(
+                        sync = state.backendSync,
+                        message = state.backendMessage,
+                        onRetry = onRetryBackend,
+                        onPair = navigation.openSettings,
+                    )
+                }
+            }
             item {
                 AskJarvisBar(
                     enabled = state.presence != JarvisPresence.EMERGENCY_STOP_ACTIVE,
                     onSubmit = onAskSubmitted,
                     onTap = navigation.openChat,
+                )
+            }
+            item {
+                QuickActionsCard(
+                    enabled = state.presence != JarvisPresence.EMERGENCY_STOP_ACTIVE,
+                    onAction = { action ->
+                        when (action) {
+                            QuickAction.ASK -> navigation.openChat()
+                            QuickAction.AUDIT_REPO -> navigation.openNewTask()
+                            QuickAction.CONTINUE_CODING -> navigation.openTasksList()
+                            QuickAction.RUN_TESTS -> navigation.openNewTask()
+                            QuickAction.REVIEW_PATCH -> navigation.openApprovals(null)
+                            QuickAction.OPEN_APPROVALS -> navigation.openApprovals(null)
+                            QuickAction.OPEN_MEMORY -> navigation.openMemory()
+                            QuickAction.START_VOICE -> onVoiceTapped()
+                            QuickAction.STOP_ALL -> { /* handled by emergency button below */ }
+                        }
+                    },
                 )
             }
             item {
@@ -242,11 +284,43 @@ fun JarvisPrimeHomeContent(
                     onClick = navigation.openControl,
                 )
             }
+            state.modelRouter?.let { router ->
+                item {
+                    ModelRouterCard(router = router, onClick = navigation.openControl)
+                }
+            }
+            if (state.cockpitJobs.isNotEmpty()) {
+                item {
+                    JobsCard(jobs = state.cockpitJobs, onClick = navigation.openTasksList)
+                }
+            }
             item {
                 MemoryPulseCard(
                     pulse = state.memoryPulse,
                     onClick = navigation.openMemory,
                 )
+            }
+            if (state.evidence.isNotEmpty()) {
+                item {
+                    EvidenceCard(evidence = state.evidence, onClick = navigation.openAudit)
+                }
+            }
+            if (state.auditEvents.isNotEmpty()) {
+                item {
+                    AuditEventsCard(events = state.auditEvents, onClick = navigation.openAudit)
+                }
+            }
+            item {
+                VoiceStateCard(
+                    phase = state.voicePhase,
+                    enabled = state.presence != JarvisPresence.EMERGENCY_STOP_ACTIVE,
+                    onClick = onVoiceTapped,
+                )
+            }
+            state.deviceCapability?.let { cap ->
+                item {
+                    DeviceCapabilityCard(capability = cap, onClick = navigation.openDiagnostics)
+                }
             }
             item {
                 EmergencyStopButton(
@@ -261,7 +335,6 @@ fun JarvisPrimeHomeContent(
                 )
             }
         }
-    }
 
     if (emergencyConfirmOpen) {
         AlertDialog(
@@ -646,6 +719,272 @@ fun SuggestedNextActionCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Suggested next action", style = MaterialTheme.typography.labelMedium, color = HermesGold)
             Text(suggested.label, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
+@Composable
+fun BackendUnavailableBanner(
+    sync: HomeBackendSync,
+    message: String?,
+    onRetry: () -> Unit,
+    onPair: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val notPaired = sync == HomeBackendSync.NOT_PAIRED
+    val title = if (notPaired) "Backend not paired" else "Backend unreachable"
+    val body = when {
+        notPaired -> "Pair a gateway in Settings to see live jobs, approvals, " +
+            "workers, memory, and audit. Local controls still work."
+        else -> message ?: "Showing last-known local state. Tap retry once the gateway is up."
+    }
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.BACKEND_BANNER)
+            .fillMaxWidth()
+            .border(2.dp, HermesGoldDeep, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = HermesGoldDeep)
+            Text(body, style = MaterialTheme.typography.bodySmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (notPaired) {
+                    Button(onClick = onPair) { Text("Open Settings") }
+                } else {
+                    Button(onClick = onRetry) { Text("Retry") }
+                }
+            }
+        }
+    }
+}
+
+enum class QuickAction {
+    ASK, AUDIT_REPO, CONTINUE_CODING, RUN_TESTS, REVIEW_PATCH,
+    OPEN_APPROVALS, OPEN_MEMORY, START_VOICE, STOP_ALL,
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun QuickActionsCard(
+    enabled: Boolean,
+    onAction: (QuickAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Stop-all is intentionally omitted here — it is the dedicated emergency
+    // button at the foot of the screen, so it cannot be triggered by a stray tap.
+    val actions = listOf(
+        QuickAction.ASK to "Ask JARVIS",
+        QuickAction.AUDIT_REPO to "Audit repo",
+        QuickAction.CONTINUE_CODING to "Continue coding",
+        QuickAction.RUN_TESTS to "Run tests",
+        QuickAction.REVIEW_PATCH to "Review patch",
+        QuickAction.OPEN_APPROVALS to "Approvals",
+        QuickAction.OPEN_MEMORY to "Memory",
+        QuickAction.START_VOICE to "Start voice",
+    )
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.QUICK_ACTIONS)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Quick actions", style = MaterialTheme.typography.labelMedium, color = HermesGold)
+            actions.chunked(2).forEach { row ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { (action, label) ->
+                        OutlinedButton(
+                            onClick = { onAction(action) },
+                            enabled = enabled,
+                            modifier = Modifier.weight(1f),
+                        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+                    }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ModelRouterCard(
+    router: ModelRouterSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.MODEL_ROUTER)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Model / router", style = MaterialTheme.typography.labelMedium, color = HermesGold)
+            Text(router.headline, style = MaterialTheme.typography.titleMedium)
+            Text(router.detail, style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JobsCard(
+    jobs: List<JobSummary>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.JOBS)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            val active = jobs.count { it.active }
+            Text(
+                "Jobs · $active active / ${jobs.size} total",
+                style = MaterialTheme.typography.labelMedium,
+                color = HermesGold,
+            )
+            jobs.take(4).forEach { job ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        job.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        job.statusLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (job.active) HermesGold else MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AuditEventsCard(
+    events: List<AuditEventSummary>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.AUDIT_EVENTS)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Audit / ledger", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
+            events.forEach { event ->
+                val time = event.timestamp?.let { formatTime(it) } ?: event.level
+                Text(
+                    text = "$time · ${event.message}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EvidenceCard(
+    evidence: List<EvidenceSummary>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.EVIDENCE)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Evidence / research", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
+            evidence.forEach { item ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        "${item.title} · ${item.strength}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    if (item.summary.isNotBlank()) {
+                        Text(item.summary, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun VoiceStateCard(
+    phase: VoicePhase,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val label = when {
+        !enabled -> "Voice blocked (emergency stop)"
+        phase == VoicePhase.DORMANT -> "Voice idle"
+        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Jarvis”"
+        phase == VoicePhase.LISTENING -> "Listening…"
+        phase == VoicePhase.THINKING -> "Thinking…"
+        else -> "Speaking…"
+    }
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.VOICE_STATE)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        // Disabled card is a no-op while the emergency stop is engaged — voice
+        // is one of the actions the stop dialog promises to block.
+        enabled = enabled,
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Voice", style = MaterialTheme.typography.labelMedium, color = HermesGold)
+            Text(label, style = MaterialTheme.typography.titleMedium)
+            Text(
+                if (enabled) "Tap to start voice capture." else "Deactivate the stop to use voice.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceCapabilityCard(
+    capability: DeviceCapabilitySummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.DEVICE_CAPABILITY)
+            .fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        onClick = onClick,
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("Device", style = MaterialTheme.typography.labelMedium, color = HermesGold)
+            Text(capability.headline, style = MaterialTheme.typography.titleMedium)
+            Text(capability.detail, style = MaterialTheme.typography.bodySmall)
         }
     }
 }
