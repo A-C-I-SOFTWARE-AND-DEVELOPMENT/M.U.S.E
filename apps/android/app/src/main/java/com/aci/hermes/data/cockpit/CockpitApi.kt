@@ -479,6 +479,54 @@ data class CockpitApprovalDecisionResult(
     val hint: String? = null,
 )
 
+// ─── Voice intake (mobile-native, hands-free) ─────────────────────────
+//
+// Mirrors the canonical pipeline exposed by gateway/cockpit (which wraps
+// hermes_cli.voice_intake). The app sends an already-transcribed string and
+// the backend owns read-back / classification / the driving-mode safety
+// veto — the client never reimplements them.
+
+/** POST body for `voice/intake`. */
+@Serializable
+data class VoiceIntakeRequest(
+    val transcript: String,
+    val mode: String? = null,
+)
+
+@Serializable
+data class VoiceDraftView(
+    val intent: String = "unknown",
+    val summary: String = "",
+    @SerialName("publish_action") val publishAction: Boolean = false,
+    @SerialName("requires_implementation") val requiresImplementation: Boolean = false,
+)
+
+/** Response from `voice/intake` — the read-back the user must hear/confirm. */
+@Serializable
+data class VoiceIntakeResult(
+    val id: String = "",
+    val mode: String = "push_to_talk",
+    val readback: String = "",
+    @SerialName("approval_state") val approvalState: String = "pending_readback",
+    val draft: VoiceDraftView = VoiceDraftView(),
+)
+
+/** POST body for `voice/{id}/decide` — the explicit spoken/typed phrase. */
+@Serializable
+data class VoiceDecisionRequest(
+    val phrase: String? = null,
+)
+
+/** Response from `voice/{id}/decide`. A `409` Failure carries the driving
+ *  veto / confirmation-required hint (parsed from the error envelope). */
+@Serializable
+data class VoiceDecisionResult(
+    val id: String = "",
+    val state: String = "pending_readback",
+    @SerialName("job_id") val jobId: String? = null,
+    val notes: List<String> = emptyList(),
+)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable
