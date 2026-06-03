@@ -127,8 +127,6 @@ class CockpitJobsRepository(
         return res
     }
 
-    suspend fun get(id: String): CockpitResult<CockpitJob> = client.jobGet(id)
-
     /** Detected worker lanes the gateway offers (informational; see [lanes]). */
     suspend fun workers(): CockpitResult<WorkerDetectionList> = client.runtimeWorkers()
 

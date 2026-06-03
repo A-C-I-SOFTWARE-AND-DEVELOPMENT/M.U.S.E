@@ -177,6 +177,10 @@ class AppContainer(private val application: Application) {
     // for @Preview / tests only. The ViewModel calls refresh() for the real list.
     val evidenceRepository: EvidenceRepository = EvidenceRepository(
         seed = emptyList(),
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
     // Memory Tree (MEM-2): the proposed-inbox / contradiction / freshness
     // surface, backed by the provenance-first MemoryTreeStore over the cockpit.
     val memoryTreeRepository: MemoryTreeRepository = MemoryTreeRepository(
