@@ -78,4 +78,47 @@ class CockpitJobsRepositoryTest {
         assertTrue(res is CockpitResult.Failure)
         assertEquals(409, (res as CockpitResult.Failure).httpStatus)
     }
+
+    @Test
+    fun `run posts the owner phrase to the run route then refreshes`() = runTest {
+        var runBody: String? = null
+        var runUrl: String? = null
+        val repo = CockpitJobsRepository(
+            client { req ->
+                when {
+                    req.method == "POST" && req.url.endsWith("/jobs/job_1/run") -> {
+                        runUrl = req.url
+                        runBody = req.body
+                        CockpitRawResponse(200, """{"job":${job("job_1", "RUNNING")},"worker_trail":[]}""")
+                    }
+                    else -> CockpitRawResponse(
+                        200,
+                        """{"jobs":[${job("job_1", "RUNNING")}],"next_cursor":null,"prev_cursor":null}""",
+                    )
+                }
+            }
+        )
+        val res = repo.run("job_1", workerId = "codex-execute", authorization = "Yes, with authorization.")
+        assertTrue(res is CockpitResult.Success)
+        assertTrue(runUrl!!.endsWith("/jobs/job_1/run"))
+        assertTrue(runBody!!.contains("\"worker_id\":\"codex-execute\""))
+        assertTrue(runBody!!.contains("Yes, with authorization."))
+        // refresh() ran after success.
+        assertEquals(1, repo.jobs.value.size)
+    }
+
+    @Test
+    fun `run without the owner phrase surfaces the gateway 403`() = runTest {
+        val repo = CockpitJobsRepository(
+            client {
+                CockpitRawResponse(
+                    403,
+                    """{"error":{"code":"forbidden","message":"owner approval required to run an execute lane"}}""",
+                )
+            }
+        )
+        val res = repo.run("job_1", workerId = "codex-execute", authorization = null)
+        assertTrue(res is CockpitResult.Failure)
+        assertEquals(403, (res as CockpitResult.Failure).httpStatus)
+    }
 }

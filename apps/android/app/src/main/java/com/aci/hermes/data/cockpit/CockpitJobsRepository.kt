@@ -77,5 +77,23 @@ class CockpitJobsRepository(
         return res
     }
 
+    /**
+     * Run a job on a worker. Execute lanes require the owner [authorization]
+     * phrase (the gateway returns `403` otherwise); the gate is enforced
+     * server-side and never bypassed here. Refreshes the list on success.
+     */
+    suspend fun run(
+        id: String,
+        workerId: String,
+        authorization: String? = null,
+    ): CockpitResult<RunJobResult> {
+        val res = client.jobRun(id, workerId, authorization)
+        if (res is CockpitResult.Success) refresh()
+        return res
+    }
+
     suspend fun get(id: String): CockpitResult<CockpitJob> = client.jobGet(id)
+
+    /** Detected worker lanes the gateway offers (for the dispatch picker). */
+    suspend fun workers(): CockpitResult<WorkerDetectionList> = client.runtimeWorkers()
 }

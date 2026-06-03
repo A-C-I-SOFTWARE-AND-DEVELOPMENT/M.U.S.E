@@ -130,6 +130,37 @@ data class DispatchJobRequest(
 @Serializable
 data class CancelJobRequest(val reason: String? = null)
 
+/**
+ * POST body for `jobs/{id}/run`. An execute lane (one whose worker
+ * `requires_approval`) only runs when [authorization] equals the exact owner
+ * phrase; the gateway returns `403` otherwise — and refuses entirely on a
+ * non-loopback cockpit. Non-gated lanes (local planner / handoff) ignore it.
+ */
+@Serializable
+data class RunJobRequest(
+    @SerialName("worker_id") val workerId: String,
+    val authorization: String? = null,
+)
+
+/**
+ * Result of `jobs/{id}/run` — the (advanced) job plus the tail of its worker
+ * ledger trail. `worker_trail` entries are free-form ledger dicts; only the
+ * fields the cockpit renders are modelled (the tolerant decoder ignores the
+ * rest).
+ */
+@Serializable
+data class RunJobResult(
+    val job: CockpitJob? = null,
+    @SerialName("worker_trail") val workerTrail: List<WorkerTrailEntry> = emptyList(),
+)
+
+@Serializable
+data class WorkerTrailEntry(
+    val kind: String = "",
+    @SerialName("worker_id") val workerId: String? = null,
+    val summary: String? = null,
+)
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable

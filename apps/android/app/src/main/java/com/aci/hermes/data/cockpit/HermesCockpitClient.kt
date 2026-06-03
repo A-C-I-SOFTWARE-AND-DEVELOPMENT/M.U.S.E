@@ -195,6 +195,28 @@ class HermesCockpitClient(
             body = json.encodeToString(CancelJobRequest.serializer(), CancelJobRequest(reason)),
         )
 
+    /**
+     * Run a job on a worker via the orchestrator's gated contract. Execute
+     * lanes (whose worker `requires_approval`) need the exact owner
+     * [authorization] phrase — the gateway returns `403` otherwise, and refuses
+     * entirely on a non-loopback cockpit. Returns the advanced job plus its
+     * worker ledger trail. The owner gate is never bypassed client-side.
+     */
+    suspend fun jobRun(
+        id: String,
+        workerId: String,
+        authorization: String? = null,
+    ): CockpitResult<RunJobResult> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/run",
+            RunJobResult.serializer(),
+            body = json.encodeToString(
+                RunJobRequest.serializer(),
+                RunJobRequest(workerId = workerId, authorization = authorization),
+            ),
+        )
+
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")
 

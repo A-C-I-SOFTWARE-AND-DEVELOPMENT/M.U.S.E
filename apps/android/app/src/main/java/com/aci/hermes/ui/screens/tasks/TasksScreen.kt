@@ -6,33 +6,45 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.data.cockpit.CockpitJob
+import com.aci.hermes.data.cockpit.DetectedWorker
+import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TaskSection
 import com.aci.hermes.data.model.TaskStatus
@@ -40,6 +52,8 @@ import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.model.linksApprovals
 import com.aci.hermes.data.model.linksAudit
 import com.aci.hermes.data.model.section
+import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
+import com.aci.hermes.ui.screens.jobs.JobsUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
@@ -60,6 +74,7 @@ fun TasksScreen(
     onOpenTask: (taskId: String?) -> Unit,
     onOpenApprovals: () -> Unit = {},
     onOpenAudit: () -> Unit = {},
+    jobsViewModel: CockpitJobsViewModel? = null,
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -71,32 +86,42 @@ fun TasksScreen(
         }
     }
 
+    // Backend orchestration jobs (cockpit contract §4) — only when a jobs VM is
+    // wired in (production via the nav graph; null in @Preview / older callers).
+    val jobsState: JobsUiState? = jobsViewModel?.ui?.collectAsState()?.value
+    LaunchedEffect(jobsState?.snackbar) {
+        jobsState?.snackbar?.let {
+            snackbarHostState.showSnackbar(it)
+            jobsViewModel?.consumeSnackbar()
+        }
+    }
+
+    var showDispatch by remember { mutableStateOf(false) }
+    var runTarget by remember { mutableStateOf<CockpitJob?>(null) }
+
     Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-        if (state.tasks.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(32.dp),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = stringResource(R.string.tasks_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(R.string.tasks_empty_body),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(top = 8.dp),
+        val grouped = remember(state.tasks) { state.tasks.groupBy { it.section() } }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
+        ) {
+            if (jobsState != null) {
+                backendJobsSection(
+                    jobsState = jobsState,
+                    onNew = { showDispatch = true },
+                    onRun = { job -> runTarget = job },
+                    onCancel = { job -> jobsViewModel?.cancel(job.id) },
                 )
             }
-        } else {
-            val grouped = remember(state.tasks) { state.tasks.groupBy { it.section() } }
-            LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
-            ) {
-                // Render every section in a fixed order; only non-empty ones appear.
+
+            // Local handoff tasks — behavior unchanged.
+            if (state.tasks.isEmpty()) {
+                item(key = "local_tasks_empty") { LocalTasksEmpty() }
+            } else {
+                item(key = "local_tasks_header") {
+                    SectionHeader(title = stringResource(R.string.orchestrator_tasks_title), count = state.tasks.size)
+                }
                 TaskSection.entries.forEach { sectionKey ->
                     val sectionTasks = grouped[sectionKey].orEmpty()
                     if (sectionTasks.isNotEmpty()) {
@@ -134,7 +159,243 @@ fun TasksScreen(
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
+
+    if (showDispatch && jobsViewModel != null && jobsState != null) {
+        DispatchJobDialog(
+            workers = jobsState.workers,
+            onDismiss = { showDispatch = false },
+            onDispatch = { title, prompt, workerId, workspace ->
+                jobsViewModel.dispatch(title, prompt, workerId, workspace)
+                showDispatch = false
+            },
+        )
+    }
+
+    runTarget?.let { job ->
+        RunJobDialog(
+            job = job,
+            workers = jobsState?.workers.orEmpty(),
+            onDismiss = { runTarget = null },
+            onRun = { workerId, authorization ->
+                jobsViewModel?.run(job.id, workerId, authorization)
+                runTarget = null
+            },
+        )
+    }
 }
+
+/** A friendly empty state for the local handoff task list. */
+@Composable
+private fun LocalTasksEmpty() {
+    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.tasks_empty_title),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = stringResource(R.string.tasks_empty_body),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+// ─── Backend orchestration jobs (cockpit §4) ──────────────────────────────
+
+/**
+ * Renders the *Backend jobs* section: header + a "new job" entry, then the real
+ * jobs from the gateway. Honest empty/not-paired/error states — never a fake
+ * job. Kept as a [LazyListScope] extension so it composes inline above the
+ * local handoff tasks in the same scrolling list.
+ */
+private fun LazyListScope.backendJobsSection(
+    jobsState: JobsUiState,
+    onNew: () -> Unit,
+    onRun: (CockpitJob) -> Unit,
+    onCancel: (CockpitJob) -> Unit,
+) {
+    item(key = "jobs_header") {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SectionHeader(title = stringResource(R.string.jobs_section_title), count = jobsState.jobs.size)
+            OutlinedButton(onClick = onNew) { Text(stringResource(R.string.jobs_new)) }
+        }
+    }
+
+    when (val sync = jobsState.sync) {
+        is JobsSync.NotPaired -> item(key = "jobs_not_paired") {
+            JobsNotice(stringResource(R.string.jobs_not_paired))
+        }
+        is JobsSync.Error -> item(key = "jobs_error") {
+            JobsNotice(stringResource(R.string.jobs_error_loading, sync.message), emphasised = true)
+        }
+        else -> if (jobsState.jobs.isEmpty()) {
+            item(key = "jobs_empty") { JobsNotice(stringResource(R.string.jobs_empty)) }
+        }
+    }
+
+    items(jobsState.jobs, key = { "job_" + it.id }) { job ->
+        JobRow(job = job, onRun = { onRun(job) }, onCancel = { onCancel(job) })
+    }
+}
+
+@Composable
+private fun JobsNotice(text: String, emphasised: Boolean = false) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = if (emphasised) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(vertical = 4.dp),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
+    val terminal = job.status.uppercase() in TERMINAL_JOB_STATUSES
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(job.title.ifBlank { job.id }, style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                AssistChip(onClick = {}, label = { Text(job.status.lowercase().replace('_', ' ')) })
+                AssistChip(onClick = {}, label = { Text(job.workerId.lowercase().replace('_', ' ')) })
+                job.validationSummary?.let { v ->
+                    AssistChip(onClick = {}, label = { Text("✓${v.pass} ✗${v.fail} …${v.pending}") })
+                }
+            }
+            job.branch?.takeIf { it.isNotBlank() }?.let {
+                Text(text = it, style = MaterialTheme.typography.bodySmall)
+            }
+            HorizontalDivider()
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onRun, enabled = !terminal) { Text(stringResource(R.string.jobs_run)) }
+                OutlinedButton(onClick = onCancel, enabled = !terminal) { Text(stringResource(R.string.jobs_cancel)) }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DispatchJobDialog(
+    workers: List<DetectedWorker>,
+    onDismiss: () -> Unit,
+    onDispatch: (title: String, prompt: String, workerId: String, workspace: String?) -> Unit,
+) {
+    var title by remember { mutableStateOf("") }
+    var prompt by remember { mutableStateOf("") }
+    var workspace by remember { mutableStateOf("") }
+    var workerId by remember { mutableStateOf(workers.firstOrNull()?.id.orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.jobs_new)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text(stringResource(R.string.jobs_field_title)) },
+                    singleLine = true,
+                )
+                OutlinedTextField(
+                    value = prompt,
+                    onValueChange = { prompt = it },
+                    label = { Text(stringResource(R.string.jobs_field_prompt)) },
+                )
+                if (workers.isNotEmpty()) {
+                    Text(stringResource(R.string.jobs_field_worker), style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        workers.forEach { w ->
+                            FilterChip(
+                                selected = w.id == workerId,
+                                onClick = { workerId = w.id },
+                                label = { Text(w.displayName) },
+                            )
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = workspace,
+                    onValueChange = { workspace = it },
+                    label = { Text(stringResource(R.string.jobs_field_workspace)) },
+                    singleLine = true,
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onDispatch(title.trim(), prompt.trim(), workerId, workspace.trim().ifBlank { null }) },
+                enabled = title.isNotBlank() && prompt.isNotBlank(),
+            ) { Text(stringResource(R.string.jobs_dispatch)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RunJobDialog(
+    job: CockpitJob,
+    workers: List<DetectedWorker>,
+    onDismiss: () -> Unit,
+    onRun: (workerId: String, authorization: String?) -> Unit,
+) {
+    var workerId by remember {
+        mutableStateOf(workers.firstOrNull { it.id == job.workerId }?.id ?: job.workerId.ifBlank { workers.firstOrNull()?.id.orEmpty() })
+    }
+    var phrase by remember { mutableStateOf("") }
+    val selectedWorker = workers.firstOrNull { it.id == workerId }
+    val needsOwner = CockpitJobsViewModel.runRequiresAuthorization(selectedWorker)
+    val ownerPhrase = stringResource(R.string.jobs_run_owner_phrase_hint)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.jobs_run) + ": " + job.title.ifBlank { job.id }) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (workers.isNotEmpty()) {
+                    Text(stringResource(R.string.jobs_field_worker), style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        workers.forEach { w ->
+                            FilterChip(
+                                selected = w.id == workerId,
+                                onClick = { workerId = w.id },
+                                label = { Text(w.displayName) },
+                            )
+                        }
+                    }
+                }
+                if (needsOwner) {
+                    Text(stringResource(R.string.jobs_run_owner_title), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.jobs_run_owner_body), style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(
+                        value = phrase,
+                        onValueChange = { phrase = it },
+                        label = { Text(ownerPhrase) },
+                        singleLine = true,
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onRun(workerId, if (needsOwner) phrase.trim() else null) },
+                // Owner gate: when authorization is required, the Run button stays
+                // disabled until the exact owner phrase is typed. The gateway
+                // re-checks it server-side regardless.
+                enabled = workerId.isNotBlank() && (!needsOwner || phrase.trim() == ownerPhrase),
+            ) { Text(stringResource(R.string.jobs_run)) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(android.R.string.cancel)) } },
+    )
+}
+
+private val TERMINAL_JOB_STATUSES =
+    setOf("PUBLISHED", "FAILED", "CANCELLED", "COMPLETED")
 
 private fun sectionTitleRes(section: TaskSection): Int = when (section) {
     TaskSection.ACTIVE -> R.string.tasks_section_active
