@@ -13,6 +13,8 @@ import com.aci.hermes.data.avatar.AvatarStyle
 import com.aci.hermes.data.avatar.JarvisBuiltin
 import com.aci.hermes.data.avatar.PixelSize
 import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.CockpitRoomItem
+import com.aci.hermes.data.cockpit.GenerateRoomRequest
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.cockpit.SetPersonaRequest
 import com.aci.hermes.util.LogBuffer
@@ -52,6 +54,52 @@ class AvatarPickerViewModel(
         viewModelScope.launch {
             (cockpitClient.personaGet() as? CockpitResult.Success)?.let {
                 _persona.value = PersonaUi(name = it.value.name)
+            }
+        }
+    }
+
+    // AI-furnished room ("type a Victorian desk → generate it").
+    data class RoomUi(
+        val items: List<CockpitRoomItem> = emptyList(),
+        val busy: Boolean = false,
+        val message: String = "",
+        val available: Boolean = true,
+    )
+
+    private val _room = MutableStateFlow(RoomUi())
+    val room: StateFlow<RoomUi> = _room.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            (cockpitClient.roomList() as? CockpitResult.Success)?.let { r ->
+                _room.update { it.copy(items = r.value.items, available = r.value.imageGeneration) }
+            }
+        }
+    }
+
+    /** Generate a piece of furniture from a description and add it to the room. */
+    fun generateRoomItem(prompt: String) {
+        val p = prompt.trim()
+        if (p.isBlank()) return
+        viewModelScope.launch {
+            _room.update { it.copy(busy = true, message = "") }
+            when (val r = cockpitClient.roomGenerate(GenerateRoomRequest(p))) {
+                is CockpitResult.Success -> _room.update {
+                    it.copy(items = it.items + r.value, busy = false, message = "Added: ${r.value.prompt}")
+                }
+                is CockpitResult.Failure -> _room.update {
+                    it.copy(
+                        busy = false,
+                        message = if (r.httpStatus == 503) {
+                            "No image model — set GEMINI_API_KEY in the runtime."
+                        } else {
+                            "Couldn't generate (HTTP ${r.httpStatus})."
+                        },
+                    )
+                }
+                is CockpitResult.Unreachable -> _room.update {
+                    it.copy(busy = false, message = "Not connected to the runtime — pair first.")
+                }
             }
         }
     }

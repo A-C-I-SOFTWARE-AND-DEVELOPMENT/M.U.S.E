@@ -115,6 +115,22 @@ class HermesCockpitClient(
             body = json.encodeToString(SetPersonaRequest.serializer(), req),
         )
 
+    // ─── Room editor (AI-generated furniture) ────────────────────────────
+
+    /** The companion's room items (with base64 images) + whether image-gen is on. */
+    suspend fun roomList(): CockpitResult<CockpitRoomList> =
+        request("GET", "/v1/cockpit/avatar/room", CockpitRoomList.serializer())
+
+    /** Generate a room item from a prompt ('a Victorian desk'). 503 if no image
+     *  model is configured. */
+    suspend fun roomGenerate(req: GenerateRoomRequest): CockpitResult<CockpitRoomItem> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/room",
+            CockpitRoomItem.serializer(),
+            body = json.encodeToString(GenerateRoomRequest.serializer(), req),
+        )
+
     // ─── Approvals (contract §10c) ───────────────────────────────────────
 
     suspend fun approvalsList(): CockpitResult<CockpitApprovalCardList> =

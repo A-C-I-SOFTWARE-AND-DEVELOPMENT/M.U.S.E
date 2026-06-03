@@ -76,6 +76,7 @@ fun AvatarPickerScreen(
     val state by viewModel.state.collectAsState()
     val selectedSpriteId by viewModel.selectedSpriteId.collectAsState()
     val persona by viewModel.persona.collectAsState()
+    val room by viewModel.room.collectAsState()
 
     Scaffold(
         topBar = {
@@ -119,6 +120,11 @@ fun AvatarPickerScreen(
             PersonaCreator(
                 persona = persona,
                 onBecome = viewModel::setPersona,
+            )
+
+            RoomEditor(
+                room = room,
+                onGenerate = viewModel::generateRoomItem,
             )
 
             Text("Choose your companion", style = MaterialTheme.typography.titleMedium)
@@ -194,6 +200,71 @@ fun AvatarPickerScreen(
             }
         }
     }
+}
+
+/** Room editor — type furniture ('a Victorian desk') and the image model
+ *  generates it; thumbnails show what's been added to the companion's room. */
+@Composable
+private fun RoomEditor(
+    room: AvatarPickerViewModel.RoomUi,
+    onGenerate: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Furnish the room", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Describe furniture and it's generated for the Den " +
+                "(e.g. \"a Victorian desk\"). Needs an image model in the runtime.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("a Victorian desk") },
+            singleLine = true,
+            enabled = !room.busy,
+        )
+        Button(
+            onClick = { onGenerate(text); text = "" },
+            enabled = !room.busy && text.isNotBlank(),
+        ) { Text(if (room.busy) "Generating…" else "Generate") }
+
+        if (room.items.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                room.items.forEach { item ->
+                    val bmp = remember(item.id) { decodeB64(item.imageB64) }
+                    if (bmp != null) {
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = item.prompt,
+                            modifier = Modifier.size(72.dp),
+                        )
+                    }
+                }
+            }
+        }
+        if (room.message.isNotBlank()) {
+            Text(
+                room.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+private fun decodeB64(b64: String?): android.graphics.Bitmap? {
+    if (b64.isNullOrBlank()) return null
+    return runCatching {
+        val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }.getOrNull()
 }
 
 /** "Become a character" — describe who the companion should be; the runtime

@@ -551,3 +551,21 @@ data class SetPersonaRequest(
     val description: String,
     val name: String = "",
 )
+
+// ─── Room editor (AI-generated furniture) ─────────────────────────────────
+
+@Serializable
+data class CockpitRoomItem(
+    val id: String = "",
+    val prompt: String = "",
+    @SerialName("image_b64") val imageB64: String? = null,
+)
+
+@Serializable
+data class CockpitRoomList(
+    val items: List<CockpitRoomItem> = emptyList(),
+    @SerialName("image_generation") val imageGeneration: Boolean = false,
+)
+
+@Serializable
+data class GenerateRoomRequest(val prompt: String)
