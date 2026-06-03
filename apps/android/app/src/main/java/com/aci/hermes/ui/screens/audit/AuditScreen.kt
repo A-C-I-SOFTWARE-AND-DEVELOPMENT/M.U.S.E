@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
@@ -50,6 +51,7 @@ fun AuditScreen(
     viewModel: AuditViewModel,
     onBack: () -> Unit,
     onOpenAudit: (String) -> Unit,
+    onOpenActivity: (() -> Unit)? = null,
 ) {
     val records by viewModel.records.collectAsState()
 
@@ -63,6 +65,19 @@ fun AuditScreen(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.action_back),
                         )
+                    }
+                },
+                actions = {
+                    if (onOpenActivity != null) {
+                        IconButton(
+                            onClick = onOpenActivity,
+                            modifier = Modifier.testTag("audit-open-activity"),
+                        ) {
+                            Icon(
+                                Icons.Default.Timeline,
+                                contentDescription = stringResource(R.string.audit_activity_action),
+                            )
+                        }
                     }
                 },
             )

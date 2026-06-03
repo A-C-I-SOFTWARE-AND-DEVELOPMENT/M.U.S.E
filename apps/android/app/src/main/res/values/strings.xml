@@ -400,6 +400,7 @@
     <!-- Audit screen and audit-detail screen -->
     <string name="audit_empty">No audited actions yet. Jarvis Prime will log every decision here.</string>
     <string name="audit_failed_badge">Failed</string>
+    <string name="audit_activity_action">Activity timeline</string>
     <string name="audit_detail_title">Audit detail</string>
     <string name="audit_detail_missing">That audit record is no longer available.</string>
     <string name="audit_detail_user_request">User request</string>

@@ -32,6 +32,10 @@ import com.aci.hermes.ui.screens.audit.AuditDetailScreen
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditScreen
 import com.aci.hermes.ui.screens.audit.AuditViewModel
+import com.aci.hermes.ui.screens.ledger.LedgerEventDetailScreen
+import com.aci.hermes.ui.screens.ledger.LedgerEventDetailViewModel
+import com.aci.hermes.ui.screens.ledger.LedgerTimelineScreen
+import com.aci.hermes.ui.screens.ledger.LedgerTimelineViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityScreen
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatScreen
@@ -314,6 +318,33 @@ fun HermesNavHost(
                 onBack = { nav.popBackStack() },
             )
         }
+
+        composable(Screen.LedgerTimeline.route) {
+            val vm: LedgerTimelineViewModel = viewModel(
+                factory = remember { container.ledgerTimelineVmFactory() },
+            )
+            LedgerTimelineScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenEvent = { eventId -> nav.navigate(Screen.LedgerEventDetail.forEvent(eventId)) },
+            )
+        }
+
+        composable(
+            route = Screen.LedgerEventDetail.route,
+            arguments = listOf(
+                navArgument(Screen.LedgerEventDetail.ARG_EVENT_ID) {
+                    type = NavType.StringType
+                    nullable = false
+                },
+            ),
+        ) { entry ->
+            val eventId = entry.arguments?.getString(Screen.LedgerEventDetail.ARG_EVENT_ID).orEmpty()
+            val vm: LedgerEventDetailViewModel = viewModel(
+                factory = remember(eventId) { container.ledgerEventVmFactory(eventId) },
+            )
+            LedgerEventDetailScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
         // Approvals is registered as a shell destination (with bottom-nav + emergency
         // stop) inside `shellDestinations` below. The legacy top-level Approvals
         // composable introduced by #107 was removed during integration to avoid a
@@ -511,6 +542,7 @@ private fun NavGraphBuilder.shellDestinations(
                     onOpenAudit = { auditId ->
                         nav.navigate(Screen.AuditDetail.forAudit(auditId))
                     },
+                    onOpenActivity = { nav.navigate(Screen.LedgerTimeline.route) },
                 )
             }
         }

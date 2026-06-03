@@ -10,6 +10,7 @@ import com.aci.hermes.approval.state.ApprovalStore
 import com.aci.hermes.approval.state.CockpitApprovalsRepository
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.data.audit.AuditRepository
+import com.aci.hermes.data.ledger.LedgerRepository
 import com.aci.hermes.data.audit.EmptyAuditSeed
 import com.aci.hermes.data.avatar.AvatarImageStore
 import com.aci.hermes.data.avatar.AvatarPixelator
@@ -42,6 +43,8 @@ import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
 import com.aci.hermes.ui.screens.audit.AuditViewModel
+import com.aci.hermes.ui.screens.ledger.LedgerEventDetailViewModel
+import com.aci.hermes.ui.screens.ledger.LedgerTimelineViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
@@ -196,6 +199,13 @@ class AppContainer(private val application: Application) {
     // production — no mock reaches a paired user; mock seed stays for tests).
     val auditRepository: AuditRepository = AuditRepository(
         seed = EmptyAuditSeed,
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
+    // Activity timeline: the redacted orchestrator event ledger
+    // (GET /v1/cockpit/ledger). Empty until paired — no fabricated events.
+    val ledgerRepository: LedgerRepository = LedgerRepository(
         client = cockpitClient,
         paired = ::cockpitPaired,
     )
@@ -357,6 +367,14 @@ class AppContainer(private val application: Application) {
 
     fun auditDetailVmFactory(auditId: String): ViewModelProvider.Factory = factory {
         AuditDetailViewModel(auditRepository, auditId)
+    }
+
+    fun ledgerTimelineVmFactory(): ViewModelProvider.Factory = factory {
+        LedgerTimelineViewModel(ledgerRepository)
+    }
+
+    fun ledgerEventVmFactory(eventId: String): ViewModelProvider.Factory = factory {
+        LedgerEventDetailViewModel(ledgerRepository, eventId)
     }
 
     fun capabilityVmFactory(): ViewModelProvider.Factory = factory {

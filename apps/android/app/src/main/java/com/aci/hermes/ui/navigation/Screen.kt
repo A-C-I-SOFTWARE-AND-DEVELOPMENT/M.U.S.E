@@ -45,6 +45,17 @@ sealed class Screen(val route: String) {
         fun forAudit(id: String): String = "audit_detail/$id"
     }
 
+    /** Activity timeline over the orchestrator event ledger (full-screen push). */
+    data object LedgerTimeline : Screen("ledger")
+
+    data object LedgerEventDetail : Screen("ledger_event/{eventId}") {
+        const val ARG_EVENT_ID = "eventId"
+
+        /** [eventId] is `"<jobId>:<index>"`; URL-encode the `:` for the route. */
+        fun forEvent(eventId: String): String =
+            "ledger_event/" + java.net.URLEncoder.encode(eventId, "UTF-8")
+    }
+
     data object TaskDetail : Screen("task_detail/{taskId}?target={target}") {
         const val ARG_TASK_ID = "taskId"
         const val ARG_TARGET = "target"
