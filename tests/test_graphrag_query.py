@@ -86,6 +86,23 @@ def test_find_entity_node_resolves_key(graph: KnowledgeGraph):
     assert find_entity_node(graph, key="does/not/exist") is None
 
 
+def test_find_entity_node_resolves_audit_id_via_attr(graph: KnowledgeGraph):
+    # Decision-ledger nodes are keyed by the full path but the cockpit audit
+    # screen passes the slug/stem; resolution must match via the audit_id attr.
+    dec = graph.add_node(
+        NodeType.DECISION,
+        "ledger:/home/u/.hermes/decisions/s1/0001-add-oauth.md",
+        title="Add OAuth",
+        attrs={"audit_id": "add-oauth"},
+    )
+    assert find_entity_node(graph, key="add-oauth") == dec.id
+    # The full ledger: key also resolves directly.
+    assert (
+        find_entity_node(graph, key="/home/u/.hermes/decisions/s1/0001-add-oauth.md")
+        == dec.id
+    )
+
+
 def test_render_is_inspectable(graph: KnowledgeGraph):
     ans = coding_query(graph, "calculator")
     text = ans.render()

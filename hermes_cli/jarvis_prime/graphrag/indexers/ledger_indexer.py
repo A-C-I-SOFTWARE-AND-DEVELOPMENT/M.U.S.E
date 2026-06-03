@@ -128,8 +128,19 @@ def _index_decision_ledger(graph: KnowledgeGraph) -> None:
         key = str(path)
         ref = {"uri": key, "kind": "decision_ledger"}
         title = _first_heading(text) or key
+        # The cockpit audit screen identifies a record by ``ledger.slug`` (or
+        # the path stem) — store that as ``audit_id`` so an evidence/audit id
+        # resolves to this decision node (the graph key itself is the full
+        # path, which the audit id never matches directly).
+        from pathlib import Path as _Path
+
+        audit_id = str(getattr(led, "slug", "") or "").strip() or _Path(key).stem
         dec = graph.add_node(
-            NodeType.DECISION, f"ledger:{key}", title=title, sources=[ref]
+            NodeType.DECISION,
+            f"ledger:{key}",
+            title=title,
+            attrs={"audit_id": audit_id, "path": key},
+            sources=[ref],
         )
         cited = 0
         seen: set[str] = set()

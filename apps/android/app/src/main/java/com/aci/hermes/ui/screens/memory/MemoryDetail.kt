@@ -100,6 +100,7 @@ fun MemoryDetail(
             relatedLoader?.let { loader ->
                 HorizontalDivider()
                 com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                    entityKey = item.id,
                     loader = { loader(item.id) },
                     title = "Related in knowledge graph",
                 )

@@ -11,9 +11,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -99,15 +101,21 @@ private fun RelatedRow(item: RelatedItem) {
  */
 @Composable
 fun KnowledgeRelatedCard(
+    entityKey: Any?,
     loader: suspend () -> CockpitResult<RelatedItemList>,
     modifier: Modifier = Modifier,
     title: String = "Knowledge graph",
 ) {
-    var items by remember { mutableStateOf<List<RelatedItem>?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    // Key the load by the stable entity id, not the loader lambda: an inline
+    // lambda has a fresh identity each recomposition, so keying LaunchedEffect
+    // by it would re-fire the request on every recomposition. rememberUpdatedState
+    // lets the effect call the latest loader without restarting.
+    val currentLoader by rememberUpdatedState(loader)
+    var items by remember(entityKey) { mutableStateOf<List<RelatedItem>?>(null) }
+    var error by remember(entityKey) { mutableStateOf<String?>(null) }
 
-    androidx.compose.runtime.LaunchedEffect(loader) {
-        when (val res = loader()) {
+    LaunchedEffect(entityKey) {
+        when (val res = currentLoader()) {
             is CockpitResult.Success -> items = res.value.related
             is CockpitResult.Failure -> {
                 error = "Gateway error ${res.httpStatus}"

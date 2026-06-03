@@ -117,6 +117,7 @@ fun AuditDetailScreen(
             relatedLoader?.let { loader ->
                 item {
                     com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                        entityKey = record.id,
                         loader = loader,
                         title = "Related in knowledge graph",
                     )

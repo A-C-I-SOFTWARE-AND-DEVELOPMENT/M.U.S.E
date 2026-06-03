@@ -277,6 +277,7 @@ fun TaskDetailScreen(
             if (!state.isNew && relatedLoader != null) {
                 val taskId = state.task.id
                 com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                    entityKey = taskId,
                     loader = { relatedLoader(taskId) },
                     title = "Related in knowledge graph",
                 )

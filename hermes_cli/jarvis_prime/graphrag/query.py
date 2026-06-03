@@ -341,9 +341,15 @@ def find_entity_node(
         candidates = [
             key,
             f"memory:{key}",
+            f"ledger:{key}",
             key.lstrip("./"),
         ]
         for n in graph.nodes.values():
             if n.key in candidates:
+                return n.id
+        # Audit/evidence ids are the ledger slug or path stem (not the full
+        # path the decision node is keyed by) — match them via ``audit_id``.
+        for n in graph.nodes.values():
+            if n.type == NodeType.DECISION and n.attrs.get("audit_id") == key:
                 return n.id
     return None
