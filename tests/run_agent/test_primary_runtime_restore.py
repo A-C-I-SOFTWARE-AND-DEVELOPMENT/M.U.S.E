@@ -374,25 +374,29 @@ class TestTryRecoverPrimaryTransport:
         agent = _make_agent(provider="custom")
         error = _make_transport_error("ReadTimeout")
 
+        # Patch the helper's own ``time`` reference (not the global
+        # ``time.sleep``) so background agent threads in other modules that
+        # call the real ``time.sleep`` can't bleed into this assertion's call
+        # count under parallel test execution.
         with patch("run_agent.OpenAI", return_value=MagicMock()), \
-             patch("time.sleep") as mock_sleep:
+             patch("agent.agent_runtime_helpers.time") as mock_time:
             agent._try_recover_primary_transport(
                 error, retry_count=3, max_retries=3,
             )
             # wait_time = min(3 + retry_count, 8) = min(6, 8) = 6
-            mock_sleep.assert_called_once_with(6)
+            mock_time.sleep.assert_called_once_with(6)
 
     def test_wait_time_capped_at_8(self):
         agent = _make_agent(provider="custom")
         error = _make_transport_error("ReadTimeout")
 
         with patch("run_agent.OpenAI", return_value=MagicMock()), \
-             patch("time.sleep") as mock_sleep:
+             patch("agent.agent_runtime_helpers.time") as mock_time:
             agent._try_recover_primary_transport(
                 error, retry_count=10, max_retries=3,
             )
             # wait_time = min(3 + 10, 8) = 8
-            mock_sleep.assert_called_once_with(8)
+            mock_time.sleep.assert_called_once_with(8)
 
     def test_closes_existing_client_before_rebuild(self):
         agent = _make_agent(provider="custom")
