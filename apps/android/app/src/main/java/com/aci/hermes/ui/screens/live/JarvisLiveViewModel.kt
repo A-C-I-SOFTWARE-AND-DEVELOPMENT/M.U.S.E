@@ -123,8 +123,13 @@ class JarvisLiveViewModel(
         _state.update { it.copy(thinking = true, listening = false) }
     }
 
-    fun openStatusSheet() { _showStatusSheet.value = true }
-    fun dismissStatusSheet() { _showStatusSheet.value = false }
+    /** Cycle to the next pixel-sprite character (robot → person → pets → …). */
+    fun cycleSprite() {
+        markInteraction()
+        _state.update { it.copy(spriteId = PixelSprites.next(it.spriteId).id) }
+    }
+
+    fun openStatusSheet() { _showStatusSheet.value = true }    fun dismissStatusSheet() { _showStatusSheet.value = false }
 
     fun requestEmergencyConfirm() { _showEmergencyConfirm.value = true }
     fun dismissEmergencyConfirm() { _showEmergencyConfirm.value = false }

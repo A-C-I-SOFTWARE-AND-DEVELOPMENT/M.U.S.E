@@ -45,8 +45,10 @@ data class JarvisLiveUiState(
     // Ambient life when idle — idle → wander → sleep, driven by BehaviorScheduler.
     val avatarBehavior: AvatarBehavior = AvatarBehavior.IDLE,
     // The user's saved photo avatar (when the picker produced a GENERATED one),
-    // rendered as a living, breathing face. Null → use the procedural body.
+    // rendered as a living, breathing face. Null → use a pixel-sprite character.
     val avatarPhoto: Bitmap? = null,
+    // Selected pixel-sprite character (robot/person/pets) when no photo is set.
+    val spriteId: String = "robot",
 )
 
 /**

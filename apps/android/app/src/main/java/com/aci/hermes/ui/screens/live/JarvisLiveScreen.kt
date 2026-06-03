@@ -178,31 +178,42 @@ fun JarvisLiveScreen(
                     modifier = Modifier.pointerInput(projection.state) {
                         detectTapGestures(
                             onTap = { viewModel.openStatusSheet() },
+                            onDoubleTap = { viewModel.cycleSprite() },
                             onLongPress = { viewModel.requestEmergencyConfirm() },
                         )
                     },
                 ) {
-                    // The living, breathing body. A saved photo becomes a breathing
-                    // photo face; otherwise the energy-driven humanoid that reacts to
-                    // the real agent state and idles/wanders/sleeps when away. Reduced
-                    // motion collapses only the motion-heavy bodies to the calm Orb;
-                    // a photo still shows (held still).
-                    val avatarKind = when {
-                        state.avatarPhoto != null -> AvatarKind.Photo
-                        projection.motionEnabled -> state.avatarKind
-                        else -> AvatarKind.Orb
-                    }
-                    LivingAvatarHost(
-                        kind = avatarKind,
-                        inputs = AvatarAnimation.inputsFor(
-                            state = projection.state,
-                            behavior = state.avatarBehavior,
-                            activeClip = null,
-                            motionEnabled = projection.motionEnabled,
-                        ),
-                        contentDescription = stringResource(projection.contentDescription),
-                        photo = state.avatarPhoto,
+                    // The living, breathing body. Priority: a saved photo → a
+                    // breathing photo face; reduced motion → the calm Orb; otherwise
+                    // a pixel-sprite character (robot/person/pets) that breathes and
+                    // reacts to the real agent state. Double-tap cycles characters.
+                    val inputs = AvatarAnimation.inputsFor(
+                        state = projection.state,
+                        behavior = state.avatarBehavior,
+                        activeClip = null,
+                        motionEnabled = projection.motionEnabled,
                     )
+                    val cd = stringResource(projection.contentDescription)
+                    when {
+                        state.avatarPhoto != null -> LivingAvatarHost(
+                            kind = AvatarKind.Photo,
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(220.dp),
+                            photo = state.avatarPhoto,
+                        )
+                        !projection.motionEnabled -> LivingAvatarHost(
+                            kind = AvatarKind.Orb,
+                            inputs = inputs,
+                            contentDescription = cd,
+                        )
+                        else -> PixelSpriteAvatar(
+                            sprite = PixelSprites.byId(state.spriteId),
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(220.dp),
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(20.dp))
