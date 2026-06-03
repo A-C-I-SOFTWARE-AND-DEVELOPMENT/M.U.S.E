@@ -199,6 +199,184 @@ class TestYolo:
 
 
 # ---------------------------------------------------------------------------
+# OWNER_HIGH_AUTONOMY_CODING
+# ---------------------------------------------------------------------------
+
+
+class TestOwnerHighAutonomyCoding:
+    LEVEL = ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING
+
+    def test_in_workspace_file_edit_allowed(self, tmp_path):
+        target = tmp_path / "src" / "main.py"
+        r = ap.evaluate(
+            _req(ap.Action.SAFE_LOCAL_WRITE, target=str(target)),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.ALLOW
+        assert "approved workspace" in r.reason
+
+    def test_outside_workspace_file_edit_confirms(self, tmp_path):
+        outside = tmp_path.parent / "elsewhere.py"
+        r = ap.evaluate(
+            _req(ap.Action.SAFE_LOCAL_WRITE, target=str(outside)),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.CONFIRM
+        assert r.needs_prompt
+
+    @pytest.mark.parametrize(
+        "action",
+        [
+            ap.Action.LOCAL_COMMAND,
+            ap.Action.DEPENDENCY_INSTALL,
+            ap.Action.LOCAL_SERVER,
+            ap.Action.BRANCH_CREATE,
+            ap.Action.LOCAL_COMMIT,
+        ],
+    )
+    def test_local_coding_actions_allowed_with_workspace(self, action, tmp_path):
+        r = ap.evaluate(_req(action), autonomy=self.LEVEL, workspace_root=str(tmp_path))
+        assert r.decision is ap.Decision.ALLOW
+
+    def test_local_actions_confirm_without_workspace(self, tmp_path):
+        r = ap.evaluate(
+            _req(ap.Action.LOCAL_COMMAND), autonomy=self.LEVEL, workspace_root=""
+        )
+        assert r.decision is ap.Decision.CONFIRM
+
+    def test_code_worker_outside_workspace_confirms(self, tmp_path):
+        r = ap.evaluate(
+            _req(ap.Action.CODE_WORKER_EXEC, target=str(tmp_path.parent / "other")),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.CONFIRM
+
+    @pytest.mark.parametrize(
+        "action",
+        [
+            ap.Action.DESTRUCTIVE_COMMAND,
+            ap.Action.GITHUB_PUSH,
+            ap.Action.SUPABASE_CHANGE,
+            ap.Action.VERCEL_DEPLOY,
+        ],
+    )
+    def test_high_risk_still_confirms(self, action, tmp_path):
+        r = ap.evaluate(
+            _req(action, target="x", branch="feature", remote_branch="feature"),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.CONFIRM
+        assert r.needs_prompt
+
+    def test_force_push_to_main_still_denied(self, tmp_path):
+        r = ap.evaluate(
+            _req(ap.Action.GITHUB_FORCE_PUSH, branch="feature", remote_branch="main"),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.DENY
+
+    def test_outbound_message_confirms(self, tmp_path):
+        r = ap.evaluate(
+            _req(ap.Action.OUTBOUND_MESSAGE, target="x@y.z"),
+            autonomy=self.LEVEL,
+            workspace_root=str(tmp_path),
+        )
+        assert r.decision is ap.Decision.CONFIRM
+
+    def test_new_coding_actions_confirm_under_autonomous(self):
+        # The new action types must NOT be auto-approved by pre-existing levels.
+        for action in (
+            ap.Action.DEPENDENCY_INSTALL,
+            ap.Action.LOCAL_SERVER,
+            ap.Action.BRANCH_CREATE,
+            ap.Action.LOCAL_COMMIT,
+            ap.Action.CODE_WORKER_EXEC,
+        ):
+            r = ap.evaluate(_req(action), autonomy=ap.AutonomyLevel.AUTONOMOUS)
+            assert r.decision is ap.Decision.CONFIRM, action
+
+
+class TestAutonomyStore:
+    def test_save_load_roundtrip(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        ap.save_level(
+            ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING, workspace_root=str(tmp_path)
+        )
+        rec = ap.load_record()
+        assert rec.level is ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING
+        assert rec.workspace_root == str(tmp_path)
+
+    def test_revoke_returns_to_assisted(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        ap.save_level(ap.AutonomyLevel.YOLO)
+        ap.revoke()
+        assert ap.load_record().level is ap.AutonomyLevel.ASSISTED
+
+    def test_env_var_overrides_store(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_AUTONOMY", "read_only")
+        ap.save_level(ap.AutonomyLevel.YOLO)
+        # Env wins → safe write is denied (read-only), not allowed (yolo).
+        r = ap.evaluate(_req(ap.Action.SAFE_LOCAL_WRITE, target="x"))
+        assert r.decision is ap.Decision.DENY
+
+    def test_emergency_stop_overrides_env_autonomy(self, tmp_path, monkeypatch):
+        # Even with HERMES_AUTONOMY=yolo, a latched emergency stop forces
+        # read-only so no new action is auto-approved.
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_AUTONOMY", "yolo")
+        ap.engage_emergency_stop(set_by="test")
+        assert ap.load_record().emergency_stopped is True
+        r = ap.evaluate(_req(ap.Action.SAFE_LOCAL_WRITE, target="x"))
+        assert r.decision is ap.Decision.DENY  # read-only blocks writes
+
+    def test_setting_a_level_releases_emergency_stop(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
+        ap.engage_emergency_stop(set_by="test")
+        ap.save_level(ap.AutonomyLevel.ASSISTED, set_by="test")
+        assert ap.load_record().emergency_stopped is False
+        # Back to assisted → safe read allowed, safe write confirms.
+        assert ap.evaluate(_req(ap.Action.SAFE_READ)).decision is ap.Decision.ALLOW
+
+    def test_revoke_releases_emergency_stop(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        ap.engage_emergency_stop(set_by="test")
+        ap.revoke()
+        assert ap.load_record().emergency_stopped is False
+
+    def test_store_drives_evaluate_when_no_env(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
+        target = tmp_path / "f.py"
+        ap.save_level(
+            ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING, workspace_root=str(tmp_path)
+        )
+        r = ap.evaluate(_req(ap.Action.SAFE_LOCAL_WRITE, target=str(target)))
+        assert r.decision is ap.Decision.ALLOW
+
+
+class TestCapabilities:
+    def test_high_autonomy_lists_coding_actions(self):
+        caps = ap.capabilities(ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING)
+        assert "local_command" in caps["auto_approved"]
+        assert "dependency_install" in caps["auto_approved"]
+        # High-risk stays in the approval list.
+        assert "vercel_deploy" in caps["requires_approval"]
+        assert "github_force_push" in caps["always_deny"]
+        assert set(caps["workspace_scoped"]) == {"safe_local_write", "code_worker_exec"}
+
+    def test_assisted_only_safe_read(self):
+        caps = ap.capabilities(ap.AutonomyLevel.ASSISTED)
+        assert caps["auto_approved"] == ["safe_read"]
+
+
+# ---------------------------------------------------------------------------
 # Always-deny rules
 # ---------------------------------------------------------------------------
 

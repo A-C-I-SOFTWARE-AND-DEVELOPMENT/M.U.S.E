@@ -1001,6 +1001,94 @@ def job_cancel(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Autonomy (Owner High-Autonomy Coding mode) + emergency stop
+# ---------------------------------------------------------------------------
+
+
+def autonomy_get(_req: Request) -> JsonResponse:
+    """Current autonomy level, workspace scope, and capability list.
+
+    The capability list is derived from ``hermes_cli.approval_policy`` so the
+    cockpit never hard-codes a list that could drift from the policy engine.
+    """
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        record = ap.load_record()
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_set(req: Request) -> JsonResponse:
+    """Set the autonomy level (owner action) or revoke back to ASSISTED.
+
+    Body: ``{"level": "owner_high_autonomy_coding", "workspace_path": "..."}``
+    or ``{"revoke": true}``. The change is recorded in the approval audit log
+    so the audit trail shows when autonomy was raised or revoked, and by what.
+    """
+    body = req.body or {}
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        if body.get("revoke"):
+            record = ap.revoke(set_by="cockpit")
+        else:
+            raw_level = str(body.get("level", "")).strip().lower()
+            try:
+                level = ap.AutonomyLevel(raw_level)
+            except ValueError:
+                return JsonResponse(
+                    400,
+                    {"error": f"unknown autonomy level: {raw_level!r}"},
+                )
+            workspace = str(body.get("workspace_path") or "")
+            if level is ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING and not workspace:
+                return JsonResponse(
+                    400,
+                    {"error": "owner_high_autonomy_coding requires a workspace_path scope"},
+                )
+            record = ap.save_level(level, workspace_root=workspace, set_by="cockpit")
+        # Audit the mode change itself.
+        try:
+            audit_req = ap.ApprovalRequest(
+                action=ap.Action.SAFE_READ,
+                summary=f"autonomy set to {record.level.value}",
+                target=record.workspace_root,
+                details={"event": "autonomy_change", "set_by": record.set_by},
+            )
+            ap.record_decision(
+                audit_req,
+                ap.ApprovalResult(ap.Decision.ALLOW, "owner set autonomy", False),
+                actor="cockpit",
+            )
+        except Exception:  # pragma: no cover - auditing is best-effort
+            pass
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_decisions(req: Request) -> JsonResponse:
+    """Recent (already-redacted) policy decisions for the audit trail."""
+    try:
+        from hermes_cli import approval_policy as ap
+
+        limit_raw = req.query.get("limit", "50")
+        try:
+            limit = max(1, min(500, int(limit_raw)))
+        except (TypeError, ValueError):
+            limit = 50
+        return JsonResponse(200, {"decisions": ap.read_decisions(limit=limit)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+# ---------------------------------------------------------------------------
 # Approvals (persistent JARVIS proposal queue; owner phrase preserved)
 # ---------------------------------------------------------------------------
 
@@ -1899,6 +1987,9 @@ __all__ = [
     "coding_audit",
     "coding_execute",
     "coding_plan",
+    "autonomy_decisions",
+    "autonomy_get",
+    "autonomy_set",
     "diagnostics",
     "emergency_stop",
     "evidence_demote",

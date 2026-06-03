@@ -484,6 +484,50 @@ class HermesCockpitClient(
      *  and local stores (not an owner-gated action). */
     suspend fun graphBuild(): CockpitResult<GraphBuildResult> =
         request("POST", "/v1/cockpit/graph/build", GraphBuildResult.serializer())
+    // ─── Autonomy (Owner High-Autonomy Coding mode) ──────────────────────
+
+    /** Current autonomy level, workspace scope, and capability list. */
+    suspend fun autonomyGet(): CockpitResult<AutonomyStatus> =
+        request("GET", "/v1/cockpit/autonomy", AutonomyStatus.serializer())
+
+    /**
+     * Set the autonomy level (owner action). High-autonomy coding requires a
+     * [workspacePath] scope; the gateway returns 400 otherwise. The mode
+     * change is itself recorded in the audit trail.
+     */
+    suspend fun autonomySet(
+        level: String,
+        workspacePath: String? = null,
+    ): CockpitResult<AutonomyStatus> =
+        request(
+            "POST",
+            "/v1/cockpit/autonomy",
+            AutonomyStatus.serializer(),
+            body = json.encodeToString(
+                SetAutonomyRequest.serializer(),
+                SetAutonomyRequest(level = level, workspacePath = workspacePath),
+            ),
+        )
+
+    /** Instantly drop autonomy back to the safe default (Assisted). */
+    suspend fun autonomyRevoke(): CockpitResult<AutonomyStatus> =
+        request(
+            "POST",
+            "/v1/cockpit/autonomy",
+            AutonomyStatus.serializer(),
+            body = json.encodeToString(
+                SetAutonomyRequest.serializer(),
+                SetAutonomyRequest(revoke = true),
+            ),
+        )
+
+    /** Recent (already-redacted) policy decisions — the auto-approval reasons. */
+    suspend fun autonomyDecisions(limit: Int = 50): CockpitResult<AutonomyDecisionList> =
+        request(
+            "GET",
+            "/v1/cockpit/autonomy/decisions?limit=$limit",
+            AutonomyDecisionList.serializer(),
+        )
 
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")

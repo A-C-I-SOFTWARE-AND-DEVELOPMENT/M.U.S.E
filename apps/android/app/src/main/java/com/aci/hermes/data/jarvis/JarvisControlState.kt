@@ -24,12 +24,30 @@ data class JarvisControlState(
     val audit: AuditShortcut = AuditShortcut(recentEvents = 0, lastEventLabel = null),
     val memory: MemoryShortcut = MemoryShortcut(savedFacts = 0, lastNote = null),
     val pendingWarning: PendingWarning? = null,
+    // High-Autonomy Coding surface (populated from the cockpit autonomy
+    // endpoint). These let the screen render the active level's scope and the
+    // capability list straight from the backend policy engine.
+    val codingWorkspaceRoot: String = "",
+    val autonomyCapabilities: AutonomyCapabilities = AutonomyCapabilities(),
 ) {
     val gatewayDisconnected: Boolean
         get() = gateway == GatewayState.DISCONNECTED || gateway == GatewayState.UNCONFIGURED
 
     val isLockdown: Boolean get() = autonomy.isLockdown
+
+    val isHighAutonomyCoding: Boolean get() = autonomy.isHighAutonomyCoding
 }
+
+/**
+ * The active autonomy level's capability list, mirrored from the backend
+ * ``approval_policy.capabilities()`` so the screen never hard-codes its own.
+ */
+data class AutonomyCapabilities(
+    val autoApproved: List<String> = emptyList(),
+    val requiresApproval: List<String> = emptyList(),
+    val alwaysDeny: List<String> = emptyList(),
+    val workspaceScoped: List<String> = emptyList(),
+)
 
 /**
  * A warning the UI is asking the owner to confirm before applying.

@@ -40,6 +40,7 @@ object ControlWarnings {
         if (from == to) return WarningLevel.NONE
         return when (to) {
             AutonomyMode.LOCKDOWN -> WarningLevel.SERIOUS
+            AutonomyMode.OWNER_HIGH_AUTONOMY_CODING -> WarningLevel.SERIOUS
             AutonomyMode.TRUSTED_LOW_RISK -> WarningLevel.SERIOUS
             AutonomyMode.ASSISTED -> WarningLevel.NOTICE
             AutonomyMode.MANUAL -> WarningLevel.NONE
