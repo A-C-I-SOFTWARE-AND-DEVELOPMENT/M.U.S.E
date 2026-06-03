@@ -332,6 +332,73 @@ def _cmd_proposals_reject(args: argparse.Namespace) -> int:
     return _set_proposal_status(args.proposal_id, "rejected", note="rejected via CLI")
 
 
+def _cmd_registry_update(args: argparse.Namespace) -> int:
+    """REG-1: diff the live model catalog vs the repo registry, propose deltas.
+
+    Proposal-only and owner-gated: with ``--check`` it just prints the delta;
+    otherwise it appends the proposals to the same JSONL store that
+    ``proposals {list|approve|reject}`` reads. It never edits the YAML or
+    contacts a model endpoint — approval + execution stay separate, owner-gated
+    steps.
+    """
+    from .registry_updater import (
+        diff_provider_models,
+        load_local_catalog,
+        propose_registry_updates,
+        render_deltas,
+    )
+    from .self_update import ProposalBook
+
+    try:
+        from hermes_cli.model_catalog import get_catalog
+
+        remote = get_catalog(force_refresh=not getattr(args, "no_refresh", False))
+    except Exception as exc:  # fail-open: offline ⇒ nothing to do
+        print(f"REG-1: live catalog unavailable ({exc}); nothing to do")
+        return 0
+    if not remote:
+        print("REG-1: live catalog unavailable; nothing to do")
+        return 0
+
+    deltas = diff_provider_models(load_local_catalog(), remote)
+
+    if getattr(args, "json", False):
+        _print_json([
+            {
+                "provider": d.provider,
+                "added_ids": list(d.added_ids),
+                "removed_ids": list(d.removed_ids),
+                "risk_class": d.risk_class,
+            }
+            for d in deltas
+        ])
+    else:
+        print(render_deltas(deltas))
+
+    if not deltas or getattr(args, "check", False):
+        return 0
+
+    book = ProposalBook()
+    proposals = propose_registry_updates(deltas, book)
+    path = _proposals_store_path()
+    existing = _load_proposals(path)
+    existing_ids = {_proposal_id(p) for p in existing}
+    added = 0
+    for prop in proposals:
+        as_dict = prop.to_dict()
+        if _proposal_id(as_dict) in existing_ids:
+            continue  # idempotent — don't double-queue an unchanged delta
+        existing.append(as_dict)
+        added += 1
+    _save_proposals(path, existing)
+    print(
+        f"\nqueued {added} proposal(s) for owner review "
+        f"(run `python -m hermes_cli.jarvis_prime proposals list`). "
+        "Approve with the owner authorization phrase before any change is applied."
+    )
+    return 0
+
+
 def _set_proposal_status(proposal_id: str, new_status: str, note: str) -> int:
     path = _proposals_store_path()
     items = _load_proposals(path)
@@ -1004,6 +1071,30 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_proposals_reject = p_proposals_sub.add_parser("reject", help="Reject a proposal")
     p_proposals_reject.add_argument("proposal_id")
     p_proposals_reject.set_defaults(func=_cmd_proposals_reject)
+
+    p_registry = sub.add_parser(
+        "registry-update",
+        help="REG-1: diff the live model catalog vs the repo registry and queue proposals",
+        description=(
+            "Diff the live, published model-catalog manifest against the in-repo "
+            "registry (config/model-catalog.yaml) and queue owner-gated proposals "
+            "for any drift. Proposal-only: it never edits the YAML or contacts a "
+            "model endpoint. New model ids (a new reachable endpoint) are RC3 and "
+            "always need owner approval. Use --check for a dry run."
+        ),
+    )
+    p_registry.add_argument(
+        "--check",
+        action="store_true",
+        help="Dry run — print the delta but don't queue any proposals",
+    )
+    p_registry.add_argument(
+        "--no-refresh",
+        action="store_true",
+        help="Use the cached catalog instead of forcing a live refresh",
+    )
+    p_registry.add_argument("--json", action="store_true")
+    p_registry.set_defaults(func=_cmd_registry_update)
 
     p_handoff = sub.add_parser(
         "handoff",
