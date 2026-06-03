@@ -57,6 +57,7 @@ class SettingsRepository(private val context: Context) {
         val SAFETY_GATES_ENABLED = booleanPreferencesKey("safety_gates_enabled")
         val PRIVACY_LOCAL_ONLY_MEMORY = booleanPreferencesKey("privacy_local_only_memory")
         val EMERGENCY_STOP_ENGAGED = booleanPreferencesKey("emergency_stop_engaged")
+        val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -129,6 +130,15 @@ class SettingsRepository(private val context: Context) {
     }
     val emergencyStopEngaged: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
+    }
+    /**
+     * Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
+     * mic-button fallback) so conversation starts without press-and-hold.
+     * Default off — the owner opts in. No camera is involved (that is a
+     * separate, gated capability).
+     */
+    val presenceModeEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.PRESENCE_MODE_ENABLED] ?: false
     }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
@@ -239,6 +249,10 @@ class SettingsRepository(private val context: Context) {
 
     /** Home-dashboard-friendly alias for [setEmergencyStopEngaged]. */
     suspend fun setEmergencyStopActive(value: Boolean) = setEmergencyStopEngaged(value)
+
+    suspend fun setPresenceModeEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.PRESENCE_MODE_ENABLED] = value }
+    }
 
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }

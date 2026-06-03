@@ -175,11 +175,19 @@ class AppContainer(private val application: Application) {
     // this only makes the engines available, it does not open the mic.
     init {
         com.aci.hermes.service.VoiceLoopService.Wiring.apply {
+            // Keyless on-device wake word ("jarvis") so hands-free Presence Mode
+            // works without a cloud key; a dedicated spotter (Picovoice) is a
+            // drop-in upgrade that would need an access key (not in source).
+            wakeWordFactory = { ctx -> com.aci.hermes.voice.KeywordSpeechWakeWordEngine(ctx) }
             sttFactory = { ctx -> com.aci.hermes.voice.AndroidSpeechRecognizerStt(ctx) }
             ttsFactory = { ctx -> com.aci.hermes.voice.AndroidTtsEngine(ctx) }
             dispatch = { utterance -> voiceDispatchToAgent(utterance) }
         }
     }
+
+    /** Hands-free Presence Mode orchestrator (wake word / tap-to-talk + overlay). */
+    val presenceModeController: com.aci.hermes.voice.PresenceModeController =
+        com.aci.hermes.voice.PresenceModeController(context, settingsRepository)
 
     /** Send a spoken utterance to the real agent and return its reply text. */
     private suspend fun voiceDispatchToAgent(utterance: String): String {
@@ -292,6 +300,7 @@ class AppContainer(private val application: Application) {
             taskRepository = taskRepository,
             settingsRepository = settingsRepository,
             orchestratorServiceController = orchestratorServiceController,
+            presenceController = presenceModeController,
         )
     }
 

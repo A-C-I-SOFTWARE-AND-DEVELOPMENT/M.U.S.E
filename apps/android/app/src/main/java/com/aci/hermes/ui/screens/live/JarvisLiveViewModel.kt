@@ -44,7 +44,32 @@ class JarvisLiveViewModel(
     private val taskRepository: HermesTaskRepository? = null,
     private val settingsRepository: SettingsRepository? = null,
     private val orchestratorServiceController: OrchestratorServiceController? = null,
+    private val presenceController: com.aci.hermes.voice.PresenceModeController? = null,
 ) : AndroidViewModel(application) {
+
+    /** Hands-free Presence Mode on-off, surfaced to the UI (off when unwired). */
+    val presenceEnabled: StateFlow<Boolean> =
+        presenceController?.enabled ?: MutableStateFlow(false)
+
+    /** Current presence phase (armed / listening / thinking / speaking). */
+    val presenceState: StateFlow<com.aci.hermes.voice.PresenceState> =
+        presenceController?.presenceState
+            ?: MutableStateFlow(com.aci.hermes.voice.PresenceState.OFF)
+
+    /** True if a wake-word spotter can run; else only tap-to-talk/mic fallback. */
+    val wakeWordAvailable: Boolean get() = presenceController?.wakeWordAvailable ?: false
+
+    /** Toggle hands-free Presence Mode. */
+    fun togglePresenceMode() {
+        markInteraction()
+        presenceController?.toggle()
+    }
+
+    /** Tap-to-talk / mic fallback: open the mic now (caller holds RECORD_AUDIO). */
+    fun talkNow() {
+        markInteraction()
+        presenceController?.talkNow()
+    }
 
     private val _state = MutableStateFlow(
         JarvisLiveUiState(reducedMotion = systemReducedMotion()),

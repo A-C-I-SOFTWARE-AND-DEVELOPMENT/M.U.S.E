@@ -62,6 +62,15 @@ class VoiceLoopService : LifecycleService() {
         drive(VoiceEvent.Start)
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        // Tap-to-talk / mic fallback: skip the wake word and open the mic now.
+        if (intent?.getBooleanExtra(EXTRA_TALK_NOW, false) == true) {
+            drive(VoiceEvent.WakeWordDetected)
+        }
+        return START_STICKY
+    }
+
     override fun onDestroy() {
         tts?.stop()
         stopHeadsetRoute()
@@ -216,8 +225,20 @@ class VoiceLoopService : LifecycleService() {
 
         const val VOICE_NOTIFICATION_ID = 4243
 
-        fun start(context: Context) {
+        /** Intent extra: open the mic immediately instead of waiting for wake. */
+        const val EXTRA_TALK_NOW = "talk_now"
+
+        fun start(context: Context) = launch(context, talkNow = false)
+
+        /**
+         * Start (if needed) and immediately begin listening — the tap-to-talk /
+         * mic-button fallback that bypasses the wake word.
+         */
+        fun talkNow(context: Context) = launch(context, talkNow = true)
+
+        private fun launch(context: Context, talkNow: Boolean) {
             val intent = Intent(context, VoiceLoopService::class.java)
+            if (talkNow) intent.putExtra(EXTRA_TALK_NOW, true)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
             else context.startService(intent)
         }

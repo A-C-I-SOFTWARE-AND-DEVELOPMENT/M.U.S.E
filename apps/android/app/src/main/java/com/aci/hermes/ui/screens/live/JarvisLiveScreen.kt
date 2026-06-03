@@ -119,6 +119,8 @@ fun JarvisLiveScreen(
     val showStatusSheet by viewModel.showStatusSheet.collectAsState()
     val showEmergencyConfirm by viewModel.showEmergencyConfirm.collectAsState()
     val currentJobId by viewModel.currentJobId.collectAsState()
+    val presenceEnabled by viewModel.presenceEnabled.collectAsState()
+    val presenceState by viewModel.presenceState.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
 
@@ -148,6 +150,27 @@ fun JarvisLiveScreen(
         } else {
             micPermission.launch(Manifest.permission.RECORD_AUDIO)
         }
+    }
+
+    fun hasMic() = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.RECORD_AUDIO,
+    ) == PackageManager.PERMISSION_GRANTED
+
+    // Tap-to-talk / mic fallback: open the mic now, behind RECORD_AUDIO consent.
+    val talkPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.talkNow() }
+    val onTapToTalk: () -> Unit = {
+        if (hasMic()) viewModel.talkNow() else talkPermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // Toggling Presence Mode on arms the wake word (needs the mic); off is free.
+    val presencePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.togglePresenceMode() }
+    val onTogglePresence: () -> Unit = {
+        if (presenceEnabled || hasMic()) viewModel.togglePresenceMode()
+        else presencePermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     // Float JARVIS over other apps: start the overlay service behind the
@@ -189,6 +212,7 @@ fun JarvisLiveScreen(
         topBar = {
             JarvisTopBar(
                 projection = projection,
+                presenceEnabled = presenceEnabled,
                 onMenu = onBack,
                 onEditAvatar = onOpenAvatarPicker,
                 onOverflowToggle = { overflowOpen = !overflowOpen },
@@ -201,6 +225,14 @@ fun JarvisLiveScreen(
                 onOpenStatusSheet = {
                     overflowOpen = false
                     viewModel.openStatusSheet()
+                },
+                onTogglePresence = {
+                    overflowOpen = false
+                    onTogglePresence()
+                },
+                onCycleSprite = {
+                    overflowOpen = false
+                    viewModel.cycleSprite()
                 },
             )
         },
@@ -302,8 +334,10 @@ fun JarvisLiveScreen(
                         .scale(bodyScale)
                         .pointerInput(projection.state) {
                             detectTapGestures(
-                                onTap = { viewModel.openStatusSheet() },
-                                onDoubleTap = { viewModel.cycleSprite() },
+                                // Presence-Mode interaction model: tap to talk,
+                                // double-tap for status, long-press to stop.
+                                onTap = { onTapToTalk() },
+                                onDoubleTap = { viewModel.openStatusSheet() },
                                 onLongPress = { viewModel.requestEmergencyConfirm() },
                             )
                         },
@@ -361,6 +395,18 @@ fun JarvisLiveScreen(
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                 )
+
+                // Hands-free Presence Mode status — a real label, never just an
+                // animation, so the listening state is conveyed accessibly.
+                if (presenceEnabled) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(presenceLabelFor(presenceState)),
+                        color = HermesCyan,
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
                 Spacer(Modifier.height(24.dp))
 
@@ -492,6 +538,7 @@ private fun DenFurnitureLayer(
 @Composable
 private fun JarvisTopBar(
     projection: JarvisLiveProjection,
+    presenceEnabled: Boolean,
     onMenu: () -> Unit,
     onEditAvatar: () -> Unit,
     onOverflowToggle: () -> Unit,
@@ -499,6 +546,8 @@ private fun JarvisTopBar(
     onOverflowDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenStatusSheet: () -> Unit,
+    onTogglePresence: () -> Unit,
+    onCycleSprite: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -515,7 +564,7 @@ private fun JarvisTopBar(
             Icon(Icons.Outlined.Menu, contentDescription = null, tint = Color.White)
         }
 
-        JarvisStatusPill(projection = projection)
+        JarvisStatusPill(projection = projection, onClick = onOpenStatusSheet)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -543,6 +592,24 @@ private fun JarvisTopBar(
                         onClick = onOpenStatusSheet,
                     )
                     DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (presenceEnabled) {
+                                        R.string.jarvis_presence_toggle_off
+                                    } else {
+                                        R.string.jarvis_presence_toggle_on
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = onTogglePresence,
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.jarvis_overflow_change_companion)) },
+                        onClick = onCycleSprite,
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.nav_settings)) },
                         onClick = onOpenSettings,
                     )
@@ -552,13 +619,15 @@ private fun JarvisTopBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun JarvisStatusPill(projection: JarvisLiveProjection) {
+private fun JarvisStatusPill(projection: JarvisLiveProjection, onClick: () -> Unit) {
     val (bg, fg) = pillColorsFor(projection.state)
     val description = stringResource(R.string.jarvis_status_pill_cd, stringResource(projection.pillText))
     Surface(
         shape = RoundedCornerShape(50),
         color = bg,
+        onClick = onClick,
         modifier = Modifier
             .padding(horizontal = 12.dp)
             .clip(RoundedCornerShape(50)),
@@ -602,6 +671,14 @@ private fun pillColorsFor(state: JarvisLiveState): Pair<Color, Color> = when (st
 
 /** Horizontal drag (px) past which a left-swipe opens the current job. */
 private const val SWIPE_TO_JOB_THRESHOLD = 120f
+
+private fun presenceLabelFor(state: com.aci.hermes.voice.PresenceState): Int = when (state) {
+    com.aci.hermes.voice.PresenceState.OFF,
+    com.aci.hermes.voice.PresenceState.ARMED -> R.string.jarvis_presence_armed
+    com.aci.hermes.voice.PresenceState.LISTENING -> R.string.jarvis_presence_listening
+    com.aci.hermes.voice.PresenceState.THINKING -> R.string.jarvis_presence_thinking
+    com.aci.hermes.voice.PresenceState.SPEAKING -> R.string.jarvis_presence_speaking
+}
 
 @Composable
 private fun CircleIconButton(

@@ -366,6 +366,14 @@
     <string name="jarvis_cta_emergency_stop">Emergency stop</string>
     <string name="jarvis_cta_emergency_release">Release emergency stop</string>
 
+    <string name="jarvis_presence_toggle_on">Turn on Presence Mode</string>
+    <string name="jarvis_presence_toggle_off">Turn off Presence Mode</string>
+    <string name="jarvis_overflow_change_companion">Change companion</string>
+    <string name="jarvis_presence_armed">Hands-free on · say \"Jarvis\" or tap to talk</string>
+    <string name="jarvis_presence_listening">Hands-free · listening</string>
+    <string name="jarvis_presence_thinking">Hands-free · thinking</string>
+    <string name="jarvis_presence_speaking">Hands-free · speaking</string>
+
     <string name="jarvis_menu_cd">Open menu</string>
     <string name="jarvis_more_cd">More options</string>
     <string name="jarvis_edit_avatar_cd">Edit avatar</string>

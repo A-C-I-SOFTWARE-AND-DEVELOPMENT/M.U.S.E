@@ -93,9 +93,11 @@ Each state drives:
 - The status pill exposes a parameterized content description
   ("Current Jarvis state: …") so TalkBack reads the state without
   relying on the visual pill text alone.
-- Long-press on the avatar opens an emergency-stop confirmation
-  dialog. Tap opens the status detail sheet (double-tap cycles the
-  sprite character).
+- **Gesture model (Presence Mode):** single-tap the avatar to talk
+  (tap-to-talk), double-tap for the status detail sheet, long-press for
+  the emergency-stop confirmation. The status pill is also tappable for
+  the sheet, and "Change companion" (sprite cycle) moved to the overflow
+  menu.
 - Text uses Material 3 typography tokens so the screen scales with the
   system text size preference.
 - The new Warning and Disconnected states never rely on color/animation
@@ -117,9 +119,19 @@ The avatar surface keeps every critical control reachable:
 - **Swipe to current job** — a left-swipe opens the active job's
   TaskDetail (or the Tasks list when none is active). The Blocked and
   Warning CTAs open the same job.
-- **Voice** — the mic button starts/stops the hands-free voice loop;
-  Presence Mode (wake-word first, tap-to-talk fallback) is the
-  follow-up below.
+- **Voice / Presence Mode** — toggle hands-free Presence Mode from the
+  overflow menu. When on, JARVIS arms a keyless on-device wake word
+  ("Jarvis") via `KeywordSpeechWakeWordEngine`; a single tap on the
+  avatar (or the command-bar mic) is the tap-to-talk fallback that opens
+  the mic immediately (`VoiceLoopService.talkNow`). The degradation
+  chain is camera attention (gated — see below) → wake word + voice
+  activity → mic / tap-to-talk; the active trigger is chosen by
+  `PresenceModePolicy.trigger`. A status line under the avatar shows
+  `Hands-free · listening/thinking/speaking` so the state is conveyed by
+  text, not animation alone. The floating overlay mirrors the same voice
+  phase even when the cockpit UI is backgrounded
+  (`PresenceModeController`). Uses only the already-declared
+  `RECORD_AUDIO` + `SYSTEM_ALERT_WINDOW` — no new permission.
 
 ## Permission audit
 
@@ -159,6 +171,9 @@ deps, no emulator. They live at
   guard rail against silent drift).
 - `AvatarAnimationTest` — the new states reuse stable `AvatarPose`
   ordinals (Rive contract held) and Disconnected freezes motion.
+- `PresenceModeTest` — the Presence Mode trigger degradation chain
+  (camera → wake word → mic), the voice-phase → presence-state
+  projection, and the `WakeWordMatcher` whole-word matching rules.
 - `ManifestPermissionAuditTest` — forbids the dangerous permission
   list and snapshots the approved set (unchanged by this work).
 
@@ -171,14 +186,14 @@ cd apps/android
 
 ## Follow-up plan
 
-The avatar now reflects real JARVIS state. Remaining follow-ups:
+The avatar reflects real JARVIS state (Phase 1) and hands-free Presence
+Mode is wired (Phase 2). Remaining follow-ups:
 
-1. **Presence Mode** — a hands-free `PresenceModeController` layered
-   over `VoiceLoop`/`VoiceLoopService`: wake-word first
-   (`VoiceLoopService.Wiring.wakeWordFactory`, currently unset), with
-   tap-to-talk and the mic button as fallbacks, mirrored onto the
-   floating overlay. Uses only the already-declared `RECORD_AUDIO` +
-   `SYSTEM_ALERT_WINDOW` — **no new permission**.
+1. **Dedicated wake-word spotter** — the current
+   `KeywordSpeechWakeWordEngine` is a keyless, best-effort
+   `SpeechRecognizer` loop. A purpose-built spotter (e.g. Picovoice
+   Porcupine) is a drop-in via `VoiceLoopService.Wiring.wakeWordFactory`;
+   it needs an access key, which must not live in source.
 2. **Camera attention (gated)** — opt-in CameraX/ML Kit attention
    detection to arm Presence Mode. This requires `CAMERA`, which is
    **explicitly forbidden** today by `ManifestPermissionAuditTest` and
