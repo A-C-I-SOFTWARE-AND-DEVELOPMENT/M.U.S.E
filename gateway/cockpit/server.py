@@ -70,6 +70,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/avatar/room"), h.room_list, True),
     ("POST", _compile("/v1/cockpit/avatar/room"), h.room_generate, True),
     ("DELETE", _compile("/v1/cockpit/avatar/room/{id}"), h.room_delete, True),
+    ("POST", _compile("/v1/cockpit/avatar/room/{id}/place"), h.room_place, True),
 ]
 
 

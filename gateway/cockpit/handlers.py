@@ -516,6 +516,19 @@ def room_delete(req: Request) -> JsonResponse:
     return JsonResponse(200 if ok else 404, {"deleted": ok})
 
 
+def room_place(req: Request) -> JsonResponse:
+    """Persist a furniture item's normalized (x, y) placement in the room."""
+    from gateway.cockpit import room_store as rs
+
+    try:
+        x = float(req.body.get("x", 0.5))
+        y = float(req.body.get("y", 0.6))
+    except (TypeError, ValueError):
+        return JsonResponse(400, {"error": "x and y must be numbers (0..1)"})
+    ok = rs.set_position(req.path_params.get("id", ""), x, y)
+    return JsonResponse(200 if ok else 404, {"placed": ok})
+
+
 def job_cancel(req: Request) -> JsonResponse:
     """Cancel a job (contract §4). 409 if already terminal."""
     job_id = req.path_params.get("id", "")

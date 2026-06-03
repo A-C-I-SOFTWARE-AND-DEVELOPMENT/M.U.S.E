@@ -284,7 +284,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun jarvisLiveVmFactory(): ViewModelProvider.Factory = factory {
-        JarvisLiveViewModel(application, avatarRepository)
+        JarvisLiveViewModel(application, avatarRepository, cockpitClient)
     }
 
     fun jarvisChatVmFactory(): ViewModelProvider.Factory = factory {

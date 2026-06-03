@@ -106,12 +106,30 @@ def generate_item(prompt: str, *, generator=None) -> dict:
         "id": item_id,
         "prompt": text,
         "file": file.name,
+        # Normalized placement in the room (0..1); default near the floor centre.
+        "x": 0.5,
+        "y": 0.62,
         "created_at": time.time(),
     }
     items = _load_manifest()
     items.append(item)
     _save_manifest(items)
     return _with_image(item)
+
+
+def set_position(item_id: str, x: float, y: float) -> bool:
+    """Persist a furniture item's normalized (x, y) placement. Returns False if
+    the id is unknown."""
+    items = _load_manifest()
+    found = False
+    for it in items:
+        if it.get("id") == item_id:
+            it["x"] = max(0.0, min(1.0, float(x)))
+            it["y"] = max(0.0, min(1.0, float(y)))
+            found = True
+    if found:
+        _save_manifest(items)
+    return found
 
 
 def _with_image(item: dict) -> dict:
@@ -148,4 +166,5 @@ __all__ = [
     "image_generation_available",
     "list_items",
     "room_dir",
+    "set_position",
 ]

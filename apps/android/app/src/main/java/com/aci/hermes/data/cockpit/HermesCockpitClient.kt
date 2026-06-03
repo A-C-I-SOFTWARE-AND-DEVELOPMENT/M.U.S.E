@@ -131,6 +131,15 @@ class HermesCockpitClient(
             body = json.encodeToString(GenerateRoomRequest.serializer(), req),
         )
 
+    /** Persist a furniture item's normalized (x, y) placement in the room. */
+    suspend fun roomPlace(id: String, x: Float, y: Float): CockpitResult<JsonObject> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/room/" + enc(id) + "/place",
+            JsonObject.serializer(),
+            body = json.encodeToString(PlaceItemRequest.serializer(), PlaceItemRequest(x, y)),
+        )
+
     // ─── Approvals (contract §10c) ───────────────────────────────────────
 
     suspend fun approvalsList(): CockpitResult<CockpitApprovalCardList> =

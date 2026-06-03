@@ -26,12 +26,51 @@ import kotlinx.coroutines.withContext
 class JarvisLiveViewModel(
     application: Application,
     private val avatarRepository: AvatarRepository? = null,
+    private val cockpitClient: com.aci.hermes.data.cockpit.HermesCockpitClient? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(
         JarvisLiveUiState(reducedMotion = systemReducedMotion()),
     )
     val state: StateFlow<JarvisLiveUiState> = _state.asStateFlow()
+
+    /** A piece of AI-generated furniture placed in the Den. */
+    data class DenFurniture(
+        val id: String,
+        val bitmap: android.graphics.Bitmap,
+        val x: Float,
+        val y: Float,
+    )
+
+    private val _furniture = MutableStateFlow<List<DenFurniture>>(emptyList())
+    val furniture: StateFlow<List<DenFurniture>> = _furniture.asStateFlow()
+
+    private fun loadFurniture() {
+        val client = cockpitClient ?: return
+        viewModelScope.launch {
+            val res = client.roomList()
+            if (res is com.aci.hermes.data.cockpit.CockpitResult.Success) {
+                _furniture.value = res.value.items.mapNotNull { item ->
+                    val bmp = decodeRoomImage(item.imageB64) ?: return@mapNotNull null
+                    DenFurniture(item.id, bmp, item.x, item.y)
+                }
+            }
+        }
+    }
+
+    /** Persist a furniture item's new placement after a drag. */
+    fun placeFurniture(id: String, x: Float, y: Float) {
+        val client = cockpitClient ?: return
+        viewModelScope.launch { client.roomPlace(id, x, y) }
+    }
+
+    private fun decodeRoomImage(b64: String?): android.graphics.Bitmap? {
+        if (b64.isNullOrBlank()) return null
+        return runCatching {
+            val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }.getOrNull()
+    }
 
     // Ambient life: when the user is away, Jarvis idles → wanders → sleeps so the
     // body reads as alive rather than frozen. Driven by the pure, tested
@@ -44,6 +83,7 @@ class JarvisLiveViewModel(
     init {
         startAmbientLife()
         observeSavedAvatar()
+        loadFurniture()
     }
 
     /** Render the user's saved avatar as the living body: a GENERATED photo

@@ -559,7 +559,12 @@ data class CockpitRoomItem(
     val id: String = "",
     val prompt: String = "",
     @SerialName("image_b64") val imageB64: String? = null,
+    val x: Float = 0.5f,
+    val y: Float = 0.62f,
 )
+
+@Serializable
+data class PlaceItemRequest(val x: Float, val y: Float)
 
 @Serializable
 data class CockpitRoomList(

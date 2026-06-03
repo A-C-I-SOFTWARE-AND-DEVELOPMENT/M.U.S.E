@@ -50,6 +50,19 @@ def test_handler_503_without_image_model(home) -> None:
     assert "image model" in resp.payload["error"]
 
 
+def test_set_and_persist_position(home) -> None:
+    item = rs.generate_item("a rug", generator=lambda p: _PNG)
+    assert item["x"] == 0.5 and 0.0 <= item["y"] <= 1.0
+    assert rs.set_position(item["id"], 0.2, 0.9) is True
+    placed = next(i for i in rs.list_items() if i["id"] == item["id"])
+    assert placed["x"] == 0.2 and placed["y"] == 0.9
+    # clamps + unknown id
+    assert rs.set_position(item["id"], 5.0, -1.0) is True
+    placed = next(i for i in rs.list_items() if i["id"] == item["id"])
+    assert placed["x"] == 1.0 and placed["y"] == 0.0
+    assert rs.set_position("nope", 0.5, 0.5) is False
+
+
 def test_handler_list_reports_availability(home) -> None:
     resp = h.room_list(h.Request(method="GET", path="x"))
     assert resp.status == 200

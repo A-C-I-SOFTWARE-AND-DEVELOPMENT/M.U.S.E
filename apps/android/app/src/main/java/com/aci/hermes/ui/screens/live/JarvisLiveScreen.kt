@@ -32,7 +32,14 @@ import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PictureInPictureAlt
@@ -101,6 +108,7 @@ fun JarvisLiveScreen(
     onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val furniture by viewModel.furniture.collectAsState()
     val showStatusSheet by viewModel.showStatusSheet.collectAsState()
     val showEmergencyConfirm by viewModel.showEmergencyConfirm.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
@@ -209,6 +217,12 @@ fun JarvisLiveScreen(
         ) {
             // The companion's pixel bedroom (wall, window, desk, bed, plant).
             PixelRoom(modifier = Modifier.fillMaxSize())
+
+            // AI-generated furniture, draggable; placement persists.
+            DenFurnitureLayer(
+                furniture = furniture,
+                onPlaced = viewModel::placeFurniture,
+            )
 
             JarvisLiveParticles(enabled = projection.particlesEnabled)
 
@@ -377,6 +391,52 @@ fun JarvisLiveScreen(
             },
             containerColor = HermesInkSoft,
         )
+    }
+}
+
+/** Renders AI-generated furniture in the Den; each piece is draggable and its
+ *  placement persists to the runtime on release. */
+@Composable
+private fun DenFurnitureLayer(
+    furniture: List<JarvisLiveViewModel.DenFurniture>,
+    onPlaced: (String, Float, Float) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val wPx = constraints.maxWidth.toFloat()
+        val hPx = constraints.maxHeight.toFloat()
+        val itemPx = with(LocalDensity.current) { 72.dp.toPx() }
+        furniture.forEach { item ->
+            var pos by remember(item.id) {
+                mutableStateOf(Offset(item.x * wPx, item.y * hPx))
+            }
+            Image(
+                bitmap = item.bitmap.asImageBitmap(),
+                contentDescription = item.id,
+                modifier = Modifier
+                    .size(72.dp)
+                    .offset {
+                        IntOffset(
+                            (pos.x - itemPx / 2f).roundToInt(),
+                            (pos.y - itemPx / 2f).roundToInt(),
+                        )
+                    }
+                    .pointerInput(item.id) {
+                        detectDragGestures(
+                            onDrag = { change, drag ->
+                                change.consume()
+                                pos = Offset(pos.x + drag.x, pos.y + drag.y)
+                            },
+                            onDragEnd = {
+                                onPlaced(
+                                    item.id,
+                                    (pos.x / wPx).coerceIn(0f, 1f),
+                                    (pos.y / hPx).coerceIn(0f, 1f),
+                                )
+                            },
+                        )
+                    },
+            )
+        }
     }
 }
 
