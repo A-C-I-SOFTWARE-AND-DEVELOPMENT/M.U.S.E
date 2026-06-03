@@ -32,6 +32,7 @@ class ProposalKind(Enum):
     SELF_RUNTIME_UPDATE = "self_runtime_update"  # change hermes_cli/jarvis_prime/*
     MEMORY_PROMOTION = "memory_promotion"  # promote session → durable memory
     GATE_UPDATE = "gate_update"            # tweak a verification gate
+    MODEL_REGISTRY_UPDATE = "model_registry_update"  # REG-1: sync config/model-catalog.yaml
 
 
 class ProposalStatus(Enum):

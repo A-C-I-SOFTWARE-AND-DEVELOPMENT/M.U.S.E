@@ -9,6 +9,13 @@ and `agent/curator.py`; it does not replace any backend. Layers:
   auto-promotes.
 * selective retrieval (`retrieval`) — trust/confidence filter over recalled
   entries so low-trust content isn't dumped into the prompt.
+
+Live wiring: the agent loop records a raw event per completed turn from
+``AIAgent._record_memory_layer_events`` (in ``run_agent.py``), gated on the
+``memory.layers.enabled`` config flag (default OFF). The owner's message is
+recorded at ``owner`` trust; the model reply at ``trusted``. Capture is
+fail-open and never auto-promotes — promotion stays owner-gated via the
+curator bridge.
 """
 
 from __future__ import annotations
