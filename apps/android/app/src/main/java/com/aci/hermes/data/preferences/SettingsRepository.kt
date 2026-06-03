@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.aci.hermes.data.jarvis.AutonomyMode
 import com.aci.hermes.data.jarvis.ResponseLength
@@ -57,6 +58,13 @@ class SettingsRepository(private val context: Context) {
         val SAFETY_GATES_ENABLED = booleanPreferencesKey("safety_gates_enabled")
         val PRIVACY_LOCAL_ONLY_MEMORY = booleanPreferencesKey("privacy_local_only_memory")
         val EMERGENCY_STOP_ENGAGED = booleanPreferencesKey("emergency_stop_engaged")
+
+        // Mobile-native device control — owner consent for letting Jarvis
+        // operate the phone. Master switch defaults off; sensitive actions
+        // require confirmation until the owner opts into high-power mode.
+        val DEVICE_CONTROL_ENABLED = booleanPreferencesKey("device_control_enabled")
+        val DEVICE_CONFIRM_SENSITIVE = booleanPreferencesKey("device_confirm_sensitive")
+        val DEVICE_CONSENTED_CAPS = stringSetPreferencesKey("device_consented_capabilities")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -138,6 +146,22 @@ class SettingsRepository(private val context: Context) {
      * each surface uses.
      */
     val emergencyStopActive: Flow<Boolean> get() = emergencyStopEngaged
+
+    // ── Device control consent ─────────────────────────────────────────
+    /** Master switch: until on, no device action runs. Defaults off. */
+    val deviceControlEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.DEVICE_CONTROL_ENABLED] ?: false
+    }
+
+    /** When on (default), sensitive device actions need explicit confirmation. */
+    val deviceConfirmSensitive: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.DEVICE_CONFIRM_SENSITIVE] ?: true
+    }
+
+    /** The capability ids the owner has explicitly consented to. */
+    val deviceConsentedCapabilities: Flow<Set<String>> = context.dataStore.data.map {
+        it[Keys.DEVICE_CONSENTED_CAPS] ?: emptySet()
+    }
 
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { it[Keys.THEME_MODE] = mode.name }
@@ -239,6 +263,24 @@ class SettingsRepository(private val context: Context) {
 
     /** Home-dashboard-friendly alias for [setEmergencyStopEngaged]. */
     suspend fun setEmergencyStopActive(value: Boolean) = setEmergencyStopEngaged(value)
+
+    // ── Device control consent setters ─────────────────────────────────
+    suspend fun setDeviceControlEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.DEVICE_CONTROL_ENABLED] = value }
+    }
+
+    suspend fun setDeviceConfirmSensitive(value: Boolean) {
+        context.dataStore.edit { it[Keys.DEVICE_CONFIRM_SENSITIVE] = value }
+    }
+
+    /** Add or remove a capability id from the consented set. */
+    suspend fun setCapabilityConsent(capabilityId: String, consented: Boolean) {
+        context.dataStore.edit { prefs ->
+            val current = prefs[Keys.DEVICE_CONSENTED_CAPS] ?: emptySet()
+            prefs[Keys.DEVICE_CONSENTED_CAPS] =
+                if (consented) current + capabilityId else current - capabilityId
+        }
+    }
 
     suspend fun resetAll() {
         context.dataStore.edit { it.clear() }

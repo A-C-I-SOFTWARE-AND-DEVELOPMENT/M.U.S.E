@@ -278,6 +278,11 @@
     <!-- Control -->
     <string name="control_service_title">Orchestrator service</string>
 
+    <!-- Device control entry point (Control screen → Device control screen) -->
+    <string name="device_control_title">Device control</string>
+    <string name="device_control_subtitle">Let Jarvis operate this phone — taps, swipes, and app launches — behind explicit consent, with every action logged.</string>
+    <string name="device_control_open">Open device control</string>
+
     <!-- Emergency stop (simpler screen variant from #112; coexists with confirm-flow strings above) -->
     <string name="emergency_stop_title">Emergency stop</string>
     <string name="emergency_stop_body">Immediately stops the Jarvis Prime orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>

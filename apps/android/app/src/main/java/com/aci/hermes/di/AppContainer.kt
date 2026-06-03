@@ -17,6 +17,8 @@ import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.data.devicecontrol.DeviceActionLedger
+import com.aci.hermes.data.devicecontrol.DeviceControlController
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatGateway
@@ -37,6 +39,7 @@ import com.aci.hermes.ui.screens.audit.AuditViewModel
 import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
+import com.aci.hermes.ui.screens.devicecontrol.DeviceControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.jobs.JobsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
@@ -171,6 +174,20 @@ class AppContainer(private val application: Application) {
     val jarvisClipboard: JarvisClipboard = AndroidJarvisClipboard(context)
     val jarvisTaskSink: JarvisTaskSink = RepositoryTaskSink(taskRepository)
 
+    // ── Mobile-native device control ───────────────────────────────────
+    //
+    // The broker chokepoint + append-only action ledger that let Jarvis
+    // operate the phone safely. Constructing the controller also wires the
+    // accessibility service's gesture guard (so the emergency halt drops
+    // gestures) — see DeviceControlController.init.
+    val deviceActionLedger: DeviceActionLedger = DeviceActionLedger(context.filesDir)
+    val deviceControlController: DeviceControlController = DeviceControlController(
+        context = context,
+        settings = settingsRepository,
+        ledger = deviceActionLedger,
+        logBuffer = logBuffer,
+    )
+
     // Voice loop wiring: bind the on-device STT/TTS engines and the agent
     // dispatch so VoiceLoopService (barge-in conversation) can run once started.
     // The loop is started explicitly from the UI behind RECORD_AUDIO consent —
@@ -180,6 +197,12 @@ class AppContainer(private val application: Application) {
             sttFactory = { ctx -> com.aci.hermes.voice.AndroidSpeechRecognizerStt(ctx) }
             ttsFactory = { ctx -> com.aci.hermes.voice.AndroidTtsEngine(ctx) }
             dispatch = { utterance -> voiceDispatchToAgent(utterance) }
+            // Device-driving commands flow through the broker, not straight
+            // to the gesture layer — so consent, confirmation, the emergency
+            // halt, and the action ledger all apply.
+            performAutomation = { overlay, intent ->
+                deviceControlController.dispatchFromVoice(overlay, intent)
+            }
         }
     }
 
@@ -282,6 +305,15 @@ class AppContainer(private val application: Application) {
 
     fun cockpitJobsVmFactory(): ViewModelProvider.Factory = factory {
         CockpitJobsViewModel(cockpitJobsRepository, logBuffer)
+    }
+
+    fun deviceControlVmFactory(): ViewModelProvider.Factory = factory {
+        DeviceControlViewModel(
+            application = application,
+            settings = settingsRepository,
+            controller = deviceControlController,
+            logBuffer = logBuffer,
+        )
     }
 
     fun jarvisPrimeHomeVmFactory(): ViewModelProvider.Factory = factory {

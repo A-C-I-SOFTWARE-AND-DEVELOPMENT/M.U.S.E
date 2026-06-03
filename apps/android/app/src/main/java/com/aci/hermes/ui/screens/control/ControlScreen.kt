@@ -48,6 +48,7 @@ fun ControlScreen(
     viewModel: OrchestratorViewModel,
     paddingValues: PaddingValues,
     onEmergencyStop: () -> Unit,
+    onOpenDeviceControl: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmStop by remember { mutableStateOf(false) }
@@ -97,6 +98,27 @@ fun ControlScreen(
                         enabled = state.serviceRunning,
                     ) { Text(stringResource(R.string.orchestrator_stop_service)) }
                 }
+            }
+        }
+
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.device_control_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(R.string.device_control_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(
+                    onClick = onOpenDeviceControl,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.device_control_open)) }
             }
         }
 

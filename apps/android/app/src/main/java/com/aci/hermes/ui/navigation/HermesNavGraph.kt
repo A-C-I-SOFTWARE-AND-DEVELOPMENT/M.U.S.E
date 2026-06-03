@@ -34,6 +34,8 @@ import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatScreen
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlScreen
+import com.aci.hermes.ui.screens.devicecontrol.DeviceControlScreen
+import com.aci.hermes.ui.screens.devicecontrol.DeviceControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
@@ -75,10 +77,14 @@ fun HermesNavHost(container: AppContainer) {
     val hasOnboarded by container.settingsRepository.hasOnboarded.collectAsState(initial = null)
 
     val emergencyStop: () -> Unit = {
+        // Stand the whole agent down with one tap: stop the orchestrator AND
+        // halt device control (drop gestures, stop the overlay + voice loop).
         container.orchestratorServiceController.emergencyStop()
+        container.deviceControlController.engageEmergencyStop()
     }
     val openSettings: () -> Unit = { nav.navigate(Screen.Settings.route) }
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }
+    val openDeviceControl: () -> Unit = { nav.navigate(Screen.DeviceControl.route) }
     val onNavigateTab: (Screen) -> Unit = { screen ->
         nav.navigate(screen.route) {
             popUpTo(Screen.Home.route) { saveState = true }
@@ -135,6 +141,7 @@ fun HermesNavHost(container: AppContainer) {
             emergencyStop = emergencyStop,
             openTask = openTask,
             prepareHandoff = prepareHandoff,
+            openDeviceControl = openDeviceControl,
         )
 
         composable(
@@ -177,6 +184,13 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Diagnostics.route) {
             val vm: DiagnosticsViewModel = viewModel(factory = remember { container.diagnosticsVmFactory() })
             DiagnosticsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        composable(Screen.DeviceControl.route) {
+            val vm: DeviceControlViewModel = viewModel(
+                factory = remember { container.deviceControlVmFactory() },
+            )
+            DeviceControlScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
         composable(Screen.AvatarPicker.route) {
@@ -241,6 +255,7 @@ private fun NavGraphBuilder.shellDestinations(
     emergencyStop: () -> Unit,
     openTask: (taskId: String?) -> Unit,
     prepareHandoff: (TargetTool) -> Unit,
+    openDeviceControl: () -> Unit,
 ) {
     composable(Screen.Home.route) {
         val vm: OrchestratorViewModel = viewModel(
@@ -420,6 +435,7 @@ private fun NavGraphBuilder.shellDestinations(
                 viewModel = vm,
                 paddingValues = padding,
                 onEmergencyStop = emergencyStop,
+                onOpenDeviceControl = openDeviceControl,
             )
         }
     }
