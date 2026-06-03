@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -244,6 +245,12 @@ private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit
                 title = stringResource(R.string.nav_voice),
                 icon = Icons.Filled.Mic,
                 onClick = onOpenVoice,
+            )
+            QuickLinkCard(
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.nav_evidence),
+                icon = Icons.Filled.Science,
+                onClick = { onNavigate(Screen.Evidence) },
             )
         }
     }

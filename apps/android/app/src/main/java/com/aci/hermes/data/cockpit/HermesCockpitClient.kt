@@ -99,6 +99,53 @@ class HermesCockpitClient(
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
 
+    // ─── Evidence Engine (contract §10d) ─────────────────────────────────
+
+    /** List evidence; an optional `query` runs hybrid retrieval (BM25 + memory).
+     *  When a query is sent the server populates `hits` (ranked) over `items`. */
+    suspend fun evidenceList(query: String? = null): CockpitResult<CockpitEvidenceList> {
+        val path = if (query.isNullOrBlank()) {
+            "/v1/cockpit/evidence"
+        } else {
+            "/v1/cockpit/evidence?q=" + enc(query)
+        }
+        return request("GET", path, CockpitEvidenceList.serializer())
+    }
+
+    /** One evidence artifact by id. */
+    suspend fun evidenceDetail(id: String): CockpitResult<CockpitEvidenceDetail> =
+        request("GET", "/v1/cockpit/evidence/" + enc(id), CockpitEvidenceDetail.serializer())
+
+    /** Verify claims against evidence: citations, uncertain claims, contradictions. */
+    suspend fun evidenceVerify(req: EvidenceVerifyRequest): CockpitResult<CockpitEvidenceVerifyResult> =
+        request(
+            "POST",
+            "/v1/cockpit/evidence/verify",
+            CockpitEvidenceVerifyResult.serializer(),
+            body = json.encodeToString(EvidenceVerifyRequest.serializer(), req),
+        )
+
+    /** Promote evidence to durable memory. Low-confidence promotion needs the
+     *  owner [authorization] phrase — otherwise the gateway returns 422 (the
+     *  memory write policy is never bypassed). */
+    suspend fun evidencePromote(
+        id: String,
+        authorization: String? = null,
+    ): CockpitResult<PromoteEvidenceResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/evidence/" + enc(id) + "/promote",
+            PromoteEvidenceResponse.serializer(),
+            body = json.encodeToString(
+                PromoteEvidenceRequest.serializer(),
+                PromoteEvidenceRequest(authorization = authorization),
+            ),
+        )
+
+    /** Demote (remove) an evidence artifact from the vault. */
+    suspend fun evidenceDemote(id: String): CockpitResult<DeleteMemoryResponse> =
+        request("DELETE", "/v1/cockpit/evidence/" + enc(id), DeleteMemoryResponse.serializer())
+
     // ─── Avatar persona ("make my avatar Goku") ──────────────────────────
 
     /** The companion's adopted persona, or an empty one if default. */

@@ -24,6 +24,7 @@ sealed class Screen(val route: String) {
     data object Tasks : Screen("tasks")
     data object Approvals : Screen("approvals")
     data object Memory : Screen("memory")
+    data object Evidence : Screen("evidence")
     data object Audit : Screen("audit")
     data object Capability : Screen("capability")
     data object Control : Screen("control")
@@ -58,6 +59,7 @@ sealed class Screen(val route: String) {
             Tasks.route,
             Approvals.route,
             Memory.route,
+            Evidence.route,
             Audit.route,
             Capability.route,
             Control.route,

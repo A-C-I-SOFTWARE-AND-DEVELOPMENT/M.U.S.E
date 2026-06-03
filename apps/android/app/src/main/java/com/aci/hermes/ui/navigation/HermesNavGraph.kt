@@ -36,6 +36,8 @@ import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsScreen
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.evidence.EvidenceScreen
+import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.home.HomeScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
@@ -335,6 +337,24 @@ private fun NavGraphBuilder.shellDestinations(
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
                 MemoryScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            }
+        }
+    }
+
+    composable(Screen.Evidence.route) {
+        val vm: EvidenceViewModel = viewModel(
+            factory = remember { container.evidenceVmFactory() },
+        )
+        ShellHost(
+            currentRoute = Screen.Evidence.route,
+            titleRes = R.string.nav_evidence,
+            onNavigateTab = onNavigateTab,
+            openSettings = openSettings,
+            openDiagnostics = openDiagnostics,
+            emergencyStop = emergencyStop,
+        ) { padding ->
+            Box(modifier = Modifier.padding(padding)) {
+                EvidenceScreen(viewModel = vm, onBack = { nav.popBackStack() })
             }
         }
     }

@@ -193,6 +193,7 @@
     <string name="nav_tasks">Tasks</string>
     <string name="nav_approvals">Approvals</string>
     <string name="nav_memory">Memory</string>
+    <string name="nav_evidence">Evidence</string>
     <string name="nav_audit">Audit</string>
     <string name="nav_control">Control</string>
     <string name="nav_settings">Settings</string>

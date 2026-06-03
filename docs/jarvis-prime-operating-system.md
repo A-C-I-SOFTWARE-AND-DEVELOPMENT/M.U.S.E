@@ -329,6 +329,32 @@ Do not save:
 - raw voice dumps
 - unverified claims
 
+## Evidence Engine (RAG)
+
+JARVIS answers like a source-grounded research engine:
+**retrieve → rank → cite → verify → (gated) promote.**
+
+- **Retrieve** — hybrid retrieval (`hermes_cli/jarvis_prime/evidence_engine.py`):
+  BM25-style keyword search over the **Research Vault**, blended with
+  Memory-Tree search and an optional bounded repo-symbol grep. A dense
+  embedding lane sits behind an off-by-default hook (no new hard dependency).
+- **Rank** — by the `SourceTrust` ladder (owner > primary > official_doc >
+  reputable > community > unverified), then relevance.
+- **Cite + verify** — the `CitationVerifier` maps each factual claim to
+  supporting evidence; unsupported claims are flagged **uncertain**,
+  contradictions are surfaced (reusing Memory-Tree contradiction reports plus
+  a same-subject negation heuristic), and any secret / chain-of-thought claim
+  is rejected outright.
+- **Promote** — `promote_to_memory` is the **only** write path from evidence
+  to durable memory, routed through `MemoryTreeStore.write`. The memory write
+  policy is preserved end to end: secrets/CoT rejected, durable writes need
+  provenance, and a low-confidence/unverified promotion requires the owner
+  phrase. **Unverified data never becomes durable memory automatically.**
+
+The same engine backs the cockpit `/v1/cockpit/evidence*` API and the Android
+**Evidence** screen (search, trust/freshness labels, contradiction alerts,
+promote-to-memory). See `docs/android/hermes-apk-api-contract.md` §10d.
+
 ## Owner Gates
 
 Require explicit owner authorization before:
