@@ -63,7 +63,11 @@ def _now_iso() -> str:
 
 
 def _terms(text: str) -> set[str]:
-    return {t for t in "".join(c.lower() if c.isalnum() else " " for c in text).split() if len(t) > 2}
+    return {
+        t
+        for t in "".join(c.lower() if c.isalnum() else " " for c in text).split()
+        if len(t) > 2
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +131,9 @@ class RawSource:
         return cls(
             title=str(d.get("title") or d.get("url") or "").strip(),
             url=str(d.get("url") or d.get("source_uri") or "").strip(),
-            excerpt=str(d.get("excerpt") or d.get("content") or d.get("snippet") or "").strip(),
+            excerpt=str(
+                d.get("excerpt") or d.get("content") or d.get("snippet") or ""
+            ).strip(),
             provider=str(d.get("provider") or "manual").strip(),
         )
 
@@ -234,8 +240,16 @@ class ResearchReport:
             query=d.get("query", ""),
             sub_questions=tuple(d.get("sub_questions", []) or []),
             cards=[EvidenceCard(**{**c}) for c in d.get("cards", [])],
-            claims=[SynthesizedClaim(**{**c, "supporting_card_ids": tuple(c.get("supporting_card_ids", []))}) for c in d.get("claims", [])],
-            contradictions=[ResearchContradiction(**c) for c in d.get("contradictions", [])],
+            claims=[
+                SynthesizedClaim(**{
+                    **c,
+                    "supporting_card_ids": tuple(c.get("supporting_card_ids", [])),
+                })
+                for c in d.get("claims", [])
+            ],
+            contradictions=[
+                ResearchContradiction(**c) for c in d.get("contradictions", [])
+            ],
             final_answer=d.get("final_answer", ""),
             uncertainty=d.get("uncertainty", ""),
             citations=tuple(d.get("citations", []) or []),
@@ -345,7 +359,9 @@ class ResearchEngine:
             ("What primary or official source supports it?", "provenance"),
             ("What are the caveats, limits, or disagreements?", "contradiction check"),
         ]
-        questions = [ResearchQuestion(text=t, why_it_matters=w) for t, w in facets[: max_sub]]
+        questions = [
+            ResearchQuestion(text=t, why_it_matters=w) for t, w in facets[:max_sub]
+        ]
         return open_brief(
             topic=query or "(empty query)",
             triggered_by="unfamiliar_topic",
@@ -429,7 +445,9 @@ class ResearchEngine:
 
     # -- step 4: cards ------------------------------------------------------
 
-    def to_cards(self, ranked: Sequence[RawSource], *, query: str, brief: ResearchBrief) -> list[EvidenceCard]:
+    def to_cards(
+        self, ranked: Sequence[RawSource], *, query: str, brief: ResearchBrief
+    ) -> list[EvidenceCard]:
         q_terms = _terms(query)
         cards: list[EvidenceCard] = []
         for rs in ranked:
@@ -460,7 +478,9 @@ class ResearchEngine:
 
     # -- step 5: synthesize -------------------------------------------------
 
-    def synthesize(self, cards: Sequence[EvidenceCard], *, query: str) -> list[SynthesizedClaim]:
+    def synthesize(
+        self, cards: Sequence[EvidenceCard], *, query: str
+    ) -> list[SynthesizedClaim]:
         """One claim per card, with confidence from the card's trust tier.
 
         We do *not* invent cross-source claims here — the claim text is the
@@ -484,7 +504,9 @@ class ResearchEngine:
                     text=card.claim,
                     supporting_card_ids=(card.id,),
                     confidence=conf,
-                    uncertainty="" if conf >= self.confidence_floor else "below confidence floor — verify before relying",
+                    uncertainty=""
+                    if conf >= self.confidence_floor
+                    else "below confidence floor — verify before relying",
                 )
             )
         return claims
@@ -518,7 +540,9 @@ class ResearchEngine:
 
     # -- step 7: contradictions ---------------------------------------------
 
-    def find_contradictions(self, cards: Sequence[EvidenceCard]) -> list[ResearchContradiction]:
+    def find_contradictions(
+        self, cards: Sequence[EvidenceCard]
+    ) -> list[ResearchContradiction]:
         """Flag pairs of cards that share a subject but oppose each other.
 
         Heuristic and conservative: two cards are contradictory when their
@@ -527,7 +551,18 @@ class ResearchEngine:
         Reported, never auto-resolved.
         """
         out: list[ResearchContradiction] = []
-        _NEG = {"not", "no", "never", "cannot", "can't", "isn't", "aren't", "false", "incorrect", "unsupported"}
+        _NEG = {
+            "not",
+            "no",
+            "never",
+            "cannot",
+            "can't",
+            "isn't",
+            "aren't",
+            "false",
+            "incorrect",
+            "unsupported",
+        }
         for i in range(len(cards)):
             for j in range(i + 1, len(cards)):
                 a, b = cards[i], cards[j]
@@ -570,7 +605,11 @@ class ResearchEngine:
         citations: list[str] = []
         lines: list[str] = []
         for claim in claims:
-            cited = [by_id[cid].source_uri for cid in claim.supporting_card_ids if cid in by_id]
+            cited = [
+                by_id[cid].source_uri
+                for cid in claim.supporting_card_ids
+                if cid in by_id
+            ]
             for uri in cited:
                 if uri not in citations:
                     citations.append(uri)
@@ -602,7 +641,9 @@ class ResearchEngine:
     ) -> ResearchReport:
         brief = self.decompose(query)
         raw, notes = self.gather(brief, manual_sources=manual_sources)
-        report_id = "rr_" + hashlib.sha1(f"{query}|{_now_iso()}".encode()).hexdigest()[:16]
+        report_id = (
+            "rr_" + hashlib.sha1(f"{query}|{_now_iso()}".encode()).hexdigest()[:16]
+        )
 
         if not raw:
             report = ResearchReport(
@@ -622,7 +663,9 @@ class ResearchEngine:
         claims = self.synthesize(cards, query=query)
         claims = self.verify_citations(claims, cards)
         contradictions = self.find_contradictions(cards)
-        answer, uncertainty, citations = self.compose_answer(query, claims, cards, contradictions)
+        answer, uncertainty, citations = self.compose_answer(
+            query, claims, cards, contradictions
+        )
 
         report = ResearchReport(
             id=report_id,
@@ -643,7 +686,9 @@ class ResearchEngine:
     # -- promotion / task payloads (executed by the gated cockpit handlers) -
 
     @staticmethod
-    def promotion_payload(report: ResearchReport, card_id: str) -> Optional[dict[str, Any]]:
+    def promotion_payload(
+        report: ResearchReport, card_id: str
+    ) -> Optional[dict[str, Any]]:
         """Build the Memory-write payload for a card (handler applies the gate).
 
         Returns the canonical ``MemoryStore.remember`` kwargs, or ``None`` when
@@ -685,7 +730,10 @@ class ResearchEngine:
             lines += ["", "Sources:"]
             lines += [f"- {c}" for c in report.citations]
         if report.contradictions:
-            lines += ["", f"Caution: {len(report.contradictions)} contradiction(s) flagged — resolve before relying."]
+            lines += [
+                "",
+                f"Caution: {len(report.contradictions)} contradiction(s) flagged — resolve before relying.",
+            ]
         return "\n".join(lines)
 
     # -- persistence (mirrors ResearchVault) --------------------------------
@@ -699,8 +747,12 @@ class ResearchEngine:
         reports.append(report)
         target = self._resolve_reports_path()
         target.parent.mkdir(parents=True, exist_ok=True)
-        payload = "".join(json.dumps(r.to_dict(), sort_keys=True) + "\n" for r in reports)
-        fd, tmp = tempfile.mkstemp(dir=str(target.parent), prefix=".rreports-", suffix=".tmp")
+        payload = "".join(
+            json.dumps(r.to_dict(), sort_keys=True) + "\n" for r in reports
+        )
+        fd, tmp = tempfile.mkstemp(
+            dir=str(target.parent), prefix=".rreports-", suffix=".tmp"
+        )
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fh.write(payload)

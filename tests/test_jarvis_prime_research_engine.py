@@ -36,6 +36,7 @@ def _engine(tmp_path: Path, gatherer=None) -> ResearchEngine:
 def _fake_gatherer(results):
     def _g(query: str, limit: int):
         return [RawSource.from_dict(r) for r in results]
+
     return _g
 
 
@@ -44,7 +45,10 @@ def test_classify_source_trust_tiers():
     assert classify_source("https://docs.python.org/3/")[0] is SourceType.OFFICIAL_DOC
     assert classify_source("https://github.com/x/y")[1] is EvidenceStrength.STRONG
     # Unknown host is conservative.
-    assert classify_source("https://some-random-blog.example/post")[1] is EvidenceStrength.WEAK
+    assert (
+        classify_source("https://some-random-blog.example/post")[1]
+        is EvidenceStrength.WEAK
+    )
 
 
 def test_decompose_produces_sub_questions(tmp_path):
@@ -54,15 +58,13 @@ def test_decompose_produces_sub_questions(tmp_path):
 
 
 def test_run_with_fake_provider_yields_source_backed_report(tmp_path):
-    gatherer = _fake_gatherer(
-        [
-            {
-                "title": "HTTP/3 spec",
-                "url": "https://docs.example.org/http3",
-                "content": "HTTP/3 uses QUIC transport over UDP for multiplexing.",
-            }
-        ]
-    )
+    gatherer = _fake_gatherer([
+        {
+            "title": "HTTP/3 spec",
+            "url": "https://docs.example.org/http3",
+            "content": "HTTP/3 uses QUIC transport over UDP for multiplexing.",
+        }
+    ])
     report = _engine(tmp_path, gatherer).run("What transport does HTTP/3 use?")
     assert report.cards, "expected at least one evidence card"
     assert report.claims, "expected synthesized claims"
@@ -121,7 +123,9 @@ def test_verify_citations_drops_orphans(tmp_path):
     from hermes_cli.jarvis_prime.research_engine import SynthesizedClaim
 
     supported = SynthesizedClaim(text="QUIC over UDP", supporting_card_ids=("c1",))
-    orphan = SynthesizedClaim(text="completely unrelated topic words", supporting_card_ids=("missing",))
+    orphan = SynthesizedClaim(
+        text="completely unrelated topic words", supporting_card_ids=("missing",)
+    )
     kept = eng.verify_citations([supported, orphan], [card])
     assert supported in kept
     assert orphan not in kept
@@ -130,8 +134,24 @@ def test_verify_citations_drops_orphans(tmp_path):
 def test_find_contradictions_flags_negation(tmp_path):
     eng = _engine(tmp_path)
     cards = [
-        EvidenceCard("a", "A", "https://a", "blog", "moderate", "", "feature x is supported on platform"),
-        EvidenceCard("b", "B", "https://b", "blog", "moderate", "", "feature x is not supported on platform"),
+        EvidenceCard(
+            "a",
+            "A",
+            "https://a",
+            "blog",
+            "moderate",
+            "",
+            "feature x is supported on platform",
+        ),
+        EvidenceCard(
+            "b",
+            "B",
+            "https://b",
+            "blog",
+            "moderate",
+            "",
+            "feature x is not supported on platform",
+        ),
     ]
     contradictions = eng.find_contradictions(cards)
     assert contradictions
@@ -139,9 +159,16 @@ def test_find_contradictions_flags_negation(tmp_path):
 
 
 def test_report_round_trips_and_persists(tmp_path):
-    eng = _engine(tmp_path, _fake_gatherer([
-        {"title": "T", "url": "https://docs.example.org/t", "content": "alpha beta gamma"}
-    ]))
+    eng = _engine(
+        tmp_path,
+        _fake_gatherer([
+            {
+                "title": "T",
+                "url": "https://docs.example.org/t",
+                "content": "alpha beta gamma",
+            }
+        ]),
+    )
     report = eng.run("alpha beta")
     again = eng.get_report(report.id)
     assert again is not None
@@ -153,9 +180,16 @@ def test_report_round_trips_and_persists(tmp_path):
 
 
 def test_promotion_payload_carries_provenance(tmp_path):
-    eng = _engine(tmp_path, _fake_gatherer([
-        {"title": "Primary spec", "url": "https://arxiv.org/abs/9", "content": "alpha beta gamma delta"}
-    ]))
+    eng = _engine(
+        tmp_path,
+        _fake_gatherer([
+            {
+                "title": "Primary spec",
+                "url": "https://arxiv.org/abs/9",
+                "content": "alpha beta gamma delta",
+            }
+        ]),
+    )
     report = eng.run("alpha beta")
     card = report.cards[0]
     payload = ResearchEngine.promotion_payload(report, card.id)
@@ -169,9 +203,16 @@ def test_promotion_payload_carries_provenance(tmp_path):
 
 
 def test_task_prompt_includes_answer_and_sources(tmp_path):
-    eng = _engine(tmp_path, _fake_gatherer([
-        {"title": "T", "url": "https://docs.example.org/t", "content": "alpha beta gamma"}
-    ]))
+    eng = _engine(
+        tmp_path,
+        _fake_gatherer([
+            {
+                "title": "T",
+                "url": "https://docs.example.org/t",
+                "content": "alpha beta gamma",
+            }
+        ]),
+    )
     report = eng.run("alpha beta")
     prompt = ResearchEngine.task_prompt(report)
     assert "alpha beta" in prompt

@@ -304,7 +304,8 @@ def jobs_list(_req: Request) -> JsonResponse:
             jobs.append(contract.cockpit_job(entry))
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(
-            200, {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)}
+            200,
+            {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)},
         )
     # Also surface orchestrator (/orchestrate) jobs — a separate store from the
     # JobQueue — so the app's Jobs list reflects the whole pipeline, not just
@@ -317,7 +318,7 @@ def jobs_list(_req: Request) -> JsonResponse:
             jobs.append(contract.orchestrator_job(job))
     except Exception:  # pragma: no cover - defensive
         pass
-    jobs.sort(key=lambda j: (j.get("created_at") or ""), reverse=True)
+    jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
     return JsonResponse(200, {"jobs": jobs, "next_cursor": None, "prev_cursor": None})
 
 
@@ -454,7 +455,9 @@ def job_run(req: Request) -> JsonResponse:
         ]
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
-    return JsonResponse(200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]})
+    return JsonResponse(
+        200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]}
+    )
 
 
 def avatar_persona_get(_req: Request) -> JsonResponse:
@@ -667,7 +670,10 @@ def navigation_list(req: Request) -> JsonResponse:
         ledger = orch.get_ledger() or {}
         for job_id, entries in ledger.items():
             for entry in entries or []:
-                if isinstance(entry, dict) and entry.get("kind") == "navigation_decision":
+                if (
+                    isinstance(entry, dict)
+                    and entry.get("kind") == "navigation_decision"
+                ):
                     items.append(contract.navigation_view(entry, job_id=job_id))
         items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         items = items[:limit]
@@ -852,7 +858,9 @@ def research_list(_req: Request) -> JsonResponse:
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
     reports = sorted(reports, key=lambda r: r.created_at, reverse=True)
-    return JsonResponse(200, {"reports": [contract.research_report(r) for r in reports]})
+    return JsonResponse(
+        200, {"reports": [contract.research_report(r) for r in reports]}
+    )
 
 
 def research_get(req: Request) -> JsonResponse:
