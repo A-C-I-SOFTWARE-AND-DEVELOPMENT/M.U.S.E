@@ -97,6 +97,15 @@ fun HermesNavHost(
     val coroutineScope = rememberCoroutineScope()
     val hasOnboarded by container.settingsRepository.hasOnboarded.collectAsState(initial = null)
 
+    // Honour a notification tap: open the route MainActivity published, then
+    // clear it so a recomposition/rotation doesn't re-navigate.
+    val pendingDeepLink by container.pendingDeepLink.collectAsState()
+    LaunchedEffect(pendingDeepLink) {
+        val route = pendingDeepLink ?: return@LaunchedEffect
+        nav.navigate(route) { launchSingleTop = true }
+        container.consumeDeepLink()
+    }
+
     val emergencyStop: () -> Unit = {
         // Stand the whole agent down with one tap: stop the orchestrator AND
         // halt device control (drop gestures, stop the overlay + voice loop).

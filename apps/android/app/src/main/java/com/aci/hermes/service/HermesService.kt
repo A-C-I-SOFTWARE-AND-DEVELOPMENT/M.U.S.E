@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.aci.hermes.MainActivity
 import com.aci.hermes.R
+import com.aci.hermes.notify.DeepLink
+import com.aci.hermes.ui.navigation.Screen
 
 /**
  * Local-only foreground service. Keeps a visible notification so the user
@@ -100,16 +102,18 @@ class HermesService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Owner-approve action deep-links into MainActivity with a
-        // jarvis_action extra. MainActivity inspects the extra and
-        // routes to the approval entry flow (requires the exact phrase
-        // "Yes, with authorization." per the JARVIS Prime owner gate).
+        // Owner-approve action deep-links into MainActivity, which routes to
+        // the Approvals screen. The decision there still goes through the
+        // owner gate (the exact phrase "Yes, with authorization."); this
+        // action only opens the queue. (Previously this set a `jarvis_action`
+        // extra that nothing consumed — a dead path now wired to the canonical
+        // notification deep-link contract in [DeepLink].)
         val ownerApproveIntent = PendingIntent.getActivity(
             this,
             2,
             Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-                putExtra("jarvis_action", "owner_approve")
+                putExtra(DeepLink.EXTRA_NAV_ROUTE, Screen.Approvals.route)
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

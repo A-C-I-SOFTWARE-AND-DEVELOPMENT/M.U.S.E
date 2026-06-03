@@ -81,20 +81,28 @@ sealed class Screen(val route: String) {
     data object Research : Screen("research")
 
     companion object {
+        // `by lazy` is deliberate: these collections dereference the `route`
+        // of several `Screen` data objects. If they were eager, initializing
+        // `Screen` *via one of those data objects* (e.g. `Screen.Approvals` —
+        // which a notification deep-link does) would re-enter that object's
+        // half-finished `<clinit>` and read a null `route` → NPE. Deferring
+        // the dereference until first use makes init order-independent.
+
         /** Routes that render inside [JarvisShell]. */
-        val shellRoutes: Set<String> = setOf(
-            Home.route,
-            Chat.route,
-            Jobs.route,
-            Tasks.route,
-            Jobs.route,
-            Approvals.route,
-            Memory.route,
-            Evidence.route,
-            Audit.route,
-            Capability.route,
-            Control.route,
-        )
+        val shellRoutes: Set<String> by lazy {
+            setOf(
+                Home.route,
+                Chat.route,
+                Jobs.route,
+                Tasks.route,
+                Approvals.route,
+                Memory.route,
+                Evidence.route,
+                Audit.route,
+                Capability.route,
+                Control.route,
+            )
+        }
 
         /** Bottom-nav tabs, in display order. Jobs is the primary cockpit tab;
          *  the legacy handoff Tasks list stays reachable from Home quick links. */
