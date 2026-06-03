@@ -2,6 +2,7 @@ package com.aci.hermes.ui.screens.orchestrator
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.testutil.isolatedSettings
@@ -38,6 +39,7 @@ class OrchestratorViewModelTest {
             tasksRepo = HermesTaskRepository(app),
             promptBuilder = PromptBuilder(),
             logBuffer = LogBuffer(),
+            cockpitClient = HermesCockpitClient(endpointProvider = { "" }, tokenProvider = { null }),
         )
     }
 

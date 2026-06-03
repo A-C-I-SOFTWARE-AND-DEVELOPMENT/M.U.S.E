@@ -362,9 +362,18 @@ class JarvisLiveViewModel(
         // worker phase) overrides this on the next poll; the timeout guarantees
         // it can never stick the way the old demo flag did.
         _commandInFlight.value = true
+        // Immediate optimistic feedback so a typed command shows "thinking"
+        // even with no backend pipeline (unpaired / standalone / tests). When
+        // cockpit repos are present, the presence combine ORs _commandInFlight
+        // into thinking and keeps it accurate against real worker phases.
+        _state.update { it.copy(thinking = true) }
         viewModelScope.launch {
             delay(COMMAND_FEEDBACK_MS)
             _commandInFlight.value = false
+            // No presence pipeline to recompute it → clear the optimistic flag.
+            if (jobsRepository == null || taskRepository == null) {
+                _state.update { it.copy(thinking = false) }
+            }
         }
     }
 

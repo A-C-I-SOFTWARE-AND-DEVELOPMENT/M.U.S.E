@@ -105,14 +105,18 @@ sealed class Screen(val route: String) {
         }
 
         /** Bottom-nav tabs, in display order. Jobs is the primary cockpit tab;
-         *  the legacy handoff Tasks list stays reachable from Home quick links. */
-        val bottomTabs: List<BottomTab> = listOf(
-            BottomTab(Home, BottomTab.Icon.HOME, labelKey = "nav_home"),
-            BottomTab(Jobs, BottomTab.Icon.JOBS, labelKey = "nav_jobs"),
-            BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
-            BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
-            BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
-        )
+         *  the legacy handoff Tasks list stays reachable from Home quick links.
+         *  `by lazy` defers the `data object` dereferences until first use so a
+         *  half-finished companion `<clinit>` can never read a null route. */
+        val bottomTabs: List<BottomTab> by lazy {
+            listOf(
+                BottomTab(Home, BottomTab.Icon.HOME, labelKey = "nav_home"),
+                BottomTab(Jobs, BottomTab.Icon.JOBS, labelKey = "nav_jobs"),
+                BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
+                BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
+                BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
+            )
+        }
 
         /**
          * Canonical list of shell destinations surfaced as Home quick-links,
@@ -122,17 +126,19 @@ sealed class Screen(val route: String) {
          * [bottomTabs] tab or a quick-link here (asserted in ScreenTest).
          * (This is what made Capability deep-link-only before it was added.)
          */
-        val homeQuickLinks: List<Screen> = listOf(
-            Tasks,
-            Jobs,
-            Chat,
-            Approvals,
-            Memory,
-            Audit,
-            Capability,
-            Evidence,
-            Control,
-        )
+        val homeQuickLinks: List<Screen> by lazy {
+            listOf(
+                Tasks,
+                Jobs,
+                Chat,
+                Approvals,
+                Memory,
+                Audit,
+                Capability,
+                Evidence,
+                Control,
+            )
+        }
     }
 }
 

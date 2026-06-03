@@ -19,7 +19,6 @@ class ScreenTest {
         Screen.Chat,
         Screen.Jobs,
         Screen.Tasks,
-        Screen.Jobs,
         Screen.Approvals,
         Screen.Memory,
         Screen.Evidence,
@@ -172,6 +171,9 @@ class ScreenTest {
         // Deep-linked from Settings/Home, not a shell tab or bottom-nav target.
         assertTrue(Screen.Knowledge.route !in Screen.shellRoutes)
         assertTrue(Screen.bottomTabs.none { it.screen.route == Screen.Knowledge.route })
+    }
+
+    @Test
     fun legacy_tasks_stays_reachable_as_a_shell_route() {
         // The Jobs cockpit takes the bottom tab; the legacy clipboard-handoff
         // Tasks list is preserved as a shell destination (reached from Home).

@@ -1,6 +1,11 @@
 package com.aci.hermes.ui.screens.home
 
 import androidx.test.core.app.ApplicationProvider
+import com.aci.hermes.data.cockpit.CockpitHomeRepository
+import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.data.emergency.EmergencyStopController
+import com.aci.hermes.data.emergency.EmergencyStopRepository
 import com.aci.hermes.data.jarvis.JarvisPresence
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.preferences.SettingsRepository
@@ -30,11 +35,19 @@ class JarvisPrimeHomeViewModelTest {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
         // Isolated settings store → a fresh, hermetic baseline every test.
         settings = isolatedSettings(ctx)
+        // Unpaired cockpit client — repos degrade to honest empty in tests.
+        val client = HermesCockpitClient(endpointProvider = { "" }, tokenProvider = { null })
         return JarvisPrimeHomeViewModel(
             application = ctx as android.app.Application,
             settings = settings,
             tasksRepo = HermesTaskRepository(ctx),
             logBuffer = LogBuffer(),
+            homeRepo = CockpitHomeRepository(client),
+            jobsRepo = CockpitJobsRepository(client),
+            emergencyController = EmergencyStopController(
+                EmergencyStopRepository(java.io.File(ctx.cacheDir, "estop-${System.nanoTime()}")),
+                LogBuffer(),
+            ),
         )
     }
 
