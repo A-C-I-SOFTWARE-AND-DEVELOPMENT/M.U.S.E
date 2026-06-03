@@ -49,8 +49,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.aci.hermes.data.life.AvatarBehavior
 import com.aci.hermes.service.JarvisOverlayService
+import com.aci.hermes.vision.AttentionPolicy
+import com.aci.hermes.vision.AttentionState
+import com.aci.hermes.vision.CameraXFaceAttentionDetector
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
@@ -121,6 +125,7 @@ fun JarvisLiveScreen(
     val currentJobId by viewModel.currentJobId.collectAsState()
     val presenceEnabled by viewModel.presenceEnabled.collectAsState()
     val presenceState by viewModel.presenceState.collectAsState()
+    val cameraAttentionEnabled by viewModel.cameraAttentionEnabled.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
 
@@ -173,6 +178,23 @@ fun JarvisLiveScreen(
         else presencePermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
+    // Opt-in camera attention. Default off; turning it on needs the CAMERA
+    // permission. Track grant so the detector starts only once allowed.
+    fun hasCamera() = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.CAMERA,
+    ) == PackageManager.PERMISSION_GRANTED
+    var cameraGranted by remember { mutableStateOf(hasCamera()) }
+    val cameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        cameraGranted = granted
+        if (granted) viewModel.toggleCameraAttention()
+    }
+    val onToggleCameraAttention: () -> Unit = {
+        if (cameraAttentionEnabled || hasCamera()) viewModel.toggleCameraAttention()
+        else cameraPermission.launch(Manifest.permission.CAMERA)
+    }
+
     // Float JARVIS over other apps: start the overlay service behind the
     // draw-over-other-apps consent (a high-risk permission granted in Settings).
     var overlayOn by remember { mutableStateOf(JarvisOverlayService.active != null) }
@@ -207,6 +229,28 @@ fun JarvisLiveScreen(
 
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
+    // Opt-in camera attention: runs ONLY when Presence Mode + the opt-in are
+    // on AND the CAMERA permission is granted (AttentionPolicy.active). Bound to
+    // this screen's lifecycle, so leaving the screen releases the camera. On a
+    // glance (ABSENT→PRESENT) it arms listening. Privacy indicator below.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraActive = AttentionPolicy.active(
+        cameraAttentionEnabled = cameraAttentionEnabled,
+        presenceModeEnabled = presenceEnabled,
+        cameraPermissionGranted = cameraGranted,
+    )
+    LaunchedEffect(cameraActive, lifecycleOwner) {
+        if (!cameraActive) return@LaunchedEffect
+        val detector = CameraXFaceAttentionDetector(context, lifecycleOwner)
+        var previous: AttentionState? = null
+        detector.attention().collect { attentionState ->
+            if (AttentionPolicy.shouldArmOnTransition(previous, attentionState)) {
+                viewModel.talkNow()
+            }
+            previous = attentionState
+        }
+    }
+
     Scaffold(
         containerColor = HermesInk,
         topBar = {
@@ -229,6 +273,11 @@ fun JarvisLiveScreen(
                 onTogglePresence = {
                     overflowOpen = false
                     onTogglePresence()
+                },
+                cameraAttentionEnabled = cameraAttentionEnabled,
+                onToggleCameraAttention = {
+                    overflowOpen = false
+                    onToggleCameraAttention()
                 },
                 onCycleSprite = {
                     overflowOpen = false
@@ -271,6 +320,35 @@ fun JarvisLiveScreen(
             )
 
             JarvisLiveParticles(enabled = projection.particlesEnabled)
+
+            // Required privacy indicator: clearly visible whenever the camera
+            // is actively running for attention detection.
+            if (cameraActive) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = HermesCrimson.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 56.dp)
+                        .semantics {
+                            contentDescription = "Camera is on for attention detection"
+                        },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(8.dp)) {}
+                        Text(
+                            stringResource(R.string.jarvis_camera_indicator),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
 
             // Toggle the floating JARVIS that lives over every app.
             IconButton(
@@ -547,6 +625,8 @@ private fun JarvisTopBar(
     onOpenSettings: () -> Unit,
     onOpenStatusSheet: () -> Unit,
     onTogglePresence: () -> Unit,
+    cameraAttentionEnabled: Boolean,
+    onToggleCameraAttention: () -> Unit,
     onCycleSprite: () -> Unit,
 ) {
     Row(
@@ -604,6 +684,20 @@ private fun JarvisTopBar(
                             )
                         },
                         onClick = onTogglePresence,
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (cameraAttentionEnabled) {
+                                        R.string.jarvis_camera_attention_off
+                                    } else {
+                                        R.string.jarvis_camera_attention_on
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = onToggleCameraAttention,
                     )
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.jarvis_overflow_change_companion)) },

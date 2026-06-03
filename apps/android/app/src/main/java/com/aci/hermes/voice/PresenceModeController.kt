@@ -58,6 +58,10 @@ class PresenceModeController(
             PresenceModePolicy.stateFor(on, phase)
         }.stateIn(scope, SharingStarted.Eagerly, PresenceState.OFF)
 
+    /** Opt-in camera attention toggle (default off; arms listening on a glance). */
+    val cameraAttentionEnabled: StateFlow<Boolean> =
+        settings.cameraAttentionEnabled.stateIn(scope, SharingStarted.Eagerly, false)
+
     init {
         // Mirror the live voice phase onto the floating avatar so it reacts
         // even when the cockpit UI isn't foreground. Only the active voice
@@ -80,6 +84,14 @@ class PresenceModeController(
      * bypassing the wake word. Caller must hold RECORD_AUDIO.
      */
     fun talkNow() = VoiceLoopService.talkNow(appContext)
+
+    /** Opt in/out of camera attention. The camera only runs when this is on
+     *  AND Presence Mode is on AND the CAMERA permission is granted. */
+    fun setCameraAttention(on: Boolean) {
+        scope.launch { settings.setCameraAttentionEnabled(on) }
+    }
+
+    fun toggleCameraAttention() = setCameraAttention(!cameraAttentionEnabled.value)
 
     private fun overlayStateFor(phase: VoicePhase): JarvisLiveState? = when (phase) {
         VoicePhase.LISTENING -> JarvisLiveState.Listening

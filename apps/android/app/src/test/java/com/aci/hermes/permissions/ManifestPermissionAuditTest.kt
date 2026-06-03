@@ -25,13 +25,16 @@ class ManifestPermissionAuditTest {
         "android.permission.RECORD_AUDIO",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.QUERY_ALL_PACKAGES",
+        // Opt-in camera attention for Presence Mode (default OFF). On-device
+        // face-PRESENCE only; no frames stored/sent; visible indicator while
+        // active. Approved deliberately — see AndroidManifest + AttentionPolicy.
+        "android.permission.CAMERA",
     )
 
     private val forbidden = setOf(
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.CAMERA",
     )
 
     @Test

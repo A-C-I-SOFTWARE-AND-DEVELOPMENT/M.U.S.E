@@ -130,17 +130,33 @@ The avatar surface keeps every critical control reachable:
   `Hands-free · listening/thinking/speaking` so the state is conveyed by
   text, not animation alone. The floating overlay mirrors the same voice
   phase even when the cockpit UI is backgrounded
-  (`PresenceModeController`). Uses only the already-declared
-  `RECORD_AUDIO` + `SYSTEM_ALERT_WINDOW` — no new permission.
+  (`PresenceModeController`). The wake word + tap-to-talk use only the
+  already-declared `RECORD_AUDIO` + `SYSTEM_ALERT_WINDOW`.
+- **Camera attention (opt-in, default OFF)** — an additional overflow
+  toggle. When enabled AND Presence Mode is on AND the `CAMERA`
+  permission is granted (`AttentionPolicy.active`, a three-way AND), the
+  live screen runs on-device face-**presence** detection
+  (`CameraXFaceAttentionDetector`: CameraX front camera + bundled ML Kit
+  face detection) and arms listening on a glance
+  (`AttentionPolicy.shouldArmOnTransition`, rising edge only). Privacy
+  guarantees: a persistent visible "Camera on" indicator renders off the
+  **same** `cameraActive` flag that gates the detector (they cannot
+  diverge); the detector is bound to the screen lifecycle and released on
+  exit; frames are analysed in memory and closed immediately — **no
+  frame, image, identity, or expression is stored or transmitted**, and
+  ML Kit runs fully on-device. It reports only `PRESENT`/`ABSENT`.
 
 ## Permission audit
 
-The Jarvis Live PR introduces **zero** new permissions. The manifest
-still declares exactly:
-
-- `android.permission.POST_NOTIFICATIONS`
-- `android.permission.FOREGROUND_SERVICE`
-- `android.permission.FOREGROUND_SERVICE_DATA_SYNC`
+The state-wiring and Presence-Mode work add **no** new permissions.
+Opt-in camera attention adds exactly one — `android.permission.CAMERA`,
+default OFF, used only for on-device face-presence as described above.
+The three audits (`ManifestPermissionAuditTest`,
+`manifest/ManifestPermissionsTest`, `data/avatar/ManifestPermissionsTest`)
+were amended in lockstep to move `CAMERA` into the approved/allow set
+(with the opt-in rationale recorded in each), while everything else —
+contacts, SMS, call log, location, broad media/storage — stays
+forbidden, so further scope creep still fails CI.
 
 A pure-JVM test
 (`ManifestPermissionAuditTest`) parses
@@ -174,8 +190,12 @@ deps, no emulator. They live at
 - `PresenceModeTest` — the Presence Mode trigger degradation chain
   (camera → wake word → mic), the voice-phase → presence-state
   projection, and the `WakeWordMatcher` whole-word matching rules.
-- `ManifestPermissionAuditTest` — forbids the dangerous permission
-  list and snapshots the approved set (unchanged by this work).
+- `AttentionPolicyTest` — camera attention runs only behind the
+  three-way opt-in/presence/permission AND, and arms on the rising edge
+  into PRESENT only.
+- `ManifestPermissionAuditTest` (+ the two `ManifestPermissionsTest`s) —
+  snapshot the approved permission set (now including the opt-in
+  `CAMERA`) and keep the dangerous permissions forbidden.
 
 Run with:
 
@@ -194,13 +214,18 @@ Mode is wired (Phase 2). Remaining follow-ups:
    `SpeechRecognizer` loop. A purpose-built spotter (e.g. Picovoice
    Porcupine) is a drop-in via `VoiceLoopService.Wiring.wakeWordFactory`;
    it needs an access key, which must not live in source.
-2. **Camera attention (gated)** — opt-in CameraX/ML Kit attention
-   detection to arm Presence Mode. This requires `CAMERA`, which is
-   **explicitly forbidden** today by `ManifestPermissionAuditTest` and
-   `ManifestPermissionsTest` (a deliberate no-spyware invariant). It
-   must ship as its own owner-authorized, safety-reviewed PR with a
-   visible privacy indicator, default-off toggle, and on-device-only
-   processing — not bundled into the state-wiring work.
+2. **Background camera attention** — camera attention currently runs
+   only while the live screen is visible (lifecycle-bound). Extending it
+   to the floating overlay would need a camera foreground-service type
+   and extra review; intentionally out of scope here.
+
 3. **Compose UI tests** — add `compose-ui-test-junit4` and assert the
    live semantic tree (CTAs appear for the right states, swipe opens
    the current job).
+
+**Shipped (opt-in, default OFF):** camera attention — on-device
+CameraX/ML Kit face-presence detection to arm Presence Mode, behind the
+`CAMERA` permission. The three permission audits were amended in lockstep
+to allow `CAMERA` (rationale recorded inline); it is owner-authorized,
+default-off, shows a visible indicator while active, and processes frames
+on-device only (none stored or transmitted).

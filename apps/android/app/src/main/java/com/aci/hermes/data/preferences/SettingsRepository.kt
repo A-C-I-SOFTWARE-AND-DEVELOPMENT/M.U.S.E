@@ -58,6 +58,7 @@ class SettingsRepository(private val context: Context) {
         val PRIVACY_LOCAL_ONLY_MEMORY = booleanPreferencesKey("privacy_local_only_memory")
         val EMERGENCY_STOP_ENGAGED = booleanPreferencesKey("emergency_stop_engaged")
         val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
+        val CAMERA_ATTENTION_ENABLED = booleanPreferencesKey("camera_attention_enabled")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -139,6 +140,16 @@ class SettingsRepository(private val context: Context) {
      */
     val presenceModeEnabled: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.PRESENCE_MODE_ENABLED] ?: false
+    }
+    /**
+     * Opt-in camera attention for Presence Mode (default off). When on AND
+     * Presence Mode is on AND the CAMERA permission is granted, the live
+     * screen runs on-device face-presence detection to arm listening when
+     * the user looks at the phone. No frames are stored or transmitted; a
+     * visible indicator is shown whenever the camera is active.
+     */
+    val cameraAttentionEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.CAMERA_ATTENTION_ENABLED] ?: false
     }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
@@ -252,6 +263,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setPresenceModeEnabled(value: Boolean) {
         context.dataStore.edit { it[Keys.PRESENCE_MODE_ENABLED] = value }
+    }
+
+    suspend fun setCameraAttentionEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.CAMERA_ATTENTION_ENABLED] = value }
     }
 
     suspend fun resetAll() {

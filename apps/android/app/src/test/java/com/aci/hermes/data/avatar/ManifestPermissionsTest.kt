@@ -39,6 +39,10 @@ class ManifestPermissionsTest {
             "android.permission.RECORD_AUDIO",
             "android.permission.BLUETOOTH_CONNECT",
             "android.permission.QUERY_ALL_PACKAGES",
+            // Opt-in camera attention for Presence Mode (default OFF). On-device
+            // face-PRESENCE only; no frames stored/sent; visible indicator while
+            // active. The avatar picker still introduces no permission of its own.
+            "android.permission.CAMERA",
         )
         assertEquals(expected, found)
     }
@@ -48,10 +52,11 @@ class ManifestPermissionsTest {
         val manifest = findManifest()
         assertNotNull(manifest)
         val text = manifest!!.readText()
-        // The picker still never needs broad media/storage or the camera.
+        // The picker still never needs broad media/storage reads. (CAMERA is
+        // now an opt-in Presence-Mode capability, asserted in the allow-list
+        // above and the dedicated permission audits — not the picker's doing.)
         assertFalse("READ_MEDIA_IMAGES must not appear", text.contains("READ_MEDIA_IMAGES"))
         assertFalse("READ_EXTERNAL_STORAGE must not appear", text.contains("READ_EXTERNAL_STORAGE"))
-        assertFalse("CAMERA must not appear", text.contains("android.permission.CAMERA"))
     }
 
     private fun findManifest(): File? {

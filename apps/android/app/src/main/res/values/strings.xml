@@ -373,6 +373,9 @@
     <string name="jarvis_presence_listening">Hands-free · listening</string>
     <string name="jarvis_presence_thinking">Hands-free · thinking</string>
     <string name="jarvis_presence_speaking">Hands-free · speaking</string>
+    <string name="jarvis_camera_attention_on">Use camera attention</string>
+    <string name="jarvis_camera_attention_off">Turn off camera attention</string>
+    <string name="jarvis_camera_indicator">Camera on</string>
 
     <string name="jarvis_menu_cd">Open menu</string>
     <string name="jarvis_more_cd">More options</string>

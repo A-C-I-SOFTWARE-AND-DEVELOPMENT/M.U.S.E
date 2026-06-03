@@ -59,10 +59,20 @@ class JarvisLiveViewModel(
     /** True if a wake-word spotter can run; else only tap-to-talk/mic fallback. */
     val wakeWordAvailable: Boolean get() = presenceController?.wakeWordAvailable ?: false
 
+    /** Opt-in camera attention on-off (default off; off when unwired). */
+    val cameraAttentionEnabled: StateFlow<Boolean> =
+        presenceController?.cameraAttentionEnabled ?: MutableStateFlow(false)
+
     /** Toggle hands-free Presence Mode. */
     fun togglePresenceMode() {
         markInteraction()
         presenceController?.toggle()
+    }
+
+    /** Toggle opt-in camera attention. */
+    fun toggleCameraAttention() {
+        markInteraction()
+        presenceController?.toggleCameraAttention()
     }
 
     /** Tap-to-talk / mic fallback: open the mic now (caller holds RECORD_AUDIO). */
