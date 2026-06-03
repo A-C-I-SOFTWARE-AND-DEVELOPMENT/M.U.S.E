@@ -182,11 +182,16 @@ fun JarvisLiveScreen(
                         )
                     },
                 ) {
-                    // The living, breathing 17-pose body. Reduced motion collapses
-                    // to the calm Orb; otherwise the energy-driven humanoid breathes,
-                    // reacts to the real agent state, and idles/wanders/sleeps when away.
-                    val avatarKind =
-                        if (projection.motionEnabled) state.avatarKind else AvatarKind.Orb
+                    // The living, breathing body. A saved photo becomes a breathing
+                    // photo face; otherwise the energy-driven humanoid that reacts to
+                    // the real agent state and idles/wanders/sleeps when away. Reduced
+                    // motion collapses only the motion-heavy bodies to the calm Orb;
+                    // a photo still shows (held still).
+                    val avatarKind = when {
+                        state.avatarPhoto != null -> AvatarKind.Photo
+                        projection.motionEnabled -> state.avatarKind
+                        else -> AvatarKind.Orb
+                    }
                     LivingAvatarHost(
                         kind = avatarKind,
                         inputs = AvatarAnimation.inputsFor(
@@ -196,6 +201,7 @@ fun JarvisLiveScreen(
                             motionEnabled = projection.motionEnabled,
                         ),
                         contentDescription = stringResource(projection.contentDescription),
+                        photo = state.avatarPhoto,
                     )
                 }
 

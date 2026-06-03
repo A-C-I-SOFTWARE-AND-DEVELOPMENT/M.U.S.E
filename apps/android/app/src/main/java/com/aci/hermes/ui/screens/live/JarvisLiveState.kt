@@ -1,5 +1,6 @@
 package com.aci.hermes.ui.screens.live
 
+import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import com.aci.hermes.R
 import com.aci.hermes.data.life.AvatarBehavior
@@ -43,6 +44,9 @@ data class JarvisLiveUiState(
     val avatarKind: AvatarKind = AvatarKind.Character3D,
     // Ambient life when idle — idle → wander → sleep, driven by BehaviorScheduler.
     val avatarBehavior: AvatarBehavior = AvatarBehavior.IDLE,
+    // The user's saved photo avatar (when the picker produced a GENERATED one),
+    // rendered as a living, breathing face. Null → use the procedural body.
+    val avatarPhoto: Bitmap? = null,
 )
 
 /**

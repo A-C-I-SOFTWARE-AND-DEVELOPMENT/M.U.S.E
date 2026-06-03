@@ -27,6 +27,7 @@ fun LivingAvatarHost(
     modifier: Modifier = Modifier,
     spriteSheet: Bitmap? = null,
     spriteLayout: SpriteSheetLayout? = null,
+    photo: Bitmap? = null,
 ) {
     when (kind) {
         AvatarKind.AnimatedPixel ->
@@ -41,9 +42,22 @@ fun LivingAvatarHost(
         AvatarKind.Rive, AvatarKind.Character3D ->
             JarvisCharacterAvatar(inputs, contentDescription, modifier)
 
-        // Orb / Pixel / Photo keep the original abstract renderer as the
-        // calm, low-cost, reduced-motion-safe body.
-        AvatarKind.Orb, AvatarKind.Pixel, AvatarKind.Photo ->
+        // A user-uploaded photo becomes a living, breathing avatar face.
+        AvatarKind.Photo ->
+            if (photo != null) {
+                JarvisPhotoAvatar(photo, inputs, contentDescription, modifier)
+            } else {
+                JarvisLivingAvatar(
+                    state = poseToLegacyState(inputs.pose),
+                    motionEnabled = inputs.motionEnabled,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+            }
+
+        // Orb / Pixel keep the original abstract renderer as the calm,
+        // low-cost, reduced-motion-safe body.
+        AvatarKind.Orb, AvatarKind.Pixel ->
             JarvisLivingAvatar(
                 state = poseToLegacyState(inputs.pose),
                 motionEnabled = inputs.motionEnabled,
