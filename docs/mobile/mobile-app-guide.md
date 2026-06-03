@@ -179,6 +179,53 @@ submits the resulting prompt. See
 
 ---
 
+## Device control — letting Jarvis operate the phone
+
+The Android cockpit can physically operate the phone for you — run to an
+app, push it open, scroll, turn the home-screen page, go back/home — driven
+by voice ("open Facebook", "scroll down", "go home"). This is the
+**mobile-native device-control** path, and it is built to keep you aware
+and in control at every step.
+
+Reach it from **Control → Device control**. The screen has five parts:
+
+1. **Master switch.** Until you turn *Device control* on, nothing runs —
+   every spoken command is logged and refused. It defaults **off** on a
+   fresh install.
+2. **Capabilities.** Six rows, each with a plain-English reason and a live
+   "granted by system / not granted" chip: **accessibility** (the hands),
+   **display over other apps** (the floating avatar), **microphone**
+   (hands-free voice), **notifications**, **installed-app visibility**, and
+   **local backend connection**. You consent to each one explicitly and can
+   revoke consent instantly — the action layer honors the change
+   immediately, even if the OS permission is still granted.
+3. **Confirm sensitive actions.** On by default: launching an app or
+   tapping a target waits for your OK rather than running from voice. You
+   can turn this off for hands-free high-power mode — that toggle is
+   owner-gated (a confirmation dialog), and every action is still logged.
+4. **Active indicator + emergency stop.** A live status dot shows whether
+   device control is active right now. One **Emergency stop** drops every
+   in-flight gesture, stops the floating avatar and the voice loop, and
+   refuses new actions until you release it. The global emergency stop in
+   the top bar does the same thing in addition to halting the orchestrator.
+5. **Recent device actions.** An append-only, on-device log of *every*
+   action Jarvis took or was refused — newest first — so "what did Jarvis
+   do on my phone?" is always answerable.
+
+**How a command flows.** Every device action passes through one broker
+chokepoint (`data/devicecontrol/DeviceActionBroker`): emergency stop →
+master switch → required capability granted *and* consented → sensitive
+confirmation → approve. Nothing executes that the broker did not approve,
+and the broker writes a ledger entry for the decision either way. No screen
+contents, transcripts, or secrets are ever logged — only the action's
+label, its sensitivity, the outcome, and a reason.
+
+No new sensitive permissions were added for this — accessibility, overlay,
+microphone, notifications, and package visibility are the same ones the
+personal-tool fork already declares.
+
+---
+
 ## How approvals work on the lockscreen
 
 When a phase escalates:

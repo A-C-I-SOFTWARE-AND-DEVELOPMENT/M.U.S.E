@@ -7,6 +7,15 @@ closes the `/skills` gap called out in
 > Status: alpha. The picker lives under the orchestrator screen at
 > **JARVIS capabilities** (AutoAwesome icon in the top app bar).
 
+> **Not to be confused with Device control.** This picker is about *chat
+> lanes / agent modes* — it stages a prompt, it never touches the phone.
+> The separate **Device control** surface (Control → Device control) is
+> about *device permissions and on-screen actions* — letting Jarvis tap,
+> swipe, and launch apps through a consent + broker + action-log path. See
+> the data package `com.aci.hermes.data.devicecontrol`, the screen
+> `ui/screens/devicecontrol/DeviceControlScreen.kt`, and
+> [`docs/mobile/mobile-app-guide.md`](../../../docs/mobile/mobile-app-guide.md#device-control--letting-jarvis-operate-the-phone).
+
 ---
 
 ## Design intent
