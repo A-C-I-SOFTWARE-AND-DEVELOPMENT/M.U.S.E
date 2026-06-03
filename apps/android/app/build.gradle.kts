@@ -42,6 +42,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // The Rive runtime ships native libs for every ABI (~30MB). Modern
+        // phones are arm64; restrict to it (+ 32-bit arm for older devices) to
+        // keep the sideload APK small. Drop this filter for a Play AAB.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -137,6 +144,10 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+
+    // Rive runtime for top-tier animated avatar art (drop a `res/raw/jarvis.riv`
+    // honoring the JarvisStateMachine contract; renderer falls back gracefully).
+    implementation(libs.rive.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

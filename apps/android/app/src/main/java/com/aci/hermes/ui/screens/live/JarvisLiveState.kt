@@ -1,7 +1,9 @@
 package com.aci.hermes.ui.screens.live
 
+import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import com.aci.hermes.R
+import com.aci.hermes.data.life.AvatarBehavior
 
 /**
  * Discrete states the Jarvis presence surface can occupy. Ordered by
@@ -37,7 +39,16 @@ data class JarvisLiveUiState(
     val reducedMotion: Boolean = false,
     val command: String = "",
     val voiceAvailable: Boolean = false,
-    val avatarKind: AvatarKind = AvatarKind.Orb,
+    // Default to the living humanoid body (breathes + moves); DeviceCapability
+    // collapses it to the calm Orb under reduced motion / low-end devices.
+    val avatarKind: AvatarKind = AvatarKind.Character3D,
+    // Ambient life when idle — idle → wander → sleep, driven by BehaviorScheduler.
+    val avatarBehavior: AvatarBehavior = AvatarBehavior.IDLE,
+    // The user's saved photo avatar (when the picker produced a GENERATED one),
+    // rendered as a living, breathing face. Null → use a pixel-sprite character.
+    val avatarPhoto: Bitmap? = null,
+    // Selected pixel-sprite character (robot/person/pets) when no photo is set.
+    val spriteId: String = "robot",
 )
 
 /**

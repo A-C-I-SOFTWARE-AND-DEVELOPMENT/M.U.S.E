@@ -1,21 +1,151 @@
 package com.aci.hermes.ui.screens.live
 
 import android.app.Application
+import android.graphics.BitmapFactory
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.avatar.AvatarRepository
+import com.aci.hermes.data.avatar.AvatarSource
+import com.aci.hermes.data.life.BehaviorScheduler
+import java.util.Calendar
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class JarvisLiveViewModel(
     application: Application,
+    private val avatarRepository: AvatarRepository? = null,
+    private val cockpitClient: com.aci.hermes.data.cockpit.HermesCockpitClient? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(
         JarvisLiveUiState(reducedMotion = systemReducedMotion()),
     )
     val state: StateFlow<JarvisLiveUiState> = _state.asStateFlow()
+
+    /** A piece of AI-generated furniture placed in the Den. */
+    data class DenFurniture(
+        val id: String,
+        val bitmap: android.graphics.Bitmap,
+        val x: Float,
+        val y: Float,
+    )
+
+    private val _furniture = MutableStateFlow<List<DenFurniture>>(emptyList())
+    val furniture: StateFlow<List<DenFurniture>> = _furniture.asStateFlow()
+
+    private fun loadFurniture() {
+        val client = cockpitClient ?: return
+        viewModelScope.launch {
+            val res = client.roomList()
+            if (res is com.aci.hermes.data.cockpit.CockpitResult.Success) {
+                _furniture.value = res.value.items.mapNotNull { item ->
+                    val bmp = decodeRoomImage(item.imageB64) ?: return@mapNotNull null
+                    DenFurniture(item.id, bmp, item.x, item.y)
+                }
+            }
+        }
+    }
+
+    /** Persist a furniture item's new placement after a drag. */
+    fun placeFurniture(id: String, x: Float, y: Float) {
+        val client = cockpitClient ?: return
+        viewModelScope.launch { client.roomPlace(id, x, y) }
+    }
+
+    private fun decodeRoomImage(b64: String?): android.graphics.Bitmap? {
+        if (b64.isNullOrBlank()) return null
+        return runCatching {
+            val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+            android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }.getOrNull()
+    }
+
+    // Ambient life: when the user is away, Jarvis idles → wanders → sleeps so the
+    // body reads as alive rather than frozen. Driven by the pure, tested
+    // BehaviorScheduler; suppressed while the agent is busy or motion is reduced.
+    private val ambientScheduler = BehaviorScheduler()
+
+    @Volatile
+    private var lastInteractionAtMs = System.currentTimeMillis()
+
+    init {
+        startAmbientLife()
+        observeSavedAvatar()
+        loadFurniture()
+    }
+
+    /** Render the user's saved avatar as the living body: a GENERATED photo
+     *  becomes a breathing photo face; otherwise the procedural humanoid. */
+    private fun observeSavedAvatar() {
+        val repo = avatarRepository ?: return
+        viewModelScope.launch {
+            combine(repo.profileFlow, repo.spriteIdFlow) { profile, spriteId ->
+                profile to spriteId
+            }.collect { (profile, spriteId) ->
+                val photo = if (
+                    profile?.source == AvatarSource.GENERATED && profile.generatedPath != null
+                ) {
+                    withContext(Dispatchers.IO) {
+                        runCatching { BitmapFactory.decodeFile(profile.generatedPath) }.getOrNull()
+                    }
+                } else {
+                    null
+                }
+                _state.update {
+                    if (photo != null) {
+                        it.copy(avatarKind = AvatarKind.Photo, avatarPhoto = photo)
+                    } else {
+                        it.copy(
+                            avatarKind = AvatarKind.Character3D,
+                            avatarPhoto = null,
+                            spriteId = spriteId ?: it.spriteId,
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun markInteraction() {
+        lastInteractionAtMs = System.currentTimeMillis()
+    }
+
+    private fun startAmbientLife() {
+        viewModelScope.launch {
+            while (isActive) {
+                val s = _state.value
+                val idleFor = (System.currentTimeMillis() - lastInteractionAtMs)
+                    .coerceAtLeast(0L).milliseconds
+                val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+                val behavior = ambientScheduler.decide(
+                    BehaviorScheduler.Tick(
+                        idleFor = idleFor,
+                        localHour = hour,
+                        hasPendingRecommendation = false,
+                        sinceLastRecommendation = Duration.ZERO,
+                        agentBusy = s.thinking || s.working || s.speaking,
+                        ambientMuted = s.reducedMotion || s.emergencyStop,
+                    ),
+                )
+                if (behavior != s.avatarBehavior) {
+                    _state.update { it.copy(avatarBehavior = behavior) }
+                }
+                delay(AMBIENT_TICK_MS)
+            }
+        }
+    }
 
     private val _showStatusSheet = MutableStateFlow(false)
     val showStatusSheet: StateFlow<Boolean> = _showStatusSheet.asStateFlow()
@@ -29,17 +159,27 @@ class JarvisLiveViewModel(
     }
 
     fun onCommandChange(text: String) {
+        markInteraction()
         _state.update { it.copy(command = text) }
     }
 
     fun onSend() {
+        markInteraction()
         val current = _state.value
         if (current.command.isBlank() || current.emergencyStop) return
         _state.update { it.copy(thinking = true, listening = false) }
     }
 
-    fun openStatusSheet() { _showStatusSheet.value = true }
-    fun dismissStatusSheet() { _showStatusSheet.value = false }
+    /** Cycle to the next pixel-sprite character (robot → person → pets → …),
+     *  persisting the choice so it survives restarts. */
+    fun cycleSprite() {
+        markInteraction()
+        val next = PixelSprites.next(_state.value.spriteId).id
+        _state.update { it.copy(spriteId = next, avatarPhoto = null) }
+        avatarRepository?.let { repo -> viewModelScope.launch { repo.saveSpriteId(next) } }
+    }
+
+    fun openStatusSheet() { _showStatusSheet.value = true }    fun dismissStatusSheet() { _showStatusSheet.value = false }
 
     fun requestEmergencyConfirm() { _showEmergencyConfirm.value = true }
     fun dismissEmergencyConfirm() { _showEmergencyConfirm.value = false }
@@ -73,5 +213,9 @@ class JarvisLiveViewModel(
             1f,
         )
         return scale == 0f
+    }
+
+    private companion object {
+        const val AMBIENT_TICK_MS = 5_000L
     }
 }

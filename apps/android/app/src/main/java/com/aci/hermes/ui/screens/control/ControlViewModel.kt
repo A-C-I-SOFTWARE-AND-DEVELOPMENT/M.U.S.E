@@ -19,6 +19,7 @@ import com.aci.hermes.data.jarvis.WarningLevel
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.service.HermesService
 import com.aci.hermes.util.LogBuffer
+import com.aci.hermes.data.cockpit.CockpitResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,7 @@ class ControlViewModel(
     application: Application,
     private val settings: SettingsRepository,
     private val logBuffer: LogBuffer,
+    private val cockpitClient: com.aci.hermes.data.cockpit.HermesCockpitClient? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(JarvisControlState())
@@ -42,14 +44,29 @@ class ControlViewModel(
         viewModelScope.launch {
             val snap = settings.snapshot()
             val running = isServiceRunning(getApplication(), HermesService::class.java)
-            // Until the gateway poller lands, treat a configured endpoint
-            // with mock mode off as "disconnected" so the owner sees the
-            // honest state. Mock mode flips it to GatewayState.MOCK.
+            // Real runtime status: reachable iff the cockpit health probe succeeds;
+            // connected services are the live detected worker lanes (Codex/Claude).
+            // Falls back to honest "disconnected" placeholders when unpaired.
+            var reachable = snap.mockMode
+            var services = placeholderServices()
+            val client = cockpitClient
+            if (client != null) {
+                reachable = client.health() is CockpitResult.Success
+                val workers = client.runtimeWorkers()
+                if (workers is CockpitResult.Success) {
+                    services = buildList {
+                        add(ConnectedService("runtime", "Hermes runtime", reachable))
+                        workers.value.workers.forEach {
+                            add(ConnectedService(it.id, it.displayName, it.available))
+                        }
+                    }
+                }
+            }
             _state.value = JarvisControlProjector.project(
                 snapshot = snap,
                 serviceRunning = running,
-                gatewayReachable = snap.mockMode,
-                connectedServices = placeholderServices(),
+                gatewayReachable = reachable,
+                connectedServices = services,
                 audit = AuditShortcut(recentEvents = 0, lastEventLabel = null),
                 memory = MemoryShortcut(savedFacts = 0, lastNote = null),
             )

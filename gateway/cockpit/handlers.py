@@ -457,6 +457,78 @@ def job_run(req: Request) -> JsonResponse:
     return JsonResponse(200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]})
 
 
+def avatar_persona_get(_req: Request) -> JsonResponse:
+    """The companion's adopted persona (e.g. 'Goku'), or null if default."""
+    from gateway.cockpit import persona_store as ps
+
+    return JsonResponse(200, ps.load_persona() or {"persona": None})
+
+
+def avatar_persona_set(req: Request) -> JsonResponse:
+    """Adopt a persona from a description: the model researches the character
+    and writes the persona the chat then speaks in. ``{"description": "Goku
+    from Dragon Ball", "name": "Goku"}``; empty description clears it."""
+    from gateway.cockpit import persona_store as ps
+
+    description = str(req.body.get("description", "")).strip()
+    name = str(req.body.get("name", "")).strip()
+    if not description:
+        ps.clear_persona()
+        return JsonResponse(200, {"persona": None, "cleared": True})
+    try:
+        data = ps.generate_persona(description, name=name)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, data)
+
+
+def room_list(_req: Request) -> JsonResponse:
+    """The companion's room items (AI-generated furniture), with images."""
+    from gateway.cockpit import room_store as rs
+
+    return JsonResponse(
+        200,
+        {"items": rs.list_items(), "image_generation": rs.image_generation_available()},
+    )
+
+
+def room_generate(req: Request) -> JsonResponse:
+    """Generate a room item from a text prompt ('a Victorian desk') via the
+    image model. 503 when no image model is configured (honest, not faked)."""
+    from gateway.cockpit import room_store as rs
+
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        item = rs.generate_item(prompt)
+    except RuntimeError as exc:
+        return JsonResponse(503, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, item)
+
+
+def room_delete(req: Request) -> JsonResponse:
+    from gateway.cockpit import room_store as rs
+
+    ok = rs.delete_item(req.path_params.get("id", ""))
+    return JsonResponse(200 if ok else 404, {"deleted": ok})
+
+
+def room_place(req: Request) -> JsonResponse:
+    """Persist a furniture item's normalized (x, y) placement in the room."""
+    from gateway.cockpit import room_store as rs
+
+    try:
+        x = float(req.body.get("x", 0.5))
+        y = float(req.body.get("y", 0.6))
+    except (TypeError, ValueError):
+        return JsonResponse(400, {"error": "x and y must be numbers (0..1)"})
+    ok = rs.set_position(req.path_params.get("id", ""), x, y)
+    return JsonResponse(200 if ok else 404, {"placed": ok})
+
+
 def job_cancel(req: Request) -> JsonResponse:
     """Cancel a job (contract §4). 409 if already terminal."""
     job_id = req.path_params.get("id", "")

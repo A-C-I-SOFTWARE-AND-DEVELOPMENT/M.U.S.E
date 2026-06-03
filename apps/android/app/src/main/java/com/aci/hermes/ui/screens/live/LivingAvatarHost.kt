@@ -2,7 +2,9 @@ package com.aci.hermes.ui.screens.live
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Renders whichever living-avatar body is active, given a renderer-
@@ -27,6 +29,7 @@ fun LivingAvatarHost(
     modifier: Modifier = Modifier,
     spriteSheet: Bitmap? = null,
     spriteLayout: SpriteSheetLayout? = null,
+    photo: Bitmap? = null,
 ) {
     when (kind) {
         AvatarKind.AnimatedPixel ->
@@ -36,14 +39,39 @@ fun LivingAvatarHost(
                 JarvisCharacterAvatar(inputs, contentDescription, modifier)
             }
 
-        // Vector / 3D bodies are served by the procedural character until
-        // finished art lands (same input contract, zero call-site change).
-        AvatarKind.Rive, AvatarKind.Character3D ->
+        // Rive: real animated art when a `res/raw/jarvis.riv` honoring the
+        // JarvisStateMachine contract is shipped; otherwise the procedural body.
+        AvatarKind.Rive -> {
+            val context = LocalContext.current
+            val hasRive = remember { riveAvatarAvailable(context) }
+            if (hasRive) {
+                JarvisRiveAvatar(inputs, contentDescription, modifier)
+            } else {
+                JarvisCharacterAvatar(inputs, contentDescription, modifier)
+            }
+        }
+
+        // 3D body is served by the procedural character until finished art
+        // lands (same input contract, zero call-site change).
+        AvatarKind.Character3D ->
             JarvisCharacterAvatar(inputs, contentDescription, modifier)
 
-        // Orb / Pixel / Photo keep the original abstract renderer as the
-        // calm, low-cost, reduced-motion-safe body.
-        AvatarKind.Orb, AvatarKind.Pixel, AvatarKind.Photo ->
+        // A user-uploaded photo becomes a living, breathing avatar face.
+        AvatarKind.Photo ->
+            if (photo != null) {
+                JarvisPhotoAvatar(photo, inputs, contentDescription, modifier)
+            } else {
+                JarvisLivingAvatar(
+                    state = poseToLegacyState(inputs.pose),
+                    motionEnabled = inputs.motionEnabled,
+                    contentDescription = contentDescription,
+                    modifier = modifier,
+                )
+            }
+
+        // Orb / Pixel keep the original abstract renderer as the calm,
+        // low-cost, reduced-motion-safe body.
+        AvatarKind.Orb, AvatarKind.Pixel ->
             JarvisLivingAvatar(
                 state = poseToLegacyState(inputs.pose),
                 motionEnabled = inputs.motionEnabled,

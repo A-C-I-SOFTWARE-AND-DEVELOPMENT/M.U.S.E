@@ -5,6 +5,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.Surface
+import com.aci.hermes.ui.screens.live.AvatarInputs
+import com.aci.hermes.ui.screens.live.AvatarPose
+import com.aci.hermes.ui.screens.live.PixelSpriteAvatar
+import com.aci.hermes.ui.screens.live.PixelSprites
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +74,9 @@ fun AvatarPickerScreen(
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val selectedSpriteId by viewModel.selectedSpriteId.collectAsState()
+    val persona by viewModel.persona.collectAsState()
+    val room by viewModel.room.collectAsState()
 
     Scaffold(
         topBar = {
@@ -84,6 +98,41 @@ fun AvatarPickerScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // Hero preview — your character, alive (RPG-style create window).
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                PixelSpriteAvatar(
+                    sprite = PixelSprites.byId(selectedSpriteId),
+                    inputs = AvatarInputs(
+                        pose = AvatarPose.IDLE,
+                        energy = 0.5f,
+                        motionEnabled = true,
+                    ),
+                    contentDescription = "Your character",
+                    modifier = Modifier.size(168.dp),
+                )
+            }
+
+            PersonaCreator(
+                persona = persona,
+                onBecome = viewModel::setPersona,
+            )
+
+            RoomEditor(
+                room = room,
+                onGenerate = viewModel::generateRoomItem,
+            )
+
+            Text("Choose your companion", style = MaterialTheme.typography.titleMedium)
+            CharacterGrid(
+                selectedId = selectedSpriteId,
+                onSelect = viewModel::selectSprite,
+            )
+
             BuiltInGrid(
                 selected = (state as? AvatarPickerState.PreviewReady)?.draft?.builtin,
                 onSelect = viewModel::selectBuiltIn,
@@ -148,6 +197,161 @@ fun AvatarPickerScreen(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+            }
+        }
+    }
+}
+
+/** Room editor — type furniture ('a Victorian desk') and the image model
+ *  generates it; thumbnails show what's been added to the companion's room. */
+@Composable
+private fun RoomEditor(
+    room: AvatarPickerViewModel.RoomUi,
+    onGenerate: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Furnish the room", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Describe furniture and it's generated for the Den " +
+                "(e.g. \"a Victorian desk\"). Needs an image model in the runtime.",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("a Victorian desk") },
+            singleLine = true,
+            enabled = !room.busy,
+        )
+        Button(
+            onClick = { onGenerate(text); text = "" },
+            enabled = !room.busy && text.isNotBlank(),
+        ) { Text(if (room.busy) "Generating…" else "Generate") }
+
+        if (room.items.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                room.items.forEach { item ->
+                    val bmp = remember(item.id) { decodeB64(item.imageB64) }
+                    if (bmp != null) {
+                        Image(
+                            bitmap = bmp.asImageBitmap(),
+                            contentDescription = item.prompt,
+                            modifier = Modifier.size(72.dp),
+                        )
+                    }
+                }
+            }
+        }
+        if (room.message.isNotBlank()) {
+            Text(
+                room.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+private fun decodeB64(b64: String?): android.graphics.Bitmap? {
+    if (b64.isNullOrBlank()) return null
+    return runCatching {
+        val bytes = android.util.Base64.decode(b64, android.util.Base64.DEFAULT)
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }.getOrNull()
+}
+
+/** "Become a character" — describe who the companion should be; the runtime
+ *  researches them and the companion adopts that personality in chat. */
+@Composable
+private fun PersonaCreator(
+    persona: AvatarPickerViewModel.PersonaUi,
+    onBecome: (String) -> Unit,
+) {
+    var text by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Become a character", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Describe who your companion should be — it researches them and adopts " +
+                "their personality (e.g. \"Goku from Dragon Ball\").",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Goku from Dragon Ball") },
+            singleLine = true,
+            enabled = !persona.busy,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { onBecome(text) },
+                enabled = !persona.busy && text.isNotBlank(),
+            ) { Text(if (persona.busy) "Working…" else "Become") }
+            OutlinedButton(
+                onClick = { onBecome(""); text = "" },
+                enabled = !persona.busy,
+            ) { Text("Reset") }
+        }
+        if (persona.name.isNotBlank()) {
+            Text("In character: ${persona.name}", style = MaterialTheme.typography.labelMedium)
+        }
+        if (persona.message.isNotBlank()) {
+            Text(
+                persona.message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+/** The redone "main selection" — a scrollable row of living pixel characters
+ *  (robot/person/pets). Tapping one persists it as the avatar immediately. */
+@Composable
+private fun CharacterGrid(
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    val inputs = AvatarInputs(pose = AvatarPose.IDLE, energy = 0.45f, motionEnabled = true)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PixelSprites.catalog.forEach { sprite ->
+            val selected = sprite.id == (selectedId ?: PixelSprites.default.id)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = if (selected) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    },
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clickable { onSelect(sprite.id) },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        PixelSpriteAvatar(
+                            sprite = sprite,
+                            inputs = inputs,
+                            contentDescription = sprite.label,
+                            modifier = Modifier.size(64.dp),
+                        )
+                    }
+                }
+                Text(sprite.label, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

@@ -1,5 +1,13 @@
 package com.aci.hermes.ui.screens.live
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.speech.SpeechRecognizer
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.aci.hermes.service.VoiceLoopService
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +26,30 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.ui.draw.scale
+import com.aci.hermes.data.life.AvatarBehavior
+import com.aci.hermes.service.JarvisOverlayService
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
@@ -82,10 +112,71 @@ fun JarvisLiveScreen(
     onOpenSettings: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val furniture by viewModel.furniture.collectAsState()
     val showStatusSheet by viewModel.showStatusSheet.collectAsState()
     val showEmergencyConfirm by viewModel.showEmergencyConfirm.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
+
+    // Hands-free voice: the on-device barge-in loop, started behind RECORD_AUDIO
+    // consent. Available only where the device has a speech recognizer.
+    val context = LocalContext.current
+    val voiceSupported = remember { SpeechRecognizer.isRecognitionAvailable(context) }
+    var voiceActive by remember { mutableStateOf(false) }
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            VoiceLoopService.start(context)
+            voiceActive = true
+        }
+    }
+    val onMic: () -> Unit = {
+        if (voiceActive) {
+            VoiceLoopService.stop(context)
+            voiceActive = false
+        } else if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            VoiceLoopService.start(context)
+            voiceActive = true
+        } else {
+            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // Float JARVIS over other apps: start the overlay service behind the
+    // draw-over-other-apps consent (a high-risk permission granted in Settings).
+    var overlayOn by remember { mutableStateOf(JarvisOverlayService.active != null) }
+    val overlayPermission = rememberLauncherForActivityResult(StartActivityForResult()) {
+        if (JarvisOverlayService.canDraw(context)) {
+            JarvisOverlayService.start(context)
+            overlayOn = true
+        }
+    }
+    val onToggleOverlay: () -> Unit = {
+        when {
+            overlayOn -> {
+                JarvisOverlayService.stop(context)
+                overlayOn = false
+            }
+            JarvisOverlayService.canDraw(context) -> {
+                JarvisOverlayService.start(context)
+                overlayOn = true
+            }
+            else -> overlayPermission.launch(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + context.packageName),
+                ),
+            )
+        }
+    }
+    // Mirror the live agent state onto the floating avatar while it's showing.
+    LaunchedEffect(projection.state, overlayOn) {
+        if (overlayOn) JarvisOverlayService.active?.setLiveState(projection.state)
+    }
 
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
@@ -112,11 +203,13 @@ fun JarvisLiveScreen(
         bottomBar = {
             JarvisCommandBar(
                 command = state.command,
-                voiceAvailable = state.voiceAvailable,
+                voiceAvailable = voiceSupported,
+                voiceActive = voiceActive,
                 emergencyActive = projection.isEmergency,
                 onCommandChange = viewModel::onCommandChange,
                 onSend = viewModel::onSend,
                 onAttach = onOpenAvatarPicker,
+                onMic = onMic,
             )
         },
     ) { padding ->
@@ -126,7 +219,32 @@ fun JarvisLiveScreen(
                 .padding(padding)
                 .background(jarvisBackground()),
         ) {
+            // The companion's pixel bedroom (wall, window, desk, bed, plant).
+            PixelRoom(modifier = Modifier.fillMaxSize())
+
+            // AI-generated furniture, draggable; placement persists.
+            DenFurnitureLayer(
+                furniture = furniture,
+                onPlaced = viewModel::placeFurniture,
+            )
+
             JarvisLiveParticles(enabled = projection.particlesEnabled)
+
+            // Toggle the floating JARVIS that lives over every app.
+            IconButton(
+                onClick = onToggleOverlay,
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.PictureInPictureAlt,
+                    contentDescription = if (overlayOn) {
+                        "Stop floating JARVIS over other apps"
+                    } else {
+                        "Float JARVIS over other apps"
+                    },
+                    tint = if (overlayOn) HermesCyan else Color.White.copy(alpha = 0.6f),
+                )
+            }
 
             Column(
                 modifier = Modifier
@@ -136,25 +254,99 @@ fun JarvisLiveScreen(
             ) {
                 Spacer(Modifier.height(40.dp))
 
-                Box(
-                    modifier = Modifier.pointerInput(projection.state) {
-                        detectTapGestures(
-                            onTap = { viewModel.openStatusSheet() },
-                            onLongPress = { viewModel.requestEmergencyConfirm() },
-                        )
+                // The companion walks around its room: to the desk when working,
+                // strolls when wandering, and down to the bed to snooze — gliding
+                // (tween) so it reads as walking, not teleporting.
+                val sleeping = state.avatarBehavior == AvatarBehavior.SLEEP
+                val wandering = state.avatarBehavior == AvatarBehavior.WANDER
+                val working = projection.state == JarvisLiveState.Working
+                val sway by rememberInfiniteTransition(label = "stroll").animateFloat(
+                    initialValue = -1f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(5200), RepeatMode.Reverse),
+                    label = "sway",
+                )
+                val glideDx by animateFloatAsState(
+                    targetValue = if (working) 96f else 0f,
+                    animationSpec = tween(1100),
+                    label = "walk-x",
+                )
+                val walkX = if (wandering && projection.motionEnabled) sway * 92f else glideDx
+                val walkY by animateFloatAsState(
+                    targetValue = when {
+                        sleeping -> 200f          // down onto the bed mat
+                        working -> 28f            // settle at the desk
+                        else -> 0f
                     },
+                    animationSpec = tween(1100),
+                    label = "walk-y",
+                )
+                val bodyScale by animateFloatAsState(
+                    targetValue = if (sleeping) 0.58f else 1f,
+                    animationSpec = tween(900),
+                    label = "body-scale",
+                )
+                Box(
+                    modifier = Modifier
+                        .offset(x = walkX.dp, y = walkY.dp)
+                        .scale(bodyScale)
+                        .pointerInput(projection.state) {
+                            detectTapGestures(
+                                onTap = { viewModel.openStatusSheet() },
+                                onDoubleTap = { viewModel.cycleSprite() },
+                                onLongPress = { viewModel.requestEmergencyConfirm() },
+                            )
+                        },
                 ) {
-                    JarvisLivingAvatar(
+                    // The living, breathing body. Priority: a saved photo → a
+                    // breathing photo face; reduced motion → the calm Orb; otherwise
+                    // a pixel-sprite character (robot/person/pets) that breathes and
+                    // reacts to the real agent state. Double-tap cycles characters.
+                    val inputs = AvatarAnimation.inputsFor(
                         state = projection.state,
+                        behavior = state.avatarBehavior,
+                        activeClip = null,
                         motionEnabled = projection.motionEnabled,
-                        contentDescription = stringResource(projection.contentDescription),
                     )
+                    val cd = stringResource(projection.contentDescription)
+                    val hasRive = remember { riveAvatarAvailable(context) }
+                    when {
+                        state.avatarPhoto != null -> LivingAvatarHost(
+                            kind = AvatarKind.Photo,
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(220.dp),
+                            photo = state.avatarPhoto,
+                        )
+                        !projection.motionEnabled -> LivingAvatarHost(
+                            kind = AvatarKind.Orb,
+                            inputs = inputs,
+                            contentDescription = cd,
+                        )
+                        // Top-tier animated art auto-activates when shipped.
+                        hasRive -> LivingAvatarHost(
+                            kind = AvatarKind.Rive,
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(240.dp),
+                        )
+                        else -> PixelSpriteAvatar(
+                            sprite = PixelSprites.byId(state.spriteId),
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(220.dp),
+                        )
+                    }
                 }
 
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    text = state.voiceLine.ifBlank { stringResource(projection.voiceLineFallback) },
+                    text = if (sleeping) {
+                        "Snoozing… 💤"
+                    } else {
+                        state.voiceLine.ifBlank { stringResource(projection.voiceLineFallback) }
+                    },
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
@@ -226,6 +418,52 @@ fun JarvisLiveScreen(
             },
             containerColor = HermesInkSoft,
         )
+    }
+}
+
+/** Renders AI-generated furniture in the Den; each piece is draggable and its
+ *  placement persists to the runtime on release. */
+@Composable
+private fun DenFurnitureLayer(
+    furniture: List<JarvisLiveViewModel.DenFurniture>,
+    onPlaced: (String, Float, Float) -> Unit,
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val wPx = constraints.maxWidth.toFloat()
+        val hPx = constraints.maxHeight.toFloat()
+        val itemPx = with(LocalDensity.current) { 72.dp.toPx() }
+        furniture.forEach { item ->
+            var pos by remember(item.id) {
+                mutableStateOf(Offset(item.x * wPx, item.y * hPx))
+            }
+            Image(
+                bitmap = item.bitmap.asImageBitmap(),
+                contentDescription = item.id,
+                modifier = Modifier
+                    .size(72.dp)
+                    .offset {
+                        IntOffset(
+                            (pos.x - itemPx / 2f).roundToInt(),
+                            (pos.y - itemPx / 2f).roundToInt(),
+                        )
+                    }
+                    .pointerInput(item.id) {
+                        detectDragGestures(
+                            onDrag = { change, drag ->
+                                change.consume()
+                                pos = Offset(pos.x + drag.x, pos.y + drag.y)
+                            },
+                            onDragEnd = {
+                                onPlaced(
+                                    item.id,
+                                    (pos.x / wPx).coerceIn(0f, 1f),
+                                    (pos.y / hPx).coerceIn(0f, 1f),
+                                )
+                            },
+                        )
+                    },
+            )
+        }
     }
 }
 
@@ -361,10 +599,12 @@ private fun CircleIconButton(
 private fun JarvisCommandBar(
     command: String,
     voiceAvailable: Boolean,
+    voiceActive: Boolean,
     emergencyActive: Boolean,
     onCommandChange: (String) -> Unit,
     onSend: () -> Unit,
     onAttach: () -> Unit,
+    onMic: () -> Unit,
 ) {
     Surface(
         color = Color.Transparent,
@@ -412,17 +652,24 @@ private fun JarvisCommandBar(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                 )
                 IconButton(
-                    onClick = { /* voice not available in this PR */ },
-                    enabled = voiceAvailable,
+                    onClick = onMic,
+                    enabled = voiceAvailable && !emergencyActive,
                     modifier = Modifier.semantics {
-                        contentDescription = if (voiceAvailable) "Voice input"
-                                              else "Voice input coming soon"
+                        contentDescription = when {
+                            !voiceAvailable -> "Voice input unavailable on this device"
+                            voiceActive -> "Stop hands-free voice"
+                            else -> "Start hands-free voice"
+                        }
                     },
                 ) {
                     Icon(
                         Icons.Default.Mic,
                         contentDescription = null,
-                        tint = if (voiceAvailable) HermesCyan else Color.White.copy(alpha = 0.30f),
+                        tint = when {
+                            voiceActive -> HermesCyan
+                            voiceAvailable -> HermesCyan.copy(alpha = 0.7f)
+                            else -> Color.White.copy(alpha = 0.30f)
+                        },
                     )
                 }
                 IconButton(
