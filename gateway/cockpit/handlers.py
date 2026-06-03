@@ -1039,7 +1039,9 @@ def coding_execute(req: Request) -> JsonResponse:
 
         if gate.requires_approval:
             orch.approve_phase(job.id, "execute")
-        out = orch.dispatch_job(job.id, worker_id=worker_id)
+        # Pass the requested workspace through so the worker runs the CLI and
+        # collects diffs in the selected repo, not the gateway's cwd.
+        out = orch.dispatch_job(job.id, worker_id=worker_id, repo_root=packet.repo_root)
         if out is None:  # pragma: no cover - defensive
             return JsonResponse(500, {"error": "dispatch returned no job"})
         trail = [
@@ -1156,13 +1158,32 @@ def capabilities(_req: Request) -> JsonResponse:
         except Exception:  # pragma: no cover - defensive
             subsystems[name] = False
 
-    workers: list[str] = []
+    # ``available_workers`` advertises the orchestrator worker lane ids that the
+    # coding/execute + jobs/{id}/run routes actually accept (``requires_approval``
+    # flags which need the owner phrase), so a client can negotiate a lane and
+    # dispatch it without hitting ``400 unknown worker``.
+    workers: list[dict[str, Any]] = []
+    try:
+        from hermes_cli.workers import builtin_worker_classes, load_builtins
+
+        load_builtins()
+        for cls in builtin_worker_classes():
+            workers.append({
+                "id": cls.id,
+                "requires_approval": bool(getattr(cls, "requires_approval", True)),
+            })
+    except Exception:  # pragma: no cover - defensive
+        workers = []
+
+    # ``detected_clis`` is the separate host-detection view (which external CLIs
+    # are installed) — informational, not the set ``execute`` validates against.
+    detected_clis: list[str] = []
     try:
         from hermes_cli.jarvis_prime import worker_registry as wr
 
-        workers = [s.lane.id for s in wr.detect_lanes() if s.available]
+        detected_clis = [s.lane.id for s in wr.detect_lanes() if s.available]
     except Exception:  # pragma: no cover - defensive
-        workers = []
+        detected_clis = []
 
     return JsonResponse(
         200,
@@ -1171,6 +1192,7 @@ def capabilities(_req: Request) -> JsonResponse:
             "gateway_version": _gateway_version(),
             "subsystems": subsystems,
             "available_workers": workers,
+            "detected_clis": detected_clis,
             "execute_allowed": not _ALLOW_REMOTE_EXECUTE,
             "owner_gate_required": True,
             "generated_at": _now_iso(),

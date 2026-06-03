@@ -503,7 +503,12 @@ def test_capabilities_reports_subsystems_and_gate(server) -> None:
     # Core subsystems import in this repo.
     for name in ("memory", "jobs", "orchestrator", "coding", "evidence", "ledger"):
         assert name in subs
-    assert isinstance(payload["available_workers"], list)
+    # available_workers advertises the *lane ids the execute route accepts*
+    # (not the host-CLI detection view) so negotiation is actionable.
+    worker_ids = {w["id"] for w in payload["available_workers"]}
+    assert "claude-execute" in worker_ids
+    assert any(w["requires_approval"] for w in payload["available_workers"])
+    assert "detected_clis" in payload
 
 
 def test_capabilities_requires_auth(server) -> None:

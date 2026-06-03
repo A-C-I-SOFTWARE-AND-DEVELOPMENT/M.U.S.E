@@ -162,7 +162,8 @@ class HermesCockpitClientTest {
                 200,
                 """{"api_version":"1.0.0","gateway_version":"0.14.0",
                     "subsystems":{"memory":true,"coding":true},
-                    "available_workers":["claude-execute"],
+                    "available_workers":[{"id":"claude-execute","requires_approval":true}],
+                    "detected_clis":["claude_code_builder"],
                     "execute_allowed":true,"owner_gate_required":true}""",
             )
         }
@@ -173,7 +174,8 @@ class HermesCockpitClientTest {
         assertEquals("http://127.0.0.1:8765/v1/cockpit/capabilities", fake.lastRequest?.url)
         assertTrue(result.value.subsystems["coding"] == true)
         assertTrue(result.value.executeAllowed)
-        assertEquals("claude-execute", result.value.availableWorkers.first())
+        assertEquals("claude-execute", result.value.availableWorkers.first().id)
+        assertTrue(result.value.availableWorkers.first().requiresApproval)
     }
 
     @Test

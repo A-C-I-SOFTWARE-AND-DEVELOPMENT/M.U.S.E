@@ -589,10 +589,19 @@ data class ServerCapabilities(
     @SerialName("api_version") val apiVersion: String = "",
     @SerialName("gateway_version") val gatewayVersion: String = "",
     val subsystems: Map<String, Boolean> = emptyMap(),
-    @SerialName("available_workers") val availableWorkers: List<String> = emptyList(),
+    /** Orchestrator lane ids the coding/execute + jobs/run routes accept. */
+    @SerialName("available_workers") val availableWorkers: List<ServerWorkerLane> = emptyList(),
+    /** Informational: external CLIs detected on the host (not execute-validated). */
+    @SerialName("detected_clis") val detectedClis: List<String> = emptyList(),
     @SerialName("execute_allowed") val executeAllowed: Boolean = false,
     @SerialName("owner_gate_required") val ownerGateRequired: Boolean = true,
     @SerialName("generated_at") val generatedAt: String? = null,
+)
+
+@Serializable
+data class ServerWorkerLane(
+    val id: String = "",
+    @SerialName("requires_approval") val requiresApproval: Boolean = true,
 )
 
 // ─── Emergency stop (real backend halt) ───────────────────────────────────
