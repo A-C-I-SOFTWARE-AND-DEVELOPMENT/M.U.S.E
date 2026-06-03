@@ -17,6 +17,9 @@ import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.data.emergency.EmergencyStopController
+import com.aci.hermes.data.emergency.EmergencyStopRepository
+import com.aci.hermes.data.emergency.EmergencyStopState
 import com.aci.hermes.data.jarvis.AndroidJarvisClipboard
 import com.aci.hermes.data.jarvis.HttpJarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatGateway
@@ -30,6 +33,10 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.notify.JarvisNotifier
+import com.aci.hermes.notify.WorkEvent
+import com.aci.hermes.notify.WorkWatcher
+import com.aci.hermes.service.WorkWatchService
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
@@ -48,9 +55,20 @@ import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 /**
  * Hand-rolled DI container. Held by [com.aci.hermes.HermesApplication]
@@ -208,6 +226,110 @@ class AppContainer(private val application: Application) {
     /** Gateway-backed owner-approval queue (loads real pending cards). */
     val cockpitApprovalsRepository: CockpitApprovalsRepository =
         CockpitApprovalsRepository(cockpitClient)
+
+    // ── Emergency stop (process-wide) ──────────────────────────────────
+    //
+    // The state machine + audit log already existed but were never wired
+    // into the container. Wiring it here gives the global Emergency Stop a
+    // durable, audited home and lets the notification layer observe it.
+    val emergencyStopRepository: EmergencyStopRepository =
+        EmergencyStopRepository(context.filesDir)
+
+    val emergencyStopController: EmergencyStopController =
+        EmergencyStopController(emergencyStopRepository, logBuffer)
+
+    // ── Long-running-work notifications ────────────────────────────────
+    //
+    // A local-only watcher polls the cockpit repositories and posts Android
+    // notifications on state transitions. No FCM, no SSE — see
+    // docs/mobile/mobile-app-guide.md ("How notifications work"). Polling is
+    // never permanently on: the in-app foreground poller below runs only
+    // while the app is visible, and escalates to WorkWatchService (which
+    // self-stops when idle) so active work keeps notifying after the app is
+    // backgrounded.
+    val jarvisNotifier: JarvisNotifier = JarvisNotifier(context)
+
+    val workWatcher: WorkWatcher = WorkWatcher(
+        jobsRepo = cockpitJobsRepository,
+        approvalsRepo = cockpitApprovalsRepository,
+        client = cockpitClient,
+        notifier = jarvisNotifier,
+        emergencyActive = { emergencyStopController.state.value.isActive },
+        notificationsEnabled = { settingsRepository.notificationsEnabled.first() },
+    )
+
+    /**
+     * Route a notification tap wants opened. MainActivity publishes here from
+     * the launch intent; HermesNavHost consumes it and navigates, then calls
+     * [consumeDeepLink].
+     */
+    private val _pendingDeepLink = MutableStateFlow<String?>(null)
+    val pendingDeepLink: StateFlow<String?> = _pendingDeepLink.asStateFlow()
+
+    fun requestDeepLink(route: String?) {
+        if (!route.isNullOrBlank()) _pendingDeepLink.value = route
+    }
+
+    fun consumeDeepLink() {
+        _pendingDeepLink.value = null
+    }
+
+    private var foregroundPollJob: Job? = null
+
+    init {
+        // Restore any engaged stop (survives process death) and surface an
+        // emergency-stop notification the instant the gate engages — fast,
+        // independent of whether the watch service happens to be running.
+        emergencyStopController.load()
+        emergencyStopController.state
+            .map { it.isActive }
+            .distinctUntilChanged()
+            .drop(1) // skip the restored/initial value; only fire on a transition
+            .onEach { active ->
+                if (active && settingsRepository.notificationsEnabled.first()) {
+                    jarvisNotifier.post(WorkEvent.EmergencyStopTriggered(label = ""))
+                }
+            }
+            .launchIn(containerScope)
+    }
+
+    /**
+     * Engage the emergency stop (records + audits state) and stop the
+     * orchestrator service. The single entry point every Emergency Stop
+     * surface routes through.
+     */
+    fun emergencyStop(source: String = "ui_emergency_stop") {
+        containerScope.launch {
+            emergencyStopController.engage(source = source, target = EmergencyStopState.HARD_STOP)
+        }
+        orchestratorServiceController.emergencyStop()
+    }
+
+    /**
+     * Begin the lightweight foreground poll loop while the app is visible.
+     * On the first tick that sees active work it hands off to
+     * [WorkWatchService] so notifications keep flowing after the app leaves
+     * the foreground. Idempotent.
+     */
+    fun onAppForeground() {
+        if (foregroundPollJob?.isActive == true) return
+        foregroundPollJob = containerScope.launch {
+            while (isActive) {
+                val result = runCatching { workWatcher.tick() }.getOrNull()
+                if (result?.hasActiveWork == true) {
+                    WorkWatchService.start(context)
+                }
+                val intervalSec = settingsRepository.notificationPollIntervalSeconds.first()
+                delay(intervalSec.coerceIn(10L, 600L) * 1000L)
+            }
+        }
+    }
+
+    /** Stop the foreground poll loop (the watch service, if active, continues). */
+    fun onAppBackground() {
+        foregroundPollJob?.cancel()
+        foregroundPollJob = null
+    }
 
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(

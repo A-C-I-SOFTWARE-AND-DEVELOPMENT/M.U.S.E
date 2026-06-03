@@ -47,6 +47,14 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Polls the cockpit for long-running-work state changes and posts
+             local notifications. Runs only while active work exists; self-stops
+             when idle (see WorkWatchService). -->
+        <service
+            android:name=".service.WorkWatchService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- The floating avatar body (draws over other apps). -->
         <service
             android:name=".service.JarvisOverlayService"

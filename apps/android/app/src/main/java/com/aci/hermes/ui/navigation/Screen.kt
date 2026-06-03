@@ -51,26 +51,37 @@ sealed class Screen(val route: String) {
     data object Voice : Screen("voice")
 
     companion object {
+        // `by lazy` is deliberate: these collections dereference the `route`
+        // of several `Screen` data objects. If they were eager, initializing
+        // `Screen` *via one of those data objects* (e.g. `Screen.Approvals` —
+        // which a notification deep-link does) would re-enter that object's
+        // half-finished `<clinit>` and read a null `route` → NPE. Deferring
+        // the dereference until first use makes init order-independent.
+
         /** Routes that render inside [JarvisShell]. */
-        val shellRoutes: Set<String> = setOf(
-            Home.route,
-            Chat.route,
-            Tasks.route,
-            Approvals.route,
-            Memory.route,
-            Audit.route,
-            Capability.route,
-            Control.route,
-        )
+        val shellRoutes: Set<String> by lazy {
+            setOf(
+                Home.route,
+                Chat.route,
+                Tasks.route,
+                Approvals.route,
+                Memory.route,
+                Audit.route,
+                Capability.route,
+                Control.route,
+            )
+        }
 
         /** Bottom-nav tabs, in display order. */
-        val bottomTabs: List<BottomTab> = listOf(
-            BottomTab(Home, BottomTab.Icon.HOME, labelKey = "nav_home"),
-            BottomTab(Tasks, BottomTab.Icon.TASKS, labelKey = "nav_tasks"),
-            BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
-            BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
-            BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
-        )
+        val bottomTabs: List<BottomTab> by lazy {
+            listOf(
+                BottomTab(Home, BottomTab.Icon.HOME, labelKey = "nav_home"),
+                BottomTab(Tasks, BottomTab.Icon.TASKS, labelKey = "nav_tasks"),
+                BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
+                BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
+                BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
+            )
+        }
     }
 }
 

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -71,8 +72,17 @@ fun HermesNavHost(container: AppContainer) {
     val coroutineScope = rememberCoroutineScope()
     val hasOnboarded by container.settingsRepository.hasOnboarded.collectAsState(initial = null)
 
+    // Honour a notification tap: open the route MainActivity published, then
+    // clear it so a recomposition/rotation doesn't re-navigate.
+    val pendingDeepLink by container.pendingDeepLink.collectAsState()
+    LaunchedEffect(pendingDeepLink) {
+        val route = pendingDeepLink ?: return@LaunchedEffect
+        nav.navigate(route) { launchSingleTop = true }
+        container.consumeDeepLink()
+    }
+
     val emergencyStop: () -> Unit = {
-        container.orchestratorServiceController.emergencyStop()
+        container.emergencyStop()
     }
     val openSettings: () -> Unit = { nav.navigate(Screen.Settings.route) }
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }

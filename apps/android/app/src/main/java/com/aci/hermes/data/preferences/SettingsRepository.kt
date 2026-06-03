@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.aci.hermes.data.jarvis.AutonomyMode
@@ -47,6 +48,7 @@ class SettingsRepository(private val context: Context) {
         val RESPONSE_LENGTH = stringPreferencesKey("response_length")
         val MOBILE_MODE = booleanPreferencesKey("mobile_mode")
         val NOTIFICATIONS_ENABLED = booleanPreferencesKey("notifications_enabled")
+        val NOTIFICATION_POLL_INTERVAL_SECONDS = longPreferencesKey("notification_poll_interval_seconds")
         val VOICE_ENABLED = booleanPreferencesKey("voice_enabled")
         val INTERACTIVE_ICON_ENABLED = booleanPreferencesKey("interactive_icon_enabled")
         val GATEWAY_ENDPOINT = stringPreferencesKey("gateway_endpoint")
@@ -103,6 +105,15 @@ class SettingsRepository(private val context: Context) {
 
     val mobileMode: Flow<Boolean> = context.dataStore.data.map { it[Keys.MOBILE_MODE] ?: true }
     val notificationsEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.NOTIFICATIONS_ENABLED] ?: true }
+
+    /**
+     * How often the work watcher polls the cockpit for long-running-work
+     * state changes, in seconds. User-configurable; clamped by the watcher
+     * service to a sane floor/ceiling. Default is a calm 20s.
+     */
+    val notificationPollIntervalSeconds: Flow<Long> = context.dataStore.data.map {
+        it[Keys.NOTIFICATION_POLL_INTERVAL_SECONDS] ?: DEFAULT_POLL_INTERVAL_SECONDS
+    }
     val voiceEnabled: Flow<Boolean> = context.dataStore.data.map { it[Keys.VOICE_ENABLED] ?: false }
     val interactiveIconEnabled: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.INTERACTIVE_ICON_ENABLED] ?: true
@@ -189,6 +200,10 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setNotificationsEnabled(value: Boolean) {
         context.dataStore.edit { it[Keys.NOTIFICATIONS_ENABLED] = value }
+    }
+
+    suspend fun setNotificationPollIntervalSeconds(value: Long) {
+        context.dataStore.edit { it[Keys.NOTIFICATION_POLL_INTERVAL_SECONDS] = value }
     }
 
     suspend fun setVoiceEnabled(value: Boolean) {
@@ -316,6 +331,9 @@ class SettingsRepository(private val context: Context) {
          * for a fresh install with the Termux gateway running.
          */
         const val DEFAULT_GATEWAY_ENDPOINT: String = "http://127.0.0.1:8765"
+
+        /** Default work-watcher poll cadence (seconds). */
+        const val DEFAULT_POLL_INTERVAL_SECONDS: Long = 20L
     }
 }
 

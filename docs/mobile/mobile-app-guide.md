@@ -205,6 +205,64 @@ Three rules to remember:
 
 ---
 
+## How notifications work
+
+JARVIS notifies you about long-running work with **local Android
+notifications** — no Firebase, no Google Play Services, no cloud push.
+This keeps the cockpit fully local-first and Termux-friendly: the only
+thing that has to be reachable is your own gateway.
+
+A lightweight **work watcher** polls the cockpit's existing REST
+endpoints (`/v1/cockpit/jobs`, `/approvals`, `/runtime/workers`),
+diffs each result against the last, and raises a notification on a
+*transition* — so a steady state never spams the shade.
+
+Polling is **not** always on:
+
+- While the app is open, a foreground poller runs (cheap, stops when
+  you leave).
+- When there is **active work** (a running job or a pending approval),
+  it escalates to a foreground service so notifications keep arriving
+  after you background the app. That service **self-stops** once no
+  active work remains.
+- Cadence is the **Notification poll interval** setting (default 20s),
+  and the watcher backs off on errors.
+
+The nine notifications, the channel they use, and where a tap lands:
+
+| Notification | Channel | Tap opens |
+|---|---|---|
+| Job started | Job updates | Tasks |
+| Job completed | Job updates | Tasks |
+| Research complete | Job updates | Tasks |
+| Job blocked (waiting approval) | Approvals needed | Approvals |
+| Approval required | Approvals needed | Approvals |
+| Job failed | Alerts | Diagnostics |
+| Tests failed | Alerts | Tasks |
+| Worker needs attention | Alerts | Diagnostics |
+| Emergency stop engaged | Alerts | Diagnostics |
+| Voice/listening active (persistent) | Jarvis voice | Voice |
+
+Approval notifications open the owner-gated **Approvals** queue — they
+**never** approve anything on their own. The decision still requires
+the on-device confirmation and the canonical owner phrase. Notification
+text is kept short and structural (a job title or worker name) and is
+run through the secret redactor, so prompts, diffs, tokens, and model
+reasoning never reach the lockscreen.
+
+Turn notifications off anytime with **Notifications** in Settings.
+
+> **Roadmap.** Today's delivery is poll-based on purpose. Two future
+> targets are tracked but **not** implemented:
+> `MOBILE-NOTIFY-002` (an SSE event stream for lower-latency local
+> updates) and `MOBILE-NOTIFY-003` (an opt-in, explicitly
+> non-local-first FCM bridge for true remote/background push).
+> `MOBILE-NOTIFY-004` would add a dedicated cockpit-job detail screen
+> so job notifications can deep-link to a single job instead of the
+> Tasks list.
+
+---
+
 ## How voice capture works on mobile
 
 The Voice tab is the same gateway endpoint as Telegram voice memos,
@@ -316,9 +374,13 @@ state.
 `escalated` until someone responds — the orchestrator does not
 time out the human. (You can configure a deadline if you want.)
 
-**Push notifications retry.** The gateway uses HTTP/2 server push
-or FCM (depending on your build) with retries. If the phone is off,
-the notification is delivered when it comes back online.
+**Notifications are local + poll-based.** The app raises Android
+notifications from a local work watcher that polls your gateway (see
+"How notifications work"). There is no FCM or server push in this
+build, so delivery needs the gateway reachable on the configured poll
+interval; if the phone is asleep, you'll see the update on the next
+poll after it wakes. Lower-latency (SSE) and true background push
+(FCM) are roadmap items, not current behavior.
 
 If the cockpit shows stale state after a long disconnect:
 

@@ -3,13 +3,17 @@ package com.aci.hermes.service
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Build
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.aci.hermes.MainActivity
 import com.aci.hermes.data.automation.AutomationIntentParser
+import com.aci.hermes.notify.DeepLink
+import com.aci.hermes.ui.navigation.Screen
 import com.aci.hermes.voice.SttEngine
 import com.aci.hermes.voice.TtsEngine
 import com.aci.hermes.voice.TtsEvent
@@ -155,10 +159,22 @@ class VoiceLoopService : LifecycleService() {
                 NotificationChannel(channelId, "Jarvis voice", NotificationManager.IMPORTANCE_LOW),
             )
         }
+        // Tapping the persistent "listening" notification opens the Voice
+        // screen so the owner can see/stop the loop.
+        val openVoice = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra(DeepLink.EXTRA_NAV_ROUTE, Screen.Voice.route)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val notification: Notification = Notification.Builder(this, channelId)
             .setContentTitle("Jarvis is listening")
             .setContentText("Say \"Hey Jarvis\"")
             .setSmallIcon(com.aci.hermes.R.mipmap.ic_launcher)
+            .setContentIntent(openVoice)
             .build()
         // The MICROPHONE foreground-service type is API 30+, and the typed
         // 3-arg startForeground is API 29+. Guard directly on SDK_INT so

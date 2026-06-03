@@ -24,6 +24,31 @@
     <string name="orchestrator_notification_stop">Stand down</string>
     <string name="orchestrator_notification_owner_approve">Owner Approve</string>
 
+    <!-- Work-watcher foreground service (only runs while active work exists) -->
+    <string name="workwatch_notification_title">Watching active work</string>
+    <string name="workwatch_notification_text">Jarvis Prime is tracking running jobs and approvals.</string>
+
+    <!-- Long-running-work notifications (event-driven). Bodies take a job title
+         or worker name; no prompts, diffs, tokens, or model reasoning. -->
+    <string name="notify_action_review_approval">Review</string>
+    <string name="notify_job_started_title">Job started</string>
+    <string name="notify_job_started_text">%1$s is running.</string>
+    <string name="notify_job_blocked_title">Approval needed</string>
+    <string name="notify_job_blocked_text">%1$s is paused for your approval.</string>
+    <string name="notify_approval_title">Approval needed</string>
+    <string name="notify_approval_text">An action is waiting for your approval.</string>
+    <string name="notify_job_completed_title">Job completed</string>
+    <string name="notify_job_completed_text">%1$s finished.</string>
+    <string name="notify_job_failed_title">Job failed</string>
+    <string name="notify_job_failed_text">%1$s failed. Tap for diagnostics.</string>
+    <string name="notify_worker_title">Worker needs attention</string>
+    <string name="notify_worker_text">%1$s needs attention.</string>
+    <string name="notify_research_title">Research complete</string>
+    <string name="notify_research_text">%1$s is ready to review.</string>
+    <string name="notify_tests_failed_title">Tests failed</string>
+    <string name="notify_emergency_title">Emergency stop engaged</string>
+    <string name="notify_emergency_text">Jarvis Prime work is halted.</string>
+
     <!-- Launcher shortcuts -->
     <string name="shortcut_owner_approve_short">Approve</string>
     <string name="shortcut_owner_approve_long">Owner Approve action</string>
@@ -410,4 +435,10 @@
     <string name="jarvis_voice_enable_title">Talk to Jarvis hands-free</string>
     <string name="jarvis_voice_enable_body">Say \"Hey Jarvis\" through your headset to run any command by voice. Needs the microphone permission.</string>
     <string name="jarvis_voice_enable_cta">Enable voice</string>
+
+    <!-- "Tests failed" notification body: %1$s = job title, %2$d = failure count. -->
+    <plurals name="notify_tests_failed_text">
+        <item quantity="one">%1$s: %2$d failing test.</item>
+        <item quantity="other">%1$s: %2$d failing tests.</item>
+    </plurals>
 </resources>

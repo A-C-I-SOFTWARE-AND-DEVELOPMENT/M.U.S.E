@@ -13,6 +13,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import com.aci.hermes.data.preferences.ThemeMode
+import com.aci.hermes.notify.DeepLink
 import com.aci.hermes.service.HermesService
 import com.aci.hermes.ui.navigation.HermesNavHost
 import com.aci.hermes.ui.theme.HermesTheme
@@ -34,6 +35,10 @@ class MainActivity : ComponentActivity() {
 
         val container = (application as HermesApplication).container
 
+        // A notification tap launches us with a route extra — publish it so
+        // HermesNavHost can open the right screen.
+        container.requestDeepLink(intent?.getStringExtra(DeepLink.EXTRA_NAV_ROUTE))
+
         setContent {
             val themePref by container.settingsRepository.themeMode.collectAsState(
                 initial = ThemeMode.SYSTEM
@@ -42,6 +47,25 @@ class MainActivity : ComponentActivity() {
                 HermesNavHost(container = container)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // FLAG_ACTIVITY_SINGLE_TOP delivers a notification tap here when we're
+        // already on top; route it the same way as a cold launch.
+        setIntent(intent)
+        val container = (application as HermesApplication).container
+        container.requestDeepLink(intent.getStringExtra(DeepLink.EXTRA_NAV_ROUTE))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (application as HermesApplication).container.onAppForeground()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        (application as HermesApplication).container.onAppBackground()
     }
 
     private fun startHermesOrchestrator() {

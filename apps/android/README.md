@@ -171,6 +171,36 @@ job uploads `lint-results-debug.html`.
 
 ---
 
+## Notifications (long-running work)
+
+Local Android notifications report when long-running work changes state —
+**no FCM, no push backend.** A work watcher (`notify/`) polls the cockpit
+REST endpoints (`jobs`, `approvals`, `runtime/workers`), diffs against the
+last snapshot via the pure `WorkEventDetector`, and posts on transitions.
+
+- **Events:** job started / blocked / completed / failed, approval required,
+  worker needs attention, research complete, tests failed, emergency stop,
+  plus the persistent voice "listening" notice.
+- **Channels:** `jarvis_jobs` (default), `jarvis_approvals` (high),
+  `jarvis_alerts` (high) — plus the existing `hermes_orchestrator` /
+  `jarvis_voice` service channels.
+- **Deep links:** tap → Approvals / Tasks / Diagnostics (or Voice), wired
+  through `DeepLink.EXTRA_NAV_ROUTE` → `MainActivity` → `HermesNavHost`.
+- **Polling lifetime:** the in-app poller runs only while the app is
+  visible; `WorkWatchService` (foreground, `dataSync`) keeps polling for
+  active work after backgrounding and **self-stops when idle**. There is no
+  permanent always-on poller. Interval is the `Notification poll interval`
+  setting (default 20s) with error backoff.
+- **Safety:** approval notifications open the owner-gated Approvals queue
+  (no one-tap approve); bodies are short, structural, and secret-redacted.
+
+Pure logic (`WorkEventDetector`, `DeepLink`, `NotificationChannels`) is unit
+tested under `app/src/test/.../notify/`. Roadmap: `MOBILE-NOTIFY-002` (SSE),
+`MOBILE-NOTIFY-003` (opt-in FCM), `MOBILE-NOTIFY-004` (cockpit-job detail
+screen for per-job deep links).
+
+---
+
 ## Sentient avatar (the living body)
 
 The cockpit now ships JARVIS Prime's **living body** — a character that
