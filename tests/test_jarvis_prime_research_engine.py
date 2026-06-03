@@ -49,6 +49,14 @@ def test_classify_source_trust_tiers():
         classify_source("https://some-random-blog.example/post")[1]
         is EvidenceStrength.WEAK
     )
+    # Boundary-safe: a spoofed host or a trusted token in the path must NOT be
+    # promoted to primary (incomplete-substring-sanitization regression).
+    assert classify_source("https://arxiv.org.evil.com/x")[1] is EvidenceStrength.WEAK
+    assert classify_source("https://evil.com/arxiv.org")[1] is EvidenceStrength.WEAK
+    # A genuine subdomain of a trusted host still resolves.
+    assert (
+        classify_source("https://export.arxiv.org/abs/1")[1] is EvidenceStrength.PRIMARY
+    )
 
 
 def test_decompose_produces_sub_questions(tmp_path):
@@ -106,7 +114,9 @@ def test_ranking_orders_primary_before_weak(tmp_path):
         RawSource(title="paper", url="https://arxiv.org/abs/1", excerpt="alpha beta"),
     ]
     ranked = eng.rank(raw, query="alpha beta")
-    assert "arxiv.org" in ranked[0].url
+    # The primary (arxiv) source ranks ahead of the weak blog. Assert on the
+    # exact URL rather than a substring so the check is boundary-safe.
+    assert ranked[0].url == "https://arxiv.org/abs/1"
 
 
 def test_verify_citations_drops_orphans(tmp_path):

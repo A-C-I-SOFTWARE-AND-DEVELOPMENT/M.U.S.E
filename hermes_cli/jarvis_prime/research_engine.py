@@ -74,14 +74,19 @@ def _terms(text: str) -> set[str]:
 # Source trust ranking — deterministic domain heuristics
 # ---------------------------------------------------------------------------
 
-# (host substring, SourceType, EvidenceStrength). First match wins; order
+# (host pattern, SourceType, EvidenceStrength). First match wins; order
 # matters (most specific first). Tuned to be conservative — unknown hosts land
 # at WEAK so the synthesis step never over-trusts an anonymous blog.
+#
+# Patterns are matched against the URL **host** with label boundaries (see
+# :func:`_host_matches`), never as a bare substring — so a spoofed host like
+# ``arxiv.org.evil.com`` or a path like ``…/arxiv.org`` is *not* trusted as a
+# primary source. This matters because the tier feeds confidence, which feeds
+# the memory-promotion gate.
 _DOMAIN_RULES: tuple[tuple[str, SourceType, EvidenceStrength], ...] = (
     ("arxiv.org", SourceType.PAPER, EvidenceStrength.PRIMARY),
     ("doi.org", SourceType.PAPER, EvidenceStrength.PRIMARY),
     ("ncbi.nlm.nih.gov", SourceType.PAPER, EvidenceStrength.PRIMARY),
-    ("pubmed", SourceType.PAPER, EvidenceStrength.PRIMARY),
     ("docs.python.org", SourceType.OFFICIAL_DOC, EvidenceStrength.PRIMARY),
     ("developer.mozilla.org", SourceType.OFFICIAL_DOC, EvidenceStrength.PRIMARY),
     ("kubernetes.io", SourceType.OFFICIAL_DOC, EvidenceStrength.PRIMARY),
@@ -97,17 +102,35 @@ _DOMAIN_RULES: tuple[tuple[str, SourceType, EvidenceStrength], ...] = (
 )
 
 
+def _host_matches(host: str, pattern: str) -> bool:
+    """Boundary-aware host match (no incomplete-substring matching).
+
+    - ``.gov``  → TLD-ish suffix: ``host`` ends with ``.gov``.
+    - ``docs.`` → subdomain prefix: ``host`` starts with ``docs.``.
+    - ``arxiv.org`` → exact host or a subdomain of it (``*.arxiv.org``);
+      rejects ``arxiv.org.evil.com``.
+    """
+    if pattern.startswith("."):
+        return host.endswith(pattern)
+    if pattern.endswith("."):
+        return host.startswith(pattern)
+    return host == pattern or host.endswith("." + pattern)
+
+
 def classify_source(url: str) -> tuple[SourceType, EvidenceStrength]:
     """Map a URL to a (SourceType, EvidenceStrength) pair, deterministically.
 
-    Unknown hosts default to ``BLOG`` / ``WEAK`` — conservative on purpose so
-    an anonymous source is never silently trusted as primary.
+    Matches the URL **host** against :data:`_DOMAIN_RULES` with label
+    boundaries. Unknown (or spoofed) hosts default to ``BLOG`` / ``WEAK`` —
+    conservative on purpose so an anonymous source is never silently trusted
+    as primary.
     """
-    host = (urlsplit(url).netloc or url).lower()
-    path = urlsplit(url).path.lower()
-    hay = host + path
-    for needle, stype, strength in _DOMAIN_RULES:
-        if needle in hay:
+    parts = urlsplit(url if "//" in url else "//" + url)
+    host = (parts.netloc or "").lower()
+    # Strip userinfo / port so they can't smuggle a trusted host substring.
+    host = host.rpartition("@")[2].partition(":")[0]
+    for pattern, stype, strength in _DOMAIN_RULES:
+        if _host_matches(host, pattern):
             return stype, strength
     return SourceType.BLOG, EvidenceStrength.WEAK
 
