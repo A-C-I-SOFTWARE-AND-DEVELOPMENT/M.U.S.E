@@ -170,19 +170,69 @@ falls back to a bundled default list if this returns 404.
 
 ---
 
-## 4. Jobs — **canonical, implemented** (read + dispatch + cancel)
+## 4. Jobs — **canonical, implemented** (read + dispatch + controls)
 
 A **job** is one prompt × one worker × one execution. The cockpit
 treats it as the unit of progress.
 
 `GET /v1/cockpit/jobs`, `GET /v1/cockpit/jobs/{id}`,
-`POST /v1/cockpit/jobs` (dispatch), and `POST /v1/cockpit/jobs/{id}/cancel`
-are **live**, backed by the real `JobQueue` via the adapter in
-`gateway/cockpit/contract.py`. The SSE stream, files, diff, validation,
-and publish sub-resources remain specified-but-pending. Git/publish
-metadata (`branch`, `validation_summary`, `publish_state`, …) is surfaced
-from the job's `metadata` when the pipeline has populated it, and is
-`null` otherwise — never fabricated.
+`POST /v1/cockpit/jobs` (dispatch), `POST /v1/cockpit/jobs/{id}/run`,
+`POST /v1/cockpit/jobs/{id}/cancel`, and the control + detail surface
+`GET /v1/cockpit/jobs/{id}/ledger`, `POST …/pause`, `POST …/resume`,
+`POST …/rerun`, `POST …/approve`, `GET …/diff`, `POST …/validate`
+are **live**, backed by the real `JobQueue` + orchestrator via the
+adapters in `gateway/cockpit/contract.py` (`cockpit_job`,
+`orchestrator_job`, `orchestrator_job_detail`, `queue_job_detail`). The
+list merges JobQueue **and** orchestrator (`/orchestrate`) jobs so every
+backend job appears. The **SSE stream** (`/jobs/stream`) and the
+publish-preview/publish sub-resources remain specified-but-pending — see
+`MOBILE-JOBS-STREAMING-001` in `docs/orchestration/next-roadmap.md`;
+the Android cockpit uses REST polling + foreground notifications today,
+not SSE. Git/publish metadata (`branch`, `validation_summary`,
+`publish_state`, …) is surfaced from the job's `metadata` when the
+pipeline has populated it, and is `null` otherwise — never fabricated.
+
+> **Owner gate preserved.** `…/approve` (and the execute lanes of
+> `…/run`) require the exact owner authorization phrase **and** a
+> loopback bind; a non-loopback cockpit is refused. `pause`/`resume`/
+> `rerun`/`diff`/`validate` act only inside the already-approved local
+> workspace and need no phrase.
+
+### Job detail / ledger — `GET /v1/cockpit/jobs/{id}/ledger`
+
+Read-only execution story for the Job Detail screen. Honest derivation
+only — a field the source genuinely lacks is empty/null (e.g. the
+orchestrator ledger records no shell commands, so `commands_run` is `[]`
+for orchestrator jobs).
+
+```json
+{
+  "id": "job_01HXYZ...",
+  "objective": "Add OAuth callback handler",
+  "status": "RUNNING",
+  "plan": "",
+  "current_step": "running worker codex-execute",
+  "workers": [ { "id": "codex-execute", "worker": "codex-execute", "status": "RUNNING", "summary": "", "error": null, "attempts": 0 } ],
+  "timeline": [ { "ts": "2026-05-23T18:30:00Z", "kind": "submit", "phase": null, "actor": "owner", "summary": "Add OAuth callback" } ],
+  "evidence": [],
+  "files_touched": ["src/auth.py"],
+  "commands_run": [],
+  "test_results": { "pass": 4, "fail": 0, "pending": 1 },
+  "approvals": [ { "id": "…", "approver": "owner", "state": "APPROVED", "comment": "phase 'execute' approved" } ],
+  "rollback": null
+}
+```
+
+### Controls
+
+| Method | Path | Effect |
+|---|---|---|
+| `POST` | `…/pause` | Pause a running/queued queue job. `409` if terminal or an orchestrator job. |
+| `POST` | `…/resume` | Re-queue a paused/blocked/disconnected/failed job — the unblock action. |
+| `POST` | `…/rerun` | Reset a failed/blocked worker (`worker_id` optional; first failed otherwise). |
+| `POST` | `…/approve` | Grant a gated phase (`{phase, authorization}`); owner phrase + loopback gated. |
+| `GET`  | `…/diff` | Working-tree `git diff` for the job's workspace ("open patch"); honest empty when none. |
+| `POST` | `…/validate` | Run the workspace's verification gates ("run verification"); returns the `ValidationSnapshot` shape. |
 
 > **Canonical status is a superset.** The wire `status` vocabulary is the
 > union of the JARVIS-Prime queue's **execution** states
