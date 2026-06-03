@@ -2,7 +2,9 @@ package com.aci.hermes.ui.screens.live
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Renders whichever living-avatar body is active, given a renderer-
@@ -37,9 +39,21 @@ fun LivingAvatarHost(
                 JarvisCharacterAvatar(inputs, contentDescription, modifier)
             }
 
-        // Vector / 3D bodies are served by the procedural character until
-        // finished art lands (same input contract, zero call-site change).
-        AvatarKind.Rive, AvatarKind.Character3D ->
+        // Rive: real animated art when a `res/raw/jarvis.riv` honoring the
+        // JarvisStateMachine contract is shipped; otherwise the procedural body.
+        AvatarKind.Rive -> {
+            val context = LocalContext.current
+            val hasRive = remember { riveAvatarAvailable(context) }
+            if (hasRive) {
+                JarvisRiveAvatar(inputs, contentDescription, modifier)
+            } else {
+                JarvisCharacterAvatar(inputs, contentDescription, modifier)
+            }
+        }
+
+        // 3D body is served by the procedural character until finished art
+        // lands (same input contract, zero call-site change).
+        AvatarKind.Character3D ->
             JarvisCharacterAvatar(inputs, contentDescription, modifier)
 
         // A user-uploaded photo becomes a living, breathing avatar face.

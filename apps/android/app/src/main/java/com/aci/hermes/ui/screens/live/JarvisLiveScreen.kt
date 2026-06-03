@@ -194,6 +194,7 @@ fun JarvisLiveScreen(
                         motionEnabled = projection.motionEnabled,
                     )
                     val cd = stringResource(projection.contentDescription)
+                    val hasRive = remember { riveAvatarAvailable(context) }
                     when {
                         state.avatarPhoto != null -> LivingAvatarHost(
                             kind = AvatarKind.Photo,
@@ -206,6 +207,13 @@ fun JarvisLiveScreen(
                             kind = AvatarKind.Orb,
                             inputs = inputs,
                             contentDescription = cd,
+                        )
+                        // Top-tier animated art auto-activates when shipped.
+                        hasRive -> LivingAvatarHost(
+                            kind = AvatarKind.Rive,
+                            inputs = inputs,
+                            contentDescription = cd,
+                            modifier = Modifier.size(240.dp),
                         )
                         else -> PixelSpriteAvatar(
                             sprite = PixelSprites.byId(state.spriteId),

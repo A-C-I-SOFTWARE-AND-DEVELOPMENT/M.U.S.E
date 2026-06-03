@@ -138,6 +138,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Rive runtime for top-tier animated avatar art (drop a `res/raw/jarvis.riv`
+    // honoring the JarvisStateMachine contract; renderer falls back gracefully).
+    implementation(libs.rive.android)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
