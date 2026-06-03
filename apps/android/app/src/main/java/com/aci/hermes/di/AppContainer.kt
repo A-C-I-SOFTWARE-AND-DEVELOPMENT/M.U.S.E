@@ -175,6 +175,10 @@ class AppContainer(private val application: Application) {
     // this only makes the engines available, it does not open the mic.
     init {
         com.aci.hermes.service.VoiceLoopService.Wiring.apply {
+            // Keyless on-device wake word ("Hey Jarvis") so Presence Mode can be
+            // hands-free without a proprietary SDK/key. Pluggable: a Porcupine /
+            // Vosk engine can replace this factory with no other change.
+            wakeWordFactory = { ctx -> com.aci.hermes.voice.SpeechRecognizerWakeWordEngine(ctx) }
             sttFactory = { ctx -> com.aci.hermes.voice.AndroidSpeechRecognizerStt(ctx) }
             ttsFactory = { ctx -> com.aci.hermes.voice.AndroidTtsEngine(ctx) }
             dispatch = { utterance -> voiceDispatchToAgent(utterance) }

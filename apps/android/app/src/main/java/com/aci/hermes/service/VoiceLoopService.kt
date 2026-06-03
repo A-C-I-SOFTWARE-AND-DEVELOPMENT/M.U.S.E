@@ -15,10 +15,15 @@ import com.aci.hermes.voice.TtsEngine
 import com.aci.hermes.voice.TtsEvent
 import com.aci.hermes.voice.VoiceEvent
 import com.aci.hermes.voice.VoiceLoop
+import com.aci.hermes.voice.VoicePhase
 import com.aci.hermes.voice.WakeWordEngine
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 
 /**
@@ -62,12 +67,17 @@ class VoiceLoopService : LifecycleService() {
         tts?.stop()
         stopHeadsetRoute()
         if (active === this) active = null
+        _phase.value = VoicePhase.DORMANT
+        _transcript.value = ""
         super.onDestroy()
     }
 
     /** Feed an event into the loop and enact the resulting effect. */
     fun drive(event: VoiceEvent) {
         val transition = loop.on(event)
+        // Publish the real phase so the cockpit (pill, avatar, overlay) reflects
+        // genuine voice state instead of a faked "thinking" flag.
+        _phase.value = transition.phase
         when (transition.effect) {
             VoiceLoop.Effect.START_WAKE_LISTENER -> listenForWake()
             VoiceLoop.Effect.OPEN_MIC_FOR_STT -> captureUtterance()
@@ -88,11 +98,22 @@ class VoiceLoopService : LifecycleService() {
 
     private fun captureUtterance() {
         val engine = stt ?: return
+        _transcript.value = ""
         lifecycleScope.launch {
-            val finalResult = engine.transcribe().firstOrNull { it.isFinal }
-            val text = finalResult?.text?.trim().orEmpty()
-            if (text.isEmpty()) drive(VoiceEvent.UtteranceEmpty)
-            else drive(VoiceEvent.UtteranceFinal(text))
+            var last = ""
+            engine.transcribe()
+                .onCompletion {
+                    val text = last.trim()
+                    if (text.isEmpty()) drive(VoiceEvent.UtteranceEmpty)
+                    else drive(VoiceEvent.UtteranceFinal(text))
+                }
+                .collect { result ->
+                    last = result.text
+                    // Surface partials live so the screen can preview the
+                    // transcript as the user speaks.
+                    _transcript.value = result.text
+                    if (result.isFinal) return@collect
+                }
         }
     }
 
@@ -192,6 +213,17 @@ class VoiceLoopService : LifecycleService() {
         @Volatile
         var active: VoiceLoopService? = null
             private set
+
+        // Live, process-level voice state so the cockpit (status pill, avatar,
+        // floating overlay) reflects the REAL phase of the loop rather than a
+        // demo flag. Survives the service instance so a screen can observe it
+        // before/after the foreground service is bound.
+        private val _phase = MutableStateFlow(VoicePhase.DORMANT)
+        val phase: StateFlow<VoicePhase> = _phase.asStateFlow()
+
+        /** The latest partial/final transcript for the in-flight utterance. */
+        private val _transcript = MutableStateFlow("")
+        val transcript: StateFlow<String> = _transcript.asStateFlow()
 
         // Brief, warm fillers spoken during THINKING so the pause feels like a
         // person considering, not dead air. Kept short — the real reply flushes.
