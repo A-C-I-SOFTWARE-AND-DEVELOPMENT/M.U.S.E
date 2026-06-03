@@ -271,7 +271,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun controlVmFactory(): ViewModelProvider.Factory = factory {
-        ControlViewModel(application, settingsRepository, logBuffer)
+        ControlViewModel(application, settingsRepository, logBuffer, cockpitClient)
     }
 
     fun jarvisPrimeHomeVmFactory(): ViewModelProvider.Factory = factory {
