@@ -133,6 +133,14 @@ In the cockpit:
 If you see the streaming response, the loop works. If not, see
 [Disconnect recovery](#disconnect-recovery) below.
 
+The Chat tab shows more than the final words: a **phase rail** (receiving →
+thinking → routing → tool → verification → final), compact **tool
+activity** you can expand (secrets redacted), tappable **evidence/ledger**
+chips, and inline **owner approvals**. Replies can be **continued**,
+**copied**, or promoted into a **job**. See
+[JARVIS Prime mobile chat](jarvis-chat-streaming.md) for the wire contract
+and behaviour.
+
 ### 5. (Optional) Build the APK yourself
 
 ```bash

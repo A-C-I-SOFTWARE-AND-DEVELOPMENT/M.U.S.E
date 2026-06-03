@@ -17,7 +17,7 @@ This doc is the map. It is implemented across the Android app
 | **Hands** | `service/JarvisAccessibilityService` | Performs the real taps/swipes, launches apps, reads the on-screen node tree. |
 | **Presence** | `service/JarvisOverlayService` | Floats the body over other apps (`TYPE_APPLICATION_OVERLAY`), animates the "run", runs the life loop, executes `MotionPlan`s. |
 | **Voice** | `service/VoiceLoopService` + `voice/` | Wake word → STT → agent → TTS over a Bluetooth headset. |
-| **Mind feed** | `data/jarvis/HttpJarvisChatGateway` + `gateway/jarvis_local_http.py` | Streams the real agent's state/reply so the body reacts to what the agent is actually doing. |
+| **Mind feed** | `data/jarvis/HttpJarvisChatGateway` + `gateway/jarvis_local_http.py` | Streams the real agent's state/reply so the body reacts to what the agent is actually doing. The stream also carries phase, tool-call (redacted), and evidence/ledger chunks — see [JARVIS Prime mobile chat](../mobile/jarvis-chat-streaming.md). |
 
 ## How "Jarvis runs to Facebook and pushes it" works
 
