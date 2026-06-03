@@ -26,8 +26,14 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.PictureInPictureAlt
+import com.aci.hermes.service.JarvisOverlayService
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
@@ -123,6 +129,38 @@ fun JarvisLiveScreen(
         }
     }
 
+    // Float JARVIS over other apps: start the overlay service behind the
+    // draw-over-other-apps consent (a high-risk permission granted in Settings).
+    var overlayOn by remember { mutableStateOf(JarvisOverlayService.active != null) }
+    val overlayPermission = rememberLauncherForActivityResult(StartActivityForResult()) {
+        if (JarvisOverlayService.canDraw(context)) {
+            JarvisOverlayService.start(context)
+            overlayOn = true
+        }
+    }
+    val onToggleOverlay: () -> Unit = {
+        when {
+            overlayOn -> {
+                JarvisOverlayService.stop(context)
+                overlayOn = false
+            }
+            JarvisOverlayService.canDraw(context) -> {
+                JarvisOverlayService.start(context)
+                overlayOn = true
+            }
+            else -> overlayPermission.launch(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + context.packageName),
+                ),
+            )
+        }
+    }
+    // Mirror the live agent state onto the floating avatar while it's showing.
+    LaunchedEffect(projection.state, overlayOn) {
+        if (overlayOn) JarvisOverlayService.active?.setLiveState(projection.state)
+    }
+
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
     Scaffold(
@@ -165,6 +203,22 @@ fun JarvisLiveScreen(
                 .background(jarvisBackground()),
         ) {
             JarvisLiveParticles(enabled = projection.particlesEnabled)
+
+            // Toggle the floating JARVIS that lives over every app.
+            IconButton(
+                onClick = onToggleOverlay,
+                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+            ) {
+                Icon(
+                    Icons.Default.PictureInPictureAlt,
+                    contentDescription = if (overlayOn) {
+                        "Stop floating JARVIS over other apps"
+                    } else {
+                        "Float JARVIS over other apps"
+                    },
+                    tint = if (overlayOn) HermesCyan else Color.White.copy(alpha = 0.6f),
+                )
+            }
 
             Column(
                 modifier = Modifier
