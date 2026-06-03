@@ -17,10 +17,12 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -193,60 +195,67 @@ private fun SectionTitle(text: String) {
     )
 }
 
+/**
+ * Quick-link grid rendered from [Screen.homeQuickLinks] — the single source
+ * of truth for which shell destinations have a Home entry point. Driving the
+ * grid off that list (rather than hand-listing cards) is what guarantees a
+ * shell route can't silently become deep-link-only (the bug that hid the
+ * Capability screen). Voice is appended separately because it is a
+ * full-screen push reached via [onOpenVoice], not a shell route.
+ */
 @Composable
 private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit) {
+    val cells: List<QuickLinkCell> =
+        Screen.homeQuickLinks.map { screen ->
+            QuickLinkCell(screen.quickLinkLabelRes(), screen.quickLinkIcon()) { onNavigate(screen) }
+        } + QuickLinkCell(R.string.nav_voice, Icons.Filled.Mic, onOpenVoice)
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_tasks),
-                icon = Icons.AutoMirrored.Filled.Assignment,
-                onClick = { onNavigate(Screen.Tasks) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_chat),
-                icon = Icons.AutoMirrored.Filled.Chat,
-                onClick = { onNavigate(Screen.Chat) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_approvals),
-                icon = Icons.Filled.CheckCircle,
-                onClick = { onNavigate(Screen.Approvals) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_memory),
-                icon = Icons.Filled.Memory,
-                onClick = { onNavigate(Screen.Memory) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_audit),
-                icon = Icons.Filled.History,
-                onClick = { onNavigate(Screen.Audit) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_control),
-                icon = Icons.Filled.AdminPanelSettings,
-                onClick = { onNavigate(Screen.Control) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_voice),
-                icon = Icons.Filled.Mic,
-                onClick = onOpenVoice,
-            )
+        cells.chunked(2).forEach { rowCells ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                rowCells.forEach { cell ->
+                    QuickLinkCard(
+                        modifier = Modifier.weight(1f),
+                        title = stringResource(cell.labelRes),
+                        icon = cell.icon,
+                        onClick = cell.onClick,
+                    )
+                }
+                // Keep the last odd card half-width by padding the row.
+                if (rowCells.size == 1) Box(modifier = Modifier.weight(1f))
+            }
         }
     }
+}
+
+private data class QuickLinkCell(
+    val labelRes: Int,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
+private fun Screen.quickLinkLabelRes(): Int = when (this) {
+    Screen.Tasks -> R.string.nav_tasks
+    Screen.Jobs -> R.string.nav_jobs
+    Screen.Chat -> R.string.nav_chat
+    Screen.Approvals -> R.string.nav_approvals
+    Screen.Memory -> R.string.nav_memory
+    Screen.Audit -> R.string.nav_audit
+    Screen.Capability -> R.string.nav_capability
+    Screen.Control -> R.string.nav_control
+    else -> R.string.app_name
+}
+
+private fun Screen.quickLinkIcon(): ImageVector = when (this) {
+    Screen.Tasks -> Icons.AutoMirrored.Filled.Assignment
+    Screen.Jobs -> Icons.Filled.Work
+    Screen.Chat -> Icons.AutoMirrored.Filled.Chat
+    Screen.Approvals -> Icons.Filled.CheckCircle
+    Screen.Memory -> Icons.Filled.Memory
+    Screen.Audit -> Icons.Filled.History
+    Screen.Capability -> Icons.Filled.Bolt
+    Screen.Control -> Icons.Filled.AdminPanelSettings
+    else -> Icons.Filled.AutoAwesome
 }
 
 @Composable

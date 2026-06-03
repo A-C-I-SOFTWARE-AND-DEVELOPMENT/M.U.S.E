@@ -22,6 +22,9 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Chat : Screen("chat")
     data object Tasks : Screen("tasks")
+    /** Cockpit orchestration jobs (the real JobQueue), distinct from the
+     *  local-handoff [Tasks]. Backed by `CockpitJobsRepository`. */
+    data object Jobs : Screen("jobs")
     data object Approvals : Screen("approvals")
     data object Memory : Screen("memory")
     data object Audit : Screen("audit")
@@ -56,6 +59,7 @@ sealed class Screen(val route: String) {
             Home.route,
             Chat.route,
             Tasks.route,
+            Jobs.route,
             Approvals.route,
             Memory.route,
             Audit.route,
@@ -70,6 +74,25 @@ sealed class Screen(val route: String) {
             BottomTab(Chat, BottomTab.Icon.CHAT, labelKey = "nav_chat"),
             BottomTab(Approvals, BottomTab.Icon.APPROVALS, labelKey = "nav_approvals"),
             BottomTab(Control, BottomTab.Icon.CONTROL, labelKey = "nav_control"),
+        )
+
+        /**
+         * Canonical list of shell destinations surfaced as Home quick-links,
+         * in display order. This is the single source of truth the Home
+         * screen renders from, so a shell destination can never become
+         * unreachable: every [shellRoutes] entry must be covered by either a
+         * [bottomTabs] tab or a quick-link here (asserted in ScreenTest).
+         * (This is what made Capability deep-link-only before it was added.)
+         */
+        val homeQuickLinks: List<Screen> = listOf(
+            Tasks,
+            Jobs,
+            Chat,
+            Approvals,
+            Memory,
+            Audit,
+            Capability,
+            Control,
         )
     }
 }

@@ -182,6 +182,7 @@ Start destination is `Splash`; after onboarding the app lands on
 | `onboarding` | pre-shell | `ui/screens/onboarding/OnboardingScreen.kt` | — | `SettingsRepository` (local) |
 | `home` | shell | `ui/screens/home/HomeScreen.kt` | `OrchestratorViewModel` | `HermesTaskRepository` (local handoff, DataStore) |
 | `tasks` | shell | `ui/screens/tasks/TasksScreen.kt` | `OrchestratorViewModel` | `HermesTaskRepository` (local handoff) |
+| `jobs` | shell | `ui/screens/jobs/JobsScreen.kt` | `JobsViewModel` | `CockpitJobsRepository` → `/v1/cockpit/jobs` (live; NotPaired/empty/error+retry) |
 | `chat` | shell | `ui/screens/chat/JarvisChatScreen.kt` | `JarvisChatViewModel` | `RoutingJarvisChatGateway` → `/v1/jarvis/chat` (JSONL) or mock |
 | `approvals` | shell | `approval/ui/screens/ApprovalsScreen.kt` | `ApprovalViewModel` | `CockpitApprovalsRepository` → `/v1/cockpit/approvals` |
 | `memory` | shell | `ui/screens/memory/MemoryScreen.kt` | `MemoryViewModel` | `MemoryRepository` → `/v1/cockpit/memory` |
@@ -197,8 +198,12 @@ Start destination is `Splash`; after onboarding the app lands on
 | `voice` | push | `ui/screens/voice/VoiceCaptureScreen.kt` | `VoiceCaptureViewModel` | `JarvisTaskSink` (local) + `VoiceLoopService` → chat gateway |
 
 **Bottom-nav tabs** (`Screen.bottomTabs`): Home, Tasks, Chat, Approvals,
-Control. Memory, Audit, and Capability are shell destinations reached
-from Home quick-links / Settings, not bottom tabs.
+Control. Jobs, Memory, Audit, and Capability are shell destinations reached
+from **Home quick-links**, not bottom tabs. Quick-links are now rendered
+data-driven from `Screen.homeQuickLinks` (the single source of truth), so a
+shell route can no longer become deep-link-only — a reachability invariant
+enforced by `ScreenTest`. (This fixed Capability, which was previously
+registered but had no UI entry point.)
 
 ---
 
@@ -224,10 +229,10 @@ backend route not used.
 | `/v1/cockpit/events` | GET | — (getRaw) | none (Audit uses `/audit`) | **getRaw/unwired** |
 | `/v1/cockpit/audit` | GET | `auditList()` | Audit | **Live** |
 | `/v1/cockpit/audit/{id}/proof` | GET | `auditProof()` | AuditDetail | **Live** |
-| `/v1/cockpit/jobs` | GET/POST | `jobsList()`, `jobDispatch()` | `CockpitJobsRepository` built but **not bound to a screen** (Tasks/Home use local `HermesTaskRepository`) | **client-only** |
-| `/v1/cockpit/jobs/{id}` | GET | `jobGet()` | — | **client-only** |
+| `/v1/cockpit/jobs` | GET/POST | `jobsList()`, `jobDispatch()` | Jobs (`JobsScreen`/`JobsViewModel`) | **Live** |
+| `/v1/cockpit/jobs/{id}` | GET | `jobGet()` | — (repository method, not yet surfaced as a detail screen) | **client-only** |
 | `/v1/cockpit/jobs/{id}/run` | POST | — | — | **getRaw/unwired** |
-| `/v1/cockpit/jobs/{id}/cancel` | POST | `jobCancel()` | — | **client-only** |
+| `/v1/cockpit/jobs/{id}/cancel` | POST | `jobCancel()` | Jobs (confirmation-gated cancel) | **Live** |
 | `/v1/cockpit/approvals` | GET | `approvalsList()` | Approvals | **Live** |
 | `/v1/cockpit/approvals/{id}` | POST | `approvalsDecide()` | Approvals | **Live** |
 | `/v1/cockpit/proposals` | GET | — (getRaw) | none | **getRaw/unwired** |
@@ -282,12 +287,32 @@ None are part of this (docs-only) task.
   `data/cockpit/CockpitApi.kt`. Tests:
   `app/src/test/.../data/cockpit/`. Verify: unit tests assert request
   shape + decode against fixtures.
-- **MOBILE-JOBS-001 — bind cockpit jobs to a screen.** `CockpitJobsRepository`
-  is constructed in `AppContainer` but no ViewModel consumes it; Tasks/Home
-  use the local `HermesTaskRepository`. Wire a jobs/orchestration view (or
-  a Tasks "remote" mode) to `CockpitJobsRepository`. Keep the local handoff
-  as a fallback mode. Verify: repository test + screen renders live job list
-  when paired, local when not.
+- **MOBILE-JOBS-001 — bind cockpit jobs to a screen. ✅ DONE.** A `Jobs` shell
+  destination (`ui/screens/jobs/JobsScreen.kt` + `JobsViewModel`) now consumes
+  the existing `CockpitJobsRepository` → `/v1/cockpit/jobs`, with status pill,
+  NotPaired/empty/loading/error+retry states, and a confirmation-gated cancel.
+  Reachable via a Home quick-link. The local-handoff `Tasks` screen is
+  untouched (distinct subsystem). Follow-up: a job *detail* screen over
+  `jobGet()` and dispatch UI (`jobDispatch()`) — currently repository-only.
+
+- **MOBILE-RESEARCH-001 — first-class Research/Evidence mobile surface.**
+  Research/Evidence is required for the finished cockpit, but **no backend
+  route** (`/v1/cockpit/research|evidence|vault`) and **no Android screen**
+  exist today. It must **not** be faked, and Memory search / SIA proposals must
+  **not** masquerade as it. Required work:
+  - Audit existing ResearchVault, Memory Tree, RAG, citation, web-search, and
+    evidence-related backend modules.
+  - Add/expose backend Evidence/Research route(s): search / detail /
+    verification, and an EvidenceVault/ResearchVault API surface.
+  - Add an Android Research/Evidence screen + repository/client layer (mirror
+    the cockpit-backed pattern: `HermesCockpitClient` typed accessor →
+    repository `sync` state → ViewModel → screen).
+  - Display source title, excerpt, **trust level, freshness, citations,
+    contradictions**, and a promote-to-memory action.
+  - Tests for the backend route, the Android ViewModel, and the
+    citation/evidence display.
+  Current partial support (only — **not** the canonical implementation): the
+  Memory screen exposes recollection over `/v1/cockpit/memory?q=`.
 - **MOBILE-DIAG-001 — wire Diagnostics to the backend.** Diagnostics renders
   only the local `LogBuffer`; add a path that surfaces
   `/v1/cockpit/diagnostics` (depends on MOBILE-API-001). Keep the local log
@@ -295,6 +320,13 @@ None are part of this (docs-only) task.
 - **MOBILE-CAP-001 — reconcile Capability with `/v1/cockpit/skills`.** The
   Capability screen uses a curated in-app catalog; decide whether to merge
   the server skills list in (depends on MOBILE-API-001).
+- **MOBILE-UX-001 — unify the status-first pattern across cockpit screens.**
+  `JobsScreen` establishes the full status-pill + NotPaired/empty/loading/
+  error+retry pattern. Memory/Approvals/Control already carry empty/error
+  affordances but do not yet show a uniform `GatewayStatusPill` or distinguish
+  *NotPaired* from *empty*. Roll the pattern out (additive, no refactor of
+  passing behaviour). Deferred from the Jobs PR to keep that diff small.
+
 - **MOBILE-CONTROL-001 — backend-aware emergency stop.** Emergency stop is
   local-only. Evaluate a backend stop route + wire
   `EmergencyStopController` to it while keeping the local stop as a
