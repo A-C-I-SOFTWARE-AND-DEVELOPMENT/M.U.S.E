@@ -1818,6 +1818,14 @@ class TestExecuteToolCalls:
     def test_result_truncation_over_100k(self, agent, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
         (tmp_path / ".hermes").mkdir()
+        # Bypass TokenJuice so this test exercises the size-threshold
+        # persistence/truncation fallback in isolation. TokenJuice runs
+        # first in the tool loop and would clamp this blob before the
+        # persistence layer sees it; its own behavior is covered by
+        # tests/test_tokenjuice_integration.py.
+        monkeypatch.setattr(
+            "agent.tool_executor._tokenjuice_compact", lambda *a, **k: a[3]
+        )
         tc = _mock_tool_call(name="web_search", arguments="{}", call_id="c1")
         mock_msg = _mock_assistant_msg(content="", tool_calls=[tc])
         messages = []
@@ -2136,6 +2144,11 @@ class TestConcurrentToolExecution:
         """Concurrent path should save oversized results to file."""
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes"))
         (tmp_path / ".hermes").mkdir()
+        # Bypass TokenJuice so this exercises the persistence/truncation
+        # fallback in isolation (see test_result_truncation_over_100k).
+        monkeypatch.setattr(
+            "agent.tool_executor._tokenjuice_compact", lambda *a, **k: a[3]
+        )
         tc1 = _mock_tool_call(name="web_search", arguments='{}', call_id="c1")
         tc2 = _mock_tool_call(name="web_search", arguments='{}', call_id="c2")
         mock_msg = _mock_assistant_msg(content="", tool_calls=[tc1, tc2])
