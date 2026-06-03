@@ -482,6 +482,40 @@ def avatar_persona_set(req: Request) -> JsonResponse:
     return JsonResponse(201, data)
 
 
+def room_list(_req: Request) -> JsonResponse:
+    """The companion's room items (AI-generated furniture), with images."""
+    from gateway.cockpit import room_store as rs
+
+    return JsonResponse(
+        200,
+        {"items": rs.list_items(), "image_generation": rs.image_generation_available()},
+    )
+
+
+def room_generate(req: Request) -> JsonResponse:
+    """Generate a room item from a text prompt ('a Victorian desk') via the
+    image model. 503 when no image model is configured (honest, not faked)."""
+    from gateway.cockpit import room_store as rs
+
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        item = rs.generate_item(prompt)
+    except RuntimeError as exc:
+        return JsonResponse(503, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, item)
+
+
+def room_delete(req: Request) -> JsonResponse:
+    from gateway.cockpit import room_store as rs
+
+    ok = rs.delete_item(req.path_params.get("id", ""))
+    return JsonResponse(200 if ok else 404, {"deleted": ok})
+
+
 def job_cancel(req: Request) -> JsonResponse:
     """Cancel a job (contract §4). 409 if already terminal."""
     job_id = req.path_params.get("id", "")
