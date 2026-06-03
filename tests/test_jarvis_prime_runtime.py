@@ -168,6 +168,29 @@ def test_observe_turn_captures_proposed_candidates(jp: JarvisPrime) -> None:
     assert all(n.layer is MemoryLayer.SESSION for n in proposed)
 
 
+def test_captured_candidate_does_not_leak_into_recall(jp: JarvisPrime) -> None:
+    """A capture from one turn must not feed the next turn's prompt unreviewed.
+
+    Regression for the review gate: ``observe_turn`` writes session/proposed
+    candidates pending the owner's approval. Before approval they must be
+    absent from ``recollect`` so an unreviewed memory cannot steer responses.
+    """
+
+    jp.observe_turn("We decided to standardize on Material 3.", "Understood.")
+    tree = jp.memory_tree()
+    captured = tree.proposed()
+    assert captured, "precondition: the turn produced a proposed candidate"
+
+    # The freshly captured (unapproved) fact is excluded from live recall.
+    block = jp.recollect("what did we standardize on")
+    assert "Material 3" not in block
+
+    # After the owner approves it, the same fact becomes recall-eligible.
+    for node in captured:
+        tree.set_approval(node.id, ApprovalState.OWNER_APPROVED)
+    assert "Material 3" in jp.recollect("what did we standardize on")
+
+
 def test_observe_turn_rejects_secret_and_never_raises(jp: JarvisPrime) -> None:
     summary = jp.observe_turn(
         "I prefer the token api_key=sk-ABCDEFGHIJKLMNOPQRSTUV0123456789."

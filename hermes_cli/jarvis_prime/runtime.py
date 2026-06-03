@@ -186,8 +186,10 @@ class JarvisPrime:
 
         Augments — never replaces — the legacy flat ``MemoryStore`` block with
         a token-bounded, source-cited Memory Tree context pack. Contested facts
-        are excluded by the pack. When memory layers are disabled the output is
-        byte-identical to the legacy recollection.
+        and candidates still awaiting the owner's review gate (session/working
+        PROPOSED captures from ``observe_turn``) are excluded by the pack, so an
+        unreviewed memory can never steer a response. When memory layers are
+        disabled the output is byte-identical to the legacy recollection.
         """
 
         legacy = self.config.memory.summarize_for_prompt(query, limit=limit)

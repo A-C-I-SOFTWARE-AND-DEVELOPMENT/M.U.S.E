@@ -304,6 +304,26 @@ class MemoryNode:
             self.superseded_by is None and self.approval_state != ApprovalState.REJECTED
         )
 
+    @property
+    def awaiting_review(self) -> bool:
+        """Captured but not yet cleared for live recall.
+
+        ``observe_turn`` writes captured facts as **session/working-layer,
+        PROPOSED** candidates that await the owner's approval (typically on
+        mobile). Until the owner accepts or rejects them they must not feed
+        back into the prompt as plain context, or an unreviewed — possibly
+        assistant-originated — "memory" could steer later responses.
+
+        Durable nodes are *not* awaiting review: the durable write gate
+        already required provenance (or owner approval) plus the confidence
+        floor before they could be committed. Owner-approved / auto nodes are
+        likewise cleared.
+        """
+
+        if self.approval_state != ApprovalState.PROPOSED:
+            return False
+        return self.layer != MemoryLayer.DURABLE
+
     def to_dict(self) -> dict[str, object]:
         return {
             "id": self.id,
@@ -432,6 +452,7 @@ class ContextPack:
     sections: list[dict] = field(default_factory=list)
     used_tokens: int = 0
     excluded_contested: int = 0
+    excluded_proposed: int = 0
 
     def add_section(self, node: MemoryNode, tokens: int) -> None:
         self.sections.append({
@@ -468,6 +489,12 @@ class ContextPack:
         if self.excluded_contested:
             lines.append("")
             lines.append(f"(excluded {self.excluded_contested} contested node(s))")
+        if self.excluded_proposed:
+            lines.append("")
+            lines.append(
+                f"(excluded {self.excluded_proposed} unapproved node(s) "
+                "pending owner review)"
+            )
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, object]:
@@ -476,6 +503,7 @@ class ContextPack:
             "token_budget": self.token_budget,
             "used_tokens": self.used_tokens,
             "excluded_contested": self.excluded_contested,
+            "excluded_proposed": self.excluded_proposed,
             "sections": self.sections,
         }
 
@@ -915,6 +943,7 @@ class MemoryTreeStore:
         namespaces: Optional[Iterable[str]] = None,
         layers: Optional[Iterable[MemoryLayer]] = None,
         include_contested: bool = False,
+        include_pending: bool = True,
         limit: int = 10,
     ) -> list[MemorySearchResult]:
         q_terms = _terms(query)
@@ -926,6 +955,12 @@ class MemoryTreeStore:
             if not node.active:
                 continue
             if node.contested and not include_contested:
+                continue
+            # Live recall must never surface candidates still pending the
+            # owner's review gate (see ``MemoryNode.awaiting_review``). Audit
+            # and CLI callers leave ``include_pending=True`` so they can still
+            # inspect unreviewed captures.
+            if not include_pending and node.awaiting_review:
                 continue
             if ns_filter and node.namespace not in ns_filter:
                 continue
@@ -990,13 +1025,22 @@ class MemoryTreeStore:
     ) -> ContextPack:
         pack = ContextPack(query=query, token_budget=token_budget)
         hits = self.search(
-            query, namespaces=namespaces, include_contested=include_contested, limit=50
+            query,
+            namespaces=namespaces,
+            include_contested=include_contested,
+            include_pending=False,
+            limit=50,
         )
         # Account for contested exclusions for transparency.
         if not include_contested:
             pack.excluded_contested = sum(
                 1 for n in self.nodes.values() if n.active and n.contested
             )
+        # Candidates still awaiting the owner's review gate are excluded from
+        # live recall; record the count so the gate is visible, not silent.
+        pack.excluded_proposed = sum(
+            1 for n in self.nodes.values() if n.active and n.awaiting_review
+        )
         for hit in hits:
             node = hit.node
             body = node.summary or node.text

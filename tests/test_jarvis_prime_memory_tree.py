@@ -341,6 +341,62 @@ def test_context_pack_includes_sources_and_respects_budget(tmp_path) -> None:
     assert tiny.used_tokens <= 1
 
 
+def test_context_pack_excludes_unapproved_session_captures(tmp_path) -> None:
+    """Session/working PROPOSED captures must not feed live recall.
+
+    ``observe_turn`` writes captured facts as session-layer PROPOSED nodes
+    pending the owner's review. Those candidates may still be inspected via
+    ``search`` (audit/CLI) but must be excluded from ``context_pack`` so an
+    unreviewed memory can never steer a response before the owner accepts it.
+    """
+
+    store = _store(tmp_path)
+    captured = _session(
+        store, "Owner prefers deploying on Wednesday.", title="deploy-pref"
+    ).node
+    assert captured.awaiting_review is True
+
+    # Visible to audit search...
+    assert any(h.node.id == captured.id for h in store.search("deploy Wednesday"))
+    # ...but excluded from the live recall pack, with the gate surfaced.
+    pack = store.context_pack("deploy Wednesday", token_budget=500)
+    assert all(s["id"] != captured.id for s in pack.sections)
+    assert pack.excluded_proposed >= 1
+    assert "pending owner review" in pack.render()
+
+    # Once the owner approves, the same fact is recall-eligible.
+    store.set_approval(captured.id, ApprovalState.OWNER_APPROVED)
+    approved_pack = store.context_pack("deploy Wednesday", token_budget=500)
+    assert any(s["id"] == captured.id for s in approved_pack.sections)
+
+
+def test_context_pack_includes_provenance_backed_durable_facts(tmp_path) -> None:
+    """A durable fact that cleared the write gate is recall-eligible.
+
+    Durable nodes carry ``approval_state == PROPOSED`` until the owner
+    personally vouches, but they already passed the durable write gate
+    (provenance + confidence floor). They are *not* awaiting review and must
+    remain available to live recall.
+    """
+
+    store = _store(tmp_path)
+    result = store.write(
+        "Hermes is the canonical backend.",
+        namespace="jarvis/architecture",
+        title="backend-durable",
+        layer=MemoryLayer.DURABLE,
+        confidence=0.95,
+        source_uri="docs/spec.md",
+        source_trust=SourceTrust.PRIMARY,
+    )
+    assert result.ok
+    assert result.node.approval_state is ApprovalState.PROPOSED
+    assert result.node.awaiting_review is False
+    pack = store.context_pack("backend", token_budget=500)
+    assert any(s["id"] == result.node.id for s in pack.sections)
+    assert pack.excluded_proposed == 0
+
+
 # ---------------------------------------------------------------------------
 # Persistence + exports
 # ---------------------------------------------------------------------------
