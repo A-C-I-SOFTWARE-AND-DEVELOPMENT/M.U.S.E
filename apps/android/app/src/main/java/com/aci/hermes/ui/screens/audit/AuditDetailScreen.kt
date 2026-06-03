@@ -64,6 +64,7 @@ object AuditDetailTags {
 fun AuditDetailScreen(
     viewModel: AuditDetailViewModel,
     onBack: () -> Unit,
+    relatedLoader: (suspend () -> com.aci.hermes.data.cockpit.CockpitResult<com.aci.hermes.data.cockpit.RelatedItemList>)? = null,
 ) {
     val state by viewModel.state.collectAsState()
     val scheme = MaterialTheme.colorScheme
@@ -111,6 +112,16 @@ fun AuditDetailScreen(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
         ) {
             item { SummaryCard(record) }
+
+            // GraphRAG: related files/sources/decisions for this evidence entry.
+            relatedLoader?.let { loader ->
+                item {
+                    com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                        loader = loader,
+                        title = "Related in knowledge graph",
+                    )
+                }
+            }
 
             state.proof?.let { proof ->
                 if (proof.verification.status == VerificationStatus.FAILED) {

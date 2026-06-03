@@ -71,6 +71,7 @@ object MemoryScreenTags {
 fun MemoryScreen(
     viewModel: MemoryViewModel,
     onBack: () -> Unit,
+    relatedLoader: (suspend (String) -> com.aci.hermes.data.cockpit.CockpitResult<com.aci.hermes.data.cockpit.RelatedItemList>)? = null,
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -149,6 +150,7 @@ fun MemoryScreen(
             onDismiss = viewModel::closeDetail,
             onCorrect = { viewModel.beginCorrect(item) },
             onDelete = { viewModel.beginDelete(item) },
+            relatedLoader = relatedLoader,
         )
     }
     state.correctingItem?.let { item ->

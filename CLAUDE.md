@@ -42,6 +42,13 @@ local llama.cpp, …). The repo ships:
   observability, native GitHub access, and more.
 - An orchestration system that decomposes goals into validated,
   audited task graphs — see [`docs/orchestration/`](docs/orchestration/).
+- A **GraphRAG knowledge graph** over the cognition plane
+  (`hermes_cli/jarvis_prime/graphrag/`) that unifies repo code, docs,
+  Research Vault, Memory Tree, and ledgers into one inspectable,
+  source-backed graph. It *supplements* (never replaces) existing
+  RAG/memory; coding tasks use it (via the `graph_query` tool or
+  `jarvis_prime graph` CLI) to reuse existing implementations. See
+  [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
 - A native Android companion app (`apps/android/`) and a Termux
   runtime path for on-phone use.
 

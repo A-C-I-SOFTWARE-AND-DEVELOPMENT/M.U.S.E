@@ -139,6 +139,10 @@ class AppContainer(private val application: Application) {
     /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
 
+    /** GraphRAG knowledge graph — related items + query modes + rebuild. */
+    val cockpitGraphRepository: com.aci.hermes.data.cockpit.CockpitGraphRepository =
+        com.aci.hermes.data.cockpit.CockpitGraphRepository(cockpitClient)
+
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
     val auditRepository: AuditRepository = AuditRepository(
@@ -260,6 +264,10 @@ class AppContainer(private val application: Application) {
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {
         AuditViewModel(auditRepository)
+    }
+
+    fun knowledgeGraphVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.knowledge.KnowledgeGraphViewModel(cockpitGraphRepository)
     }
 
     fun auditDetailVmFactory(auditId: String): ViewModelProvider.Factory = factory {

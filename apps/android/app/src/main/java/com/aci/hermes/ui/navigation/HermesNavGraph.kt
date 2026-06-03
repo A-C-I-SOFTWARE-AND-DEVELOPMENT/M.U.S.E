@@ -158,7 +158,11 @@ fun HermesNavHost(container: AppContainer) {
                     container.taskDetailVmFactory(taskId, target)
                 },
             )
-            TaskDetailScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            TaskDetailScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                relatedLoader = { jobId -> container.cockpitGraphRepository.relatedForJob(jobId) },
+            )
         }
 
         composable(Screen.Settings.route) {
@@ -168,6 +172,7 @@ fun HermesNavHost(container: AppContainer) {
                 onBack = { nav.popBackStack() },
                 onOpenDiagnostics = openDiagnostics,
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
+                onOpenKnowledge = { nav.navigate(Screen.Knowledge.route) },
             )
         }
 
@@ -220,7 +225,21 @@ fun HermesNavHost(container: AppContainer) {
             val vm: AuditDetailViewModel = viewModel(
                 factory = remember(auditId) { container.auditDetailVmFactory(auditId) },
             )
-            AuditDetailScreen(viewModel = vm, onBack = { nav.popBackStack() })
+            AuditDetailScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                relatedLoader = { container.cockpitGraphRepository.relatedForEvidence(auditId) },
+            )
+        }
+
+        composable(Screen.Knowledge.route) {
+            val vm: com.aci.hermes.ui.screens.knowledge.KnowledgeGraphViewModel = viewModel(
+                factory = remember { container.knowledgeGraphVmFactory() },
+            )
+            com.aci.hermes.ui.screens.knowledge.KnowledgeGraphScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
         }
         // Approvals is registered as a shell destination (with bottom-nav + emergency
         // stop) inside `shellDestinations` below. The legacy top-level Approvals
@@ -334,7 +353,13 @@ private fun NavGraphBuilder.shellDestinations(
             emergencyStop = emergencyStop,
         ) { padding ->
             Box(modifier = Modifier.padding(padding)) {
-                MemoryScreen(viewModel = vm, onBack = { nav.popBackStack() })
+                MemoryScreen(
+                    viewModel = vm,
+                    onBack = { nav.popBackStack() },
+                    relatedLoader = { memoryId ->
+                        container.cockpitGraphRepository.relatedForMemory(memoryId)
+                    },
+                )
             }
         }
     }
