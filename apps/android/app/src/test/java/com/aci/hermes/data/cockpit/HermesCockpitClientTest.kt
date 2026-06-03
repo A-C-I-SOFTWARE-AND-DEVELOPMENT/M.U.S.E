@@ -201,8 +201,8 @@ class HermesCockpitClientTest {
         val fake = FakeExecutor {
             CockpitRawResponse(
                 200,
-                """{"reason":"panic","tick_disabled":true,"branch_leases_cleared":2,
-                    "jobs_paused":1,"jobs_paused_ids":["j1"]}""",
+                """{"engaged":true,"reason":"panic","tick_disabled":true,"branch_leases_cleared":2,
+                    "cancelled_jobs":["j1"],"cancelled_count":1,"autonomy_level":"read_only"}""",
             )
         }
         val result = client(fake).emergencyStop("panic")
@@ -210,9 +210,11 @@ class HermesCockpitClientTest {
             fail("expected Success, got $result"); return@runTest
         }
         assertEquals("http://127.0.0.1:8765/v1/cockpit/emergency-stop", fake.lastRequest?.url)
+        assertTrue(result.value.engaged)
         assertTrue(result.value.tickDisabled)
-        assertEquals(1, result.value.jobsPaused)
-        assertEquals("j1", result.value.jobsPausedIds.first())
+        assertEquals(1, result.value.cancelledCount)
+        assertEquals("j1", result.value.cancelledJobs.first())
+        assertEquals("read_only", result.value.autonomyLevel)
     }
 
     @Test

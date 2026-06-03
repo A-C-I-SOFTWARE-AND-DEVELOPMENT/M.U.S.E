@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
@@ -163,6 +164,7 @@ fun JarvisShell(
 private fun BottomTab.Icon.toVector(): ImageVector = when (this) {
     BottomTab.Icon.HOME -> Icons.Filled.Home
     BottomTab.Icon.TASKS -> Icons.AutoMirrored.Filled.Assignment
+    BottomTab.Icon.JOBS -> Icons.AutoMirrored.Filled.ListAlt
     BottomTab.Icon.CHAT -> Icons.AutoMirrored.Filled.Chat
     BottomTab.Icon.APPROVALS -> Icons.Filled.CheckCircle
     BottomTab.Icon.CONTROL -> Icons.Filled.AdminPanelSettings
@@ -171,6 +173,7 @@ private fun BottomTab.Icon.toVector(): ImageVector = when (this) {
 private fun String.toLabelRes(): Int = when (this) {
     "nav_home" -> R.string.nav_home
     "nav_tasks" -> R.string.nav_tasks
+    "nav_jobs" -> R.string.nav_jobs
     "nav_chat" -> R.string.nav_chat
     "nav_approvals" -> R.string.nav_approvals
     "nav_control" -> R.string.nav_control

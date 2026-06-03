@@ -48,8 +48,10 @@ import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.devicecontrol.DeviceControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
 import com.aci.hermes.ui.screens.jobs.JobsViewModel
+import com.aci.hermes.service.JobNotifier
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
+import com.aci.hermes.ui.screens.jobs.JobDetailViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
@@ -162,6 +164,7 @@ class AppContainer(private val application: Application) {
     )
 
     /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
+    /** Jobs (contract §4) — list/dispatch/cancel/controls over the real backend. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
 
     /** GraphRAG knowledge graph — related items + query modes + rebuild. */
@@ -186,6 +189,8 @@ class AppContainer(private val application: Application) {
         EmergencyStopRepository(context.filesDir)
     val emergencyStopController: EmergencyStopController =
         EmergencyStopController(emergencyStopRepository, logBuffer).also { it.load() }
+    /** Keeps active owner-started jobs visible (and deep-linkable) while backgrounded. */
+    val jobNotifier: JobNotifier = JobNotifier(application)
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -358,10 +363,6 @@ class AppContainer(private val application: Application) {
         CapabilityViewModel(application, capabilityRepository, logBuffer)
     }
 
-    fun jobsVmFactory(): ViewModelProvider.Factory = factory {
-        JobsViewModel(cockpitJobsRepository)
-    }
-
     fun controlVmFactory(): ViewModelProvider.Factory = factory {
         ControlViewModel(application, settingsRepository, logBuffer, cockpitClient)
     }
@@ -377,6 +378,12 @@ class AppContainer(private val application: Application) {
             controller = deviceControlController,
             logBuffer = logBuffer,
         )
+    fun jobsVmFactory(): ViewModelProvider.Factory = factory {
+        JobsViewModel(cockpitJobsRepository, jobNotifier)
+    }
+
+    fun jobDetailVmFactory(jobId: String): ViewModelProvider.Factory = factory {
+        JobDetailViewModel(cockpitJobsRepository, jobId)
     }
 
     fun jarvisPrimeHomeVmFactory(): ViewModelProvider.Factory = factory {

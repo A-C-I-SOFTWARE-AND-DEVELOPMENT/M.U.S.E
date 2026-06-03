@@ -596,7 +596,7 @@ def test_job_resume_non_resumable_is_409(server) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_emergency_stop_pauses_non_terminal_jobs(server) -> None:
+def test_emergency_stop_cancels_non_terminal_jobs(server) -> None:
     _, raw = _post(
         server, "/v1/cockpit/jobs", {"title": "Runaway", "prompt": "## Goal\ngo"}
     )
@@ -606,13 +606,16 @@ def test_emergency_stop_pauses_non_terminal_jobs(server) -> None:
     assert status == 200
     result = json.loads(raw)
     assert result["reason"] == "owner panic"
+    assert result["engaged"] is True
     assert result["tick_disabled"] is True
-    assert jid in result["jobs_paused_ids"]
-    assert result["jobs_paused"] >= 1
+    # Decisive halt: in-flight work is cancelled and autonomy drops to the floor.
+    assert jid in result["cancelled_jobs"]
+    assert result["cancelled_count"] >= 1
+    assert result["autonomy_level"] == "read_only"
 
-    # The job is genuinely paused in the backend, not just in app state.
+    # The job is genuinely terminal in the backend, not just in app state.
     _, fetched = _get(server, f"/v1/cockpit/jobs/{jid}")
-    assert fetched["status"] == "PAUSED"
+    assert fetched["status"] in {"CANCELLED", "CANCELED"}
 
 
 # ---------------------------------------------------------------------------

@@ -16,6 +16,7 @@ import concurrent.futures
 import contextvars
 import json
 import logging
+import math
 import os
 import random
 import threading
@@ -48,6 +49,7 @@ from tools.tool_result_storage import (
     maybe_persist_tool_result,
     enforce_turn_budget,
 )
+from tools.budget_config import DEFAULT_BUDGET
 from tools.tokenjuice import (
     compact_tool_output,
     compact_multimodal_text,
@@ -122,6 +124,113 @@ def _tokenjuice_compact(agent, tool_name, tool_args, function_result, is_error, 
     except Exception as err:  # never let compaction break the tool loop
         logger.debug("[tokenjuice] _tokenjuice_compact failed for %s: %s", tool_name, err)
         return function_result
+
+
+def prepare_tool_result_for_context(
+    agent, tool_name, tool_args, function_result, is_error, tool_call_id, effective_task_id,
+):
+    """Single seam that readies a tool result for the model context.
+
+    Shared by the sequential and concurrent paths so the two never drift.
+    Orders the layers so **oversized-output persistence is never bypassed by
+    TokenJuice clamping** — the bug where a 150k result was clamped to the
+    inline ceiling *before* persistence ran, leaving the model with
+    ``…[tokenjuice: clamped]`` and no recoverable ``<persisted-output>`` path.
+
+    Contract:
+
+    1. **Multimodal** results keep the existing TokenJuice multimodal behavior
+       (scrub/compact text parts; images preserved; never persisted).
+    2. **Non-string, non-multimodal** results pass through untouched.
+    3. **String** results, in order:
+       a. preserve the full *pre-scrub* raw output (gitignored debug log) when
+          TokenJuice is enabled with ``preserve_raw``;
+       b. scrub credentials before anything model-readable;
+       c. resolve the per-tool persistence threshold
+          (``read_file`` stays pinned to ``inf`` → never persisted);
+       d. if the threshold is finite and the scrubbed output exceeds it,
+          persist the *full scrubbed* output first so it stays recoverable
+          (sandbox ``<persisted-output>`` or inline ``[Truncated]``) — TokenJuice
+          does not get to clamp it away;
+       e. otherwise run TokenJuice compaction, then persistence as the
+          fallback layer.
+    """
+    # 1. Multimodal: existing behavior, no persistence.
+    if _is_multimodal_tool_result(function_result):
+        return _tokenjuice_compact(
+            agent, tool_name, tool_args, function_result, is_error, tool_call_id,
+        )
+    # 2. Non-string, non-multimodal: leave untouched.
+    if not isinstance(function_result, str):
+        return function_result
+
+    # 3. String results.
+    env = get_active_env(effective_task_id)
+    try:
+        cfg = load_active_config()
+    except Exception as err:  # fail open — config load must not break the loop
+        logger.debug("[tokenjuice] config load failed for %s: %s", tool_name, err)
+        cfg = None
+    tj_enabled = bool(cfg is not None and cfg.enabled)
+
+    # 3a. Preserve the full pre-scrub raw output for debug recovery only.
+    if tj_enabled and cfg.preserve_raw:
+        try:
+            record_raw_output(
+                session_id=getattr(agent, "session_id", None),
+                tool_use_id=tool_call_id,
+                tool_name=tool_name,
+                arguments=tool_args,
+                raw_output=function_result,
+                exit_code=1 if is_error else 0,
+            )
+        except Exception as err:
+            logger.debug("[tokenjuice] raw preserve failed for %s: %s", tool_name, err)
+
+    # 3b. Scrub credentials before anything model-readable (persist or inline).
+    scrubbed = function_result
+    if tj_enabled:
+        try:
+            scrubbed = scrub_credentials(function_result)
+        except Exception as err:
+            logger.debug("[tokenjuice] scrub failed for %s: %s", tool_name, err)
+            scrubbed = function_result
+
+    # 3c. Resolve the persistence threshold (read_file pinned to inf).
+    try:
+        threshold = DEFAULT_BUDGET.resolve_threshold(tool_name)
+    except Exception as err:  # fail open to the default size
+        logger.debug("[tokenjuice] threshold resolve failed for %s: %s", tool_name, err)
+        threshold = float("inf")
+
+    # 3d. Oversized: persist the full scrubbed output first (recoverable),
+    #     never letting TokenJuice clamp it away.
+    if isinstance(threshold, (int, float)) and math.isfinite(threshold) and len(scrubbed) > threshold:
+        return maybe_persist_tool_result(
+            content=scrubbed,
+            tool_name=tool_name,
+            tool_use_id=tool_call_id,
+            env=env,
+        )
+
+    # 3e. Below threshold (or pinned-inf): TokenJuice compaction, then
+    #     persistence as the fallback layer (a no-op when still small).
+    compacted = scrubbed
+    if tj_enabled:
+        try:
+            compacted, _stats = compact_tool_output(
+                tool_name, tool_args, scrubbed, 1 if is_error else 0, cfg,
+            )
+        except Exception as err:
+            logger.debug("[tokenjuice] compact failed for %s: %s", tool_name, err)
+            compacted = scrubbed
+    return maybe_persist_tool_result(
+        content=compacted,
+        tool_name=tool_name,
+        tool_use_id=tool_call_id,
+        env=env,
+    )
+
 
 # Maximum number of concurrent worker threads for parallel tool execution.
 # Mirrors the constant in ``run_agent`` for tests/imports that look here.
@@ -490,18 +599,12 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
             except Exception as cb_err:
                 logging.debug(f"Tool complete callback error: {cb_err}")
 
-        # First-pass: scrub secrets + TokenJuice compaction (raw preserved),
-        # before the size-threshold persistence/budget fallback below.
-        function_result = _tokenjuice_compact(
-            agent, name, args, function_result, is_error, tc.id,
+        # Ready the result for the model: raw-preserve → scrub → persist
+        # oversized output (recoverable) → TokenJuice compaction fallback.
+        # Shared with the sequential path so the two never drift.
+        function_result = prepare_tool_result_for_context(
+            agent, name, args, function_result, is_error, tc.id, effective_task_id,
         )
-
-        function_result = maybe_persist_tool_result(
-            content=function_result,
-            tool_name=name,
-            tool_use_id=tc.id,
-            env=get_active_env(effective_task_id),
-        ) if not _is_multimodal_tool_result(function_result) else function_result
 
         subdir_hints = agent._subdirectory_hints.check_tool_call(name, args)
         if subdir_hints:
@@ -918,18 +1021,12 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
             except Exception as cb_err:
                 logging.debug(f"Tool complete callback error: {cb_err}")
 
-        # First-pass: scrub secrets + TokenJuice compaction (raw preserved),
-        # before the size-threshold persistence/budget fallback below.
-        function_result = _tokenjuice_compact(
-            agent, function_name, function_args, function_result, _is_error_result, tool_call.id,
+        # Ready the result for the model: raw-preserve → scrub → persist
+        # oversized output (recoverable) → TokenJuice compaction fallback.
+        # Shared with the concurrent path so the two never drift.
+        function_result = prepare_tool_result_for_context(
+            agent, function_name, function_args, function_result, _is_error_result, tool_call.id, effective_task_id,
         )
-
-        function_result = maybe_persist_tool_result(
-            content=function_result,
-            tool_name=function_name,
-            tool_use_id=tool_call.id,
-            env=get_active_env(effective_task_id),
-        ) if not _is_multimodal_tool_result(function_result) else function_result
 
         # Discover subdirectory context files from tool arguments
         subdir_hints = agent._subdirectory_hints.check_tool_call(function_name, function_args)

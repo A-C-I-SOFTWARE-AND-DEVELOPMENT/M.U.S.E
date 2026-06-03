@@ -3,83 +3,169 @@ package com.aci.hermes.ui.screens.jobs
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.cockpit.CockpitJob
-import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.JobStatus
 import com.aci.hermes.data.cockpit.JobsSync
+import com.aci.hermes.service.JobNotifier
+import com.aci.hermes.ui.components.JobUiState
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/** The five list sections the Jobs cockpit renders (contract §4 lifecycle). */
+data class JobsUiState(
+    val sync: JobsSync = JobsSync.Idle,
+    val active: List<CockpitJob> = emptyList(),
+    val blocked: List<CockpitJob> = emptyList(),
+    val completed: List<CockpitJob> = emptyList(),
+    val failed: List<CockpitJob> = emptyList(),
+    val cancelled: List<CockpitJob> = emptyList(),
+    val snackbar: String? = null,
+) {
+    val isEmpty: Boolean
+        get() = active.isEmpty() && blocked.isEmpty() && completed.isEmpty() &&
+            failed.isEmpty() && cancelled.isEmpty()
+
+    val hasActiveWork: Boolean
+        get() = active.isNotEmpty() || blocked.isNotEmpty()
+}
+
 /**
- * Drives the cockpit Jobs screen off the canonical [CockpitJobsRepository]
- * (contract §4). Mirrors the cockpit-backed ViewModel pattern used by
- * [com.aci.hermes.ui.screens.audit.AuditViewModel]: expose the repository's
- * StateFlows, pull a live list on init, and run actions in [viewModelScope].
- *
- * There is no mock seed — an unpaired or unreachable gateway yields an empty
- * list plus an honest [JobsSync] state, never fabricated jobs.
+ * Drives the Jobs list off the real [CockpitJobsRepository] (no fake jobs).
+ * Buckets jobs into the canonical sections, keeps owner-started jobs visible
+ * via [JobNotifier], and polls with a lifecycle-aware back-off ([JobsPolling])
+ * — fast while visible with active work, slower when idle, stopped when there
+ * is nothing active and the screen is hidden.
  */
 class JobsViewModel(
-    private val repository: CockpitJobsRepository,
+    private val repo: CockpitJobsRepository,
+    private val notifier: JobNotifier? = null,
 ) : ViewModel() {
 
-    val jobs: StateFlow<List<CockpitJob>> = repository.jobs
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = repository.jobs.value,
-        )
+    private val _state = MutableStateFlow(JobsUiState())
+    val state: StateFlow<JobsUiState> = _state.asStateFlow()
 
-    val sync: StateFlow<JobsSync> = repository.sync
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = repository.sync.value,
-        )
-
-    /**
-     * One-shot reason for a failed cancel, surfaced as a snackbar by the
-     * screen and cleared via [consumeMessage]. Kept as a plain reason string
-     * (no Android resources here) so the ViewModel stays Context-free.
-     */
-    private val _message = MutableStateFlow<String?>(null)
-    val message: StateFlow<String?> = _message.asStateFlow()
+    private var pollJob: Job? = null
+    private var visible = false
 
     init {
-        refresh()
-    }
-
-    /** Pull the live job list (no-op-safe when unpaired → [JobsSync.NotPaired]). */
-    fun refresh() {
-        viewModelScope.launch { repository.refresh() }
-    }
-
-    /**
-     * Cancel a job. Destructive, so the screen gates this behind a
-     * confirmation dialog before calling. On success the repository refreshes
-     * the list; on failure the reason is surfaced via [message] so the action
-     * is never silently dropped (e.g. a 404 for an /orchestrate job not in the
-     * JobQueue, or a 409 terminal-state conflict). A refresh is also kicked so
-     * a now-terminal job reflects its real state.
-     */
-    fun cancel(id: String, reason: String? = null) {
         viewModelScope.launch {
-            when (val res = repository.cancel(id, reason)) {
-                is CockpitResult.Success -> Unit // repository already refreshed
-                is CockpitResult.Failure -> {
-                    _message.value = "${res.error.message} (${res.httpStatus})"
-                    repository.refresh()
-                }
-                is CockpitResult.Unreachable -> _message.value = res.message
+            combine(repo.jobs, repo.sync) { jobs, sync -> jobs to sync }.collect { (jobs, sync) ->
+                _state.update { it.copy(sync = sync).withSections(jobs) }
+                notifier?.sync(jobs)
             }
         }
     }
 
-    /** Clear the one-shot cancel-failure [message] after it has been shown. */
-    fun consumeMessage() {
-        _message.value = null
+    /** Called when the Jobs screen enters/leaves the resumed state. */
+    fun onVisibilityChanged(nowVisible: Boolean) {
+        visible = nowVisible
+        if (nowVisible) startPolling()
+    }
+
+    fun startPolling() {
+        if (pollJob?.isActive == true) return
+        pollJob = viewModelScope.launch {
+            var consecutiveErrors = 0
+            var idleCycles = 0
+            while (isActive) {
+                val ok = refreshOnce()
+                val hasActive = _state.value.hasActiveWork
+                consecutiveErrors = if (ok) 0 else consecutiveErrors + 1
+                idleCycles = if (hasActive) 0 else idleCycles + 1
+                val next = JobsPolling.nextDelayMs(hasActive, visible, consecutiveErrors, idleCycles)
+                if (next == JobsPolling.STOP) break
+                delay(next)
+            }
+        }
+    }
+
+    fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
+    }
+
+    /** One refresh tick. Returns false on a sync error so the loop backs off. */
+    private suspend fun refreshOnce(): Boolean {
+        repo.refresh()
+        return _state.value.sync !is JobsSync.Error
+    }
+
+    // ── controls ──────────────────────────────────────────────────────────
+
+    fun pause(id: String) = control("Paused") { repo.pause(id) }
+    fun resume(id: String) = control("Resumed") { repo.resume(id) }
+    fun cancel(id: String) = control("Cancelled") { repo.cancel(id) }
+    fun rerun(id: String) = control("Rerunning failed step") { repo.rerun(id) }
+
+    /** Approve a gated phase. Requires the exact owner phrase (gateway-enforced). */
+    fun approve(id: String, authorization: String, phase: String = "execute") =
+        control("Approved") { repo.approve(id, phase, authorization) }
+
+    private fun control(
+        successLabel: String,
+        action: suspend () -> CockpitResult<CockpitJob>,
+    ) {
+        viewModelScope.launch {
+            val message = when (val res = action()) {
+                is CockpitResult.Success -> successLabel
+                is CockpitResult.Failure -> res.error.message
+                is CockpitResult.Unreachable -> res.message
+            }
+            _state.update { it.copy(snackbar = message) }
+        }
+    }
+
+    fun consumeSnackbar() = _state.update { it.copy(snackbar = null) }
+
+    override fun onCleared() {
+        stopPolling()
+        super.onCleared()
+    }
+}
+
+/** Re-bucket a job list into the canonical sections, newest-first preserved. */
+private fun JobsUiState.withSections(jobs: List<CockpitJob>): JobsUiState {
+    val active = ArrayList<CockpitJob>()
+    val blocked = ArrayList<CockpitJob>()
+    val completed = ArrayList<CockpitJob>()
+    val failed = ArrayList<CockpitJob>()
+    val cancelled = ArrayList<CockpitJob>()
+    for (job in jobs) {
+        when (sectionOf(job)) {
+            JobSection.ACTIVE -> active
+            JobSection.BLOCKED -> blocked
+            JobSection.COMPLETED -> completed
+            JobSection.FAILED -> failed
+            JobSection.CANCELLED -> cancelled
+        }.add(job)
+    }
+    return copy(
+        active = active,
+        blocked = blocked,
+        completed = completed,
+        failed = failed,
+        cancelled = cancelled,
+    )
+}
+
+enum class JobSection { ACTIVE, BLOCKED, COMPLETED, FAILED, CANCELLED }
+
+/** Classify a job into exactly one list section from its wire status. */
+fun sectionOf(job: CockpitJob): JobSection {
+    val state = JobUiState.from(JobStatus.fromWire(job.status))
+    return when {
+        state.needsAttention -> JobSection.BLOCKED
+        state == JobUiState.FAILED -> JobSection.FAILED
+        state == JobUiState.CANCELLED -> JobSection.CANCELLED
+        state == JobUiState.COMPLETED || state == JobUiState.PUBLISHED -> JobSection.COMPLETED
+        else -> JobSection.ACTIVE // queued/running/paused/publishing/unknown
     }
 }

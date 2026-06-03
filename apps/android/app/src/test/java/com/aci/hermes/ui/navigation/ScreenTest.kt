@@ -17,6 +17,7 @@ class ScreenTest {
         Screen.Onboarding,
         Screen.Home,
         Screen.Chat,
+        Screen.Jobs,
         Screen.Tasks,
         Screen.Jobs,
         Screen.Approvals,
@@ -28,6 +29,7 @@ class ScreenTest {
         Screen.Diagnostics,
         Screen.ModelRoute,
         Screen.TaskDetail,
+        Screen.JobDetail,
     )
 
     @Test
@@ -68,6 +70,7 @@ class ScreenTest {
         val expectedShellRoutes = setOf(
             Screen.Home.route,
             Screen.Chat.route,
+            Screen.Jobs.route,
             Screen.Tasks.route,
             Screen.Jobs.route,
             Screen.Approvals.route,
@@ -149,13 +152,13 @@ class ScreenTest {
         val bottomRoutes = Screen.bottomTabs.map { it.screen.route }.toSet()
         val expected = setOf(
             Screen.Home.route,
-            Screen.Tasks.route,
+            Screen.Jobs.route,
             Screen.Chat.route,
             Screen.Approvals.route,
             Screen.Control.route,
         )
         assertEquals(
-            "Bottom navigation must surface Home, Tasks, Chat, Approvals, and Control",
+            "Bottom navigation must surface Home, Jobs, Chat, Approvals, and Control",
             expected,
             bottomRoutes,
         )
@@ -167,6 +170,11 @@ class ScreenTest {
         // Deep-linked from Settings/Home, not a shell tab or bottom-nav target.
         assertTrue(Screen.Knowledge.route !in Screen.shellRoutes)
         assertTrue(Screen.bottomTabs.none { it.screen.route == Screen.Knowledge.route })
+    fun legacy_tasks_stays_reachable_as_a_shell_route() {
+        // The Jobs cockpit takes the bottom tab; the legacy clipboard-handoff
+        // Tasks list is preserved as a shell destination (reached from Home).
+        assertTrue(Screen.Tasks.route in Screen.shellRoutes)
+        assertTrue(Screen.Tasks.route !in Screen.bottomTabs.map { it.screen.route })
     }
 
     @Test
@@ -174,6 +182,11 @@ class ScreenTest {
         assertEquals("task_detail/abc", Screen.TaskDetail.forTask("abc"))
         assertEquals("task_detail/new", Screen.TaskDetail.forNew())
         assertEquals("task_detail/new?target=CODEX", Screen.TaskDetail.forNew("CODEX"))
+    }
+
+    @Test
+    fun job_detail_route_builder_produces_expected_path() {
+        assertEquals("job_detail/job_123", Screen.JobDetail.forJob("job_123"))
     }
 
     @Test

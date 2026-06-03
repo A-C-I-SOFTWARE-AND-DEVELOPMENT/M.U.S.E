@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -24,6 +25,7 @@ import com.aci.hermes.approval.ui.screens.ApprovalsScreen
 import com.aci.hermes.learning.state.LearningViewModel
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
+import com.aci.hermes.service.JobNotifier
 import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.ui.screens.audit.AuditDetailScreen
@@ -49,6 +51,8 @@ import com.aci.hermes.ui.screens.jobs.JobsViewModel
 import com.aci.hermes.ui.screens.home.JarvisHomeNavigation
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeScreen
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
+import com.aci.hermes.ui.screens.jobs.JobDetailScreen
+import com.aci.hermes.ui.screens.jobs.JobDetailViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveScreen
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
 import com.aci.hermes.ui.screens.memory.MemoryScreen
@@ -80,7 +84,11 @@ import kotlinx.coroutines.launch
  * MainActivity entry point; everything user-visible is Jarvis Prime.
  */
 @Composable
-fun HermesNavHost(container: AppContainer) {
+fun HermesNavHost(
+    container: AppContainer,
+    deepLink: JobNotifier.DeepLink? = null,
+    onDeepLinkHandled: () -> Unit = {},
+) {
     val nav = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val hasOnboarded by container.settingsRepository.hasOnboarded.collectAsState(initial = null)
@@ -107,6 +115,25 @@ fun HermesNavHost(container: AppContainer) {
             if (taskId == null) Screen.TaskDetail.forNew()
             else Screen.TaskDetail.forTask(taskId),
         )
+    }
+    val openJob: (jobId: String) -> Unit = { jobId ->
+        nav.navigate(Screen.JobDetail.forJob(jobId))
+    }
+    val prepareHandoff: (TargetTool) -> Unit = { target ->
+        nav.navigate(Screen.TaskDetail.forNew(target.name))
+    }
+
+    // Notification deep-links: open the exact job, the Approvals queue (for a
+    // job blocked on an owner gate), or Diagnostics (backend unreachable).
+    LaunchedEffect(deepLink) {
+        val link = deepLink ?: return@LaunchedEffect
+        when (link.destination) {
+            JobNotifier.DEST_DETAIL -> link.jobId?.let { nav.navigate(Screen.JobDetail.forJob(it)) }
+            JobNotifier.DEST_APPROVALS -> onNavigateTab(Screen.Approvals)
+            JobNotifier.DEST_DIAGNOSTICS -> nav.navigate(Screen.Diagnostics.route)
+            else -> Unit
+        }
+        onDeepLinkHandled()
     }
 
     NavHost(navController = nav, startDestination = Screen.Splash.route) {
@@ -147,6 +174,7 @@ fun HermesNavHost(container: AppContainer) {
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
             openTask = openTask,
+            openJob = openJob,
             prepareHandoff = prepareHandoff,
             openDeviceControl = openDeviceControl,
         )
@@ -180,6 +208,22 @@ fun HermesNavHost(container: AppContainer) {
                 onBack = { nav.popBackStack() },
                 relatedLoader = { jobId -> container.cockpitGraphRepository.relatedForJob(jobId) },
             )
+        }
+
+        composable(
+            route = Screen.JobDetail.route,
+            arguments = listOf(
+                navArgument(Screen.JobDetail.ARG_JOB_ID) {
+                    type = NavType.StringType
+                    nullable = false
+                },
+            ),
+        ) { entry ->
+            val jobId = entry.arguments?.getString(Screen.JobDetail.ARG_JOB_ID).orEmpty()
+            val vm: JobDetailViewModel = viewModel(
+                factory = remember(jobId) { container.jobDetailVmFactory(jobId) },
+            )
+            JobDetailScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
 
         composable(Screen.Settings.route) {
@@ -285,6 +329,7 @@ private fun NavGraphBuilder.shellDestinations(
     openDiagnostics: () -> Unit,
     emergencyStop: () -> Unit,
     openTask: (taskId: String?) -> Unit,
+    openJob: (jobId: String) -> Unit,
     prepareHandoff: (TargetTool) -> Unit,
     openDeviceControl: () -> Unit,
 ) {
@@ -358,7 +403,7 @@ private fun NavGraphBuilder.shellDestinations(
             openDiagnostics = openDiagnostics,
             emergencyStop = emergencyStop,
         ) { padding ->
-            JobsScreen(viewModel = vm, paddingValues = padding)
+            JobsScreen(viewModel = vm, paddingValues = padding, onOpenJob = openJob)
         }
     }
 
