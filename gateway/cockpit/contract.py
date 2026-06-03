@@ -694,11 +694,145 @@ def navigation_view(entry: dict[str, Any], *, job_id: str | None = None) -> dict
     }
 
 
+# ---------------------------------------------------------------------------
+# Coding lanes — mirrors the natural-language coder work packet
+# ---------------------------------------------------------------------------
+
+
+def coding_packet(packet: Any) -> dict[str, Any]:
+    """Project a ``CodingWorkPacket`` into the canonical wire shape.
+
+    The packet already emits a snake_case ``to_dict()``; this is the single
+    contract entry point so tests pin the shape in one place.
+    """
+    return packet.to_dict()
+
+
+# ---------------------------------------------------------------------------
+# Evidence — mirrors the Research Vault artifact + a non-mutating verdict
+# ---------------------------------------------------------------------------
+
+# Verdict vocabulary returned by POST /v1/cockpit/evidence/verify.
+EVIDENCE_VERDICTS: tuple[str, ...] = (
+    "supported",
+    "partially_supported",
+    "contradicted",
+    "insufficient_evidence",
+    "stale",
+)
+
+# EvidenceStrength → a coarse confidence float for the verify verdict.
+_STRENGTH_CONFIDENCE: dict[str, float] = {
+    "primary": 0.95,
+    "strong": 0.85,
+    "moderate": 0.7,
+    "weak": 0.45,
+    "vendor_reported": 0.5,
+}
+
+
+def evidence_artifact(artifact: Any) -> dict[str, Any]:
+    """Project a ``ResearchArtifact`` into the canonical wire shape."""
+    return artifact.to_dict()
+
+
+def _freshness_status(artifacts: list[Any]) -> str:
+    """``stale`` if any matched artifact's freshness is past due, else ``fresh``
+    (``unknown`` when no artifact carries a freshness date)."""
+    from datetime import datetime, timezone
+
+    seen_due = False
+    now = datetime.now(timezone.utc)
+    for art in artifacts:
+        due = getattr(art, "freshness_due", None)
+        if not due:
+            continue
+        seen_due = True
+        try:
+            parsed = datetime.fromisoformat(str(due))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            if parsed < now:
+                return "stale"
+        except (TypeError, ValueError):
+            continue
+    return "fresh" if seen_due else "unknown"
+
+
+def evidence_verdict(claim: str, matches: list[Any], report: Any) -> dict[str, Any]:
+    """Derive a non-mutating verdict from vault matches + the epistemic audit.
+
+    ``matches`` are ``ResearchArtifact``s found for the claim; ``report`` is an
+    :class:`epistemics.AuditReport`. No vault state is written. The verdict and
+    confidence are derived honestly — empty matches never masquerade as support.
+    """
+    outcome = getattr(getattr(report, "outcome", None), "value", "") or ""
+    supporting = [evidence_artifact(a) for a in matches]
+
+    # Confidence: best matched source strength, dampened when the audit isn't
+    # clean. No matches → low floor.
+    if matches:
+        confidence = max(
+            _STRENGTH_CONFIDENCE.get(
+                getattr(getattr(a, "evidence_strength", None), "value", "moderate"),
+                0.6,
+            )
+            for a in matches
+        )
+    else:
+        confidence = 0.2
+    if outcome == "needs_research":
+        confidence = min(confidence, 0.4)
+    elif outcome in ("needs_citations", "fail"):
+        confidence = min(confidence, 0.6)
+
+    freshness = _freshness_status(matches)
+
+    if not matches:
+        verdict = "insufficient_evidence"
+    elif freshness == "stale":
+        verdict = "stale"
+    elif outcome == "pass":
+        verdict = "supported"
+    elif outcome in ("needs_citations", "fail"):
+        verdict = "partially_supported"
+    elif outcome == "needs_research":
+        verdict = "insufficient_evidence"
+    else:
+        verdict = "partially_supported"
+
+    next_action = {
+        "supported": "No action — claim is supported by the vault.",
+        "partially_supported": "Add a primary/strong source or hedge the specifics.",
+        "insufficient_evidence": "Research and add at least one cited source to the vault.",
+        "stale": "Refresh the source — its freshness window has lapsed.",
+        "contradicted": "Reconcile the contradiction before relying on this claim.",
+    }[verdict]
+
+    missing: list[str] = []
+    for f in getattr(report, "findings", []) or []:
+        suggestion = getattr(f, "suggestion", None)
+        if suggestion:
+            missing.append(str(suggestion))
+
+    return {
+        "verdict": verdict,
+        "confidence": round(float(confidence), 2),
+        "supporting_sources": supporting,
+        "contradicting_sources": [],
+        "missing_evidence": missing,
+        "freshness_status": freshness,
+        "audit_outcome": outcome,
+        "recommended_next_action": next_action,
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
     "APPROVAL_CARD_TIERS",
     "APPROVAL_STATES",
+    "EVIDENCE_VERDICTS",
     "JOB_STATUSES",
     "MEMORY_CATEGORIES",
     "MEMORY_CONFIDENCES",
@@ -715,10 +849,13 @@ __all__ = [
     "audit_proof",
     "audit_record",
     "cockpit_job",
+    "coding_packet",
     "confidence_to_enum",
     "confidence_to_float",
     "durability_from_store",
     "durability_to_store",
+    "evidence_artifact",
+    "evidence_verdict",
     "job_status",
     "memory_item",
     "navigation_view",

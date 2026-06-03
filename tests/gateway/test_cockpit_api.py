@@ -485,3 +485,217 @@ def test_navigation_surface_from_orchestrator_ledger(server, home: Path) -> None
 def test_navigation_empty_when_no_orchestrate_job(server) -> None:
     _, payload = _get(server, "/v1/cockpit/navigation")
     assert payload["navigations"] == []  # honest empty, not fabricated
+
+
+# ---------------------------------------------------------------------------
+# capabilities — server feature negotiation (not the curated in-app catalog)
+# ---------------------------------------------------------------------------
+
+
+def test_capabilities_reports_subsystems_and_gate(server) -> None:
+    status, payload = _get(server, "/v1/cockpit/capabilities")
+    assert status == 200
+    assert payload["api_version"]
+    assert payload["owner_gate_required"] is True
+    # Loopback server (default) permits execute lanes.
+    assert payload["execute_allowed"] is True
+    subs = payload["subsystems"]
+    # Core subsystems import in this repo.
+    for name in ("memory", "jobs", "orchestrator", "coding", "evidence", "ledger"):
+        assert name in subs
+    # available_workers advertises the *lane ids the execute route accepts*
+    # (not the host-CLI detection view) so negotiation is actionable.
+    worker_ids = {w["id"] for w in payload["available_workers"]}
+    assert "claude-execute" in worker_ids
+    assert any(w["requires_approval"] for w in payload["available_workers"])
+    assert "detected_clis" in payload
+
+
+def test_capabilities_requires_auth(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/capabilities", token=None)
+    assert exc.value.code == 401
+
+
+# ---------------------------------------------------------------------------
+# jobs pause / resume — real JobQueue scheduling control
+# ---------------------------------------------------------------------------
+
+
+def test_job_pause_and_resume_roundtrip(server) -> None:
+    _, raw = _post(
+        server,
+        "/v1/cockpit/jobs",
+        {"title": "Pause me", "prompt": "## Goal\nwork"},
+    )
+    jid = json.loads(raw)["id"]
+
+    status, raw = _post(server, f"/v1/cockpit/jobs/{jid}/pause", {"reason": "hold"})
+    assert status == 200
+    assert json.loads(raw)["status"] == "PAUSED"
+
+    status, raw = _post(server, f"/v1/cockpit/jobs/{jid}/resume", {})
+    assert status == 200
+    assert json.loads(raw)["status"] == "QUEUED"
+
+
+def test_job_pause_unknown_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/jobs/nope/pause", {})
+    assert exc.value.code == 404
+
+
+def test_job_resume_non_resumable_is_409(server) -> None:
+    _, raw = _post(
+        server, "/v1/cockpit/jobs", {"title": "Fresh", "prompt": "## Goal\nx"}
+    )
+    jid = json.loads(raw)["id"]  # QUEUED, not a resumable state
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/resume", {})
+    assert exc.value.code == 409
+
+
+# ---------------------------------------------------------------------------
+# emergency stop — a real backend halt (pauses queued work, clears leases)
+# ---------------------------------------------------------------------------
+
+
+def test_emergency_stop_pauses_non_terminal_jobs(server) -> None:
+    _, raw = _post(
+        server, "/v1/cockpit/jobs", {"title": "Runaway", "prompt": "## Goal\ngo"}
+    )
+    jid = json.loads(raw)["id"]
+
+    status, raw = _post(server, "/v1/cockpit/emergency-stop", {"reason": "owner panic"})
+    assert status == 200
+    result = json.loads(raw)
+    assert result["reason"] == "owner panic"
+    assert result["tick_disabled"] is True
+    assert jid in result["jobs_paused_ids"]
+    assert result["jobs_paused"] >= 1
+
+    # The job is genuinely paused in the backend, not just in app state.
+    _, fetched = _get(server, f"/v1/cockpit/jobs/{jid}")
+    assert fetched["status"] == "PAUSED"
+
+
+# ---------------------------------------------------------------------------
+# coding lanes — audit (read-only) / plan (stage only) / execute (gated)
+# ---------------------------------------------------------------------------
+
+
+def test_coding_audit_classifies_and_routes(server) -> None:
+    status, raw = _post(
+        server, "/v1/cockpit/coding/audit", {"prompt": "add a unit test for the parser"}
+    )
+    assert status == 200
+    payload = json.loads(raw)
+    assert payload["intent"] == "test"
+    assert payload["risk_class"].startswith("RC")
+    assert payload["owner_gate_required"] in (True, False)
+    assert "primary_worker" in payload
+
+
+def test_coding_audit_requires_prompt(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/coding/audit", {})
+    assert exc.value.code == 400
+
+
+def test_coding_plan_builds_and_validates_packet(server) -> None:
+    status, raw = _post(
+        server,
+        "/v1/cockpit/coding/plan",
+        {"prompt": "refactor the memory store to add a category field"},
+    )
+    assert status == 200
+    payload = json.loads(raw)
+    packet = payload["packet"]
+    assert packet["mission"]
+    assert packet["branch"]
+    assert packet["risk_class"].startswith("RC")
+    assert payload["validation"]["ok"] is True
+    assert payload["markdown"].startswith("#")  # rendered packet markdown
+
+
+def test_coding_execute_stages_when_unauthorized(server) -> None:
+    # An execute lane requires the owner phrase; without it we STAGE (200),
+    # never run. A real orchestrator job is created and left pending approval.
+    status, raw = _post(
+        server,
+        "/v1/cockpit/coding/execute",
+        {"prompt": "implement a new endpoint in the gateway"},
+    )
+    assert status == 200
+    payload = json.loads(raw)
+    assert payload["status"] == "approval_required"
+    assert payload["authorization_required"] is True
+    assert payload["job"]["id"]
+    assert payload["worker_id"].endswith("-execute")
+    assert "send authorization exactly" in payload["authorization_hint"]
+
+
+def test_coding_execute_requires_prompt(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/coding/execute", {})
+    assert exc.value.code == 400
+
+
+# ---------------------------------------------------------------------------
+# evidence — search (read-only) / verify (non-mutating claim audit)
+# ---------------------------------------------------------------------------
+
+
+def test_evidence_search_empty_is_honest(server) -> None:
+    _, payload = _get(server, "/v1/cockpit/evidence/search?q=transformers")
+    assert payload["items"] == []  # honest empty, never fabricated
+
+
+def test_evidence_search_and_verify_with_seeded_vault(
+    server, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from hermes_cli.jarvis_prime import research_vault as rv
+
+    vault_path = tmp_path / "vault.jsonl"
+    monkeypatch.setattr(rv, "DEFAULT_RESEARCH_VAULT_PATH", vault_path)
+    vault = rv.ResearchVault(path=vault_path)
+    vault.add(
+        title="PEP 659 Specializing Adaptive Interpreter",
+        source_uri="https://peps.python.org/pep-0659/",
+        source_type=rv.SourceType.OFFICIAL_DOC,
+        evidence_strength=rv.EvidenceStrength.PRIMARY,
+        excerpt="CPython 3.11 adds a specializing adaptive interpreter for speed.",
+        tags=("python", "interpreter", "performance"),
+    )
+
+    _, payload = _get(server, "/v1/cockpit/evidence/search?q=interpreter+python")
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["source_uri"].endswith("pep-0659/")
+
+    status, raw = _post(
+        server,
+        "/v1/cockpit/evidence/verify",
+        {"claim": "CPython 3.11 ships a specializing adaptive interpreter"},
+    )
+    assert status == 200
+    verdict = json.loads(raw)
+    assert verdict["verdict"] in (
+        "supported",
+        "partially_supported",
+        "insufficient_evidence",
+        "stale",
+        "contradicted",
+    )
+    assert verdict["supporting_sources"], "the seeded primary source should match"
+    assert 0.0 <= verdict["confidence"] <= 1.0
+    assert verdict["freshness_status"] in ("fresh", "stale", "unknown")
+
+    # Verify must NOT mutate the vault (safe to call repeatedly).
+    reloaded = rv.ResearchVault.load()
+    assert len(reloaded.artifacts) == 1
+
+
+def test_evidence_verify_requires_claim(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, "/v1/cockpit/evidence/verify", {})
+    assert exc.value.code == 400

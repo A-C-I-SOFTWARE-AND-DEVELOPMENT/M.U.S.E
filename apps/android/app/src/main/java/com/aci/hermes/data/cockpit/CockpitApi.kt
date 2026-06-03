@@ -625,3 +625,193 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Server capabilities (feature negotiation) ────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/capabilities` — what *this backend* can do
+ * (distinct from the curated in-app [com.aci.hermes.data.model.Capability]
+ * picker). Lets the app negotiate against the live server: which subsystems
+ * import, which worker lanes are present, and whether execute lanes are
+ * permitted (loopback guard). Never carries the owner phrase or any secret.
+ */
+@Serializable
+data class ServerCapabilities(
+    @SerialName("api_version") val apiVersion: String = "",
+    @SerialName("gateway_version") val gatewayVersion: String = "",
+    val subsystems: Map<String, Boolean> = emptyMap(),
+    /** Orchestrator lane ids the coding/execute + jobs/run routes accept. */
+    @SerialName("available_workers") val availableWorkers: List<ServerWorkerLane> = emptyList(),
+    /** Informational: external CLIs detected on the host (not execute-validated). */
+    @SerialName("detected_clis") val detectedClis: List<String> = emptyList(),
+    @SerialName("execute_allowed") val executeAllowed: Boolean = false,
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = true,
+    @SerialName("generated_at") val generatedAt: String? = null,
+)
+
+@Serializable
+data class ServerWorkerLane(
+    val id: String = "",
+    @SerialName("requires_approval") val requiresApproval: Boolean = true,
+)
+
+// ─── Emergency stop (real backend halt) ───────────────────────────────────
+
+@Serializable
+data class EmergencyStopRequest(val reason: String? = null)
+
+/**
+ * Result of `POST /v1/cockpit/emergency-stop`. A genuine backend halt: owner
+ * gates cleared, proactive tick disabled, worker branch leases released, and
+ * every non-terminal queued/running job paused (reversible via resume).
+ */
+@Serializable
+data class EmergencyStopResult(
+    val reason: String = "",
+    @SerialName("cleared_actions") val clearedActions: List<String> = emptyList(),
+    @SerialName("branch_leases_cleared") val branchLeasesCleared: Int = 0,
+    @SerialName("tick_disabled") val tickDisabled: Boolean = false,
+    @SerialName("jobs_paused") val jobsPaused: Int = 0,
+    @SerialName("jobs_paused_ids") val jobsPausedIds: List<String> = emptyList(),
+    @SerialName("halted_at") val haltedAt: String? = null,
+)
+
+// ─── Job pause / resume ───────────────────────────────────────────────────
+
+@Serializable
+data class JobControlRequest(val reason: String? = null)
+
+// ─── Coding lanes (audit / plan / execute) ────────────────────────────────
+
+@Serializable
+data class CodingRequest(
+    val prompt: String,
+    @SerialName("repo_root") val repoRoot: String? = null,
+    @SerialName("worker_id") val workerId: String? = null,
+    /** Owner phrase — required only to actually dispatch an execute lane. */
+    val authorization: String? = null,
+)
+
+/** Result of `POST /v1/cockpit/coding/audit` — classify + route (read-only). */
+@Serializable
+data class CodingAuditResult(
+    val intent: String = "",
+    @SerialName("risk_class") val riskClass: String = "",
+    @SerialName("primary_worker") val primaryWorker: String = "",
+    @SerialName("reviewer_worker") val reviewerWorker: String = "",
+    @SerialName("model_lane_hint") val modelLaneHint: String = "",
+    @SerialName("owner_gates") val ownerGates: List<String> = emptyList(),
+    val blocked: Boolean = false,
+    val rationale: String = "",
+    val mission: String = "",
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = false,
+)
+
+/** A bounded coding work packet (mirrors the natural-language coder packet). */
+@Serializable
+data class CodingPacket(
+    val mission: String = "",
+    val intent: String = "",
+    val branch: String = "",
+    @SerialName("risk_class") val riskClass: String = "",
+    @SerialName("repo_root") val repoRoot: String = ".",
+    @SerialName("allowed_files") val allowedFiles: List<String> = emptyList(),
+    @SerialName("forbidden_files") val forbiddenFiles: List<String> = emptyList(),
+    @SerialName("acceptance_criteria") val acceptanceCriteria: List<String> = emptyList(),
+    @SerialName("verification_plan") val verificationPlan: List<String> = emptyList(),
+    @SerialName("rollback_plan") val rollbackPlan: List<String> = emptyList(),
+    @SerialName("owner_gates") val ownerGates: List<String> = emptyList(),
+    @SerialName("primary_worker") val primaryWorker: String = "",
+    @SerialName("model_lane_hint") val modelLaneHint: String = "",
+    val blocked: Boolean = false,
+)
+
+@Serializable
+data class CodingValidationFinding(
+    val field: String = "",
+    val severity: String = "",
+    val message: String = "",
+)
+
+@Serializable
+data class CodingValidation(
+    val ok: Boolean = false,
+    val findings: List<CodingValidationFinding> = emptyList(),
+)
+
+/** Result of `POST /v1/cockpit/coding/plan` — stage/validate only. */
+@Serializable
+data class CodingPlanResult(
+    val packet: CodingPacket = CodingPacket(),
+    val validation: CodingValidation = CodingValidation(),
+    val markdown: String = "",
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = false,
+)
+
+/**
+ * Result of `POST /v1/cockpit/coding/execute`. When `status` is
+ * `approval_required` the job is staged (created, pending the owner phrase);
+ * when `dispatched` it ran through the existing gated orchestrator path.
+ */
+@Serializable
+data class CodingExecuteResult(
+    val status: String = "",
+    val job: CockpitOrchestratorJob? = null,
+    val packet: CodingPacket = CodingPacket(),
+    @SerialName("worker_id") val workerId: String = "",
+    @SerialName("risk_class") val riskClass: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+    @SerialName("model_lane_hint") val modelLaneHint: String? = null,
+    @SerialName("verification_plan") val verificationPlan: List<String> = emptyList(),
+    @SerialName("authorization_required") val authorizationRequired: Boolean = false,
+    @SerialName("authorization_hint") val authorizationHint: String? = null,
+    val error: String? = null,
+)
+
+/** Minimal orchestrator-job view returned inside coding/execute. */
+@Serializable
+data class CockpitOrchestratorJob(
+    val id: String = "",
+    val status: String = "",
+    val prompt: String = "",
+)
+
+// ─── Evidence (Research Vault) ────────────────────────────────────────────
+
+@Serializable
+data class EvidenceArtifact(
+    val id: String = "",
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val excerpt: String = "",
+    val summary: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class EvidenceList(val items: List<EvidenceArtifact> = emptyList())
+
+@Serializable
+data class EvidenceVerifyRequest(
+    val claim: String,
+    @SerialName("source_ids") val sourceIds: List<String> = emptyList(),
+    val mode: String? = null,
+)
+
+/** Non-mutating claim-vs-evidence verdict (`POST /evidence/verify`). */
+@Serializable
+data class EvidenceVerdict(
+    val verdict: String = "",
+    val confidence: Float = 0f,
+    @SerialName("supporting_sources") val supportingSources: List<EvidenceArtifact> = emptyList(),
+    @SerialName("contradicting_sources") val contradictingSources: List<EvidenceArtifact> = emptyList(),
+    @SerialName("missing_evidence") val missingEvidence: List<String> = emptyList(),
+    @SerialName("freshness_status") val freshnessStatus: String = "",
+    @SerialName("audit_outcome") val auditOutcome: String = "",
+    @SerialName("recommended_next_action") val recommendedNextAction: String = "",
+    val claim: String = "",
+)

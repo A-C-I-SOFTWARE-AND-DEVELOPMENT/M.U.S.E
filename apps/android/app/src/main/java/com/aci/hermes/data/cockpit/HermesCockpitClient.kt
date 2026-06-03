@@ -234,6 +234,91 @@ class HermesCockpitClient(
             body = json.encodeToString(OrchestrateRequest.serializer(), OrchestrateRequest(prompt)),
         )
 
+    /** Pause a job (human-requested). A `409` means it was already terminal. */
+    suspend fun jobPause(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/pause",
+            CockpitJob.serializer(),
+            body = json.encodeToString(JobControlRequest.serializer(), JobControlRequest(reason)),
+        )
+
+    /** Resume a paused/blocked job. A `409` means it wasn't in a resumable state. */
+    suspend fun jobResume(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/resume",
+            CockpitJob.serializer(),
+            body = json.encodeToString(JobControlRequest.serializer(), JobControlRequest(reason)),
+        )
+
+    // ─── Capabilities / emergency stop ───────────────────────────────────
+
+    /** Negotiate against the live backend (subsystems, lanes, execute guard). */
+    suspend fun capabilities(): CockpitResult<ServerCapabilities> =
+        request("GET", "/v1/cockpit/capabilities", ServerCapabilities.serializer())
+
+    /** Halt backend work: clear owner gates, release leases, pause live jobs. */
+    suspend fun emergencyStop(reason: String? = null): CockpitResult<EmergencyStopResult> =
+        request(
+            "POST",
+            "/v1/cockpit/emergency-stop",
+            EmergencyStopResult.serializer(),
+            body = json.encodeToString(EmergencyStopRequest.serializer(), EmergencyStopRequest(reason)),
+        )
+
+    // ─── Coding lanes (audit / plan / execute) ───────────────────────────
+
+    /** Classify + route a coding request (read-only — builds nothing, runs nothing). */
+    suspend fun codingAudit(req: CodingRequest): CockpitResult<CodingAuditResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/audit",
+            CodingAuditResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    /** Build + validate a bounded work packet (stage only). `422` = invalid packet. */
+    suspend fun codingPlan(req: CodingRequest): CockpitResult<CodingPlanResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/plan",
+            CodingPlanResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    /**
+     * Dispatch a coding job through the existing gated orchestrator path.
+     * Without the owner [CodingRequest.authorization] phrase the result is a
+     * staged `approval_required` (the job is created, pending approval).
+     */
+    suspend fun codingExecute(req: CodingRequest): CockpitResult<CodingExecuteResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/execute",
+            CodingExecuteResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    // ─── Evidence (Research Vault) ───────────────────────────────────────
+
+    /** Search the Research Vault (read-only). Honest empty when the vault is empty. */
+    suspend fun evidenceSearch(query: String, limit: Int = 10): CockpitResult<EvidenceList> =
+        request(
+            "GET",
+            "/v1/cockpit/evidence/search?q=" + enc(query) + "&limit=" + limit,
+            EvidenceList.serializer(),
+        )
+
+    /** Audit a claim against the vault + epistemics (non-mutating). */
+    suspend fun evidenceVerify(req: EvidenceVerifyRequest): CockpitResult<EvidenceVerdict> =
+        request(
+            "POST",
+            "/v1/cockpit/evidence/verify",
+            EvidenceVerdict.serializer(),
+            body = json.encodeToString(EvidenceVerifyRequest.serializer(), req),
+        )
+
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")
 
