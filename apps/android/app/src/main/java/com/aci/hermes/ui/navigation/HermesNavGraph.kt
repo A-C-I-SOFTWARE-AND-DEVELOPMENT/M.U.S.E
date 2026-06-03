@@ -194,6 +194,16 @@ fun HermesNavHost(container: AppContainer) {
             )
         }
 
+        composable(Screen.Jobs.route) {
+            val vm = viewModel<com.aci.hermes.ui.screens.jobs.JobsViewModel>(
+                factory = remember { container.jobsVmFactory() },
+            )
+            com.aci.hermes.ui.screens.jobs.JobsScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
+        }
+
         composable(Screen.Voice.route) {
             val vm: VoiceCaptureViewModel = viewModel(factory = remember { container.voiceCaptureVmFactory() })
             VoiceCaptureScreen(

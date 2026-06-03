@@ -287,6 +287,10 @@ class AppContainer(private val application: Application) {
         JarvisLiveViewModel(application, avatarRepository, cockpitClient)
     }
 
+    fun jobsVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.jobs.JobsViewModel(cockpitClient)
+    }
+
     fun jarvisChatVmFactory(): ViewModelProvider.Factory = factory {
         JarvisChatViewModel(
             gateway = jarvisChatGateway,

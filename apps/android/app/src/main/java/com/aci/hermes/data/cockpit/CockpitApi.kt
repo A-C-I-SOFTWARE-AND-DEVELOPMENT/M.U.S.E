@@ -2,6 +2,7 @@ package com.aci.hermes.data.cockpit
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /**
  * Phase 18 cockpit API contract — Kotlin mirror.
@@ -89,12 +90,12 @@ data class DetectedWorker(
 
 @Serializable
 data class CockpitJob(
-    val id: String,
-    val title: String,
-    @SerialName("worker_id") val workerId: String,
-    val status: String,
-    @SerialName("created_at") val createdAt: String,
-    @SerialName("updated_at") val updatedAt: String,
+    val id: String = "",
+    val title: String = "",
+    @SerialName("worker_id") val workerId: String = "",
+    val status: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    @SerialName("updated_at") val updatedAt: String = "",
     @SerialName("workspace_path") val workspacePath: String? = null,
     val branch: String? = null,
     @SerialName("base_branch") val baseBranch: String? = null,
@@ -574,3 +575,21 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Run a job on a worker (gated execute dispatch) ───────────────────────
+
+@Serializable
+data class RunJobRequest(
+    @SerialName("worker_id") val workerId: String,
+    val authorization: String? = null,
+)
+
+@Serializable
+data class RunJobResult(
+    val job: CockpitJob = CockpitJob(),
+    @SerialName("worker_trail") val workerTrail: List<JsonObject> = emptyList(),
+    val error: String? = null,
+)
+
+@Serializable
+data class OrchestrateRequest(val prompt: String)

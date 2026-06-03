@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
@@ -244,6 +245,12 @@ private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit
                 title = stringResource(R.string.nav_voice),
                 icon = Icons.Filled.Mic,
                 onClick = onOpenVoice,
+            )
+            QuickLinkCard(
+                modifier = Modifier.weight(1f),
+                title = stringResource(R.string.nav_jobs),
+                icon = Icons.Filled.Bolt,
+                onClick = { onNavigate(Screen.Jobs) },
             )
         }
     }

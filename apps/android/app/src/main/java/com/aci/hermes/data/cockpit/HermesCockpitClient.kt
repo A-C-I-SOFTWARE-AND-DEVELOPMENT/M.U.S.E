@@ -174,6 +174,16 @@ class HermesCockpitClient(
     suspend fun jobsList(): CockpitResult<JobList> =
         request("GET", "/v1/cockpit/jobs", JobList.serializer())
 
+    /** Submit an orchestration job (the /orchestrate flow); it appears in the
+     *  Jobs list and can then be run on a worker via [jobRun]. */
+    suspend fun orchestrateSubmit(prompt: String): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/orchestrate",
+            CockpitJob.serializer(),
+            body = json.encodeToString(OrchestrateRequest.serializer(), OrchestrateRequest(prompt)),
+        )
+
     suspend fun jobGet(id: String): CockpitResult<CockpitJob> =
         request("GET", "/v1/cockpit/jobs/" + enc(id), CockpitJob.serializer())
 
@@ -184,6 +194,25 @@ class HermesCockpitClient(
             "/v1/cockpit/jobs",
             CockpitJob.serializer(),
             body = json.encodeToString(DispatchJobRequest.serializer(), req),
+        )
+
+    /** Run a job on a worker via the orchestrator's gated 5-step contract.
+     *  Execute lanes (codex-execute/claude-execute) require the owner
+     *  [authorization] phrase; the gateway returns 403 otherwise. Returns the
+     *  job + worker trail. */
+    suspend fun jobRun(
+        id: String,
+        workerId: String,
+        authorization: String? = null,
+    ): CockpitResult<RunJobResult> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/run",
+            RunJobResult.serializer(),
+            body = json.encodeToString(
+                RunJobRequest.serializer(),
+                RunJobRequest(workerId = workerId, authorization = authorization),
+            ),
         )
 
     /** Cancel a job. A `409 conflict` Failure means it was already terminal. */

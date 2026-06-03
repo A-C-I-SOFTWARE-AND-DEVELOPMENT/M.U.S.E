@@ -199,6 +199,7 @@
     <string name="nav_diagnostics">Diagnostics</string>
     <string name="nav_capability">Capability</string>
     <string name="nav_voice">Voice</string>
+    <string name="nav_jobs">Jobs</string>
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->

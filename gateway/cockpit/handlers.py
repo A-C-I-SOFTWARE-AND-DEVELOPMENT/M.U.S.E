@@ -516,6 +516,23 @@ def room_delete(req: Request) -> JsonResponse:
     return JsonResponse(200 if ok else 404, {"deleted": ok})
 
 
+def orchestrate_submit(req: Request) -> JsonResponse:
+    """Submit an orchestration job (the /orchestrate flow). It appears in the
+    Jobs list and can then be run on a worker via /jobs/{id}/run."""
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        from hermes_cli import orchestrator as orch
+
+        from . import contract
+
+        job = orch.submit_job(prompt)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, contract.orchestrator_job(job))
+
+
 def room_place(req: Request) -> JsonResponse:
     """Persist a furniture item's normalized (x, y) placement in the room."""
     from gateway.cockpit import room_store as rs

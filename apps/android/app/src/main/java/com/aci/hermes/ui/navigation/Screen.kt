@@ -47,6 +47,9 @@ sealed class Screen(val route: String) {
     data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
+    /** Cockpit jobs — submit + run agentic worker lanes. */
+    data object Jobs : Screen("jobs")
+
     /** Hands-free voice capture; full-screen push reached from Home. */
     data object Voice : Screen("voice")
 
