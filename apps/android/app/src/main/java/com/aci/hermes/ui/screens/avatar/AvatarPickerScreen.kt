@@ -5,6 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.material3.Surface
+import com.aci.hermes.ui.screens.live.AvatarInputs
+import com.aci.hermes.ui.screens.live.AvatarPose
+import com.aci.hermes.ui.screens.live.PixelSpriteAvatar
+import com.aci.hermes.ui.screens.live.PixelSprites
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -63,6 +70,7 @@ fun AvatarPickerScreen(
     onBack: () -> Unit,
 ) {
     val state by viewModel.state.collectAsState()
+    val selectedSpriteId by viewModel.selectedSpriteId.collectAsState()
 
     Scaffold(
         topBar = {
@@ -84,6 +92,12 @@ fun AvatarPickerScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            Text("Characters", style = MaterialTheme.typography.titleMedium)
+            CharacterGrid(
+                selectedId = selectedSpriteId,
+                onSelect = viewModel::selectSprite,
+            )
+
             BuiltInGrid(
                 selected = (state as? AvatarPickerState.PreviewReady)?.draft?.builtin,
                 onSelect = viewModel::selectBuiltIn,
@@ -148,6 +162,50 @@ fun AvatarPickerScreen(
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+            }
+        }
+    }
+}
+
+/** The redone "main selection" — a scrollable row of living pixel characters
+ *  (robot/person/pets). Tapping one persists it as the avatar immediately. */
+@Composable
+private fun CharacterGrid(
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+) {
+    val inputs = AvatarInputs(pose = AvatarPose.IDLE, energy = 0.45f, motionEnabled = true)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PixelSprites.catalog.forEach { sprite ->
+            val selected = sprite.id == (selectedId ?: PixelSprites.default.id)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = if (selected) {
+                        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                    } else {
+                        null
+                    },
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clickable { onSelect(sprite.id) },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        PixelSpriteAvatar(
+                            sprite = sprite,
+                            inputs = inputs,
+                            contentDescription = sprite.label,
+                            modifier = Modifier.size(64.dp),
+                        )
+                    }
+                }
+                Text(sprite.label, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

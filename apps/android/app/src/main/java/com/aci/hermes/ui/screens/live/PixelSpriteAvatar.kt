@@ -1,14 +1,19 @@
 package com.aci.hermes.ui.screens.live
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -47,6 +52,26 @@ fun PixelSpriteAvatar(
     val breathing = inputs.motionEnabled
     val bob = if (breathing) sin(phase) else 0f
 
+    // Physics: a damped spring gives the body weight. Every state/character
+    // change kicks an upward impulse that falls back and bounces to rest under
+    // a gravity-like settle, so motion feels physical, not canned.
+    val bounce = remember { Animatable(0f) }
+    LaunchedEffect(inputs.pose, sprite.id, inputs.motionEnabled) {
+        if (inputs.motionEnabled) {
+            bounce.snapTo(-0.20f)
+            bounce.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            )
+        } else {
+            bounce.snapTo(0f)
+        }
+    }
+    val springOffset = bounce.value
+
     Canvas(
         modifier = modifier.semantics { this.contentDescription = contentDescription },
     ) {
@@ -68,7 +93,8 @@ fun PixelSpriteAvatar(
         val gridH = cell * rows.size
         val originX = (size.width - gridW) / 2f
         val bobPx = bob * cell * 0.5f
-        val originY = (size.height - gridH) / 2f + bobPx
+        val physicsPx = springOffset * gridH // spring/gravity displacement
+        val originY = (size.height - gridH) / 2f + bobPx + physicsPx
 
         for (r in rows.indices) {
             val row = rows[r]

@@ -14,8 +14,10 @@ import com.aci.hermes.data.avatar.JarvisBuiltin
 import com.aci.hermes.data.avatar.PixelSize
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -37,6 +39,20 @@ class AvatarPickerViewModel(
 
     private val _state = MutableStateFlow<AvatarPickerState>(AvatarPickerState.Idle)
     val state: StateFlow<AvatarPickerState> = _state.asStateFlow()
+
+    /** The persisted pixel-sprite character selection (robot/cat/…). */
+    val selectedSpriteId: StateFlow<String?> =
+        repo.spriteIdFlow.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** Choose a pixel-sprite character; persists immediately and becomes the
+     *  live avatar (clearing any photo). */
+    fun selectSprite(spriteId: String) {
+        viewModelScope.launch {
+            runCatching { repo.saveSpriteId(spriteId) }
+                .onSuccess { logBuffer.info("AvatarPicker", "Selected character $spriteId") }
+                .onFailure { logBuffer.error("AvatarPicker", "Select character failed: ${it.message}") }
+        }
+    }
 
     private var lastPickedUri: Uri? = null
     private var pixelSize: PixelSize = PixelSize.BALANCED_32

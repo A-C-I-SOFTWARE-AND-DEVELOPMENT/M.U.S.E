@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -50,7 +51,9 @@ class JarvisLiveViewModel(
     private fun observeSavedAvatar() {
         val repo = avatarRepository ?: return
         viewModelScope.launch {
-            repo.profileFlow.collect { profile ->
+            combine(repo.profileFlow, repo.spriteIdFlow) { profile, spriteId ->
+                profile to spriteId
+            }.collect { (profile, spriteId) ->
                 val photo = if (
                     profile?.source == AvatarSource.GENERATED && profile.generatedPath != null
                 ) {
@@ -64,7 +67,11 @@ class JarvisLiveViewModel(
                     if (photo != null) {
                         it.copy(avatarKind = AvatarKind.Photo, avatarPhoto = photo)
                     } else {
-                        it.copy(avatarKind = AvatarKind.Character3D, avatarPhoto = null)
+                        it.copy(
+                            avatarKind = AvatarKind.Character3D,
+                            avatarPhoto = null,
+                            spriteId = spriteId ?: it.spriteId,
+                        )
                     }
                 }
             }
@@ -123,10 +130,13 @@ class JarvisLiveViewModel(
         _state.update { it.copy(thinking = true, listening = false) }
     }
 
-    /** Cycle to the next pixel-sprite character (robot → person → pets → …). */
+    /** Cycle to the next pixel-sprite character (robot → person → pets → …),
+     *  persisting the choice so it survives restarts. */
     fun cycleSprite() {
         markInteraction()
-        _state.update { it.copy(spriteId = PixelSprites.next(it.spriteId).id) }
+        val next = PixelSprites.next(_state.value.spriteId).id
+        _state.update { it.copy(spriteId = next, avatarPhoto = null) }
+        avatarRepository?.let { repo -> viewModelScope.launch { repo.saveSpriteId(next) } }
     }
 
     fun openStatusSheet() { _showStatusSheet.value = true }    fun dismissStatusSheet() { _showStatusSheet.value = false }
