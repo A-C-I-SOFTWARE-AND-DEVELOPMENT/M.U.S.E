@@ -102,7 +102,12 @@ cd apps/android
 JVM unit tests live under `app/src/test/java/`. They cover the
 pure-logic surfaces — `PromptBuilder`, `HermesTaskRepository`,
 `HandoffLauncher`, `TermuxIntentBridge`, the safety-content
-guarantee, and the backup-rules manifest assertions.
+guarantee, and the backup-rules manifest assertions — plus a
+**ViewModel test for every major screen** (`*ViewModelTest.kt`
+next to each screen package; Robolectric where the ViewModel touches
+`Context`/DataStore) and **Robolectric Compose smoke tests**
+(`*SmokeTest.kt`) that render real screens on the JVM with no
+emulator (`createComposeRule()` + `@GraphicsMode(NATIVE)`).
 
 ### Release AAB
 

@@ -33,6 +33,15 @@ If any of these is `false`, **stop here**. Do not enable auto-merge.
 - [ ] `Scan PR for critical supply chain risks` (`supply-chain-audit.yml`)
 - [ ] `LaunchGate aggregate` (`launch-gate.yml`)
 
+> The two `jarvis-prime-unit.yml` checks above are produced by the
+> curated, launch-critical workflow `.github/workflows/jarvis-prime-unit.yml`
+> (Android `testDebugUnitTest` + the JARVIS Prime / redaction / orchestrator
+> Python subset). It is intentionally narrower and faster than the
+> comprehensive `android-build.yml` / `tests.yml` suites, and its job
+> `name:` strings are a contract these checklist entries key on — keep them
+> in sync. On a PR, `LaunchGate aggregate` prints an advisory red/green
+> rollup of these checks to its job summary.
+
 If any required check is missing from branch protection, add it
 **there** — do not waive it here.
 
