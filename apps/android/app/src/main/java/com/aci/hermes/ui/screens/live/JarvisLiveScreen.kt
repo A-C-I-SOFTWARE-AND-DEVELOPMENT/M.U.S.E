@@ -30,9 +30,14 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PictureInPictureAlt
+import androidx.compose.ui.draw.scale
+import com.aci.hermes.data.life.AvatarBehavior
 import com.aci.hermes.service.JarvisOverlayService
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -204,6 +209,23 @@ fun JarvisLiveScreen(
         ) {
             JarvisLiveParticles(enabled = projection.particlesEnabled)
 
+            // The Den's floor — a soft ground the companion stands and snoozes on.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(220.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                HermesCyan.copy(alpha = 0.06f),
+                                Color.Black.copy(alpha = 0.20f),
+                            ),
+                        ),
+                    ),
+            )
+
             // Toggle the floating JARVIS that lives over every app.
             IconButton(
                 onClick = onToggleOverlay,
@@ -228,14 +250,26 @@ fun JarvisLiveScreen(
             ) {
                 Spacer(Modifier.height(40.dp))
 
+                // Snooze: when the Den is idle long enough the companion drifts
+                // down and curls up small at the bottom of the room, breathing
+                // slowly — "laying down at the bottom of your phone, snoozing."
+                val sleeping = state.avatarBehavior == AvatarBehavior.SLEEP
+                val sleepBias by animateFloatAsState(
+                    targetValue = if (sleeping) 1f else 0f,
+                    animationSpec = tween(900),
+                    label = "sleep-bias",
+                )
                 Box(
-                    modifier = Modifier.pointerInput(projection.state) {
-                        detectTapGestures(
-                            onTap = { viewModel.openStatusSheet() },
-                            onDoubleTap = { viewModel.cycleSprite() },
-                            onLongPress = { viewModel.requestEmergencyConfirm() },
-                        )
-                    },
+                    modifier = Modifier
+                        .offset(y = (sleepBias * 200f).dp)
+                        .scale(1f - 0.42f * sleepBias)
+                        .pointerInput(projection.state) {
+                            detectTapGestures(
+                                onTap = { viewModel.openStatusSheet() },
+                                onDoubleTap = { viewModel.cycleSprite() },
+                                onLongPress = { viewModel.requestEmergencyConfirm() },
+                            )
+                        },
                 ) {
                     // The living, breathing body. Priority: a saved photo → a
                     // breathing photo face; reduced motion → the calm Orb; otherwise
@@ -281,7 +315,11 @@ fun JarvisLiveScreen(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    text = state.voiceLine.ifBlank { stringResource(projection.voiceLineFallback) },
+                    text = if (sleeping) {
+                        "Snoozing… 💤"
+                    } else {
+                        state.voiceLine.ifBlank { stringResource(projection.voiceLineFallback) }
+                    },
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,

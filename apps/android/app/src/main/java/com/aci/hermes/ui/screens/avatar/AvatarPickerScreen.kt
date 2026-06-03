@@ -92,7 +92,26 @@ fun AvatarPickerScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Characters", style = MaterialTheme.typography.titleMedium)
+            // Hero preview — your character, alive (RPG-style create window).
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                PixelSpriteAvatar(
+                    sprite = PixelSprites.byId(selectedSpriteId),
+                    inputs = AvatarInputs(
+                        pose = AvatarPose.IDLE,
+                        energy = 0.5f,
+                        motionEnabled = true,
+                    ),
+                    contentDescription = "Your character",
+                    modifier = Modifier.size(168.dp),
+                )
+            }
+
+            Text("Choose your companion", style = MaterialTheme.typography.titleMedium)
             CharacterGrid(
                 selectedId = selectedSpriteId,
                 onSelect = viewModel::selectSprite,

@@ -97,10 +97,11 @@ fun HermesNavHost(container: AppContainer) {
         composable(Screen.Splash.route) {
             SplashScreen(
                 onReady = {
+                    // The avatar's Den is the heart of the app — land there first.
                     val next = when (hasOnboarded) {
-                        true -> Screen.Home.route
+                        true -> Screen.JarvisLive.route
                         false -> Screen.Onboarding.route
-                        null -> Screen.Home.route // safe default if pref not loaded yet
+                        null -> Screen.JarvisLive.route // safe default if pref not loaded yet
                     }
                     nav.navigate(next) {
                         popUpTo(Screen.Splash.route) { inclusive = true }
@@ -184,7 +185,10 @@ fun HermesNavHost(container: AppContainer) {
             val vm: JarvisLiveViewModel = viewModel(factory = remember { container.jarvisLiveVmFactory() })
             JarvisLiveScreen(
                 viewModel = vm,
-                onBack = { nav.popBackStack() },
+                // The Den is the home; the menu button opens the rest of the app.
+                onBack = {
+                    nav.navigate(Screen.Home.route) { launchSingleTop = true }
+                },
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
                 onOpenSettings = openSettings,
             )
