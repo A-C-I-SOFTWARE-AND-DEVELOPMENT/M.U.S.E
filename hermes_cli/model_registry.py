@@ -91,6 +91,12 @@ class WorkerEntry:
     approval_required: bool = False
     approval_triggers: tuple[str, ...] = ()
     notes: str = ""
+    # Eval gating (ROUTE-2). Backward compatible: default unverified. A worker is
+    # only eligible to be the default for an eval-gated task category when
+    # ``eval_passed`` is True. ``eval_results`` is a tuple-of-pairs (suite -> score
+    # / metadata) to stay frozen/hashable, mirroring ``validation``.
+    eval_passed: bool = False
+    eval_results: tuple[tuple[str, Any], ...] = ()
 
     @property
     def detection_dict(self) -> dict[str, Any]:
@@ -103,6 +109,10 @@ class WorkerEntry:
     @property
     def validation_dict(self) -> dict[str, Any]:
         return dict(self.validation)
+
+    @property
+    def eval_results_dict(self) -> dict[str, Any]:
+        return dict(self.eval_results)
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +196,8 @@ def _worker_from_yaml(raw: dict[str, Any]) -> WorkerEntry:
             str(s) for s in (raw.get("approval_triggers") or [])
         ),
         notes=str(raw.get("notes") or ""),
+        eval_passed=bool(raw.get("eval_passed") or False),
+        eval_results=_coerce_pairs(raw.get("eval_results")),
     )
 
 

@@ -48,8 +48,80 @@ from tools.tool_result_storage import (
     maybe_persist_tool_result,
     enforce_turn_budget,
 )
+from tools.tokenjuice import (
+    compact_tool_output,
+    compact_multimodal_text,
+    scrub_credentials,
+    record_raw_output,
+)
+from tools.tokenjuice.config import load_active_config
 
 logger = logging.getLogger(__name__)
+
+
+def _tokenjuice_compact(agent, tool_name, tool_args, function_result, is_error, tool_use_id):
+    """First-pass tool-output reducer: scrub secrets → preserve raw → compact.
+
+    Runs *before* the existing size-threshold persistence/budget layers
+    (``maybe_persist_tool_result`` / ``enforce_turn_budget``), which remain the
+    fallback for anything still large. Contract:
+
+    * **Multimodal** results: scrub + compact only the ``type=="text"`` parts
+      (and ``text_summary``); image blocks are preserved byte-for-byte.
+    * **Non-string, non-multimodal** results are returned untouched.
+    * Disabled via config or ``HERMES_TOKENJUICE=off`` → no-op.
+    * **Credential scrubbing always applies** to text (even when rule-based
+      compaction doesn't shrink it) — closing the prior gap where raw secrets
+      reached the model.
+    * **Raw preserved**: the full *pre-scrub* output (or multimodal text view) is
+      written to the raw log (gitignored, debug-only) when ``preserve_raw``.
+    * **Fail-open**: any error returns the original result unchanged.
+    """
+    try:
+        is_multimodal = _is_multimodal_tool_result(function_result)
+        if not isinstance(function_result, str) and not is_multimodal:
+            return function_result
+        cfg = load_active_config()
+        if not cfg.enabled:
+            return function_result
+
+        exit_code = 1 if is_error else 0
+        raw_ref = None
+        if cfg.preserve_raw:
+            raw_ref = record_raw_output(
+                session_id=getattr(agent, "session_id", None),
+                tool_use_id=tool_use_id,
+                tool_name=tool_name,
+                arguments=tool_args,
+                # For multimodal, log the text view (never the image bytes).
+                raw_output=(_multimodal_text_summary(function_result) if is_multimodal else function_result),
+                exit_code=exit_code,
+            )
+
+        if is_multimodal:
+            new_env, changed = compact_multimodal_text(
+                function_result, tool_name, tool_args, exit_code, cfg
+            )
+            if changed:
+                logger.debug(
+                    "[tokenjuice] tool=%s multimodal text scrubbed/compacted raw=%s",
+                    tool_name, bool(raw_ref),
+                )
+            return new_env
+
+        scrubbed = scrub_credentials(function_result)
+        compacted, stats = compact_tool_output(tool_name, tool_args, scrubbed, exit_code, cfg)
+
+        if stats.applied or scrubbed != function_result:
+            logger.debug(
+                "[tokenjuice] tool=%s rule=%s %d->%d applied=%s scrubbed=%s raw=%s",
+                tool_name, stats.rule_id, stats.original_chars, stats.compacted_chars,
+                stats.applied, scrubbed != function_result, bool(raw_ref),
+            )
+        return compacted
+    except Exception as err:  # never let compaction break the tool loop
+        logger.debug("[tokenjuice] _tokenjuice_compact failed for %s: %s", tool_name, err)
+        return function_result
 
 # Maximum number of concurrent worker threads for parallel tool execution.
 # Mirrors the constant in ``run_agent`` for tests/imports that look here.
@@ -417,6 +489,12 @@ def execute_tool_calls_concurrent(agent, assistant_message, messages: list, effe
                 agent.tool_complete_callback(tc.id, name, args, function_result)
             except Exception as cb_err:
                 logging.debug(f"Tool complete callback error: {cb_err}")
+
+        # First-pass: scrub secrets + TokenJuice compaction (raw preserved),
+        # before the size-threshold persistence/budget fallback below.
+        function_result = _tokenjuice_compact(
+            agent, name, args, function_result, is_error, tc.id,
+        )
 
         function_result = maybe_persist_tool_result(
             content=function_result,
@@ -839,6 +917,12 @@ def execute_tool_calls_sequential(agent, assistant_message, messages: list, effe
                 agent.tool_complete_callback(tool_call.id, function_name, function_args, function_result)
             except Exception as cb_err:
                 logging.debug(f"Tool complete callback error: {cb_err}")
+
+        # First-pass: scrub secrets + TokenJuice compaction (raw preserved),
+        # before the size-threshold persistence/budget fallback below.
+        function_result = _tokenjuice_compact(
+            agent, function_name, function_args, function_result, _is_error_result, tool_call.id,
+        )
 
         function_result = maybe_persist_tool_result(
             content=function_result,
