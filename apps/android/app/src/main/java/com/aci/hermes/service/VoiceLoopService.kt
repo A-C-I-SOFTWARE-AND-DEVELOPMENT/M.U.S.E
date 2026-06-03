@@ -16,6 +16,7 @@ import com.aci.hermes.voice.TtsEvent
 import com.aci.hermes.voice.VoiceEvent
 import com.aci.hermes.voice.VoiceLoop
 import com.aci.hermes.voice.WakeWordEngine
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -107,9 +108,19 @@ class VoiceLoopService : LifecycleService() {
                 drive(VoiceEvent.ReplyReady("Done."))
                 return@launch
             }
-            val reply = runCatching { dispatch?.invoke(text) }.getOrNull()
-                ?: "I couldn't reach the agent."
-            drive(VoiceEvent.ReplyReady(reply))
+            // Think out loud: dispatch to the agent AND drop a brief thinking-beat
+            // so the THINKING phase sounds like Jarvis is considering, not frozen.
+            // The real reply (QUEUE_FLUSH) replaces the beat the moment it's ready.
+            val replyDeferred = async {
+                runCatching { dispatch?.invoke(text) }.getOrNull() ?: "I couldn't reach the agent."
+            }
+            tts?.let { engine ->
+                launch {
+                    engine.speak(THINKING_BEATS.random())
+                        .firstOrNull { it == TtsEvent.DONE || it == TtsEvent.ERROR }
+                }
+            }
+            drive(VoiceEvent.ReplyReady(replyDeferred.await()))
         }
     }
 
@@ -181,6 +192,10 @@ class VoiceLoopService : LifecycleService() {
         @Volatile
         var active: VoiceLoopService? = null
             private set
+
+        // Brief, warm fillers spoken during THINKING so the pause feels like a
+        // person considering, not dead air. Kept short — the real reply flushes.
+        private val THINKING_BEATS = listOf("Hmm.", "One sec.", "Let me think.", "Right —")
 
         const val VOICE_NOTIFICATION_ID = 4243
 

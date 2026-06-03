@@ -68,6 +68,15 @@ def jarvis_responder(
         yield detail("Owner approval required for: " + ", ".join(route.pending_actions))
 
     persona_prompt = turn.persona_prompt.render()
+    # Adopted character persona ("make my avatar Goku") frames the whole reply.
+    try:
+        from gateway.cockpit.persona_store import persona_directive
+
+        adopted = persona_directive()
+        if adopted:
+            persona_prompt = f"{adopted}\n\n{persona_prompt}"
+    except Exception:  # persona is best-effort
+        pass
     # Ground the reply in the owner profile + project references (bounded).
     try:
         from gateway.cockpit.grounding import reference_context
@@ -84,6 +93,10 @@ def jarvis_responder(
         persona_prompt = f"{persona_prompt}\n\n{CITATION_REQUIRED_INSTRUCTION}"
     except Exception:
         pass
+    # Natural stop-go cadence: pace this turn like a person, not a monologue.
+    pacing = _pacing_directive(prompt)
+    if pacing:
+        persona_prompt = f"{persona_prompt}\n\n{pacing}"
 
     # Learn from explicit owner cues (secret-rejecting; surfaced, never silent).
     note = _maybe_remember(jp, prompt)
@@ -124,6 +137,41 @@ _REMEMBER_CUES = (
     "don't forget",
     "keep in mind",
 )
+
+
+_CADENCE_HINT = {
+    "BRIEF": "Keep it to a beat — one or two sentences, no preamble.",
+    "NORMAL": "A few natural sentences; land the point, then stop.",
+    "DEEP": "Go deeper here, but still in natural spoken paragraphs, not a wall.",
+}
+
+
+def _pacing_directive(prompt: str) -> str:
+    """Turn the owner's pacing engine into a per-turn 'speak like a person'
+    directive (stop-go cadence, length, posture) appended to the persona."""
+    try:
+        from hermes_cli.jarvis_prime import communication_style as cs
+
+        ctx = cs.PacingContext(
+            user_text_length=len(prompt or ""),
+            surface="cockpit",
+            topic_shift_signal=cs.is_topic_shift(prompt),
+        )
+        d = cs.decide_pacing(prompt, ctx)
+        cadence = d.cadence.name
+        posture = d.posture.name.lower()
+        length = _CADENCE_HINT.get(cadence, "")
+        lines = [
+            "Conversational cadence (speak like a real person, not a chatbot):",
+            f"- Posture: {posture}. Cadence: {cadence.lower()} "
+            f"(aim ≤ {d.max_sentences} sentence(s)). {length}",
+            "- Natural stop-go: if the user only acknowledged ('right', 'go on'), "
+            "give a single beat and hand the floor back. Don't monologue.",
+            "- It's fine to think out loud briefly, then commit — warm, direct, grounded.",
+        ]
+        return "\n".join(lines)
+    except Exception:  # pacing is best-effort
+        return ""
 
 
 def _maybe_remember(jp, prompt: str) -> str:

@@ -99,6 +99,28 @@ def test_epistemic_caveat_flags_non_pass() -> None:
     assert _epistemic_caveat(_JpPass(), turn, "a hedged, cited reply") == ""
 
 
+def test_pacing_directive_is_brief_for_backchannel() -> None:
+    from gateway.cockpit.agent import _pacing_directive
+
+    # A bare acknowledgement → BRIEF / backchannel: one beat, hand back the floor.
+    out = _pacing_directive("right")
+    assert "cadence" in out.lower()
+    assert "brief" in out.lower()
+    assert "stop-go" in out.lower()
+
+
+def test_pacing_directive_allows_depth_on_substantive_prompt() -> None:
+    from gateway.cockpit.agent import _pacing_directive
+
+    out = _pacing_directive(
+        "Walk me through the full architecture of the orchestration system and "
+        "how navigation, dispatch, and the decision ledger fit together in detail."
+    )
+    # Substantive ask → not clamped to BRIEF; mentions natural cadence either way.
+    assert "cadence" in out.lower()
+    assert out  # non-empty directive produced
+
+
 def test_reference_context_indexes_repo_docs() -> None:
     # Against the real repo root, the grounding block should list known docs.
     block = grounding.reference_context()

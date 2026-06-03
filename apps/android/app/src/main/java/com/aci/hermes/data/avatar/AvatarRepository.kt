@@ -24,6 +24,7 @@ class AvatarRepository(
 
     private object Keys {
         val PROFILE_JSON = stringPreferencesKey("profile_json")
+        val SPRITE_ID = stringPreferencesKey("sprite_id")
     }
 
     val profileFlow: Flow<AvatarProfile?> = store.data.map { prefs ->
@@ -31,7 +32,22 @@ class AvatarRepository(
         runCatching { json.decodeFromString<AvatarProfile>(raw) }.getOrNull()
     }
 
+    /** The selected pixel-sprite character id (robot/cat/…); null until chosen. */
+    val spriteIdFlow: Flow<String?> = store.data.map { it[Keys.SPRITE_ID] }
+
     suspend fun current(): AvatarProfile? = profileFlow.first()
+
+    suspend fun currentSpriteId(): String? = spriteIdFlow.first()
+
+    /** Select a pixel-sprite character. Clears any photo profile so the chosen
+     *  character becomes the visible avatar. */
+    suspend fun saveSpriteId(id: String) {
+        store.edit {
+            it[Keys.SPRITE_ID] = id
+            it.remove(Keys.PROFILE_JSON)
+        }
+        imageStore.deleteAll()
+    }
 
     suspend fun save(profile: AvatarProfile) {
         store.edit { it[Keys.PROFILE_JSON] = json.encodeToString(profile) }

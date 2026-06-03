@@ -99,6 +99,47 @@ class HermesCockpitClient(
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
 
+    // ─── Avatar persona ("make my avatar Goku") ──────────────────────────
+
+    /** The companion's adopted persona, or an empty one if default. */
+    suspend fun personaGet(): CockpitResult<CockpitPersona> =
+        request("GET", "/v1/cockpit/avatar/persona", CockpitPersona.serializer())
+
+    /** Adopt a persona from a description — the model researches the character
+     *  and the companion speaks in-character. Empty description clears it. */
+    suspend fun personaSet(req: SetPersonaRequest): CockpitResult<CockpitPersona> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/persona",
+            CockpitPersona.serializer(),
+            body = json.encodeToString(SetPersonaRequest.serializer(), req),
+        )
+
+    // ─── Room editor (AI-generated furniture) ────────────────────────────
+
+    /** The companion's room items (with base64 images) + whether image-gen is on. */
+    suspend fun roomList(): CockpitResult<CockpitRoomList> =
+        request("GET", "/v1/cockpit/avatar/room", CockpitRoomList.serializer())
+
+    /** Generate a room item from a prompt ('a Victorian desk'). 503 if no image
+     *  model is configured. */
+    suspend fun roomGenerate(req: GenerateRoomRequest): CockpitResult<CockpitRoomItem> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/room",
+            CockpitRoomItem.serializer(),
+            body = json.encodeToString(GenerateRoomRequest.serializer(), req),
+        )
+
+    /** Persist a furniture item's normalized (x, y) placement in the room. */
+    suspend fun roomPlace(id: String, x: Float, y: Float): CockpitResult<JsonObject> =
+        request(
+            "POST",
+            "/v1/cockpit/avatar/room/" + enc(id) + "/place",
+            JsonObject.serializer(),
+            body = json.encodeToString(PlaceItemRequest.serializer(), PlaceItemRequest(x, y)),
+        )
+
     // ─── Approvals (contract §10c) ───────────────────────────────────────
 
     suspend fun approvalsList(): CockpitResult<CockpitApprovalCardList> =

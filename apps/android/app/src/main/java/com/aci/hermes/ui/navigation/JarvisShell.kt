@@ -1,6 +1,7 @@
 package com.aci.hermes.ui.navigation
 
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -27,9 +28,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.screens.live.AvatarInputs
+import com.aci.hermes.ui.screens.live.AvatarKind
+import com.aci.hermes.ui.screens.live.AvatarPose
+import com.aci.hermes.ui.screens.live.LivingAvatarHost
 
 /**
  * Outer chrome for the seven main destinations in the Jarvis Prime app
@@ -66,6 +73,26 @@ fun JarvisShell(
                     containerColor = MaterialTheme.colorScheme.surface,
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
+                navigationIcon = {
+                    // A persistent, breathing JARVIS presence on every screen —
+                    // the "always here" parent. Tap to open the full live avatar.
+                    val homeTab = Screen.bottomTabs.firstOrNull()?.screen
+                    IconButton(
+                        onClick = { homeTab?.let(onNavigateTab) },
+                        enabled = homeTab != null,
+                    ) {
+                        LivingAvatarHost(
+                            kind = AvatarKind.Orb,
+                            inputs = AvatarInputs(
+                                pose = AvatarPose.IDLE,
+                                energy = 0.35f,
+                                motionEnabled = true,
+                            ),
+                            contentDescription = stringResource(R.string.app_name),
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { confirmStop = true }) {
                         Icon(

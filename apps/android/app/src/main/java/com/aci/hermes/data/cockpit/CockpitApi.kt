@@ -535,3 +535,42 @@ enum class PublishState(val wire: String) {
             entries.firstOrNull { it.wire.equals(value, ignoreCase = true) }
     }
 }
+
+// ─── Avatar persona ("make my avatar Goku") ──────────────────────────────
+
+@Serializable
+data class CockpitPersona(
+    val name: String = "",
+    val description: String = "",
+    @SerialName("persona_prompt") val personaPrompt: String = "",
+    val generated: Boolean = false,
+)
+
+@Serializable
+data class SetPersonaRequest(
+    val description: String,
+    val name: String = "",
+)
+
+// ─── Room editor (AI-generated furniture) ─────────────────────────────────
+
+@Serializable
+data class CockpitRoomItem(
+    val id: String = "",
+    val prompt: String = "",
+    @SerialName("image_b64") val imageB64: String? = null,
+    val x: Float = 0.5f,
+    val y: Float = 0.62f,
+)
+
+@Serializable
+data class PlaceItemRequest(val x: Float, val y: Float)
+
+@Serializable
+data class CockpitRoomList(
+    val items: List<CockpitRoomItem> = emptyList(),
+    @SerialName("image_generation") val imageGeneration: Boolean = false,
+)
+
+@Serializable
+data class GenerateRoomRequest(val prompt: String)
