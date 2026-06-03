@@ -552,6 +552,155 @@ def job_cancel(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Autonomy (Owner High-Autonomy Coding mode) + emergency stop
+# ---------------------------------------------------------------------------
+
+
+def autonomy_get(_req: Request) -> JsonResponse:
+    """Current autonomy level, workspace scope, and capability list.
+
+    The capability list is derived from ``hermes_cli.approval_policy`` so the
+    cockpit never hard-codes a list that could drift from the policy engine.
+    """
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        record = ap.load_record()
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_set(req: Request) -> JsonResponse:
+    """Set the autonomy level (owner action) or revoke back to ASSISTED.
+
+    Body: ``{"level": "owner_high_autonomy_coding", "workspace_path": "..."}``
+    or ``{"revoke": true}``. The change is recorded in the approval audit log
+    so the audit trail shows when autonomy was raised or revoked, and by what.
+    """
+    body = req.body or {}
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        if body.get("revoke"):
+            record = ap.revoke(set_by="cockpit")
+        else:
+            raw_level = str(body.get("level", "")).strip().lower()
+            try:
+                level = ap.AutonomyLevel(raw_level)
+            except ValueError:
+                return JsonResponse(
+                    400,
+                    {"error": f"unknown autonomy level: {raw_level!r}"},
+                )
+            workspace = str(body.get("workspace_path") or "")
+            if level is ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING and not workspace:
+                return JsonResponse(
+                    400,
+                    {"error": "owner_high_autonomy_coding requires a workspace_path scope"},
+                )
+            record = ap.save_level(level, workspace_root=workspace, set_by="cockpit")
+        # Audit the mode change itself.
+        try:
+            audit_req = ap.ApprovalRequest(
+                action=ap.Action.SAFE_READ,
+                summary=f"autonomy set to {record.level.value}",
+                target=record.workspace_root,
+                details={"event": "autonomy_change", "set_by": record.set_by},
+            )
+            ap.record_decision(
+                audit_req,
+                ap.ApprovalResult(ap.Decision.ALLOW, "owner set autonomy", False),
+                actor="cockpit",
+            )
+        except Exception:  # pragma: no cover - auditing is best-effort
+            pass
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_decisions(req: Request) -> JsonResponse:
+    """Recent (already-redacted) policy decisions for the audit trail."""
+    try:
+        from hermes_cli import approval_policy as ap
+
+        limit_raw = req.query.get("limit", "50")
+        try:
+            limit = max(1, min(500, int(limit_raw)))
+        except (TypeError, ValueError):
+            limit = 50
+        return JsonResponse(200, {"decisions": ap.read_decisions(limit=limit)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def emergency_stop(req: Request) -> JsonResponse:
+    """Cancel every active job/worker and drop autonomy to a safe floor.
+
+    This is the backend counterpart to the Android emergency-stop control: it
+    cancels all non-terminal queue jobs (reusing ``JobQueue.cancel_job``) and
+    forces autonomy back to READ_ONLY so nothing new auto-runs until the owner
+    re-enables it. The action is audited.
+    """
+    reason = str((req.body or {}).get("reason") or "owner emergency stop")
+    cancelled: list[str] = []
+    errors: list[str] = []
+    try:
+        from hermes_cli.job_queue import JobQueue, QueueState
+
+        queue = JobQueue()
+        active = [
+            e
+            for e in queue.list_jobs()
+            if e.state not in QueueState.TERMINAL
+        ]
+        for entry in active:
+            try:
+                queue.cancel_job(entry.job_id, note=reason)
+                cancelled.append(entry.job_id)
+            except Exception as exc:  # pragma: no cover - defensive
+                errors.append(f"{entry.job_id}: {exc}")
+    except Exception as exc:  # pragma: no cover - defensive
+        errors.append(str(exc))
+
+    safe_level = "read_only"
+    try:
+        from hermes_cli import approval_policy as ap
+
+        ap.save_level(ap.AutonomyLevel.READ_ONLY, set_by="cockpit-emergency-stop")
+        try:
+            ap.record_decision(
+                ap.ApprovalRequest(
+                    action=ap.Action.SAFE_READ,
+                    summary="emergency stop engaged",
+                    details={"event": "emergency_stop", "cancelled": len(cancelled)},
+                ),
+                ap.ApprovalResult(ap.Decision.ALLOW, reason, False),
+                actor="cockpit-emergency-stop",
+            )
+        except Exception:  # pragma: no cover
+            pass
+    except Exception as exc:  # pragma: no cover - defensive
+        errors.append(str(exc))
+
+    return JsonResponse(
+        200,
+        {
+            "engaged": True,
+            "cancelled_jobs": cancelled,
+            "cancelled_count": len(cancelled),
+            "autonomy_level": safe_level,
+            "errors": errors,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Approvals (persistent JARVIS proposal queue; owner phrase preserved)
 # ---------------------------------------------------------------------------
 
@@ -814,7 +963,11 @@ __all__ = [
     "audit_events",
     "audit_list",
     "audit_proof",
+    "autonomy_decisions",
+    "autonomy_get",
+    "autonomy_set",
     "diagnostics",
+    "emergency_stop",
     "health",
     "job_cancel",
     "job_get",

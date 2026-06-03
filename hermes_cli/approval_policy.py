@@ -94,6 +94,16 @@ class Action(str, enum.Enum):
     PUBLIC_TUNNEL = "public_tunnel"
     CONTINUOUS_LISTEN = "continuous_listen"
     OUTBOUND_MESSAGE = "outbound_message"  # send email/SMS/calendar via an integration
+    # ── Coding-workspace actions ──────────────────────────────────────────
+    # These are the friction points of in-workspace coding work. They default
+    # to CONFIRM under every pre-existing level (they are in no existing
+    # auto-allowlist) and are only auto-approved by OWNER_HIGH_AUTONOMY_CODING
+    # when scoped to an approved workspace.
+    DEPENDENCY_INSTALL = "dependency_install"  # pip/npm install inside the project env
+    LOCAL_SERVER = "local_server"  # start/stop a dev server bound to loopback
+    BRANCH_CREATE = "branch_create"  # git branch / checkout -b (local only)
+    LOCAL_COMMIT = "local_commit"  # git commit (no push)
+    CODE_WORKER_EXEC = "code_worker_exec"  # run a code worker in the workspace
 
 
 class AutonomyLevel(str, enum.Enum):
@@ -101,6 +111,10 @@ class AutonomyLevel(str, enum.Enum):
     ASSISTED = "assisted"
     AUTONOMOUS = "autonomous"
     YOLO = "yolo"
+    # Owner High-Autonomy Coding — friction-reduced for coding work *inside an
+    # approved workspace*, while every irreversible/external/high-risk action
+    # (the _ALWAYS_CONFIRM set + owner gates) stays gated exactly as before.
+    OWNER_HIGH_AUTONOMY_CODING = "owner_high_autonomy_coding"
 
 
 class Decision(str, enum.Enum):
@@ -200,21 +214,164 @@ _YOLO_HARD_LIMITS: frozenset[Action] = frozenset(
     }
 )
 
+# Categories OWNER_HIGH_AUTONOMY_CODING runs unattended *inside an approved
+# workspace*. Everything here is local, reversible coding work. Anything not
+# in this set (and not a safe read) falls through to CONFIRM, and the
+# _ALWAYS_CONFIRM set above is still evaluated first — so deploy, publish,
+# force-push, destructive commands, supabase/vercel changes, remote secret
+# transfer and public tunnels remain gated. Owner gates (owner_auth.py) are
+# untouched.
+_HIGH_AUTONOMY_CODING_AUTO: frozenset[Action] = frozenset(
+    {
+        Action.SAFE_READ,
+        Action.SAFE_LOCAL_WRITE,
+        Action.LOCAL_COMMAND,
+        Action.SECRET_ACCESS,
+        Action.DEPENDENCY_INSTALL,
+        Action.LOCAL_SERVER,
+        Action.BRANCH_CREATE,
+        Action.LOCAL_COMMIT,
+        Action.CODE_WORKER_EXEC,
+    }
+)
+
+# Within _HIGH_AUTONOMY_CODING_AUTO, these act on a filesystem path and are
+# only auto-approved when that path resolves *inside* the approved workspace.
+# Editing or running a worker outside the workspace falls through to CONFIRM.
+_WORKSPACE_SCOPED_ACTIONS: frozenset[Action] = frozenset(
+    {
+        Action.SAFE_LOCAL_WRITE,
+        Action.CODE_WORKER_EXEC,
+    }
+)
+
 # Protected branches — force-pushing these is always denied.
 DEFAULT_PROTECTED_BRANCHES: frozenset[str] = frozenset(
     {"main", "master", "release", "production", "prod"}
 )
 
 
-def _autonomy_from_env(default: AutonomyLevel = AutonomyLevel.ASSISTED) -> AutonomyLevel:
-    raw = os.environ.get("HERMES_AUTONOMY", "").strip().lower()
-    if not raw:
-        return default
+def _hermes_home() -> Path:
+    home = os.environ.get("HERMES_HOME")
+    base = Path(home) if home else Path.home() / ".hermes"
+    base.mkdir(parents=True, exist_ok=True)
+    return base
+
+
+def _autonomy_store_path() -> Path:
+    return _hermes_home() / "autonomy.json"
+
+
+@dataclass(frozen=True)
+class AutonomyRecord:
+    """The owner's persisted autonomy choice.
+
+    ``workspace_root`` scopes OWNER_HIGH_AUTONOMY_CODING to a single approved
+    workspace; it is ignored by the other levels. The record is owner-set
+    (typically from the Android cockpit) and instantly revocable.
+    """
+
+    level: AutonomyLevel = AutonomyLevel.ASSISTED
+    workspace_root: str = ""
+    updated_at: float = 0.0
+    set_by: str = "owner"
+
+
+def load_record(path: Optional[Path] = None) -> AutonomyRecord:
+    """Load the persisted autonomy record (defaults to ASSISTED)."""
+    import json
+
+    target = path or _autonomy_store_path()
     try:
-        return AutonomyLevel(raw)
+        raw = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return AutonomyRecord()
+    try:
+        level = AutonomyLevel(str(raw.get("level", "assisted")))
     except ValueError:
-        logger.warning("Unknown HERMES_AUTONOMY=%r; defaulting to %s", raw, default.value)
-        return default
+        level = AutonomyLevel.ASSISTED
+    return AutonomyRecord(
+        level=level,
+        workspace_root=str(raw.get("workspace_root", "") or ""),
+        updated_at=float(raw.get("updated_at", 0.0) or 0.0),
+        set_by=str(raw.get("set_by", "owner") or "owner"),
+    )
+
+
+def save_level(
+    level: AutonomyLevel,
+    *,
+    workspace_root: str = "",
+    set_by: str = "owner",
+    path: Optional[Path] = None,
+) -> AutonomyRecord:
+    """Persist the owner's autonomy choice and return the new record.
+
+    The change is also written to the approval audit log so the cockpit
+    audit trail shows when (and to what) autonomy was set or revoked.
+    """
+    import json
+
+    record = AutonomyRecord(
+        level=level,
+        workspace_root=workspace_root or "",
+        updated_at=time.time(),
+        set_by=set_by,
+    )
+    target = path or _autonomy_store_path()
+    try:
+        target.write_text(
+            json.dumps(
+                {
+                    "level": record.level.value,
+                    "workspace_root": record.workspace_root,
+                    "updated_at": record.updated_at,
+                    "set_by": record.set_by,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.warning("autonomy store write failed (%s): %s", target, exc)
+    return record
+
+
+def revoke(*, set_by: str = "owner", path: Optional[Path] = None) -> AutonomyRecord:
+    """Instantly drop autonomy back to the safe default (ASSISTED)."""
+    return save_level(AutonomyLevel.ASSISTED, set_by=set_by, path=path)
+
+
+def _autonomy_from_env(default: AutonomyLevel = AutonomyLevel.ASSISTED) -> AutonomyLevel:
+    """Resolve the active level: env var first, then persisted record.
+
+    ``HERMES_AUTONOMY`` always wins so existing env-driven deployments are
+    unaffected; the persisted record is the owner's cockpit-set choice.
+    """
+    raw = os.environ.get("HERMES_AUTONOMY", "").strip().lower()
+    if raw:
+        try:
+            return AutonomyLevel(raw)
+        except ValueError:
+            logger.warning("Unknown HERMES_AUTONOMY=%r; defaulting to %s", raw, default.value)
+            return default
+    return load_record().level
+
+
+def _within_workspace(target: str, workspace_root: str) -> bool:
+    """True iff ``target`` resolves inside ``workspace_root``.
+
+    Fail-closed: an empty workspace, an empty target, or any resolution
+    error means "not inside" (→ the action falls through to CONFIRM).
+    """
+    if not workspace_root or not target:
+        return False
+    try:
+        root = Path(workspace_root).expanduser().resolve()
+        candidate = Path(target).expanduser().resolve()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return root == candidate or root in candidate.parents
 
 
 def evaluate(
@@ -222,8 +379,15 @@ def evaluate(
     *,
     autonomy: Optional[AutonomyLevel] = None,
     protected_branches: Optional[frozenset[str]] = None,
+    workspace_root: Optional[str] = None,
 ) -> ApprovalResult:
-    """Decide whether the agent may proceed with ``request``."""
+    """Decide whether the agent may proceed with ``request``.
+
+    ``workspace_root`` scopes :class:`AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING`.
+    When not supplied it is read from the persisted autonomy record so callers
+    that don't track a workspace still get correct scoping. It is ignored by
+    every other level.
+    """
     level = autonomy if autonomy is not None else _autonomy_from_env()
     protected = protected_branches or DEFAULT_PROTECTED_BRANCHES
 
@@ -277,6 +441,48 @@ def evaluate(
             needs_prompt=True,
         )
 
+    # Owner High-Autonomy Coding: auto-approve in-workspace coding work only.
+    if level is AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING:
+        ws = workspace_root if workspace_root is not None else load_record().workspace_root
+        if request.action in _HIGH_AUTONOMY_CODING_AUTO:
+            if request.action in _WORKSPACE_SCOPED_ACTIONS:
+                if _within_workspace(request.target, ws):
+                    return ApprovalResult(
+                        Decision.ALLOW,
+                        f"owner_high_autonomy_coding: auto-approved {request.action.value} "
+                        f"inside approved workspace {ws}",
+                        needs_prompt=False,
+                    )
+                return ApprovalResult(
+                    Decision.CONFIRM,
+                    f"owner_high_autonomy_coding: {request.action.value} on "
+                    f"{request.target or '<unspecified path>'} is outside the approved "
+                    f"workspace — operator confirmation required",
+                    needs_prompt=True,
+                )
+            # Inherently-local actions: require a configured workspace, else
+            # fail-closed to a confirmation.
+            if ws:
+                return ApprovalResult(
+                    Decision.ALLOW,
+                    f"owner_high_autonomy_coding: auto-approved {request.action.value} "
+                    f"in approved workspace {ws}",
+                    needs_prompt=False,
+                )
+            return ApprovalResult(
+                Decision.CONFIRM,
+                f"owner_high_autonomy_coding: {request.action.value} blocked — no approved "
+                f"workspace configured; operator confirmation required",
+                needs_prompt=True,
+            )
+        # Not a coding action — fall through to the shared confirm below.
+        return ApprovalResult(
+            Decision.CONFIRM,
+            f"owner_high_autonomy_coding: {request.action.value} is outside the coding "
+            f"allowlist — operator confirmation required",
+            needs_prompt=True,
+        )
+
     # Level-specific auto-allowlist.
     if level is AutonomyLevel.ASSISTED and request.action in _ASSISTED_AUTO:
         return ApprovalResult(Decision.ALLOW, "assisted: safe read", False)
@@ -299,13 +505,72 @@ def evaluate(
 
 
 def _audit_log_path() -> Path:
-    home = os.environ.get("HERMES_HOME")
-    if home:
-        base = Path(home)
-    else:
-        base = Path.home() / ".hermes"
-    base.mkdir(parents=True, exist_ok=True)
-    return base / "approval.log"
+    return _hermes_home() / "approval.log"
+
+
+def read_decisions(limit: int = 50, log_path: Optional[Path] = None) -> list[dict[str, Any]]:
+    """Return the most recent ``limit`` decisions from the audit log.
+
+    Entries are already redacted at write time by :func:`record_decision`, so
+    this is safe to surface to the cockpit audit trail.
+    """
+    import json
+
+    target = log_path or _audit_log_path()
+    try:
+        lines = target.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out: list[dict[str, Any]] = []
+    for line in lines[-limit:]:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            continue
+    out.reverse()  # newest first
+    return out
+
+
+def capabilities(level: AutonomyLevel) -> dict[str, list[str]]:
+    """Describe what ``level`` auto-approves vs. still gates.
+
+    Single source of truth for the cockpit + Android capability list, so the
+    UI never hard-codes a divergent list. ``always_deny`` is the non-negotiable
+    set (force-push to protected branches, un-targeted secret transfer,
+    non-allowlisted public tunnel).
+    """
+    if level is AutonomyLevel.READ_ONLY:
+        auto = sorted(_READ_ONLY_ALLOW)
+    elif level is AutonomyLevel.ASSISTED:
+        auto = sorted(_ASSISTED_AUTO)
+    elif level is AutonomyLevel.AUTONOMOUS:
+        auto = sorted(_AUTONOMOUS_AUTO)
+    elif level is AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING:
+        auto = sorted(_HIGH_AUTONOMY_CODING_AUTO)
+    elif level is AutonomyLevel.YOLO:
+        auto = sorted(a for a in Action if a not in _YOLO_HARD_LIMITS)
+    else:  # pragma: no cover - exhaustive
+        auto = []
+    auto_set = set(auto)
+    always_deny = [
+        Action.GITHUB_FORCE_PUSH.value,
+        Action.REMOTE_SECRET_TRANSFER.value,
+        Action.PUBLIC_TUNNEL.value,
+    ]
+    requires_approval = sorted(
+        a.value for a in Action if a not in auto_set and a.value not in always_deny
+    )
+    return {
+        "auto_approved": [a.value for a in auto],
+        "requires_approval": requires_approval,
+        "always_deny": always_deny,
+        "workspace_scoped": sorted(a.value for a in _WORKSPACE_SCOPED_ACTIONS)
+        if level is AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING
+        else [],
+    }
 
 
 def record_decision(
@@ -350,8 +615,14 @@ __all__ = [
     "ApprovalRequest",
     "ApprovalResult",
     "AutonomyLevel",
+    "AutonomyRecord",
     "DEFAULT_PROTECTED_BRANCHES",
     "Decision",
+    "capabilities",
     "evaluate",
+    "load_record",
+    "read_decisions",
     "record_decision",
+    "revoke",
+    "save_level",
 ]

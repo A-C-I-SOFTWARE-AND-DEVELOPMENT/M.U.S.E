@@ -727,4 +727,44 @@ __all__ = [
     "normalize_publish_state",
     "proposal_view",
     "skill_entry",
+    "autonomy_status",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Autonomy — mirrors com.aci.hermes.data.cockpit.AutonomyStatus
+# ---------------------------------------------------------------------------
+#
+# Single canonical shape for `GET/POST /v1/cockpit/autonomy`. The capability
+# lists are passed through verbatim from `approval_policy.capabilities()` so
+# the Android capability picker renders the policy engine's truth, never a
+# hand-maintained copy. `revocable` is always True — the owner can drop
+# autonomy instantly.
+
+_AUTONOMY_DISPLAY = {
+    "read_only": "Read-only",
+    "assisted": "Assisted",
+    "autonomous": "Autonomous",
+    "yolo": "YOLO",
+    "owner_high_autonomy_coding": "High-Autonomy Coding",
+}
+
+
+def autonomy_status(record: Any, capabilities: dict[str, Any]) -> dict[str, Any]:
+    """Project an ``approval_policy.AutonomyRecord`` + capabilities to JSON."""
+    level = str(getattr(record, "level", "") or "")
+    level = getattr(getattr(record, "level", None), "value", level)
+    return {
+        "level": level,
+        "display_name": _AUTONOMY_DISPLAY.get(level, level or "Unknown"),
+        "workspace_root": str(getattr(record, "workspace_root", "") or ""),
+        "updated_at": float(getattr(record, "updated_at", 0.0) or 0.0),
+        "set_by": str(getattr(record, "set_by", "owner") or "owner"),
+        "revocable": True,
+        "capabilities": {
+            "auto_approved": list(capabilities.get("auto_approved", [])),
+            "requires_approval": list(capabilities.get("requires_approval", [])),
+            "always_deny": list(capabilities.get("always_deny", [])),
+            "workspace_scoped": list(capabilities.get("workspace_scoped", [])),
+        },
+    }
