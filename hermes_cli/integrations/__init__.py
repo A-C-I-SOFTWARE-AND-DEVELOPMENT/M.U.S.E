@@ -42,6 +42,7 @@ from .registry import (
     IntegrationSpec,
     default_registry,
 )
+from .transports import build_live_registry, make_gateway_transport
 
 __all__ = [
     "github",
@@ -55,6 +56,8 @@ __all__ = [
     "ActionResult",
     "IntegrationError",
     "default_registry",
+    "build_live_registry",
+    "make_gateway_transport",
 ]
 
 

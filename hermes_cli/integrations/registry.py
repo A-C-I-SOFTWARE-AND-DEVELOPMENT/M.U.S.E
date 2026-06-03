@@ -56,6 +56,33 @@ class IntegrationError(Exception):
     pass
 
 
+def _autonomy_allows_send(request: "ActionRequest") -> bool:
+    """True iff the autonomy policy auto-approves this outbound action.
+
+    Delegates to the existing ``hermes_cli/approval_policy.py`` so behavior is
+    governed by the project's ``HERMES_AUTONOMY`` switch (default ASSISTED →
+    requires confirmation; AUTONOMOUS/YOLO → auto-approve, audited). Fail-closed:
+    any error means "not auto-approved".
+    """
+    try:
+        from hermes_cli import approval_policy as ap
+
+        req = ap.ApprovalRequest(
+            action=ap.Action.OUTBOUND_MESSAGE,
+            summary=f"{request.integration}.{request.capability}",
+            target=str(request.payload.get("to", "")),
+            details={"integration": request.integration, "capability": request.capability},
+        )
+        result = ap.evaluate(req)
+        try:
+            ap.record_decision(req, result)
+        except Exception:
+            pass  # auditing is best-effort; never block on it
+        return result.decision is ap.Decision.ALLOW
+    except Exception:
+        return False
+
+
 class IntegrationRegistry:
     def __init__(self) -> None:
         self._specs: dict[str, IntegrationSpec] = {}
@@ -90,10 +117,15 @@ class IntegrationRegistry:
                 f"{request.integration!r} does not support capability {request.capability!r}",
             )
         if request.capability in spec.requires_approval and not approved:
-            return ActionResult(
-                "needs_approval",
-                f"{request.integration}.{request.capability} requires owner approval",
-            )
+            # Consult the existing autonomy policy: under AUTONOMOUS/YOLO an
+            # outbound send is auto-approved (and audited); under ASSISTED /
+            # READ_ONLY it still requires explicit owner confirmation.
+            if not _autonomy_allows_send(request):
+                return ActionResult(
+                    "needs_approval",
+                    f"{request.integration}.{request.capability} requires owner approval "
+                    f"(set HERMES_AUTONOMY=autonomous to auto-approve)",
+                )
 
         transport = self._transports.get(request.integration)
         if transport is None:

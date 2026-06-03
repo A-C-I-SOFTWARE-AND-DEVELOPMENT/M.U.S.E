@@ -378,6 +378,11 @@ model_router:
   # produced by the EVAL-1 harness (hermes_cli/evals).
   require_eval_for: []        # e.g. [implementation, security]
 
+# Live/autonomous behavior is governed by the existing autonomy switch
+# (env HERMES_AUTONOMY: read_only | assisted (default) | autonomous | yolo).
+# Under `assisted` (default) outbound sends + non-dry-run background jobs require
+# owner confirmation; under `autonomous`/`yolo` they auto-approve (audited).
+# Destructive/deploy/force-push/tunnel actions always require confirmation.
 background_learner:
   enabled: false             # master switch for the idle background learner
   idle_only: true            # only drain the queue when the system is idle

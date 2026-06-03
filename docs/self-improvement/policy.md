@@ -37,6 +37,34 @@ Communication integrations (email/SMS/calendar) are capability-typed; any
 approval. No new outbound credential path is introduced — transports are wired
 explicitly by callers (e.g. an existing gateway channel), never implicitly.
 
+## Autonomous mode (live wiring)
+
+Going live is governed by Hermes's **existing** autonomy switch, not a new
+mechanism: `hermes_cli/approval_policy.py` reads `HERMES_AUTONOMY`
+(`read_only` | `assisted` (default) | `autonomous` | `yolo`). The autonomy
+features added here delegate to `approval_policy.evaluate(...)`:
+
+- **Outbound sends** use the new `Action.OUTBOUND_MESSAGE`. Under the default
+  `assisted`, a send returns `needs_approval` (operator confirms). Under
+  `autonomous`/`yolo` it is auto-approved and the decision is written to the
+  approval audit log (`record_decision`). Wire a real transport with
+  `integrations.build_live_registry(email_sender=...)` (delegating to the
+  existing gateway send path); an unwired send is a governed no-op.
+- **Background-learner live jobs**: a non-dry-run job is authorized only when an
+  owner approval token is supplied OR `HERMES_AUTONOMY` grants live local work
+  (`autonomous`/`yolo`). Default `assisted` → downgraded to dry-run. Code/skill
+  changes still become owner-gated `ProposalBook` proposals regardless.
+- **Model-backed evals**: `hermes_cli/evals/build_model_runner(...)` calls a real
+  model over the OpenAI-compatible client Hermes already uses, configured from
+  `HERMES_EVAL_*` / `OPENAI_*` env. Building is always safe; it only spends when
+  invoked with real credentials.
+
+The committed default is `assisted` (safe). To run fully unattended, the owner
+sets `HERMES_AUTONOMY=autonomous` (or `yolo`) — a deliberate, audited choice,
+not a code default. `_ALWAYS_CONFIRM` actions (destructive command, force-push to
+protected branches, deploys, public tunnels, remote secret transfer) remain
+confirmation-required even under `autonomous`.
+
 ## Observability
 
 Raw tool output (`~/.hermes/tool-raw/`) and raw memory events

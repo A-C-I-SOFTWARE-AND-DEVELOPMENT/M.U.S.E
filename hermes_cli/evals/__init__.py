@@ -7,5 +7,6 @@ Produces `eval_passed` / `eval_results` for `WorkerEntry` (ROUTE-2). See
 from __future__ import annotations
 
 from .harness import BUILTIN_CASES, EvalCase, EvalReport, run_suite
+from .model_runner import build_model_runner
 
-__all__ = ["EvalCase", "EvalReport", "run_suite", "BUILTIN_CASES"]
+__all__ = ["EvalCase", "EvalReport", "run_suite", "BUILTIN_CASES", "build_model_runner"]

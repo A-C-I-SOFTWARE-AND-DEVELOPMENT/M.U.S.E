@@ -93,6 +93,7 @@ class Action(str, enum.Enum):
     VERCEL_DEPLOY = "vercel_deploy"
     PUBLIC_TUNNEL = "public_tunnel"
     CONTINUOUS_LISTEN = "continuous_listen"
+    OUTBOUND_MESSAGE = "outbound_message"  # send email/SMS/calendar via an integration
 
 
 class AutonomyLevel(str, enum.Enum):
@@ -184,6 +185,9 @@ _AUTONOMOUS_AUTO: frozenset[Action] = frozenset(
         Action.LOCAL_COMMAND,
         Action.SECRET_ACCESS,
         Action.CONTINUOUS_LISTEN,
+        # Outbound messages (email/SMS/calendar) auto-send only under AUTONOMOUS
+        # (or YOLO); ASSISTED/READ_ONLY still require operator confirmation.
+        Action.OUTBOUND_MESSAGE,
     }
 )
 
