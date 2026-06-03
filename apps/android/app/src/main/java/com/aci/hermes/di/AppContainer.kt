@@ -209,6 +209,10 @@ class AppContainer(private val application: Application) {
     val cockpitApprovalsRepository: CockpitApprovalsRepository =
         CockpitApprovalsRepository(cockpitClient)
 
+    /** Gateway-backed learning-dataset candidate queue (owner review). */
+    val learningRepository: com.aci.hermes.learning.state.LearningRepository =
+        com.aci.hermes.learning.state.LearningRepository(cockpitClient)
+
     fun orchestratorVmFactory(): ViewModelProvider.Factory = factory {
         OrchestratorViewModel(
             application = application,
@@ -252,6 +256,10 @@ class AppContainer(private val application: Application) {
 
     fun approvalsVmFactory(): ViewModelProvider.Factory = factory {
         ApprovalViewModel(approvalStore, cockpitApprovalsRepository)
+    }
+
+    fun learningVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.learning.state.LearningViewModel(learningRepository)
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {

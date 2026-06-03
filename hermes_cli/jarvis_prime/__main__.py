@@ -355,6 +355,94 @@ def _set_proposal_status(proposal_id: str, new_status: str, note: str) -> int:
     return 0
 
 
+# --- learning dataset queue ------------------------------------------------
+
+
+def _learning_store():
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    path = Path(base) / "jarvis_prime" / "learning_dataset.jsonl"
+    return DatasetStore.load(path)
+
+
+def _cmd_learning_list(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    items = store.list()
+    if getattr(args, "json", False):
+        _print_json([c.audit_card() for c in items])
+        return 0
+    if not items:
+        print("no learning candidates")
+        return 0
+    for c in items:
+        labels = ",".join(c.labels) or "-"
+        print(
+            f"{c.id}  {c.status.value:<9}  {c.trace_type.value:<26}  "
+            f"labels={labels}  src={c.provenance.source_kind}"
+        )
+    return 0
+
+
+def _cmd_learning_approve(args: argparse.Namespace) -> int:
+    phrase = _resolve_owner_phrase(args)
+    if phrase is None or phrase.strip() != AUTHORIZATION_PHRASE:
+        print(
+            "error: owner authorization phrase required for approve "
+            "(pass --phrase or set JARVIS_OWNER_PHRASE; must be exactly "
+            f"{AUTHORIZATION_PHRASE!r})",
+            file=sys.stderr,
+        )
+        return 1
+    store = _learning_store()
+    if store.get(args.candidate_id) is None:
+        print(f"unknown candidate: {args.candidate_id!r}", file=sys.stderr)
+        return 1
+    store.approve(args.candidate_id, note="approved via CLI")
+    print(f"{args.candidate_id}: approved")
+    return 0
+
+
+def _cmd_learning_reject(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    if store.get(args.candidate_id) is None:
+        print(f"unknown candidate: {args.candidate_id!r}", file=sys.stderr)
+        return 1
+    store.reject(args.candidate_id, note="rejected via CLI")
+    print(f"{args.candidate_id}: rejected")
+    return 0
+
+
+def _cmd_learning_export(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    out = Path(args.out)
+    fmt = args.format
+    if fmt == "jsonl":
+        n = store.export_jsonl(out)
+    elif fmt == "preference":
+        n = store.export_preference_pairs(out)
+    elif fmt == "eval":
+        n = store.export_eval_cases(out)
+    elif fmt == "skill":
+        n = store.export_skill_candidates(out)
+    else:  # pragma: no cover - argparse choices guard this
+        print(f"unknown format: {fmt}", file=sys.stderr)
+        return 2
+    print(f"exported {n} record(s) ({fmt}) -> {out}")
+    return 0
+
+
+def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.learning_ingest import from_trajectory_file
+
+    store = _learning_store()
+    created = from_trajectory_file(Path(args.path), store)
+    print(f"ingested {len(created)} candidate(s) from {args.path}")
+    for note in store.load_diagnostics:
+        print(f"  skipped: {note}", file=sys.stderr)
+    return 0
+
+
 def _cmd_handoff(args: argparse.Namespace) -> int:
     packet_path = Path(args.packet)
     if not packet_path.is_file():
@@ -1004,6 +1092,61 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_proposals_reject = p_proposals_sub.add_parser("reject", help="Reject a proposal")
     p_proposals_reject.add_argument("proposal_id")
     p_proposals_reject.set_defaults(func=_cmd_proposals_reject)
+
+    p_learning = sub.add_parser(
+        "learning",
+        help="Review/approve/export JARVIS learning-dataset candidates",
+        description=(
+            "Owner review surface for the JARVIS learning dataset. Candidates "
+            "are stored at ${HERMES_HOME:-~/.hermes}/jarvis_prime/"
+            "learning_dataset.jsonl. Only validated traces are stored; only "
+            "owner-approved traces are exported. 'approve' requires the exact "
+            "phrase 'Yes, with authorization.' via --phrase or JARVIS_OWNER_PHRASE."
+        ),
+    )
+    p_learning_sub = p_learning.add_subparsers(
+        dest="learning_command", required=True
+    )
+
+    p_learning_list = p_learning_sub.add_parser(
+        "list", help="List learning candidates"
+    )
+    p_learning_list.add_argument("--json", action="store_true")
+    p_learning_list.set_defaults(func=_cmd_learning_list)
+
+    p_learning_approve = p_learning_sub.add_parser(
+        "approve", help="Approve a candidate (requires owner authorization phrase)"
+    )
+    p_learning_approve.add_argument("candidate_id")
+    p_learning_approve.add_argument(
+        "--phrase",
+        help="Owner authorization phrase. Must be exactly 'Yes, with authorization.'",
+    )
+    p_learning_approve.set_defaults(func=_cmd_learning_approve)
+
+    p_learning_reject = p_learning_sub.add_parser(
+        "reject", help="Reject a candidate"
+    )
+    p_learning_reject.add_argument("candidate_id")
+    p_learning_reject.set_defaults(func=_cmd_learning_reject)
+
+    p_learning_export = p_learning_sub.add_parser(
+        "export", help="Export approved candidates to a file"
+    )
+    p_learning_export.add_argument(
+        "--format",
+        choices=("jsonl", "preference", "eval", "skill"),
+        default="jsonl",
+    )
+    p_learning_export.add_argument("--out", required=True, help="Output file path")
+    p_learning_export.set_defaults(func=_cmd_learning_export)
+
+    p_learning_ingest = p_learning_sub.add_parser(
+        "ingest-trajectory",
+        help="Ingest a save_trajectory-format JSONL into the candidate queue",
+    )
+    p_learning_ingest.add_argument("path", help="Path to the trajectory JSONL")
+    p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
 
     p_handoff = sub.add_parser(
         "handoff",

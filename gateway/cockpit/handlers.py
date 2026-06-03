@@ -713,6 +713,105 @@ def approvals_decide(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Learning Queue (the JARVIS learning-dataset candidate queue)
+# ---------------------------------------------------------------------------
+
+
+def _learning_store():
+    """Load the learning-dataset store, honoring ``HERMES_HOME``."""
+
+    import os as _os
+    from pathlib import Path as _Path
+
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+
+    base = _os.environ.get("HERMES_HOME") or _os.path.expanduser("~/.hermes")
+    path = _Path(base) / "jarvis_prime" / "learning_dataset.jsonl"
+    return DatasetStore.load(path)
+
+
+def learning_list(req: Request) -> JsonResponse:
+    """The learning-dataset candidate queue as provenance-first cards.
+
+    Honest empty list when the store is missing or the pipeline is
+    unavailable — never fabricated.
+    """
+
+    try:
+        from . import contract
+
+        store = _learning_store()
+        trace_type = req.query.get("trace_type")
+        status = req.query.get("status")
+        cards = []
+        for cand in store.list():
+            d = cand.to_dict()
+            if trace_type and d.get("trace_type") != trace_type:
+                continue
+            if status and d.get("status") != status:
+                continue
+            cards.append(contract.learning_card(d, candidate_id=cand.id))
+        return JsonResponse(200, {"learning": cards})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"learning": [], "error": str(exc)})
+
+
+def learning_decide(req: Request) -> JsonResponse:
+    """Approve/reject a learning candidate. Approve requires the owner phrase."""
+
+    candidate_id = req.path_params.get("id", "")
+    decision = str(req.body.get("decision", "")).lower().strip()
+    if decision not in ("approve", "reject"):
+        return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
+
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if decision == "approve":
+        phrase = str(req.body.get("authorization", "")).strip()
+        if phrase != AUTHORIZATION_PHRASE:
+            # Owner-gate contract: exact phrase required. Never bypass.
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner authorization required",
+                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                },
+            )
+
+    store = _learning_store()
+    if store.get(candidate_id) is None:
+        return JsonResponse(404, {"error": f"unknown candidate: {candidate_id}"})
+    note = str(req.body.get("notes", "") or f"{decision} via cockpit")
+    if decision == "approve":
+        store.approve(candidate_id, note=note)
+    else:
+        store.reject(candidate_id, note=note)
+    return JsonResponse(200, {"id": candidate_id, "status": decision})
+
+
+def learning_export(req: Request) -> JsonResponse:
+    """Report exportable counts per format (read-only; never streams secrets)."""
+
+    try:
+        from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
+
+        store = _learning_store()
+        approved = store.list(status=CandidateStatus.APPROVED)
+        eligible = [c for c in approved if c.is_negative or c.quality.passed(c.trace_type)]
+        return JsonResponse(
+            200,
+            {
+                "formats": ["jsonl", "preference_pairs", "eval_cases", "skill_candidates"],
+                "approved": len(approved),
+                "exportable": len(eligible),
+                "pending": len(store.pending()),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"formats": [], "error": str(exc)})
+
+
+# ---------------------------------------------------------------------------
 # Sessions (decision-ledger sessions)
 # ---------------------------------------------------------------------------
 

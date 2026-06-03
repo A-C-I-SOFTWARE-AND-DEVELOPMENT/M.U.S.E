@@ -479,6 +479,44 @@ data class CockpitApprovalDecisionResult(
     val hint: String? = null,
 )
 
+// ─── Learning Queue (learning-dataset candidate review) ───────────────
+//
+// Provenance-first cards for the owner Learning Queue. The gateway projects
+// learning-dataset candidates (already secret-scrubbed at write time); the
+// list never carries the raw trace payload.
+
+@Serializable
+data class CockpitLearningList(val learning: List<CockpitLearningCard> = emptyList())
+
+@Serializable
+data class CockpitLearningCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("trace_type") val traceType: String = "",
+    val status: String = "pending",
+    val labels: List<String> = emptyList(),
+    @SerialName("is_negative") val isNegative: Boolean = false,
+    val quality: CockpitLearningQuality = CockpitLearningQuality(),
+    val provenance: CockpitLearningProvenance = CockpitLearningProvenance(),
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class CockpitLearningQuality(
+    @SerialName("tests_passed") val testsPassed: Boolean = false,
+    @SerialName("citations_verified") val citationsVerified: Boolean = false,
+    @SerialName("owner_approved") val ownerApproved: Boolean = false,
+    @SerialName("reviewer_passed") val reviewerPassed: Boolean = false,
+    @SerialName("rollback_available") val rollbackAvailable: Boolean = false,
+)
+
+@Serializable
+data class CockpitLearningProvenance(
+    @SerialName("source_kind") val sourceKind: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    val citations: List<String> = emptyList(),
+)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable

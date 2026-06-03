@@ -163,6 +163,28 @@ class HermesCockpitClient(
             ),
         )
 
+    // ─── Learning Queue (learning-dataset candidate review) ──────────────
+    suspend fun learningList(): CockpitResult<CockpitLearningList> =
+        request("GET", "/v1/cockpit/learning", CockpitLearningList.serializer())
+
+    /** Decide a learning candidate. Approve requires the owner [authorization]
+     *  phrase (the gateway returns 403 otherwise — owner gate never bypassed). */
+    suspend fun learningDecide(
+        id: String,
+        decision: String,
+        authorization: String? = null,
+        notes: String? = null,
+    ): CockpitResult<CockpitApprovalDecisionResult> =
+        request(
+            "POST",
+            "/v1/cockpit/learning/" + enc(id),
+            CockpitApprovalDecisionResult.serializer(),
+            body = json.encodeToString(
+                CockpitApprovalDecision.serializer(),
+                CockpitApprovalDecision(decision = decision, authorization = authorization, notes = notes),
+            ),
+        )
+
     // ─── Audit (contract §10b) ───────────────────────────────────────────
     suspend fun auditList(): CockpitResult<CockpitAuditList> =
         request("GET", "/v1/cockpit/audit", CockpitAuditList.serializer())

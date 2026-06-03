@@ -21,6 +21,7 @@ import androidx.navigation.navArgument
 import com.aci.hermes.R
 import com.aci.hermes.approval.state.ApprovalViewModel
 import com.aci.hermes.approval.ui.screens.ApprovalsScreen
+import com.aci.hermes.learning.state.LearningViewModel
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
@@ -305,6 +306,9 @@ private fun NavGraphBuilder.shellDestinations(
         val vm: ApprovalViewModel = viewModel(
             factory = remember { container.approvalsVmFactory() },
         )
+        val learningVm: LearningViewModel = viewModel(
+            factory = remember { container.learningVmFactory() },
+        )
         ShellHost(
             currentRoute = Screen.Approvals.route,
             titleRes = R.string.nav_approvals,
@@ -316,7 +320,11 @@ private fun NavGraphBuilder.shellDestinations(
             // ApprovalsScreen owns its own internal padding; pass the shell padding
             // so the underlying surface respects bottom-nav inset.
             Box(modifier = Modifier.padding(padding)) {
-                ApprovalsScreen(viewModel = vm, onBack = { nav.popBackStack() })
+                ApprovalsScreen(
+                    viewModel = vm,
+                    onBack = { nav.popBackStack() },
+                    learningViewModel = learningVm,
+                )
             }
         }
     }

@@ -547,6 +547,73 @@ green-light. The cockpit reads pending approvals from:
 
 ---
 
+## 10d. Learning Queue — **canonical, implemented**
+
+The JARVIS learning-dataset candidate queue: validated, source-backed
+traces awaiting owner approval before they are eligible for export
+(fine-tuning / preference / eval / skill candidates). Backed by
+`hermes_cli/jarvis_prime/learning_dataset.py`; secrets and raw
+chain-of-thought are stripped at write time, so the list never carries
+the raw trace payload.
+
+### `GET /v1/cockpit/learning`
+
+```json
+{
+  "learning": [
+    {
+      "id": "abc123",
+      "title": "research answer trace",
+      "trace_type": "research_answer_trace",
+      "status": "pending",
+      "labels": [],
+      "is_negative": false,
+      "quality": {
+        "tests_passed": false,
+        "citations_verified": true,
+        "owner_approved": false,
+        "reviewer_passed": false,
+        "rollback_available": false
+      },
+      "provenance": {
+        "source_kind": "research_vault",
+        "source_uri": "https://example.org",
+        "citations": ["https://example.org"]
+      },
+      "created_at": "2026-06-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+Optional query filters: `trace_type`, `status`.
+
+### `POST /v1/cockpit/learning/{id}`
+
+```json
+{ "decision": "approve", "authorization": "Yes, with authorization." }
+```
+
+`decision ∈ {"approve", "reject"}`. **Approve requires the exact owner
+phrase** (`authorization`) — `403` otherwise (the owner gate is never
+bypassed). Reject needs no phrase. `404` for an unknown candidate.
+
+### `GET /v1/cockpit/learning/export`
+
+Read-only export readiness (counts per format) — never streams the raw
+payload:
+
+```json
+{
+  "formats": ["jsonl", "preference_pairs", "eval_cases", "skill_candidates"],
+  "approved": 3,
+  "exportable": 2,
+  "pending": 5
+}
+```
+
+---
+
 ## 10a. Memory — **canonical, implemented**
 
 The cockpit memory routes are **live** and emit the canonical schema
