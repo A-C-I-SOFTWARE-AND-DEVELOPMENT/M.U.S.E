@@ -25,6 +25,42 @@ def test_chunk_builders_match_kotlin_contract():
     assert "retryHint" not in jh.error("boom")
 
 
+def test_extended_chunk_builders_are_additive():
+    # Phase rail.
+    assert jh.phase("routing") == {"type": "phase", "phase": "ROUTING"}
+    assert jh.phase("VERIFICATION")["phase"] == "VERIFICATION"
+    # Tool call: START with no detail, then a terminal status with detail.
+    start = jh.tool_call("t1", "repo_grep", "searching", "START")
+    assert start == {
+        "type": "tool_call",
+        "id": "t1",
+        "name": "repo_grep",
+        "summary": "searching",
+        "status": "START",
+    }
+    ok = jh.tool_call("t1", "repo_grep", "3 files", "ok", detail="a/b.py")
+    assert ok["status"] == "OK" and ok["detail"] == "a/b.py"
+    # Reference-only chunks (id + title, no body).
+    assert jh.evidence_ref("aud-1", "Evidence") == {
+        "type": "evidence",
+        "auditId": "aud-1",
+        "title": "Evidence",
+    }
+    assert jh.ledger_ref("led-1", "Decision") == {
+        "type": "ledger",
+        "ledgerId": "led-1",
+        "title": "Decision",
+    }
+
+
+def test_tool_call_redacts_secrets_in_summary_and_detail():
+    leak = "token=sk-ABCDEF0123456789ABCDEF0123456789abcd"
+    chunk = jh.tool_call("t1", "env_dump", leak, "OK", detail=leak)
+    assert "ABCDEF0123456789" not in chunk["summary"]
+    assert "ABCDEF0123456789" not in chunk["detail"]
+    assert "redacted" in chunk["summary"]
+
+
 def test_encode_stream_is_newline_delimited_json():
     lines = list(jh.encode_stream([jh.thinking(), jh.body("x"), jh.done()]))
     assert all(line.endswith(b"\n") for line in lines)
