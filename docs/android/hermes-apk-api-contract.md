@@ -661,6 +661,71 @@ store is invented.
 
 ---
 
+## 10d. Research Mode — **canonical, implemented** (Evidence Engine)
+
+The Android Research screen drives the backend Evidence Engine
+(`hermes_cli/jarvis_prime/research_engine.py`), which composes the existing
+research primitives (the `ResearchBrief` decomposer, the `ResearchVault`
+evidence store + trust ranking, the `epistemics` uncertainty audit) into one
+pipeline. **Nothing is fabricated**: an empty `cards` list with a populated
+`notes` string is the engine honestly reporting it had no source-backed
+evidence (e.g. no web-search provider configured and no manual sources given).
+
+### Research report object
+
+```json
+{
+  "id": "rr_ab12…",
+  "query": "What transport does HTTP/3 use?",
+  "sub_questions": ["…"],
+  "cards": [
+    {
+      "id": "c1", "title": "HTTP/3 spec",
+      "source_uri": "https://…", "source_type": "official_doc",
+      "evidence_strength": "primary", "excerpt": "…", "claim": "…",
+      "relevance": 0.5, "sub_question": ""
+    }
+  ],
+  "claims": [
+    {"text": "…", "supporting_card_ids": ["c1"], "confidence": 0.9,
+     "uncertainty": "", "sub_question": ""}
+  ],
+  "contradictions": [
+    {"subject": "…", "claim_a": "…", "claim_b": "…",
+     "card_a_id": "c1", "card_b_id": "c2", "reason": "…"}
+  ],
+  "final_answer": "- … [https://…]",
+  "uncertainty": "pass",
+  "citations": ["https://…"],
+  "notes": "",
+  "created_at": "2026-06-03T00:00:00Z"
+}
+```
+
+`evidence_strength` ∈ `primary | strong | moderate | weak | vendor_reported`
+(maps to `SourceTrust`). `source_type` ∈ `paper | official_doc | blog | repo |
+course | benchmark | oss_practice | manual`.
+
+- `POST /v1/cockpit/research` → run the pipeline. Body: `{"query": str,
+  "manual_sources"?: [{"title","url","excerpt"}]}`. Returns the report (`201`).
+  Source gathering uses the configured web-search provider when one is
+  available (`agent.web_search_registry`); otherwise it relies on
+  `manual_sources` and reports honestly via `notes`.
+- `GET /v1/cockpit/research` → `{"reports": [Report, …]}`, newest first.
+- `GET /v1/cockpit/research/{id}` → one report (`404` if unknown).
+- `POST /v1/cockpit/research/{id}/promote` → promote one evidence card to the
+  Memory Tree. Body: `{"card_id": str}`. Reuses the **same write gate** as
+  `POST /v1/cockpit/memory`: `201 {"stored": true, "item": MemoryItem}` on
+  success, or `422 {"stored": false, "reason": …}` when the store rejects it
+  (secret-like / below the durable-confidence floor) — honest, never faked.
+  A promoted finding then appears in `GET /v1/cockpit/memory`.
+- `POST /v1/cockpit/research/{id}/task` → create a coding task from the
+  report. Body: `{"title"?, "worker_id"?, "workspace_path"?}`. Reuses the
+  `POST /v1/cockpit/jobs` enqueue path: returns a **queued** `Job` (`201`);
+  nothing executes here (owner/run gates unchanged).
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any

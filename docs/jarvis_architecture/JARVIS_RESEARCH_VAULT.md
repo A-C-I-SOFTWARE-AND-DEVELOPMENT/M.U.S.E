@@ -38,3 +38,8 @@ python -m hermes_cli.jarvis_prime research export-markdown --store PATH
 - Owner gates: none.
 - Rollback: additive module; revert branch.
 - Risk: evidence strength is owner/operator-asserted, not auto-verified.
+
+## See also
+- [JARVIS Research Mode (the Evidence Engine)](../jarvis_research/JARVIS_RESEARCH_MODE.md)
+  — the pipeline that gathers, ranks, and writes evidence into this vault, and
+  exposes it on the Android Research screen.
