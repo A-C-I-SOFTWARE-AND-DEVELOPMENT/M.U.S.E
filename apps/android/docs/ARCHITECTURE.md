@@ -73,14 +73,36 @@ effect on the next `send()` without recreating ViewModels.
 Two stores, deliberate split:
 
 - **DataStore (`hermes_settings`)** — non-secret prefs: gateway URL, theme,
-  default provider id, mock-mode flag, onboarding flag.
-- **EncryptedSharedPreferences (`hermes_secure_prefs.xml`)** — secrets:
-  gateway bearer token, provider API key. Sealed with a hardware-backed
-  master key when available (`MasterKey.KeyScheme.AES256_GCM`). Excluded
-  from cloud backup and device transfer via `data_extraction_rules.xml`
-  and `backup_rules.xml`.
+  autonomy mode, mock-mode flag, onboarding flag, safety toggles. Never a
+  token.
+- **EncryptedSharedPreferences (`hermes_secure_prefs`)** — the one secret
+  the app holds: the **cockpit bearer token**. Reached only through the
+  `SecureTokenStore` abstraction (`data/preferences/SecureTokenStore.kt`,
+  production impl `EncryptedPrefsSecureTokenStore`). Sealed with a
+  hardware-backed master key when available
+  (`MasterKey.KeyScheme.AES256_GCM`; `AES256_SIV` key names, `AES256_GCM`
+  values). Excluded from cloud backup and device transfer via
+  `data_extraction_rules.xml` and `backup_rules.xml`.
 
-Both stores are wiped by **Settings → Reset all settings**.
+Provider API keys are **never** stored on the phone — they live only on the
+gateway (`~/.hermes/.env`); the app authenticates to the loopback cockpit
+with the bearer token and the gateway holds the model credentials.
+
+**One-time migration.** Earlier builds briefly stored the cockpit token as a
+plaintext DataStore key (`cockpit_token`). On construction,
+`SettingsRepository` runs `CockpitTokenMigration`: if the encrypted store has
+no token but a legacy plaintext key exists, the value is copied into the
+encrypted store and the plaintext key is removed. The migration fails safe:
+the encrypted store fails *soft* (a missing Keystore makes the write a silent
+no-op, not an exception), so the plaintext copy is dropped **only after the
+write is verified by reading it back** — if it didn't land, the plaintext is
+kept and the next launch retries, so the pairing is never lost. If the
+encrypted store already holds the token, any leftover plaintext copy from a
+prior failed clear is still swept up so it never lingers.
+
+`setCockpitToken` writes the encrypted store; `clearCockpitToken` clears the
+encrypted store **and** removes any residual plaintext key. Both stores are
+wiped by **Settings → Reset all settings**.
 
 ## Wire format
 
