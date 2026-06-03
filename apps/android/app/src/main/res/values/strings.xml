@@ -191,6 +191,7 @@
     <string name="nav_home">Home</string>
     <string name="nav_chat">Chat</string>
     <string name="nav_tasks">Tasks</string>
+    <string name="nav_jobs">Jobs</string>
     <string name="nav_approvals">Approvals</string>
     <string name="nav_memory">Memory</string>
     <string name="nav_audit">Audit</string>
@@ -315,6 +316,21 @@
     <string name="diagnostics_no_error">No errors recorded.</string>
     <string name="diagnostics_no_logs">No logs yet.</string>
     <string name="diagnostics_refresh">Refresh</string>
+
+    <!-- Jobs (cockpit orchestration) -->
+    <string name="jobs_title">Orchestration jobs</string>
+    <string name="jobs_branch_label">Branch: %1$s</string>
+    <string name="jobs_validation_label">Validation · %1$d pass / %2$d fail / %3$d pending</string>
+    <string name="jobs_cancel_action">Cancel job</string>
+    <string name="jobs_cancel_title">Cancel this job?</string>
+    <string name="jobs_cancel_body">This asks the gateway to cancel “%1$s”. In-flight work stops at the next safe point.</string>
+    <string name="jobs_cancel_confirm">Cancel job</string>
+    <string name="jobs_cancel_failed">Couldn\'t cancel job: %1$s</string>
+    <string name="jobs_empty_title">No jobs yet</string>
+    <string name="jobs_empty_body">Dispatched orchestration jobs from the gateway will appear here.</string>
+    <string name="jobs_not_paired_title">Not paired with a gateway</string>
+    <string name="jobs_not_paired_body">Pair a Hermes gateway in Settings to see real jobs. No mock jobs are shown.</string>
+    <string name="jobs_error_title">Couldn\'t load jobs</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>

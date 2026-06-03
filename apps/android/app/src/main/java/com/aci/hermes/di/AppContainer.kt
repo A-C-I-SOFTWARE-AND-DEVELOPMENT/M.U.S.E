@@ -38,6 +38,7 @@ import com.aci.hermes.ui.screens.capability.CapabilityViewModel
 import com.aci.hermes.ui.screens.chat.JarvisChatViewModel
 import com.aci.hermes.ui.screens.control.ControlViewModel
 import com.aci.hermes.ui.screens.diagnostics.DiagnosticsViewModel
+import com.aci.hermes.ui.screens.jobs.JobsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
@@ -269,6 +270,10 @@ class AppContainer(private val application: Application) {
 
     fun capabilityVmFactory(): ViewModelProvider.Factory = factory {
         CapabilityViewModel(application, capabilityRepository, logBuffer)
+    }
+
+    fun jobsVmFactory(): ViewModelProvider.Factory = factory {
+        JobsViewModel(cockpitJobsRepository)
     }
 
     fun controlVmFactory(): ViewModelProvider.Factory = factory {

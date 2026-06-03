@@ -18,6 +18,7 @@ class ScreenTest {
         Screen.Home,
         Screen.Chat,
         Screen.Tasks,
+        Screen.Jobs,
         Screen.Approvals,
         Screen.Memory,
         Screen.Audit,
@@ -66,6 +67,7 @@ class ScreenTest {
             Screen.Home.route,
             Screen.Chat.route,
             Screen.Tasks.route,
+            Screen.Jobs.route,
             Screen.Approvals.route,
             Screen.Memory.route,
             Screen.Audit.route,
@@ -73,6 +75,38 @@ class ScreenTest {
             Screen.Control.route,
         )
         assertEquals(expectedShellRoutes, Screen.shellRoutes)
+    }
+
+    @Test
+    fun every_shell_route_is_reachable_via_a_tab_or_home_quick_link() {
+        // Reachability invariant: no shell destination may be deep-link-only.
+        // Home itself is the landing surface; every *other* shell route must
+        // be surfaced as a bottom tab or a Home quick-link. This is the test
+        // that would have caught the Capability screen being unreachable.
+        val reachable = buildSet {
+            add(Screen.Home.route)
+            addAll(Screen.bottomTabs.map { it.screen.route })
+            addAll(Screen.homeQuickLinks.map { it.route })
+        }
+        val orphaned = Screen.shellRoutes - reachable
+        assertTrue(
+            "Every shell route must be reachable via a tab or Home quick-link; orphaned: $orphaned",
+            orphaned.isEmpty(),
+        )
+    }
+
+    @Test
+    fun home_quick_links_are_all_shell_routes_and_exclude_home() {
+        assertTrue(
+            "Home must not link to itself",
+            Screen.Home !in Screen.homeQuickLinks,
+        )
+        for (screen in Screen.homeQuickLinks) {
+            assertTrue(
+                "Home quick-link ${screen.javaClass.simpleName} must be a shell route",
+                screen.route in Screen.shellRoutes,
+            )
+        }
     }
 
     @Test
