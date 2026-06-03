@@ -7,7 +7,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.avatar.AvatarSource
+import com.aci.hermes.data.jarvis.JarvisChatChunk
+import com.aci.hermes.data.jarvis.JarvisChatGateway
 import com.aci.hermes.data.life.BehaviorScheduler
+import com.aci.hermes.service.VoiceLoopService
 import java.util.Calendar
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -27,6 +30,7 @@ class JarvisLiveViewModel(
     application: Application,
     private val avatarRepository: AvatarRepository? = null,
     private val cockpitClient: com.aci.hermes.data.cockpit.HermesCockpitClient? = null,
+    private val gateway: JarvisChatGateway? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(
@@ -83,7 +87,26 @@ class JarvisLiveViewModel(
     init {
         startAmbientLife()
         observeSavedAvatar()
+        observeVoiceState()
         loadFurniture()
+    }
+
+    /**
+     * Mirror the REAL hands-free voice phase onto the avatar. This is the
+     * source of truth for listening/thinking/speaking — the avatar animates
+     * from genuine [VoiceLoopService] state, never a faked flag. Suppressed
+     * while an emergency stop is latched.
+     */
+    private fun observeVoiceState() {
+        viewModelScope.launch {
+            combine(VoiceLoopService.phase, VoiceLoopService.transcript) { phase, transcript ->
+                phase to transcript
+            }.collect { (phase, transcript) ->
+                if (_state.value.emergencyStop) return@collect
+                markInteraction()
+                _state.update { it.withVoicePhase(phase, transcript) }
+            }
+        }
     }
 
     /** Render the user's saved avatar as the living body: a GENERATED photo
@@ -166,8 +189,45 @@ class JarvisLiveViewModel(
     fun onSend() {
         markInteraction()
         val current = _state.value
-        if (current.command.isBlank() || current.emergencyStop) return
-        _state.update { it.copy(thinking = true, listening = false) }
+        val prompt = current.command.trim()
+        if (prompt.isBlank() || current.emergencyStop) return
+        val gw = gateway
+        if (gw == null) {
+            // No real backend wired (preview / test) — just clear the box
+            // rather than getting stuck on a fake "thinking" state.
+            _state.update { it.copy(command = "") }
+            return
+        }
+        _state.update { it.copy(command = "", thinking = true, listening = false) }
+        viewModelScope.launch {
+            gw.send(emptyList(), prompt).collect { chunk ->
+                if (_state.value.emergencyStop) return@collect
+                _state.update { s ->
+                    when (chunk) {
+                        is JarvisChatChunk.Thinking ->
+                            s.copy(thinking = true, working = false, speaking = false)
+                        is JarvisChatChunk.Working ->
+                            s.copy(thinking = false, working = true)
+                        is JarvisChatChunk.Body ->
+                            s.copy(thinking = false, working = false, speaking = true, voiceLine = chunk.text)
+                        is JarvisChatChunk.Detail ->
+                            // The cockpit surfaces owner-gated actions as a detail
+                            // chunk; reflect that as a real "approval needed" state
+                            // rather than letting voice/typed input proceed silently.
+                            if (chunk.text.contains("approval required", ignoreCase = true)) {
+                                s.copy(approvalNeeded = true)
+                            } else {
+                                s
+                            }
+                        is JarvisChatChunk.Done ->
+                            s.copy(thinking = false, working = false, speaking = false)
+                        is JarvisChatChunk.Failure ->
+                            s.copy(thinking = false, working = false, speaking = false, blocked = true)
+                        else -> s
+                    }
+                }
+            }
+        }
     }
 
     /** Cycle to the next pixel-sprite character (robot → person → pets → …),
@@ -186,6 +246,9 @@ class JarvisLiveViewModel(
 
     fun confirmEmergencyStop() {
         _showEmergencyConfirm.value = false
+        // A hard stop must also tear down any in-flight hands-free voice loop,
+        // not just clear the flags — the mic/foreground service stops too.
+        runCatching { VoiceLoopService.stop(getApplication()) }
         _state.update {
             it.copy(
                 emergencyStop = true,

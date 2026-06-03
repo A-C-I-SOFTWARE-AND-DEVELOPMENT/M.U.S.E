@@ -194,6 +194,10 @@ fun JarvisLiveScreen(
                     overflowOpen = false
                     onOpenSettings()
                 },
+                onCycleCharacter = {
+                    overflowOpen = false
+                    viewModel.cycleSprite()
+                },
                 onOpenStatusSheet = {
                     overflowOpen = false
                     viewModel.openStatusSheet()
@@ -291,9 +295,13 @@ fun JarvisLiveScreen(
                         .offset(x = walkX.dp, y = walkY.dp)
                         .scale(bodyScale)
                         .pointerInput(projection.state) {
+                            // Presence Mode gestures: a single tap is the
+                            // hands-free TALK fallback (start a turn), not a
+                            // status popup; status moves to double-tap / pill /
+                            // overflow; a long-press is the emergency stop.
                             detectTapGestures(
-                                onTap = { viewModel.openStatusSheet() },
-                                onDoubleTap = { viewModel.cycleSprite() },
+                                onTap = { onMic() },
+                                onDoubleTap = { viewModel.openStatusSheet() },
                                 onLongPress = { viewModel.requestEmergencyConfirm() },
                             )
                         },
@@ -477,6 +485,7 @@ private fun JarvisTopBar(
     overflowOpen: Boolean,
     onOverflowDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
+    onCycleCharacter: () -> Unit,
     onOpenStatusSheet: () -> Unit,
 ) {
     Row(
@@ -494,7 +503,7 @@ private fun JarvisTopBar(
             Icon(Icons.Outlined.Menu, contentDescription = null, tint = Color.White)
         }
 
-        JarvisStatusPill(projection = projection)
+        JarvisStatusPill(projection = projection, onClick = onOpenStatusSheet)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -522,6 +531,10 @@ private fun JarvisTopBar(
                         onClick = onOpenStatusSheet,
                     )
                     DropdownMenuItem(
+                        text = { Text(stringResource(R.string.jarvis_overflow_cycle_character)) },
+                        onClick = onCycleCharacter,
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.nav_settings)) },
                         onClick = onOpenSettings,
                     )
@@ -532,12 +545,13 @@ private fun JarvisTopBar(
 }
 
 @Composable
-private fun JarvisStatusPill(projection: JarvisLiveProjection) {
+private fun JarvisStatusPill(projection: JarvisLiveProjection, onClick: () -> Unit) {
     val (bg, fg) = pillColorsFor(projection.state)
     val description = stringResource(R.string.jarvis_status_pill_cd, stringResource(projection.pillText))
     Surface(
         shape = RoundedCornerShape(50),
         color = bg,
+        onClick = onClick,
         modifier = Modifier
             .padding(horizontal = 12.dp)
             .clip(RoundedCornerShape(50)),
