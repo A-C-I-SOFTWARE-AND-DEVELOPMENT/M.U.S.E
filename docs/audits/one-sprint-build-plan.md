@@ -16,7 +16,32 @@
 > `hermes_cli/model_router.py`. The scaffold collided with it and was removed;
 > model-routing work is reframed as the eval-gating extension ROUTE-2 below.
 
-## Follow-up tickets (interfaces + acceptance criteria, no code this sprint)
+## Sprint 2 — deferred items now BUILT (extend-don't-duplicate)
+
+All six follow-ups were subsequently implemented as extensions of existing
+systems (verified no parallel architectures):
+
+- **TJ-1 Multimodal compaction** — DONE. `tools/tokenjuice/compact_multimodal_text`
+  + `agent/tool_executor.py::_tokenjuice_compact` now compacts only `type=="text"`
+  parts, preserving image blocks.
+- **ROUTE-2 Eval-gated routing** — DONE. `WorkerEntry.eval_passed/eval_results` +
+  opt-in `RouterContext.require_eval_for` in the existing `model_router.py`.
+- **EVAL-1 Eval harness** — DONE. `hermes_cli/evals/` deterministic suite feeding
+  ROUTE-2; delegates heavy runs to `mini_swe_runner` via an optional runner.
+- **LEARN-1 Background-learner live jobs** — DONE. `hermes_cli/background_learner/
+  runner.py` real handlers; code/skill jobs emit owner-gated `ProposalBook`
+  proposals; `JobQueue` gained an `executor` hook + `drain()`.
+- **MEM-1 Layered memory** — DONE. `agent/memory_layers/` (raw event log +
+  provenance + selective retrieval filter + curator bridge to `ProposalBook`
+  `MEMORY_PROMOTION`); untrusted content never auto-promotes.
+- **INT-1 Integration registry** — DONE. `hermes_cli/integrations/registry.py`
+  capability + approval governance for email/SMS/calendar (sends owner-gated, no
+  new outbound credential path); complements the existing github/supabase/vercel
+  adapters without touching them.
+
+Docs: `docs/self-improvement/policy.md`, `docs/self-improvement/eval-gates.md`.
+
+## Remaining follow-up tickets (interfaces + acceptance criteria, no code)
 
 - **TJ-1 Multimodal-summary compaction** — compact only the text-summary part of
   multimodal tool results, preserving image blocks. Accept: image parts

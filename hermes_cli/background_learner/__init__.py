@@ -15,6 +15,12 @@ from .queue import (
     JobQueue,
     JobRejected,
 )
+from .runner import (
+    BackgroundLearnerRunner,
+    JobOutcome,
+    make_live_queue,
+    run_idle_cycle,
+)
 
 __all__ = [
     "Job",
@@ -22,4 +28,8 @@ __all__ = [
     "JobRejected",
     "ALLOWED_KINDS",
     "DISALLOWED_KINDS",
+    "BackgroundLearnerRunner",
+    "JobOutcome",
+    "make_live_queue",
+    "run_idle_cycle",
 ]

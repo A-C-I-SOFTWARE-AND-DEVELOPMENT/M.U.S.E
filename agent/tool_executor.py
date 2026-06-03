@@ -50,6 +50,7 @@ from tools.tool_result_storage import (
 )
 from tools.tokenjuice import (
     compact_tool_output,
+    compact_multimodal_text,
     scrub_credentials,
     record_raw_output,
 )
@@ -65,17 +66,20 @@ def _tokenjuice_compact(agent, tool_name, tool_args, function_result, is_error, 
     (``maybe_persist_tool_result`` / ``enforce_turn_budget``), which remain the
     fallback for anything still large. Contract:
 
-    * **No-op** for multimodal/non-string results and when compaction is
-      disabled (config or ``HERMES_TOKENJUICE=off``).
-    * **Credential scrubbing always applies** to string output (even when the
-      rule-based compaction doesn't shrink it) — closing the prior gap where raw
-      secrets reached the model.
-    * **Raw preserved**: the full *pre-scrub* output is written to the raw log
-      (gitignored, debug-only) before scrubbing/compaction when ``preserve_raw``.
+    * **Multimodal** results: scrub + compact only the ``type=="text"`` parts
+      (and ``text_summary``); image blocks are preserved byte-for-byte.
+    * **Non-string, non-multimodal** results are returned untouched.
+    * Disabled via config or ``HERMES_TOKENJUICE=off`` → no-op.
+    * **Credential scrubbing always applies** to text (even when rule-based
+      compaction doesn't shrink it) — closing the prior gap where raw secrets
+      reached the model.
+    * **Raw preserved**: the full *pre-scrub* output (or multimodal text view) is
+      written to the raw log (gitignored, debug-only) when ``preserve_raw``.
     * **Fail-open**: any error returns the original result unchanged.
     """
     try:
-        if not isinstance(function_result, str) or _is_multimodal_tool_result(function_result):
+        is_multimodal = _is_multimodal_tool_result(function_result)
+        if not isinstance(function_result, str) and not is_multimodal:
             return function_result
         cfg = load_active_config()
         if not cfg.enabled:
@@ -89,9 +93,21 @@ def _tokenjuice_compact(agent, tool_name, tool_args, function_result, is_error, 
                 tool_use_id=tool_use_id,
                 tool_name=tool_name,
                 arguments=tool_args,
-                raw_output=function_result,
+                # For multimodal, log the text view (never the image bytes).
+                raw_output=(_multimodal_text_summary(function_result) if is_multimodal else function_result),
                 exit_code=exit_code,
             )
+
+        if is_multimodal:
+            new_env, changed = compact_multimodal_text(
+                function_result, tool_name, tool_args, exit_code, cfg
+            )
+            if changed:
+                logger.debug(
+                    "[tokenjuice] tool=%s multimodal text scrubbed/compacted raw=%s",
+                    tool_name, bool(raw_ref),
+                )
+            return new_env
 
         scrubbed = scrub_credentials(function_result)
         compacted, stats = compact_tool_output(tool_name, tool_args, scrubbed, exit_code, cfg)

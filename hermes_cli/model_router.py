@@ -230,6 +230,10 @@ class RouterContext:
     cost_ceiling: str = "high"  # low | medium | high | unlimited
     quality_floor: str = "draft"  # draft | standard | high | critical
     continuous_listening: bool = False
+    # ROUTE-2 eval gate. Opt-in set of task categories for which a worker must
+    # have ``eval_passed=True`` to be a candidate. Empty (default) → no change
+    # to existing routing behavior. Internal infra workers are exempt.
+    require_eval_for: frozenset[str] = field(default_factory=frozenset)
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +489,17 @@ def route(
             rejected[worker.id] = (
                 f"quality tier {worker.quality!r} below floor {ctx.quality_floor!r}"
             )
+            continue
+
+        # ROUTE-2: eval gate. For an opted-in category, exclude workers that
+        # have not passed project evals — so an unverified worker can't become
+        # the default. Internal infra workers are exempt.
+        if (
+            category in ctx.require_eval_for
+            and not worker.eval_passed
+            and worker.id not in {"hermes-local", "github-publisher", "human-approval"}
+        ):
+            rejected[worker.id] = f"eval gate: not eval-passed for category {category!r}"
             continue
 
         # Approval-gated workers are held back unless their approval

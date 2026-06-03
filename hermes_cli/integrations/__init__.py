@@ -29,12 +29,32 @@ describes the cross-cutting rules every adapter must follow:
 from __future__ import annotations
 
 from . import github, supabase, vercel
+# INT-1: capability/approval governance layer that complements the developer-
+# service adapters above. It catalogs communication integrations (email/SMS/
+# calendar) and enforces owner approval on send/create actions, without adding
+# any new outbound credential path (transports are wired explicitly by callers,
+# e.g. delegating to an existing gateway channel).
+from .registry import (
+    ActionRequest,
+    ActionResult,
+    IntegrationError,
+    IntegrationRegistry,
+    IntegrationSpec,
+    default_registry,
+)
 
 __all__ = [
     "github",
     "supabase",
     "vercel",
     "available_integrations",
+    # INT-1 governance layer
+    "IntegrationSpec",
+    "IntegrationRegistry",
+    "ActionRequest",
+    "ActionResult",
+    "IntegrationError",
+    "default_registry",
 ]
 
 

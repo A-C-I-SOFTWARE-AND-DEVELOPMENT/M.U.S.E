@@ -57,9 +57,38 @@ def test_helper_preserves_raw_output_on_disk(enabled_cfg, tmp_path):
     assert "supersecretvalue12345" in content
 
 
-def test_helper_passthrough_non_string(enabled_cfg):
-    multimodal = {"_multimodal": True, "content": [{"type": "image_url"}]}
-    assert te._tokenjuice_compact(_FakeAgent(), "computer_use", {}, multimodal, False, "t4") is multimodal
+def test_helper_passthrough_truly_non_string(enabled_cfg):
+    # A non-string that is NOT a multimodal envelope is returned unchanged.
+    plain = {"not": "multimodal"}
+    assert te._tokenjuice_compact(_FakeAgent(), "x", {}, plain, False, "t4") is plain
+    assert te._tokenjuice_compact(_FakeAgent(), "x", {}, 12345, False, "t4b") == 12345
+
+
+def test_helper_multimodal_compacts_text_preserves_images(enabled_cfg):
+    long_text = LONG_GIT + "\nAPI_KEY=supersecretvalue12345\n"
+    image_part = {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAABBBB"}}
+    envelope = {
+        "_multimodal": True,
+        "content": [
+            {"type": "text", "text": long_text},
+            image_part,
+        ],
+        "text_summary": long_text,
+    }
+    out = te._tokenjuice_compact(_FakeAgent(), "exec", {"command": "git status"}, envelope, False, "tm")
+    assert te is not None
+    # Still a multimodal envelope.
+    assert out.get("_multimodal") is True
+    text_parts = [p for p in out["content"] if p.get("type") == "text"]
+    img_parts = [p for p in out["content"] if p.get("type") == "image_url"]
+    # Image block preserved byte-for-byte.
+    assert img_parts == [image_part]
+    # Text part scrubbed + compacted.
+    assert "supersecretvalue12345" not in text_parts[0]["text"]
+    assert "[REDACTED]" in text_parts[0]["text"]
+    assert len(text_parts[0]["text"]) < len(long_text)
+    # text_summary also scrubbed.
+    assert "supersecretvalue12345" not in out["text_summary"]
 
 
 def test_helper_disabled_is_noop(monkeypatch):

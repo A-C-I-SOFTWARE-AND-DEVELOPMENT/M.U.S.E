@@ -364,6 +364,41 @@ tool_output:
     skip_tools: [read_file, view, cat, sed, jq, head, tail, read, open_file]
     debug: false               # emit per-compaction [tokenjuice] debug logs
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Autonomy controls (eval-gating, background learner, layered memory, integrations)
+# ─────────────────────────────────────────────────────────────────────────────
+# All OFF / safe by default. These are consumed by the respective runtime entry
+# points (RouterContext, background_learner.make_live_queue, memory_layers,
+# integrations.default_registry). No new external effect is enabled implicitly:
+# code/skill/memory promotions go through the owner-approval ProposalBook, and
+# email/SMS/calendar sends are owner-gated.
+model_router:
+  # Task categories for which a worker must have passed evals (ROUTE-2) to be a
+  # candidate. Empty = no gating (default behavior unchanged). Eval results are
+  # produced by the EVAL-1 harness (hermes_cli/evals).
+  require_eval_for: []        # e.g. [implementation, security]
+
+background_learner:
+  enabled: false             # master switch for the idle background learner
+  idle_only: true            # only drain the queue when the system is idle
+  # Allowed job kinds are read-mostly or proposal-only; disallowed kinds (send/
+  # spend/install/mutate) are rejected at enqueue. Code/skill jobs create pending
+  # owner-approval Proposals — never auto-applied.
+  max_jobs_per_cycle: 50
+
+memory:
+  layers:
+    enabled: false           # raw event log + provenance/promotion layering
+    min_trust_for_recall: tool   # filter recalled entries below this trust
+    min_confidence_for_recall: 0.0
+    # Promotions to durable memory require owner approval unless the event is
+    # owner-trusted AND owner-approved.
+
+integrations:
+  # Communication integrations are capability-typed; send/create actions are
+  # owner-gated. No outbound transport is wired by default (declared-only).
+  require_approval_for_send: true
+
 # =============================================================================
 # Context Compression (Auto-shrinks long conversations)
 # =============================================================================

@@ -81,10 +81,17 @@ class Job:
 class JobQueue:
     """In-memory priority queue with enqueue-time gating. Not persisted."""
 
-    def __init__(self, idle_check: Optional[Callable[[], bool]] = None):
+    def __init__(
+        self,
+        idle_check: Optional[Callable[[], bool]] = None,
+        executor: Optional[Callable[["Job"], object]] = None,
+    ):
         self._jobs: list[Job] = []
         self._ids = itertools.count(1)
         self._idle_check = idle_check or (lambda: True)
+        # Optional real executor (e.g. BackgroundLearnerRunner.handle). When
+        # absent, run_once falls back to dry-run logging (no side effects).
+        self._executor = executor
         self._audit: list[dict] = []
 
     # ── enqueue / cancel ────────────────────────────────────────────────
@@ -124,12 +131,14 @@ class JobQueue:
     def audit_log(self) -> list[dict]:
         return list(self._audit)
 
-    # ── draining (dry-run only this sprint) ─────────────────────────────
+    # ── draining ────────────────────────────────────────────────────────
     def run_once(self) -> Optional[Job]:
-        """Pop and 'execute' the highest-priority job — dry-run logging only.
+        """Pop and execute the highest-priority job.
 
-        Returns the job that was processed, or None if idle-gated/empty. No job
-        performs any external effect this sprint.
+        Idle-gated: returns None when not idle or empty. If an ``executor`` was
+        provided it runs the real handler (read-mostly / proposal-only — see
+        ``runner.py``); otherwise it falls back to dry-run logging with no side
+        effects. Returns the processed job.
         """
         if not self._idle_check():
             return None
@@ -137,9 +146,27 @@ class JobQueue:
             if job.cancelled:
                 continue
             self._jobs.pop(idx)
-            self._execute_dry_run(job)
+            if self._executor is not None:
+                try:
+                    self._executor(job)
+                    self._audit.append({"event": "ran", "id": job.id, "kind": job.kind, "ts": time.time()})
+                except Exception as err:  # an executor error must not wedge the queue
+                    logger.warning("[background-learner] executor failed job=%s: %s", job.id, err)
+                    self._audit.append({"event": "error", "id": job.id, "kind": job.kind, "ts": time.time()})
+            else:
+                self._execute_dry_run(job)
             return job
         return None
+
+    def drain(self, max_jobs: int = 100) -> int:
+        """Run queued jobs (idle-gated) until empty or ``max_jobs`` processed."""
+        count = 0
+        while count < max_jobs:
+            job = self.run_once()
+            if job is None:
+                break
+            count += 1
+        return count
 
     def _execute_dry_run(self, job: Job) -> None:
         logger.info(

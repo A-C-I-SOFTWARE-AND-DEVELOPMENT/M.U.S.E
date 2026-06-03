@@ -90,6 +90,9 @@ docs/superpowers/*
 # pointed at the repo. Never commit captured raw output (may contain secrets).
 tool-raw/
 .tokenjuice/
+# Layered-memory raw event log (provenance-bearing; may contain sensitive
+# content). Lives under ~/.hermes/memory-raw/ — guard against repo HERMES_HOME.
+memory-raw/
 
 # Built APKs are delivered as CI artifacts / release assets, not via git
 *.apk

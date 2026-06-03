@@ -22,6 +22,7 @@ from .classify import classify
 from .config import CompactionConfig
 from .loader import load_rules
 from .reduce import reduce_output
+from .scrub import scrub_credentials
 from .types import CompactionStats, ReduceOptions, ToolExecutionInput
 
 logger = logging.getLogger(__name__)
@@ -149,3 +150,67 @@ def compact_tool_output(
     except Exception as err:  # fail open — never worse than the original
         logger.debug("[tokenjuice] compaction failed for %s, passing through: %s", tool_name, err)
         return _passthrough("error")
+
+
+def scrub_and_compact_text(
+    tool_name: str,
+    arguments: Any,
+    text: str,
+    exit_code: Optional[int],
+    config: Optional[CompactionConfig] = None,
+) -> str:
+    """Scrub credentials, then compact — returning just the text.
+
+    Convenience for callers (string + multimodal-text paths) that don't need the
+    stats. Credential scrubbing always applies; compaction is pass-through safe.
+    Fail-open: any error returns the scrubbed (or original) text.
+    """
+    try:
+        scrubbed = scrub_credentials(text)
+    except Exception:  # scrubbing must never break the tool loop
+        scrubbed = text
+    compacted, _ = compact_tool_output(tool_name, arguments, scrubbed, exit_code, config)
+    return compacted
+
+
+def compact_multimodal_text(
+    envelope: dict,
+    tool_name: str,
+    arguments: Any,
+    exit_code: Optional[int],
+    config: Optional[CompactionConfig] = None,
+) -> tuple[dict, bool]:
+    """Scrub + compact only the **text** parts of a multimodal tool result.
+
+    The envelope shape is ``{"_multimodal": True, "content": [parts…],
+    "text_summary": str?}``. Image (``type != "text"``) parts are preserved
+    byte-for-byte; only ``type == "text"`` parts and ``text_summary`` are
+    scrubbed/compacted. Returns ``(new_envelope, changed)``; the input is not
+    mutated.
+    """
+    content = envelope.get("content") or []
+    new_parts: list = []
+    changed = False
+    for part in content:
+        if isinstance(part, dict) and part.get("type") == "text":
+            original = str(part.get("text", ""))
+            new_text = scrub_and_compact_text(tool_name, arguments, original, exit_code, config)
+            if new_text != original:
+                changed = True
+            new_part = dict(part)
+            new_part["text"] = new_text
+            new_parts.append(new_part)
+        else:
+            new_parts.append(part)  # image / non-text parts untouched
+
+    new_env = dict(envelope)
+    new_env["content"] = new_parts
+
+    summary = envelope.get("text_summary")
+    if isinstance(summary, str) and summary:
+        new_summary = scrub_and_compact_text(tool_name, arguments, summary, exit_code, config)
+        if new_summary != summary:
+            changed = True
+        new_env["text_summary"] = new_summary
+
+    return new_env, changed

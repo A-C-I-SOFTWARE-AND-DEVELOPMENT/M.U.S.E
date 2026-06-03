@@ -21,13 +21,20 @@ Public surface:
 from __future__ import annotations
 
 from .config import CompactionConfig
-from .integration import compact_tool_output, extract_command_argv
+from .integration import (
+    compact_multimodal_text,
+    compact_tool_output,
+    extract_command_argv,
+    scrub_and_compact_text,
+)
 from .raw_log import record as record_raw_output
 from .scrub import scrub_credentials
 from .types import CompactionStats
 
 __all__ = [
     "compact_tool_output",
+    "compact_multimodal_text",
+    "scrub_and_compact_text",
     "extract_command_argv",
     "scrub_credentials",
     "record_raw_output",
