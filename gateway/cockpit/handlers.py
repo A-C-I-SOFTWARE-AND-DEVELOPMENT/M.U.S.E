@@ -221,8 +221,7 @@ def model_route_override(req: Request) -> JsonResponse:
                 },
             )
 
-    task_class: str | None = None
-    model: str | None = None
+    pending_task: tuple[str, str | None] | None = None
     if want_task:
         task_class = str(body.get("task_class", "")).strip()
         try:
@@ -231,6 +230,7 @@ def model_route_override(req: Request) -> JsonResponse:
             return JsonResponse(400, {"error": f"unknown task class: {task_class!r}"})
         raw_model = body.get("model")
         model = str(raw_model).strip() if raw_model else None
+        pending_task = (task_class, model)
 
     # All inputs validated — now apply the mutations.
     if want_paid:
@@ -240,7 +240,8 @@ def model_route_override(req: Request) -> JsonResponse:
         except Exception as exc:  # pragma: no cover - defensive
             return JsonResponse(500, {"error": str(exc)})
 
-    if want_task:
+    if pending_task is not None:
+        task_class, model = pending_task
         try:
             tr.set_task_override(task_class, model)
             changed["task_class"] = task_class
