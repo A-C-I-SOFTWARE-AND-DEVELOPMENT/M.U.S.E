@@ -672,7 +672,9 @@ def emergency_stop(req: Request) -> JsonResponse:
     try:
         from hermes_cli import approval_policy as ap
 
-        ap.save_level(ap.AutonomyLevel.READ_ONLY, set_by="cockpit-emergency-stop")
+        # Latch the stop so it overrides even HERMES_AUTONOMY — a stop must
+        # actually halt auto-approvals, not just rewrite the persisted level.
+        ap.engage_emergency_stop(set_by="cockpit-emergency-stop")
         try:
             ap.record_decision(
                 ap.ApprovalRequest(

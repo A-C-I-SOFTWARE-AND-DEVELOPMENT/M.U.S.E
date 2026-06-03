@@ -723,8 +723,10 @@ Recent, already-redacted policy decisions — the per-action auto-approval
 ### `POST /v1/cockpit/emergency-stop`
 
 Body: `{"reason": "..."}` (optional). Cancels every non-terminal queue job
-(reusing `JobQueue.cancel_job`), forces autonomy to `read_only`, and audits the
-event. Returns:
+(reusing `JobQueue.cancel_job`), **latches** autonomy to `read_only`, and audits
+the event. The latch overrides everything — including `HERMES_AUTONOMY` — so a
+stop genuinely halts new auto-approvals; it is released the moment the owner
+sets a level again via `POST /v1/cockpit/autonomy`. Returns:
 
 ```json
 {"engaged": true, "cancelled_jobs": ["job_ab12"], "cancelled_count": 1,

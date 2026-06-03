@@ -269,12 +269,18 @@ class AutonomyRecord:
     ``workspace_root`` scopes OWNER_HIGH_AUTONOMY_CODING to a single approved
     workspace; it is ignored by the other levels. The record is owner-set
     (typically from the Android cockpit) and instantly revocable.
+
+    ``emergency_stopped`` is the one signal that overrides *everything*,
+    including ``HERMES_AUTONOMY`` — when latched, the active level is forced to
+    READ_ONLY so a stop genuinely prevents new auto-approved actions. It is
+    cleared the moment the owner deliberately sets a level again.
     """
 
     level: AutonomyLevel = AutonomyLevel.ASSISTED
     workspace_root: str = ""
     updated_at: float = 0.0
     set_by: str = "owner"
+    emergency_stopped: bool = False
 
 
 def load_record(path: Optional[Path] = None) -> AutonomyRecord:
@@ -295,7 +301,31 @@ def load_record(path: Optional[Path] = None) -> AutonomyRecord:
         workspace_root=str(raw.get("workspace_root", "") or ""),
         updated_at=float(raw.get("updated_at", 0.0) or 0.0),
         set_by=str(raw.get("set_by", "owner") or "owner"),
+        emergency_stopped=bool(raw.get("emergency_stopped", False)),
     )
+
+
+def _write_record(record: AutonomyRecord, path: Optional[Path]) -> AutonomyRecord:
+    import json
+
+    target = path or _autonomy_store_path()
+    try:
+        target.write_text(
+            json.dumps(
+                {
+                    "level": record.level.value,
+                    "workspace_root": record.workspace_root,
+                    "updated_at": record.updated_at,
+                    "set_by": record.set_by,
+                    "emergency_stopped": record.emergency_stopped,
+                },
+                sort_keys=True,
+            ),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        logger.warning("autonomy store write failed (%s): %s", target, exc)
+    return record
 
 
 def save_level(
@@ -307,34 +337,38 @@ def save_level(
 ) -> AutonomyRecord:
     """Persist the owner's autonomy choice and return the new record.
 
-    The change is also written to the approval audit log so the cockpit
-    audit trail shows when (and to what) autonomy was set or revoked.
+    A deliberate level choice clears any latched emergency stop — this is the
+    owner explicitly resuming control. The change is also written to the
+    approval audit log so the cockpit audit trail shows what autonomy was set.
     """
-    import json
-
     record = AutonomyRecord(
         level=level,
         workspace_root=workspace_root or "",
         updated_at=time.time(),
         set_by=set_by,
+        emergency_stopped=False,
     )
-    target = path or _autonomy_store_path()
-    try:
-        target.write_text(
-            json.dumps(
-                {
-                    "level": record.level.value,
-                    "workspace_root": record.workspace_root,
-                    "updated_at": record.updated_at,
-                    "set_by": record.set_by,
-                },
-                sort_keys=True,
-            ),
-            encoding="utf-8",
-        )
-    except OSError as exc:
-        logger.warning("autonomy store write failed (%s): %s", target, exc)
-    return record
+    return _write_record(record, path)
+
+
+def engage_emergency_stop(
+    *, set_by: str = "owner", path: Optional[Path] = None
+) -> AutonomyRecord:
+    """Latch the emergency stop: force READ_ONLY and override ``HERMES_AUTONOMY``.
+
+    Unlike :func:`save_level`, this sets ``emergency_stopped`` so that
+    :func:`evaluate` ignores any env-configured level until the owner releases
+    the stop by setting a level again (``save_level`` / :func:`revoke`).
+    """
+    prior = load_record(path)
+    record = AutonomyRecord(
+        level=AutonomyLevel.READ_ONLY,
+        workspace_root=prior.workspace_root,
+        updated_at=time.time(),
+        set_by=set_by,
+        emergency_stopped=True,
+    )
+    return _write_record(record, path)
 
 
 def revoke(*, set_by: str = "owner", path: Optional[Path] = None) -> AutonomyRecord:
@@ -343,11 +377,16 @@ def revoke(*, set_by: str = "owner", path: Optional[Path] = None) -> AutonomyRec
 
 
 def _autonomy_from_env(default: AutonomyLevel = AutonomyLevel.ASSISTED) -> AutonomyLevel:
-    """Resolve the active level: env var first, then persisted record.
+    """Resolve the active level: emergency stop, then env var, then record.
 
-    ``HERMES_AUTONOMY`` always wins so existing env-driven deployments are
-    unaffected; the persisted record is the owner's cockpit-set choice.
+    A latched emergency stop forces READ_ONLY and overrides everything,
+    including ``HERMES_AUTONOMY`` — a stop must genuinely halt auto-approvals.
+    Absent a stop, ``HERMES_AUTONOMY`` wins so existing env-driven deployments
+    are unaffected; otherwise the owner's persisted cockpit choice applies.
     """
+    record = load_record()
+    if record.emergency_stopped:
+        return AutonomyLevel.READ_ONLY
     raw = os.environ.get("HERMES_AUTONOMY", "").strip().lower()
     if raw:
         try:
@@ -619,6 +658,7 @@ __all__ = [
     "DEFAULT_PROTECTED_BRANCHES",
     "Decision",
     "capabilities",
+    "engage_emergency_stop",
     "evaluate",
     "load_record",
     "read_decisions",

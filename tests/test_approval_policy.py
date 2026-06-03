@@ -325,6 +325,31 @@ class TestAutonomyStore:
         r = ap.evaluate(_req(ap.Action.SAFE_LOCAL_WRITE, target="x"))
         assert r.decision is ap.Decision.DENY
 
+    def test_emergency_stop_overrides_env_autonomy(self, tmp_path, monkeypatch):
+        # Even with HERMES_AUTONOMY=yolo, a latched emergency stop forces
+        # read-only so no new action is auto-approved.
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.setenv("HERMES_AUTONOMY", "yolo")
+        ap.engage_emergency_stop(set_by="test")
+        assert ap.load_record().emergency_stopped is True
+        r = ap.evaluate(_req(ap.Action.SAFE_LOCAL_WRITE, target="x"))
+        assert r.decision is ap.Decision.DENY  # read-only blocks writes
+
+    def test_setting_a_level_releases_emergency_stop(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
+        ap.engage_emergency_stop(set_by="test")
+        ap.save_level(ap.AutonomyLevel.ASSISTED, set_by="test")
+        assert ap.load_record().emergency_stopped is False
+        # Back to assisted → safe read allowed, safe write confirms.
+        assert ap.evaluate(_req(ap.Action.SAFE_READ)).decision is ap.Decision.ALLOW
+
+    def test_revoke_releases_emergency_stop(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        ap.engage_emergency_stop(set_by="test")
+        ap.revoke()
+        assert ap.load_record().emergency_stopped is False
+
     def test_store_drives_evaluate_when_no_env(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
