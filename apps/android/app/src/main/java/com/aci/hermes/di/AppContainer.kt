@@ -26,6 +26,7 @@ import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.data.jarvis.RepositoryTaskSink
 import com.aci.hermes.data.jarvis.RoutingJarvisChatGateway
 import com.aci.hermes.data.memory.MemoryRepository
+import com.aci.hermes.data.memory.MemoryTreeRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
@@ -132,6 +133,13 @@ class AppContainer(private val application: Application) {
     // refresh() to pull the real list.
     val memoryRepository: MemoryRepository = MemoryRepository(
         seed = emptyList(),
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
+    // Memory Tree (MEM-2): the proposed-inbox / contradiction / freshness
+    // surface, backed by the provenance-first MemoryTreeStore over the cockpit.
+    val memoryTreeRepository: MemoryTreeRepository = MemoryTreeRepository(
         client = cockpitClient,
         paired = ::cockpitPaired,
     )
@@ -255,7 +263,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
-        MemoryViewModel(memoryRepository, logBuffer)
+        MemoryViewModel(memoryRepository, logBuffer, memoryTreeRepository)
     }
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {

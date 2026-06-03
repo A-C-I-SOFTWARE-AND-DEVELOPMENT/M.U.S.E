@@ -99,6 +99,58 @@ class HermesCockpitClient(
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
 
+    // ─── Memory Tree (MEM-2): inbox / decisions / contradictions / freshness ──
+
+    /** Ranked, source-cited Memory Tree search (contested excluded by default). */
+    suspend fun memoryTreeSearch(
+        query: String,
+        includeContested: Boolean = false,
+    ): CockpitResult<CockpitMemoryNodeList> {
+        val sb = StringBuilder("/v1/cockpit/memory/tree?q=").append(enc(query))
+        if (includeContested) sb.append("&include_contested=1")
+        return request("GET", sb.toString(), CockpitMemoryNodeList.serializer())
+    }
+
+    /** The proposed-memory inbox: candidates awaiting an owner decision. */
+    suspend fun memoryProposed(): CockpitResult<CockpitMemoryNodeList> =
+        request("GET", "/v1/cockpit/memory/tree/proposed", CockpitMemoryNodeList.serializer())
+
+    /** Approve (→ durable) / reject / supersede a proposed node. */
+    suspend fun memoryDecision(
+        id: String,
+        req: MemoryDecisionRequest,
+    ): CockpitResult<MemoryDecisionResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/memory/tree/" + enc(id) + "/decision",
+            MemoryDecisionResponse.serializer(),
+            body = json.encodeToString(MemoryDecisionRequest.serializer(), req),
+        )
+
+    /** Open (contested) contradiction reports awaiting resolution. */
+    suspend fun memoryContradictions(): CockpitResult<CockpitContradictionList> =
+        request("GET", "/v1/cockpit/memory/contradictions", CockpitContradictionList.serializer())
+
+    /** Resolve a contradiction: winner stays, loser is superseded. */
+    suspend fun memoryContradictionResolve(
+        id: String,
+        req: ResolveContradictionRequest,
+    ): CockpitResult<ResolveContradictionResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/memory/contradictions/" + enc(id) + "/resolve",
+            ResolveContradictionResponse.serializer(),
+            body = json.encodeToString(ResolveContradictionRequest.serializer(), req),
+        )
+
+    /** Nodes overdue (or within `withinDays`) for a freshness review. */
+    suspend fun memoryFreshness(withinDays: Int = 0): CockpitResult<CockpitMemoryNodeList> =
+        request(
+            "GET",
+            "/v1/cockpit/memory/freshness?within_days=$withinDays",
+            CockpitMemoryNodeList.serializer(),
+        )
+
     // ─── Avatar persona ("make my avatar Goku") ──────────────────────────
 
     /** The companion's adopted persona, or an empty one if default. */
