@@ -116,6 +116,23 @@ def jarvis_responder(
     else:
         text = _turn_summary(turn, mode)
 
+    # Post-turn memory capture: notice durable-worthy facts as PROPOSED
+    # Memory Tree candidates (never auto-durable; owner promotes on mobile).
+    try:
+        captured = jp.observe_turn(prompt, text)
+        if captured.get("captured"):
+            n = captured["captured"]
+            yield detail(
+                f"Captured {n} memory candidate(s) for your review"
+                + (
+                    f" ({captured['durable_worthy']} durable-worthy)"
+                    if captured.get("durable_worthy")
+                    else ""
+                )
+            )
+    except Exception:  # capture is best-effort
+        pass
+
     if turn.recollection:
         yield detail(turn.recollection.splitlines()[0][:200])
 

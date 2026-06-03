@@ -7,13 +7,23 @@ from pathlib import Path
 import pytest
 
 from hermes_cli.jarvis_prime.memory import MemoryStore
+from hermes_cli.jarvis_prime.memory_tree import (
+    ApprovalState,
+    MemoryLayer,
+    MemoryTreeStore,
+)
 from hermes_cli.jarvis_prime.modes import ClassifierContext, Mode
 from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 
 
 @pytest.fixture
 def jp(tmp_path: Path) -> JarvisPrime:
-    config = JarvisConfig(memory=MemoryStore(journal_path=tmp_path / "memory.jsonl"))
+    # Isolate both the legacy store and the Memory Tree under tmp_path so the
+    # default-ON layers wiring never reads the real ~/.hermes during tests.
+    config = JarvisConfig(
+        memory=MemoryStore(journal_path=tmp_path / "memory.jsonl"),
+        memory_tree=MemoryTreeStore(path=tmp_path / "memory_tree.jsonl"),
+    )
     return JarvisPrime(config=config)
 
 
@@ -100,3 +110,78 @@ def test_perceive_returns_snapshot(jp: JarvisPrime) -> None:
     # Don't assert specific contents — just that the snapshot is well-formed.
     assert snap.timestamp is not None
     assert isinstance(snap.summary(), str)
+
+
+# ---------------------------------------------------------------------------
+# Memory Tree live-loop wiring (MEM-2): recollection augmentation + capture
+# ---------------------------------------------------------------------------
+
+
+def test_recollect_augments_with_cited_memory_tree_pack(jp: JarvisPrime) -> None:
+    tree = jp.memory_tree()
+    assert tree is not None
+    tree.write(
+        "Hermes is the canonical backend per the operating spec.",
+        namespace="jarvis/architecture",
+        title="backend-primary",
+        layer=MemoryLayer.DURABLE,
+        confidence=0.95,
+        source_uri="docs/jarvis-prime-operating-system.md",
+        owner_approved=True,
+    )
+    block = jp.recollect("which backend is canonical")
+    assert "CONTEXT PACK" in block
+    # The pack cites its source — memory never becomes the source of truth.
+    assert "docs/jarvis-prime-operating-system.md" in block
+
+
+def test_recollect_is_legacy_only_when_layers_disabled(tmp_path: Path) -> None:
+    config = JarvisConfig(
+        memory=MemoryStore(journal_path=tmp_path / "memory.jsonl"),
+        memory_tree=MemoryTreeStore(path=tmp_path / "memory_tree.jsonl"),
+        memory_layers_enabled=False,
+    )
+    jp = JarvisPrime(config=config)
+    assert jp.memory_tree() is None
+    jp.config.memory_tree.write(
+        "Hermes is the canonical backend.",
+        namespace="jarvis/architecture",
+        title="backend",
+        layer=MemoryLayer.DURABLE,
+        confidence=0.95,
+        owner_approved=True,
+    )
+    # Flag off → the Tree pack is never appended (byte-identical legacy path).
+    assert "CONTEXT PACK" not in jp.recollect("backend")
+
+
+def test_observe_turn_captures_proposed_candidates(jp: JarvisPrime) -> None:
+    summary = jp.observe_turn(
+        "We decided to standardize on Material 3.", "Understood."
+    )
+    assert summary["captured"] >= 1
+    assert summary["durable_worthy"] >= 1
+    tree = jp.memory_tree()
+    proposed = tree.proposed()
+    assert proposed, "captured candidate should land in the proposed inbox"
+    assert all(n.approval_state is ApprovalState.PROPOSED for n in proposed)
+    assert all(n.layer is MemoryLayer.SESSION for n in proposed)
+
+
+def test_observe_turn_rejects_secret_and_never_raises(jp: JarvisPrime) -> None:
+    summary = jp.observe_turn(
+        "I prefer the token api_key=sk-ABCDEFGHIJKLMNOPQRSTUV0123456789."
+    )
+    assert summary["captured"] == 0
+    assert summary["rejected"] >= 1
+    assert jp.memory_tree().proposed() == []
+
+
+def test_observe_turn_noop_when_layers_disabled(tmp_path: Path) -> None:
+    config = JarvisConfig(
+        memory=MemoryStore(journal_path=tmp_path / "memory.jsonl"),
+        memory_layers_enabled=False,
+    )
+    jp = JarvisPrime(config=config)
+    summary = jp.observe_turn("We decided to deploy on Monday.")
+    assert summary == {"captured": 0, "rejected": 0, "durable_worthy": 0}

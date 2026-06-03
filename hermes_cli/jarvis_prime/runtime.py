@@ -13,6 +13,7 @@ the package loads in minimal environments.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Mapping, Optional
@@ -32,6 +33,7 @@ from hermes_cli.jarvis_prime.gates import (
     run_gate_summary,
 )
 from hermes_cli.jarvis_prime.memory import MemoryStore
+from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
 from hermes_cli.jarvis_prime.modes import (
     ClassifierContext,
     Mode,
@@ -51,6 +53,17 @@ from hermes_cli.jarvis_prime.router import RouteDecision, RouteTarget, Router
 from hermes_cli.jarvis_prime.self_update import ProposalBook
 
 
+def _memory_layers_default() -> bool:
+    """Memory Tree live-loop wiring defaults ON; ``HERMES_MEMORY_LAYERS=0``
+    (or false/no/off) reverts to legacy-only recollection for an exact
+    rollback path."""
+
+    raw = os.environ.get("HERMES_MEMORY_LAYERS")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+
+
 @dataclass
 class JarvisConfig:
     persona: Persona = field(default_factory=Persona)
@@ -64,6 +77,11 @@ class JarvisConfig:
     proactive_tick_enabled: bool = False
     briefing_window: str = "08:00 America/Toronto"
     notify_via: str = "none"  # "telegram" | "slack" | "email" | "none"
+    # Memory Tree (MEM-2) live-loop wiring. ``memory_tree`` is lazily loaded
+    # from the HERMES_HOME-aware default path on first use when None.
+    memory_layers_enabled: bool = field(default_factory=_memory_layers_default)
+    memory_tree: Optional[MemoryTreeStore] = None
+    memory_token_budget: int = 512
 
 
 @dataclass
@@ -151,8 +169,82 @@ class JarvisPrime:
     # Memory + recollection
     # ------------------------------------------------------------------
 
+    def memory_tree(self) -> Optional[MemoryTreeStore]:
+        """The live Memory Tree store (lazy-loaded), or None when layers off."""
+
+        if not self.config.memory_layers_enabled:
+            return None
+        if self.config.memory_tree is None:
+            try:
+                self.config.memory_tree = MemoryTreeStore.load()
+            except Exception:  # pragma: no cover - defensive (corrupt store)
+                return None
+        return self.config.memory_tree
+
     def recollect(self, query: str, limit: int = 5) -> str:
-        return self.config.memory.summarize_for_prompt(query, limit=limit)
+        """Recall relevant memory for the persona prompt.
+
+        Augments — never replaces — the legacy flat ``MemoryStore`` block with
+        a token-bounded, source-cited Memory Tree context pack. Contested facts
+        are excluded by the pack. When memory layers are disabled the output is
+        byte-identical to the legacy recollection.
+        """
+
+        legacy = self.config.memory.summarize_for_prompt(query, limit=limit)
+        tree = self.memory_tree()
+        if tree is None:
+            return legacy
+        try:
+            pack = tree.context_pack(query, self.config.memory_token_budget)
+        except Exception:  # pragma: no cover - defensive
+            return legacy
+        if not pack.sections:
+            return legacy
+        tree_block = pack.render()
+        return f"{legacy}\n\n{tree_block}" if legacy else tree_block
+
+    def observe_turn(
+        self,
+        user_text: str,
+        assistant_text: str = "",
+        *,
+        source_uri: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Capture typed memory candidates after a completed turn.
+
+        Best-effort and side-effect-bounded: candidates are written to the
+        Memory Tree as **session-layer, PROPOSED** nodes (never auto-durable —
+        owner promotes via ``promote_to_durable``). Secret / chain-of-thought
+        content is rejected by the write policy. Never raises.
+
+        Returns a small summary: ``{"captured": n, "rejected": m,
+        "durable_worthy": k}`` (all zero when layers are disabled).
+        """
+
+        summary = {"captured": 0, "rejected": 0, "durable_worthy": 0}
+        tree = self.memory_tree()
+        if tree is None:
+            return summary
+        try:
+            from hermes_cli.jarvis_prime.memory_capture import (
+                capture_to_tree,
+                extract_candidates,
+            )
+
+            candidates = extract_candidates(
+                user_text, assistant_text, source_uri=source_uri
+            )
+            results = capture_to_tree(tree, candidates)
+            for cand, result in zip(candidates, results):
+                if result.ok:
+                    summary["captured"] += 1
+                    if cand.durable_worthy:
+                        summary["durable_worthy"] += 1
+                else:
+                    summary["rejected"] += 1
+        except Exception:  # pragma: no cover - capture never breaks a turn
+            return summary
+        return summary
 
     def remember(
         self,
