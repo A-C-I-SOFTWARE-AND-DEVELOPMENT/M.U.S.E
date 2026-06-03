@@ -78,6 +78,9 @@ object CockpitHttp {
     const val DEFAULT_CONNECT_TIMEOUT_MS: Int = 8_000
     const val DEFAULT_READ_TIMEOUT_MS: Int = 15_000
 
+    /** Research runs gather + rank + synthesize server-side; allow a longer read window. */
+    const val RESEARCH_TIMEOUT_MS: Int = 60_000
+
     /**
      * Tolerant JSON: the gateway and the cockpit may be at different
      * contract revisions, so unknown keys are ignored and absent nullable

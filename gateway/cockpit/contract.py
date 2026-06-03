@@ -412,7 +412,9 @@ def cockpit_job(entry: Any) -> dict[str, Any]:
         "status": job_status(getattr(entry, "state", ""), md.get("workflow_status")),
         "created_at": created,
         "updated_at": _epoch_iso(getattr(entry, "updated_at", 0)) or created,
-        "workspace_path": getattr(entry, "repo_root", "") or md.get("workspace_path") or None,
+        "workspace_path": getattr(entry, "repo_root", "")
+        or md.get("workspace_path")
+        or None,
         "branch": md.get("branch"),
         "base_branch": md.get("base_branch"),
         "remote": md.get("remote"),
@@ -706,7 +708,12 @@ def queue_job_detail(entry: Any) -> dict[str, Any]:
 
 RISK_TIERS = ("TRIVIAL", "LOW", "MODERATE", "SERIOUS", "CRITICAL")
 APPROVAL_STATES = (
-    "UNNECESSARY", "PENDING", "APPROVED", "REJECTED", "AUTO_APPROVED", "EXPIRED",
+    "UNNECESSARY",
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "AUTO_APPROVED",
+    "EXPIRED",
 )
 ACTION_RESULTS = ("SUCCESS", "PARTIAL", "FAILED", "ROLLED_BACK", "BLOCKED")
 ROUTE_DESTINATIONS = ("LOCAL_WORKER", "CODEX", "CLAUDE", "HERMES_GATEWAY", "HUMAN_ONLY")
@@ -801,7 +808,9 @@ def audit_record(ledger: Any, path: Any = None) -> dict[str, Any]:
         "action": g("final_decision") or g("decision"),
         "risk_tier": risk_tier(getattr(ledger, "open_risks", "")),
         "route": {
-            "destination": route_destination(getattr(ledger, "selected_model_worker", "")),
+            "destination": route_destination(
+                getattr(ledger, "selected_model_worker", "")
+            ),
             "model": g("selected_model_worker") or None,
             "reason": g("why_this_choice"),
             "duration_ms": 0,
@@ -841,7 +850,9 @@ def audit_proof(ledger: Any, path: Any = None) -> dict[str, Any]:
 
     rollback: Optional[dict[str, Any]] = None
     if not _says_none(getattr(ledger, "rollback_plan", "")):
-        steps = [s.strip("-* ").strip() for s in g("rollback_plan").splitlines() if s.strip()]
+        steps = [
+            s.strip("-* ").strip() for s in g("rollback_plan").splitlines() if s.strip()
+        ]
         rollback = {
             "id": f"{ident}-rollback",
             "summary": g("rollback_plan"),
@@ -895,7 +906,11 @@ def audit_proof(ledger: Any, path: Any = None) -> dict[str, Any]:
 
 APPROVAL_CARD_TIERS = ("SAFE", "LOW", "RISKY", "SERIOUS", "CRITICAL", "FORBIDDEN")
 APPROVAL_CARD_STATUSES = (
-    "PENDING", "APPROVED", "REJECTED", "EXPIRED", "EMERGENCY_STOPPED",
+    "PENDING",
+    "APPROVED",
+    "REJECTED",
+    "EXPIRED",
+    "EMERGENCY_STOPPED",
 )
 
 # Proposal risk class → ApprovalRiskTier. A proposal always requires owner
@@ -958,7 +973,13 @@ def approval_card(proposal: dict[str, Any], *, approval_id: str) -> dict[str, An
 def proposal_view(proposal: dict[str, Any], *, proposal_id: str) -> dict[str, Any]:
     """Self-update-native projection (the `/v1/cockpit/proposals` surface)."""
     risk_class = str(proposal.get("risk_class", "RC1") or "RC1")
-    risk_level = {"RC0": "low", "RC1": "low", "RC2": "medium", "RC3": "high", "RC4": "high"}
+    risk_level = {
+        "RC0": "low",
+        "RC1": "low",
+        "RC2": "medium",
+        "RC3": "high",
+        "RC4": "high",
+    }
     return {
         "id": proposal_id,
         "kind": str(proposal.get("kind", "") or ""),
@@ -1003,7 +1024,9 @@ def skill_entry(command: str, info: dict[str, Any]) -> dict[str, Any]:
 # entries (real data; honest empty when no orchestrate job has navigated).
 
 
-def navigation_view(entry: dict[str, Any], *, job_id: str | None = None) -> dict[str, Any]:
+def navigation_view(
+    entry: dict[str, Any], *, job_id: str | None = None
+) -> dict[str, Any]:
     """Project an orchestrator ``navigation_decision`` ledger entry."""
     ranked = entry.get("ranked_files") or []
     files: list[dict[str, Any]] = []
@@ -1519,6 +1542,38 @@ def ledger_event_detail(entry: dict[str, Any], *, job_id: str, index: int) -> di
         "rollback_available": True,  # a gated request can always be raised
     })
     return base
+# Research Mode — mirrors com.aci.hermes.data.cockpit.ResearchReport (+ cards,
+# claims, contradictions). The engine dataclasses already emit the canonical
+# JSON; these wrappers keep contract.py the single mapping authority and
+# normalize whether the handler passes an engine object or a plain dict.
+# ---------------------------------------------------------------------------
+
+
+def _as_dict(obj: Any) -> dict[str, Any]:
+    to_dict = getattr(obj, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    return dict(obj or {})
+
+
+def research_card(card: Any) -> dict[str, Any]:
+    """Project an engine ``EvidenceCard`` into the cockpit card shape."""
+    return _as_dict(card)
+
+
+def research_claim(claim: Any) -> dict[str, Any]:
+    """Project an engine ``SynthesizedClaim`` into the cockpit claim shape."""
+    return _as_dict(claim)
+
+
+def research_contradiction(contradiction: Any) -> dict[str, Any]:
+    """Project an engine ``ResearchContradiction`` into the cockpit shape."""
+    return _as_dict(contradiction)
+
+
+def research_report(report: Any) -> dict[str, Any]:
+    """Project an engine ``ResearchReport`` into the canonical cockpit report."""
+    return _as_dict(report)
 
 
 __all__ = [
@@ -1573,6 +1628,10 @@ __all__ = [
     "job_timeline",
     "normalize_publish_state",
     "proposal_view",
+    "research_card",
+    "research_claim",
+    "research_contradiction",
+    "research_report",
     "skill_entry",
     "autonomy_status",
 ]

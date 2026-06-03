@@ -231,6 +231,17 @@ which transcribes (server-side Whisper or your configured STT) and
 submits the resulting prompt. See
 [voice/voice-first-user-guide.md](../voice/voice-first-user-guide.md).
 
+### Research
+A full-screen surface (reached from the Home quick links) onto the
+backend **Evidence Engine**. Ask a factual question; JARVIS gathers
+sources, ranks them by trust, extracts evidence cards, and answers with
+citations and a calibrated uncertainty — or honestly says it doesn't
+know when no source-backed evidence is available. Each finding can be
+**saved to memory** (through the same gate as the Memory screen, so
+secrets / low-confidence items are rejected) or turned into a **coding
+task** (a queued job — nothing runs without the usual approval). See
+[jarvis_research/JARVIS_RESEARCH_MODE.md](../jarvis_research/JARVIS_RESEARCH_MODE.md).
+
 ---
 
 ## Device control — letting Jarvis operate the phone

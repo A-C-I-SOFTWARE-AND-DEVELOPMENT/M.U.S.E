@@ -39,6 +39,7 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.orchestrator.PromptBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.data.research.ResearchRepository
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.service.OrchestratorServiceController
 import com.aci.hermes.ui.screens.audit.AuditDetailViewModel
@@ -60,6 +61,7 @@ import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.screens.research.ResearchViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
 import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
@@ -194,6 +196,12 @@ class AppContainer(private val application: Application) {
         EmergencyStopController(emergencyStopRepository, logBuffer).also { it.load() }
     /** Keeps active owner-started jobs visible (and deep-linkable) while backgrounded. */
     val jobNotifier: JobNotifier = JobNotifier(application)
+    // Research Mode: always live (no mock seed) — it needs the backend Evidence
+    // Engine. Unpaired apps see an honest "pair a gateway" hint, never findings.
+    val researchRepository: ResearchRepository = ResearchRepository(
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
 
     // Audit: live off the cockpit decision-ledger when paired (empty seed in
     // production — no mock reaches a paired user; mock seed stays for tests).
@@ -453,6 +461,10 @@ class AppContainer(private val application: Application) {
             taskSink = jarvisTaskSink,
             logBuffer = logBuffer,
         )
+    }
+
+    fun researchVmFactory(): ViewModelProvider.Factory = factory {
+        ResearchViewModel(researchRepository, logBuffer)
     }
 
     private inline fun <reified VM : ViewModel> factory(crossinline build: () -> VM): ViewModelProvider.Factory =

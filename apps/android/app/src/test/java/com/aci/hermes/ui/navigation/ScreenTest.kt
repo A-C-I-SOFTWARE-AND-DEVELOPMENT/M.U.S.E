@@ -30,6 +30,7 @@ class ScreenTest {
         Screen.ModelRoute,
         Screen.TaskDetail,
         Screen.JobDetail,
+        Screen.Research,
     )
 
     @Test
@@ -138,6 +139,7 @@ class ScreenTest {
             Screen.Diagnostics.route,
             Screen.ModelRoute.route,
             Screen.TaskDetail.route,
+            Screen.Research.route,
         )
         for (route in fullScreenRoutes) {
             assertTrue(
