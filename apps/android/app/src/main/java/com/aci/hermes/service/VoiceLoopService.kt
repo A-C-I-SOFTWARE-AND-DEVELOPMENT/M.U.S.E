@@ -49,6 +49,9 @@ class VoiceLoopService : LifecycleService() {
     /** Sends an utterance to the agent; supplied by [Wiring]. */
     private var dispatch: (suspend (String) -> String)? = null
 
+    /** The currently-running wake-word listener, cancelled before STT opens. */
+    private var wakeJob: kotlinx.coroutines.Job? = null
+
     override fun onCreate() {
         super.onCreate()
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -87,20 +90,35 @@ class VoiceLoopService : LifecycleService() {
         _phaseFlow.value = transition.phase
         when (transition.effect) {
             VoiceLoop.Effect.START_WAKE_LISTENER -> listenForWake()
-            VoiceLoop.Effect.OPEN_MIC_FOR_STT -> captureUtterance()
+            // Tear the wake-word recognizer down before opening the STT
+            // recognizer — two SpeechRecognizers contending for the mic makes
+            // Android report "busy" and the (wake- or tap-to-talk-triggered)
+            // capture fails.
+            VoiceLoop.Effect.OPEN_MIC_FOR_STT -> {
+                stopWakeListener()
+                captureUtterance()
+            }
             VoiceLoop.Effect.DISPATCH_TO_AGENT -> dispatchUtterance(loop.lastUtterance)
             VoiceLoop.Effect.SPEAK_REPLY -> speak(loop.lastReply)
-            VoiceLoop.Effect.STOP_ALL_AUDIO -> { tts?.stop(); stopSelf() }
+            VoiceLoop.Effect.STOP_ALL_AUDIO -> { stopWakeListener(); tts?.stop(); stopSelf() }
             VoiceLoop.Effect.NONE -> Unit
         }
     }
 
     private fun listenForWake() {
         val engine = wakeWord ?: return
-        lifecycleScope.launch {
+        stopWakeListener()
+        wakeJob = lifecycleScope.launch {
             engine.detections().first()
             drive(VoiceEvent.WakeWordDetected)
         }
+    }
+
+    /** Cancel the wake-word listener (and release its recognizer via the
+     *  flow's awaitClose) so it never overlaps the STT recognizer. */
+    private fun stopWakeListener() {
+        wakeJob?.cancel()
+        wakeJob = null
     }
 
     private fun captureUtterance() {

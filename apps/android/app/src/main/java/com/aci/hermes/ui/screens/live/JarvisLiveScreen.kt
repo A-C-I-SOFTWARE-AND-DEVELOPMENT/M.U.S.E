@@ -229,6 +229,17 @@ fun JarvisLiveScreen(
 
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
+    // Reconcile persisted Presence Mode: if it was left ON in a previous
+    // session, the wake-word listener isn't running after a restart (the
+    // controller can't safely start a mic foreground service from the
+    // background). Resume it here — a foreground context — once we hold the
+    // mic permission. setEnabled() still covers explicit toggles.
+    LaunchedEffect(presenceEnabled) {
+        if (presenceEnabled && hasMic() && VoiceLoopService.active == null) {
+            VoiceLoopService.start(context)
+        }
+    }
+
     // Opt-in camera attention: runs ONLY when Presence Mode + the opt-in are
     // on AND the CAMERA permission is granted (AttentionPolicy.active). Bound to
     // this screen's lifecycle, so leaving the screen releases the camera. On a
