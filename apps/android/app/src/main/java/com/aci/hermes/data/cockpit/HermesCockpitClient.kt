@@ -407,6 +407,41 @@ class HermesCockpitClient(
             "/v1/cockpit/evidence/search?q=" + enc(query) + "&limit=" + limit,
             EvidenceList.serializer(),
         )
+    // ─── GraphRAG knowledge graph (contract: /v1/cockpit/graph/*) ────────
+
+    /**
+     * Related files / sources / decisions for an entity. Pass exactly one of
+     * [jobId] / [memoryId] / [evidenceId] / [node]. Honest empty when the
+     * entity isn't in the graph yet.
+     */
+    suspend fun graphRelated(
+        jobId: String? = null,
+        memoryId: String? = null,
+        evidenceId: String? = null,
+        node: String? = null,
+    ): CockpitResult<RelatedItemList> {
+        val params = buildList {
+            jobId?.takeIf { it.isNotBlank() }?.let { add("job_id=" + enc(it)) }
+            memoryId?.takeIf { it.isNotBlank() }?.let { add("memory_id=" + enc(it)) }
+            evidenceId?.takeIf { it.isNotBlank() }?.let { add("evidence_id=" + enc(it)) }
+            node?.takeIf { it.isNotBlank() }?.let { add("node=" + enc(it)) }
+        }
+        val q = if (params.isEmpty()) "" else "?" + params.joinToString("&")
+        return request("GET", "/v1/cockpit/graph/related$q", RelatedItemList.serializer())
+    }
+
+    /** Run a GraphRAG query (mode = local | global | coding). */
+    suspend fun graphQuery(question: String, mode: String = "coding"): CockpitResult<GraphAnswer> =
+        request(
+            "GET",
+            "/v1/cockpit/graph/query?mode=" + enc(mode) + "&q=" + enc(question),
+            GraphAnswer.serializer(),
+        )
+
+    /** Rebuild + persist the knowledge-graph cache. Read-only over the repo
+     *  and local stores (not an owner-gated action). */
+    suspend fun graphBuild(): CockpitResult<GraphBuildResult> =
+        request("POST", "/v1/cockpit/graph/build", GraphBuildResult.serializer())
 
     private fun enc(value: String): String =
         java.net.URLEncoder.encode(value, "UTF-8")

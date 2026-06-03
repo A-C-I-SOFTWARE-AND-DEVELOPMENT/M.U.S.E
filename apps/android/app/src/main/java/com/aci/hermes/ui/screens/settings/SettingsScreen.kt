@@ -48,6 +48,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenDiagnostics: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
+    onOpenKnowledge: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -174,6 +175,9 @@ fun SettingsScreen(
                 )
                 OutlinedButton(onClick = onOpenDiagnostics, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.nav_diagnostics))
+                }
+                OutlinedButton(onClick = onOpenKnowledge, modifier = Modifier.fillMaxWidth()) {
+                    Text("Knowledge graph")
                 }
                 OutlinedButton(
                     onClick = { confirmReset = true },

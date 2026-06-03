@@ -728,6 +728,63 @@ never becomes durable memory automatically.**
 
 Demote (remove) an artifact: `{ "removed": <int> }`.
 
+## 10e. GraphRAG knowledge graph — **canonical, implemented**
+
+A typed, source-backed knowledge graph over the cognition plane (repo code,
+docs, Research Vault, Memory Tree, and the job + decision ledgers). It
+**supplements** existing RAG/memory — it does not replace them. Adapters in
+`gateway/cockpit/contract.py` (`graph_related_view`, `graph_answer_view`);
+the engine is `hermes_cli/jarvis_prime/graphrag/`.
+
+### `GET /v1/cockpit/graph/related`
+
+Related files / sources / decisions for an entity. Pass exactly one of
+`job_id`, `memory_id`, `evidence_id`, or `node` (a graph node id/key).
+Powers the "Related in knowledge graph" panel on the Task (job), Audit, and
+Memory screens. Honest empty (`{"node":"","related":[]}`) when the entity is
+not in the graph yet — never a fabricated relationship.
+
+```json
+{
+  "node": "task:abc123",
+  "origin": "orc-1",
+  "related": [
+    {"kind": "FILE", "node_type": "file", "title": "run_agent.py",
+     "ref": "run_agent.py", "relation": "depends_on", "source_backed": true,
+     "sources": [{"uri": "orc-1", "kind": "job_ledger"}]},
+    {"kind": "DECISION", "node_type": "decision", "title": "Localization approach",
+     "ref": "memory:9f…", "relation": "cites", "source_backed": true, "sources": []}
+  ]
+}
+```
+
+`kind` is one of `FILE` / `SOURCE` / `DECISION` (the Android `RelatedKind`
+enum constants). `source_backed` is true when the node carries provenance.
+
+### `GET /v1/cockpit/graph/query?mode=…&q=…`
+
+Run a GraphRAG query. `mode` is `local` (nearest nodes), `global` (community
+summary), or `coding` (relevant files + tests + docs + prior decisions, so a
+coding task reuses what exists). Returns a `GraphAnswer`:
+
+```json
+{
+  "mode": "coding",
+  "question": "where is job dispatch handled?",
+  "nodes": [{"id": "file:…", "type": "file", "title": "orchestrator.py", "key": "hermes_cli/orchestrator.py"}],
+  "edges": [{"src": "file:…", "dst": "function:…", "type": "owns"}],
+  "citations": [{"uri": "hermes_cli/orchestrator.py", "kind": "repo"}],
+  "communities": []
+}
+```
+
+### `POST /v1/cockpit/graph/build`
+
+Rebuild + persist the graph cache (`~/.hermes/jarvis_prime/graph/graph.json`).
+Read-only over the repo and local stores — no repo edits, no network — so it
+is **not** an owner-gated action. Returns `{"saved": "...", "nodes": N,
+"edges": M, "by_node_type": {...}, "by_edge_type": {...}}`.
+
 ---
 
 ## 11. Versioning

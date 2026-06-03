@@ -39,6 +39,7 @@ fun MemoryDetail(
     onDismiss: () -> Unit,
     onCorrect: () -> Unit,
     onDelete: () -> Unit,
+    relatedLoader: (suspend (String) -> com.aci.hermes.data.cockpit.CockpitResult<com.aci.hermes.data.cockpit.RelatedItemList>)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(
@@ -93,6 +94,16 @@ fun MemoryDetail(
                         AssistChip(onClick = {}, label = { Text(tag) })
                     }
                 }
+            }
+
+            // GraphRAG: related files/sources/decisions for this memory entry.
+            relatedLoader?.let { loader ->
+                HorizontalDivider()
+                com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                    entityKey = item.id,
+                    loader = { loader(item.id) },
+                    title = "Related in knowledge graph",
+                )
             }
 
             HorizontalDivider()

@@ -160,6 +160,14 @@ class ScreenTest {
     }
 
     @Test
+    fun knowledge_is_a_full_screen_push_with_a_unique_route() {
+        assertEquals("knowledge", Screen.Knowledge.route)
+        // Deep-linked from Settings/Home, not a shell tab or bottom-nav target.
+        assertTrue(Screen.Knowledge.route !in Screen.shellRoutes)
+        assertTrue(Screen.bottomTabs.none { it.screen.route == Screen.Knowledge.route })
+    }
+
+    @Test
     fun task_detail_route_builders_produce_expected_paths() {
         assertEquals("task_detail/abc", Screen.TaskDetail.forTask("abc"))
         assertEquals("task_detail/new", Screen.TaskDetail.forNew())

@@ -59,6 +59,7 @@ import com.aci.hermes.data.model.WorkerPhase
 fun TaskDetailScreen(
     viewModel: TaskDetailViewModel,
     onBack: () -> Unit,
+    relatedLoader: (suspend (String) -> com.aci.hermes.data.cockpit.CockpitResult<com.aci.hermes.data.cockpit.RelatedItemList>)? = null,
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -269,6 +270,17 @@ fun TaskDetailScreen(
                 OutlinedButton(onClick = viewModel::save, enabled = !state.saving) {
                     Text(stringResource(R.string.action_save))
                 }
+            }
+
+            // GraphRAG: related files/sources/decisions for this job (honest
+            // empty until the job exists in the knowledge graph).
+            if (!state.isNew && relatedLoader != null) {
+                val taskId = state.task.id
+                com.aci.hermes.ui.screens.knowledge.KnowledgeRelatedCard(
+                    entityKey = taskId,
+                    loader = { relatedLoader(taskId) },
+                    title = "Related in knowledge graph",
+                )
             }
         }
     }

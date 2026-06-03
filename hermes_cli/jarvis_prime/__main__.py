@@ -871,6 +871,77 @@ def _cmd_research(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cmd_graph(args: argparse.Namespace) -> int:
+    """GraphRAG knowledge-graph lane: build / query / related.
+
+    Supplements (never replaces) the Memory Tree and Research Vault. The graph
+    is an additive cache rebuilt from the repo + local stores; ``build`` is
+    read-only over those sources and writes only the graph cache file.
+    """
+
+    from hermes_cli.jarvis_prime.graphrag import (
+        GraphStore,
+        build_and_save,
+        coding_query,
+        find_entity_node,
+        global_query,
+        local_query,
+        related_items,
+    )
+
+    store = GraphStore(Path(args.store) if getattr(args, "store", None) else None)
+
+    if args.op == "build":
+        indexers = args.indexers.split(",") if getattr(args, "indexers", None) else None
+        graph, path = build_and_save(
+            args.repo_root, indexers=indexers, store=store
+        )
+        payload = {"saved": str(path), **graph.stats()}
+        if args.json:
+            _print_json(payload)
+        else:
+            print(graph.render())
+            print(f"\nsaved: {path}")
+        return 0
+
+    # query / related read the cached graph (build it on first use).
+    graph = store.load()
+    if not graph.nodes:
+        graph, _ = build_and_save(args.repo_root, store=store)
+
+    if args.op == "query":
+        mode = getattr(args, "mode", "local")
+        q = args.query or ""
+        if mode == "global":
+            answer = global_query(graph, q)
+        elif mode == "coding":
+            answer = coding_query(graph, q)
+        else:
+            answer = local_query(graph, q)
+        if args.json:
+            _print_json(answer.to_dict())
+        else:
+            print(answer.render())
+        return 0
+
+    if args.op == "related":
+        node_id_ = find_entity_node(graph, node=args.node, key=args.node)
+        if not node_id_:
+            print(f"error: no graph node matches {args.node!r}", file=sys.stderr)
+            return 2
+        items = related_items(graph, node_id_)
+        if args.json:
+            _print_json({"node": node_id_, "related": items})
+        else:
+            for it in items:
+                flag = "✓" if it["source_backed"] else "·"
+                print(f"{flag} [{it['kind']}/{it['relation']}] {it['title']}")
+        return 0
+
+    print(f"error: unknown graph op {args.op!r}", file=sys.stderr)
+    return 2
+
+
 def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.model_scorecard import (
         ModelScorecard,
@@ -1430,6 +1501,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_research.add_argument("--json", action="store_true")
     p_research.set_defaults(func=_cmd_research)
+
+    # graph — GraphRAG knowledge-graph: build / query / related.
+    p_graph = sub.add_parser(
+        "graph",
+        help="GraphRAG knowledge graph: build, query (local/global/coding), related",
+        description=(
+            "Build and query a typed, source-backed knowledge graph over the "
+            "cognition plane (repo code, docs, Research Vault, Memory Tree, job "
+            "and decision ledgers). Supplements — never replaces — existing RAG "
+            "and memory. The graph is an additive cache; deleting it is a full "
+            "rollback."
+        ),
+    )
+    p_graph.add_argument("op", choices=["build", "query", "related"])
+    p_graph.add_argument(
+        "query", nargs="?", default="", help="Question (for the query op)"
+    )
+    p_graph.add_argument(
+        "--mode",
+        choices=["local", "global", "coding"],
+        default="local",
+        help="Query mode: nearest nodes / community summary / coding context",
+    )
+    p_graph.add_argument(
+        "--node", help="Node id or key to fetch related items for (related op)"
+    )
+    p_graph.add_argument(
+        "--indexers",
+        help="Comma-separated subset of: code,docs,evidence,memory,ledger",
+    )
+    p_graph.add_argument("--repo-root", dest="repo_root", default=".")
+    p_graph.add_argument("--store", help="Path to a persistent graph JSON file")
+    p_graph.add_argument("--json", action="store_true")
+    p_graph.set_defaults(func=_cmd_graph)
 
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(

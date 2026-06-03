@@ -944,6 +944,92 @@ def evidence_verdict(claim: str, matches: list[Any], report: Any) -> dict[str, A
     }
 
 
+# ---------------------------------------------------------------------------
+# GraphRAG — related files / sources / decisions, and query answers
+# ---------------------------------------------------------------------------
+#
+# Mirrors the Android cockpit DTOs in
+# com.aci.hermes.data.cockpit.CockpitApi (RelatedItem / RelatedItemList /
+# GraphAnswer). The GraphRAG engine already emits honest, source-backed
+# shapes; these adapters only normalise keys to the wire conventions and
+# clamp to the fields the UI consumes.
+
+# Allowed related-item buckets (mirrors the Android enum constants).
+RELATED_KINDS: tuple[str, ...] = ("FILE", "SOURCE", "DECISION")
+
+
+def _related_kind(kind: str) -> str:
+    k = (kind or "").upper()
+    return k if k in RELATED_KINDS else "FILE"
+
+
+def graph_related_item(item: dict[str, Any]) -> dict[str, Any]:
+    """Project one ``graphrag.query.related_items`` entry to the wire shape."""
+
+    return {
+        "kind": _related_kind(str(item.get("kind", "file"))),
+        "node_type": str(item.get("node_type", "") or ""),
+        "title": str(item.get("title", "") or ""),
+        "ref": str(item.get("ref", "") or ""),
+        "relation": str(item.get("relation", "related") or "related"),
+        "source_backed": bool(item.get("source_backed", False)),
+        "sources": [
+            {"uri": str(s.get("uri", "") or ""), "kind": str(s.get("kind", "") or "")}
+            for s in (item.get("sources") or [])
+            if isinstance(s, dict)
+        ],
+    }
+
+
+def graph_related_view(
+    items: list[dict[str, Any]], *, node: str = "", origin: str = ""
+) -> dict[str, Any]:
+    """A ``RelatedItemList``: related files/sources/decisions for an entity."""
+
+    return {
+        "node": str(node or ""),
+        "origin": str(origin or ""),
+        "related": [graph_related_item(i) for i in items if isinstance(i, dict)],
+    }
+
+
+def graph_answer_view(answer: dict[str, Any]) -> dict[str, Any]:
+    """A ``GraphAnswer``: ranked nodes + edges + citations for a query mode."""
+
+    nodes = [
+        {
+            "id": str(n.get("id", "") or ""),
+            "type": str(n.get("type", "") or ""),
+            "title": str(n.get("title", "") or ""),
+            "key": str(n.get("key", "") or ""),
+        }
+        for n in (answer.get("nodes") or [])
+        if isinstance(n, dict)
+    ]
+    edges = [
+        {
+            "src": str(e.get("src", "") or ""),
+            "dst": str(e.get("dst", "") or ""),
+            "type": str(e.get("type", "") or ""),
+        }
+        for e in (answer.get("edges") or [])
+        if isinstance(e, dict)
+    ]
+    citations = [
+        {"uri": str(c.get("uri", "") or ""), "kind": str(c.get("kind", "") or "")}
+        for c in (answer.get("citations") or [])
+        if isinstance(c, dict)
+    ]
+    return {
+        "mode": str(answer.get("mode", "") or ""),
+        "question": str(answer.get("question", "") or ""),
+        "nodes": nodes,
+        "edges": edges,
+        "citations": citations,
+        "communities": answer.get("communities") or [],
+    }
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
@@ -955,6 +1041,7 @@ __all__ = [
     "MEMORY_CONFIDENCES",
     "MEMORY_DURABILITIES",
     "PUBLISH_STATES",
+    "RELATED_KINDS",
     "RISK_TIERS",
     "ROUTE_DESTINATIONS",
     "VERIFICATION_STATUSES",
@@ -976,6 +1063,9 @@ __all__ = [
     "evidence_hit",
     "evidence_verdict",
     "evidence_verify_result",
+    "graph_answer_view",
+    "graph_related_item",
+    "graph_related_view",
     "job_status",
     "memory_item",
     "navigation_view",

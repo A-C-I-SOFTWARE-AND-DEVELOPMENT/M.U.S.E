@@ -1013,6 +1013,103 @@ def navigation_list(req: Request) -> JsonResponse:
     return JsonResponse(200, {"navigations": items})
 
 
+# ---------------------------------------------------------------------------
+# GraphRAG — related files/sources/decisions, query modes (cognition plane)
+# ---------------------------------------------------------------------------
+
+
+def _graph_repo_root():
+    import os
+    from pathlib import Path
+
+    return Path(os.environ.get("HERMES_REPO_ROOT") or os.getcwd())
+
+
+def _load_graph():
+    """Load the cached knowledge graph, building it on first use.
+
+    The graph is an additive cache (``~/.hermes/jarvis_prime/graph/``) rebuilt
+    from the repo + local stores; building is read-only over those sources.
+    """
+
+    from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+
+    store = GraphStore()
+    graph = store.load()
+    if not graph.nodes:
+        graph, _ = build_and_save(_graph_repo_root(), store=store)
+    return graph
+
+
+def graph_related(req: Request) -> JsonResponse:
+    """Related files / sources / decisions for an entity. Accepts ``node`` (a
+    graph node id or key), or one of ``job_id`` / ``memory_id`` /
+    ``evidence_id`` which are resolved to a node. Honest empty when the entity
+    is not in the graph yet.
+    """
+    try:
+        from hermes_cli.jarvis_prime.graphrag import find_entity_node, related_items
+
+        from . import contract
+
+        graph = _load_graph()
+        q = req.query
+        explicit = q.get("node", "")
+        key = (
+            q.get("job_id")
+            or (f"memory:{q['memory_id']}" if q.get("memory_id") else "")
+            or q.get("evidence_id")
+            or explicit
+        )
+        node_id_ = find_entity_node(graph, node=explicit or None, key=key or None)
+        if not node_id_:
+            return JsonResponse(200, contract.graph_related_view([], node=key))
+        items = related_items(graph, node_id_, limit=int(q.get("limit", "30")))
+        return JsonResponse(
+            200, contract.graph_related_view(items, node=node_id_, origin=key)
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"node": "", "related": [], "error": str(exc)})
+
+
+def graph_query(req: Request) -> JsonResponse:
+    """Run a GraphRAG query (``mode`` = local | global | coding)."""
+    try:
+        from hermes_cli.jarvis_prime.graphrag import (
+            coding_query,
+            global_query,
+            local_query,
+        )
+
+        from . import contract
+
+        graph = _load_graph()
+        mode = req.query.get("mode", "local")
+        question = req.query.get("q", "")
+        if mode == "global":
+            answer = global_query(graph, question)
+        elif mode == "coding":
+            answer = coding_query(graph, question)
+        else:
+            answer = local_query(graph, question)
+        return JsonResponse(200, contract.graph_answer_view(answer.to_dict()))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"mode": "", "nodes": [], "edges": [], "error": str(exc)})
+
+
+def graph_build(_req: Request) -> JsonResponse:
+    """Rebuild + persist the knowledge-graph cache. Read-only over the repo and
+    local stores (no repo edits, no network); not an owner-gated action.
+    """
+    try:
+        from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+
+        graph, path = build_and_save(_graph_repo_root(), store=GraphStore())
+        return JsonResponse(200, {"saved": str(path), **graph.stats()})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
 def approvals_decide(req: Request) -> JsonResponse:
     """Approve/reject a proposal. Approve requires the exact owner phrase."""
     proposal_id = req.path_params.get("id", "")

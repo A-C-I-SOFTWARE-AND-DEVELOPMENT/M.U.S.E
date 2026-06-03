@@ -967,3 +967,92 @@ data class EvidenceArtifact(
 
 @Serializable
 data class EvidenceList(val items: List<EvidenceArtifact> = emptyList())
+// ─── GraphRAG knowledge graph (contract: /v1/cockpit/graph/*) ──────────────
+//
+// Mirrors gateway/cockpit/contract.py graph_related_view / graph_answer_view.
+// Surfaces related files/sources/decisions on job & evidence screens and the
+// dedicated Knowledge Graph screen. Source-backed; nothing fabricated.
+
+/** Bucket a related item falls into (mirrors contract RELATED_KINDS). */
+enum class RelatedKind {
+    FILE, SOURCE, DECISION, UNKNOWN;
+
+    companion object {
+        fun fromWire(value: String?): RelatedKind =
+            when (value?.uppercase()) {
+                "FILE" -> FILE
+                "SOURCE" -> SOURCE
+                "DECISION" -> DECISION
+                else -> UNKNOWN
+            }
+    }
+}
+
+@Serializable
+data class GraphSource(
+    val uri: String = "",
+    val kind: String = "",
+)
+
+@Serializable
+data class RelatedItem(
+    val kind: String = "FILE",
+    @SerialName("node_type") val nodeType: String = "",
+    val title: String = "",
+    val ref: String = "",
+    val relation: String = "related",
+    @SerialName("source_backed") val sourceBacked: Boolean = false,
+    val sources: List<GraphSource> = emptyList(),
+) {
+    val bucket: RelatedKind get() = RelatedKind.fromWire(kind)
+}
+
+@Serializable
+data class RelatedItemList(
+    val node: String = "",
+    val origin: String = "",
+    val related: List<RelatedItem> = emptyList(),
+)
+
+@Serializable
+data class GraphNode(
+    val id: String = "",
+    val type: String = "",
+    val title: String = "",
+    val key: String = "",
+)
+
+@Serializable
+data class GraphEdge(
+    val src: String = "",
+    val dst: String = "",
+    val type: String = "",
+)
+
+@Serializable
+data class GraphCommunity(
+    val label: String = "",
+    val size: Int = 0,
+    val relevance: Double = 0.0,
+    @SerialName("top_titles") val topTitles: List<String> = emptyList(),
+    @SerialName("edge_types") val edgeTypes: Map<String, Int> = emptyMap(),
+)
+
+@Serializable
+data class GraphAnswer(
+    val mode: String = "",
+    val question: String = "",
+    val nodes: List<GraphNode> = emptyList(),
+    val edges: List<GraphEdge> = emptyList(),
+    val citations: List<GraphSource> = emptyList(),
+    val communities: List<GraphCommunity> = emptyList(),
+)
+
+@Serializable
+data class GraphBuildResult(
+    val saved: String = "",
+    val nodes: Int = 0,
+    val edges: Int = 0,
+    @SerialName("by_node_type") val byNodeType: Map<String, Int> = emptyMap(),
+    @SerialName("by_edge_type") val byEdgeType: Map<String, Int> = emptyMap(),
+)

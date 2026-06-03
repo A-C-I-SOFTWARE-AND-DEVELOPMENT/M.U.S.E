@@ -51,6 +51,10 @@ sealed class Screen(val route: String) {
         fun forNew(target: String? = null): String =
             if (target == null) "task_detail/new" else "task_detail/new?target=$target"
     }
+    /** GraphRAG knowledge-graph browser; full-screen push (deep-linked from
+     *  Home + Settings, not a bottom-nav tab). */
+    data object Knowledge : Screen("knowledge")
+
     data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
