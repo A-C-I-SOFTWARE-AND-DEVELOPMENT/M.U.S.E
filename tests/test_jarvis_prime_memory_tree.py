@@ -407,3 +407,126 @@ def test_to_dict_from_dict_round_trip(tmp_path) -> None:
     data = store.to_dict()
     clone = MemoryTreeStore.from_dict(data)
     assert len(clone.nodes) == 1
+
+
+# ---------------------------------------------------------------------------
+# Proposed inbox / owner decisions / freshness (live-loop wiring helpers)
+# ---------------------------------------------------------------------------
+
+
+def _session(store, text, *, title, ns="jarvis/personal", conf=0.6):
+    return store.write(
+        text,
+        namespace=ns,
+        title=title,
+        subject=title,
+        layer=MemoryLayer.SESSION,
+        confidence=conf,
+        approval_state=ApprovalState.PROPOSED,
+    )
+
+
+def test_proposed_lists_only_proposed_active_nodes(tmp_path) -> None:
+    store = _store(tmp_path)
+    _session(store, "Owner prefers dark mode.", title="pref-theme")
+    approved = _session(store, "Owner prefers tabs.", title="pref-tabs")
+    store.set_approval(approved.node.id, ApprovalState.OWNER_APPROVED)
+    inbox = store.proposed()
+    titles = {n.title for n in inbox}
+    assert "pref-theme" in titles
+    assert "pref-tabs" not in titles  # owner-approved leaves the inbox
+
+
+def test_set_approval_reject_removes_from_active_and_inbox(tmp_path) -> None:
+    store = _store(tmp_path)
+    node = _session(store, "A weak guess about the API.", title="guess").node
+    store.set_approval(node.id, ApprovalState.REJECTED)
+    assert store.get(node.id).active is False
+    assert node.id not in {n.id for n in store.proposed()}
+    # Rejected content is excluded from recall.
+    assert store.search("guess") == []
+
+
+def test_promote_to_durable_lifts_layer_and_owner_approves(tmp_path) -> None:
+    store = _store(tmp_path)
+    node = _session(
+        store, "We standardize on Material 3.", title="ui-standard"
+    ).node
+    result = store.promote_to_durable(node.id)
+    assert result.ok
+    promoted = store.get(node.id)
+    assert promoted.layer is MemoryLayer.DURABLE
+    assert promoted.approval_state is ApprovalState.OWNER_APPROVED
+    assert result.contradiction is None
+    # Survives a reload (persisted).
+    reloaded = MemoryTreeStore.load(path=tmp_path / "memtree.jsonl")
+    assert reloaded.get(node.id).layer is MemoryLayer.DURABLE
+
+
+def test_promote_to_durable_conflict_opens_contradiction_not_overwrite(
+    tmp_path,
+) -> None:
+    store = _store(tmp_path)
+    existing = _durable(store, "We deploy on Friday.", title="deploy-day")
+    # A proposed, conflicting fact on the same subject.
+    candidate = store.write(
+        "We deploy on Monday.",
+        namespace="jarvis/decisions",
+        title="deploy-day",
+        subject="deploy-day",
+        layer=MemoryLayer.SESSION,
+        confidence=0.9,
+        approval_state=ApprovalState.PROPOSED,
+    )
+    result = store.promote_to_durable(candidate.node.id)
+    assert result.contradiction is not None
+    # Neither fact is silently overwritten — both contested, both present.
+    assert store.get(existing.node.id) is not None
+    assert store.get(candidate.node.id) is not None
+    assert store.get(existing.node.id).contested
+    assert store.get(candidate.node.id).contested
+
+
+def test_supersede_marks_loser_without_deleting(tmp_path) -> None:
+    store = _store(tmp_path)
+    old = _durable(store, "Use REST for the cockpit.", title="api-style-old")
+    new = _durable(store, "Use REST + SSE for the cockpit.", title="api-style-new")
+    loser = store.supersede(old.node.id, new.node.id, note="SSE added")
+    assert loser.contradiction_status is ContradictionStatus.SUPERSEDED
+    assert loser.superseded_by == new.node.id
+    assert loser.active is False
+    assert store.get(old.node.id) is not None  # not deleted
+    assert new.node.id in store.get(new.node.id).id  # winner intact
+
+
+def test_due_for_review_returns_overdue_and_within_horizon(tmp_path) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    store = _store(tmp_path)
+    overdue = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+    soon = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    far = (datetime.now(timezone.utc) + timedelta(days=400)).isoformat()
+    store.write(
+        "Stale fact.", namespace="jarvis/general", title="stale",
+        layer=MemoryLayer.SESSION, freshness_due=overdue,
+    )
+    store.write(
+        "Soon-due fact.", namespace="jarvis/general", title="soon",
+        layer=MemoryLayer.SESSION, freshness_due=soon,
+    )
+    store.write(
+        "Fresh fact.", namespace="jarvis/general", title="fresh",
+        layer=MemoryLayer.SESSION, freshness_due=far,
+    )
+    overdue_only = {n.title for n in store.due_for_review(within_days=0)}
+    assert overdue_only == {"stale"}
+    within_week = {n.title for n in store.due_for_review(within_days=7)}
+    assert within_week == {"stale", "soon"}
+
+
+def test_default_path_honors_hermes_home(tmp_path, monkeypatch) -> None:
+    from hermes_cli.jarvis_prime.memory_tree import _default_tree_path
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    expected = tmp_path / "jarvis_prime" / "memory_tree.jsonl"
+    assert _default_tree_path() == expected
