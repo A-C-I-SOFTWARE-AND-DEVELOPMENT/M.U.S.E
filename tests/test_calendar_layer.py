@@ -51,6 +51,7 @@ def test_parse_extracts_vevents_and_skips_broken():
 
 def test_parse_handles_utc_marker():
     e = parse_ics(SAMPLE)[0]
+    assert isinstance(e.start, datetime)  # date-time event, not all-day
     assert e.start.tzinfo == timezone.utc
     assert e.start.hour == 9
 

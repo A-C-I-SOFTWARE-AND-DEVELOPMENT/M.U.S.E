@@ -17,10 +17,13 @@ Design choices:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
+
+# A calendar instant is either a date-time or an all-day date.
+DateOrDateTime = Union[datetime, date]
 
 
 @dataclass(frozen=True)
@@ -29,8 +32,8 @@ class CalendarEvent:
     ``date`` (all-day). ``all_day`` distinguishes the two for rendering."""
 
     summary: str
-    start: object  # datetime | date
-    end: Optional[object] = None  # datetime | date | None
+    start: DateOrDateTime
+    end: Optional[DateOrDateTime] = None
     location: str = ""
     description: str = ""
     uid: str = ""
@@ -79,7 +82,7 @@ def _unescape(value: str) -> str:
     )
 
 
-def _parse_dt(value: str, params: dict[str, str]) -> tuple[Optional[object], bool]:
+def _parse_dt(value: str, params: dict[str, str]) -> tuple[Optional[DateOrDateTime], bool]:
     """Parse a DTSTART/DTEND value. Returns ``(value_or_None, all_day)``."""
     value = value.strip()
     is_date = params.get("VALUE", "").upper() == "DATE" or (
@@ -163,7 +166,7 @@ def parse_ics_file(path: Path | str) -> list[CalendarEvent]:
         return []
 
 
-def _as_datetime(value: object) -> datetime:
+def _as_datetime(value: DateOrDateTime) -> datetime:
     """Coerce a ``date`` or ``datetime`` to a ``datetime`` (midnight for dates)."""
     if isinstance(value, datetime):
         return value

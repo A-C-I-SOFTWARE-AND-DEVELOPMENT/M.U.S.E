@@ -4,6 +4,7 @@ Covers the pure diff, the owner-gated proposal emission, and the fail-open
 end-to-end pass. No network: the live manifest is injected or monkeypatched.
 """
 
+from typing import Any, cast
 from unittest.mock import patch
 
 from hermes_cli.jarvis_prime.registry_updater import (
@@ -60,8 +61,9 @@ def test_diff_handles_bare_string_ids():
 
 
 def test_diff_tolerates_garbage_input():
+    # Deliberately wrong types — the function must be defensive, not raise.
     assert diff_provider_models(None, None) == []
-    assert diff_provider_models("oops", {"providers": "nope"}) == []
+    assert diff_provider_models(cast(Any, "oops"), cast(Any, {"providers": "nope"})) == []
 
 
 def test_diff_matches_across_id_conventions():
