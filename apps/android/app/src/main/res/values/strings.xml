@@ -374,34 +374,63 @@
     <string name="jarvis_state_idle">Idle</string>
     <string name="jarvis_state_listening">Listening</string>
     <string name="jarvis_state_thinking">Thinking</string>
+    <string name="jarvis_state_researching">Researching</string>
+    <string name="jarvis_state_coding">Coding</string>
+    <string name="jarvis_state_reviewing">Reviewing</string>
     <string name="jarvis_state_working">Working</string>
     <string name="jarvis_state_speaking">Speaking</string>
     <string name="jarvis_state_approval">Approval needed</string>
     <string name="jarvis_state_blocked">Blocked</string>
+    <string name="jarvis_state_warning">Needs attention</string>
+    <string name="jarvis_state_disconnected">Disconnected</string>
     <string name="jarvis_state_emergency">Emergency stop</string>
 
     <string name="jarvis_voice_idle">Standing by.</string>
     <string name="jarvis_voice_listening">Listening.</string>
     <string name="jarvis_voice_thinking">Thinking through it.</string>
+    <string name="jarvis_voice_researching">Researching the problem.</string>
+    <string name="jarvis_voice_coding">Writing the code.</string>
+    <string name="jarvis_voice_reviewing">Reviewing the work.</string>
     <string name="jarvis_voice_working">Working on the task.</string>
     <string name="jarvis_voice_speaking">Speaking.</string>
     <string name="jarvis_voice_approval">Waiting for your approval.</string>
     <string name="jarvis_voice_blocked">Action needed before I can continue.</string>
+    <string name="jarvis_voice_warning">Something needs your attention.</string>
+    <string name="jarvis_voice_disconnected">I can\'t reach the runtime right now.</string>
     <string name="jarvis_voice_emergency">Emergency stop active.</string>
 
     <string name="jarvis_avatar_cd_idle">Jarvis is idle.</string>
     <string name="jarvis_avatar_cd_listening">Jarvis is listening.</string>
     <string name="jarvis_avatar_cd_thinking">Jarvis is thinking.</string>
+    <string name="jarvis_avatar_cd_researching">Jarvis is researching.</string>
+    <string name="jarvis_avatar_cd_coding">Jarvis is writing code.</string>
+    <string name="jarvis_avatar_cd_reviewing">Jarvis is reviewing the work.</string>
     <string name="jarvis_avatar_cd_working">Jarvis is working.</string>
     <string name="jarvis_avatar_cd_speaking">Jarvis is speaking.</string>
     <string name="jarvis_avatar_cd_approval">Jarvis is waiting for your approval.</string>
     <string name="jarvis_avatar_cd_blocked">Jarvis is blocked and needs your input.</string>
+    <string name="jarvis_avatar_cd_warning">Jarvis needs your attention.</string>
+    <string name="jarvis_avatar_cd_disconnected">Jarvis cannot reach the runtime.</string>
     <string name="jarvis_avatar_cd_emergency">Jarvis emergency stop is active.</string>
 
     <string name="jarvis_cta_approve">Approve</string>
+    <string name="jarvis_cta_open_approvals">Open approvals</string>
     <string name="jarvis_cta_fix">Review block</string>
+    <string name="jarvis_cta_warning">See what needs attention</string>
+    <string name="jarvis_cta_open_job">Open current job</string>
     <string name="jarvis_cta_emergency_stop">Emergency stop</string>
     <string name="jarvis_cta_emergency_release">Release emergency stop</string>
+
+    <string name="jarvis_presence_toggle_on">Turn on Presence Mode</string>
+    <string name="jarvis_presence_toggle_off">Turn off Presence Mode</string>
+    <string name="jarvis_overflow_change_companion">Change companion</string>
+    <string name="jarvis_presence_armed">Hands-free on · say \"Jarvis\" or tap to talk</string>
+    <string name="jarvis_presence_listening">Hands-free · listening</string>
+    <string name="jarvis_presence_thinking">Hands-free · thinking</string>
+    <string name="jarvis_presence_speaking">Hands-free · speaking</string>
+    <string name="jarvis_camera_attention_on">Use camera attention</string>
+    <string name="jarvis_camera_attention_off">Turn off camera attention</string>
+    <string name="jarvis_camera_indicator">Camera on</string>
 
     <string name="jarvis_menu_cd">Open menu</string>
     <string name="jarvis_more_cd">More options</string>

@@ -155,6 +155,15 @@ dependencies {
     // honoring the JarvisStateMachine contract; renderer falls back gracefully).
     implementation(libs.rive.android)
 
+    // Opt-in camera attention (Presence Mode): CameraX + on-device ML Kit face
+    // detection. Default OFF; runs only while the live screen is visible and
+    // the user has enabled it; frames are analysed in-memory and never stored
+    // or transmitted. See vision/CameraXFaceAttentionDetector.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.mlkit.face.detection)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

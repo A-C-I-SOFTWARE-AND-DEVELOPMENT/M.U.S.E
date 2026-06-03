@@ -90,11 +90,20 @@ class JarvisLiveStateMapperTest {
     }
 
     @Test
-    fun `working outranks thinking and listening`() {
+    fun `working outranks thinking`() {
         val p = JarvisLiveStateMapper.project(
-            JarvisLiveUiState(listening = true, thinking = true, working = true),
+            JarvisLiveUiState(thinking = true, working = true),
         )
         assertEquals(JarvisLiveState.Working, p.state)
+    }
+
+    @Test
+    fun `voice listening outranks generic working`() {
+        // Owner-specified priority: voice listening/speaking beats work states.
+        val p = JarvisLiveStateMapper.project(
+            JarvisLiveUiState(listening = true, working = true),
+        )
+        assertEquals(JarvisLiveState.Listening, p.state)
     }
 
     @Test
@@ -157,24 +166,107 @@ class JarvisLiveStateMapperTest {
 
     @Test
     fun `motion is enabled by default for non-emergency states`() {
+        // Emergency stop and disconnected hold the avatar still (nothing live).
+        val stillStates = setOf(JarvisLiveState.EmergencyStop, JarvisLiveState.Disconnected)
         for (state in JarvisLiveState.values()) {
             val p = JarvisLiveStateMapper.project(uiFor(state).copy(reducedMotion = false))
-            if (state == JarvisLiveState.EmergencyStop) {
-                assertFalse(p.motionEnabled)
+            if (state in stillStates) {
+                assertFalse("motion off for $state", p.motionEnabled)
             } else {
                 assertTrue("motion on for $state without reduced motion", p.motionEnabled)
             }
         }
     }
 
+    @Test
+    fun `disconnected outranks blocked approval and work but not emergency`() {
+        val p = JarvisLiveStateMapper.project(
+            JarvisLiveUiState(
+                coding = true,
+                approvalNeeded = true,
+                blocked = true,
+                warning = true,
+                disconnected = true,
+            ),
+        )
+        assertEquals(JarvisLiveState.Disconnected, p.state)
+        // Emergency still wins over disconnected.
+        val e = JarvisLiveStateMapper.project(
+            JarvisLiveUiState(disconnected = true, emergencyStop = true),
+        )
+        assertEquals(JarvisLiveState.EmergencyStop, e.state)
+    }
+
+    @Test
+    fun `warning outranks the work phases but yields to approval and blocked`() {
+        val warn = JarvisLiveStateMapper.project(
+            JarvisLiveUiState(coding = true, reviewing = true, warning = true),
+        )
+        assertEquals(JarvisLiveState.Warning, warn.state)
+        assertTrue(warn.showWarningCta)
+
+        val approval = JarvisLiveStateMapper.project(
+            JarvisLiveUiState(warning = true, approvalNeeded = true),
+        )
+        assertEquals(JarvisLiveState.ApprovalNeeded, approval.state)
+    }
+
+    @Test
+    fun `work phases resolve in reviewing coding researching order`() {
+        assertEquals(
+            JarvisLiveState.Reviewing,
+            JarvisLiveStateMapper.project(
+                JarvisLiveUiState(researching = true, coding = true, reviewing = true),
+            ).state,
+        )
+        assertEquals(
+            JarvisLiveState.Coding,
+            JarvisLiveStateMapper.project(
+                JarvisLiveUiState(researching = true, coding = true),
+            ).state,
+        )
+        assertEquals(
+            JarvisLiveState.Researching,
+            JarvisLiveStateMapper.project(JarvisLiveUiState(researching = true)).state,
+        )
+    }
+
+    @Test
+    fun `voice listening and speaking outrank the work phases`() {
+        assertEquals(
+            JarvisLiveState.Speaking,
+            JarvisLiveStateMapper.project(
+                JarvisLiveUiState(coding = true, speaking = true),
+            ).state,
+        )
+        assertEquals(
+            JarvisLiveState.Listening,
+            JarvisLiveStateMapper.project(
+                JarvisLiveUiState(reviewing = true, listening = true),
+            ).state,
+        )
+    }
+
+    @Test
+    fun `warning keeps motion on but suppresses particles`() {
+        val p = JarvisLiveStateMapper.project(JarvisLiveUiState(warning = true))
+        assertTrue(p.motionEnabled)
+        assertFalse(p.particlesEnabled)
+    }
+
     private fun uiFor(state: JarvisLiveState): JarvisLiveUiState = when (state) {
         JarvisLiveState.Idle -> JarvisLiveUiState()
         JarvisLiveState.Listening -> JarvisLiveUiState(listening = true)
         JarvisLiveState.Thinking -> JarvisLiveUiState(thinking = true)
+        JarvisLiveState.Researching -> JarvisLiveUiState(researching = true)
+        JarvisLiveState.Coding -> JarvisLiveUiState(coding = true)
+        JarvisLiveState.Reviewing -> JarvisLiveUiState(reviewing = true)
         JarvisLiveState.Working -> JarvisLiveUiState(working = true)
         JarvisLiveState.Speaking -> JarvisLiveUiState(speaking = true)
         JarvisLiveState.ApprovalNeeded -> JarvisLiveUiState(approvalNeeded = true)
         JarvisLiveState.Blocked -> JarvisLiveUiState(blocked = true)
+        JarvisLiveState.Warning -> JarvisLiveUiState(warning = true)
+        JarvisLiveState.Disconnected -> JarvisLiveUiState(disconnected = true)
         JarvisLiveState.EmergencyStop -> JarvisLiveUiState(emergencyStop = true)
     }
 }

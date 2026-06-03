@@ -273,6 +273,12 @@ fun HermesNavHost(
                 },
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
                 onOpenSettings = openSettings,
+                // Route to the gated owner-approval queue (never auto-approve).
+                onOpenApprovals = { onNavigateTab(Screen.Approvals) },
+                // Swipe to the active job's detail, or the Tasks list when none.
+                onOpenCurrentJob = { jobId ->
+                    if (jobId == null) onNavigateTab(Screen.Tasks) else openTask(jobId)
+                },
             )
         }
 

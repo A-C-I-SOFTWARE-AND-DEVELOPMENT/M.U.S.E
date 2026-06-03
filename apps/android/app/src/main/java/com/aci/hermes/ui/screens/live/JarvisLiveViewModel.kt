@@ -7,7 +7,20 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.avatar.AvatarRepository
 import com.aci.hermes.data.avatar.AvatarSource
+import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.JobStatus
 import com.aci.hermes.data.life.BehaviorScheduler
+import com.aci.hermes.data.model.HermesTask
+import com.aci.hermes.data.model.TaskSection
+import com.aci.hermes.data.model.section
+import com.aci.hermes.data.orchestrator.HermesTaskRepository
+import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.service.OrchestratorServiceController
+import com.aci.hermes.service.VoiceLoopService
+import com.aci.hermes.ui.screens.live.JarvisLivePresenceMapper.BackendPresence
+import com.aci.hermes.ui.screens.live.JarvisLivePresenceMapper.JobSignal
+import com.aci.hermes.voice.VoicePhase
 import java.util.Calendar
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -27,7 +40,46 @@ class JarvisLiveViewModel(
     application: Application,
     private val avatarRepository: AvatarRepository? = null,
     private val cockpitClient: com.aci.hermes.data.cockpit.HermesCockpitClient? = null,
+    private val jobsRepository: CockpitJobsRepository? = null,
+    private val taskRepository: HermesTaskRepository? = null,
+    private val settingsRepository: SettingsRepository? = null,
+    private val orchestratorServiceController: OrchestratorServiceController? = null,
+    private val presenceController: com.aci.hermes.voice.PresenceModeController? = null,
 ) : AndroidViewModel(application) {
+
+    /** Hands-free Presence Mode on-off, surfaced to the UI (off when unwired). */
+    val presenceEnabled: StateFlow<Boolean> =
+        presenceController?.enabled ?: MutableStateFlow(false)
+
+    /** Current presence phase (armed / listening / thinking / speaking). */
+    val presenceState: StateFlow<com.aci.hermes.voice.PresenceState> =
+        presenceController?.presenceState
+            ?: MutableStateFlow(com.aci.hermes.voice.PresenceState.OFF)
+
+    /** True if a wake-word spotter can run; else only tap-to-talk/mic fallback. */
+    val wakeWordAvailable: Boolean get() = presenceController?.wakeWordAvailable ?: false
+
+    /** Opt-in camera attention on-off (default off; off when unwired). */
+    val cameraAttentionEnabled: StateFlow<Boolean> =
+        presenceController?.cameraAttentionEnabled ?: MutableStateFlow(false)
+
+    /** Toggle hands-free Presence Mode. */
+    fun togglePresenceMode() {
+        markInteraction()
+        presenceController?.toggle()
+    }
+
+    /** Toggle opt-in camera attention. */
+    fun toggleCameraAttention() {
+        markInteraction()
+        presenceController?.toggleCameraAttention()
+    }
+
+    /** Tap-to-talk / mic fallback: open the mic now (caller holds RECORD_AUDIO). */
+    fun talkNow() {
+        markInteraction()
+        presenceController?.talkNow()
+    }
 
     private val _state = MutableStateFlow(
         JarvisLiveUiState(reducedMotion = systemReducedMotion()),
@@ -80,10 +132,149 @@ class JarvisLiveViewModel(
     @Volatile
     private var lastInteractionAtMs = System.currentTimeMillis()
 
+    /** The id of the job to open when the user swipes to "current job"; null
+     *  when there is no active job. Surfaced so the screen can route to it. */
+    private val _currentJobId = MutableStateFlow<String?>(null)
+    val currentJobId: StateFlow<String?> = _currentJobId.asStateFlow()
+
+    // Optimistic "thinking" feedback while a typed command is in flight. It is
+    // self-clearing (see [onSend]) so it can never get stuck the way the old
+    // demo flag did; the real backend poll overrides it on the next tick.
+    private val _commandInFlight = MutableStateFlow(false)
+
+    /** Snapshot of the things only reachable by an explicit request/poll.
+     *  Declared before [init] so the presence combine never reads it null. */
+    private data class RuntimePoll(
+        val connected: Boolean = true,
+        val running: Int = 0,
+        val queued: Int = 0,
+        val waitingApproval: Int = 0,
+        val pendingApprovals: Int = 0,
+    )
+
+    private val _runtimePoll = MutableStateFlow(RuntimePoll())
+
     init {
         startAmbientLife()
         observeSavedAvatar()
         loadFurniture()
+        observeBackendPresence()
+    }
+
+    /**
+     * The core wiring: derive the avatar's activity from REAL signals — runtime
+     * queue + approvals (polled), cockpit jobs, the active task's worker phase,
+     * the persisted emergency stop, and the voice-loop phase. Without the
+     * cockpit deps (e.g. in isolated tests) the avatar simply stays ambient.
+     */
+    private fun observeBackendPresence() {
+        val jobsRepo = jobsRepository ?: return
+        val tasksRepo = taskRepository ?: return
+
+        // Poll the runtime + approvals; these have no push channel.
+        viewModelScope.launch {
+            while (isActive) {
+                refreshRuntimePoll()
+                delay(RUNTIME_POLL_MS)
+            }
+        }
+
+        viewModelScope.launch {
+            val emergencyFlow = settingsRepository?.emergencyStopEngaged
+                ?: MutableStateFlow(false)
+            val presence = combine(
+                _runtimePoll,
+                jobsRepo.jobs,
+                tasksRepo.tasks,
+                emergencyFlow,
+                VoiceLoopService.phaseFlow,
+            ) { poll, jobs, tasks, emergency, voicePhase ->
+                buildPresence(poll, jobs, tasks, emergency, voicePhase)
+            }
+            combine(presence, _commandInFlight) { p, inFlight -> p to inFlight }
+                .collect { (snapshot, inFlight) ->
+                    val flags = JarvisLivePresenceMapper.flagsFor(snapshot)
+                    markInteractionIfBusy(flags)
+                    _state.update {
+                        it.copy(
+                            listening = flags.listening,
+                            // Optimistic local feedback ORs into thinking.
+                            thinking = flags.thinking || inFlight,
+                            researching = flags.researching,
+                            coding = flags.coding,
+                            reviewing = flags.reviewing,
+                            working = flags.working,
+                            speaking = flags.speaking,
+                            approvalNeeded = flags.approvalNeeded,
+                            blocked = flags.blocked,
+                            warning = flags.warning,
+                            disconnected = flags.disconnected,
+                            emergencyStop = flags.emergencyStop,
+                        )
+                    }
+                }
+        }
+    }
+
+    private suspend fun refreshRuntimePoll() {
+        val client = cockpitClient ?: return
+        if (!client.isPaired()) {
+            _runtimePoll.value = RuntimePoll(connected = false)
+            return
+        }
+        val status = client.runtimeStatus()
+        val approvals = client.approvalsList()
+        val connected = status is CockpitResult.Success
+        val queue = (status as? CockpitResult.Success)?.value?.queue
+        val pending = (approvals as? CockpitResult.Success)
+            ?.value?.approvals?.count { it.status.equals("PENDING", ignoreCase = true) } ?: 0
+        _runtimePoll.value = RuntimePoll(
+            connected = connected,
+            running = queue?.running ?: 0,
+            queued = queue?.queued ?: 0,
+            waitingApproval = queue?.waitingApproval ?: 0,
+            pendingApprovals = pending,
+        )
+    }
+
+    private fun buildPresence(
+        poll: RuntimePoll,
+        jobs: List<com.aci.hermes.data.cockpit.CockpitJob>,
+        tasks: List<HermesTask>,
+        emergency: Boolean,
+        voicePhase: VoicePhase,
+    ): BackendPresence {
+        // The active task drives the fine phase; its id (or the newest running
+        // job's) is what "swipe to current job" opens.
+        val activeTask = tasks.firstOrNull { it.section() == TaskSection.ACTIVE }
+        _currentJobId.value = activeTask?.id
+            ?: jobs.firstOrNull {
+                JobStatus.fromWire(it.status) == JobStatus.RUNNING
+            }?.id
+        return BackendPresence(
+            connected = poll.connected,
+            emergencyEngaged = emergency,
+            running = poll.running,
+            queued = poll.queued,
+            waitingApproval = poll.waitingApproval,
+            pendingApprovals = poll.pendingApprovals,
+            jobs = jobs.map {
+                JobSignal(
+                    status = JobStatus.fromWire(it.status),
+                    failedGates = it.validationSummary?.fail ?: 0,
+                )
+            },
+            activePhase = activeTask?.workerPhase,
+            voicePhase = voicePhase,
+        )
+    }
+
+    private fun markInteractionIfBusy(flags: JarvisLivePresenceMapper.PresenceFlags) {
+        if (flags.listening || flags.speaking || flags.working || flags.coding ||
+            flags.researching || flags.reviewing
+        ) {
+            markInteraction()
+        }
     }
 
     /** Render the user's saved avatar as the living body: a GENERATED photo
@@ -167,7 +358,14 @@ class JarvisLiveViewModel(
         markInteraction()
         val current = _state.value
         if (current.command.isBlank() || current.emergencyStop) return
-        _state.update { it.copy(thinking = true, listening = false) }
+        // Optimistic, self-clearing feedback. Real backend state (a new job /
+        // worker phase) overrides this on the next poll; the timeout guarantees
+        // it can never stick the way the old demo flag did.
+        _commandInFlight.value = true
+        viewModelScope.launch {
+            delay(COMMAND_FEEDBACK_MS)
+            _commandInFlight.value = false
+        }
     }
 
     /** Cycle to the next pixel-sprite character (robot → person → pets → …),
@@ -186,23 +384,34 @@ class JarvisLiveViewModel(
 
     fun confirmEmergencyStop() {
         _showEmergencyConfirm.value = false
-        _state.update {
-            it.copy(
-                emergencyStop = true,
-                thinking = false,
-                working = false,
-                speaking = false,
-                listening = false,
-            )
+        // Real global stop: halt the orchestrator service AND persist the
+        // engaged flag so every surface (this avatar, the overlay, Control)
+        // reflects it. The avatar's EmergencyStop state then derives from the
+        // persisted flag via the presence pipeline.
+        orchestratorServiceController?.emergencyStop()
+        _commandInFlight.value = false
+        if (settingsRepository != null) {
+            viewModelScope.launch { settingsRepository.setEmergencyStopEngaged(true) }
+        } else {
+            // Standalone / test fallback with no persistence: local flag only.
+            _state.update {
+                it.copy(
+                    emergencyStop = true,
+                    thinking = false,
+                    working = false,
+                    speaking = false,
+                    listening = false,
+                )
+            }
         }
     }
 
     fun releaseEmergencyStop() {
-        _state.update { it.copy(emergencyStop = false) }
-    }
-
-    fun approveApproval() {
-        _state.update { it.copy(approvalNeeded = false, working = true) }
+        if (settingsRepository != null) {
+            viewModelScope.launch { settingsRepository.setEmergencyStopEngaged(false) }
+        } else {
+            _state.update { it.copy(emergencyStop = false) }
+        }
     }
 
     private fun systemReducedMotion(): Boolean {
@@ -217,5 +426,7 @@ class JarvisLiveViewModel(
 
     private companion object {
         const val AMBIENT_TICK_MS = 5_000L
+        const val RUNTIME_POLL_MS = 5_000L
+        const val COMMAND_FEEDBACK_MS = 8_000L
     }
 }

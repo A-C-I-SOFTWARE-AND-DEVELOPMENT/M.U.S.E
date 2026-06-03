@@ -81,6 +81,8 @@ class SettingsRepository(
         val DEVICE_CONTROL_ENABLED = booleanPreferencesKey("device_control_enabled")
         val DEVICE_CONFIRM_SENSITIVE = booleanPreferencesKey("device_confirm_sensitive")
         val DEVICE_CONSENTED_CAPS = stringSetPreferencesKey("device_consented_capabilities")
+        val PRESENCE_MODE_ENABLED = booleanPreferencesKey("presence_mode_enabled")
+        val CAMERA_ATTENTION_ENABLED = booleanPreferencesKey("camera_attention_enabled")
     }
 
     val themeMode: Flow<ThemeMode> = context.dataStore.data.map {
@@ -174,6 +176,25 @@ class SettingsRepository(
     }
     val emergencyStopEngaged: Flow<Boolean> = context.dataStore.data.map {
         it[Keys.EMERGENCY_STOP_ENGAGED] ?: false
+    }
+    /**
+     * Hands-free Presence Mode: when on, JARVIS arms the wake word (or the
+     * mic-button fallback) so conversation starts without press-and-hold.
+     * Default off — the owner opts in. No camera is involved (that is a
+     * separate, gated capability).
+     */
+    val presenceModeEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.PRESENCE_MODE_ENABLED] ?: false
+    }
+    /**
+     * Opt-in camera attention for Presence Mode (default off). When on AND
+     * Presence Mode is on AND the CAMERA permission is granted, the live
+     * screen runs on-device face-presence detection to arm listening when
+     * the user looks at the phone. No frames are stored or transmitted; a
+     * visible indicator is shown whenever the camera is active.
+     */
+    val cameraAttentionEnabled: Flow<Boolean> = context.dataStore.data.map {
+        it[Keys.CAMERA_ATTENTION_ENABLED] ?: false
     }
     /**
      * Alias for [emergencyStopEngaged] used by the Home dashboard. Both
@@ -325,6 +346,14 @@ class SettingsRepository(
             prefs[Keys.DEVICE_CONSENTED_CAPS] =
                 if (consented) current + capabilityId else current - capabilityId
         }
+    }
+
+    suspend fun setPresenceModeEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.PRESENCE_MODE_ENABLED] = value }
+    }
+
+    suspend fun setCameraAttentionEnabled(value: Boolean) {
+        context.dataStore.edit { it[Keys.CAMERA_ATTENTION_ENABLED] = value }
     }
 
     suspend fun resetAll() {
