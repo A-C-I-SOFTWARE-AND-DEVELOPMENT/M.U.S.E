@@ -574,3 +574,63 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Autonomy (Owner High-Autonomy Coding mode) ───────────────────────────
+//
+// Mirrors `gateway/cockpit/contract.autonomy_status`. The capability lists
+// come straight from `approval_policy.capabilities()` so the Android UI shows
+// the policy engine's truth, never a hand-maintained copy.
+
+@Serializable
+data class AutonomyCapabilities(
+    @SerialName("auto_approved") val autoApproved: List<String> = emptyList(),
+    @SerialName("requires_approval") val requiresApproval: List<String> = emptyList(),
+    @SerialName("always_deny") val alwaysDeny: List<String> = emptyList(),
+    @SerialName("workspace_scoped") val workspaceScoped: List<String> = emptyList(),
+)
+
+@Serializable
+data class AutonomyStatus(
+    val level: String = "assisted",
+    @SerialName("display_name") val displayName: String = "Assisted",
+    @SerialName("workspace_root") val workspaceRoot: String = "",
+    @SerialName("updated_at") val updatedAt: Double = 0.0,
+    @SerialName("set_by") val setBy: String = "owner",
+    val revocable: Boolean = true,
+    val capabilities: AutonomyCapabilities = AutonomyCapabilities(),
+)
+
+/** Body for `POST /v1/cockpit/autonomy`. Either set [level] (+ workspace) or [revoke]. */
+@Serializable
+data class SetAutonomyRequest(
+    val level: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+    val revoke: Boolean? = null,
+)
+
+@Serializable
+data class AutonomyDecision(
+    val ts: Double = 0.0,
+    val actor: String = "",
+    val action: String = "",
+    val summary: String = "",
+    val decision: String = "",
+    val reason: String = "",
+)
+
+@Serializable
+data class AutonomyDecisionList(
+    val decisions: List<AutonomyDecision> = emptyList(),
+)
+
+@Serializable
+data class EmergencyStopRequest(val reason: String? = null)
+
+@Serializable
+data class EmergencyStopResult(
+    val engaged: Boolean = false,
+    @SerialName("cancelled_jobs") val cancelledJobs: List<String> = emptyList(),
+    @SerialName("cancelled_count") val cancelledCount: Int = 0,
+    @SerialName("autonomy_level") val autonomyLevel: String = "read_only",
+    val errors: List<String> = emptyList(),
+)

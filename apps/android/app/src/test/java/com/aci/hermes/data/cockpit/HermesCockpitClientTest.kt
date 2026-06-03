@@ -152,4 +152,71 @@ class HermesCockpitClientTest {
         }
         assertTrue(result.value.containsKey("approvals"))
     }
+
+    @Test
+    fun `autonomyGet parses level scope and capabilities`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """
+                {"level":"owner_high_autonomy_coding","display_name":"High-Autonomy Coding",
+                 "workspace_root":"/home/me/project","updated_at":1.0,"set_by":"cockpit",
+                 "revocable":true,
+                 "capabilities":{"auto_approved":["local_command","safe_local_write"],
+                   "requires_approval":["vercel_deploy"],"always_deny":["github_force_push"],
+                   "workspace_scoped":["safe_local_write","code_worker_exec"]}}
+                """.trimIndent(),
+            )
+        }
+        val result = client(fake).autonomyGet()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("owner_high_autonomy_coding", result.value.level)
+        assertEquals("/home/me/project", result.value.workspaceRoot)
+        assertTrue(result.value.capabilities.autoApproved.contains("local_command"))
+        assertTrue(result.value.capabilities.alwaysDeny.contains("github_force_push"))
+        assertEquals("GET", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/autonomy", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `autonomySet sends level and workspace in the body`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(200, """{"level":"owner_high_autonomy_coding","workspace_root":"/w"}""")
+        }
+        val result = client(fake).autonomySet("owner_high_autonomy_coding", workspacePath = "/w")
+        assertTrue(result is CockpitResult.Success)
+        assertEquals("POST", fake.lastRequest?.method)
+        val body = fake.lastRequest?.body ?: ""
+        assertTrue(body.contains("owner_high_autonomy_coding"))
+        assertTrue(body.contains("/w"))
+    }
+
+    @Test
+    fun `autonomyRevoke sends revoke true`() = runTest {
+        val fake = FakeExecutor { CockpitRawResponse(200, """{"level":"assisted"}""") }
+        client(fake).autonomyRevoke()
+        assertTrue((fake.lastRequest?.body ?: "").contains("revoke"))
+    }
+
+    @Test
+    fun `emergencyStop parses cancellation result`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"engaged":true,"cancelled_jobs":["job_1"],"cancelled_count":1,
+                   "autonomy_level":"read_only","errors":[]}""",
+            )
+        }
+        val result = client(fake).emergencyStop()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertTrue(result.value.engaged)
+        assertEquals(1, result.value.cancelledCount)
+        assertEquals("read_only", result.value.autonomyLevel)
+        assertEquals("POST", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/emergency-stop", fake.lastRequest?.url)
+    }
 }

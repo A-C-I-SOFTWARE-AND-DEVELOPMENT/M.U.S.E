@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.jarvis.AuditShortcut
+import com.aci.hermes.data.jarvis.AutonomyCapabilities
 import com.aci.hermes.data.jarvis.AutonomyMode
 import com.aci.hermes.data.jarvis.ConnectedService
 import com.aci.hermes.data.jarvis.ControlWarnings
@@ -62,7 +63,7 @@ class ControlViewModel(
                     }
                 }
             }
-            _state.value = JarvisControlProjector.project(
+            var projected = JarvisControlProjector.project(
                 snapshot = snap,
                 serviceRunning = running,
                 gatewayReachable = reachable,
@@ -70,6 +71,28 @@ class ControlViewModel(
                 audit = AuditShortcut(recentEvents = 0, lastEventLabel = null),
                 memory = MemoryShortcut(savedFacts = 0, lastNote = null),
             )
+            // Reconcile autonomy from the backend policy engine so the screen
+            // shows the live level, its workspace scope, and the capability
+            // list (from approval_policy.capabilities()) — never a local guess.
+            if (client != null) {
+                when (val autonomy = client.autonomyGet()) {
+                    is CockpitResult.Success -> {
+                        val s = autonomy.value
+                        projected = projected.copy(
+                            autonomy = AutonomyMode.fromWire(s.level),
+                            codingWorkspaceRoot = s.workspaceRoot,
+                            autonomyCapabilities = AutonomyCapabilities(
+                                autoApproved = s.capabilities.autoApproved,
+                                requiresApproval = s.capabilities.requiresApproval,
+                                alwaysDeny = s.capabilities.alwaysDeny,
+                                workspaceScoped = s.capabilities.workspaceScoped,
+                            ),
+                        )
+                    }
+                    else -> Unit // keep the local projection when unreachable
+                }
+            }
+            _state.value = projected
         }
     }
 
@@ -96,11 +119,44 @@ class ControlViewModel(
         }
     }
 
+    /** Owner-set the approved workspace that High-Autonomy Coding is scoped to. */
+    fun setCodingWorkspaceRoot(path: String) {
+        _state.update { it.copy(codingWorkspaceRoot = path) }
+    }
+
     private fun commitAutonomy(mode: AutonomyMode) {
         _state.update { it.copy(autonomy = mode, pendingWarning = null) }
         viewModelScope.launch {
             settings.setAutonomyMode(mode)
             logBuffer.info(TAG, "Autonomy mode set to ${mode.name}")
+            // Push the level to the backend policy engine so the same gate
+            // governs CLI / gateway / worker execution. Best-effort: an
+            // unreachable gateway leaves the local preference in place.
+            val client = cockpitClient
+            if (client != null) {
+                val workspace = _state.value.codingWorkspaceRoot
+                val result = if (mode.isHighAutonomyCoding) {
+                    client.autonomySet(mode.wireValue, workspacePath = workspace)
+                } else {
+                    client.autonomySet(mode.wireValue)
+                }
+                if (result is CockpitResult.Success) {
+                    val s = result.value
+                    _state.update {
+                        it.copy(
+                            codingWorkspaceRoot = s.workspaceRoot,
+                            autonomyCapabilities = AutonomyCapabilities(
+                                autoApproved = s.capabilities.autoApproved,
+                                requiresApproval = s.capabilities.requiresApproval,
+                                alwaysDeny = s.capabilities.alwaysDeny,
+                                workspaceScoped = s.capabilities.workspaceScoped,
+                            ),
+                        )
+                    }
+                } else {
+                    logBuffer.warn(TAG, "Backend autonomy set failed: $result")
+                }
+            }
             if (mode == AutonomyMode.LOCKDOWN) {
                 stopServiceInternal(reason = "lockdown")
             }
@@ -204,6 +260,22 @@ class ControlViewModel(
         viewModelScope.launch {
             settings.setEmergencyStopEngaged(true)
             stopServiceInternal(reason = "emergency_stop")
+            // Cancel active backend jobs/workers and drop the policy level to a
+            // safe floor. Best-effort: a local stop still applies if unreachable.
+            val client = cockpitClient
+            if (client != null) {
+                when (val res = client.emergencyStop(reason = "owner emergency stop")) {
+                    is CockpitResult.Success -> {
+                        logBuffer.warn(
+                            TAG,
+                            "Emergency stop cancelled ${res.value.cancelledCount} job(s); " +
+                                "autonomy dropped to ${res.value.autonomyLevel}",
+                        )
+                        _state.update { it.copy(autonomy = AutonomyMode.fromWire(res.value.autonomyLevel)) }
+                    }
+                    else -> logBuffer.warn(TAG, "Backend emergency stop unreachable: $res")
+                }
+            }
             logBuffer.warn(TAG, "Emergency stop engaged by owner")
         }
     }
