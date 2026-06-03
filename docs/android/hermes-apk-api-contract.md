@@ -661,6 +661,75 @@ store is invented.
 
 ---
 
+## 10d. Evidence Engine — **canonical, implemented** (RAG + cite + verify)
+
+The Android Evidence screen renders source-cited artifacts from the JARVIS
+**Research Vault** (`hermes_cli/jarvis_prime/research_vault.py`), ranked by
+the **Evidence Engine** (`hermes_cli/jarvis_prime/evidence_engine.py`).
+Adapters live in `gateway/cockpit/contract.py` (`evidence_card`,
+`evidence_hit`, `evidence_verify_result`). Trust labels reuse the
+`SourceTrust` ladder (`owner` > `primary` > `official_doc` > `reputable` >
+`community` > `unverified`).
+
+### Evidence item
+
+```json
+{
+  "id": "16-hex",
+  "title": "vLLM continuous batching",
+  "source_uri": "https://docs.vllm.ai/serving",
+  "source_type": "official_doc",
+  "evidence_strength": "primary",
+  "trust": "primary",
+  "excerpt": "vLLM uses continuous batching ...",
+  "summary": "...",
+  "tags": ["vllm"],
+  "license_notes": "",
+  "retrieved_at": "2026-05-30T12:00:00+00:00",
+  "freshness_due": null,
+  "checksum": "sha256-hex",
+  "citation_anchors": ["serving.md:12"],
+  "added_at": "2026-05-30T12:00:00+00:00"
+}
+```
+
+### `GET /v1/cockpit/evidence`
+
+Query: `q`/`query` (optional), `limit`. Without `q`: `{ "items": [ ...Evidence
+item... ] }`. With `q`: hybrid retrieval (BM25 over the vault blended with
+Memory-Tree search) returns `{ "items": [], "hits": [ ...ranked hit... ] }`,
+where a hit is `{ kind, title, uri, excerpt, trust, score, artifact_id,
+citation_anchors }`.
+
+### `GET /v1/cockpit/evidence/{id}`
+
+`{ "item": { ...Evidence item... } }`, or `404` for an unknown id.
+
+### `POST /v1/cockpit/evidence/verify`
+
+Body `{ "claims": [string], "query"?: string }`. Returns
+`{ "citations": [{ claim, supported, hits }], "uncertain": [string],
+"contradictions": [{ subject, a, b, reason }], "rejected": [string] }`.
+`rejected` holds claims dropped as secret-like / chain-of-thought (they never
+become evidence). Unsupported claims appear in both `citations`
+(`supported:false`) and `uncertain`.
+
+### `POST /v1/cockpit/evidence/{id}/promote`
+
+Body `{ "authorization"?: "Yes, with authorization." }`. Promotes the artifact
+into the **durable Memory Tree** via `MemoryTreeStore.write`, so the memory
+write policy is preserved: secrets / chain-of-thought are rejected, and a
+low-confidence/unverified promotion needs the owner phrase. `201` +
+`{ "promoted": true, "node_id": ... }`, or `422` +
+`{ "promoted": false, "reasons": [...], "hint": ... }` — **unverified data
+never becomes durable memory automatically.**
+
+### `DELETE /v1/cockpit/evidence/{id}`
+
+Demote (remove) an artifact: `{ "removed": <int> }`.
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any

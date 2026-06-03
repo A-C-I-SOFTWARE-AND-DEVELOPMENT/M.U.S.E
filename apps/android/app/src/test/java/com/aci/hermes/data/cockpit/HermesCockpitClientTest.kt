@@ -270,7 +270,7 @@ class HermesCockpitClientTest {
     }
 
     @Test
-    fun `evidenceSearch encodes the query and evidenceVerify parses a verdict`() = runTest {
+    fun `evidenceSearch encodes the query and parses artifacts`() = runTest {
         val searchFake = FakeExecutor {
             CockpitRawResponse(
                 200,
@@ -284,20 +284,5 @@ class HermesCockpitClientTest {
         }
         assertTrue(searchFake.lastRequest?.url?.contains("/v1/cockpit/evidence/search?q=") == true)
         assertEquals("PEP 659", search.value.items.first().title)
-
-        val verifyFake = FakeExecutor {
-            CockpitRawResponse(
-                200,
-                """{"verdict":"supported","confidence":0.95,"freshness_status":"unknown",
-                    "supporting_sources":[],"contradicting_sources":[],"missing_evidence":[],
-                    "recommended_next_action":"none"}""",
-            )
-        }
-        val verify = client(verifyFake).evidenceVerify(EvidenceVerifyRequest(claim = "c"))
-        if (verify !is CockpitResult.Success) {
-            fail("expected Success, got $verify"); return@runTest
-        }
-        assertEquals("http://127.0.0.1:8765/v1/cockpit/evidence/verify", verifyFake.lastRequest?.url)
-        assertEquals("supported", verify.value.verdict)
     }
 }

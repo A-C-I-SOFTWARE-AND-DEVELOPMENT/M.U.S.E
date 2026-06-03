@@ -395,6 +395,97 @@ data class CreateMemoryResponse(
 @Serializable
 data class DeleteMemoryResponse(val removed: Int = 0)
 
+// ─── Evidence Engine (contract §10d) ──────────────────────────────────
+
+/**
+ * Wire model for a cockpit evidence artifact (contract §10d). One-to-one
+ * with the server's `evidence_card` projection of a Research Vault
+ * `ResearchArtifact`. Distinct from [CockpitEvidenceItem] (which is an
+ * audit-proof sub-record). Enum-like fields are raw Strings so an unknown
+ * future value never crashes deserialisation; timestamps are ISO-8601 UTC.
+ */
+@Serializable
+data class CockpitEvidenceCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val trust: String = "unverified",
+    val excerpt: String = "",
+    val summary: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("license_notes") val licenseNotes: String = "",
+    @SerialName("retrieved_at") val retrievedAt: String? = null,
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    val checksum: String = "",
+    @SerialName("citation_anchors") val citationAnchors: List<String> = emptyList(),
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class CockpitEvidenceList(
+    val items: List<CockpitEvidenceCard> = emptyList(),
+    val hits: List<CockpitEvidenceHit> = emptyList(),
+)
+
+@Serializable
+data class CockpitEvidenceDetail(val item: CockpitEvidenceCard? = null)
+
+/** One ranked retrieval hit from `GET /evidence?q=` or the verify endpoint. */
+@Serializable
+data class CockpitEvidenceHit(
+    val kind: String = "",
+    val title: String = "",
+    val uri: String = "",
+    val excerpt: String = "",
+    val trust: String = "unverified",
+    val score: Float = 0f,
+    @SerialName("artifact_id") val artifactId: String? = null,
+    @SerialName("citation_anchors") val citationAnchors: List<String> = emptyList(),
+)
+
+@Serializable
+data class EvidenceVerifyRequest(
+    val claims: List<String>,
+    val query: String? = null,
+)
+
+@Serializable
+data class CockpitEvidenceVerifyResult(
+    val citations: List<CockpitClaimCitation> = emptyList(),
+    val uncertain: List<String> = emptyList(),
+    val contradictions: List<CockpitContradiction> = emptyList(),
+    val rejected: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitClaimCitation(
+    val claim: String = "",
+    val supported: Boolean = false,
+    val hits: List<CockpitEvidenceHit> = emptyList(),
+)
+
+@Serializable
+data class CockpitContradiction(
+    val subject: String = "",
+    val a: String = "",
+    val b: String = "",
+    val reason: String = "",
+)
+
+/** POST body for `evidence/{id}/promote` — owner phrase gates durable writes. */
+@Serializable
+data class PromoteEvidenceRequest(val authorization: String? = null)
+
+@Serializable
+data class PromoteEvidenceResponse(
+    val promoted: Boolean = false,
+    @SerialName("node_id") val nodeId: String? = null,
+    val reasons: List<String> = emptyList(),
+    val hint: String? = null,
+)
+
 // ─── Audit ────────────────────────────────────────────────────────────
 
 /**
@@ -794,24 +885,3 @@ data class EvidenceArtifact(
 
 @Serializable
 data class EvidenceList(val items: List<EvidenceArtifact> = emptyList())
-
-@Serializable
-data class EvidenceVerifyRequest(
-    val claim: String,
-    @SerialName("source_ids") val sourceIds: List<String> = emptyList(),
-    val mode: String? = null,
-)
-
-/** Non-mutating claim-vs-evidence verdict (`POST /evidence/verify`). */
-@Serializable
-data class EvidenceVerdict(
-    val verdict: String = "",
-    val confidence: Float = 0f,
-    @SerialName("supporting_sources") val supportingSources: List<EvidenceArtifact> = emptyList(),
-    @SerialName("contradicting_sources") val contradictingSources: List<EvidenceArtifact> = emptyList(),
-    @SerialName("missing_evidence") val missingEvidence: List<String> = emptyList(),
-    @SerialName("freshness_status") val freshnessStatus: String = "",
-    @SerialName("audit_outcome") val auditOutcome: String = "",
-    @SerialName("recommended_next_action") val recommendedNextAction: String = "",
-    val claim: String = "",
-)

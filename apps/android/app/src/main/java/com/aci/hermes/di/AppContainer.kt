@@ -27,6 +27,7 @@ import com.aci.hermes.data.jarvis.JarvisTaskSink
 import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.data.jarvis.RepositoryTaskSink
 import com.aci.hermes.data.jarvis.RoutingJarvisChatGateway
+import com.aci.hermes.data.evidence.EvidenceRepository
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
@@ -45,6 +46,7 @@ import com.aci.hermes.ui.screens.jobs.JobsViewModel
 import com.aci.hermes.ui.screens.home.JarvisPrimeHomeViewModel
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.live.JarvisLiveViewModel
+import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
@@ -136,6 +138,15 @@ class AppContainer(private val application: Application) {
     // default stays for @Preview / tests only. The ViewModel calls
     // refresh() to pull the real list.
     val memoryRepository: MemoryRepository = MemoryRepository(
+        seed = emptyList(),
+        client = cockpitClient,
+        paired = ::cockpitPaired,
+    )
+
+    // Evidence Engine: live off the cockpit gateway when paired. Empty seed in
+    // production (no mock reaches a paired user); the mock seed default stays
+    // for @Preview / tests only. The ViewModel calls refresh() for the real list.
+    val evidenceRepository: EvidenceRepository = EvidenceRepository(
         seed = emptyList(),
         client = cockpitClient,
         paired = ::cockpitPaired,
@@ -281,6 +292,10 @@ class AppContainer(private val application: Application) {
 
     fun memoryVmFactory(): ViewModelProvider.Factory = factory {
         MemoryViewModel(memoryRepository, logBuffer)
+    }
+
+    fun evidenceVmFactory(): ViewModelProvider.Factory = factory {
+        EvidenceViewModel(evidenceRepository, logBuffer)
     }
 
     fun auditVmFactory(): ViewModelProvider.Factory = factory {

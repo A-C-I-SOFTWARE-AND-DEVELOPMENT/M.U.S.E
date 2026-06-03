@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -242,6 +243,7 @@ private fun Screen.quickLinkLabelRes(): Int = when (this) {
     Screen.Memory -> R.string.nav_memory
     Screen.Audit -> R.string.nav_audit
     Screen.Capability -> R.string.nav_capability
+    Screen.Evidence -> R.string.nav_evidence
     Screen.Control -> R.string.nav_control
     else -> R.string.app_name
 }
@@ -254,6 +256,7 @@ private fun Screen.quickLinkIcon(): ImageVector = when (this) {
     Screen.Memory -> Icons.Filled.Memory
     Screen.Audit -> Icons.Filled.History
     Screen.Capability -> Icons.Filled.Bolt
+    Screen.Evidence -> Icons.Filled.Science
     Screen.Control -> Icons.Filled.AdminPanelSettings
     else -> Icons.Filled.AutoAwesome
 }
