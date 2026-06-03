@@ -368,7 +368,7 @@ def _learning_store():
 
 def _cmd_learning_list(args: argparse.Namespace) -> int:
     store = _learning_store()
-    items = store.list()
+    items = store.entries()
     if getattr(args, "json", False):
         _print_json([c.audit_card() for c in items])
         return 0

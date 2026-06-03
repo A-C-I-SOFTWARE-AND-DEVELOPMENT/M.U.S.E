@@ -744,7 +744,7 @@ def learning_list(req: Request) -> JsonResponse:
         trace_type = req.query.get("trace_type")
         status = req.query.get("status")
         cards = []
-        for cand in store.list():
+        for cand in store.entries():
             d = cand.to_dict()
             if trace_type and d.get("trace_type") != trace_type:
                 continue
@@ -796,7 +796,7 @@ def learning_export(req: Request) -> JsonResponse:
         from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
 
         store = _learning_store()
-        approved = store.list(status=CandidateStatus.APPROVED)
+        approved = store.entries(status=CandidateStatus.APPROVED)
         eligible = [c for c in approved if c.is_negative or c.quality.passed(c.trace_type)]
         return JsonResponse(
             200,

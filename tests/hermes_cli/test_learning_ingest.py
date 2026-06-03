@@ -74,7 +74,7 @@ def test_from_research_artifact_carries_citation(tmp_path):
         citations_verified=True,
     )
     assert cand.trace_type == TraceType.RESEARCH_ANSWER
-    assert "https://spec.example.org" in cand.provenance.citations
+    assert cand.provenance.citations == ("https://spec.example.org",)
     assert cand.status == CandidateStatus.PENDING
 
     # And it should be exportable as an eval case once approved.

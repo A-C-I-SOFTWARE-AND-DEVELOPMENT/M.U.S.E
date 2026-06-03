@@ -85,7 +85,9 @@ def test_learning_decide_approves_with_phrase(home):
     assert res.status == 200
     assert res.payload["status"] == "approve"
     reloaded = DatasetStore.load(home / "jarvis_prime" / "learning_dataset.jsonl")
-    assert reloaded.get(cand.id).status == CandidateStatus.APPROVED
+    decided = reloaded.get(cand.id)
+    assert decided is not None
+    assert decided.status == CandidateStatus.APPROVED
 
 
 def test_learning_decide_reject_no_phrase(home):
@@ -100,7 +102,9 @@ def test_learning_decide_reject_no_phrase(home):
     )
     assert res.status == 200
     reloaded = DatasetStore.load(home / "jarvis_prime" / "learning_dataset.jsonl")
-    assert reloaded.get(cand.id).status == CandidateStatus.REJECTED
+    decided = reloaded.get(cand.id)
+    assert decided is not None
+    assert decided.status == CandidateStatus.REJECTED
 
 
 def test_learning_decide_unknown_id(home):

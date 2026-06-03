@@ -369,9 +369,13 @@ def _scrub_content(content: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _candidate_id(trace_type: TraceType, content: Mapping[str, Any], created_at: str) -> str:
+    # Non-cryptographic content-addressed id (dedup + stable key only), so the
+    # hash choice is not a security control. Use SHA-256 with
+    # ``usedforsecurity=False`` to keep static analysers honest.
     body = json.dumps(content, sort_keys=True, ensure_ascii=False)
-    return hashlib.sha1(
-        f"{trace_type.value}|{body}|{created_at}".encode()
+    return hashlib.sha256(
+        f"{trace_type.value}|{body}|{created_at}".encode(),
+        usedforsecurity=False,
     ).hexdigest()[:16]
 
 
@@ -463,9 +467,9 @@ class DatasetStore:
         return self.candidates.get(candidate_id)
 
     def pending(self) -> list[DatasetCandidate]:
-        return self.list(status=CandidateStatus.PENDING)
+        return self.entries(status=CandidateStatus.PENDING)
 
-    def list(
+    def entries(
         self,
         *,
         trace_type: Optional[TraceType] = None,
@@ -495,7 +499,7 @@ class DatasetStore:
         return cand
 
     def export_audit_cards(self) -> list[dict]:
-        return [c.audit_card() for c in self.list()]
+        return [c.audit_card() for c in self.entries()]
 
     # -- exports (only APPROVED, plus labeled negatives) --------------------
 
@@ -503,7 +507,7 @@ class DatasetStore:
         self, *, trace_type: Optional[TraceType] = None
     ) -> list[DatasetCandidate]:
         out = []
-        for c in self.list(status=CandidateStatus.APPROVED, trace_type=trace_type):
+        for c in self.entries(status=CandidateStatus.APPROVED, trace_type=trace_type):
             if c.is_negative or c.quality.passed(c.trace_type):
                 out.append(c)
         return out
@@ -531,7 +535,7 @@ class DatasetStore:
 
         positives: dict[str, DatasetCandidate] = {}
         negatives: dict[str, DatasetCandidate] = {}
-        for c in self.list(status=CandidateStatus.APPROVED):
+        for c in self.entries(status=CandidateStatus.APPROVED):
             if not c.task_key:
                 continue
             if c.is_negative:
