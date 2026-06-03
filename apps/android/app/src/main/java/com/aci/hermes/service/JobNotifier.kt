@@ -125,13 +125,17 @@ class JobNotifier(private val context: Context) {
             return if (state.needsAttention) DEST_APPROVALS else DEST_DETAIL
         }
 
-        /** A notification deep-link target parsed from a launch [Intent]. */
-        data class DeepLink(val jobId: String?, val destination: String)
-
         /** Parse a launch intent into a [DeepLink], or null when it carries none. */
         fun parseDeepLink(intent: Intent?): DeepLink? {
             val dest = intent?.getStringExtra(EXTRA_DEST) ?: return null
             return DeepLink(jobId = intent.getStringExtra(EXTRA_JOB_ID), destination = dest)
         }
     }
+
+    /**
+     * A notification deep-link target parsed from a launch [Intent]. Declared
+     * directly on [JobNotifier] (not inside the companion) so callers reference
+     * it as `JobNotifier.DeepLink`.
+     */
+    data class DeepLink(val jobId: String?, val destination: String)
 }
