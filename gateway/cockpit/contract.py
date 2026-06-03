@@ -694,6 +694,41 @@ def navigation_view(entry: dict[str, Any], *, job_id: str | None = None) -> dict
     }
 
 
+# ---------------------------------------------------------------------------
+# Research Mode — mirrors com.aci.hermes.data.cockpit.ResearchReport (+ cards,
+# claims, contradictions). The engine dataclasses already emit the canonical
+# JSON; these wrappers keep contract.py the single mapping authority and
+# normalize whether the handler passes an engine object or a plain dict.
+# ---------------------------------------------------------------------------
+
+
+def _as_dict(obj: Any) -> dict[str, Any]:
+    to_dict = getattr(obj, "to_dict", None)
+    if callable(to_dict):
+        return to_dict()
+    return dict(obj or {})
+
+
+def research_card(card: Any) -> dict[str, Any]:
+    """Project an engine ``EvidenceCard`` into the cockpit card shape."""
+    return _as_dict(card)
+
+
+def research_claim(claim: Any) -> dict[str, Any]:
+    """Project an engine ``SynthesizedClaim`` into the cockpit claim shape."""
+    return _as_dict(claim)
+
+
+def research_contradiction(contradiction: Any) -> dict[str, Any]:
+    """Project an engine ``ResearchContradiction`` into the cockpit shape."""
+    return _as_dict(contradiction)
+
+
+def research_report(report: Any) -> dict[str, Any]:
+    """Project an engine ``ResearchReport`` into the canonical cockpit report."""
+    return _as_dict(report)
+
+
 __all__ = [
     "ACTION_RESULTS",
     "APPROVAL_CARD_STATUSES",
@@ -726,5 +761,9 @@ __all__ = [
     "orchestrator_job",
     "normalize_publish_state",
     "proposal_view",
+    "research_card",
+    "research_claim",
+    "research_contradiction",
+    "research_report",
     "skill_entry",
 ]

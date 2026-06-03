@@ -807,6 +807,134 @@ def _ledger_summary(ledger: Any, path: Any) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Research Mode (Evidence Engine)
+# ---------------------------------------------------------------------------
+
+
+def _research_engine():
+    """Construct a ResearchEngine bound to the default local stores."""
+    from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+    return ResearchEngine()
+
+
+def research_run(req: Request) -> JsonResponse:
+    """Run the research pipeline for a query (contract §research).
+
+    Body: ``{"query": str, "manual_sources"?: [{title,url,excerpt}]}``.
+    Returns the full report. Source gathering uses the configured web-search
+    provider when one is available; otherwise it relies on ``manual_sources``
+    and reports honestly via ``notes`` — it never fabricates an answer.
+    """
+    body = req.body
+    query = str(body.get("query", "")).strip()
+    if not query:
+        return JsonResponse(400, {"error": "query is required"})
+    manual = body.get("manual_sources") or []
+    if not isinstance(manual, list):
+        manual = []
+    try:
+        from . import contract
+
+        report = _research_engine().run(query, manual_sources=manual)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, contract.research_report(report))
+
+
+def research_list(_req: Request) -> JsonResponse:
+    """List past research reports, newest first."""
+    try:
+        from . import contract
+
+        reports = _research_engine().list_reports()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    reports = sorted(reports, key=lambda r: r.created_at, reverse=True)
+    return JsonResponse(200, {"reports": [contract.research_report(r) for r in reports]})
+
+
+def research_get(req: Request) -> JsonResponse:
+    report_id = req.path_params.get("id", "")
+    try:
+        from . import contract
+
+        report = _research_engine().get_report(report_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if report is None:
+        return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+    return JsonResponse(200, contract.research_report(report))
+
+
+def research_promote(req: Request) -> JsonResponse:
+    """Promote one evidence card into the Memory Tree — through the gate.
+
+    Reuses the exact same ``MemoryStore.remember`` write path (and policy) as
+    :func:`memory_create`, so a promoted finding shows in the Memory screen and
+    a secret-like / low-confidence card is honestly rejected with 422.
+    """
+    report_id = req.path_params.get("id", "")
+    card_id = str(req.body.get("card_id", "")).strip()
+    if not card_id:
+        return JsonResponse(400, {"error": "card_id is required"})
+    try:
+        from hermes_cli.jarvis_prime.memory import MemoryStore
+        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+        from . import contract
+
+        engine = _research_engine()
+        report = engine.get_report(report_id)
+        if report is None:
+            return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+        payload = ResearchEngine.promotion_payload(report, card_id)
+        if payload is None:
+            return JsonResponse(404, {"error": f"unknown card: {card_id}"})
+        record = MemoryStore().remember(**payload)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if record is None:
+        # Same honest contract as memory_create — never faked.
+        return JsonResponse(
+            422, {"stored": False, "reason": "rejected (secret-like or low confidence)"}
+        )
+    return JsonResponse(201, {"stored": True, "item": contract.memory_item(record)})
+
+
+def research_create_task(req: Request) -> JsonResponse:
+    """Create a coding task from a research report — via the job queue gate.
+
+    Reuses :func:`jobs_dispatch`'s enqueue path: a ``queued`` entry only,
+    nothing executes here (owner/run gates unchanged).
+    """
+    report_id = req.path_params.get("id", "")
+    body = req.body
+    try:
+        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+        engine = _research_engine()
+        report = engine.get_report(report_id)
+        if report is None:
+            return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+        title = str(body.get("title", "")).strip() or f"Research: {report.query}"[:120]
+        prompt = ResearchEngine.task_prompt(report)
+        dispatch = Request(
+            method="POST",
+            path="/v1/cockpit/jobs",
+            body={
+                "title": title,
+                "prompt": prompt,
+                "worker_id": str(body.get("worker_id", "")).strip(),
+                "workspace_path": str(body.get("workspace_path", "")).strip(),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return jobs_dispatch(dispatch)
+
+
 __all__ = [
     "COCKPIT_API_VERSION",
     "JsonResponse",
@@ -826,6 +954,11 @@ __all__ = [
     "models",
     "navigation_list",
     "proposals_list",
+    "research_create_task",
+    "research_get",
+    "research_list",
+    "research_promote",
+    "research_run",
     "runtime_status",
     "runtime_workers",
     "skills_list",
