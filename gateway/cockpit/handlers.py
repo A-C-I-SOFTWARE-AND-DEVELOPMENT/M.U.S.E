@@ -292,6 +292,30 @@ def audit_proof(req: Request) -> JsonResponse:
     return JsonResponse(404, {"error": f"unknown proof: {proof_id}"})
 
 
+def research_list(req: Request) -> JsonResponse:
+    """Recent Research Vault artifacts (evidence store) for the home screen.
+
+    Read-only projection of the real
+    :class:`hermes_cli.jarvis_prime.research_vault.ResearchVault`. Most-recent
+    first, ``?limit=`` (default 10). A missing/empty vault degrades to an
+    honest ``{"items": []}`` — never fake evidence, never a crash.
+    """
+    try:
+        limit = max(1, int(req.query.get("limit", "10")))
+    except (TypeError, ValueError):
+        limit = 10
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        vault = ResearchVault.load()
+        # entries() is sorted oldest→newest; reverse for recent-first.
+        recent = list(reversed(vault.entries()))[:limit]
+        items = [art.to_dict() for art in recent]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"items": [], "error": str(exc)})
+    return JsonResponse(200, {"items": items})
+
+
 def jobs_list(_req: Request) -> JsonResponse:
     """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []

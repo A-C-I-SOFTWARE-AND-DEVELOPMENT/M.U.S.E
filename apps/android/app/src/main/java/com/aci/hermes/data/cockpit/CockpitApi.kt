@@ -264,6 +264,68 @@ data class CockpitEvent(
     val attributes: Map<String, String>? = null,
 )
 
+// ─── Models / router policy ───────────────────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/models` — the free-first router policy
+ * surfaced by `gateway/cockpit/handlers.py::models` (which returns the raw
+ * `model_bootstrap.load_policy()` dict). The server shape is intentionally
+ * loose, so every field here is defaulted/nullable and unknown keys are
+ * ignored by the tolerant [CockpitHttp.json] config — an evolving policy
+ * shape never crashes the home screen. The home repository maps this to a
+ * small display summary.
+ */
+@Serializable
+data class ModelPolicy(
+    val routes: Map<String, ModelRoute> = emptyMap(),
+    @SerialName("free_first") val freeFirst: Boolean? = null,
+    @SerialName("paid_opt_in") val paidOptIn: Boolean? = null,
+    @SerialName("default_route") val defaultRoute: String? = null,
+    @SerialName("_note") val note: String? = null,
+    val error: String? = null,
+)
+
+/**
+ * One route entry. The server emits per-route objects whose exact keys vary
+ * by provider; only the commonly-present descriptive fields are modelled and
+ * everything else is ignored. Kept nullable so a sparse entry still decodes.
+ */
+@Serializable
+data class ModelRoute(
+    val provider: String? = null,
+    val model: String? = null,
+    val tier: String? = null,
+    val enabled: Boolean? = null,
+)
+
+// ─── Research Vault (evidence store) ──────────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/research` — one item from the JARVIS
+ * Research Vault (`hermes_cli/jarvis_prime/research_vault.py`). One-to-one
+ * with `ResearchArtifact.to_dict()`. Recent-first; the gateway returns an
+ * honest empty list (never fabricated evidence) when the vault is missing.
+ */
+@Serializable
+data class CockpitResearchItem(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "manual",
+    @SerialName("evidence_strength") val evidenceStrength: String = "moderate",
+    val summary: String = "",
+    val excerpt: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class CockpitResearchList(
+    val items: List<CockpitResearchItem> = emptyList(),
+    val error: String? = null,
+)
+
 // ─── Destructive approvals ────────────────────────────────────────────
 
 @Serializable

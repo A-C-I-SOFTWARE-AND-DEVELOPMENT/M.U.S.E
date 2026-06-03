@@ -661,6 +661,58 @@ store is invented.
 
 ---
 
+## 10d. Research Vault — **canonical, implemented** (recent evidence, read-only)
+
+`GET /v1/cockpit/research` is **live**, projecting the JARVIS **Research
+Vault** (`hermes_cli/jarvis_prime/research_vault.py`) for the mobile home
+screen's evidence card and any research view.
+
+- Query: `?limit=` (default `10`). Items are **most-recent first**.
+- Response: `{ "items": [ ResearchItem ], "error"?: "…" }`. A missing or
+  empty vault returns `{ "items": [] }` — **never fabricated evidence**, and
+  a read failure degrades to an empty list with a non-fatal `error` string
+  (never a crash).
+
+### ResearchItem (one-to-one with `ResearchArtifact.to_dict()`)
+
+```json
+{
+  "id": "ab12…",
+  "title": "Model X benchmark",
+  "source_uri": "https://…",
+  "source_type": "manual",
+  "evidence_strength": "moderate",
+  "summary": "Model X tops the board on …",
+  "excerpt": "…stored citation text…",
+  "tags": ["models", "benchmark"],
+  "freshness_due": null,
+  "added_at": "2026-06-03T12:00:00Z"
+}
+```
+
+Kotlin mirror: `CockpitResearchItem` / `CockpitResearchList` in
+`CockpitApi.kt`; accessor `HermesCockpitClient.research(limit)`.
+
+This is a **read-only** projection — the app does not write the vault.
+
+---
+
+## 10e. Models / router policy — **read, typed**
+
+`GET /v1/cockpit/models` is **live** (handler `models`), returning the
+free-first router policy from `model_bootstrap.load_policy()` (or a
+`dry_run` preview when none is written yet). The shape is intentionally
+loose; the typed Kotlin mirror `ModelPolicy` / `ModelRoute`
+(`HermesCockpitClient.modelPolicy()`) is fully defaulted and the decoder
+ignores unknown keys, so an evolving policy never crashes the client. The
+handler **never accepts or stores API keys** — detection is env-presence
+only.
+
+`GET /v1/cockpit/events` (the decision-ledger event stream, §9) is also now
+typed via `HermesCockpitClient.events(limit)` → `EventBatch`.
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any
