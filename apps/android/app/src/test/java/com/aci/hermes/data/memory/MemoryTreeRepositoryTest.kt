@@ -23,10 +23,17 @@ class MemoryTreeRepositoryTest {
         private val responder: (CockpitRequest) -> CockpitRawResponse,
     ) : CockpitHttpExecutor {
         var lastRequest: CockpitRequest? = null
+        val requests = mutableListOf<CockpitRequest>()
         override fun execute(request: CockpitRequest): CockpitRawResponse {
             lastRequest = request
+            requests.add(request)
             return responder(request)
         }
+
+        /** A decision/resolve POST fires a follow-up GET refresh, so assert the
+         *  POST happened among all requests rather than that it was last. */
+        fun posted(url: String): Boolean =
+            requests.any { it.method == "POST" && it.url == url }
     }
 
     private fun client(executor: CockpitHttpExecutor) = HermesCockpitClient(
@@ -89,10 +96,8 @@ class MemoryTreeRepositoryTest {
         val r = repo(fake)
         val outcome = r.approve("n1")
         assertEquals(DecisionOutcome.Ok, outcome)
-        assertEquals(
-            "http://127.0.0.1:8765/v1/cockpit/memory/tree/n1/decision",
-            fake.lastRequest?.url,
-        )
+        // The decision POST fires before the follow-up proposed-inbox refresh.
+        assertTrue(fake.posted("http://127.0.0.1:8765/v1/cockpit/memory/tree/n1/decision"))
     }
 
     @Test
@@ -133,10 +138,8 @@ class MemoryTreeRepositoryTest {
         val r = repo(fake)
         val outcome = r.resolveContradiction("c1", "b", note = "b wins")
         assertEquals(DecisionOutcome.Ok, outcome)
-        assertEquals(
-            "http://127.0.0.1:8765/v1/cockpit/memory/contradictions/c1/resolve",
-            fake.lastRequest?.url,
-        )
+        // The resolve POST fires before the follow-up contradictions refresh.
+        assertTrue(fake.posted("http://127.0.0.1:8765/v1/cockpit/memory/contradictions/c1/resolve"))
     }
 
     @Test
