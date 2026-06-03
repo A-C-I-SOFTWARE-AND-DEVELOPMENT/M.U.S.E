@@ -353,6 +353,31 @@ When authorization is granted, record:
 Yes, with authorization.
 ```
 
+### Owner High-Autonomy Coding mode
+
+For personal, mobile-first coding work the owner can raise autonomy to
+**Owner High-Autonomy Coding** (`approval_policy.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING`).
+Inside an **approved workspace** this auto-approves the friction points of
+coding — file edits, tests, lint, builds, dependency installs, local server
+start/stop, branch creation, local commits, and code-worker execution — and
+records every auto-approval with its reason in the approval audit log.
+
+It does **not** weaken any owner gate. The always-confirm set (deploy, publish,
+push, supabase/vercel changes) and the owner gates above (spend, public post,
+credential/secret change, app-store submission, package publish, …) still
+require explicit approval, and file edits / worker runs **outside** the approved
+workspace fall back to a confirmation. The mode is scoped to one workspace,
+persisted in `~/.hermes/autonomy.json`, and instantly revocable
+(`POST /v1/cockpit/autonomy {"revoke": true}` or the Android Control toggle).
+The `HERMES_AUTONOMY` environment variable still overrides the persisted record.
+
+The Android cockpit surfaces the active level, its workspace scope, the
+capability list (auto-approved vs. still-gated, from
+`approval_policy.capabilities()`), pending approvals, the decision audit trail,
+and a backend-wired **emergency stop** that cancels active jobs/workers and
+drops autonomy to `read_only`. See
+[`docs/android/hermes-apk-api-contract.md`](android/hermes-apk-api-contract.md) §10d.
+
 ## CLI Reference
 
 JARVIS Prime ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.

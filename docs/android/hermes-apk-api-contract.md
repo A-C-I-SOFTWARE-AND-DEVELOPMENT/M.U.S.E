@@ -661,6 +661,78 @@ store is invented.
 
 ---
 
+## 10d. Autonomy & emergency stop — **canonical, implemented**
+
+Owner High-Autonomy Coding mode reduces friction for coding work *inside an
+approved workspace* while every irreversible/external/high-risk action stays
+gated. The level is the existing `hermes_cli/approval_policy.py` engine
+(`read_only/assisted/autonomous/yolo/owner_high_autonomy_coding`); the cockpit
+endpoints set/read it and surface the capability list straight from
+`approval_policy.capabilities()` (never a hand-maintained copy).
+
+### `GET /v1/cockpit/autonomy`
+
+```json
+{
+  "level": "owner_high_autonomy_coding",
+  "display_name": "High-Autonomy Coding",
+  "workspace_root": "/home/me/project",
+  "updated_at": 1717430400.0,
+  "set_by": "cockpit",
+  "revocable": true,
+  "capabilities": {
+    "auto_approved": ["safe_read", "safe_local_write", "local_command",
+      "dependency_install", "local_server", "branch_create", "local_commit",
+      "code_worker_exec", "secret_access"],
+    "requires_approval": ["destructive_command", "github_push", "supabase_change",
+      "vercel_deploy", "outbound_message", "remote_command", "continuous_listen"],
+    "always_deny": ["github_force_push", "remote_secret_transfer", "public_tunnel"],
+    "workspace_scoped": ["safe_local_write", "code_worker_exec"]
+  }
+}
+```
+
+`workspace_scoped` actions auto-approve **only** when their target path is
+inside `workspace_root`; outside it they fall back to a confirmation. The
+`requires_approval` set (deploy, publish, push/merge, credential/secret change,
+destructive/outside-workspace delete, public posts, purchases) and the owner
+gates (`owner_auth.OWNER_GATED_ACTIONS`, exact-phrase) are **never** removed by
+this mode.
+
+### `POST /v1/cockpit/autonomy`
+
+Body: `{"level": "owner_high_autonomy_coding", "workspace_path": "/home/me/project"}`
+to set, or `{"revoke": true}` to drop back to `assisted`. Setting
+`owner_high_autonomy_coding` without a `workspace_path` returns `400`. The mode
+change is recorded in the approval audit log (`details.event = "autonomy_change"`).
+Returns the same shape as `GET`.
+
+### `GET /v1/cockpit/autonomy/decisions?limit=50`
+
+Recent, already-redacted policy decisions — the per-action auto-approval
+*reasons*. Powers the High-Autonomy Coding audit trail.
+
+```json
+{"decisions": [
+  {"ts": 1717430401.0, "actor": "agent", "action": "local_command",
+   "summary": "pytest -q", "decision": "allow",
+   "reason": "owner_high_autonomy_coding: auto-approved local_command inside approved workspace /home/me/project"}
+]}
+```
+
+### `POST /v1/cockpit/emergency-stop`
+
+Body: `{"reason": "..."}` (optional). Cancels every non-terminal queue job
+(reusing `JobQueue.cancel_job`), forces autonomy to `read_only`, and audits the
+event. Returns:
+
+```json
+{"engaged": true, "cancelled_jobs": ["job_ab12"], "cancelled_count": 1,
+ "autonomy_level": "read_only", "errors": []}
+```
+
+---
+
 ## 11. Versioning
 
 This contract is versioned via the URL prefix `/v1/cockpit/...`. Any
