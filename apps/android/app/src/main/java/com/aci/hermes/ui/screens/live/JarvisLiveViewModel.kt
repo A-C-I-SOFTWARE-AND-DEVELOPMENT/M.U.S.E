@@ -276,7 +276,7 @@ class JarvisLiveViewModel(
     ) {
         markInteraction()
         val wakeAvailable = micGranted &&
-            android.speech.SpeechRecognizer.isRecognitionAvailable(getApplication())
+            android.speech.SpeechRecognizer.isRecognitionAvailable(getApplication<Application>())
         enact(
             presence.on(
                 PresenceEvent.CapabilitiesChanged(
@@ -303,9 +303,9 @@ class JarvisLiveViewModel(
     private fun enact(decision: PresenceModeController.Decision) {
         when (decision.effect) {
             PresenceModeController.Effect.START_VOICE_LOOP ->
-                runCatching { VoiceLoopService.start(getApplication()) }
+                runCatching { VoiceLoopService.start(getApplication<Application>()) }
             PresenceModeController.Effect.STOP_VOICE_LOOP ->
-                runCatching { VoiceLoopService.stop(getApplication()) }
+                runCatching { VoiceLoopService.stop(getApplication<Application>()) }
             PresenceModeController.Effect.NONE -> Unit
         }
     }
@@ -316,7 +316,7 @@ class JarvisLiveViewModel(
         _armedTrigger.value = presence.armedSource
         // A hard stop must also tear down any in-flight hands-free voice loop,
         // not just clear the flags — the mic/foreground service stops too.
-        runCatching { VoiceLoopService.stop(getApplication()) }
+        runCatching { VoiceLoopService.stop(getApplication<Application>()) }
         _state.update {
             it.copy(
                 emergencyStop = true,
