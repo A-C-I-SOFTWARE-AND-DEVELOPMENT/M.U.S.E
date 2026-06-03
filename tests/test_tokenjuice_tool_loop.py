@@ -1,9 +1,11 @@
 """Integration tests for TokenJuice in the agent tool loop.
 
-Exercises the shared ``_tokenjuice_compact`` helper that both the concurrent and
-sequential executors call, and asserts structurally that both paths invoke it
-before the existing persistence/budget layer (so neither path regresses to
-sending raw, unscrubbed output).
+Exercises the ``_tokenjuice_compact`` primitive (scrub / compact / raw-preserve)
+and the shared ``prepare_tool_result_for_context`` seam that both the concurrent
+and sequential executors route through. Asserts structurally that both paths use
+the single seam (no drift) and that the seam persists oversized output *before*
+TokenJuice clamping, so a large result keeps its recoverable persisted/truncated
+path instead of being clamped away.
 """
 
 import re
@@ -105,16 +107,39 @@ def test_helper_fail_open(monkeypatch, enabled_cfg):
     assert out == LONG_GIT  # never worse than the original
 
 
-def test_both_executor_paths_invoke_compaction_before_persistence():
-    """Structural guard: concurrent + sequential both call the helper, and the
-    call precedes ``maybe_persist_tool_result`` in each path."""
+def test_both_executor_paths_use_shared_prepare_seam():
+    """Structural guard: concurrent + sequential both route results through the
+    single ``prepare_tool_result_for_context`` seam, and neither inlines the
+    persistence or TokenJuice layers — keeping the two paths from drifting and
+    from reintroducing the clamp-before-persist bug."""
     src = Path(te.__file__).read_text(encoding="utf-8")
-    assert src.count("_tokenjuice_compact(") >= 2
+    assert "def prepare_tool_result_for_context(" in src
 
     for fn in ("execute_tool_calls_concurrent", "execute_tool_calls_sequential"):
         body = src.split(f"def {fn}(", 1)[1].split("\ndef ", 1)[0]
-        compact_at = body.find("_tokenjuice_compact(")
-        persist_at = body.find("maybe_persist_tool_result(")
-        assert compact_at != -1, f"{fn} must call _tokenjuice_compact"
-        assert persist_at != -1, f"{fn} must still call maybe_persist_tool_result"
-        assert compact_at < persist_at, f"{fn} must compact before persisting"
+        assert "prepare_tool_result_for_context(" in body, (
+            f"{fn} must ready results via the shared prepare seam"
+        )
+        # Ordering is owned by the seam; the executor paths must not inline
+        # persistence or compaction themselves.
+        assert "maybe_persist_tool_result(" not in body, (
+            f"{fn} must not inline persistence — the shared seam owns it"
+        )
+        assert "compact_tool_output(" not in body and "_tokenjuice_compact(" not in body, (
+            f"{fn} must not inline TokenJuice — the shared seam owns it"
+        )
+
+
+def test_prepare_seam_persists_oversized_before_clamping():
+    """The shared seam must run oversized-output persistence *before* TokenJuice
+    compaction, so a large result keeps its recoverable persisted/truncated path
+    rather than being clamped to the inline ceiling first (the original bug)."""
+    src = Path(te.__file__).read_text(encoding="utf-8")
+    body = src.split("def prepare_tool_result_for_context(", 1)[1].split("\ndef ", 1)[0]
+    first_persist = body.find("maybe_persist_tool_result(")
+    first_compact = body.find("compact_tool_output(")
+    assert first_persist != -1, "seam must persist oversized output"
+    assert first_compact != -1, "seam must still run TokenJuice compaction"
+    assert first_persist < first_compact, (
+        "oversized persistence must precede TokenJuice compaction in the seam"
+    )
