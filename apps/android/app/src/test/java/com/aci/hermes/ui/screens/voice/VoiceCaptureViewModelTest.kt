@@ -116,4 +116,16 @@ class VoiceCaptureViewModelTest {
         assertTrue(!vm.state.value.listening)
         assertNotNull(vm.state.value.error)
     }
+
+    @Test
+    fun `cancelling listening stops cleanly with no transcript or error`() {
+        val vm = newViewModel()
+        vm.onListeningStart()
+        assertTrue(vm.state.value.listening)
+        vm.onListeningCancelled()
+        val s = vm.state.value
+        assertTrue("cancel must stop listening", !s.listening)
+        assertNull("cancel is not an error", s.error)
+        assertEquals("", s.transcript)
+    }
 }

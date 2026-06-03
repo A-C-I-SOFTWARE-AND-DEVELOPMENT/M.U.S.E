@@ -71,6 +71,28 @@ class MockJarvisChatGatewayTest {
     }
 
     @Test
+    fun `every turn opens with the receiving and thinking phases`() = runTest {
+        val chunks = gateway.send(emptyList(), "hi").toList()
+        val phases = chunks.filterIsInstance<JarvisChatChunk.Phase>().map { it.phase }
+        assertTrue(phases.contains(JarvisPhase.RECEIVING))
+        assertTrue(phases.contains(JarvisPhase.THINKING))
+        assertTrue(phases.contains(JarvisPhase.ROUTING))
+    }
+
+    @Test
+    fun `task prompt streams tool calls and record refs`() = runTest {
+        val chunks = gateway.send(emptyList(), "build a chat screen for jarvis").toList()
+        val tools = chunks.filterIsInstance<JarvisChatChunk.ToolCall>()
+        // Two tools, each START + terminal.
+        assertEquals(4, tools.size)
+        assertTrue(tools.any { it.name == "git_status" })
+        assertTrue(tools.any { it.name == "repo_grep" })
+        assertTrue(chunks.any { it is JarvisChatChunk.EvidenceRef })
+        assertTrue(chunks.any { it is JarvisChatChunk.LedgerRef })
+        assertTrue(chunks.any { it is JarvisChatChunk.Phase && it.phase == JarvisPhase.TOOL })
+    }
+
+    @Test
     fun `gateway reports streaming support and a display name`() {
         assertTrue(gateway.supportsStreaming)
         assertTrue(gateway.displayName.isNotBlank())

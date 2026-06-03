@@ -17,6 +17,17 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
+    <!-- Opt-in camera attention for Presence Mode (default OFF). Used only
+         for on-device face-PRESENCE detection to arm hands-free listening
+         when the user looks at the phone, and only while the live screen is
+         visible with a camera indicator shown. No frames are stored or
+         transmitted; ML Kit runs fully on-device. The camera is optional
+         hardware so the app still installs on camera-less devices. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="false" />
+
     <application
         android:name=".HermesApplication"
         android:allowBackup="true"
@@ -44,6 +55,14 @@
 
         <service
             android:name=".service.HermesService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Polls the cockpit for long-running-work state changes and posts
+             local notifications. Runs only while active work exists; self-stops
+             when idle (see WorkWatchService). -->
+        <service
+            android:name=".service.WorkWatchService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 

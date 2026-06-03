@@ -472,6 +472,116 @@ def _cmd_calendar(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- learning dataset queue ------------------------------------------------
+
+
+def _learning_store():
+    # Profile-aware default path (honors HERMES_HOME / active profile).
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+
+    return DatasetStore.load()
+
+
+def _cmd_learning_list(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    items = store.entries()
+    if getattr(args, "json", False):
+        _print_json([c.audit_card() for c in items])
+        return 0
+    if not items:
+        print("no learning candidates")
+        return 0
+    for c in items:
+        labels = ",".join(c.labels) or "-"
+        print(
+            f"{c.id}  {c.status.value:<9}  {c.trace_type.value:<26}  "
+            f"labels={labels}  src={c.provenance.source_kind}"
+        )
+    return 0
+
+
+def _cmd_learning_approve(args: argparse.Namespace) -> int:
+    phrase = _resolve_owner_phrase(args)
+    if phrase is None or phrase.strip() != AUTHORIZATION_PHRASE:
+        print(
+            "error: owner authorization phrase required for approve "
+            "(pass --phrase or set JARVIS_OWNER_PHRASE; must be exactly "
+            f"{AUTHORIZATION_PHRASE!r})",
+            file=sys.stderr,
+        )
+        return 1
+    store = _learning_store()
+    if store.get(args.candidate_id) is None:
+        print(f"unknown candidate: {args.candidate_id!r}", file=sys.stderr)
+        return 1
+    store.approve(args.candidate_id, note="approved via CLI")
+    print(f"{args.candidate_id}: approved")
+    return 0
+
+
+def _cmd_learning_reject(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    if store.get(args.candidate_id) is None:
+        print(f"unknown candidate: {args.candidate_id!r}", file=sys.stderr)
+        return 1
+    store.reject(args.candidate_id, note="rejected via CLI")
+    print(f"{args.candidate_id}: rejected")
+    return 0
+
+
+def _cmd_learning_export(args: argparse.Namespace) -> int:
+    store = _learning_store()
+    out = Path(args.out)
+    fmt = args.format
+    if fmt == "jsonl":
+        n = store.export_jsonl(out)
+    elif fmt == "preference":
+        n = store.export_preference_pairs(out)
+    elif fmt == "eval":
+        n = store.export_eval_cases(out)
+    elif fmt == "skill":
+        n = store.export_skill_candidates(out)
+    else:  # pragma: no cover - argparse choices guard this
+        print(f"unknown format: {fmt}", file=sys.stderr)
+        return 2
+    print(f"exported {n} record(s) ({fmt}) -> {out}")
+    return 0
+
+
+def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.learning_dataset import QualityGates
+    from hermes_cli.jarvis_prime.learning_ingest import from_trajectory_file
+
+    # The operator asserts which verification gates the *completed* traces in
+    # this file have cleared. We never auto-mint a "passed" example: without
+    # these flags, completed coding traces lack their required gates and are
+    # skipped (failed traces still import as labeled negatives).
+    quality = QualityGates(
+        tests_passed=args.tests_passed,
+        reviewer_passed=args.reviewer_passed,
+        rollback_available=args.rollback_available,
+        citations_verified=args.citations_verified,
+    )
+    store = _learning_store()
+    created = from_trajectory_file(Path(args.path), store, quality=quality)
+    print(f"ingested {len(created)} candidate(s) from {args.path}")
+    skipped_for_gates = False
+    for note in store.load_diagnostics:
+        print(f"  skipped: {note}", file=sys.stderr)
+        if "quality gates not met" in note:
+            skipped_for_gates = True
+    if skipped_for_gates and not (
+        args.tests_passed or args.reviewer_passed or args.rollback_available
+    ):
+        print(
+            "  hint: completed coding traces need their gates asserted — re-run "
+            "with --tests-passed --reviewer-passed --rollback-available once the "
+            "run is verified green.",
+            file=sys.stderr,
+        )
+    return 0
+
+
 def _cmd_handoff(args: argparse.Namespace) -> int:
     packet_path = Path(args.packet)
     if not packet_path.is_file():
@@ -871,6 +981,77 @@ def _cmd_research(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cmd_graph(args: argparse.Namespace) -> int:
+    """GraphRAG knowledge-graph lane: build / query / related.
+
+    Supplements (never replaces) the Memory Tree and Research Vault. The graph
+    is an additive cache rebuilt from the repo + local stores; ``build`` is
+    read-only over those sources and writes only the graph cache file.
+    """
+
+    from hermes_cli.jarvis_prime.graphrag import (
+        GraphStore,
+        build_and_save,
+        coding_query,
+        find_entity_node,
+        global_query,
+        local_query,
+        related_items,
+    )
+
+    store = GraphStore(Path(args.store) if getattr(args, "store", None) else None)
+
+    if args.op == "build":
+        indexers = args.indexers.split(",") if getattr(args, "indexers", None) else None
+        graph, path = build_and_save(
+            args.repo_root, indexers=indexers, store=store
+        )
+        payload = {"saved": str(path), **graph.stats()}
+        if args.json:
+            _print_json(payload)
+        else:
+            print(graph.render())
+            print(f"\nsaved: {path}")
+        return 0
+
+    # query / related read the cached graph (build it on first use).
+    graph = store.load()
+    if not graph.nodes:
+        graph, _ = build_and_save(args.repo_root, store=store)
+
+    if args.op == "query":
+        mode = getattr(args, "mode", "local")
+        q = args.query or ""
+        if mode == "global":
+            answer = global_query(graph, q)
+        elif mode == "coding":
+            answer = coding_query(graph, q)
+        else:
+            answer = local_query(graph, q)
+        if args.json:
+            _print_json(answer.to_dict())
+        else:
+            print(answer.render())
+        return 0
+
+    if args.op == "related":
+        node_id_ = find_entity_node(graph, node=args.node, key=args.node)
+        if not node_id_:
+            print(f"error: no graph node matches {args.node!r}", file=sys.stderr)
+            return 2
+        items = related_items(graph, node_id_)
+        if args.json:
+            _print_json({"node": node_id_, "related": items})
+        else:
+            for it in items:
+                flag = "✓" if it["source_backed"] else "·"
+                print(f"{flag} [{it['kind']}/{it['relation']}] {it['title']}")
+        return 0
+
+    print(f"error: unknown graph op {args.op!r}", file=sys.stderr)
+    return 2
+
+
 def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.model_scorecard import (
         ModelScorecard,
@@ -900,6 +1081,10 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
             owner_corrections=getattr(args, "owner_corrections", 0),
             hallucination_corrections=getattr(args, "hallucination_corrections", 0),
             accepted_diff_rate=getattr(args, "accepted_diff_rate", None),
+            context_length=getattr(args, "context_length", 0) or 0,
+            tool_reliability=getattr(args, "tool_reliability", None),
+            citation_accuracy=getattr(args, "citation_accuracy", None),
+            mobile_ux_suitability=getattr(args, "mobile_ux_suitability", None),
         )
         book.record(card)
         if args.json:
@@ -916,7 +1101,11 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
         return 0
 
     if args.op == "recommend":
-        ranked = book.recommend(args.task, risk_class=getattr(args, "risk_class", None))
+        ranked = book.recommend(
+            args.task,
+            risk_class=getattr(args, "risk_class", None),
+            task_class=getattr(args, "task_class", None) or args.task,
+        )
         if args.json:
             _print_json([{"model": m, "score": s, "samples": n} for m, s, n in ranked])
         else:
@@ -926,6 +1115,34 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
 
     print(f"error: unknown model-scorecard op {args.op!r}", file=sys.stderr)
     return 2
+
+
+def _cmd_route(args: argparse.Namespace) -> int:
+    """Explain the evidence-backed model route for a task class."""
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    if getattr(args, "task", None):
+        try:
+            decision = tr.route_for_task(args.task)
+        except ValueError as exc:
+            print(
+                f"error: {exc}. Known task classes: "
+                + ", ".join(t.value for t in tr.TaskClass),
+                file=sys.stderr,
+            )
+            return 2
+        if args.json:
+            _print_json(decision.to_dict())
+        else:
+            print(tr.explain(decision))
+        return 0
+
+    decisions = tr.all_routes()
+    if args.json:
+        _print_json([d.to_dict() for d in decisions])
+    else:
+        print("\n\n".join(tr.explain(d) for d in decisions))
+    return 0
 
 
 def _cmd_owner_brief(args: argparse.Namespace) -> int:
@@ -1160,6 +1377,84 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_calendar.add_argument("--days", type=int, default=7, help="Look-ahead window in days")
     p_calendar.add_argument("--json", action="store_true")
     p_calendar.set_defaults(func=_cmd_calendar)
+
+    p_learning = sub.add_parser(
+        "learning",
+        help="Review/approve/export JARVIS learning-dataset candidates",
+        description=(
+            "Owner review surface for the JARVIS learning dataset. Candidates "
+            "are stored at ${HERMES_HOME:-~/.hermes}/jarvis_prime/"
+            "learning_dataset.jsonl. Only validated traces are stored; only "
+            "owner-approved traces are exported. 'approve' requires the exact "
+            "phrase 'Yes, with authorization.' via --phrase or JARVIS_OWNER_PHRASE."
+        ),
+    )
+    p_learning_sub = p_learning.add_subparsers(
+        dest="learning_command", required=True
+    )
+
+    p_learning_list = p_learning_sub.add_parser(
+        "list", help="List learning candidates"
+    )
+    p_learning_list.add_argument("--json", action="store_true")
+    p_learning_list.set_defaults(func=_cmd_learning_list)
+
+    p_learning_approve = p_learning_sub.add_parser(
+        "approve", help="Approve a candidate (requires owner authorization phrase)"
+    )
+    p_learning_approve.add_argument("candidate_id")
+    p_learning_approve.add_argument(
+        "--phrase",
+        help="Owner authorization phrase. Must be exactly 'Yes, with authorization.'",
+    )
+    p_learning_approve.set_defaults(func=_cmd_learning_approve)
+
+    p_learning_reject = p_learning_sub.add_parser(
+        "reject", help="Reject a candidate"
+    )
+    p_learning_reject.add_argument("candidate_id")
+    p_learning_reject.set_defaults(func=_cmd_learning_reject)
+
+    p_learning_export = p_learning_sub.add_parser(
+        "export", help="Export approved candidates to a file"
+    )
+    p_learning_export.add_argument(
+        "--format",
+        choices=("jsonl", "preference", "eval", "skill"),
+        default="jsonl",
+    )
+    p_learning_export.add_argument("--out", required=True, help="Output file path")
+    p_learning_export.set_defaults(func=_cmd_learning_export)
+
+    p_learning_ingest = p_learning_sub.add_parser(
+        "ingest-trajectory",
+        help="Ingest a save_trajectory-format JSONL into the candidate queue",
+        description=(
+            "Completed traces become coding_task_trace candidates; failed "
+            "traces become failed_attempt_trace candidates (labeled negative). "
+            "Completed coding traces require their verification gates — assert "
+            "them with the flags below once the run is verified, or they are "
+            "skipped (we never auto-mint a passed example)."
+        ),
+    )
+    p_learning_ingest.add_argument("path", help="Path to the trajectory JSONL")
+    p_learning_ingest.add_argument(
+        "--tests-passed", action="store_true",
+        help="Assert the completed traces' tests passed",
+    )
+    p_learning_ingest.add_argument(
+        "--reviewer-passed", action="store_true",
+        help="Assert a reviewer approved the completed traces",
+    )
+    p_learning_ingest.add_argument(
+        "--rollback-available", action="store_true",
+        help="Assert a rollback is available for the completed traces",
+    )
+    p_learning_ingest.add_argument(
+        "--citations-verified", action="store_true",
+        help="Assert citations were verified (research/evidence traces)",
+    )
+    p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
 
     p_handoff = sub.add_parser(
         "handoff",
@@ -1431,6 +1726,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_research.add_argument("--json", action="store_true")
     p_research.set_defaults(func=_cmd_research)
 
+    # graph — GraphRAG knowledge-graph: build / query / related.
+    p_graph = sub.add_parser(
+        "graph",
+        help="GraphRAG knowledge graph: build, query (local/global/coding), related",
+        description=(
+            "Build and query a typed, source-backed knowledge graph over the "
+            "cognition plane (repo code, docs, Research Vault, Memory Tree, job "
+            "and decision ledgers). Supplements — never replaces — existing RAG "
+            "and memory. The graph is an additive cache; deleting it is a full "
+            "rollback."
+        ),
+    )
+    p_graph.add_argument("op", choices=["build", "query", "related"])
+    p_graph.add_argument(
+        "query", nargs="?", default="", help="Question (for the query op)"
+    )
+    p_graph.add_argument(
+        "--mode",
+        choices=["local", "global", "coding"],
+        default="local",
+        help="Query mode: nearest nodes / community summary / coding context",
+    )
+    p_graph.add_argument(
+        "--node", help="Node id or key to fetch related items for (related op)"
+    )
+    p_graph.add_argument(
+        "--indexers",
+        help="Comma-separated subset of: code,docs,evidence,memory,ledger",
+    )
+    p_graph.add_argument("--repo-root", dest="repo_root", default=".")
+    p_graph.add_argument("--store", help="Path to a persistent graph JSON file")
+    p_graph.add_argument("--json", action="store_true")
+    p_graph.set_defaults(func=_cmd_graph)
+
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(
         "model-scorecard",
@@ -1453,11 +1782,42 @@ def main(argv: Optional[list[str]] = None) -> int:
         default=0,
     )
     p_score.add_argument("--accepted-diff-rate", dest="accepted_diff_rate", type=float)
+    p_score.add_argument(
+        "--context-length", dest="context_length", type=int, default=0,
+        help="Max context window the model offers (tokens)",
+    )
+    p_score.add_argument(
+        "--tool-reliability", dest="tool_reliability", type=float,
+        help="Measured tool-call reliability [0..1]",
+    )
+    p_score.add_argument(
+        "--citation-accuracy", dest="citation_accuracy", type=float,
+        help="Measured citation accuracy [0..1]",
+    )
+    p_score.add_argument(
+        "--mobile-ux-suitability", dest="mobile_ux_suitability", type=float,
+        help="Measured suitability for the mobile cockpit [0..1]",
+    )
+    p_score.add_argument(
+        "--task-class", dest="task_class",
+        help="Task class to weight the 'recommend' ranking by (defaults to --task)",
+    )
     p_score.add_argument("--endpoint", default="http://localhost:8000/v1")
     p_score.add_argument("--server", default="vllm")
     p_score.add_argument("--store", help="Path to a persistent scorecard JSONL file")
     p_score.add_argument("--json", action="store_true")
     p_score.set_defaults(func=_cmd_model_scorecard)
+
+    p_route = sub.add_parser(
+        "route",
+        help="Explain the evidence-backed model route for a task class",
+    )
+    p_route.add_argument(
+        "--task",
+        help="Task class (e.g. coding_build); omit to show all task classes",
+    )
+    p_route.add_argument("--json", action="store_true")
+    p_route.set_defaults(func=_cmd_route)
 
     # owner-brief — daily owner brief from a monitor context.
     p_brief = sub.add_parser(

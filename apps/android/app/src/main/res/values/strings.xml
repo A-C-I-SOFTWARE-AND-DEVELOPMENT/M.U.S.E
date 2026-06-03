@@ -24,6 +24,31 @@
     <string name="orchestrator_notification_stop">Stand down</string>
     <string name="orchestrator_notification_owner_approve">Owner Approve</string>
 
+    <!-- Work-watcher foreground service (only runs while active work exists) -->
+    <string name="workwatch_notification_title">Watching active work</string>
+    <string name="workwatch_notification_text">Jarvis Prime is tracking running jobs and approvals.</string>
+
+    <!-- Long-running-work notifications (event-driven). Bodies take a job title
+         or worker name; no prompts, diffs, tokens, or model reasoning. -->
+    <string name="notify_action_review_approval">Review</string>
+    <string name="notify_job_started_title">Job started</string>
+    <string name="notify_job_started_text">%1$s is running.</string>
+    <string name="notify_job_blocked_title">Approval needed</string>
+    <string name="notify_job_blocked_text">%1$s is paused for your approval.</string>
+    <string name="notify_approval_title">Approval needed</string>
+    <string name="notify_approval_text">An action is waiting for your approval.</string>
+    <string name="notify_job_completed_title">Job completed</string>
+    <string name="notify_job_completed_text">%1$s finished.</string>
+    <string name="notify_job_failed_title">Job failed</string>
+    <string name="notify_job_failed_text">%1$s failed. Tap for diagnostics.</string>
+    <string name="notify_worker_title">Worker needs attention</string>
+    <string name="notify_worker_text">%1$s needs attention.</string>
+    <string name="notify_research_title">Research complete</string>
+    <string name="notify_research_text">%1$s is ready to review.</string>
+    <string name="notify_tests_failed_title">Tests failed</string>
+    <string name="notify_emergency_title">Emergency stop engaged</string>
+    <string name="notify_emergency_text">Jarvis Prime work is halted.</string>
+
     <!-- Launcher shortcuts -->
     <string name="shortcut_owner_approve_short">Approve</string>
     <string name="shortcut_owner_approve_long">Owner Approve action</string>
@@ -79,6 +104,23 @@
     <string name="voice_save_task">Save as task</string>
     <string name="voice_clear">Clear</string>
 
+    <!-- Research Mode (Evidence Engine) -->
+    <string name="research_title">Research</string>
+    <string name="research_query_hint">Ask a research question…</string>
+    <string name="research_run">Research</string>
+    <string name="research_running">Researching…</string>
+    <string name="research_unpaired">Research needs a paired Hermes gateway. Pair one in Settings → Connection.</string>
+    <string name="research_empty_hint">Ask a factual question. Jarvis gathers sources, ranks them, and answers with citations — or says it doesn\'t know.</string>
+    <string name="research_section_answer">Answer</string>
+    <string name="research_section_sources">Sources</string>
+    <string name="research_section_evidence">Evidence cards</string>
+    <string name="research_section_contradictions">Contradictions</string>
+    <string name="research_uncertainty">Uncertainty</string>
+    <string name="research_save_to_memory">Save to memory</string>
+    <string name="research_saved">Saved</string>
+    <string name="research_create_task">Create coding task</string>
+    <string name="research_no_sources">No source-backed evidence was available. Jarvis did not fabricate an answer.</string>
+
     <!-- Approval card -->
     <string name="approval_title">Approval needed</string>
     <string name="approval_body">Jarvis wants to proceed. Review and approve before anything runs.</string>
@@ -98,6 +140,49 @@
     <string name="critical_confirm">I understand — proceed</string>
     <string name="critical_cancel">Hold</string>
 
+    <!-- Tiered approval queue (Risky / Serious / Critical cards + history) -->
+    <string name="approval_tab_pending">Pending</string>
+    <string name="approval_tab_history">History</string>
+    <string name="approval_action_approve">Approve</string>
+    <string name="approval_action_reject">Reject</string>
+    <string name="approval_action_edit">Edit</string>
+    <string name="approval_action_save_edit">Save edit</string>
+    <string name="approval_action_emergency_stop">Emergency stop</string>
+    <string name="approval_action_final_confirmation">Final confirmation</string>
+    <string name="approval_action_confirm_consequences">Confirm consequences</string>
+    <string name="approval_label_proposed_action">Proposed action</string>
+    <string name="approval_label_action">Action: %1$s</string>
+    <string name="approval_label_note">Note: %1$s</string>
+    <string name="approval_impact_report">Impact report</string>
+    <string name="approval_impact_required">Impact report required before approval.</string>
+    <string name="approval_impact_surfaces">Surfaces: %1$s</string>
+    <string name="approval_impact_blast">Blast radius: %1$s · %2$s</string>
+    <string name="approval_reversible">reversible</string>
+    <string name="approval_not_reversible">NOT reversible</string>
+    <string name="approval_rollback_plan">Rollback plan</string>
+    <string name="approval_rollback_required">Rollback plan required before approval.</string>
+    <string name="approval_rollback_duration">Est duration: %1$ds · %2$s</string>
+    <string name="approval_verified">verified</string>
+    <string name="approval_unverified">UNVERIFIED</string>
+    <string name="approval_step1">Step 1: approve</string>
+    <string name="approval_step2_critical">Step 2: final confirmation</string>
+    <string name="approval_step2_serious">Step 2: confirm consequences</string>
+    <string name="approval_empty_pending_title">No approvals waiting</string>
+    <string name="approval_empty_history_title">No decisions yet</string>
+    <!-- Tier badges -->
+    <string name="approval_tier_safe">SAFE</string>
+    <string name="approval_tier_low">LOW</string>
+    <string name="approval_tier_risky">RISKY</string>
+    <string name="approval_tier_serious">SERIOUS</string>
+    <string name="approval_tier_critical">CRITICAL</string>
+    <string name="approval_tier_forbidden">FORBIDDEN</string>
+    <!-- Status badges -->
+    <string name="approval_status_pending">Pending</string>
+    <string name="approval_status_approved">Approved</string>
+    <string name="approval_status_rejected">Rejected</string>
+    <string name="approval_status_expired">Expired</string>
+    <string name="approval_status_emergency_stopped">Emergency stopped</string>
+
     <!-- Emergency stop (#113 confirm-flow variant; coexists with the simpler title/body/confirm strings added by #112 below) -->
     <string name="emergency_stop">Emergency stop</string>
     <string name="emergency_stop_cd">Halt every active task immediately</string>
@@ -115,10 +200,16 @@
     <string name="gateway_status_disconnected">Disconnected</string>
     <string name="gateway_status_mock">Mock</string>
     <string name="gateway_status_termux">Termux</string>
+    <string name="gateway_status_checking">Checking…</string>
     <string name="gateway_disconnected_title">Jarvis is offline</string>
     <string name="gateway_disconnected_body">I can’t reach the local gateway right now. Existing work is safe. I’ll reconnect as soon as it’s available.</string>
     <string name="gateway_disconnected_retry">Try again</string>
     <string name="gateway_disconnected_diagnose">Run diagnostics</string>
+
+    <!-- Backend connectivity (distinct from the local foreground service) -->
+    <string name="backend_pill_label">Hermes backend</string>
+    <string name="service_status_running">Local service running</string>
+    <string name="service_status_stopped">Local service stopped</string>
 
     <!-- Mock mode -->
     <string name="mock_mode_title">Mock mode</string>
@@ -186,19 +277,23 @@
     <string name="task_field_rollback_summary">Rollback summary (optional)</string>
     <string name="task_field_verification_result">Verification result (optional)</string>
     <string name="task_field_proof_link">Proof / audit link (optional)</string>
+    <string name="task_approval_state_not_required">Not required</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
     <string name="nav_chat">Chat</string>
     <string name="nav_tasks">Tasks</string>
+    <string name="nav_jobs">Jobs</string>
     <string name="nav_approvals">Approvals</string>
     <string name="nav_memory">Memory</string>
+    <string name="nav_evidence">Evidence</string>
     <string name="nav_audit">Audit</string>
     <string name="nav_control">Control</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_diagnostics">Diagnostics</string>
     <string name="nav_capability">Capability</string>
     <string name="nav_voice">Voice</string>
+    <string name="nav_research">Research</string>
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->
@@ -251,6 +346,14 @@
     <string name="task_card_next_action_label">Next action</string>
     <string name="task_card_open_approvals">Open Approvals</string>
     <string name="task_card_open_audit">Open Audit</string>
+    <!-- Status chip labels (color-coded on the Tasks cards) -->
+    <string name="task_status_chip_draft">Draft</string>
+    <string name="task_status_chip_ready">Ready</string>
+    <string name="task_status_chip_with_codex">With Codex</string>
+    <string name="task_status_chip_with_claude">With Claude</string>
+    <string name="task_status_chip_in_review">In review</string>
+    <string name="task_status_chip_needs_revision">Needs revision</string>
+    <string name="task_status_chip_complete">Complete</string>
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
@@ -268,6 +371,16 @@
     <string name="memory_title">Memory</string>
     <string name="memory_description">Inspect long-term context, facts, and preferences Jarvis Prime has on file for you.</string>
     <string name="memory_coming_soon">Memory inspection arrives once the local store is wired up. Tasks remain visible on the Tasks tab.</string>
+    <!-- Memory screen (live) -->
+    <string name="memory_search_hint">Search memory</string>
+    <string name="memory_filter_all">All</string>
+    <string name="memory_visible_count">%1$d of %2$d visible</string>
+    <string name="memory_secrets_redacted">Secrets redacted</string>
+    <string name="memory_redacted_badge">Redacted</string>
+    <string name="memory_untitled">(untitled memory)</string>
+    <string name="memory_correct_cd">Correct</string>
+    <string name="memory_delete_cd">Delete</string>
+    <string name="memory_empty_filter">No memory matches the current filter.</string>
 
     <!-- Audit placeholder -->
     <string name="audit_title">Audit</string>
@@ -276,6 +389,11 @@
 
     <!-- Control -->
     <string name="control_service_title">Orchestrator service</string>
+
+    <!-- Device control entry point (Control screen → Device control screen) -->
+    <string name="device_control_title">Device control</string>
+    <string name="device_control_subtitle">Let Jarvis operate this phone — taps, swipes, and app launches — behind explicit consent, with every action logged.</string>
+    <string name="device_control_open">Open device control</string>
 
     <!-- Emergency stop (simpler screen variant from #112; coexists with confirm-flow strings above) -->
     <string name="emergency_stop_title">Emergency stop</string>
@@ -292,6 +410,11 @@
 
     <string name="settings_preferred_builder_label">Preferred builder</string>
     <string name="settings_preferred_reviewer_label">Preferred reviewer</string>
+
+    <string name="settings_section_personalization">Personalization</string>
+    <string name="settings_avatar_title">Jarvis avatar</string>
+    <string name="settings_avatar_subtitle">Choose a built-in avatar or create a private pixel avatar from a photo.</string>
+    <string name="settings_open_avatar_picker">Open avatar picker</string>
 
     <string name="settings_use_api_keys_label">Use API keys</string>
     <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime never requires an API key for the primary workflow.</string>
@@ -313,8 +436,25 @@
     <string name="diagnostics_copy_logs">Copy logs</string>
     <string name="diagnostics_clear_logs">Clear logs</string>
     <string name="diagnostics_no_error">No errors recorded.</string>
-    <string name="diagnostics_no_logs">No logs yet.</string>
+    <string name="diagnostics_no_logs">No logs yet — actions you take in the cockpit show up here.</string>
     <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_logs_copied">Logs copied to clipboard</string>
+    <string name="diagnostics_logs_cleared">Logs cleared</string>
+
+    <!-- Jobs (cockpit orchestration) -->
+    <string name="jobs_title">Orchestration jobs</string>
+    <string name="jobs_branch_label">Branch: %1$s</string>
+    <string name="jobs_validation_label">Validation · %1$d pass / %2$d fail / %3$d pending</string>
+    <string name="jobs_cancel_action">Cancel job</string>
+    <string name="jobs_cancel_title">Cancel this job?</string>
+    <string name="jobs_cancel_body">This asks the gateway to cancel “%1$s”. In-flight work stops at the next safe point.</string>
+    <string name="jobs_cancel_confirm">Cancel job</string>
+    <string name="jobs_cancel_failed">Couldn\'t cancel job: %1$s</string>
+    <string name="jobs_empty_title">No jobs yet</string>
+    <string name="jobs_empty_body">Dispatched orchestration jobs from the gateway will appear here.</string>
+    <string name="jobs_not_paired_title">Not paired with a gateway</string>
+    <string name="jobs_not_paired_body">Pair a Hermes gateway in Settings to see real jobs. No mock jobs are shown.</string>
+    <string name="jobs_error_title">Couldn\'t load jobs</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>
@@ -325,6 +465,7 @@
     <string name="action_dismiss">Dismiss</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
+    <string name="action_clear">Clear</string>
 
     <!-- Jarvis Live command screen -->
     <string name="jarvis_live_entry_title">Open Jarvis Live</string>
@@ -334,40 +475,70 @@
     <string name="jarvis_state_idle">Idle</string>
     <string name="jarvis_state_listening">Listening</string>
     <string name="jarvis_state_thinking">Thinking</string>
+    <string name="jarvis_state_researching">Researching</string>
+    <string name="jarvis_state_coding">Coding</string>
+    <string name="jarvis_state_reviewing">Reviewing</string>
     <string name="jarvis_state_working">Working</string>
     <string name="jarvis_state_speaking">Speaking</string>
     <string name="jarvis_state_approval">Approval needed</string>
     <string name="jarvis_state_blocked">Blocked</string>
+    <string name="jarvis_state_warning">Needs attention</string>
+    <string name="jarvis_state_disconnected">Disconnected</string>
     <string name="jarvis_state_emergency">Emergency stop</string>
 
     <string name="jarvis_voice_idle">Standing by.</string>
     <string name="jarvis_voice_listening">Listening.</string>
     <string name="jarvis_voice_thinking">Thinking through it.</string>
+    <string name="jarvis_voice_researching">Researching the problem.</string>
+    <string name="jarvis_voice_coding">Writing the code.</string>
+    <string name="jarvis_voice_reviewing">Reviewing the work.</string>
     <string name="jarvis_voice_working">Working on the task.</string>
     <string name="jarvis_voice_speaking">Speaking.</string>
     <string name="jarvis_voice_approval">Waiting for your approval.</string>
     <string name="jarvis_voice_blocked">Action needed before I can continue.</string>
+    <string name="jarvis_voice_warning">Something needs your attention.</string>
+    <string name="jarvis_voice_disconnected">I can\'t reach the runtime right now.</string>
     <string name="jarvis_voice_emergency">Emergency stop active.</string>
 
     <string name="jarvis_avatar_cd_idle">Jarvis is idle.</string>
     <string name="jarvis_avatar_cd_listening">Jarvis is listening.</string>
     <string name="jarvis_avatar_cd_thinking">Jarvis is thinking.</string>
+    <string name="jarvis_avatar_cd_researching">Jarvis is researching.</string>
+    <string name="jarvis_avatar_cd_coding">Jarvis is writing code.</string>
+    <string name="jarvis_avatar_cd_reviewing">Jarvis is reviewing the work.</string>
     <string name="jarvis_avatar_cd_working">Jarvis is working.</string>
     <string name="jarvis_avatar_cd_speaking">Jarvis is speaking.</string>
     <string name="jarvis_avatar_cd_approval">Jarvis is waiting for your approval.</string>
     <string name="jarvis_avatar_cd_blocked">Jarvis is blocked and needs your input.</string>
+    <string name="jarvis_avatar_cd_warning">Jarvis needs your attention.</string>
+    <string name="jarvis_avatar_cd_disconnected">Jarvis cannot reach the runtime.</string>
     <string name="jarvis_avatar_cd_emergency">Jarvis emergency stop is active.</string>
 
     <string name="jarvis_cta_approve">Approve</string>
+    <string name="jarvis_cta_open_approvals">Open approvals</string>
     <string name="jarvis_cta_fix">Review block</string>
+    <string name="jarvis_cta_warning">See what needs attention</string>
+    <string name="jarvis_cta_open_job">Open current job</string>
     <string name="jarvis_cta_emergency_stop">Emergency stop</string>
     <string name="jarvis_cta_emergency_release">Release emergency stop</string>
+
+    <string name="jarvis_presence_toggle_on">Turn on Presence Mode</string>
+    <string name="jarvis_presence_toggle_off">Turn off Presence Mode</string>
+    <string name="jarvis_overflow_change_companion">Change companion</string>
+    <string name="jarvis_presence_armed">Hands-free on · say \"Jarvis\" or tap to talk</string>
+    <string name="jarvis_presence_listening">Hands-free · listening</string>
+    <string name="jarvis_presence_thinking">Hands-free · thinking</string>
+    <string name="jarvis_presence_speaking">Hands-free · speaking</string>
+    <string name="jarvis_camera_attention_on">Use camera attention</string>
+    <string name="jarvis_camera_attention_off">Turn off camera attention</string>
+    <string name="jarvis_camera_indicator">Camera on</string>
 
     <string name="jarvis_menu_cd">Open menu</string>
     <string name="jarvis_more_cd">More options</string>
     <string name="jarvis_edit_avatar_cd">Edit avatar</string>
     <string name="jarvis_status_pill_cd">Current Jarvis state: %1$s</string>
     <string name="jarvis_overflow_status_detail">Status detail</string>
+    <string name="jarvis_overflow_cycle_character">Cycle character</string>
     <string name="jarvis_status_sheet_title">Jarvis status</string>
     <string name="jarvis_motion_label">Motion</string>
     <string name="jarvis_particles_label">Particles</string>
@@ -378,6 +549,7 @@
     <!-- Audit screen and audit-detail screen -->
     <string name="audit_empty">No audited actions yet. Jarvis Prime will log every decision here.</string>
     <string name="audit_failed_badge">Failed</string>
+    <string name="audit_activity_action">Activity timeline</string>
     <string name="audit_detail_title">Audit detail</string>
     <string name="audit_detail_missing">That audit record is no longer available.</string>
     <string name="audit_detail_user_request">User request</string>
@@ -425,4 +597,32 @@
     <string name="jarvis_voice_enable_title">Talk to Jarvis hands-free</string>
     <string name="jarvis_voice_enable_body">Say \"Hey Jarvis\" through your headset to run any command by voice. Needs the microphone permission.</string>
     <string name="jarvis_voice_enable_cta">Enable voice</string>
+
+    <!-- Model routing (evidence-backed, per task class) -->
+    <string name="model_route_title">Model routing</string>
+    <string name="model_route_refresh">Refresh routes</string>
+    <string name="model_route_subtitle">Which model runs each task, and why</string>
+    <string name="model_route_chosen">Chosen</string>
+    <string name="model_route_none">No model available</string>
+    <string name="model_route_why">Why</string>
+    <string name="model_route_fallbacks">Fallbacks</string>
+    <string name="model_route_evidence">Evidence</string>
+    <string name="model_route_owner_override">Owner override</string>
+    <string name="model_route_override_hint">Pin a model (leave blank to clear)</string>
+    <string name="model_route_override_save">Pin</string>
+    <string name="model_route_override_clear">Clear</string>
+    <string name="model_route_paid_title">Paid routing</string>
+    <string name="model_route_paid_subtitle">Off by default. Enabling lets Jarvis Prime route to paid APIs — a money-spend gate that needs your authorization.</string>
+    <string name="model_route_paid_confirm_title">Authorize paid routing</string>
+    <string name="model_route_paid_confirm_body">Type the exact phrase to authorize this change.</string>
+    <string name="model_route_paid_confirm_cta">Authorize</string>
+    <string name="model_route_cancel">Cancel</string>
+    <string name="model_route_not_paired">Pair with a gateway to view model routes.</string>
+    <string name="model_route_local_first">Local-first</string>
+    <string name="model_route_open">Model routing</string>
+    <!-- "Tests failed" notification body: %1$s = job title, %2$d = failure count. -->
+    <plurals name="notify_tests_failed_text">
+        <item quantity="one">%1$s: %2$d failing test.</item>
+        <item quantity="other">%1$s: %2$d failing tests.</item>
+    </plurals>
 </resources>

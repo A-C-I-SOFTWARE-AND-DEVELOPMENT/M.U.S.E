@@ -2,18 +2,31 @@ package com.aci.hermes.ui.screens.memory
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.memory.DecisionOutcome
 import com.aci.hermes.data.memory.MemoryAction
 import com.aci.hermes.data.memory.MemoryCategory
+import com.aci.hermes.data.memory.MemoryContradiction
 import com.aci.hermes.data.memory.MemoryItem
+import com.aci.hermes.data.memory.MemoryNode
 import com.aci.hermes.data.memory.MemoryRedactor
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.memory.MemorySync
+import com.aci.hermes.data.memory.MemoryTreeRepository
+import com.aci.hermes.data.memory.TreeSync
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/** Which Memory surface the screen is showing. */
+enum class MemoryTab(val display: String) {
+    STORED("Memory"),
+    INBOX("Inbox"),
+    CONTRADICTIONS("Conflicts"),
+    FRESHNESS("Review"),
+}
 
 data class MemoryUiState(
     val query: String = "",
@@ -25,11 +38,18 @@ data class MemoryUiState(
     val deletingItem: MemoryItem? = null,
     val snackbar: String? = null,
     val sync: MemorySync = MemorySync.Idle,
+    // Memory Tree (MEM-2) surfaces.
+    val tab: MemoryTab = MemoryTab.STORED,
+    val proposed: List<MemoryNode> = emptyList(),
+    val contradictions: List<MemoryContradiction> = emptyList(),
+    val freshness: List<MemoryNode> = emptyList(),
+    val treeSync: TreeSync = TreeSync.Idle,
 )
 
 class MemoryViewModel(
     private val repository: MemoryRepository,
     private val logBuffer: LogBuffer,
+    private val treeRepository: MemoryTreeRepository? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(MemoryUiState())
@@ -51,9 +71,65 @@ class MemoryViewModel(
                 _state.update { it.copy(sync = sync) }
             }
         }
+        treeRepository?.let { tree ->
+            viewModelScope.launch {
+                tree.proposed.collect { nodes -> _state.update { it.copy(proposed = nodes) } }
+            }
+            viewModelScope.launch {
+                tree.contradictions.collect { c -> _state.update { it.copy(contradictions = c) } }
+            }
+            viewModelScope.launch {
+                tree.freshness.collect { f -> _state.update { it.copy(freshness = f) } }
+            }
+            viewModelScope.launch {
+                tree.sync.collect { s -> _state.update { it.copy(treeSync = s) } }
+            }
+        }
         refresh()
         sync()
     }
+
+    fun selectTab(tab: MemoryTab) {
+        _state.update { it.copy(tab = tab) }
+        when (tab) {
+            MemoryTab.STORED -> sync()
+            MemoryTab.INBOX -> viewModelScope.launch { treeRepository?.refreshProposed() }
+            MemoryTab.CONTRADICTIONS -> viewModelScope.launch { treeRepository?.refreshContradictions() }
+            MemoryTab.FRESHNESS -> viewModelScope.launch { treeRepository?.refreshFreshness() }
+        }
+    }
+
+    fun approveProposed(id: String) = decide { it.approve(id) }
+
+    fun rejectProposed(id: String, reason: String? = null) = decide { it.reject(id, reason) }
+
+    fun supersedeProposed(id: String, supersedesId: String, note: String? = null) =
+        decide { it.supersede(id, supersedesId, note) }
+
+    fun resolveContradiction(id: String, winnerId: String, note: String? = null) {
+        val tree = treeRepository ?: return
+        viewModelScope.launch {
+            val outcome = tree.resolveContradiction(id, winnerId, note)
+            _state.update { it.copy(snackbar = describeOutcome(outcome, "Contradiction resolved")) }
+        }
+    }
+
+    private fun decide(block: suspend (MemoryTreeRepository) -> DecisionOutcome) {
+        val tree = treeRepository ?: return
+        viewModelScope.launch {
+            val outcome = block(tree)
+            _state.update { it.copy(snackbar = describeOutcome(outcome, "Memory updated")) }
+        }
+    }
+
+    private fun describeOutcome(outcome: DecisionOutcome, okMessage: String): String =
+        when (outcome) {
+            is DecisionOutcome.Ok -> okMessage
+            is DecisionOutcome.Unpaired -> "Pair a gateway to manage memory"
+            is DecisionOutcome.Conflict ->
+                "Approved, but it conflicts with an existing fact — resolve in Conflicts"
+            is DecisionOutcome.Error -> outcome.message
+        }
 
     /** Pull the live memory list from the gateway (no-op when unpaired). */
     fun sync() {

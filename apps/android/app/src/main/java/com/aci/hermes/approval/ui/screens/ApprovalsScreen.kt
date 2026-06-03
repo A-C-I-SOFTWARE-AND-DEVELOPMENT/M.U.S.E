@@ -34,12 +34,16 @@ import com.aci.hermes.approval.ui.components.ApprovalHistoryCard
 import com.aci.hermes.approval.ui.components.CriticalActionCard
 import com.aci.hermes.approval.ui.components.RiskyApprovalCard
 import com.aci.hermes.approval.ui.components.SeriousActionCard
+import com.aci.hermes.learning.state.LearningViewModel
+import com.aci.hermes.learning.ui.LearningQueueSection
 
 /**
  * Top-level Approvals screen, reachable from the cockpit overflow menu.
  *
- * Two tabs: Pending (cards awaiting decisions) and History (decided items).
- * Dispatches each pending card to the right card composable based on its tier.
+ * Tabs: Pending (cards awaiting decisions), History (decided items), and —
+ * when a gateway is wired — Learning (learning-dataset candidates awaiting
+ * owner approval). Dispatches each pending card to the right card composable
+ * based on its tier.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,11 +51,16 @@ fun ApprovalsScreen(
     viewModel: ApprovalViewModel,
     onBack: () -> Unit,
     nowMillis: Long = System.currentTimeMillis(),
+    learningViewModel: LearningViewModel? = null,
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
     var tab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Pending", "History")
+    val tabs = if (learningViewModel != null) {
+        listOf("Pending", "History", "Learning")
+    } else {
+        listOf("Pending", "History")
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,7 +86,8 @@ fun ApprovalsScreen(
             }
             when (tab) {
                 0 -> PendingTab(viewModel, state.cards, nowMillis)
-                else -> HistoryTab(state.history)
+                1 -> HistoryTab(state.history)
+                else -> learningViewModel?.let { LearningQueueSection(it) }
             }
         }
     }

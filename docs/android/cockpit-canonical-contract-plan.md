@@ -49,6 +49,11 @@ the mock production seed.
 | Sessions | (none) | `decision_ledger` dirs | ✅ live (`/v1/cockpit/sessions`) | n/a — no UI consumer yet |
 | Diagnostics | diagnostics screen | `launch_doctor` | ✅ live (#185) | ⏳ |
 | Social patterns | `SocialPattern` | Memory (category) | ✅ **covered** — a Memory category (SOCIAL_SPEECH_PATTERN), rides the Memory cutover | ✅ via Memory |
+| **Capabilities (server)** | `ServerCapabilities` | live import probe + `worker_registry` | ✅ **added** — `GET /v1/cockpit/capabilities` (feature negotiation) | ✅ client method |
+| **Job pause/resume** | `CockpitJob` | `JobQueue.pause_job/resume_job` | ✅ **added** — `POST /v1/cockpit/jobs/{id}/pause`·`/resume` | ✅ client method |
+| **Emergency stop** | `EmergencyStopResult` | `runtime.stop` + `JobQueue` + `worker_locks` | ✅ **added** — `POST /v1/cockpit/emergency-stop` (real backend halt) | ✅ client method |
+| **Coding lanes** | `CodingAudit/Plan/Execute` | `natural_language_coder` + orchestrator | ✅ **added** — `POST /v1/cockpit/coding/audit`·`plan`·`execute` | ✅ client method |
+| **Evidence** | `EvidenceArtifact`/`EvidenceVerdict` | `research_vault` + `epistemics` | ✅ **added** — `GET /v1/cockpit/evidence/search`, `POST /v1/cockpit/evidence/verify` | ✅ client method |
 
 Legend: ✅ done · ⏳ pending. "shape differs" = the subsystem stores a
 different domain concept than the UI (e.g. ledger entries vs leveled log
@@ -110,3 +115,64 @@ lines); reconciliation means enriching/adapting the server, not faking.
   `navigation_decision` entries. Honest empty when no `/orchestrate` job has
   navigated. This closes the "navigation decision isn't visible in the
   cockpit" follow-up from the navigation-wiring PR.
+
+## Canonical namespace + spec bare-path mapping
+
+`/v1/cockpit/…` (and `/v1/jarvis/chat` for chat) is the **canonical** mobile
+cockpit API. Architecture prompts that list bare paths (`/status`, `/jobs`,
+`/coding/audit`, …) are shorthand — they map onto existing canonical routes;
+**no bare-path aliases are added** (no duplicate routes).
+
+| Spec (bare, shorthand) | Canonical route | Notes |
+|---|---|---|
+| `GET /status` | `GET /v1/cockpit/runtime/status` | live queue/host snapshot |
+| `GET /capabilities` | `GET /v1/cockpit/capabilities` | **new** — server feature negotiation |
+| `GET /models/routes` | `GET /v1/cockpit/models` | policy already carries `routes` |
+| `POST /chat/stream` | `POST /v1/jarvis/chat` | JSONL stream, real agent |
+| `GET /jobs`, `GET /jobs/{id}` | `GET /v1/cockpit/jobs`, `…/jobs/{id}` | canonical `CockpitJob` |
+| `POST /jobs/{id}/cancel` | `POST /v1/cockpit/jobs/{id}/cancel` | 409 if terminal |
+| `POST /jobs/{id}/pause` | `POST /v1/cockpit/jobs/{id}/pause` | **new** |
+| `POST /jobs/{id}/resume` | `POST /v1/cockpit/jobs/{id}/resume` | **new** |
+| `GET /approvals` | `GET /v1/cockpit/approvals` | canonical `ApprovalCard` |
+| `POST /approvals/{id}/approve\|deny` | `POST /v1/cockpit/approvals/{id}` | one `decision=approve\|reject` route; owner phrase enforced |
+| `GET /memory/search` | `GET /v1/cockpit/memory?q=` | query param on the memory list |
+| `GET /evidence/search` | `GET /v1/cockpit/evidence/search` | **new** — Research Vault |
+| `POST /evidence/verify` | `POST /v1/cockpit/evidence/verify` | **new** — non-mutating claim audit |
+| `GET /ledger` | `GET /v1/cockpit/audit` (+ `/events`) | decision ledger |
+| `GET /diagnostics` | `GET /v1/cockpit/diagnostics` | launch doctor |
+| `POST /emergency-stop` | `POST /v1/cockpit/emergency-stop` | **new** — real backend halt |
+| `POST /coding/audit\|plan\|execute` | `POST /v1/cockpit/coding/audit\|plan\|execute` | **new** |
+
+### New endpoint semantics (added this PR)
+
+- **`GET /v1/cockpit/capabilities`** — what *this backend* can do (importable
+  subsystems, detected worker lanes, whether execute lanes are permitted under
+  the loopback guard, API version). Distinct from the Android *curated*
+  `Capability` picker (an in-app catalog by design). Redacted: never emits the
+  owner phrase value, tokens, or API keys.
+- **`POST /v1/cockpit/jobs/{id}/pause` · `/resume`** — thin wrappers over
+  `JobQueue.pause_job`/`resume_job` (human-requested scheduling control).
+- **`POST /v1/cockpit/emergency-stop`** — a *real* backend halt: clears pending
+  owner gates, disables the proactive tick, releases all worker branch leases,
+  and **pauses every non-terminal queued/running job** (reversible via resume).
+  Returns counts. Does **not** SIGKILL a worker subprocess already mid-command;
+  it halts scheduling/advancement and revokes leases.
+- **`POST /v1/cockpit/coding/audit`** — classify intent + route (risk class,
+  owner-gate requirement, worker/model lane). Read-only.
+- **`POST /v1/cockpit/coding/plan`** — build + validate a bounded work packet +
+  rendered markdown. Stage only; never dispatches. `422` on invalid packet.
+- **`POST /v1/cockpit/coding/execute`** — dispatches **only** through the
+  existing gated orchestrator path (no second engine). Reuses the same double
+  gate as `jobs/{id}/run` (owner phrase + loopback). Gate not satisfied → `200`
+  staged `approval_required` (job created, pending approval); satisfied →
+  approves the `execute` phase and dispatches, returning the job + worker trail.
+- **`GET /v1/cockpit/evidence/search`** — Research Vault search (read-only).
+- **`POST /v1/cockpit/evidence/verify`** — **non-mutating** claim audit: vault
+  cross-check + epistemic citation audit → `verdict`
+  (`supported|partially_supported|contradicted|insufficient_evidence|stale`),
+  confidence, supporting/contradicting sources, missing evidence, freshness.
+  Never writes the vault. A future mutating, owner-gated, ledgered
+  `POST /v1/cockpit/evidence/{id}/owner-verify` is intentionally **deferred**.
+
+Deferred follow-ups: Android Compose screens for the coding/evidence/capability
+surfaces; the SSE job/event streams; `evidence/{id}/owner-verify`.

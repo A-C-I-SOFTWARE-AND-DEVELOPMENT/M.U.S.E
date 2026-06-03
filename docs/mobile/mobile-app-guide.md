@@ -133,6 +133,14 @@ In the cockpit:
 If you see the streaming response, the loop works. If not, see
 [Disconnect recovery](#disconnect-recovery) below.
 
+The Chat tab shows more than the final words: a **phase rail** (receiving →
+thinking → routing → tool → verification → final), compact **tool
+activity** you can expand (secrets redacted), tappable **evidence/ledger**
+chips, and inline **owner approvals**. Replies can be **continued**,
+**copied**, or promoted into a **job**. See
+[JARVIS Prime mobile chat](jarvis-chat-streaming.md) for the wire contract
+and behaviour.
+
 ### 5. (Optional) Build the APK yourself
 
 ```bash
@@ -149,8 +157,40 @@ Release builds and Google Play info are in
 
 ## What you'll see on screen
 
-The cockpit has four primary screens (full wireframes in
+The cockpit's primary screens are described below (full wireframes in
 [`../android/hermes-apk-ui-wireframes.md`](../android/hermes-apk-ui-wireframes.md)).
+
+### Home — the command center
+The Home tab is the glanceable state of JARVIS plus the launchpad to every
+backend function. When the gateway is paired it shows **live** data pulled
+from the cockpit API on open and on pull-to-refresh:
+
+- JARVIS presence (idle / listening / thinking / working / waiting-for-
+  approval / serious / critical / service-stopped / emergency-stop / mock),
+- gateway connection pill and current **model/router** policy
+  (`GET /v1/cockpit/models`),
+- **active jobs** (`/jobs`), **pending approvals** (`/approvals`, risk-
+  coloured), **running workers** (`/runtime/workers` + queue),
+- **recent memory updates** (`/memory`), **recent evidence/research**
+  (`/research`), and the **last audit/ledger events** (`/events`),
+- on-device **voice/listening** state and **device capability** (RAM/API),
+- an always-present **Emergency Stop**.
+
+Quick actions launch the powerful paths: **Ask JARVIS**, **Audit repo**,
+**Continue coding**, **Run tests**, **Review patch**, **Approvals**,
+**Memory**, **Start voice**, and **Stop all work**. Actions that imply
+external or irreversible work open the owner-gated authoring/approval
+screens — Home never auto-dispatches them.
+
+Every card deep-links into its detail screen. When the gateway is **not
+paired or unreachable**, Home shows a useful banner (pair / retry) and falls
+back to local task-derived state instead of a blank screen — no fabricated
+data is ever shown.
+
+**Stop all work** engages the audited emergency-stop controller (state
+machine + decision ledger), cancels every non-terminal cockpit job, and
+stops the foreground service. Deactivating it writes a resume event to the
+same ledger.
 
 ### Dashboard
 Live list of jobs and active phases. Each row shows:
@@ -171,11 +211,94 @@ shows what's being asked, the previewed change (diff, message, file
 write), and three buttons: **Approve**, **Deny**, **Defer**. Buttons
 write directly to the kanban; the backend resumes the job.
 
+### Activity timeline
+The answer to *"what did JARVIS do?"* — reached from the **Activity**
+action on the Audit screen. It streams the orchestrator's event ledger
+(every job's `ledger.jsonl`) as one redacted, filterable timeline: worker
+runs, commands, file edits, approvals, validations, deploy/publish
+attempts, navigation, and more. Filter by **job, risk, worker, date, or
+file**. Tap a row → what happened, why, the redacted inputs/outputs, any
+linked evidence and diff, and the rollback plan.
+
+The timeline is **read-only** and **never shows a secret** — credentials a
+worker may have echoed are scrubbed server-side and again on the device. A
+**Request rollback** button queues an *owner-gated* approval; nothing is
+rolled back until you approve it with your owner phrase in **Approvals**.
+
 ### Voice
 Hold-to-talk capture. The app streams audio chunks to the gateway,
 which transcribes (server-side Whisper or your configured STT) and
 submits the resulting prompt. See
 [voice/voice-first-user-guide.md](../voice/voice-first-user-guide.md).
+
+### Research
+A full-screen surface (reached from the Home quick links) onto the
+backend **Evidence Engine**. Ask a factual question; JARVIS gathers
+sources, ranks them by trust, extracts evidence cards, and answers with
+citations and a calibrated uncertainty — or honestly says it doesn't
+know when no source-backed evidence is available. Each finding can be
+**saved to memory** (through the same gate as the Memory screen, so
+secrets / low-confidence items are rejected) or turned into a **coding
+task** (a queued job — nothing runs without the usual approval). See
+[jarvis_research/JARVIS_RESEARCH_MODE.md](../jarvis_research/JARVIS_RESEARCH_MODE.md).
+
+---
+
+## Device control — letting Jarvis operate the phone
+
+The Android cockpit can physically operate the phone for you — run to an
+app, push it open, scroll, turn the home-screen page, go back/home — driven
+by voice ("open Facebook", "scroll down", "go home"). This is the
+**mobile-native device-control** path, and it is built to keep you aware
+and in control at every step.
+
+Reach it from **Control → Device control**. The screen has five parts:
+
+1. **Master switch.** Until you turn *Device control* on, nothing runs —
+   every spoken command is logged and refused. It defaults **off** on a
+   fresh install.
+2. **Capabilities.** Six rows, each with a plain-English reason and a live
+   "granted by system / not granted" chip: **accessibility** (the hands),
+   **display over other apps** (the floating avatar), **microphone**
+   (hands-free voice), **notifications**, **installed-app visibility**, and
+   **local backend connection**. You consent to each one explicitly and can
+   revoke consent instantly — the action layer honors the change
+   immediately, even if the OS permission is still granted.
+3. **Confirm sensitive actions.** On by default: launching an app or
+   tapping a target waits for your OK rather than running from voice. A held
+   command appears at the top of the screen as a **Confirm action** card with
+   **Approve** / **Dismiss** — Approve runs it (re-checked against the
+   emergency stop, master switch, and permissions, so a stale approval can't
+   bypass them); Dismiss logs it and drops it. You can turn confirmation off
+   for hands-free high-power mode — that toggle is owner-gated (a confirmation
+   dialog), and every action is still logged. An action whose target can't be
+   resolved (a misheard or uninstalled app) is refused outright, never run as
+   a blind tap.
+4. **Active indicator + emergency stop.** A live status dot shows whether
+   device control is active right now. One **Emergency stop** drops every
+   in-flight gesture, stops the floating avatar and the voice loop, and
+   refuses new actions until you release it. The global emergency stop in
+   the top bar does the same thing in addition to halting the orchestrator.
+5. **Recent device actions.** An append-only, on-device log of *every*
+   action Jarvis took or was refused — newest first — so "what did Jarvis
+   do on my phone?" is always answerable.
+
+**How a command flows.** Every device action passes through one broker
+chokepoint (`data/devicecontrol/DeviceActionBroker`): emergency stop →
+master switch → required capability granted *and* consented → sensitive
+confirmation → approve. Nothing executes that the broker did not approve,
+and the broker writes a ledger entry for the decision either way. No screen
+contents, transcripts, or secrets are ever logged — only the action's
+label, its sensitivity, the outcome, and a reason.
+
+No new sensitive permissions were added for this — accessibility, overlay,
+microphone, notifications, and package visibility are the same ones the
+personal-tool fork already declares.
+For the **hands-free** cockpit — the avatar living over the launcher,
+the attention → wake-word → mic trigger fallback chain, presence
+gestures (tap = talk, double-tap/pill = status, long-press = emergency
+stop), and approval-by-voice — see
+[voice/presence-mode.md](../voice/presence-mode.md).
 
 ---
 
@@ -202,6 +325,64 @@ Three rules to remember:
 - **Defer is not approve.** If you defer with a reason, the phase
   re-asks later. If you ignore the push notification, the phase sits
   in `escalated` indefinitely.
+
+---
+
+## How notifications work
+
+JARVIS notifies you about long-running work with **local Android
+notifications** — no Firebase, no Google Play Services, no cloud push.
+This keeps the cockpit fully local-first and Termux-friendly: the only
+thing that has to be reachable is your own gateway.
+
+A lightweight **work watcher** polls the cockpit's existing REST
+endpoints (`/v1/cockpit/jobs`, `/approvals`, `/runtime/workers`),
+diffs each result against the last, and raises a notification on a
+*transition* — so a steady state never spams the shade.
+
+Polling is **not** always on:
+
+- While the app is open, a foreground poller runs (cheap, stops when
+  you leave).
+- When there is **active work** (a running job or a pending approval),
+  it escalates to a foreground service so notifications keep arriving
+  after you background the app. That service **self-stops** once no
+  active work remains.
+- Cadence is the **Notification poll interval** setting (default 20s),
+  and the watcher backs off on errors.
+
+The nine notifications, the channel they use, and where a tap lands:
+
+| Notification | Channel | Tap opens |
+|---|---|---|
+| Job started | Job updates | Tasks |
+| Job completed | Job updates | Tasks |
+| Research complete | Job updates | Tasks |
+| Job blocked (waiting approval) | Approvals needed | Approvals |
+| Approval required | Approvals needed | Approvals |
+| Job failed | Alerts | Diagnostics |
+| Tests failed | Alerts | Tasks |
+| Worker needs attention | Alerts | Diagnostics |
+| Emergency stop engaged | Alerts | Diagnostics |
+| Voice/listening active (persistent) | Jarvis voice | Voice |
+
+Approval notifications open the owner-gated **Approvals** queue — they
+**never** approve anything on their own. The decision still requires
+the on-device confirmation and the canonical owner phrase. Notification
+text is kept short and structural (a job title or worker name) and is
+run through the secret redactor, so prompts, diffs, tokens, and model
+reasoning never reach the lockscreen.
+
+Turn notifications off anytime with **Notifications** in Settings.
+
+> **Roadmap.** Today's delivery is poll-based on purpose. Two future
+> targets are tracked but **not** implemented:
+> `MOBILE-NOTIFY-002` (an SSE event stream for lower-latency local
+> updates) and `MOBILE-NOTIFY-003` (an opt-in, explicitly
+> non-local-first FCM bridge for true remote/background push).
+> `MOBILE-NOTIFY-004` would add a dedicated cockpit-job detail screen
+> so job notifications can deep-link to a single job instead of the
+> Tasks list.
 
 ---
 
@@ -316,9 +497,13 @@ state.
 `escalated` until someone responds — the orchestrator does not
 time out the human. (You can configure a deadline if you want.)
 
-**Push notifications retry.** The gateway uses HTTP/2 server push
-or FCM (depending on your build) with retries. If the phone is off,
-the notification is delivered when it comes back online.
+**Notifications are local + poll-based.** The app raises Android
+notifications from a local work watcher that polls your gateway (see
+"How notifications work"). There is no FCM or server push in this
+build, so delivery needs the gateway reachable on the configured poll
+interval; if the phone is asleep, you'll see the update on the next
+poll after it wakes. Lower-latency (SSE) and true background push
+(FCM) are roadmap items, not current behavior.
 
 If the cockpit shows stale state after a long disconnect:
 
@@ -408,6 +593,8 @@ and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
 
 - [voice/voice-first-user-guide.md](../voice/voice-first-user-guide.md)
   — voice capture, driving mode, TTS.
+- [voice/presence-mode.md](../voice/presence-mode.md) — hands-free
+  Presence Mode, the trigger fallback chain, gestures, approval-by-voice.
 - [remote/windows-claude-code-bridge-guide.md](../remote/windows-claude-code-bridge-guide.md)
   — using Hermes on the phone to drive a Windows Claude Code session.
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)

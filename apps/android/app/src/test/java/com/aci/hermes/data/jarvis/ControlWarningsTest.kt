@@ -77,6 +77,17 @@ class ControlWarningsTest {
     }
 
     @Test
+    fun `escalating to high-autonomy coding is a serious warning`() {
+        val level = ControlWarnings.levelFor(
+            ControlWarnings.Action.AutonomyChange(
+                from = AutonomyMode.ASSISTED,
+                to = AutonomyMode.OWNER_HIGH_AUTONOMY_CODING,
+            )
+        )
+        assertEquals(WarningLevel.SERIOUS, level)
+    }
+
+    @Test
     fun `emergency stop is a serious warning`() {
         val level = ControlWarnings.levelFor(ControlWarnings.Action.EmergencyStop)
         assertEquals(WarningLevel.SERIOUS, level)

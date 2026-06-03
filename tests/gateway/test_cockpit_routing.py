@@ -49,6 +49,7 @@ def test_hint_plain_chat_stays_local_kind() -> None:
         "escalate": False,
         "target": "direct_answer",
         "mode": "companion",
+        "task_class": "mobile_chat",
     }
 
 

@@ -180,6 +180,64 @@ data class JobLaneList(val lanes: List<JobLane> = emptyList())
 /** POST body for `/v1/cockpit/orchestrate` — create a runnable orchestrator job. */
 @Serializable
 data class OrchestrateRequest(val prompt: String)
+// ─── Job detail / ledger (contract §4 — GET /jobs/{id}/ledger) ─────────
+
+/**
+ * Read-only execution story for the Job Detail screen — the canonical
+ * mirror of `gateway/cockpit/contract.py::orchestrator_job_detail` /
+ * `queue_job_detail`. Reuses the audit-section wire models
+ * ([CockpitEvidenceItem], [CockpitApprovalHistoryItem], [CockpitRollbackPlan])
+ * so there is one shape per concept. Honest absences arrive as empty/null.
+ */
+@Serializable
+data class JobDetail(
+    val id: String,
+    val objective: String = "",
+    val status: String = "QUEUED",
+    val plan: String = "",
+    @SerialName("current_step") val currentStep: String? = null,
+    val workers: List<JobWorkerRef> = emptyList(),
+    val timeline: List<JobTimelineEntry> = emptyList(),
+    val evidence: List<CockpitEvidenceItem> = emptyList(),
+    @SerialName("files_touched") val filesTouched: List<String> = emptyList(),
+    @SerialName("commands_run") val commandsRun: List<String> = emptyList(),
+    @SerialName("test_results") val testResults: ValidationSummary? = null,
+    val approvals: List<CockpitApprovalHistoryItem> = emptyList(),
+    val rollback: CockpitRollbackPlan? = null,
+) {
+    /** Resolved [JobStatus], or null if the gateway sent an unknown value. */
+    val jobStatus: JobStatus? get() = JobStatus.fromWire(status)
+}
+
+@Serializable
+data class JobWorkerRef(
+    val id: String = "",
+    val worker: String = "",
+    val status: String = "PENDING",
+    val summary: String = "",
+    val error: String? = null,
+    val attempts: Int = 0,
+)
+
+@Serializable
+data class JobTimelineEntry(
+    val ts: String = "",
+    val kind: String = "",
+    val phase: String? = null,
+    val actor: String = "controller",
+    val summary: String = "",
+)
+
+/** POST body for `/jobs/{id}/approve` — owner phrase gates the grant. */
+@Serializable
+data class ApprovePhaseRequest(
+    val phase: String = "execute",
+    val authorization: String? = null,
+)
+
+/** POST body for `/jobs/{id}/rerun` — optional explicit worker to retry. */
+@Serializable
+data class RerunJobRequest(@SerialName("worker_id") val workerId: String? = null)
 
 // ─── Files ────────────────────────────────────────────────────────────
 
@@ -315,6 +373,68 @@ data class CockpitEvent(
     val attributes: Map<String, String>? = null,
 )
 
+// ─── Models / router policy ───────────────────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/models` — the free-first router policy
+ * surfaced by `gateway/cockpit/handlers.py::models` (which returns the raw
+ * `model_bootstrap.load_policy()` dict). The server shape is intentionally
+ * loose, so every field here is defaulted/nullable and unknown keys are
+ * ignored by the tolerant [CockpitHttp.json] config — an evolving policy
+ * shape never crashes the home screen. The home repository maps this to a
+ * small display summary.
+ */
+@Serializable
+data class ModelPolicy(
+    val routes: Map<String, ModelRoute> = emptyMap(),
+    @SerialName("free_first") val freeFirst: Boolean? = null,
+    @SerialName("paid_opt_in") val paidOptIn: Boolean? = null,
+    @SerialName("default_route") val defaultRoute: String? = null,
+    @SerialName("_note") val note: String? = null,
+    val error: String? = null,
+)
+
+/**
+ * One route entry. The server emits per-route objects whose exact keys vary
+ * by provider; only the commonly-present descriptive fields are modelled and
+ * everything else is ignored. Kept nullable so a sparse entry still decodes.
+ */
+@Serializable
+data class ModelRoute(
+    val provider: String? = null,
+    val model: String? = null,
+    val tier: String? = null,
+    val enabled: Boolean? = null,
+)
+
+// ─── Research Vault (evidence store) ──────────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/research` — one item from the JARVIS
+ * Research Vault (`hermes_cli/jarvis_prime/research_vault.py`). One-to-one
+ * with `ResearchArtifact.to_dict()`. Recent-first; the gateway returns an
+ * honest empty list (never fabricated evidence) when the vault is missing.
+ */
+@Serializable
+data class CockpitResearchItem(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "manual",
+    @SerialName("evidence_strength") val evidenceStrength: String = "moderate",
+    val summary: String = "",
+    val excerpt: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class CockpitResearchList(
+    val items: List<CockpitResearchItem> = emptyList(),
+    val error: String? = null,
+)
+
 // ─── Destructive approvals ────────────────────────────────────────────
 
 @Serializable
@@ -394,6 +514,179 @@ data class CreateMemoryResponse(
 
 @Serializable
 data class DeleteMemoryResponse(val removed: Int = 0)
+
+// ─── Evidence Engine (contract §10d) ──────────────────────────────────
+
+/**
+ * Wire model for a cockpit evidence artifact (contract §10d). One-to-one
+ * with the server's `evidence_card` projection of a Research Vault
+ * `ResearchArtifact`. Distinct from [CockpitEvidenceItem] (which is an
+ * audit-proof sub-record). Enum-like fields are raw Strings so an unknown
+ * future value never crashes deserialisation; timestamps are ISO-8601 UTC.
+ */
+@Serializable
+data class CockpitEvidenceCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val trust: String = "unverified",
+    val excerpt: String = "",
+    val summary: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("license_notes") val licenseNotes: String = "",
+    @SerialName("retrieved_at") val retrievedAt: String? = null,
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    val checksum: String = "",
+    @SerialName("citation_anchors") val citationAnchors: List<String> = emptyList(),
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class CockpitEvidenceList(
+    val items: List<CockpitEvidenceCard> = emptyList(),
+    val hits: List<CockpitEvidenceHit> = emptyList(),
+)
+
+@Serializable
+data class CockpitEvidenceDetail(val item: CockpitEvidenceCard? = null)
+
+/** One ranked retrieval hit from `GET /evidence?q=` or the verify endpoint. */
+@Serializable
+data class CockpitEvidenceHit(
+    val kind: String = "",
+    val title: String = "",
+    val uri: String = "",
+    val excerpt: String = "",
+    val trust: String = "unverified",
+    val score: Float = 0f,
+    @SerialName("artifact_id") val artifactId: String? = null,
+    @SerialName("citation_anchors") val citationAnchors: List<String> = emptyList(),
+)
+
+@Serializable
+data class EvidenceVerifyRequest(
+    val claims: List<String>,
+    val query: String? = null,
+)
+
+@Serializable
+data class CockpitEvidenceVerifyResult(
+    val citations: List<CockpitClaimCitation> = emptyList(),
+    val uncertain: List<String> = emptyList(),
+    val contradictions: List<CockpitEvidenceContradiction> = emptyList(),
+    val rejected: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitClaimCitation(
+    val claim: String = "",
+    val supported: Boolean = false,
+    val hits: List<CockpitEvidenceHit> = emptyList(),
+)
+
+@Serializable
+data class CockpitEvidenceContradiction(
+    val subject: String = "",
+    val a: String = "",
+    val b: String = "",
+    val reason: String = "",
+)
+
+/** POST body for `evidence/{id}/promote` — owner phrase gates durable writes. */
+@Serializable
+data class PromoteEvidenceRequest(val authorization: String? = null)
+
+@Serializable
+data class PromoteEvidenceResponse(
+    val promoted: Boolean = false,
+    @SerialName("node_id") val nodeId: String? = null,
+    val reasons: List<String> = emptyList(),
+    val hint: String? = null,
+)
+
+// ─── Memory Tree (MEM-2): provenance-first cognition plane ──────────────
+//
+// Distinct from CockpitMemoryItem: a tree node carries layer / approval /
+// contradiction / freshness so the cockpit can run the proposed-inbox,
+// contradiction, and freshness-review flows the flat store can't express.
+
+@Serializable
+data class CockpitMemoryNode(
+    val id: String,
+    val namespace: String,
+    val layer: String,
+    val title: String,
+    val summary: String = "",
+    val content: String = "",
+    val sources: List<String> = emptyList(),
+    val confidence: Float = 0f,
+    val trust: String = "unverified",
+    val sensitivity: String = "internal",
+    @SerialName("approval_state") val approvalState: String = "proposed",
+    @SerialName("contradiction_status") val contradictionStatus: String = "none",
+    val contested: Boolean = false,
+    val subject: String? = null,
+    @SerialName("superseded_by") val supersededBy: String? = null,
+    val supersedes: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    val tags: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitMemoryNodeList(val nodes: List<CockpitMemoryNode> = emptyList())
+
+@Serializable
+data class CockpitContradiction(
+    val id: String,
+    val namespace: String = "",
+    val subject: String = "",
+    @SerialName("node_a_id") val nodeAId: String,
+    @SerialName("node_b_id") val nodeBId: String,
+    val reason: String = "",
+    val status: String = "contested",
+    @SerialName("winner_id") val winnerId: String? = null,
+    @SerialName("resolution_note") val resolutionNote: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("resolved_at") val resolvedAt: String? = null,
+)
+
+@Serializable
+data class CockpitContradictionList(
+    val contradictions: List<CockpitContradiction> = emptyList(),
+)
+
+/** POST body for an owner decision on a proposed node. */
+@Serializable
+data class MemoryDecisionRequest(
+    val decision: String, // approve | reject | supersede
+    @SerialName("supersedes_id") val supersedesId: String? = null,
+    val note: String? = null,
+)
+
+@Serializable
+data class MemoryDecisionResponse(
+    val decided: String = "",
+    val node: CockpitMemoryNode? = null,
+    val winner: CockpitMemoryNode? = null,
+    val superseded: CockpitMemoryNode? = null,
+    val contradiction: CockpitContradiction? = null,
+)
+
+/** POST body for resolving a contradiction. */
+@Serializable
+data class ResolveContradictionRequest(
+    @SerialName("winner_id") val winnerId: String,
+    val note: String? = null,
+)
+
+@Serializable
+data class ResolveContradictionResponse(
+    val resolved: CockpitContradiction? = null,
+)
 
 // ─── Audit ────────────────────────────────────────────────────────────
 
@@ -530,6 +823,92 @@ data class CockpitApprovalDecisionResult(
     val hint: String? = null,
 )
 
+// ─── Learning Queue (learning-dataset candidate review) ───────────────
+//
+// Provenance-first cards for the owner Learning Queue. The gateway projects
+// learning-dataset candidates (already secret-scrubbed at write time); the
+// list never carries the raw trace payload.
+
+@Serializable
+data class CockpitLearningList(val learning: List<CockpitLearningCard> = emptyList())
+
+@Serializable
+data class CockpitLearningCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("trace_type") val traceType: String = "",
+    val status: String = "pending",
+    val labels: List<String> = emptyList(),
+    @SerialName("is_negative") val isNegative: Boolean = false,
+    val quality: CockpitLearningQuality = CockpitLearningQuality(),
+    val provenance: CockpitLearningProvenance = CockpitLearningProvenance(),
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class CockpitLearningQuality(
+    @SerialName("tests_passed") val testsPassed: Boolean = false,
+    @SerialName("citations_verified") val citationsVerified: Boolean = false,
+    @SerialName("owner_approved") val ownerApproved: Boolean = false,
+    @SerialName("reviewer_passed") val reviewerPassed: Boolean = false,
+    @SerialName("rollback_available") val rollbackAvailable: Boolean = false,
+)
+
+@Serializable
+data class CockpitLearningProvenance(
+    @SerialName("source_kind") val sourceKind: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    val citations: List<String> = emptyList(),
+)
+
+// ─── Voice intake (mobile-native, hands-free) ─────────────────────────
+//
+// Mirrors the canonical pipeline exposed by gateway/cockpit (which wraps
+// hermes_cli.voice_intake). The app sends an already-transcribed string and
+// the backend owns read-back / classification / the driving-mode safety
+// veto — the client never reimplements them.
+
+/** POST body for `voice/intake`. */
+@Serializable
+data class VoiceIntakeRequest(
+    val transcript: String,
+    val mode: String? = null,
+)
+
+@Serializable
+data class VoiceDraftView(
+    val intent: String = "unknown",
+    val summary: String = "",
+    @SerialName("publish_action") val publishAction: Boolean = false,
+    @SerialName("requires_implementation") val requiresImplementation: Boolean = false,
+)
+
+/** Response from `voice/intake` — the read-back the user must hear/confirm. */
+@Serializable
+data class VoiceIntakeResult(
+    val id: String = "",
+    val mode: String = "push_to_talk",
+    val readback: String = "",
+    @SerialName("approval_state") val approvalState: String = "pending_readback",
+    val draft: VoiceDraftView = VoiceDraftView(),
+)
+
+/** POST body for `voice/{id}/decide` — the explicit spoken/typed phrase. */
+@Serializable
+data class VoiceDecisionRequest(
+    val phrase: String? = null,
+)
+
+/** Response from `voice/{id}/decide`. A `409` Failure carries the driving
+ *  veto / confirmation-required hint (parsed from the error envelope). */
+@Serializable
+data class VoiceDecisionResult(
+    val id: String = "",
+    val state: String = "pending_readback",
+    @SerialName("job_id") val jobId: String? = null,
+    val notes: List<String> = emptyList(),
+)
+
 // ─── Error envelope ───────────────────────────────────────────────────
 
 @Serializable
@@ -625,3 +1004,478 @@ data class CockpitRoomList(
 
 @Serializable
 data class GenerateRoomRequest(val prompt: String)
+
+// ─── Server capabilities (feature negotiation) ────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/capabilities` — what *this backend* can do
+ * (distinct from the curated in-app [com.aci.hermes.data.model.Capability]
+ * picker). Lets the app negotiate against the live server: which subsystems
+ * import, which worker lanes are present, and whether execute lanes are
+ * permitted (loopback guard). Never carries the owner phrase or any secret.
+ */
+@Serializable
+data class ServerCapabilities(
+    @SerialName("api_version") val apiVersion: String = "",
+    @SerialName("gateway_version") val gatewayVersion: String = "",
+    val subsystems: Map<String, Boolean> = emptyMap(),
+    /** Orchestrator lane ids the coding/execute + jobs/run routes accept. */
+    @SerialName("available_workers") val availableWorkers: List<ServerWorkerLane> = emptyList(),
+    /** Informational: external CLIs detected on the host (not execute-validated). */
+    @SerialName("detected_clis") val detectedClis: List<String> = emptyList(),
+    @SerialName("execute_allowed") val executeAllowed: Boolean = false,
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = true,
+    @SerialName("generated_at") val generatedAt: String? = null,
+)
+
+@Serializable
+data class ServerWorkerLane(
+    val id: String = "",
+    @SerialName("requires_approval") val requiresApproval: Boolean = true,
+)
+
+// ─── Emergency stop (real backend halt) ───────────────────────────────────
+
+@Serializable
+data class EmergencyStopRequest(val reason: String? = null)
+
+/**
+ * Result of `POST /v1/cockpit/emergency-stop`. A genuine backend halt: owner
+ * gates cleared, proactive tick disabled, worker branch leases released, and
+ * every non-terminal queued/running job paused (reversible via resume).
+ */
+@Serializable
+data class EmergencyStopResult(
+    val engaged: Boolean = false,
+    val reason: String = "",
+    @SerialName("cleared_actions") val clearedActions: List<String> = emptyList(),
+    @SerialName("branch_leases_cleared") val branchLeasesCleared: Int = 0,
+    @SerialName("tick_disabled") val tickDisabled: Boolean = false,
+    @SerialName("cancelled_jobs") val cancelledJobs: List<String> = emptyList(),
+    @SerialName("cancelled_count") val cancelledCount: Int = 0,
+    @SerialName("autonomy_level") val autonomyLevel: String = "read_only",
+    val errors: List<String> = emptyList(),
+    @SerialName("halted_at") val haltedAt: String? = null,
+)
+
+// ─── Job pause / resume ───────────────────────────────────────────────────
+
+@Serializable
+data class JobControlRequest(val reason: String? = null)
+
+// ─── Coding lanes (audit / plan / execute) ────────────────────────────────
+
+@Serializable
+data class CodingRequest(
+    val prompt: String,
+    @SerialName("repo_root") val repoRoot: String? = null,
+    @SerialName("worker_id") val workerId: String? = null,
+    /** Owner phrase — required only to actually dispatch an execute lane. */
+    val authorization: String? = null,
+)
+
+/** Result of `POST /v1/cockpit/coding/audit` — classify + route (read-only). */
+@Serializable
+data class CodingAuditResult(
+    val intent: String = "",
+    @SerialName("risk_class") val riskClass: String = "",
+    @SerialName("primary_worker") val primaryWorker: String = "",
+    @SerialName("reviewer_worker") val reviewerWorker: String = "",
+    @SerialName("model_lane_hint") val modelLaneHint: String = "",
+    @SerialName("owner_gates") val ownerGates: List<String> = emptyList(),
+    val blocked: Boolean = false,
+    val rationale: String = "",
+    val mission: String = "",
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = false,
+)
+
+/** A bounded coding work packet (mirrors the natural-language coder packet). */
+@Serializable
+data class CodingPacket(
+    val mission: String = "",
+    val intent: String = "",
+    val branch: String = "",
+    @SerialName("risk_class") val riskClass: String = "",
+    @SerialName("repo_root") val repoRoot: String = ".",
+    @SerialName("allowed_files") val allowedFiles: List<String> = emptyList(),
+    @SerialName("forbidden_files") val forbiddenFiles: List<String> = emptyList(),
+    @SerialName("acceptance_criteria") val acceptanceCriteria: List<String> = emptyList(),
+    @SerialName("verification_plan") val verificationPlan: List<String> = emptyList(),
+    @SerialName("rollback_plan") val rollbackPlan: List<String> = emptyList(),
+    @SerialName("owner_gates") val ownerGates: List<String> = emptyList(),
+    @SerialName("primary_worker") val primaryWorker: String = "",
+    @SerialName("model_lane_hint") val modelLaneHint: String = "",
+    val blocked: Boolean = false,
+)
+
+@Serializable
+data class CodingValidationFinding(
+    val field: String = "",
+    val severity: String = "",
+    val message: String = "",
+)
+
+@Serializable
+data class CodingValidation(
+    val ok: Boolean = false,
+    val findings: List<CodingValidationFinding> = emptyList(),
+)
+
+/** Result of `POST /v1/cockpit/coding/plan` — stage/validate only. */
+@Serializable
+data class CodingPlanResult(
+    val packet: CodingPacket = CodingPacket(),
+    val validation: CodingValidation = CodingValidation(),
+    val markdown: String = "",
+    @SerialName("owner_gate_required") val ownerGateRequired: Boolean = false,
+)
+
+/**
+ * Result of `POST /v1/cockpit/coding/execute`. When `status` is
+ * `approval_required` the job is staged (created, pending the owner phrase);
+ * when `dispatched` it ran through the existing gated orchestrator path.
+ */
+@Serializable
+data class CodingExecuteResult(
+    val status: String = "",
+    val job: CockpitOrchestratorJob? = null,
+    val packet: CodingPacket = CodingPacket(),
+    @SerialName("worker_id") val workerId: String = "",
+    @SerialName("risk_class") val riskClass: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+    @SerialName("model_lane_hint") val modelLaneHint: String? = null,
+    @SerialName("verification_plan") val verificationPlan: List<String> = emptyList(),
+    @SerialName("authorization_required") val authorizationRequired: Boolean = false,
+    @SerialName("authorization_hint") val authorizationHint: String? = null,
+    val error: String? = null,
+)
+
+/** Minimal orchestrator-job view returned inside coding/execute. */
+@Serializable
+data class CockpitOrchestratorJob(
+    val id: String = "",
+    val status: String = "",
+    val prompt: String = "",
+)
+
+// ─── Evidence (Research Vault) ────────────────────────────────────────────
+
+@Serializable
+data class EvidenceArtifact(
+    val id: String = "",
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val excerpt: String = "",
+    val summary: String = "",
+    val tags: List<String> = emptyList(),
+    @SerialName("freshness_due") val freshnessDue: String? = null,
+    @SerialName("added_at") val addedAt: String? = null,
+)
+
+@Serializable
+data class EvidenceList(val items: List<EvidenceArtifact> = emptyList())
+// ─── GraphRAG knowledge graph (contract: /v1/cockpit/graph/*) ──────────────
+//
+// Mirrors gateway/cockpit/contract.py graph_related_view / graph_answer_view.
+// Surfaces related files/sources/decisions on job & evidence screens and the
+// dedicated Knowledge Graph screen. Source-backed; nothing fabricated.
+
+/** Bucket a related item falls into (mirrors contract RELATED_KINDS). */
+enum class RelatedKind {
+    FILE, SOURCE, DECISION, UNKNOWN;
+
+    companion object {
+        fun fromWire(value: String?): RelatedKind =
+            when (value?.uppercase()) {
+                "FILE" -> FILE
+                "SOURCE" -> SOURCE
+                "DECISION" -> DECISION
+                else -> UNKNOWN
+            }
+    }
+}
+
+@Serializable
+data class GraphSource(
+    val uri: String = "",
+    val kind: String = "",
+)
+
+@Serializable
+data class RelatedItem(
+    val kind: String = "FILE",
+    @SerialName("node_type") val nodeType: String = "",
+    val title: String = "",
+    val ref: String = "",
+    val relation: String = "related",
+    @SerialName("source_backed") val sourceBacked: Boolean = false,
+    val sources: List<GraphSource> = emptyList(),
+) {
+    val bucket: RelatedKind get() = RelatedKind.fromWire(kind)
+}
+
+@Serializable
+data class RelatedItemList(
+    val node: String = "",
+    val origin: String = "",
+    val related: List<RelatedItem> = emptyList(),
+)
+
+@Serializable
+data class GraphNode(
+    val id: String = "",
+    val type: String = "",
+    val title: String = "",
+    val key: String = "",
+)
+
+@Serializable
+data class GraphEdge(
+    val src: String = "",
+    val dst: String = "",
+    val type: String = "",
+)
+
+@Serializable
+data class GraphCommunity(
+    val label: String = "",
+    val size: Int = 0,
+    val relevance: Double = 0.0,
+    @SerialName("top_titles") val topTitles: List<String> = emptyList(),
+    @SerialName("edge_types") val edgeTypes: Map<String, Int> = emptyMap(),
+)
+
+@Serializable
+data class GraphAnswer(
+    val mode: String = "",
+    val question: String = "",
+    val nodes: List<GraphNode> = emptyList(),
+    val edges: List<GraphEdge> = emptyList(),
+    val citations: List<GraphSource> = emptyList(),
+    val communities: List<GraphCommunity> = emptyList(),
+)
+
+@Serializable
+data class GraphBuildResult(
+    val saved: String = "",
+    val nodes: Int = 0,
+    val edges: Int = 0,
+    @SerialName("by_node_type") val byNodeType: Map<String, Int> = emptyMap(),
+    @SerialName("by_edge_type") val byEdgeType: Map<String, Int> = emptyMap(),
+)
+
+// ─── Autonomy (Owner High-Autonomy Coding mode) ───────────────────────────
+//
+// Mirrors `gateway/cockpit/contract.autonomy_status`. The capability lists
+// come straight from `approval_policy.capabilities()` so the Android UI shows
+// the policy engine's truth, never a hand-maintained copy.
+
+@Serializable
+data class AutonomyCapabilities(
+    @SerialName("auto_approved") val autoApproved: List<String> = emptyList(),
+    @SerialName("requires_approval") val requiresApproval: List<String> = emptyList(),
+    @SerialName("always_deny") val alwaysDeny: List<String> = emptyList(),
+    @SerialName("workspace_scoped") val workspaceScoped: List<String> = emptyList(),
+)
+
+@Serializable
+data class AutonomyStatus(
+    val level: String = "assisted",
+    @SerialName("display_name") val displayName: String = "Assisted",
+    @SerialName("workspace_root") val workspaceRoot: String = "",
+    @SerialName("updated_at") val updatedAt: Double = 0.0,
+    @SerialName("set_by") val setBy: String = "owner",
+    val revocable: Boolean = true,
+    val capabilities: AutonomyCapabilities = AutonomyCapabilities(),
+)
+
+/** Body for `POST /v1/cockpit/autonomy`. Either set [level] (+ workspace) or [revoke]. */
+@Serializable
+data class SetAutonomyRequest(
+    val level: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+    val revoke: Boolean? = null,
+)
+
+@Serializable
+data class AutonomyDecision(
+    val ts: Double = 0.0,
+    val actor: String = "",
+    val action: String = "",
+    val summary: String = "",
+    val decision: String = "",
+    val reason: String = "",
+)
+
+@Serializable
+data class AutonomyDecisionList(
+    val decisions: List<AutonomyDecision> = emptyList(),
+)
+
+// ─── Ledger timeline (Activity) ───────────────────────────────────────────
+
+/**
+ * Wire models for the cockpit *Activity timeline* (`/v1/cockpit/ledger`) —
+ * the redacted projection of the orchestrator's per-job event ledger. One
+ * row per ledger entry; enum-like fields (`category`, `risk_tier`) are raw
+ * Strings mapped to typed domain enums by the repository. Timestamps are
+ * ISO-8601 strings. All text is already secret-scrubbed server-side; the
+ * repository re-applies `SecretRedactor` as defense in depth.
+ */
+@Serializable
+data class CockpitLedgerEventList(val events: List<CockpitLedgerEvent> = emptyList())
+
+@Serializable
+data class CockpitLedgerEvent(
+    val id: String,
+    @SerialName("job_id") val jobId: String = "",
+    val index: Int = 0,
+    val timestamp: String = "",
+    val category: String = "LIFECYCLE",
+    val kind: String = "",
+    val worker: String? = null,
+    @SerialName("risk_tier") val riskTier: String = "LOW",
+    val summary: String = "",
+    val files: List<String> = emptyList(),
+    @SerialName("has_rollback") val hasRollback: Boolean = false,
+    @SerialName("has_evidence") val hasEvidence: Boolean = false,
+    @SerialName("has_diff") val hasDiff: Boolean = false,
+)
+
+@Serializable
+data class CockpitLedgerEventDetail(
+    val id: String,
+    @SerialName("job_id") val jobId: String = "",
+    val index: Int = 0,
+    val timestamp: String = "",
+    val category: String = "LIFECYCLE",
+    val kind: String = "",
+    val worker: String? = null,
+    @SerialName("risk_tier") val riskTier: String = "LOW",
+    val summary: String = "",
+    val files: List<String> = emptyList(),
+    val payload: kotlinx.serialization.json.JsonObject =
+        kotlinx.serialization.json.JsonObject(emptyMap()),
+    val evidence: List<CockpitLedgerEvidence> = emptyList(),
+    val diff: CockpitLedgerDiff? = null,
+    val rollback: CockpitLedgerRollback? = null,
+    @SerialName("rollback_available") val rollbackAvailable: Boolean = false,
+)
+
+@Serializable
+data class CockpitLedgerEvidence(
+    val id: String = "",
+    val title: String = "",
+    val body: String = "",
+    @SerialName("source_path") val sourcePath: String? = null,
+)
+
+@Serializable
+data class CockpitLedgerDiff(
+    val body: String? = null,
+    val files: List<String> = emptyList(),
+)
+
+@Serializable
+data class CockpitLedgerRollback(
+    val summary: String = "",
+    val steps: List<String> = emptyList(),
+)
+
+/** POST body for a gated rollback request on a ledger event. */
+@Serializable
+data class LedgerRollbackRequest(val reason: String? = null)
+// ─── Research Mode (Evidence Engine) ──────────────────────────────────────
+
+/**
+ * Wire models for Research Mode — one-to-one with the engine's JSON in
+ * `gateway/cockpit/contract.py` (`research_report`). Enum-like fields stay raw
+ * Strings so an unknown future tier never crashes deserialisation. Nothing
+ * here is fabricated: an empty [cards] list with a populated [notes] string is
+ * the gateway telling us no source-backed evidence was available.
+ */
+@Serializable
+data class ResearchCard(
+    val id: String,
+    val title: String = "",
+    @SerialName("source_uri") val sourceUri: String = "",
+    @SerialName("source_type") val sourceType: String = "",
+    @SerialName("evidence_strength") val evidenceStrength: String = "",
+    val excerpt: String = "",
+    val claim: String = "",
+    val relevance: Float = 0f,
+    @SerialName("sub_question") val subQuestion: String = "",
+)
+
+@Serializable
+data class ResearchClaim(
+    val text: String = "",
+    @SerialName("supporting_card_ids") val supportingCardIds: List<String> = emptyList(),
+    val confidence: Float = 0f,
+    val uncertainty: String = "",
+    @SerialName("sub_question") val subQuestion: String = "",
+)
+
+@Serializable
+data class ResearchContradiction(
+    val subject: String = "",
+    @SerialName("claim_a") val claimA: String = "",
+    @SerialName("claim_b") val claimB: String = "",
+    @SerialName("card_a_id") val cardAId: String = "",
+    @SerialName("card_b_id") val cardBId: String = "",
+    val reason: String = "",
+)
+
+@Serializable
+data class ResearchReport(
+    val id: String,
+    val query: String = "",
+    @SerialName("sub_questions") val subQuestions: List<String> = emptyList(),
+    val cards: List<ResearchCard> = emptyList(),
+    val claims: List<ResearchClaim> = emptyList(),
+    val contradictions: List<ResearchContradiction> = emptyList(),
+    @SerialName("final_answer") val finalAnswer: String = "",
+    val uncertainty: String = "",
+    val citations: List<String> = emptyList(),
+    val notes: String = "",
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+@Serializable
+data class ResearchReportList(val reports: List<ResearchReport> = emptyList())
+
+/** POST body for `/v1/cockpit/research`. */
+@Serializable
+data class RunResearchRequest(
+    val query: String,
+    @SerialName("manual_sources") val manualSources: List<ManualSource> = emptyList(),
+)
+
+@Serializable
+data class ManualSource(
+    val title: String = "",
+    val url: String,
+    val excerpt: String = "",
+)
+
+/** POST body for `/v1/cockpit/research/{id}/promote`. */
+@Serializable
+data class PromoteFindingRequest(@SerialName("card_id") val cardId: String)
+
+/** Mirrors the gateway's promote/create-memory envelope. */
+@Serializable
+data class PromoteFindingResponse(
+    val stored: Boolean = false,
+    val item: CockpitMemoryItem? = null,
+    val reason: String? = null,
+)
+
+/** POST body for `/v1/cockpit/research/{id}/task`. */
+@Serializable
+data class CreateResearchTaskRequest(
+    val title: String? = null,
+    @SerialName("worker_id") val workerId: String? = null,
+    @SerialName("workspace_path") val workspacePath: String? = null,
+)

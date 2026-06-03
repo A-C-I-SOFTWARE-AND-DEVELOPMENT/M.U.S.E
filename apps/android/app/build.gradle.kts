@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
@@ -134,6 +135,11 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
 
     implementation(libs.androidx.datastore.preferences)
+
+    // Encrypted-at-rest storage for the cockpit bearer token (the only
+    // secret the app holds). Non-sensitive prefs stay in DataStore; the
+    // token lives in EncryptedSharedPreferences — see SecureTokenStore.
+    implementation(libs.androidx.security.crypto)
 
     // Sentient avatar: the overlay + voice foreground services use
     // LifecycleService / lifecycleScope. Renderers, gateway client, and
@@ -149,12 +155,27 @@ dependencies {
     // honoring the JarvisStateMachine contract; renderer falls back gracefully).
     implementation(libs.rive.android)
 
+    // Opt-in camera attention (Presence Mode): CameraX + on-device ML Kit face
+    // detection. Default OFF; runs only while the live screen is visible and
+    // the user has enabled it; frames are analysed in-memory and never stored
+    // or transmitted. See vision/CameraXFaceAttentionDetector.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.mlkit.face.detection)
+
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
+    // Robolectric-driven Compose smoke tests run on the JVM (no emulator):
+    // the BOM aligns the ui-test version, and ui-test-manifest provides the
+    // host activity createComposeRule() needs.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

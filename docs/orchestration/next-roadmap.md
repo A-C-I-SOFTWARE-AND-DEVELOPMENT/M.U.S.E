@@ -111,3 +111,32 @@ full six-worker cost.
 unambiguously runs only the workers most likely to use it (e.g.
 `claude`, `hermes`) and the orchestrator records the routing decision
 under `task.metadata.routing`.
+
+## MOBILE-JOBS-STREAMING-001 — Optional SSE/WebSocket job event stream
+
+**Current state.** The Android Jobs cockpit drives live updates with REST
+polling (lifecycle-aware back-off in `JobsViewModel` / `JobsPolling`) plus
+foreground notifications (`JobNotifier`). The gateway exposes the
+job control + detail surface over plain HTTP
+(`gateway/cockpit/handlers.py`), **not** SSE. The contract's
+`GET /v1/cockpit/jobs/stream` is documented as *specified-but-pending* —
+no shipped code claims SSE exists.
+
+**Future target.** Evaluate SSE vs WebSocket for lower-latency job events
+and a per-job event tail, falling back to polling when unavailable.
+
+**Required before this can be called canonical:**
+
+- a backend stream endpoint (`/v1/cockpit/jobs/stream` and/or
+  `/v1/cockpit/jobs/{id}/events`),
+- an Android streaming client (kept off the buffered `HermesCockpitClient`
+  transport, like the chat stream),
+- reconnect/back-off + heartbeat-timeout logic,
+- bearer-token auth on the upgrade,
+- unit + integration tests on both sides,
+- a migration note in this file and the API contract, and
+- an automatic fallback to the existing polling path.
+
+**Exit criterion:** the cockpit consumes job deltas over the stream when
+the gateway offers it, transparently falls back to polling when it does
+not, and no doc claims SSE is the only transport.

@@ -102,7 +102,12 @@ cd apps/android
 JVM unit tests live under `app/src/test/java/`. They cover the
 pure-logic surfaces — `PromptBuilder`, `HermesTaskRepository`,
 `HandoffLauncher`, `TermuxIntentBridge`, the safety-content
-guarantee, and the backup-rules manifest assertions.
+guarantee, and the backup-rules manifest assertions — plus a
+**ViewModel test for every major screen** (`*ViewModelTest.kt`
+next to each screen package; Robolectric where the ViewModel touches
+`Context`/DataStore) and **Robolectric Compose smoke tests**
+(`*SmokeTest.kt`) that render real screens on the JVM with no
+emulator (`createComposeRule()` + `@GraphicsMode(NATIVE)`).
 
 ### Release AAB
 
@@ -168,6 +173,36 @@ job uploads `lint-results-debug.html`.
 | `task_detail/{taskId}?target={target}` | Create / edit a task, render the handoff prompt, copy / mark-handed-off / delete |
 | `settings` | Theme, preferred builder / reviewer, opt-in toggles (`Use API keys`, `Local-only mode`, `Allow external app opening`, `Clipboard handoff enabled`, `Show safety warnings`), full reset |
 | `diagnostics` | App version, build type, last error, in-app log buffer (200 entries) |
+
+---
+
+## Notifications (long-running work)
+
+Local Android notifications report when long-running work changes state —
+**no FCM, no push backend.** A work watcher (`notify/`) polls the cockpit
+REST endpoints (`jobs`, `approvals`, `runtime/workers`), diffs against the
+last snapshot via the pure `WorkEventDetector`, and posts on transitions.
+
+- **Events:** job started / blocked / completed / failed, approval required,
+  worker needs attention, research complete, tests failed, emergency stop,
+  plus the persistent voice "listening" notice.
+- **Channels:** `jarvis_jobs` (default), `jarvis_approvals` (high),
+  `jarvis_alerts` (high) — plus the existing `hermes_orchestrator` /
+  `jarvis_voice` service channels.
+- **Deep links:** tap → Approvals / Tasks / Diagnostics (or Voice), wired
+  through `DeepLink.EXTRA_NAV_ROUTE` → `MainActivity` → `HermesNavHost`.
+- **Polling lifetime:** the in-app poller runs only while the app is
+  visible; `WorkWatchService` (foreground, `dataSync`) keeps polling for
+  active work after backgrounding and **self-stops when idle**. There is no
+  permanent always-on poller. Interval is the `Notification poll interval`
+  setting (default 20s) with error backoff.
+- **Safety:** approval notifications open the owner-gated Approvals queue
+  (no one-tap approve); bodies are short, structural, and secret-redacted.
+
+Pure logic (`WorkEventDetector`, `DeepLink`, `NotificationChannels`) is unit
+tested under `app/src/test/.../notify/`. Roadmap: `MOBILE-NOTIFY-002` (SSE),
+`MOBILE-NOTIFY-003` (opt-in FCM), `MOBILE-NOTIFY-004` (cockpit-job detail
+screen for per-job deep links).
 
 ---
 

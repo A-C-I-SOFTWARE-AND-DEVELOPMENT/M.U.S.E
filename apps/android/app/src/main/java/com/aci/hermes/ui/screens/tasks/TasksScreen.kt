@@ -53,7 +53,7 @@ import com.aci.hermes.data.model.linksApprovals
 import com.aci.hermes.data.model.linksAudit
 import com.aci.hermes.data.model.section
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
-import com.aci.hermes.ui.screens.jobs.JobsUiState
+import com.aci.hermes.ui.screens.jobs.CockpitJobsUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
@@ -88,7 +88,7 @@ fun TasksScreen(
 
     // Backend orchestration jobs (cockpit contract §4) — only when a jobs VM is
     // wired in (production via the nav graph; null in @Preview / older callers).
-    val jobsState: JobsUiState? = jobsViewModel?.ui?.collectAsState()?.value
+    val jobsState: CockpitJobsUiState? = jobsViewModel?.ui?.collectAsState()?.value
     LaunchedEffect(jobsState?.snackbar) {
         jobsState?.snackbar?.let {
             snackbarHostState.showSnackbar(it)
@@ -208,7 +208,7 @@ private fun LocalTasksEmpty() {
  * local handoff tasks in the same scrolling list.
  */
 private fun LazyListScope.backendJobsSection(
-    jobsState: JobsUiState,
+    jobsState: CockpitJobsUiState,
     onNew: () -> Unit,
     onRun: (CockpitJob) -> Unit,
     onCancel: (CockpitJob) -> Unit,

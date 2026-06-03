@@ -332,6 +332,9 @@ For everything else, see
 
 ## See also
 
+- [presence-mode.md](presence-mode.md) — JARVIS Presence Mode: the
+  hands-free, avatar-over-the-launcher cockpit, the attention → wake →
+  mic trigger fallback chain, gestures, and approval-by-voice.
 - [mobile/mobile-app-guide.md](../mobile/mobile-app-guide.md) — the
   cockpit overall.
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)

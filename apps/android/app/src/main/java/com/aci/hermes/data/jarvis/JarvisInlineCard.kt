@@ -28,6 +28,13 @@ sealed interface JarvisInlineCard {
         val impact: String,
         val approveLabel: String = "Approve",
         val denyLabel: String = "Hold",
+        /**
+         * Live cockpit approval id, when this card is backed by a real
+         * pending owner-approval. Null for synthesized/mock cards, which
+         * stay local-only. When present and the gateway is paired,
+         * approving submits the owner phrase to the cockpit.
+         */
+        val approvalId: String? = null,
     ) : JarvisInlineCard
 
     /**

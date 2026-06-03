@@ -48,8 +48,11 @@ fun ControlScreen(
     viewModel: OrchestratorViewModel,
     paddingValues: PaddingValues,
     onEmergencyStop: () -> Unit,
+    onOpenDeviceControl: () -> Unit = {},
+    controlViewModel: ControlViewModel? = null,
 ) {
     val state by viewModel.state.collectAsState()
+    val autonomyState = controlViewModel?.state?.collectAsState()
     var confirmStop by remember { mutableStateOf(false) }
 
     Column(
@@ -100,6 +103,27 @@ fun ControlScreen(
             }
         }
 
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.device_control_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(R.string.device_control_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Button(
+                    onClick = onOpenDeviceControl,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text(stringResource(R.string.device_control_open)) }
+            }
+        }
+
         Card(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -134,6 +158,18 @@ fun ControlScreen(
                 }
             }
         }
+
+        // High-Autonomy Coding controls — only when the autonomy VM is wired.
+        if (controlViewModel != null && autonomyState != null) {
+            AutonomyControlSection(
+                state = autonomyState.value,
+                onSelectMode = controlViewModel::requestAutonomyMode,
+                onWorkspaceChange = controlViewModel::setCodingWorkspaceRoot,
+                onRevoke = controlViewModel::revokeAutonomy,
+                onConfirmWarning = controlViewModel::confirmPendingWarning,
+                onDismissWarning = controlViewModel::dismissPendingWarning,
+            )
+        }
     }
 
     if (confirmStop) {
@@ -152,6 +188,8 @@ fun ControlScreen(
                 TextButton(onClick = {
                     confirmStop = false
                     onEmergencyStop()
+                    // Also cancel backend jobs and latch autonomy to read-only.
+                    controlViewModel?.emergencyStopNow()
                 }) { Text(stringResource(R.string.emergency_stop_confirm)) }
             },
             dismissButton = {

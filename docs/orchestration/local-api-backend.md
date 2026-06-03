@@ -1,5 +1,16 @@
 # Local Orchestrator API Backend
 
+> **Which backend does the Android cockpit use?** The shipped APK talks to
+> the **cockpit gateway** (`gateway/cockpit/`, routes `/v1/cockpit/...`,
+> `hermes cockpit serve`), *not* the `hermes_cli.orchestrator_api` app
+> documented below. The cockpit gateway's `jobs_list` merges JobQueue +
+> orchestrator jobs and serves the job control + detail surface
+> (`/jobs/{id}/ledger|pause|resume|rerun|approve|diff|validate`) the
+> mobile Jobs cockpit drives. See
+> [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+> §4. `orchestrator_api` (below) remains a parallel, FastAPI-based
+> control plane for the TUI and other local clients.
+
 `hermes_cli.orchestrator_api` exposes Hermes orchestration jobs through a
 small local-only FastAPI app. The Android APK, the TUI, and any other
 on-device client can drive the orchestrator over plain HTTP/WebSocket

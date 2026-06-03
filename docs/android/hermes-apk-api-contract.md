@@ -170,19 +170,69 @@ falls back to a bundled default list if this returns 404.
 
 ---
 
-## 4. Jobs — **canonical, implemented** (read + dispatch + cancel)
+## 4. Jobs — **canonical, implemented** (read + dispatch + controls)
 
 A **job** is one prompt × one worker × one execution. The cockpit
 treats it as the unit of progress.
 
 `GET /v1/cockpit/jobs`, `GET /v1/cockpit/jobs/{id}`,
-`POST /v1/cockpit/jobs` (dispatch), and `POST /v1/cockpit/jobs/{id}/cancel`
-are **live**, backed by the real `JobQueue` via the adapter in
-`gateway/cockpit/contract.py`. The SSE stream, files, diff, validation,
-and publish sub-resources remain specified-but-pending. Git/publish
-metadata (`branch`, `validation_summary`, `publish_state`, …) is surfaced
-from the job's `metadata` when the pipeline has populated it, and is
-`null` otherwise — never fabricated.
+`POST /v1/cockpit/jobs` (dispatch), `POST /v1/cockpit/jobs/{id}/run`,
+`POST /v1/cockpit/jobs/{id}/cancel`, and the control + detail surface
+`GET /v1/cockpit/jobs/{id}/ledger`, `POST …/pause`, `POST …/resume`,
+`POST …/rerun`, `POST …/approve`, `GET …/diff`, `POST …/validate`
+are **live**, backed by the real `JobQueue` + orchestrator via the
+adapters in `gateway/cockpit/contract.py` (`cockpit_job`,
+`orchestrator_job`, `orchestrator_job_detail`, `queue_job_detail`). The
+list merges JobQueue **and** orchestrator (`/orchestrate`) jobs so every
+backend job appears. The **SSE stream** (`/jobs/stream`) and the
+publish-preview/publish sub-resources remain specified-but-pending — see
+`MOBILE-JOBS-STREAMING-001` in `docs/orchestration/next-roadmap.md`;
+the Android cockpit uses REST polling + foreground notifications today,
+not SSE. Git/publish metadata (`branch`, `validation_summary`,
+`publish_state`, …) is surfaced from the job's `metadata` when the
+pipeline has populated it, and is `null` otherwise — never fabricated.
+
+> **Owner gate preserved.** `…/approve` (and the execute lanes of
+> `…/run`) require the exact owner authorization phrase **and** a
+> loopback bind; a non-loopback cockpit is refused. `pause`/`resume`/
+> `rerun`/`diff`/`validate` act only inside the already-approved local
+> workspace and need no phrase.
+
+### Job detail / ledger — `GET /v1/cockpit/jobs/{id}/ledger`
+
+Read-only execution story for the Job Detail screen. Honest derivation
+only — a field the source genuinely lacks is empty/null (e.g. the
+orchestrator ledger records no shell commands, so `commands_run` is `[]`
+for orchestrator jobs).
+
+```json
+{
+  "id": "job_01HXYZ...",
+  "objective": "Add OAuth callback handler",
+  "status": "RUNNING",
+  "plan": "",
+  "current_step": "running worker codex-execute",
+  "workers": [ { "id": "codex-execute", "worker": "codex-execute", "status": "RUNNING", "summary": "", "error": null, "attempts": 0 } ],
+  "timeline": [ { "ts": "2026-05-23T18:30:00Z", "kind": "submit", "phase": null, "actor": "owner", "summary": "Add OAuth callback" } ],
+  "evidence": [],
+  "files_touched": ["src/auth.py"],
+  "commands_run": [],
+  "test_results": { "pass": 4, "fail": 0, "pending": 1 },
+  "approvals": [ { "id": "…", "approver": "owner", "state": "APPROVED", "comment": "phase 'execute' approved" } ],
+  "rollback": null
+}
+```
+
+### Controls
+
+| Method | Path | Effect |
+|---|---|---|
+| `POST` | `…/pause` | Pause a running/queued queue job. `409` if terminal or an orchestrator job. |
+| `POST` | `…/resume` | Re-queue a paused/blocked/disconnected/failed job — the unblock action. |
+| `POST` | `…/rerun` | Reset a failed/blocked worker (`worker_id` optional; first failed otherwise). |
+| `POST` | `…/approve` | Grant a gated phase (`{phase, authorization}`); owner phrase + loopback gated. |
+| `GET`  | `…/diff` | Working-tree `git diff` for the job's workspace ("open patch"); honest empty when none. |
+| `POST` | `…/validate` | Run the workspace's verification gates ("run verification"); returns the `ValidationSnapshot` shape. |
 
 > **Canonical status is a superset.** The wire `status` vocabulary is the
 > union of the JARVIS-Prime queue's **execution** states
@@ -547,6 +597,73 @@ green-light. The cockpit reads pending approvals from:
 
 ---
 
+## 10d. Learning Queue — **canonical, implemented**
+
+The JARVIS learning-dataset candidate queue: validated, source-backed
+traces awaiting owner approval before they are eligible for export
+(fine-tuning / preference / eval / skill candidates). Backed by
+`hermes_cli/jarvis_prime/learning_dataset.py`; secrets and raw
+chain-of-thought are stripped at write time, so the list never carries
+the raw trace payload.
+
+### `GET /v1/cockpit/learning`
+
+```json
+{
+  "learning": [
+    {
+      "id": "abc123",
+      "title": "research answer trace",
+      "trace_type": "research_answer_trace",
+      "status": "pending",
+      "labels": [],
+      "is_negative": false,
+      "quality": {
+        "tests_passed": false,
+        "citations_verified": true,
+        "owner_approved": false,
+        "reviewer_passed": false,
+        "rollback_available": false
+      },
+      "provenance": {
+        "source_kind": "research_vault",
+        "source_uri": "https://example.org",
+        "citations": ["https://example.org"]
+      },
+      "created_at": "2026-06-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+Optional query filters: `trace_type`, `status`.
+
+### `POST /v1/cockpit/learning/{id}`
+
+```json
+{ "decision": "approve", "authorization": "Yes, with authorization." }
+```
+
+`decision ∈ {"approve", "reject"}`. **Approve requires the exact owner
+phrase** (`authorization`) — `403` otherwise (the owner gate is never
+bypassed). Reject needs no phrase. `404` for an unknown candidate.
+
+### `GET /v1/cockpit/learning/export`
+
+Read-only export readiness (counts per format) — never streams the raw
+payload:
+
+```json
+{
+  "formats": ["jsonl", "preference_pairs", "eval_cases", "skill_candidates"],
+  "approved": 3,
+  "exportable": 2,
+  "pending": 5
+}
+```
+
+---
+
 ## 10a. Memory — **canonical, implemented**
 
 The cockpit memory routes are **live** and emit the canonical schema
@@ -639,6 +756,69 @@ never invented. `GET .../proof` returns `404` for an unknown id.
 
 ---
 
+## 10b-ii. Activity timeline (ledger) — **canonical, implemented**
+
+The decision-ledger audit (§10b) records *deliberations*. The **Activity
+timeline** projects the orchestrator's per-job **event** ledger
+(`~/.hermes/jobs/<id>/ledger.jsonl`, written by
+`hermes_cli.orchestrator_ledger`) — *what each job actually did*. It is
+**read-only** and **secret-redacted** (`gateway/cockpit/redaction.py`, whose
+detection patterns are sourced from the memory write-gate). It never leaks a
+credential a worker echoed.
+
+### `GET /v1/cockpit/ledger`
+
+Query (all optional): `job`, `risk`
+(`LOW|MODERATE|SERIOUS|CRITICAL`), `worker`, `category` (or `kind`),
+`file` (substring), `since`/`until` (ISO-8601 prefix compare), `order`
+(`desc` newest-first default / `asc`), `limit` (default `100`).
+
+```json
+{
+  "events": [
+    {
+      "id": "job_01HXYZ:2",
+      "job_id": "job_01HXYZ",
+      "index": 2,
+      "timestamp": "2026-06-01T09:02:00+00:00",
+      "category": "WORKER_RUN",
+      "kind": "worker_result",
+      "worker": "codex-execute",
+      "risk_tier": "MODERATE",
+      "summary": "output token=[REDACTED]",
+      "files": ["src/app.py"],
+      "has_rollback": false,
+      "has_evidence": false,
+      "has_diff": true
+    }
+  ]
+}
+```
+
+`category` is one of `MODEL_CALL, TOOL_CALL, COMMAND, FILE_EDIT,
+WORKER_RUN, APPROVAL, MEMORY_WRITE, EVIDENCE_PROMOTION, DEPLOY_PUBLISH,
+NAVIGATION, VALIDATION, LIFECYCLE` (derived from the ledger `kind`; unknown
+kinds → `LIFECYCLE`, never a guessed specific category). Memory-write /
+evidence-promotion rows appear only when such entries are actually emitted.
+
+### `GET /v1/cockpit/ledger/{job}/{index}`
+
+Full redacted detail for one event: `payload` (the entry's fields,
+recursively redacted), linked `evidence`, linked `diff` (inline `body` or a
+`files` list), and the `rollback` plan when present, plus
+`rollback_available`. `404` for an unknown `{job}/{index}`.
+
+### `POST /v1/cockpit/ledger/{job}/{index}/rollback`
+
+Body: `{ "reason": "<optional>" }`. **Never executes a rollback.** It
+enqueues an owner-gated proposal (`kind: "rollback"`) into the same
+`proposals.jsonl` queue the Approvals screen reads, and returns the created
+`ApprovalCard` (`PENDING`). The rollback only happens once the owner approves
+it with the exact phrase via `POST /v1/cockpit/approvals/{id}` (§10c) — the
+owner gate is never bypassed.
+
+---
+
 ## 10c. Approvals — **canonical, implemented** (cards + owner-phrase decide)
 
 The Android Approvals screen is one `ApprovalCard` queue. The server's one
@@ -658,6 +838,320 @@ real owner-gated queue is the JARVIS **self-update proposal** store, so:
 
 Future destructive-command approvals join the same card queue — no second
 store is invented.
+
+---
+
+## 10d. Evidence Engine — **canonical, implemented** (RAG + cite + verify)
+
+The Android Evidence screen renders source-cited artifacts from the JARVIS
+**Research Vault** (`hermes_cli/jarvis_prime/research_vault.py`), ranked by
+the **Evidence Engine** (`hermes_cli/jarvis_prime/evidence_engine.py`).
+Adapters live in `gateway/cockpit/contract.py` (`evidence_card`,
+`evidence_hit`, `evidence_verify_result`). Trust labels reuse the
+`SourceTrust` ladder (`owner` > `primary` > `official_doc` > `reputable` >
+`community` > `unverified`).
+
+### Evidence item
+
+```json
+{
+  "id": "16-hex",
+  "title": "vLLM continuous batching",
+  "source_uri": "https://docs.vllm.ai/serving",
+  "source_type": "official_doc",
+  "evidence_strength": "primary",
+  "trust": "primary",
+  "excerpt": "vLLM uses continuous batching ...",
+  "summary": "...",
+  "tags": ["vllm"],
+  "license_notes": "",
+  "retrieved_at": "2026-05-30T12:00:00+00:00",
+  "freshness_due": null,
+  "checksum": "sha256-hex",
+  "citation_anchors": ["serving.md:12"],
+  "added_at": "2026-05-30T12:00:00+00:00"
+}
+```
+
+### `GET /v1/cockpit/evidence`
+
+Query: `q`/`query` (optional), `limit`. Without `q`: `{ "items": [ ...Evidence
+item... ] }`. With `q`: hybrid retrieval (BM25 over the vault blended with
+Memory-Tree search) returns `{ "items": [], "hits": [ ...ranked hit... ] }`,
+where a hit is `{ kind, title, uri, excerpt, trust, score, artifact_id,
+citation_anchors }`.
+
+### `GET /v1/cockpit/evidence/{id}`
+
+`{ "item": { ...Evidence item... } }`, or `404` for an unknown id.
+
+### `POST /v1/cockpit/evidence/verify`
+
+Body `{ "claims": [string], "query"?: string }`. Returns
+`{ "citations": [{ claim, supported, hits }], "uncertain": [string],
+"contradictions": [{ subject, a, b, reason }], "rejected": [string] }`.
+`rejected` holds claims dropped as secret-like / chain-of-thought (they never
+become evidence). Unsupported claims appear in both `citations`
+(`supported:false`) and `uncertain`.
+
+### `POST /v1/cockpit/evidence/{id}/promote`
+
+Body `{ "authorization"?: "Yes, with authorization." }`. Promotes the artifact
+into the **durable Memory Tree** via `MemoryTreeStore.write`, so the memory
+write policy is preserved: secrets / chain-of-thought are rejected, and a
+low-confidence/unverified promotion needs the owner phrase. `201` +
+`{ "promoted": true, "node_id": ... }`, or `422` +
+`{ "promoted": false, "reasons": [...], "hint": ... }` — **unverified data
+never becomes durable memory automatically.**
+
+### `DELETE /v1/cockpit/evidence/{id}`
+
+Demote (remove) an artifact: `{ "removed": <int> }`.
+
+## 10e. GraphRAG knowledge graph — **canonical, implemented**
+
+A typed, source-backed knowledge graph over the cognition plane (repo code,
+docs, Research Vault, Memory Tree, and the job + decision ledgers). It
+**supplements** existing RAG/memory — it does not replace them. Adapters in
+`gateway/cockpit/contract.py` (`graph_related_view`, `graph_answer_view`);
+the engine is `hermes_cli/jarvis_prime/graphrag/`.
+
+### `GET /v1/cockpit/graph/related`
+
+Related files / sources / decisions for an entity. Pass exactly one of
+`job_id`, `memory_id`, `evidence_id`, or `node` (a graph node id/key).
+Powers the "Related in knowledge graph" panel on the Task (job), Audit, and
+Memory screens. Honest empty (`{"node":"","related":[]}`) when the entity is
+not in the graph yet — never a fabricated relationship.
+
+```json
+{
+  "node": "task:abc123",
+  "origin": "orc-1",
+  "related": [
+    {"kind": "FILE", "node_type": "file", "title": "run_agent.py",
+     "ref": "run_agent.py", "relation": "depends_on", "source_backed": true,
+     "sources": [{"uri": "orc-1", "kind": "job_ledger"}]},
+    {"kind": "DECISION", "node_type": "decision", "title": "Localization approach",
+     "ref": "memory:9f…", "relation": "cites", "source_backed": true, "sources": []}
+  ]
+}
+```
+
+`kind` is one of `FILE` / `SOURCE` / `DECISION` (the Android `RelatedKind`
+enum constants). `source_backed` is true when the node carries provenance.
+
+### `GET /v1/cockpit/graph/query?mode=…&q=…`
+
+Run a GraphRAG query. `mode` is `local` (nearest nodes), `global` (community
+summary), or `coding` (relevant files + tests + docs + prior decisions, so a
+coding task reuses what exists). Returns a `GraphAnswer`:
+
+```json
+{
+  "mode": "coding",
+  "question": "where is job dispatch handled?",
+  "nodes": [{"id": "file:…", "type": "file", "title": "orchestrator.py", "key": "hermes_cli/orchestrator.py"}],
+  "edges": [{"src": "file:…", "dst": "function:…", "type": "owns"}],
+  "citations": [{"uri": "hermes_cli/orchestrator.py", "kind": "repo"}],
+  "communities": []
+}
+```
+
+### `POST /v1/cockpit/graph/build`
+
+Rebuild + persist the graph cache (`~/.hermes/jarvis_prime/graph/graph.json`).
+Read-only over the repo and local stores — no repo edits, no network — so it
+is **not** an owner-gated action. Returns `{"saved": "...", "nodes": N,
+"edges": M, "by_node_type": {...}, "by_edge_type": {...}}`.
+
+## 10f. Autonomy & emergency stop — **canonical, implemented**
+
+Owner High-Autonomy Coding mode reduces friction for coding work *inside an
+approved workspace* while every irreversible/external/high-risk action stays
+gated. The level is the existing `hermes_cli/approval_policy.py` engine
+(`read_only/assisted/autonomous/yolo/owner_high_autonomy_coding`); the cockpit
+endpoints set/read it and surface the capability list straight from
+`approval_policy.capabilities()` (never a hand-maintained copy).
+
+### `GET /v1/cockpit/autonomy`
+
+```json
+{
+  "level": "owner_high_autonomy_coding",
+  "display_name": "High-Autonomy Coding",
+  "workspace_root": "/home/me/project",
+  "updated_at": 1717430400.0,
+  "set_by": "cockpit",
+  "revocable": true,
+  "capabilities": {
+    "auto_approved": ["safe_read", "safe_local_write", "local_command",
+      "dependency_install", "local_server", "branch_create", "local_commit",
+      "code_worker_exec", "secret_access"],
+    "requires_approval": ["destructive_command", "github_push", "supabase_change",
+      "vercel_deploy", "outbound_message", "remote_command", "continuous_listen"],
+    "always_deny": ["github_force_push", "remote_secret_transfer", "public_tunnel"],
+    "workspace_scoped": ["safe_local_write", "code_worker_exec"]
+  }
+}
+```
+
+`workspace_scoped` actions auto-approve **only** when their target path is
+inside `workspace_root`; outside it they fall back to a confirmation. The
+`requires_approval` set (deploy, publish, push/merge, credential/secret change,
+destructive/outside-workspace delete, public posts, purchases) and the owner
+gates (`owner_auth.OWNER_GATED_ACTIONS`, exact-phrase) are **never** removed by
+this mode.
+
+### `POST /v1/cockpit/autonomy`
+
+Body: `{"level": "owner_high_autonomy_coding", "workspace_path": "/home/me/project"}`
+to set, or `{"revoke": true}` to drop back to `assisted`. Setting
+`owner_high_autonomy_coding` without a `workspace_path` returns `400`. The mode
+change is recorded in the approval audit log (`details.event = "autonomy_change"`).
+Returns the same shape as `GET`.
+
+### `GET /v1/cockpit/autonomy/decisions?limit=50`
+
+Recent, already-redacted policy decisions — the per-action auto-approval
+*reasons*. Powers the High-Autonomy Coding audit trail.
+
+```json
+{"decisions": [
+  {"ts": 1717430401.0, "actor": "agent", "action": "local_command",
+   "summary": "pytest -q", "decision": "allow",
+   "reason": "owner_high_autonomy_coding: auto-approved local_command inside approved workspace /home/me/project"}
+]}
+```
+
+### `POST /v1/cockpit/emergency-stop`
+
+Body: `{"reason": "..."}` (optional). Cancels every non-terminal queue job
+(reusing `JobQueue.cancel_job`), **latches** autonomy to `read_only`, and audits
+the event. The latch overrides everything — including `HERMES_AUTONOMY` — so a
+stop genuinely halts new auto-approvals; it is released the moment the owner
+sets a level again via `POST /v1/cockpit/autonomy`. Returns:
+
+```json
+{"engaged": true, "cancelled_jobs": ["job_ab12"], "cancelled_count": 1,
+ "autonomy_level": "read_only", "errors": []}
+```
+## 10d. Research Vault — **canonical, implemented** (recent evidence, read-only)
+
+`GET /v1/cockpit/research` is **live**, projecting the JARVIS **Research
+Vault** (`hermes_cli/jarvis_prime/research_vault.py`) for the mobile home
+screen's evidence card and any research view.
+
+- Query: `?limit=` (default `10`). Items are **most-recent first**.
+- Response: `{ "items": [ ResearchItem ], "error"?: "…" }`. A missing or
+  empty vault returns `{ "items": [] }` — **never fabricated evidence**, and
+  a read failure degrades to an empty list with a non-fatal `error` string
+  (never a crash).
+
+### ResearchItem (one-to-one with `ResearchArtifact.to_dict()`)
+
+```json
+{
+  "id": "ab12…",
+  "title": "Model X benchmark",
+  "source_uri": "https://…",
+  "source_type": "manual",
+  "evidence_strength": "moderate",
+  "summary": "Model X tops the board on …",
+  "excerpt": "…stored citation text…",
+  "tags": ["models", "benchmark"],
+  "freshness_due": null,
+  "added_at": "2026-06-03T12:00:00Z"
+}
+```
+
+Kotlin mirror: `CockpitResearchItem` / `CockpitResearchList` in
+`CockpitApi.kt`; accessor `HermesCockpitClient.research(limit)`.
+
+This is a **read-only** projection — the app does not write the vault.
+
+---
+
+## 10e. Models / router policy — **read, typed**
+
+`GET /v1/cockpit/models` is **live** (handler `models`), returning the
+free-first router policy from `model_bootstrap.load_policy()` (or a
+`dry_run` preview when none is written yet). The shape is intentionally
+loose; the typed Kotlin mirror `ModelPolicy` / `ModelRoute`
+(`HermesCockpitClient.modelPolicy()`) is fully defaulted and the decoder
+ignores unknown keys, so an evolving policy never crashes the client. The
+handler **never accepts or stores API keys** — detection is env-presence
+only.
+
+> **Note (events vs audit):** the home command center's "Audit / ledger"
+> card reads the canonical **`GET /v1/cockpit/audit`** records (§10b,
+> `auditList()`), not `GET /v1/cockpit/events`. The events handler returns a
+> `_ledger_summary` shape (`id/title/type/status/source/timestamp`) that does
+> **not** match the contract's `CockpitEvent` (`ts/level/source/message`), so
+> the typed `audit` records are the reliable source for the card.
+
+## 10g. Research Mode — **canonical, implemented** (Evidence Engine)
+
+The Android Research screen drives the backend Evidence Engine
+(`hermes_cli/jarvis_prime/research_engine.py`), which composes the existing
+research primitives (the `ResearchBrief` decomposer, the `ResearchVault`
+evidence store + trust ranking, the `epistemics` uncertainty audit) into one
+pipeline. **Nothing is fabricated**: an empty `cards` list with a populated
+`notes` string is the engine honestly reporting it had no source-backed
+evidence (e.g. no web-search provider configured and no manual sources given).
+
+### Research report object
+
+```json
+{
+  "id": "rr_ab12…",
+  "query": "What transport does HTTP/3 use?",
+  "sub_questions": ["…"],
+  "cards": [
+    {
+      "id": "c1", "title": "HTTP/3 spec",
+      "source_uri": "https://…", "source_type": "official_doc",
+      "evidence_strength": "primary", "excerpt": "…", "claim": "…",
+      "relevance": 0.5, "sub_question": ""
+    }
+  ],
+  "claims": [
+    {"text": "…", "supporting_card_ids": ["c1"], "confidence": 0.9,
+     "uncertainty": "", "sub_question": ""}
+  ],
+  "contradictions": [
+    {"subject": "…", "claim_a": "…", "claim_b": "…",
+     "card_a_id": "c1", "card_b_id": "c2", "reason": "…"}
+  ],
+  "final_answer": "- … [https://…]",
+  "uncertainty": "pass",
+  "citations": ["https://…"],
+  "notes": "",
+  "created_at": "2026-06-03T00:00:00Z"
+}
+```
+
+`evidence_strength` ∈ `primary | strong | moderate | weak | vendor_reported`
+(maps to `SourceTrust`). `source_type` ∈ `paper | official_doc | blog | repo |
+course | benchmark | oss_practice | manual`.
+
+- `POST /v1/cockpit/research` → run the pipeline. Body: `{"query": str,
+  "manual_sources"?: [{"title","url","excerpt"}]}`. Returns the report (`201`).
+  Source gathering uses the configured web-search provider when one is
+  available (`agent.web_search_registry`); otherwise it relies on
+  `manual_sources` and reports honestly via `notes`.
+- `GET /v1/cockpit/research` → `{"reports": [Report, …]}`, newest first.
+- `GET /v1/cockpit/research/{id}` → one report (`404` if unknown).
+- `POST /v1/cockpit/research/{id}/promote` → promote one evidence card to the
+  Memory Tree. Body: `{"card_id": str}`. Reuses the **same write gate** as
+  `POST /v1/cockpit/memory`: `201 {"stored": true, "item": MemoryItem}` on
+  success, or `422 {"stored": false, "reason": …}` when the store rejects it
+  (secret-like / below the durable-confidence floor) — honest, never faked.
+  A promoted finding then appears in `GET /v1/cockpit/memory`.
+- `POST /v1/cockpit/research/{id}/task` → create a coding task from the
+  report. Body: `{"title"?, "worker_id"?, "workspace_path"?}`. Reuses the
+  `POST /v1/cockpit/jobs` enqueue path: returns a **queued** `Job` (`201`);
+  nothing executes here (owner/run gates unchanged).
 
 ---
 

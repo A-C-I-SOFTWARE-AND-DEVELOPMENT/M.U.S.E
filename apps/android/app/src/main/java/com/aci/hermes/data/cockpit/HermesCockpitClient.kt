@@ -63,6 +63,26 @@ class HermesCockpitClient(
     suspend fun runtimeWorkers(): CockpitResult<WorkerDetectionList> =
         request("GET", "/v1/cockpit/runtime/workers", WorkerDetectionList.serializer())
 
+    /** Evidence-backed model routes per task class (read-only; keyless). */
+    suspend fun modelRoutes(): CockpitResult<ModelRouteList> =
+        request("GET", "/v1/cockpit/model-routes", ModelRouteList.serializer())
+
+    /**
+     * Owner model-route override: pin a task to a model and/or flip paid
+     * routing. Flipping paid requires the exact owner authorization phrase in
+     * [ModelRouteOverrideRequest.authorization] — the server returns 403
+     * ([CockpitResult.Failure] with status 403) otherwise.
+     */
+    suspend fun modelRouteOverride(
+        req: ModelRouteOverrideRequest,
+    ): CockpitResult<ModelRouteOverrideResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/model-routes/override",
+            ModelRouteOverrideResponse.serializer(),
+            body = json.encodeToString(ModelRouteOverrideRequest.serializer(), req),
+        )
+
     /**
      * Generic authenticated GET for routes without a settled typed model
      * yet (memory, events, approvals, jobs, sessions). Returns the raw
@@ -98,6 +118,104 @@ class HermesCockpitClient(
     /** Delete a memory item by id (== store key). */
     suspend fun memoryDelete(id: String): CockpitResult<DeleteMemoryResponse> =
         request("DELETE", "/v1/cockpit/memory/" + enc(id), DeleteMemoryResponse.serializer())
+
+    // ─── Evidence Engine (contract §10d) ─────────────────────────────────
+
+    /** List evidence; an optional `query` runs hybrid retrieval (BM25 + memory).
+     *  When a query is sent the server populates `hits` (ranked) over `items`. */
+    suspend fun evidenceList(query: String? = null): CockpitResult<CockpitEvidenceList> {
+        val path = if (query.isNullOrBlank()) {
+            "/v1/cockpit/evidence"
+        } else {
+            "/v1/cockpit/evidence?q=" + enc(query)
+        }
+        return request("GET", path, CockpitEvidenceList.serializer())
+    }
+
+    /** One evidence artifact by id. */
+    suspend fun evidenceDetail(id: String): CockpitResult<CockpitEvidenceDetail> =
+        request("GET", "/v1/cockpit/evidence/" + enc(id), CockpitEvidenceDetail.serializer())
+
+    /** Verify claims against evidence: citations, uncertain claims, contradictions. */
+    suspend fun evidenceVerify(req: EvidenceVerifyRequest): CockpitResult<CockpitEvidenceVerifyResult> =
+        request(
+            "POST",
+            "/v1/cockpit/evidence/verify",
+            CockpitEvidenceVerifyResult.serializer(),
+            body = json.encodeToString(EvidenceVerifyRequest.serializer(), req),
+        )
+
+    /** Promote evidence to durable memory. Low-confidence promotion needs the
+     *  owner [authorization] phrase — otherwise the gateway returns 422 (the
+     *  memory write policy is never bypassed). */
+    suspend fun evidencePromote(
+        id: String,
+        authorization: String? = null,
+    ): CockpitResult<PromoteEvidenceResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/evidence/" + enc(id) + "/promote",
+            PromoteEvidenceResponse.serializer(),
+            body = json.encodeToString(
+                PromoteEvidenceRequest.serializer(),
+                PromoteEvidenceRequest(authorization = authorization),
+            ),
+        )
+
+    /** Demote (remove) an evidence artifact from the vault. */
+    suspend fun evidenceDemote(id: String): CockpitResult<DeleteMemoryResponse> =
+        request("DELETE", "/v1/cockpit/evidence/" + enc(id), DeleteMemoryResponse.serializer())
+    // ─── Memory Tree (MEM-2): inbox / decisions / contradictions / freshness ──
+
+    /** Ranked, source-cited Memory Tree search (contested excluded by default). */
+    suspend fun memoryTreeSearch(
+        query: String,
+        includeContested: Boolean = false,
+    ): CockpitResult<CockpitMemoryNodeList> {
+        val sb = StringBuilder("/v1/cockpit/memory/tree?q=").append(enc(query))
+        if (includeContested) sb.append("&include_contested=1")
+        return request("GET", sb.toString(), CockpitMemoryNodeList.serializer())
+    }
+
+    /** The proposed-memory inbox: candidates awaiting an owner decision. */
+    suspend fun memoryProposed(): CockpitResult<CockpitMemoryNodeList> =
+        request("GET", "/v1/cockpit/memory/tree/proposed", CockpitMemoryNodeList.serializer())
+
+    /** Approve (→ durable) / reject / supersede a proposed node. */
+    suspend fun memoryDecision(
+        id: String,
+        req: MemoryDecisionRequest,
+    ): CockpitResult<MemoryDecisionResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/memory/tree/" + enc(id) + "/decision",
+            MemoryDecisionResponse.serializer(),
+            body = json.encodeToString(MemoryDecisionRequest.serializer(), req),
+        )
+
+    /** Open (contested) contradiction reports awaiting resolution. */
+    suspend fun memoryContradictions(): CockpitResult<CockpitContradictionList> =
+        request("GET", "/v1/cockpit/memory/contradictions", CockpitContradictionList.serializer())
+
+    /** Resolve a contradiction: winner stays, loser is superseded. */
+    suspend fun memoryContradictionResolve(
+        id: String,
+        req: ResolveContradictionRequest,
+    ): CockpitResult<ResolveContradictionResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/memory/contradictions/" + enc(id) + "/resolve",
+            ResolveContradictionResponse.serializer(),
+            body = json.encodeToString(ResolveContradictionRequest.serializer(), req),
+        )
+
+    /** Nodes overdue (or within `withinDays`) for a freshness review. */
+    suspend fun memoryFreshness(withinDays: Int = 0): CockpitResult<CockpitMemoryNodeList> =
+        request(
+            "GET",
+            "/v1/cockpit/memory/freshness?within_days=$withinDays",
+            CockpitMemoryNodeList.serializer(),
+        )
 
     // ─── Avatar persona ("make my avatar Goku") ──────────────────────────
 
@@ -163,12 +281,114 @@ class HermesCockpitClient(
             ),
         )
 
+    // ─── Learning Queue (learning-dataset candidate review) ──────────────
+    suspend fun learningList(): CockpitResult<CockpitLearningList> =
+        request("GET", "/v1/cockpit/learning", CockpitLearningList.serializer())
+
+    /** Decide a learning candidate. Approve requires the owner [authorization]
+     *  phrase (the gateway returns 403 otherwise — owner gate never bypassed). */
+    suspend fun learningDecide(
+        id: String,
+        decision: String,
+        authorization: String? = null,
+        notes: String? = null,
+    ): CockpitResult<CockpitApprovalDecisionResult> =
+        request(
+            "POST",
+            "/v1/cockpit/learning/" + enc(id),
+            CockpitApprovalDecisionResult.serializer(),
+            body = json.encodeToString(
+                CockpitApprovalDecision.serializer(),
+                CockpitApprovalDecision(decision = decision, authorization = authorization, notes = notes),
+            ),
+        )
+
+    // ─── Voice intake (mobile-native, hands-free) ───────────────────────
+    //
+    // Reuse the canonical backend pipeline for read-back, classification, and
+    // the driving-mode safety veto instead of reimplementing them client-side.
+
+    /** Open a voice intake from a transcript; returns the read-back + draft. */
+    suspend fun voiceIntakeCreate(
+        transcript: String,
+        mode: String? = null,
+    ): CockpitResult<VoiceIntakeResult> =
+        request(
+            "POST",
+            "/v1/cockpit/voice/intake",
+            VoiceIntakeResult.serializer(),
+            body = json.encodeToString(
+                VoiceIntakeRequest.serializer(),
+                VoiceIntakeRequest(transcript = transcript, mode = mode),
+            ),
+        )
+
+    /** Resolve a voice intake with an explicit phrase. A `409` Failure means a
+     *  safety veto (driving publish / confirmation required) — never a silent
+     *  execution. */
+    suspend fun voiceIntakeDecide(
+        id: String,
+        phrase: String?,
+    ): CockpitResult<VoiceDecisionResult> =
+        request(
+            "POST",
+            "/v1/cockpit/voice/" + enc(id) + "/decide",
+            VoiceDecisionResult.serializer(),
+            body = json.encodeToString(
+                VoiceDecisionRequest.serializer(),
+                VoiceDecisionRequest(phrase = phrase),
+            ),
+        )
+
     // ─── Audit (contract §10b) ───────────────────────────────────────────
     suspend fun auditList(): CockpitResult<CockpitAuditList> =
         request("GET", "/v1/cockpit/audit", CockpitAuditList.serializer())
 
     suspend fun auditProof(id: String): CockpitResult<CockpitProofRecord> =
         request("GET", "/v1/cockpit/audit/" + enc(id) + "/proof", CockpitProofRecord.serializer())
+
+    // ─── Model / router policy ───────────────────────────────────────────
+    suspend fun modelPolicy(): CockpitResult<ModelPolicy> =
+        request("GET", "/v1/cockpit/models", ModelPolicy.serializer())
+
+    // ─── Research Vault (evidence store) ─────────────────────────────────
+    suspend fun research(limit: Int = 10): CockpitResult<CockpitResearchList> =
+        request("GET", "/v1/cockpit/research?limit=$limit", CockpitResearchList.serializer())
+    // ─── Ledger timeline (Activity) ──────────────────────────────────────
+    /**
+     * The redacted Activity timeline over the orchestrator event ledger.
+     * [filters] are translated to query params (job/risk/worker/category/
+     * file/since/until/order/limit); blank values are dropped.
+     */
+    suspend fun ledgerTimeline(filters: Map<String, String> = emptyMap()): CockpitResult<CockpitLedgerEventList> {
+        val query = filters.entries
+            .filter { it.value.isNotBlank() }
+            .joinToString("&") { enc(it.key) + "=" + enc(it.value) }
+        val path = if (query.isBlank()) "/v1/cockpit/ledger" else "/v1/cockpit/ledger?$query"
+        return request("GET", path, CockpitLedgerEventList.serializer())
+    }
+
+    /** Full redacted detail for one timeline event (`{job}/{index}`). */
+    suspend fun ledgerEvent(job: String, index: Int): CockpitResult<CockpitLedgerEventDetail> =
+        request("GET", "/v1/cockpit/ledger/" + enc(job) + "/" + index, CockpitLedgerEventDetail.serializer())
+
+    /**
+     * Raise an **owner-gated** rollback request for a timeline event. Returns
+     * the created [CockpitApprovalCard] (PENDING). The rollback only happens
+     * once the owner approves it with the exact phrase via [approvalsDecide];
+     * this call never executes anything.
+     */
+    suspend fun ledgerRollbackRequest(
+        job: String,
+        index: Int,
+        reason: String? = null,
+    ): CockpitResult<CockpitApprovalCard> =
+        request(
+            "POST",
+            "/v1/cockpit/ledger/" + enc(job) + "/" + index + "/rollback",
+            CockpitApprovalCard.serializer(),
+            body = json.encodeToString(LedgerRollbackRequest.serializer(), LedgerRollbackRequest(reason)),
+        )
 
     // ─── Jobs (contract §4) ──────────────────────────────────────────────
     suspend fun jobsList(): CockpitResult<JobList> =
@@ -232,6 +452,250 @@ class HermesCockpitClient(
             "/v1/cockpit/orchestrate",
             CockpitJob.serializer(),
             body = json.encodeToString(OrchestrateRequest.serializer(), OrchestrateRequest(prompt)),
+        )
+
+    /** Pause a job (human-requested). A `409` means it was already terminal. */
+    suspend fun jobPause(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/pause",
+            CockpitJob.serializer(),
+            body = json.encodeToString(JobControlRequest.serializer(), JobControlRequest(reason)),
+        )
+
+    /** Resume a paused/blocked job. A `409` means it wasn't in a resumable state. */
+    suspend fun jobResume(id: String, reason: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/resume",
+            CockpitJob.serializer(),
+            body = json.encodeToString(JobControlRequest.serializer(), JobControlRequest(reason)),
+        )
+
+    // ─── Capabilities / emergency stop ───────────────────────────────────
+
+    /** Negotiate against the live backend (subsystems, lanes, execute guard). */
+    suspend fun capabilities(): CockpitResult<ServerCapabilities> =
+        request("GET", "/v1/cockpit/capabilities", ServerCapabilities.serializer())
+
+    /** Halt backend work: clear owner gates, release leases, pause live jobs. */
+    suspend fun emergencyStop(reason: String? = null): CockpitResult<EmergencyStopResult> =
+        request(
+            "POST",
+            "/v1/cockpit/emergency-stop",
+            EmergencyStopResult.serializer(),
+            body = json.encodeToString(EmergencyStopRequest.serializer(), EmergencyStopRequest(reason)),
+        )
+
+    // ─── Coding lanes (audit / plan / execute) ───────────────────────────
+
+    /** Classify + route a coding request (read-only — builds nothing, runs nothing). */
+    suspend fun codingAudit(req: CodingRequest): CockpitResult<CodingAuditResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/audit",
+            CodingAuditResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    /** Build + validate a bounded work packet (stage only). `422` = invalid packet. */
+    suspend fun codingPlan(req: CodingRequest): CockpitResult<CodingPlanResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/plan",
+            CodingPlanResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    /**
+     * Dispatch a coding job through the existing gated orchestrator path.
+     * Without the owner [CodingRequest.authorization] phrase the result is a
+     * staged `approval_required` (the job is created, pending approval).
+     */
+    suspend fun codingExecute(req: CodingRequest): CockpitResult<CodingExecuteResult> =
+        request(
+            "POST",
+            "/v1/cockpit/coding/execute",
+            CodingExecuteResult.serializer(),
+            body = json.encodeToString(CodingRequest.serializer(), req),
+        )
+
+    // ─── Evidence (Research Vault) ───────────────────────────────────────
+
+    /** Search the Research Vault (read-only). Honest empty when the vault is empty. */
+    suspend fun evidenceSearch(query: String, limit: Int = 10): CockpitResult<EvidenceList> =
+        request(
+            "GET",
+            "/v1/cockpit/evidence/search?q=" + enc(query) + "&limit=" + limit,
+            EvidenceList.serializer(),
+        )
+    // ─── GraphRAG knowledge graph (contract: /v1/cockpit/graph/*) ────────
+
+    /**
+     * Related files / sources / decisions for an entity. Pass exactly one of
+     * [jobId] / [memoryId] / [evidenceId] / [node]. Honest empty when the
+     * entity isn't in the graph yet.
+     */
+    suspend fun graphRelated(
+        jobId: String? = null,
+        memoryId: String? = null,
+        evidenceId: String? = null,
+        node: String? = null,
+    ): CockpitResult<RelatedItemList> {
+        val params = buildList {
+            jobId?.takeIf { it.isNotBlank() }?.let { add("job_id=" + enc(it)) }
+            memoryId?.takeIf { it.isNotBlank() }?.let { add("memory_id=" + enc(it)) }
+            evidenceId?.takeIf { it.isNotBlank() }?.let { add("evidence_id=" + enc(it)) }
+            node?.takeIf { it.isNotBlank() }?.let { add("node=" + enc(it)) }
+        }
+        val q = if (params.isEmpty()) "" else "?" + params.joinToString("&")
+        return request("GET", "/v1/cockpit/graph/related$q", RelatedItemList.serializer())
+    }
+
+    /** Run a GraphRAG query (mode = local | global | coding). */
+    suspend fun graphQuery(question: String, mode: String = "coding"): CockpitResult<GraphAnswer> =
+        request(
+            "GET",
+            "/v1/cockpit/graph/query?mode=" + enc(mode) + "&q=" + enc(question),
+            GraphAnswer.serializer(),
+        )
+
+    /** Rebuild + persist the knowledge-graph cache. Read-only over the repo
+     *  and local stores (not an owner-gated action). */
+    suspend fun graphBuild(): CockpitResult<GraphBuildResult> =
+        request("POST", "/v1/cockpit/graph/build", GraphBuildResult.serializer())
+    // ─── Autonomy (Owner High-Autonomy Coding mode) ──────────────────────
+
+    /** Current autonomy level, workspace scope, and capability list. */
+    suspend fun autonomyGet(): CockpitResult<AutonomyStatus> =
+        request("GET", "/v1/cockpit/autonomy", AutonomyStatus.serializer())
+
+    /**
+     * Set the autonomy level (owner action). High-autonomy coding requires a
+     * [workspacePath] scope; the gateway returns 400 otherwise. The mode
+     * change is itself recorded in the audit trail.
+     */
+    suspend fun autonomySet(
+        level: String,
+        workspacePath: String? = null,
+    ): CockpitResult<AutonomyStatus> =
+        request(
+            "POST",
+            "/v1/cockpit/autonomy",
+            AutonomyStatus.serializer(),
+            body = json.encodeToString(
+                SetAutonomyRequest.serializer(),
+                SetAutonomyRequest(level = level, workspacePath = workspacePath),
+            ),
+        )
+
+    /** Instantly drop autonomy back to the safe default (Assisted). */
+    suspend fun autonomyRevoke(): CockpitResult<AutonomyStatus> =
+        request(
+            "POST",
+            "/v1/cockpit/autonomy",
+            AutonomyStatus.serializer(),
+            body = json.encodeToString(
+                SetAutonomyRequest.serializer(),
+                SetAutonomyRequest(revoke = true),
+            ),
+        )
+
+    /** Recent (already-redacted) policy decisions — the auto-approval reasons. */
+    suspend fun autonomyDecisions(limit: Int = 50): CockpitResult<AutonomyDecisionList> =
+        request(
+            "GET",
+            "/v1/cockpit/autonomy/decisions?limit=$limit",
+            AutonomyDecisionList.serializer(),
+        )
+
+    /** Read-only job detail + decision-ledger timeline (Job Detail screen). */
+    suspend fun jobLedger(id: String): CockpitResult<JobDetail> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/ledger", JobDetail.serializer())
+
+    /** Rerun a failed/blocked worker. `400` if there is nothing to rerun. */
+    suspend fun jobRerun(id: String, workerId: String? = null): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/rerun",
+            CockpitJob.serializer(),
+            body = json.encodeToString(RerunJobRequest.serializer(), RerunJobRequest(workerId)),
+        )
+
+    /**
+     * Approve a gated job phase. Requires the owner [authorization] phrase
+     * (the gateway returns 403 otherwise — the owner gate is never bypassed).
+     */
+    suspend fun jobApprove(
+        id: String,
+        phase: String = "execute",
+        authorization: String? = null,
+    ): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/approve",
+            CockpitJob.serializer(),
+            body = json.encodeToString(
+                ApprovePhaseRequest.serializer(),
+                ApprovePhaseRequest(phase = phase, authorization = authorization),
+            ),
+        )
+
+    /** Working-tree diff for a job's workspace ("open patch"). Honest empty when none. */
+    suspend fun jobDiff(id: String): CockpitResult<DiffSnapshot> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/diff", DiffSnapshot.serializer())
+
+    /** Run verification gates against a job's workspace ("run verification"). */
+    suspend fun jobValidate(id: String): CockpitResult<ValidationSnapshot> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/validate",
+            ValidationSnapshot.serializer(),
+            body = "{}",
+        )
+
+    // ─── Research Mode (Evidence Engine) ─────────────────────────────────
+
+    /** Run the research pipeline for a query. Returns the full report (201). */
+    suspend fun researchRun(req: RunResearchRequest): CockpitResult<ResearchReport> =
+        request(
+            "POST",
+            "/v1/cockpit/research",
+            ResearchReport.serializer(),
+            body = json.encodeToString(RunResearchRequest.serializer(), req),
+            timeoutMs = CockpitHttp.RESEARCH_TIMEOUT_MS,
+        )
+
+    /** List past research reports, newest first. */
+    suspend fun researchList(): CockpitResult<ResearchReportList> =
+        request("GET", "/v1/cockpit/research", ResearchReportList.serializer())
+
+    suspend fun researchGet(id: String): CockpitResult<ResearchReport> =
+        request("GET", "/v1/cockpit/research/" + enc(id), ResearchReport.serializer())
+
+    /** Promote one evidence card into the Memory Tree. A `422` Failure means
+     *  the store rejected it (secret-like / low confidence) — honest, not a bug. */
+    suspend fun researchPromote(
+        id: String,
+        req: PromoteFindingRequest,
+    ): CockpitResult<PromoteFindingResponse> =
+        request(
+            "POST",
+            "/v1/cockpit/research/" + enc(id) + "/promote",
+            PromoteFindingResponse.serializer(),
+            body = json.encodeToString(PromoteFindingRequest.serializer(), req),
+        )
+
+    /** Create a coding task from a research report. Returns the queued job (201). */
+    suspend fun researchCreateTask(
+        id: String,
+        req: CreateResearchTaskRequest,
+    ): CockpitResult<CockpitJob> =
+        request(
+            "POST",
+            "/v1/cockpit/research/" + enc(id) + "/task",
+            CockpitJob.serializer(),
+            body = json.encodeToString(CreateResearchTaskRequest.serializer(), req),
         )
 
     private fun enc(value: String): String =

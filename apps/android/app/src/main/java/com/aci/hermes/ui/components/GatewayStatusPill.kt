@@ -18,16 +18,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.data.cockpit.BackendStatus
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisCyan
 import com.aci.hermes.ui.theme.JarvisGold
 import com.aci.hermes.ui.theme.JarvisInkRaised
 import com.aci.hermes.ui.theme.JarvisJade
 import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisSignalMute
 import com.aci.hermes.ui.theme.JarvisTokens
 import com.aci.hermes.ui.theme.JarvisViolet
 
-enum class GatewayStatus { ONLINE, LISTENING, WORKING, DISCONNECTED, MOCK, TERMUX }
+enum class GatewayStatus { ONLINE, LISTENING, WORKING, DISCONNECTED, MOCK, TERMUX, CHECKING }
+
+/** Map backend reachability onto the pill's visual vocabulary. */
+fun BackendStatus.toGatewayStatus(): GatewayStatus = when (this) {
+    BackendStatus.CONNECTED -> GatewayStatus.ONLINE
+    BackendStatus.CHECKING -> GatewayStatus.CHECKING
+    BackendStatus.DISCONNECTED,
+    BackendStatus.ERROR,
+    BackendStatus.UNPAIRED -> GatewayStatus.DISCONNECTED
+}
 
 private data class PillStyle(val dot: Color, val label: Color, val labelText: String)
 
@@ -39,6 +50,7 @@ private fun styleFor(status: GatewayStatus): PillStyle = when (status) {
     GatewayStatus.DISCONNECTED -> PillStyle(JarvisCrimson, JarvisCrimson, stringResource(R.string.gateway_status_disconnected))
     GatewayStatus.MOCK         -> PillStyle(JarvisViolet,  JarvisViolet,  stringResource(R.string.gateway_status_mock))
     GatewayStatus.TERMUX       -> PillStyle(JarvisCyan,    JarvisCyan,    stringResource(R.string.gateway_status_termux))
+    GatewayStatus.CHECKING     -> PillStyle(JarvisSignalMute, JarvisSignalMute, stringResource(R.string.gateway_status_checking))
 }
 
 /**
@@ -52,6 +64,7 @@ private fun styleFor(status: GatewayStatus): PillStyle = when (status) {
 fun GatewayStatusPill(
     status: GatewayStatus,
     modifier: Modifier = Modifier,
+    label: String = stringResource(R.string.gateway_pill_label),
 ) {
     val style = styleFor(status)
     Surface(
@@ -77,7 +90,7 @@ fun GatewayStatusPill(
                 content = {}
             )
             Text(
-                text = stringResource(R.string.gateway_pill_label) + " · " + style.labelText,
+                text = label + " · " + style.labelText,
                 style = MaterialTheme.typography.labelMedium,
                 color = JarvisSignalDim
             )

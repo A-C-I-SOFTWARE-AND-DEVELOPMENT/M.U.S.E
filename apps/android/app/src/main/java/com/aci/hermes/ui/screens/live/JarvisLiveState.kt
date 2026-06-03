@@ -14,10 +14,21 @@ enum class JarvisLiveState {
     Idle,
     Listening,
     Thinking,
+    // Fine-grained work phases derived from the active task's WorkerPhase.
+    // These are *derived UI state*, not backend truth — see JarvisLivePresenceMapper.
+    Researching,
+    Coding,
+    Reviewing,
+    // Generic fallback when the agent is busy but the phase is unknown.
     Working,
     Speaking,
     ApprovalNeeded,
     Blocked,
+    // A non-fatal problem the owner should see (a failed validation gate, a
+    // failed job) that has not (yet) hard-blocked the agent.
+    Warning,
+    // The cockpit backend is unreachable; nothing the avatar shows is live.
+    Disconnected,
     EmergencyStop,
 }
 
@@ -30,10 +41,15 @@ enum class JarvisLiveState {
 data class JarvisLiveUiState(
     val listening: Boolean = false,
     val thinking: Boolean = false,
+    val researching: Boolean = false,
+    val coding: Boolean = false,
+    val reviewing: Boolean = false,
     val working: Boolean = false,
     val speaking: Boolean = false,
     val approvalNeeded: Boolean = false,
     val blocked: Boolean = false,
+    val warning: Boolean = false,
+    val disconnected: Boolean = false,
     val emergencyStop: Boolean = false,
     val voiceLine: String = "",
     val reducedMotion: Boolean = false,
@@ -76,6 +92,7 @@ data class JarvisLiveProjection(
     val particlesEnabled: Boolean,
     val showApprovalCta: Boolean,
     val showFixCta: Boolean,
+    val showWarningCta: Boolean,
     val showEmergencyReleaseCta: Boolean,
 ) {
     val isEmergency: Boolean get() = state == JarvisLiveState.EmergencyStop
@@ -87,9 +104,14 @@ fun defaultVoiceLineFor(state: JarvisLiveState): Int = when (state) {
     JarvisLiveState.Idle -> R.string.jarvis_voice_idle
     JarvisLiveState.Listening -> R.string.jarvis_voice_listening
     JarvisLiveState.Thinking -> R.string.jarvis_voice_thinking
+    JarvisLiveState.Researching -> R.string.jarvis_voice_researching
+    JarvisLiveState.Coding -> R.string.jarvis_voice_coding
+    JarvisLiveState.Reviewing -> R.string.jarvis_voice_reviewing
     JarvisLiveState.Working -> R.string.jarvis_voice_working
     JarvisLiveState.Speaking -> R.string.jarvis_voice_speaking
     JarvisLiveState.ApprovalNeeded -> R.string.jarvis_voice_approval
     JarvisLiveState.Blocked -> R.string.jarvis_voice_blocked
+    JarvisLiveState.Warning -> R.string.jarvis_voice_warning
+    JarvisLiveState.Disconnected -> R.string.jarvis_voice_disconnected
     JarvisLiveState.EmergencyStop -> R.string.jarvis_voice_emergency
 }

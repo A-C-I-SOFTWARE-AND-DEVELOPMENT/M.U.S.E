@@ -42,6 +42,11 @@ class ManifestPermissionsTest {
         "android.permission.RECORD_AUDIO",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.QUERY_ALL_PACKAGES",
+        // Opt-in camera attention for Presence Mode (default OFF). On-device
+        // face-PRESENCE only; no frames stored/sent; visible indicator while
+        // active. Everything else camera/contacts/SMS/location/storage stays
+        // forbidden below, so scope creep is still caught.
+        "android.permission.CAMERA",
     )
 
     private val forbiddenPermissions: Set<String> = setOf(
@@ -54,7 +59,6 @@ class ManifestPermissionsTest {
         "android.permission.WRITE_CALL_LOG",
         "android.permission.PROCESS_OUTGOING_CALLS",
         "android.permission.READ_PHONE_STATE",
-        "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_BACKGROUND_LOCATION",

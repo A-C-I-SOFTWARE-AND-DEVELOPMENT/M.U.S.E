@@ -42,6 +42,13 @@ local llama.cpp, …). The repo ships:
   observability, native GitHub access, and more.
 - An orchestration system that decomposes goals into validated,
   audited task graphs — see [`docs/orchestration/`](docs/orchestration/).
+- A **GraphRAG knowledge graph** over the cognition plane
+  (`hermes_cli/jarvis_prime/graphrag/`) that unifies repo code, docs,
+  Research Vault, Memory Tree, and ledgers into one inspectable,
+  source-backed graph. It *supplements* (never replaces) existing
+  RAG/memory; coding tasks use it (via the `graph_query` tool or
+  `jarvis_prime graph` CLI) to reuse existing implementations. See
+  [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
 - A native Android companion app (`apps/android/`) and a Termux
   runtime path for on-phone use.
 
@@ -135,6 +142,11 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 - [`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)
   — the owner-gated SIA (Hexo Labs) self-improvement worker: SIA
   iterates in a sandbox, JARVIS promotes the winner only by proposal.
+- [`docs/ai-intelligence/jarvis-learning-dataset.md`](docs/ai-intelligence/jarvis-learning-dataset.md)
+  — the JARVIS learning dataset pipeline: validated, source-backed,
+  owner-approved traces for fine-tuning / preference / eval, with no
+  secrets or chain-of-thought. CLI (`hermes_cli.jarvis_prime learning`),
+  cockpit (`/v1/cockpit/learning`), and the Android Learning Queue tab.
 - [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
   — the Android-only handoff flow that predates the orchestration
   stack (still relevant for the "just hand off to ChatGPT/Codex via

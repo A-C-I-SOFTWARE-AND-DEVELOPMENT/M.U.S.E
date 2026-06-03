@@ -1,9 +1,13 @@
 package com.aci.hermes.data.jarvis
 
+import com.aci.hermes.data.cockpit.CockpitHomeSnapshot
+import com.aci.hermes.data.cockpit.JobStatus
 import com.aci.hermes.data.model.HermesTask
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.voice.VoicePhase
+import java.time.OffsetDateTime
 
 /**
  * Single source of truth for the Jarvis Prime home screen.
@@ -23,11 +27,70 @@ data class JarvisHomeState(
     val workers: List<WorkerStatus> = emptyList(),
     val memoryPulse: List<MemoryPulseEntry> = emptyList(),
     val suggestedNextAction: SuggestedAction? = null,
+    // ── Live backend overlay (populated from the cockpit gateway) ──────────
+    val backendSync: HomeBackendSync = HomeBackendSync.UNKNOWN,
+    val backendMessage: String? = null,
+    val modelRouter: ModelRouterSummary? = null,
+    val cockpitJobs: List<JobSummary> = emptyList(),
+    val auditEvents: List<AuditEventSummary> = emptyList(),
+    val evidence: List<EvidenceSummary> = emptyList(),
+    val deviceCapability: DeviceCapabilitySummary? = null,
+    val voicePhase: VoicePhase = VoicePhase.DORMANT,
 ) {
     val hasCriticalApproval: Boolean get() = pendingApprovals.any { it.risk == ApprovalRisk.CRITICAL }
     val hasSeriousApproval: Boolean get() = pendingApprovals.any { it.risk == ApprovalRisk.SERIOUS }
     val hasAnyApproval: Boolean get() = pendingApprovals.isNotEmpty()
+
+    /** True when a paired gateway is answering — drives the live/offline UI. */
+    val backendLive: Boolean get() = backendSync == HomeBackendSync.LIVE
 }
+
+/**
+ * How the live backend overlay was sourced. [UNKNOWN] is the pre-refresh
+ * default; the rest mirror [com.aci.hermes.data.cockpit.HomeSync] so the
+ * home screen can show a *useful* (never blank) state when the gateway is
+ * unpaired or unreachable.
+ */
+enum class HomeBackendSync { UNKNOWN, LIVE, NOT_PAIRED, OFFLINE }
+
+/** Compact model/router policy line for the home Model card. */
+data class ModelRouterSummary(
+    val headline: String,
+    val detail: String,
+    val freeFirst: Boolean?,
+)
+
+/** One cockpit job, projected for the home Jobs card. */
+data class JobSummary(
+    val id: String,
+    val title: String,
+    val worker: String,
+    val status: JobStatus?,
+    val statusLabel: String,
+    val active: Boolean,
+)
+
+/** One decision-ledger event, projected for the home Audit card. */
+data class AuditEventSummary(
+    val timestamp: Long?,
+    val level: String,
+    val source: String,
+    val message: String,
+)
+
+/** One Research Vault artifact, projected for the home Evidence card. */
+data class EvidenceSummary(
+    val id: String,
+    val title: String,
+    val strength: String,
+    val summary: String,
+)
+
+/** On-device capability line for the home Device card. */
+data class DeviceCapabilitySummary(
+    val headline: String,
+    val detail: String,
+)
 
 /**
  * The 11 visible presence states declared in the brief. Transient states
@@ -111,12 +174,22 @@ data class JarvisHomeInputs(
     val emergencyStopActive: Boolean,
     val transientPresence: JarvisPresence? = null,
     val nowMs: Long = System.currentTimeMillis(),
+    // ── Live overlay inputs (all optional; absent ⇒ pure local derivation) ──
+    /** Aggregated cockpit reads; null when unpaired/not-yet-loaded. */
+    val cockpit: CockpitHomeSnapshot? = null,
+    /** How [cockpit] was sourced — drives the backend-availability UI. */
+    val backendSync: HomeBackendSync = HomeBackendSync.UNKNOWN,
+    val backendMessage: String? = null,
+    val voicePhase: VoicePhase = VoicePhase.DORMANT,
+    val deviceCapability: DeviceCapabilitySummary? = null,
 )
 
 object JarvisHomeStateDeriver {
 
     private const val MEMORY_PULSE_SIZE = 6
     private const val WORKER_BUSY_WINDOW_MS = 5 * 60 * 1000L
+    private const val AUDIT_EVENTS_SIZE = 6
+    private const val EVIDENCE_SIZE = 5
 
     fun derive(inputs: JarvisHomeInputs): JarvisHomeState {
         val pendingApprovals = inputs.tasks
@@ -167,7 +240,34 @@ object JarvisHomeStateDeriver {
             .take(MEMORY_PULSE_SIZE)
             .map { MemoryPulseEntry(it.updatedAt, memoryLabel(it)) }
 
+        // ── Live backend overlay ──────────────────────────────────────────
+        // When a paired gateway is answering, prefer its data field-by-field;
+        // otherwise fall back to the (already-computed) local derivation, so
+        // the offline experience is unchanged.
+        val live = inputs.cockpit?.takeIf { inputs.backendSync == HomeBackendSync.LIVE }
+
+        val effectiveApprovals = live?.let { backendApprovals(it) } ?: pendingApprovals
+        val effectiveWorkers = live?.let { backendWorkers(it) } ?: workers
+        val effectiveMemory = live?.let { backendMemory(it) } ?: memoryPulse
+        val cockpitJobs = live?.let { backendJobs(it) } ?: emptyList()
+        // With the live Jobs card present, the single local active-task card is
+        // redundant — the Jobs card supersedes it.
+        val effectiveActiveTask = if (live != null) null else activeTask
+        val modelRouter = live?.let { modelRouterSummary(it) }
+        val auditEvents = live?.let { backendAuditEvents(it) } ?: emptyList()
+        val evidence = live?.let { backendEvidence(it) } ?: emptyList()
+
+        val hasCritical = effectiveApprovals.any { it.risk == ApprovalRisk.CRITICAL }
+        val hasSerious = effectiveApprovals.any { it.risk == ApprovalRisk.SERIOUS }
+        val hasAnyApproval = effectiveApprovals.isNotEmpty()
+        val hasActiveTask = effectiveActiveTask != null || cockpitJobs.any { it.active }
+
+        // A live gateway can run headless, so backend liveness implies the
+        // runtime is up even when the local foreground-service probe is false.
+        val serviceUp = inputs.serviceRunning || live != null
+
         val gateway = when {
+            live != null -> GatewayStatus.CONNECTED
             !inputs.serviceRunning -> GatewayStatus.DISCONNECTED
             inputs.localOnlyMode -> GatewayStatus.DEGRADED
             else -> GatewayStatus.CONNECTED
@@ -175,21 +275,21 @@ object JarvisHomeStateDeriver {
 
         val presence = derivePresence(
             transient = inputs.transientPresence,
-            serviceRunning = inputs.serviceRunning,
+            serviceRunning = serviceUp,
             emergencyStopActive = inputs.emergencyStopActive,
             localOnlyMode = inputs.localOnlyMode,
-            hasCritical = pendingApprovals.any { it.risk == ApprovalRisk.CRITICAL },
-            hasSerious = pendingApprovals.any { it.risk == ApprovalRisk.SERIOUS },
-            hasAnyApproval = pendingApprovals.isNotEmpty(),
-            hasActiveTask = activeTask != null,
+            hasCritical = hasCritical,
+            hasSerious = hasSerious,
+            hasAnyApproval = hasAnyApproval,
+            hasActiveTask = hasActiveTask,
         )
 
         val suggested = suggestedNextAction(
             presence = presence,
-            pendingApprovals = pendingApprovals,
-            activeTask = activeTask,
+            pendingApprovals = effectiveApprovals,
+            activeTask = effectiveActiveTask,
             emergencyStopActive = inputs.emergencyStopActive,
-            serviceRunning = inputs.serviceRunning,
+            serviceRunning = serviceUp,
         )
 
         return JarvisHomeState(
@@ -197,12 +297,137 @@ object JarvisHomeStateDeriver {
             gateway = gateway,
             mockMode = inputs.localOnlyMode,
             emergencyStopActive = inputs.emergencyStopActive,
-            activeTask = activeTask,
-            pendingApprovals = pendingApprovals,
-            workers = workers,
-            memoryPulse = memoryPulse,
+            activeTask = effectiveActiveTask,
+            pendingApprovals = effectiveApprovals,
+            workers = effectiveWorkers,
+            memoryPulse = effectiveMemory,
             suggestedNextAction = suggested,
+            backendSync = inputs.backendSync,
+            backendMessage = inputs.backendMessage,
+            modelRouter = modelRouter,
+            cockpitJobs = cockpitJobs,
+            auditEvents = auditEvents,
+            evidence = evidence,
+            deviceCapability = inputs.deviceCapability,
+            voicePhase = inputs.voicePhase,
         )
+    }
+
+    // ── Live-overlay mappers (cockpit DTOs → home display types) ───────────
+
+    private fun backendApprovals(snapshot: CockpitHomeSnapshot): List<PendingApproval> =
+        snapshot.approvals?.approvals
+            ?.filter { it.status.equals("PENDING", ignoreCase = true) }
+            ?.map { card ->
+                PendingApproval(
+                    taskId = card.id,
+                    title = card.title.ifBlank { card.summary.ifBlank { "(approval)" } },
+                    target = TargetTool.MANUAL,
+                    risk = when (card.tier.uppercase()) {
+                        "CRITICAL" -> ApprovalRisk.CRITICAL
+                        "SERIOUS" -> ApprovalRisk.SERIOUS
+                        else -> ApprovalRisk.LOW
+                    },
+                    reason = card.proposedAction.ifBlank { card.summary }
+                        .ifBlank { "Owner approval required." },
+                )
+            }
+            ?: emptyList()
+
+    private fun backendWorkers(snapshot: CockpitHomeSnapshot): List<WorkerStatus> {
+        val runningWorkerIds = snapshot.jobs?.jobs
+            ?.filter { JobStatus.fromWire(it.status) == JobStatus.RUNNING }
+            ?.map { it.workerId }
+            ?.toSet()
+            ?: emptySet()
+        return snapshot.workers?.workers?.map { w ->
+            WorkerStatus(
+                target = TargetTool.MANUAL,
+                displayName = w.displayName.ifBlank { w.id },
+                busy = w.id in runningWorkerIds,
+                lastActivityAt = null,
+            )
+        } ?: emptyList()
+    }
+
+    private fun backendMemory(snapshot: CockpitHomeSnapshot): List<MemoryPulseEntry> =
+        snapshot.memory?.items
+            ?.sortedByDescending { parseIsoMillis(it.updatedAt ?: it.createdAt) ?: 0L }
+            ?.take(MEMORY_PULSE_SIZE)
+            ?.map {
+                MemoryPulseEntry(
+                    timestamp = parseIsoMillis(it.updatedAt ?: it.createdAt) ?: 0L,
+                    label = "${it.category} · ${it.title.ifBlank { it.content.take(40) }}",
+                )
+            }
+            ?: emptyList()
+
+    private fun backendJobs(snapshot: CockpitHomeSnapshot): List<JobSummary> =
+        snapshot.jobs?.jobs?.map { job ->
+            val status = JobStatus.fromWire(job.status)
+            JobSummary(
+                id = job.id,
+                title = job.title.ifBlank { "(untitled job)" },
+                worker = job.workerId,
+                status = status,
+                statusLabel = (status?.wire ?: job.status).lowercase().replace('_', ' '),
+                active = status?.isTerminal == false,
+            )
+        }
+            // Active jobs first, then by recency proxy (kept stable otherwise).
+            ?.sortedByDescending { it.active }
+            ?: emptyList()
+
+    private fun modelRouterSummary(snapshot: CockpitHomeSnapshot): ModelRouterSummary? {
+        val policy = snapshot.models ?: return null
+        val routeCount = policy.routes.size
+        val primary = policy.defaultRoute
+            ?: policy.routes.values.firstOrNull { it.enabled == true }?.let {
+                listOfNotNull(it.provider, it.model).joinToString(" · ")
+            }
+            ?: policy.routes.values.firstOrNull()?.let {
+                listOfNotNull(it.provider, it.model).joinToString(" · ")
+            }
+        val headline = primary?.takeIf { it.isNotBlank() } ?: "Router policy loaded"
+        val detail = buildString {
+            append(if (routeCount == 1) "1 route" else "$routeCount routes")
+            if (policy.freeFirst == true) append(" · free-first")
+            if (policy.paidOptIn == true) append(" · paid opt-in")
+        }
+        return ModelRouterSummary(headline = headline, detail = detail, freeFirst = policy.freeFirst)
+    }
+
+    private fun backendAuditEvents(snapshot: CockpitHomeSnapshot): List<AuditEventSummary> =
+        snapshot.audit?.records
+            ?.sortedByDescending { parseIsoMillis(it.timestamp) ?: 0L }
+            ?.take(AUDIT_EVENTS_SIZE)
+            ?.map { record ->
+                AuditEventSummary(
+                    timestamp = parseIsoMillis(record.timestamp),
+                    level = record.riskTier,
+                    source = record.route.destination.ifBlank { "ledger" },
+                    message = record.action.ifBlank { record.userRequest }
+                        .ifBlank { "(decision)" },
+                )
+            }
+            ?: emptyList()
+
+    private fun backendEvidence(snapshot: CockpitHomeSnapshot): List<EvidenceSummary> =
+        snapshot.research?.items
+            ?.take(EVIDENCE_SIZE)
+            ?.map {
+                EvidenceSummary(
+                    id = it.id,
+                    title = it.title.ifBlank { "(untitled source)" },
+                    strength = it.evidenceStrength,
+                    summary = it.summary.ifBlank { it.excerpt.take(120) },
+                )
+            }
+            ?: emptyList()
+
+    private fun parseIsoMillis(iso: String?): Long? {
+        if (iso.isNullOrBlank()) return null
+        return runCatching { OffsetDateTime.parse(iso).toInstant().toEpochMilli() }.getOrNull()
     }
 
     private fun derivePresence(

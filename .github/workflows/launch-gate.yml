@@ -7,6 +7,13 @@ name: LaunchGate
 # operator can enable GitHub auto-merge with one tick rather than
 # hand-mapping seven CI columns.
 #
+# On pull_request events it ALSO prints an advisory red/green/pending
+# rollup of the required checks (see the "Advisory rollup" step) to the
+# job summary, so an operator can see the whole matrix at a glance. The
+# rollup is informational only — it does NOT hard-fail on pending, to
+# avoid racing the other in-flight checks. Branch protection remains the
+# actual blocker, per docs/launch/AUTOMATED_MERGE_POLICY.md.
+#
 # Hard rules pinned by docs/launch/AUTOMATED_MERGE_POLICY.md:
 #   - No bypass of branch protection.
 #   - No merging on red CI.
@@ -36,7 +43,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
         with:
           fetch-depth: 1
 
@@ -77,3 +84,57 @@ jobs:
           grep -q "class OwnerAuth" hermes_cli/jarvis_prime/owner_auth.py \
             || { echo "OwnerAuth class was removed from owner_auth.py — runtime gate violated"; exit 1; }
           echo "Runtime owner-gate constants present."
+
+      - name: Advisory rollup of required checks
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          script: |
+            // The required checks branch protection should gate on. These
+            // names must match the downstream job `name:` strings exactly.
+            const REQUIRED = [
+              'Build debug APK',
+              'Lint',
+              'Android JVM unit (testDebugUnitTest)',
+              'Python unit (Jarvis Prime + redact + orchestrator)',
+              'ruff enforcement (blocking)',
+              'Orchestration unit tests',
+            ];
+            const sha = context.payload.pull_request.head.sha;
+            const { data } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: sha,
+              per_page: 100,
+            });
+            // Latest run per check name (skip LaunchGate's own check).
+            const latest = new Map();
+            for (const run of data.check_runs) {
+              if (run.name.startsWith('LaunchGate')) continue;
+              const prev = latest.get(run.name);
+              if (!prev || new Date(run.started_at) > new Date(prev.started_at)) {
+                latest.set(run.name, run);
+              }
+            }
+            const icon = (s, c) => {
+              if (s !== 'completed') return '⏳ pending';
+              if (c === 'success') return '✅ success';
+              if (c === 'neutral' || c === 'skipped') return '➖ ' + c;
+              return '❌ ' + (c || 'failure');
+            };
+            let body = '### LaunchGate advisory rollup\n\n';
+            body += `Head SHA: \`${sha}\`\n\n`;
+            body += '| Required check | Status |\n|---|---|\n';
+            let red = 0, pending = 0;
+            for (const name of REQUIRED) {
+              const run = latest.get(name);
+              if (!run) { body += `| ${name} | ⚪ not reported yet |\n`; pending++; continue; }
+              const cell = icon(run.status, run.conclusion);
+              if (cell.startsWith('❌')) red++;
+              if (cell.startsWith('⏳')) pending++;
+              body += `| ${name} | ${cell} |\n`;
+            }
+            body += `\n_${red} failing, ${pending} pending/unreported. Advisory only — branch protection is the blocker._\n`;
+            core.summary.addRaw(body);
+            await core.summary.write();
+            core.info(body);

@@ -96,3 +96,6 @@ memory-raw/
 
 # Built APKs are delivered as CI artifacts / release assets, not via git
 *.apk
+
+# Python build artifacts (uv build / setuptools)
+/build/

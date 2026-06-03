@@ -426,3 +426,9 @@ Remaining follow-ups (see `docs/audits/JARVIS_MOBILE_NATIVE_FULL_BUILD_AUDIT.md`
 the live events feed, model scorecards / sessions read views, the skills
 catalog reconciliation, Research Vault + ledger-replay surfaces, and the
 build→diff→validate→publish-PR workflow.
+
+The authoritative, up-to-date list of live cockpit routes — including the
+newer `capabilities`, `jobs/{id}/pause|resume`, `emergency-stop`,
+`coding/audit|plan|execute`, and `evidence/search|verify` endpoints, plus the
+spec-shorthand → canonical mapping — lives in
+[`cockpit-canonical-contract-plan.md`](cockpit-canonical-contract-plan.md).

@@ -17,10 +17,13 @@ import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -45,6 +48,8 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.TargetTool
+import com.aci.hermes.ui.components.BackendOfflineBanner
+import com.aci.hermes.ui.components.BackendStatusPill
 import com.aci.hermes.ui.navigation.Screen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
@@ -63,6 +68,7 @@ fun HomeScreen(
     onPrepareHandoff: (target: TargetTool) -> Unit,
     onOpenJarvisLive: () -> Unit = {},
     onOpenVoice: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -84,6 +90,13 @@ fun HomeScreen(
             contentPadding = PaddingValues(vertical = 12.dp),
         ) {
             item { GreetingCard() }
+            item {
+                BackendOfflineBanner(
+                    status = state.backendStatus,
+                    onRetry = viewModel::retryBackend,
+                    onOpenDiagnostics = onOpenDiagnostics,
+                )
+            }
             item { StatusCard(state, viewModel::startService, viewModel::stopService) }
             item { JarvisLiveEntryCard(onClick = onOpenJarvisLive) }
             item { SectionTitle(stringResource(R.string.home_quick_links)) }
@@ -156,10 +169,15 @@ private fun StatusCard(
                     modifier = Modifier.size(12.dp),
                 ) {}
                 Text(
-                    text = if (state.serviceRunning) stringResource(R.string.orchestrator_status_running)
-                           else stringResource(R.string.orchestrator_status_stopped),
+                    text = if (state.serviceRunning) stringResource(R.string.service_status_running)
+                           else stringResource(R.string.service_status_stopped),
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
                 )
+                // Backend reachability is a separate signal from the local
+                // service above — show it side-by-side so neither is implied
+                // by the other.
+                BackendStatusPill(status = state.backendStatus)
             }
             StatusRow(stringResource(R.string.orchestrator_status_mode_label), stringResource(R.string.home_status_mode_value))
             StatusRow(stringResource(R.string.orchestrator_status_billing_label), stringResource(R.string.orchestrator_status_billing_value))
@@ -193,60 +211,69 @@ private fun SectionTitle(text: String) {
     )
 }
 
+/**
+ * Quick-link grid rendered from [Screen.homeQuickLinks] — the single source
+ * of truth for which shell destinations have a Home entry point. Driving the
+ * grid off that list (rather than hand-listing cards) is what guarantees a
+ * shell route can't silently become deep-link-only (the bug that hid the
+ * Capability screen). Voice is appended separately because it is a
+ * full-screen push reached via [onOpenVoice], not a shell route.
+ */
 @Composable
 private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit) {
+    val cells: List<QuickLinkCell> =
+        Screen.homeQuickLinks.map { screen ->
+            QuickLinkCell(screen.quickLinkLabelRes(), screen.quickLinkIcon()) { onNavigate(screen) }
+        } + QuickLinkCell(R.string.nav_voice, Icons.Filled.Mic, onOpenVoice)
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_tasks),
-                icon = Icons.AutoMirrored.Filled.Assignment,
-                onClick = { onNavigate(Screen.Tasks) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_chat),
-                icon = Icons.AutoMirrored.Filled.Chat,
-                onClick = { onNavigate(Screen.Chat) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_approvals),
-                icon = Icons.Filled.CheckCircle,
-                onClick = { onNavigate(Screen.Approvals) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_memory),
-                icon = Icons.Filled.Memory,
-                onClick = { onNavigate(Screen.Memory) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_audit),
-                icon = Icons.Filled.History,
-                onClick = { onNavigate(Screen.Audit) },
-            )
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_control),
-                icon = Icons.Filled.AdminPanelSettings,
-                onClick = { onNavigate(Screen.Control) },
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            QuickLinkCard(
-                modifier = Modifier.weight(1f),
-                title = stringResource(R.string.nav_voice),
-                icon = Icons.Filled.Mic,
-                onClick = onOpenVoice,
-            )
+        cells.chunked(2).forEach { rowCells ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                rowCells.forEach { cell ->
+                    QuickLinkCard(
+                        modifier = Modifier.weight(1f),
+                        title = stringResource(cell.labelRes),
+                        icon = cell.icon,
+                        onClick = cell.onClick,
+                    )
+                }
+                // Keep the last odd card half-width by padding the row.
+                if (rowCells.size == 1) Box(modifier = Modifier.weight(1f))
+            }
         }
     }
+}
+
+private data class QuickLinkCell(
+    val labelRes: Int,
+    val icon: ImageVector,
+    val onClick: () -> Unit,
+)
+
+private fun Screen.quickLinkLabelRes(): Int = when (this) {
+    Screen.Tasks -> R.string.nav_tasks
+    Screen.Jobs -> R.string.nav_jobs
+    Screen.Chat -> R.string.nav_chat
+    Screen.Approvals -> R.string.nav_approvals
+    Screen.Memory -> R.string.nav_memory
+    Screen.Audit -> R.string.nav_audit
+    Screen.Capability -> R.string.nav_capability
+    Screen.Evidence -> R.string.nav_evidence
+    Screen.Control -> R.string.nav_control
+    else -> R.string.app_name
+}
+
+private fun Screen.quickLinkIcon(): ImageVector = when (this) {
+    Screen.Tasks -> Icons.AutoMirrored.Filled.Assignment
+    Screen.Jobs -> Icons.Filled.Work
+    Screen.Chat -> Icons.AutoMirrored.Filled.Chat
+    Screen.Approvals -> Icons.Filled.CheckCircle
+    Screen.Memory -> Icons.Filled.Memory
+    Screen.Audit -> Icons.Filled.History
+    Screen.Capability -> Icons.Filled.Bolt
+    Screen.Evidence -> Icons.Filled.Science
+    Screen.Control -> Icons.Filled.AdminPanelSettings
+    else -> Icons.Filled.AutoAwesome
 }
 
 @Composable

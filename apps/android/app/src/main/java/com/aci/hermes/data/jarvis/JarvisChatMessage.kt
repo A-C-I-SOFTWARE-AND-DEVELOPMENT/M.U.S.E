@@ -36,6 +36,14 @@ sealed interface JarvisChatMessage {
         val streaming: Boolean = false,
         val aborted: Boolean = false,
         val inline: List<JarvisInlineCard> = emptyList(),
+        // Mobile tool-visibility surfaces (all additive / defaulted so
+        // existing call sites and tests stay source-compatible):
+        //  - phases: the progress rail (receiving → … → final)
+        //  - toolCalls: compact, expandable, redacted tool activity
+        //  - records: tappable evidence / decision-ledger references
+        val phases: List<JarvisPhase> = emptyList(),
+        val toolCalls: List<JarvisToolCall> = emptyList(),
+        val records: List<JarvisRecordRef> = emptyList(),
     ) : JarvisChatMessage
 
     /**

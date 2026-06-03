@@ -152,6 +152,118 @@ def models(_req: Request) -> JsonResponse:
     return JsonResponse(200, policy)
 
 
+def model_routes(_req: Request) -> JsonResponse:
+    """Evidence-backed per-task-class model routes (read-only).
+
+    Each task class carries its chosen model, route tier, fallback chain, a
+    human-readable ``why``, the scorecard evidence behind it, and the current
+    owner overrides + paid state. Never accepts or returns API keys.
+    """
+    try:
+        from hermes_cli.jarvis_prime import task_router as tr
+
+        overrides = tr.load_overrides()
+        decisions = tr.all_routes(overrides=overrides)
+        payload = {
+            "routes": [d.to_dict() for d in decisions],
+            "task_classes": [t.value for t in tr.TaskClass],
+            "paid_enabled": bool(decisions[0].paid_enabled) if decisions else False,
+            "overrides": {
+                "task_overrides": overrides.get("task_overrides", {}),
+                "paid_enabled": overrides.get("paid_enabled"),
+                "updated_at": overrides.get("updated_at"),
+            },
+            "generated_at": _now_iso(),
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"routes": [], "error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def model_route_override(req: Request) -> JsonResponse:
+    """Set/clear an owner model override, or flip paid routing (owner-gated).
+
+    Body (any of):
+      * ``task_class`` + ``model`` — pin a task to a model (``model`` empty or
+        null clears the override). Reversible preference; token-authenticated.
+      * ``paid_enabled`` (bool) — flip paid routing. Money-spend gate: requires
+        ``authorization`` to equal the exact owner phrase. Audited via the
+        override store (``authorized_by`` + ``updated_at``).
+    Never accepts API keys.
+    """
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    body = req.body or {}
+    changed: dict[str, Any] = {}
+
+    # Validate the *entire* body before mutating anything. A combined body
+    # (paid flip + a bad task class) must not leave the money-spend gate
+    # changed while the request as a whole returns an error.
+    want_paid = "paid_enabled" in body and body["paid_enabled"] is not None
+    want_task = "task_class" in body
+
+    if not (want_paid or want_task):
+        return JsonResponse(
+            400,
+            {"error": "provide 'task_class'(+'model') and/or 'paid_enabled'"},
+        )
+
+    if want_paid:
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+        phrase = str(body.get("authorization", "")).strip()
+        if phrase != AUTHORIZATION_PHRASE:
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner authorization required to change paid routing",
+                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                },
+            )
+
+    pending_task: tuple[str, str | None] | None = None
+    if want_task:
+        task_class = str(body.get("task_class", "")).strip()
+        try:
+            tr.TaskClass.from_value(task_class)
+        except ValueError:
+            return JsonResponse(400, {"error": f"unknown task class: {task_class!r}"})
+        raw_model = body.get("model")
+        model = str(raw_model).strip() if raw_model else None
+        pending_task = (task_class, model)
+
+    # All inputs validated — now apply the mutations.
+    if want_paid:
+        try:
+            tr.set_paid_enabled(bool(body["paid_enabled"]), authorized=True)
+            changed["paid_enabled"] = bool(body["paid_enabled"])
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+
+    if pending_task is not None:
+        task_class, model = pending_task
+        try:
+            tr.set_task_override(task_class, model)
+            changed["task_class"] = task_class
+            changed["model"] = model
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+
+    overrides = tr.load_overrides()
+    return JsonResponse(
+        200,
+        {
+            "ok": True,
+            "changed": changed,
+            "overrides": {
+                "task_overrides": overrides.get("task_overrides", {}),
+                "paid_enabled": overrides.get("paid_enabled"),
+                "updated_at": overrides.get("updated_at"),
+            },
+        },
+    )
+
+
 # ---------------------------------------------------------------------------
 # Memory (real JARVIS memory store; secret-rejection preserved)
 # ---------------------------------------------------------------------------
@@ -231,6 +343,307 @@ def memory_delete(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Evidence Engine (real Research Vault; hybrid retrieval + citation verify)
+# ---------------------------------------------------------------------------
+
+
+def evidence_list(req: Request) -> JsonResponse:
+    """List/search evidence as canonical ``EvidenceItem`` objects (contract §10d).
+
+    A ``q`` runs the hybrid retrieval engine (BM25 over the vault blended with
+    Memory-Tree hits); without it, the full vault is listed. Honest empty on
+    any failure — never fabricated.
+    """
+    query = req.query.get("q") or req.query.get("query")
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        if query:
+            store = MemoryTreeStore.load()
+            hits = ee.retrieve(query, vault=vault, memory_store=store,
+                               limit=int(req.query.get("limit", "20")))
+            items = [contract.evidence_hit(h) for h in hits]
+            return JsonResponse(200, {"items": [], "hits": items})
+        items = [contract.evidence_card(a) for a in vault.entries()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"items": [], "error": str(exc)})
+    return JsonResponse(200, {"items": items})
+
+
+def evidence_detail(req: Request) -> JsonResponse:
+    """Return one evidence artifact by id."""
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        art = vault.artifacts.get(art_id)
+        if art is None:
+            return JsonResponse(404, {"error": f"unknown evidence: {art_id}"})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"item": contract.evidence_card(art)})
+
+
+def evidence_verify(req: Request) -> JsonResponse:
+    """Verify claims against evidence: citations, uncertain, contradictions.
+
+    Body: ``{"claims": [...], "query": "optional retrieval query"}``. Secrets
+    and chain-of-thought in claims are rejected (never become evidence).
+    """
+    claims = req.body.get("claims") or []
+    if isinstance(claims, str):
+        claims = [claims]
+    if not isinstance(claims, list) or not claims:
+        return JsonResponse(400, {"error": "claims (non-empty list) required"})
+    query = str(req.body.get("query") or " ".join(str(c) for c in claims))
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        store = MemoryTreeStore.load()
+        hits = ee.retrieve(query, vault=vault, memory_store=store, limit=20)
+        result = ee.CitationVerifier().verify(
+            [str(c) for c in claims], hits, memory_store=store
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.evidence_verify_result(result))
+
+
+def evidence_promote(req: Request) -> JsonResponse:
+    """Promote an evidence artifact into durable Memory Tree.
+
+    Routes through ``MemoryTreeStore.write`` so the write policy (secret /
+    chain-of-thought rejection, durable confidence floor, provenance) is
+    preserved. A low-confidence promotion needs the owner authorization
+    phrase — otherwise it is honestly rejected (422), never auto-promoted.
+    """
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    authorization = str(req.body.get("authorization") or "")
+    try:
+        from hermes_cli.jarvis_prime import evidence_engine as ee
+        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        vault = ResearchVault.load()
+        art = vault.artifacts.get(art_id)
+        if art is None:
+            return JsonResponse(404, {"error": f"unknown evidence: {art_id}"})
+
+        owner_approved = authorization == AUTHORIZATION_PHRASE
+        store = MemoryTreeStore.load()
+        result = ee.promote_to_memory(art, store, owner_approved=owner_approved)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    if not result.ok:
+        return JsonResponse(
+            422,
+            {
+                "promoted": False,
+                "reasons": list(result.reasons),
+                "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+            },
+        )
+    payload: dict[str, Any] = {"promoted": True, "node_id": result.node.id if result.node else None}
+    if result.contradiction is not None:
+        payload["contradiction"] = result.contradiction.to_dict()
+    return JsonResponse(201, payload)
+
+
+def evidence_demote(req: Request) -> JsonResponse:
+    """Remove an evidence artifact from the vault (demotion)."""
+    art_id = req.path_params.get("id", "")
+    if not art_id:
+        return JsonResponse(400, {"error": "evidence id required"})
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        vault = ResearchVault.load()
+        removed = 1 if vault.artifacts.pop(art_id, None) is not None else 0
+        if removed:
+            vault.save()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"removed": removed})
+# Memory Tree (MEM-2): proposed inbox, owner decisions, contradictions,
+# freshness. Backed by the provenance-first MemoryTreeStore — the same store
+# the live JARVIS loop captures into. The flat /memory endpoints above are
+# untouched (backward compatible).
+# ---------------------------------------------------------------------------
+
+
+def _load_memory_tree():
+    """Load the live Memory Tree from the HERMES_HOME-aware default path."""
+    from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+
+    return MemoryTreeStore.load()
+
+
+def memory_tree_search(req: Request) -> JsonResponse:
+    """Ranked Memory Tree search (contested excluded unless asked)."""
+    query = req.query.get("q") or req.query.get("query") or ""
+    include_contested = str(
+        req.query.get("include_contested", "")
+    ).strip().lower() in ("1", "true", "yes")
+    limit = int(req.query.get("limit", "25"))
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        hits = store.search(query, include_contested=include_contested, limit=limit)
+        nodes = [contract.memory_tree_node(h.node) for h in hits]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
+
+
+def memory_tree_proposed(req: Request) -> JsonResponse:
+    """The proposed-memory inbox: candidates awaiting an owner decision."""
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        nodes = [contract.memory_tree_node(n) for n in store.proposed()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
+
+
+def memory_tree_decision(req: Request) -> JsonResponse:
+    """Owner decision on a proposed node: approve | reject | supersede.
+
+    - ``approve`` promotes to durable. If promotion conflicts with an existing
+      durable fact the contradiction is returned — never a silent overwrite.
+    - ``reject`` marks the node rejected (excluded from recall).
+    - ``supersede`` requires ``supersedes_id`` (the older node this replaces).
+    """
+    node_id = req.path_params.get("id", "")
+    decision = str(req.body.get("decision", "")).strip().lower()
+    if decision not in ("approve", "reject", "supersede"):
+        return JsonResponse(
+            400, {"error": "decision must be approve, reject, or supersede"}
+        )
+    try:
+        from hermes_cli.jarvis_prime.memory_tree import ApprovalState
+
+        from . import contract
+
+        store = _load_memory_tree()
+        if store.get(node_id) is None:
+            return JsonResponse(404, {"error": f"unknown memory node: {node_id}"})
+
+        if decision == "approve":
+            result = store.promote_to_durable(node_id)
+            payload: dict[str, Any] = {
+                "decided": "approve",
+                "node": contract.memory_tree_node(result.node),
+            }
+            if result.contradiction is not None:
+                payload["contradiction"] = contract.contradiction_view(
+                    result.contradiction
+                )
+            return JsonResponse(200, payload)
+
+        if decision == "reject":
+            node = store.set_approval(node_id, ApprovalState.REJECTED)
+            return JsonResponse(
+                200, {"decided": "reject", "node": contract.memory_tree_node(node)}
+            )
+
+        # supersede
+        supersedes_id = str(req.body.get("supersedes_id", "")).strip()
+        if not supersedes_id:
+            return JsonResponse(
+                400, {"error": "supersede requires supersedes_id"}
+            )
+        if store.get(supersedes_id) is None:
+            return JsonResponse(
+                404, {"error": f"unknown node to supersede: {supersedes_id}"}
+            )
+        note = str(req.body.get("note", ""))
+        loser = store.supersede(supersedes_id, node_id, note=note)
+        # The approving node is also owner-confirmed by the supersession.
+        store.set_approval(node_id, ApprovalState.OWNER_APPROVED)
+        return JsonResponse(
+            200,
+            {
+                "decided": "supersede",
+                "winner": contract.memory_tree_node(store.get(node_id)),
+                "superseded": contract.memory_tree_node(loser),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def memory_contradictions(req: Request) -> JsonResponse:
+    """Open (contested) contradiction reports awaiting resolution."""
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        items = [contract.contradiction_view(r) for r in store.open_contradictions()]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"contradictions": [], "error": str(exc)})
+    return JsonResponse(200, {"contradictions": items})
+
+
+def memory_contradiction_resolve(req: Request) -> JsonResponse:
+    """Resolve a contradiction: the winner stays, the loser is superseded."""
+    report_id = req.path_params.get("id", "")
+    winner_id = str(req.body.get("winner_id", "")).strip()
+    if not winner_id:
+        return JsonResponse(400, {"error": "winner_id is required"})
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        if report_id not in store.contradictions:
+            return JsonResponse(404, {"error": f"unknown contradiction: {report_id}"})
+        report = store.resolve_contradiction(
+            report_id, winner_id=winner_id, note=str(req.body.get("note", ""))
+        )
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, {"resolved": contract.contradiction_view(report)})
+
+
+def memory_freshness(req: Request) -> JsonResponse:
+    """Nodes overdue (or within ``within_days``) for a freshness review."""
+    within_days = int(req.query.get("within_days", "0"))
+    try:
+        from . import contract
+
+        store = _load_memory_tree()
+        nodes = [
+            contract.memory_tree_node(n) for n in store.due_for_review(within_days)
+        ]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"nodes": [], "error": str(exc)})
+    return JsonResponse(200, {"nodes": nodes})
+
+
+# ---------------------------------------------------------------------------
 # Audit (decision ledger) + tasks (job queue)
 # ---------------------------------------------------------------------------
 
@@ -304,7 +717,8 @@ def jobs_list(_req: Request) -> JsonResponse:
             jobs.append(contract.cockpit_job(entry))
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(
-            200, {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)}
+            200,
+            {"jobs": [], "next_cursor": None, "prev_cursor": None, "error": str(exc)},
         )
     # Also surface orchestrator (/orchestrate) jobs — a separate store from the
     # JobQueue — so the app's Jobs list reflects the whole pipeline, not just
@@ -317,7 +731,7 @@ def jobs_list(_req: Request) -> JsonResponse:
             jobs.append(contract.orchestrator_job(job))
     except Exception:  # pragma: no cover - defensive
         pass
-    jobs.sort(key=lambda j: (j.get("created_at") or ""), reverse=True)
+    jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
     return JsonResponse(200, {"jobs": jobs, "next_cursor": None, "prev_cursor": None})
 
 
@@ -407,41 +821,25 @@ def job_run(req: Request) -> JsonResponse:
     authorization = str(req.body.get("authorization", "")).strip()
     try:
         from hermes_cli import orchestrator as orch
-        from hermes_cli.workers import builtin_worker_classes, load_builtins
 
         from . import contract
 
-        load_builtins()
         job = orch.get_job(job_id)
         if job is None:
             return JsonResponse(404, {"error": f"unknown job: {job_id}"})
 
-        classes = {c.id: c for c in builtin_worker_classes()}
-        worker_cls = classes.get(worker_id)
-        if worker_cls is None:
-            return JsonResponse(400, {"error": f"unknown worker: {worker_id}"})
-        requires_approval = bool(getattr(worker_cls, "requires_approval", True))
-
-        if requires_approval:
-            if _ALLOW_REMOTE_EXECUTE:
-                return JsonResponse(
-                    403,
-                    {
-                        "error": "agentic execution is disabled on a non-loopback "
-                        "cockpit; run the runtime locally (loopback) to use "
-                        f"{worker_id!r}.",
-                    },
-                )
-            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-
-            if authorization != AUTHORIZATION_PHRASE:
-                return JsonResponse(
-                    403,
-                    {
-                        "error": "owner approval required to run an execute lane",
-                        "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
-                    },
-                )
+        gate = _evaluate_execute_gate(worker_id, authorization)
+        if gate.error is not None:
+            return gate.error
+        if gate.requires_approval and not gate.authorized:
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner approval required to run an execute lane",
+                    "hint": gate.authorization_hint,
+                },
+            )
+        if gate.requires_approval:
             orch.approve_phase(job_id, "execute")
 
         out = orch.dispatch_job(job_id, worker_id=worker_id)
@@ -454,7 +852,9 @@ def job_run(req: Request) -> JsonResponse:
         ]
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
-    return JsonResponse(200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]})
+    return JsonResponse(
+        200, {"job": contract.orchestrator_job(out), "worker_trail": trail[-6:]}
+    )
 
 
 def job_lanes(_req: Request) -> JsonResponse:
@@ -582,25 +982,453 @@ def room_place(req: Request) -> JsonResponse:
 
 
 def job_cancel(req: Request) -> JsonResponse:
-    """Cancel a job (contract §4). 409 if already terminal."""
+    """Cancel a job (contract §4). 409 if already terminal.
+
+    Resolves the id against both stores so the Job Detail cockpit's Cancel
+    control works for either: a JobQueue entry cancels via
+    ``JobQueue.cancel_job``; an orchestrator (/orchestrate) job via
+    ``orchestrator.cancel_job`` (which leaves an already-published job alone
+    so the publish record stays honest). 404 only when the id is in neither.
+    """
     job_id = req.path_params.get("id", "")
     reason = req.body.get("reason")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
+
+    if kind == "queue":
+        try:
+            from hermes_cli.job_queue import JobQueue, QueueState
+
+            if obj.state in QueueState.TERMINAL:
+                return JsonResponse(409, {"error": f"job already {obj.state}"})
+            entry = JobQueue().cancel_job(job_id, note=str(reason) if reason else None)
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+        return JsonResponse(200, contract.cockpit_job(entry))
     try:
-        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError, QueueState
+        from hermes_cli import orchestrator as _orch
+
+        out = _orch.cancel_job(job_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
+
+
+# ---------------------------------------------------------------------------
+# Job detail + controls (read-only ledger; pause/resume/rerun/approve/diff/validate)
+# ---------------------------------------------------------------------------
+#
+# A job id addresses one of two stores: the JobQueue (cockpit-dispatched
+# queue entries) or the orchestrator (/orchestrate flow). Every control
+# resolves the id against both — JobQueue first, orchestrator as fallback —
+# exactly like ``job_get``. We never invent a third store.
+
+
+def _resolve_job(job_id: str) -> tuple[Optional[str], Any]:
+    """Return ``("queue"|"orchestrator", obj)`` or ``(None, None)`` if unknown."""
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError
+
+        try:
+            return "queue", JobQueue().get_job(job_id)
+        except JobQueueNotFoundError:
+            pass
+    except Exception:  # pragma: no cover - defensive (queue import/load failure)
+        pass
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        ojob = _orch.get_job(job_id)
+        if ojob is not None:
+            return "orchestrator", ojob
+    except Exception:  # pragma: no cover - defensive
+        pass
+    return None, None
+
+
+def job_ledger(req: Request) -> JsonResponse:
+    """Read-only job detail + decision-ledger timeline (contract §4).
+
+    Surfaces the execution story the Job Detail screen renders: objective,
+    plan, worker assignments, current step, evidence, files touched, commands
+    run, test results, approvals, timeline, rollback. Honest derivation only.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
+
+    if kind == "queue":
+        return JsonResponse(200, contract.queue_job_detail(obj))
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        entries = _orch.get_ledger(job_id).get(job_id, [])
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.orchestrator_job_detail(obj, entries))
+
+
+def job_pause(req: Request) -> JsonResponse:
+    """Pause a running/queued job (contract §4). Queue jobs only.
+
+    Orchestrator (/orchestrate) jobs have no scheduler-side pause — they
+    advance only on explicit owner approval — so pausing one is an honest
+    409 rather than a fabricated no-op.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if kind != "queue":
+        return JsonResponse(
+            409,
+            {"error": "pause applies to queue jobs; orchestrator jobs pause by "
+             "withholding approval, not by a scheduler toggle"},
+        )
+    try:
+        from hermes_cli.job_queue import JobQueue, JobQueueError
 
         from . import contract
 
-        queue = JobQueue()
-        try:
-            entry = queue.get_job(job_id)
-        except JobQueueNotFoundError:
-            return JsonResponse(404, {"error": f"unknown job: {job_id}"})
-        if entry.state in QueueState.TERMINAL:
-            return JsonResponse(409, {"error": f"job already {entry.state}"})
-        entry = queue.cancel_job(job_id, note=str(reason) if reason else None)
+        reason = req.body.get("reason")
+        entry = JobQueue().pause_job(job_id, note=str(reason) if reason else None)
+    except JobQueueError as exc:
+        return JsonResponse(409, {"error": str(exc)})
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
     return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def job_resume(req: Request) -> JsonResponse:
+    """Resume a paused/blocked/disconnected/failed job (contract §4).
+
+    The unblock action for a blocked job. Re-queues a queue entry (the
+    dispatcher claims it next) or re-queues an orchestrator job. Reversible
+    and local — no owner phrase required to *resume* already-approved work.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    from . import contract
+
+    if kind == "queue":
+        try:
+            from hermes_cli.job_queue import JobQueue, JobQueueError
+
+            reason = req.body.get("reason")
+            entry = JobQueue().resume_job(job_id, note=str(reason) if reason else None)
+        except JobQueueError as exc:
+            return JsonResponse(409, {"error": str(exc)})
+        except Exception as exc:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": str(exc)})
+        return JsonResponse(200, contract.cockpit_job(entry))
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        out = _orch.resume_job(job_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
+
+
+def job_rerun(req: Request) -> JsonResponse:
+    """Rerun a failed/disconnected step (contract §4). Queue jobs only.
+
+    Resets one failed worker so the dispatcher runs it again. ``worker_id``
+    may be passed explicitly; otherwise the first non-successful worker is
+    chosen. Reversible and local.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if kind != "queue":
+        return JsonResponse(
+            409, {"error": "rerun applies to queue jobs (per-worker retry)"}
+        )
+    try:
+        from hermes_cli.job_queue import (
+            JobQueue,
+            JobQueueError,
+            WorkerNotFoundError,
+            WorkerStatus,
+        )
+
+        from . import contract
+
+        worker_id = str(req.body.get("worker_id", "")).strip()
+        if not worker_id:
+            retryable = {
+                WorkerStatus.FAILED,
+                WorkerStatus.DISCONNECTED,
+                WorkerStatus.BLOCKED,
+            }
+            for w in getattr(obj, "workers", None) or []:
+                if getattr(w, "status", "") in retryable:
+                    worker_id = w.worker_id
+                    break
+        if not worker_id:
+            return JsonResponse(
+                400,
+                {"error": "no failed/blocked worker to rerun; pass worker_id"},
+            )
+        entry = JobQueue().retry_worker(job_id, worker_id)
+    except WorkerNotFoundError as exc:
+        return JsonResponse(404, {"error": str(exc)})
+    except JobQueueError as exc:
+        return JsonResponse(409, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, contract.cockpit_job(entry))
+
+
+def job_approve(req: Request) -> JsonResponse:
+    """Approve a gated job phase (contract §4) — owner gate preserved.
+
+    Double-gated exactly like ``job_run``:
+      1. **Owner phrase** — ``authorization`` must equal the exact owner phrase.
+      2. **Loopback-only** — refused on a non-loopback (``--allow-external``)
+         cockpit, so a network-reachable cockpit can't grant execute.
+    Targets orchestrator job phases (``execute``/``publish``/``remote``/…).
+    """
+    job_id = req.path_params.get("id", "")
+    phase = str(req.body.get("phase", "execute")).strip() or "execute"
+    authorization = str(req.body.get("authorization", "")).strip()
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403,
+            {"error": "owner approvals are disabled on a non-loopback cockpit; "
+             "run the runtime locally (loopback) to approve gated phases"},
+        )
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if authorization != AUTHORIZATION_PHRASE:
+        return JsonResponse(
+            403,
+            {"error": "owner approval required to grant a gated phase",
+             "hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}"},
+        )
+    if kind != "orchestrator":
+        return JsonResponse(
+            409, {"error": "approve targets orchestrator job phases"}
+        )
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        from . import contract
+
+        out = _orch.approve_phase(job_id, phase)
+    except ValueError as exc:
+        return JsonResponse(400, {"error": str(exc)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if out is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, contract.orchestrator_job(out))
+
+
+def job_diff(req: Request) -> JsonResponse:
+    """Read-only working-tree diff for a job's workspace (contract §4/§6).
+
+    "Open patch" on mobile. Runs ``git diff`` in the job's workspace (vs the
+    job's base branch when recorded). Honest empty when the job has no
+    workspace (orchestrator jobs don't carry one). Read-only — never edits.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = ""
+    base: Optional[str] = None
+    if kind == "queue":
+        workspace = str(getattr(obj, "repo_root", "") or "")
+        base = (dict(getattr(obj, "metadata", None) or {})).get("base_branch")
+    if not workspace:
+        return JsonResponse(200, {"files": [], "diff": "", "truncated": False})
+    return JsonResponse(200, _git_diff(workspace, base))
+
+
+def job_validate(req: Request) -> JsonResponse:
+    """Run verification gates against a job's workspace (contract §4/§7).
+
+    "Run verification" on mobile. Executes the real ``ValidationRunner`` and
+    projects its report into the canonical ``ValidationSnapshot`` shape — pass/
+    fail come from the actual checks, never fabricated. Honest 409 when the job
+    has no workspace to validate.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
+    if not workspace:
+        return JsonResponse(
+            409, {"error": "job has no workspace to validate"}
+        )
+    try:
+        from hermes_cli.validation import STATUS_FAIL, ValidationRunner
+
+        report = ValidationRunner(workspace).run()
+        gates = []
+        for r in report.results:
+            gates.append({
+                "id": r.name,
+                "name": r.name,
+                "status": str(r.status).upper(),
+                "summary": r.summary,
+                "log_excerpt": (r.stderr or r.stdout or "")[:2000] or None,
+                "override_allowed": not bool(r.critical),
+            })
+        payload = {
+            "gates": gates,
+            "policy": {"all_must_pass": True, "override_requires_note": True},
+            "publish_allowed": bool(report.publish_allowed),
+            "blocking_failures": list(report.blocking_failures),
+        }
+        _ = STATUS_FAIL  # referenced for intent; counts live in gates
+    except Exception as exc:  # pragma: no cover - defensive (runner/env failure)
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def _git_diff(workspace: str, base: Optional[str], *, limit: int = 200_000) -> dict[str, Any]:
+    """Run ``git diff`` (and ``--numstat``) in ``workspace``; honest on failure."""
+    import subprocess
+    from pathlib import Path
+
+    ws = Path(workspace)
+    if not ws.is_dir():
+        return {"files": [], "diff": "", "truncated": False}
+    rev = f"{base}...HEAD" if base else None
+
+    def _run(args: list[str]) -> str:
+        try:
+            out = subprocess.run(
+                ["git", "-C", str(ws), *args],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+            return out.stdout if out.returncode == 0 else ""
+        except Exception:
+            return ""
+
+    diff_args = ["diff"] + ([rev] if rev else [])
+    diff_text = _run(diff_args)
+    numstat = _run(["diff", "--numstat"] + ([rev] if rev else []))
+    files: list[dict[str, Any]] = []
+    for line in numstat.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        added, removed, path = parts
+        files.append({
+            "path": path,
+            "additions": int(added) if added.isdigit() else 0,
+            "deletions": int(removed) if removed.isdigit() else 0,
+        })
+    truncated = len(diff_text) > limit
+    return {"files": files, "diff": diff_text[:limit], "truncated": truncated}
+
+
+# ---------------------------------------------------------------------------
+# Autonomy (Owner High-Autonomy Coding mode) + emergency stop
+# ---------------------------------------------------------------------------
+
+
+def autonomy_get(_req: Request) -> JsonResponse:
+    """Current autonomy level, workspace scope, and capability list.
+
+    The capability list is derived from ``hermes_cli.approval_policy`` so the
+    cockpit never hard-codes a list that could drift from the policy engine.
+    """
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        record = ap.load_record()
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_set(req: Request) -> JsonResponse:
+    """Set the autonomy level (owner action) or revoke back to ASSISTED.
+
+    Body: ``{"level": "owner_high_autonomy_coding", "workspace_path": "..."}``
+    or ``{"revoke": true}``. The change is recorded in the approval audit log
+    so the audit trail shows when autonomy was raised or revoked, and by what.
+    """
+    body = req.body or {}
+    try:
+        from hermes_cli import approval_policy as ap
+
+        from . import contract
+
+        if body.get("revoke"):
+            record = ap.revoke(set_by="cockpit")
+        else:
+            raw_level = str(body.get("level", "")).strip().lower()
+            try:
+                level = ap.AutonomyLevel(raw_level)
+            except ValueError:
+                return JsonResponse(
+                    400,
+                    {"error": f"unknown autonomy level: {raw_level!r}"},
+                )
+            workspace = str(body.get("workspace_path") or "")
+            if level is ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING and not workspace:
+                return JsonResponse(
+                    400,
+                    {"error": "owner_high_autonomy_coding requires a workspace_path scope"},
+                )
+            record = ap.save_level(level, workspace_root=workspace, set_by="cockpit")
+        # Audit the mode change itself.
+        try:
+            audit_req = ap.ApprovalRequest(
+                action=ap.Action.SAFE_READ,
+                summary=f"autonomy set to {record.level.value}",
+                target=record.workspace_root,
+                details={"event": "autonomy_change", "set_by": record.set_by},
+            )
+            ap.record_decision(
+                audit_req,
+                ap.ApprovalResult(ap.Decision.ALLOW, "owner set autonomy", False),
+                actor="cockpit",
+            )
+        except Exception:  # pragma: no cover - auditing is best-effort
+            pass
+        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def autonomy_decisions(req: Request) -> JsonResponse:
+    """Recent (already-redacted) policy decisions for the audit trail."""
+    try:
+        from hermes_cli import approval_policy as ap
+
+        limit_raw = req.query.get("limit", "50")
+        try:
+            limit = max(1, min(500, int(limit_raw)))
+        except (TypeError, ValueError):
+            limit = 50
+        return JsonResponse(200, {"decisions": ap.read_decisions(limit=limit)})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
 
 
 # ---------------------------------------------------------------------------
@@ -719,13 +1547,268 @@ def navigation_list(req: Request) -> JsonResponse:
         ledger = orch.get_ledger() or {}
         for job_id, entries in ledger.items():
             for entry in entries or []:
-                if isinstance(entry, dict) and entry.get("kind") == "navigation_decision":
+                if (
+                    isinstance(entry, dict)
+                    and entry.get("kind") == "navigation_decision"
+                ):
                     items.append(contract.navigation_view(entry, job_id=job_id))
         items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         items = items[:limit]
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(200, {"navigations": [], "error": str(exc)})
     return JsonResponse(200, {"navigations": items})
+
+
+# ---------------------------------------------------------------------------
+# GraphRAG — related files/sources/decisions, query modes (cognition plane)
+# ---------------------------------------------------------------------------
+
+
+def _graph_repo_root():
+    import os
+    from pathlib import Path
+
+    return Path(os.environ.get("HERMES_REPO_ROOT") or os.getcwd())
+
+
+def _load_graph():
+    """Load the cached knowledge graph, building it on first use.
+
+    The graph is an additive cache (``~/.hermes/jarvis_prime/graph/``) rebuilt
+    from the repo + local stores; building is read-only over those sources.
+    """
+
+    from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+
+    store = GraphStore()
+    graph = store.load()
+    if not graph.nodes:
+        graph, _ = build_and_save(_graph_repo_root(), store=store)
+    return graph
+
+
+def graph_related(req: Request) -> JsonResponse:
+    """Related files / sources / decisions for an entity. Accepts ``node`` (a
+    graph node id or key), or one of ``job_id`` / ``memory_id`` /
+    ``evidence_id`` which are resolved to a node. Honest empty when the entity
+    is not in the graph yet.
+    """
+    try:
+        from hermes_cli.jarvis_prime.graphrag import find_entity_node, related_items
+
+        from . import contract
+
+        graph = _load_graph()
+        q = req.query
+        explicit = q.get("node", "")
+        key = (
+            q.get("job_id")
+            or (f"memory:{q['memory_id']}" if q.get("memory_id") else "")
+            or q.get("evidence_id")
+            or explicit
+        )
+        node_id_ = find_entity_node(graph, node=explicit or None, key=key or None)
+        if not node_id_:
+            return JsonResponse(200, contract.graph_related_view([], node=key))
+        items = related_items(graph, node_id_, limit=int(q.get("limit", "30")))
+        return JsonResponse(
+            200, contract.graph_related_view(items, node=node_id_, origin=key)
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"node": "", "related": [], "error": str(exc)})
+
+
+def graph_query(req: Request) -> JsonResponse:
+    """Run a GraphRAG query (``mode`` = local | global | coding)."""
+    try:
+        from hermes_cli.jarvis_prime.graphrag import (
+            coding_query,
+            global_query,
+            local_query,
+        )
+
+        from . import contract
+
+        graph = _load_graph()
+        mode = req.query.get("mode", "local")
+        question = req.query.get("q", "")
+        if mode == "global":
+            answer = global_query(graph, question)
+        elif mode == "coding":
+            answer = coding_query(graph, question)
+        else:
+            answer = local_query(graph, question)
+        return JsonResponse(200, contract.graph_answer_view(answer.to_dict()))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"mode": "", "nodes": [], "edges": [], "error": str(exc)})
+
+
+def graph_build(_req: Request) -> JsonResponse:
+    """Rebuild + persist the knowledge-graph cache. Read-only over the repo and
+    local stores (no repo edits, no network); not an owner-gated action.
+    """
+    try:
+        from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+
+        graph, path = build_and_save(_graph_repo_root(), store=GraphStore())
+        return JsonResponse(200, {"saved": str(path), **graph.stats()})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+# Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
+# ---------------------------------------------------------------------------
+
+
+def ledger_timeline(req: Request) -> JsonResponse:
+    """Redacted, filterable timeline over the orchestrator event ledger.
+
+    Reads every job's ``~/.hermes/jobs/<id>/ledger.jsonl`` via
+    ``orchestrator_ledger.all_ledgers`` and projects each entry into a
+    canonical, secret-scrubbed ``LedgerEvent``. Supports query filters:
+    ``job``, ``risk``, ``worker``, ``category`` (or ``kind``), ``file``
+    (substring), ``since``/``until`` (ISO-8601 prefix compare), ``limit``
+    (default 100), ``order`` (``desc`` newest-first default / ``asc``).
+    Honest empty list when nothing has run yet.
+    """
+    q = req.query
+    limit = _int(q.get("limit"), 100)
+    order = (q.get("order") or "desc").lower()
+    want_job = q.get("job")
+    want_risk = (q.get("risk") or "").upper() or None
+    want_worker = q.get("worker")
+    want_cat = (q.get("category") or q.get("kind") or "").upper() or None
+    want_file = (q.get("file") or "").lower() or None
+    since = q.get("since")
+    until = q.get("until")
+
+    events: list[dict[str, Any]] = []
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        ledgers = ol.all_ledgers()
+        for job_id, entries in ledgers.items():
+            if want_job and job_id != want_job:
+                continue
+            for index, entry in enumerate(entries or []):
+                if not isinstance(entry, dict):
+                    continue
+                ev = contract.ledger_event(entry, job_id=job_id, index=index)
+                if want_risk and ev["risk_tier"] != want_risk:
+                    continue
+                if want_cat and ev["category"] != want_cat and ev["kind"].upper() != want_cat:
+                    continue
+                if want_worker and (ev["worker"] or "") != want_worker and want_worker.lower() not in (ev["worker"] or "").lower():
+                    continue
+                if want_file and not any(want_file in f.lower() for f in ev["files"]):
+                    continue
+                ts = ev["timestamp"]
+                if ts and since and _before_bound(ts, since):
+                    continue
+                if ts and until and _after_bound(ts, until):
+                    continue
+                events.append(ev)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"events": [], "error": str(exc)})
+
+    events.sort(key=lambda e: (e.get("timestamp") or "", e.get("id") or ""), reverse=(order != "asc"))
+    if limit > 0:
+        events = events[:limit]
+    return JsonResponse(200, {"events": events})
+
+
+def ledger_event_detail(req: Request) -> JsonResponse:
+    """Full redacted detail for one timeline event (``{job}/{index}``)."""
+    job_id = req.path_params.get("job", "")
+    index = _int(req.path_params.get("index"), -1)
+    if not job_id or index < 0:
+        return JsonResponse(400, {"error": "job and integer index are required"})
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        entries = ol.read(job_id)
+        if index >= len(entries):
+            return JsonResponse(404, {"error": f"no ledger event {job_id}:{index}"})
+        return JsonResponse(200, contract.ledger_event_detail(entries[index], job_id=job_id, index=index))
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+
+def ledger_rollback_request(req: Request) -> JsonResponse:
+    """Raise an **owner-gated** rollback request for a timeline event.
+
+    This never executes a rollback. It enqueues a proposal into the same
+    owner-approval queue the Approvals screen reads (``proposals.jsonl``),
+    so the rollback must still be approved with the exact owner phrase via
+    ``POST /v1/cockpit/approvals/{id}`` before anything happens. Returns the
+    canonical ``ApprovalCard`` for the new request.
+    """
+    job_id = req.path_params.get("job", "")
+    index = _int(req.path_params.get("index"), -1)
+    if not job_id or index < 0:
+        return JsonResponse(400, {"error": "job and integer index are required"})
+    reason = str(req.body.get("reason", "")).strip()
+
+    # Confirm the event exists (and capture a short label) before queuing.
+    try:
+        from hermes_cli import orchestrator_ledger as ol
+
+        from . import contract
+
+        entries = ol.read(job_id)
+        if index >= len(entries):
+            return JsonResponse(404, {"error": f"no ledger event {job_id}:{index}"})
+        ev = contract.ledger_event(entries[index], job_id=job_id, index=index)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    proposal = {
+        "kind": "rollback",
+        "target_path": ev["id"],
+        "rationale": reason or f"Rollback requested for {ev['kind']} on job {job_id}",
+        "risk_class": "RC3",
+        "status": "proposed",
+        "requires_owner_approval": True,
+        "created_at": _now_iso(),
+        "source": "cockpit-ledger",
+    }
+    items = _load_proposals()
+    items.append(proposal)
+    _save_proposals(items)
+
+    from . import contract
+
+    return JsonResponse(
+        201, contract.approval_card(proposal, approval_id=_proposal_id(proposal))
+    )
+
+
+def _int(value: Any, default: int) -> int:
+    try:
+        return int(str(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _date_only(value: str) -> bool:
+    """True for a bare ``YYYY-MM-DD`` (the filter panel's date fields)."""
+    return len(value) == 10 and value[4] == "-" and value[7] == "-"
+
+
+def _before_bound(ts: str, since: str) -> bool:
+    """True when ``ts`` is before the lower bound. A date-only ``since`` is
+    inclusive from the start of that calendar day."""
+    return ts[:10] < since if _date_only(since) else ts < since
+
+
+def _after_bound(ts: str, until: str) -> bool:
+    """True when ``ts`` is past the upper bound. A date-only ``until`` is
+    inclusive of the *whole* day, so ``until=2026-06-02`` keeps events like
+    ``2026-06-02T12:05:00+00:00`` (a plain ``ts > until`` would drop them —
+    the longer ISO string sorts greater than the bare date)."""
+    return ts[:10] > until if _date_only(until) else ts > until
 
 
 def approvals_decide(req: Request) -> JsonResponse:
@@ -765,6 +1848,235 @@ def approvals_decide(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Learning Queue (the JARVIS learning-dataset candidate queue)
+# ---------------------------------------------------------------------------
+
+
+def _learning_store():
+    """Load the learning-dataset store (profile-aware via ``get_hermes_home``)."""
+
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+
+    return DatasetStore.load()
+
+
+def learning_list(req: Request) -> JsonResponse:
+    """The learning-dataset candidate queue as provenance-first cards.
+
+    Honest empty list when the store is missing or the pipeline is
+    unavailable — never fabricated.
+    """
+
+    try:
+        from . import contract
+
+        store = _learning_store()
+        trace_type = req.query.get("trace_type")
+        status = req.query.get("status")
+        cards = []
+        for cand in store.entries():
+            d = cand.to_dict()
+            if trace_type and d.get("trace_type") != trace_type:
+                continue
+            if status and d.get("status") != status:
+                continue
+            cards.append(contract.learning_card(d, candidate_id=cand.id))
+        return JsonResponse(200, {"learning": cards})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"learning": [], "error": str(exc)})
+
+
+def learning_decide(req: Request) -> JsonResponse:
+    """Approve/reject a learning candidate. Approve requires the owner phrase."""
+
+    candidate_id = req.path_params.get("id", "")
+    decision = str(req.body.get("decision", "")).lower().strip()
+    if decision not in ("approve", "reject"):
+        return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
+
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if decision == "approve":
+        phrase = str(req.body.get("authorization", "")).strip()
+        if phrase != AUTHORIZATION_PHRASE:
+            # Owner-gate contract: exact phrase required. Never bypass.
+            return JsonResponse(
+                403,
+                {
+                    "error": "owner authorization required",
+                    "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+                },
+            )
+
+    store = _learning_store()
+    if store.get(candidate_id) is None:
+        return JsonResponse(404, {"error": f"unknown candidate: {candidate_id}"})
+    note = str(req.body.get("notes", "") or f"{decision} via cockpit")
+    if decision == "approve":
+        store.approve(candidate_id, note=note)
+    else:
+        store.reject(candidate_id, note=note)
+    return JsonResponse(200, {"id": candidate_id, "status": decision})
+
+
+def learning_export(req: Request) -> JsonResponse:
+    """Report exportable counts per format (read-only; never streams secrets)."""
+
+    try:
+        from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
+
+        store = _learning_store()
+        approved = store.entries(status=CandidateStatus.APPROVED)
+        eligible = [c for c in approved if c.is_negative or c.quality.passed(c.trace_type)]
+        return JsonResponse(
+            200,
+            {
+                "formats": ["jsonl", "preference_pairs", "eval_cases", "skill_candidates"],
+                "approved": len(approved),
+                "exportable": len(eligible),
+                "pending": len(store.pending()),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"formats": [], "error": str(exc)})
+# Voice intake (mobile-native, hands-free)
+# ---------------------------------------------------------------------------
+#
+# These two handlers expose the *canonical* voice-intake pipeline
+# (``hermes_cli.voice_intake`` + ``voice_models``) to the cockpit so the
+# Android app reuses one source of truth for read-back, intent
+# classification, secret redaction, and the driving-mode safety veto —
+# instead of reimplementing any of it client-side. Nothing here captures
+# audio; the app sends an already-transcribed string.
+
+
+def _voice_job_submitter(prompt: str) -> str:
+    """Enqueue an approved voice intake onto the same queue ``jobs_dispatch``
+    uses. Returns the new job id. No new orchestration primitive — this is
+    the existing ``JobQueue`` path with a voice provenance tag."""
+    import secrets as _secrets
+
+    from hermes_cli.job_queue import JobQueue
+
+    job_id = "job_" + _secrets.token_hex(8)
+    JobQueue().add_job(
+        job_id=job_id,
+        prompt=prompt,
+        repo_root="",
+        workers=[],
+        metadata={"title": "voice intake", "source": "cockpit-voice"},
+    )
+    return job_id
+
+
+def voice_intake_create(req: Request) -> JsonResponse:
+    """Open a voice intake from a transcript and return the read-back.
+
+    Body: ``{transcript, mode?}``. ``mode`` is normalised server-side
+    (unknown/typo'd modes collapse to ``push_to_talk`` — never silently
+    driving). The draft is classified and the read-back built, but nothing
+    is submitted: the app must call ``/decide`` with an explicit phrase.
+    """
+    text = str(req.body.get("transcript", "")).strip()
+    if not text:
+        return JsonResponse(400, {"error": "transcript is required"})
+
+    from hermes_cli import voice_intake as vi
+    from hermes_cli.voice_models import (
+        VoiceDisabledError,
+        VoiceIntakeConfig,
+        VoiceTranscript,
+        normalize_mode,
+    )
+
+    mode = normalize_mode(req.body.get("mode"))
+    try:
+        intake = vi.begin_intake(VoiceIntakeConfig(mode=mode))
+    except VoiceDisabledError as exc:
+        return JsonResponse(409, {"error": str(exc), "state": "disabled"})
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    provider = str(req.body.get("provider", "cockpit")) or "cockpit"
+    intake = vi.ingest_transcript(intake, VoiceTranscript(text=text, provider=provider))
+    readback = vi.build_readback(intake)
+    return JsonResponse(
+        201,
+        {
+            "id": intake.id,
+            "mode": intake.mode,
+            "readback": readback,
+            "approval_state": intake.approval.state,
+            "draft": {
+                "intent": intake.draft.intent,
+                "summary": intake.draft.summary,
+                "publish_action": intake.draft.publish_action,
+                "requires_implementation": intake.draft.requires_implementation,
+            },
+        },
+    )
+
+
+def voice_intake_decide(req: Request) -> JsonResponse:
+    """Resolve a voice intake with an explicit spoken/typed phrase.
+
+    Body: ``{phrase}`` (may be omitted/null to mean "the window closed").
+    The phrase is interpreted by ``record_decision`` — only an explicit
+    affirmative approves. A driving-mode publish that *was* approved still
+    raises ``DrivingSafetyVeto`` → ``409``; the action queues for a
+    non-driving confirmation. Voice can never silently execute a publish.
+    """
+    voice_id = req.path_params.get("id", "")
+
+    from hermes_cli import voice_intake as vi
+    from hermes_cli.voice_models import DrivingSafetyVeto, VoiceConfirmationRequired
+
+    intake = vi.load_intake(voice_id)
+    if intake is None:
+        return JsonResponse(404, {"error": f"unknown voice intake: {voice_id}"})
+
+    raw_phrase = req.body.get("phrase", None)
+    phrase = None if raw_phrase is None else str(raw_phrase)
+    intake = vi.record_decision(intake, phrase)
+
+    job_id: Optional[str] = None
+    try:
+        job_id = vi.finalize(intake, submitter=_voice_job_submitter)
+    except DrivingSafetyVeto as exc:
+        return JsonResponse(
+            409,
+            {
+                "id": intake.id,
+                "state": intake.approval.state,
+                "veto": "driving_safety",
+                "hint": str(exc),
+            },
+        )
+    except VoiceConfirmationRequired as exc:
+        return JsonResponse(
+            409,
+            {
+                "id": intake.id,
+                "state": intake.approval.state,
+                "veto": "confirmation_required",
+                "hint": str(exc),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+
+    return JsonResponse(
+        200,
+        {
+            "id": intake.id,
+            "state": intake.approval.state,
+            "job_id": job_id,
+            "notes": intake.approval.notes,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
 # Sessions (decision-ledger sessions)
 # ---------------------------------------------------------------------------
 
@@ -791,6 +2103,410 @@ def sessions_list(_req: Request) -> JsonResponse:
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(200, {"sessions": [], "error": str(exc)})
     return JsonResponse(200, {"sessions": sessions})
+
+
+# ---------------------------------------------------------------------------
+# Execute gate (shared by job_run and coding/execute — no logic divergence)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class _ExecuteGate:
+    """Outcome of the owner-phrase + loopback gate for an execute lane.
+
+    ``error`` is a hard refusal (unknown worker, or a non-loopback cockpit
+    trying to run an execute lane). When ``requires_approval`` is True the
+    caller decides how to treat ``authorized``: ``job_run`` 403s, while
+    ``coding_execute`` returns a *staged* approval-required response so the
+    app can show "Ready to execute — approve to run".
+    """
+
+    requires_approval: bool
+    authorized: bool
+    error: Optional["JsonResponse"]
+    authorization_hint: str = ""
+
+
+def _evaluate_execute_gate(worker_id: str, authorization: str) -> _ExecuteGate:
+    """Resolve a worker lane and evaluate the double gate.
+
+    Reuses the real worker registry (``requires_approval`` per lane), the
+    loopback guard (``_ALLOW_REMOTE_EXECUTE``), and the exact owner phrase
+    (``owner_auth.AUTHORIZATION_PHRASE``). Never bypasses a gate.
+    """
+    from hermes_cli.workers import builtin_worker_classes, load_builtins
+
+    load_builtins()
+    classes = {c.id: c for c in builtin_worker_classes()}
+    worker_cls = classes.get(worker_id)
+    if worker_cls is None:
+        return _ExecuteGate(
+            requires_approval=False,
+            authorized=False,
+            error=JsonResponse(400, {"error": f"unknown worker: {worker_id}"}),
+        )
+    requires_approval = bool(getattr(worker_cls, "requires_approval", True))
+    if requires_approval and _ALLOW_REMOTE_EXECUTE:
+        return _ExecuteGate(
+            requires_approval=True,
+            authorized=False,
+            error=JsonResponse(
+                403,
+                {
+                    "error": "agentic execution is disabled on a non-loopback "
+                    "cockpit; run the runtime locally (loopback) to use "
+                    f"{worker_id!r}.",
+                },
+            ),
+        )
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    return _ExecuteGate(
+        requires_approval=requires_approval,
+        authorized=(authorization == AUTHORIZATION_PHRASE),
+        error=None,
+        authorization_hint=f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Job pause / resume (human-requested scheduling control)
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Emergency stop — a real backend halt (not Android-local state)
+# ---------------------------------------------------------------------------
+
+
+def emergency_stop(req: Request) -> JsonResponse:
+    """Owner panic button: a decisive backend halt.
+
+    A single tap (a) clears owner gates, disables the proactive tick, and
+    releases worker branch leases (runtime halt); (b) **cancels** every
+    non-terminal queued/running job so nothing keeps advancing; and (c)
+    latches autonomy down to ``READ_ONLY`` (overriding ``HERMES_AUTONOMY``)
+    so no auto-approved action runs until the owner re-enables it. Every
+    effect is journaled. Cancellation is decisive on purpose — a panic stop
+    revokes in-flight autonomous work rather than merely parking it.
+    """
+    reason = str(req.body.get("reason", "") or "owner_requested").strip()
+    result: dict[str, Any] = {
+        "engaged": True,
+        "reason": reason,
+        "cleared_actions": [],
+        "branch_leases_cleared": 0,
+        "tick_disabled": False,
+        "cancelled_jobs": [],
+        "cancelled_count": 0,
+        "autonomy_level": "read_only",
+        "errors": [],
+    }
+    # 1) Runtime halt: owner gates, proactive tick, worker branch leases.
+    try:
+        from hermes_cli.jarvis_prime.runtime import JarvisPrime
+
+        stop_result = JarvisPrime().stop(reason=reason)
+        result["cleared_actions"] = stop_result.get("cleared_actions", [])
+        result["branch_leases_cleared"] = stop_result.get("branch_leases_cleared", 0)
+        result["tick_disabled"] = bool(stop_result.get("tick_disabled", False))
+    except Exception as exc:  # pragma: no cover - defensive
+        result["errors"].append(f"runtime: {exc}")
+    # 2) Cancel every non-terminal queue entry so work stops advancing.
+    cancelled: list[str] = []
+    try:
+        from hermes_cli.job_queue import JobQueue, QueueState
+
+        queue = JobQueue()
+        for entry in queue.list_jobs():
+            if entry.state in QueueState.TERMINAL:
+                continue
+            try:
+                queue.cancel_job(entry.job_id, note=f"emergency stop: {reason}")
+                cancelled.append(entry.job_id)
+            except Exception as exc:  # pragma: no cover - defensive
+                result["errors"].append(f"{entry.job_id}: {exc}")
+    except Exception as exc:  # pragma: no cover - defensive
+        result["errors"].append(f"queue: {exc}")
+    result["cancelled_jobs"] = cancelled
+    result["cancelled_count"] = len(cancelled)
+    # 3) Latch autonomy to the safe floor (overrides HERMES_AUTONOMY).
+    try:
+        from hermes_cli import approval_policy as ap
+
+        record = ap.engage_emergency_stop(set_by="cockpit-emergency-stop")
+        result["autonomy_level"] = getattr(
+            getattr(record, "level", None), "value", "read_only"
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        result["errors"].append(f"autonomy: {exc}")
+    result["halted_at"] = _now_iso()
+    return JsonResponse(200, result)
+
+
+# ---------------------------------------------------------------------------
+# Coding lanes — audit (read-only) / plan (stage only) / execute (gated)
+# ---------------------------------------------------------------------------
+
+
+def coding_audit(req: Request) -> JsonResponse:
+    """Classify + route a plain-English coding request (read-only).
+
+    Returns the intent, risk class, owner-gate requirement, and worker/model
+    lane hint via the natural-language coder. Builds **no** packet and runs
+    **nothing** — this is the "what would this do" lane.
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    try:
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+        from hermes_cli.secrets_policy import redact
+
+        route = nlc.route_request(prompt)
+        payload = route.to_dict()
+        payload["mission"] = redact(prompt)
+        payload["owner_gate_required"] = bool(route.owner_gates) or route.blocked
+        payload["generated_at"] = _now_iso()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(200, payload)
+
+
+def coding_plan(req: Request) -> JsonResponse:
+    """Build + validate a bounded coding work packet (stage only, never runs).
+
+    Reuses ``natural_language_coder.build_work_packet`` /
+    ``validate_work_packet`` / ``render_packet_markdown``. 422 when the
+    packet fails validation (honest, not faked).
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
+    try:
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+        from . import contract
+
+        packet = nlc.build_work_packet(prompt, repo_root=repo_root)
+        validation = nlc.validate_work_packet(packet)
+        markdown = nlc.render_packet_markdown(packet)
+        payload = {
+            "packet": contract.coding_packet(packet),
+            "validation": validation.to_dict(),
+            "markdown": markdown,
+            "owner_gate_required": bool(packet.owner_gates) or packet.blocked,
+        }
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    status = 200 if validation.ok else 422
+    return JsonResponse(status, payload)
+
+
+def coding_execute(req: Request) -> JsonResponse:
+    """Dispatch a coding job **only** through the existing gated orchestrator.
+
+    No second execution engine: build/validate the packet, submit an
+    orchestrator job, then reuse the same double gate as ``job_run`` (owner
+    phrase + loopback). When the gate is *not* satisfied this returns a
+    ``200`` **staged** ``approval_required`` response (with the job id, risk
+    class, workspace, worker/model, verification commands, and the phrase the
+    owner must send) instead of running. When satisfied it approves the
+    ``execute`` phase and dispatches, returning the job + worker ledger trail.
+    """
+    prompt = str(req.body.get("prompt", "")).strip()
+    if not prompt:
+        return JsonResponse(400, {"error": "prompt is required"})
+    repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
+    authorization = str(req.body.get("authorization", "")).strip()
+    try:
+        from hermes_cli import orchestrator as orch
+        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+        from . import contract
+
+        packet = nlc.build_work_packet(prompt, repo_root=repo_root)
+        validation = nlc.validate_work_packet(packet)
+        if not validation.ok:
+            return JsonResponse(
+                422,
+                {
+                    "status": "invalid_packet",
+                    "packet": contract.coding_packet(packet),
+                    "validation": validation.to_dict(),
+                },
+            )
+        if packet.blocked:
+            return JsonResponse(
+                403,
+                {
+                    "status": "blocked",
+                    "error": "this request is blocked (disallowed intent)",
+                    "packet": contract.coding_packet(packet),
+                },
+            )
+
+        # Worker lane: explicit override, else derive an execute lane from the
+        # packet's model-lane hint ("claude" -> "claude-execute"). Execute lanes
+        # are owner-gated; the gate below stages when the phrase is absent.
+        worker_id = str(req.body.get("worker_id", "")).strip()
+        if not worker_id:
+            lane = str(packet.model_lane_hint or "claude").lower()
+            worker_id = f"{lane}-execute" if lane in ("claude", "codex", "aider", "goose") else "claude-execute"
+        gate = _evaluate_execute_gate(worker_id, authorization)
+        if gate.error is not None:
+            return gate.error
+
+        # Real, gated dispatch path: submit an orchestrator job first.
+        job = orch.submit_job(prompt)
+
+        if gate.requires_approval and not gate.authorized:
+            # Gate not satisfied → STAGE, do not run. The job is left awaiting
+            # the owner's execute approval; the app shows "Ready to execute".
+            return JsonResponse(
+                200,
+                {
+                    "status": "approval_required",
+                    "job": contract.orchestrator_job(job),
+                    "packet": contract.coding_packet(packet),
+                    "risk_class": packet.risk_class,
+                    "workspace_path": packet.repo_root,
+                    "worker_id": worker_id,
+                    "model_lane_hint": packet.model_lane_hint,
+                    "verification_plan": list(packet.verification_plan),
+                    "authorization_required": True,
+                    "authorization_hint": gate.authorization_hint,
+                },
+            )
+
+        if gate.requires_approval:
+            orch.approve_phase(job.id, "execute")
+        # Pass the requested workspace through so the worker runs the CLI and
+        # collects diffs in the selected repo, not the gateway's cwd.
+        out = orch.dispatch_job(job.id, worker_id=worker_id, repo_root=packet.repo_root)
+        if out is None:  # pragma: no cover - defensive
+            return JsonResponse(500, {"error": "dispatch returned no job"})
+        trail = [
+            e
+            for e in orch.get_ledger(out.id).get(out.id, [])
+            if str(e.get("kind", "")).startswith("worker_")
+        ]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(
+        200,
+        {
+            "status": "dispatched",
+            "job": contract.orchestrator_job(out),
+            "packet": contract.coding_packet(packet),
+            "worker_id": worker_id,
+            "worker_trail": trail[-6:],
+            "ledger": {"job_id": out.id},
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Evidence — search (read-only). The non-mutating claim/verify audit and the
+# richer list/detail/promote/demote surface live in the dedicated Evidence
+# Engine handlers above (evidence_list / evidence_verify / ...).
+# ---------------------------------------------------------------------------
+
+
+def evidence_search(req: Request) -> JsonResponse:
+    """Search the Research Vault for evidence artifacts (read-only).
+
+    Honest empty list when the vault is absent/empty. Never mutates state.
+    """
+    query = req.query.get("q") or req.query.get("query") or ""
+    limit = int(req.query.get("limit", "10"))
+    try:
+        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+        from . import contract
+
+        vault = ResearchVault.load()
+        if query.strip():
+            artifacts = vault.search(query, limit=limit)
+        else:
+            artifacts = vault.entries()[:limit]
+        items = [contract.evidence_artifact(a) for a in artifacts]
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"items": [], "error": str(exc)})
+    return JsonResponse(200, {"items": items})
+
+
+# ---------------------------------------------------------------------------
+# Capabilities — server feature negotiation (not the curated in-app catalog)
+# ---------------------------------------------------------------------------
+
+
+def capabilities(_req: Request) -> JsonResponse:
+    """Describe what *this backend* can do, for the app to negotiate against.
+
+    Distinct from the Android curated ``Capability`` picker (an in-app
+    catalog by design): this reports the live server's API version, which
+    subsystems are importable, detected worker lanes, whether execute lanes
+    are permitted (loopback guard), and the route catalog. Redacted: never
+    emits the owner phrase value, tokens, or API keys.
+    """
+    subsystems: dict[str, bool] = {}
+    for name, module in (
+        ("memory", "hermes_cli.jarvis_prime.memory"),
+        ("jobs", "hermes_cli.job_queue"),
+        ("orchestrator", "hermes_cli.orchestrator"),
+        ("coding", "hermes_cli.jarvis_prime.natural_language_coder"),
+        ("evidence", "hermes_cli.jarvis_prime.research_vault"),
+        ("ledger", "hermes_cli.decision_ledger"),
+        ("models", "hermes_cli.jarvis_prime.model_bootstrap"),
+    ):
+        try:
+            __import__(module)
+            subsystems[name] = True
+        except Exception:  # pragma: no cover - defensive
+            subsystems[name] = False
+
+    # ``available_workers`` advertises the orchestrator worker lane ids that the
+    # coding/execute + jobs/{id}/run routes actually accept (``requires_approval``
+    # flags which need the owner phrase), so a client can negotiate a lane and
+    # dispatch it without hitting ``400 unknown worker``.
+    workers: list[dict[str, Any]] = []
+    try:
+        from hermes_cli.workers import builtin_worker_classes, load_builtins
+
+        load_builtins()
+        for cls in builtin_worker_classes():
+            workers.append({
+                "id": cls.id,
+                "requires_approval": bool(getattr(cls, "requires_approval", True)),
+            })
+    except Exception:  # pragma: no cover - defensive
+        workers = []
+
+    # ``detected_clis`` is the separate host-detection view (which external CLIs
+    # are installed) — informational, not the set ``execute`` validates against.
+    detected_clis: list[str] = []
+    try:
+        from hermes_cli.jarvis_prime import worker_registry as wr
+
+        detected_clis = [s.lane.id for s in wr.detect_lanes() if s.available]
+    except Exception:  # pragma: no cover - defensive
+        detected_clis = []
+
+    return JsonResponse(
+        200,
+        {
+            "api_version": COCKPIT_API_VERSION,
+            "gateway_version": _gateway_version(),
+            "subsystems": subsystems,
+            "available_workers": workers,
+            "detected_clis": detected_clis,
+            "execute_allowed": not _ALLOW_REMOTE_EXECUTE,
+            "owner_gate_required": True,
+            "generated_at": _now_iso(),
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -859,6 +2575,136 @@ def _ledger_summary(ledger: Any, path: Any) -> dict[str, Any]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Research Mode (Evidence Engine)
+# ---------------------------------------------------------------------------
+
+
+def _research_engine():
+    """Construct a ResearchEngine bound to the default local stores."""
+    from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+    return ResearchEngine()
+
+
+def research_run(req: Request) -> JsonResponse:
+    """Run the research pipeline for a query (contract §research).
+
+    Body: ``{"query": str, "manual_sources"?: [{title,url,excerpt}]}``.
+    Returns the full report. Source gathering uses the configured web-search
+    provider when one is available; otherwise it relies on ``manual_sources``
+    and reports honestly via ``notes`` — it never fabricates an answer.
+    """
+    body = req.body
+    query = str(body.get("query", "")).strip()
+    if not query:
+        return JsonResponse(400, {"error": "query is required"})
+    manual = body.get("manual_sources") or []
+    if not isinstance(manual, list):
+        manual = []
+    try:
+        from . import contract
+
+        report = _research_engine().run(query, manual_sources=manual)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return JsonResponse(201, contract.research_report(report))
+
+
+def research_list(_req: Request) -> JsonResponse:
+    """List past research reports, newest first."""
+    try:
+        from . import contract
+
+        reports = _research_engine().list_reports()
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    reports = sorted(reports, key=lambda r: r.created_at, reverse=True)
+    return JsonResponse(
+        200, {"reports": [contract.research_report(r) for r in reports]}
+    )
+
+
+def research_get(req: Request) -> JsonResponse:
+    report_id = req.path_params.get("id", "")
+    try:
+        from . import contract
+
+        report = _research_engine().get_report(report_id)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if report is None:
+        return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+    return JsonResponse(200, contract.research_report(report))
+
+
+def research_promote(req: Request) -> JsonResponse:
+    """Promote one evidence card into the Memory Tree — through the gate.
+
+    Reuses the exact same ``MemoryStore.remember`` write path (and policy) as
+    :func:`memory_create`, so a promoted finding shows in the Memory screen and
+    a secret-like / low-confidence card is honestly rejected with 422.
+    """
+    report_id = req.path_params.get("id", "")
+    card_id = str(req.body.get("card_id", "")).strip()
+    if not card_id:
+        return JsonResponse(400, {"error": "card_id is required"})
+    try:
+        from hermes_cli.jarvis_prime.memory import MemoryStore
+        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+        from . import contract
+
+        engine = _research_engine()
+        report = engine.get_report(report_id)
+        if report is None:
+            return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+        payload = ResearchEngine.promotion_payload(report, card_id)
+        if payload is None:
+            return JsonResponse(404, {"error": f"unknown card: {card_id}"})
+        record = MemoryStore().remember(**payload)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    if record is None:
+        # Same honest contract as memory_create — never faked.
+        return JsonResponse(
+            422, {"stored": False, "reason": "rejected (secret-like or low confidence)"}
+        )
+    return JsonResponse(201, {"stored": True, "item": contract.memory_item(record)})
+
+
+def research_create_task(req: Request) -> JsonResponse:
+    """Create a coding task from a research report — via the job queue gate.
+
+    Reuses :func:`jobs_dispatch`'s enqueue path: a ``queued`` entry only,
+    nothing executes here (owner/run gates unchanged).
+    """
+    report_id = req.path_params.get("id", "")
+    body = req.body
+    try:
+        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+
+        engine = _research_engine()
+        report = engine.get_report(report_id)
+        if report is None:
+            return JsonResponse(404, {"error": f"unknown report: {report_id}"})
+        title = str(body.get("title", "")).strip() or f"Research: {report.query}"[:120]
+        prompt = ResearchEngine.task_prompt(report)
+        dispatch = Request(
+            method="POST",
+            path="/v1/cockpit/jobs",
+            body={
+                "title": title,
+                "prompt": prompt,
+                "worker_id": str(body.get("worker_id", "")).strip(),
+                "workspace_path": str(body.get("workspace_path", "")).strip(),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": str(exc)})
+    return jobs_dispatch(dispatch)
+
+
 __all__ = [
     "COCKPIT_API_VERSION",
     "JsonResponse",
@@ -866,18 +2712,47 @@ __all__ = [
     "audit_events",
     "audit_list",
     "audit_proof",
+    "capabilities",
+    "coding_audit",
+    "coding_execute",
+    "coding_plan",
+    "autonomy_decisions",
+    "autonomy_get",
+    "autonomy_set",
     "diagnostics",
+    "emergency_stop",
+    "evidence_demote",
+    "evidence_detail",
+    "evidence_list",
+    "evidence_promote",
+    "evidence_search",
+    "evidence_verify",
     "health",
+    "job_approve",
     "job_cancel",
+    "job_diff",
     "job_get",
+    "job_ledger",
+    "job_pause",
+    "job_rerun",
+    "job_resume",
+    "job_validate",
     "jobs_dispatch",
     "jobs_list",
+    "ledger_event_detail",
+    "ledger_rollback_request",
+    "ledger_timeline",
     "memory_create",
     "memory_delete",
     "memory_list",
     "models",
     "navigation_list",
     "proposals_list",
+    "research_create_task",
+    "research_get",
+    "research_list",
+    "research_promote",
+    "research_run",
     "runtime_status",
     "runtime_workers",
     "skills_list",

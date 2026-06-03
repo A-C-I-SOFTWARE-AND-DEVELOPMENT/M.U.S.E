@@ -1,11 +1,19 @@
 package com.aci.hermes.ui.screens.chat
 
+import com.aci.hermes.data.jarvis.FakeJarvisApprovalGateway
 import com.aci.hermes.data.jarvis.FakeJarvisClipboard
+import com.aci.hermes.data.jarvis.FakeJarvisJobDispatcher
+import com.aci.hermes.data.jarvis.FakeJarvisRecordInspector
 import com.aci.hermes.data.jarvis.FakeJarvisTaskSink
+import com.aci.hermes.data.jarvis.JarvisApprovalResult
 import com.aci.hermes.data.jarvis.JarvisChatChunk
 import com.aci.hermes.data.jarvis.JarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatMessage
+import com.aci.hermes.data.jarvis.JarvisDispatchResult
 import com.aci.hermes.data.jarvis.JarvisInlineCard
+import com.aci.hermes.data.jarvis.JarvisPhase
+import com.aci.hermes.data.jarvis.JarvisRecordRef
+import com.aci.hermes.data.jarvis.JarvisToolStatus
 import com.aci.hermes.data.jarvis.JarvisTone
 import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.util.LogBuffer
@@ -48,11 +56,17 @@ class JarvisChatViewModelTest {
         gateway: JarvisChatGateway = MockJarvisChatGateway(chunkDelayMs = 0L),
         taskSink: FakeJarvisTaskSink = FakeJarvisTaskSink(),
         clipboard: FakeJarvisClipboard = FakeJarvisClipboard(),
+        jobDispatcher: FakeJarvisJobDispatcher = FakeJarvisJobDispatcher(available = false),
+        approvalGateway: FakeJarvisApprovalGateway = FakeJarvisApprovalGateway(available = false),
+        recordInspector: FakeJarvisRecordInspector = FakeJarvisRecordInspector(available = false),
     ): JarvisChatViewModel = JarvisChatViewModel(
         gateway = gateway,
         taskSink = taskSink,
         logBuffer = logBuffer,
         clipboard = clipboard,
+        jobDispatcher = jobDispatcher,
+        approvalGateway = approvalGateway,
+        recordInspector = recordInspector,
     )
 
     @Test
@@ -191,6 +205,144 @@ class JarvisChatViewModelTest {
         vm.clearTranscript()
         assertEquals(1, vm.state.value.messages.size)
         assertNull(vm.state.value.snackbar)
+    }
+
+    @Test
+    fun `task turn surfaces phase rail and tool calls`() = runTest(testDispatcher) {
+        val vm = newViewModel()
+        vm.onDraftChange("build a chat screen for jarvis")
+        vm.send()
+        advanceUntilIdle()
+        val reply = vm.state.value.messages.filterIsInstance<JarvisChatMessage.Jarvis>().last()
+        // Phase rail advanced through routing into the tool phase.
+        assertTrue(reply.phases.contains(JarvisPhase.ROUTING))
+        assertTrue(reply.phases.contains(JarvisPhase.TOOL))
+        // Tool calls folded START+terminal into single entries (no dupes).
+        assertEquals(2, reply.toolCalls.size)
+        assertTrue(reply.toolCalls.all { it.status == JarvisToolStatus.OK })
+        // Evidence + ledger refs are available off the reply.
+        assertEquals(2, reply.records.size)
+    }
+
+    @Test
+    fun `tool detail expands and collapses`() = runTest(testDispatcher) {
+        val vm = newViewModel()
+        vm.onDraftChange("fix the bug in the gateway")
+        vm.send()
+        advanceUntilIdle()
+        val reply = vm.state.value.messages.filterIsInstance<JarvisChatMessage.Jarvis>().last()
+        val tool = reply.toolCalls.first()
+        vm.toggleToolExpanded(tool.id)
+        assertTrue(tool.id in vm.state.value.expandedTools)
+        vm.toggleToolExpanded(tool.id)
+        assertFalse(tool.id in vm.state.value.expandedTools)
+    }
+
+    @Test
+    fun `continue re-streams without adding a user message`() = runTest(testDispatcher) {
+        val vm = newViewModel()
+        vm.onDraftChange("hi")
+        vm.send()
+        advanceUntilIdle()
+        val usersBefore = vm.state.value.messages.count { it is JarvisChatMessage.User }
+        vm.continueReply()
+        advanceUntilIdle()
+        val usersAfter = vm.state.value.messages.count { it is JarvisChatMessage.User }
+        assertEquals("continue must not add a user turn", usersBefore, usersAfter)
+        assertFalse(vm.state.value.responding)
+    }
+
+    @Test
+    fun `createJob dispatches to cockpit when paired`() = runTest(testDispatcher) {
+        val dispatcher = FakeJarvisJobDispatcher(available = true, result = JarvisDispatchResult.Ok("job_42"))
+        val vm = newViewModel(jobDispatcher = dispatcher)
+        vm.onDraftChange("build a chat screen for jarvis")
+        vm.send()
+        advanceUntilIdle()
+        val reply = vm.state.value.messages.filterIsInstance<JarvisChatMessage.Jarvis>().last()
+        vm.createJob(reply.id)
+        advanceUntilIdle()
+        assertEquals(1, dispatcher.calls.size)
+        assertTrue(vm.state.value.snackbar?.contains("job_42") == true)
+    }
+
+    @Test
+    fun `createJob falls back to local draft when unpaired`() = runTest(testDispatcher) {
+        val sink = FakeJarvisTaskSink()
+        val dispatcher = FakeJarvisJobDispatcher(available = false)
+        val vm = newViewModel(taskSink = sink, jobDispatcher = dispatcher)
+        vm.onDraftChange("build a chat screen for jarvis")
+        vm.send()
+        advanceUntilIdle()
+        val reply = vm.state.value.messages.filterIsInstance<JarvisChatMessage.Jarvis>().last()
+        vm.createJob(reply.id)
+        advanceUntilIdle()
+        assertEquals("unpaired dispatch must not call the cockpit", 0, dispatcher.calls.size)
+        assertEquals(1, sink.saved.size)
+    }
+
+    @Test
+    fun `approve with live id submits to the gateway`() = runTest(testDispatcher) {
+        val approvals = FakeJarvisApprovalGateway(available = true, result = JarvisApprovalResult.Accepted)
+        val vm = newViewModel(approvalGateway = approvals)
+        val msgId = "m1"
+        val card = JarvisInlineCard.Approval(
+            title = "Deploy",
+            summary = "ship it",
+            impact = "prod",
+            approvalId = "appr-7",
+        )
+        vm.approveInline(msgId, card)
+        advanceUntilIdle()
+        assertEquals(listOf("appr-7"), approvals.approvedIds)
+        assertTrue(vm.state.value.approved.any { it.startsWith("$msgId/Approval") })
+    }
+
+    @Test
+    fun `approve without live id stays local`() = runTest(testDispatcher) {
+        val approvals = FakeJarvisApprovalGateway(available = true)
+        val vm = newViewModel(approvalGateway = approvals)
+        val card = JarvisInlineCard.Approval(title = "x", summary = "y", impact = "z") // approvalId null
+        vm.approveInline("m1", card)
+        advanceUntilIdle()
+        assertTrue("local-only approval must not hit the gateway", approvals.approvedIds.isEmpty())
+    }
+
+    @Test
+    fun `gateway rejection rolls back the optimistic approval`() = runTest(testDispatcher) {
+        val approvals = FakeJarvisApprovalGateway(
+            available = true,
+            result = JarvisApprovalResult.Rejected("phrase required"),
+        )
+        val vm = newViewModel(approvalGateway = approvals)
+        val card = JarvisInlineCard.Approval(title = "x", summary = "y", impact = "z", approvalId = "a1")
+        vm.approveInline("m1", card)
+        advanceUntilIdle()
+        assertFalse(
+            "a declined gateway approval must not leave the card approved",
+            vm.state.value.approved.any { it.startsWith("m1/Approval") },
+        )
+    }
+
+    @Test
+    fun `inspectRecord loads a view when an inspector is available`() = runTest(testDispatcher) {
+        val inspector = FakeJarvisRecordInspector(available = true)
+        val vm = newViewModel(recordInspector = inspector)
+        vm.inspectRecord(JarvisRecordRef("aud-1", "Evidence", JarvisRecordRef.Kind.EVIDENCE))
+        advanceUntilIdle()
+        assertEquals(1, inspector.loaded.size)
+        assertNotNull(vm.state.value.recordSheet)
+        vm.dismissRecord()
+        assertNull(vm.state.value.recordSheet)
+    }
+
+    @Test
+    fun `inspectRecord is a no-op without an inspector`() = runTest(testDispatcher) {
+        val vm = newViewModel() // recordInspector unavailable by default
+        vm.inspectRecord(JarvisRecordRef("aud-1", "Evidence", JarvisRecordRef.Kind.EVIDENCE))
+        advanceUntilIdle()
+        assertNull(vm.state.value.recordSheet)
+        assertNotNull(vm.state.value.snackbar)
     }
 
     /** Gateway that emits one Body chunk after a delay, used to test abort. */

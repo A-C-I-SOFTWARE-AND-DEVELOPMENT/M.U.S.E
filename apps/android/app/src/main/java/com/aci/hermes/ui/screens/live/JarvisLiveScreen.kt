@@ -38,6 +38,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.asImageBitmap
@@ -48,8 +49,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PictureInPictureAlt
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import com.aci.hermes.data.life.AvatarBehavior
 import com.aci.hermes.service.JarvisOverlayService
+import com.aci.hermes.vision.AttentionPolicy
+import com.aci.hermes.vision.AttentionState
+import com.aci.hermes.vision.CameraXFaceAttentionDetector
 import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Mic
@@ -110,11 +115,17 @@ fun JarvisLiveScreen(
     onBack: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenApprovals: () -> Unit = {},
+    onOpenCurrentJob: (String?) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val furniture by viewModel.furniture.collectAsState()
     val showStatusSheet by viewModel.showStatusSheet.collectAsState()
     val showEmergencyConfirm by viewModel.showEmergencyConfirm.collectAsState()
+    val currentJobId by viewModel.currentJobId.collectAsState()
+    val presenceEnabled by viewModel.presenceEnabled.collectAsState()
+    val presenceState by viewModel.presenceState.collectAsState()
+    val cameraAttentionEnabled by viewModel.cameraAttentionEnabled.collectAsState()
     val projection = remember(state) { JarvisLiveStateMapper.project(state) }
     var overflowOpen by remember { mutableStateOf(false) }
 
@@ -144,6 +155,44 @@ fun JarvisLiveScreen(
         } else {
             micPermission.launch(Manifest.permission.RECORD_AUDIO)
         }
+    }
+
+    fun hasMic() = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.RECORD_AUDIO,
+    ) == PackageManager.PERMISSION_GRANTED
+
+    // Tap-to-talk / mic fallback: open the mic now, behind RECORD_AUDIO consent.
+    val talkPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.talkNow() }
+    val onTapToTalk: () -> Unit = {
+        if (hasMic()) viewModel.talkNow() else talkPermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // Toggling Presence Mode on arms the wake word (needs the mic); off is free.
+    val presencePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted -> if (granted) viewModel.togglePresenceMode() }
+    val onTogglePresence: () -> Unit = {
+        if (presenceEnabled || hasMic()) viewModel.togglePresenceMode()
+        else presencePermission.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    // Opt-in camera attention. Default off; turning it on needs the CAMERA
+    // permission. Track grant so the detector starts only once allowed.
+    fun hasCamera() = ContextCompat.checkSelfPermission(
+        context, Manifest.permission.CAMERA,
+    ) == PackageManager.PERMISSION_GRANTED
+    var cameraGranted by remember { mutableStateOf(hasCamera()) }
+    val cameraPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        cameraGranted = granted
+        if (granted) viewModel.toggleCameraAttention()
+    }
+    val onToggleCameraAttention: () -> Unit = {
+        if (cameraAttentionEnabled || hasCamera()) viewModel.toggleCameraAttention()
+        else cameraPermission.launch(Manifest.permission.CAMERA)
     }
 
     // Float JARVIS over other apps: start the overlay service behind the
@@ -180,11 +229,45 @@ fun JarvisLiveScreen(
 
     LaunchedEffect(Unit) { viewModel.refreshReducedMotion() }
 
+    // Reconcile persisted Presence Mode: if it was left ON in a previous
+    // session, the wake-word listener isn't running after a restart (the
+    // controller can't safely start a mic foreground service from the
+    // background). Resume it here — a foreground context — once we hold the
+    // mic permission. setEnabled() still covers explicit toggles.
+    LaunchedEffect(presenceEnabled) {
+        if (presenceEnabled && hasMic() && VoiceLoopService.active == null) {
+            VoiceLoopService.start(context)
+        }
+    }
+
+    // Opt-in camera attention: runs ONLY when Presence Mode + the opt-in are
+    // on AND the CAMERA permission is granted (AttentionPolicy.active). Bound to
+    // this screen's lifecycle, so leaving the screen releases the camera. On a
+    // glance (ABSENT→PRESENT) it arms listening. Privacy indicator below.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraActive = AttentionPolicy.active(
+        cameraAttentionEnabled = cameraAttentionEnabled,
+        presenceModeEnabled = presenceEnabled,
+        cameraPermissionGranted = cameraGranted,
+    )
+    LaunchedEffect(cameraActive, lifecycleOwner) {
+        if (!cameraActive) return@LaunchedEffect
+        val detector = CameraXFaceAttentionDetector(context, lifecycleOwner)
+        var previous: AttentionState? = null
+        detector.attention().collect { attentionState ->
+            if (AttentionPolicy.shouldArmOnTransition(previous, attentionState)) {
+                viewModel.talkNow()
+            }
+            previous = attentionState
+        }
+    }
+
     Scaffold(
         containerColor = HermesInk,
         topBar = {
             JarvisTopBar(
                 projection = projection,
+                presenceEnabled = presenceEnabled,
                 onMenu = onBack,
                 onEditAvatar = onOpenAvatarPicker,
                 onOverflowToggle = { overflowOpen = !overflowOpen },
@@ -197,6 +280,19 @@ fun JarvisLiveScreen(
                 onOpenStatusSheet = {
                     overflowOpen = false
                     viewModel.openStatusSheet()
+                },
+                onTogglePresence = {
+                    overflowOpen = false
+                    onTogglePresence()
+                },
+                cameraAttentionEnabled = cameraAttentionEnabled,
+                onToggleCameraAttention = {
+                    overflowOpen = false
+                    onToggleCameraAttention()
+                },
+                onCycleSprite = {
+                    overflowOpen = false
+                    viewModel.cycleSprite()
                 },
             )
         },
@@ -217,7 +313,13 @@ fun JarvisLiveScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(jarvisBackground()),
+                .background(jarvisBackground())
+                // Swipe left → jump to the current job (Tasks when none is active).
+                .pointerInput(currentJobId) {
+                    detectHorizontalDragGestures { _, dragAmount ->
+                        if (dragAmount < -SWIPE_TO_JOB_THRESHOLD) onOpenCurrentJob(currentJobId)
+                    }
+                },
         ) {
             // The companion's pixel bedroom (wall, window, desk, bed, plant).
             PixelRoom(modifier = Modifier.fillMaxSize())
@@ -229,6 +331,35 @@ fun JarvisLiveScreen(
             )
 
             JarvisLiveParticles(enabled = projection.particlesEnabled)
+
+            // Required privacy indicator: clearly visible whenever the camera
+            // is actively running for attention detection.
+            if (cameraActive) {
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = HermesCrimson.copy(alpha = 0.85f),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .statusBarsPadding()
+                        .padding(top = 56.dp)
+                        .semantics {
+                            contentDescription = "Camera is on for attention detection"
+                        },
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Surface(shape = CircleShape, color = Color.White, modifier = Modifier.size(8.dp)) {}
+                        Text(
+                            stringResource(R.string.jarvis_camera_indicator),
+                            color = Color.White,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                }
+            }
 
             // Toggle the floating JARVIS that lives over every app.
             IconButton(
@@ -292,8 +423,10 @@ fun JarvisLiveScreen(
                         .scale(bodyScale)
                         .pointerInput(projection.state) {
                             detectTapGestures(
-                                onTap = { viewModel.openStatusSheet() },
-                                onDoubleTap = { viewModel.cycleSprite() },
+                                // Presence-Mode interaction model: tap to talk,
+                                // double-tap for status, long-press to stop.
+                                onTap = { onTapToTalk() },
+                                onDoubleTap = { viewModel.openStatusSheet() },
                                 onLongPress = { viewModel.requestEmergencyConfirm() },
                             )
                         },
@@ -352,25 +485,48 @@ fun JarvisLiveScreen(
                     textAlign = TextAlign.Center,
                 )
 
+                // Hands-free Presence Mode status — a real label, never just an
+                // animation, so the listening state is conveyed accessibly.
+                if (presenceEnabled) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(presenceLabelFor(presenceState)),
+                        color = HermesCyan,
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+
                 Spacer(Modifier.height(24.dp))
 
                 if (projection.showApprovalCta) {
+                    // Do NOT approve from the avatar — route to the gated
+                    // Approvals screen which enforces the owner phrase.
                     Button(
-                        onClick = viewModel::approveApproval,
+                        onClick = onOpenApprovals,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = HermesGold,
                             contentColor = HermesInk,
                         ),
-                    ) { Text(stringResource(R.string.jarvis_cta_approve)) }
+                    ) { Text(stringResource(R.string.jarvis_cta_open_approvals)) }
                 }
                 if (projection.showFixCta) {
                     Button(
-                        onClick = { viewModel.openStatusSheet() },
+                        onClick = { onOpenCurrentJob(currentJobId) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = HermesCrimson,
                             contentColor = Color.White,
                         ),
                     ) { Text(stringResource(R.string.jarvis_cta_fix)) }
+                }
+                if (projection.showWarningCta) {
+                    Button(
+                        onClick = { onOpenCurrentJob(currentJobId) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = HermesGold,
+                            contentColor = HermesInk,
+                        ),
+                    ) { Text(stringResource(R.string.jarvis_cta_warning)) }
                 }
                 if (projection.showEmergencyReleaseCta) {
                     Button(
@@ -471,6 +627,7 @@ private fun DenFurnitureLayer(
 @Composable
 private fun JarvisTopBar(
     projection: JarvisLiveProjection,
+    presenceEnabled: Boolean,
     onMenu: () -> Unit,
     onEditAvatar: () -> Unit,
     onOverflowToggle: () -> Unit,
@@ -478,6 +635,10 @@ private fun JarvisTopBar(
     onOverflowDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenStatusSheet: () -> Unit,
+    onTogglePresence: () -> Unit,
+    cameraAttentionEnabled: Boolean,
+    onToggleCameraAttention: () -> Unit,
+    onCycleSprite: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -494,7 +655,7 @@ private fun JarvisTopBar(
             Icon(Icons.Outlined.Menu, contentDescription = null, tint = Color.White)
         }
 
-        JarvisStatusPill(projection = projection)
+        JarvisStatusPill(projection = projection, onClick = onOpenStatusSheet)
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -522,6 +683,38 @@ private fun JarvisTopBar(
                         onClick = onOpenStatusSheet,
                     )
                     DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (presenceEnabled) {
+                                        R.string.jarvis_presence_toggle_off
+                                    } else {
+                                        R.string.jarvis_presence_toggle_on
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = onTogglePresence,
+                    )
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                stringResource(
+                                    if (cameraAttentionEnabled) {
+                                        R.string.jarvis_camera_attention_off
+                                    } else {
+                                        R.string.jarvis_camera_attention_on
+                                    },
+                                ),
+                            )
+                        },
+                        onClick = onToggleCameraAttention,
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.jarvis_overflow_change_companion)) },
+                        onClick = onCycleSprite,
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.nav_settings)) },
                         onClick = onOpenSettings,
                     )
@@ -531,13 +724,15 @@ private fun JarvisTopBar(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun JarvisStatusPill(projection: JarvisLiveProjection) {
+private fun JarvisStatusPill(projection: JarvisLiveProjection, onClick: () -> Unit) {
     val (bg, fg) = pillColorsFor(projection.state)
     val description = stringResource(R.string.jarvis_status_pill_cd, stringResource(projection.pillText))
     Surface(
         shape = RoundedCornerShape(50),
         color = bg,
+        onClick = onClick,
         modifier = Modifier
             .padding(horizontal = 12.dp)
             .clip(RoundedCornerShape(50)),
@@ -567,11 +762,27 @@ private fun pillColorsFor(state: JarvisLiveState): Pair<Color, Color> = when (st
     JarvisLiveState.Idle -> HermesInkSoft to HermesGold.copy(alpha = 0.85f)
     JarvisLiveState.Listening -> HermesInkSoft to HermesCyan
     JarvisLiveState.Thinking -> HermesViolet.copy(alpha = 0.25f) to HermesGold
+    JarvisLiveState.Researching -> HermesViolet.copy(alpha = 0.25f) to HermesCyan
+    JarvisLiveState.Coding -> HermesGold.copy(alpha = 0.18f) to HermesGold
+    JarvisLiveState.Reviewing -> HermesCyan.copy(alpha = 0.18f) to HermesCyan
     JarvisLiveState.Working -> HermesGold.copy(alpha = 0.18f) to HermesGold
     JarvisLiveState.Speaking -> HermesCyan.copy(alpha = 0.20f) to HermesCyan
     JarvisLiveState.ApprovalNeeded -> HermesGold.copy(alpha = 0.30f) to HermesGold
     JarvisLiveState.Blocked -> HermesCrimson.copy(alpha = 0.30f) to Color.White
+    JarvisLiveState.Warning -> HermesGold.copy(alpha = 0.35f) to HermesGold
+    JarvisLiveState.Disconnected -> HermesInkSoft to Color.White.copy(alpha = 0.7f)
     JarvisLiveState.EmergencyStop -> HermesCrimson to Color.White
+}
+
+/** Horizontal drag (px) past which a left-swipe opens the current job. */
+private const val SWIPE_TO_JOB_THRESHOLD = 120f
+
+private fun presenceLabelFor(state: com.aci.hermes.voice.PresenceState): Int = when (state) {
+    com.aci.hermes.voice.PresenceState.OFF,
+    com.aci.hermes.voice.PresenceState.ARMED -> R.string.jarvis_presence_armed
+    com.aci.hermes.voice.PresenceState.LISTENING -> R.string.jarvis_presence_listening
+    com.aci.hermes.voice.PresenceState.THINKING -> R.string.jarvis_presence_thinking
+    com.aci.hermes.voice.PresenceState.SPEAKING -> R.string.jarvis_presence_speaking
 }
 
 @Composable

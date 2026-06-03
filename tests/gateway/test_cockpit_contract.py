@@ -304,6 +304,90 @@ def test_orchestrator_job_status_mapping_and_published() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Job detail — Job + ledger → canonical JobDetail (timeline / workers / files)
+# ---------------------------------------------------------------------------
+
+
+def test_orchestrator_job_detail_folds_ledger_into_workers_and_files() -> None:
+    from hermes_cli.orchestrator import Job
+
+    job = Job(
+        id="orc-detail",
+        prompt="Refactor the parser\nsecond line ignored",
+        status="completed",
+        created_at=1_700_000_000_000_000,
+        approvals={"execute": 1_700_000_000_000_000},
+    )
+    ledger = [
+        {"ts": "2023-11-14T22:13:20+00:00", "kind": "submit", "prompt": "Refactor"},
+        {"ts": "2023-11-14T22:13:21+00:00", "kind": "worker_dispatch",
+         "worker_id": "codex-execute", "available": True, "reason": "ready"},
+        {"ts": "2023-11-14T22:13:25+00:00", "kind": "worker_result",
+         "worker_id": "codex-execute", "ok": True, "summary": "done"},
+        {"ts": "2023-11-14T22:13:26+00:00", "kind": "worker_score",
+         "worker_id": "codex-execute", "value": 0.9, "rationale": "clean",
+         "files": ["src/parser.py"]},
+    ]
+    out = contract.orchestrator_job_detail(job, ledger)
+    assert out["id"] == "orc-detail"
+    assert out["objective"] == "Refactor the parser"
+    assert out["status"] == "COMPLETED"
+    # workers folded from the ledger trail; latest status wins (SUCCESS)
+    assert len(out["workers"]) == 1
+    assert out["workers"][0]["id"] == "codex-execute"
+    assert out["workers"][0]["status"] == "SUCCESS"
+    # files come from worker_score; honest empty commands (not tracked)
+    assert out["files_touched"] == ["src/parser.py"]
+    assert out["commands_run"] == []
+    assert out["test_results"] is None
+    # approval recorded on the job surfaces in the detail
+    assert out["approvals"][0]["state"] == "APPROVED"
+    # timeline preserves order and tags actors
+    assert [e["kind"] for e in out["timeline"]] == [
+        "submit", "worker_dispatch", "worker_result", "worker_score",
+    ]
+    assert out["timeline"][0]["actor"] == "owner"
+    assert out["timeline"][1]["actor"] == "worker"
+
+
+def test_queue_job_detail_projects_workers_and_timeline() -> None:
+    from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry, WorkerStatus
+
+    entry = JobQueueEntry(
+        job_id="job_q1",
+        prompt="Ship the thing",
+        repo_root="/tmp/proj",
+        created_at=5.0,
+        updated_at=6.0,
+        note="waiting on worker",
+        workers=[
+            WorkerQueueEntry(worker_id="codex_cli", status=WorkerStatus.FAILED,
+                             attempts=2, last_error="boom"),
+        ],
+    )
+    out = contract.queue_job_detail(entry)
+    assert out["id"] == "job_q1"
+    assert out["objective"] == "Ship the thing"
+    assert out["workers"][0]["status"] == "FAILED"
+    assert out["workers"][0]["attempts"] == 2
+    assert out["workers"][0]["error"] == "boom"
+    # submit anchors the timeline; a worker row follows
+    assert out["timeline"][0]["kind"] == "submit"
+    assert any("codex_cli" in e["summary"] for e in out["timeline"])
+    # current_step surfaces the human-readable note
+    assert out["current_step"] == "waiting on worker"
+    # canonical shape parity with the orchestrator detail projection
+    assert set(out.keys()) == set(
+        contract.orchestrator_job_detail(
+            __import__("hermes_cli.orchestrator", fromlist=["Job"]).Job(
+                id="o", prompt="p"
+            ),
+            [],
+        ).keys()
+    )
+
+
+# ---------------------------------------------------------------------------
 # Audit — DecisionLedger → canonical AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 
@@ -487,3 +571,92 @@ def test_navigation_view_job_id_override() -> None:
     v = contract.navigation_view({"objective": "x"}, job_id="job_42")
     assert v["job_id"] == "job_42"
     assert v["candidate_files"] == []
+
+
+# ---------------------------------------------------------------------------
+# Coding packet + evidence adapters
+# ---------------------------------------------------------------------------
+
+
+def test_coding_packet_projects_work_packet() -> None:
+    from hermes_cli.jarvis_prime import natural_language_coder as nlc
+
+    packet = nlc.build_work_packet("add a unit test for the parser")
+    out = contract.coding_packet(packet)
+    assert out["mission"]
+    assert out["branch"]
+    assert out["risk_class"].startswith("RC")
+    assert isinstance(out["allowed_files"], list)
+    assert isinstance(out["verification_plan"], list)
+
+
+def test_evidence_artifact_projects_research_artifact() -> None:
+    from hermes_cli.jarvis_prime import research_vault as rv
+
+    art = rv.ResearchArtifact(
+        id="abc123",
+        title="PEP 659",
+        source_uri="https://peps.python.org/pep-0659/",
+        source_type=rv.SourceType.OFFICIAL_DOC,
+        evidence_strength=rv.EvidenceStrength.PRIMARY,
+        excerpt="specializing adaptive interpreter",
+    )
+    out = contract.evidence_artifact(art)
+    assert out["id"] == "abc123"
+    assert out["source_type"] == "official_doc"
+    assert out["evidence_strength"] == "primary"
+
+
+class _FakeReport:
+    """Minimal stand-in for epistemics.AuditReport (outcome + findings)."""
+
+    class _Outcome:
+        def __init__(self, value: str) -> None:
+            self.value = value
+
+    def __init__(self, outcome: str, findings=()) -> None:
+        self.outcome = self._Outcome(outcome)
+        self.findings = list(findings)
+
+
+def _artifact(strength: str = "primary", freshness_due=None):
+    from hermes_cli.jarvis_prime import research_vault as rv
+
+    return rv.ResearchArtifact(
+        id="x",
+        title="t",
+        source_uri="https://example.com",
+        evidence_strength=rv.EvidenceStrength(strength),
+        freshness_due=freshness_due,
+    )
+
+
+def test_evidence_verdict_insufficient_when_no_matches() -> None:
+    v = contract.evidence_verdict("claim", [], _FakeReport("needs_research"))
+    assert v["verdict"] == "insufficient_evidence"
+    assert v["supporting_sources"] == []
+    assert v["contradicting_sources"] == []
+    assert v["confidence"] <= 0.4
+
+
+def test_evidence_verdict_supported_on_clean_audit_with_match() -> None:
+    v = contract.evidence_verdict("claim", [_artifact("primary")], _FakeReport("pass"))
+    assert v["verdict"] == "supported"
+    assert v["confidence"] >= 0.9
+    assert v["freshness_status"] == "unknown"  # no freshness date set
+
+
+def test_evidence_verdict_partial_when_needs_citations() -> None:
+    v = contract.evidence_verdict(
+        "claim", [_artifact("moderate")], _FakeReport("needs_citations")
+    )
+    assert v["verdict"] == "partially_supported"
+
+
+def test_evidence_verdict_stale_when_freshness_past_due() -> None:
+    from datetime import timedelta
+
+    past = (datetime.now(timezone.utc) - timedelta(days=2)).isoformat()
+    v = contract.evidence_verdict("claim", [_artifact("primary", past)], _FakeReport("pass"))
+    assert v["verdict"] == "stale"
+    assert v["freshness_status"] == "stale"

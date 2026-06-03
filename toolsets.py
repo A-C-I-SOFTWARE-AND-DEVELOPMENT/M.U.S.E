@@ -50,6 +50,8 @@ _HERMES_CORE_TOOLS = [
     "todo", "memory",
     # Session history search
     "session_search",
+    # GraphRAG knowledge-graph retrieval (reuse-before-duplicate)
+    "graph_query",
     # Clarifying questions
     "clarify",
     # Code execution + delegation

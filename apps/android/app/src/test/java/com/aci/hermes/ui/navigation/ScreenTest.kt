@@ -17,14 +17,19 @@ class ScreenTest {
         Screen.Onboarding,
         Screen.Home,
         Screen.Chat,
+        Screen.Jobs,
         Screen.Tasks,
         Screen.Approvals,
         Screen.Memory,
+        Screen.Evidence,
         Screen.Audit,
         Screen.Control,
         Screen.Settings,
         Screen.Diagnostics,
+        Screen.ModelRoute,
         Screen.TaskDetail,
+        Screen.JobDetail,
+        Screen.Research,
     )
 
     @Test
@@ -65,14 +70,49 @@ class ScreenTest {
         val expectedShellRoutes = setOf(
             Screen.Home.route,
             Screen.Chat.route,
+            Screen.Jobs.route,
             Screen.Tasks.route,
+            Screen.Jobs.route,
             Screen.Approvals.route,
             Screen.Memory.route,
+            Screen.Evidence.route,
             Screen.Audit.route,
             Screen.Capability.route,
             Screen.Control.route,
         )
         assertEquals(expectedShellRoutes, Screen.shellRoutes)
+    }
+
+    @Test
+    fun every_shell_route_is_reachable_via_a_tab_or_home_quick_link() {
+        // Reachability invariant: no shell destination may be deep-link-only.
+        // Home itself is the landing surface; every *other* shell route must
+        // be surfaced as a bottom tab or a Home quick-link. This is the test
+        // that would have caught the Capability screen being unreachable.
+        val reachable = buildSet {
+            add(Screen.Home.route)
+            addAll(Screen.bottomTabs.map { it.screen.route })
+            addAll(Screen.homeQuickLinks.map { it.route })
+        }
+        val orphaned = Screen.shellRoutes - reachable
+        assertTrue(
+            "Every shell route must be reachable via a tab or Home quick-link; orphaned: $orphaned",
+            orphaned.isEmpty(),
+        )
+    }
+
+    @Test
+    fun home_quick_links_are_all_shell_routes_and_exclude_home() {
+        assertTrue(
+            "Home must not link to itself",
+            Screen.Home !in Screen.homeQuickLinks,
+        )
+        for (screen in Screen.homeQuickLinks) {
+            assertTrue(
+                "Home quick-link ${screen.javaClass.simpleName} must be a shell route",
+                screen.route in Screen.shellRoutes,
+            )
+        }
     }
 
     @Test
@@ -96,7 +136,9 @@ class ScreenTest {
             Screen.Onboarding.route,
             Screen.Settings.route,
             Screen.Diagnostics.route,
+            Screen.ModelRoute.route,
             Screen.TaskDetail.route,
+            Screen.Research.route,
         )
         for (route in fullScreenRoutes) {
             assertTrue(
@@ -111,16 +153,32 @@ class ScreenTest {
         val bottomRoutes = Screen.bottomTabs.map { it.screen.route }.toSet()
         val expected = setOf(
             Screen.Home.route,
-            Screen.Tasks.route,
+            Screen.Jobs.route,
             Screen.Chat.route,
             Screen.Approvals.route,
             Screen.Control.route,
         )
         assertEquals(
-            "Bottom navigation must surface Home, Tasks, Chat, Approvals, and Control",
+            "Bottom navigation must surface Home, Jobs, Chat, Approvals, and Control",
             expected,
             bottomRoutes,
         )
+    }
+
+    @Test
+    fun knowledge_is_a_full_screen_push_with_a_unique_route() {
+        assertEquals("knowledge", Screen.Knowledge.route)
+        // Deep-linked from Settings/Home, not a shell tab or bottom-nav target.
+        assertTrue(Screen.Knowledge.route !in Screen.shellRoutes)
+        assertTrue(Screen.bottomTabs.none { it.screen.route == Screen.Knowledge.route })
+    }
+
+    @Test
+    fun legacy_tasks_stays_reachable_as_a_shell_route() {
+        // The Jobs cockpit takes the bottom tab; the legacy clipboard-handoff
+        // Tasks list is preserved as a shell destination (reached from Home).
+        assertTrue(Screen.Tasks.route in Screen.shellRoutes)
+        assertTrue(Screen.Tasks.route !in Screen.bottomTabs.map { it.screen.route })
     }
 
     @Test
@@ -128,6 +186,11 @@ class ScreenTest {
         assertEquals("task_detail/abc", Screen.TaskDetail.forTask("abc"))
         assertEquals("task_detail/new", Screen.TaskDetail.forNew())
         assertEquals("task_detail/new?target=CODEX", Screen.TaskDetail.forNew("CODEX"))
+    }
+
+    @Test
+    fun job_detail_route_builder_produces_expected_path() {
+        assertEquals("job_detail/job_123", Screen.JobDetail.forJob("job_123"))
     }
 
     @Test

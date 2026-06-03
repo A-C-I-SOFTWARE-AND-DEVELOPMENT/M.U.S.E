@@ -18,7 +18,18 @@ from __future__ import annotations
 
 from typing import Callable, Iterator, Optional
 
-from gateway.jarvis_local_http import body, detail, done, thinking, tone, working
+from gateway.jarvis_local_http import (
+    body,
+    detail,
+    done,
+    evidence_ref,
+    ledger_ref,
+    phase,
+    thinking,
+    tone,
+    tool_call,
+    working,
+)
 
 # A prose generator turns (prompt, persona_prompt) into reply text.
 ProseGenerator = Callable[[str, str], str]
@@ -48,15 +59,18 @@ def jarvis_responder(
     caller's stream framing.
     """
     yield thinking()
+    yield phase("RECEIVING")
 
     from hermes_cli.jarvis_prime.runtime import JarvisPrime
 
     jp = JarvisPrime()
+    yield phase("THINKING")
     turn = jp.handle(prompt, skip_perceive=True)
 
     mode = turn.classification.mode.value
     yield tone(_MODE_TONE.get(mode, "NEUTRAL"))
 
+    yield phase("ROUTING")
     route = turn.route
     if route.delegate_to:
         yield working(f"routing to {route.delegate_to}")
@@ -66,6 +80,14 @@ def jarvis_responder(
     # Owner-gated actions are surfaced explicitly — never executed here.
     if route.pending_actions:
         yield detail("Owner approval required for: " + ", ".join(route.pending_actions))
+
+    # Real, read-only inline tool activity for code-shaped turns. Bounded
+    # and redacted by gateway.cockpit.inline_tools — never writes, never
+    # touches the network, and never runs an owner-gated action.
+    target = getattr(getattr(route, "target", None), "value", "") or ""
+    if mode == "builder" or target in _CODE_TARGETS:
+        yield phase("TOOL")
+        yield from _run_inline_tools(prompt)
 
     persona_prompt = turn.persona_prompt.render()
     # Adopted character persona ("make my avatar Goku") frames the whole reply.
@@ -116,16 +138,121 @@ def jarvis_responder(
     else:
         text = _turn_summary(turn, mode)
 
+    # Post-turn memory capture: notice durable-worthy facts as PROPOSED
+    # Memory Tree candidates (never auto-durable; owner promotes on mobile).
+    try:
+        captured = jp.observe_turn(prompt, text)
+        if captured.get("captured"):
+            n = captured["captured"]
+            yield detail(
+                f"Captured {n} memory candidate(s) for your review"
+                + (
+                    f" ({captured['durable_worthy']} durable-worthy)"
+                    if captured.get("durable_worthy")
+                    else ""
+                )
+            )
+    except Exception:  # capture is best-effort
+        pass
+
     if turn.recollection:
         yield detail(turn.recollection.splitlines()[0][:200])
 
     # Audit the generated prose; flag honestly if it reads as uncited/risky.
+    yield phase("VERIFICATION")
     caveat = _epistemic_caveat(jp, turn, text)
     if caveat:
         yield detail(caveat)
 
+    yield phase("FINAL")
     yield body(text)
+
+    # Reference the latest decision-ledger / evidence record when present, so
+    # the mobile cockpit can offer one-tap "inspect ledger / evidence". These
+    # are id-only references — no ledger content rides the chat stream.
+    yield from _ledger_evidence_refs()
+
     yield done()
+
+
+# A code turn runs at most these read-only inline tools, in order. The
+# responder skips any tool whose precondition isn't met (e.g. no grep term).
+def _run_inline_tools(prompt: str) -> Iterator[dict]:
+    """Yield ``tool_call`` chunks for a bounded, read-only repo inspection.
+
+    Failures degrade to a FAIL ``tool_call`` (never raise) so a turn always
+    finishes cleanly. Each tool is allowlisted in
+    :mod:`gateway.cockpit.inline_tools`.
+    """
+    try:
+        from gateway.cockpit import inline_tools as it
+    except Exception:  # pragma: no cover - inline tools are best-effort
+        return
+
+    call_n = 0
+
+    def _emit(result) -> Iterator[dict]:
+        nonlocal call_n
+        call_n += 1
+        cid = f"tool-{call_n}"
+        # START then terminal status so the cockpit can animate the chip.
+        yield tool_call(cid, result.name, result.summary, status="START")
+        yield tool_call(
+            cid,
+            result.name,
+            result.summary,
+            status=result.status,
+            detail=result.detail,
+        )
+
+    # 1) git status — cheap, always informative for a code turn.
+    try:
+        yield from _emit(it.git_status())
+    except Exception as exc:  # pragma: no cover - defensive
+        yield tool_call("tool-git", "git_status", f"failed: {exc}", status="FAIL")
+
+    # 2) repo grep — only when the prompt yields a safe search term.
+    term = None
+    try:
+        term = it.extract_grep_term(prompt)
+    except Exception:  # pragma: no cover - defensive
+        term = None
+    if term:
+        try:
+            yield from _emit(it.repo_grep(term))
+        except Exception as exc:  # pragma: no cover - defensive
+            yield tool_call("tool-grep", "repo_grep", f"failed: {exc}", status="FAIL")
+
+
+def _ledger_evidence_refs() -> Iterator[dict]:
+    """Emit id-only refs to the most recent decision-ledger/evidence record.
+
+    Best-effort and read-only: a ledger read failure yields nothing rather
+    than failing the turn. Mirrors the ids the cockpit resolves via
+    ``auditList`` / ``auditProof`` (gateway/cockpit/contract.py).
+    """
+    try:
+        from hermes_cli import decision_ledger as dl
+        from gateway.cockpit import contract
+
+        ledgers = dl.list_ledgers()
+        if not ledgers:
+            return
+        # list_ledgers() is ascending (sessions sorted, sequence ascending
+        # within each), so the newest decision is the last entry — picking
+        # ledgers[0] would point the chip at the oldest, unrelated record.
+        path = ledgers[-1]
+        ledger = dl.read_ledger(path)
+        ident = contract.ledger_id(ledger, path)
+        if not ident:
+            return
+        title = getattr(ledger, "user_request", "") or "Latest decision"
+        title = str(title)[:80]
+        yield ledger_ref(ident, title)
+        # Evidence shares the audit id; the app resolves the body via proof.
+        yield evidence_ref(ident, "Evidence & verification")
+    except Exception:  # pragma: no cover - refs are best-effort
+        return
 
 
 _REMEMBER_CUES = (
@@ -232,7 +359,32 @@ def _brain_hint(turn, mode: str) -> dict:
         kind = "reasoning"
     else:
         kind = "chat"
-    return {"kind": kind, "escalate": escalate, "target": target, "mode": mode}
+    return {
+        "kind": kind,
+        "escalate": escalate,
+        "target": target,
+        "mode": mode,
+        "task_class": _task_class_for(turn, mode, target),
+    }
+
+
+# Map a JARVIS turn to one of the evidence-backed routing task classes, reusing
+# the turn's own classification (mode/target/research). Returns a
+# ``task_router.TaskClass`` value string the generator can route by.
+def _task_class_for(turn, mode: str, target: str) -> str:
+    if getattr(turn, "research_brief", None) is not None:
+        return "research"
+    if target == "codex_reviewer":
+        return "coding_review"
+    if target in ("local_test_runner", "codex_bounded_fix"):
+        return "test_debug"
+    if target == "claude_code_builder":
+        return "coding_build"
+    if mode == "builder" or target in _CODE_TARGETS:
+        return "coding_plan"
+    if mode == "mobile_voice":
+        return "voice_reply"
+    return "mobile_chat"
 
 
 def _turn_summary(turn, mode: str) -> str:

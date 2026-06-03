@@ -46,8 +46,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
 import java.text.SimpleDateFormat
@@ -62,8 +64,13 @@ object MemoryScreenTags {
     const val DETAIL = "memory_detail"
     const val CORRECT_DIALOG = "memory_correct_dialog"
     const val DELETE_DIALOG = "memory_delete_dialog"
+    const val INBOX = "memory_inbox"
+    const val CONTRADICTIONS = "memory_contradictions"
+    const val FRESHNESS = "memory_freshness"
     fun card(id: String) = "memory_card_$id"
     fun filter(name: String) = "memory_filter_$name"
+    fun tab(name: String) = "memory_tab_$name"
+    fun proposedCard(id: String) = "memory_proposed_$id"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +78,7 @@ object MemoryScreenTags {
 fun MemoryScreen(
     viewModel: MemoryViewModel,
     onBack: () -> Unit,
+    relatedLoader: (suspend (String) -> com.aci.hermes.data.cockpit.CockpitResult<com.aci.hermes.data.cockpit.RelatedItemList>)? = null,
 ) {
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -86,10 +94,13 @@ fun MemoryScreen(
         modifier = Modifier.testTag(MemoryScreenTags.ROOT),
         topBar = {
             TopAppBar(
-                title = { Text("Memory") },
+                title = { Text(stringResource(R.string.memory_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back),
+                        )
                     }
                 },
             )
@@ -103,42 +114,65 @@ fun MemoryScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            MemorySearch(
-                query = state.query,
-                onQueryChange = viewModel::setQuery,
+            MemoryTabs(
+                active = state.tab,
+                inboxCount = state.proposed.size,
+                conflictCount = state.contradictions.size,
+                onSelect = viewModel::selectTab,
             )
-            MemoryFilter(
-                active = state.activeCategory,
-                onSelect = viewModel::setCategory,
-            )
-            HeaderRow(total = state.allItems.size, shown = state.visibleItems.size)
-            if (state.visibleItems.isEmpty()) {
-                EmptyState()
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .testTag(MemoryScreenTags.LIST),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(state.visibleItems, key = { it.id }) { item ->
-                        if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
-                            Box(modifier = Modifier.testTag(MemoryScreenTags.card(item.id))) {
-                                SocialPatternCard(
-                                    pattern = SocialPatternProjection.from(item),
-                                    onTap = { viewModel.open(item) },
-                                )
+            when (state.tab) {
+                MemoryTab.STORED -> {
+                    MemorySearch(
+                        query = state.query,
+                        onQueryChange = viewModel::setQuery,
+                    )
+                    MemoryFilter(
+                        active = state.activeCategory,
+                        onSelect = viewModel::setCategory,
+                    )
+                    HeaderRow(total = state.allItems.size, shown = state.visibleItems.size)
+                    if (state.visibleItems.isEmpty()) {
+                        EmptyState()
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .testTag(MemoryScreenTags.LIST),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(state.visibleItems, key = { it.id }) { item ->
+                                if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
+                                    Box(modifier = Modifier.testTag(MemoryScreenTags.card(item.id))) {
+                                        SocialPatternCard(
+                                            pattern = SocialPatternProjection.from(item),
+                                            onTap = { viewModel.open(item) },
+                                        )
+                                    }
+                                } else {
+                                    MemoryCard(
+                                        item = item,
+                                        onOpen = { viewModel.open(item) },
+                                        onCorrect = { viewModel.beginCorrect(item) },
+                                        onDelete = { viewModel.beginDelete(item) },
+                                    )
+                                }
                             }
-                        } else {
-                            MemoryCard(
-                                item = item,
-                                onOpen = { viewModel.open(item) },
-                                onCorrect = { viewModel.beginCorrect(item) },
-                                onDelete = { viewModel.beginDelete(item) },
-                            )
                         }
                     }
                 }
+                MemoryTab.INBOX -> ProposedInboxSection(
+                    proposed = state.proposed,
+                    sync = state.treeSync,
+                    onApprove = viewModel::approveProposed,
+                    onReject = { id -> viewModel.rejectProposed(id) },
+                )
+                MemoryTab.CONTRADICTIONS -> ContradictionsSection(
+                    contradictions = state.contradictions,
+                    onResolve = { id, winnerId -> viewModel.resolveContradiction(id, winnerId) },
+                )
+                MemoryTab.FRESHNESS -> FreshnessSection(
+                    nodes = state.freshness,
+                )
             }
         }
     }
@@ -149,6 +183,7 @@ fun MemoryScreen(
             onDismiss = viewModel::closeDetail,
             onCorrect = { viewModel.beginCorrect(item) },
             onDelete = { viewModel.beginDelete(item) },
+            relatedLoader = relatedLoader,
         )
     }
     state.correctingItem?.let { item ->
@@ -184,11 +219,11 @@ fun MemorySearch(
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                    Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.action_clear))
                 }
             }
         },
-        placeholder = { Text("Search memory") },
+        placeholder = { Text(stringResource(R.string.memory_search_hint)) },
     )
 }
 
@@ -203,7 +238,7 @@ fun MemoryFilter(
             FilterChip(
                 selected = active == null,
                 onClick = { onSelect(null) },
-                label = { Text("All") },
+                label = { Text(stringResource(R.string.memory_filter_all)) },
                 modifier = Modifier.testTag(MemoryScreenTags.filter("ALL")),
             )
         }
@@ -225,11 +260,11 @@ private fun HeaderRow(total: Int, shown: Int) {
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = "$shown of $total visible",
+            text = stringResource(R.string.memory_visible_count, shown, total),
             style = MaterialTheme.typography.labelMedium,
         )
         Text(
-            text = "Secrets redacted",
+            text = stringResource(R.string.memory_secrets_redacted),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -238,17 +273,11 @@ private fun HeaderRow(total: Int, shown: Int) {
 
 @Composable
 private fun EmptyState() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .testTag(MemoryScreenTags.EMPTY),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "No memory matches the current filter.",
-            style = MaterialTheme.typography.bodyMedium,
-        )
-    }
+    com.aci.hermes.ui.components.EmptyState(
+        icon = Icons.Default.Search,
+        title = stringResource(R.string.memory_empty_filter),
+        modifier = Modifier.testTag(MemoryScreenTags.EMPTY),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -285,13 +314,13 @@ fun MemoryCard(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 2.dp))
-                            Text("Redacted", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.memory_redacted_badge), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
             Text(
-                text = item.title.ifBlank { "(untitled memory)" },
+                text = item.title.ifBlank { stringResource(R.string.memory_untitled) },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -313,10 +342,10 @@ fun MemoryCard(
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 IconButton(onClick = onCorrect) {
-                    Icon(Icons.Default.Edit, contentDescription = "Correct")
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.memory_correct_cd))
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.memory_delete_cd))
                 }
             }
         }

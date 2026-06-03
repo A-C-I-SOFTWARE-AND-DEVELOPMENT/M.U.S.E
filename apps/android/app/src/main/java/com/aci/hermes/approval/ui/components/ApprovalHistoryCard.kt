@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.R
 import com.aci.hermes.approval.model.ApprovalHistoryItem
 import java.text.DateFormat
 import java.util.Date
@@ -38,7 +40,10 @@ fun ApprovalHistoryCard(item: ApprovalHistoryItem, modifier: Modifier = Modifier
             )
             item.note?.takeIf { it.isNotBlank() }?.let {
                 Spacer(Modifier.height(4.dp))
-                Text("Note: $it", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.approval_label_note, it),
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
     }

@@ -270,6 +270,13 @@ or stored; no secrets are written to config, logs, or memory. A missing
 local runtime is a warning, not a launch blocker. Full guide:
 [`jarvis-free-first-launch.md`](jarvis-free-first-launch.md).
 
+Within that route order, **evidence-backed task-class routing** picks the
+specific model per task class (mobile chat, research, citation verification,
+coding build/review, test/debug, …) from measured scorecards, explains the
+choice, and exposes an owner override + paid toggle on the phone. See
+[`ai-intelligence/model-routing-task-classes.md`](ai-intelligence/model-routing-task-classes.md).
+Explain any choice with `python -m hermes_cli.jarvis_prime route --task <class>`.
+
 ## Specialist Activation Rules
 
 HazMat Command activates only for:
@@ -329,6 +336,41 @@ Do not save:
 - raw voice dumps
 - unverified claims
 
+**Capture → proposed → owner approval (MEM-2).** Durable-worthy facts noticed
+during a turn are captured as **proposed** Memory Tree candidates, not durable
+memory. They become durable only when the owner approves them (Memory screen
+**Inbox** on mobile, or `POST /v1/cockpit/memory/tree/{id}/decision`). Approval
+re-checks for contradictions and **never silently overwrites** an existing
+fact — a conflict surfaces for the owner to resolve. Recollection cites
+sources and excludes contested facts. Disable the whole layer with
+`HERMES_MEMORY_LAYERS=0`.
+
+## Evidence Engine (RAG)
+
+JARVIS answers like a source-grounded research engine:
+**retrieve → rank → cite → verify → (gated) promote.**
+
+- **Retrieve** — hybrid retrieval (`hermes_cli/jarvis_prime/evidence_engine.py`):
+  BM25-style keyword search over the **Research Vault**, blended with
+  Memory-Tree search and an optional bounded repo-symbol grep. A dense
+  embedding lane sits behind an off-by-default hook (no new hard dependency).
+- **Rank** — by the `SourceTrust` ladder (owner > primary > official_doc >
+  reputable > community > unverified), then relevance.
+- **Cite + verify** — the `CitationVerifier` maps each factual claim to
+  supporting evidence; unsupported claims are flagged **uncertain**,
+  contradictions are surfaced (reusing Memory-Tree contradiction reports plus
+  a same-subject negation heuristic), and any secret / chain-of-thought claim
+  is rejected outright.
+- **Promote** — `promote_to_memory` is the **only** write path from evidence
+  to durable memory, routed through `MemoryTreeStore.write`. The memory write
+  policy is preserved end to end: secrets/CoT rejected, durable writes need
+  provenance, and a low-confidence/unverified promotion requires the owner
+  phrase. **Unverified data never becomes durable memory automatically.**
+
+The same engine backs the cockpit `/v1/cockpit/evidence*` API and the Android
+**Evidence** screen (search, trust/freshness labels, contradiction alerts,
+promote-to-memory). See `docs/android/hermes-apk-api-contract.md` §10d.
+
 ## Owner Gates
 
 Require explicit owner authorization before:
@@ -352,6 +394,31 @@ When authorization is granted, record:
 ```text
 Yes, with authorization.
 ```
+
+### Owner High-Autonomy Coding mode
+
+For personal, mobile-first coding work the owner can raise autonomy to
+**Owner High-Autonomy Coding** (`approval_policy.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING`).
+Inside an **approved workspace** this auto-approves the friction points of
+coding — file edits, tests, lint, builds, dependency installs, local server
+start/stop, branch creation, local commits, and code-worker execution — and
+records every auto-approval with its reason in the approval audit log.
+
+It does **not** weaken any owner gate. The always-confirm set (deploy, publish,
+push, supabase/vercel changes) and the owner gates above (spend, public post,
+credential/secret change, app-store submission, package publish, …) still
+require explicit approval, and file edits / worker runs **outside** the approved
+workspace fall back to a confirmation. The mode is scoped to one workspace,
+persisted in `~/.hermes/autonomy.json`, and instantly revocable
+(`POST /v1/cockpit/autonomy {"revoke": true}` or the Android Control toggle).
+The `HERMES_AUTONOMY` environment variable still overrides the persisted record.
+
+The Android cockpit surfaces the active level, its workspace scope, the
+capability list (auto-approved vs. still-gated, from
+`approval_policy.capabilities()`), pending approvals, the decision audit trail,
+and a backend-wired **emergency stop** that cancels active jobs/workers and
+drops autonomy to `read_only`. See
+[`docs/android/hermes-apk-api-contract.md`](android/hermes-apk-api-contract.md) §10d.
 
 ## CLI Reference
 

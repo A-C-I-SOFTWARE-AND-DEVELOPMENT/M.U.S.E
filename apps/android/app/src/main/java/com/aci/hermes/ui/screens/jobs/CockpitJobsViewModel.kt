@@ -33,7 +33,7 @@ import kotlinx.coroutines.launch
  * not a JobQueue entry — so a job created here can actually be [run]; only such
  * orchestrator jobs (`orc-` ids) expose Run, since `job_run` operates on them.
  */
-data class JobsUiState(
+data class CockpitJobsUiState(
     val jobs: List<CockpitJob> = emptyList(),
     val sync: JobsSync = JobsSync.Idle,
     val lanes: List<JobLane> = emptyList(),
@@ -45,8 +45,8 @@ class CockpitJobsViewModel(
     private val logBuffer: LogBuffer,
 ) : ViewModel() {
 
-    private val _ui = MutableStateFlow(JobsUiState())
-    val ui: StateFlow<JobsUiState> = _ui.asStateFlow()
+    private val _ui = MutableStateFlow(CockpitJobsUiState())
+    val ui: StateFlow<CockpitJobsUiState> = _ui.asStateFlow()
 
     init {
         viewModelScope.launch {

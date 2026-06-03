@@ -152,4 +152,217 @@ class HermesCockpitClientTest {
         }
         assertTrue(result.value.containsKey("approvals"))
     }
+
+    // ─── New cockpit endpoints ───────────────────────────────────────────
+
+    @Test
+    fun `capabilities parses subsystems and execute guard`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"api_version":"1.0.0","gateway_version":"0.14.0",
+                    "subsystems":{"memory":true,"coding":true},
+                    "available_workers":[{"id":"claude-execute","requires_approval":true}],
+                    "detected_clis":["claude_code_builder"],
+                    "execute_allowed":true,"owner_gate_required":true}""",
+            )
+        }
+        val result = client(fake).capabilities()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/capabilities", fake.lastRequest?.url)
+        assertTrue(result.value.subsystems["coding"] == true)
+        assertTrue(result.value.executeAllowed)
+        assertEquals("claude-execute", result.value.availableWorkers.first().id)
+        assertTrue(result.value.availableWorkers.first().requiresApproval)
+    }
+
+    @Test
+    fun `jobPause and jobResume post to the right routes`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"id":"j1","title":"t","worker_id":"w","status":"PAUSED",
+                    "created_at":"a","updated_at":"b"}""",
+            )
+        }
+        val paused = client(fake).jobPause("j1", "hold")
+        assertTrue(paused is CockpitResult.Success)
+        assertEquals("POST", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/jobs/j1/pause", fake.lastRequest?.url)
+
+        client(fake).jobResume("j1")
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/jobs/j1/resume", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `emergencyStop parses the halt counts`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"engaged":true,"reason":"panic","tick_disabled":true,"branch_leases_cleared":2,
+                    "cancelled_jobs":["j1"],"cancelled_count":1,"autonomy_level":"read_only"}""",
+            )
+        }
+        val result = client(fake).emergencyStop("panic")
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/emergency-stop", fake.lastRequest?.url)
+        assertTrue(result.value.engaged)
+        assertTrue(result.value.tickDisabled)
+        assertEquals(1, result.value.cancelledCount)
+        assertEquals("j1", result.value.cancelledJobs.first())
+        assertEquals("read_only", result.value.autonomyLevel)
+    }
+
+    @Test
+    fun `codingAudit and codingPlan hit the coding lanes`() = runTest {
+        val auditFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"intent":"test","risk_class":"RC1","primary_worker":"claude",
+                    "owner_gate_required":false}""",
+            )
+        }
+        val audit = client(auditFake).codingAudit(CodingRequest(prompt = "add a test"))
+        if (audit !is CockpitResult.Success) {
+            fail("expected Success, got $audit"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/audit", auditFake.lastRequest?.url)
+        assertEquals("test", audit.value.intent)
+
+        val planFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"packet":{"mission":"m","branch":"jarvis/x","risk_class":"RC2"},
+                    "validation":{"ok":true,"findings":[]},"markdown":"# Packet"}""",
+            )
+        }
+        val plan = client(planFake).codingPlan(CodingRequest(prompt = "refactor x"))
+        if (plan !is CockpitResult.Success) {
+            fail("expected Success, got $plan"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/plan", planFake.lastRequest?.url)
+        assertTrue(plan.value.validation.ok)
+        assertEquals("jarvis/x", plan.value.packet.branch)
+    }
+
+    @Test
+    fun `codingExecute parses the staged approval response`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"status":"approval_required","worker_id":"claude-execute",
+                    "authorization_required":true,
+                    "authorization_hint":"send authorization exactly: 'Yes, with authorization.'",
+                    "job":{"id":"orc-1","status":"queued","prompt":"p"},
+                    "packet":{"mission":"m","risk_class":"RC3"}}""",
+            )
+        }
+        val result = client(fake).codingExecute(CodingRequest(prompt = "deploy"))
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/coding/execute", fake.lastRequest?.url)
+        assertEquals("approval_required", result.value.status)
+        assertTrue(result.value.authorizationRequired)
+        assertEquals("orc-1", result.value.job?.id)
+    }
+
+    @Test
+    fun `evidenceSearch encodes the query and parses artifacts`() = runTest {
+        val searchFake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"items":[{"id":"a","title":"PEP 659","source_uri":"https://x",
+                    "evidence_strength":"primary"}]}""",
+            )
+        }
+        val search = client(searchFake).evidenceSearch("adaptive interpreter")
+        if (search !is CockpitResult.Success) {
+            fail("expected Success, got $search"); return@runTest
+        }
+        assertTrue(searchFake.lastRequest?.url?.contains("/v1/cockpit/evidence/search?q=") == true)
+        assertEquals("PEP 659", search.value.items.first().title)
+    }
+
+    @Test
+    fun `autonomyGet parses level scope and capabilities`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """
+                {"level":"owner_high_autonomy_coding","display_name":"High-Autonomy Coding",
+                 "workspace_root":"/home/me/project","updated_at":1.0,"set_by":"cockpit",
+                 "revocable":true,
+                 "capabilities":{"auto_approved":["local_command","safe_local_write"],
+                   "requires_approval":["vercel_deploy"],"always_deny":["github_force_push"],
+                   "workspace_scoped":["safe_local_write","code_worker_exec"]}}
+                """.trimIndent(),
+            )
+        }
+        val result = client(fake).autonomyGet()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("owner_high_autonomy_coding", result.value.level)
+        assertEquals("/home/me/project", result.value.workspaceRoot)
+        assertTrue(result.value.capabilities.autoApproved.contains("local_command"))
+        assertTrue(result.value.capabilities.alwaysDeny.contains("github_force_push"))
+        assertEquals("GET", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/autonomy", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `autonomySet sends level and workspace in the body`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(200, """{"level":"owner_high_autonomy_coding","workspace_root":"/w"}""")
+        }
+        val result = client(fake).autonomySet("owner_high_autonomy_coding", workspacePath = "/w")
+        assertTrue(result is CockpitResult.Success)
+        assertEquals("POST", fake.lastRequest?.method)
+        val body = fake.lastRequest?.body ?: ""
+        assertTrue(body.contains("owner_high_autonomy_coding"))
+        assertTrue(body.contains("/w"))
+    }
+
+    @Test
+    fun `autonomyRevoke sends revoke true`() = runTest {
+        val fake = FakeExecutor { CockpitRawResponse(200, """{"level":"assisted"}""") }
+        client(fake).autonomyRevoke()
+        assertTrue((fake.lastRequest?.body ?: "").contains("revoke"))
+    }
+
+    @Test
+    fun `modelPolicy decodes a loose policy and tolerates unknown keys`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"routes":{"default":{"provider":"ollama","model":"llama3","enabled":true,"weird":1}},
+                   "free_first":true,"paid_opt_in":false,"surprise":"ignored"}""",
+            )
+        }
+        val result = client(fake).modelPolicy()
+        if (result !is CockpitResult.Success) { fail("expected Success, got $result"); return@runTest }
+        assertEquals(true, result.value.freeFirst)
+        assertEquals("ollama", result.value.routes["default"]?.provider)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/models", fake.lastRequest?.url)
+    }
+
+    @Test
+    fun `research decodes vault items`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"items":[{"id":"r1","title":"Benchmark","evidence_strength":"strong","summary":"s"}]}""",
+            )
+        }
+        val result = client(fake).research(limit = 5)
+        if (result !is CockpitResult.Success) { fail("expected Success, got $result"); return@runTest }
+        assertEquals("r1", result.value.items.single().id)
+        assertEquals("strong", result.value.items.single().evidenceStrength)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/research?limit=5", fake.lastRequest?.url)
+    }
 }
