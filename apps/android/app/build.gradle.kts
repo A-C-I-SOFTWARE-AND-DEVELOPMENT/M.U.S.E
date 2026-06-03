@@ -42,6 +42,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // The Rive runtime ships native libs for every ABI (~30MB). Modern
+        // phones are arm64; restrict to it (+ 32-bit arm for older devices) to
+        // keep the sideload APK small. Drop this filter for a Play AAB.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
