@@ -7,7 +7,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import com.aci.hermes.service.VoiceLoopService
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -123,23 +122,29 @@ fun JarvisLiveScreen(
     val context = LocalContext.current
     val voiceSupported = remember { SpeechRecognizer.isRecognitionAvailable(context) }
     var voiceActive by remember { mutableStateOf(false) }
+    // Presence Mode drives the hands-free loop through the tested controller in
+    // the view model (arming, fallback chain, emergency stop) rather than poking
+    // the service directly — so the one brain decides when the mic opens.
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         if (granted) {
-            VoiceLoopService.start(context)
+            viewModel.setPresenceEnabled(enabled = true, micGranted = true)
+            viewModel.onMicTrigger()
             voiceActive = true
         }
     }
     val onMic: () -> Unit = {
         if (voiceActive) {
-            VoiceLoopService.stop(context)
+            // Disabling Presence Mode stops any in-flight listening cleanly.
+            viewModel.setPresenceEnabled(enabled = false, micGranted = true)
             voiceActive = false
         } else if (
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            VoiceLoopService.start(context)
+            viewModel.setPresenceEnabled(enabled = true, micGranted = true)
+            viewModel.onMicTrigger()
             voiceActive = true
         } else {
             micPermission.launch(Manifest.permission.RECORD_AUDIO)

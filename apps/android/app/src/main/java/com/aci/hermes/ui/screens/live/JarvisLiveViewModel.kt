@@ -10,6 +10,10 @@ import com.aci.hermes.data.avatar.AvatarSource
 import com.aci.hermes.data.jarvis.JarvisChatChunk
 import com.aci.hermes.data.jarvis.JarvisChatGateway
 import com.aci.hermes.data.life.BehaviorScheduler
+import com.aci.hermes.presence.PresenceCapabilities
+import com.aci.hermes.presence.PresenceEvent
+import com.aci.hermes.presence.PresenceModeController
+import com.aci.hermes.presence.TriggerSource
 import com.aci.hermes.service.VoiceLoopService
 import java.util.Calendar
 import kotlin.time.Duration
@@ -244,8 +248,72 @@ class JarvisLiveViewModel(
     fun requestEmergencyConfirm() { _showEmergencyConfirm.value = true }
     fun dismissEmergencyConfirm() { _showEmergencyConfirm.value = false }
 
+    // ── Presence Mode ────────────────────────────────────────────────────
+    //
+    // The avatar lives over the launcher and the conversation is hands-free
+    // by default once Presence Mode is enabled. The PresenceModeController is
+    // the tested brain that arbitrates the trigger fallback chain (attention →
+    // wake word → mic button) and the emergency stop; this view model is the
+    // thin driver that enacts its START/STOP effects against VoiceLoopService.
+    private val presence = PresenceModeController()
+
+    private val _presenceEnabled = MutableStateFlow(false)
+    val presenceEnabled: StateFlow<Boolean> = _presenceEnabled.asStateFlow()
+
+    private val _armedTrigger = MutableStateFlow(TriggerSource.NONE)
+    val armedTrigger: StateFlow<TriggerSource> = _armedTrigger.asStateFlow()
+
+    /**
+     * Enable/disable Presence Mode. [micGranted] reflects the RECORD_AUDIO
+     * runtime grant; [attentionAvailable] reflects opt-in camera attention
+     * (false until the camera detector is wired). Listening stays opt-in: the
+     * loop only ever starts from a trigger, never from enabling alone.
+     */
+    fun setPresenceEnabled(
+        enabled: Boolean,
+        micGranted: Boolean,
+        attentionAvailable: Boolean = false,
+    ) {
+        markInteraction()
+        val wakeAvailable = micGranted &&
+            android.speech.SpeechRecognizer.isRecognitionAvailable(getApplication())
+        enact(
+            presence.on(
+                PresenceEvent.CapabilitiesChanged(
+                    PresenceCapabilities(
+                        attentionAvailable = attentionAvailable,
+                        wakeWordAvailable = wakeAvailable,
+                        micAvailable = micGranted,
+                    ),
+                ),
+            ),
+        )
+        enact(presence.on(PresenceEvent.SetEnabled(enabled)))
+        _presenceEnabled.value = presence.isPresenceEnabled
+        _armedTrigger.value = presence.armedSource
+    }
+
+    /** The explicit mic-button fallback trigger. */
+    fun onMicTrigger() {
+        markInteraction()
+        enact(presence.on(PresenceEvent.MicButtonTapped))
+        _armedTrigger.value = presence.armedSource
+    }
+
+    private fun enact(decision: PresenceModeController.Decision) {
+        when (decision.effect) {
+            PresenceModeController.Effect.START_VOICE_LOOP ->
+                runCatching { VoiceLoopService.start(getApplication()) }
+            PresenceModeController.Effect.STOP_VOICE_LOOP ->
+                runCatching { VoiceLoopService.stop(getApplication()) }
+            PresenceModeController.Effect.NONE -> Unit
+        }
+    }
+
     fun confirmEmergencyStop() {
         _showEmergencyConfirm.value = false
+        enact(presence.on(PresenceEvent.EmergencyStop))
+        _armedTrigger.value = presence.armedSource
         // A hard stop must also tear down any in-flight hands-free voice loop,
         // not just clear the flags — the mic/foreground service stops too.
         runCatching { VoiceLoopService.stop(getApplication()) }
@@ -261,6 +329,8 @@ class JarvisLiveViewModel(
     }
 
     fun releaseEmergencyStop() {
+        presence.on(PresenceEvent.EmergencyRelease)
+        _armedTrigger.value = presence.armedSource
         _state.update { it.copy(emergencyStop = false) }
     }
 
