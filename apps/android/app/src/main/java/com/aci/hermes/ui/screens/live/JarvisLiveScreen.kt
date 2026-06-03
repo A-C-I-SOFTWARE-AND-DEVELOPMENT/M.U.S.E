@@ -31,6 +31,10 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -250,19 +254,42 @@ fun JarvisLiveScreen(
             ) {
                 Spacer(Modifier.height(40.dp))
 
-                // Snooze: when the Den is idle long enough the companion drifts
-                // down and curls up small at the bottom of the room, breathing
-                // slowly — "laying down at the bottom of your phone, snoozing."
+                // The companion walks around its room: to the desk when working,
+                // strolls when wandering, and down to the bed to snooze — gliding
+                // (tween) so it reads as walking, not teleporting.
                 val sleeping = state.avatarBehavior == AvatarBehavior.SLEEP
-                val sleepBias by animateFloatAsState(
-                    targetValue = if (sleeping) 1f else 0f,
+                val wandering = state.avatarBehavior == AvatarBehavior.WANDER
+                val working = projection.state == JarvisLiveState.Working
+                val sway by rememberInfiniteTransition(label = "stroll").animateFloat(
+                    initialValue = -1f,
+                    targetValue = 1f,
+                    animationSpec = infiniteRepeatable(tween(5200), RepeatMode.Reverse),
+                    label = "sway",
+                )
+                val glideDx by animateFloatAsState(
+                    targetValue = if (working) 96f else 0f,
+                    animationSpec = tween(1100),
+                    label = "walk-x",
+                )
+                val walkX = if (wandering && projection.motionEnabled) sway * 92f else glideDx
+                val walkY by animateFloatAsState(
+                    targetValue = when {
+                        sleeping -> 200f          // down onto the bed mat
+                        working -> 28f            // settle at the desk
+                        else -> 0f
+                    },
+                    animationSpec = tween(1100),
+                    label = "walk-y",
+                )
+                val bodyScale by animateFloatAsState(
+                    targetValue = if (sleeping) 0.58f else 1f,
                     animationSpec = tween(900),
-                    label = "sleep-bias",
+                    label = "body-scale",
                 )
                 Box(
                     modifier = Modifier
-                        .offset(y = (sleepBias * 200f).dp)
-                        .scale(1f - 0.42f * sleepBias)
+                        .offset(x = walkX.dp, y = walkY.dp)
+                        .scale(bodyScale)
                         .pointerInput(projection.state) {
                             detectTapGestures(
                                 onTap = { viewModel.openStatusSheet() },
