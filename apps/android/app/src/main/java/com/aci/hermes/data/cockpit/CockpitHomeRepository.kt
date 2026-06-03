@@ -54,7 +54,7 @@ class CockpitHomeRepository(
             val jobs = async { client.jobsList() }
             val approvals = async { client.approvalsList() }
             val memory = async { client.memoryList() }
-            val events = async { client.events(limit = EVENTS_LIMIT) }
+            val audit = async { client.auditList() }
             val research = async { client.research(limit = RESEARCH_LIMIT) }
 
             CockpitHomeSnapshot(
@@ -64,7 +64,7 @@ class CockpitHomeRepository(
                 jobs = jobs.await().valueOrNull(),
                 approvals = approvals.await().valueOrNull(),
                 memory = memory.await().valueOrNull(),
-                events = events.await().valueOrNull(),
+                audit = audit.await().valueOrNull(),
                 research = research.await().valueOrNull(),
             )
         }
@@ -83,7 +83,6 @@ class CockpitHomeRepository(
         (this as? CockpitResult.Success)?.value
 
     companion object {
-        const val EVENTS_LIMIT = 50
         const val RESEARCH_LIMIT = 10
     }
 }
@@ -110,12 +109,12 @@ data class CockpitHomeSnapshot(
     val jobs: JobList? = null,
     val approvals: CockpitApprovalCardList? = null,
     val memory: CockpitMemoryList? = null,
-    val events: EventBatch? = null,
+    val audit: CockpitAuditList? = null,
     val research: CockpitResearchList? = null,
 ) {
     /** True when no leg returned data (unpaired/unreachable everywhere). */
     val isEmpty: Boolean
         get() = runtime == null && models == null && workers == null &&
             jobs == null && approvals == null && memory == null &&
-            events == null && research == null
+            audit == null && research == null
 }

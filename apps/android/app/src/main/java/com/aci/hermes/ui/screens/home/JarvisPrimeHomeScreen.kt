@@ -311,7 +311,11 @@ fun JarvisPrimeHomeContent(
                 }
             }
             item {
-                VoiceStateCard(phase = state.voicePhase, onClick = onVoiceTapped)
+                VoiceStateCard(
+                    phase = state.voicePhase,
+                    enabled = state.presence != JarvisPresence.EMERGENCY_STOP_ACTIVE,
+                    onClick = onVoiceTapped,
+                )
             }
             state.deviceCapability?.let { cap ->
                 item {
@@ -930,27 +934,35 @@ fun EvidenceCard(
 @Composable
 fun VoiceStateCard(
     phase: VoicePhase,
+    enabled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val label = when (phase) {
-        VoicePhase.DORMANT -> "Voice idle"
-        VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Jarvis”"
-        VoicePhase.LISTENING -> "Listening…"
-        VoicePhase.THINKING -> "Thinking…"
-        VoicePhase.SPEAKING -> "Speaking…"
+    val label = when {
+        !enabled -> "Voice blocked (emergency stop)"
+        phase == VoicePhase.DORMANT -> "Voice idle"
+        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Jarvis”"
+        phase == VoicePhase.LISTENING -> "Listening…"
+        phase == VoicePhase.THINKING -> "Thinking…"
+        else -> "Speaking…"
     }
     Card(
         modifier = modifier
             .testTag(JarvisHomeTestTags.VOICE_STATE)
             .fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        // Disabled card is a no-op while the emergency stop is engaged — voice
+        // is one of the actions the stop dialog promises to block.
+        enabled = enabled,
         onClick = onClick,
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Voice", style = MaterialTheme.typography.labelMedium, color = HermesGold)
             Text(label, style = MaterialTheme.typography.titleMedium)
-            Text("Tap to start voice capture.", style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (enabled) "Tap to start voice capture." else "Deactivate the stop to use voice.",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

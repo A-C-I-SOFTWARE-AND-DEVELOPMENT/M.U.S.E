@@ -50,8 +50,9 @@ class CockpitHomeRepositoryTest {
             """{"items":[{"id":"m1","category":"pref","title":"free-first","content":"x",
                "durability":"LONG","confidence":"HIGH","provenance":{"source":"chat"}}]}""",
         )
-        req.url.contains("/events") -> ok(
-            """{"events":[{"ts":"t","level":"info","source":"ledger","message":"job_1 dispatched"}],"next_cursor":null}""",
+        req.url.contains("/audit") -> ok(
+            """{"records":[{"id":"au1","timestamp":"2026-05-30T12:00:00Z","action":"job_1 dispatched",
+               "risk_tier":"LOW","route":{"destination":"CODEX"}}]}""",
         )
         req.url.contains("/research") -> ok(
             """{"items":[{"id":"r1","title":"Benchmark","evidence_strength":"strong","summary":"tops the board"}]}""",
@@ -72,7 +73,7 @@ class CockpitHomeRepositoryTest {
         assertEquals("job_1", snap.jobs?.jobs?.single()?.id)
         assertEquals("CRITICAL", snap.approvals?.approvals?.single()?.tier)
         assertEquals("m1", snap.memory?.items?.single()?.id)
-        assertEquals(1, snap.events?.events?.size)
+        assertEquals("au1", snap.audit?.records?.single()?.id)
         assertEquals("r1", snap.research?.items?.single()?.id)
     }
 

@@ -170,20 +170,6 @@ class HermesCockpitClientTest {
     }
 
     @Test
-    fun `events decodes the ledger batch with a limit`() = runTest {
-        val fake = FakeExecutor {
-            CockpitRawResponse(
-                200,
-                """{"events":[{"ts":"t","level":"info","source":"ledger","message":"hi"}],"next_cursor":null}""",
-            )
-        }
-        val result = client(fake).events(limit = 25)
-        if (result !is CockpitResult.Success) { fail("expected Success, got $result"); return@runTest }
-        assertEquals(1, result.value.events.size)
-        assertEquals("http://127.0.0.1:8765/v1/cockpit/events?limit=25", fake.lastRequest?.url)
-    }
-
-    @Test
     fun `research decodes vault items`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

@@ -170,10 +170,6 @@ class HermesCockpitClient(
     suspend fun auditProof(id: String): CockpitResult<CockpitProofRecord> =
         request("GET", "/v1/cockpit/audit/" + enc(id) + "/proof", CockpitProofRecord.serializer())
 
-    // ─── Ledger events (contract §9) ─────────────────────────────────────
-    suspend fun events(limit: Int = 50): CockpitResult<EventBatch> =
-        request("GET", "/v1/cockpit/events?limit=$limit", EventBatch.serializer())
-
     // ─── Model / router policy ───────────────────────────────────────────
     suspend fun modelPolicy(): CockpitResult<ModelPolicy> =
         request("GET", "/v1/cockpit/models", ModelPolicy.serializer())

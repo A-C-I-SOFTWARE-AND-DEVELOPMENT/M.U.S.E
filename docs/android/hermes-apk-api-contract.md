@@ -708,8 +708,12 @@ ignores unknown keys, so an evolving policy never crashes the client. The
 handler **never accepts or stores API keys** — detection is env-presence
 only.
 
-`GET /v1/cockpit/events` (the decision-ledger event stream, §9) is also now
-typed via `HermesCockpitClient.events(limit)` → `EventBatch`.
+> **Note (events vs audit):** the home command center's "Audit / ledger"
+> card reads the canonical **`GET /v1/cockpit/audit`** records (§10b,
+> `auditList()`), not `GET /v1/cockpit/events`. The events handler returns a
+> `_ledger_summary` shape (`id/title/type/status/source/timestamp`) that does
+> **not** match the contract's `CockpitEvent` (`ts/level/source/message`), so
+> the typed `audit` records are the reliable source for the card.
 
 ---
 

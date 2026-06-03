@@ -398,15 +398,16 @@ object JarvisHomeStateDeriver {
     }
 
     private fun backendAuditEvents(snapshot: CockpitHomeSnapshot): List<AuditEventSummary> =
-        snapshot.events?.events
-            ?.sortedByDescending { parseIsoMillis(it.ts) ?: 0L }
+        snapshot.audit?.records
+            ?.sortedByDescending { parseIsoMillis(it.timestamp) ?: 0L }
             ?.take(AUDIT_EVENTS_SIZE)
-            ?.map {
+            ?.map { record ->
                 AuditEventSummary(
-                    timestamp = parseIsoMillis(it.ts),
-                    level = it.level,
-                    source = it.source,
-                    message = it.message,
+                    timestamp = parseIsoMillis(record.timestamp),
+                    level = record.riskTier,
+                    source = record.route.destination.ifBlank { "ledger" },
+                    message = record.action.ifBlank { record.userRequest }
+                        .ifBlank { "(decision)" },
                 )
             }
             ?: emptyList()

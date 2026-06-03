@@ -294,11 +294,11 @@ class JarvisHomeStateDeriverTest {
                 ),
             ),
         ),
-        events = com.aci.hermes.data.cockpit.EventBatch(
-            events = listOf(
-                com.aci.hermes.data.cockpit.CockpitEvent(
-                    ts = "2026-05-30T12:00:00Z", level = "info", source = "ledger",
-                    message = "job_1 dispatched",
+        audit = com.aci.hermes.data.cockpit.CockpitAuditList(
+            records = listOf(
+                com.aci.hermes.data.cockpit.CockpitAuditRecord(
+                    id = "au1", timestamp = "2026-05-30T12:00:00Z", action = "job_1 dispatched",
+                    riskTier = "LOW",
                 ),
             ),
         ),
