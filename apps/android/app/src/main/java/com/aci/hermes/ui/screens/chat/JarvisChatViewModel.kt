@@ -2,14 +2,23 @@ package com.aci.hermes.ui.screens.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aci.hermes.data.jarvis.JarvisApprovalGateway
+import com.aci.hermes.data.jarvis.JarvisApprovalResult
 import com.aci.hermes.data.jarvis.JarvisChatChunk
 import com.aci.hermes.data.jarvis.JarvisChatGateway
 import com.aci.hermes.data.jarvis.JarvisChatMessage
 import com.aci.hermes.data.jarvis.JarvisClipboard
+import com.aci.hermes.data.jarvis.JarvisDispatchResult
 import com.aci.hermes.data.jarvis.JarvisInlineCard
+import com.aci.hermes.data.jarvis.JarvisJobDispatcher
+import com.aci.hermes.data.jarvis.JarvisRecordInspector
+import com.aci.hermes.data.jarvis.JarvisRecordRef
+import com.aci.hermes.data.jarvis.JarvisRecordView
 import com.aci.hermes.data.jarvis.JarvisTaskSink
+import com.aci.hermes.data.jarvis.JarvisToolCall
 import com.aci.hermes.data.jarvis.MockJarvisChatGateway
 import com.aci.hermes.data.model.HermesTask
+import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.CancellationException
@@ -34,6 +43,10 @@ data class JarvisChatUiState(
     val mockMode: Boolean = true,
     val voiceCapturing: Boolean = false,
     val snackbar: String? = null,
+    // Tool-visibility surfaces:
+    val expandedTools: Set<String> = emptySet(),
+    val recordSheet: JarvisRecordView? = null,
+    val recordLoading: Boolean = false,
 )
 
 /**
@@ -58,6 +71,11 @@ class JarvisChatViewModel(
     private val taskSink: JarvisTaskSink,
     private val logBuffer: LogBuffer,
     private val clipboard: JarvisClipboard,
+    // Live cockpit ports (no-op defaults keep offline/mock + unit tests
+    // working without a Context or network):
+    private val jobDispatcher: JarvisJobDispatcher = JarvisJobDispatcher.Unavailable,
+    private val approvalGateway: JarvisApprovalGateway = JarvisApprovalGateway.Unavailable,
+    private val recordInspector: JarvisRecordInspector = JarvisRecordInspector.Unavailable,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
@@ -123,6 +141,19 @@ class JarvisChatViewModel(
         logBuffer.info(TAG, "Streaming cancelled by user")
     }
 
+    /**
+     * Ask Jarvis to keep going from where the last reply left off. Sends a
+     * lightweight "continue" directive through the same streaming path so
+     * the transport, gating, and routing are identical to a normal turn —
+     * the prior transcript (already in history) is the context.
+     */
+    fun continueReply() {
+        if (_state.value.responding) return
+        if (_state.value.messages.none { it is JarvisChatMessage.Jarvis }) return
+        _state.update { it.copy(responding = true) }
+        startStreaming(CONTINUE_DIRECTIVE)
+    }
+
     fun toggleExpanded(messageId: String) {
         _state.update {
             val next = it.expanded.toMutableSet().apply {
@@ -130,6 +161,39 @@ class JarvisChatViewModel(
             }
             it.copy(expanded = next)
         }
+    }
+
+    fun toggleToolExpanded(toolId: String) {
+        _state.update {
+            val next = it.expandedTools.toMutableSet().apply {
+                if (!add(toolId)) remove(toolId)
+            }
+            it.copy(expandedTools = next)
+        }
+    }
+
+    /**
+     * Resolve an evidence/ledger reference into a readable view and surface
+     * it in the bottom sheet. No-op (with an honest snackbar) when no live
+     * backend is paired — refs only ever appear from the real gateway.
+     */
+    fun inspectRecord(ref: JarvisRecordRef) {
+        if (!recordInspector.available) {
+            _state.update { it.copy(snackbar = "Pair a gateway to inspect records.") }
+            return
+        }
+        _state.update { it.copy(recordLoading = true) }
+        viewModelScope.launch {
+            val view = runCatching { recordInspector.load(ref) }.getOrNull()
+            _state.update {
+                if (view == null) it.copy(recordLoading = false, snackbar = "Couldn't load that record.")
+                else it.copy(recordLoading = false, recordSheet = view)
+            }
+        }
+    }
+
+    fun dismissRecord() {
+        _state.update { it.copy(recordSheet = null) }
     }
 
     fun copyMessage(messageId: String) {
@@ -172,8 +236,68 @@ class JarvisChatViewModel(
         }
     }
 
+    /**
+     * Promote any Jarvis reply into a job. Dispatches to the live cockpit
+     * job queue when a backend is paired ([jobDispatcher] available); falls
+     * back to a local DRAFT task in the orchestrator otherwise. Worker
+     * routing reuses [JarvisIntentClassifier] so the mapping matches the
+     * rest of the app.
+     */
+    fun createJob(messageId: String) {
+        val msg = _state.value.messages.firstOrNull { it.id == messageId } as? JarvisChatMessage.Jarvis
+            ?: return
+        val prompt = lastUserPrompt?.takeIf { it.isNotBlank() } ?: msg.body
+        val title = deriveJobTitle(msg.body, prompt)
+        val target = com.aci.hermes.data.jarvis.JarvisIntentClassifier.inferTargetTool(prompt)
+        val type = com.aci.hermes.data.jarvis.JarvisIntentClassifier.inferTaskType(prompt)
+        viewModelScope.launch {
+            if (jobDispatcher.available) {
+                when (val result = jobDispatcher.dispatch(title, prompt, target)) {
+                    is JarvisDispatchResult.Ok ->
+                        _state.update { it.copy(snackbar = "Job dispatched (${result.jobId})") }
+                    is JarvisDispatchResult.Failed ->
+                        _state.update { it.copy(snackbar = "Couldn't dispatch job: ${result.message}") }
+                    JarvisDispatchResult.Unavailable ->
+                        dispatchLocalDraft(title, prompt, target, type)
+                }
+            } else {
+                dispatchLocalDraft(title, prompt, target, type)
+            }
+        }
+    }
+
+    private suspend fun dispatchLocalDraft(
+        title: String,
+        prompt: String,
+        target: TargetTool,
+        type: com.aci.hermes.data.model.TaskType,
+    ) {
+        val task = HermesTask(
+            title = title,
+            description = prompt,
+            targetTool = target,
+            taskType = type,
+            status = TaskStatus.DRAFT,
+            promptBody = prompt,
+        )
+        taskSink.upsert(task)
+        logBuffer.info(TAG, "Created local draft job ${task.id}")
+        _state.update { it.copy(snackbar = "Draft job added to orchestrator") }
+    }
+
+    private fun deriveJobTitle(body: String, prompt: String): String {
+        val source = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim()
+            ?: prompt.lineSequence().firstOrNull()?.trim()
+            ?: "Jarvis job"
+        return if (source.length <= 60) source else source.take(57).trimEnd() + "…"
+    }
+
     fun approveInline(messageId: String, card: JarvisInlineCard.Approval) {
         val key = inlineKey(messageId, card)
+        // Optimistically flip local state so the card reflects the owner's
+        // decision immediately. When the card is backed by a real cockpit
+        // approval and a backend is paired, also submit the owner phrase to
+        // the gateway (which still enforces it server-side).
         _state.update {
             it.copy(
                 approved = it.approved + key,
@@ -182,6 +306,27 @@ class JarvisChatViewModel(
             )
         }
         logBuffer.info(TAG, "Approval card accepted on $messageId")
+
+        val approvalId = card.approvalId
+        if (approvalId != null && approvalGateway.available) {
+            viewModelScope.launch {
+                when (val result = approvalGateway.approve(approvalId)) {
+                    is JarvisApprovalResult.Accepted ->
+                        _state.update { it.copy(snackbar = "${card.title} — approved on gateway") }
+                    is JarvisApprovalResult.Rejected -> {
+                        // Roll the local flip back so the UI stays honest.
+                        _state.update {
+                            it.copy(
+                                approved = it.approved - key,
+                                snackbar = "Gateway declined: ${result.message}",
+                            )
+                        }
+                        logBuffer.warn(TAG, "Gateway approval failed: ${result.message}")
+                    }
+                    JarvisApprovalResult.Unavailable -> Unit // local-only, already reflected
+                }
+            }
+        }
     }
 
     fun holdInline(messageId: String, card: JarvisInlineCard.Approval) {
@@ -296,6 +441,47 @@ class JarvisChatViewModel(
                                 updateReply(replyId) { it.copy(inline = it.inline + chunk.card) }
                             }
 
+                            is JarvisChatChunk.Phase -> {
+                                if (!firstChunkSeen) {
+                                    indicatorId = promoteToReply(indicatorId, replyId)
+                                    firstChunkSeen = true
+                                }
+                                updateReply(replyId) {
+                                    // Append only on transition so the rail reads as a
+                                    // sequence, not a repeated label.
+                                    if (it.phases.lastOrNull() == chunk.phase) it
+                                    else it.copy(phases = it.phases + chunk.phase)
+                                }
+                            }
+
+                            is JarvisChatChunk.ToolCall -> {
+                                if (!firstChunkSeen) {
+                                    indicatorId = promoteToReply(indicatorId, replyId)
+                                    firstChunkSeen = true
+                                }
+                                updateReply(replyId) { it.copy(toolCalls = upsertTool(it.toolCalls, chunk)) }
+                            }
+
+                            is JarvisChatChunk.EvidenceRef -> {
+                                if (!firstChunkSeen) {
+                                    indicatorId = promoteToReply(indicatorId, replyId)
+                                    firstChunkSeen = true
+                                }
+                                updateReply(replyId) {
+                                    it.copy(records = it.records + JarvisRecordRef(chunk.auditId, chunk.title, JarvisRecordRef.Kind.EVIDENCE))
+                                }
+                            }
+
+                            is JarvisChatChunk.LedgerRef -> {
+                                if (!firstChunkSeen) {
+                                    indicatorId = promoteToReply(indicatorId, replyId)
+                                    firstChunkSeen = true
+                                }
+                                updateReply(replyId) {
+                                    it.copy(records = it.records + JarvisRecordRef(chunk.ledgerId, chunk.title, JarvisRecordRef.Kind.LEDGER))
+                                }
+                            }
+
                             is JarvisChatChunk.Failure -> {
                                 emitFailure(indicatorId, chunk.message, chunk.retryHint)
                             }
@@ -359,6 +545,31 @@ class JarvisChatViewModel(
         _state.update { st -> st.copy(messages = st.messages.filterNot { it.id == id }) }
     }
 
+    /**
+     * Fold a streamed [JarvisChatChunk.ToolCall] into the reply's tool list.
+     * The same call id arrives twice (START then a terminal OK/FAIL); the
+     * terminal update replaces the START entry in place rather than adding a
+     * duplicate, so the chip animates instead of stacking.
+     */
+    private fun upsertTool(
+        existing: List<JarvisToolCall>,
+        chunk: JarvisChatChunk.ToolCall,
+    ): List<JarvisToolCall> {
+        val folded = JarvisToolCall(
+            id = chunk.id,
+            name = chunk.name,
+            summary = chunk.summary,
+            status = chunk.status,
+            detail = chunk.detail,
+        )
+        val idx = existing.indexOfFirst { it.id == chunk.id }
+        return if (idx < 0) existing + folded
+        else existing.toMutableList().apply {
+            // Keep a detail that arrived earlier if the terminal chunk omits it.
+            this[idx] = folded.copy(detail = folded.detail ?: this[idx].detail)
+        }
+    }
+
     private fun emitFailure(indicatorId: String, message: String?, retryHint: String? = null) {
         val err = JarvisChatMessage.Error(
             text = message ?: "Gateway error",
@@ -388,5 +599,8 @@ class JarvisChatViewModel(
 
     companion object {
         private const val TAG = "JarvisChat"
+
+        /** Sent by [continueReply] — the gateway treats it as "keep going". */
+        const val CONTINUE_DIRECTIVE = "continue"
     }
 }

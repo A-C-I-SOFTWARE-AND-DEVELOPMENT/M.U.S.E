@@ -33,8 +33,11 @@ class MockJarvisChatGateway(
 
     override fun send(history: List<JarvisChatMessage>, prompt: String): Flow<JarvisChatChunk> = flow {
         emit(JarvisChatChunk.Thinking)
+        emit(JarvisChatChunk.Phase(JarvisPhase.RECEIVING))
+        emit(JarvisChatChunk.Phase(JarvisPhase.THINKING))
 
         val classification = JarvisIntentClassifier.classify(prompt)
+        emit(JarvisChatChunk.Phase(JarvisPhase.ROUTING))
 
         when (classification.intent) {
             Intent.ERROR_TRIGGER -> {
@@ -138,6 +141,19 @@ class MockJarvisChatGateway(
 
             Intent.TASK -> {
                 emit(JarvisChatChunk.Working("Drafting task card"))
+                // Simulate the read-only inline tool activity the real
+                // gateway streams for a code turn (compact + expandable +
+                // pre-redacted), so the cockpit tool rail is demoable offline.
+                emit(JarvisChatChunk.Phase(JarvisPhase.TOOL))
+                emit(JarvisChatChunk.ToolCall("mock-1", "git_status", "checking working tree", JarvisToolStatus.START))
+                emit(JarvisChatChunk.ToolCall("mock-1", "git_status", "main — clean", JarvisToolStatus.OK, detail = "working tree clean"))
+                emit(JarvisChatChunk.ToolCall("mock-2", "repo_grep", "searching the repo", JarvisToolStatus.START))
+                emit(
+                    JarvisChatChunk.ToolCall(
+                        "mock-2", "repo_grep", "\"${searchTerm(prompt)}\" → 3 file(s)", JarvisToolStatus.OK,
+                        detail = "run_agent.py\nmodel_tools.py\ntoolsets.py",
+                    ),
+                )
                 streamBody("Got it. Drafting a task card you can promote.")
                 streamDetail(
                     "I'll target ${JarvisIntentClassifier.inferTargetTool(prompt).name.lowercase()} " +
@@ -153,6 +169,10 @@ class MockJarvisChatGateway(
                         ),
                     ),
                 )
+                emit(JarvisChatChunk.Phase(JarvisPhase.VERIFICATION))
+                emit(JarvisChatChunk.EvidenceRef("mock-audit-1", "Evidence & verification"))
+                emit(JarvisChatChunk.LedgerRef("mock-audit-1", "Drafted task decision"))
+                emit(JarvisChatChunk.Phase(JarvisPhase.FINAL))
                 emit(JarvisChatChunk.Done)
             }
 
@@ -198,6 +218,12 @@ class MockJarvisChatGateway(
     private fun summarise(prompt: String): String =
         prompt.trim().lineSequence().firstOrNull()?.take(140).orEmpty()
             .ifBlank { "(empty)" }
+
+    private fun searchTerm(prompt: String): String =
+        prompt.split(' ', '\n')
+            .map { it.trim().trim('"', '\'', '`', '.', ',') }
+            .firstOrNull { it.length in 4..40 && it.any(Char::isLetter) }
+            ?: "repo"
 
     private fun deriveTaskTitle(prompt: String): String {
         val first = prompt.trim().lineSequence().firstOrNull().orEmpty()

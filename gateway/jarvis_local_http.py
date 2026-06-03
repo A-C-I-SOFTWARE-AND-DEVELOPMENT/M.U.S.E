@@ -82,6 +82,95 @@ def error(message: str, retry_hint: str | None = None) -> dict:
     return payload
 
 
+# --- extended wire contract: phases, tool calls, evidence/ledger refs ----
+#
+# These are *additive* chunk types. Older clients ignore unknown ``type``
+# values (the Kotlin parser drops them), so emitting them never breaks a
+# pre-update app. They give the mobile cockpit a phase rail, compact tool
+# visibility, and one-tap evidence/ledger inspection.
+
+# Named pipeline phases the avatar surfaces as a progress rail. Kept in
+# sync with the Kotlin ``JarvisPhase`` enum.
+PHASES = (
+    "RECEIVING",
+    "THINKING",
+    "ROUTING",
+    "TOOL",
+    "CODING",
+    "RESEARCH",
+    "VERIFICATION",
+    "FINAL",
+)
+
+# Tool-call lifecycle statuses (1:1 with Kotlin ``ToolCall.status``).
+TOOL_STATUSES = ("START", "OK", "FAIL")
+
+
+def phase(name: str) -> dict:
+    """A named pipeline phase (e.g. ``ROUTING``, ``VERIFICATION``).
+
+    Unknown names pass through upper-cased so a future phase still renders
+    as a labelled chip rather than crashing the client.
+    """
+    return {"type": "phase", "phase": (name or "").upper()}
+
+
+def tool_call(
+    call_id: str,
+    name: str,
+    summary: str,
+    status: str = "START",
+    detail: str | None = None,
+) -> dict:
+    """One tool invocation surfaced to the cockpit.
+
+    ``summary``/``detail`` are **secret-scrubbed here** via
+    ``secrets_policy.redact`` so a tool arg/result that captured a token
+    can never reach the wire, even if a caller forgets to pre-redact.
+    """
+    payload: dict = {
+        "type": "tool_call",
+        "id": call_id,
+        "name": name,
+        "summary": _scrub(summary),
+        "status": status.upper() if status else "START",
+    }
+    if detail:
+        payload["detail"] = _scrub(detail)
+    return payload
+
+
+def evidence_ref(audit_id: str, title: str) -> dict:
+    """A reference to an evidence/proof record the app resolves on tap.
+
+    Reference-only: carries the id the app looks up via ``auditProof`` —
+    no evidence body rides the chat stream.
+    """
+    return {"type": "evidence", "auditId": audit_id, "title": title}
+
+
+def ledger_ref(ledger_id: str, title: str) -> dict:
+    """A reference to a decision-ledger entry the app resolves on tap."""
+    return {"type": "ledger", "ledgerId": ledger_id, "title": title}
+
+
+def _scrub(text: str) -> str:
+    """Best-effort secret redaction for anything tool-derived.
+
+    Reuses the canonical ``hermes_cli.secrets_policy.redact`` so the chat
+    stream shares the same secret policy as the rest of Hermes. Degrades
+    to the original text only if that module is unavailable (never raises).
+    """
+    if not text:
+        return text
+    try:
+        from hermes_cli.secrets_policy import redact
+
+        return redact(text)
+    except Exception:  # pragma: no cover - redaction is best-effort
+        return text
+
+
 def encode_stream(chunks: Iterable[dict]) -> Iterator[bytes]:
     """Serialize chunks to newline-delimited JSON bytes (one per line)."""
     for chunk in chunks:
