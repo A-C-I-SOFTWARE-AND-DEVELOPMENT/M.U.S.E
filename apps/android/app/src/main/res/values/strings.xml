@@ -315,6 +315,11 @@
     <string name="diagnostics_no_error">No errors recorded.</string>
     <string name="diagnostics_no_logs">No logs yet.</string>
     <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_backend_title">Backend readiness</string>
+    <string name="diagnostics_backend_not_paired">Pair a gateway in Settings → Connection to see the backend\'s launch-readiness checks.</string>
+    <string name="diagnostics_backend_loading">Checking the backend…</string>
+    <string name="diagnostics_backend_ready">Backend launch-ready</string>
+    <string name="diagnostics_backend_not_ready">Backend not launch-ready</string>
 
     <!-- Generic -->
     <string name="action_cancel">Cancel</string>

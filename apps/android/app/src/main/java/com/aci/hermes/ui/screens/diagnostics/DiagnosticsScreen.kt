@@ -73,7 +73,53 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             DiagInfoCard(state)
+            BackendReadinessCard(state.backend)
             LogsCard(state)
+        }
+    }
+}
+
+@Composable
+private fun BackendReadinessCard(sync: BackendDiagnosticsSync) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                stringResource(R.string.diagnostics_backend_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            when (sync) {
+                is BackendDiagnosticsSync.NotPaired ->
+                    Text(stringResource(R.string.diagnostics_backend_not_paired), style = MaterialTheme.typography.bodyMedium)
+                is BackendDiagnosticsSync.Error ->
+                    Text(sync.message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                is BackendDiagnosticsSync.Loading, BackendDiagnosticsSync.Idle ->
+                    Text(stringResource(R.string.diagnostics_backend_loading), style = MaterialTheme.typography.bodyMedium)
+                is BackendDiagnosticsSync.Loaded -> {
+                    val report = sync.report
+                    val summary = if (report.ok) {
+                        stringResource(R.string.diagnostics_backend_ready)
+                    } else {
+                        stringResource(R.string.diagnostics_backend_not_ready)
+                    }
+                    DiagRow(summary, "${report.checks.count { it.status == "pass" }}/${report.checks.size}")
+                    report.checks.forEach { check ->
+                        HorizontalDivider()
+                        val glyph = when (check.status) {
+                            "pass" -> "✓"
+                            "warn" -> "▲"
+                            else -> "✗"
+                        }
+                        DiagRow("$glyph ${check.name}", check.detail.take(60))
+                    }
+                    report.error?.takeIf { it.isNotBlank() }?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
         }
     }
 }

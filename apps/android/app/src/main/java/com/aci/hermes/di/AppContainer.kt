@@ -237,7 +237,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
-        DiagnosticsViewModel(logBuffer)
+        DiagnosticsViewModel(logBuffer, cockpitClient)
     }
 
     fun avatarPickerVmFactory(): ViewModelProvider.Factory = factory {

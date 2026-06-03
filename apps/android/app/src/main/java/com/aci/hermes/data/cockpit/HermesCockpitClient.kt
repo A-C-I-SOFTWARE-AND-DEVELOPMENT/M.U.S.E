@@ -63,6 +63,10 @@ class HermesCockpitClient(
     suspend fun runtimeWorkers(): CockpitResult<WorkerDetectionList> =
         request("GET", "/v1/cockpit/runtime/workers", WorkerDetectionList.serializer())
 
+    /** The backend's own launch-readiness report (contract §diagnostics). */
+    suspend fun diagnostics(): CockpitResult<CockpitDiagnostics> =
+        request("GET", "/v1/cockpit/diagnostics", CockpitDiagnostics.serializer())
+
     /**
      * Generic authenticated GET for routes without a settled typed model
      * yet (memory, events, approvals, jobs, sessions). Returns the raw
