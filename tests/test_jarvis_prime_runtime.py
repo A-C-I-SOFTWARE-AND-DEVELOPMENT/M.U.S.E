@@ -178,6 +178,7 @@ def test_captured_candidate_does_not_leak_into_recall(jp: JarvisPrime) -> None:
 
     jp.observe_turn("We decided to standardize on Material 3.", "Understood.")
     tree = jp.memory_tree()
+    assert tree is not None
     captured = tree.proposed()
     assert captured, "precondition: the turn produced a proposed candidate"
 

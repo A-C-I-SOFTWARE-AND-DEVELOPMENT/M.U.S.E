@@ -354,6 +354,7 @@ def test_context_pack_excludes_unapproved_session_captures(tmp_path) -> None:
     captured = _session(
         store, "Owner prefers deploying on Wednesday.", title="deploy-pref"
     ).node
+    assert captured is not None
     assert captured.awaiting_review is True
 
     # Visible to audit search...
@@ -390,6 +391,7 @@ def test_context_pack_includes_provenance_backed_durable_facts(tmp_path) -> None
         source_trust=SourceTrust.PRIMARY,
     )
     assert result.ok
+    assert result.node is not None
     assert result.node.approval_state is ApprovalState.PROPOSED
     assert result.node.awaiting_review is False
     pack = store.context_pack("backend", token_budget=500)
