@@ -1,0 +1,53 @@
+# ===========================================================================
+# Second Brain — local infrastructure (Postgres + pgvector, Neo4j).
+#
+#   docker compose up -d
+#
+# Both services bind to 127.0.0.1 only. Credentials come from your shell /
+# .env file; the defaults below are for local development ONLY — override
+# them everywhere else. Do not expose these ports on an untrusted network.
+# ===========================================================================
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: second_brain_postgres
+    environment:
+      POSTGRES_DB: ${SECOND_BRAIN_PG_DB:-second_brain}
+      POSTGRES_USER: ${SECOND_BRAIN_PG_USER:-second_brain}
+      POSTGRES_PASSWORD: ${SECOND_BRAIN_PG_PASSWORD:-second_brain}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - second_brain_pg_data:/var/lib/postgresql/data
+      # Applied automatically on first initialisation of an empty data dir.
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SECOND_BRAIN_PG_USER:-second_brain}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  neo4j:
+    image: neo4j:5
+    container_name: second_brain_neo4j
+    environment:
+      NEO4J_AUTH: ${SECOND_BRAIN_NEO4J_USER:-neo4j}/${SECOND_BRAIN_NEO4J_PASSWORD:-second_brain}
+      NEO4J_server_memory_pagecache_size: 512m
+      NEO4J_server_memory_heap_max__size: 1G
+    ports:
+      - "127.0.0.1:7474:7474"   # HTTP browser
+      - "127.0.0.1:7687:7687"   # Bolt
+    volumes:
+      - second_brain_neo4j_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  second_brain_pg_data:
+  second_brain_neo4j_data:
