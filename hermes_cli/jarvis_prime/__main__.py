@@ -541,11 +541,214 @@ def _cmd_learning_export(args: argparse.Namespace) -> int:
         n = store.export_eval_cases(out)
     elif fmt == "skill":
         n = store.export_skill_candidates(out)
+    elif fmt == "parquet":
+        from hermes_cli.jarvis_prime.learning_analytics import export_parquet
+        try:
+            n = export_parquet(store, out)
+        except Exception as exc:
+            print(f"parquet export failed: {exc}", file=sys.stderr)
+            return 1
     else:  # pragma: no cover - argparse choices guard this
         print(f"unknown format: {fmt}", file=sys.stderr)
         return 2
     print(f"exported {n} record(s) ({fmt}) -> {out}")
     return 0
+
+
+def _cmd_learning_query(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.learning_analytics import query_dataset
+
+    try:
+        rows = query_dataset(args.sql, args.parquet)
+    except Exception as exc:
+        print(f"query failed: {exc}", file=sys.stderr)
+        return 1
+    _print_json(rows)
+    return 0
+
+
+def _holographic_store():
+    """Open the holographic memory store at its configured (profile-aware) path.
+
+    Resolves ``plugins.hermes-memory-store.db_path`` the same way the plugin
+    does, so the CLI operates on the live store. Returns None when the plugin
+    isn't importable (e.g. minimal install).
+    """
+    try:
+        from hermes_constants import get_hermes_home
+        from plugins.memory.holographic import _load_plugin_config
+        from plugins.memory.holographic.store import MemoryStore
+    except Exception as exc:  # pragma: no cover - minimal install
+        print(f"holographic memory store unavailable: {exc}", file=sys.stderr)
+        return None
+
+    cfg = _load_plugin_config()
+    home = str(get_hermes_home())
+    db_path = cfg.get("db_path", home + "/memory_store.db")
+    if isinstance(db_path, str):
+        db_path = db_path.replace("$HERMES_HOME", home).replace("${HERMES_HOME}", home)
+    return MemoryStore(db_path=db_path)
+
+
+def _cmd_memory_consolidate(args: argparse.Namespace) -> int:
+    store = _holographic_store()
+    if store is None:
+        return 1
+    from plugins.memory.holographic.consolidation import consolidate
+
+    try:
+        report = consolidate(store, dry_run=not args.apply)
+    finally:
+        store.close()
+    data = report.to_dict()
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0
+    mode = "APPLIED" if args.apply else "dry-run (use --apply to write)"
+    s = data["summary"]
+    print(f"consolidation {mode}: {data['total']} fact(s) scanned")
+    print(
+        f"  merged={s['merged']}  contradictions={s['contradictions']}  "
+        f"promoted={s['promoted']}  forgotten={s['forgotten']}"
+    )
+    for m in data["merged"]:
+        print(f"  merge {m['drop']} -> {m['keep']} (sim {m['similarity']})")
+    for p in data["promoted"]:
+        print(f"  promote {p['fact_id']} (short->long, {p['reason']})")
+    for fgt in data["forgotten"]:
+        print(f"  forget {fgt['fact_id']}: {fgt['content']}")
+    return 0
+
+
+def _cmd_memory_stats(args: argparse.Namespace) -> int:
+    store = _holographic_store()
+    if store is None:
+        return 1
+    try:
+        facts = store.all_facts_for_consolidation()
+    finally:
+        store.close()
+    tiers: dict[str, int] = {}
+    cats: dict[str, int] = {}
+    imp_buckets = {"low(<0.34)": 0, "mid": 0, "high(>=0.67)": 0}
+    accessed = 0
+    for f in facts:
+        tiers[f.get("memory_tier") or "short"] = tiers.get(f.get("memory_tier") or "short", 0) + 1
+        cats[f.get("category") or "general"] = cats.get(f.get("category") or "general", 0) + 1
+        imp = f.get("importance")
+        imp = 0.5 if imp is None else float(imp)
+        if imp < 0.34:
+            imp_buckets["low(<0.34)"] += 1
+        elif imp >= 0.67:
+            imp_buckets["high(>=0.67)"] += 1
+        else:
+            imp_buckets["mid"] += 1
+        if (f.get("retrieval_count") or 0) > 0:
+            accessed += 1
+    data = {
+        "total": len(facts),
+        "tiers": tiers,
+        "categories": cats,
+        "importance": imp_buckets,
+        "ever_accessed": accessed,
+    }
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0
+    print(f"memory: {data['total']} fact(s)")
+    print(f"  tiers: {tiers}")
+    print(f"  importance: {imp_buckets}")
+    print(f"  ever recalled: {accessed}")
+    return 0
+
+
+def _memory_sources_config() -> dict:
+    """Read jarvis_prime.memory_sources config from config.yaml (per-source gates)."""
+    try:
+        from hermes_constants import get_hermes_home
+        from hermes_cli.config import cfg_get
+        import yaml
+
+        path = get_hermes_home() / "config.yaml"
+        if not path.exists():
+            return {}
+        with open(path, encoding="utf-8-sig") as f:
+            all_cfg = yaml.safe_load(f) or {}
+        return cfg_get(all_cfg, "jarvis_prime", "memory_sources", default={}) or {}
+    except Exception:
+        return {}
+
+
+def _cmd_memory_sources(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.memory_sources import REGISTRY, source_enabled
+
+    cfg = _memory_sources_config()
+    rows = []
+    for name in sorted(REGISTRY):
+        p = REGISTRY[name]
+        rows.append({
+            "source": name,
+            "tool": p.tool,
+            "sensitivity": p.sensitivity,
+            "trust": p.trust,
+            "enabled": source_enabled(name, cfg),
+        })
+    if getattr(args, "json", False):
+        _print_json(rows)
+        return 0
+    print("memory sources (enable under jarvis_prime.memory_sources.<name>.enabled):")
+    for r in rows:
+        flag = "on " if r["enabled"] else "off"
+        print(f"  [{flag}] {r['source']:8s} tool={r['tool']:24s} "
+              f"sensitivity={r['sensitivity']:8s} trust={r['trust']}")
+    return 0
+
+
+def _cmd_memory_ingest(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.memory_sources import ingest
+
+    cfg = _memory_sources_config()
+    store = None
+    if args.apply:
+        # Owner gate: writing external data into memory is irreversible-ish and
+        # may touch personal sources — require the exact authorization phrase.
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        import os
+
+        phrase = args.phrase or os.environ.get("JARVIS_OWNER_PHRASE", "")
+        if phrase.strip() != AUTHORIZATION_PHRASE:
+            print(
+                f"owner authorization required to write — reply exactly: "
+                f"{AUTHORIZATION_PHRASE!r} (via --phrase or JARVIS_OWNER_PHRASE)",
+                file=sys.stderr,
+            )
+            return 3
+        store = _holographic_store()
+        if store is None:
+            return 1
+
+    try:
+        report = ingest(
+            args.source, args.query, limit=args.limit, apply=args.apply,
+            config=cfg, store=store,
+        )
+    finally:
+        if store is not None:
+            store.close()
+
+    data = report.to_dict()
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0 if not data["errors"] else 1
+    mode = "WROTE" if args.apply else "dry-run (use --apply with owner phrase to write)"
+    print(f"ingest {args.source!r} q={args.query!r}: fetched {data['fetched']}, {mode}")
+    for c in data["candidates"]:
+        print(f"  - [{c['importance']}] {c['title']}  <{c['source_uri']}>")
+    if args.apply:
+        print(f"  written: {data['written']}")
+    for e in data["errors"]:
+        print(f"  error: {e}", file=sys.stderr)
+    return 0 if not data["errors"] else 1
 
 
 def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
@@ -885,6 +1088,77 @@ def _cmd_packet(args: argparse.Namespace) -> int:
     if packet.owner_gates:
         print("owner gates: " + ", ".join(g.value for g in packet.owner_gates))
     print("allowed files: " + ", ".join(packet.allowed_files))
+    return 0
+
+
+def _cmd_compile(args: argparse.Namespace) -> int:
+    """Compile plain English into a work packet or an automation flow."""
+
+    from hermes_cli.jarvis_prime import nl_compile
+
+    res = nl_compile.compile_request(
+        args.prompt,
+        backend=args.backend,
+        branch_prefix=args.branch_prefix,
+        gate_check=getattr(args, "gate_check", False),
+        learn=getattr(args, "learn", False),
+    )
+
+    if args.json:
+        _print_json(res.to_dict())
+        if res.needs_clarification:
+            return 2
+        # A blocked (gate-bypass) request is not a successful compile — mirror
+        # the non-JSON path's exit code so automation can detect it.
+        if res.backend is not None and res.backend.blocked:
+            return 1
+        return 0
+
+    if res.needs_clarification:
+        print("Clarifying questions before I can compile:")
+        for q in res.clarifying_questions():
+            print(f"  - {q}")
+        return 2
+
+    from hermes_cli.jarvis_prime.ir_compilers.automation_flow import AutomationFlow
+    from hermes_cli.jarvis_prime.natural_language_coder import CodingWorkPacket
+
+    decision = res.backend
+    # Past the needs_clarification guard the façade always sets a decision.
+    assert decision is not None
+    if decision.blocked or decision.selected is None:
+        print("blocked: request attempts to bypass owner gates — no backend selected")
+        return 1
+
+    print(f"backend: {decision.selected.value}")
+    if getattr(args, "explain", False):
+        print(f"rationale: {decision.rationale}")
+        for s in decision.scores:
+            print(f"  score {s.target.value}: {s.score:.2f}  ({s.rationale})")
+
+    result = res.compile_result
+    if result is not None:
+        artifact = result.artifact
+        if isinstance(artifact, CodingWorkPacket):
+            print(f"mission: {artifact.mission}")
+            print(
+                f"intent: {artifact.intent.value}  risk: {artifact.risk_class}  "
+                f"branch: {artifact.branch}"
+            )
+            print("allowed files: " + ", ".join(artifact.allowed_files))
+        elif isinstance(artifact, AutomationFlow):
+            print(f"flow: {artifact.name}  ({len(artifact.triggers)} triggers, "
+                  f"{len(artifact.steps)} steps)")
+            if artifact.owner_gated_actions:
+                print("owner-gated: " + ", ".join(artifact.owner_gated_actions))
+            validation = artifact.validate()
+            print(f"flow valid: {validation.ok}")
+        for note in result.notes:
+            print(f"  note: {note}")
+
+    if res.gate_summary is not None:
+        print(res.gate_summary.render())
+
     return 0
 
 
@@ -1757,11 +2031,27 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_learning_export.add_argument(
         "--format",
-        choices=("jsonl", "preference", "eval", "skill"),
+        choices=("jsonl", "preference", "eval", "skill", "parquet"),
         default="jsonl",
     )
     p_learning_export.add_argument("--out", required=True, help="Output file path")
     p_learning_export.set_defaults(func=_cmd_learning_export)
+
+    p_learning_query = p_learning_sub.add_parser(
+        "query",
+        help="Run read-only DuckDB SQL over an exported Parquet file",
+        description=(
+            "Analytics over your own approved traces. Export first with "
+            "'learning export --format parquet --out <path>', then query that "
+            "file; the table is exposed as 'dataset'. Requires the optional "
+            "'analytics' extra (lazy-installs duckdb on first use)."
+        ),
+    )
+    p_learning_query.add_argument("sql", help="DuckDB SQL; the table is named 'dataset'")
+    p_learning_query.add_argument(
+        "--parquet", required=True, help="Path to a Parquet file exported above"
+    )
+    p_learning_query.set_defaults(func=_cmd_learning_query)
 
     p_learning_ingest = p_learning_sub.add_parser(
         "ingest-trajectory",
@@ -2169,6 +2459,62 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_packetize.add_argument("--json", action="store_true")
     p_packetize.set_defaults(func=_cmd_packet)
 
+    p_memory = sub.add_parser(
+        "memory",
+        help="Longevity ops on the holographic memory store (consolidate / stats)",
+        description=(
+            "Durable-memory maintenance for the holographic fact store: "
+            "merge duplicates, mark contradictions, promote important/"
+            "frequently-recalled facts to the long tier, and selectively "
+            "forget stale low-value short-tier facts. 'consolidate' is "
+            "dry-run by default; pass --apply to write."
+        ),
+    )
+    p_memory_sub = p_memory.add_subparsers(dest="memory_command", required=True)
+
+    p_memory_consolidate = p_memory_sub.add_parser(
+        "consolidate", help="Run a consolidation pass (dry-run unless --apply)"
+    )
+    p_memory_consolidate.add_argument(
+        "--apply", action="store_true",
+        help="Actually merge/promote/forget (default is a dry-run report)",
+    )
+    p_memory_consolidate.add_argument("--json", action="store_true")
+    p_memory_consolidate.set_defaults(func=_cmd_memory_consolidate)
+
+    p_memory_stats = p_memory_sub.add_parser(
+        "stats", help="Show tier / importance / access histogram"
+    )
+    p_memory_stats.add_argument("--json", action="store_true")
+    p_memory_stats.set_defaults(func=_cmd_memory_stats)
+
+    p_memory_sources = p_memory_sub.add_parser(
+        "sources", help="List configured external memory-source connectors"
+    )
+    p_memory_sources.add_argument("--json", action="store_true")
+    p_memory_sources.set_defaults(func=_cmd_memory_sources)
+
+    p_memory_ingest = p_memory_sub.add_parser(
+        "ingest",
+        help="Ingest from an external MCP search source into memory (owner-gated)",
+        description=(
+            "Search an enabled MCP source (gmail, gdrive, notion, slack, "
+            "pubmed, icd10, era, …) and preview provenanced candidates. "
+            "Dry-run by default; --apply writes them to the holographic store "
+            "and requires the owner authorization phrase. Sources must be "
+            "enabled under jarvis_prime.memory_sources.<name>.enabled."
+        ),
+    )
+    p_memory_ingest.add_argument("--source", required=True, help="Source name (see `memory sources`)")
+    p_memory_ingest.add_argument("--query", required=True, help="Search query")
+    p_memory_ingest.add_argument("--limit", type=int, default=10)
+    p_memory_ingest.add_argument("--apply", action="store_true", help="Write results (owner phrase required)")
+    p_memory_ingest.add_argument(
+        "--phrase", help="Owner authorization phrase (required with --apply)"
+    )
+    p_memory_ingest.add_argument("--json", action="store_true")
+    p_memory_ingest.set_defaults(func=_cmd_memory_ingest)
+
     p_memtree = sub.add_parser(
         "memory-tree",
         help="Group source-backed notes by namespace/topic (in-memory only)",
@@ -2442,6 +2788,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_navigate.add_argument("--limit", type=int, default=5, help="Max candidate sites")
     p_navigate.add_argument("--json", action="store_true")
     p_navigate.set_defaults(func=_cmd_navigate)
+
+    # compile — natural-language programming front-end: English -> typed intent
+    # graph -> work packet or automation-flow DSL. Deterministic, no execution.
+    p_compile = sub.add_parser(
+        "compile",
+        help="Compile plain English into a work packet or automation flow",
+        description=(
+            "Parse a plain-English request into a typed semantic intent graph, "
+            "deterministically select a backend (repo work packet or automation "
+            "flow), and emit a gate-compatible artifact. Surfaces clarifying "
+            "questions instead of guessing; never executes."
+        ),
+    )
+    p_compile.add_argument("prompt", help="The plain-English request")
+    p_compile.add_argument(
+        "--backend",
+        choices=["auto", "work-packet", "workflow", "automation"],
+        default="auto",
+        help="Force a backend target (default: auto-select)",
+    )
+    p_compile.add_argument("--branch-prefix", dest="branch_prefix", default="jarvis")
+    p_compile.add_argument(
+        "--gate-check", dest="gate_check", action="store_true",
+        help="Run the verification gate summary over a compiled work packet",
+    )
+    p_compile.add_argument(
+        "--explain", action="store_true", help="Show backend selection scores"
+    )
+    p_compile.add_argument(
+        "--learn", action="store_true",
+        help="Propose parsed vocabulary to the Memory Tree (owner-review, never durable)",
+    )
+    p_compile.add_argument("--json", action="store_true")
+    p_compile.set_defaults(func=_cmd_compile)
 
     args = parser.parse_args(argv)
     return args.func(args)
