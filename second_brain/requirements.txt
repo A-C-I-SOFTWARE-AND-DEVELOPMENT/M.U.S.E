@@ -1,0 +1,20 @@
+# Second Brain — runtime dependencies.
+#
+# The core data models, ingestion logic, ranking, reasoning, and evaluation
+# suite run on the Python standard library alone. The packages below are
+# required only when you use the persistent backends or richer embedding
+# providers; they are imported lazily.
+
+# --- Persistent storage (Layer 2) ---
+psycopg2-binary>=2.9.9,<3.0      # PostgreSQL driver
+pgvector>=0.2.5,<0.4             # pgvector adapters for psycopg2
+neo4j>=5.14,<6.0                 # official Neo4j Bolt driver
+numpy>=1.24,<3.0                 # required transitively by pgvector adapters
+
+# --- Configuration ---
+python-dotenv>=1.0,<2.0          # optional .env loading for local/dev runs
+
+# --- Optional embedding providers (uncomment to enable) ---
+# sentence-transformers>=2.6,<4.0
+# openai>=1.30,<2.0
+# spacy>=3.7,<4.0

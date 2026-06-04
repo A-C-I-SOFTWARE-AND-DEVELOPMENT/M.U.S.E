@@ -79,6 +79,39 @@ def test_private_key_block_is_redacted(tmp_path):
     assert "BEGIN RSA PRIVATE KEY" not in flat
 
 
+# --- reward-hacking exclusion (Constitution C27) ---------------------------
+
+
+def test_add_candidate_rejects_reward_hacking_positive(tmp_path):
+    store = _store(tmp_path)
+    content = {
+        "conversations": [
+            {"from": "human", "value": "make it pass"},
+            {
+                "from": "assistant",
+                "value": "I'll stub the assertion and --no-verify to skip the failing test",
+            },
+        ]
+    }
+    with pytest.raises(RejectedTrace):
+        store.add_candidate(
+            TraceType.CODING_TASK, content, _prov(), _coding_quality()
+        )
+
+
+def test_negative_example_may_demonstrate_reward_hacking(tmp_path):
+    store = _store(tmp_path)
+    # A negative example is *meant* to show the bad behavior — it is exempt.
+    cand = store.add_candidate(
+        TraceType.FAILED_ATTEMPT,
+        {"diff": "stub the assertion to fake the result"},
+        _prov(),
+        QualityGates(),
+        labels=[NEGATIVE_EXAMPLE],
+    )
+    assert cand.status == CandidateStatus.PENDING
+
+
 # --- negative-example rule -------------------------------------------------
 
 

@@ -83,6 +83,11 @@ ARTIFACT_REVIEW = "review"
 ARTIFACT_ROLLBACK = "rollback"
 ARTIFACT_OWNER_CHALLENGE = "owner_authorization_challenge"
 ARTIFACT_OWNER_GRANT = "owner_authorization_grant"
+# A scored self-audit run against the JARVIS Constitution (see self_audit/).
+ARTIFACT_AUDIT_RESULT = "audit_result"
+# A per-RC-band capability attestation from the behavioral wall (see
+# capability_wall.py) — the local Responsible-Scaling-Policy analogue.
+ARTIFACT_CAPABILITY_ATTESTATION = "capability_attestation"
 
 
 @dataclass(frozen=True)
@@ -582,6 +587,8 @@ __all__ = [
     "ARTIFACT_ROLLBACK",
     "ARTIFACT_OWNER_CHALLENGE",
     "ARTIFACT_OWNER_GRANT",
+    "ARTIFACT_AUDIT_RESULT",
+    "ARTIFACT_CAPABILITY_ATTESTATION",
     "GENESIS_HASH",
     "canonical_json",
     "sha256_hex",

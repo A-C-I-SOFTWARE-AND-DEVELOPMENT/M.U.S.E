@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 from hermes_cli import remote_bridge as rb
@@ -288,10 +289,15 @@ class TestDispatch:
                 allow_remote_execute=True,
             )
 
-    def test_http_transport_is_stub(self, endpoint_root: Path, tmp_path: Path):
+    @pytest.mark.parametrize(
+        "transport", [rb.TRANSPORT_WEBSOCKET, rb.TRANSPORT_SSH]
+    )
+    def test_websocket_and_ssh_transports_are_stubs(
+        self, endpoint_root: Path, tmp_path: Path, transport: str
+    ):
         endpoint = rb.RemoteEndpoint(
             name="x",
-            transport=rb.TRANSPORT_HTTP,
+            transport=transport,
             workspace_root=endpoint_root,
             allowed_device_ids=frozenset({"a"}),
             allow_remote_execute=True,
@@ -305,6 +311,9 @@ class TestDispatch:
                 expected_artifacts=("status.json",),
                 allow_remote_execute=True,
             )
+        # The refusal is audit-logged so a misread config name is visible.
+        events = bridge.audit_log.read_all()
+        assert any(e.get("reason") == "transport_stub" for e in events)
 
     def test_dispatch_writes_prompt_and_manifest(self, bridge: rb.RemoteBridge):
         job = bridge.dispatch(
@@ -587,3 +596,433 @@ class TestDefaultAuditPath:
         endpoint = make_endpoint(endpoint_root)
         bridge = rb.RemoteBridge(endpoint)
         assert tmp_path / "hermes-home" / "remote" in bridge.audit_log.path.parents
+
+
+# ── http transport ───────────────────────────────────────────────────────
+
+
+def _make_http_endpoint(
+    root: Path,
+    *,
+    url: str = "https://worker.example/api/jobs",
+    allow_remote_execute: bool = True,
+    auth_token_env: str = "",
+    http_max_attempts: int = 3,
+) -> rb.RemoteEndpoint:
+    return rb.RemoteEndpoint(
+        name="http-worker",
+        transport=rb.TRANSPORT_HTTP,
+        workspace_root=root,
+        device_id="hermes-android",
+        allowed_device_ids=frozenset({"http-worker"}),
+        allow_remote_execute=allow_remote_execute,
+        auth_token_env=auth_token_env,
+        http_endpoint_url=url,
+        http_timeout_seconds=5.0,
+        http_max_attempts=http_max_attempts,
+    )
+
+
+def _install_mock_client(
+    monkeypatch: pytest.MonkeyPatch,
+    handler,
+    *,
+    calls: list[httpx.Request] | None = None,
+) -> None:
+    """Patch ``remote_bridge.httpx.Client`` to route through a MockTransport.
+
+    ``handler`` receives the outgoing :class:`httpx.Request` and returns an
+    :class:`httpx.Response`. It may also raise (e.g. ``httpx.ConnectError``)
+    to exercise the transport-error path. No real socket is ever opened.
+    """
+
+    real_client = httpx.Client
+
+    def _wrapped(request: httpx.Request) -> httpx.Response:
+        if calls is not None:
+            calls.append(request)
+        return handler(request)
+
+    def _factory(*args, **kwargs):
+        kwargs.pop("transport", None)
+        return real_client(transport=httpx.MockTransport(_wrapped), **kwargs)
+
+    monkeypatch.setattr(rb.httpx, "Client", _factory)
+
+
+class TestHttpTransport:
+    def test_http_endpoint_requires_url(self, endpoint_root: Path):
+        with pytest.raises(ValueError, match="http_endpoint_url"):
+            rb.RemoteEndpoint(
+                name="x",
+                transport=rb.TRANSPORT_HTTP,
+                workspace_root=endpoint_root,
+            )
+
+    def test_http_endpoint_rejects_non_http_scheme(self, endpoint_root: Path):
+        with pytest.raises(ValueError, match="http://"):
+            rb.RemoteEndpoint(
+                name="x",
+                transport=rb.TRANSPORT_HTTP,
+                workspace_root=endpoint_root,
+                http_endpoint_url="ftp://worker.example/api",
+            )
+
+    def test_success_posts_packet_and_returns_worker_state(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={"state": "running", "detail": "worker picked it up"},
+            )
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        endpoint = _make_http_endpoint(endpoint_root)
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        job = bridge.dispatch(
+            prompt="audit kanban swarm",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+
+        # The worker's acknowledged state propagates to the RemoteJob and
+        # the locally persisted status.json.
+        assert job.state == rb.JobState.RUNNING
+        assert job.detail == "worker picked it up"
+        status = json.loads((job.workdir / "status.json").read_text())
+        assert status["state"] == "running"
+
+        # Exactly one POST carrying the full job packet was sent.
+        assert len(calls) == 1
+        sent = calls[0]
+        assert sent.method == "POST"
+        assert str(sent.url) == endpoint.http_endpoint_url
+        body = json.loads(sent.content.decode("utf-8"))
+        assert body["schema"] == "hermes.remote.job.v1"
+        assert body["manifest"]["job_id"] == job.job_id
+        assert body["manifest"]["auth_token"] == job.auth_token
+        assert body["prompt"] == "audit kanban swarm"
+
+        events = bridge.audit_log.read_all()
+        assert any(e.get("event") == "http_dispatch" for e in events)
+
+    def test_unapproved_job_is_not_posted(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"state": "running"})
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        # Endpoint opts out → job parks in awaiting_approval, no POST.
+        endpoint = _make_http_endpoint(endpoint_root, allow_remote_execute=False)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state == rb.JobState.AWAITING_APPROVAL
+        assert calls == []
+
+    def test_bearer_token_read_from_env(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        seen: dict[str, str] = {}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            seen["authorization"] = request.headers.get("authorization", "")
+            return httpx.Response(200, json={"state": "queued"})
+
+        _install_mock_client(monkeypatch, handler)
+        monkeypatch.setenv("WORKER_BEARER", "s3cr3t-token-value")
+        endpoint = _make_http_endpoint(
+            endpoint_root, auth_token_env="WORKER_BEARER"
+        )
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert seen["authorization"] == "Bearer s3cr3t-token-value"
+
+    def test_token_value_never_hits_audit_log(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"state": "queued"})
+
+        _install_mock_client(monkeypatch, handler)
+        monkeypatch.setenv("WORKER_BEARER", "supersecrettokenvalue123456")
+        endpoint = _make_http_endpoint(
+            endpoint_root, auth_token_env="WORKER_BEARER"
+        )
+        audit_path = tmp_path / "audit.jsonl"
+        bridge = rb.RemoteBridge(endpoint, audit_log=rb.AuditLog(audit_path))
+        bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert "supersecrettokenvalue123456" not in audit_path.read_text()
+
+    def test_http_4xx_raises_bridge_error(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(403, text="forbidden")
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        endpoint = _make_http_endpoint(endpoint_root)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        with pytest.raises(rb.BridgeError, match="HTTP 403"):
+            bridge.dispatch(
+                prompt="x",
+                expected_artifacts=("status.json",),
+                allow_remote_execute=True,
+            )
+        # 4xx is a contract error — no retry.
+        assert len(calls) == 1
+        events = bridge.audit_log.read_all()
+        assert any(e.get("reason") == "http_status_error" for e in events)
+
+    def test_http_5xx_is_retried_then_fails(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(503, text="unavailable")
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        endpoint = _make_http_endpoint(endpoint_root, http_max_attempts=3)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        with pytest.raises(rb.BridgeError, match="HTTP 503"):
+            bridge.dispatch(
+                prompt="x",
+                expected_artifacts=("status.json",),
+                allow_remote_execute=True,
+            )
+        # Retried up to http_max_attempts before giving up.
+        assert len(calls) == 3
+
+    def test_http_5xx_then_success_recovers(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        attempts = {"n": 0}
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            attempts["n"] += 1
+            if attempts["n"] < 3:
+                return httpx.Response(500, text="boom")
+            return httpx.Response(200, json={"state": "running"})
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(endpoint_root, http_max_attempts=5)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state == rb.JobState.RUNNING
+        assert attempts["n"] == 3
+
+    def test_connection_error_raises_bridge_error(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls.append(request)
+            raise httpx.ConnectError("connection refused", request=request)
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(endpoint_root, http_max_attempts=2)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        with pytest.raises(rb.BridgeError, match="could not reach"):
+            bridge.dispatch(
+                prompt="x",
+                expected_artifacts=("status.json",),
+                allow_remote_execute=True,
+            )
+        # Transport errors are retried too.
+        assert len(calls) == 2
+        events = bridge.audit_log.read_all()
+        assert any(e.get("reason") == "http_connection_error" for e in events)
+
+    def test_timeout_raises_bridge_error(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ReadTimeout("timed out", request=request)
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(endpoint_root, http_max_attempts=1)
+        bridge = rb.RemoteBridge(
+            endpoint, audit_log=rb.AuditLog(tmp_path / "audit.jsonl")
+        )
+        with pytest.raises(rb.BridgeError, match="timed out"):
+            bridge.dispatch(
+                prompt="x",
+                expected_artifacts=("status.json",),
+                allow_remote_execute=True,
+            )
+        events = bridge.audit_log.read_all()
+        assert any(e.get("reason") == "http_timeout" for e in events)
+
+    def test_local_artifacts_persist_after_http_failure(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # Even when the POST fails, the staged workspace stays on disk for
+        # forensics — mirroring file-drop, which never deletes a staged job.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(500, text="boom")
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(endpoint_root, http_max_attempts=1)
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        with pytest.raises(rb.BridgeError):
+            bridge.dispatch(
+                prompt="keepme",
+                expected_artifacts=("status.json",),
+                allow_remote_execute=True,
+            )
+        staged = bridge.list_jobs()
+        assert len(staged) == 1
+        workdir = endpoint_root / "jobs" / staged[0]
+        assert (workdir / "prompt.md").read_text() == "keepme"
+        assert (workdir / "manifest.json").is_file()
+
+    def test_approve_posts_staged_http_job(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # An HTTP endpoint that opts out of auto-execute parks the job in
+        # awaiting_approval with no POST. Approving it must then deliver the
+        # packet to the worker — under HTTP nothing polls the workspace, so the
+        # approval itself has to perform the hand-off.
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, json={"state": "running", "detail": "worker accepted"}
+            )
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        endpoint = _make_http_endpoint(endpoint_root, allow_remote_execute=False)
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        job = bridge.dispatch(
+            prompt="audit the scheduler",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state == rb.JobState.AWAITING_APPROVAL
+        assert calls == []  # nothing posted while awaiting approval
+
+        status = bridge.approve(job.job_id)
+
+        # The approval delivered the packet and folded the worker ack back in.
+        assert status.state == rb.JobState.RUNNING
+        assert status.detail == "worker accepted"
+        assert len(calls) == 1
+        body = json.loads(calls[0].content.decode("utf-8"))
+        assert body["manifest"]["job_id"] == job.job_id
+        assert body["manifest"]["allow_remote_execute"] is True
+        assert body["prompt"] == "audit the scheduler"
+        persisted = json.loads((job.workdir / "status.json").read_text())
+        assert persisted["state"] == "running"
+
+    def test_approve_http_delivery_failure_keeps_awaiting_approval(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # If the worker can't be reached at approval time, the job must stay
+        # awaiting_approval (not silently flip to queued) so a later approve()
+        # can retry the hand-off.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(403, text="forbidden")
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(
+            endpoint_root, allow_remote_execute=False, http_max_attempts=1
+        )
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        with pytest.raises(rb.BridgeError):
+            bridge.approve(job.job_id)
+        persisted = json.loads((job.workdir / "status.json").read_text())
+        assert persisted["state"] == rb.JobState.AWAITING_APPROVAL.value

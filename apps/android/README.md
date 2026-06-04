@@ -1,11 +1,14 @@
-# Hermes Agent — Android (local-only orchestrator cockpit)
+# Hermes Agent — Android (JARVIS Prime cockpit)
 
-> **Status:** alpha. The Android app is a **local-only orchestrator
-> cockpit**: it organizes work for the official AI tools you already
-> subscribe to (Codex, Claude Code, ChatGPT, Claude), and hands off
-> via clipboard, deep links, or the Termux bridge. It does **not**
-> proxy any provider, does **not** require any API key, and does
-> **not** make HTTP calls of its own.
+> **Status:** alpha. The Android app is the **JARVIS Prime cockpit**: a
+> networked review-and-control client for a Hermes **cockpit gateway**. When
+> paired, it talks to the gateway over HTTP with a bearer token — streaming
+> chat, jobs, approvals, evidence/research, autonomy, and voice intake — and
+> never proxies a model provider or holds a provider API key (those live on
+> the gateway). When **unpaired** (no backend configured), it falls back to a
+> local **handoff** mode: it organizes work for the official AI tools you
+> already subscribe to (Codex, Claude Code, ChatGPT, Claude) and hands off via
+> clipboard, deep links, or the Termux bridge.
 
 ## ⬇️ Download & install (sideload)
 
@@ -54,8 +57,8 @@ This module is the native Android shell.
 - **target SDK / compileSdk:** 35
 - **Language / UI:** Kotlin + Jetpack Compose (Material 3)
 - **Architecture:** MVVM with hand-rolled DI ([`AppContainer`](app/src/main/java/com/aci/hermes/di/AppContainer.kt))
-- **Persistence:** Jetpack DataStore (`hermes_settings`) + a single JSON file (`hermes_tasks.json`) in `filesDir`
-- **No networking client.** No OkHttp / Retrofit / Ktor / WebSocket / SSE dependency in `app/build.gradle.kts`.
+- **Persistence:** Jetpack DataStore (`hermes_settings`) for non-secret prefs + a single JSON file (`hermes_tasks.json`) in `filesDir`; the cockpit bearer token lives in `EncryptedSharedPreferences`
+- **Networking:** a hand-rolled HTTP client over the JDK's `HttpURLConnection` (no OkHttp / Retrofit / Ktor dependency) — `HermesCockpitClient` for the `/v1/cockpit/*` REST routes and `HttpJarvisChatGateway` for the `POST /v1/jarvis/chat` NDJSON stream. Default endpoint `http://127.0.0.1:8765`, configurable in Settings.
 
 Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -63,38 +66,45 @@ Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## What the app does
 
-1. Keeps a **local foreground service** running (`HermesService`) with
-   a persistent notification so the user can always see — and stop —
-   the orchestrator.
-2. Lets you draft **tasks** (title, description, workspace path,
-   target tool) on the device.
-3. Renders a **handoff prompt** with a fixed `## Safety requirements`
-   block (no auth bypass, no token exfiltration, stay within ToS).
-4. **Copies** that prompt to the clipboard on an explicit tap. There
-   is no silent or automated handoff.
-5. Optionally **opens** the official tool (Codex / Claude Code /
-   ChatGPT / Claude) via launch intent or web fallback, but only when
-   *Allow external app opening* is on and the user taps the action.
-6. Surfaces an in-memory **diagnostics** log (ring buffer, 200
-   entries) and a **full reset** that clears DataStore + the task
-   file in one tap.
+**Paired (networked cockpit) — the mainline:**
+
+1. **Pairs** to a Hermes cockpit gateway: set the endpoint and paste the
+   gateway's bearer token (stored in `EncryptedSharedPreferences`).
+2. **Streams chat** with JARVIS Prime over `POST /v1/jarvis/chat` (NDJSON), and
+   reads/controls **jobs, approvals, evidence/research, memory, autonomy, and
+   diagnostics** over the `/v1/cockpit/*` REST routes.
+3. **Submits voice** by transcribing on-device and posting the transcript to
+   `POST /v1/cockpit/voice/intake` — the audio never leaves the phone.
+4. **Surfaces approvals** as owner-gated cards: high-risk actions need an
+   explicit decision; there is no one-tap approve.
+5. Keeps a **foreground service** (`HermesService`) with a persistent
+   notification (start/stop) and a work watcher that **polls** the cockpit for
+   job / approval transitions.
+
+**Unpaired (local handoff) — the fallback:**
+
+6. Lets you draft **tasks** and renders a **handoff prompt** with a fixed
+   `## Safety requirements` block (no auth bypass, no token exfiltration, stay
+   within ToS), then **copies** it to the clipboard on an explicit tap (no
+   silent handoff) and optionally **opens** the official tool (Codex / Claude
+   Code / ChatGPT / Claude) when *Allow external app opening* is on.
+7. Surfaces an in-memory **diagnostics** log (ring buffer, 200 entries) and a
+   **full reset** that clears DataStore, the encrypted token, and the task file.
 
 ## What the app explicitly does **not** do
 
-- It does **not** call OpenAI, Anthropic, OpenRouter, or any other
-  AI provider. There is no API client. The build comment in
-  [`app/build.gradle.kts`](app/build.gradle.kts) is the source of
-  truth here.
-- It does **not** ship a chat screen, a provider settings screen, a
-  bearer-token field, mock mode, or a "Test connection" button.
-  Earlier iterations of this README described those — they were
-  removed when the chat / gateway architecture was retired.
-- It does **not** store API keys, session tokens, or cookies. The
-  `Use API keys` toggle in Settings is opt-in and currently exists
-  only as a forward-compatible preference; the orchestrator does not
-  read or send any key on its own.
-- It does **not** declare cleartext-traffic, network-security-config,
-  or `<queries>` blocks. There's nothing for them to gate.
+- It does **not** call OpenAI, Anthropic, OpenRouter, or any other AI
+  provider **directly**. It talks only to the Hermes cockpit gateway; the
+  gateway holds the provider API keys (`~/.hermes/.env`) and makes the
+  provider calls. No provider key or URL is injected at build time.
+- It does **not** store provider API keys, session tokens, or cookies. The
+  **only** secret it holds is the **cockpit bearer token**, in
+  `EncryptedSharedPreferences` (hardware-backed master key when available).
+- It does **not** auto-approve. Owner-gated actions (publish, deploy, merge,
+  destructive commands) require an explicit decision in the Approvals queue.
+- It does **not** hand off silently. The clipboard / deep-link handoff (the
+  unpaired fallback) happens only on an explicit tap, and external-app opening
+  only when *Allow external app opening* is on.
 
 ---
 
