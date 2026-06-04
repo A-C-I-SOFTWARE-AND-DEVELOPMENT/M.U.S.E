@@ -297,6 +297,7 @@ Read in this order:
 | Orchestration overview | [orchestration/README.md](orchestration/README.md) |
 | Decision ledger schema | [orchestration/decision-ledger.md](orchestration/decision-ledger.md) |
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
+| Open data sources for training JARVIS | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
 | Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |
 | Android app contract | [android/hermes-apk-api-contract.md](android/hermes-apk-api-contract.md) |
 

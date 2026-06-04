@@ -582,6 +582,115 @@ def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- open data sources registry --------------------------------------------
+
+
+def _data_sources_pool(args: argparse.Namespace):
+    """Resolve the registry, honoring an optional --registry override."""
+    from hermes_cli.jarvis_prime.open_data_sources import load_registry
+
+    path = Path(args.registry) if getattr(args, "registry", None) else None
+    return load_registry(path)
+
+
+def _cmd_data_sources_list(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.open_data_sources import DatasetRole
+
+    sources = _data_sources_pool(args)
+    if getattr(args, "role", None):
+        want = DatasetRole(args.role)
+        sources = [s for s in sources if s.role == want]
+    if getattr(args, "core", False):
+        sources = [s for s in sources if s.core_ingest]
+    if getattr(args, "wall", False):
+        sources = [s for s in sources if s.benchmark_wall]
+
+    if getattr(args, "json", False):
+        _print_json([s.to_dict() for s in sources])
+        return 0
+    if not sources:
+        print("no matching data sources")
+        return 0
+    for s in sources:
+        flags = []
+        if s.core_ingest:
+            flags.append("core")
+        if s.benchmark_wall:
+            flags.append("wall")
+        tag = ("[" + ",".join(flags) + "]") if flags else ""
+        print(
+            f"{s.rank:>2}  {s.key:<22}  {s.role.value:<5}  "
+            f"{s.evidence_strength.value:<10}  {s.name} {tag}".rstrip()
+        )
+    return 0
+
+
+def _cmd_data_sources_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.open_data_sources import get
+
+    src = get(args.key, sources=_data_sources_pool(args))
+    if src is None:
+        print(f"unknown data source: {args.key!r}", file=sys.stderr)
+        return 1
+    if getattr(args, "json", False):
+        _print_json(src.to_dict())
+        return 0
+    d = src.to_dict()
+    for label in (
+        "name",
+        "rank",
+        "role",
+        "trainable",
+        "core_ingest",
+        "benchmark_wall",
+        "legal_posture",
+        "evidence_strength",
+        "languages",
+        "size",
+        "schema_provenance",
+        "quality_strengths",
+        "biases",
+        "best_tasks",
+        "license_notes",
+        "source_uris",
+    ):
+        print(f"{label:>18}: {d[label]}")
+    return 0
+
+
+def _cmd_data_sources_register_vault(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.open_data_sources import register_all_in_vault
+    from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+    sources = _data_sources_pool(args)
+    dry_run = getattr(args, "dry_run", False)
+    vault_path = Path(args.store) if getattr(args, "store", None) else None
+    vault = ResearchVault.load(vault_path)
+    result = register_all_in_vault(
+        vault,
+        sources=sources,
+        include_restricted=getattr(args, "include_restricted", False),
+        persist=not dry_run,
+    )
+    if getattr(args, "json", False):
+        _print_json(
+            {
+                "dry_run": dry_run,
+                "registered": [a.id for a in result.registered],
+                "skipped": [{"key": k, "reason": r} for k, r in result.skipped],
+                "vault": str(vault._resolve_path()),
+            }
+        )
+        return 0
+    verb = "would register" if dry_run else "registered"
+    print(f"{verb} {len(result.registered)} source(s) into the Research Vault")
+    for key, reason in result.skipped:
+        print(f"  skipped {key}: {reason}")
+    if not dry_run:
+        print(f"  vault: {vault._resolve_path()}")
+    return 0
+
+
 def _cmd_handoff(args: argparse.Namespace) -> int:
     packet_path = Path(args.packet)
     if not packet_path.is_file():
@@ -1462,6 +1571,66 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Assert citations were verified (research/evidence traces)",
     )
     p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
+
+    # data-sources — open data-source registry for training/eval (read-only +
+    # a Research-Vault bridge). Inventory lives in
+    # docs/ai-intelligence/open-data-sources.yaml.
+    p_data = sub.add_parser(
+        "data-sources",
+        help="Open data-source registry: list/show, bridge into the Research Vault",
+        description=(
+            "Browse the open data sources inventoried in "
+            "docs/ai-intelligence/open-data-sources.yaml (the registry behind "
+            "docs/ai-intelligence/top-open-data-sources-for-training.md) and "
+            "bridge them into the Research Vault so the JARVIS learning pipeline "
+            "can cite them. Read-only except 'register-vault', which only adds "
+            "provenance cards (no dataset is downloaded)."
+        ),
+    )
+    p_data_sub = p_data.add_subparsers(dest="data_command", required=True)
+
+    p_data_list = p_data_sub.add_parser("list", help="List registry sources")
+    p_data_list.add_argument(
+        "--role", choices=("train", "eval", "both"), help="Filter by role"
+    )
+    p_data_list.add_argument(
+        "--core", action="store_true", help="Only the core training-ingest set"
+    )
+    p_data_list.add_argument(
+        "--wall", action="store_true", help="Only the eval-only benchmark wall"
+    )
+    p_data_list.add_argument("--registry", help="Override registry YAML path")
+    p_data_list.add_argument("--json", action="store_true")
+    p_data_list.set_defaults(func=_cmd_data_sources_list)
+
+    p_data_show = p_data_sub.add_parser("show", help="Show one source by key")
+    p_data_show.add_argument("key", help="Source key (e.g. the-stack-v2)")
+    p_data_show.add_argument("--registry", help="Override registry YAML path")
+    p_data_show.add_argument("--json", action="store_true")
+    p_data_show.set_defaults(func=_cmd_data_sources_show)
+
+    p_data_reg = p_data_sub.add_parser(
+        "register-vault",
+        help="Bridge registry sources into the Research Vault as provenance cards",
+        description=(
+            "Record each source as a Research Vault artifact (source URI, "
+            "evidence strength, license notes). Sources legally barred from LLM "
+            "training (legal_posture=no_llm_training) are skipped unless "
+            "--include-restricted is passed."
+        ),
+    )
+    p_data_reg.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="Report what would be registered without writing the vault",
+    )
+    p_data_reg.add_argument(
+        "--include-restricted", dest="include_restricted", action="store_true",
+        help="Also register no_llm_training sources (default: skip)",
+    )
+    p_data_reg.add_argument("--registry", help="Override registry YAML path")
+    p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
+    p_data_reg.add_argument("--json", action="store_true")
+    p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
 
     p_handoff = sub.add_parser(
         "handoff",
