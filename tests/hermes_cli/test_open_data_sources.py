@@ -121,7 +121,9 @@ def test_documented_core_and_wall_members_present(registry):
 
 
 def test_get_returns_known_source_and_none_for_unknown(registry):
-    assert get("the-stack-v2", sources=registry).name == "The Stack v2"
+    stack = get("the-stack-v2", sources=registry)
+    assert stack is not None
+    assert stack.name == "The Stack v2"
     assert get("does-not-exist", sources=registry) is None
 
 
@@ -136,6 +138,7 @@ def test_benchmark_wall_sources_are_not_trainable(registry):
 def test_register_in_vault_sets_type_and_evidence(tmp_path, registry):
     vault = ResearchVault(path=tmp_path / "rvault.jsonl")
     stack = get("the-stack-v2", sources=registry)
+    assert stack is not None
     art = stack.register_in_vault(vault, persist=False)
     assert art.source_type == SourceType.REPO
     assert art.evidence_strength == stack.evidence_strength
@@ -143,6 +146,7 @@ def test_register_in_vault_sets_type_and_evidence(tmp_path, registry):
     assert "open-data-source" in art.tags
 
     wall_src = get("swe-bench", sources=registry)
+    assert wall_src is not None
     wart = wall_src.register_in_vault(vault, persist=False)
     assert wart.source_type == SourceType.BENCHMARK
     assert "benchmark-wall" in wart.tags
@@ -150,6 +154,7 @@ def test_register_in_vault_sets_type_and_evidence(tmp_path, registry):
 
 def test_source_without_uri_uses_registry_placeholder(registry):
     aacr = get("aacr-bench", sources=registry)
+    assert aacr is not None
     assert aacr.source_uris == ()
     assert aacr.vault_source_uri == "registry://open-data/aacr-bench"
 
@@ -162,6 +167,7 @@ def test_register_all_skips_no_llm_training_by_default(tmp_path, registry):
     assert "stackexchange-dump" in skipped_keys
     # The skipped source is the no_llm_training one.
     so = get("stackexchange-dump", sources=registry)
+    assert so is not None
     assert so.legal_posture == NO_LLM_TRAINING
     # Everything else got registered.
     assert len(result.registered) == len(registry) - len(skipped_keys)
