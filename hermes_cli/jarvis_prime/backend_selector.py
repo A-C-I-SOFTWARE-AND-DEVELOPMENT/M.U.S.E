@@ -18,16 +18,16 @@ from hermes_cli.jarvis_prime.intent_graph import IntentGraph
 class BackendTarget(str, Enum):
     REPO_WORK_PACKET = "repo_work_packet"
     AUTOMATION_FLOW = "automation_flow"
-    # Reserved for later phases — always rejected in Phase-1 (kept for a
-    # complete audit trail, never selectable).
     PYTHON = "python"
     RUST = "rust"
     SQL = "sql"
 
 
-_PHASE1_SELECTABLE: frozenset[BackendTarget] = frozenset(
-    {BackendTarget.REPO_WORK_PACKET, BackendTarget.AUTOMATION_FLOW}
-)
+# Targets the selector may choose. All five are live; anything not listed here
+# is recorded as rejected ("not enabled") for a complete audit trail.
+_SELECTABLE: frozenset[BackendTarget] = frozenset(BackendTarget)
+# Backwards-compatible alias (older name).
+_PHASE1_SELECTABLE = _SELECTABLE
 
 # CLI hint strings -> target.
 HINT_ALIASES: dict[str, BackendTarget] = {
@@ -36,6 +36,12 @@ HINT_ALIASES: dict[str, BackendTarget] = {
     "workflow": BackendTarget.AUTOMATION_FLOW,
     "automation": BackendTarget.AUTOMATION_FLOW,
     "automation_flow": BackendTarget.AUTOMATION_FLOW,
+    "python": BackendTarget.PYTHON,
+    "py": BackendTarget.PYTHON,
+    "rust": BackendTarget.RUST,
+    "rs": BackendTarget.RUST,
+    "sql": BackendTarget.SQL,
+    "query": BackendTarget.SQL,
 }
 
 
@@ -139,21 +145,62 @@ def select_backend(
     if fv["repo_scoped"]:
         rp += 0.2
         rp_reasons.append("repo-scoped targets/globs")
-    if not fv["has_trigger"] and not fv["non_repo_io"]:
+    if not fv["has_trigger"] and not fv["non_repo_io"] and not fv.get("read_only"):
         rp += 0.1
         rp_reasons.append("no automation signals")
+
+    lang_hint = fv.get("lang_hint")
+
+    sql = 0.0
+    sql_reasons: list[str] = []
+    if fv.get("read_only") and lang_hint == "sql":
+        sql += 0.6
+        sql_reasons.append("declarative read + sql hint")
+    elif fv.get("read_only"):
+        sql += 0.5
+        sql_reasons.append("declarative read over a data source (no edits)")
+
+    py = 0.0
+    py_reasons: list[str] = []
+    if lang_hint == "python":
+        py += 0.5
+        py_reasons.append("python language hint")
+    if (
+        fv["edit_verbs"] == 0
+        and not fv["repo_scoped"]
+        and not fv["has_trigger"]
+        and not fv.get("read_only")
+    ):
+        py += 0.2
+        py_reasons.append("standalone compute (no repo/trigger/read signals)")
+
+    rust = 0.0
+    rust_reasons: list[str] = []
+    if lang_hint == "rust":
+        rust += 0.6
+        rust_reasons.append("rust language hint")
 
     scores = (
         BackendScore(BackendTarget.AUTOMATION_FLOW, wf,
                      "; ".join(wf_reasons) or "no workflow signals"),
         BackendScore(BackendTarget.REPO_WORK_PACKET, rp,
                      "; ".join(rp_reasons) or "no repo signals"),
+        BackendScore(BackendTarget.PYTHON, py,
+                     "; ".join(py_reasons) or "no python signals"),
+        BackendScore(BackendTarget.SQL, sql,
+                     "; ".join(sql_reasons) or "no sql signals"),
+        BackendScore(BackendTarget.RUST, rust,
+                     "; ".join(rust_reasons) or "no rust signals"),
     )
     # Deterministic tie-break: higher score, then REPO_WORK_PACKET (conservative,
-    # gate-covered) wins ties via the value ordering below.
+    # gate-covered) wins ties, then a stable target-name ordering.
     ordered = sorted(
         scores,
-        key=lambda s: (-s.score, 0 if s.target == BackendTarget.REPO_WORK_PACKET else 1),
+        key=lambda s: (
+            -s.score,
+            0 if s.target == BackendTarget.REPO_WORK_PACKET else 1,
+            s.target.value,
+        ),
     )
     selected = ordered[0].target
     for s in ordered[1:]:

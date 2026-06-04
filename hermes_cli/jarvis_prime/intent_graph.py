@@ -86,6 +86,14 @@ NON_REPO_IO_LABELS: frozenset[str] = frozenset(
     {"email", "inbox", "api", "alert", "message", "notification", "ledger"}
 )
 
+# BACKEND_HINT labels that name a concrete language target (drive PYTHON/SQL/RUST).
+_LANG_TARGETS: frozenset[str] = frozenset({"python", "sql", "rust"})
+
+# Verbs that imply a declarative read (drive SQL selection).
+_READ_VERBS: frozenset[str] = frozenset(
+    {"read", "extract", "fetch", "query", "select", "list", "get"}
+)
+
 
 @dataclass(frozen=True)
 class Slot:
@@ -245,6 +253,30 @@ class IntentGraph:
         hint_nodes = self.nodes_of(IntentNodeKind.BACKEND_HINT)
         backend_hint = hint_nodes[0].label if hint_nodes else None
 
+        # Language hint: a BACKEND_HINT pointing at a concrete language target.
+        lang_hint = next(
+            (n.label for n in hint_nodes if n.label in _LANG_TARGETS), None
+        )
+
+        # Declarative-read signal (drives SQL): read/extract/fetch operations
+        # over a data source/entity, with no edits and no event trigger.
+        read_ops = False
+        for op in self.nodes_of(IntentNodeKind.OPERATION):
+            verb_slot = op.slot("verb")
+            verb = str(verb_slot.value).lower() if verb_slot and verb_slot.value else op.label.lower()
+            if verb in _READ_VERBS:
+                read_ops = True
+                break
+        has_data = self.has_kind(IntentNodeKind.DATA_SOURCE) or self.has_kind(
+            IntentNodeKind.ENTITY
+        )
+        read_only = (
+            read_ops
+            and edit_verbs == 0
+            and has_data
+            and not self.has_kind(IntentNodeKind.TRIGGER)
+        )
+
         return {
             "has_trigger": self.has_kind(IntentNodeKind.TRIGGER),
             "edit_verbs": edit_verbs,
@@ -252,6 +284,8 @@ class IntentGraph:
             "non_repo_io": non_repo_io,
             "output_kinds": output_kinds,
             "backend_hint": backend_hint,
+            "lang_hint": lang_hint,
+            "read_only": read_only,
             "unresolved": len(self.unfilled_required_slots()),
             "blocked": self.blocked,
         }

@@ -39,11 +39,28 @@ def test_hint_override_is_honored() -> None:
     assert BackendTarget.AUTOMATION_FLOW.value in d.rejected
 
 
-def test_reserved_backends_always_rejected_with_reason() -> None:
+def test_language_backends_are_now_selectable_and_scored() -> None:
+    # python/sql/rust are live targets — they must be scored candidates, never
+    # rejected with the old "not enabled" reason.
     g = sf.parse(REFACTOR).graph
     d = select_backend(g)
-    for reserved in ("python", "rust", "sql"):
-        assert d.rejected.get(reserved) == "not enabled in phase-1"
+    scored = {s.target.value for s in d.scores}
+    for target in ("python", "rust", "sql"):
+        assert target in scored
+        assert d.rejected.get(target) != "not enabled in phase-1"
+
+
+def test_language_prompts_select_their_backend() -> None:
+    cases = {
+        "write a python function to parse a date": "python",
+        "select all invoices where the vendor is new": "sql",
+        "implement a rust module for fast hashing": "rust",
+        "refactor the gateway retry logic and add tests": "repo_work_packet",
+        "when an invoice email arrives, alert me": "automation_flow",
+    }
+    for prompt, expected in cases.items():
+        d = select_backend(sf.parse(prompt).graph)
+        assert d.selected is not None and d.selected.value == expected, prompt
 
 
 def test_no_candidate_silently_dropped() -> None:
