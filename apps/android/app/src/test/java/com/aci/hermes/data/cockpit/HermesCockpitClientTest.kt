@@ -102,6 +102,23 @@ class HermesCockpitClientTest {
     }
 
     @Test
+    fun `sessions parses the decision-ledger session list`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"sessions":[{"id":"s-1","decision_count":3,"last_updated":"2026-06-01T00:00:00Z"}]}""",
+            )
+        }
+        val result = client(fake).sessions()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals("s-1", result.value.sessions.single().id)
+        assertEquals(3, result.value.sessions.single().decisionCount)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/sessions", fake.lastRequest?.url)
+    }
+
+    @Test
     fun `navigation parses the decision list with candidate files`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

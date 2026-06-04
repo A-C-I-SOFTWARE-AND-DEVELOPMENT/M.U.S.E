@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.BuildConfig
 import com.aci.hermes.data.cockpit.CockpitDiagnostics
 import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.CockpitSession
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +30,7 @@ data class DiagnosticsUiState(
     val logs: List<LogBuffer.Entry> = emptyList(),
     val lastError: LogBuffer.Entry? = null,
     val backend: BackendDiagnosticsSync = BackendDiagnosticsSync.Idle,
+    val sessions: List<CockpitSession> = emptyList(),
 )
 
 class DiagnosticsViewModel(
@@ -65,6 +67,12 @@ class DiagnosticsViewModel(
                 is CockpitResult.Unreachable -> BackendDiagnosticsSync.Error(res.message)
             }
             _state.update { it.copy(backend = next) }
+
+            // Recent decision-ledger sessions (read-only activity readout).
+            when (val s = client.sessions()) {
+                is CockpitResult.Success -> _state.update { it.copy(sessions = s.value.sessions) }
+                else -> Unit // honest: keep prior list; backend state carries the error
+            }
         }
     }
 

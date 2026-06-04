@@ -263,6 +263,23 @@ data class DiagnosticCheck(
     val hard: Boolean = true,
 )
 
+// ─── Sessions (decision-ledger activity) ──────────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/sessions` — decision-ledger sessions
+ * (recent backend activity), grouped by session id with a decision count.
+ * Read-only; honest empty when the ledger is empty.
+ */
+@Serializable
+data class CockpitSession(
+    val id: String = "",
+    @SerialName("decision_count") val decisionCount: Int = 0,
+    @SerialName("last_updated") val lastUpdated: String? = null,
+)
+
+@Serializable
+data class CockpitSessionList(val sessions: List<CockpitSession> = emptyList())
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable
