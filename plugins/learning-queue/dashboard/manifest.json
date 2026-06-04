@@ -1,0 +1,14 @@
+{
+  "name": "learning-queue",
+  "label": "Learning",
+  "description": "Review the JARVIS learning-dataset queue — provenance-first candidate cards with quality gates; approve (owner phrase) / reject, see stats, and export approved traces.",
+  "icon": "GraduationCap",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/learning",
+    "position": "after:skills"
+  },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}
