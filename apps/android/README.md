@@ -7,6 +7,24 @@
 > proxy any provider, does **not** require any API key, and does
 > **not** make HTTP calls of its own.
 
+## ⬇️ Download & install (sideload)
+
+The latest build is published as a downloadable APK on the
+[**`android-latest` release**](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/tag/android-latest):
+
+- Direct link: **[jarvis-prime-android.apk](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/download/android-latest/jarvis-prime-android.apk)**
+
+To install: open the link on your phone, download the `.apk`, tap it, and
+allow installs from this source if Android prompts. Requires **Android 8.0+
+(API 26)**, arm64-v8a / armeabi-v7a. The build is refreshed automatically by
+the [`Android release`](../../.github/workflows/android-release.yml) workflow
+on every change under `apps/android/`. Tagged versions (`android-v*`) get their
+own permanent, versioned release. Until the release-signing secrets are
+configured the APK is debug-signed — still installable; Android may flag it as
+from an "unknown developer." See [`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNING.md).
+
+---
+
 This module is the native Android shell.
 
 - **Package:** `com.aci.hermes`
