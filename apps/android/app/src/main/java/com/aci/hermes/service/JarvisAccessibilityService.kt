@@ -50,8 +50,11 @@ class JarvisAccessibilityService : AccessibilityService() {
 
     /** Dispatch a single gesture, suspending until the system reports done. */
     suspend fun perform(gesture: DeviceGesture): Boolean {
-        if (gestureGuard?.invoke() == false) {
-            log.warn("jarvis-a11y", "Gesture blocked by emergency stop: $gesture")
+        // Fail-closed: only an explicit `true` from the guard allows a gesture.
+        // A null guard (controller not yet wired) or `false` (emergency stop)
+        // both block — the safe failure mode for device control.
+        if (gestureGuard?.invoke() != true) {
+            log.warn("jarvis-a11y", "Gesture blocked (emergency stop or guard unset): $gesture")
             return false
         }
         return when (gesture) {

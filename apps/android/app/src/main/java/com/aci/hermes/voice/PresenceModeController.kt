@@ -31,8 +31,11 @@ import kotlinx.coroutines.launch
  *    so the avatar reacts to listening/thinking/speaking even when the app
  *    UI is in the background.
  *
- * No camera is involved. Camera-based attention is a separate, gated
- * capability (it would require CAMERA, which the manifest audit forbids).
+ * No camera is involved *here* — this controller only mirrors the voice
+ * phase onto the overlay. Camera-based attention is a separate, opt-in
+ * capability: CAMERA is declared in the manifest and used only by the
+ * foreground Live screen's on-device attention detector (default off,
+ * presence-only, no frame storage). See CameraXFaceAttentionDetector.
  */
 class PresenceModeController(
     private val appContext: Context,
