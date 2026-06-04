@@ -87,6 +87,10 @@ class HermesCockpitClient(
     suspend fun diagnostics(): CockpitResult<CockpitDiagnostics> =
         request("GET", "/v1/cockpit/diagnostics", CockpitDiagnostics.serializer())
 
+    /** Decision-ledger sessions (recent backend activity; read-only). */
+    suspend fun sessions(): CockpitResult<CockpitSessionList> =
+        request("GET", "/v1/cockpit/sessions", CockpitSessionList.serializer())
+
     /**
      * Generic authenticated GET for routes without a settled typed model
      * yet (memory, events, approvals, jobs, sessions). Returns the raw

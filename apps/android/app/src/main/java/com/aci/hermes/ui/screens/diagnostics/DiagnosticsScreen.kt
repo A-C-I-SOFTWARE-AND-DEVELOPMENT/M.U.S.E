@@ -96,6 +96,7 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
         ) {
             DiagInfoCard(state)
             BackendReadinessCard(state.backend)
+            RecentSessionsCard(state.sessions)
             LogsCard(state)
         }
     }
@@ -141,6 +142,28 @@ private fun BackendReadinessCard(sync: BackendDiagnosticsSync) {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentSessionsCard(sessions: List<com.aci.hermes.data.cockpit.CockpitSession>) {
+    // Only render when the backend reported activity — keeps the screen clean
+    // when unpaired/empty (no fabricated rows).
+    if (sessions.isEmpty()) return
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                stringResource(R.string.diagnostics_sessions_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            sessions.take(10).forEach { s ->
+                DiagRow(s.id, stringResource(R.string.diagnostics_sessions_count, s.decisionCount))
             }
         }
     }

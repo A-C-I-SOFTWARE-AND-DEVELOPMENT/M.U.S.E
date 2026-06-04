@@ -445,6 +445,8 @@
     <string name="diagnostics_backend_loading">Checking the backend…</string>
     <string name="diagnostics_backend_ready">Backend launch-ready</string>
     <string name="diagnostics_backend_not_ready">Backend not launch-ready</string>
+    <string name="diagnostics_sessions_title">Recent sessions</string>
+    <string name="diagnostics_sessions_count">%1$d decisions</string>
 
     <!-- Jobs (cockpit orchestration) -->
     <string name="jobs_title">Orchestration jobs</string>
