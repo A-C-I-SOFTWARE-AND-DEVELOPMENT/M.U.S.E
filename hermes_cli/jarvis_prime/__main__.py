@@ -541,10 +541,29 @@ def _cmd_learning_export(args: argparse.Namespace) -> int:
         n = store.export_eval_cases(out)
     elif fmt == "skill":
         n = store.export_skill_candidates(out)
+    elif fmt == "parquet":
+        from hermes_cli.jarvis_prime.learning_analytics import export_parquet
+        try:
+            n = export_parquet(store, out)
+        except Exception as exc:
+            print(f"parquet export failed: {exc}", file=sys.stderr)
+            return 1
     else:  # pragma: no cover - argparse choices guard this
         print(f"unknown format: {fmt}", file=sys.stderr)
         return 2
     print(f"exported {n} record(s) ({fmt}) -> {out}")
+    return 0
+
+
+def _cmd_learning_query(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.learning_analytics import query_dataset
+
+    try:
+        rows = query_dataset(args.sql, args.parquet)
+    except Exception as exc:
+        print(f"query failed: {exc}", file=sys.stderr)
+        return 1
+    _print_json(rows)
     return 0
 
 
@@ -1427,11 +1446,27 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_learning_export.add_argument(
         "--format",
-        choices=("jsonl", "preference", "eval", "skill"),
+        choices=("jsonl", "preference", "eval", "skill", "parquet"),
         default="jsonl",
     )
     p_learning_export.add_argument("--out", required=True, help="Output file path")
     p_learning_export.set_defaults(func=_cmd_learning_export)
+
+    p_learning_query = p_learning_sub.add_parser(
+        "query",
+        help="Run read-only DuckDB SQL over an exported Parquet file",
+        description=(
+            "Analytics over your own approved traces. Export first with "
+            "'learning export --format parquet --out <path>', then query that "
+            "file; the table is exposed as 'dataset'. Requires the optional "
+            "'analytics' extra (lazy-installs duckdb on first use)."
+        ),
+    )
+    p_learning_query.add_argument("sql", help="DuckDB SQL; the table is named 'dataset'")
+    p_learning_query.add_argument(
+        "--parquet", required=True, help="Path to a Parquet file exported above"
+    )
+    p_learning_query.set_defaults(func=_cmd_learning_query)
 
     p_learning_ingest = p_learning_sub.add_parser(
         "ingest-trajectory",
