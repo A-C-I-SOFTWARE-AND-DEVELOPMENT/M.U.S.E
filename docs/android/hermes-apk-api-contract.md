@@ -4,9 +4,10 @@ Wire format between the Android cockpit APK and a Hermes gateway. The
 **cockpit namespace is now largely live** in `gateway/cockpit/` — chat,
 runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
 file), evidence, research, approvals, audit, coding, autonomy, graph,
-learning, and voice intake are implemented and covered by tests. A handful of
-routes remain **planned** (the SSE streams, publishing, and the validation
-override/revalidate verbs). Per-route status is in
+learning, and voice intake are implemented and covered by tests. The SSE
+streams, publishing, and the validation revalidate/override verbs are now live
+too; the main remaining gap is rewriting the buffered `GET /v1/cockpit/events`
+to the leveled-log shape. Per-route status is in
 [Route status](#route-status-live-vs-planned) below. The contract stays the
 source of truth so the Android and gateway sides don't drift.
 
@@ -69,10 +70,10 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Jobs — controls | `/jobs/{id}/run\|cancel\|pause\|resume\|rerun\|approve\|validate`, `/orchestrate`, `/jobs/lanes` | ✅ live |
 | Jobs — workspace reads | `/jobs/{id}/diff\|files-changed\|validation\|tree\|file` | ✅ live |
 | Jobs — live stream | `GET /jobs/stream` (SSE) | ✅ live |
-| Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
+| Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ✅ live |
 | Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
-| Publishing — open PR | `POST /jobs/{id}/publish` | ⏳ planned (owner-gated; needs a PAT) |
-| Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
+| Publishing — open PR | `POST /jobs/{id}/publish` | ✅ live (owner-phrase + loopback gated; opens a PR for the pushed branch — needs a PAT) |
+| Events | `GET /v1/cockpit/events/stream` (SSE leveled log) live; `GET /v1/cockpit/events` still returns decision-ledger summaries (leveled-list rewrite pending) | ⏳ partial |
 | Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
 | Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
@@ -537,13 +538,17 @@ for non-critical gates.
 
 ### `POST /v1/cockpit/jobs/{id}/revalidate`
 
-> ⏳ **Planned.** Today, re-run gates with the live `POST /jobs/{id}/validate`.
+> ✅ **Live.** Re-runs the gates (identical to `POST /jobs/{id}/validate`) and
+> returns the fresh validation snapshot.
 
-No body. Triggers the gateway to re-run gates. Response: `202`.
+No body. Re-runs the gates and returns the updated snapshot.
 
 ### `POST /v1/cockpit/jobs/{id}/override`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Records an owner override (with a required `note`) for non-critical
+> gates, persists it to `validation/overrides.json`, and returns the snapshot
+> with `publish_allowed` recomputed. `403` for a critical gate or a missing
+> note; `409` when there's nothing validated to override.
 
 ```json
 {
@@ -580,7 +585,12 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 
 ### `POST /v1/cockpit/jobs/{id}/publish`
 
-> ⏳ **Planned** — publishing to GitHub is owner-gated and not yet served.
+> ✅ **Live.** Owner-phrase + loopback gated. Without the phrase it returns
+> `200 {"status":"approval_required", "preview": …}` (no GitHub call). With the
+> phrase it opens a **real** PR via the GitHub REST API — `403
+> github_not_configured` without a `GITHUB_PERSONAL_ACCESS_TOKEN`, `409
+> pr_already_exists` (with `pr_url`) when one is already open. It opens the PR
+> for a branch **already pushed** to the remote; it does not run `git push`.
 
 ```json
 {
@@ -616,9 +626,10 @@ Errors:
 
 ### `GET /v1/cockpit/events`
 
-> ⏳ **Partial.** A live `/v1/cockpit/events` route exists but currently returns
-> decision-**ledger** summaries, not the leveled-log shape below. The
-> structured log source (and `/events/stream`) is planned.
+> ⏳ **Partial.** This buffered route still returns decision-**ledger**
+> summaries, not the leveled-log shape below. The structured leveled source now
+> exists (`gateway/cockpit/event_log.py`) and powers the live `/events/stream`;
+> rewriting this list route to read it is the remaining gap.
 
 Query: `since` (ISO timestamp, optional), `level` (csv of
 `info|warn|error`, optional), `source` (csv of
@@ -643,7 +654,10 @@ Query: `since` (ISO timestamp, optional), `level` (csv of
 
 ### `GET /v1/cockpit/events/stream`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Tails the cockpit event log (`event_log.py`) and emits each new
+> entry as an SSE `log` event, plus a `heartbeat` every 15s. Bearer-authed;
+> supports `?level=` / `?source=` / `?job_id=` filters; exits promptly on
+> disconnect/shutdown.
 
 SSE. Events use the same shape:
 

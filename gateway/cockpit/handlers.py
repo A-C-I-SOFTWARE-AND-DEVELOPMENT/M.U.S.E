@@ -978,6 +978,9 @@ def jobs_dispatch(req: Request) -> JsonResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
+    from . import event_log
+
+    event_log.emit("info", "gateway", f"job dispatched: {title}", job_id=job_id)
     return JsonResponse(201, contract.cockpit_job(entry))
 
 
@@ -1585,35 +1588,121 @@ def job_files_changed(req: Request) -> JsonResponse:
     return JsonResponse(200, {"files": _git_diff(workspace, base)["files"]})
 
 
+def _read_validation_results(workspace: str) -> Optional[dict[str, Any]]:
+    """The persisted ``validation/results.json`` for a workspace, or ``None``."""
+    import json
+    from pathlib import Path
+
+    path = Path(workspace) / "validation" / "results.json"
+    try:
+        if path.is_file():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                return loaded
+    except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
+        pass
+    return None
+
+
+def _read_validation_overrides(workspace: str) -> dict[str, Any]:
+    """Persisted gate overrides for a workspace (``{}`` when none)."""
+    import json
+    from pathlib import Path
+
+    path = Path(workspace) / "validation" / "overrides.json"
+    try:
+        if path.is_file():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                return loaded
+    except Exception:  # pragma: no cover - defensive
+        pass
+    return {}
+
+
 def job_validation(req: Request) -> JsonResponse:
     """Latest verification-gate results for a job (contract §7) — read-only.
 
     The read companion to ``POST .../validate``: returns the persisted
     ``<workspace>/validation/results.json`` projected into the same snapshot
-    shape, **without** re-running the gates. Honest empty gates when the job
-    hasn't been validated yet (never a fabricated pass).
+    shape, **without** re-running the gates, with any recorded gate overrides
+    applied. Honest empty gates when the job hasn't been validated yet.
     """
     job_id = req.path_params.get("id", "")
     kind, obj = _resolve_job(job_id)
     if obj is None:
         return JsonResponse(404, {"error": f"unknown job: {job_id}"})
-    import json
-    from pathlib import Path
-
     from . import contract
 
     workspace = _job_workspace(kind, obj)
-    report: Optional[dict[str, Any]] = None
-    if workspace:
-        results_path = Path(workspace) / "validation" / "results.json"
-        try:
-            if results_path.is_file():
-                loaded = json.loads(results_path.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    report = loaded
-        except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
-            report = None
-    return JsonResponse(200, contract.validation_snapshot(report))
+    report = _read_validation_results(workspace) if workspace else None
+    overrides = _read_validation_overrides(workspace) if workspace else {}
+    return JsonResponse(200, contract.validation_snapshot(report, overrides=overrides))
+
+
+def job_revalidate(req: Request) -> JsonResponse:
+    """Re-run verification gates for a job (contract §7).
+
+    Semantically identical to ``POST .../validate`` — a re-run that persists a
+    fresh ``validation/results.json`` and returns the new snapshot. Provided as
+    the contract's explicit "revalidate" verb.
+    """
+    return job_validate(req)
+
+
+def job_override(req: Request) -> JsonResponse:
+    """Override non-critical failed validation gates with a note (contract §7).
+
+    Records an owner override for the named ``gate_ids`` (each must be
+    ``override_allowed`` — never a critical gate) so they no longer block
+    publish. Requires a non-empty ``note`` (policy: override_requires_note).
+    Persists to ``<workspace>/validation/overrides.json`` and returns the updated
+    snapshot with ``publish_allowed`` recomputed. ``403`` if any gate is critical.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = _job_workspace(kind, obj)
+    if not workspace:
+        return JsonResponse(409, {"error": "job has no workspace to override"})
+    gate_ids = [str(g).strip() for g in (req.body.get("gate_ids") or []) if str(g).strip()]
+    note = str(req.body.get("note", "")).strip()
+    if not gate_ids:
+        return JsonResponse(400, {"error": "gate_ids is required"})
+    if not note:
+        return JsonResponse(
+            403, {"error": "override requires a note (policy: override_requires_note)"}
+        )
+    from . import contract
+
+    report = _read_validation_results(workspace)
+    if report is None:
+        return JsonResponse(
+            409, {"error": "no validation results to override; run validate first"}
+        )
+    by_id = {g["id"]: g for g in contract.validation_snapshot(report)["gates"]}
+    for gid in gate_ids:
+        gate = by_id.get(gid)
+        if gate is None:
+            return JsonResponse(404, {"error": f"unknown gate: {gid}"})
+        if not gate.get("override_allowed", False):
+            return JsonResponse(403, {"error": f"gate is critical and not overridable: {gid}"})
+
+    import json
+    from pathlib import Path
+
+    overrides = _read_validation_overrides(workspace)
+    ts = _now_iso()
+    for gid in gate_ids:
+        overrides[gid] = {"note": note, "ts": ts}
+    try:
+        path = Path(workspace) / "validation" / "overrides.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(overrides, indent=2, sort_keys=True), encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": f"failed to record override: {exc}"})
+    return JsonResponse(200, contract.validation_snapshot(report, overrides=overrides))
 
 
 def job_tree(req: Request) -> JsonResponse:
@@ -1797,26 +1886,21 @@ def _git_commits(workspace: str, base: Optional[str]) -> list[dict[str, Any]]:
     return commits
 
 
-def job_publish_preview(req: Request) -> JsonResponse:
-    """Read-only preview of what publishing this job would open (contract §8).
+def _publish_preview_payload(kind: Optional[str], obj: Any) -> dict[str, Any]:
+    """Derive the read-only publish preview from git in the job's workspace.
 
-    Derives the remote/branch/base, the commits on the branch vs its base, and a
-    default PR title/body from git in the job's workspace — **no network, no
-    writes**. Honest nulls/empty when the job has no git workspace or no commits
-    ahead of base. The actual ``POST .../publish`` (push + open PR) is a separate,
-    owner-gated route.
+    remote/branch/base, the commits on the branch vs its base, and a default PR
+    title/body — no network, no writes. Honest nulls/empty without a git
+    workspace or commits ahead of base. Shared by ``job_publish_preview`` and the
+    ``approval_required`` staging of ``job_publish`` so they can't drift.
     """
-    job_id = req.path_params.get("id", "")
-    kind, obj = _resolve_job(job_id)
-    if obj is None:
-        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
     md = dict(getattr(obj, "metadata", None) or {})
     workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
     if not workspace:
-        return JsonResponse(200, {
+        return {
             "remote": None, "branch": None, "base": None, "commits": [],
             "default_title": None, "default_body": None, "existing_pr_url": None,
-        })
+        }
 
     def _git(args: list[str]) -> str:
         import subprocess
@@ -1829,24 +1913,142 @@ def job_publish_preview(req: Request) -> JsonResponse:
         except Exception:  # pragma: no cover - defensive
             return ""
 
-    remote = md.get("remote") or "origin"
     branch = md.get("branch") or _git(["rev-parse", "--abbrev-ref", "HEAD"]) or None
     base = md.get("base_branch") or "main"
     commits = _git_commits(workspace, base)
-    default_title: Optional[str] = commits[0]["subject"] if commits else None
-    default_body: Optional[str] = None
+    default_title = commits[0]["subject"] if commits else None
+    default_body = None
     if commits:
         changes = "\n".join(f"- {c['subject']}" for c in commits)
         default_body = f"## Summary\n\n## Changes\n{changes}\n"
-    return JsonResponse(200, {
-        "remote": remote,
+    return {
+        "remote": md.get("remote") or "origin",
         "branch": branch,
         "base": base,
         "commits": commits,
         "default_title": default_title,
         "default_body": default_body,
         "existing_pr_url": None,
+    }
+
+
+def job_publish_preview(req: Request) -> JsonResponse:
+    """Read-only preview of what publishing this job would open (contract §8).
+
+    No network, no writes; honest nulls/empty when the job has no git workspace.
+    The actual ``POST .../publish`` (open PR) is a separate, owner-gated route.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, _publish_preview_payload(kind, obj))
+
+
+def _publish_repo_slug(workspace: str) -> tuple[Optional[str], Optional[str]]:
+    """``(owner, repo)`` parsed from the job workspace's git remote, or ``(None, None)``."""
+    try:
+        from pathlib import Path
+
+        from hermes_cli import github_publisher as _gp
+
+        info = _gp.get_repo_info(Path(workspace))
+        return info.owner, info.repo
+    except Exception:  # pragma: no cover - not a git checkout / no remote
+        return None, None
+
+
+def _open_pull_request(  # pragma: no cover - network; validated with a real PAT
+    client: Any, owner: str, repo: str, branch: str, base: str,
+    title: str, body: str, draft: bool,
+) -> JsonResponse:
+    """Open (or report an existing) PR for ``branch``. Network — not unit-tested."""
+    existing = client.open_pull_for_head(owner, repo, branch)
+    if existing:
+        return JsonResponse(409, {"error": "pr_already_exists", "pr_url": existing})
+    result = client.create_pull_request(
+        owner, repo, title=title, head=branch, base=base, body=body, draft=draft)
+    if not result.get("success"):
+        return JsonResponse(502, {
+            "error": result.get("error", "github_error"),
+            "message": result.get("message", "failed to open pull request"),
+        })
+    pr = result.get("payload") or {}
+    return JsonResponse(200, {
+        "pr_url": pr.get("html_url"),
+        "pr_number": pr.get("number"),
+        "branch": branch,
+        "remote": "origin",
+        "state": pr.get("state", "open"),
+        "is_draft": bool(pr.get("draft", draft)),
     })
+
+
+def job_publish(req: Request) -> JsonResponse:
+    """Open a GitHub PR for a job's branch (contract §8) — owner-gated.
+
+    Double-gated like ``job_approve``: refused on a non-loopback cockpit, and
+    requires the exact owner phrase. Without the phrase it returns ``200`` with
+    ``status: "approval_required"`` and the publish preview (no GitHub call).
+    With the phrase it opens a **real** PR via the GitHub REST API using
+    ``GITHUB_PERSONAL_ACCESS_TOKEN`` — ``403 github_not_configured`` when that
+    token is absent, ``409 pr_already_exists`` (carrying ``pr_url``) when an open
+    PR already targets the branch.
+
+    The cockpit opens the PR for a branch already pushed to the remote (the
+    worker/CI pushes; the cockpit publishes). It does **not** run ``git push``
+    itself — the repo deliberately keeps the PAT out of ``git push`` (see
+    ``hermes_cli/github_publisher``).
+    """
+    job_id = req.path_params.get("id", "")
+    authorization = str(req.body.get("authorization", "")).strip()
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403,
+            {"error": "publishing is disabled on a non-loopback cockpit; run the "
+             "runtime locally (loopback) to open a PR"},
+        )
+    workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
+    if not workspace:
+        return JsonResponse(409, {"error": "job has no workspace to publish"})
+
+    preview = _publish_preview_payload(kind, obj)
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if authorization != AUTHORIZATION_PHRASE:
+        return JsonResponse(200, {
+            "status": "approval_required",
+            "preview": preview,
+            "authorization_required": True,
+            "authorization_hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+        })
+
+    # --- past the owner gate: open a real PR (requires a configured PAT) ------
+    try:
+        from plugins.github_assistant.client import GithubClient
+    except Exception as exc:  # pragma: no cover - import/runtime guard
+        return JsonResponse(500, {"error": f"github client unavailable: {exc}"})
+    client = GithubClient()
+    if not client.has_token():
+        return JsonResponse(403, {
+            "error": "github_not_configured",
+            "message": "set GITHUB_PERSONAL_ACCESS_TOKEN in ~/.hermes/.env to publish",
+        })
+
+    branch = preview.get("branch")
+    if not branch:
+        return JsonResponse(409, {"error": "job branch is not resolvable; nothing to publish"})
+    owner, repo = _publish_repo_slug(workspace)
+    if not owner or not repo:  # pragma: no cover - reached only past the token gate
+        return JsonResponse(409, {"error": "could not resolve owner/repo from the job's git remote"})
+    title = str(req.body.get("title") or preview.get("default_title") or branch)
+    body = str(req.body.get("body") or preview.get("default_body") or "")
+    base = str(req.body.get("base") or preview.get("base") or "main")
+    draft = req.body.get("draft") is not False  # only an explicit JSON false → non-draft
+    return _open_pull_request(client, owner, repo, branch, base, title, body, draft)
 
 
 # ---------------------------------------------------------------------------
@@ -3255,10 +3457,13 @@ __all__ = [
     "job_files_changed",
     "job_get",
     "job_ledger",
+    "job_override",
     "job_pause",
+    "job_publish",
     "job_publish_preview",
     "job_rerun",
     "job_resume",
+    "job_revalidate",
     "job_tree",
     "job_validate",
     "job_validation",

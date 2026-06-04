@@ -361,14 +361,21 @@ data class OverrideValidationRequest(
 
 // ─── Publishing ───────────────────────────────────────────────────────
 
+/**
+ * Read-only preview of `GET /v1/cockpit/jobs/{id}/publish/preview` (and the
+ * `preview` block of the `approval_required` publish response). Every field is
+ * nullable/defaulted because the gateway emits honest nulls/empty when the job
+ * has no git workspace or no commits ahead of its base
+ * (`gateway/cockpit/handlers.py::_publish_preview_payload`).
+ */
 @Serializable
 data class PublishPreview(
-    val remote: String,
-    val branch: String,
-    val base: String,
-    val commits: List<PublishCommit>,
-    @SerialName("default_title") val defaultTitle: String,
-    @SerialName("default_body") val defaultBody: String,
+    val remote: String? = null,
+    val branch: String? = null,
+    val base: String? = null,
+    val commits: List<PublishCommit> = emptyList(),
+    @SerialName("default_title") val defaultTitle: String? = null,
+    @SerialName("default_body") val defaultBody: String? = null,
     @SerialName("existing_pr_url") val existingPrUrl: String? = null,
 )
 
@@ -378,23 +385,86 @@ data class PublishCommit(
     val subject: String,
 )
 
+/**
+ * POST body for `/v1/cockpit/jobs/{id}/publish`. Every field is optional: the
+ * owner [authorization] phrase gates the real PR open (absent → a staged
+ * `approval_required` response), and title/body/base/draft fall back to the
+ * preview defaults server-side when omitted.
+ */
 @Serializable
 data class PublishRequest(
+    val authorization: String? = null,
+    val title: String? = null,
+    val body: String? = null,
+    val base: String? = null,
+    val draft: Boolean? = null,
+)
+
+/**
+ * Tolerant union for `POST /v1/cockpit/jobs/{id}/publish`. The gateway returns
+ * one of three shapes (`gateway/cockpit/handlers.py::job_publish`), all decoded
+ * here so a single typed result covers them:
+ *  - **approval_required** — [status] == `"approval_required"`,
+ *    [authorizationRequired] true, [preview] populated (no GitHub call made);
+ *  - **published** — [prUrl]/[prNumber]/[state]/[isDraft] populated;
+ *  - **error** — [error] populated (e.g. `github_not_configured`, plus a
+ *    [prUrl] when a PR already exists). Most non-2xx errors arrive as a
+ *    [CockpitResult.Failure] envelope instead; this field captures the few the
+ *    gateway folds into a 200/JSON body.
+ *
+ * Disjoint fields stay null for the shapes that don't carry them.
+ */
+@Serializable
+data class PublishResult(
+    val status: String? = null,
+    val preview: PublishPreview? = null,
+    @SerialName("authorization_required") val authorizationRequired: Boolean = false,
+    @SerialName("authorization_hint") val authorizationHint: String? = null,
+    @SerialName("pr_url") val prUrl: String? = null,
+    @SerialName("pr_number") val prNumber: Int? = null,
+    val branch: String? = null,
+    val remote: String? = null,
+    val state: String? = null,
+    @SerialName("is_draft") val isDraft: Boolean? = null,
+    val error: String? = null,
+    val message: String? = null,
+) {
+    /** True when the gateway staged the publish behind the owner phrase. */
+    val isApprovalRequired: Boolean get() = status == "approval_required" || authorizationRequired
+
+    /** True once a real PR was opened (a resolvable PR url with no error). */
+    val isPublished: Boolean get() = error == null && !prUrl.isNullOrBlank() && !isApprovalRequired
+}
+
+// ─── Files changed (numstat only) ─────────────────────────────────────
+
+/**
+ * Response of `GET /v1/cockpit/jobs/{id}/files-changed` — the per-file
+ * additions/deletions ([DiffFile]) without the patch body. Honest empty when
+ * the job has no git workspace
+ * (`gateway/cockpit/handlers.py::job_files_changed`).
+ */
+@Serializable
+data class FilesChangedSnapshot(
+    val files: List<DiffFile> = emptyList(),
+)
+
+// ─── Prompt templates ─────────────────────────────────────────────────
+
+/**
+ * One owner-defined prompt template from `GET /v1/cockpit/templates`
+ * (`gateway/cockpit/handlers.py::templates_list`). The gateway only emits
+ * entries with all three fields populated; honest-empty list when none exist.
+ */
+@Serializable
+data class PromptTemplate(
+    val id: String,
     val title: String,
     val body: String,
-    val draft: Boolean,
-    val base: String? = null,
 )
 
 @Serializable
-data class PublishResult(
-    @SerialName("pr_url") val prUrl: String,
-    @SerialName("pr_number") val prNumber: Int,
-    val branch: String,
-    val remote: String,
-    val state: String,
-    @SerialName("is_draft") val isDraft: Boolean,
-)
+data class TemplateList(val templates: List<PromptTemplate> = emptyList())
 
 // ─── Events ───────────────────────────────────────────────────────────
 
