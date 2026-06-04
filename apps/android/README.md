@@ -25,6 +25,27 @@ from an "unknown developer." See [`docs/RELEASE_SIGNING.md`](docs/RELEASE_SIGNIN
 
 ---
 
+## Standalone Local v1.5 — coding cockpit
+
+v1.5 turns the app into a **standalone-local coding cockpit**: capture a coding
+task in plain English, generate a bounded **work packet** (mission, risk,
+allowed/forbidden files, acceptance, verification, rollback, owner gates), then
+either **copy a Claude Code prompt** (offline-safe) or **send a gated execute**
+to a backend you control. It is local-first, ships no provider keys, and keeps
+execution owner-gated server-side. With **Mock mode** it works with no backend
+at all; with no backend reachable, tasks **queue offline** and stay copyable.
+
+- New coding flow: `data/coding/*` + `ui/screens/coding/*`, reachable from Home
+  ("New coding task" / "Code handoff").
+- Mode + setup: [`docs/STANDALONE_LOCAL_MODE.md`](docs/STANDALONE_LOCAL_MODE.md)
+- API shapes: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)
+- Security + Play Data Safety: [`docs/SECURITY_PRIVACY.md`](docs/SECURITY_PRIVACY.md)
+- Local Gemma/Ollama: [`docs/GEMMA_LOCAL_MODE.md`](docs/GEMMA_LOCAL_MODE.md)
+- Release + download: [`docs/RELEASE_DOWNLOAD.md`](docs/RELEASE_DOWNLOAD.md)
+- Plan: [`../../docs/mobile/STANDALONE_LOCAL_V1_5_PLAN.md`](../../docs/mobile/STANDALONE_LOCAL_V1_5_PLAN.md)
+
+---
+
 This module is the native Android shell.
 
 - **Package:** `com.aci.hermes`

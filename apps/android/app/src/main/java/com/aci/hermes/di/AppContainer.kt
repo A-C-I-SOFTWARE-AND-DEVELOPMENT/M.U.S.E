@@ -137,6 +137,9 @@ class AppContainer(private val application: Application) {
     @Volatile
     private var cachedToken: String? = null
 
+    @Volatile
+    private var cachedMockMode: Boolean = false
+
     init {
         settingsRepository.gatewayEndpoint
             .onEach { cachedEndpoint = it }
@@ -144,12 +147,18 @@ class AppContainer(private val application: Application) {
         settingsRepository.cockpitToken
             .onEach { cachedToken = it }
             .launchIn(containerScope)
+        settingsRepository.mockMode
+            .onEach { cachedMockMode = it }
+            .launchIn(containerScope)
     }
 
     private fun cockpitEndpoint(): String = cachedEndpoint
     private fun cockpitToken(): String? = cachedToken
     private fun cockpitPaired(): Boolean =
         !cachedToken.isNullOrBlank() && cachedEndpoint.isNotBlank()
+
+    /** Mock/demo mode flag, mirrored from Settings for the coding cockpit. */
+    private fun mockModeEnabled(): Boolean = cachedMockMode
 
     /**
      * Live cockpit API client (runtime status, worker detection, health
@@ -191,6 +200,22 @@ class AppContainer(private val application: Application) {
     /** Jobs (contract §4) — list/dispatch/cancel over the real JobQueue. */
     /** Jobs (contract §4) — list/dispatch/cancel/controls over the real backend. */
     val cockpitJobsRepository: CockpitJobsRepository = CockpitJobsRepository(cockpitClient)
+
+    // ── v1.5 Standalone-local coding cockpit ───────────────────────────
+    //
+    // Local persistence of coding tasks + work packets so the flow works
+    // offline (queue + copy-prompt) and with Mock mode (demo packet). The
+    // repository routes the real `coding/{audit,plan,execute}` gateway when
+    // paired; execution stays gated server-side behind the owner phrase.
+    val codingTaskStore: com.aci.hermes.data.coding.CodingTaskStore =
+        com.aci.hermes.data.coding.CodingTaskStore(context.filesDir)
+    val codingRepository: com.aci.hermes.data.coding.CodingRepository =
+        com.aci.hermes.data.coding.CodingRepository(
+            client = cockpitClient,
+            store = codingTaskStore,
+            paired = ::cockpitPaired,
+            mockMode = ::mockModeEnabled,
+        )
 
     /** GraphRAG knowledge graph — related items + query modes + rebuild. */
     val cockpitGraphRepository: com.aci.hermes.data.cockpit.CockpitGraphRepository =
@@ -465,6 +490,25 @@ class AppContainer(private val application: Application) {
 
     fun modelRouteVmFactory(): ViewModelProvider.Factory = factory {
         ModelRouteViewModel(cockpitModelRoutesRepository)
+    }
+
+    fun newCodingTaskVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.coding.NewCodingTaskViewModel(
+            repository = codingRepository,
+            isPaired = ::cockpitPaired,
+            isMock = ::mockModeEnabled,
+        )
+    }
+
+    fun workPacketVmFactory(taskId: String): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.coding.WorkPacketDetailViewModel(
+            repository = codingRepository,
+            taskId = taskId,
+        )
+    }
+
+    fun codeHandoffVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.coding.CodeHandoffHubViewModel(codingRepository)
     }
 
     fun avatarPickerVmFactory(): ViewModelProvider.Factory = factory {

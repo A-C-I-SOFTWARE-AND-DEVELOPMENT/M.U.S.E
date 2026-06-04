@@ -116,6 +116,11 @@ fun HermesNavHost(
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }
     val openDeviceControl: () -> Unit = { nav.navigate(Screen.DeviceControl.route) }
     val openModelRoutes: () -> Unit = { nav.navigate(Screen.ModelRoute.route) }
+    val openNewCodingTask: () -> Unit = { nav.navigate(Screen.NewCodingTask.route) }
+    val openCodeHandoff: () -> Unit = { nav.navigate(Screen.CodeHandoff.route) }
+    val openWorkPacket: (taskId: String) -> Unit = { id ->
+        nav.navigate(Screen.WorkPacketDetail.forTask(id))
+    }
     val onNavigateTab: (Screen) -> Unit = { screen ->
         nav.navigate(screen.route) {
             popUpTo(Screen.Home.route) { saveState = true }
@@ -190,6 +195,8 @@ fun HermesNavHost(
             openJob = openJob,
             prepareHandoff = prepareHandoff,
             openDeviceControl = openDeviceControl,
+            openNewCodingTask = openNewCodingTask,
+            openCodeHandoff = openCodeHandoff,
         )
 
         composable(
@@ -270,6 +277,51 @@ fun HermesNavHost(
         composable(Screen.AvatarPicker.route) {
             val vm: AvatarPickerViewModel = viewModel(factory = remember { container.avatarPickerVmFactory() })
             AvatarPickerScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        // ── v1.5 standalone-local coding cockpit ────────────────────────
+        composable(Screen.NewCodingTask.route) {
+            val vm: com.aci.hermes.ui.screens.coding.NewCodingTaskViewModel =
+                viewModel(factory = remember { container.newCodingTaskVmFactory() })
+            com.aci.hermes.ui.screens.coding.NewCodingTaskScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenPacket = { id ->
+                    // Replace New with the packet so Back returns to the caller.
+                    nav.navigate(Screen.WorkPacketDetail.forTask(id)) {
+                        popUpTo(Screen.NewCodingTask.route) { inclusive = true }
+                    }
+                },
+            )
+        }
+
+        composable(
+            route = Screen.WorkPacketDetail.route,
+            arguments = listOf(
+                navArgument(Screen.WorkPacketDetail.ARG_TASK_ID) {
+                    type = NavType.StringType
+                    nullable = false
+                },
+            ),
+        ) { entry ->
+            val taskId = entry.arguments?.getString(Screen.WorkPacketDetail.ARG_TASK_ID).orEmpty()
+            val vm: com.aci.hermes.ui.screens.coding.WorkPacketDetailViewModel =
+                viewModel(factory = remember(taskId) { container.workPacketVmFactory(taskId) })
+            com.aci.hermes.ui.screens.coding.WorkPacketDetailScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
+        }
+
+        composable(Screen.CodeHandoff.route) {
+            val vm: com.aci.hermes.ui.screens.coding.CodeHandoffHubViewModel =
+                viewModel(factory = remember { container.codeHandoffVmFactory() })
+            com.aci.hermes.ui.screens.coding.CodeHandoffHubScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+                onOpenPacket = openWorkPacket,
+                onNewTask = openNewCodingTask,
+            )
         }
 
         composable(Screen.JarvisLive.route) {
@@ -378,6 +430,8 @@ private fun NavGraphBuilder.shellDestinations(
     openJob: (jobId: String) -> Unit,
     prepareHandoff: (TargetTool) -> Unit,
     openDeviceControl: () -> Unit,
+    openNewCodingTask: () -> Unit,
+    openCodeHandoff: () -> Unit,
 ) {
     composable(Screen.Home.route) {
         val vm: JarvisPrimeHomeViewModel = viewModel(
@@ -406,6 +460,8 @@ private fun NavGraphBuilder.shellDestinations(
                     openAudit = { onNavigateTab(Screen.Audit) },
                     openDiagnostics = openDiagnostics,
                     openNewTask = { openTask(null) },
+                    openNewCodingTask = openNewCodingTask,
+                    openCodeHandoff = openCodeHandoff,
                 ),
             )
         }

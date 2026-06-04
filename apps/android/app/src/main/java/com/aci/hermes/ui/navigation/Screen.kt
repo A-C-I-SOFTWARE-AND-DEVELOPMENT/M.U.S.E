@@ -74,6 +74,18 @@ sealed class Screen(val route: String) {
     data object JarvisLive : Screen("jarvis_live")
     data object AvatarPicker : Screen("avatar_picker")
 
+    /** v1.5 standalone-local coding cockpit: capture a coding task. */
+    data object NewCodingTask : Screen("coding/new")
+
+    /** The bounded work packet for one coding task (full-screen push). */
+    data object WorkPacketDetail : Screen("coding/packet/{taskId}") {
+        const val ARG_TASK_ID = "taskId"
+        fun forTask(id: String): String = "coding/packet/$id"
+    }
+
+    /** Code Handoff Hub: queued / sent / blocked coding tasks. */
+    data object CodeHandoff : Screen("coding/handoff")
+
     /** Hands-free voice capture; full-screen push reached from Home. */
     data object Voice : Screen("voice")
 

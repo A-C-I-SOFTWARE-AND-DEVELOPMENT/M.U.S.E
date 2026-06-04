@@ -1,0 +1,55 @@
+# Release & Download (v1.5)
+
+How the Jarvis Prime APK is built, signed, published, and installed — and which
+steps are owner-gated.
+
+## Build & download paths
+
+| Path | Workflow | Output | Signing |
+|---|---|---|---|
+| Every change | `.github/workflows/android-build.yml` | `hermes-agent-debug-apk` artifact (14 days) | debug |
+| Rolling latest | `.github/workflows/android-release.yml` (on `main` / release branch) | `android-latest` GitHub Release → `jarvis-prime-android.apk` (stable URL) | release if configured, else debug |
+| Versioned | tag `android-v*` | `jarvis-prime-<ver>.apk` GitHub Release asset (90 days) | release if configured, else debug |
+
+Direct download (rolling):
+`https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/download/android-latest/jarvis-prime-android.apk`
+
+Install: download on the phone → open → allow installs from this source if
+prompted → launch **Jarvis Prime**. Requires Android 8.0+ (API 26).
+
+## Signing status (what the app/release shows honestly)
+
+| State | Meaning |
+|---|---|
+| **Unsigned / debug** | No release keystore configured; APK is debug-signed and labelled as such. Installable via sideload; Android may warn "unknown developer". |
+| **Signed release** | The four secrets are set; the APK is properly release-signed. |
+| **Missing signing secrets** | Named below; the workflow does **not** fail — it falls back to debug signing. |
+
+## Owner-gated step: release signing secrets
+
+Set these four **repository secrets** (Settings → Secrets and variables →
+Actions). They are referenced by **name** only — never commit their values:
+
+- `ANDROID_KEYSTORE_BASE64` — `base64 -w0 jarvis-release.jks`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
+
+Generate the keystore once (see
+[`RELEASE_SIGNING.md`](RELEASE_SIGNING.md)). This is the only blocker to a
+properly-signed download; everything else (build, rolling release, install
+instructions) works today with debug signing.
+
+## Local build
+
+```bash
+bash scripts/setup-android-sdk.sh        # one-time SDK provision (needs dl.google.com)
+export ANDROID_HOME="$HOME/android-sdk"
+export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+export LC_ALL=C.UTF-8                     # so the Kotlin test compile handles UTF-8 test names
+cd apps/android
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+```
+
+Do **not** request, paste, or commit keystore material. Releasing, merging,
+and Play submission stay owner actions.
