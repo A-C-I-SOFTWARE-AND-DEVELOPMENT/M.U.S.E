@@ -662,6 +662,95 @@ def _cmd_memory_stats(args: argparse.Namespace) -> int:
     return 0
 
 
+def _memory_sources_config() -> dict:
+    """Read jarvis_prime.memory_sources config from config.yaml (per-source gates)."""
+    try:
+        from hermes_constants import get_hermes_home
+        from hermes_cli.config import cfg_get
+        import yaml
+
+        path = get_hermes_home() / "config.yaml"
+        if not path.exists():
+            return {}
+        with open(path, encoding="utf-8-sig") as f:
+            all_cfg = yaml.safe_load(f) or {}
+        return cfg_get(all_cfg, "jarvis_prime", "memory_sources", default={}) or {}
+    except Exception:
+        return {}
+
+
+def _cmd_memory_sources(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.memory_sources import REGISTRY, source_enabled
+
+    cfg = _memory_sources_config()
+    rows = []
+    for name in sorted(REGISTRY):
+        p = REGISTRY[name]
+        rows.append({
+            "source": name,
+            "tool": p.tool,
+            "sensitivity": p.sensitivity,
+            "trust": p.trust,
+            "enabled": source_enabled(name, cfg),
+        })
+    if getattr(args, "json", False):
+        _print_json(rows)
+        return 0
+    print("memory sources (enable under jarvis_prime.memory_sources.<name>.enabled):")
+    for r in rows:
+        flag = "on " if r["enabled"] else "off"
+        print(f"  [{flag}] {r['source']:8s} tool={r['tool']:24s} "
+              f"sensitivity={r['sensitivity']:8s} trust={r['trust']}")
+    return 0
+
+
+def _cmd_memory_ingest(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.memory_sources import ingest
+
+    cfg = _memory_sources_config()
+    store = None
+    if args.apply:
+        # Owner gate: writing external data into memory is irreversible-ish and
+        # may touch personal sources — require the exact authorization phrase.
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        import os
+
+        phrase = args.phrase or os.environ.get("JARVIS_OWNER_PHRASE", "")
+        if phrase.strip() != AUTHORIZATION_PHRASE:
+            print(
+                f"owner authorization required to write — reply exactly: "
+                f"{AUTHORIZATION_PHRASE!r} (via --phrase or JARVIS_OWNER_PHRASE)",
+                file=sys.stderr,
+            )
+            return 3
+        store = _holographic_store()
+        if store is None:
+            return 1
+
+    try:
+        report = ingest(
+            args.source, args.query, limit=args.limit, apply=args.apply,
+            config=cfg, store=store,
+        )
+    finally:
+        if store is not None:
+            store.close()
+
+    data = report.to_dict()
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0 if not data["errors"] else 1
+    mode = "WROTE" if args.apply else "dry-run (use --apply with owner phrase to write)"
+    print(f"ingest {args.source!r} q={args.query!r}: fetched {data['fetched']}, {mode}")
+    for c in data["candidates"]:
+        print(f"  - [{c['importance']}] {c['title']}  <{c['source_uri']}>")
+    if args.apply:
+        print(f"  written: {data['written']}")
+    for e in data["errors"]:
+        print(f"  error: {e}", file=sys.stderr)
+    return 0 if not data["errors"] else 1
+
+
 def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.learning_dataset import QualityGates
     from hermes_cli.jarvis_prime.learning_ingest import from_trajectory_file
@@ -1824,6 +1913,33 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_memory_stats.add_argument("--json", action="store_true")
     p_memory_stats.set_defaults(func=_cmd_memory_stats)
+
+    p_memory_sources = p_memory_sub.add_parser(
+        "sources", help="List configured external memory-source connectors"
+    )
+    p_memory_sources.add_argument("--json", action="store_true")
+    p_memory_sources.set_defaults(func=_cmd_memory_sources)
+
+    p_memory_ingest = p_memory_sub.add_parser(
+        "ingest",
+        help="Ingest from an external MCP search source into memory (owner-gated)",
+        description=(
+            "Search an enabled MCP source (gmail, gdrive, notion, slack, "
+            "pubmed, icd10, era, …) and preview provenanced candidates. "
+            "Dry-run by default; --apply writes them to the holographic store "
+            "and requires the owner authorization phrase. Sources must be "
+            "enabled under jarvis_prime.memory_sources.<name>.enabled."
+        ),
+    )
+    p_memory_ingest.add_argument("--source", required=True, help="Source name (see `memory sources`)")
+    p_memory_ingest.add_argument("--query", required=True, help="Search query")
+    p_memory_ingest.add_argument("--limit", type=int, default=10)
+    p_memory_ingest.add_argument("--apply", action="store_true", help="Write results (owner phrase required)")
+    p_memory_ingest.add_argument(
+        "--phrase", help="Owner authorization phrase (required with --apply)"
+    )
+    p_memory_ingest.add_argument("--json", action="store_true")
+    p_memory_ingest.set_defaults(func=_cmd_memory_ingest)
 
     p_memtree = sub.add_parser(
         "memory-tree",
