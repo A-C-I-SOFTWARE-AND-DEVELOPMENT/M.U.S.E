@@ -397,6 +397,25 @@ data class CockpitEvent(
     val attributes: Map<String, String>? = null,
 )
 
+// ─── Skills (real installed gateway skills) ───────────────────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/skills` — the gateway's **real** installed
+ * skills (the live skill scanner), so the Capability screen can show what the
+ * backend actually has, not just the curated in-app catalog. Honest empty when
+ * none are installed; never fabricated.
+ */
+@Serializable
+data class CockpitSkill(
+    val id: String = "",
+    val command: String = "",
+    val name: String = "",
+    val description: String = "",
+)
+
+@Serializable
+data class CockpitSkillList(val skills: List<CockpitSkill> = emptyList())
+
 // ─── Models / router policy ───────────────────────────────────────────
 
 /**

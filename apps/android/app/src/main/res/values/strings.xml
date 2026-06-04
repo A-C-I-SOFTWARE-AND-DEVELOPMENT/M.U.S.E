@@ -577,6 +577,8 @@
 
     <!-- Capability catalog screen -->
     <string name="capability_title">Capabilities</string>
+    <string name="capability_installed_title">Installed on gateway</string>
+    <string name="capability_installed_empty">No skills are installed on the paired gateway yet.</string>
     <string name="capability_header_title">What Jarvis Prime can do</string>
     <string name="capability_header_body">Browse every capability Jarvis Prime knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
     <string name="capability_search_hint">Search capabilities</string>

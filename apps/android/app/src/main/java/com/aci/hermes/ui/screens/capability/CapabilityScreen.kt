@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.capability.RoutePreview
+import com.aci.hermes.data.cockpit.CockpitSkill
 import com.aci.hermes.data.model.Capability
 import com.aci.hermes.data.model.CapabilityCategory
 
@@ -94,6 +95,7 @@ fun CapabilityScreen(
                 .padding(padding),
         ) {
             HeaderBlurb()
+            InstalledSkillsCard(sync = state.installedSync, skills = state.installedSkills)
             SearchField(
                 query = state.query,
                 onQueryChange = viewModel::setQuery,
@@ -125,6 +127,49 @@ fun CapabilityScreen(
                 onDismiss = { viewModel.select(null) },
                 onStage = { viewModel.stagePromptToClipboard() },
             )
+        }
+    }
+}
+
+/**
+ * Live "installed on gateway" skills, alongside the curated catalog. Only
+ * shown once a paired gateway has reported real skills; honest about an
+ * unreachable gateway, never fabricating entries.
+ */
+@Composable
+private fun InstalledSkillsCard(sync: InstalledSkillsSync, skills: List<CockpitSkill>) {
+    // Nothing to show before pairing — keep the screen clean (catalog still works).
+    if (sync is InstalledSkillsSync.Idle || sync is InstalledSkillsSync.NotPaired) return
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                stringResource(R.string.capability_installed_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            when (sync) {
+                is InstalledSkillsSync.Error ->
+                    Text(sync.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                is InstalledSkillsSync.Loaded -> {
+                    if (skills.isEmpty()) {
+                        Text(stringResource(R.string.capability_installed_empty), style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        skills.forEach { skill ->
+                            Text(
+                                text = skill.command.ifBlank { "/" + skill.id } +
+                                    (skill.name.takeIf { it.isNotBlank() }?.let { " — $it" } ?: ""),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                        }
+                    }
+                }
+                else -> Unit
+            }
         }
     }
 }
