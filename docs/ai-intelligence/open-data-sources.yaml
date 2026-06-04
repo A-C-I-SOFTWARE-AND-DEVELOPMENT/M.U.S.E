@@ -24,9 +24,62 @@
 #                     (matches research_vault.EvidenceStrength)
 #   core_ingest       in the recommended core training-ingest set
 #   benchmark_wall    held out as an eval-only benchmark (never trained on)
+#   cluster           capability cluster id (see `clusters:` below). Legacy
+#                     code/GitHub entries default to `code-github` when omitted.
+#
+# Clusters group sources by the Hermes capability domain they train, mapped to
+# the model routing task-classes (docs/ai-intelligence/model-routing-task-classes.md)
+# they improve. See docs/ai-intelligence/training-data-clusters.md.
 
-version: 1
+version: 2
 as_of: "2026-06-04"
+
+clusters:
+  - id: code-github
+    title: "Code & SWE (GitHub-derived)"
+    capability_domains: ["code-build", "code-review", "repo-navigation", "test-debug"]
+    model_task_classes: ["coding_plan", "coding_build", "coding_review", "test_debug"]
+    rationale: >-
+      Repo-level code, issues/PRs, CI signal, and SWE benchmarks from GitHub and
+      Software Heritage. The original registry. Trains the builder/reviewer lanes
+      and the test-aware repair loop.
+  - id: agentic-tool-use
+    title: "Agentic tool-use & function-calling"
+    capability_domains: ["tool-use", "function-calling", "mcp", "orchestration"]
+    model_task_classes: ["coding_build", "tool_reliability"]
+    rationale: >-
+      Multi-tool, multi-turn trajectories (incl. real MCP environments) and
+      verified function calls. Hermes is fundamentally a tool/MCP agent, yet the
+      registry had zero agentic data — this closes the largest gap.
+  - id: instruction-following
+    title: "Instruction-following & chat"
+    capability_domains: ["companion", "chat", "summarization", "general-sft"]
+    model_task_classes: ["mobile_chat", "voice_reply", "summarization"]
+    rationale: >-
+      Broad, permissive SFT mixtures for general helpfulness across every
+      conversational surface (TUI, gateways, mobile, voice).
+  - id: reasoning-math
+    title: "Reasoning & math"
+    capability_domains: ["planning", "strategy", "critic", "reasoning"]
+    model_task_classes: ["coding_plan", "research"]
+    rationale: >-
+      Verified chain-of-thought reasoning traces and olympiad math. Trains the
+      planner/strategy/critic lanes and deliberate multi-step decomposition.
+  - id: research-rag-citations
+    title: "Research, RAG & citations"
+    capability_domains: ["research", "evidence-verification", "citations", "memory"]
+    model_task_classes: ["research", "citation_verification", "memory_curator"]
+    rationale: >-
+      Open-domain, multi-hop, and long-form QA with attributable citations.
+      Trains the research engine and the evidence/citation verification gate.
+  - id: preference-safety
+    title: "Preference, safety & alignment"
+    capability_domains: ["alignment", "safety", "refusal", "red-team", "owner-gates"]
+    model_task_classes: ["coding_review", "research"]
+    rationale: >-
+      Human-preference and safety-preference data for helpfulness ranking and
+      refusal/owner-gate behavior. Backs the constitution, verification gates,
+      and self-audit layer. Largely preference/eval, not raw SFT.
 
 sources:
   - rank: 1
@@ -434,6 +487,307 @@ sources:
     best_tasks: "Do not ingest for training. Reference only; use the licensed path if needed."
     source_uris:
       - "https://archive.org/details/stackexchange"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+
+  # --- cluster: agentic-tool-use (function-calling, MCP, multi-tool) ---------
+  - rank: 22
+    key: toucan-1_5m
+    name: "TOUCAN (1.5M tool-agentic trajectories)"
+    role: train
+    cluster: agentic-tool-use
+    legal_posture: apache_2_0
+    license_notes: >-
+      Apache-2.0 (Agent-Ark/Toucan-1.5M). Fully synthetic; permissive for
+      training and commercial use.
+    languages: "English (tool I/O, JSON)"
+    size: "~1.5M trajectories from 495 real MCP servers / 2,000+ tools"
+    schema_provenance: "Multi-turn tool-call trajectories with real MCP executions (multi-round, sequential, parallel)"
+    quality_strengths: >-
+      Largest open tool-agentic corpus from authentic MCP environments;
+      fine-tuned models beat larger closed models on BFCL V3 and extend the
+      MCP-Universe Pareto frontier. Directly matches Hermes' MCP/tool loop.
+    biases: "Synthetic generation bias; English-centric; tool distribution skew"
+    best_tasks: "Function-calling, multi-tool planning, MCP tool-use, parallel tool calls"
+    source_uris:
+      - "https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M"
+      - "https://arxiv.org/abs/2510.01179"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 23
+    key: xlam-function-calling-60k
+    name: "Salesforce xLAM function-calling 60k (APIGen)"
+    role: train
+    cluster: agentic-tool-use
+    legal_posture: cc_by_4_0
+    license_notes: >-
+      CC-BY-4.0 (Salesforce/xlam-function-calling-60k). Attribution required;
+      no non-commercial or share-alike restriction. HF gated terms apply.
+    languages: "English; API/JSON arguments"
+    size: "60,000 verified function-calling examples"
+    schema_provenance: "Query + available tools + ground-truth tool_calls; 3-stage verified (format, execution, semantic)"
+    quality_strengths: ">95% human-rated correctness; execution-verified single/parallel calls"
+    biases: "Synthetic API surface; argument-format skew toward generators used"
+    best_tasks: "Single + parallel function calling, argument grounding, tool selection"
+    source_uris:
+      - "https://huggingface.co/datasets/Salesforce/xlam-function-calling-60k"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 24
+    key: toolmind
+    name: "ToolMind (reasoning-enhanced tool use)"
+    role: train
+    cluster: agentic-tool-use
+    legal_posture: verify_at_ingest
+    license_notes: "Verify dataset card license at ingest before training."
+    languages: "English"
+    size: "~369k reasoning-augmented tool-use samples across 20k+ tools"
+    schema_provenance: "Reasoning + tool-call trajectories spanning a large tool catalog"
+    quality_strengths: "Couples explicit reasoning with tool selection over a very wide tool space"
+    biases: "Synthetic; reasoning style tied to the teacher model"
+    best_tasks: "Reasoned tool selection over large tool catalogs; agent planning"
+    source_uris:
+      - "https://huggingface.co/datasets"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+
+  # --- cluster: instruction-following (general SFT / chat) -------------------
+  - rank: 25
+    key: smoltalk
+    name: "SmolTalk (HuggingFaceTB)"
+    role: train
+    cluster: instruction-following
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0 (HuggingFaceTB/smoltalk). Permissive."
+    languages: "English"
+    size: "~1.04M conversations (SmolLM2 SFT mix)"
+    schema_provenance: "Chat messages (role/content); curated + synthetic instruction blend"
+    quality_strengths: "Strong general-purpose SFT mixture; chat, instruction following, rewriting, summarization"
+    biases: "Synthetic-heavy; English-only"
+    best_tasks: "General chat/instruction following across TUI, gateways, mobile, voice"
+    source_uris:
+      - "https://huggingface.co/datasets/HuggingFaceTB/smoltalk"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 26
+    key: tulu-3-sft-mixture
+    name: "Tülu 3 SFT mixture (AI2)"
+    role: train
+    cluster: instruction-following
+    legal_posture: mixed
+    license_notes: >-
+      ODC-BY-1.0 overall, but MIXED: the No Robots subset is CC-BY-NC-4.0
+      (non-commercial). MUST filter the NC subset before any product/commercial
+      fine-tune. Verify per-subset licenses at ingest.
+    languages: "Multilingual (incl. Aya); English-dominant"
+    size: "~939k SFT samples across 18 sources"
+    schema_provenance: "messages[] with `source` tag per row; instruction, code, math, safety, multilingual"
+    quality_strengths: "State-of-the-art open post-training mix; spans safety + multilingual + reasoning"
+    biases: "Source-heterogeneous; NC subset must be excluded; WildChat GPT-4 distillation"
+    best_tasks: "General instruction following — AFTER filtering CC-BY-NC rows"
+    source_uris:
+      - "https://huggingface.co/datasets/allenai/tulu-3-sft-mixture"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: false
+  - rank: 27
+    key: infinity-instruct
+    name: "Infinity-Instruct (BAAI)"
+    role: train
+    cluster: instruction-following
+    legal_posture: verify_at_ingest
+    license_notes: "Verify dataset-card license at ingest (foundation/chat splits differ)."
+    languages: "English + Chinese"
+    size: "~1.5M curated chat instructions (InfInstruct-G-1.5M) + larger foundation split"
+    schema_provenance: "Instruction selection + evolution + diagnostic filtering pipeline"
+    quality_strengths: "High-signal, diagnostically filtered instruction set; competitive SFT results"
+    biases: "Synthesis/evolution bias; bilingual skew"
+    best_tasks: "Instruction following; bilingual chat"
+    source_uris:
+      - "https://huggingface.co/datasets/BAAI/Infinity-Instruct"
+      - "https://arxiv.org/abs/2506.11116"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+
+  # --- cluster: reasoning-math ----------------------------------------------
+  - rank: 28
+    key: openr1-math-220k
+    name: "OpenR1-Math-220k (Hugging Face Open-R1)"
+    role: train
+    cluster: reasoning-math
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0 (open-r1/OpenR1-Math-220k). Permissive."
+    languages: "English; math"
+    size: "220k problems, 2–4 DeepSeek-R1 traces each (Math-Verify / LLM-judge checked)"
+    schema_provenance: "NuminaMath-1.5 problems + verified R1 reasoning traces + answers"
+    quality_strengths: "Verified correct reasoning traces; trains deliberate multi-step reasoning"
+    biases: "Math-domain only; R1 reasoning style; verifier coverage gaps (~12% judge)"
+    best_tasks: "Chain-of-thought reasoning, math, planning/decomposition transfer"
+    source_uris:
+      - "https://huggingface.co/datasets/open-r1/OpenR1-Math-220k"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 29
+    key: openthoughts2-1m
+    name: "OpenThoughts2-1M (OpenThoughts)"
+    role: train
+    cluster: reasoning-math
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0 (open-thoughts/OpenThoughts2-1M). Permissive."
+    languages: "English; math + code reasoning"
+    size: "~1M reasoning samples (math + code; 26 question-gen methods ablated)"
+    schema_provenance: "Curated reasoning traces; basis for OpenThinker2-32B"
+    quality_strengths: "First public reasoning data to match DeepSeek-R1-Distill-32B on AIME/LiveCodeBench"
+    biases: "Distillation bias; reasoning-heavy formatting"
+    best_tasks: "Reasoning, math, code reasoning; planner/critic lanes"
+    source_uris:
+      - "https://huggingface.co/datasets/open-thoughts/OpenThoughts2-1M"
+      - "https://github.com/open-thoughts/open-thoughts"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 30
+    key: numinamath-cot
+    name: "NuminaMath-CoT (AI-MO)"
+    role: train
+    cluster: reasoning-math
+    legal_posture: apache_2_0
+    license_notes: >-
+      Apache-2.0 (AI-MO/NuminaMath-CoT) reported; some upstream problem sources
+      carry their own terms — verify at ingest.
+    languages: "English; competition math"
+    size: "~859k math problems with chain-of-thought solutions"
+    schema_provenance: "Problem + CoT solution pairs (AI Math Olympiad winning data)"
+    quality_strengths: "High-quality competition math CoT; strong math/reasoning grounding"
+    biases: "Competition-math skew; formatting bias"
+    best_tasks: "Math reasoning, structured derivations"
+    source_uris:
+      - "https://huggingface.co/datasets/AI-MO/NuminaMath-CoT"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  # --- cluster: research-rag-citations --------------------------------------
+  - rank: 31
+    key: asqa
+    name: "ASQA (long-form, citation-grounded QA)"
+    role: both
+    cluster: research-rag-citations
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0 (din0s/asqa). Part of the ALCE citation benchmark."
+    languages: "English"
+    size: "~6k ambiguous factoid questions with long-form, citation-grounded answers"
+    schema_provenance: "Ambiguous questions + long-form answers that resolve interpretations with citations"
+    quality_strengths: "Trains attributable long-form answering; directly supports the citation gate"
+    biases: "Small; ambiguity-focused; English-only"
+    best_tasks: "Long-form RAG answering, citation grounding, evidence verification"
+    source_uris:
+      - "https://huggingface.co/datasets/din0s/asqa"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 32
+    key: natural-questions-open
+    name: "Natural Questions (open)"
+    role: both
+    cluster: research-rag-citations
+    legal_posture: verify_at_ingest
+    license_notes: >-
+      CC-BY-SA 3.0 (share-alike). Usable for research/eval; share-alike
+      obligations attach to derivatives — verify before training redistribution.
+    languages: "English"
+    size: "~300k real Google questions with Wikipedia-grounded answers"
+    schema_provenance: "Real user questions + long/short answers grounded in Wikipedia"
+    quality_strengths: "Realistic open-domain retrieval QA; strong RAG retrieval signal"
+    biases: "Wikipedia-grounded; English-only; share-alike license"
+    best_tasks: "Open-domain QA, retrieval evaluation, RAG grounding"
+    source_uris:
+      - "https://huggingface.co/datasets/google-research-datasets/nq_open"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+  - rank: 33
+    key: hotpotqa
+    name: "HotpotQA (multi-hop QA)"
+    role: both
+    cluster: research-rag-citations
+    legal_posture: verify_at_ingest
+    license_notes: "CC-BY-SA 4.0 (share-alike). Verify derivative obligations at ingest."
+    languages: "English"
+    size: "~113k multi-hop questions with supporting-fact annotations"
+    schema_provenance: "Questions requiring 2+ Wikipedia passages + sentence-level supporting facts"
+    quality_strengths: "Explainable multi-hop reasoning + evidence selection; ideal for the evidence gate"
+    biases: "Wikipedia-only; share-alike license; bridge/comparison templates"
+    best_tasks: "Multi-hop reasoning, supporting-evidence selection, RAG"
+    source_uris:
+      - "https://hotpotqa.github.io"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+
+  # --- cluster: preference-safety -------------------------------------------
+  - rank: 34
+    key: helpsteer3
+    name: "HelpSteer3 (NVIDIA, multi-attribute preference)"
+    role: both
+    cluster: preference-safety
+    legal_posture: cc_by_4_0
+    license_notes: "CC-BY-4.0 (nvidia/HelpSteer3). Attribution; commercial-friendly."
+    languages: "14 languages"
+    size: "~40k multi-attribute helpfulness preference samples"
+    schema_provenance: "Prompt + responses scored on helpfulness/correctness/coherence/etc."
+    quality_strengths: "Clean, permissive preference data for helpfulness ranking + reward modeling"
+    biases: "Annotator preference bias; attribute weighting"
+    best_tasks: "Preference/reward modeling, response ranking, review-lane calibration"
+    source_uris:
+      - "https://huggingface.co/datasets/nvidia/HelpSteer3"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+  - rank: 35
+    key: ultrafeedback
+    name: "UltraFeedback (binarized preferences)"
+    role: both
+    cluster: preference-safety
+    legal_posture: verify_at_ingest
+    license_notes: >-
+      MIT reported for the dataset scaffolding, but responses are model-generated
+      (GPT-family) — verify downstream usage terms at ingest.
+    languages: "English"
+    size: "~64k prompts with ranked model responses (binarized variant ~64k pairs)"
+    schema_provenance: "Prompt + multiple model responses with fine-grained preference scores"
+    quality_strengths: "Widely used DPO/preference dataset; strong helpfulness signal"
+    biases: "Model-generated responses; reward-hacking risk; English-only"
+    best_tasks: "DPO/preference optimization, response ranking"
+    source_uris:
+      - "https://huggingface.co/datasets/openbmb/UltraFeedback"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+  - rank: 36
+    key: pku-saferlhf
+    name: "PKU-SafeRLHF (safety preference)"
+    role: both
+    cluster: preference-safety
+    legal_posture: verify_at_ingest
+    license_notes: >-
+      PKU-Alignment terms (safety dataset; may contain harmful prompts by
+      design). Verify license + handle harmful content per policy before use.
+    languages: "English"
+    size: "~166.8k dual-preference (helpfulness + harmlessness) samples with severity labels"
+    schema_provenance: "Prompt + response pair with decoupled help/harm preferences and harm categories"
+    quality_strengths: "Decoupled safety + helpfulness signal; supports refusal/owner-gate calibration"
+    biases: "Contains harmful content by design; annotation policy bias"
+    best_tasks: "Safety alignment, refusal calibration, harmlessness reward modeling. Handle with care."
+    source_uris:
+      - "https://huggingface.co/datasets/PKU-Alignment/PKU-SafeRLHF"
     evidence_strength: moderate
     core_ingest: false
     benchmark_wall: false

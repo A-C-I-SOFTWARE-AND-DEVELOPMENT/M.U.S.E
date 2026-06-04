@@ -803,6 +803,8 @@ def _cmd_data_sources_list(args: argparse.Namespace) -> int:
     if getattr(args, "role", None):
         want = DatasetRole(args.role)
         sources = [s for s in sources if s.role == want]
+    if getattr(args, "cluster", None):
+        sources = [s for s in sources if s.cluster == args.cluster]
     if getattr(args, "core", False):
         sources = [s for s in sources if s.core_ingest]
     if getattr(args, "wall", False):
@@ -822,9 +824,36 @@ def _cmd_data_sources_list(args: argparse.Namespace) -> int:
             flags.append("wall")
         tag = ("[" + ",".join(flags) + "]") if flags else ""
         print(
-            f"{s.rank:>2}  {s.key:<22}  {s.role.value:<5}  "
+            f"{s.rank:>2}  {s.key:<26}  {s.cluster:<22}  {s.role.value:<5}  "
             f"{s.evidence_strength.value:<10}  {s.name} {tag}".rstrip()
         )
+    return 0
+
+
+def _cmd_data_sources_clusters(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.open_data_sources import (
+        by_cluster,
+        load_clusters,
+    )
+
+    sources = _data_sources_pool(args)
+    clusters = load_clusters(getattr(args, "registry", None) or None)
+    if getattr(args, "json", False):
+        payload = []
+        for c in clusters:
+            members = by_cluster(c.id, sources=sources)
+            d = c.to_dict()
+            d["num_sources"] = len(members)
+            d["num_core_ingest"] = sum(1 for s in members if s.core_ingest)
+            payload.append(d)
+        _print_json(payload)
+        return 0
+    for c in clusters:
+        members = by_cluster(c.id, sources=sources)
+        core = sum(1 for s in members if s.core_ingest)
+        print(f"{c.id:<24} {len(members):>2} sources ({core} core)  {c.title}")
+        if c.model_task_classes:
+            print("    task-classes: " + ", ".join(c.model_task_classes))
     return 0
 
 
@@ -2285,9 +2314,18 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_list.add_argument(
         "--wall", action="store_true", help="Only the eval-only benchmark wall"
     )
+    p_data_list.add_argument(
+        "--cluster", help="Filter to a capability cluster (e.g. agentic-tool-use)"
+    )
     p_data_list.add_argument("--registry", help="Override registry YAML path")
     p_data_list.add_argument("--json", action="store_true")
     p_data_list.set_defaults(func=_cmd_data_sources_list)
+
+    p_data_clusters = p_data_sub.add_parser(
+        "clusters", help="List the capability clusters and their source counts")
+    p_data_clusters.add_argument("--registry", help="Override registry YAML path")
+    p_data_clusters.add_argument("--json", action="store_true")
+    p_data_clusters.set_defaults(func=_cmd_data_sources_clusters)
 
     p_data_show = p_data_sub.add_parser("show", help="Show one source by key")
     p_data_show.add_argument("key", help="Source key (e.g. the-stack-v2)")

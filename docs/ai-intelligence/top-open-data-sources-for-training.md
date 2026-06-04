@@ -232,3 +232,34 @@ to the other open sources here. It is registered with
 - The report this inventory derives from searched for a mistyped
   "HERMAS-AGENT" and did not find an exact public match; this repo is
   **hermes-agent**, so that repo-search section is intentionally omitted here.
+
+## Capability clusters (registry v2 additions)
+
+The original inventory above is the `code-github` cluster. Registry schema v2
+adds five capability clusters so training data covers all of Hermes' routed
+domains — not just code. Full rationale + the qualitative-improvement
+validation is in
+[`training-data-clusters.md`](training-data-clusters.md). The CLI surfaces them:
+`jarvis_prime data-sources clusters` and `… data-sources list --cluster <id>`.
+
+| Cluster | Source (`key`) | Role | License posture | Core |
+|---|---|---|---|---|
+| agentic-tool-use | TOUCAN (`toucan-1_5m`) | train | apache_2_0 | yes |
+| agentic-tool-use | Salesforce xLAM 60k (`xlam-function-calling-60k`) | train | cc_by_4_0 | yes |
+| agentic-tool-use | ToolMind (`toolmind`) | train | verify at ingest | |
+| instruction-following | SmolTalk (`smoltalk`) | train | apache_2_0 | yes |
+| instruction-following | Tülu 3 SFT mix (`tulu-3-sft-mixture`) | train | mixed (filter NC) | |
+| instruction-following | Infinity-Instruct (`infinity-instruct`) | train | verify at ingest | |
+| reasoning-math | OpenR1-Math-220k (`openr1-math-220k`) | train | apache_2_0 | yes |
+| reasoning-math | OpenThoughts2-1M (`openthoughts2-1m`) | train | apache_2_0 | yes |
+| reasoning-math | NuminaMath-CoT (`numinamath-cot`) | train | apache_2_0 | yes |
+| research-rag-citations | ASQA (`asqa`) | both | apache_2_0 | yes |
+| research-rag-citations | Natural Questions open (`natural-questions-open`) | both | cc-by-sa (verify) | |
+| research-rag-citations | HotpotQA (`hotpotqa`) | both | cc-by-sa (verify) | |
+| preference-safety | HelpSteer3 (`helpsteer3`) | both | cc_by_4_0 | yes |
+| preference-safety | UltraFeedback (`ultrafeedback`) | both | verify at ingest | |
+| preference-safety | PKU-SafeRLHF (`pku-saferlhf`) | both | verify at ingest | |
+
+Only clearly permissive licenses (Apache/MIT/CC-BY) are marked core-ingest;
+share-alike (`cc-by-sa`), `mixed`, and own-license sources stay
+`verify_at_ingest` until checked. The `benchmark_wall` set is never trained on.

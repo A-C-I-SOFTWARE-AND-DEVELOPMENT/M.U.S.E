@@ -83,6 +83,7 @@ class DataSource:
     source_uris: tuple[str, ...] = ()
     core_ingest: bool = False
     benchmark_wall: bool = False
+    cluster: str = "code-github"  # capability cluster (see `clusters:` taxonomy)
 
     # -- predicates ---------------------------------------------------------
 
@@ -134,6 +135,7 @@ class DataSource:
             source_uris=tuple(d.get("source_uris", []) or []),
             core_ingest=bool(d.get("core_ingest", False)),
             benchmark_wall=bool(d.get("benchmark_wall", False)),
+            cluster=(str(d.get("cluster", "")).strip() or "code-github"),
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -155,6 +157,7 @@ class DataSource:
             "source_uris": list(self.source_uris),
             "core_ingest": self.core_ingest,
             "benchmark_wall": self.benchmark_wall,
+            "cluster": self.cluster,
             "trainable": self.trainable,
         }
 
@@ -174,7 +177,7 @@ class DataSource:
         source_type = (
             SourceType.BENCHMARK if self.benchmark_wall else SourceType.REPO
         )
-        tags = ["open-data-source", self.role.value]
+        tags = ["open-data-source", self.role.value, f"cluster:{self.cluster}"]
         if self.core_ingest:
             tags.append("core-ingest")
         if self.benchmark_wall:
@@ -240,6 +243,70 @@ def load_registry(path: Optional[Path] = None) -> list[DataSource]:
         raise ValueError(f"open-data registry has duplicate key(s): {dupes}")
 
     return sorted(sources, key=lambda s: s.rank)
+
+
+# --- capability clusters -----------------------------------------------------
+
+
+@dataclass
+class Cluster:
+    """A capability cluster grouping data sources by the app domain they train.
+
+    Maps a dataset cluster to Hermes capability domains and the model
+    routing task-classes it improves (see docs/ai-intelligence/
+    model-routing-task-classes.md).
+    """
+
+    id: str
+    title: str
+    capability_domains: tuple[str, ...] = ()
+    model_task_classes: tuple[str, ...] = ()
+    rationale: str = ""
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Cluster":
+        return cls(
+            id=str(d["id"]).strip(),
+            title=str(d.get("title", d["id"])).strip(),
+            capability_domains=tuple(d.get("capability_domains", []) or []),
+            model_task_classes=tuple(d.get("model_task_classes", []) or []),
+            rationale=str(d.get("rationale", "")).strip(),
+        )
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "id": self.id,
+            "title": self.title,
+            "capability_domains": list(self.capability_domains),
+            "model_task_classes": list(self.model_task_classes),
+            "rationale": self.rationale,
+        }
+
+
+def load_clusters(path: Optional[Path] = None) -> list[Cluster]:
+    """Parse the ``clusters:`` taxonomy block; empty list if none defined."""
+
+    target = resolve_registry_path(path)
+    raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    rows = raw.get("clusters", []) or []
+    clusters = [Cluster.from_dict(row) for row in rows]
+    ids = [c.id for c in clusters]
+    if len(set(ids)) != len(ids):
+        dupes = sorted({c for c in ids if ids.count(c) > 1})
+        raise ValueError(f"open-data registry has duplicate cluster id(s): {dupes}")
+    return clusters
+
+
+def by_cluster(
+    cluster_id: str, *, sources: Optional[Iterable[DataSource]] = None
+) -> list[DataSource]:
+    pool = list(sources) if sources is not None else load_registry()
+    return [s for s in pool if s.cluster == cluster_id]
+
+
+def cluster_ids(sources: Optional[Iterable[DataSource]] = None) -> list[str]:
+    pool = list(sources) if sources is not None else load_registry()
+    return sorted({s.cluster for s in pool})
 
 
 # --- partitions -------------------------------------------------------------
