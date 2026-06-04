@@ -131,3 +131,59 @@ Rollback gate:
 Result:
 Remaining risk:
 ```
+
+## Evidence-bound (strict) gates
+
+The gates above are also implemented in code
+(`hermes_cli/jarvis_prime/gates.py`). By default they run in **legacy mode**:
+they read fields from a work packet, which is fine for *planning* but is
+self-attestable — a packet that simply asserts `diff_reviewed=true` and
+`tests_run=[…]` would otherwise pass.
+
+**Strict evidence mode** closes that gap. In strict mode the six observation
+gates (build, review, test, security, release, rollback, owner approval) ignore
+self-attested packet fields entirely and pass **only** when the matching
+captured artifact is present in a
+[`GuardrailEvidenceBundle`](security/verifiable-guardrails.md):
+
+| Gate | Required evidence |
+|---|---|
+| Build | `git_diff` artifact; observed changed files in scope, no protected files |
+| Review | `review` artifact with an explicit non-blocking verdict |
+| Test | an executed `test_result` that passed (planned commands never count) |
+| Security | `secret_scan` artifact over the changed files, clean |
+| Release | release fields **plus** a real `git_diff` + `rollback` artifact |
+| Rollback | `rollback` artifact judged operationally plausible |
+| Owner approval | a challenge-bound `owner_authorization_grant` artifact |
+
+The evidence bundle is bound to the packet's `packet_id`, so a bundle collected
+for one packet cannot be replayed against another. Strict mode is enabled on the
+runtime and doctor paths:
+
+```python
+from hermes_cli.jarvis_prime.gates import run_strict_gate_summary
+summary = run_strict_gate_summary(packet.to_gate_packet(), evidence_bundle)
+```
+
+The legacy signature (`run_gate_summary(packet)`) is unchanged for backward
+compatibility. See
+[`docs/security/verifiable-guardrails.md`](security/verifiable-guardrails.md)
+for the evidence model, the tamper-evident ledger, and the
+`hermes guardrails` CLI.
+
+## Challenge-bound owner authorization
+
+The static phrase `Yes, with authorization.` remains, but a replayed phrase
+carries no binding to *which* action was approved. Strict owner approval
+therefore requires a **nonce-bound challenge**:
+
+```text
+$ hermes guardrails authorize production_deploy --subject "release v2"
+required_phrase: Yes, with authorization. Code: 728193
+
+$ hermes guardrails authorize-response <challenge-id> "Yes, with authorization. Code: 728193"
+authorized: true   # a grant artifact is appended to the ledger
+```
+
+A successful response mints an `owner_authorization_grant` evidence artifact;
+the bare phrase alone never satisfies a strict owner gate.

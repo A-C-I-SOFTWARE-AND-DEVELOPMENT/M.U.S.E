@@ -12,6 +12,12 @@ It is an *extension* of systems Hermes already ships — it does not
 re-implement trajectory capture, redaction, the research vault, the
 verification gates, or the owner-approval queue.
 
+> **See also:**
+> [`top-open-data-sources-for-training.md`](top-open-data-sources-for-training.md)
+> — the complementary *external* data path: a ranked inventory of public,
+> license-aware datasets (and a held-out benchmark wall) that feed the
+> Research Vault. This pipeline captures JARVIS's *own* validated traces.
+
 ## What it reuses
 
 | Need | Reused module |

@@ -53,12 +53,31 @@ from hermes_cli.jarvis_prime.router import RouteDecision, RouteTarget, Router
 from hermes_cli.jarvis_prime.self_update import ProposalBook
 
 
+def _packet_get(packet: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    """Read ``key`` from a dict-like packet or a dataclass-like packet."""
+
+    if isinstance(packet, Mapping):
+        return packet.get(key, default)
+    return getattr(packet, key, default)
+
+
 def _memory_layers_default() -> bool:
     """Memory Tree live-loop wiring defaults ON; ``HERMES_MEMORY_LAYERS=0``
     (or false/no/off) reverts to legacy-only recollection for an exact
     rollback path."""
 
     raw = os.environ.get("HERMES_MEMORY_LAYERS")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+
+
+def _gemma_curator_default() -> bool:
+    """The Gemma memory-curator lane defaults ON (it is proposed-only and
+    inert without a configured runner). ``HERMES_JARVIS_GEMMA_CURATOR=0``
+    (or false/no/off) disables it for an exact rollback path."""
+
+    raw = os.environ.get("HERMES_JARVIS_GEMMA_CURATOR")
     if raw is None:
         return True
     return raw.strip().lower() not in ("0", "false", "no", "off", "")
@@ -82,6 +101,11 @@ class JarvisConfig:
     memory_layers_enabled: bool = field(default_factory=_memory_layers_default)
     memory_tree: Optional[MemoryTreeStore] = None
     memory_token_budget: int = 512
+    # Gemma memory-curator lane (proposed-only). On by default but inert until a
+    # ``gemma_runner`` is configured — so default behavior is byte-identical to
+    # before. The runner is injectable: ``(prompt: str) -> str``.
+    gemma_memory_curator_enabled: bool = field(default_factory=_gemma_curator_default)
+    gemma_runner: Optional[Any] = None
 
 
 @dataclass
@@ -99,6 +123,14 @@ class JarvisTurn:
     recollection: str = ""
     research_brief: Optional[ResearchBrief] = None
     notes: list[str] = field(default_factory=list)
+    # Optional model-route metadata (additive; populated when a model route was
+    # resolved for the turn). ``None``/empty when not applicable.
+    selected_model: Optional[str] = None
+    selected_provider: Optional[str] = None
+    selected_task_class: Optional[str] = None
+    fallback_chain: list[str] = field(default_factory=list)
+    scorecard_basis: Optional[str] = None
+    gemma_variant: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -113,6 +145,12 @@ class JarvisTurn:
             "started_at": self.started_at.isoformat(),
             "finished_at": self.finished_at.isoformat(),
             "notes": list(self.notes),
+            "selected_model": self.selected_model,
+            "selected_provider": self.selected_provider,
+            "selected_task_class": self.selected_task_class,
+            "fallback_chain": list(self.fallback_chain),
+            "scorecard_basis": self.scorecard_basis,
+            "gemma_variant": self.gemma_variant,
         }
 
 
@@ -246,7 +284,99 @@ class JarvisPrime:
                     summary["rejected"] += 1
         except Exception:  # pragma: no cover - capture never breaks a turn
             return summary
+
+        # Gemma memory-curator enhancement (proposed-only, owner-gated). This is
+        # additive and inert unless a runner is configured, so the deterministic
+        # baseline above is never weakened. Curator-proposed keys are added to
+        # the summary ONLY when the curator actually ran.
+        if self.config.gemma_memory_curator_enabled and self.config.gemma_runner is not None:
+            try:
+                from hermes_cli.jarvis_prime.gemma_memory_curator import (
+                    capture_curator_proposals,
+                    curate,
+                    strip_gemma_thought_blocks,
+                )
+
+                turn_text = strip_gemma_thought_blocks(
+                    f"{user_text}\n\n{assistant_text}".strip()
+                )
+                proposals = curate(
+                    turn_text,
+                    source_uri=source_uri,
+                    deterministic_candidates=candidates,
+                    runner=self.config.gemma_runner,
+                )
+                gem_results = capture_curator_proposals(
+                    tree, proposals, source_uri=source_uri
+                )
+                summary["gemma_proposed"] = sum(1 for r in gem_results if r.ok)
+                summary["gemma_rejected"] = sum(1 for r in gem_results if not r.ok)
+            except Exception:  # pragma: no cover - curation never breaks a turn
+                pass
         return summary
+
+    def record_route_outcome(
+        self,
+        *,
+        model: str,
+        task_class: str,
+        provider: str = "unknown",
+        risk_class: str = "RC1",
+        latency_ms: Optional[float] = None,
+        tokens_in: Optional[int] = None,
+        tokens_out: Optional[int] = None,
+        tests_passed: Optional[int] = None,
+        tests_failed: Optional[int] = None,
+        owner_corrections: Optional[int] = None,
+        hallucination_corrections: Optional[int] = None,
+        memory_usefulness: Optional[float] = None,
+        citation_accuracy: Optional[float] = None,
+        tool_reliability: Optional[float] = None,
+        context_length: Optional[int] = None,
+        book: Optional[Any] = None,
+        persist: bool = True,
+    ) -> Optional[Any]:
+        """Record a model scorecard for a completed turn — evidence only.
+
+        Returns the recorded ``ModelScorecard`` or ``None`` when no real signal
+        was supplied. Unknown values stay unknown/neutral; nothing is fabricated.
+        This is what lets scorecards (later) promote/demote a model per lane.
+        """
+        signals = (
+            latency_ms, tokens_in, tokens_out, tests_passed, tests_failed,
+            owner_corrections, hallucination_corrections, memory_usefulness,
+            citation_accuracy, tool_reliability, context_length,
+        )
+        if all(s is None for s in signals):
+            return None
+        try:
+            from hermes_cli.jarvis_prime.model_scorecard import (
+                ModelScorecard,
+                ScorecardBook,
+            )
+
+            card = ModelScorecard(
+                model=model,
+                provider=provider,
+                task_type=task_class,
+                risk_class=risk_class,
+                latency_ms=latency_ms,
+                tokens_in=int(tokens_in or 0),
+                tokens_out=int(tokens_out or 0),
+                tests_passed=int(tests_passed or 0),
+                tests_failed=int(tests_failed or 0),
+                owner_corrections=int(owner_corrections or 0),
+                hallucination_corrections=int(hallucination_corrections or 0),
+                memory_usefulness=memory_usefulness,
+                citation_accuracy=citation_accuracy,
+                tool_reliability=tool_reliability,
+                context_length=int(context_length or 0),
+            )
+            book = book if book is not None else ScorecardBook.load()
+            book.record(card, persist=persist)
+            return card
+        except Exception:  # pragma: no cover - telemetry never breaks a turn
+            return None
 
     def remember(
         self,
@@ -300,8 +430,43 @@ class JarvisPrime:
     # Gate evaluation
     # ------------------------------------------------------------------
 
-    def gate(self, packet: Mapping[str, Any]) -> GateSummary:
-        return run_gate_summary(packet)
+    def gate(
+        self,
+        packet: Mapping[str, Any],
+        evidence_bundle: Any = None,
+        strict_evidence: bool = True,
+    ) -> GateSummary:
+        """Evaluate a work packet's gates.
+
+        Strict, evidence-bound gates run by default whenever a real evidence
+        bundle is supplied; with no bundle the call falls back to the legacy
+        packet-level gates so existing planning flows are unaffected. When strict
+        gates run, the summary is journaled to the tamper-evident guardrail
+        ledger (best-effort — a ledger failure never blocks evaluation).
+        """
+
+        use_strict = strict_evidence and evidence_bundle is not None
+        summary = run_gate_summary(
+            packet,
+            evidence_bundle=evidence_bundle,
+            strict_evidence=use_strict,
+        )
+        if use_strict:
+            try:
+                from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+                GuardrailLedger().append(
+                    "gate_summary",
+                    str(_packet_get(packet, "packet_id") or _packet_get(packet, "branch") or ""),
+                    {
+                        "overall": summary.overall.value,
+                        "remaining_risk": summary.remaining_risk,
+                        "results": [r.to_dict() for r in summary.results],
+                    },
+                )
+            except Exception:  # pragma: no cover - defensive
+                pass
+        return summary
 
     # ------------------------------------------------------------------
     # Owner authorization
@@ -337,6 +502,26 @@ class JarvisPrime:
             "pending_actions": list(route.pending_actions),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Bind the delegation to verifiable-guardrail context so the downstream
+        # worker knows which evidence it must produce and which ledger head it
+        # is building on. All best-effort — never break delegation on failure.
+        if packet:
+            pid = _packet_get(packet, "packet_id")
+            if pid:
+                envelope["packet_id"] = pid
+            req = _packet_get(packet, "required_evidence")
+            if req:
+                envelope["required_evidence"] = list(req)
+        try:
+            from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+            envelope["ledger_latest_hash"] = GuardrailLedger().latest_hash()
+        except Exception:  # pragma: no cover - defensive
+            pass
+        if route.requires_owner_authorization:
+            challenges = getattr(self.config.owner_auth, "challenges", {}) or {}
+            envelope["owner_challenge_ids"] = list(challenges.keys())
 
         # Optional: pass model-router hint when the existing router is
         # available — kept best-effort so missing module doesn't break.
@@ -474,13 +659,32 @@ class JarvisPrime:
             )
         except Exception:  # pragma: no cover - defensive
             pass
-        return {
+        result: dict[str, Any] = {
             "cleared": cleared,
             "tick_disabled": True,
             "reason": reason,
             "cleared_actions": [g.action for g in pending],
             "branch_leases_cleared": leases_cleared,
         }
+        # Append a tamper-evident emergency-stop record to the guardrail ledger
+        # so any later audit can prove this process was halted. A ledger failure
+        # must never crash the stop primitive — surface it as a warning instead.
+        try:
+            from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+            record = GuardrailLedger().append(
+                "emergency_stop",
+                reason,
+                {
+                    "reason": reason,
+                    "cleared_actions": [g.action for g in pending],
+                    "branch_leases_cleared": leases_cleared,
+                },
+            )
+            result["ledger_record_hash"] = record.record_hash
+        except Exception as exc:  # pragma: no cover - defensive
+            result["ledger_warning"] = f"failed to journal emergency stop: {exc}"
+        return result
 
     # ------------------------------------------------------------------
     # Handoff rendering — operational handoff template

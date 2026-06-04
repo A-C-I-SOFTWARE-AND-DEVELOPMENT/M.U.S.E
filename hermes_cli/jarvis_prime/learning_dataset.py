@@ -454,6 +454,21 @@ class DatasetStore:
         if looks_like_bulk_scraped(provenance, clean):
             raise RejectedTrace("unlicensed bulk-scraped content refused")
 
+        # 6. Reward-hacking / shortcut guard (Constitution C27). Never store a
+        #    *positive* trace that reached its result via a reward hack or a
+        #    destructive workaround — such traces generalize to misalignment
+        #    (arXiv 2511.18397). Negative examples are exempt: demonstrating
+        #    what NOT to do is the whole point of a negative example.
+        if not is_negative:
+            from hermes_cli.jarvis_prime.behavioral_risk import reward_hacking_evidence
+
+            shortcut = reward_hacking_evidence(flat)
+            if shortcut:
+                raise RejectedTrace(
+                    "reward-hacking / shortcut markers in positive trace: "
+                    + ", ".join(sorted(set(shortcut))[:5])
+                )
+
         created_at = _now_iso()
         cand = DatasetCandidate(
             id=_candidate_id(trace_type, clean, created_at),

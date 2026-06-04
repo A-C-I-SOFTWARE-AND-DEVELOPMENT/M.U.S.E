@@ -5,6 +5,12 @@ vibes — and it can explain the choice, on the phone or the CLI. This page
 documents the task classes, the scorecard dimensions, the routing policy, and
 the mobile surface.
 
+> **Gemma 4** leads the local lanes (`memory_curator`, `mobile_chat`,
+> `voice_reply`, `summarization`, `multimodal_doc`, `local_reasoning`) and is a
+> scorecard-gated fallback on coding/review/research. See
+> [`gemma4-integration.md`](./gemma4-integration.md) for the full lane map,
+> promotion gates (`model_scorecard.promotion_eligible`), and rollback.
+
 > Source of truth: `hermes_cli/jarvis_prime/task_router.py` (decision layer),
 > `hermes_cli/jarvis_prime/model_scorecard.py` (evidence),
 > `hermes_cli/jarvis_prime/model_bootstrap.py` (free/local-first policy),

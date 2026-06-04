@@ -11,6 +11,11 @@ source of truth) and the loader at
 **Snapshot date:** 2026-05-28. Scores move fast — treat everything here as
 a *validated snapshot*, not a permanent ranking.
 
+> The `gemma4` family (Google DeepMind, Apache-2.0, local) leads the local /
+> memory / mobile / voice / summary / multimodal lanes and is a scorecard-gated
+> fallback for coding/review/research. See
+> [`gemma4-integration.md`](./gemma4-integration.md).
+
 ---
 
 ## Why this exists

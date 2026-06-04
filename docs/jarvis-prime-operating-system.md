@@ -459,6 +459,13 @@ python -m hermes_cli.jarvis_prime gate planning --packet path/to/packet.json --j
 Security, Release, Owner Approval, Rollback) and prints a summary.
 `gate <name>` runs one specific gate. Exit 0 iff the gate(s) pass.
 
+This packet-level path is *self-attestable* and is for planning. To make a
+gate pass only on **captured evidence** (a real git diff, an executed test
+run, a clean secret scan, a reviewer note, a rollback plan, a challenge-bound
+owner grant) use the verifiable guardrail subsystem — `hermes guardrails` and
+strict evidence mode. See
+[`docs/security/verifiable-guardrails.md`](security/verifiable-guardrails.md).
+
 ### handle — full perceive → classify → decide turn
 
 ```text

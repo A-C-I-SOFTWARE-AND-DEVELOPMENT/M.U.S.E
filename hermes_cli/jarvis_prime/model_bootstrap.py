@@ -235,6 +235,58 @@ def compute_local_defaults() -> list[LocalDefault]:
     return defaults
 
 
+# Per-tier preferred Gemma 4 variants for the doctor / status surfaces. This is
+# advisory only — it recommends, it never downloads. The hardware-aware,
+# consent-gated plan (``build_local_plan``) remains the authority on what
+# actually fits this box.
+_GEMMA_TIER_PREFERENCE: dict[str, tuple[str, ...]] = {
+    "laptop": ("gemma4-e2b", "gemma4-e4b"),
+    "desktop": ("gemma4-e4b", "gemma4-e2b"),
+    "workstation": ("gemma4-26b-a4b", "gemma4-e4b"),
+    "server": ("gemma4-31b", "gemma4-26b-a4b"),
+}
+
+
+def gemma_recommendations(tier: str, *, catalog: Any = None) -> list[dict[str, Any]]:
+    """Recommended Gemma 4 variants for a hardware ``tier`` (advisory).
+
+    Returns ``[{name, source, ollama_tag, kind, routing_lanes, tiers}, …]`` for
+    the Gemma open-weight candidates that both fit ``tier`` and are listed in
+    the per-tier preference. Pure and defensive: any failure (missing catalog /
+    PyYAML on a stripped install) degrades to ``[]``. Recommends only — never
+    downloads, never probes hardware, never hits the network.
+    """
+    try:
+        if catalog is None:
+            from hermes_cli.local_models.catalog import load_open_weight_catalog
+
+            catalog = load_open_weight_catalog()
+        for_tier = {m.name for m in catalog.for_tier(tier)}
+    except Exception:  # pragma: no cover - defensive (stripped install)
+        return []
+
+    preferred = _GEMMA_TIER_PREFERENCE.get(tier, ())
+    out: list[dict[str, Any]] = []
+    for name in preferred:
+        model = catalog.get(name)
+        if model is None or name not in for_tier:
+            continue
+        tag = None
+        if model.source.startswith("ollama:"):
+            tag = model.source.split("ollama:", 1)[1]
+        out.append(
+            {
+                "name": model.name,
+                "source": model.source,
+                "ollama_tag": tag,
+                "kind": model.kind,
+                "routing_lanes": list(model.routing_lanes),
+                "tiers": list(model.tiers),
+            }
+        )
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Local model layer integration (hardware-aware, consent-gated downloads)
 # ---------------------------------------------------------------------------
@@ -663,6 +715,7 @@ __all__ = [
     "detect_paid_providers",
     "detect_workers",
     "execute_local_downloads",
+    "gemma_recommendations",
     "load_policy",
     "paid_opt_in",
     "probe_hardware",

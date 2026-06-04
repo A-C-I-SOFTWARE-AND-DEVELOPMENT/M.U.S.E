@@ -100,12 +100,21 @@ def run_launch_doctor() -> LaunchReport:
         _check_owner_gate(),
         _check_emergency_stop(),
         _check_model_brain(),
+        _check_gemma_wired(),
         _check_bootstrap_config(),
         _check_local_runtimes(),
         _check_worker_lanes(),
         _check_no_paid_dependency(),
         _check_install_script(),
         _check_termux_compat(),
+        # --- verifiable guardrail subsystem ---
+        _check_guardrail_ledger_writable(),
+        _check_guardrail_ledger_verifies(),
+        _check_strict_gate_rejects_self_attestation(),
+        _check_owner_challenge_nonce_enforced(),
+        _check_secret_scan_operational(),
+        _check_emergency_stop_journaled(),
+        _check_packet_id_stable(),
     ]
     ok = not any(c.status == FAIL and c.hard for c in checks)
     return LaunchReport(ok=ok, checks=checks)
@@ -248,6 +257,29 @@ def _check_model_brain() -> LaunchCheck:
         return LaunchCheck("model_brain", FAIL, f"model brain failed to load: {exc}")
 
 
+def _check_gemma_wired() -> LaunchCheck:
+    """Gemma 4 wiring is optional — present is PASS, absent is a soft WARN."""
+    try:
+        from hermes_cli import oss_model_brain as ob
+
+        fam = ob.load_oss_catalog().by_id("gemma4")
+        if fam is None:
+            return LaunchCheck(
+                "gemma_wired",
+                WARN,
+                "Gemma 4 not wired into the OSS brain (optional)",
+                hard=False,
+            )
+        return LaunchCheck(
+            "gemma_wired",
+            PASS,
+            "Gemma 4 wired (local lanes); `hermes models gemma doctor` for detail",
+            hard=False,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return LaunchCheck("gemma_wired", WARN, f"check failed: {exc}", hard=False)
+
+
 def _check_bootstrap_config() -> LaunchCheck:
     try:
         from hermes_cli.jarvis_prime import model_bootstrap as mb
@@ -378,6 +410,208 @@ def _check_termux_compat() -> LaunchCheck:
     return LaunchCheck(
         "termux_compat", PASS, "launch modules are stdlib-only and importable"
     )
+
+
+# ---------------------------------------------------------------------------
+# Verifiable guardrail checks
+#
+# These prove the guardrail subsystem is *operational*, not merely importable:
+# the ledger writes and verifies, strict gates reject self-attestation, owner
+# challenges enforce the nonce, the secret scanner catches a synthetic token,
+# emergency stop is journaled, and packet ids are stable. All are hard — a
+# guardrail that cannot run is a launch blocker.
+# ---------------------------------------------------------------------------
+
+
+def _check_guardrail_ledger_writable() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+        ledger = GuardrailLedger()
+        record = ledger.append("doctor_probe", "launch_doctor", {"probe": True})
+        return LaunchCheck(
+            "guardrail_ledger_writable",
+            PASS,
+            f"guardrail ledger writable at {ledger.path} (head {record.record_hash[:12]}…)",
+        )
+    except Exception as exc:
+        return LaunchCheck(
+            "guardrail_ledger_writable", FAIL, f"ledger not writable: {exc}"
+        )
+
+
+def _check_guardrail_ledger_verifies() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+        diag = GuardrailLedger().verify_chain()
+        if diag.ok:
+            return LaunchCheck(
+                "guardrail_ledger_verifies",
+                PASS,
+                f"hash chain intact ({diag.length} records)",
+            )
+        return LaunchCheck(
+            "guardrail_ledger_verifies",
+            FAIL,
+            f"chain broken at index {diag.broken_at}: {diag.reason}",
+        )
+    except Exception as exc:
+        return LaunchCheck(
+            "guardrail_ledger_verifies", FAIL, f"chain verification failed: {exc}"
+        )
+
+
+def _check_strict_gate_rejects_self_attestation() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.gates import GateOutcome, run_strict_gate_summary
+
+        # A maximally self-attested packet — claims everything was done.
+        self_attested = {
+            "packet_id": "doctor",
+            "repo_root": ".",
+            "branch": "feature/x",
+            "mission": "do the thing",
+            "allowed_files": ["a.py"],
+            "non_goals": ["nothing else"],
+            "acceptance_criteria": ["it works"],
+            "files_changed": ["a.py"],
+            "diff_reviewed": True,
+            "commits_scoped": True,
+            "contrarian_objection": "none",
+            "tests_run": ["pytest"],
+            "verification_summary": ["ran tests"],
+            "remaining_risks": ["none"],
+            "rollback_plan": ["revert"],
+        }
+        summary = run_strict_gate_summary(self_attested, None)
+        if summary.overall is GateOutcome.PASS:
+            return LaunchCheck(
+                "strict_gate_rejects_self_attestation",
+                FAIL,
+                "strict gates passed a self-attested packet with no evidence",
+            )
+        return LaunchCheck(
+            "strict_gate_rejects_self_attestation",
+            PASS,
+            f"self-attested packet rejected (overall={summary.overall.value})",
+        )
+    except Exception as exc:
+        return LaunchCheck(
+            "strict_gate_rejects_self_attestation", FAIL, f"check failed: {exc}"
+        )
+
+
+def _check_owner_challenge_nonce_enforced() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.owner_auth import (
+            AUTHORIZATION_PHRASE,
+            authorize_challenge,
+            create_challenge,
+        )
+
+        challenge = create_challenge("production_deploy", rationale="doctor probe")
+        # Bare phrase (no nonce) must NOT authorize.
+        if authorize_challenge(challenge, AUTHORIZATION_PHRASE) is not None:
+            return LaunchCheck(
+                "owner_challenge_nonce_enforced",
+                FAIL,
+                "bare phrase wrongly satisfied a nonce-bound challenge",
+            )
+        # Wrong nonce must NOT authorize.
+        if authorize_challenge(challenge, f"{AUTHORIZATION_PHRASE} Code: 000000") and challenge.nonce != "000000":
+            return LaunchCheck(
+                "owner_challenge_nonce_enforced", FAIL, "wrong nonce wrongly authorized"
+            )
+        # Correct phrase + nonce MUST authorize.
+        grant = authorize_challenge(challenge, challenge.required_phrase)
+        if grant is None:
+            return LaunchCheck(
+                "owner_challenge_nonce_enforced",
+                FAIL,
+                "correct challenge response failed to authorize",
+            )
+        return LaunchCheck(
+            "owner_challenge_nonce_enforced",
+            PASS,
+            "challenge-bound owner authorization enforced (nonce required)",
+        )
+    except Exception as exc:
+        return LaunchCheck(
+            "owner_challenge_nonce_enforced", FAIL, f"check failed: {exc}"
+        )
+
+
+def _check_secret_scan_operational() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.guardrail_collectors import (
+            collect_secret_scan_evidence,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            fname = "fake_creds.txt"
+            # Synthetic, non-real token shaped like an OpenAI key.
+            (Path(tmp) / fname).write_text(
+                "api_key=sk-" + ("A" * 28) + "\n", encoding="utf-8"
+            )
+            art = collect_secret_scan_evidence(tmp, [fname])
+            findings = art.payload.get("findings") or []
+            if not findings:
+                return LaunchCheck(
+                    "secret_scan_operational",
+                    FAIL,
+                    "secret scanner missed a synthetic token",
+                )
+            # The raw token must NOT appear in the artifact (redaction works).
+            blob = str(art.to_dict())
+            if "AAAAAAAA" in blob:
+                return LaunchCheck(
+                    "secret_scan_operational",
+                    FAIL,
+                    "secret scanner leaked an unredacted token into evidence",
+                )
+        return LaunchCheck(
+            "secret_scan_operational",
+            PASS,
+            "secret scanner catches and redacts synthetic tokens",
+        )
+    except Exception as exc:
+        return LaunchCheck("secret_scan_operational", FAIL, f"check failed: {exc}")
+
+
+def _check_emergency_stop_journaled() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.runtime import JarvisPrime
+
+        jp = JarvisPrime()
+        result = jp.stop(reason="launch_doctor_journal_probe")
+        if result.get("ledger_record_hash"):
+            return LaunchCheck(
+                "emergency_stop_journaled",
+                PASS,
+                "emergency stop appends a tamper-evident ledger record",
+            )
+        warning = result.get("ledger_warning", "no ledger_record_hash in stop result")
+        return LaunchCheck("emergency_stop_journaled", FAIL, str(warning))
+    except Exception as exc:
+        return LaunchCheck("emergency_stop_journaled", FAIL, f"check failed: {exc}")
+
+
+def _check_packet_id_stable() -> LaunchCheck:
+    try:
+        from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+
+        a = build_work_packet("add a small helper function").packet_id
+        b = build_work_packet("add a small helper function").packet_id
+        if a == b and a:
+            return LaunchCheck(
+                "packet_id_stable", PASS, "work-packet ids are deterministic"
+            )
+        return LaunchCheck(
+            "packet_id_stable", FAIL, f"packet ids unstable: {a!r} != {b!r}"
+        )
+    except Exception as exc:
+        return LaunchCheck("packet_id_stable", FAIL, f"check failed: {exc}")
 
 
 __all__ = [

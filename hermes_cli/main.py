@@ -5925,7 +5925,11 @@ def cmd_models(args):
         else:
             print(result.render())
         raise SystemExit(0 if result.ok else 1)
-    print("usage: hermes models bootstrap [--free-first] [--jarvis] [options]")
+    if action == "gemma":
+        from hermes_cli.jarvis_prime import gemma_cli
+
+        raise SystemExit(gemma_cli.dispatch(args))
+    print("usage: hermes models {bootstrap,gemma} ...")
     raise SystemExit(2)
 
 
@@ -10409,7 +10413,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "completion",
         "computer-use",
         "config", "cron", "curator", "dashboard", "debug", "doctor",
-        "dump", "fallback", "gateway", "hooks", "import", "insights",
+        "dump", "fallback", "gateway", "guardrails", "hooks", "import", "insights",
         "jarvis", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
         "model", "models", "pairing", "plugins", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
@@ -11521,6 +11525,19 @@ def main():
     jarvis_parser.set_defaults(func=cmd_jarvis)
 
     # =========================================================================
+    # guardrails command — verifiable guardrail subsystem (ledger, strict
+    # gates, owner challenges, secret scan). Logic lives in its own top-level
+    # module so this file only carries the registration. The module lives at
+    # ``hermes_cli.guardrails_cli`` (NOT under ``jarvis_prime``) on purpose:
+    # registering the subparser must not eagerly import the heavy
+    # ``jarvis_prime`` package at ``--help`` time — the implementation
+    # lazy-imports it only at command dispatch, like ``cmd_jarvis``.
+    # =========================================================================
+    from hermes_cli.guardrails_cli import register as _register_guardrails
+
+    _register_guardrails(subparsers)
+
+    # =========================================================================
     # cockpit command — loopback API for the Jarvis Prime Android app
     # =========================================================================
     cockpit_parser = subparsers.add_parser(
@@ -11588,6 +11605,32 @@ def main():
         help="Only configure local routes (no hosted/worker/paid routes).",
     )
     models_bootstrap_parser.add_argument("--json", action="store_true")
+
+    # ----- gemma: Gemma 4 status / doctor / smoke / recommend / scorecards /
+    # promote. Logic lives in hermes_cli/jarvis_prime/gemma_cli.py — this is just
+    # the parser + a one-line dispatch hook (see cmd_models).
+    models_gemma_parser = models_subparsers.add_parser(
+        "gemma", help="Gemma 4 wiring: status, doctor, smoke, recommend, scorecards, promote"
+    )
+    gemma_subparsers = models_gemma_parser.add_subparsers(dest="gemma_command")
+    g_status = gemma_subparsers.add_parser("status", help="Configured/installed/promoted status")
+    g_status.add_argument("--json", action="store_true")
+    g_doctor = gemma_subparsers.add_parser("doctor", help="Gemma wiring + safety doctor")
+    g_doctor.add_argument("--json", action="store_true")
+    g_smoke = gemma_subparsers.add_parser("smoke", help="Opt-in local completion probe")
+    g_smoke.add_argument("--variant", help="Variant to smoke-test, e.g. gemma4-e4b")
+    g_smoke.add_argument("--json", action="store_true")
+    g_reco = gemma_subparsers.add_parser("recommend", help="Gemma recommendations by tier/task")
+    g_reco.add_argument("--tier", choices=["laptop", "desktop", "workstation", "server"])
+    g_reco.add_argument("--task", help="OSS-brain task (e.g. memory_curator)")
+    g_reco.add_argument("--json", action="store_true")
+    g_score = gemma_subparsers.add_parser("scorecards", help="Recorded Gemma scorecards")
+    g_score.add_argument("--json", action="store_true")
+    g_promote = gemma_subparsers.add_parser("promote", help="Owner-gated route-promotion proposal")
+    g_promote.add_argument("--task-class", dest="task_class", help="Task class to promote for")
+    g_promote.add_argument("--dry-run", dest="dry_run", action="store_true")
+    g_promote.add_argument("--json", action="store_true")
+
     models_parser.set_defaults(func=cmd_models)
 
     # =========================================================================

@@ -84,6 +84,24 @@ class HermesCockpitClientTest {
     }
 
     @Test
+    fun `skillsList parses the installed gateway skills`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"skills":[{"id":"deep-research","command":"/deep-research","name":"Deep research","description":"d"}]}""",
+            )
+        }
+        val result = client(fake).skillsList()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertEquals(1, result.value.skills.size)
+        assertEquals("/deep-research", result.value.skills[0].command)
+        assertEquals("GET", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/skills", fake.lastRequest?.url)
+    }
+
+    @Test
     fun `runtimeWorkers parses the worker list`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

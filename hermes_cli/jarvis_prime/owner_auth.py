@@ -9,9 +9,11 @@ authorization") do not authorize.
 
 from __future__ import annotations
 
+import secrets
+import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
 
 
 # Exact phrase from the spec. Do not change without editing the docs.
@@ -122,3 +124,213 @@ class OwnerAuth:
                 gate.authorization_text = None
                 revoked += 1
         return revoked
+
+    # ------------------------------------------------------------------
+    # Challenge-bound authorization (strict evidence mode)
+    #
+    # The static phrase above is necessary but not sufficient for strict
+    # guardrails: a replayed "Yes, with authorization." carries no binding to
+    # *which* action the owner approved or *when*. A challenge mints a one-time
+    # nonce; the owner must echo the phrase *with that nonce*, and a successful
+    # response yields a content-addressed grant artifact.
+    # ------------------------------------------------------------------
+
+    challenges: dict[str, "OwnerAuthorizationChallenge"] = field(default_factory=dict)
+
+    def create_challenge(
+        self,
+        action: str,
+        risk_class: str = "RC3",
+        rationale: str = "",
+        subject: Optional[str] = None,
+        ttl_seconds: int = 600,
+        now: Optional[datetime] = None,
+    ) -> "OwnerAuthorizationChallenge":
+        challenge = create_challenge(
+            action,
+            risk_class=risk_class,
+            rationale=rationale,
+            subject=subject,
+            ttl_seconds=ttl_seconds,
+            now=now,
+        )
+        self.challenges[challenge.challenge_id] = challenge
+        return challenge
+
+    def authorize_challenge(
+        self,
+        challenge_id: str,
+        phrase: str,
+        now: Optional[datetime] = None,
+    ) -> Optional["OwnerAuthorizationGrant"]:
+        challenge = self.challenges.get(challenge_id)
+        if challenge is None:
+            return None
+        grant = authorize_challenge(challenge, phrase, now=now)
+        if grant is not None:
+            # Record a legacy gate in history for audit parity.
+            gate = OwnerGate(
+                action=challenge.action,
+                risk_class=challenge.risk_class,
+                rationale=challenge.rationale,
+            )
+            gate.authorized_at = datetime.now(timezone.utc)
+            gate.authorization_text = challenge.required_phrase
+            self.history.append(gate)
+            self.pending = [g for g in self.pending if g.action != challenge.action]
+            self.challenges.pop(challenge_id, None)
+        return grant
+
+
+# ---------------------------------------------------------------------------
+# Challenge / response primitives (also usable statelessly by the CLI)
+# ---------------------------------------------------------------------------
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+@dataclass(frozen=True)
+class OwnerAuthorizationChallenge:
+    """A one-time, nonce-bound owner-authorization challenge."""
+
+    challenge_id: str
+    action: str
+    risk_class: str
+    rationale: str
+    subject: str
+    nonce: str
+    created_at: str
+    expires_at: str
+    required_phrase: str
+
+    def is_expired(self, now: Optional[datetime] = None) -> bool:
+        ref = now or _utc_now()
+        try:
+            expiry = datetime.fromisoformat(self.expires_at)
+        except ValueError:
+            return True
+        return ref >= expiry
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "challenge_id": self.challenge_id,
+            "action": self.action,
+            "risk_class": self.risk_class,
+            "rationale": self.rationale,
+            "subject": self.subject,
+            "nonce": self.nonce,
+            "created_at": self.created_at,
+            "expires_at": self.expires_at,
+            "required_phrase": self.required_phrase,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "OwnerAuthorizationChallenge":
+        return cls(
+            challenge_id=str(data["challenge_id"]),
+            action=str(data["action"]),
+            risk_class=str(data.get("risk_class", "RC3")),
+            rationale=str(data.get("rationale", "")),
+            subject=str(data.get("subject", "")),
+            nonce=str(data["nonce"]),
+            created_at=str(data.get("created_at", "")),
+            expires_at=str(data.get("expires_at", "")),
+            required_phrase=str(data["required_phrase"]),
+        )
+
+
+@dataclass(frozen=True)
+class OwnerAuthorizationGrant:
+    """Proof that a specific challenge was answered with the exact phrase."""
+
+    challenge_id: str
+    action: str
+    subject: str
+    risk_class: str
+    granted_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "challenge_id": self.challenge_id,
+            "action": self.action,
+            "subject": self.subject,
+            "risk_class": self.risk_class,
+            "granted_at": self.granted_at,
+        }
+
+    def to_artifact(self):  # type: ignore[no-untyped-def]
+        """Emit a content-addressed owner-authorization evidence artifact."""
+
+        from hermes_cli.jarvis_prime.guardrail_evidence import (
+            ARTIFACT_OWNER_GRANT,
+            EvidenceArtifact,
+        )
+
+        return EvidenceArtifact.make(
+            ARTIFACT_OWNER_GRANT,
+            producer="owner_auth",
+            subject=self.subject or self.action,
+            payload=self.to_dict(),
+        )
+
+
+def create_challenge(
+    action: str,
+    risk_class: str = "RC3",
+    rationale: str = "",
+    subject: Optional[str] = None,
+    ttl_seconds: int = 600,
+    now: Optional[datetime] = None,
+) -> OwnerAuthorizationChallenge:
+    """Mint a nonce-bound owner-authorization challenge for ``action``.
+
+    Raises ``ValueError`` if ``action`` is not an owner-gated category, so a
+    caller cannot manufacture a challenge for an action outside the spec.
+    """
+
+    if action not in OWNER_GATED_ACTIONS:
+        raise ValueError(
+            f"{action!r} is not in OWNER_GATED_ACTIONS — extend the spec first"
+        )
+    created = now or _utc_now()
+    expires = created + timedelta(seconds=max(1, ttl_seconds))
+    # 6-digit zero-padded code, cryptographically random.
+    nonce = f"{secrets.randbelow(1_000_000):06d}"
+    return OwnerAuthorizationChallenge(
+        challenge_id=f"chal_{uuid.uuid4().hex[:16]}",
+        action=action,
+        risk_class=risk_class,
+        rationale=rationale,
+        subject=subject or "",
+        nonce=nonce,
+        created_at=created.isoformat(),
+        expires_at=expires.isoformat(),
+        required_phrase=f"{AUTHORIZATION_PHRASE} Code: {nonce}",
+    )
+
+
+def authorize_challenge(
+    challenge: OwnerAuthorizationChallenge,
+    phrase: str,
+    now: Optional[datetime] = None,
+) -> Optional[OwnerAuthorizationGrant]:
+    """Validate ``phrase`` against ``challenge``; return a grant or ``None``.
+
+    The bare static phrase alone never satisfies a challenge — the response must
+    echo the exact ``required_phrase`` including the nonce. Expired challenges
+    fail closed.
+    """
+
+    if challenge.is_expired(now):
+        return None
+    if phrase.strip() != challenge.required_phrase:
+        return None
+    return OwnerAuthorizationGrant(
+        challenge_id=challenge.challenge_id,
+        action=challenge.action,
+        subject=challenge.subject,
+        risk_class=challenge.risk_class,
+        granted_at=(now or _utc_now()).isoformat(),
+    )

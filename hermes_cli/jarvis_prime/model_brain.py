@@ -32,6 +32,13 @@ KNOWN_TASKS = (
     "math",
     "local_coding",
     "local_reasoning",
+    "memory_curator",
+    "mobile_chat",
+    "voice_reply",
+    "summarization",
+    "multimodal_doc",
+    "coding_review",
+    "deep_research",
 )
 
 

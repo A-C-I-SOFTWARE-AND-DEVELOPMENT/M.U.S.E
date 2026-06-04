@@ -15,7 +15,10 @@ import platform
 import socket
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
@@ -1278,26 +1281,12 @@ def job_validate(req: Request) -> JsonResponse:
             409, {"error": "job has no workspace to validate"}
         )
     try:
-        from hermes_cli.validation import STATUS_FAIL, ValidationRunner
+        from hermes_cli.validation import ValidationRunner
+
+        from . import contract
 
         report = ValidationRunner(workspace).run()
-        gates = []
-        for r in report.results:
-            gates.append({
-                "id": r.name,
-                "name": r.name,
-                "status": str(r.status).upper(),
-                "summary": r.summary,
-                "log_excerpt": (r.stderr or r.stdout or "")[:2000] or None,
-                "override_allowed": not bool(r.critical),
-            })
-        payload = {
-            "gates": gates,
-            "policy": {"all_must_pass": True, "override_requires_note": True},
-            "publish_allowed": bool(report.publish_allowed),
-            "blocking_failures": list(report.blocking_failures),
-        }
-        _ = STATUS_FAIL  # referenced for intent; counts live in gates
+        payload = contract.validation_snapshot(report.to_dict())
     except Exception as exc:  # pragma: no cover - defensive (runner/env failure)
         return JsonResponse(500, {"error": str(exc)})
     return JsonResponse(200, payload)
@@ -1341,6 +1330,232 @@ def _git_diff(workspace: str, base: Optional[str], *, limit: int = 200_000) -> d
         })
     truncated = len(diff_text) > limit
     return {"files": files, "diff": diff_text[:limit], "truncated": truncated}
+
+
+# Read-only job-workspace browsers. All four resolve the job exactly like
+# ``job_diff``/``job_validate``, read strictly inside the workspace, and never
+# require the owner phrase (they only surface already-approved local work).
+
+_JOB_FILE_MAX_BYTES = 1_000_000  # 1 MB preview cap (contract §6)
+
+
+def _job_workspace(kind: Optional[str], obj: Any) -> str:
+    """The on-disk workspace for a job, or ``""``. Only queue jobs carry one."""
+    if kind != "queue":
+        return ""
+    return str(getattr(obj, "repo_root", "") or "")
+
+
+def _safe_workspace_target(workspace: str, rel: str):
+    """Resolve ``rel`` under ``workspace``; return ``(root, target)``.
+
+    Path-traversal safe (same idiom as ``inline_tools.repo_read``): the resolved
+    target must stay under the resolved workspace root, else ``target`` is
+    ``None`` (the caller answers 400 — never follows the escape).
+    """
+    from pathlib import Path
+
+    root = Path(workspace).resolve()
+    target = (root / rel).resolve()
+    try:
+        target.relative_to(root)
+    except ValueError:
+        return root, None
+    return root, target
+
+
+def _hermes_state_dir() -> Path:
+    """Resolved ``${HERMES_HOME:-~/.hermes}`` — the cockpit's own secret/state dir.
+
+    The job-workspace file readers must never expose this tree: it holds the
+    provider keys (``.env``), the cockpit bearer token, memory, and job state.
+    The cockpit's contract is that the client holds *only* the bearer token —
+    a workspace pointed at (or above) ``~/.hermes`` must not turn the readers
+    into an exfiltration path for those secrets.
+    """
+    import os
+    from pathlib import Path
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base).resolve()
+
+
+def _within(path: Path, base: Path) -> bool:
+    """True if ``path`` is ``base`` or sits under it (both already resolved)."""
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def job_files_changed(req: Request) -> JsonResponse:
+    """Files changed in a job's workspace (contract §6) — read-only.
+
+    The Job Detail "files changed" list. Reuses the same git ``--numstat``
+    machinery as ``/diff`` but omits the patch body. Honest empty when the job
+    has no git workspace (orchestrator jobs don't carry one).
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = _job_workspace(kind, obj)
+    if not workspace:
+        return JsonResponse(200, {"files": []})
+    base = (dict(getattr(obj, "metadata", None) or {})).get("base_branch")
+    return JsonResponse(200, {"files": _git_diff(workspace, base)["files"]})
+
+
+def job_validation(req: Request) -> JsonResponse:
+    """Latest verification-gate results for a job (contract §7) — read-only.
+
+    The read companion to ``POST .../validate``: returns the persisted
+    ``<workspace>/validation/results.json`` projected into the same snapshot
+    shape, **without** re-running the gates. Honest empty gates when the job
+    hasn't been validated yet (never a fabricated pass).
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    import json
+    from pathlib import Path
+
+    from . import contract
+
+    workspace = _job_workspace(kind, obj)
+    report: Optional[dict[str, Any]] = None
+    if workspace:
+        results_path = Path(workspace) / "validation" / "results.json"
+        try:
+            if results_path.is_file():
+                loaded = json.loads(results_path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    report = loaded
+        except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
+            report = None
+    return JsonResponse(200, contract.validation_snapshot(report))
+
+
+def job_tree(req: Request) -> JsonResponse:
+    """One directory level inside a job's workspace (contract §6) — read-only.
+
+    Path-sandboxed to the workspace root: a ``path`` that escapes it is a 400,
+    never followed. Honest empty when the job has no workspace. Lists name,
+    kind (file/dir), size, and mtime for each child.
+
+    Two guards beyond the traversal sandbox (the workspace root is unvalidated
+    client input from job dispatch): disabled on a non-loopback cockpit, and
+    refuses any path resolving into ``~/.hermes`` (the cockpit's own secrets).
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403, {"error": "workspace browsing is disabled on a non-loopback cockpit"}
+        )
+    workspace = _job_workspace(kind, obj)
+    rel = (req.query.get("path") or ".").strip() or "."
+    if not workspace:
+        return JsonResponse(200, {"path": rel, "entries": []})
+    root, target = _safe_workspace_target(workspace, rel)
+    if target is None:
+        return JsonResponse(400, {"error": "path escapes the job workspace"})
+    if _within(target, _hermes_state_dir()):
+        return JsonResponse(
+            403, {"error": "refusing to browse the Hermes state directory (~/.hermes)"}
+        )
+    if not root.is_dir():
+        return JsonResponse(200, {"path": rel, "entries": []})
+    if not target.is_dir():
+        return JsonResponse(404, {"error": f"not a directory: {rel}"})
+    try:
+        children = sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+    except OSError as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": f"listing failed: {exc}"})
+    entries: list[dict[str, Any]] = []
+    for child in children:
+        is_dir = child.is_dir()
+        size: Optional[int] = None
+        mtime: Optional[str] = None
+        try:
+            st = child.stat()
+            size = None if is_dir else int(st.st_size)
+            mtime = datetime.fromtimestamp(st.st_mtime, timezone.utc).isoformat()
+        except OSError:  # pragma: no cover - defensive (race/permission)
+            pass
+        entries.append({
+            "name": child.name,
+            "kind": "dir" if is_dir else "file",
+            "size": size,
+            "mtime": mtime,
+        })
+    rel_out = "." if target == root else str(target.relative_to(root))
+    return JsonResponse(200, {"path": rel_out, "entries": entries})
+
+
+def job_file(req: Request) -> JsonResponse:
+    """Single-file preview inside a job's workspace (contract §6) — read-only.
+
+    Path-sandboxed like ``/tree``. Caps at 1 MB; a larger or binary (non-UTF-8)
+    file returns ``truncated=true`` with ``content=null`` — a 200, per contract,
+    not an error. Never writes.
+
+    Two guards beyond the traversal sandbox (the workspace root is unvalidated
+    client input from job dispatch): disabled on a non-loopback cockpit, and
+    refuses any path resolving into ``~/.hermes`` (so the cockpit's own
+    ``.env`` / token can't be exfiltrated through a job workspace).
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403, {"error": "file preview is disabled on a non-loopback cockpit"}
+        )
+    workspace = _job_workspace(kind, obj)
+    rel = (req.query.get("path") or "").strip()
+    if not rel:
+        return JsonResponse(400, {"error": "path query parameter required"})
+    if not workspace:
+        return JsonResponse(404, {"error": "job has no workspace"})
+    root, target = _safe_workspace_target(workspace, rel)
+    if target is None:
+        return JsonResponse(400, {"error": "path escapes the job workspace"})
+    if _within(target, _hermes_state_dir()):
+        return JsonResponse(
+            403,
+            {"error": "refusing to read inside the Hermes state directory (~/.hermes)"},
+        )
+    if not target.is_file():
+        return JsonResponse(404, {"error": f"not a file: {rel}"})
+    try:
+        size = int(target.stat().st_size)
+        with target.open("rb") as fh:
+            raw = fh.read(_JOB_FILE_MAX_BYTES + 1)
+    except OSError as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": f"read failed: {exc}"})
+    rel_out = str(target.relative_to(root))
+    if size > _JOB_FILE_MAX_BYTES:
+        return JsonResponse(200, {
+            "path": rel_out, "size": size, "truncated": True,
+            "content": None, "encoding": "utf-8",
+        })
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return JsonResponse(200, {
+            "path": rel_out, "size": size, "truncated": True,
+            "content": None, "encoding": "utf-8",
+        })
+    return JsonResponse(200, {
+        "path": rel_out, "size": size, "truncated": False,
+        "content": content, "encoding": "utf-8",
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -2731,12 +2946,16 @@ __all__ = [
     "job_approve",
     "job_cancel",
     "job_diff",
+    "job_file",
+    "job_files_changed",
     "job_get",
     "job_ledger",
     "job_pause",
     "job_rerun",
     "job_resume",
+    "job_tree",
     "job_validate",
+    "job_validation",
     "jobs_dispatch",
     "jobs_list",
     "ledger_event_detail",

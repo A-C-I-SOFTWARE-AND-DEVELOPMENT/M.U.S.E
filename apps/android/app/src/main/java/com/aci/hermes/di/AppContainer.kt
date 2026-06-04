@@ -515,7 +515,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun capabilityVmFactory(): ViewModelProvider.Factory = factory {
-        CapabilityViewModel(application, capabilityRepository, logBuffer)
+        CapabilityViewModel(application, capabilityRepository, logBuffer, cockpitClient)
     }
 
     fun controlVmFactory(): ViewModelProvider.Factory = factory {

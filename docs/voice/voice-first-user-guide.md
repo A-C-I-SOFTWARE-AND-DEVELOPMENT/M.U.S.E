@@ -42,11 +42,18 @@ the same backend.
 ### 1. Mobile cockpit (hold-to-talk)
 
 1. Open the **Voice** tab.
-2. Hold the mic button. The app records Opus audio (~32 kbps).
-3. Release. The audio uploads to the gateway over TLS.
-4. The gateway routes audio to the configured STT engine.
-5. The transcript becomes the user's turn. The agent replies in
-   text (and audio if TTS is enabled).
+2. Hold the mic button. The app captures speech and transcribes it
+   **on-device** (Android `SpeechRecognizer`) — the audio never leaves the
+   phone.
+3. Release. The app posts the **transcript** to the cockpit
+   (`POST /v1/cockpit/voice/intake`) over the paired connection.
+4. The transcript becomes the user's turn. The agent replies in text (and
+   audio if TTS is enabled).
+
+> Server-side STT (below) is the path for **platform voice memos**
+> (Telegram / Discord / WhatsApp) and desktop/Termux capture, where the
+> gateway receives an audio file and transcribes it with the configured
+> engine. The mobile cockpit transcribes on-device and uploads text.
 
 ### 2. Telegram / Discord / WhatsApp voice memos
 
@@ -79,36 +86,40 @@ use hold-to-talk only.
 
 ## STT — where transcription happens
 
-Three options, configured under `voice.stt` in
-`~/.hermes/config.yaml`:
+Configured under `voice.stt` in `~/.hermes/config.yaml`. The default provider
+is `local` (faster-whisper, on the backend host); when none is set the runner
+auto-detects in the order `local → local_command → groq → openai → xai → none`:
 
 ```yaml
 voice:
   stt:
-    engine: whisper-local   # whisper-local | whisper-server | deepgram | groq | openai
-    whisper_local:
-      model: base.en        # or small.en / medium.en / large-v3
+    provider: local         # local | local_command | groq | openai | xai
+    local:
+      model: base           # faster-whisper: base | small | medium | large-v3
       device: cpu           # or cuda
-    whisper_server:
-      url: http://127.0.0.1:9000/v1/audio/transcriptions
-    deepgram:
-      api_key: ${DEEPGRAM_API_KEY}
     groq:
-      api_key: ${GROQ_API_KEY}
+      api_key: ${GROQ_API_KEY}      # whisper-large-v3-turbo
     openai:
-      api_key: ${OPENAI_API_KEY}
+      api_key: ${OPENAI_API_KEY}    # whisper-1
+    xai:
+      api_key: ${XAI_API_KEY}       # Grok STT
 ```
 
-| Engine | Where audio goes | When to pick |
-|--------|------------------|--------------|
-| `whisper-local` | Stays on the backend host | Default. Fully local. ~1× realtime on a modern CPU. |
-| `whisper-server` | A separate Whisper server (e.g. faster-whisper) | When the backend is a small VPS and Whisper is too slow there. |
-| `deepgram` | Deepgram cloud | When you want lowest-latency cloud STT. |
-| `groq` | Groq cloud | When you have a Groq key already. |
+| Provider | Where audio goes | When to pick |
+|----------|------------------|--------------|
+| `local` | Stays on the backend host | **Default.** faster-whisper, fully local; ~1× realtime on a modern CPU. |
+| `local_command` | Stays on the host | A custom local STT command (`HERMES_LOCAL_STT_COMMAND`). |
+| `groq` | Groq cloud | When you have a Groq key already (low-latency cloud). |
 | `openai` | OpenAI cloud | When you have an OpenAI key already. |
+| `xai` | xAI cloud | When you have an xAI (Grok) key already. |
+
+> Cloud engines referenced in older notes (Deepgram, a standalone
+> `whisper-server`) are **not wired in** today; `mistral` is temporarily
+> disabled (the `mistralai` package was quarantined on PyPI). For a fully
+> local path, keep `local`.
 
 > **Privacy choice.** If you don't want any audio leaving the backend
-> host, use `whisper-local` or `whisper-server` (on your own
+> host, use the default `local` provider (faster-whisper, on your own
 > infrastructure). The
 > [private-local security guide](../security/private-local-security-guide.md)
 > covers the full lockdown.
@@ -117,16 +128,23 @@ voice:
 
 ## TTS — when the agent speaks back
 
-Off by default. Enable per-surface:
+Off by default. Enable per-surface. The default engine is `edge` (Microsoft
+Edge neural voices — free, online); fully local options are `piper`, `neutts`,
+and `kittentts`:
 
 ```yaml
 voice:
   tts:
     enabled: true
-    engine: elevenlabs      # elevenlabs | openai | piper | coqui
+    engine: edge            # edge | piper | neutts | kittentts | elevenlabs | openai | gemini | xai
     voice: hermes-default
     cap_seconds: 60         # truncate longer replies to a summary
 ```
+
+> `piper` / `neutts` / `kittentts` run on-device with no cloud dependency;
+> `elevenlabs` / `openai` / `gemini` / `xai` are premium cloud voices that need
+> the matching API key. (The JARVIS local-voice / avatar stack defaults to
+> `piper`.)
 
 The driving-mode cap (below) overrides this with a stricter limit.
 Hermes will choose a short-form summary path automatically when TTS
@@ -248,14 +266,14 @@ those keywords too.
 
 Voice gets its own privacy considerations because audio is sensitive.
 
-- **Where audio goes.** Whatever you set `voice.stt.engine` to. The
-  default `whisper-local` keeps audio on the backend host. If you
-  pick a cloud STT, audio bytes leave the host.
-- **What stays after transcription.** By default the backend stores
-  the transcript with the turn (for replay/audit) and **deletes the
-  raw audio** within
-  `voice.retention.raw_audio_minutes` (default 60). Set it to `0`
-  to delete on transcription.
+- **Where audio goes.** Whatever you set `voice.stt.provider` to. The
+  default `local` keeps audio on the backend host. If you pick a cloud
+  STT, audio bytes leave the host.
+- **What stays after transcription.** By default the backend keeps the
+  transcript with the turn (for replay/audit) and **does not store the raw
+  audio at all** (`store_raw_audio: false`, the default). Set
+  `store_raw_audio: true` only if you explicitly need raw-audio replay;
+  driving mode forces it back to `false`.
 - **On the phone.** The app caches audio only during the upload. As
   soon as the gateway acks, the local file is deleted.
 - **The wake word listener** (if on) processes audio entirely on
@@ -318,7 +336,7 @@ use hold-to-talk only — this is the default.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Hold-to-talk records but nothing happens | Gateway can't reach STT | Check `voice.stt` config; restart gateway. |
-| Wrong transcript repeatedly | Wrong STT model size for the language / accent | Try `whisper-server` with `medium.en`, or switch to Deepgram for a noisy environment. |
+| Wrong transcript repeatedly | Wrong STT model size for the language / accent | Try a larger local model (`medium` / `large-v3`), or switch to a cloud engine (`groq` / `openai`) for a noisy environment. |
 | Driving mode won't disable on stop | Motion sensor permission off | Cockpit → **Settings → Permissions → Motion** → grant. |
 | TTS is cut off mid-sentence | `voice.tts.cap_seconds` hit | Increase, or read the queued long-form reply after the drive. |
 | Wake word triggers on TV ads | Sensitivity too high | Lower `voice.wake_word.sensitivity` to ~0.5. |
