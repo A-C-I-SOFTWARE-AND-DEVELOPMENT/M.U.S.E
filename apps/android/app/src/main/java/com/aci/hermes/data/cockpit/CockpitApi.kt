@@ -1115,6 +1115,12 @@ data class CodingRequest(
     @SerialName("worker_id") val workerId: String? = null,
     /** Owner phrase — required only to actually dispatch an execute lane. */
     val authorization: String? = null,
+    /**
+     * Staged job id to **resume** on an execute. The first (unauthorized) call
+     * stages a job; the authorize retry passes that id so the backend dispatches
+     * the same job instead of creating (and leaking) a second one.
+     */
+    @SerialName("job_id") val jobId: String? = null,
 )
 
 /** Result of `POST /v1/cockpit/coding/audit` — classify + route (read-only). */

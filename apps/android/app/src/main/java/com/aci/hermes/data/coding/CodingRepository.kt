@@ -130,6 +130,10 @@ class CodingRepository(
             prompt = task.prompt,
             repoRoot = task.repoRoot.ifBlank { null },
             authorization = authorization,
+            // Resume the job staged by the first (unauthorized) call so
+            // confirming the owner phrase dispatches that job rather than
+            // leaking it and creating a second one.
+            jobId = task.jobId,
         )
         return when (val r = client.codingExecute(req)) {
             is CockpitResult.Success -> {

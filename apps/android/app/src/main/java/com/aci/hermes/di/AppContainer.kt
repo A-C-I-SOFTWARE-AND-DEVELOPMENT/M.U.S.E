@@ -481,7 +481,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun settingsVmFactory(): ViewModelProvider.Factory = factory {
-        SettingsViewModel(settingsRepository, taskRepository, logBuffer)
+        SettingsViewModel(settingsRepository, taskRepository, logBuffer, codingTaskStore)
     }
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {

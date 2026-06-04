@@ -7,6 +7,7 @@ import com.aci.hermes.data.cockpit.HermesCockpitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -119,6 +120,26 @@ class CodingRepositoryTest {
         val res = r.runExecute(draft.id, authorization = "Yes, with authorization.")
         assertTrue(res is CodingActionResult.Ok)
         assertEquals(CodingHandoffState.EXECUTING, r.byId(draft.id)?.state)
+    }
+
+    @Test
+    fun `execute retry resumes the staged job id`() = runTest {
+        val bodies = mutableListOf<String>()
+        val r = repo(paired = true, scope = this) { req ->
+            bodies += req.body.orEmpty()
+            CockpitRawResponse(
+                200,
+                """{"status":"approval_required","authorization_required":true,
+                    "authorization_hint":"phrase","job":{"id":"job-7","status":"WAITING_FOR_APPROVAL","prompt":"x"}}""",
+            )
+        }
+        val draft = r.createDraft("ship", "/repo")
+        r.runExecute(draft.id, authorization = null) // stages job-7
+        r.runExecute(draft.id, authorization = "Yes, with authorization.") // authorize retry
+        // First call carries no job id; the retry resumes the staged job
+        // (so the backend won't create — and leak — a second one).
+        assertFalse(bodies[0].contains("job-7"))
+        assertTrue(bodies[1].contains("job-7"))
     }
 
     @Test

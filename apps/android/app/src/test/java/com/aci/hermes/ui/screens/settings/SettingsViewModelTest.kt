@@ -1,6 +1,8 @@
 package com.aci.hermes.ui.screens.settings
 
 import androidx.test.core.app.ApplicationProvider
+import com.aci.hermes.data.coding.CodingTaskStore
+import com.aci.hermes.data.coding.SavedCodingTask
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
@@ -32,14 +34,20 @@ import org.robolectric.annotation.Config
 class SettingsViewModelTest {
 
     private lateinit var settings: SettingsRepository
+    private lateinit var codingStore: CodingTaskStore
 
     private fun newVm(): SettingsViewModel {
         val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
         settings = isolatedSettings(ctx)
+        codingStore = CodingTaskStore(
+            java.nio.file.Files.createTempDirectory("settings-coding").toFile(),
+            ioDispatcher = Dispatchers.Unconfined,
+        )
         return SettingsViewModel(
             settings = settings,
             tasks = HermesTaskRepository(ctx),
             logBuffer = LogBuffer(),
+            codingTasks = codingStore,
         )
     }
 
@@ -85,6 +93,16 @@ class SettingsViewModelTest {
         vm.setLocalOnlyMode(false)
         awaitUntil(message = "local-only persisted false") {
             awaitValue { !settings.snapshot().localOnlyMode }
+        }
+    }
+
+    @Test
+    fun `reset clears saved coding tasks`() {
+        val vm = newVm()
+        awaitValue { codingStore.upsert(SavedCodingTask(id = "c1", title = "C", prompt = "p")) }
+        vm.resetAll()
+        awaitUntil(message = "coding tasks cleared on reset") {
+            codingStore.tasks.value.isEmpty()
         }
     }
 }

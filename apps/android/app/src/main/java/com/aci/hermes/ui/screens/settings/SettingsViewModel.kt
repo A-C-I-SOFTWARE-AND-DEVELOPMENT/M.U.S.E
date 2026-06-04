@@ -29,6 +29,10 @@ class SettingsViewModel(
     private val settings: SettingsRepository,
     private val tasks: HermesTaskRepository,
     private val logBuffer: LogBuffer,
+    // v1.5 coding cockpit persists tasks/packets separately; reset must clear
+    // them too so "Reset all settings and tasks" leaves no saved prompts or
+    // repo paths behind.
+    private val codingTasks: com.aci.hermes.data.coding.CodingTaskStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -94,7 +98,8 @@ class SettingsViewModel(
         viewModelScope.launch {
             settings.resetAll()
             tasks.deleteAll()
-            logBuffer.warn("Settings", "User reset all orchestrator settings and tasks")
+            codingTasks.deleteAll()
+            logBuffer.warn("Settings", "User reset all settings, tasks, and coding tasks")
             val snap = settings.snapshot()
             _state.value = SettingsUiState(
                 themeMode = snap.themeMode,
