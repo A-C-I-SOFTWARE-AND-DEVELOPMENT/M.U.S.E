@@ -16,6 +16,7 @@ Clean-room, stdlib + pyyaml. No network calls.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -37,6 +38,12 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_PATH = (
     _REPO_ROOT / "docs" / "ai-intelligence" / "open-data-sources.yaml"
 )
+# A copy bundled alongside the module is preferred when present (e.g. an
+# installed wheel that ships docs/ in package data). The repo checkout uses the
+# docs/ companion above; either resolves transparently.
+_PACKAGED_REGISTRY_PATH = Path(__file__).resolve().parent / "open-data-sources.yaml"
+# Escape hatch for non-standard installs.
+REGISTRY_PATH_ENV = "HERMES_OPEN_DATA_REGISTRY"
 
 # Legal posture that must never feed training data (the Stack Overflow case).
 NO_LLM_TRAINING = "no_llm_training"
@@ -187,6 +194,30 @@ class DataSource:
 # --- registry loading -------------------------------------------------------
 
 
+def resolve_registry_path(path: Optional[Path] = None) -> Path:
+    """Resolve the registry YAML, tolerating both source checkouts and installs.
+
+    Order: explicit ``path`` arg, the ``HERMES_OPEN_DATA_REGISTRY`` env var, a
+    copy bundled next to this module, then the ``docs/`` companion in a source
+    checkout. Raises an actionable ``FileNotFoundError`` if none exist rather
+    than a bare traceback (``docs/`` is not shipped in the wheel).
+    """
+
+    if path is not None:
+        return Path(path)
+    env = os.environ.get(REGISTRY_PATH_ENV)
+    if env:
+        return Path(env)
+    for candidate in (_PACKAGED_REGISTRY_PATH, DEFAULT_REGISTRY_PATH):
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "open-data registry not found. It ships with the hermes-agent source "
+        f"tree at {DEFAULT_REGISTRY_PATH}. Run from a checkout, or set "
+        f"{REGISTRY_PATH_ENV}=/path/to/open-data-sources.yaml."
+    )
+
+
 def load_registry(path: Optional[Path] = None) -> list[DataSource]:
     """Parse the YAML registry and return sources sorted by rank.
 
@@ -194,7 +225,7 @@ def load_registry(path: Optional[Path] = None) -> list[DataSource]:
     a malformed registry fails loudly rather than silently dropping rows.
     """
 
-    target = Path(path) if path is not None else DEFAULT_REGISTRY_PATH
+    target = resolve_registry_path(path)
     raw = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
     rows = raw.get("sources", [])
     sources = [DataSource.from_dict(row) for row in rows]

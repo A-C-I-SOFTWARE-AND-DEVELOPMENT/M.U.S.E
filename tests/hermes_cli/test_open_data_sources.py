@@ -59,6 +59,31 @@ def test_default_registry_path_points_at_shipped_yaml():
     assert DEFAULT_REGISTRY_PATH.name == "open-data-sources.yaml"
 
 
+def test_env_override_resolves_registry(tmp_path, monkeypatch):
+    from hermes_cli.jarvis_prime import open_data_sources as ods
+
+    custom = tmp_path / "custom.yaml"
+    custom.write_text(
+        "sources:\n"
+        "  - {rank: 1, key: only, name: Only, role: train, "
+        "legal_posture: mit, evidence_strength: strong}\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv(ods.REGISTRY_PATH_ENV, str(custom))
+    sources = load_registry()  # no explicit path -> uses env
+    assert [s.key for s in sources] == ["only"]
+
+
+def test_missing_registry_raises_actionable_error(monkeypatch):
+    from hermes_cli.jarvis_prime import open_data_sources as ods
+
+    monkeypatch.delenv(ods.REGISTRY_PATH_ENV, raising=False)
+    monkeypatch.setattr(ods, "_PACKAGED_REGISTRY_PATH", Path("/no/such/packaged.yaml"))
+    monkeypatch.setattr(ods, "DEFAULT_REGISTRY_PATH", Path("/no/such/docs.yaml"))
+    with pytest.raises(FileNotFoundError, match="open-data registry not found"):
+        ods.resolve_registry_path()
+
+
 def test_missing_required_field_raises():
     with pytest.raises(ValueError):
         DataSource.from_dict({"key": "x", "name": "X"})  # missing rank/role/etc.
