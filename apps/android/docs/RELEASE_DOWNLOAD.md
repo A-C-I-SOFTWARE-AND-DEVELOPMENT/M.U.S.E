@@ -53,3 +53,12 @@ cd apps/android
 
 Do **not** request, paste, or commit keystore material. Releasing, merging,
 and Play submission stay owner actions.
+
+## CI notes
+
+The `Unit tests` job (`testDebugUnitTest`) can intermittently flake on a few
+pre-existing timing-sensitive tests that drive real `DataStore` / file IO and
+poll wall-clock time via the shared `awaitUntil` helper (5s default) — e.g.
+`AvatarPickerViewModelTest`. These pass deterministically locally; under a
+loaded CI runner the poll can occasionally time out. A re-run clears it. The
+flake is independent of app behaviour (no production code path is involved).
