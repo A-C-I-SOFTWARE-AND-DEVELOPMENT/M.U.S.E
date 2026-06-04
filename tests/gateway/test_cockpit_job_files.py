@@ -22,7 +22,10 @@ TOKEN = "test-cockpit-token-123"
 
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    # Keep HERMES_HOME (the cockpit's secret/state dir) in its own subtree so the
+    # job workspaces created under tmp_path are NOT inside it — the file readers
+    # deny any path that resolves into ~/.hermes.
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_home"))
     monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
     return tmp_path
 
@@ -209,3 +212,56 @@ def test_file_requires_path_param(server, home: Path) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
         _get(server, f"/v1/cockpit/jobs/{jid}/file")
     assert exc.value.code == 400
+
+
+# ── workspace-root guards (unvalidated workspace_path) ─────────────────────
+
+
+def test_file_refuses_reading_into_hermes_home(server, home: Path) -> None:
+    # The exfiltration vector: dispatch a job rooted at a parent of ~/.hermes,
+    # then try to read its .env (provider keys). Must be refused, not served.
+    hermes_home = home / "hermes_home"
+    hermes_home.mkdir(parents=True, exist_ok=True)
+    (hermes_home / ".env").write_text("OPENAI_API_KEY=sk-secret\n", encoding="utf-8")
+    jid = _dispatch(server, str(home))  # workspace = parent of HERMES_HOME
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/file?path=hermes_home/.env")
+    assert exc.value.code == 403
+
+
+def test_file_refuses_when_workspace_is_hermes_home(server, home: Path) -> None:
+    hermes_home = home / "hermes_home"
+    hermes_home.mkdir(parents=True, exist_ok=True)
+    (hermes_home / ".env").write_text("OPENAI_API_KEY=sk-secret\n", encoding="utf-8")
+    jid = _dispatch(server, str(hermes_home))  # workspace == HERMES_HOME
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/file?path=.env")
+    assert exc.value.code == 403
+
+
+def test_tree_refuses_browsing_hermes_home(server, home: Path) -> None:
+    hermes_home = home / "hermes_home"
+    (hermes_home / "cockpit").mkdir(parents=True, exist_ok=True)
+    jid = _dispatch(server, str(home))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/tree?path=hermes_home")
+    assert exc.value.code == 403
+
+
+def test_tree_and_file_disabled_on_non_loopback_cockpit(server, home: Path) -> None:
+    from gateway.cockpit import handlers
+
+    ws = home / "ws_remote"
+    ws.mkdir()
+    (ws / "a.py").write_text("x\n", encoding="utf-8")
+    jid = _dispatch(server, str(ws))
+    handlers.configure_runtime(allow_remote_execute=True)
+    try:
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            _get(server, f"/v1/cockpit/jobs/{jid}/file?path=a.py")
+        assert exc.value.code == 403
+        with pytest.raises(urllib.error.HTTPError) as exc2:
+            _get(server, f"/v1/cockpit/jobs/{jid}/tree")
+        assert exc2.value.code == 403
+    finally:
+        handlers.configure_runtime(allow_remote_execute=False)

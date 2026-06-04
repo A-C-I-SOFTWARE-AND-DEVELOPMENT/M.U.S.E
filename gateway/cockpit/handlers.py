@@ -1361,6 +1361,31 @@ def _safe_workspace_target(workspace: str, rel: str):
     return root, target
 
 
+def _hermes_state_dir() -> Path:
+    """Resolved ``${HERMES_HOME:-~/.hermes}`` — the cockpit's own secret/state dir.
+
+    The job-workspace file readers must never expose this tree: it holds the
+    provider keys (``.env``), the cockpit bearer token, memory, and job state.
+    The cockpit's contract is that the client holds *only* the bearer token —
+    a workspace pointed at (or above) ``~/.hermes`` must not turn the readers
+    into an exfiltration path for those secrets.
+    """
+    import os
+    from pathlib import Path
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    return Path(base).resolve()
+
+
+def _within(path: Path, base: Path) -> bool:
+    """True if ``path`` is ``base`` or sits under it (both already resolved)."""
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
 def job_files_changed(req: Request) -> JsonResponse:
     """Files changed in a job's workspace (contract §6) — read-only.
 
@@ -1416,11 +1441,19 @@ def job_tree(req: Request) -> JsonResponse:
     Path-sandboxed to the workspace root: a ``path`` that escapes it is a 400,
     never followed. Honest empty when the job has no workspace. Lists name,
     kind (file/dir), size, and mtime for each child.
+
+    Two guards beyond the traversal sandbox (the workspace root is unvalidated
+    client input from job dispatch): disabled on a non-loopback cockpit, and
+    refuses any path resolving into ``~/.hermes`` (the cockpit's own secrets).
     """
     job_id = req.path_params.get("id", "")
     kind, obj = _resolve_job(job_id)
     if obj is None:
         return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403, {"error": "workspace browsing is disabled on a non-loopback cockpit"}
+        )
     workspace = _job_workspace(kind, obj)
     rel = (req.query.get("path") or ".").strip() or "."
     if not workspace:
@@ -1428,6 +1461,10 @@ def job_tree(req: Request) -> JsonResponse:
     root, target = _safe_workspace_target(workspace, rel)
     if target is None:
         return JsonResponse(400, {"error": "path escapes the job workspace"})
+    if _within(target, _hermes_state_dir()):
+        return JsonResponse(
+            403, {"error": "refusing to browse the Hermes state directory (~/.hermes)"}
+        )
     if not root.is_dir():
         return JsonResponse(200, {"path": rel, "entries": []})
     if not target.is_dir():
@@ -1463,11 +1500,20 @@ def job_file(req: Request) -> JsonResponse:
     Path-sandboxed like ``/tree``. Caps at 1 MB; a larger or binary (non-UTF-8)
     file returns ``truncated=true`` with ``content=null`` — a 200, per contract,
     not an error. Never writes.
+
+    Two guards beyond the traversal sandbox (the workspace root is unvalidated
+    client input from job dispatch): disabled on a non-loopback cockpit, and
+    refuses any path resolving into ``~/.hermes`` (so the cockpit's own
+    ``.env`` / token can't be exfiltrated through a job workspace).
     """
     job_id = req.path_params.get("id", "")
     kind, obj = _resolve_job(job_id)
     if obj is None:
         return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403, {"error": "file preview is disabled on a non-loopback cockpit"}
+        )
     workspace = _job_workspace(kind, obj)
     rel = (req.query.get("path") or "").strip()
     if not rel:
@@ -1477,6 +1523,11 @@ def job_file(req: Request) -> JsonResponse:
     root, target = _safe_workspace_target(workspace, rel)
     if target is None:
         return JsonResponse(400, {"error": "path escapes the job workspace"})
+    if _within(target, _hermes_state_dir()):
+        return JsonResponse(
+            403,
+            {"error": "refusing to read inside the Hermes state directory (~/.hermes)"},
+        )
     if not target.is_file():
         return JsonResponse(404, {"error": f"not a file: {rel}"})
     try:

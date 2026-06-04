@@ -404,6 +404,9 @@ Response: `201 Created` with the Job object.
 
 > ✅ **Live.** Read-only, path-sandboxed to the job workspace (a `path` that
 > escapes the root is a `400`). Honest-empty when the job has no workspace.
+> Disabled on a non-loopback cockpit (`403`), and refuses any path resolving
+> into `~/.hermes` — the workspace root is unvalidated client input, so these
+> guards stop it being used to browse the cockpit's own secret store.
 
 Query: `path` (relative to `workspace_path`, default `.`). Returns:
 
@@ -420,7 +423,9 @@ Query: `path` (relative to `workspace_path`, default `.`). Returns:
 ### `GET /v1/cockpit/jobs/{id}/file`
 
 > ✅ **Live.** Read-only, path-sandboxed; 1 MB cap; binary or oversize → `200`
-> with `truncated=true` and `content=null`.
+> with `truncated=true` and `content=null`. Disabled on a non-loopback cockpit
+> (`403`), and refuses any path resolving into `~/.hermes` (so the cockpit's
+> own `.env` / token can't be exfiltrated through a job workspace).
 
 Query: `path`. Returns:
 
