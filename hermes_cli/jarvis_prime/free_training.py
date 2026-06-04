@@ -433,15 +433,26 @@ DEFAULT_LOOP_STAGES: tuple[TrainingStage, ...] = (
     TrainingStage.GRPO,
 )
 
+# Stages that train on PREFERENCE rows ({prompt, chosen, rejected}) rather than
+# the generic supervised rows SFT/GRPO consume. They need a different export.
+PREFERENCE_STAGES: frozenset[TrainingStage] = frozenset(
+    {TrainingStage.ORPO, TrainingStage.DPO}
+)
+
 
 @dataclass(frozen=True)
 class FreeLoopReport:
     """Result of one harvest → export → recipe pass of the free loop.
 
     The loop does the **real local work** that does not need a GPU: it harvests
-    the owner-approved traces from the learning dataset, exports a JSONL
-    training set, and generates the runnable Unsloth+TRL recipes (one per
-    stage). It then reports the eval + promotion plan.
+    the owner-approved traces from the learning dataset, exports the training
+    set(s), and generates the runnable Unsloth+TRL recipes (one per stage). It
+    then reports the eval + promotion plan.
+
+    Two exports may be produced because the stages consume different shapes:
+    SFT/GRPO read generic supervised rows (``export_jsonl``), while ORPO/DPO
+    read preference rows ``{prompt, chosen, rejected}`` (``export_preference_pairs``).
+    Each recipe is pointed at the matching dataset.
 
     Honest boundary: it does **not** train (there is no GPU in this process —
     the emitted recipes run on the free hardware you point them at) and it does
@@ -455,6 +466,8 @@ class FreeLoopReport:
     dataset_path: str
     recipes: tuple[RecipeArtifact, ...]
     plan: FreeContinuousPlan
+    preference_pairs: int = 0
+    preference_dataset_path: Optional[str] = None
     written_to: Optional[str] = None
     notes: tuple[str, ...] = ()
 
@@ -463,6 +476,8 @@ class FreeLoopReport:
             "harvested": self.harvested,
             "ready": self.ready,
             "dataset_path": self.dataset_path,
+            "preference_pairs": self.preference_pairs,
+            "preference_dataset_path": self.preference_dataset_path,
             "recipes": [r.to_dict() for r in self.recipes],
             "plan": self.plan.to_dict(),
             "written_to": self.written_to,
@@ -487,12 +502,16 @@ def run_free_loop(
 
     1. **Harvest** owner-approved traces from the learning dataset
        (``DatasetStore.load()`` unless an explicit ``store`` is passed).
-    2. **Export** them to a JSONL training set (only the exportable,
-       quality-passing approved candidates — the same hard filters the store
-       already enforces).
+    2. **Export**, per shape the stages need:
+       - SFT/GRPO get a generic supervised JSONL (``export_jsonl``).
+       - ORPO/DPO get a preference JSONL ``{chosen, rejected, …}``
+         (``export_preference_pairs``) — only produced when a preference stage
+         is requested. Each recipe is pointed at its matching dataset so a
+         generated ``train_orpo.py``/``train_dpo.py`` loads the columns TRL
+         expects rather than the supervised rows.
     3. **Generate** a runnable Unsloth+TRL recipe per requested stage via
-       :func:`generate_recipe` (SFT → ORPO → GRPO by default), optionally
-       writing each script+config under ``write_dir``.
+       :func:`generate_recipe`, optionally writing each script+config under
+       ``write_dir``.
 
     ``ready`` is ``True`` only when at least ``min_examples`` approved traces
     were harvested — below that the recipes are still emitted (so the wiring is
@@ -514,9 +533,24 @@ def run_free_loop(
 
     harvested = store.export_jsonl(dataset_path)
 
+    # Only export the preference set when a stage actually consumes it.
+    wants_preference = any(s in PREFERENCE_STAGES for s in stages)
+    preference_pairs = 0
+    preference_dataset_path: Optional[Path] = None
+    if wants_preference:
+        preference_dataset_path = dataset_path.with_name(
+            dataset_path.stem + "_prefs.jsonl"
+        )
+        preference_pairs = store.export_preference_pairs(preference_dataset_path)
+
+    def _dataset_for(stage: TrainingStage) -> Path:
+        if stage in PREFERENCE_STAGES and preference_dataset_path is not None:
+            return preference_dataset_path
+        return dataset_path
+
     recipes = tuple(
         generate_recipe(
-            dataset_path,
+            _dataset_for(stage),
             stage=stage,
             base_model=base_model,
             out_dir=out_dir,
@@ -537,6 +571,12 @@ def run_free_loop(
             f"only {harvested} owner-approved trace(s) harvested "
             f"(want ≥{min_examples}); approve more before a real run."
         )
+    if wants_preference and preference_pairs == 0:
+        notes.append(
+            "preference stage(s) requested but 0 preference pairs exist — "
+            "ORPO/DPO need approved positives paired with a labeled negative "
+            "on the same task_key; the emitted recipe(s) have an empty dataset."
+        )
     notes.append(
         "recipes are generate-only — run them on free Colab/Kaggle T4 or a "
         "local GPU; this process does not train."
@@ -552,6 +592,10 @@ def run_free_loop(
         dataset_path=str(dataset_path),
         recipes=recipes,
         plan=FreeContinuousPlan(base_model=base_model),
+        preference_pairs=preference_pairs,
+        preference_dataset_path=(
+            str(preference_dataset_path) if preference_dataset_path else None
+        ),
         written_to=written_to,
         notes=tuple(notes),
     )
@@ -572,4 +616,5 @@ __all__ = [
     "run_free_loop",
     "DEFAULT_BASE_MODEL",
     "DEFAULT_LOOP_STAGES",
+    "PREFERENCE_STAGES",
 ]
