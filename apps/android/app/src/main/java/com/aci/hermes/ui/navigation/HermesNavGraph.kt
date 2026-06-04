@@ -288,9 +288,9 @@ fun HermesNavHost(
         }
 
         composable(Screen.ReleaseCenter.route) {
-            val vm: com.aci.hermes.ui.screens.release.ReleaseCenterViewModel =
+            val vm: com.aci.hermes.ui.screens.releasecenter.ReleaseCenterViewModel =
                 viewModel(factory = remember { container.releaseCenterVmFactory() })
-            com.aci.hermes.ui.screens.release.ReleaseCenterScreen(
+            com.aci.hermes.ui.screens.releasecenter.ReleaseCenterScreen(
                 viewModel = vm,
                 onBack = { nav.popBackStack() },
             )

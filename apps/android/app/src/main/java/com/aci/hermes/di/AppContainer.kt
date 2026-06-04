@@ -497,7 +497,7 @@ class AppContainer(private val application: Application) {
     }
 
     fun releaseCenterVmFactory(): ViewModelProvider.Factory = factory {
-        com.aci.hermes.ui.screens.release.ReleaseCenterViewModel(
+        com.aci.hermes.ui.screens.releasecenter.ReleaseCenterViewModel(
             client = cockpitClient,
             appVersion = com.aci.hermes.BuildConfig.VERSION_NAME,
             buildType = if (com.aci.hermes.BuildConfig.DEBUG) "debug" else "release",
