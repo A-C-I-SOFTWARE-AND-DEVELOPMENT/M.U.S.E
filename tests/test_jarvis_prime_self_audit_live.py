@@ -6,8 +6,6 @@ real local model CLI, so the live lane is exercised end-to-end without a model.
 
 import json
 
-import pytest
-
 from hermes_cli.jarvis_prime.self_audit import (
     live,
     llm_judge,
@@ -43,15 +41,21 @@ def test_command_model_invoke_via_cat(monkeypatch):
 
 def test_command_model_invoke_nonzero_raises():
     invoke = live.command_model_invoke("false")  # exits non-zero
-    with pytest.raises(RuntimeError):
+    raised = False
+    try:
         invoke("anything")
+    except RuntimeError:
+        raised = True
+    assert raised
 
 
 def test_override_takes_precedence_over_env(monkeypatch):
     monkeypatch.setenv(live.ENV_MODEL_CMD, "cat")
     live.set_model_invoke(lambda _p: "OVERRIDE")
     try:
-        assert live.resolve_model_invoke()("x") == "OVERRIDE"
+        invoke = live.resolve_model_invoke()
+        assert invoke is not None
+        assert invoke("x") == "OVERRIDE"
     finally:
         live.set_model_invoke(None)
 
@@ -68,6 +72,7 @@ def test_live_lane_end_to_end_with_override(monkeypatch):
     live.set_model_invoke(model)
     try:
         invoke = live.resolve_model_invoke()
+        assert invoke is not None
         report = run_report(
             select_seeds(pool="core"),
             llm_target(invoke),
