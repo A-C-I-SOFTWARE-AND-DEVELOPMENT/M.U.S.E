@@ -40,7 +40,11 @@ android {
         applicationId = "com.aci.hermes"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        // CI passes a unique, monotonic ANDROID_VERSION_CODE (the workflow run
+        // number) so a freshly downloaded rolling APK actually supersedes the
+        // prior install — Android treats an equal versionCode as "not newer".
+        // Falls back to 1 for local builds. versionName is the marketing string.
+        versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 1
         versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

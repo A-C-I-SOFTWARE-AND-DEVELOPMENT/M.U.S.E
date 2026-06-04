@@ -43,6 +43,11 @@ class ManifestPermissionsTest {
             // face-PRESENCE only; no frames stored/sent; visible indicator while
             // active. The avatar picker still introduces no permission of its own.
             "android.permission.CAMERA",
+            // Reaching the user's own local Hermes gateway over loopback/LAN
+            // requires INTERNET (Android gates even localhost sockets behind it).
+            // Local gateway only — never remote AI providers; no API keys here.
+            // Not the avatar picker's doing — see the dedicated permission audits.
+            "android.permission.INTERNET",
         )
         assertEquals(expected, found)
     }

@@ -29,6 +29,10 @@ class ManifestPermissionAuditTest {
         // face-PRESENCE only; no frames stored/sent; visible indicator while
         // active. Approved deliberately — see AndroidManifest + AttentionPolicy.
         "android.permission.CAMERA",
+        // Required to reach the user's own local Hermes gateway over
+        // loopback/LAN (Android gates even localhost sockets behind INTERNET).
+        // Local gateway only — never remote AI providers; no API keys here.
+        "android.permission.INTERNET",
     )
 
     private val forbidden = setOf(

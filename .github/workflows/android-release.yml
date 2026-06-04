@@ -51,21 +51,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Cache Gradle caches
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.gradle/caches
@@ -97,7 +97,13 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --stacktrace --info :app:assembleRelease
+          # Each build gets a unique, monotonically increasing versionCode so a
+          # freshly downloaded rolling APK actually supersedes the prior install
+          # (Android treats an equal versionCode as "not newer"). versionName
+          # stays the source-of-truth marketing version for tagged releases.
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        # --warn (not --info) keeps signing-config env reads out of verbose logs.
+        run: ./gradlew --no-daemon --stacktrace --warn :app:assembleRelease
 
       - name: Determine release context
         id: rel
@@ -140,10 +146,45 @@ jobs:
           cp "$src" "$dest"
           echo "path=apps/android/$dest" >> "$GITHUB_OUTPUT"
           echo "name=$dest" >> "$GITHUB_OUTPUT"
-          echo "signed=${{ steps.keystore.outputs.configured }}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify APK signature
+        id: verify
+        env:
+          # Set repo/org variable REQUIRE_RELEASE_SIGNING=true to fail the build
+          # if the APK is only debug-signed (i.e. the keystore secrets are
+          # missing). Default is unset → forks/bring-up still publish a
+          # debug-signed APK instead of failing.
+          REQUIRE_RELEASE_SIGNING: ${{ vars.REQUIRE_RELEASE_SIGNING }}
+        run: |
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          apksigner="$bt/apksigner"
+          echo "apksigner: $apksigner"
+          # Fail if the APK is unsigned or its signature does not verify at all.
+          "$apksigner" verify --print-certs --verbose "${{ steps.apk.outputs.name }}" | tee signer.txt
+          # The Android debug keystore has the fixed identity CN=Android Debug.
+          # Anything else is a real release-signing identity.
+          if grep -q "CN=Android Debug" signer.txt; then
+            echo "signing=debug" >> "$GITHUB_OUTPUT"
+            echo "::warning::APK is DEBUG-signed (no release keystore secret). Installable via sideload, but NOT a release-signed artifact."
+            if [ "${REQUIRE_RELEASE_SIGNING:-false}" = "true" ]; then
+              echo "::error::REQUIRE_RELEASE_SIGNING is set but the APK is debug-signed — configure ANDROID_KEYSTORE_* secrets."
+              exit 1
+            fi
+          else
+            echo "signing=release" >> "$GITHUB_OUTPUT"
+            echo "APK is release-signed by a non-debug identity."
+          fi
+          # Surface the signer fingerprint(s) in the job summary (no secrets:
+          # these are public certificate digests, never the private key/password).
+          {
+            echo "### APK signature"
+            echo '```'
+            grep -E 'Signer #[0-9]+ certificate (DN|SHA-256)' signer.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.apk.outputs.name }}
           path: ${{ steps.apk.outputs.path }}
@@ -159,17 +200,21 @@ jobs:
           PRERELEASE: ${{ steps.rel.outputs.prerelease }}
           VERSION: ${{ steps.rel.outputs.version }}
           ASSET: ${{ steps.apk.outputs.name }}
-          SIGNED: ${{ steps.apk.outputs.signed }}
+          SIGNING: ${{ steps.verify.outputs.signing }}
         run: |
-          if [ "$SIGNED" = "true" ]; then
-            sign_line="Signed release build."
+          if [ "$SIGNING" = "release" ]; then
+            sign_line="**Release-signed** (verified by apksigner)."
           else
-            sign_line="Built without a release keystore secret, so this APK is debug-signed — fully installable via sideload (Android may warn it is from an \"unknown developer\")."
+            sign_line="**Debug-signed** — no release keystore secret is configured, so this is a pre-release build. Fully installable via sideload (Android may warn it is from an \"unknown developer\"); it is **not** a Play-ready release artifact. See apps/android/docs/RELEASE_SIGNING.md."
           fi
           # printf keeps every Markdown line at column 0 regardless of the
           # YAML block indentation, so nothing renders as an accidental code block.
           {
-            printf '%s\n' "Jarvis Prime Android app — version ${VERSION}. ${sign_line}"
+            printf '%s\n' "**Jarvis Prime** — the **local-only Hermes/JARVIS Android cockpit**. Version ${VERSION}."
+            printf '%s\n' ""
+            printf '%s\n' "> This app runs on your device: it organizes handoffs to the AI tools you already use (Codex, Claude Code, ChatGPT, Claude) via clipboard / deep links / the Termux bridge. Its only network traffic is to **your own local Hermes gateway** (default \`127.0.0.1:8765\`) when you pair one — **never** to remote AI providers — and it holds **no** API keys. Unpaired, it runs fully offline against an on-device mock."
+            printf '%s\n' ""
+            printf '%s\n' "Signing: ${sign_line}"
             printf '%s\n' ""
             printf '%s\n' "## Install"
             printf '%s\n' "1. On your Android phone, download \`${ASSET}\` from the Assets below."

@@ -25,6 +25,8 @@ import java.io.File
  *   - FOREGROUND_SERVICE_MICROPHONE + RECORD_AUDIO (headset voice loop)
  *   - BLUETOOTH_CONNECT              (route voice over a headset)
  *   - QUERY_ALL_PACKAGES             (resolve "open Facebook" → package)
+ *   - CAMERA                         (opt-in Presence Mode, default OFF)
+ *   - INTERNET                       (reach the local gateway over loopback)
  *
  * The forbidden list keeps pinning the permissions the avatar genuinely
  * never needs (SMS, contacts, call log, camera, location, broad storage)
@@ -47,6 +49,11 @@ class ManifestPermissionsTest {
         // active. Everything else camera/contacts/SMS/location/storage stays
         // forbidden below, so scope creep is still caught.
         "android.permission.CAMERA",
+        // Reaching the user's own local Hermes gateway (default 127.0.0.1:8765)
+        // over loopback/LAN requires INTERNET — Android gates every socket,
+        // including localhost, behind it. Used only for the paired local
+        // gateway; never for remote AI providers, and no API keys live here.
+        "android.permission.INTERNET",
     )
 
     private val forbiddenPermissions: Set<String> = setOf(
