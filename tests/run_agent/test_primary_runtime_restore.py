@@ -391,8 +391,13 @@ class TestTryRecoverPrimaryTransport:
             agent._try_recover_primary_transport(
                 error, retry_count=10, max_retries=3,
             )
-            # wait_time = min(3 + 10, 8) = 8
-            mock_sleep.assert_called_once_with(8)
+            # wait_time = min(3 + 10, 8) = 8.
+            # assert_any_call (not assert_called_once_with): this patches the
+            # global time.sleep, so unrelated background threads in the test
+            # process can also call it, making an exact call count flaky
+            # (observed: "Called 902070 times"). The real invariant is that the
+            # backoff is capped at 8.
+            mock_sleep.assert_any_call(8)
 
     def test_closes_existing_client_before_rebuild(self):
         agent = _make_agent(provider="custom")

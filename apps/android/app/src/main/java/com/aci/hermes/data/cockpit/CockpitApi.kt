@@ -239,6 +239,30 @@ data class ApprovePhaseRequest(
 @Serializable
 data class RerunJobRequest(@SerialName("worker_id") val workerId: String? = null)
 
+// ─── Backend diagnostics (launch doctor) ──────────────────────────────
+
+/**
+ * `GET /v1/cockpit/diagnostics` — the backend's own launch-readiness report
+ * (the JARVIS launch doctor), so the cockpit can show *backend* health, not
+ * just on-device logs. Tolerant: an unreachable/older gateway leaves fields
+ * at their honest defaults.
+ */
+@Serializable
+data class CockpitDiagnostics(
+    val ok: Boolean = false,
+    val checks: List<DiagnosticCheck> = emptyList(),
+    @SerialName("generated_at") val generatedAt: String? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class DiagnosticCheck(
+    val name: String = "",
+    val status: String = "",   // pass | warn | fail
+    val detail: String = "",
+    val hard: Boolean = true,
+)
+
 // ─── Files ────────────────────────────────────────────────────────────
 
 @Serializable
