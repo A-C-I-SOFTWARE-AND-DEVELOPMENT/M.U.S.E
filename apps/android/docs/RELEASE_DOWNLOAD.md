@@ -54,6 +54,15 @@ cd apps/android
 Do **not** request, paste, or commit keystore material. Releasing, merging,
 and Play submission stay owner actions.
 
+## In-app Release Center
+
+Settings → **"Release & download"** surfaces this honestly on-device: the
+running build's version + build type + application id, the rolling download
+link (copyable), the signing model (the four secret **names** below, never
+values), and the paired backend's version/capabilities. It deliberately shows
+no live CI/PR status — that needs a configured GitHub token (not wired) — rather
+than fabricating one.
+
 ## CI notes
 
 The `Unit tests` job (`testDebugUnitTest`) can intermittently flake on a few

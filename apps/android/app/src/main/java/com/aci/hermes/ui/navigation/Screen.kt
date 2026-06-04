@@ -40,6 +40,9 @@ sealed class Screen(val route: String) {
     /** Local model (Gemma / Ollama) honest status + smoke test. */
     data object ModelCenter : Screen("model_center")
 
+    /** Release / download / signing / backend facts (honest, no fake CI state). */
+    data object ReleaseCenter : Screen("release_center")
+
     /** Device-control consent + action log; pushed from the Control tab. */
     data object DeviceControl : Screen("device_control")
 

@@ -496,6 +496,15 @@ class AppContainer(private val application: Application) {
         com.aci.hermes.ui.screens.model.ModelCenterViewModel(cockpitClient)
     }
 
+    fun releaseCenterVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.release.ReleaseCenterViewModel(
+            client = cockpitClient,
+            appVersion = com.aci.hermes.BuildConfig.VERSION_NAME,
+            buildType = if (com.aci.hermes.BuildConfig.DEBUG) "debug" else "release",
+            applicationId = com.aci.hermes.BuildConfig.APPLICATION_ID,
+        )
+    }
+
     fun newCodingTaskVmFactory(): ViewModelProvider.Factory = factory {
         com.aci.hermes.ui.screens.coding.NewCodingTaskViewModel(
             repository = codingRepository,
