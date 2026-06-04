@@ -911,8 +911,13 @@ def _cmd_compile(args: argparse.Namespace) -> int:
             print(f"  - {q}")
         return 2
 
+    from hermes_cli.jarvis_prime.ir_compilers.automation_flow import AutomationFlow
+    from hermes_cli.jarvis_prime.natural_language_coder import CodingWorkPacket
+
     decision = res.backend
-    if decision is not None and decision.blocked:
+    # Past the needs_clarification guard the façade always sets a decision.
+    assert decision is not None
+    if decision.blocked or decision.selected is None:
         print("blocked: request attempts to bypass owner gates — no backend selected")
         return 1
 
@@ -924,21 +929,20 @@ def _cmd_compile(args: argparse.Namespace) -> int:
 
     result = res.compile_result
     if result is not None:
-        if result.target.value == "repo_work_packet":
-            packet = result.artifact
-            print(f"mission: {packet.mission}")
+        artifact = result.artifact
+        if isinstance(artifact, CodingWorkPacket):
+            print(f"mission: {artifact.mission}")
             print(
-                f"intent: {packet.intent.value}  risk: {packet.risk_class}  "
-                f"branch: {packet.branch}"
+                f"intent: {artifact.intent.value}  risk: {artifact.risk_class}  "
+                f"branch: {artifact.branch}"
             )
-            print("allowed files: " + ", ".join(packet.allowed_files))
-        else:
-            flow = result.artifact
-            print(f"flow: {flow.name}  ({len(flow.triggers)} triggers, "
-                  f"{len(flow.steps)} steps)")
-            if flow.owner_gated_actions:
-                print("owner-gated: " + ", ".join(flow.owner_gated_actions))
-            validation = flow.validate()
+            print("allowed files: " + ", ".join(artifact.allowed_files))
+        elif isinstance(artifact, AutomationFlow):
+            print(f"flow: {artifact.name}  ({len(artifact.triggers)} triggers, "
+                  f"{len(artifact.steps)} steps)")
+            if artifact.owner_gated_actions:
+                print("owner-gated: " + ", ".join(artifact.owner_gated_actions))
+            validation = artifact.validate()
             print(f"flow valid: {validation.ok}")
         for note in result.notes:
             print(f"  note: {note}")

@@ -17,7 +17,10 @@ from hermes_cli.jarvis_prime.ir_compilers.automation_flow import (
     FlowStep,
     FlowTrigger,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+from hermes_cli.jarvis_prime.natural_language_coder import (
+    CodingWorkPacket,
+    build_work_packet,
+)
 
 INVOICE = (
     "when a new invoice email arrives, extract the total, save the PDF, "
@@ -33,10 +36,12 @@ def test_repo_compiler_reuses_build_work_packet() -> None:
     g = sf.parse(REFACTOR).graph
     result = get_compiler(BackendTarget.REPO_WORK_PACKET).compile(g)
     baseline = build_work_packet(REFACTOR)
+    packet = result.artifact
+    assert isinstance(packet, CodingWorkPacket)
     # Same spine: identical mission, intent, risk as the established path.
-    assert result.artifact.mission == baseline.mission
-    assert result.artifact.intent == baseline.intent
-    assert result.artifact.risk_class == baseline.risk_class
+    assert packet.mission == baseline.mission
+    assert packet.intent == baseline.intent
+    assert packet.risk_class == baseline.risk_class
 
 
 def test_repo_compiler_emits_gate_compatible_packet() -> None:
@@ -52,8 +57,10 @@ def test_repo_compiler_never_narrows_allowed_files() -> None:
     g = sf.parse("refactor gateway/retry.py and add tests").graph
     result = get_compiler(BackendTarget.REPO_WORK_PACKET).compile(g)
     from hermes_cli.jarvis_prime.natural_language_coder import _allowed_files_for
+    packet = result.artifact
+    assert isinstance(packet, CodingWorkPacket)
     default = set(_allowed_files_for(g.intent))
-    assert default <= set(result.artifact.allowed_files)
+    assert default <= set(packet.allowed_files)
 
 
 # --- automation-flow backend ----------------------------------------------
@@ -92,6 +99,7 @@ def test_flow_validation_flags_ungated_external_alert() -> None:
 def test_flow_round_trip() -> None:
     g = sf.parse(INVOICE).graph
     flow = get_compiler(BackendTarget.AUTOMATION_FLOW).compile(g).artifact
+    assert isinstance(flow, AutomationFlow)
     restored = AutomationFlow.from_dict(flow.to_dict())
     assert restored.flow_id == flow.flow_id
 

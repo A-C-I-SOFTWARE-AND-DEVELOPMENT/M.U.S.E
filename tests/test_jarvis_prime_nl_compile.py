@@ -23,12 +23,14 @@ REPO = "add a function to the gateway module and add tests"
 def test_invoice_compiles_to_automation_flow() -> None:
     res = nl_compile.compile_request(INVOICE)
     assert not res.needs_clarification
+    assert res.backend is not None and res.compile_result is not None
     assert res.backend.selected == BackendTarget.AUTOMATION_FLOW
     assert res.compile_result.target == BackendTarget.AUTOMATION_FLOW
 
 
 def test_repo_prompt_compiles_to_work_packet() -> None:
     res = nl_compile.compile_request(REPO)
+    assert res.backend is not None and res.compile_result is not None
     assert res.backend.selected == BackendTarget.REPO_WORK_PACKET
     assert res.compile_result.gate_packet is not None
 

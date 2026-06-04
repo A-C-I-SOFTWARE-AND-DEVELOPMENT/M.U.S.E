@@ -221,7 +221,7 @@ class AutomationFlowCompiler:
                                   target=_first_entity_label(graph)))
 
         conditions = tuple(
-            FlowCondition(expr=(n.slot("expr").value if n.slot("expr") else n.label))
+            FlowCondition(expr=_constraint_expr(n))
             for n in graph.nodes_of(IntentNodeKind.CONSTRAINT)
         )
 
@@ -255,6 +255,13 @@ class AutomationFlowCompiler:
             gate_packet=None,
             notes=notes,
         )
+
+
+def _constraint_expr(node) -> str:
+    slot = node.slot("expr")
+    if slot is not None and slot.value is not None:
+        return str(slot.value)
+    return node.label
 
 
 def _first_entity_label(graph: IntentGraph) -> str:
