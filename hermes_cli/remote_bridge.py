@@ -13,9 +13,11 @@ The design is deliberately conservative — every default leans
   a shared directory (Tailscale + Syncthing, SMB-over-Tailscale,
   Cloudflare-tunneled WebDAV, an SSH-mounted folder, …). The Windows
   worker daemon polls that directory. No public, unauthenticated HTTP
-  endpoint is ever opened. HTTP and WebSocket transports are
-  documented as future work and ship as explicit stubs so a misread
-  config name surfaces immediately.
+  endpoint is ever opened. An optional **HTTP** transport POSTs the same
+  staged job packet to an authenticated, operator-configured endpoint
+  (URL from config, bearer token from an env var — never hardcoded).
+  The WebSocket and SSH transports remain documented future work and
+  ship as explicit stubs so a misread config name surfaces immediately.
 * Every dispatch requires an explicit ``allow_remote_execute=True``.
   Without it the bridge stages the job locally, records an audit
   entry, and returns ``state="awaiting_approval"``. Approval happens
@@ -38,9 +40,12 @@ The design is deliberately conservative — every default leans
   caller passes ``permit_env_transfer=True`` *and* the endpoint
   itself permits it.
 
-The module is intentionally dependency-free: stdlib only. Tests can
-point ``RemoteEndpoint.workspace_root`` at a tempdir and exercise the
-full file-drop happy path without touching the network.
+The file-drop path is intentionally dependency-free: stdlib only. Tests
+can point ``RemoteEndpoint.workspace_root`` at a tempdir and exercise the
+full file-drop happy path without touching the network. The HTTP
+transport additionally uses ``httpx`` (the project's HTTP client) and
+``tenacity`` for retries; tests mock the client so no real network call
+is ever made.
 """
 
 from __future__ import annotations
@@ -55,7 +60,40 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+# ``httpx`` / ``tenacity`` back the HTTP transport only. The file-drop path is
+# intentionally stdlib-only, and minimal environments (e.g. the orchestration
+# CI job, which installs just pytest + PyYAML) import this module without those
+# deps. Guard the imports so ``from hermes_cli import remote_bridge`` always
+# works; the names are only dereferenced inside ``_post_http`` (the HTTP path),
+# which is unreachable without an ``http`` endpoint. Keeping them as module
+# attributes (vs. a function-local import) also lets tests patch
+# ``remote_bridge.httpx.Client``. Under TYPE_CHECKING they're imported
+# unconditionally so type-checkers resolve the real symbols.
+if TYPE_CHECKING:
+    import httpx
+    from tenacity import (
+        retry,
+        retry_if_exception_type,
+        stop_after_attempt,
+        wait_exponential,
+    )
+else:
+    try:
+        import httpx
+    except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+        httpx = None
+
+    try:
+        from tenacity import (
+            retry,
+            retry_if_exception_type,
+            stop_after_attempt,
+            wait_exponential,
+        )
+    except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+        retry = retry_if_exception_type = stop_after_attempt = wait_exponential = None
 
 
 # ── public constants ──────────────────────────────────────────────────────
@@ -77,7 +115,16 @@ TRANSPORT_FILE_DROP = "file_drop"
 """Default transport: a shared directory both sides can read/write."""
 
 TRANSPORT_HTTP = "http"
-"""HTTP transport — documented future work, refused at dispatch time."""
+"""HTTP transport: POST the staged job packet to an authenticated endpoint.
+
+The endpoint URL lives in ``RemoteEndpoint.http_endpoint_url`` (config,
+never hardcoded). An optional bearer token is read at dispatch time from
+the env var named in ``RemoteEndpoint.auth_token_env`` — the token value
+never round-trips through config or the audit log. The local workspace
+artifacts (``prompt.md``, ``manifest.json``, ``status.json``) are written
+exactly as in file-drop so the audit trail is identical; the HTTP POST is
+an additional hand-off, not a replacement.
+"""
 
 TRANSPORT_WEBSOCKET = "websocket"
 """WebSocket transport — documented future work, refused at dispatch."""
@@ -113,6 +160,18 @@ class BridgeError(Exception):
 
 class TransportNotImplementedError(BridgeError):
     """Raised when a transport is selected but not yet implemented."""
+
+
+class _RetryableStatusError(Exception):
+    """Internal: a 5xx response the HTTP transport should retry.
+
+    Not part of the public API — it never escapes :meth:`RemoteBridge.dispatch`,
+    which maps it to :class:`BridgeError`.
+    """
+
+    def __init__(self, response: "httpx.Response") -> None:
+        super().__init__(f"retryable HTTP {response.status_code}")
+        self.response = response
 
 
 # ── secret scrubbing ──────────────────────────────────────────────────────
@@ -208,6 +267,12 @@ class RemoteEndpoint:
     permit_env_transfer: bool = False
     poll_interval_seconds: float = 5.0
     status_timeout_seconds: float = 60.0 * 60  # 1h ceiling per job
+    # HTTP transport knobs (ignored by the file-drop path). ``http_endpoint_url``
+    # is required when ``transport == "http"``; it carries no secret — any auth
+    # token is read at dispatch time from the env var named in ``auth_token_env``.
+    http_endpoint_url: str = ""
+    http_timeout_seconds: float = 30.0
+    http_max_attempts: int = 3
     notes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
@@ -224,6 +289,22 @@ class RemoteEndpoint:
             raise ValueError("poll_interval_seconds must be > 0")
         if self.status_timeout_seconds <= 0:
             raise ValueError("status_timeout_seconds must be > 0")
+        if self.transport == TRANSPORT_HTTP:
+            if not self.http_endpoint_url.strip():
+                raise ValueError(
+                    "http transport requires a non-empty http_endpoint_url"
+                )
+            if not self.http_endpoint_url.lower().startswith(
+                ("http://", "https://")
+            ):
+                raise ValueError(
+                    "http_endpoint_url must start with http:// or https://; got "
+                    f"{self.http_endpoint_url!r}"
+                )
+            if self.http_timeout_seconds <= 0:
+                raise ValueError("http_timeout_seconds must be > 0")
+            if self.http_max_attempts < 1:
+                raise ValueError("http_max_attempts must be >= 1")
 
     @classmethod
     def from_mapping(cls, payload: Mapping[str, Any]) -> "RemoteEndpoint":
@@ -452,14 +533,14 @@ class RemoteBridge:
                 "refusing to ship .env files — set permit_env_transfer=True on the "
                 "endpoint AND pass allow_remote_execute=True explicitly to opt in."
             )
-        if self.endpoint.transport != TRANSPORT_FILE_DROP:
+        if self.endpoint.transport not in (TRANSPORT_FILE_DROP, TRANSPORT_HTTP):
             self._record_refusal(
                 "transport_stub",
                 transport=self.endpoint.transport,
             )
             raise TransportNotImplementedError(
                 f"transport {self.endpoint.transport!r} has documented design only — "
-                "see docs/remote/secure-tunnel-options.md. Use file_drop in v1."
+                "see docs/remote/secure-tunnel-options.md. Use file_drop or http."
             )
 
         approved = allow_remote_execute and self.endpoint.allow_remote_execute
@@ -530,6 +611,33 @@ class RemoteBridge:
         )
 
         state = JobState.QUEUED if approved else JobState.AWAITING_APPROVAL
+        detail = initial_status["detail"]
+
+        # HTTP transport: hand the staged packet to the remote endpoint over
+        # the network. We only POST once the job is approved — an unapproved
+        # job parks locally exactly as it does under file-drop, so an
+        # accidental dispatch never leaves the host. A transport failure is a
+        # hard error: the local artifacts persist for forensics, but the
+        # caller must know the worker did not receive the job.
+        if self.endpoint.transport == TRANSPORT_HTTP and approved:
+            ack = self._post_http(manifest, prompt=prompt, token=token)
+            ack_state = ack.get("state")
+            if ack_state:
+                try:
+                    state = JobState(str(ack_state))
+                except ValueError:
+                    state = JobState.QUEUED
+            detail = str(ack.get("detail") or "Worker acknowledged the job.")
+            # Persist the worker's acknowledgement into status.json so a
+            # later get_status() reflects the network round-trip.
+            initial_status["state"] = state.value
+            initial_status["detail"] = detail
+            initial_status["last_seen"] = float(self._clock())
+            (workdir / "status.json").write_text(
+                json.dumps(initial_status, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+
         self.audit_log.record(
             {
                 "event": "dispatch",
@@ -555,7 +663,7 @@ class RemoteBridge:
             prompt_path=prompt_path,
             auth_token=token,
             created_at=now,
-            detail=initial_status["detail"],
+            detail=detail,
         )
 
     # ── status ───────────────────────────────────────────────────────────
@@ -789,18 +897,6 @@ class RemoteBridge:
                 f"{existing.get('state')!r}; only awaiting_approval/queued are eligible."
             )
         now = float(self._clock())
-        existing.update(
-            {
-                "state": JobState.QUEUED.value,
-                "detail": "approved by user — queued for remote execution",
-                "from": "hermes",
-                "last_seen": now,
-            }
-        )
-        status_path.write_text(
-            json.dumps(existing, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
         # Rewrite the manifest with allow_remote_execute=True so the
         # worker actually picks it up.
         new_manifest = JobManifest(
@@ -820,6 +916,49 @@ class RemoteBridge:
             json.dumps(new_manifest.to_dict(), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+
+        state = JobState.QUEUED
+        detail = "approved by user — queued for remote execution"
+
+        # Under file-drop the worker's poller picks the job up from the shared
+        # workspace once it's queued. The HTTP transport has no such poller —
+        # nothing watches the local workspace — so the approval itself must
+        # hand the now-approved packet to the endpoint, exactly as a
+        # pre-approved dispatch does. Otherwise the job would sit "queued"
+        # locally and the worker would never receive it. A delivery failure
+        # raises BridgeError (from _post_http) and leaves the status as
+        # awaiting_approval, so a later approve() can retry the hand-off.
+        if self.endpoint.transport == TRANSPORT_HTTP:
+            prompt_path = workdir / new_manifest.prompt_filename
+            try:
+                prompt = prompt_path.read_text(encoding="utf-8")
+            except OSError as exc:
+                raise BridgeError(
+                    f"approve: prompt missing for {job_id}: {exc}"
+                ) from exc
+            ack = self._post_http(
+                new_manifest, prompt=prompt, token=new_manifest.auth_token
+            )
+            ack_state = ack.get("state")
+            if ack_state:
+                try:
+                    state = JobState(str(ack_state))
+                except ValueError:
+                    state = JobState.QUEUED
+            detail = str(ack.get("detail") or "Worker acknowledged the job.")
+
+        existing.update(
+            {
+                "state": state.value,
+                "detail": detail,
+                "from": "hermes",
+                "last_seen": now,
+            }
+        )
+        status_path.write_text(
+            json.dumps(existing, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         self.audit_log.record(
             {
                 "event": "approve",
@@ -829,13 +968,143 @@ class RemoteBridge:
         )
         return RemoteStatus(
             job_id=job_id,
-            state=JobState.QUEUED,
-            detail="approved",
+            state=state,
+            detail=detail,
             last_seen=now,
             raw=existing,
         )
 
     # ── internal helpers ─────────────────────────────────────────────────
+
+    # ── HTTP transport ────────────────────────────────────────────────────
+
+    def _http_auth_token(self) -> Optional[str]:
+        """Read the bearer token from the env var named by ``auth_token_env``.
+
+        Returns ``None`` when no env var is configured or the variable is
+        unset/blank — the endpoint may authenticate at the tunnel layer
+        instead. The token value is never logged.
+        """
+        var = self.endpoint.auth_token_env.strip()
+        if not var:
+            return None
+        value = os.environ.get(var, "").strip()
+        return value or None
+
+    def _post_http(
+        self,
+        manifest: JobManifest,
+        *,
+        prompt: str,
+        token: str,
+    ) -> dict[str, Any]:
+        """POST the staged job packet to the configured HTTP endpoint.
+
+        The request body mirrors the file-drop contract: the full job
+        manifest plus the prompt body, under the ``hermes.remote.job.v1``
+        schema. Transient failures (timeouts, connection errors, 5xx) are
+        retried with exponential backoff via :mod:`tenacity`; a 4xx is a
+        hard, non-retryable error. Every failure mode is mapped to
+        :class:`BridgeError` so callers see one exception type, and is
+        recorded as an audit refusal first.
+
+        Returns the parsed JSON acknowledgement (``{}`` if the worker
+        replies with a non-JSON / empty 2xx body).
+        """
+        body = {
+            "schema": "hermes.remote.job.v1",
+            "manifest": manifest.to_dict(),
+            "prompt": prompt,
+        }
+        headers = {
+            "content-type": "application/json",
+            "user-agent": "hermes-remote-bridge/1",
+        }
+        auth = self._http_auth_token()
+        if auth:
+            headers["authorization"] = f"Bearer {auth}"
+
+        url = self.endpoint.http_endpoint_url
+
+        @retry(
+            reraise=True,
+            stop=stop_after_attempt(max(1, self.endpoint.http_max_attempts)),
+            wait=wait_exponential(multiplier=0.5, max=10.0),
+            retry=retry_if_exception_type(
+                (httpx.TransportError, _RetryableStatusError)
+            ),
+        )
+        def _send() -> httpx.Response:
+            with httpx.Client(timeout=self.endpoint.http_timeout_seconds) as client:
+                response = client.post(url, json=body, headers=headers)
+            # 5xx is transient (worker restarting, behind a flaky tunnel);
+            # surface it as retryable. 4xx is a contract error — do not retry.
+            if response.status_code >= 500:
+                raise _RetryableStatusError(response)
+            return response
+
+        try:
+            response = _send()
+        except _RetryableStatusError as exc:
+            return self._http_failure(
+                manifest,
+                reason="http_status_error",
+                detail=f"worker returned HTTP {exc.response.status_code}",
+                status_code=exc.response.status_code,
+            )
+        except httpx.TimeoutException as exc:
+            return self._http_failure(
+                manifest,
+                reason="http_timeout",
+                detail=f"request to remote endpoint timed out: {exc}",
+            )
+        except httpx.TransportError as exc:
+            return self._http_failure(
+                manifest,
+                reason="http_connection_error",
+                detail=f"could not reach remote endpoint: {exc}",
+            )
+
+        if response.status_code >= 400:
+            return self._http_failure(
+                manifest,
+                reason="http_status_error",
+                detail=f"worker returned HTTP {response.status_code}",
+                status_code=response.status_code,
+            )
+
+        try:
+            payload = response.json()
+        except (json.JSONDecodeError, ValueError):
+            payload = {}
+        if not isinstance(payload, Mapping):
+            payload = {}
+
+        self.audit_log.record(
+            {
+                "event": "http_dispatch",
+                "endpoint": self.endpoint.name,
+                "job_id": manifest.job_id,
+                "status_code": response.status_code,
+                "worker_state": payload.get("state"),
+            }
+        )
+        return dict(payload)
+
+    def _http_failure(
+        self,
+        manifest: JobManifest,
+        *,
+        reason: str,
+        detail: str,
+        status_code: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """Record an audit refusal and raise :class:`BridgeError`."""
+        info: dict[str, Any] = {"job_id": manifest.job_id}
+        if status_code is not None:
+            info["status_code"] = status_code
+        self._record_refusal(reason, **info)
+        raise BridgeError(f"http transport: {detail}")
 
     def _mint_job_id(self) -> str:
         # Short, sortable, collision-resistant. Time prefix gives a

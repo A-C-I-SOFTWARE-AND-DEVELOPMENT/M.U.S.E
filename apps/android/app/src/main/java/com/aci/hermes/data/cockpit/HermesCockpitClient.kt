@@ -359,6 +359,16 @@ class HermesCockpitClient(
     suspend fun skillsList(): CockpitResult<CockpitSkillList> =
         request("GET", "/v1/cockpit/skills", CockpitSkillList.serializer())
 
+    /** Recent HyperAgent navigation decisions (pre-dispatch "where to look").
+     *  Pass [job] to filter to one job server-side, before the recency cap. */
+    suspend fun navigation(limit: Int = 50, job: String? = null): CockpitResult<CockpitNavigationList> {
+        val path = buildString {
+            append("/v1/cockpit/navigation?limit=").append(limit)
+            if (!job.isNullOrBlank()) append("&job=").append(enc(job))
+        }
+        return request("GET", path, CockpitNavigationList.serializer())
+    }
+
     // ─── Research Vault (evidence store) ─────────────────────────────────
     suspend fun research(limit: Int = 10): CockpitResult<CockpitResearchList> =
         request("GET", "/v1/cockpit/research?limit=$limit", CockpitResearchList.serializer())

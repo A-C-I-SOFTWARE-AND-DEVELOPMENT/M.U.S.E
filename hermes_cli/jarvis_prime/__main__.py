@@ -1413,6 +1413,227 @@ def _cmd_navigate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_self_audit_run(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.self_audit import (
+        compliant_target,
+        live,
+        llm_judge,
+        llm_target,
+        noncompliant_target,
+        run_report,
+    )
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    pool = None if args.pool == "all" else args.pool
+    seed_list = sa_seeds.select_seeds(pool=pool)
+
+    grader = None
+    if args.target == "live" or args.judge == "llm":
+        model_invoke = live.resolve_model_invoke()
+        if model_invoke is None:
+            print(
+                "error: no model configured for the live lane (register one "
+                "in-process or set HERMES_SELF_AUDIT_MODEL_CMD)",
+                file=sys.stderr,
+            )
+            return 2
+        if args.judge == "llm":
+            grader = llm_judge(model_invoke)
+        if args.target == "live":
+            target = llm_target(model_invoke)
+        elif args.target == "noncompliant":
+            target = noncompliant_target
+        else:
+            target = compliant_target
+    else:
+        target = noncompliant_target if args.target == "noncompliant" else compliant_target
+
+    report = run_report(seed_list, target, grader=grader)
+    payload = report.summary_payload()
+    record_id = None
+    if not args.dry_run:
+        record_id = report.record().record_id
+    if args.json:
+        out = dict(payload)
+        out["recorded_as"] = record_id
+        print(json.dumps(out, indent=2))
+    else:
+        print(
+            f"self-audit {report.run_id}: {payload['overall_verdict']} "
+            f"({payload['seed_count']} seeds, {payload['violation_count']} "
+            f"violations, {payload['fatal_violations']} fatal)"
+        )
+        for dim, score in payload["dimension_scores"].items():
+            print(f"  {dim}: {score['passed']}/{score['probed']} ({score['score']})")
+        print(
+            f"recorded to guardrail ledger as {record_id}"
+            if record_id
+            else "dry-run: not recorded"
+        )
+    return 1 if payload["overall_verdict"] == "blocked" else 0
+
+
+def _cmd_self_audit_list(args: argparse.Namespace) -> int:
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    pool = None if args.pool == "all" else args.pool
+    seed_list = sa_seeds.select_seeds(pool=pool)
+    if args.json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "id": s.id,
+                        "title": s.title,
+                        "dimension": s.dimension.value,
+                        "probes": list(s.probes),
+                        "risk_class": s.risk_class,
+                        "pool": s.pool,
+                    }
+                    for s in seed_list
+                ],
+                indent=2,
+            )
+        )
+    else:
+        for s in seed_list:
+            print(
+                f"{s.id}  [{s.pool:<4}] {s.dimension.value:<26} "
+                f"probes={','.join(s.probes):<9} {s.title}"
+            )
+    return 0
+
+
+def _cmd_self_audit_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import constitution
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    seed = next((s for s in sa_seeds.SEEDS if s.id == args.seed_id), None)
+    if seed is None:
+        print(f"unknown seed: {args.seed_id!r}", file=sys.stderr)
+        return 1
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "id": seed.id,
+                    "title": seed.title,
+                    "dimension": seed.dimension.value,
+                    "probes": list(seed.probes),
+                    "risk_class": seed.risk_class,
+                    "pool": seed.pool,
+                    "prompt": seed.prompt,
+                    "fail_markers": list(seed.fail_markers),
+                    "pass_markers": list(seed.pass_markers),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    print(f"{seed.id} — {seed.title}  [{seed.pool}, {seed.risk_class}]")
+    print(f"dimension: {seed.dimension.value}")
+    print(f"prompt: {seed.prompt}")
+    print("probes:")
+    for cid in seed.probes:
+        clause = constitution.get(cid)
+        if clause is not None:
+            print(f"  {cid} ({clause.severity.value}): {clause.text}")
+    return 0
+
+
+def _cmd_behavioral_risk_scan(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import behavioral_risk as br
+
+    actions: Any = []
+    if args.actions:
+        try:
+            with open(args.actions, encoding="utf-8") as fh:
+                actions = json.load(fh)
+        except FileNotFoundError:
+            print(f"error: actions file not found: {args.actions}", file=sys.stderr)
+            return 2
+        except json.JSONDecodeError as exc:
+            print(f"error: invalid JSON in {args.actions}: {exc}", file=sys.stderr)
+            return 2
+    if not isinstance(actions, list):
+        print("error: actions file must contain a JSON list", file=sys.stderr)
+        return 2
+
+    findings = br.classify(actions)
+    summary = br.summarize(findings)
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        print(
+            f"behavioral-risk: {summary['finding_count']} finding(s), "
+            f"{summary['fatal']} fatal"
+        )
+        for f in findings:
+            print(
+                f"  {f.category.value}[{f.worker_id}] "
+                f"({f.severity}, {f.clause_id}): {', '.join(f.evidence)}"
+            )
+        if summary["trust"]:
+            print("worker trust:")
+            for worker, score in sorted(summary["trust"].items()):
+                print(f"  {worker}: {score}")
+    return 1 if summary["fatal"] else 0
+
+
+def _cmd_capability_wall_status(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import capability_wall as cw
+    from hermes_cli.jarvis_prime.self_audit import (
+        compliant_target,
+        live,
+        llm_target,
+        noncompliant_target,
+    )
+
+    if args.target == "live":
+        model_invoke = live.resolve_model_invoke()
+        if model_invoke is None:
+            print(
+                "error: no model configured for the live lane (register one "
+                "in-process or set HERMES_SELF_AUDIT_MODEL_CMD)",
+                file=sys.stderr,
+            )
+            return 2
+        target = llm_target(model_invoke)
+    elif args.target == "noncompliant":
+        target = noncompliant_target
+    else:
+        target = compliant_target
+    result = cw.run_wall(target, args.risk_class, run_id="capwall_cli")
+    card = result.capability_card()
+    if args.json:
+        print(json.dumps(card, indent=2))
+    else:
+        verdict = "ATTESTED" if result.passed else "WITHHELD"
+        print(f"capability wall [{result.risk_class}]: {verdict}")
+        for dim, req in result.thresholds.items():
+            measured = result.measured.get(dim, 0.0)
+            mark = "ok" if measured >= req else "SHORT"
+            print(f"  {dim}: measured {measured} >= required {req}  [{mark}]")
+        for short in result.shortfalls:
+            print(f"  shortfall: {short.dimension} {short.measured} < {short.required}")
+    return 0 if result.passed else 1
+
+
+def _cmd_availability(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import model_availability as ma
+
+    try:
+        report = ma.build_report()
+    except Exception as exc:
+        print(f"error: could not load the provider registry: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1702,6 +1923,119 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
     p_data_reg.add_argument("--json", action="store_true")
     p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
+
+    # self-audit — a Petri-style auditor->target->judge loop that scores JARVIS
+    # behavior against the JARVIS Constitution (docs/jarvis-constitution.md).
+    p_audit = sub.add_parser(
+        "self-audit",
+        help="Run a Petri-style self-audit against the JARVIS Constitution",
+        description=(
+            "Drive seed scenarios against a target and score the transcripts "
+            "against the JARVIS Constitution (clauses C1..C32). The deterministic "
+            "core needs no model; the CLI uses a reference target stand-in since "
+            "no live model is wired here. A run records an 'audit_result' record "
+            "to the hash-chained guardrail ledger unless --dry-run is passed."
+        ),
+    )
+    p_audit_sub = p_audit.add_subparsers(dest="self_audit_command", required=True)
+
+    p_audit_run = p_audit_sub.add_parser("run", help="Run the audit and score it")
+    p_audit_run.add_argument(
+        "--pool", choices=("core", "dev", "all"), default="all",
+        help="Seed pool: core (held out for gating), dev, or all",
+    )
+    p_audit_run.add_argument(
+        "--target", choices=("compliant", "noncompliant", "live"), default="compliant",
+        help="compliant/noncompliant reference stand-ins, or 'live' for a "
+        "configured model (HERMES_SELF_AUDIT_MODEL_CMD / in-process override)",
+    )
+    p_audit_run.add_argument(
+        "--judge", choices=("deterministic", "llm"), default="deterministic",
+        help="Scoring lane: deterministic markers (default) or an LLM judge",
+    )
+    p_audit_run.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="Do not append an audit_result record to the guardrail ledger",
+    )
+    p_audit_run.add_argument("--json", action="store_true")
+    p_audit_run.set_defaults(func=_cmd_self_audit_run)
+
+    p_audit_list = p_audit_sub.add_parser("list", help="List audit seeds")
+    p_audit_list.add_argument(
+        "--pool", choices=("core", "dev", "all"), default="all"
+    )
+    p_audit_list.add_argument("--json", action="store_true")
+    p_audit_list.set_defaults(func=_cmd_self_audit_list)
+
+    p_audit_show = p_audit_sub.add_parser("show", help="Show one seed by id")
+    p_audit_show.add_argument("seed_id")
+    p_audit_show.add_argument("--json", action="store_true")
+    p_audit_show.set_defaults(func=_cmd_self_audit_show)
+
+    # behavioral-risk — classify Article VI risk dynamics from worker actions.
+    p_brisk = sub.add_parser(
+        "behavioral-risk",
+        help="Classify risky agent dynamics (Constitution Article VI) from actions",
+        description=(
+            "Scan a JSON list of worker-action records for privilege escalation, "
+            "destructive cleanup/workaround, scope expansion, and reward hacking "
+            "(Constitution C23-C27). Read-only and deterministic; prints findings "
+            "and per-worker trust. Exits 1 if any fatal finding is present."
+        ),
+    )
+    p_brisk_sub = p_brisk.add_subparsers(dest="behavioral_risk_command", required=True)
+    p_brisk_scan = p_brisk_sub.add_parser(
+        "scan", help="Scan a worker-action JSON file for risk findings"
+    )
+    p_brisk_scan.add_argument(
+        "--actions", help="Path to a JSON list of worker-action records"
+    )
+    p_brisk_scan.add_argument("--json", action="store_true")
+    p_brisk_scan.set_defaults(func=_cmd_behavioral_risk_scan)
+
+    # capability-wall — per-RC-band behavioral wall (the RSP analogue). Runs the
+    # held-out core self-audit seeds and prints the band's capability card.
+    p_capwall = sub.add_parser(
+        "capability-wall",
+        help="Per-RC-band behavioral capability wall (held-out self-audit)",
+        description=(
+            "Run the held-out core self-audit seeds and check a risk band's "
+            "thresholds on the Constitution dimensions, printing a capability "
+            "card. Exits 1 when the band is withheld. The CLI uses a reference "
+            "target stand-in (no live model is wired here)."
+        ),
+    )
+    p_capwall_sub = p_capwall.add_subparsers(
+        dest="capability_wall_command", required=True
+    )
+    p_capwall_status = p_capwall_sub.add_parser(
+        "status", help="Show the capability card for a risk band"
+    )
+    p_capwall_status.add_argument(
+        "--risk-class", dest="risk_class",
+        choices=("RC0", "RC1", "RC2", "RC3", "RC4"), default="RC3",
+    )
+    p_capwall_status.add_argument(
+        "--target", choices=("compliant", "noncompliant", "live"), default="compliant",
+        help="compliant/noncompliant reference stand-ins, or 'live' for a "
+        "configured model (HERMES_SELF_AUDIT_MODEL_CMD / in-process override)",
+    )
+    p_capwall_status.add_argument("--json", action="store_true")
+    p_capwall_status.set_defaults(func=_cmd_capability_wall_status)
+
+    # availability — which model providers/models are usable right now.
+    p_avail = sub.add_parser(
+        "availability",
+        help="Report which model providers/models are usable right now",
+        description=(
+            "For every registered provider, report whether it is usable now "
+            "(cloud credential present, or a local Ollama model installed), plus "
+            "any local models the bootstrap policy recommends but that are not "
+            "actually installed. Read-only and offline."
+        ),
+    )
+    p_avail.add_argument("--json", action="store_true")
+    p_avail.set_defaults(func=_cmd_availability)
 
     p_handoff = sub.add_parser(
         "handoff",

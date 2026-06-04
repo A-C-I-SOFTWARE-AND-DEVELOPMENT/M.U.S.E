@@ -355,23 +355,36 @@ def test_remote_run_executes_when_approved(repo: Path):
 
 
 def test_concurrent_run_is_faster_than_serial(repo: Path):
-    workers = [
-        pr.WorkerPlan(
-            worker_id=f"w{i}",
-            profile="bash",
-            mode=pr.ExecutionMode.LOCAL_RUN,
-            command=_py("import time", "time.sleep(0.4)"),
-            timeout_seconds=10,
+    def _run(concurrency: int) -> float:
+        workers = [
+            pr.WorkerPlan(
+                worker_id=f"w{i}",
+                profile="bash",
+                mode=pr.ExecutionMode.LOCAL_RUN,
+                command=_py("import time", "time.sleep(0.4)"),
+                timeout_seconds=10,
+            )
+            for i in range(3)
+        ]
+        plan = pr.ExecutionPlan(
+            job_id=f"job-c{concurrency}", workers=workers, concurrency=concurrency
         )
-        for i in range(3)
-    ]
-    plan = pr.ExecutionPlan(job_id="job-c", workers=workers, concurrency=3)
-    start = time.monotonic()
-    statuses = pr.ParallelRunner(repo, plan, poll_interval=0.05).run()
-    elapsed = time.monotonic() - start
-    assert all(s.state is pr.WorkerState.COMPLETED for s in statuses.values())
-    # sequential would be ~1.2s; with concurrency=3 we expect well under
-    assert elapsed < 1.1, f"concurrent run took {elapsed:.2f}s"
+        start = time.monotonic()
+        statuses = pr.ParallelRunner(repo, plan, poll_interval=0.05).run()
+        elapsed = time.monotonic() - start
+        assert all(s.state is pr.WorkerState.COMPLETED for s in statuses.values())
+        return elapsed
+
+    # Compare against a serial baseline measured under the SAME conditions, so
+    # the assertion holds regardless of absolute machine / CI-runner load (the
+    # old hard `< 1.1s` wall-clock flaked on busy runners). Three 0.4s sleeps
+    # overlap under concurrency=3, so the concurrent run must beat the serial
+    # run (~1.2s of sleeps) by a clear margin.
+    serial = _run(1)
+    concurrent = _run(3)
+    assert concurrent < serial - 0.3, (
+        f"concurrent={concurrent:.2f}s not clearly faster than serial={serial:.2f}s"
+    )
 
 
 def test_sequential_run_is_serial(repo: Path):

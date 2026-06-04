@@ -120,6 +120,11 @@ class TestDetect:
         endpoint = rb.RemoteEndpoint(
             name="j",
             transport=rb.TRANSPORT_HTTP,
+            # The bridge now implements the HTTP transport, so a valid endpoint
+            # URL is required to construct it. This test asserts the
+            # claude_code_windows worker still only dispatches over file-drop,
+            # independent of bridge-level transport support.
+            http_endpoint_url="https://worker.example/jobs",
             workspace_root=shared_root,
             allowed_device_ids=frozenset({"a"}),
             allow_remote_execute=True,

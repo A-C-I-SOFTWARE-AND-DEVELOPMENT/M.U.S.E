@@ -32,12 +32,13 @@ def test_board_runs_all_and_reports_coverage() -> None:
         "repo": {"dirty": False, "branch": "main"},
         "open_prs": [],
         "tests": {"passed": 10, "failed": []},
-        # docs, contradictions, proposals, model_failures, android omitted → blind
+        # docs, contradictions, proposals, model_failures, android,
+        # worker_actions omitted → blind spots
     }
     results = board.run(context)
-    assert len(results) == 8
+    assert len(results) == 9
     coverage = board.coverage(results)
-    assert coverage["total"] == 8
+    assert coverage["total"] == 9
     assert coverage["blind_spots"]  # the omitted sources surface as blind spots
     assert 0.0 < float(coverage["coverage_ratio"]) < 1.0  # type: ignore[arg-type]
 

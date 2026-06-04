@@ -359,6 +359,20 @@ def _hermetic_environment(tmp_path, monkeypatch):
     monkeypatch.delenv("GMI_API_KEY", raising=False)
     monkeypatch.delenv("GMI_BASE_URL", raising=False)
 
+    # 6. Make git subprocesses sign-agnostic. Some environments enforce
+    #    commit.gpgsign=true against a signing agent/server; that breaks the
+    #    throwaway-repo fixtures (commit fails -> no HEAD -> `git worktree add
+    #    HEAD` / `git ls-files` tests error). Inject commit/tag signing=false
+    #    via git's GIT_CONFIG_* env mechanism — additive, so the developer's
+    #    user.name/email (and any pre-set GIT_CONFIG_* entries) are preserved.
+    _base = int(os.environ.get("GIT_CONFIG_COUNT", "") or "0")
+    for _i, (_key, _val) in enumerate(
+        (("commit.gpgsign", "false"), ("tag.gpgsign", "false"))
+    ):
+        monkeypatch.setenv(f"GIT_CONFIG_KEY_{_base + _i}", _key)
+        monkeypatch.setenv(f"GIT_CONFIG_VALUE_{_base + _i}", _val)
+    monkeypatch.setenv("GIT_CONFIG_COUNT", str(_base + 2))
+
 
 # Backward-compat alias — old tests reference this fixture name. Keep it
 # as a no-op wrapper so imports don't break.
