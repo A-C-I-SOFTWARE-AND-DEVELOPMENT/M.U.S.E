@@ -9,6 +9,8 @@ from __future__ import annotations
 import ast
 import json
 
+import pytest
+
 from hermes_cli.jarvis_prime import free_training as ft
 from hermes_cli.jarvis_prime.__main__ import main
 
@@ -74,6 +76,116 @@ def test_grpo_recipe_wires_the_gate_reward() -> None:
     r = ft.generate_recipe("data/x.jsonl", stage=ft.TrainingStage.GRPO)
     assert "reward_from_gate_summary" in r.script
     assert "GRPOTrainer" in r.script
+    # The recipe points at the wired real-gate reward, not just the stub.
+    assert "reward_for_work" in r.script
+
+
+# --- reward_for_work: the reward wired to the REAL gate machinery ----------
+
+
+def _gate_packet(prompt: str):
+    from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+
+    return build_work_packet(prompt).to_gate_packet()
+
+
+def test_reward_for_work_runs_real_gates() -> None:
+    packet = _gate_packet("add retry logic to the gateway module and add tests")
+    gr = ft.reward_for_work(packet)
+    assert isinstance(gr, ft.GateReward)
+    # Calibrated in [0, 1] and derived from a real GateSummary (has results).
+    assert 0.0 <= gr.reward <= 1.0
+    assert gr.summary.get("results")
+    # The graded reward agrees with feeding the same summary to the dict path.
+    assert gr.reward == ft.reward_from_gate_summary(gr.summary)
+    assert gr.verifiable == ft.verifiable_pass(gr.summary)
+
+
+def test_reward_for_work_is_deterministic() -> None:
+    packet = _gate_packet("add a function to the gateway module")
+    assert ft.reward_for_work(packet).reward == ft.reward_for_work(packet).reward
+
+
+# --- run_free_loop: harvest -> export -> recipe (real local work) ----------
+
+
+@pytest.fixture()
+def _store(tmp_path):
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+
+    return DatasetStore(path=tmp_path / "dataset.jsonl")
+
+
+def test_free_loop_empty_store_not_ready_but_emits_recipes(_store, tmp_path) -> None:
+    rep = ft.run_free_loop(store=_store, dataset_path=tmp_path / "ds.jsonl")
+    assert rep.harvested == 0
+    assert rep.ready is False
+    assert [r.stage.value for r in rep.recipes] == ["sft", "orpo", "grpo"]
+    assert all(r.valid_python() for r in rep.recipes)
+    assert rep.to_dict()["paid_api"] is False
+
+
+def test_free_loop_harvests_owner_approved_trace(_store, tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    from hermes_cli.jarvis_prime import semantic_frontend as sf
+    from hermes_cli.jarvis_prime.backend_selector import (
+        BackendContext,
+        BackendTarget,
+    )
+    from hermes_cli.jarvis_prime.ir_compilers import get_compiler
+    from hermes_cli.jarvis_prime.nlp_training import export_compile_trace
+
+    parse = sf.parse("add a function to the gateway module")
+    result = get_compiler(BackendTarget.REPO_WORK_PACKET).compile(
+        parse.graph, BackendContext(repo_root=str(tmp_path))
+    )
+    export_compile_trace(result, parse, store=_store, owner_approve=True)
+
+    ds = tmp_path / "ds.jsonl"
+    rep = ft.run_free_loop(store=_store, dataset_path=ds)
+    assert rep.harvested >= 1
+    assert rep.ready is True
+    assert ds.exists()  # the exported JSONL is real, local work
+
+
+def test_free_loop_write_dir_emits_scripts(_store, tmp_path) -> None:
+    out = tmp_path / "recipes"
+    rep = ft.run_free_loop(
+        store=_store, dataset_path=tmp_path / "ds.jsonl", write_dir=out
+    )
+    assert rep.written_to == str(out)
+    assert (out / "train_sft.py").exists()
+    assert (out / "train_grpo.py").exists()
+
+
+# --- CLI: free-loop + promote ----------------------------------------------
+
+
+def test_cli_free_loop_json(capsys, tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    assert main(["learning", "free-loop", "--json"]) == 0
+    rep = json.loads(capsys.readouterr().out)
+    assert rep["paid_api"] is False
+    assert [r["stage"] for r in rep["recipes"]] == ["sft", "orpo", "grpo"]
+    assert rep["ready"] is False  # fresh store has no approved traces
+
+
+def test_cli_free_loop_stage_filter(capsys, tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    assert main(["learning", "free-loop", "--stage", "sft", "--json"]) == 0
+    rep = json.loads(capsys.readouterr().out)
+    assert [r["stage"] for r in rep["recipes"]] == ["sft"]
+
+
+def test_cli_promote_no_scorecards_not_eligible(capsys, tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    rc = main(["learning", "promote", "--candidate", "openrouter:qwen",
+               "--task-class", "coding_build", "--json"])
+    assert rc == 1  # not eligible -> nonzero
+    out = json.loads(capsys.readouterr().out)
+    assert out["eligible"] is False
+    assert out["candidate"] == "openrouter:qwen"
+    assert out["task_class"] == "coding_build"
 
 
 def test_recipe_write(tmp_path) -> None:

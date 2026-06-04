@@ -40,7 +40,7 @@ it can do **better**, not just cheaper. Module:
 ```
 harvest owner-approved traces (DatasetStore + clusters)
    → recipe: SFT (Unsloth QLoRA) → ORPO/DPO (preference-safety cluster)
-            → GRPO with reward = reward_from_gate_summary  [free GPU]
+            → GRPO with reward = reward_for_work (real gates)  [free GPU]
    → evaluate on the held-out benchmark_wall  (never trained on)
    → promote ONLY if it beats the incumbent
         (model_scorecard.promotion_eligible: ≥20 samples, ≥+0.05 mean delta,
@@ -60,18 +60,36 @@ shipped. This reuses what the repo already has: `learning_dataset.DatasetStore`,
 # Describe the loop
 python -m hermes_cli.jarvis_prime learning free-plan
 
-# Emit a runnable, free recipe for a stage (writes train_<stage>.py + config)
+# ONE wired pass: harvest owner-approved traces → export JSONL → emit the
+# SFT→ORPO→GRPO recipes (and optionally write the scripts). This is the loop
+# runner — it does the real local work, then reports the eval+promotion plan.
+python -m hermes_cli.jarvis_prime learning free-loop \
+    --base-model unsloth/Qwen3-8B --write data/models/free
+python -m hermes_cli.jarvis_prime learning free-loop --stage sft --json  # one stage
+
+# Emit a single runnable recipe for a stage from an explicit dataset
 python -m hermes_cli.jarvis_prime learning free-recipe data/approved/together_train.jsonl \
     --stage sft  --base-model unsloth/Qwen3-8B --write data/models/free
 python -m hermes_cli.jarvis_prime learning free-recipe data/approved/prefs.jsonl --stage orpo
 python -m hermes_cli.jarvis_prime learning free-recipe data/approved/tasks.jsonl --stage grpo
+
+# Measure-gated promotion: assess a candidate against the measured incumbent.
+# Exit code 0 only when promotion_eligible (≥20 samples, ≥+0.05 mean delta, …).
+python -m hermes_cli.jarvis_prime learning promote \
+    --candidate unsloth/Qwen3-8B-free-lora --task-class coding_build
 ```
 
 The emitted script runs **where you point it** — a free Colab/Kaggle T4 or a
 local GPU. This process never trains (no GPU here); it generates the recipe and
-computes the gate reward. For GRPO, wire a real verifier (run tests / scan
-secrets / score citations → `gates.run_gate_summary().to_dict()`) inside the
-script's `gate_summary_for`; the reward is then fully verifiable and free.
+computes the gate reward.
+
+**The reward is wired to the real gates.** `free_training.reward_for_work(packet)`
+calls `gates.run_gate_summary` (the same deterministic gate machinery the
+verification layer uses) and grades the result into a `GateReward`
+(graded `[0,1]` + strict verifiable pass). The GRPO recipe references it: turn
+the model's completion into a Hermes work packet inside the script's
+`packet_for(...)` and `reward_for_work(packet).reward` is your fully verifiable,
+free reward — no human/paid judge.
 
 ## Continuous scheduling
 

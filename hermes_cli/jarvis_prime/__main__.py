@@ -831,6 +831,67 @@ def _cmd_learning_free_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_learning_free_loop(args: argparse.Namespace) -> int:
+    """Run one harvest → export → recipe pass of the free, gated loop."""
+
+    from hermes_cli.jarvis_prime.free_training import TrainingStage, run_free_loop
+
+    if getattr(args, "stages", None):
+        stages = tuple(TrainingStage(s) for s in args.stages)
+    else:
+        from hermes_cli.jarvis_prime.free_training import DEFAULT_LOOP_STAGES
+
+        stages = DEFAULT_LOOP_STAGES
+
+    report = run_free_loop(
+        base_model=args.base_model,
+        out_dir=args.out_dir,
+        stages=stages,
+        min_examples=getattr(args, "min_examples", 1),
+        write_dir=getattr(args, "write", None),
+    )
+    if args.json:
+        _print_json(report.to_dict())
+        return 0
+    print("Free continuous gated loop — one pass:")
+    print(f"  harvested  : {report.harvested} owner-approved trace(s)")
+    print(f"  ready      : {report.ready}")
+    print(f"  dataset    : {report.dataset_path}")
+    print(f"  recipes    : {', '.join(r.stage.value for r in report.recipes)} "
+          f"(base {report.plan.base_model}, paid_api=False)")
+    if report.written_to:
+        print(f"  written to : {report.written_to}")
+    for note in report.notes:
+        print(f"  - {note}")
+    return 0
+
+
+def _cmd_learning_promote(args: argparse.Namespace) -> int:
+    """Assess measure-gated promotion via model_scorecard.promotion_eligible."""
+
+    from hermes_cli.jarvis_prime.model_scorecard import (
+        ScorecardBook,
+        promotion_eligible,
+    )
+
+    book = ScorecardBook.load()
+    kwargs: dict[str, object] = {
+        "task_class": args.task_class,
+        "candidate": args.candidate,
+        "baseline": getattr(args, "baseline", None),
+    }
+    if getattr(args, "min_samples", None) is not None:
+        kwargs["min_samples"] = args.min_samples
+    if getattr(args, "min_mean_delta", None) is not None:
+        kwargs["min_mean_delta"] = args.min_mean_delta
+    assessment = promotion_eligible(book, **kwargs)
+    if args.json:
+        _print_json(assessment.to_dict())
+    else:
+        print(assessment.rationale())
+    return 0 if assessment.eligible else 1
+
+
 # --- open data sources registry --------------------------------------------
 
 
@@ -2322,6 +2383,53 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_free_plan.add_argument("--base-model", dest="base_model", default="unsloth/Qwen3-8B")
     p_free_plan.add_argument("--json", action="store_true")
     p_free_plan.set_defaults(func=_cmd_learning_free_plan)
+
+    p_free_loop = p_learning_sub.add_parser(
+        "free-loop",
+        help="Run one harvest→export→recipe pass of the free, gated loop",
+    )
+    p_free_loop.add_argument(
+        "--base-model", dest="base_model", default="unsloth/Qwen3-8B"
+    )
+    p_free_loop.add_argument("--out-dir", dest="out_dir", default="data/models/free")
+    p_free_loop.add_argument(
+        "--stage", dest="stages", action="append",
+        choices=["sft", "orpo", "dpo", "grpo"],
+        help="Restrict to specific stage(s); repeatable (default sft,orpo,grpo)",
+    )
+    p_free_loop.add_argument(
+        "--min-examples", dest="min_examples", type=int, default=1,
+        help="Minimum owner-approved traces for the loop to report ready",
+    )
+    p_free_loop.add_argument(
+        "--write", help="Write the generated recipe scripts+configs to this dir"
+    )
+    p_free_loop.add_argument("--json", action="store_true")
+    p_free_loop.set_defaults(func=_cmd_learning_free_loop)
+
+    p_promote = p_learning_sub.add_parser(
+        "promote",
+        help="Assess measure-gated promotion (model_scorecard.promotion_eligible)",
+    )
+    p_promote.add_argument(
+        "--candidate", required=True, help="Candidate model id to assess"
+    )
+    p_promote.add_argument(
+        "--task-class", dest="task_class", required=True,
+        help="Task class lane (e.g. coding_build, coding_review, research)",
+    )
+    p_promote.add_argument(
+        "--baseline", default=None,
+        help="Pin the incumbent baseline (otherwise auto-resolved)",
+    )
+    p_promote.add_argument(
+        "--min-samples", dest="min_samples", type=int, default=None
+    )
+    p_promote.add_argument(
+        "--min-mean-delta", dest="min_mean_delta", type=float, default=None
+    )
+    p_promote.add_argument("--json", action="store_true")
+    p_promote.set_defaults(func=_cmd_learning_promote)
 
     p_learning_ef = p_learning_sub.add_parser(
         "export-finetune",
