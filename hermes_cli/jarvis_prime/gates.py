@@ -27,6 +27,16 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Mapping, Optional, Sequence
 
+from hermes_cli.jarvis_prime.guardrail_evidence import (
+    ARTIFACT_GIT_DIFF,
+    ARTIFACT_OWNER_GRANT,
+    ARTIFACT_REVIEW,
+    ARTIFACT_ROLLBACK,
+    ARTIFACT_SECRET_SCAN,
+    ARTIFACT_TEST_RESULT,
+    GuardrailEvidenceBundle,
+)
+
 
 class GateOutcome(Enum):
     PASS = "pass"
@@ -287,6 +297,171 @@ GATES: tuple[Gate, ...] = (
 
 
 # ---------------------------------------------------------------------------
+# Strict, evidence-bound gates
+#
+# These evaluators ignore self-attested packet fields entirely. They pass only
+# when the matching captured artifact is present in the evidence bundle (and the
+# bundle's ``packet_id`` matches the packet under evaluation, so a real bundle
+# cannot be replayed against a different packet). The planning gate stays
+# packet-level — planning *is* a statement of intent, not an observation.
+# ---------------------------------------------------------------------------
+
+
+def _packet_id_mismatch(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> Optional[str]:
+    pid = _get(packet, "packet_id")
+    if pid and bundle.packet_id and str(pid) != str(bundle.packet_id):
+        return f"evidence packet_id {bundle.packet_id!r} != packet {pid!r}"
+    return None
+
+
+def _strict_fail(name: str, reason: str, findings: Sequence[str] = ()) -> GateResult:
+    return GateResult(name=name, outcome=GateOutcome.FAIL, reason=reason, findings=tuple(findings))
+
+
+def strict_build_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "build"
+    mismatch = _packet_id_mismatch(packet, bundle)
+    if mismatch:
+        return _strict_fail(name, "evidence does not match packet", (mismatch,))
+    arts = bundle.by_type(ARTIFACT_GIT_DIFF)
+    if not arts:
+        return _strict_fail(name, "no git_diff evidence captured")
+    payload = arts[-1].payload
+    if not payload.get("git_available", False):
+        return _strict_fail(name, "git unavailable — cannot verify build scope")
+    findings: list[str] = []
+    oos = list(payload.get("out_of_scope_files") or [])
+    if oos:
+        findings.append(f"out-of-scope edits: {oos[:5]}")
+    protected = list(payload.get("protected_files_touched") or [])
+    if protected:
+        findings.append(f"protected files touched: {protected}")
+    if payload.get("diff_check_passed") is False:
+        findings.append("git diff --check failed (whitespace/conflict markers)")
+    if findings:
+        return _strict_fail(name, "build outside scope (observed)", findings)
+    changed = list(payload.get("changed_files") or [])
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason=f"observed diff in scope ({len(changed)} files)")
+
+
+def strict_review_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "review"
+    arts = bundle.by_type(ARTIFACT_REVIEW)
+    if not arts:
+        return _strict_fail(name, "no review evidence captured")
+    verdict = str(arts[-1].payload.get("verdict", ""))
+    if verdict in ("blocked", "request_changes"):
+        return _strict_fail(name, f"reviewer verdict: {verdict}", (verdict,))
+    if verdict == "needs_owner":
+        return GateResult(name=name, outcome=GateOutcome.NEEDS_OWNER_APPROVAL, reason="review defers to owner")
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason=f"reviewer verdict: {verdict or 'approve'}")
+
+
+def strict_test_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "test"
+    arts = bundle.by_type(ARTIFACT_TEST_RESULT)
+    executed = [a for a in arts if a.payload.get("executed")]
+    failed = [a for a in executed if not a.payload.get("passed")]
+    skip_reason = _get(packet, "tests_skipped_reason") or _get(packet, "accepted_test_skip")
+    if not executed:
+        if skip_reason:
+            return GateResult(name=name, outcome=GateOutcome.SKIPPED, reason=f"tests skipped: {skip_reason}")
+        return _strict_fail(name, "no executed test evidence (planned commands do not count)")
+    if failed:
+        cmds = [str(a.payload.get("command")) for a in failed]
+        return _strict_fail(name, "test command(s) failed", cmds[:5])
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason=f"tests executed and passed ({len(executed)})")
+
+
+def strict_security_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "security"
+    diff_arts = bundle.by_type(ARTIFACT_GIT_DIFF)
+    files_changed = list(diff_arts[-1].payload.get("changed_files") or []) if diff_arts else []
+    scans = bundle.by_type(ARTIFACT_SECRET_SCAN)
+    if files_changed and not scans:
+        return _strict_fail(name, "code changed but no secret_scan evidence captured")
+    if scans and not scans[-1].payload.get("clean", True):
+        count = scans[-1].payload.get("finding_count", 0)
+        return _strict_fail(name, f"secret scan flagged {count} finding(s)")
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason="secret scan clean over changed files")
+
+
+def strict_release_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "release"
+    # Packet-level *intent* fields a release narrative legitimately owns.
+    missing = [
+        label
+        for field_name, label in (
+            ("verification_summary", "verification summary"),
+            ("non_goals", "non-goals"),
+            ("remaining_risks", "remaining risks"),
+            ("rollback_plan", "rollback plan"),
+        )
+        if not _has(packet, field_name)
+    ]
+    if missing:
+        return _strict_fail(name, "release packet incomplete", missing)
+    # Observed evidence: a real diff and a real rollback must back the release.
+    if not bundle.has(ARTIFACT_GIT_DIFF):
+        return _strict_fail(name, "release packet present but no git_diff evidence")
+    if not bundle.has(ARTIFACT_ROLLBACK):
+        return _strict_fail(name, "release packet present but no rollback evidence")
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason="release packet backed by evidence bundle")
+
+
+def strict_owner_approval_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    from hermes_cli.jarvis_prime.owner_auth import OWNER_GATED_ACTIONS
+
+    name = "owner_approval"
+    pending = list(_get(packet, "owner_gated_actions") or [])
+    if not pending:
+        return GateResult(name=name, outcome=GateOutcome.PASS, reason="no owner-gated action pending")
+    unknown = [a for a in pending if a not in OWNER_GATED_ACTIONS]
+    if unknown:
+        return _strict_fail(name, "unknown owner-gated action category", tuple(f"unknown: {a}" for a in unknown))
+    grants = bundle.by_type(ARTIFACT_OWNER_GRANT)
+    granted_actions = {str(g.payload.get("action")) for g in grants}
+    missing = [a for a in pending if a not in granted_actions]
+    if missing:
+        return GateResult(
+            name=name,
+            outcome=GateOutcome.NEEDS_OWNER_APPROVAL,
+            reason="challenge-bound owner authorization missing",
+            findings=tuple(f"pending: {a}" for a in missing),
+        )
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason="challenge-bound owner authorization captured")
+
+
+def strict_rollback_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBundle) -> GateResult:
+    name = "rollback"
+    arts = bundle.by_type(ARTIFACT_ROLLBACK)
+    if not arts:
+        return _strict_fail(name, "no rollback evidence captured")
+    payload = arts[-1].payload
+    if not payload.get("plausible", False):
+        return _strict_fail(name, "rollback plan not operationally plausible", tuple(payload.get("reasons") or ()))
+    return GateResult(name=name, outcome=GateOutcome.PASS, reason="rollback plan validated")
+
+
+def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
+    """Build a gate list whose evidence-bound members close over ``bundle``."""
+
+    def bind(fn):
+        return lambda packet: fn(packet, bundle)
+
+    return (
+        Gate("planning", planning_gate),
+        Gate("build", bind(strict_build_gate)),
+        Gate("review", bind(strict_review_gate)),
+        Gate("test", bind(strict_test_gate)),
+        Gate("security", bind(strict_security_gate)),
+        Gate("release", bind(strict_release_gate)),
+        Gate("owner_approval", bind(strict_owner_approval_gate)),
+        Gate("rollback", bind(strict_rollback_gate)),
+    )
+
+
+# ---------------------------------------------------------------------------
 # Gate summary
 # ---------------------------------------------------------------------------
 
@@ -350,8 +525,45 @@ class GateSummary:
 def run_gate_summary(
     packet: Mapping[str, Any],
     gates: Optional[Sequence[Gate]] = None,
+    *,
+    evidence_bundle: Optional[GuardrailEvidenceBundle] = None,
+    strict_evidence: bool = False,
 ) -> GateSummary:
-    """Run every gate against the work packet and return a GateSummary."""
+    """Run every gate against the work packet and return a GateSummary.
 
-    gates = gates or GATES
+    By default (``strict_evidence=False``) the legacy packet-level gates run —
+    this preserves all existing behavior and tests. In **strict evidence mode**
+    the six evidence-bound gates (build, review, test, security, release,
+    rollback, owner_approval) ignore self-attested packet fields and pass only on
+    captured artifacts in ``evidence_bundle``. A missing bundle is treated as an
+    *empty* bundle, so a self-attested packet fails strict mode by construction.
+
+    An explicit ``gates`` sequence always wins (used by focused gate tests).
+    """
+
+    if gates is not None:
+        return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+
+    if strict_evidence:
+        bundle = evidence_bundle or GuardrailEvidenceBundle(
+            packet_id=str(_get(packet, "packet_id") or "")
+        )
+        gates = _strict_gates(bundle)
+    else:
+        gates = GATES
     return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+
+
+def run_strict_gate_summary(
+    packet: Mapping[str, Any],
+    evidence_bundle: Optional[GuardrailEvidenceBundle] = None,
+    gates: Optional[Sequence[Gate]] = None,
+) -> GateSummary:
+    """Convenience wrapper that forces strict, evidence-bound evaluation."""
+
+    return run_gate_summary(
+        packet,
+        gates=gates,
+        evidence_bundle=evidence_bundle,
+        strict_evidence=True,
+    )

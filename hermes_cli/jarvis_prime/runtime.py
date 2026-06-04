@@ -53,6 +53,14 @@ from hermes_cli.jarvis_prime.router import RouteDecision, RouteTarget, Router
 from hermes_cli.jarvis_prime.self_update import ProposalBook
 
 
+def _packet_get(packet: Mapping[str, Any], key: str, default: Any = None) -> Any:
+    """Read ``key`` from a dict-like packet or a dataclass-like packet."""
+
+    if isinstance(packet, Mapping):
+        return packet.get(key, default)
+    return getattr(packet, key, default)
+
+
 def _memory_layers_default() -> bool:
     """Memory Tree live-loop wiring defaults ON; ``HERMES_MEMORY_LAYERS=0``
     (or false/no/off) reverts to legacy-only recollection for an exact
@@ -300,8 +308,43 @@ class JarvisPrime:
     # Gate evaluation
     # ------------------------------------------------------------------
 
-    def gate(self, packet: Mapping[str, Any]) -> GateSummary:
-        return run_gate_summary(packet)
+    def gate(
+        self,
+        packet: Mapping[str, Any],
+        evidence_bundle: Any = None,
+        strict_evidence: bool = True,
+    ) -> GateSummary:
+        """Evaluate a work packet's gates.
+
+        Strict, evidence-bound gates run by default whenever a real evidence
+        bundle is supplied; with no bundle the call falls back to the legacy
+        packet-level gates so existing planning flows are unaffected. When strict
+        gates run, the summary is journaled to the tamper-evident guardrail
+        ledger (best-effort — a ledger failure never blocks evaluation).
+        """
+
+        use_strict = strict_evidence and evidence_bundle is not None
+        summary = run_gate_summary(
+            packet,
+            evidence_bundle=evidence_bundle,
+            strict_evidence=use_strict,
+        )
+        if use_strict:
+            try:
+                from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+                GuardrailLedger().append(
+                    "gate_summary",
+                    str(_packet_get(packet, "packet_id") or _packet_get(packet, "branch") or ""),
+                    {
+                        "overall": summary.overall.value,
+                        "remaining_risk": summary.remaining_risk,
+                        "results": [r.to_dict() for r in summary.results],
+                    },
+                )
+            except Exception:  # pragma: no cover - defensive
+                pass
+        return summary
 
     # ------------------------------------------------------------------
     # Owner authorization
@@ -337,6 +380,26 @@ class JarvisPrime:
             "pending_actions": list(route.pending_actions),
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
+
+        # Bind the delegation to verifiable-guardrail context so the downstream
+        # worker knows which evidence it must produce and which ledger head it
+        # is building on. All best-effort — never break delegation on failure.
+        if packet:
+            pid = _packet_get(packet, "packet_id")
+            if pid:
+                envelope["packet_id"] = pid
+            req = _packet_get(packet, "required_evidence")
+            if req:
+                envelope["required_evidence"] = list(req)
+        try:
+            from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+            envelope["ledger_latest_hash"] = GuardrailLedger().latest_hash()
+        except Exception:  # pragma: no cover - defensive
+            pass
+        if route.requires_owner_authorization:
+            challenges = getattr(self.config.owner_auth, "challenges", {}) or {}
+            envelope["owner_challenge_ids"] = list(challenges.keys())
 
         # Optional: pass model-router hint when the existing router is
         # available — kept best-effort so missing module doesn't break.
@@ -474,13 +537,32 @@ class JarvisPrime:
             )
         except Exception:  # pragma: no cover - defensive
             pass
-        return {
+        result: dict[str, Any] = {
             "cleared": cleared,
             "tick_disabled": True,
             "reason": reason,
             "cleared_actions": [g.action for g in pending],
             "branch_leases_cleared": leases_cleared,
         }
+        # Append a tamper-evident emergency-stop record to the guardrail ledger
+        # so any later audit can prove this process was halted. A ledger failure
+        # must never crash the stop primitive — surface it as a warning instead.
+        try:
+            from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+
+            record = GuardrailLedger().append(
+                "emergency_stop",
+                reason,
+                {
+                    "reason": reason,
+                    "cleared_actions": [g.action for g in pending],
+                    "branch_leases_cleared": leases_cleared,
+                },
+            )
+            result["ledger_record_hash"] = record.record_hash
+        except Exception as exc:  # pragma: no cover - defensive
+            result["ledger_warning"] = f"failed to journal emergency stop: {exc}"
+        return result
 
     # ------------------------------------------------------------------
     # Handoff rendering — operational handoff template
