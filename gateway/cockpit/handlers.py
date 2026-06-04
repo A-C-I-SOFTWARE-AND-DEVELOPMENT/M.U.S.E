@@ -708,6 +708,35 @@ def audit_proof(req: Request) -> JsonResponse:
     return JsonResponse(404, {"error": f"unknown proof: {proof_id}"})
 
 
+def _collect_jobs() -> list[dict[str, Any]]:
+    """Merge JobQueue + orchestrator jobs into canonical ``CockpitJob`` dicts.
+
+    Shared by the ``/jobs/stream`` SSE diff so the live stream and the REST
+    ``jobs_list`` project through the same adapters and cannot drift. Best-effort
+    per store — one failing never blanks the other. (Keep in sync with
+    ``jobs_list``.)
+    """
+    from . import contract
+
+    jobs: list[dict[str, Any]] = []
+    try:
+        from hermes_cli.job_queue import JobQueue
+
+        for entry in JobQueue().list_jobs():
+            jobs.append(contract.cockpit_job(entry))
+    except Exception:  # pragma: no cover - defensive
+        pass
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        for job in _orch.list_jobs():
+            jobs.append(contract.orchestrator_job(job))
+    except Exception:  # pragma: no cover - defensive
+        pass
+    jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
+    return jobs
+
+
 def jobs_list(_req: Request) -> JsonResponse:
     """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []

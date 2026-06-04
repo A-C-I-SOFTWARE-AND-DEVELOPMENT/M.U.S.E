@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import re
 import threading
+import time
 import warnings
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Callable, Optional
@@ -148,7 +149,44 @@ def _match(method: str, path: str):
     return None
 
 
-def _make_handler(token: Optional[str], responder):
+# --- Server-Sent Events (live streams) --------------------------------------
+# SSE GETs cannot go through the buffered _ROUTES/_send_json path (which writes a
+# single fixed-length body and closes). They are matched here and special-cased
+# in _dispatch, exactly like the chat POST. The intervals are module globals so
+# tests can shorten them.
+_SSE_POLL_S = 1.0
+_SSE_HEARTBEAT_S = 15.0
+_SSE_MAX_DURATION_S = 600.0  # backstop; the client reconnects with backoff
+
+_STREAM_ROUTES: list[tuple[re.Pattern[str], str]] = [
+    (_compile("/v1/cockpit/jobs/stream"), "_stream_jobs"),
+]
+
+
+def _match_stream(path: str) -> Optional[str]:
+    clean = path.rstrip("/") or "/"
+    for pattern, method_name in _STREAM_ROUTES:
+        if pattern.match(clean):
+            return method_name
+    return None
+
+
+def _job_deltas(prev: dict[str, dict], curr: dict[str, dict]):
+    """Yield ``(event, data)`` SSE deltas between two job snapshots.
+
+    ``job.upsert`` for any new or changed job (cheap dict compare — every store
+    mutation bumps ``updated_at``); ``job.removed`` for any id that disappeared.
+    On the first tick ``prev`` is empty, so the subscriber gets the full state as
+    upserts, then deltas.
+    """
+    for jid, job in curr.items():
+        if prev.get(jid) != job:
+            yield "job.upsert", job
+    for jid in prev.keys() - curr.keys():
+        yield "job.removed", {"id": jid}
+
+
+def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
 
@@ -199,6 +237,17 @@ def _make_handler(token: Optional[str], responder):
                     return
                 self._stream_chat()
                 return
+
+            # Server-Sent Events live streams — GET only, matched before the
+            # buffered table so "/jobs/stream" isn't read as "/jobs/{id}".
+            if method == "GET":
+                stream_name = _match_stream(path)
+                if stream_name is not None:
+                    if not self._authed():
+                        self._send_json(401, {"error": "missing or invalid bearer token"})
+                        return
+                    getattr(self, stream_name)()
+                    return
 
             matched = _match(method, path)
             if matched is None:
@@ -251,6 +300,55 @@ def _make_handler(token: Optional[str], responder):
             self.wfile.write(b"\r\n")
             self.wfile.flush()
 
+        # -- Server-Sent Events ----------------------------------------
+        def _sse_headers(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("X-Accel-Buffering", "no")  # defeat proxy buffering
+            self.send_header("Transfer-Encoding", "chunked")
+            self.end_headers()
+
+        def _sse_send(self, event: str, data: dict) -> None:
+            body = (
+                f"event: {event}\r\n"
+                f"data: {json.dumps(data, default=str, separators=(',', ':'))}\r\n\r\n"
+            ).encode("utf-8")
+            self._write_chunk(body)
+
+        def _sse_sleep(self, total: float) -> None:
+            # Sleep in small slices so shutdown (stop_event) is honored promptly.
+            end = time.monotonic() + total
+            while not stop_event.is_set():
+                remaining = end - time.monotonic()
+                if remaining <= 0:
+                    return
+                time.sleep(min(0.05, remaining))
+
+        def _stream_jobs(self) -> None:
+            self._sse_headers()
+            prev: dict[str, dict] = {}
+            last_beat = time.monotonic()
+            started = time.monotonic()
+            try:
+                while not stop_event.is_set():
+                    curr = {j["id"]: j for j in h._collect_jobs()}
+                    for event, data in _job_deltas(prev, curr):
+                        self._sse_send(event, data)
+                    prev = curr
+                    now = time.monotonic()
+                    if now - last_beat >= _SSE_HEARTBEAT_S:
+                        self._sse_send("heartbeat", {"ts": h._now_iso()})
+                        last_beat = now
+                    if now - started >= _SSE_MAX_DURATION_S:
+                        break
+                    self._sse_sleep(_SSE_POLL_S)
+                self._write_chunk(b"")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except Exception:  # pragma: no cover - defensive
+                pass
+
         def do_GET(self):  # noqa: N802
             self._dispatch("GET")
 
@@ -264,6 +362,24 @@ def _make_handler(token: Optional[str], responder):
             self._dispatch("DELETE")
 
     return Handler
+
+
+class _CockpitServer(ThreadingHTTPServer):
+    """ThreadingHTTPServer that signals live SSE loops to stop on shutdown.
+
+    An SSE handler occupies its thread for the connection's lifetime; without a
+    stop signal it would keep polling after ``shutdown()`` (until its
+    max-duration backstop). Setting ``_stop_event`` lets each loop exit within
+    one short sleep slice.
+    """
+
+    daemon_threads = True
+    _stop_event: Optional[threading.Event] = None
+
+    def shutdown(self) -> None:
+        if self._stop_event is not None:
+            self._stop_event.set()
+        super().shutdown()
 
 
 def serve(
@@ -307,7 +423,9 @@ def serve(
         def chat_responder(prompt, history):
             return jarvis_responder(prompt, history, generate=default_prose_generator)
 
-    server = ThreadingHTTPServer((host, port), _make_handler(token, chat_responder))
+    stop_event = threading.Event()
+    server = _CockpitServer((host, port), _make_handler(token, chat_responder, stop_event))
+    server._stop_event = stop_event
     thread = threading.Thread(
         target=server.serve_forever, name="hermes-cockpit-http", daemon=True
     )
