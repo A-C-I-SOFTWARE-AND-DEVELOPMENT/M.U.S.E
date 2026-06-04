@@ -115,7 +115,7 @@ jarvis-prime-unit ×2, orchestration, supply-chain, history, contributor).
 |---|---|---|
 | Future transports HTTP/WS/SSH | `hermes_cli/remote_bridge.py` (~80–86, 455–463) | **Refused at dispatch** with `TransportNotImplementedError`; documented future work. No live path reaches them. |
 | 10 abstract `NotImplementedError` | `agent/{memory,tts,web_search}_provider.py`, `gateway/platforms/base.py`, `hermes_cli/service_manager.py`, `tools/environments/base.py` | Standard ABC/Protocol pattern; every caller gates on a `supports_*()` capability flag. |
-| Android "Coming soon" screens | `apps/android/.../ui/screens/placeholder/PlaceholderScreen.kt` | Live in nav graph (back-stack/deep links work); show a user-facing placeholder. Roadmap, not broken wiring. |
+| Android "Coming soon" screens | `apps/android/.../ui/screens/placeholder/PlaceholderScreen.kt` | **Already replaced** — Chat/Approvals/Memory/Audit are all wired to real gateway-backed screens in `HermesNavGraph.kt`; `PlaceholderScreen.kt` is now dead code (zero call sites). Not a live placeholder. |
 | OAuth refresh TODO | `enterprise/secrets.py:208` | Current `ephemeral=False` path works; refresh-token minting is a documented next phase. |
 | `meet_say` v1/v2 boundary | `plugins/google_meet/__init__.py:10`, `tools/__init__`→`handle_meet_say` | Handler **is wired** (`client.say` / `pm.enqueue_say`); the realtime duplex-audio *output* is the documented v2. Comment is accurate at the v1/v2 boundary. |
 | Placeholder skill dirs | `skills/{diagramming,gifs,inference-sh}/` | `DESCRIPTION.md`-only category stubs, clearly deferred. |
