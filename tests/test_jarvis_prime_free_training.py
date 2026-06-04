@@ -9,8 +9,6 @@ from __future__ import annotations
 import ast
 import json
 
-import pytest
-
 from hermes_cli.jarvis_prime import free_training as ft
 from hermes_cli.jarvis_prime.__main__ import main
 
@@ -109,15 +107,15 @@ def test_reward_for_work_is_deterministic() -> None:
 # --- run_free_loop: harvest -> export -> recipe (real local work) ----------
 
 
-@pytest.fixture()
-def _store(tmp_path):
+def _make_store(tmp_path):
     from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
 
     return DatasetStore(path=tmp_path / "dataset.jsonl")
 
 
-def test_free_loop_empty_store_not_ready_but_emits_recipes(_store, tmp_path) -> None:
-    rep = ft.run_free_loop(store=_store, dataset_path=tmp_path / "ds.jsonl")
+def test_free_loop_empty_store_not_ready_but_emits_recipes(tmp_path) -> None:
+    store = _make_store(tmp_path)
+    rep = ft.run_free_loop(store=store, dataset_path=tmp_path / "ds.jsonl")
     assert rep.harvested == 0
     assert rep.ready is False
     assert [r.stage.value for r in rep.recipes] == ["sft", "orpo", "grpo"]
@@ -125,7 +123,7 @@ def test_free_loop_empty_store_not_ready_but_emits_recipes(_store, tmp_path) -> 
     assert rep.to_dict()["paid_api"] is False
 
 
-def test_free_loop_harvests_owner_approved_trace(_store, tmp_path, monkeypatch) -> None:
+def test_free_loop_harvests_owner_approved_trace(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     from hermes_cli.jarvis_prime import semantic_frontend as sf
     from hermes_cli.jarvis_prime.backend_selector import (
@@ -135,23 +133,25 @@ def test_free_loop_harvests_owner_approved_trace(_store, tmp_path, monkeypatch) 
     from hermes_cli.jarvis_prime.ir_compilers import get_compiler
     from hermes_cli.jarvis_prime.nlp_training import export_compile_trace
 
+    store = _make_store(tmp_path)
     parse = sf.parse("add a function to the gateway module")
     result = get_compiler(BackendTarget.REPO_WORK_PACKET).compile(
         parse.graph, BackendContext(repo_root=str(tmp_path))
     )
-    export_compile_trace(result, parse, store=_store, owner_approve=True)
+    export_compile_trace(result, parse, store=store, owner_approve=True)
 
     ds = tmp_path / "ds.jsonl"
-    rep = ft.run_free_loop(store=_store, dataset_path=ds)
+    rep = ft.run_free_loop(store=store, dataset_path=ds)
     assert rep.harvested >= 1
     assert rep.ready is True
     assert ds.exists()  # the exported JSONL is real, local work
 
 
-def test_free_loop_write_dir_emits_scripts(_store, tmp_path) -> None:
+def test_free_loop_write_dir_emits_scripts(tmp_path) -> None:
+    store = _make_store(tmp_path)
     out = tmp_path / "recipes"
     rep = ft.run_free_loop(
-        store=_store, dataset_path=tmp_path / "ds.jsonl", write_dir=out
+        store=store, dataset_path=tmp_path / "ds.jsonl", write_dir=out
     )
     assert rep.written_to == str(out)
     assert (out / "train_sft.py").exists()

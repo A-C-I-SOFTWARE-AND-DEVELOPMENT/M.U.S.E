@@ -870,21 +870,31 @@ def _cmd_learning_promote(args: argparse.Namespace) -> int:
     """Assess measure-gated promotion via model_scorecard.promotion_eligible."""
 
     from hermes_cli.jarvis_prime.model_scorecard import (
+        DEFAULT_PROMOTION_MIN_MEAN_DELTA,
+        DEFAULT_PROMOTION_MIN_SAMPLES,
         ScorecardBook,
         promotion_eligible,
     )
 
     book = ScorecardBook.load()
-    kwargs: dict[str, object] = {
-        "task_class": args.task_class,
-        "candidate": args.candidate,
-        "baseline": getattr(args, "baseline", None),
-    }
-    if getattr(args, "min_samples", None) is not None:
-        kwargs["min_samples"] = args.min_samples
-    if getattr(args, "min_mean_delta", None) is not None:
-        kwargs["min_mean_delta"] = args.min_mean_delta
-    assessment = promotion_eligible(book, **kwargs)
+    min_samples: int = (
+        args.min_samples
+        if getattr(args, "min_samples", None) is not None
+        else DEFAULT_PROMOTION_MIN_SAMPLES
+    )
+    min_mean_delta: float = (
+        args.min_mean_delta
+        if getattr(args, "min_mean_delta", None) is not None
+        else DEFAULT_PROMOTION_MIN_MEAN_DELTA
+    )
+    assessment = promotion_eligible(
+        book,
+        task_class=args.task_class,
+        candidate=args.candidate,
+        baseline=getattr(args, "baseline", None),
+        min_samples=min_samples,
+        min_mean_delta=min_mean_delta,
+    )
     if args.json:
         _print_json(assessment.to_dict())
     else:
