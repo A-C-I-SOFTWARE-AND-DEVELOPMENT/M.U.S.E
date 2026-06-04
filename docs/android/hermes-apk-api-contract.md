@@ -1,10 +1,14 @@
 # Hermes APK ↔ Gateway — Cockpit API contract
 
-Phase 18 wire format between the Android cockpit APK and a Hermes
-gateway. This is a **specification**: the routes are not all live on the
-gateway yet (`/v1/health` is — see `gateway/`). The contract is written
-first so the Android side and the gateway side can be implemented in
-parallel without drifting.
+Wire format between the Android cockpit APK and a Hermes gateway. The
+**cockpit namespace is now largely live** in `gateway/cockpit/` — chat,
+runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
+file), evidence, research, approvals, audit, coding, autonomy, graph,
+learning, and voice intake are implemented and covered by tests. A handful of
+routes remain **planned** (the SSE streams, publishing, and the validation
+override/revalidate verbs). Per-route status is in
+[Route status](#route-status-live-vs-planned) below. The contract stays the
+source of truth so the Android and gateway sides don't drift.
 
 > **Authoritative location of secrets:** the **backend** holds provider
 > API keys, GitHub PATs, and any other third-party credentials. The
@@ -48,6 +52,56 @@ parallel without drifting.
 - Idempotency: `POST` routes that create or mutate accept an optional
   `Idempotency-Key` header. The gateway stores the resulting status
   for at least 24h keyed on `(token, key)`.
+
+---
+
+## Route status (live vs planned)
+
+Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
+⏳ **planned** (specified here, not yet served).
+
+| Area | Routes | Status |
+|---|---|---|
+| Health / runtime / diagnostics / models | `/v1/health`, `/v1/cockpit/runtime/*`, `/diagnostics`, `/models`, `/model-routes` | ✅ live |
+| Chat (stream) | `POST /v1/jarvis/chat` (NDJSON) | ✅ live |
+| Memory (+ tree, contradictions, freshness) | `/v1/cockpit/memory*` | ✅ live |
+| Jobs — list / dispatch / detail | `/v1/cockpit/jobs`, `/jobs/{id}`, `/jobs/{id}/ledger` | ✅ live |
+| Jobs — controls | `/jobs/{id}/run\|cancel\|pause\|resume\|rerun\|approve\|validate`, `/orchestrate`, `/jobs/lanes` | ✅ live |
+| Jobs — workspace reads | `/jobs/{id}/diff\|files-changed\|validation\|tree\|file` | ✅ live |
+| Jobs — live stream | `GET /jobs/{id}/stream` (SSE) | ⏳ planned |
+| Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
+| Publishing | `GET /jobs/{id}/publish/preview`, `POST /jobs/{id}/publish` | ⏳ planned |
+| Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
+| Templates | `GET /v1/cockpit/templates` | ⏳ planned |
+| Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
+| Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
+| Graph / learning / skills / navigation / sessions | `/graph/*`, `/learning*`, `/skills`, `/navigation`, `/sessions` | ✅ live |
+| Voice intake | `/voice/intake`, `/voice/{id}/decide` | ✅ live |
+| Avatar / room | `/avatar/*` | ✅ live |
+
+The canonical route namespace is `/v1/cockpit/…` (plus `/v1/jarvis/chat` for the
+chat stream). Bare shorthand paths in some architecture notes (`/status`,
+`/jobs`, `/coding/audit`, …) map onto these — there are **no bare-path
+aliases**. See
+[`cockpit-canonical-contract-plan.md`](cockpit-canonical-contract-plan.md).
+
+## Compatibility matrix
+
+The cockpit advertises two versions on every `GET /v1/health` (and
+`GET /v1/cockpit/capabilities`): `api_version` — the cockpit **contract**
+version (`COCKPIT_API_VERSION` in `gateway/cockpit/handlers.py`) — and
+`gateway_version`, the Hermes package version. The Android `HealthStatus`
+negotiates on `api_version` and tolerates an unknown `gateway_version`.
+
+| `api_version` | Cockpit surface | Minimum client | Notes |
+|---|---|---|---|
+| `1.0.0` | The full `/v1/cockpit/*` namespace in this contract (the ✅ rows above) | any cockpit-paired build | Unknown keys are ignored both ways; `HealthStatus` prefers `gateway_version`, falling back to a legacy `version`. |
+
+Bumping rules: additive, backward-compatible fields do **not** bump
+`api_version`; a removed/renamed field or a changed enum vocabulary bumps the
+**minor**; an incompatible route/semantics change bumps the **major**. The
+client treats an unrecognized major as "upgrade required" and degrades to
+read-only.
 
 ---
 
@@ -151,6 +205,8 @@ Lists the workers the gateway has detected on its host. The cockpit's
 `kind ∈ {"external_cli", "internal", "remote_provider"}`.
 
 ### `GET /v1/cockpit/templates`
+
+> ⏳ **Planned** — not yet served; the cockpit uses its bundled default list.
 
 Optional. Returns named prompt templates the gateway exposes. Cockpit
 falls back to a bundled default list if this returns 404.
@@ -288,6 +344,9 @@ Query: `status` (csv, optional), `worker_id` (optional), `cursor`,
 
 ### `GET /v1/cockpit/jobs/stream`
 
+> ⏳ **Planned** — not yet served; the cockpit polls the REST routes (see the
+> mobile guide) until SSE lands.
+
 Server-Sent Events. Each event is a delta:
 
 ```
@@ -343,6 +402,9 @@ Response: `201 Created` with the Job object.
 
 ### `GET /v1/cockpit/jobs/{id}/tree`
 
+> ✅ **Live.** Read-only, path-sandboxed to the job workspace (a `path` that
+> escapes the root is a `400`). Honest-empty when the job has no workspace.
+
 Query: `path` (relative to `workspace_path`, default `.`). Returns:
 
 ```json
@@ -356,6 +418,9 @@ Query: `path` (relative to `workspace_path`, default `.`). Returns:
 ```
 
 ### `GET /v1/cockpit/jobs/{id}/file`
+
+> ✅ **Live.** Read-only, path-sandboxed; 1 MB cap; binary or oversize → `200`
+> with `truncated=true` and `content=null`.
 
 Query: `path`. Returns:
 
@@ -397,6 +462,8 @@ first 250 kB. The cockpit shows the truncation banner.
 
 ### `GET /v1/cockpit/jobs/{id}/files-changed`
 
+> ✅ **Live.** Honest-empty `{"files": []}` when the job has no git workspace.
+
 Convenience — same `files` array as the diff response, without the body.
 
 ### `POST /v1/cockpit/jobs/{id}/approve`
@@ -421,13 +488,17 @@ The gateway writes an audit-log line and transitions the job
 
 ### `GET /v1/cockpit/jobs/{id}/validation`
 
+> ✅ **Live.** Reads the persisted `<workspace>/validation/results.json` (does
+> **not** re-run gates); honest-empty `gates` before any validate. Shares one
+> projection with `POST .../validate`, so the two cannot drift.
+
 ```json
 {
   "gates": [
     {
       "id": "tests",
       "name": "Unit tests",
-      "status": "passed",
+      "status": "PASS",
       "summary": "412 tests, 412 passed, 0 failed",
       "log_excerpt": null,
       "override_allowed": false
@@ -435,7 +506,7 @@ The gateway writes an audit-log line and transitions the job
     {
       "id": "ty_check",
       "name": "ty type-check",
-      "status": "failed",
+      "status": "FAIL",
       "summary": "3 errors in src/auth/",
       "log_excerpt": "src/auth/callback.py:42: ...",
       "override_allowed": true
@@ -448,13 +519,20 @@ The gateway writes an audit-log line and transitions the job
 }
 ```
 
-`status ∈ {"passed", "failed", "pending", "skipped", "error"}`.
+`status` is the upper-cased check status — one of `{"PASS", "FAIL", "WARN",
+"SKIPPED", "BLOCKED", "ERROR"}` (it mirrors `POST .../validate`, which
+upper-cases the runner's `STATUS_*` vocabulary). `override_allowed` is `true`
+for non-critical gates.
 
 ### `POST /v1/cockpit/jobs/{id}/revalidate`
+
+> ⏳ **Planned.** Today, re-run gates with the live `POST /jobs/{id}/validate`.
 
 No body. Triggers the gateway to re-run gates. Response: `202`.
 
 ### `POST /v1/cockpit/jobs/{id}/override`
+
+> ⏳ **Planned.**
 
 ```json
 {
@@ -471,6 +549,8 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 
 ### `GET /v1/cockpit/jobs/{id}/publish/preview`
 
+> ⏳ **Planned.**
+
 ```json
 {
   "remote": "origin",
@@ -486,6 +566,8 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 ```
 
 ### `POST /v1/cockpit/jobs/{id}/publish`
+
+> ⏳ **Planned** — publishing to GitHub is owner-gated and not yet served.
 
 ```json
 {
@@ -521,6 +603,10 @@ Errors:
 
 ### `GET /v1/cockpit/events`
 
+> ⏳ **Partial.** A live `/v1/cockpit/events` route exists but currently returns
+> decision-**ledger** summaries, not the leveled-log shape below. The
+> structured log source (and `/events/stream`) is planned.
+
 Query: `since` (ISO timestamp, optional), `level` (csv of
 `info|warn|error`, optional), `source` (csv of
 `gateway|worker|hook|cron`, optional), `job_id` (optional), `cursor`,
@@ -543,6 +629,8 @@ Query: `since` (ISO timestamp, optional), `level` (csv of
 ```
 
 ### `GET /v1/cockpit/events/stream`
+
+> ⏳ **Planned.**
 
 SSE. Events use the same shape:
 

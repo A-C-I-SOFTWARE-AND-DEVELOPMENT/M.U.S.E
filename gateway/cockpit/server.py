@@ -93,6 +93,13 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/jobs/{id}/approve"), h.job_approve, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}/diff"), h.job_diff, True),
     ("POST", _compile("/v1/cockpit/jobs/{id}/validate"), h.job_validate, True),
+    # Read-only job-workspace sub-resources (bearer-authed, no owner phrase —
+    # they only read inside the already-approved local workspace). Literal
+    # sub-paths, so they precede the bare "/jobs/{id}" capture below.
+    ("GET", _compile("/v1/cockpit/jobs/{id}/files-changed"), h.job_files_changed, True),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/validation"), h.job_validation, True),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/tree"), h.job_tree, True),
+    ("GET", _compile("/v1/cockpit/jobs/{id}/file"), h.job_file, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}"), h.job_get, True),
     ("POST", _compile("/v1/cockpit/coding/audit"), h.coding_audit, True),
     ("POST", _compile("/v1/cockpit/coding/plan"), h.coding_plan, True),

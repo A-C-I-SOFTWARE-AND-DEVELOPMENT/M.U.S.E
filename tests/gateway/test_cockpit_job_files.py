@@ -1,0 +1,211 @@
+"""End-to-end tests for the read-only cockpit job-workspace browse routes.
+
+Covers ``/jobs/{id}/files-changed|validation|tree|file`` — the read-only
+companions to ``/diff`` and ``/validate``. Hermetic: the real stdlib server on
+a random loopback port with a tmp HERMES_HOME and a known token, over urllib.
+No network, no third-party deps.
+"""
+
+from __future__ import annotations
+
+import json
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+import pytest
+
+from gateway.cockpit.server import serve
+
+TOKEN = "test-cockpit-token-123"
+
+
+@pytest.fixture()
+def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
+    return tmp_path
+
+
+@pytest.fixture()
+def server(home: Path):
+    srv = serve(host="127.0.0.1", port=0, token=TOKEN)
+    yield srv
+    srv.shutdown()
+
+
+def _url(server, path: str) -> str:
+    host, port = server.server_address
+    return f"http://{host}:{port}{path}"
+
+
+def _get(server, path: str):
+    req = urllib.request.Request(_url(server, path), method="GET")
+    req.add_header("Authorization", f"Bearer {TOKEN}")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.status, json.loads(resp.read())
+
+
+def _post(server, path: str, body: dict):
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(_url(server, path), data=data, method="POST")
+    req.add_header("Content-Type", "application/json")
+    req.add_header("Authorization", f"Bearer {TOKEN}")
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        return resp.status, json.loads(resp.read())
+
+
+def _dispatch(server, workspace_path: str) -> str:
+    body = {
+        "title": "Build feature",
+        "worker_id": "codex_cli",
+        "prompt": "## Goal\nDo it",
+        "workspace_path": workspace_path,
+    }
+    status, job = _post(server, "/v1/cockpit/jobs", body)
+    assert status == 201
+    return job["id"]
+
+
+# ── files-changed ──────────────────────────────────────────────────────────
+
+
+def test_files_changed_honest_empty_on_non_git_workspace(server, home: Path) -> None:
+    ws = home / "plain"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/files-changed")
+    assert status == 200
+    assert body == {"files": []}
+
+
+def test_files_changed_unknown_job_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/jobs/nope/files-changed")
+    assert exc.value.code == 404
+
+
+# ── validation (read companion to /validate) ───────────────────────────────
+
+
+def test_validation_honest_empty_before_any_run(server, home: Path) -> None:
+    ws = home / "ws_v"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/validation")
+    assert status == 200
+    assert body["gates"] == []
+    assert body["policy"]["all_must_pass"] is True
+
+
+def test_validation_returns_persisted_gates_after_validate(server, home: Path) -> None:
+    ws = home / "ws_v2"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    # Running the gates persists <ws>/validation/results.json.
+    _, ran = _post(server, f"/v1/cockpit/jobs/{jid}/validate", {})
+    status, got = _get(server, f"/v1/cockpit/jobs/{jid}/validation")
+    assert status == 200
+    # The read companion projects the same persisted report — no drift.
+    assert got["gates"] == ran["gates"]
+    assert (ws / "validation" / "results.json").is_file()
+
+
+def test_validation_unknown_job_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/jobs/nope/validation")
+    assert exc.value.code == 404
+
+
+# ── tree (folder browser) ──────────────────────────────────────────────────
+
+
+def test_tree_lists_files_and_dirs(server, home: Path) -> None:
+    ws = home / "ws_t"
+    (ws / "sub").mkdir(parents=True)
+    (ws / "sub" / "a.py").write_text("print('hi')\n", encoding="utf-8")
+    (ws / "top.txt").write_text("x\n", encoding="utf-8")
+    jid = _dispatch(server, str(ws))
+
+    status, root = _get(server, f"/v1/cockpit/jobs/{jid}/tree")
+    assert status == 200
+    by_name = {e["name"]: e for e in root["entries"]}
+    assert by_name["sub"]["kind"] == "dir"
+    assert by_name["top.txt"]["kind"] == "file"
+    assert by_name["top.txt"]["size"] == 2
+
+    status, sub = _get(server, f"/v1/cockpit/jobs/{jid}/tree?path=sub")
+    assert status == 200
+    assert sub["path"] == "sub"
+    assert [e["name"] for e in sub["entries"]] == ["a.py"]
+
+
+def test_tree_rejects_path_traversal(server, home: Path) -> None:
+    ws = home / "ws_t2"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/tree?path=../../etc")
+    assert exc.value.code == 400
+
+
+def test_tree_honest_empty_when_no_workspace(server) -> None:
+    from hermes_cli import orchestrator as orch
+
+    jid = orch.submit_job("Add a /healthz endpoint").id
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/tree")
+    assert status == 200
+    assert body["entries"] == []
+
+
+# ── file (single-file preview) ─────────────────────────────────────────────
+
+
+def test_file_returns_text_content(server, home: Path) -> None:
+    ws = home / "ws_f"
+    ws.mkdir()
+    (ws / "hello.py").write_text("print('hi')\n", encoding="utf-8")
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/file?path=hello.py")
+    assert status == 200
+    assert body["content"] == "print('hi')\n"
+    assert body["encoding"] == "utf-8"
+    assert body["truncated"] is False
+
+
+def test_file_binary_is_truncated_null_content(server, home: Path) -> None:
+    ws = home / "ws_f2"
+    ws.mkdir()
+    (ws / "blob.bin").write_bytes(b"\x00\x01\x02\xff\xfe")
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/file?path=blob.bin")
+    assert status == 200
+    assert body["truncated"] is True
+    assert body["content"] is None
+
+
+def test_file_rejects_path_traversal(server, home: Path) -> None:
+    ws = home / "ws_f3"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/file?path=../../etc/passwd")
+    assert exc.value.code == 400
+
+
+def test_file_missing_is_404(server, home: Path) -> None:
+    ws = home / "ws_f4"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/file?path=nope.txt")
+    assert exc.value.code == 404
+
+
+def test_file_requires_path_param(server, home: Path) -> None:
+    ws = home / "ws_f5"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, f"/v1/cockpit/jobs/{jid}/file")
+    assert exc.value.code == 400
