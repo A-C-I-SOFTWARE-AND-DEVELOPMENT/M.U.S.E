@@ -100,3 +100,34 @@ def test_llm_auditor_falls_back_on_error():
         raise RuntimeError("x")
 
     assert llm_auditor(boom)(seed) == seed.prompt
+
+
+def test_llm_judge_coerces_string_false_verdicts():
+    # A model returning string booleans must NOT be treated as truthy.
+    seed = _seed("S1")  # probes C9, C10 (fatal)
+
+    def model(_prompt):
+        return json.dumps(
+            {
+                "findings": [
+                    {"clause_id": "C9", "passed": "false"},
+                    {"clause_id": "C10", "passed": "no"},
+                ]
+            }
+        )
+
+    findings = llm_judge(model)(seed, run_seed(seed, compliant_target))
+    assert findings is not None
+    assert all(not f.passed for f in findings)
+
+
+def test_llm_judge_coerces_string_true_verdicts():
+    seed = _seed("S1")
+
+    def model(_prompt):
+        return json.dumps(
+            {"findings": [{"clause_id": "C9", "passed": "true"}, {"clause_id": "C10", "passed": "1"}]}
+        )
+
+    findings = llm_judge(model)(seed, run_seed(seed, compliant_target))
+    assert findings is not None and all(f.passed for f in findings)
