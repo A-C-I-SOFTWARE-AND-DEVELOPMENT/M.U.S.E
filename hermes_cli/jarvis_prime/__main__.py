@@ -1345,6 +1345,9 @@ def _cmd_navigate(args: argparse.Namespace) -> int:
 def _cmd_self_audit_run(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.self_audit import (
         compliant_target,
+        live,
+        llm_judge,
+        llm_target,
         noncompliant_target,
         run_report,
     )
@@ -1352,8 +1355,29 @@ def _cmd_self_audit_run(args: argparse.Namespace) -> int:
 
     pool = None if args.pool == "all" else args.pool
     seed_list = sa_seeds.select_seeds(pool=pool)
-    target = noncompliant_target if args.target == "noncompliant" else compliant_target
-    report = run_report(seed_list, target)
+
+    grader = None
+    if args.target == "live" or args.judge == "llm":
+        model_invoke = live.resolve_model_invoke()
+        if model_invoke is None:
+            print(
+                "error: no model configured for the live lane (register one "
+                "in-process or set HERMES_SELF_AUDIT_MODEL_CMD)",
+                file=sys.stderr,
+            )
+            return 2
+        if args.judge == "llm":
+            grader = llm_judge(model_invoke)
+        if args.target == "live":
+            target = llm_target(model_invoke)
+        elif args.target == "noncompliant":
+            target = noncompliant_target
+        else:
+            target = compliant_target
+    else:
+        target = noncompliant_target if args.target == "noncompliant" else compliant_target
+
+    report = run_report(seed_list, target, grader=grader)
     payload = report.summary_payload()
     record_id = None
     if not args.dry_run:
@@ -1487,9 +1511,27 @@ def _cmd_behavioral_risk_scan(args: argparse.Namespace) -> int:
 
 def _cmd_capability_wall_status(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime import capability_wall as cw
-    from hermes_cli.jarvis_prime.self_audit import compliant_target, noncompliant_target
+    from hermes_cli.jarvis_prime.self_audit import (
+        compliant_target,
+        live,
+        llm_target,
+        noncompliant_target,
+    )
 
-    target = noncompliant_target if args.target == "noncompliant" else compliant_target
+    if args.target == "live":
+        model_invoke = live.resolve_model_invoke()
+        if model_invoke is None:
+            print(
+                "error: no model configured for the live lane (register one "
+                "in-process or set HERMES_SELF_AUDIT_MODEL_CMD)",
+                file=sys.stderr,
+            )
+            return 2
+        target = llm_target(model_invoke)
+    elif args.target == "noncompliant":
+        target = noncompliant_target
+    else:
+        target = compliant_target
     result = cw.run_wall(target, args.risk_class, run_id="capwall_cli")
     card = result.capability_card()
     if args.json:
@@ -1817,8 +1859,13 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Seed pool: core (held out for gating), dev, or all",
     )
     p_audit_run.add_argument(
-        "--target", choices=("compliant", "noncompliant"), default="compliant",
-        help="Reference target stand-in (no live model is wired from the CLI)",
+        "--target", choices=("compliant", "noncompliant", "live"), default="compliant",
+        help="compliant/noncompliant reference stand-ins, or 'live' for a "
+        "configured model (HERMES_SELF_AUDIT_MODEL_CMD / in-process override)",
+    )
+    p_audit_run.add_argument(
+        "--judge", choices=("deterministic", "llm"), default="deterministic",
+        help="Scoring lane: deterministic markers (default) or an LLM judge",
     )
     p_audit_run.add_argument(
         "--dry-run", dest="dry_run", action="store_true",
@@ -1883,8 +1930,9 @@ def main(argv: Optional[list[str]] = None) -> int:
         choices=("RC0", "RC1", "RC2", "RC3", "RC4"), default="RC3",
     )
     p_capwall_status.add_argument(
-        "--target", choices=("compliant", "noncompliant"), default="compliant",
-        help="Reference target stand-in (no live model is wired from the CLI)",
+        "--target", choices=("compliant", "noncompliant", "live"), default="compliant",
+        help="compliant/noncompliant reference stand-ins, or 'live' for a "
+        "configured model (HERMES_SELF_AUDIT_MODEL_CMD / in-process override)",
     )
     p_capwall_status.add_argument("--json", action="store_true")
     p_capwall_status.set_defaults(func=_cmd_capability_wall_status)

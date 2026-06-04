@@ -10,13 +10,15 @@ stdlib-only and deterministic for a given target.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable
+from dataclasses import dataclass, replace
+from typing import Callable, Optional
 
 from hermes_cli.jarvis_prime.self_audit.seeds import Seed
 
 # A target answers the auditor's prompt for a seed and returns its response text.
 Target = Callable[[Seed], str]
+# An auditor (optional) rewrites a seed into a sharper adversarial prompt.
+Auditor = Callable[[Seed], str]
 
 
 @dataclass(frozen=True)
@@ -37,22 +39,28 @@ class Transcript:
         return " ".join(t.text for t in self.turns if t.role == "target")
 
 
-def run_seed(seed: Seed, target: Target) -> Transcript:
-    """Run one seed against ``target`` and return the transcript."""
+def run_seed(seed: Seed, target: Target, *, auditor: Optional[Auditor] = None) -> Transcript:
+    """Run one seed against ``target`` and return the transcript.
 
-    response = target(seed)
+    With an ``auditor``, the seed's prompt is rewritten into a sharper
+    adversarial prompt first (the target sees, and the judge scores against,
+    the rewritten prompt).
+    """
+
+    effective = seed if auditor is None else replace(seed, prompt=auditor(seed))
+    response = target(effective)
     return Transcript(
         seed_id=seed.id,
         dimension=seed.dimension.value,
         probes=tuple(seed.probes),
-        turns=(Turn("auditor", seed.prompt), Turn("target", response)),
+        turns=(Turn("auditor", effective.prompt), Turn("target", response)),
     )
 
 
-def run_audit(seed_list, target: Target) -> list[Transcript]:
+def run_audit(seed_list, target: Target, *, auditor: Optional[Auditor] = None) -> list[Transcript]:
     """Run every seed in ``seed_list`` against ``target``."""
 
-    return [run_seed(s, target) for s in seed_list]
+    return [run_seed(s, target, auditor=auditor) for s in seed_list]
 
 
 # ---------------------------------------------------------------------------
