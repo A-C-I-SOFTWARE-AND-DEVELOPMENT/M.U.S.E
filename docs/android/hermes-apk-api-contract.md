@@ -68,11 +68,12 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Jobs — list / dispatch / detail | `/v1/cockpit/jobs`, `/jobs/{id}`, `/jobs/{id}/ledger` | ✅ live |
 | Jobs — controls | `/jobs/{id}/run\|cancel\|pause\|resume\|rerun\|approve\|validate`, `/orchestrate`, `/jobs/lanes` | ✅ live |
 | Jobs — workspace reads | `/jobs/{id}/diff\|files-changed\|validation\|tree\|file` | ✅ live |
-| Jobs — live stream | `GET /jobs/{id}/stream` (SSE) | ⏳ planned |
+| Jobs — live stream | `GET /jobs/stream` (SSE) | ✅ live |
 | Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
-| Publishing | `GET /jobs/{id}/publish/preview`, `POST /jobs/{id}/publish` | ⏳ planned |
+| Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
+| Publishing — open PR | `POST /jobs/{id}/publish` | ⏳ planned (owner-gated; needs a PAT) |
 | Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
-| Templates | `GET /v1/cockpit/templates` | ⏳ planned |
+| Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
 | Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
 | Graph / learning / skills / navigation / sessions | `/graph/*`, `/learning*`, `/skills`, `/navigation`, `/sessions` | ✅ live |
@@ -206,10 +207,12 @@ Lists the workers the gateway has detected on its host. The cockpit's
 
 ### `GET /v1/cockpit/templates`
 
-> ⏳ **Planned** — not yet served; the cockpit uses its bundled default list.
+> ✅ **Live.** Reads owner-defined templates from
+> `${HERMES_HOME:-~/.hermes}/cockpit/templates.json`; honest-empty
+> `{"templates": []}` when absent (the cockpit then uses its bundled defaults).
 
-Optional. Returns named prompt templates the gateway exposes. Cockpit
-falls back to a bundled default list if this returns 404.
+Returns named prompt templates the gateway exposes (`{"id","title","body"}`
+each). Malformed entries are skipped, never fabricated.
 
 ```json
 {
@@ -241,7 +244,8 @@ adapters in `gateway/cockpit/contract.py` (`cockpit_job`,
 `orchestrator_job`, `orchestrator_job_detail`, `queue_job_detail`). The
 list merges JobQueue **and** orchestrator (`/orchestrate`) jobs so every
 backend job appears. The **SSE stream** (`/jobs/stream`) and the
-publish-preview/publish sub-resources remain specified-but-pending — see
+**publish-preview** sub-resource are now live; only the **publish** POST
+remains pending — see
 `MOBILE-JOBS-STREAMING-001` in `docs/orchestration/next-roadmap.md`;
 the Android cockpit uses REST polling + foreground notifications today,
 not SSE. Git/publish metadata (`branch`, `validation_summary`,
@@ -344,8 +348,10 @@ Query: `status` (csv, optional), `worker_id` (optional), `cursor`,
 
 ### `GET /v1/cockpit/jobs/stream`
 
-> ⏳ **Planned** — not yet served; the cockpit polls the REST routes (see the
-> mobile guide) until SSE lands.
+> ✅ **Live.** Snapshot-diff stream: emits a `job.upsert` for every job on
+> connect (initial state), then `job.upsert`/`job.removed` deltas, plus a
+> `heartbeat` every 15s. Bearer-authed; exits promptly on disconnect/shutdown.
+> The cockpit may still fall back to REST polling.
 
 Server-Sent Events. Each event is a delta:
 
@@ -554,7 +560,9 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 
 ### `GET /v1/cockpit/jobs/{id}/publish/preview`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Read-only, pure-git: derives remote/branch/base, the commits on
+> the branch vs base, and a default PR title/body. Honest nulls/empty when the
+> job has no git workspace. (The `POST .../publish` below remains planned.)
 
 ```json
 {

@@ -857,6 +857,35 @@ def audit_proof(req: Request) -> JsonResponse:
     return JsonResponse(404, {"error": f"unknown proof: {proof_id}"})
 
 
+def _collect_jobs() -> list[dict[str, Any]]:
+    """Merge JobQueue + orchestrator jobs into canonical ``CockpitJob`` dicts.
+
+    Shared by the ``/jobs/stream`` SSE diff so the live stream and the REST
+    ``jobs_list`` project through the same adapters and cannot drift. Best-effort
+    per store — one failing never blanks the other. (Keep in sync with
+    ``jobs_list``.)
+    """
+    from . import contract
+
+    jobs: list[dict[str, Any]] = []
+    try:
+        from hermes_cli.job_queue import JobQueue
+
+        for entry in JobQueue().list_jobs():
+            jobs.append(contract.cockpit_job(entry))
+    except Exception:  # pragma: no cover - defensive
+        pass
+    try:
+        from hermes_cli import orchestrator as _orch
+
+        for job in _orch.list_jobs():
+            jobs.append(contract.orchestrator_job(job))
+    except Exception:  # pragma: no cover - defensive
+        pass
+    jobs.sort(key=lambda j: j.get("created_at") or "", reverse=True)
+    return jobs
+
+
 def jobs_list(_req: Request) -> JsonResponse:
     """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []
@@ -1704,6 +1733,119 @@ def job_file(req: Request) -> JsonResponse:
     return JsonResponse(200, {
         "path": rel_out, "size": size, "truncated": False,
         "content": content, "encoding": "utf-8",
+    })
+
+
+def templates_list(_req: Request) -> JsonResponse:
+    """Owner-defined prompt templates (contract §3) — read-only.
+
+    Templates live at ``${HERMES_HOME:-~/.hermes}/cockpit/templates.json`` as a
+    list of ``{"id","title","body"}`` objects (or ``{"templates": [...]}``).
+    Honest-empty list when the file is absent/unreadable — the cockpit then
+    falls back to its bundled defaults. Malformed entries are skipped, never
+    guessed or fabricated.
+    """
+    import json
+    import os
+    from pathlib import Path
+
+    base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
+    path = Path(base) / "cockpit" / "templates.json"
+    items: list[dict[str, Any]] = []
+    try:
+        if path.is_file():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            raw = loaded.get("templates") if isinstance(loaded, dict) else loaded
+            for t in raw or []:
+                if not isinstance(t, dict):
+                    continue
+                tid = str(t.get("id", "") or "").strip()
+                title = str(t.get("title", "") or "").strip()
+                body = str(t.get("body", "") or "")
+                if tid and title and body:
+                    items.append({"id": tid, "title": title, "body": body})
+    except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
+        items = []
+    return JsonResponse(200, {"templates": items})
+
+
+def _git_commits(workspace: str, base: Optional[str]) -> list[dict[str, Any]]:
+    """``git log base..HEAD`` subjects in ``workspace``; honest-empty on failure."""
+    import subprocess
+    from pathlib import Path
+
+    ws = Path(workspace)
+    if not ws.is_dir():
+        return []
+    rng = f"{base}..HEAD" if base else "HEAD"
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(ws), "log", "--pretty=format:%h%x09%s", rng],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if out.returncode != 0:
+            return []
+    except Exception:  # pragma: no cover - defensive (git missing / bad range)
+        return []
+    commits: list[dict[str, Any]] = []
+    for line in out.stdout.splitlines():
+        parts = line.split("\t", 1)
+        if len(parts) == 2:
+            commits.append({"sha": parts[0], "subject": parts[1]})
+    return commits
+
+
+def job_publish_preview(req: Request) -> JsonResponse:
+    """Read-only preview of what publishing this job would open (contract §8).
+
+    Derives the remote/branch/base, the commits on the branch vs its base, and a
+    default PR title/body from git in the job's workspace — **no network, no
+    writes**. Honest nulls/empty when the job has no git workspace or no commits
+    ahead of base. The actual ``POST .../publish`` (push + open PR) is a separate,
+    owner-gated route.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    md = dict(getattr(obj, "metadata", None) or {})
+    workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
+    if not workspace:
+        return JsonResponse(200, {
+            "remote": None, "branch": None, "base": None, "commits": [],
+            "default_title": None, "default_body": None, "existing_pr_url": None,
+        })
+
+    def _git(args: list[str]) -> str:
+        import subprocess
+        try:
+            out = subprocess.run(
+                ["git", "-C", workspace, *args],
+                capture_output=True, text=True, timeout=20,
+            )
+            return out.stdout.strip() if out.returncode == 0 else ""
+        except Exception:  # pragma: no cover - defensive
+            return ""
+
+    remote = md.get("remote") or "origin"
+    branch = md.get("branch") or _git(["rev-parse", "--abbrev-ref", "HEAD"]) or None
+    base = md.get("base_branch") or "main"
+    commits = _git_commits(workspace, base)
+    default_title: Optional[str] = commits[0]["subject"] if commits else None
+    default_body: Optional[str] = None
+    if commits:
+        changes = "\n".join(f"- {c['subject']}" for c in commits)
+        default_body = f"## Summary\n\n## Changes\n{changes}\n"
+    return JsonResponse(200, {
+        "remote": remote,
+        "branch": branch,
+        "base": base,
+        "commits": commits,
+        "default_title": default_title,
+        "default_body": default_body,
+        "existing_pr_url": None,
     })
 
 
@@ -3114,6 +3256,7 @@ __all__ = [
     "job_get",
     "job_ledger",
     "job_pause",
+    "job_publish_preview",
     "job_rerun",
     "job_resume",
     "job_tree",
@@ -3138,4 +3281,5 @@ __all__ = [
     "runtime_status",
     "runtime_workers",
     "skills_list",
+    "templates_list",
 ]

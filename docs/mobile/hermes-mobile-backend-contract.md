@@ -42,10 +42,10 @@ Release builds use HTTPS only — see
   route except `GET /v1/health`. Stored in
   EncryptedSharedPreferences on the device.
 - Provider API keys (OpenAI / Anthropic / OpenRouter / …) live on the
-  gateway, never on the phone. The cockpit must not include
-  `X-Hermes-Provider-Key` on any cockpit route. (The legacy chat route
-  defined in `apps/android/docs/ARCHITECTURE.md` accepts that header for
-  the older client; new cockpit code should not use it.)
+  gateway, never on the phone. No cockpit route — including the live
+  `POST /v1/jarvis/chat` — accepts a provider-key header; clients send
+  only `Authorization: Bearer <token>`. (A retired pre-cockpit chat
+  design once forwarded an `X-Hermes-Provider-Key`; it is gone.)
 - 401 from any cockpit route routes the user to **Settings →
   Connection** with the explanation *"Gateway token rejected"*. The
   cockpit does not auto-retry on 401.
@@ -231,8 +231,9 @@ intents. See
 
 ## 8. Why the cockpit contract, not the legacy chat contract
 
-The Android app today speaks the legacy `POST /v1/chat` + SSE wire
-documented in `apps/android/docs/ARCHITECTURE.md`. Phase 18 replaces
+The Android app historically spoke a legacy `POST /v1/chat` + SSE wire;
+it now speaks the cockpit contract plus the live `POST /v1/jarvis/chat`
+NDJSON stream (`apps/android/docs/ARCHITECTURE.md`). Phase 18 replaced
 that with the cockpit contract for **everything except** plain chat —
 the cockpit's job is to drive orchestrated jobs end-to-end, not to be a
 chat shell.

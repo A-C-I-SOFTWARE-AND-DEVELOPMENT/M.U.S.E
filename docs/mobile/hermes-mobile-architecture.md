@@ -143,8 +143,9 @@ at compile time. If the graph crosses ~20 leaves or a second
   the version catalog.
 - **OkHttp-SSE** consumes Server-Sent Events. The
   `/v1/cockpit/jobs/stream` and `/v1/cockpit/events/stream` endpoints
-  use SSE; the chat endpoint (`POST /v1/chat`) also responds with SSE
-  in the existing wire spec.
+  are the planned SSE surfaces; the live chat endpoint
+  (`POST /v1/jarvis/chat`) streams **NDJSON** (`application/x-ndjson`),
+  not SSE.
 - **kotlinx.serialization** decodes JSON. `CockpitApi.kt` already
   declares the schemas with `@Serializable`.
 - **Timeouts:** the health probe uses a short-timeout OkHttp clone
@@ -380,7 +381,7 @@ We do **not** introduce product flavours. Two build types only:
 
 | Build type | App id | Mock mode default | Cleartext HTTP | Notes |
 |---|---|---|---|---|
-| `debug` | `com.aci.hermes.debug` | ON | allowed | sits alongside release; default gateway is `http://10.0.2.2:8080`. |
+| `debug` | `com.aci.hermes.debug` | ON | allowed | sits alongside release; default gateway is `http://127.0.0.1:8765` (`SettingsRepository.DEFAULT_GATEWAY_ENDPOINT`). |
 | `release` | `com.aci.hermes` | OFF | gated (planned: off-by-default ahead of 1.0) | user enters gateway URL on first run. |
 
 The release variant is what we ship to Play Store / F-Droid. Future
