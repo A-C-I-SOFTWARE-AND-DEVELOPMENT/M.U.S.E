@@ -23,10 +23,11 @@ from enterprise.audit import AuditEvent, audit
 from enterprise.council import dispatch, plan
 from enterprise.judge import cross_check
 from enterprise.policy import Risk, classify, requires_human
-from enterprise.secrets import SecretBundle, fetch_secret
+from enterprise.secrets import OAuthRefreshError, SecretBundle, fetch_secret
 
 __all__ = [
     "AuditEvent",
+    "OAuthRefreshError",
     "Risk",
     "SecretBundle",
     "audit",

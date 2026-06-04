@@ -104,6 +104,22 @@ class CockpitJobsRepository(
     /** Run verification gates ("run verification"). */
     suspend fun validate(id: String): CockpitResult<ValidationSnapshot> = client.jobValidate(id)
 
+    /**
+     * The HyperAgent navigation decision for [id] (the pre-dispatch "where to
+     * look"), or null when this job never navigated. The endpoint returns all
+     * recent decisions; we select this job's most-recent one.
+     */
+    suspend fun navigation(id: String): CockpitResult<CockpitNavigation?> =
+        // Filter server-side by job so an older job's decision isn't dropped by
+        // the global recency cap; the client-side firstOrNull is a tolerant
+        // fallback for a gateway that predates the ?job= filter.
+        when (val res = client.navigation(job = id)) {
+            is CockpitResult.Success ->
+                CockpitResult.Success(res.value.navigations.firstOrNull { it.jobId == id })
+            is CockpitResult.Failure -> res
+            is CockpitResult.Unreachable -> res
+        }
+
     private suspend fun mutating(
         action: suspend () -> CockpitResult<CockpitJob>,
     ): CockpitResult<CockpitJob> {

@@ -1,0 +1,180 @@
+# ===========================================================================
+# Second Brain — CI pipeline (example).
+#
+# This file lives inside second_brain/ as a reference. To activate it for the
+# whole repository, copy it to `.github/workflows/second-brain-ci.yml` at the
+# repository root (GitHub only discovers workflows under the top-level
+# .github/workflows directory).
+# ===========================================================================
+name: second-brain-ci
+
+on:
+  push:
+    paths:
+      - "second_brain/**"
+  pull_request:
+    paths:
+      - "second_brain/**"
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Lint + offline smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff==0.15.10
+
+      - name: Lint (PLW1514 — explicit text encodings)
+        run: ruff check second_brain
+
+      - name: Byte-compile
+        run: python -m compileall second_brain/knowledge second_brain/evaluation
+
+      - name: Offline smoke test (no database required)
+        working-directory: second_brain
+        run: |
+          python - <<'PY'
+          from knowledge.ingestion import HashingEmbeddingProvider, SemanticChunker
+          from knowledge.ingestion import RegexEntityExtractor, RelationshipExtractor
+          from knowledge.models import MemoryNode
+          from knowledge.reasoning_engine import ReasoningEngine
+          from knowledge.config import load_settings
+          from evaluation import (
+              precision_at_k, recall_at_k, grounding_coverage,
+              hallucination_score, LatencyBenchmark,
+          )
+
+          emb = HashingEmbeddingProvider(dimension=256)
+          v1 = emb.embed_one("Ada Lovelace wrote the first algorithm.")
+          v2 = emb.embed_one("Ada Lovelace wrote the first algorithm.")
+          assert v1 == v2, "hashing embeddings must be deterministic"
+
+          chunks = SemanticChunker(target_tokens=24, overlap_tokens=6).chunk(
+              "Ada Lovelace was a mathematician. She worked with Charles Babbage. "
+              "The Analytical Engine inspired her notes."
+          )
+          assert chunks, "chunker produced no chunks"
+
+          ents = RegexEntityExtractor().extract("Ada Lovelace worked with Charles Babbage.")
+          assert "Ada Lovelace" in ents
+
+          rels = RelationshipExtractor().extract(
+              "Ada Lovelace collaborated with Charles Babbage.", ents
+          )
+          node = MemoryNode(
+              content="Ada Lovelace collaborated with Charles Babbage.",
+              embedding=v1, entities=ents,
+              relationships=[r.encode() for r in rels],
+              source_id="bio",
+          )
+          result = ReasoningEngine(settings=load_settings()).reason([node])
+          assert result.inferences, "expected at least one inference"
+
+          assert precision_at_k(["a", "b", "c"], ["a", "c"], 2) == 0.5
+          assert recall_at_k(["a", "b", "c"], ["a", "c"], 3) == 1.0
+          g = grounding_coverage("Ada wrote the first algorithm.",
+                                 ["Ada Lovelace wrote the first algorithm."])
+          assert g.coverage == 1.0
+          h = hallucination_score("Ada lived on Mars.",
+                                  ["Ada Lovelace wrote the first algorithm."])
+          assert h.score > 0.0
+          LatencyBenchmark(warmup=1).run(lambda: emb.embed_one("benchmark"), iterations=5)
+          print("offline smoke OK")
+          PY
+
+  integration:
+    name: Postgres + Neo4j integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: second_brain
+          POSTGRES_USER: second_brain
+          POSTGRES_PASSWORD: second_brain
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U second_brain"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/second_brain_pw
+        ports:
+          - 7687:7687
+          - 7474:7474
+        options: >-
+          --health-cmd "wget -qO- http://localhost:7474 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      SECOND_BRAIN_PG_HOST: localhost
+      SECOND_BRAIN_PG_PORT: "5432"
+      SECOND_BRAIN_PG_DB: second_brain
+      SECOND_BRAIN_PG_USER: second_brain
+      SECOND_BRAIN_PG_PASSWORD: second_brain
+      SECOND_BRAIN_PG_SSLMODE: disable
+      SECOND_BRAIN_NEO4J_URI: bolt://localhost:7687
+      SECOND_BRAIN_NEO4J_USER: neo4j
+      SECOND_BRAIN_NEO4J_PASSWORD: second_brain_pw
+      SECOND_BRAIN_EMBEDDING_PROVIDER: hashing
+      SECOND_BRAIN_EMBEDDING_DIM: "1536"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r second_brain/requirements.txt
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migration
+        env:
+          PGPASSWORD: second_brain
+        run: |
+          psql -h localhost -U second_brain -d second_brain \
+               -v ON_ERROR_STOP=1 -f second_brain/migrations/001_init.sql
+
+      - name: End-to-end smoke (ingest -> retrieve -> reason -> maintain)
+        working-directory: second_brain
+        run: |
+          python - <<'PY'
+          from knowledge import SecondBrain, load_settings
+
+          brain = SecondBrain(load_settings(), enable_graph=True)
+          brain.ensure_graph_schema()
+          brain.ingest_text(
+              "Ada Lovelace collaborated with Charles Babbage on the Analytical "
+              "Engine. She is regarded as the first computer programmer.",
+              source_id="history/ada",
+              metadata={"trust": 0.9, "source_type": "encyclopedia"},
+          )
+          payload = brain.retrieve("Who worked with Charles Babbage?")
+          assert payload.blocks, "no context retrieved"
+          print(payload.to_prompt()[:200])
+
+          reasoning = brain.retrieve_and_reason("Charles Babbage")
+          print("inferences:", len(reasoning.inferences))
+
+          report = brain.maintain()
+          print("maintenance:", report)
+          brain.close()
+          print("integration smoke OK")
+          PY

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.aci.hermes.data.cockpit.CockpitNavigation
 import com.aci.hermes.data.cockpit.JobDetail
 import com.aci.hermes.data.cockpit.JobTimelineEntry
 import com.aci.hermes.data.cockpit.JobWorkerRef
@@ -127,6 +128,9 @@ fun JobDetailScreen(
                 patchText = state.patch?.diff,
                 patchLoading = state.patchLoading,
                 verification = state.verification?.let { v -> v.gates.size },
+                navigation = state.navigation,
+                navLoading = state.navLoading,
+                navLoaded = state.navLoaded,
                 onPause = viewModel::pause,
                 onResume = viewModel::resume,
                 onCancel = viewModel::cancel,
@@ -134,6 +138,7 @@ fun JobDetailScreen(
                 onApprove = { showApprove = true },
                 onOpenPatch = viewModel::openPatch,
                 onVerify = viewModel::runVerification,
+                onLoadNavigation = viewModel::loadNavigation,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -149,6 +154,9 @@ private fun JobDetailBody(
     patchText: String?,
     patchLoading: Boolean,
     verification: Int?,
+    navigation: CockpitNavigation?,
+    navLoading: Boolean,
+    navLoaded: Boolean,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onCancel: () -> Unit,
@@ -156,6 +164,7 @@ private fun JobDetailBody(
     onApprove: () -> Unit,
     onOpenPatch: () -> Unit,
     onVerify: () -> Unit,
+    onLoadNavigation: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -178,6 +187,39 @@ private fun JobDetailBody(
                 ControlButton("Approve", enabled = uiState.needsAttention, onClick = onApprove)
                 ControlButton("Open patch", enabled = true, onClick = onOpenPatch)
                 ControlButton("Run verification", enabled = !verifying, onClick = onVerify)
+                ControlButton("Navigation", enabled = !navLoading, onClick = onLoadNavigation)
+            }
+        }
+
+        if (navLoading) {
+            item { Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
+        }
+        navigation?.let { nav ->
+            sectionCard("Navigation — where Jarvis looked") {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (nav.objective.isNotBlank()) {
+                        Text(nav.objective, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (nav.candidateFiles.isEmpty()) {
+                        Text("No candidate files recorded.", style = MaterialTheme.typography.bodySmall)
+                    } else {
+                        nav.candidateFiles.forEach { c ->
+                            Text(
+                                "#${c.rank} ${c.path}  ·  ${(c.confidence * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                            if (c.rationale.isNotBlank()) {
+                                Text(c.rationale.take(160), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (navLoaded && navigation == null && !navLoading) {
+            sectionCard("Navigation") {
+                Text("This job did not record a navigation decision.", style = MaterialTheme.typography.bodySmall)
             }
         }
 
