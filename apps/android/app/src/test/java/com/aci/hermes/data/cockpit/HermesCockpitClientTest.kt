@@ -123,6 +123,13 @@ class HermesCockpitClientTest {
     }
 
     @Test
+    fun `navigation passes the job filter to the gateway`() = runTest {
+        val fake = FakeExecutor { CockpitRawResponse(200, """{"navigations":[]}""") }
+        client(fake).navigation(job = "orc-1")
+        assertTrue(fake.lastRequest!!.url.contains("job=orc-1"))
+    }
+
+    @Test
     fun `runtimeWorkers parses the worker list`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

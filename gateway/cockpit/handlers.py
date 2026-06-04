@@ -1536,8 +1536,13 @@ def navigation_list(req: Request) -> JsonResponse:
     """Recent HyperAgent navigation decisions (the pre-dispatch "where to look"),
     read from the orchestrator job ledger. Honest empty when no ``/orchestrate``
     job has navigated yet.
+
+    Optional ``?job=<id>`` filters to a single job's decisions *before* the
+    ``limit`` truncation — so the app's job-detail view never loses an older
+    job's decision to the global recency cap.
     """
     limit = int(req.query.get("limit", "50"))
+    job_filter = (req.query.get("job") or "").strip() or None
     items: list[dict[str, Any]] = []
     try:
         from hermes_cli import orchestrator as orch
@@ -1546,6 +1551,8 @@ def navigation_list(req: Request) -> JsonResponse:
 
         ledger = orch.get_ledger() or {}
         for job_id, entries in ledger.items():
+            if job_filter is not None and job_id != job_filter:
+                continue
             for entry in entries or []:
                 if (
                     isinstance(entry, dict)

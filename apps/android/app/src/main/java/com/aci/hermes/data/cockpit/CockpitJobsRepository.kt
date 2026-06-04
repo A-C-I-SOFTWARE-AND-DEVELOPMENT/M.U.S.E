@@ -110,7 +110,10 @@ class CockpitJobsRepository(
      * recent decisions; we select this job's most-recent one.
      */
     suspend fun navigation(id: String): CockpitResult<CockpitNavigation?> =
-        when (val res = client.navigation()) {
+        // Filter server-side by job so an older job's decision isn't dropped by
+        // the global recency cap; the client-side firstOrNull is a tolerant
+        // fallback for a gateway that predates the ?job= filter.
+        when (val res = client.navigation(job = id)) {
             is CockpitResult.Success ->
                 CockpitResult.Success(res.value.navigations.firstOrNull { it.jobId == id })
             is CockpitResult.Failure -> res
