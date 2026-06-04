@@ -386,17 +386,22 @@ class TestTryRecoverPrimaryTransport:
         agent = _make_agent(provider="custom")
         error = _make_transport_error("ReadTimeout")
 
+        # Give the sleep mock a tiny REAL sleep as its side effect. Patching the
+        # global time.sleep to a pure no-op makes any background daemon thread in
+        # the (27k-test) process busy-spin on sleep; under CI parallel load that
+        # CPU starvation pushed this test into the 30s timeout (it passes fast in
+        # isolation). A ~1ms real sleep lets those threads yield while keeping the
+        # test fast. Recorded call args are unaffected.
+        import time as _time
+        _real_sleep = _time.sleep
         with patch("run_agent.OpenAI", return_value=MagicMock()), \
-             patch("time.sleep") as mock_sleep:
+             patch("time.sleep", side_effect=lambda *_a, **_k: _real_sleep(0.001)) as mock_sleep:
             agent._try_recover_primary_transport(
                 error, retry_count=10, max_retries=3,
             )
-            # wait_time = min(3 + 10, 8) = 8.
-            # assert_any_call (not assert_called_once_with): this patches the
-            # global time.sleep, so unrelated background threads in the test
-            # process can also call it, making an exact call count flaky
-            # (observed: "Called 902070 times"). The real invariant is that the
-            # backoff is capped at 8.
+            # wait_time = min(3 + 10, 8) = 8. assert_any_call (not
+            # assert_called_once_with) because the global patch also sees
+            # unrelated background-thread calls; the real invariant is the cap at 8.
             mock_sleep.assert_any_call(8)
 
     def test_closes_existing_client_before_rebuild(self):
