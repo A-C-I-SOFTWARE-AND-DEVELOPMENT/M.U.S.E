@@ -102,6 +102,27 @@ class HermesCockpitClientTest {
     }
 
     @Test
+    fun `navigation parses the decision list with candidate files`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"navigations":[{"job_id":"orc-1","objective":"fix upload","method":"hyperagent",
+                   "candidate_files":[{"path":"a.py","rank":1,"confidence":0.9,"rationale":"entry"}],
+                   "verify_with":["pytest"]}]}""",
+            )
+        }
+        val result = client(fake).navigation()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        val nav = result.value.navigations.single()
+        assertEquals("orc-1", nav.jobId)
+        assertEquals("a.py", nav.candidateFiles[0].path)
+        assertEquals("GET", fake.lastRequest?.method)
+        assertTrue(fake.lastRequest!!.url.startsWith("http://127.0.0.1:8765/v1/cockpit/navigation"))
+    }
+
+    @Test
     fun `runtimeWorkers parses the worker list`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

@@ -359,6 +359,10 @@ class HermesCockpitClient(
     suspend fun skillsList(): CockpitResult<CockpitSkillList> =
         request("GET", "/v1/cockpit/skills", CockpitSkillList.serializer())
 
+    /** Recent HyperAgent navigation decisions (pre-dispatch "where to look"). */
+    suspend fun navigation(limit: Int = 50): CockpitResult<CockpitNavigationList> =
+        request("GET", "/v1/cockpit/navigation?limit=$limit", CockpitNavigationList.serializer())
+
     // ─── Research Vault (evidence store) ─────────────────────────────────
     suspend fun research(limit: Int = 10): CockpitResult<CockpitResearchList> =
         request("GET", "/v1/cockpit/research?limit=$limit", CockpitResearchList.serializer())
