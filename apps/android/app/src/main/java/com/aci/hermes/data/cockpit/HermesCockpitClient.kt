@@ -355,6 +355,10 @@ class HermesCockpitClient(
     suspend fun modelPolicy(): CockpitResult<ModelPolicy> =
         request("GET", "/v1/cockpit/models", ModelPolicy.serializer())
 
+    /** The gateway's real installed skills (read-only; honest empty when none). */
+    suspend fun skillsList(): CockpitResult<CockpitSkillList> =
+        request("GET", "/v1/cockpit/skills", CockpitSkillList.serializer())
+
     // ─── Research Vault (evidence store) ─────────────────────────────────
     suspend fun research(limit: Int = 10): CockpitResult<CockpitResearchList> =
         request("GET", "/v1/cockpit/research?limit=$limit", CockpitResearchList.serializer())

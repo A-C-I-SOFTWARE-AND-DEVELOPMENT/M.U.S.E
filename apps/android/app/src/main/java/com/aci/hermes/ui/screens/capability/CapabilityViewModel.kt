@@ -2,8 +2,12 @@ package com.aci.hermes.ui.screens.capability
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.capability.RoutePreview
+import com.aci.hermes.data.cockpit.CockpitResult
+import com.aci.hermes.data.cockpit.CockpitSkill
+import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.model.Capability
 import com.aci.hermes.data.model.CapabilityCategory
 import com.aci.hermes.data.orchestrator.HandoffLauncher
@@ -12,6 +16,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+/** Sync state of the gateway's real installed skills (honest, never faked). */
+sealed interface InstalledSkillsSync {
+    data object Idle : InstalledSkillsSync
+    data object NotPaired : InstalledSkillsSync
+    data class Loaded(val count: Int) : InstalledSkillsSync
+    data class Error(val message: String) : InstalledSkillsSync
+}
 
 data class CapabilityUiState(
     val query: String = "",
@@ -21,6 +34,8 @@ data class CapabilityUiState(
     val totalCount: Int = 0,
     val selected: Capability? = null,
     val preview: RoutePreview? = null,
+    val installedSkills: List<CockpitSkill> = emptyList(),
+    val installedSync: InstalledSkillsSync = InstalledSkillsSync.Idle,
     val snackbar: String? = null,
 )
 
@@ -34,6 +49,7 @@ class CapabilityViewModel(
     application: Application,
     private val repository: CapabilityRepository,
     private val logBuffer: LogBuffer,
+    private val cockpitClient: HermesCockpitClient? = null,
 ) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(CapabilityUiState())
@@ -41,6 +57,35 @@ class CapabilityViewModel(
 
     init {
         refresh()
+        loadInstalledSkills()
+    }
+
+    /**
+     * Load the gateway's real installed skills (live), shown alongside the
+     * curated catalog so the screen reflects what the backend actually has.
+     * Honest states only — an unpaired/unreachable gateway shows no fake skills.
+     */
+    fun loadInstalledSkills() {
+        val client = cockpitClient ?: return
+        viewModelScope.launch {
+            if (!client.isPaired()) {
+                _state.update { it.copy(installedSkills = emptyList(), installedSync = InstalledSkillsSync.NotPaired) }
+                return@launch
+            }
+            when (val res = client.skillsList()) {
+                is CockpitResult.Success ->
+                    _state.update {
+                        it.copy(
+                            installedSkills = res.value.skills,
+                            installedSync = InstalledSkillsSync.Loaded(res.value.skills.size),
+                        )
+                    }
+                is CockpitResult.Failure ->
+                    _state.update { it.copy(installedSync = InstalledSkillsSync.Error("Gateway error ${res.httpStatus}: ${res.error.message}")) }
+                is CockpitResult.Unreachable ->
+                    _state.update { it.copy(installedSync = InstalledSkillsSync.Error(res.message)) }
+            }
+        }
     }
 
     fun setQuery(query: String) {
