@@ -32,6 +32,58 @@ def _is_local(base_url: str) -> bool:
     return any(h in (base_url or "") for h in ("localhost", "127.0.0.1", "0.0.0.0", "::1"))
 
 
+def _is_credential_var(name: str) -> bool:
+    """A real credential env var, not a base-URL / endpoint override."""
+
+    upper = name.upper()
+    return not (upper.endswith("URL") or upper.endswith("ENDPOINT"))
+
+
+def credential_env_vars(env_vars: Iterable[str]) -> tuple[str, ...]:
+    """Keep only API-key-style vars (drop ``*_BASE_URL`` / ``*_URL`` / ``*_ENDPOINT``).
+
+    Provider profiles list both the key var and a base-URL override in
+    ``env_vars``; only the former proves a provider is usable.
+    """
+
+    return tuple(v for v in env_vars if _is_credential_var(v))
+
+
+def load_hermes_dotenv(home: Optional[Path] = None) -> dict:
+    """Parse ``$HERMES_HOME/.env`` (or ``~/.hermes/.env``) — where Hermes stores
+    API keys — into a dict. Returns ``{}`` when absent/unreadable. stdlib
+    ``KEY=VALUE`` parse (``#`` comments and surrounding quotes handled)."""
+
+    base = (
+        Path(home)
+        if home
+        else Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+    )
+    env_file = base / ".env"
+    if not env_file.exists():
+        return {}
+    try:
+        text = env_file.read_text(encoding="utf-8")
+    except OSError:
+        return {}
+    out: dict = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if key:
+            out[key] = value.strip().strip('"').strip("'")
+    return out
+
+
+def _default_env() -> dict:
+    """Process environment merged over the Hermes ``.env`` (process env wins)."""
+
+    return {**load_hermes_dotenv(), **os.environ}
+
+
 def _default_ollama_list() -> str:
     proc = subprocess.run(
         ["ollama", "list"], capture_output=True, text=True, check=False, timeout=10
@@ -99,7 +151,7 @@ def provider_statuses(
 ) -> list[ProviderStatus]:
     """Resolve each provider to an availability status (sorted: available first)."""
 
-    env = env if env is not None else dict(os.environ)
+    env = env if env is not None else _default_env()
     installed = installed_local_models or []
     statuses: list[ProviderStatus] = []
     for name, env_vars, base_url in specs:
@@ -112,13 +164,15 @@ def provider_statuses(
             )
             statuses.append(ProviderStatus(name, "local", tuple(env_vars), avail, detail))
         else:
-            present = any(bool((env.get(var) or "").strip()) for var in env_vars)
-            detail = (
-                "credential present"
-                if present
-                else ("set " + " / ".join(env_vars) if env_vars else "no credential env configured")
-            )
-            statuses.append(ProviderStatus(name, "cloud", tuple(env_vars), present, detail))
+            cred_vars = credential_env_vars(env_vars)
+            present = any(bool((env.get(var) or "").strip()) for var in cred_vars)
+            if present:
+                detail = "credential present"
+            elif cred_vars:
+                detail = "set " + " / ".join(cred_vars)
+            else:
+                detail = "no credential env var defined"
+            statuses.append(ProviderStatus(name, "cloud", cred_vars, present, detail))
     return sorted(statuses, key=lambda s: (not s.available_now, s.kind, s.name))
 
 
