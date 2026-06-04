@@ -692,6 +692,57 @@ class HermesCockpitClient(
             body = "{}",
         )
 
+    // ─── Job workspace browse / publish (read-only + owner-gated) ─────────
+
+    /** Per-file additions/deletions for a job (numstat only; no patch body).
+     *  Honest empty when the job has no git workspace. */
+    suspend fun jobFilesChanged(id: String): CockpitResult<FilesChangedSnapshot> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/files-changed", FilesChangedSnapshot.serializer())
+
+    /** Persisted verification-gate results for a job (read companion to
+     *  [jobValidate]); does NOT re-run the gates. Honest-empty gates when the
+     *  job hasn't been validated yet. */
+    suspend fun jobValidation(id: String): CockpitResult<ValidationSnapshot> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/validation", ValidationSnapshot.serializer())
+
+    /** One directory level inside a job's workspace (path-sandboxed server-side).
+     *  A blank/absent [path] lists the workspace root. */
+    suspend fun jobTree(id: String, path: String? = null): CockpitResult<TreeListing> {
+        val p = if (path.isNullOrBlank()) "" else "?path=" + enc(path)
+        return request("GET", "/v1/cockpit/jobs/" + enc(id) + "/tree$p", TreeListing.serializer())
+    }
+
+    /** Single-file preview inside a job's workspace (1 MB cap; a larger or
+     *  binary file comes back `truncated=true` with null content — still a
+     *  Success, per contract). */
+    suspend fun jobFile(id: String, path: String): CockpitResult<FileSnapshot> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/file?path=" + enc(path), FileSnapshot.serializer())
+
+    /** Read-only preview of what publishing a job would open (remote/branch/base,
+     *  commits ahead of base, default PR title/body). No network, no writes;
+     *  honest nulls/empty without a git workspace. */
+    suspend fun jobPublishPreview(id: String): CockpitResult<PublishPreview> =
+        request("GET", "/v1/cockpit/jobs/" + enc(id) + "/publish/preview", PublishPreview.serializer())
+
+    /**
+     * Open a GitHub PR for a job's branch — owner-gated. Without the exact owner
+     * [PublishRequest.authorization] phrase the result is a staged
+     * `approval_required` ([PublishResult.isApprovalRequired]); with it, a real
+     * PR is opened ([PublishResult.isPublished]). The gate is enforced
+     * server-side and never bypassed here.
+     */
+    suspend fun jobPublish(id: String, req: PublishRequest): CockpitResult<PublishResult> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/publish",
+            PublishResult.serializer(),
+            body = json.encodeToString(PublishRequest.serializer(), req),
+        )
+
+    /** Owner-defined prompt templates (read-only; honest empty when none). */
+    suspend fun templates(): CockpitResult<TemplateList> =
+        request("GET", "/v1/cockpit/templates", TemplateList.serializer())
+
     // ─── Research Mode (Evidence Engine) ─────────────────────────────────
 
     /** Run the research pipeline for a query. Returns the full report (201). */
