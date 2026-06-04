@@ -41,10 +41,24 @@ requires the same signing identity across updates).
 
 ## 2. In CI (GitHub Actions) — `android-release.yml`
 
-Pushing a tag like `android-v0.1.0` builds a signed release APK and attaches
-it to a GitHub Release as a downloadable asset (also uploaded as a workflow
-artifact). Manual runs are available via **Actions → Android release → Run
-workflow**.
+The workflow publishes a downloadable APK two ways:
+
+- **Rolling `android-latest`** — every push that touches `apps/android/**`
+  refreshes a single prerelease tagged `android-latest` whose asset name is
+  stable (`jarvis-prime-android.apk`), so the download URL never changes.
+- **Versioned releases** — pushing a tag like `android-v0.1.0` cuts a
+  permanent, versioned GitHub Release (`jarvis-prime-<version>.apk`).
+
+Both also upload the APK as a 90-day workflow artifact. Manual runs are
+available via **Actions → Android release → Run workflow**.
+
+Every run executes an **`apksigner verify --print-certs`** step that fails if
+the APK does not verify and reports whether it is **release-signed** or
+**debug-signed** (debug keystore identity is `CN=Android Debug`). The signer
+fingerprint is written to the job summary. To make CI **fail** when only a
+debug-signed APK would be produced, set the repo/org Actions **variable**
+`REQUIRE_RELEASE_SIGNING=true` (Settings → Secrets and variables → Actions →
+Variables).
 
 Set these four repository secrets (**Settings → Secrets and variables →
 Actions**):
@@ -73,6 +87,33 @@ git tag android-v0.1.0
 git push origin android-v0.1.0
 # CI builds, signs, and publishes jarvis-0.1.0.apk to the GitHub Release.
 ```
+
+---
+
+## 3. Rollback
+
+Because the app is **local-only and sideloaded**, a release has no server-side
+blast radius — there is nothing to take down, and any prior APK simply
+reinstalls over a bad one. Rolling back the *published download* is still
+quick:
+
+- **Re-publish a known-good build (preferred).** Actions → **Android release**
+  → **Run workflow** against a known-good commit/SHA (or revert the offending
+  commit on the branch). The run rebuilds and **clobbers** the
+  `jarvis-prime-android.apk` asset on `android-latest` back to the good build —
+  the download URL is unchanged.
+- **Pull the rolling release entirely.** `gh release delete android-latest
+  --cleanup-tag` removes the prerelease and its tag. The next qualifying push
+  recreates it.
+- **A bad versioned release.** `gh release delete android-v<x.y.z>
+  --cleanup-tag` (and re-tag once fixed). Versioned assets are immutable by
+  convention — prefer a new patch version over editing one in place.
+- **Recover a previous APK without rebuilding.** Every run keeps the APK as a
+  workflow artifact for 90 days (Actions → the run → Artifacts) — download and
+  re-upload it with `gh release upload android-latest <file> --clobber`.
+
+No keystore or secret is ever touched by a rollback; signing inputs live only
+in GitHub Actions secrets and your local keystore.
 
 ---
 
