@@ -31,7 +31,10 @@ import json
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
 
 # --------------------------------------------------------------------------
 # Verifiable reward from Hermes verification gates (the RLVR signal)
@@ -106,6 +109,65 @@ def verifiable_pass(summary: Mapping[str, Any]) -> bool:
         return False
     outcomes = [str(r.get("outcome", "")) for r in _results(summary)]
     return "fail" not in outcomes and "pass" in outcomes
+
+
+@dataclass(frozen=True)
+class GateReward:
+    """A verifiable reward computed from a *real* gate run.
+
+    ``reward`` is the graded [0, 1] signal; ``verifiable`` is the strict 0/1
+    pass; ``components`` are the per-gate contributions; ``summary`` is the raw
+    ``GateSummary.to_dict()`` the reward was derived from (kept for audit).
+    """
+
+    reward: float
+    verifiable: bool
+    components: dict[str, float]
+    summary: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "reward": self.reward,
+            "verifiable": self.verifiable,
+            "components": self.components,
+            "overall": self.summary.get("overall"),
+            "remaining_risk": self.summary.get("remaining_risk"),
+        }
+
+
+def reward_for_work(
+    packet: Mapping[str, Any],
+    *,
+    evidence_bundle: Any = None,
+    strict_evidence: bool = False,
+) -> GateReward:
+    """Run a work packet through the **real Hermes gates** and grade it.
+
+    This is the wired counterpart to :func:`reward_from_gate_summary`: rather
+    than accept a pre-computed summary dict, it calls
+    :func:`gates.run_gate_summary` — the same deterministic gate machinery the
+    verification layer uses — then converts the result into the graded +
+    verifiable reward. This is the connection that lets the free GRPO loop use
+    Hermes' verification gates as the verifiable reward signal end to end, with
+    no human/paid judge.
+
+    Deterministic: the gates are deterministic, so the same packet yields the
+    same reward — exactly what RLVR/GRPO requires.
+    """
+
+    from hermes_cli.jarvis_prime import gates as _gates
+
+    summary = _gates.run_gate_summary(
+        packet,
+        evidence_bundle=evidence_bundle,
+        strict_evidence=strict_evidence,
+    ).to_dict()
+    return GateReward(
+        reward=reward_from_gate_summary(summary),
+        verifiable=verifiable_pass(summary),
+        components=reward_components(summary),
+        summary=summary,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -215,7 +277,8 @@ from unsloth import FastLanguageModel, is_bfloat16_supported
 from trl import GRPOConfig, GRPOTrainer
 from datasets import load_dataset
 
-from hermes_cli.jarvis_prime.free_training import reward_from_gate_summary
+from hermes_cli.jarvis_prime.free_training import (
+    reward_for_work, reward_from_gate_summary)
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name={base_model!r}, max_seq_length=4096, load_in_4bit=True,
@@ -224,17 +287,26 @@ model = FastLanguageModel.get_peft_model(model, r=16, lora_alpha=16)
 
 dataset = load_dataset("json", data_files={dataset_path!r}, split="train")
 
-def gate_summary_for(prompt, completion):
-    # TODO: run the completion through your verifier (tests / secret scan /
-    # citation check) and return a gates.run_gate_summary().to_dict(). The
-    # stub below rewards a non-empty, secret-free completion.
-    failed = "fail" if (not completion or "sk-" in completion) else "pass"
-    return {{"results": [{{"name": "test", "outcome": failed}},
-                        {{"name": "security", "outcome": "pass"}}]}}
+def packet_for(prompt, completion):
+    # WIRE THIS to your task: turn the model's completion into a Hermes work
+    # packet (e.g. via natural_language_coder.build_work_packet, or by writing
+    # the code to a sandbox and attaching captured evidence). reward_for_work
+    # then runs the REAL gates (gates.run_gate_summary) and grades it — no
+    # human/paid judge. The stub below rewards a non-empty, secret-free answer.
+    return None
 
 def gate_reward(prompts, completions, **kwargs):
-    return [reward_from_gate_summary(gate_summary_for(p, c))
-            for p, c in zip(prompts, completions)]
+    rewards = []
+    for p, c in zip(prompts, completions):
+        packet = packet_for(p, c)
+        if packet is not None:
+            rewards.append(reward_for_work(packet).reward)  # real gates
+        else:
+            failed = "fail" if (not c or "sk-" in c) else "pass"
+            rewards.append(reward_from_gate_summary(
+                {{"results": [{{"name": "test", "outcome": failed}},
+                             {{"name": "security", "outcome": "pass"}}]}}))
+    return rewards
 
 trainer = GRPOTrainer(
     model=model, processing_class=tokenizer, reward_funcs=[gate_reward],
@@ -354,14 +426,150 @@ class FreeContinuousPlan:
         }
 
 
+# Default ordered stages of one free, gated improvement cycle.
+DEFAULT_LOOP_STAGES: tuple[TrainingStage, ...] = (
+    TrainingStage.SFT,
+    TrainingStage.ORPO,
+    TrainingStage.GRPO,
+)
+
+
+@dataclass(frozen=True)
+class FreeLoopReport:
+    """Result of one harvest → export → recipe pass of the free loop.
+
+    The loop does the **real local work** that does not need a GPU: it harvests
+    the owner-approved traces from the learning dataset, exports a JSONL
+    training set, and generates the runnable Unsloth+TRL recipes (one per
+    stage). It then reports the eval + promotion plan.
+
+    Honest boundary: it does **not** train (there is no GPU in this process —
+    the emitted recipes run on the free hardware you point them at) and it does
+    **not** promote (promotion is measure-gated via
+    ``model_scorecard.promotion_eligible`` and runs as its own owner-visible
+    step — see :func:`jarvis_prime learning promote`).
+    """
+
+    harvested: int
+    ready: bool
+    dataset_path: str
+    recipes: tuple[RecipeArtifact, ...]
+    plan: FreeContinuousPlan
+    written_to: Optional[str] = None
+    notes: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "harvested": self.harvested,
+            "ready": self.ready,
+            "dataset_path": self.dataset_path,
+            "recipes": [r.to_dict() for r in self.recipes],
+            "plan": self.plan.to_dict(),
+            "written_to": self.written_to,
+            "notes": list(self.notes),
+            "paid_api": False,
+        }
+
+
+def run_free_loop(
+    *,
+    store: Optional["DatasetStore"] = None,
+    dataset_path: str | Path | None = None,
+    base_model: str = DEFAULT_BASE_MODEL,
+    out_dir: str = "data/models/free",
+    stages: Sequence[TrainingStage] = DEFAULT_LOOP_STAGES,
+    min_examples: int = 1,
+    write_dir: str | Path | None = None,
+) -> FreeLoopReport:
+    """Run one harvest → export → recipe-generation pass of the free loop.
+
+    Steps (all local, free, deterministic):
+
+    1. **Harvest** owner-approved traces from the learning dataset
+       (``DatasetStore.load()`` unless an explicit ``store`` is passed).
+    2. **Export** them to a JSONL training set (only the exportable,
+       quality-passing approved candidates — the same hard filters the store
+       already enforces).
+    3. **Generate** a runnable Unsloth+TRL recipe per requested stage via
+       :func:`generate_recipe` (SFT → ORPO → GRPO by default), optionally
+       writing each script+config under ``write_dir``.
+
+    ``ready`` is ``True`` only when at least ``min_examples`` approved traces
+    were harvested — below that the recipes are still emitted (so the wiring is
+    inspectable) but the report flags that more owner-approved data is needed
+    before a run is worthwhile.
+    """
+
+    from hermes_cli.jarvis_prime.learning_dataset import (
+        DatasetStore,
+        default_dataset_path,
+    )
+
+    if store is None:
+        store = DatasetStore.load()
+
+    if dataset_path is None:
+        dataset_path = default_dataset_path().with_name("free_loop_dataset.jsonl")
+    dataset_path = Path(dataset_path)
+
+    harvested = store.export_jsonl(dataset_path)
+
+    recipes = tuple(
+        generate_recipe(
+            dataset_path,
+            stage=stage,
+            base_model=base_model,
+            out_dir=out_dir,
+        )
+        for stage in stages
+    )
+
+    written_to: Optional[str] = None
+    if write_dir is not None:
+        wd = Path(write_dir)
+        for recipe in recipes:
+            recipe.write(wd)
+        written_to = str(wd)
+
+    notes: list[str] = []
+    if harvested < min_examples:
+        notes.append(
+            f"only {harvested} owner-approved trace(s) harvested "
+            f"(want ≥{min_examples}); approve more before a real run."
+        )
+    notes.append(
+        "recipes are generate-only — run them on free Colab/Kaggle T4 or a "
+        "local GPU; this process does not train."
+    )
+    notes.append(
+        "promotion is measure-gated: run `jarvis_prime learning promote` "
+        "(model_scorecard.promotion_eligible) before any swap."
+    )
+
+    return FreeLoopReport(
+        harvested=harvested,
+        ready=harvested >= min_examples,
+        dataset_path=str(dataset_path),
+        recipes=recipes,
+        plan=FreeContinuousPlan(base_model=base_model),
+        written_to=written_to,
+        notes=tuple(notes),
+    )
+
+
 __all__ = [
     "GATE_WEIGHTS",
     "reward_from_gate_summary",
     "reward_components",
     "verifiable_pass",
+    "GateReward",
+    "reward_for_work",
     "TrainingStage",
     "RecipeArtifact",
     "generate_recipe",
     "FreeContinuousPlan",
+    "FreeLoopReport",
+    "run_free_loop",
     "DEFAULT_BASE_MODEL",
+    "DEFAULT_LOOP_STAGES",
 ]
