@@ -301,6 +301,7 @@ Read in this order:
 | JARVIS Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
 | Deconstruct "Mythos" → reconstruct into JARVIS | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
 | Composable agent design patterns | [orchestration/agent-design-patterns.md](orchestration/agent-design-patterns.md) |
+| Repo viability audit (2026-06) | [audit/repo-audit-2026-06.md](audit/repo-audit-2026-06.md) |
 | Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |
 | Android app contract | [android/hermes-apk-api-contract.md](android/hermes-apk-api-contract.md) |
 
