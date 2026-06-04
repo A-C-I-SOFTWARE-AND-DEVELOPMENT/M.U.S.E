@@ -124,3 +124,54 @@ def test_behavioral_drift_monitor_severities():
     )
     assert critical.severity == Severity.CRITICAL
     assert critical.needs_approval
+
+
+def test_collect_worker_actions_derives_signal_from_ledger(tmp_path):
+    from hermes_cli.jarvis_prime.monitor_collectors import collect_worker_actions
+
+    ledger = GuardrailLedger(path=tmp_path / "ledger.jsonl")
+    ledger.append(
+        kind="git_diff",
+        subject="feat",
+        payload={
+            "branch": "feat",
+            "changed_files": ["README.md", "auth/login.py"],
+            "out_of_scope_files": ["auth/login.py"],
+        },
+    )
+    ledger.append(
+        kind="test_result",
+        subject="pytest",
+        payload={"command": "pytest --no-verify", "passed": True},
+    )
+    ledger.append(
+        kind="owner_authorization_grant",
+        subject="x",
+        payload={"action": "production_deploy"},
+    )
+    actions = collect_worker_actions(ledger=ledger)
+    assert actions is not None and actions
+
+    cats = {f.category.value for f in br.classify(actions)}
+    assert "scope_expansion" in cats  # the out-of-scope file
+    assert "destructive_workaround" in cats  # the --no-verify command marker
+
+
+def test_collect_worker_actions_empty_ledger_is_not_blind(tmp_path):
+    from hermes_cli.jarvis_prime.monitor_collectors import collect_worker_actions
+
+    # A readable-but-empty ledger is observed (returns []), not BLIND.
+    empty = collect_worker_actions(ledger=GuardrailLedger(path=tmp_path / "none.jsonl"))
+    assert empty == []
+
+
+def test_collect_context_includes_worker_actions(tmp_path):
+    from hermes_cli.jarvis_prime.monitor_collectors import collect_context
+
+    GuardrailLedger(path=tmp_path / "l.jsonl").append(
+        kind="git_diff",
+        subject="b",
+        payload={"changed_files": ["x.py"], "out_of_scope_files": []},
+    )
+    ctx = collect_context(guardrail_ledger_path=tmp_path / "l.jsonl")
+    assert "worker_actions" in ctx

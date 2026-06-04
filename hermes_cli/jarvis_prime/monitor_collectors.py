@@ -20,6 +20,8 @@ from typing import Callable, Optional
 
 from hermes_cli.jarvis_prime.model_scorecard import ScorecardBook
 from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from hermes_cli.jarvis_prime.owner_auth import OWNER_GATED_ACTIONS
 
 # A runner takes a git argv (without the leading "git") and returns stdout,
 # or raises/returns "" on failure. Injectable for tests.
@@ -124,12 +126,67 @@ def collect_pending_proposals(path: Optional[Path] = None) -> Optional[list]:
     return pending
 
 
+def collect_worker_actions(
+    ledger_path: Optional[Path] = None, *, ledger: Optional[GuardrailLedger] = None
+) -> Optional[list]:
+    """Derive a coarse worker-action history from the guardrail ledger.
+
+    Faithful (not invented) — it only reads signal JARVIS already records:
+    scope from ``git_diff`` ``out_of_scope_files``, command markers from
+    ``test_result`` commands, and owner-gated requests from owner-authorization
+    records. Feeds ``monitors.behavioral_drift_checker`` so that monitor goes
+    live instead of perpetually BLIND.
+
+    Returns ``None`` (blind) only when the ledger cannot be read; ``[]`` when
+    the ledger is readable but holds no relevant records. Records produced by
+    the self-audit layer itself (audit_result / behavioral_risk /
+    capability_attestation) are ignored to avoid a feedback loop.
+    """
+
+    try:
+        ledger = ledger or GuardrailLedger(path=ledger_path)
+        records = ledger.read_all()
+    except Exception:
+        return None
+
+    actions: list[dict] = []
+    for rec in records:
+        payload = rec.payload or {}
+        worker_id = str(payload.get("branch") or "ledger")
+        if "changed_files" in payload:
+            changed = [str(f) for f in (payload.get("changed_files") or [])]
+            out_of_scope = {str(f) for f in (payload.get("out_of_scope_files") or [])}
+            if changed:
+                actions.append(
+                    {
+                        "worker_id": worker_id,
+                        "action": "edit",
+                        "changed_files": changed,
+                        "allowed_files": [f for f in changed if f not in out_of_scope],
+                    }
+                )
+        if "command" in payload:
+            actions.append(
+                {
+                    "worker_id": worker_id,
+                    "action": "verify",
+                    "commands": [str(payload.get("command") or "")],
+                    "test_status": "passed" if payload.get("passed") else "failed",
+                }
+            )
+        requested = payload.get("action")
+        if isinstance(requested, str) and requested in OWNER_GATED_ACTIONS:
+            actions.append({"worker_id": worker_id, "requested_owner_action": requested})
+    return actions
+
+
 def collect_context(
     repo_root: str = ".",
     *,
     memory_store_path: Optional[Path] = None,
     scorecard_path: Optional[Path] = None,
     proposals_path: Optional[Path] = None,
+    guardrail_ledger_path: Optional[Path] = None,
     test_results: Optional[dict] = None,
     git_runner: Optional[GitRunner] = None,
     extra: Optional[dict] = None,
@@ -159,6 +216,10 @@ def collect_context(
     proposals = collect_pending_proposals(proposals_path)
     if proposals is not None:
         context["pending_proposals"] = proposals
+
+    worker_actions = collect_worker_actions(guardrail_ledger_path)
+    if worker_actions is not None:
+        context["worker_actions"] = worker_actions
 
     if test_results is not None:
         context["tests"] = test_results
