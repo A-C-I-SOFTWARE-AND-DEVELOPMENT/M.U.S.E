@@ -103,13 +103,19 @@ def run_report(
     target: Target,
     *,
     grader=None,
+    auditor=None,
     run_id: Optional[str] = None,
 ) -> AuditReport:
-    """Run every seed against ``target``, judge each, and build the report."""
+    """Run every seed against ``target``, judge each, and build the report.
+
+    ``grader`` (e.g. ``llm_lane.llm_judge``) and ``auditor`` (e.g.
+    ``llm_lane.llm_auditor``) are optional model-driven lanes; omitting them
+    keeps the deterministic marker core.
+    """
 
     verdicts = []
     for seed in seed_list:
-        transcript = run_seed(seed, target)
+        transcript = run_seed(seed, target, auditor=auditor)
         verdicts.append(judge(seed, transcript, grader=grader))
     return AuditReport(
         run_id=run_id or _gen_run_id(),

@@ -180,6 +180,111 @@ def collect_worker_actions(
     return actions
 
 
+def collect_worker_actions_from_trajectory(path: Optional[Path] = None) -> Optional[list]:
+    """Derive worker actions from a ``save_trajectory``-format JSONL.
+
+    The richest source: each line is ``{"conversations": [...], "completed":
+    bool, "model": ...}``; the joined conversation text carries the commands /
+    actions the classifier scans for markers. Returns ``None`` (blind) when the
+    file is absent/unreadable, ``[]`` when readable but empty.
+    """
+
+    if path is None or not Path(path).exists():
+        return None
+    actions: list[dict] = []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for raw in fh:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    entry = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(entry, dict):
+                    continue
+                convos = entry.get("conversations") or []
+                text = " ".join(
+                    str(t.get("value", "")) for t in convos if isinstance(t, dict)
+                )
+                if not text.strip():
+                    continue
+                actions.append(
+                    {
+                        "worker_id": str(entry.get("model") or "trajectory"),
+                        "action": text,
+                        "test_status": "passed" if entry.get("completed") else "failed",
+                    }
+                )
+    except OSError:
+        return None
+    return actions
+
+
+def collect_worker_actions_from_decision_ledger(
+    path: Optional[Path] = None,
+) -> Optional[list]:
+    """Best-effort, shape-tolerant worker actions from a decision-ledger JSONL.
+
+    Maps any record (or its nested ``payload``) carrying command(s),
+    changed/files, or an owner-gated request — so it works for the orchestrator
+    decision ledger without hard-coding its full schema. Returns ``None``
+    (blind) when absent/unreadable.
+    """
+
+    if path is None or not Path(path).exists():
+        return None
+    actions: list[dict] = []
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for raw in fh:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    record = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(record, dict):
+                    continue
+                payload = record.get("payload")
+                payload = payload if isinstance(payload, dict) else record
+                worker_id = str(
+                    payload.get("worker") or payload.get("branch") or "orchestrator"
+                )
+                commands = payload.get("commands") or (
+                    [payload["command"]] if payload.get("command") else []
+                )
+                if commands:
+                    actions.append(
+                        {
+                            "worker_id": worker_id,
+                            "action": str(payload.get("action", "")),
+                            "commands": [str(c) for c in commands],
+                        }
+                    )
+                changed = payload.get("changed_files") or payload.get("files") or []
+                if changed:
+                    out_of_scope = {str(f) for f in (payload.get("out_of_scope_files") or [])}
+                    chg = [str(f) for f in changed]
+                    actions.append(
+                        {
+                            "worker_id": worker_id,
+                            "changed_files": chg,
+                            "allowed_files": [f for f in chg if f not in out_of_scope],
+                        }
+                    )
+                requested = payload.get("requested_owner_action") or payload.get("owner_action")
+                if isinstance(requested, str) and requested in OWNER_GATED_ACTIONS:
+                    actions.append(
+                        {"worker_id": worker_id, "requested_owner_action": requested}
+                    )
+    except OSError:
+        return None
+    return actions
+
+
 def collect_context(
     repo_root: str = ".",
     *,
@@ -187,6 +292,8 @@ def collect_context(
     scorecard_path: Optional[Path] = None,
     proposals_path: Optional[Path] = None,
     guardrail_ledger_path: Optional[Path] = None,
+    trajectory_path: Optional[Path] = None,
+    decision_ledger_path: Optional[Path] = None,
     test_results: Optional[dict] = None,
     git_runner: Optional[GitRunner] = None,
     extra: Optional[dict] = None,
@@ -217,9 +324,19 @@ def collect_context(
     if proposals is not None:
         context["pending_proposals"] = proposals
 
-    worker_actions = collect_worker_actions(guardrail_ledger_path)
-    if worker_actions is not None:
-        context["worker_actions"] = worker_actions
+    # Behavioral-risk signal is merged from every observable source; each
+    # returns None only when its source can't be read (an honest blind spot).
+    action_sources = [
+        collect_worker_actions(guardrail_ledger_path),
+        collect_worker_actions_from_trajectory(trajectory_path),
+        collect_worker_actions_from_decision_ledger(decision_ledger_path),
+    ]
+    observed = [src for src in action_sources if src is not None]
+    if observed:
+        merged: list = []
+        for src in observed:
+            merged.extend(src)
+        context["worker_actions"] = merged
 
     if test_results is not None:
         context["tests"] = test_results

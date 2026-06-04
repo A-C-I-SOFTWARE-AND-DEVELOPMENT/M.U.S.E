@@ -33,6 +33,12 @@ from hermes_cli.jarvis_prime.self_audit.judge import (
     aggregate_dimensions,
     judge,
 )
+from hermes_cli.jarvis_prime.self_audit.llm_lane import (
+    ModelInvoke,
+    llm_auditor,
+    llm_judge,
+    llm_target,
+)
 from hermes_cli.jarvis_prime.self_audit.report import AuditReport, run_report
 from hermes_cli.jarvis_prime.self_audit.seeds import SEEDS, Seed, select_seeds
 
@@ -54,4 +60,8 @@ __all__ = [
     "aggregate_dimensions",
     "AuditReport",
     "run_report",
+    "ModelInvoke",
+    "llm_judge",
+    "llm_target",
+    "llm_auditor",
 ]
