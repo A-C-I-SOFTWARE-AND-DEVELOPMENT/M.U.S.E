@@ -1548,6 +1548,21 @@ def _cmd_capability_wall_status(args: argparse.Namespace) -> int:
     return 0 if result.passed else 1
 
 
+def _cmd_availability(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import model_availability as ma
+
+    try:
+        report = ma.build_report()
+    except Exception as exc:
+        print(f"error: could not load the provider registry: {exc}", file=sys.stderr)
+        return 2
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1936,6 +1951,20 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_capwall_status.add_argument("--json", action="store_true")
     p_capwall_status.set_defaults(func=_cmd_capability_wall_status)
+
+    # availability — which model providers/models are usable right now.
+    p_avail = sub.add_parser(
+        "availability",
+        help="Report which model providers/models are usable right now",
+        description=(
+            "For every registered provider, report whether it is usable now "
+            "(cloud credential present, or a local Ollama model installed), plus "
+            "any local models the bootstrap policy recommends but that are not "
+            "actually installed. Read-only and offline."
+        ),
+    )
+    p_avail.add_argument("--json", action="store_true")
+    p_avail.set_defaults(func=_cmd_availability)
 
     p_handoff = sub.add_parser(
         "handoff",
