@@ -63,6 +63,27 @@ class HermesCockpitClientTest {
     }
 
     @Test
+    fun `diagnostics parses the backend launch report`() = runTest {
+        val fake = FakeExecutor {
+            CockpitRawResponse(
+                200,
+                """{"ok":true,"checks":[{"name":"memory","status":"pass","detail":"ok","hard":true},
+                   {"name":"models","status":"warn","detail":"no key","hard":false}],
+                   "generated_at":"2026-06-03T00:00:00Z"}""",
+            )
+        }
+        val result = client(fake).diagnostics()
+        if (result !is CockpitResult.Success) {
+            fail("expected Success, got $result"); return@runTest
+        }
+        assertTrue(result.value.ok)
+        assertEquals(2, result.value.checks.size)
+        assertEquals("pass", result.value.checks[0].status)
+        assertEquals("GET", fake.lastRequest?.method)
+        assertEquals("http://127.0.0.1:8765/v1/cockpit/diagnostics", fake.lastRequest?.url)
+    }
+
+    @Test
     fun `runtimeWorkers parses the worker list`() = runTest {
         val fake = FakeExecutor {
             CockpitRawResponse(

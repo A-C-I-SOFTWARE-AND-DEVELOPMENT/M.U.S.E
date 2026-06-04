@@ -440,6 +440,11 @@
     <string name="diagnostics_refresh">Refresh</string>
     <string name="diagnostics_logs_copied">Logs copied to clipboard</string>
     <string name="diagnostics_logs_cleared">Logs cleared</string>
+    <string name="diagnostics_backend_title">Backend readiness</string>
+    <string name="diagnostics_backend_not_paired">Pair a gateway in Settings → Connection to see the backend\'s launch-readiness checks.</string>
+    <string name="diagnostics_backend_loading">Checking the backend…</string>
+    <string name="diagnostics_backend_ready">Backend launch-ready</string>
+    <string name="diagnostics_backend_not_ready">Backend not launch-ready</string>
 
     <!-- Jobs (cockpit orchestration) -->
     <string name="jobs_title">Orchestration jobs</string>
