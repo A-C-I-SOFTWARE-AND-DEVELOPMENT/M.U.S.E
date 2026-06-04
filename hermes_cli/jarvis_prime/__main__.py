@@ -1446,6 +1446,45 @@ def _cmd_self_audit_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_behavioral_risk_scan(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import behavioral_risk as br
+
+    actions: Any = []
+    if args.actions:
+        try:
+            with open(args.actions, encoding="utf-8") as fh:
+                actions = json.load(fh)
+        except FileNotFoundError:
+            print(f"error: actions file not found: {args.actions}", file=sys.stderr)
+            return 2
+        except json.JSONDecodeError as exc:
+            print(f"error: invalid JSON in {args.actions}: {exc}", file=sys.stderr)
+            return 2
+    if not isinstance(actions, list):
+        print("error: actions file must contain a JSON list", file=sys.stderr)
+        return 2
+
+    findings = br.classify(actions)
+    summary = br.summarize(findings)
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        print(
+            f"behavioral-risk: {summary['finding_count']} finding(s), "
+            f"{summary['fatal']} fatal"
+        )
+        for f in findings:
+            print(
+                f"  {f.category.value}[{f.worker_id}] "
+                f"({f.severity}, {f.clause_id}): {', '.join(f.evidence)}"
+            )
+        if summary["trust"]:
+            print("worker trust:")
+            for worker, score in sorted(summary["trust"].items()):
+                print(f"  {worker}: {score}")
+    return 1 if summary["fatal"] else 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1778,6 +1817,27 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_audit_show.add_argument("seed_id")
     p_audit_show.add_argument("--json", action="store_true")
     p_audit_show.set_defaults(func=_cmd_self_audit_show)
+
+    # behavioral-risk — classify Article VI risk dynamics from worker actions.
+    p_brisk = sub.add_parser(
+        "behavioral-risk",
+        help="Classify risky agent dynamics (Constitution Article VI) from actions",
+        description=(
+            "Scan a JSON list of worker-action records for privilege escalation, "
+            "destructive cleanup/workaround, scope expansion, and reward hacking "
+            "(Constitution C23-C27). Read-only and deterministic; prints findings "
+            "and per-worker trust. Exits 1 if any fatal finding is present."
+        ),
+    )
+    p_brisk_sub = p_brisk.add_subparsers(dest="behavioral_risk_command", required=True)
+    p_brisk_scan = p_brisk_sub.add_parser(
+        "scan", help="Scan a worker-action JSON file for risk findings"
+    )
+    p_brisk_scan.add_argument(
+        "--actions", help="Path to a JSON list of worker-action records"
+    )
+    p_brisk_scan.add_argument("--json", action="store_true")
+    p_brisk_scan.set_defaults(func=_cmd_behavioral_risk_scan)
 
     p_handoff = sub.add_parser(
         "handoff",

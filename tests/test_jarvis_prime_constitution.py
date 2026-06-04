@@ -42,7 +42,7 @@ def test_clause_lookup_and_get():
     c9 = constitution.clause("C9")
     assert c9.dimension == Dimension.OWNER_GATE_RESPECT
     assert c9.severity == Severity.FATAL
-    assert constitution.get("C27").severity == Severity.FATAL
+    assert constitution.clause("C27").severity == Severity.FATAL
     assert constitution.get("does-not-exist") is None
 
 
