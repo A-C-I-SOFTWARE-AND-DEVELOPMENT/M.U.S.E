@@ -897,18 +897,6 @@ class RemoteBridge:
                 f"{existing.get('state')!r}; only awaiting_approval/queued are eligible."
             )
         now = float(self._clock())
-        existing.update(
-            {
-                "state": JobState.QUEUED.value,
-                "detail": "approved by user — queued for remote execution",
-                "from": "hermes",
-                "last_seen": now,
-            }
-        )
-        status_path.write_text(
-            json.dumps(existing, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
         # Rewrite the manifest with allow_remote_execute=True so the
         # worker actually picks it up.
         new_manifest = JobManifest(
@@ -928,6 +916,49 @@ class RemoteBridge:
             json.dumps(new_manifest.to_dict(), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
+
+        state = JobState.QUEUED
+        detail = "approved by user — queued for remote execution"
+
+        # Under file-drop the worker's poller picks the job up from the shared
+        # workspace once it's queued. The HTTP transport has no such poller —
+        # nothing watches the local workspace — so the approval itself must
+        # hand the now-approved packet to the endpoint, exactly as a
+        # pre-approved dispatch does. Otherwise the job would sit "queued"
+        # locally and the worker would never receive it. A delivery failure
+        # raises BridgeError (from _post_http) and leaves the status as
+        # awaiting_approval, so a later approve() can retry the hand-off.
+        if self.endpoint.transport == TRANSPORT_HTTP:
+            prompt_path = workdir / new_manifest.prompt_filename
+            try:
+                prompt = prompt_path.read_text(encoding="utf-8")
+            except OSError as exc:
+                raise BridgeError(
+                    f"approve: prompt missing for {job_id}: {exc}"
+                ) from exc
+            ack = self._post_http(
+                new_manifest, prompt=prompt, token=new_manifest.auth_token
+            )
+            ack_state = ack.get("state")
+            if ack_state:
+                try:
+                    state = JobState(str(ack_state))
+                except ValueError:
+                    state = JobState.QUEUED
+            detail = str(ack.get("detail") or "Worker acknowledged the job.")
+
+        existing.update(
+            {
+                "state": state.value,
+                "detail": detail,
+                "from": "hermes",
+                "last_seen": now,
+            }
+        )
+        status_path.write_text(
+            json.dumps(existing, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         self.audit_log.record(
             {
                 "event": "approve",
@@ -937,8 +968,8 @@ class RemoteBridge:
         )
         return RemoteStatus(
             job_id=job_id,
-            state=JobState.QUEUED,
-            detail="approved",
+            state=state,
+            detail=detail,
             last_seen=now,
             raw=existing,
         )

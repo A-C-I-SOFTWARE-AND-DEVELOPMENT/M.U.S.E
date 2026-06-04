@@ -950,3 +950,79 @@ class TestHttpTransport:
         workdir = endpoint_root / "jobs" / staged[0]
         assert (workdir / "prompt.md").read_text() == "keepme"
         assert (workdir / "manifest.json").is_file()
+
+    def test_approve_posts_staged_http_job(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # An HTTP endpoint that opts out of auto-execute parks the job in
+        # awaiting_approval with no POST. Approving it must then deliver the
+        # packet to the worker — under HTTP nothing polls the workspace, so the
+        # approval itself has to perform the hand-off.
+        calls: list[httpx.Request] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, json={"state": "running", "detail": "worker accepted"}
+            )
+
+        _install_mock_client(monkeypatch, handler, calls=calls)
+        endpoint = _make_http_endpoint(endpoint_root, allow_remote_execute=False)
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        job = bridge.dispatch(
+            prompt="audit the scheduler",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state == rb.JobState.AWAITING_APPROVAL
+        assert calls == []  # nothing posted while awaiting approval
+
+        status = bridge.approve(job.job_id)
+
+        # The approval delivered the packet and folded the worker ack back in.
+        assert status.state == rb.JobState.RUNNING
+        assert status.detail == "worker accepted"
+        assert len(calls) == 1
+        body = json.loads(calls[0].content.decode("utf-8"))
+        assert body["manifest"]["job_id"] == job.job_id
+        assert body["manifest"]["allow_remote_execute"] is True
+        assert body["prompt"] == "audit the scheduler"
+        persisted = json.loads((job.workdir / "status.json").read_text())
+        assert persisted["state"] == "running"
+
+    def test_approve_http_delivery_failure_keeps_awaiting_approval(
+        self,
+        endpoint_root: Path,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # If the worker can't be reached at approval time, the job must stay
+        # awaiting_approval (not silently flip to queued) so a later approve()
+        # can retry the hand-off.
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(403, text="forbidden")
+
+        _install_mock_client(monkeypatch, handler)
+        endpoint = _make_http_endpoint(
+            endpoint_root, allow_remote_execute=False, http_max_attempts=1
+        )
+        bridge = rb.RemoteBridge(
+            endpoint,
+            audit_log=rb.AuditLog(tmp_path / "audit.jsonl"),
+            clock=lambda: 1_700_000_000.0,
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        with pytest.raises(rb.BridgeError):
+            bridge.approve(job.job_id)
+        persisted = json.loads((job.workdir / "status.json").read_text())
+        assert persisted["state"] == rb.JobState.AWAITING_APPROVAL.value
