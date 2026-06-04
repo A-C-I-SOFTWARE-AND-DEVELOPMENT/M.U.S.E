@@ -697,6 +697,40 @@ def queue_job_detail(entry: Any) -> dict[str, Any]:
     }
 
 
+def validation_snapshot(report: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Project a persisted validation report into the cockpit gate snapshot.
+
+    ``report`` is the ``results.json`` payload (== ``ValidationReport.to_dict``):
+    ``{"checks": [...], "publish_allowed": bool, "blocking_failures": [...]}``.
+    Honest derivation: a missing/empty report yields **empty gates**, never a
+    fabricated pass. Gate ``status`` is upper-cased so the read-only
+    ``GET .../validation`` and the live ``POST .../validate`` share one
+    projection and cannot drift.
+    """
+    data = report or {}
+    gates: list[dict[str, Any]] = []
+    for c in data.get("checks") or []:
+        if not isinstance(c, dict):
+            continue
+        name = str(c.get("name", "") or "")
+        gates.append({
+            "id": name,
+            "name": name,
+            "status": str(c.get("status", "") or "").upper(),
+            "summary": c.get("summary"),
+            "log_excerpt": (str(c.get("stderr") or c.get("stdout") or ""))[:2000] or None,
+            "override_allowed": not bool(c.get("critical", False)),
+        })
+    snapshot: dict[str, Any] = {
+        "gates": gates,
+        "policy": {"all_must_pass": True, "override_requires_note": True},
+    }
+    if report:
+        snapshot["publish_allowed"] = bool(data.get("publish_allowed", False))
+        snapshot["blocking_failures"] = list(data.get("blocking_failures") or [])
+    return snapshot
+
+
 # ---------------------------------------------------------------------------
 # Audit — mirrors com.aci.hermes.data.model.audit.AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
@@ -1633,6 +1667,7 @@ __all__ = [
     "research_contradiction",
     "research_report",
     "skill_entry",
+    "validation_snapshot",
     "autonomy_status",
 ]
 

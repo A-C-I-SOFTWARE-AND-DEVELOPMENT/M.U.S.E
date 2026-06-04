@@ -18,9 +18,10 @@ apps/android/
 │       │   ├── MainActivity.kt               # entry point, hosts NavHost
 │       │   ├── di/AppContainer.kt            # hand-rolled DI
 │       │   ├── data/
-│       │   │   ├── model/                    # ChatMessage, Provider, HermesStatus
-│       │   │   ├── preferences/              # DataStore + EncryptedSharedPreferences
-│       │   │   └── network/                  # HermesClient + Mock + Gateway impl
+│       │   │   ├── model/                    # domain models (jobs, approvals, memory, …)
+│       │   │   ├── preferences/              # DataStore + EncryptedSharedPreferences (token)
+│       │   │   ├── cockpit/                  # HermesCockpitClient + JDK HttpURLConnection
+│       │   │   └── jarvis/                   # HttpJarvisChatGateway (NDJSON) + mock + routing
 │       │   ├── ui/
 │       │   │   ├── theme/                    # Material 3 colors / typography
 │       │   │   ├── navigation/               # NavHost + route sealed class
@@ -50,23 +51,25 @@ costs more than the wiring.
 ## Data flow
 
 ```
- ┌─────────┐    suspend     ┌──────────────────────┐    HTTP/SSE    ┌──────────┐
- │ Screen  │───────────────▶│   ViewModel          │───────────────▶│ Gateway  │
- │ (Compose│  StateFlow     │   ↓                  │                │ (Python) │
- │  state) │◀───────────────│ HermesClientFactory  │                └──────────┘
- └─────────┘                │  → HermesClient      │
-                            │      ├ Gateway       │
-                            │      └ Mock          │
-                            └──────────────────────┘
+ ┌─────────┐    suspend     ┌───────────────────────┐ HTTP + NDJSON ┌──────────┐
+ │ Screen  │───────────────▶│   ViewModel           │──────────────▶│ Cockpit  │
+ │ (Compose│  StateFlow     │   ↓                   │  bearer auth  │ gateway  │
+ │  state) │◀───────────────│ AppContainer          │               │ (Python) │
+ └─────────┘                │  ├ HermesCockpitClient│               └──────────┘
+                            │  └ JarvisChatGateway  │
+                            │      ├ Http (paired)  │
+                            │      └ Mock (unpaired)│
+                            └───────────────────────┘
                                       │
                                       ▼
                               SettingsRepository
                               (DataStore + EncryptedSharedPreferences)
 ```
 
-The factory is queried **per request** (not cached): it inspects the latest
-settings snapshot, so toggling mock mode or changing gateway URL takes
-effect on the next `send()` without recreating ViewModels.
+The chat gateway routes **per `send()`** (not cached): `RoutingJarvisChatGateway`
+uses the live HTTP client when paired (token + endpoint set) and a mock
+otherwise, so pairing or changing the endpoint takes effect on the next send
+without recreating ViewModels.
 
 ## Secure storage
 
@@ -106,8 +109,8 @@ wiped by **Settings → Reset all settings**.
 
 ## Wire format
 
-The Android app talks to the gateway over HTTP. Two endpoints are used
-today:
+The app talks to the cockpit gateway over HTTP. The two endpoints used
+directly by this module today:
 
 ### `GET /v1/health`
 
@@ -116,87 +119,63 @@ Plain JSON, no auth required (gateway choice). Response:
 ```json
 {
   "ok": true,
-  "version": "0.14.0",
-  "provider_id": "openrouter",
-  "model": "anthropic/claude-3.5-sonnet",
-  "message": null
+  "service": "hermes-cockpit",
+  "api_version": "1.0.0",
+  "gateway_version": "0.14.0",
+  "time": "2026-05-23T18:45:00Z"
 }
 ```
 
-All fields except `ok` are optional. The Android client treats `ok=false`
-as "show as disconnected" without crashing.
+All fields except `ok` are optional. The client also tolerates an older/
+alternate shape (`{"ok","version","message",…}`), preferring `gateway_version`
+and falling back to `version`. `ok=false` renders as "reachable but unhealthy".
 
-### `POST /v1/chat`
+### `POST /v1/jarvis/chat`
 
-Request body:
+The streaming chat turn. Request body:
 
 ```json
 {
-  "provider_id": "openrouter",
-  "messages": [
+  "prompt": "summarize my last week of cron runs",
+  "history": [
     { "role": "user", "content": "hello" },
-    { "role": "assistant", "content": "hi there" },
-    { "role": "user", "content": "summarize my last week of cron runs" }
+    { "role": "assistant", "content": "hi there" }
   ]
 }
 ```
 
 Headers:
 
-- `Authorization: Bearer <gateway-token>` (optional)
-- `X-Hermes-Provider-Key: <provider-api-key>` (optional — forwarded so the
-  gateway can call the provider without storing the user's key)
-- `X-Hermes-Provider-Id: <provider-id>` (optional — convenience for the
-  gateway to route to the right backend)
-- `Accept: text/event-stream`
+- `Content-Type: application/json`
+- `Accept: application/x-ndjson`
+- `Authorization: Bearer <cockpit-token>` (sent when paired)
 
-Response: a Server-Sent Events stream. Each event is JSON in the data
-field. Three event types are consumed by the app today:
+Response: a **newline-delimited JSON** stream (`application/x-ndjson`, chunked).
+Each line is one event from the real JARVIS Prime turn — `thinking`, `phase`,
+`tone`, `working`, `body`, `detail`, `done`, `error`. `HttpJarvisChatGateway`
+renders `body` deltas as the reply and surfaces `error` inline rather than
+discarding the accumulated text. There are **no provider-key headers**: the
+gateway holds the provider credentials and makes the model call.
 
-```
-event: message
-data: {"type":"delta","text":"Of course — "}
-
-event: message
-data: {"type":"delta","text":"here is your summary…"}
-
-event: message
-data: {"type":"done"}
-```
-
-On error the gateway emits `{"type":"error","message":"..."}` and the app
-renders it as a red note under the partial reply rather than discarding
-the accumulated content.
-
-**Gateway TODO:** The Python gateway in this repo currently exposes a
-similar but not identical surface (it serves WebSocket gateway connections
-for chat platforms). Wiring up `/v1/chat` SSE specifically for the Android
-client is tracked as future work; until then the mobile app is most useful
-in mock mode or against a thin REST shim sitting in front of the gateway.
+Every other cockpit surface (jobs, approvals, memory, evidence/research,
+autonomy, voice intake, …) uses the authenticated `/v1/cockpit/*` REST routes
+via `HermesCockpitClient`. See
+[`../../../docs/android/hermes-apk-api-contract.md`](../../../docs/android/hermes-apk-api-contract.md)
+for the full route contract and live-vs-planned status.
 
 ## Build types
 
-| Build type | App id | Default mock mode | Default gateway URL |
+| Build type | App id | Default endpoint | Until paired |
 |---|---|---|---|
-| `debug` | `com.aci.hermes.debug` | ON | `$HERMES_GATEWAY_URL`, else `http://10.0.2.2:8080` (emulator → host) |
-| `release` | `com.aci.hermes` | OFF | `$HERMES_GATEWAY_URL`, else `""` (user must enter) |
+| `debug` | `com.aci.hermes.debug` | `http://127.0.0.1:8765` | chat falls back to mock |
+| `release` | `com.aci.hermes` | `http://127.0.0.1:8765` | chat falls back to mock |
 
-The default URL is resolved at build time from (in order):
-
-1. `-PhermesGatewayUrl=...` (Gradle property)
-2. `$HERMES_GATEWAY_URL` (env var)
-3. `$ANDROID_API_BASE_URL` (env var alias)
-4. Build-type fallback above.
-
-It is exposed via `BuildConfig.DEFAULT_GATEWAY_URL` and only used as the
-seed value on first launch — once the user touches the URL field on the
-**Provider** screen, the override is persisted in DataStore and the
-build-time default no longer applies.
-
-> `10.0.2.2` is an Android-emulator-only loopback alias. The
-> `data/network` layer detects it and refuses to dial it from a real
-> device (see `util/GatewayUrl.kt`), surfacing a **"Wrong backend URL"**
-> banner instead of waiting out the OS-level TCP connect timeout.
+The default endpoint (`SettingsRepository.DEFAULT_GATEWAY_ENDPOINT`) is the
+loopback cockpit. **No** gateway URL, provider key, or backend secret is
+injected at build time — the endpoint is set in **Settings → Connection** and
+the bearer token is pasted during pairing. Cleartext loopback HTTP is expected
+for an on-device or Termux gateway; point the endpoint at an `https://` address
+(e.g. behind Caddy or Tailscale) for a remote backend.
 
 ## Connection state model
 
@@ -210,9 +189,9 @@ of truth the status, diagnostics, and provider screens render from:
 | `Connected(status)`     | Probe returned 2xx; `status` carries version/model/etc.          |
 | `Failed(reason, kind)`  | Probe failed. `kind` ∈ {UNREACHABLE, WRONG_URL, TLS, HTTP, UNKNOWN} |
 
-`HermesGatewayClient.status()` uses a *short-timeout* OkHttp client
-clone (5s connect, 8s call timeout) so the UI can show a real error
-in ~8 seconds instead of waiting the OS default ~100 seconds.
+The `/v1/health` probe uses short connect/read timeouts on the JDK
+`HttpURLConnection` transport so the UI surfaces a real error quickly instead
+of waiting out the OS-default connect timeout.
 
 ## Why not embed a Python runtime?
 

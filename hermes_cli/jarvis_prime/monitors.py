@@ -214,6 +214,36 @@ def android_capability_checker(context: Mapping[str, Any]) -> MonitorResult:
     return MonitorResult(name, Severity.OK, "Android capabilities present")
 
 
+def behavioral_drift_checker(context: Mapping[str, Any]) -> MonitorResult:
+    """Detect Article VI risk dynamics from recent worker actions.
+
+    Read-only: classifies ``context['worker_actions']`` via ``behavioral_risk``
+    (privilege escalation, destructive cleanup/workaround, scope creep, reward
+    hacking). Blind — a visible gap — when no action history is supplied.
+    """
+
+    name = "behavioral_drift"
+    if _missing(context, "worker_actions"):
+        return MonitorResult(name, Severity.BLIND, "no worker action history supplied")
+    from hermes_cli.jarvis_prime.behavioral_risk import classify
+
+    findings = classify(context["worker_actions"])
+    if not findings:
+        return MonitorResult(name, Severity.OK, "no behavioral-risk findings")
+    fatal = [f for f in findings if f.severity == "fatal"]
+    severity = Severity.CRITICAL if fatal else Severity.WARNING
+    return MonitorResult(
+        name,
+        severity,
+        f"{len(findings)} behavioral-risk finding(s), {len(fatal)} fatal",
+        findings=tuple(
+            f"{f.category.value}[{f.worker_id}]: {', '.join(f.evidence)}"
+            for f in findings
+        )[:10],
+        needs_approval=bool(fatal),
+    )
+
+
 DEFAULT_MONITORS: tuple[tuple[str, Callable], ...] = (
     ("repo_state", repo_state_checker),
     ("open_prs", open_pr_checker),
@@ -223,6 +253,7 @@ DEFAULT_MONITORS: tuple[tuple[str, Callable], ...] = (
     ("skill_proposals", skill_proposal_checker),
     ("model_failures", model_failure_checker),
     ("android_capability", android_capability_checker),
+    ("behavioral_drift", behavioral_drift_checker),
 )
 
 

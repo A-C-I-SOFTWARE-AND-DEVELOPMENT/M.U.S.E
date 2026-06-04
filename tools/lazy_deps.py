@@ -118,6 +118,10 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     # ─── Memory providers ──────────────────────────────────────────────────
     "memory.honcho": ("honcho-ai==2.0.1",),
     "memory.hindsight": ("hindsight-client==0.6.1",),
+    # Local dense embeddings for holographic semantic recall (fully optional).
+    # The OpenAI-compatible embedding backend reuses the core `openai` SDK and
+    # needs no entry here; this is only the offline path.
+    "memory.embeddings_local": ("sentence-transformers==5.5.1", "numpy==2.4.3"),
 
     # ─── Messaging platforms (lazy-installable on demand) ──────────────────
     "platform.telegram": ("python-telegram-bot[webhooks]==22.6",),
@@ -163,6 +167,8 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     "skill.youtube": ("youtube-transcript-api==1.2.4",),
 
     # ─── Tools ─────────────────────────────────────────────────────────────
+    # DuckDB analytics over the learning-dataset Parquet export (optional).
+    "analytics.duckdb": ("duckdb==1.4.3",),
     # ACP adapter (VS Code / Zed / JetBrains integration)
     "tool.acp": ("agent-client-protocol==0.9.0",),
     # Dashboard (`hermes dashboard`)

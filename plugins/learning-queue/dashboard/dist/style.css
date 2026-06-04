@@ -1,0 +1,30 @@
+/* Hermes Learning Queue dashboard plugin — minimal, host-theme-friendly. */
+.hermes-lq { display: flex; flex-direction: column; gap: 0.75rem; }
+.hermes-lq-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.hermes-lq-header h2 { margin: 0; font-size: 1.1rem; }
+.hermes-lq-stats { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.8rem; opacity: 0.8; }
+.hermes-lq-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-left: auto; }
+.hermes-lq-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.hermes-lq-row {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 1rem; padding: 0.6rem 0.75rem; border: 1px solid rgba(128,128,128,0.25);
+  border-radius: 0.5rem;
+}
+.hermes-lq-row-main { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.hermes-lq-row-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; }
+.hermes-lq-trace { font-weight: 600; }
+.hermes-lq-label,
+.hermes-lq-gate {
+  font-size: 0.7rem; padding: 0.05rem 0.4rem; border-radius: 0.4rem;
+  background: rgba(128,128,128,0.18);
+}
+.hermes-lq-gates { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.hermes-lq-prov { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.78rem; opacity: 0.85; }
+.hermes-lq-prov-uri { max-width: 28rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hermes-lq-id { font-family: monospace; font-size: 0.7rem; opacity: 0.55; }
+.hermes-lq-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+.hermes-lq-status--approved { color: #2f9e44; }
+.hermes-lq-status--rejected { color: #e03131; }
+.hermes-lq-status--pending { color: #f08c00; }
+.hermes-lq-empty, .hermes-lq-error { padding: 1rem; opacity: 0.7; font-size: 0.9rem; }
+.hermes-lq-error { color: #e03131; }

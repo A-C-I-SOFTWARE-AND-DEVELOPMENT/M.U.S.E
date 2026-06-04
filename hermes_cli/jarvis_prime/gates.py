@@ -23,6 +23,7 @@ and surface as gate failures.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Mapping, Optional, Sequence
@@ -443,13 +444,26 @@ def strict_rollback_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBun
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="rollback plan validated")
 
 
+CAPABILITY_GATE_ENV = "HERMES_CAPABILITY_GATE"
+
+
+def _capability_gate_enabled() -> bool:
+    return os.environ.get(CAPABILITY_GATE_ENV, "").lower() in {"1", "true", "yes", "on"}
+
+
 def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
-    """Build a gate list whose evidence-bound members close over ``bundle``."""
+    """Build a gate list whose evidence-bound members close over ``bundle``.
+
+    When ``HERMES_CAPABILITY_GATE`` is enabled, the opt-in capability gate is
+    appended — RC2+ work then requires a passing ``capability_attestation`` in
+    the bundle (see ``capability_wall.py``). It is absent by default, so the
+    default strict suite and every existing strict-gate test are unchanged.
+    """
 
     def bind(fn):
         return lambda packet: fn(packet, bundle)
 
-    return (
+    gates = [
         Gate("planning", planning_gate),
         Gate("build", bind(strict_build_gate)),
         Gate("review", bind(strict_review_gate)),
@@ -458,7 +472,15 @@ def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
         Gate("release", bind(strict_release_gate)),
         Gate("owner_approval", bind(strict_owner_approval_gate)),
         Gate("rollback", bind(strict_rollback_gate)),
-    )
+    ]
+    if _capability_gate_enabled():
+        # Lazy import avoids a module-load cycle (capability_wall imports gates).
+        from hermes_cli.jarvis_prime.capability_wall import capability_gate
+
+        gates.append(
+            Gate("capability", lambda packet: capability_gate(packet, bundle, enabled=True))
+        )
+    return tuple(gates)
 
 
 # ---------------------------------------------------------------------------
