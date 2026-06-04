@@ -801,7 +801,8 @@ def _cmd_learning_free_recipe(args: argparse.Namespace) -> int:
     )
     if getattr(args, "write", None):
         path = recipe.write(args.write)
-        print(f"wrote {path}")
+        # Keep stdout pure JSON in --json mode so automation can parse it.
+        print(f"wrote {path}", file=sys.stderr if args.json else sys.stdout)
     if args.json:
         _print_json(recipe.to_dict())
     else:

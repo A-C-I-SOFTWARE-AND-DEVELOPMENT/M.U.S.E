@@ -58,6 +58,16 @@ def test_every_stage_recipe_is_valid_python_and_free() -> None:
         assert "together" not in low
         assert "openai" not in low
         assert "unsloth" in low and "trl" in low
+        # T4 (the advertised free GPU) has no bf16 — must pick precision by hardware
+        assert "bf16=true" not in low
+        assert "is_bfloat16_supported" in r.script
+
+
+def test_dpo_stage_emits_real_dpo_trainer() -> None:
+    r = ft.generate_recipe("data/prefs.jsonl", stage=ft.TrainingStage.DPO)
+    assert r.stage.value == "dpo"
+    assert "DPOTrainer" in r.script and "DPOConfig" in r.script
+    assert "ORPO" not in r.script  # not mislabeled ORPO
 
 
 def test_grpo_recipe_wires_the_gate_reward() -> None:
@@ -89,3 +99,14 @@ def test_cli_free_plan_and_recipe(capsys) -> None:
                  "--stage", "grpo", "--json"]) == 0
     recipe = json.loads(capsys.readouterr().out)
     assert recipe["stage"] == "grpo" and recipe["script_valid_python"] is True
+
+
+def test_cli_write_plus_json_keeps_stdout_pure_json(capsys, tmp_path) -> None:
+    rc = main(["learning", "free-recipe", "data/x.jsonl", "--stage", "sft",
+               "--json", "--write", str(tmp_path)])
+    assert rc == 0
+    captured = capsys.readouterr()
+    # stdout must be parseable JSON; the "wrote ..." status goes to stderr.
+    json.loads(captured.out)
+    assert "wrote" in captured.err
+    assert (tmp_path / "train_sft.py").exists()

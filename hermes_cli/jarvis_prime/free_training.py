@@ -125,7 +125,7 @@ DEFAULT_BASE_MODEL = "unsloth/Qwen3-8B"  # fits a free Colab/Kaggle T4 in 4-bit
 
 def _sft_script(base_model: str, dataset_path: str, out_dir: str) -> str:
     return f'''"""Free QLoRA SFT via Unsloth + TRL. Run on a free Colab/Kaggle T4."""
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel, is_bfloat16_supported
 from trl import SFTConfig, SFTTrainer
 from datasets import load_dataset
 
@@ -144,7 +144,8 @@ trainer = SFTTrainer(
         output_dir={out_dir!r}, per_device_train_batch_size=2,
         gradient_accumulation_steps=4, num_train_epochs=3,
         learning_rate=2e-4, warmup_ratio=0.03, logging_steps=10,
-        optim="adamw_8bit", lr_scheduler_type="cosine", bf16=True))
+        optim="adamw_8bit", lr_scheduler_type="cosine",
+        fp16=not is_bfloat16_supported(), bf16=is_bfloat16_supported()))
 trainer.train()
 model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 '''
@@ -152,7 +153,7 @@ model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 
 def _orpo_script(base_model: str, dataset_path: str, out_dir: str) -> str:
     return f'''"""Free ORPO preference optimization (beats SFT-only; no reference model)."""
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel, is_bfloat16_supported
 from trl import ORPOConfig, ORPOTrainer
 from datasets import load_dataset
 
@@ -169,7 +170,35 @@ trainer = ORPOTrainer(
         output_dir={out_dir!r}, per_device_train_batch_size=2,
         gradient_accumulation_steps=4, num_train_epochs=1,
         learning_rate=8e-6, beta=0.1, logging_steps=10,
-        optim="adamw_8bit", lr_scheduler_type="cosine", bf16=True))
+        optim="adamw_8bit", lr_scheduler_type="cosine",
+        fp16=not is_bfloat16_supported(), bf16=is_bfloat16_supported()))
+trainer.train()
+model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
+'''
+
+
+def _dpo_script(base_model: str, dataset_path: str, out_dir: str) -> str:
+    return f'''"""Free DPO preference optimization (reference-model variant)."""
+from unsloth import FastLanguageModel, is_bfloat16_supported
+from trl import DPOConfig, DPOTrainer
+from datasets import load_dataset
+
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name={base_model!r}, max_seq_length=4096, load_in_4bit=True)
+model = FastLanguageModel.get_peft_model(model, r=16, lora_alpha=16)
+
+# Preference rows: {{"prompt", "chosen", "rejected"}} (e.g. HelpSteer3 / UltraFeedback).
+dataset = load_dataset("json", data_files={dataset_path!r}, split="train")
+
+trainer = DPOTrainer(
+    model=model, ref_model=None, processing_class=tokenizer,
+    train_dataset=dataset,
+    args=DPOConfig(
+        output_dir={out_dir!r}, per_device_train_batch_size=2,
+        gradient_accumulation_steps=4, num_train_epochs=1,
+        learning_rate=5e-6, beta=0.1, logging_steps=10,
+        optim="adamw_8bit", lr_scheduler_type="cosine",
+        fp16=not is_bfloat16_supported(), bf16=is_bfloat16_supported()))
 trainer.train()
 model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 '''
@@ -182,7 +211,7 @@ The reward runs the model's produced work through Hermes' gates and returns
 ``reward_from_gate_summary`` — no human/paid judge. Wire a real verifier (run
 tests, scan secrets, score citations) inside ``gate_summary_for`` for your task.
 """
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel, is_bfloat16_supported
 from trl import GRPOConfig, GRPOTrainer
 from datasets import load_dataset
 
@@ -213,7 +242,8 @@ trainer = GRPOTrainer(
     args=GRPOConfig(
         output_dir={out_dir!r}, per_device_train_batch_size=4,
         gradient_accumulation_steps=2, num_generations=4, num_train_epochs=1,
-        learning_rate=5e-6, logging_steps=10, optim="adamw_8bit", bf16=True))
+        learning_rate=5e-6, logging_steps=10, optim="adamw_8bit",
+        fp16=not is_bfloat16_supported(), bf16=is_bfloat16_supported()))
 trainer.train()
 model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 '''
@@ -222,7 +252,7 @@ model.save_pretrained_merged({out_dir!r}, tokenizer, save_method="lora")
 _SCRIPTS = {
     TrainingStage.SFT: _sft_script,
     TrainingStage.ORPO: _orpo_script,
-    TrainingStage.DPO: _orpo_script,  # DPO scaffold mirrors ORPO's data shape
+    TrainingStage.DPO: _dpo_script,
     TrainingStage.GRPO: _grpo_script,
 }
 
