@@ -71,9 +71,9 @@ def get_queue(status: Optional[str] = None, trace_type: Optional[str] = None):
         return {"learning": cards, "count": len(cards)}
     except HTTPException:
         raise
-    except Exception as exc:  # pragma: no cover - defensive
-        log.warning("learning queue load failed: %s", exc)
-        return {"learning": [], "count": 0, "error": str(exc)}
+    except Exception:  # pragma: no cover - defensive
+        log.exception("learning queue load failed")
+        return {"learning": [], "count": 0, "error": "internal error"}
 
 
 # ---------------------------------------------------------------------------
