@@ -48,6 +48,8 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/runtime/workers"), h.runtime_workers, True),
     ("GET", _compile("/v1/cockpit/diagnostics"), h.diagnostics, True),
     ("GET", _compile("/v1/cockpit/models"), h.models, True),
+    ("GET", _compile("/v1/cockpit/models/local"), h.models_local, True),
+    ("POST", _compile("/v1/cockpit/models/local/smoke"), h.models_local_smoke, True),
     ("GET", _compile("/v1/cockpit/model-routes"), h.model_routes, True),
     ("POST", _compile("/v1/cockpit/model-routes/override"), h.model_route_override, True),
     ("GET", _compile("/v1/cockpit/memory"), h.memory_list, True),

@@ -37,6 +37,9 @@ sealed class Screen(val route: String) {
     data object Diagnostics : Screen("diagnostics")
     data object ModelRoute : Screen("model_route")
 
+    /** Local model (Gemma / Ollama) honest status + smoke test. */
+    data object ModelCenter : Screen("model_center")
+
     /** Device-control consent + action log; pushed from the Control tab. */
     data object DeviceControl : Screen("device_control")
 

@@ -492,6 +492,10 @@ class AppContainer(private val application: Application) {
         ModelRouteViewModel(cockpitModelRoutesRepository)
     }
 
+    fun modelCenterVmFactory(): ViewModelProvider.Factory = factory {
+        com.aci.hermes.ui.screens.model.ModelCenterViewModel(cockpitClient)
+    }
+
     fun newCodingTaskVmFactory(): ViewModelProvider.Factory = factory {
         com.aci.hermes.ui.screens.coding.NewCodingTaskViewModel(
             repository = codingRepository,

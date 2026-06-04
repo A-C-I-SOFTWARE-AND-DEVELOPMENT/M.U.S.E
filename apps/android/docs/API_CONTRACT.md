@@ -46,11 +46,18 @@ the corresponding screen shows **"not supported by this backend"** or
 **"pair a gateway"** — never a fabricated value. An unreachable gateway leaves
 coding tasks **queued offline** (the prompt is still copyable).
 
-## Planned (v1.5 WS2): local model status
+## Local model status (Gemma / Ollama)
 
-`GET /v1/cockpit/models/local` (and an explicit `POST .../smoke`) will report
-detected runtimes, installed Gemma/Ollama variants, and per-task promotion with
-the honest status vocabulary in [`GEMMA_LOCAL_MODE.md`](GEMMA_LOCAL_MODE.md).
-Until that lands, the app surfaces routing via `GET /v1/cockpit/model-routes`
-and `GET /v1/cockpit/models` (Model Route screen) and labels Gemma status as
-"not yet probed".
+### `GET /v1/cockpit/models/local` — honest local status (read-only)
+Response `LocalModelsStatus { ollama_base, runtime_status
+(not_configured|configured|runtime_reachable), reachable, reach_error,
+runtimes[{name,available,path}], installed[{name, promoted_for[], fallback_for[],
+status (promoted_for_task|fallback_only|variant_installed)}], promotions{task→model},
+generated_at }`. A GET never reports "smoke-tested"/"ready".
+
+### `POST /v1/cockpit/models/local/smoke` — explicit smoke test
+Body `{ model? }` (omitted ⇒ policy/installed pick). Response
+`LocalModelSmokeResult { ok, model, reply_excerpt, latency_ms, error? }`. A
+runtime failure returns `200` with `ok=false` + reason (honest "blocked"). This
+is the **only** path that earns a model the "Smoke-tested" label, surfaced in
+the **Model Center** screen. See [`GEMMA_LOCAL_MODE.md`](GEMMA_LOCAL_MODE.md).

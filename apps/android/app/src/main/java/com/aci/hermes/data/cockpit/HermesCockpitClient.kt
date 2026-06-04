@@ -359,6 +359,22 @@ class HermesCockpitClient(
     suspend fun modelPolicy(): CockpitResult<ModelPolicy> =
         request("GET", "/v1/cockpit/models", ModelPolicy.serializer())
 
+    /** Local runtimes + installed Gemma/Ollama variants + per-task promotion,
+     *  with honest status labels (read-only; never "ready" without a smoke test). */
+    suspend fun localModels(): CockpitResult<LocalModelsStatus> =
+        request("GET", "/v1/cockpit/models/local", LocalModelsStatus.serializer())
+
+    /** Explicit, owner-initiated tiny local generation — the only path that
+     *  earns a model the "smoke-tested" label. A failure comes back as a
+     *  Success with `ok = false` + reason (honest "blocked"), not an error. */
+    suspend fun localModelSmoke(model: String? = null): CockpitResult<LocalModelSmokeResult> =
+        request(
+            "POST",
+            "/v1/cockpit/models/local/smoke",
+            LocalModelSmokeResult.serializer(),
+            body = json.encodeToString(LocalModelSmokeRequest.serializer(), LocalModelSmokeRequest(model)),
+        )
+
     /** The gateway's real installed skills (read-only; honest empty when none). */
     suspend fun skillsList(): CockpitResult<CockpitSkillList> =
         request("GET", "/v1/cockpit/skills", CockpitSkillList.serializer())

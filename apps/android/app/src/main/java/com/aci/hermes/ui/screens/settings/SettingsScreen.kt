@@ -53,6 +53,7 @@ fun SettingsScreen(
     onOpenModelRoutes: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
     onOpenKnowledge: () -> Unit = {},
+    onOpenModelCenter: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -188,6 +189,9 @@ fun SettingsScreen(
                 }
                 OutlinedButton(onClick = onOpenModelRoutes, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.model_route_open))
+                }
+                OutlinedButton(onClick = onOpenModelCenter, modifier = Modifier.fillMaxWidth()) {
+                    Text("Model Center (local / Gemma)")
                 }
                 OutlinedButton(
                     onClick = { confirmReset = true },

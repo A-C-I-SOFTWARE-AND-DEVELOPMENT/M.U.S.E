@@ -116,6 +116,7 @@ fun HermesNavHost(
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }
     val openDeviceControl: () -> Unit = { nav.navigate(Screen.DeviceControl.route) }
     val openModelRoutes: () -> Unit = { nav.navigate(Screen.ModelRoute.route) }
+    val openModelCenter: () -> Unit = { nav.navigate(Screen.ModelCenter.route) }
     val openNewCodingTask: () -> Unit = { nav.navigate(Screen.NewCodingTask.route) }
     val openCodeHandoff: () -> Unit = { nav.navigate(Screen.CodeHandoff.route) }
     val openWorkPacket: (taskId: String) -> Unit = { id ->
@@ -255,6 +256,7 @@ fun HermesNavHost(
                 onOpenModelRoutes = openModelRoutes,
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
                 onOpenKnowledge = { nav.navigate(Screen.Knowledge.route) },
+                onOpenModelCenter = openModelCenter,
             )
         }
 
@@ -272,6 +274,15 @@ fun HermesNavHost(
         composable(Screen.ModelRoute.route) {
             val vm: ModelRouteViewModel = viewModel(factory = remember { container.modelRouteVmFactory() })
             ModelRouteScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        composable(Screen.ModelCenter.route) {
+            val vm: com.aci.hermes.ui.screens.model.ModelCenterViewModel =
+                viewModel(factory = remember { container.modelCenterVmFactory() })
+            com.aci.hermes.ui.screens.model.ModelCenterScreen(
+                viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
         }
 
         composable(Screen.AvatarPicker.route) {

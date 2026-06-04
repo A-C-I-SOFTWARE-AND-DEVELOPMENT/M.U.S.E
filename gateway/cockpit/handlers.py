@@ -267,6 +267,155 @@ def model_route_override(req: Request) -> JsonResponse:
     )
 
 
+def _local_name_match(installed: str, routed: str) -> bool:
+    """Fuzzy match an installed Ollama tag against a router model id.
+
+    Ollama tags ("gemma3:latest") and catalog ids ("gemma3", "qwen3:8b") never
+    match exactly, so compare on a normalized stem (drop ``:latest``, lowercase)
+    with prefix tolerance either way. Conservative: a non-match just means the
+    model isn't *labelled* promoted, never a fabricated promotion.
+    """
+    def norm(s: str) -> str:
+        s = s.strip().lower()
+        return s[: -len(":latest")] if s.endswith(":latest") else s
+
+    a, b = norm(installed), norm(routed)
+    if not a or not b:
+        return False
+    return a == b or a.startswith(b) or b.startswith(a)
+
+
+def models_local(_req: Request) -> JsonResponse:
+    """Local model runtimes + installed variants + per-task promotion, with an
+    **honest** status label per model.
+
+    Read-only; never accepts or returns API keys. The strongest label this
+    endpoint emits is ``promoted_for_task`` / ``variant_installed`` — a model is
+    only ``smoke_tested`` after the explicit :func:`models_local_smoke` POST the
+    owner triggers, so the cockpit never shows "ready" without evidence.
+    """
+    from hermes_cli.jarvis_prime import model_bootstrap as mb
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    from . import generate
+
+    # 1. Which runtimes' binaries are present (detection only — not "running").
+    runtimes: list[dict[str, Any]] = []
+    try:
+        for name, info in mb.detect_local_runtimes().items():
+            runtimes.append(
+                {"name": name, "available": bool(info.get("available")), "path": info.get("path")}
+            )
+    except Exception:  # pragma: no cover - defensive
+        runtimes = []
+    ollama_available = any(r["name"] == "ollama" and r["available"] for r in runtimes)
+
+    # 2. Is the Ollama runtime actually reachable, and what is installed?
+    base = generate._ollama_base()
+    reachable = False
+    reach_error: str | None = None
+    installed_names: list[str] = []
+    try:
+        installed_names = generate.installed_chat_models(base)
+        reachable = True
+    except Exception as exc:
+        reach_error = str(exc)
+
+    # 3. Per-task promotion + fallback from the free-first router (local tier).
+    promoted: dict[str, list[str]] = {}
+    fallback: dict[str, set[str]] = {}
+    promotions_by_task: dict[str, str] = {}
+    try:
+        for decision in tr.all_routes():
+            dd = decision.to_dict()
+            tc = str(dd.get("task_class") or "")
+            chosen = dd.get("chosen")
+            if chosen and dd.get("route_tier") == "local_oss":
+                promoted.setdefault(str(chosen), []).append(tc)
+                promotions_by_task[tc] = str(chosen)
+            for fb in dd.get("fallback_chain") or []:
+                fallback.setdefault(str(fb), set()).add(tc)
+    except Exception:  # pragma: no cover - defensive
+        pass
+
+    installed: list[dict[str, Any]] = []
+    for name in installed_names:
+        promoted_for = sorted(
+            {t for m, tasks in promoted.items() for t in tasks if _local_name_match(name, m)}
+        )
+        fallback_for = sorted(
+            {t for m, tasks in fallback.items() for t in tasks if _local_name_match(name, m)}
+        )
+        status = (
+            "promoted_for_task"
+            if promoted_for
+            else ("fallback_only" if fallback_for else "variant_installed")
+        )
+        installed.append(
+            {
+                "name": name,
+                "promoted_for": promoted_for,
+                "fallback_for": fallback_for,
+                "status": status,
+            }
+        )
+
+    runtime_status = (
+        "runtime_reachable" if reachable else ("configured" if ollama_available else "not_configured")
+    )
+
+    return JsonResponse(
+        200,
+        {
+            "ollama_base": base,
+            "runtime_status": runtime_status,
+            "reachable": reachable,
+            "reach_error": reach_error,
+            "runtimes": runtimes,
+            "installed": installed,
+            "promotions": promotions_by_task,
+            "generated_at": _now_iso(),
+        },
+    )
+
+
+def models_local_smoke(req: Request) -> JsonResponse:
+    """Explicit, owner-initiated tiny local generation — the **only** path that
+    earns a model the ``smoke_tested`` label.
+
+    Local, non-mutating, loopback (token-authenticated). Picks the policy/installed
+    model when ``model`` is omitted. Never accepts API keys. A failure returns a
+    200 with ``ok=false`` + reason so the cockpit can show "blocked", not crash.
+    """
+    import time
+
+    from . import generate
+
+    model = str((req.body or {}).get("model", "")).strip()
+    base = generate._ollama_base()
+    started = time.monotonic()
+    try:
+        chosen = model or generate.pick_model(base)
+        reply = generate.ollama_generate(
+            "Reply with the single word: ok", "", chosen, base=base, timeout=30.0
+        )
+        latency_ms = int((time.monotonic() - started) * 1000)
+        return JsonResponse(
+            200,
+            {
+                "ok": bool(reply),
+                "model": chosen,
+                "reply_excerpt": reply[:200],
+                "latency_ms": latency_ms,
+            },
+        )
+    except Exception as exc:
+        return JsonResponse(
+            200,
+            {"ok": False, "model": model or "(auto)", "error": str(exc)},
+        )
+
+
 # ---------------------------------------------------------------------------
 # Memory (real JARVIS memory store; secret-rejection preserved)
 # ---------------------------------------------------------------------------
