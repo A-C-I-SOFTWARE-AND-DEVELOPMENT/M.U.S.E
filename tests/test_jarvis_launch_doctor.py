@@ -105,3 +105,30 @@ def test_failure_in_hard_check_flips_overall(
     report = ld.run_launch_doctor()
     assert report.ok is False
     assert any(c.name == "model_brain" and c.status == ld.FAIL for c in report.checks)
+
+
+def test_guardrail_checks_present_and_pass(hermes_home: Path) -> None:
+    report = ld.run_launch_doctor()
+    for name in (
+        "guardrail_ledger_writable",
+        "guardrail_ledger_verifies",
+        "strict_gate_rejects_self_attestation",
+        "owner_challenge_nonce_enforced",
+        "secret_scan_operational",
+        "emergency_stop_journaled",
+        "packet_id_stable",
+    ):
+        assert _check(report, name).status == ld.PASS, name
+
+
+def test_guardrail_hard_failure_blocks_launch(
+    hermes_home: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom() -> ld.LaunchCheck:
+        return ld.LaunchCheck(
+            "strict_gate_rejects_self_attestation", ld.FAIL, "simulated", hard=True
+        )
+
+    monkeypatch.setattr(ld, "_check_strict_gate_rejects_self_attestation", boom)
+    report = ld.run_launch_doctor()
+    assert report.ok is False

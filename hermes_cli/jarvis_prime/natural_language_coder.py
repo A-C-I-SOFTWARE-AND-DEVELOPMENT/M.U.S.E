@@ -187,13 +187,65 @@ class CodingWorkPacket:
             "generated_at": self.generated_at,
         }
 
+    @property
+    def packet_id(self) -> str:
+        """Deterministic id over the *stable* packet fields.
+
+        Excludes ``generated_at`` so the same logical packet always hashes the
+        same. Strict gates bind an evidence bundle to this id, so a bundle
+        collected for one packet cannot be replayed against another.
+        """
+
+        from hermes_cli.jarvis_prime.guardrail_evidence import (
+            canonical_json,
+            sha256_hex,
+        )
+
+        stable = {
+            "mission": self.mission,
+            "intent": self.intent.value,
+            "normalized_intent": self.normalized_intent or self.intent.value,
+            "branch": self.branch,
+            "risk_class": self.risk_class,
+            "repo_root": self.repo_root,
+            "allowed_files": sorted(self.allowed_files),
+            "owner_gates": sorted(g.value for g in self.owner_gates),
+            "blocked": self.blocked,
+        }
+        return sha256_hex(canonical_json(stable))
+
+    # -- explicit "planned" aliases -------------------------------------
+    # These make it unambiguous that the packet describes *intent*, not
+    # observed reality. Strict gates never read these as evidence.
+
+    @property
+    def planned_allowed_files(self) -> tuple[str, ...]:
+        return self.allowed_files
+
+    @property
+    def planned_verification_commands(self) -> tuple[str, ...]:
+        return self.verification_plan
+
+    @property
+    def planned_rollback(self) -> tuple[str, ...]:
+        return self.rollback_plan
+
     def to_gate_packet(self) -> dict[str, object]:
-        """Produce a dict consumable by ``gates.run_gate_summary``."""
+        """Produce a dict consumable by ``gates.run_gate_summary``.
+
+        This carries planning-, release-, and owner-gate fields (which are
+        legitimately statements of intent), plus the ``packet_id`` and the
+        *planned* verification/scope under explicit ``planned_*`` keys. It no
+        longer fabricates observed-evidence fields (``files_changed``,
+        ``diff_reviewed``, ``tests_run`` as if executed): in strict evidence
+        mode those must come from a real evidence bundle, not the packet.
+        """
 
         owner_actions = sorted({
             _GATE_TO_OWNER_AUTH[g] for g in self.owner_gates if g in _GATE_TO_OWNER_AUTH
         })
         return {
+            "packet_id": self.packet_id,
             "repo_root": self.repo_root,
             "branch": self.branch,
             "mission": self.mission,
@@ -204,13 +256,48 @@ class CodingWorkPacket:
             "verification_plan": list(self.verification_plan),
             "rollback_plan": list(self.rollback_plan),
             "remaining_risks": list(self.non_goals) or ["see acceptance criteria"],
-            "files_changed": list(self.allowed_files),
-            "commits_scoped": True,
-            "diff_reviewed": True,
-            "contrarian_objection": "reviewer worker raises objections before merge",
             "owner_gated_actions": owner_actions,
-            "tests_run": list(self.verification_plan),
+            # Planned (intent) fields — never treated as captured evidence.
+            "planned_allowed_files": list(self.allowed_files),
+            "planned_verification_commands": list(self.verification_plan),
+            "planned_rollback": list(self.rollback_plan),
+            "required_evidence": list(self.to_evidence_requirements()),
         }
+
+    def to_evidence_requirements(self) -> tuple[str, ...]:
+        """Artifact types this packet must produce before strict gates pass.
+
+        Risk-scaled: RC1 needs little; RC2+ needs a real diff, secret scan,
+        test (or accepted skip), review, and rollback; RC3+ additionally needs a
+        challenge-bound owner grant; RC4 is blocked (refusal only, no plan).
+        """
+
+        from hermes_cli.jarvis_prime.guardrail_evidence import (
+            ARTIFACT_GIT_DIFF,
+            ARTIFACT_OWNER_GRANT,
+            ARTIFACT_REVIEW,
+            ARTIFACT_ROLLBACK,
+            ARTIFACT_SECRET_SCAN,
+            ARTIFACT_TEST_RESULT,
+        )
+
+        rc = (self.risk_class or "RC1").upper()
+        if self.blocked or rc >= "RC4":
+            return ()  # blocked: no executable plan, refusal/review only
+        reqs: list[str] = []
+        if rc >= "RC2":
+            reqs.extend(
+                [
+                    ARTIFACT_GIT_DIFF,
+                    ARTIFACT_SECRET_SCAN,
+                    ARTIFACT_TEST_RESULT,
+                    ARTIFACT_REVIEW,
+                    ARTIFACT_ROLLBACK,
+                ]
+            )
+        if rc >= "RC3":
+            reqs.append(ARTIFACT_OWNER_GRANT)
+        return tuple(reqs)
 
 
 @dataclass(frozen=True)

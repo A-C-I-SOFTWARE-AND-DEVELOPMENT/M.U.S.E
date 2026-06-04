@@ -10413,7 +10413,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "completion",
         "computer-use",
         "config", "cron", "curator", "dashboard", "debug", "doctor",
-        "dump", "fallback", "gateway", "hooks", "import", "insights",
+        "dump", "fallback", "gateway", "guardrails", "hooks", "import", "insights",
         "jarvis", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory",
         "model", "models", "pairing", "plugins", "postinstall", "profile", "proxy",
         "send", "sessions", "setup",
@@ -11523,6 +11523,19 @@ def main():
     )
     jarvis_stop_parser.add_argument("--reason", default="owner_requested")
     jarvis_parser.set_defaults(func=cmd_jarvis)
+
+    # =========================================================================
+    # guardrails command — verifiable guardrail subsystem (ledger, strict
+    # gates, owner challenges, secret scan). Logic lives in its own top-level
+    # module so this file only carries the registration. The module lives at
+    # ``hermes_cli.guardrails_cli`` (NOT under ``jarvis_prime``) on purpose:
+    # registering the subparser must not eagerly import the heavy
+    # ``jarvis_prime`` package at ``--help`` time — the implementation
+    # lazy-imports it only at command dispatch, like ``cmd_jarvis``.
+    # =========================================================================
+    from hermes_cli.guardrails_cli import register as _register_guardrails
+
+    _register_guardrails(subparsers)
 
     # =========================================================================
     # cockpit command — loopback API for the Jarvis Prime Android app
