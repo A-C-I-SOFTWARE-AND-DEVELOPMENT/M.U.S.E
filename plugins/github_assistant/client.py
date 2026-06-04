@@ -252,3 +252,39 @@ class GithubClient:
             f"/repos/{owner}/{name}/issues/{number}/comments",
             json_body={"body": body},
         )
+
+    def create_pull_request(
+        self,
+        owner: str,
+        name: str,
+        *,
+        title: str,
+        head: str,
+        base: str,
+        body: Optional[str] = None,
+        draft: bool = True,
+    ) -> dict[str, Any]:
+        """Open a PR (``head`` → ``base``). Requires a configured PAT."""
+        payload: dict[str, Any] = {
+            "title": title,
+            "head": head,
+            "base": base,
+            "draft": bool(draft),
+        }
+        if body is not None:
+            payload["body"] = body
+        return self._request("POST", f"/repos/{owner}/{name}/pulls", json_body=payload)
+
+    def open_pull_for_head(self, owner: str, name: str, branch: str) -> Optional[str]:
+        """Return the ``html_url`` of an OPEN PR whose head is ``branch``, else None."""
+        result = self._request(
+            "GET",
+            f"/repos/{owner}/{name}/pulls",
+            params={"state": "open", "head": f"{owner}:{branch}"},
+        )
+        if not result.get("success"):
+            return None
+        items = result.get("payload") or []
+        if isinstance(items, list) and items:
+            return items[0].get("html_url")
+        return None

@@ -1797,26 +1797,21 @@ def _git_commits(workspace: str, base: Optional[str]) -> list[dict[str, Any]]:
     return commits
 
 
-def job_publish_preview(req: Request) -> JsonResponse:
-    """Read-only preview of what publishing this job would open (contract §8).
+def _publish_preview_payload(kind: Optional[str], obj: Any) -> dict[str, Any]:
+    """Derive the read-only publish preview from git in the job's workspace.
 
-    Derives the remote/branch/base, the commits on the branch vs its base, and a
-    default PR title/body from git in the job's workspace — **no network, no
-    writes**. Honest nulls/empty when the job has no git workspace or no commits
-    ahead of base. The actual ``POST .../publish`` (push + open PR) is a separate,
-    owner-gated route.
+    remote/branch/base, the commits on the branch vs its base, and a default PR
+    title/body — no network, no writes. Honest nulls/empty without a git
+    workspace or commits ahead of base. Shared by ``job_publish_preview`` and the
+    ``approval_required`` staging of ``job_publish`` so they can't drift.
     """
-    job_id = req.path_params.get("id", "")
-    kind, obj = _resolve_job(job_id)
-    if obj is None:
-        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
     md = dict(getattr(obj, "metadata", None) or {})
     workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
     if not workspace:
-        return JsonResponse(200, {
+        return {
             "remote": None, "branch": None, "base": None, "commits": [],
             "default_title": None, "default_body": None, "existing_pr_url": None,
-        })
+        }
 
     def _git(args: list[str]) -> str:
         import subprocess
@@ -1829,24 +1824,142 @@ def job_publish_preview(req: Request) -> JsonResponse:
         except Exception:  # pragma: no cover - defensive
             return ""
 
-    remote = md.get("remote") or "origin"
     branch = md.get("branch") or _git(["rev-parse", "--abbrev-ref", "HEAD"]) or None
     base = md.get("base_branch") or "main"
     commits = _git_commits(workspace, base)
-    default_title: Optional[str] = commits[0]["subject"] if commits else None
-    default_body: Optional[str] = None
+    default_title = commits[0]["subject"] if commits else None
+    default_body = None
     if commits:
         changes = "\n".join(f"- {c['subject']}" for c in commits)
         default_body = f"## Summary\n\n## Changes\n{changes}\n"
-    return JsonResponse(200, {
-        "remote": remote,
+    return {
+        "remote": md.get("remote") or "origin",
         "branch": branch,
         "base": base,
         "commits": commits,
         "default_title": default_title,
         "default_body": default_body,
         "existing_pr_url": None,
+    }
+
+
+def job_publish_preview(req: Request) -> JsonResponse:
+    """Read-only preview of what publishing this job would open (contract §8).
+
+    No network, no writes; honest nulls/empty when the job has no git workspace.
+    The actual ``POST .../publish`` (open PR) is a separate, owner-gated route.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    return JsonResponse(200, _publish_preview_payload(kind, obj))
+
+
+def _publish_repo_slug(workspace: str) -> tuple[Optional[str], Optional[str]]:
+    """``(owner, repo)`` parsed from the job workspace's git remote, or ``(None, None)``."""
+    try:
+        from pathlib import Path
+
+        from hermes_cli import github_publisher as _gp
+
+        info = _gp.get_repo_info(Path(workspace))
+        return info.owner, info.repo
+    except Exception:  # pragma: no cover - not a git checkout / no remote
+        return None, None
+
+
+def _open_pull_request(  # pragma: no cover - network; validated with a real PAT
+    client: Any, owner: str, repo: str, branch: str, base: str,
+    title: str, body: str, draft: bool,
+) -> JsonResponse:
+    """Open (or report an existing) PR for ``branch``. Network — not unit-tested."""
+    existing = client.open_pull_for_head(owner, repo, branch)
+    if existing:
+        return JsonResponse(409, {"error": "pr_already_exists", "pr_url": existing})
+    result = client.create_pull_request(
+        owner, repo, title=title, head=branch, base=base, body=body, draft=draft)
+    if not result.get("success"):
+        return JsonResponse(502, {
+            "error": result.get("error", "github_error"),
+            "message": result.get("message", "failed to open pull request"),
+        })
+    pr = result.get("payload") or {}
+    return JsonResponse(200, {
+        "pr_url": pr.get("html_url"),
+        "pr_number": pr.get("number"),
+        "branch": branch,
+        "remote": "origin",
+        "state": pr.get("state", "open"),
+        "is_draft": bool(pr.get("draft", draft)),
     })
+
+
+def job_publish(req: Request) -> JsonResponse:
+    """Open a GitHub PR for a job's branch (contract §8) — owner-gated.
+
+    Double-gated like ``job_approve``: refused on a non-loopback cockpit, and
+    requires the exact owner phrase. Without the phrase it returns ``200`` with
+    ``status: "approval_required"`` and the publish preview (no GitHub call).
+    With the phrase it opens a **real** PR via the GitHub REST API using
+    ``GITHUB_PERSONAL_ACCESS_TOKEN`` — ``403 github_not_configured`` when that
+    token is absent, ``409 pr_already_exists`` (carrying ``pr_url``) when an open
+    PR already targets the branch.
+
+    The cockpit opens the PR for a branch already pushed to the remote (the
+    worker/CI pushes; the cockpit publishes). It does **not** run ``git push``
+    itself — the repo deliberately keeps the PAT out of ``git push`` (see
+    ``hermes_cli/github_publisher``).
+    """
+    job_id = req.path_params.get("id", "")
+    authorization = str(req.body.get("authorization", "")).strip()
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(
+            403,
+            {"error": "publishing is disabled on a non-loopback cockpit; run the "
+             "runtime locally (loopback) to open a PR"},
+        )
+    workspace = str(getattr(obj, "repo_root", "") or "") if kind == "queue" else ""
+    if not workspace:
+        return JsonResponse(409, {"error": "job has no workspace to publish"})
+
+    preview = _publish_preview_payload(kind, obj)
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    if authorization != AUTHORIZATION_PHRASE:
+        return JsonResponse(200, {
+            "status": "approval_required",
+            "preview": preview,
+            "authorization_required": True,
+            "authorization_hint": f"send authorization exactly: {AUTHORIZATION_PHRASE!r}",
+        })
+
+    # --- past the owner gate: open a real PR (requires a configured PAT) ------
+    try:
+        from plugins.github_assistant.client import GithubClient
+    except Exception as exc:  # pragma: no cover - import/runtime guard
+        return JsonResponse(500, {"error": f"github client unavailable: {exc}"})
+    client = GithubClient()
+    if not client.has_token():
+        return JsonResponse(403, {
+            "error": "github_not_configured",
+            "message": "set GITHUB_PERSONAL_ACCESS_TOKEN in ~/.hermes/.env to publish",
+        })
+
+    branch = preview.get("branch")
+    if not branch:
+        return JsonResponse(409, {"error": "job branch is not resolvable; nothing to publish"})
+    owner, repo = _publish_repo_slug(workspace)
+    if not owner or not repo:  # pragma: no cover - reached only past the token gate
+        return JsonResponse(409, {"error": "could not resolve owner/repo from the job's git remote"})
+    title = str(req.body.get("title") or preview.get("default_title") or branch)
+    body = str(req.body.get("body") or preview.get("default_body") or "")
+    base = str(req.body.get("base") or preview.get("base") or "main")
+    draft = bool(req.body.get("draft", True))
+    return _open_pull_request(client, owner, repo, branch, base, title, body, draft)
 
 
 # ---------------------------------------------------------------------------
@@ -3256,6 +3369,7 @@ __all__ = [
     "job_get",
     "job_ledger",
     "job_pause",
+    "job_publish",
     "job_publish_preview",
     "job_rerun",
     "job_resume",

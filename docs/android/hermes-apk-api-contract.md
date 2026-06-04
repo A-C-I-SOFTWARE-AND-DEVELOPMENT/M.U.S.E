@@ -71,7 +71,7 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Jobs — live stream | `GET /jobs/stream` (SSE) | ✅ live |
 | Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
 | Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
-| Publishing — open PR | `POST /jobs/{id}/publish` | ⏳ planned (owner-gated; needs a PAT) |
+| Publishing — open PR | `POST /jobs/{id}/publish` | ✅ live (owner-phrase + loopback gated; opens a PR for the pushed branch — needs a PAT) |
 | Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
 | Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
@@ -580,7 +580,12 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 
 ### `POST /v1/cockpit/jobs/{id}/publish`
 
-> ⏳ **Planned** — publishing to GitHub is owner-gated and not yet served.
+> ✅ **Live.** Owner-phrase + loopback gated. Without the phrase it returns
+> `200 {"status":"approval_required", "preview": …}` (no GitHub call). With the
+> phrase it opens a **real** PR via the GitHub REST API — `403
+> github_not_configured` without a `GITHUB_PERSONAL_ACCESS_TOKEN`, `409
+> pr_already_exists` (with `pr_url`) when one is already open. It opens the PR
+> for a branch **already pushed** to the remote; it does not run `git push`.
 
 ```json
 {

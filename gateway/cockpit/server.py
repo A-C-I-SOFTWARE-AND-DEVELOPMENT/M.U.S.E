@@ -104,6 +104,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/jobs/{id}/tree"), h.job_tree, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}/file"), h.job_file, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}/publish/preview"), h.job_publish_preview, True),
+    ("POST", _compile("/v1/cockpit/jobs/{id}/publish"), h.job_publish, True),
     ("GET", _compile("/v1/cockpit/jobs/{id}"), h.job_get, True),
     ("POST", _compile("/v1/cockpit/coding/audit"), h.coding_audit, True),
     ("POST", _compile("/v1/cockpit/coding/plan"), h.coding_plan, True),
