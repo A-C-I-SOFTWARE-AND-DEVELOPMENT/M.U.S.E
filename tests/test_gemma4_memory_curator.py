@@ -71,6 +71,7 @@ def test_curator_proposals_write_session_proposed_low_trust(tmp_path: Path) -> N
     results = capture_curator_proposals(store, [proposal])
     assert results and results[0].ok
     node = results[0].node
+    assert node is not None
     assert node.layer is MemoryLayer.SESSION
     assert node.approval_state is ApprovalState.PROPOSED
     # It is in the proposed inbox, not durable.
@@ -85,6 +86,7 @@ def test_gemma_memory_excluded_from_recall_until_owner_approves(tmp_path: Path) 
     )
     results = capture_curator_proposals(store, [proposal])
     node = results[0].node
+    assert node is not None
 
     # Unapproved → excluded from live recall (include_pending=False).
     hits = store.search("Material 3", include_pending=False)

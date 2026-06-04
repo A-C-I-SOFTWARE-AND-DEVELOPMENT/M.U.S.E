@@ -380,7 +380,7 @@ _HANDLERS = {
 def dispatch(args: argparse.Namespace) -> int:
     """Route a parsed ``gemma`` subcommand to its handler. Returns an exit code."""
     sub = getattr(args, "gemma_command", None)
-    handler = _HANDLERS.get(sub)
+    handler = _HANDLERS.get(sub or "")
     if handler is None:
         print(
             "usage: hermes models gemma "

@@ -43,8 +43,11 @@ def test_open_weight_candidates_validate_and_are_tier_gated() -> None:
     laptop = {m.name for m in cat.for_tier("laptop")}
     assert {"gemma4-e2b", "gemma4-e4b"} <= laptop
     assert "gemma4-26b-a4b" not in laptop and "gemma4-31b" not in laptop
-    assert cat.get("gemma4-e2b").fits(ram_gb=16.0, vram_gb=0.0)
-    assert not cat.get("gemma4-31b").fits(ram_gb=16.0, vram_gb=0.0)
+    e2b = cat.get("gemma4-e2b")
+    big = cat.get("gemma4-31b")
+    assert e2b is not None and big is not None
+    assert e2b.fits(ram_gb=16.0, vram_gb=0.0)
+    assert not big.fits(ram_gb=16.0, vram_gb=0.0)
 
 
 def test_oss_brain_recommends_gemma_for_local_memory_voice() -> None:

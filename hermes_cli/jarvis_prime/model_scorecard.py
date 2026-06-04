@@ -378,7 +378,7 @@ def variant(model: str) -> str:
     return ""
 
 
-def _mean(values: list[float]) -> Optional[float]:
+def _mean(values: list[Optional[float]]) -> Optional[float]:
     nums = [v for v in values if v is not None]
     return (sum(nums) / len(nums)) if nums else None
 

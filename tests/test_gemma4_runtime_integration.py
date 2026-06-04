@@ -39,6 +39,7 @@ def test_observe_turn_runs_gemma_curator_proposed_only(tmp_path: Path) -> None:
     summary = jp.observe_turn("hello there", "hi")
     assert summary.get("gemma_proposed", 0) >= 1
     tree = jp.memory_tree()
+    assert tree is not None
     proposed = tree.proposed()
     assert proposed
     assert all(n.layer is MemoryLayer.SESSION for n in proposed)
