@@ -147,6 +147,12 @@ Inside `hermes` (interactive CLI) or any gateway DM:
   owner-approved traces for fine-tuning / preference / eval, with no
   secrets or chain-of-thought. CLI (`hermes_cli.jarvis_prime learning`),
   cockpit (`/v1/cockpit/learning`), and the Android Learning Queue tab.
+- [`docs/ai-intelligence/top-open-data-sources-for-training.md`](docs/ai-intelligence/top-open-data-sources-for-training.md)
+  — ranked inventory of public, license-aware datasets for JARVIS
+  fine-tuning, retrieval, and a held-out benchmark wall. Backed by the
+  machine-readable `docs/ai-intelligence/open-data-sources.yaml` registry
+  (CLI: `hermes_cli.jarvis_prime data-sources`), which bridges each source
+  into the Research Vault.
 - [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
   — the Android-only handoff flow that predates the orchestration
   stack (still relevant for the "just hand off to ChatGPT/Codex via
