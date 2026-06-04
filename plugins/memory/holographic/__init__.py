@@ -153,6 +153,10 @@ class HolographicMemoryProvider(MemoryProvider):
             {"key": "auto_extract", "description": "Auto-extract facts at session end", "default": "false", "choices": ["true", "false"]},
             {"key": "default_trust", "description": "Default trust score for new facts", "default": "0.5"},
             {"key": "hrr_dim", "description": "HRR vector dimensions", "default": "1024"},
+            {"key": "embedding_weight", "description": "Weight of dense-embedding similarity in recall (0 = off)", "default": "0.0"},
+            {"key": "embeddings.enabled", "description": "Enable optional semantic recall via dense embeddings", "default": "false", "choices": ["true", "false"]},
+            {"key": "embeddings.backend", "description": "Embedding backend", "default": "auto", "choices": ["auto", "openai", "sentence-transformers"]},
+            {"key": "embeddings.model", "description": "Embedding model (backend-specific default if blank)", "default": ""},
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
@@ -171,11 +175,34 @@ class HolographicMemoryProvider(MemoryProvider):
         hrr_weight = float(self._config.get("hrr_weight", 0.3))
         temporal_decay = int(self._config.get("temporal_decay_half_life", 0))
 
-        self._store = MemoryStore(db_path=db_path, default_trust=default_trust, hrr_dim=hrr_dim)
+        # Optional dense-embedding backend (semantic recall). Returns None when
+        # embeddings are disabled in config, in which case behavior is unchanged.
+        embedding_backend = None
+        try:
+            from .embeddings import make_backend
+
+            embedding_backend = make_backend(self._config)
+        except Exception as exc:  # never block memory init on embeddings
+            logger.debug("Embedding backend init skipped: %s", exc)
+
+        # Default the dense-term weight to a sensible value when embeddings are
+        # enabled but the user didn't pin one — so "enabled: true" just works —
+        # while keeping the disabled default at 0.0 (identical to before).
+        _embeddings_enabled = embedding_backend is not None
+        _default_emb_weight = 0.3 if _embeddings_enabled else 0.0
+        embedding_weight = float(self._config.get("embedding_weight", _default_emb_weight))
+
+        self._store = MemoryStore(
+            db_path=db_path,
+            default_trust=default_trust,
+            hrr_dim=hrr_dim,
+            embedding_backend=embedding_backend,
+        )
         self._retriever = FactRetriever(
             store=self._store,
             temporal_decay_half_life=temporal_decay,
             hrr_weight=hrr_weight,
+            embedding_weight=embedding_weight,
             hrr_dim=hrr_dim,
         )
         self._session_id = session_id

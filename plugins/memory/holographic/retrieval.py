@@ -29,11 +29,14 @@ class FactRetriever:
         fts_weight: float = 0.4,
         jaccard_weight: float = 0.3,
         hrr_weight: float = 0.3,
+        embedding_weight: float = 0.0,
         hrr_dim: int = 1024,
     ):
         self.store = store
         self.half_life = temporal_decay_half_life
         self.hrr_dim = hrr_dim
+        # Per-search cache so the query is embedded at most once, not per row.
+        self._query_emb_cache: tuple[str, "list[float] | None"] | None = None
 
         # Auto-redistribute weights if numpy unavailable
         if hrr_weight > 0 and not hrr._HAS_NUMPY:
@@ -41,9 +44,30 @@ class FactRetriever:
             jaccard_weight = 0.4
             hrr_weight = 0.0
 
+        # The dense term only participates when a live embedding backend exists
+        # AND a positive weight was requested. Otherwise it stays at 0 so the
+        # scoring below is byte-for-byte identical to the pre-embeddings code.
+        self._embeddings_on = bool(
+            embedding_weight > 0 and getattr(store, "_embeddings_enabled", False)
+        )
+        if not self._embeddings_on:
+            embedding_weight = 0.0
+
+        # Re-normalize so the four weights always sum to 1.0. With the defaults
+        # (0.4 + 0.3 + 0.3) and embedding_weight == 0 the sum is already 1.0,
+        # so this is a no-op and recall is unchanged. The dense term only ever
+        # shrinks the others when embeddings are actually active.
+        total = fts_weight + jaccard_weight + hrr_weight + embedding_weight
+        if total > 0:
+            fts_weight /= total
+            jaccard_weight /= total
+            hrr_weight /= total
+            embedding_weight /= total
+
         self.fts_weight = fts_weight
         self.jaccard_weight = jaccard_weight
         self.hrr_weight = hrr_weight
+        self.embedding_weight = embedding_weight
 
     def search(
         self,
@@ -70,6 +94,7 @@ class FactRetriever:
 
         # Stage 2: Rerank with Jaccard + trust + optional decay
         query_tokens = self._tokenize(query)
+        self._query_emb_cache = None  # reset per-search query-embedding cache
         scored = []
 
         for fact in candidates:
@@ -88,10 +113,14 @@ class FactRetriever:
             else:
                 hrr_sim = 0.5  # neutral
 
-            # Combine FTS5 + Jaccard + HRR
+            # Dense embedding similarity (only when a backend is live)
+            emb_sim = self._embedding_similarity(query, fact)
+
+            # Combine FTS5 + Jaccard + HRR + embeddings
             relevance = (self.fts_weight * fts_score
                         + self.jaccard_weight * jaccard
-                        + self.hrr_weight * hrr_sim)
+                        + self.hrr_weight * hrr_sim
+                        + self.embedding_weight * emb_sim)
 
             # Trust weighting
             score = relevance * fact["trust_score"]
@@ -106,10 +135,48 @@ class FactRetriever:
         # Sort by score descending, return top limit
         scored.sort(key=lambda x: x["score"], reverse=True)
         results = scored[:limit]
-        # Strip raw HRR bytes — callers expect JSON-serializable dicts
+        # Strip raw vector bytes — callers expect JSON-serializable dicts
         for fact in results:
             fact.pop("hrr_vector", None)
+            fact.pop("embedding", None)
+            fact.pop("embedding_dim", None)
+            fact.pop("embedding_model", None)
         return results
+
+    def _query_embedding(self, query: str) -> "list[float] | None":
+        """Embed the query once per search() call (memoized)."""
+        if self._query_emb_cache is not None and self._query_emb_cache[0] == query:
+            return self._query_emb_cache[1]
+        vec = None
+        backend = getattr(self.store, "_embedding_backend", None)
+        if backend is not None:
+            try:
+                vec = backend.embed(query)
+            except Exception:
+                vec = None
+        self._query_emb_cache = (query, vec)
+        return vec
+
+    def _embedding_similarity(self, query: str, fact: dict) -> float:
+        """Cosine similarity (shifted to [0,1]) between query and fact vectors.
+
+        Returns a neutral 0.5 whenever embeddings are off, the fact has no
+        stored vector, or the dimensions don't match (e.g. a model change that
+        hasn't been re-embedded yet).
+        """
+        if self.embedding_weight <= 0 or not fact.get("embedding"):
+            return 0.5
+        q_emb = self._query_embedding(query)
+        if not q_emb:
+            return 0.5
+        if fact.get("embedding_dim") not in (None, len(q_emb)):
+            return 0.5
+        from .embeddings import bytes_to_vector, cosine
+
+        fact_emb = bytes_to_vector(fact["embedding"])
+        if len(fact_emb) != len(q_emb):
+            return 0.5
+        return (cosine(q_emb, fact_emb) + 1.0) / 2.0
 
     def probe(
         self,

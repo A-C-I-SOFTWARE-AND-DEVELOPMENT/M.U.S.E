@@ -24,7 +24,10 @@ CREATE TABLE IF NOT EXISTS facts (
     helpful_count   INTEGER DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    hrr_vector      BLOB
+    hrr_vector      BLOB,
+    embedding       BLOB,
+    embedding_dim   INTEGER,
+    embedding_model TEXT
 );
 
 CREATE TABLE IF NOT EXISTS entities (
@@ -103,6 +106,7 @@ class MemoryStore:
         db_path: "str | Path | None" = None,
         default_trust: float = 0.5,
         hrr_dim: int = 1024,
+        embedding_backend=None,
     ) -> None:
         if db_path is None:
             from hermes_constants import get_hermes_home
@@ -112,6 +116,12 @@ class MemoryStore:
         self.default_trust = _clamp_trust(default_trust)
         self.hrr_dim = hrr_dim
         self._hrr_available = hrr._HAS_NUMPY
+        # Optional dense-embedding backend. When None (default) or unavailable,
+        # no embeddings are computed and recall is unchanged from before.
+        self._embedding_backend = embedding_backend
+        self._embeddings_enabled = bool(
+            embedding_backend is not None and embedding_backend.is_available()
+        )
         self._conn: sqlite3.Connection = sqlite3.connect(
             str(self.db_path),
             check_same_thread=False,
@@ -133,10 +143,20 @@ class MemoryStore:
         from hermes_state import apply_wal_with_fallback
         apply_wal_with_fallback(self._conn, db_label="memory_store.db (holographic)")
         self._conn.executescript(_SCHEMA)
-        # Migrate: add hrr_vector column if missing (safe for existing databases)
+        # Migrate: add columns if missing (safe + idempotent for existing DBs).
+        # Every added column is nullable, so old rows and old code keep working.
         columns = {row[1] for row in self._conn.execute("PRAGMA table_info(facts)").fetchall()}
         if "hrr_vector" not in columns:
             self._conn.execute("ALTER TABLE facts ADD COLUMN hrr_vector BLOB")
+        # Dense-embedding columns (optional semantic recall). embedding_dim /
+        # embedding_model make the blob self-describing so a model change never
+        # silently mixes incompatible vector spaces at query time.
+        if "embedding" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN embedding BLOB")
+        if "embedding_dim" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN embedding_dim INTEGER")
+        if "embedding_model" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN embedding_model TEXT")
         self._conn.commit()
 
     # ------------------------------------------------------------------
@@ -184,6 +204,7 @@ class MemoryStore:
 
             # Compute HRR vector after entity linking
             self._compute_hrr_vector(fact_id, content)
+            self._compute_embedding(fact_id, content)
             self._rebuild_bank(category)
 
             return fact_id
@@ -292,9 +313,10 @@ class MemoryStore:
                     self._link_fact_entity(fact_id, entity_id)
                 self._conn.commit()
 
-            # Recompute HRR vector if content changed
+            # Recompute HRR vector + embedding if content changed
             if content is not None:
                 self._compute_hrr_vector(fact_id, content)
+                self._compute_embedding(fact_id, content)
             # Rebuild bank for relevant category
             cat = category or self._conn.execute(
                 "SELECT category FROM facts WHERE fact_id = ?", (fact_id,)
@@ -494,6 +516,52 @@ class MemoryStore:
                 (hrr.phases_to_bytes(vector), fact_id),
             )
             self._conn.commit()
+
+    def _compute_embedding(self, fact_id: int, content: str) -> None:
+        """Compute and store a dense embedding for a fact.
+
+        No-op when no embedding backend is configured/available. A failure to
+        embed (offline API, missing model) is swallowed so it can never break
+        a fact write — the fact simply has no embedding and recall falls back
+        to the keyword/HRR path for that row.
+        """
+        with self._lock:
+            if not self._embeddings_enabled:
+                return
+            try:
+                vec = self._embedding_backend.embed(content)
+            except Exception:
+                vec = None
+            if not vec:
+                return
+            from .embeddings import vector_to_bytes
+
+            self._conn.execute(
+                "UPDATE facts SET embedding = ?, embedding_dim = ?, "
+                "embedding_model = ? WHERE fact_id = ?",
+                (
+                    vector_to_bytes(vec),
+                    len(vec),
+                    getattr(self._embedding_backend, "name", "unknown"),
+                    fact_id,
+                ),
+            )
+            self._conn.commit()
+
+    def rebuild_all_embeddings(self) -> int:
+        """Recompute embeddings for every fact. For migration / model changes.
+
+        Returns the number of facts processed (0 when embeddings are disabled).
+        """
+        with self._lock:
+            if not self._embeddings_enabled:
+                return 0
+            rows = self._conn.execute(
+                "SELECT fact_id, content FROM facts"
+            ).fetchall()
+            for row in rows:
+                self._compute_embedding(row["fact_id"], row["content"])
+            return len(rows)
 
     def _rebuild_bank(self, category: str) -> None:
         """Full rebuild of a category's memory bank from all its fact vectors."""
