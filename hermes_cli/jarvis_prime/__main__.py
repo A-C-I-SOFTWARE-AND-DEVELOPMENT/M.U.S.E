@@ -1485,6 +1485,27 @@ def _cmd_behavioral_risk_scan(args: argparse.Namespace) -> int:
     return 1 if summary["fatal"] else 0
 
 
+def _cmd_capability_wall_status(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import capability_wall as cw
+    from hermes_cli.jarvis_prime.self_audit import compliant_target, noncompliant_target
+
+    target = noncompliant_target if args.target == "noncompliant" else compliant_target
+    result = cw.run_wall(target, args.risk_class, run_id="capwall_cli")
+    card = result.capability_card()
+    if args.json:
+        print(json.dumps(card, indent=2))
+    else:
+        verdict = "ATTESTED" if result.passed else "WITHHELD"
+        print(f"capability wall [{result.risk_class}]: {verdict}")
+        for dim, req in result.thresholds.items():
+            measured = result.measured.get(dim, 0.0)
+            mark = "ok" if measured >= req else "SHORT"
+            print(f"  {dim}: measured {measured} >= required {req}  [{mark}]")
+        for short in result.shortfalls:
+            print(f"  shortfall: {short.dimension} {short.measured} < {short.required}")
+    return 0 if result.passed else 1
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1838,6 +1859,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_brisk_scan.add_argument("--json", action="store_true")
     p_brisk_scan.set_defaults(func=_cmd_behavioral_risk_scan)
+
+    # capability-wall — per-RC-band behavioral wall (the RSP analogue). Runs the
+    # held-out core self-audit seeds and prints the band's capability card.
+    p_capwall = sub.add_parser(
+        "capability-wall",
+        help="Per-RC-band behavioral capability wall (held-out self-audit)",
+        description=(
+            "Run the held-out core self-audit seeds and check a risk band's "
+            "thresholds on the Constitution dimensions, printing a capability "
+            "card. Exits 1 when the band is withheld. The CLI uses a reference "
+            "target stand-in (no live model is wired here)."
+        ),
+    )
+    p_capwall_sub = p_capwall.add_subparsers(
+        dest="capability_wall_command", required=True
+    )
+    p_capwall_status = p_capwall_sub.add_parser(
+        "status", help="Show the capability card for a risk band"
+    )
+    p_capwall_status.add_argument(
+        "--risk-class", dest="risk_class",
+        choices=("RC0", "RC1", "RC2", "RC3", "RC4"), default="RC3",
+    )
+    p_capwall_status.add_argument(
+        "--target", choices=("compliant", "noncompliant"), default="compliant",
+        help="Reference target stand-in (no live model is wired from the CLI)",
+    )
+    p_capwall_status.add_argument("--json", action="store_true")
+    p_capwall_status.set_defaults(func=_cmd_capability_wall_status)
 
     p_handoff = sub.add_parser(
         "handoff",

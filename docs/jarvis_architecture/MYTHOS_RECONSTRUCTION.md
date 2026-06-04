@@ -131,18 +131,22 @@ local analogue of a system card).
 
 ## Phased roadmap
 
-- **Phase 1 — Blueprint docs (RC1, no runtime change).** This doc + the
-  Constitution + the agent-design-patterns guide + index updates + bridging the
-  cited sources into the Research Vault. *(this PR)*
-- **Phase 2 — Constitution module + audit harness (RC2).** `constitution.py`;
-  `self_audit/{seeds,harness,judge,report}.py`; `audit_result` artifact; CLI
-  `self-audit run/list/show`.
-- **Phase 3 — Behavioral-risk classifier + async monitor (RC2).**
-  `behavioral_risk.py` + worker trust store; `behavioral_drift_checker`;
-  owner-brief surfacing; reward-hacking exclusion in the learning dataset.
-- **Phase 4 — Capability-band wall wired into gates (RC2–RC3, owner-gated,
-  feature-flagged).** `capability_wall.py` + held-out seed partitioning +
-  capability cards + a capability-attestation check in `gates.py`.
+> **Status (2026-06-04):** all four phases are implemented in PR #251.
+
+- ✅ **Phase 1 — Blueprint docs (RC1, no runtime change).** This doc + the
+  Constitution (`docs/jarvis-constitution.md`) + the agent-design-patterns guide
+  + index updates + the cited-source registry (`self-audit-sources.yaml`).
+- ✅ **Phase 2 — Constitution module + audit harness (RC2).** `constitution.py`;
+  `self_audit/{seeds,harness,judge,report,sources}.py`; `audit_result` artifact;
+  CLI `self-audit run/list/show`.
+- ✅ **Phase 3 — Behavioral-risk classifier + async monitor (RC2).**
+  `behavioral_risk.py` + per-worker trust score; `behavioral_drift_checker` in
+  `monitors.py` (surfaced via the owner brief); reward-hacking exclusion in
+  `learning_dataset.py`.
+- ✅ **Phase 4 — Capability-band wall (RC2–RC3).** `capability_wall.py` +
+  held-out core-seed partitioning + capability cards + a `capability_attestation`
+  artifact + an **opt-in, feature-flagged** `capability_gate` that reuses the
+  gate framework's types without altering the default eight-gate suites.
 
 ## Non-goals (explicit)
 
