@@ -608,6 +608,43 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         ),
         why="Capable reasoning on a 16GB laptop — the everyday local default.",
     ),
+    OssModel(
+        id="gemma4",
+        vendor="Google DeepMind",
+        license="Apache-2.0",
+        license_spdx="Apache-2.0",
+        tier="strong",
+        current_variant="gemma4-31b",
+        context_window=256000,
+        params="E2B/E4B effective + 12B/26B/31B variants (MatFormer); 12B is "
+        "model-card only, no confirmed Ollama tag",
+        local=True,
+        local_runner="ollama",
+        best_for=(
+            "local_reasoning",
+            "local_coding",
+            "memory_curator",
+            "mobile_chat",
+            "voice_reply",
+            "summarization",
+            "multimodal_doc",
+            "citation_verification",
+        ),
+        benchmarks=(),
+        providers=(
+            ProviderRef("ollama", "gemma4:e4b"),
+            ProviderRef("ollama-cloud", "gemma4:e4b"),
+            ProviderRef("huggingface", "google/gemma-4-e4b-it"),
+        ),
+        why="Local-first Google open-weight family (Apache-2.0): mobile chat, "
+        "voice, memory curation, summarization and multimodal docs run offline; "
+        "26B/31B add workstation/server reasoning and a review fallback. Vendor "
+        "benchmarks are priors only — scorecards gate any coding/review promotion.",
+        sources=(
+            "https://ai.google.dev/gemma/docs/core/model_card_4",
+            "https://ai.google.dev/gemma/docs/integrations/ollama",
+        ),
+    ),
 )
 
 _BUILTIN_ROUTING: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -623,8 +660,26 @@ _BUILTIN_ROUTING: tuple[tuple[str, tuple[str, ...]], ...] = (
         ("deepseek-r1", "qwen3-235b", "glm-5", "gpt-oss-120b", "deepseek-v4"),
     ),
     ("math", ("deepseek-r1", "qwen3-235b", "deepseek-r1-distill-8b")),
-    ("local_coding", ("qwen3-coder", "qwen3-27b", "devstral-small", "gpt-oss-20b")),
-    ("local_reasoning", ("deepseek-r1-distill-8b", "gpt-oss-20b", "qwen3-27b")),
+    # Gemma 4 leads the local lanes; appended (never first) on local_coding.
+    (
+        "local_coding",
+        ("qwen3-coder", "qwen3-27b", "devstral-small", "gpt-oss-20b", "gemma4"),
+    ),
+    (
+        "local_reasoning",
+        ("gemma4", "deepseek-r1-distill-8b", "gpt-oss-20b", "qwen3-27b"),
+    ),
+    ("memory_curator", ("gemma4", "deepseek-r1-distill-8b", "gpt-oss-20b")),
+    ("mobile_chat", ("gemma4", "gpt-oss-20b", "deepseek-r1-distill-8b")),
+    ("voice_reply", ("gemma4", "gpt-oss-20b")),
+    (
+        "summarization",
+        ("gemma4", "deepseek-r1-distill-8b", "gpt-oss-20b", "qwen3-235b"),
+    ),
+    ("multimodal_doc", ("gemma4",)),
+    # Gemma is only ever a trailing local fallback for review / deep research.
+    ("coding_review", ("glm-5", "deepseek-v4", "qwen3-coder", "gemma4")),
+    ("deep_research", ("deepseek-r1", "qwen3-235b", "gemma4")),
 )
 
 _BUILTIN_CATALOG = OssCatalog(

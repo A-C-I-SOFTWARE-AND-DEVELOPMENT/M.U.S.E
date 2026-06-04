@@ -44,6 +44,20 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def is_gemma(model: Optional[str]) -> bool:
+    """True if ``model`` names a Gemma 4 variant (tag or candidate name).
+
+    Recognizes ``gemma4:e4b``, ``gemma4-e4b``, ``gemma4-26b-a4b``,
+    ``ollama-local/gemma4-e2b`` and friends. Used only by surfaces/tests and
+    scorecard family attribution — routing itself stays data-driven (a Gemma
+    candidate is just whatever the policy's local route lists).
+    """
+    if not model:
+        return False
+    tail = model.rsplit("/", 1)[-1].lower()
+    return tail.startswith("gemma4") or tail.startswith("gemma-4") or tail.startswith("gemma:")
+
+
 class TaskClass(Enum):
     """The mobile-first task classes JARVIS routes models for."""
 
@@ -524,6 +538,7 @@ def explain(decision: ModelRouteDecision) -> str:
 
 
 __all__ = [
+    "is_gemma",
     "TaskClass",
     "TaskProfile",
     "TASK_PROFILES",

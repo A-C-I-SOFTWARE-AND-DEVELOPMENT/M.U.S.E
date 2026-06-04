@@ -100,6 +100,7 @@ def run_launch_doctor() -> LaunchReport:
         _check_owner_gate(),
         _check_emergency_stop(),
         _check_model_brain(),
+        _check_gemma_wired(),
         _check_bootstrap_config(),
         _check_local_runtimes(),
         _check_worker_lanes(),
@@ -246,6 +247,29 @@ def _check_model_brain() -> LaunchCheck:
         )
     except Exception as exc:
         return LaunchCheck("model_brain", FAIL, f"model brain failed to load: {exc}")
+
+
+def _check_gemma_wired() -> LaunchCheck:
+    """Gemma 4 wiring is optional — present is PASS, absent is a soft WARN."""
+    try:
+        from hermes_cli import oss_model_brain as ob
+
+        fam = ob.load_oss_catalog().by_id("gemma4")
+        if fam is None:
+            return LaunchCheck(
+                "gemma_wired",
+                WARN,
+                "Gemma 4 not wired into the OSS brain (optional)",
+                hard=False,
+            )
+        return LaunchCheck(
+            "gemma_wired",
+            PASS,
+            "Gemma 4 wired (local lanes); `hermes models gemma doctor` for detail",
+            hard=False,
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return LaunchCheck("gemma_wired", WARN, f"check failed: {exc}", hard=False)
 
 
 def _check_bootstrap_config() -> LaunchCheck:
