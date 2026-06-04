@@ -90,7 +90,8 @@ def compile_request(
 
     compiler = get_compiler(decision.selected)
     result = compiler.compile(
-        parse.graph, BackendContext(repo_root=repo_root)
+        parse.graph,
+        BackendContext(repo_root=repo_root, branch_prefix=branch_prefix),
     )
 
     gate_summary: Optional[GateSummary] = None

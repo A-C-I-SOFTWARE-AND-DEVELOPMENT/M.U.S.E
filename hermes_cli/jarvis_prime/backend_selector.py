@@ -54,6 +54,7 @@ class BackendScore:
 class BackendContext:
     forced_target: Optional[BackendTarget] = None
     repo_root: str = "."
+    branch_prefix: str = "jarvis"
 
 
 @dataclass(frozen=True)

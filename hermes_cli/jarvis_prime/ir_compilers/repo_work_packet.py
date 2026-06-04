@@ -53,6 +53,7 @@ class RepoWorkPacketCompiler:
         packet = build_work_packet(
             graph.raw_text,
             repo_root=context.repo_root,
+            branch_prefix=context.branch_prefix,
             allowed_files=allowed,
         )
 

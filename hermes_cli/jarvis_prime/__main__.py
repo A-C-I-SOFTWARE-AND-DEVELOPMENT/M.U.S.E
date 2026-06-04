@@ -903,7 +903,13 @@ def _cmd_compile(args: argparse.Namespace) -> int:
 
     if args.json:
         _print_json(res.to_dict())
-        return 0 if not res.needs_clarification else 2
+        if res.needs_clarification:
+            return 2
+        # A blocked (gate-bypass) request is not a successful compile — mirror
+        # the non-JSON path's exit code so automation can detect it.
+        if res.backend is not None and res.backend.blocked:
+            return 1
+        return 0
 
     if res.needs_clarification:
         print("Clarifying questions before I can compile:")
