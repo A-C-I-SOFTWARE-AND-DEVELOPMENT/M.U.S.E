@@ -20,6 +20,7 @@ from hermes_cli.jarvis_prime.ir_compilers.repo_work_packet import (
 )
 from hermes_cli.jarvis_prime.natural_language_coder import (
     CodingIntent,
+    CodingWorkPacket,
     _allowed_files_for,
 )
 from hermes_cli.jarvis_prime.nlp_retrieval import (
@@ -83,10 +84,12 @@ def _refactor_graph() -> IntentGraph:
 def test_compiler_never_narrows_allowed_files() -> None:
     graph = _refactor_graph()
     result = RepoWorkPacketCompiler().compile(graph)
+    packet = result.artifact
+    assert isinstance(packet, CodingWorkPacket)
     default = set(_allowed_files_for(graph.intent))
     # Enrichment may add files, but the safe default is always a subset —
     # regardless of whether grounding succeeded.
-    assert default <= set(result.artifact.allowed_files)
+    assert default <= set(packet.allowed_files)
 
 
 def test_compiler_enrichment_survives_navigator_failure(monkeypatch) -> None:
@@ -96,5 +99,7 @@ def test_compiler_enrichment_survives_navigator_failure(monkeypatch) -> None:
     graph = _refactor_graph()
     # Must not raise even though grounding is unavailable.
     result = RepoWorkPacketCompiler().compile(graph)
+    packet = result.artifact
+    assert isinstance(packet, CodingWorkPacket)
     default = set(_allowed_files_for(graph.intent))
-    assert default <= set(result.artifact.allowed_files)
+    assert default <= set(packet.allowed_files)

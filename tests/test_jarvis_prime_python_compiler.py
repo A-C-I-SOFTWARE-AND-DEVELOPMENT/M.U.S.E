@@ -74,7 +74,9 @@ def test_entity_and_operation_names_appear_in_source() -> None:
     assert "total: int" in source
     assert "vendor: str" in source
     # Module doc takes only the first line of raw_text.
-    assert result.artifact.module_doc == "extract the total from each invoice"
+    module = result.artifact
+    assert isinstance(module, PythonModule)
+    assert module.module_doc == "extract the total from each invoice"
 
 
 def test_no_entity_operation_uses_generic_data_param() -> None:
@@ -89,8 +91,9 @@ def test_constraint_label_named_in_docstring() -> None:
     op = IntentNode.make(IntentNodeKind.OPERATION, "alert")
     constraint = IntentNode.make(IntentNodeKind.CONSTRAINT, "vendor is new")
     graph = IntentGraph(nodes=(op, constraint), raw_text="alert if vendor is new")
-    fn = PythonModuleCompiler().compile(graph).artifact.functions[0]
-    assert "vendor is new" in fn.doc
+    module = PythonModuleCompiler().compile(graph).artifact
+    assert isinstance(module, PythonModule)
+    assert "vendor is new" in module.functions[0].doc
 
 
 def test_invalid_function_name_fails_validation() -> None:

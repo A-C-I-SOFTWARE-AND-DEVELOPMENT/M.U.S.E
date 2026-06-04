@@ -84,8 +84,10 @@ def test_compile_entity_and_op_validates_and_renders() -> None:
 def test_compile_result_dict_includes_source_and_id() -> None:
     result = RustModuleCompiler().compile(_entity_and_op_graph())
     d = result.artifact_dict
-    assert d["source"] == result.artifact.render_source()
-    assert d["module_id"] == result.artifact.module_id
+    module = result.artifact
+    assert isinstance(module, RustModule)
+    assert d["source"] == module.render_source()
+    assert d["module_id"] == module.module_id
     assert result.target == BackendTarget.RUST
 
 
@@ -131,6 +133,7 @@ def test_non_empty_module_with_only_fn_is_ok() -> None:
 
 def test_to_dict_from_dict_preserves_module_id() -> None:
     original = RustModuleCompiler().compile(_entity_and_op_graph()).artifact
+    assert isinstance(original, RustModule)
     rebuilt = RustModule.from_dict(original.to_dict())
     assert rebuilt.module_id == original.module_id
     assert rebuilt.render_source() == original.render_source()

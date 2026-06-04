@@ -46,6 +46,7 @@ def test_compile_produces_parameterized_select() -> None:
     result = SqlQueryCompiler().compile(_read_graph())
     select = result.artifact
     assert isinstance(select, SqlSelect)
+    assert isinstance(select, SqlSelect)
     assert len(select.tables) >= 1
     assert select.columns
     sql = select.render_sql()
@@ -59,6 +60,7 @@ def test_compile_produces_parameterized_select() -> None:
 def test_render_sql_never_interpolates_predicate_values() -> None:
     result = SqlQueryCompiler().compile(_read_graph())
     select = result.artifact
+    assert isinstance(select, SqlSelect)
     sql = select.render_sql()
     # Every predicate references its placeholder name, never a bound value.
     for pred in select.predicates:
@@ -71,6 +73,7 @@ def test_render_sql_never_interpolates_predicate_values() -> None:
 
 def test_compile_columns_from_entity_slots() -> None:
     select = SqlQueryCompiler().compile(_read_graph()).artifact
+    assert isinstance(select, SqlSelect)
     names = {c.name for c in select.columns}
     assert "vendor" in names
     assert "total" in names
@@ -124,6 +127,7 @@ def test_unparseable_constraint_still_parameterized() -> None:
     )
     graph = IntentGraph(nodes=(source, entity, constraint), raw_text="x")
     select = SqlQueryCompiler().compile(graph).artifact
+    assert isinstance(select, SqlSelect)
     assert select.predicates
     pred = select.predicates[0]
     assert pred.param in select.params
@@ -134,6 +138,7 @@ def test_unparseable_constraint_still_parameterized() -> None:
 
 def test_to_dict_includes_rendered_sql_and_params() -> None:
     select = SqlQueryCompiler().compile(_read_graph()).artifact
+    assert isinstance(select, SqlSelect)
     d = select.to_dict()
     assert d["sql"] == select.render_sql()
     assert "params" in d
@@ -142,6 +147,7 @@ def test_to_dict_includes_rendered_sql_and_params() -> None:
 
 def test_round_trip_preserves_query_id() -> None:
     select = SqlQueryCompiler().compile(_read_graph()).artifact
+    assert isinstance(select, SqlSelect)
     restored = SqlSelect.from_dict(select.to_dict())
     assert restored.query_id == select.query_id
 
