@@ -1096,12 +1096,23 @@ def _cmd_compile(args: argparse.Namespace) -> int:
 
     from hermes_cli.jarvis_prime import nl_compile
 
+    clarifications: dict[str, str] = {}
+    for item in getattr(args, "clarify", None) or []:
+        if "=" in item:
+            k, v = item.split("=", 1)
+            clarifications[k.strip()] = v.strip()
+
     res = nl_compile.compile_request(
         args.prompt,
         backend=args.backend,
         branch_prefix=args.branch_prefix,
         gate_check=getattr(args, "gate_check", False),
         learn=getattr(args, "learn", False),
+        clarifications=clarifications or None,
+        rerank=getattr(args, "rerank", False),
+        refine_exec=getattr(args, "refine_exec", False),
+        refine_run=getattr(args, "refine_run", False),
+        grammar_repair=getattr(args, "grammar_repair", False),
     )
 
     if args.json:
@@ -1153,12 +1164,147 @@ def _cmd_compile(args: argparse.Namespace) -> int:
                 print("owner-gated: " + ", ".join(artifact.owner_gated_actions))
             validation = artifact.validate()
             print(f"flow valid: {validation.ok}")
+        else:
+            # Language backends (python / rust / sql) carry emitted text.
+            d = result.artifact_dict
+            valid = getattr(artifact, "validate", lambda: None)()
+            if valid is not None:
+                print(f"valid: {getattr(valid, 'ok', '?')}")
+            if "source" in d:
+                print("--- source ---")
+                print(d["source"])
+            elif "sql" in d:
+                print("--- sql ---")
+                print(d["sql"])
         for note in result.notes:
             print(f"  note: {note}")
+
+    if res.lane is not None:
+        print(f"model lane: {res.lane.lane}  (source: {res.lane.source})")
+    if res.grammar is not None:
+        print(f"grammar ok: {res.grammar.get('ok')}")
+    if res.refinement is not None:
+        print(f"refinement ran: {res.refinement.ran}")
 
     if res.gate_summary is not None:
         print(res.gate_summary.render())
 
+    return 0
+
+
+def _cmd_flow_exec(args: argparse.Namespace) -> int:
+    """Execute an automation flow — simulate by default; real execution gated."""
+
+    from hermes_cli.jarvis_prime import nl_compile
+    from hermes_cli.jarvis_prime.ir_compilers.automation_flow import AutomationFlow
+    from hermes_cli.jarvis_prime.nlp_flow_exec import FlowExecutor
+    from hermes_cli.jarvis_prime.owner_auth import (
+        AUTHORIZATION_PHRASE,
+        authorize_challenge,
+        create_challenge,
+    )
+
+    # Obtain a flow: from a JSON file, or by compiling a prompt.
+    if getattr(args, "flow_file", None):
+        try:
+            flow = AutomationFlow.from_dict(
+                json.loads(Path(args.flow_file).read_text(encoding="utf-8"))
+            )
+        except (OSError, json.JSONDecodeError, KeyError) as exc:
+            print(f"error: could not load flow file: {exc}", file=sys.stderr)
+            return 2
+    else:
+        res = nl_compile.compile_request(args.prompt or "", backend="automation")
+        if res.needs_clarification:
+            print("Clarifying questions before I can build a flow:")
+            for q in res.clarifying_questions():
+                print(f"  - {q}")
+            return 2
+        artifact = res.compile_result.artifact if res.compile_result else None
+        if not isinstance(artifact, AutomationFlow):
+            print("error: prompt did not compile to an automation flow",
+                  file=sys.stderr)
+            return 2
+        flow = artifact
+
+    grant = None
+    mode = "execute" if getattr(args, "execute", False) else "simulate"
+    if mode == "execute":
+        phrase = (getattr(args, "authorize", None) or "").strip()
+        gated = tuple(flow.owner_gated_actions)
+        if not gated:
+            pass  # nothing gated; execute freely
+        elif phrase != AUTHORIZATION_PHRASE:
+            if not args.json:
+                print("execute refused: pass --authorize with the exact phrase "
+                      f'"{AUTHORIZATION_PHRASE}"')
+            # fall through to executor which will refuse without a grant
+        elif len(gated) == 1:
+            ch = create_challenge(gated[0], rationale="cli flow-exec")
+            grant = authorize_challenge(ch, ch.required_phrase)
+        else:
+            if not args.json:
+                print("execute refused: multiple owner-gated actions require "
+                      "per-action authorization via the API; running simulate.")
+            mode = "simulate"
+
+    run = FlowExecutor().run(flow, mode=mode, grant=grant)
+    if args.json:
+        _print_json(run.to_dict())
+        return 0 if run.executed or mode == "simulate" else 1
+    print(f"flow: {flow.name}  mode={mode}  executed={run.executed}")
+    for sr in run.steps:
+        print(f"  [{sr.step_id}] {sr.op}: performed={sr.performed} ({sr.detail})")
+    for line in run.log:
+        print(f"  log: {line}")
+    return 0
+
+
+def _cmd_learning_export_finetune(args: argparse.Namespace) -> int:
+    """Compile a prompt and export the trace into the learning dataset (PENDING)."""
+
+    from hermes_cli.jarvis_prime import nl_compile
+    from hermes_cli.jarvis_prime.nlp_training import export_compile_trace
+
+    res = nl_compile.compile_request(args.prompt, gate_check=True)
+    if res.needs_clarification or res.compile_result is None:
+        print("error: prompt needs clarification or did not compile",
+              file=sys.stderr)
+        return 2
+    try:
+        cand = export_compile_trace(
+            res.compile_result, res.parse, res.gate_summary,
+            owner_approve=getattr(args, "approve", False),
+        )
+    except Exception as exc:  # RejectedTrace etc.
+        print(f"trace rejected: {exc}")
+        return 1
+    if args.json:
+        _print_json({"candidate_id": cand.id, "status": str(cand.status)})
+    else:
+        print(f"exported candidate {cand.id} — status {cand.status}")
+    return 0
+
+
+def _cmd_learning_prepare_job(args: argparse.Namespace) -> int:
+    """Prepare (dry-run) a fine-tune job spec from owner-approved examples."""
+
+    from hermes_cli.jarvis_prime.nlp_training import prepare_finetune_job
+
+    spec = prepare_finetune_job(
+        base_model=args.base_model,
+        out_dir=args.out_dir,
+        method=getattr(args, "method", "lora"),
+        min_examples=getattr(args, "min_examples", 1),
+        launch=getattr(args, "launch", False),
+    )
+    if args.json:
+        _print_json(spec.to_dict())
+    else:
+        print(f"job spec: base={spec.base_model} method={spec.method} "
+              f"examples={spec.num_examples} ready={spec.ready}")
+        for r in spec.reasons:
+            print(f"  - {r}")
     return 0
 
 
@@ -2083,6 +2229,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
 
+    p_learning_ef = p_learning_sub.add_parser(
+        "export-finetune",
+        help="Compile a prompt and export the trace into the learning dataset",
+    )
+    p_learning_ef.add_argument("prompt", help="The plain-English request")
+    p_learning_ef.add_argument(
+        "--approve", action="store_true",
+        help="Owner-approve the exported trace (otherwise it lands PENDING)",
+    )
+    p_learning_ef.add_argument("--json", action="store_true")
+    p_learning_ef.set_defaults(func=_cmd_learning_export_finetune)
+
+    p_learning_pj = p_learning_sub.add_parser(
+        "prepare-job",
+        help="Prepare (dry-run) a fine-tune job spec from owner-approved examples",
+    )
+    p_learning_pj.add_argument("--base-model", dest="base_model", required=True)
+    p_learning_pj.add_argument("--out-dir", dest="out_dir", required=True)
+    p_learning_pj.add_argument("--method", default="lora")
+    p_learning_pj.add_argument(
+        "--min-examples", dest="min_examples", type=int, default=1
+    )
+    p_learning_pj.add_argument(
+        "--launch", action="store_true",
+        help="Attempt a real training launch (owner-gated; refused without a grant)",
+    )
+    p_learning_pj.add_argument("--json", action="store_true")
+    p_learning_pj.set_defaults(func=_cmd_learning_prepare_job)
+
     # data-sources — open data-source registry for training/eval (read-only +
     # a Research-Vault bridge). Inventory lives in
     # docs/ai-intelligence/open-data-sources.yaml.
@@ -2804,7 +2979,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_compile.add_argument("prompt", help="The plain-English request")
     p_compile.add_argument(
         "--backend",
-        choices=["auto", "work-packet", "workflow", "automation"],
+        choices=["auto", "work-packet", "workflow", "automation",
+                 "python", "sql", "rust"],
         default="auto",
         help="Force a backend target (default: auto-select)",
     )
@@ -2817,11 +2993,54 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--explain", action="store_true", help="Show backend selection scores"
     )
     p_compile.add_argument(
+        "--rerank", action="store_true",
+        help="Recommend a model lane from measured scorecards / OSS catalog",
+    )
+    p_compile.add_argument(
+        "--grammar-repair", dest="grammar_repair", action="store_true",
+        help="Validate the emitted source/SQL against its grammar",
+    )
+    p_compile.add_argument(
+        "--refine-exec", dest="refine_exec", action="store_true",
+        help="Execution-guided refinement via safe collectors (strict gates)",
+    )
+    p_compile.add_argument(
+        "--refine-run", dest="refine_run", action="store_true",
+        help="With --refine-exec, actually run the allowlisted verification commands",
+    )
+    p_compile.add_argument(
+        "--clarify", action="append", metavar="KEY=VALUE",
+        help="Answer an ambiguity (repeatable), e.g. --clarify data=invoices",
+    )
+    p_compile.add_argument(
         "--learn", action="store_true",
         help="Propose parsed vocabulary to the Memory Tree (owner-review, never durable)",
     )
     p_compile.add_argument("--json", action="store_true")
     p_compile.set_defaults(func=_cmd_compile)
+
+    # flow-exec — execute an automation flow. Simulate by default; real
+    # external execution is owner-gated behind the authorization phrase.
+    p_flow = sub.add_parser(
+        "flow-exec",
+        help="Execute an automation flow (simulate by default; execution gated)",
+        description=(
+            "Compile a prompt (or load a flow JSON) into an automation flow and "
+            "run it. Default mode is 'simulate' — no external IO. Real execution "
+            "requires --execute with the exact owner authorization phrase."
+        ),
+    )
+    p_flow.add_argument("prompt", nargs="?", help="Prompt to compile into a flow")
+    p_flow.add_argument("--flow-file", dest="flow_file", help="Path to a flow JSON")
+    p_flow.add_argument(
+        "--execute", action="store_true",
+        help="Attempt real execution (owner-gated; refused without authorization)",
+    )
+    p_flow.add_argument(
+        "--authorize", help='Owner authorization phrase ("Yes, with authorization.")'
+    )
+    p_flow.add_argument("--json", action="store_true")
+    p_flow.set_defaults(func=_cmd_flow_exec)
 
     args = parser.parse_args(argv)
     return args.func(args)

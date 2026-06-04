@@ -46,6 +46,12 @@ _IO_VERBS = {
     "parse": "extract",
     "read": "read",
     "fetch": "fetch",
+    # declarative-read verbs (drive the SQL backend)
+    "select": "select",
+    "query": "query",
+    "list": "list",
+    "retrieve": "fetch",
+    "lookup": "fetch",
     "save": "save",
     "store": "save",
     "write": "write",
@@ -115,11 +121,32 @@ _HINT_WORKFLOW = ("as a workflow", "build an automation", "automation flow",
 _HINT_REPO = ("edit the repo", "in the codebase", "add a function",
               "in the repo", "code change")
 
+# Explicit language steers → emit a BACKEND_HINT for the concrete language
+# target (python / sql / rust). Checked before the workflow/repo hints.
+_LANG_HINTS: tuple[tuple[str, str], ...] = (
+    ("in python", "python"),
+    ("python function", "python"),
+    ("python script", "python"),
+    ("python module", "python"),
+    ("write a function", "python"),
+    ("write a script", "python"),
+    ("in rust", "rust"),
+    ("rust module", "rust"),
+    ("rust function", "rust"),
+    ("systems programming", "rust"),
+    ("high performance", "rust"),
+    ("sql query", "sql"),
+    ("select query", "sql"),
+    ("query the database", "sql"),
+    ("a sql ", "sql"),
+)
+
 _STOPWORDS = frozenset(
     {
         "the", "a", "an", "and", "or", "to", "me", "my", "is", "are", "be",
         "with", "for", "of", "in", "on", "it", "that", "this", "do", "please",
         "then", "also", "new", "if", "when", "so", "as", "i", "you", "we",
+        "all", "where", "from", "into", "at", "by", "every", "each", "any",
     }
 )
 
@@ -242,13 +269,21 @@ def parse(prompt: str, context: Optional[Mapping] = None) -> ParseResult:
         policy_nodes.append(node)
         nodes.append(node)
 
-    # 6. Backend hint
-    for phrase in _HINT_WORKFLOW:
-        if phrase in lowered:
-            nodes.append(IntentNode.make(IntentNodeKind.BACKEND_HINT,
-                                         "automation_flow", sources=(phrase,)))
-            recognized.update(_salient_tokens(phrase))
-            break
+    # 6. Backend hint — explicit language steers first (python/sql/rust),
+    # then workflow, then repo.
+    lang_label = next((lab for phrase, lab in _LANG_HINTS if phrase in lowered), None)
+    if lang_label is not None:
+        for phrase, lab in _LANG_HINTS:
+            if lab == lang_label and phrase in lowered:
+                recognized.update(_salient_tokens(phrase))
+        nodes.append(IntentNode.make(IntentNodeKind.BACKEND_HINT, lang_label))
+    elif any(phrase in lowered for phrase in _HINT_WORKFLOW):
+        for phrase in _HINT_WORKFLOW:
+            if phrase in lowered:
+                nodes.append(IntentNode.make(IntentNodeKind.BACKEND_HINT,
+                                             "automation_flow", sources=(phrase,)))
+                recognized.update(_salient_tokens(phrase))
+                break
     else:
         for phrase in _HINT_REPO:
             if phrase in lowered:
@@ -341,7 +376,8 @@ def _scan_verbs(lowered: str):
 def _scan_nouns(lowered: str, table: Mapping[str, str]):
     seen: set[str] = set()
     for noun, label in table.items():
-        if re.search(rf"\b{re.escape(noun)}\b", lowered) and label not in seen:
+        # Tolerate a simple plural ("invoice" matches "invoices").
+        if re.search(rf"\b{re.escape(noun)}s?\b", lowered) and label not in seen:
             seen.add(label)
             yield noun, label
 

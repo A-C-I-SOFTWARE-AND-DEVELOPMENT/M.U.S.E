@@ -22,6 +22,7 @@ from hermes_cli.jarvis_prime.natural_language_coder import (
     _allowed_files_for,
     build_work_packet,
 )
+from hermes_cli.jarvis_prime.nlp_retrieval import ground_objective
 
 
 def _repo_path_like(label: str) -> bool:
@@ -42,10 +43,20 @@ class RepoWorkPacketCompiler:
             if _repo_path_like(n.label)
         })
 
+        # W4 retrieval grounding: deterministically enrich file scope with
+        # candidate files from the Navigator. Degrades gracefully (ok=False)
+        # and never narrows below the safe default.
+        grounding = ground_objective(graph.raw_text, context.repo_root)
+        ground_files = (
+            tuple(grounding.candidate_files)
+            if grounding.ok and grounding.candidate_files
+            else ()
+        )
+
         # Union with the safe per-intent default so we never narrow below it.
-        if extra_files:
+        if extra_files or ground_files:
             allowed = tuple(dict.fromkeys(
-                (*_allowed_files_for(graph.intent), *extra_files)
+                (*_allowed_files_for(graph.intent), *extra_files, *ground_files)
             ))
         else:
             allowed = None  # let build_work_packet use its default
@@ -66,6 +77,9 @@ class RepoWorkPacketCompiler:
             notes.append(f"quality target: {q.label}")
         if extra_files:
             notes.append("allowed_files enriched from graph: " + ", ".join(extra_files))
+        for v in grounding.verify_with:
+            notes.append(f"verify: {v}")
+        notes.extend(grounding.notes)
 
         return CompileResult(
             target=self.target,
