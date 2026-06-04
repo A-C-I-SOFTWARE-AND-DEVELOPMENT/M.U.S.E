@@ -45,6 +45,7 @@ at all; with no backend reachable, tasks **queue offline** and stay copyable.
 - Security + Play Data Safety: [`docs/SECURITY_PRIVACY.md`](docs/SECURITY_PRIVACY.md)
 - Local Gemma/Ollama: [`docs/GEMMA_LOCAL_MODE.md`](docs/GEMMA_LOCAL_MODE.md)
 - Release + download: [`docs/RELEASE_DOWNLOAD.md`](docs/RELEASE_DOWNLOAD.md)
+- Live debug (gateway on your PC + wire the app): [`docs/LIVE_DEBUG.md`](docs/LIVE_DEBUG.md) — one-shot: [`scripts/dev/live-cockpit.sh`](../../scripts/dev/live-cockpit.sh)
 - Plan: [`../../docs/mobile/STANDALONE_LOCAL_V1_5_PLAN.md`](../../docs/mobile/STANDALONE_LOCAL_V1_5_PLAN.md)
 
 ---
