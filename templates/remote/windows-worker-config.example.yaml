@@ -26,16 +26,30 @@
 # "studio-tower", not just "remote".
 name: jeremiah-windows
 
-# Transport for the bridge. The only one implemented today is
-# ``file_drop`` — Hermes and the Windows daemon agree on a single
-# shared directory and exchange JSON files in it.
+# Transport for the bridge. Two are implemented today:
+#
+#   file_drop  — Hermes and the Windows daemon agree on a single shared
+#                directory and exchange JSON files in it (the default).
+#   http       — Hermes POSTs the staged job packet to an authenticated
+#                endpoint (see ``http_endpoint_url`` below). Approved jobs
+#                only; an unapproved job parks locally and is never sent.
 #
 # Accepted but stubbed (will raise TransportNotImplementedError):
-#   http, websocket, ssh
+#   websocket, ssh
 #
-# See docs/remote/secure-tunnel-options.md for why each of those is
+# See docs/remote/secure-tunnel-options.md for why those two are
 # intentionally not enabled in v1.
 transport: file_drop
+
+# HTTP transport endpoint. REQUIRED when ``transport: http`` (ignored
+# otherwise). Must be an http:// or https:// URL behind your own
+# authenticated tunnel — this is NOT a public, unauthenticated endpoint.
+# Carries no secret: any bearer token is read at dispatch time from the
+# env var named in ``auth_token_env`` below, never from this file.
+#
+# http_endpoint_url: https://hermes-worker.internal.example/api/jobs
+# http_timeout_seconds: 30.0
+# http_max_attempts: 3
 
 # Local path to the shared directory. Both sides MUST agree on this
 # path mapping to the same underlying folder. Typical mounts:
