@@ -158,6 +158,45 @@ def test_free_loop_write_dir_emits_scripts(tmp_path) -> None:
     assert (out / "train_grpo.py").exists()
 
 
+def test_free_loop_preference_stages_get_preference_dataset(tmp_path) -> None:
+    # ORPO/DPO consume preference rows, so their recipes must point at the
+    # preference export, NOT the generic supervised JSONL (SFT/GRPO).
+    store = _make_store(tmp_path)
+    ds = tmp_path / "ds.jsonl"
+    rep = ft.run_free_loop(
+        store=store,
+        dataset_path=ds,
+        stages=(
+            ft.TrainingStage.SFT,
+            ft.TrainingStage.ORPO,
+            ft.TrainingStage.DPO,
+            ft.TrainingStage.GRPO,
+        ),
+    )
+    assert rep.preference_dataset_path is not None
+    by_stage = {r.stage: r for r in rep.recipes}
+    pref_path = rep.preference_dataset_path
+    assert by_stage[ft.TrainingStage.ORPO].dataset_path == pref_path
+    assert by_stage[ft.TrainingStage.DPO].dataset_path == pref_path
+    # Supervised stages keep the generic export.
+    assert by_stage[ft.TrainingStage.SFT].dataset_path == str(ds)
+    assert by_stage[ft.TrainingStage.GRPO].dataset_path == str(ds)
+    assert pref_path != str(ds)
+
+
+def test_free_loop_no_preference_export_for_sft_grpo_only(tmp_path) -> None:
+    store = _make_store(tmp_path)
+    rep = ft.run_free_loop(
+        store=store,
+        dataset_path=tmp_path / "ds.jsonl",
+        stages=(ft.TrainingStage.SFT, ft.TrainingStage.GRPO),
+    )
+    # No preference stage requested → no preference export produced.
+    assert rep.preference_dataset_path is None
+    assert rep.preference_pairs == 0
+    assert not (tmp_path / "ds_prefs.jsonl").exists()
+
+
 # --- CLI: free-loop + promote ----------------------------------------------
 
 

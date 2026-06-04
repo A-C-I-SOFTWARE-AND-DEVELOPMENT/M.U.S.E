@@ -857,6 +857,9 @@ def _cmd_learning_free_loop(args: argparse.Namespace) -> int:
     print(f"  harvested  : {report.harvested} owner-approved trace(s)")
     print(f"  ready      : {report.ready}")
     print(f"  dataset    : {report.dataset_path}")
+    if report.preference_dataset_path:
+        print(f"  preference : {report.preference_dataset_path} "
+              f"({report.preference_pairs} pair(s)) — for orpo/dpo")
     print(f"  recipes    : {', '.join(r.stage.value for r in report.recipes)} "
           f"(base {report.plan.base_model}, paid_api=False)")
     if report.written_to:
