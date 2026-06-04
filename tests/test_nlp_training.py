@@ -105,6 +105,41 @@ def test_create_job_refuses_without_flag(tmp_path, monkeypatch):
     assert "--yes-start-paid-training" in str(exc.value)
 
 
+def test_create_job_rejects_unknown_file_id(tmp_path, monkeypatch):
+    # A bare file id with no recorded validated upload must be refused before
+    # any network call (otherwise a paid job would skip the quality gates).
+    monkeypatch.setattr(nt, "JOBS_PATH", tmp_path / "jobs.json")
+    with pytest.raises(nt.TrainingError) as exc:
+        nt.together_create_job("file-unknown-123", yes_start_paid_training=True)
+    assert "unknown training file id" in str(exc.value)
+
+
+def test_existing_job_for_matches_exact_remote_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(nt, "JOBS_PATH", tmp_path / "jobs.json")
+    nt._save_jobs_state({
+        "uploads": [{"file_id": "file-A", "sha256": "a"},
+                    {"file_id": "file-B", "sha256": "b"}],
+        "jobs": [],
+    })
+
+    class _Remote:
+        def __init__(self, jid, tf):
+            self.id, self.training_file = jid, tf
+
+    class _Client:
+        class fine_tuning:  # noqa: N801
+            @staticmethod
+            def list():
+                return [_Remote("job-A", "file-A")]
+
+    client = _Client()
+    # A different file we're about to train must NOT be flagged as a duplicate
+    # just because some other file already has a remote job.
+    assert nt._existing_job_for("b", "hp", file_id="file-B", client=client) is None
+    # The exact file with a remote job IS a duplicate.
+    assert nt._existing_job_for("a", "hp", file_id="file-A", client=client) == "job-A"
+
+
 def test_missing_api_key_fails_cleanly(monkeypatch):
     monkeypatch.setattr(nt, "_load_env", lambda: None)
     monkeypatch.delenv("TOGETHER_API_KEY", raising=False)

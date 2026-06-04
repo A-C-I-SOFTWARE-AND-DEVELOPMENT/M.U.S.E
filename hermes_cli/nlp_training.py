@@ -765,16 +765,21 @@ def together_upload(path: str | os.PathLike) -> dict[str, Any]:
     return record
 
 
-def _existing_job_for(sha256: str, hp_key: str, client=None) -> Optional[str]:
+def _existing_job_for(
+    sha256: str, hp_key: str, *, file_id: Optional[str] = None, client=None
+) -> Optional[str]:
+    # Local guard: a job for the exact same dataset hash + model + hyperparams.
     for job in _jobs_state().get("jobs", []):
         if job.get("dataset_sha256") == sha256 and job.get("hyperparams_key") == hp_key:
             return job.get("job_id")
-    if client is not None:
+    # Remote guard: only a job training the *exact* file we are about to train
+    # counts as a duplicate (not merely any previously uploaded file).
+    if client is not None and file_id:
         try:
             for remote in client.fine_tuning.list():
                 jid = getattr(remote, "id", None)
                 tf = getattr(remote, "training_file", None)
-                if jid and tf and tf in {u.get("file_id") for u in _jobs_state().get("uploads", [])}:
+                if jid and tf and tf == file_id:
                     return jid
         except Exception:  # pragma: no cover - remote list is best-effort
             pass
@@ -804,9 +809,19 @@ def together_create_job(
                 + "\n  - ".join(res.blocking_errors))
         sha256 = res.sha256
     else:
-        sha256 = next(
-            (u["sha256"] for u in _jobs_state().get("uploads", []) if u.get("file_id") == path_or_file_id),
-            "")
+        # A bare file id is only trusted if it came from together_upload, which
+        # validated the dataset and ran Together check_file before uploading.
+        # Reject unknown ids so a paid job never skips the quality gates.
+        upload_rec = next(
+            (u for u in _jobs_state().get("uploads", [])
+             if u.get("file_id") == path_or_file_id),
+            None)
+        if upload_rec is None:
+            raise TrainingError(
+                f"unknown training file id {path_or_file_id!r}: only ids produced "
+                "by `together-upload` (which validates + runs check_file) may be "
+                "used. Upload the dataset first, or pass the dataset path.")
+        sha256 = str(upload_rec.get("sha256", ""))
 
     hp_key = _hyperparams_key(base_model, hyperparams)
 
@@ -830,7 +845,7 @@ def together_create_job(
     else:
         file_id = path_or_file_id
 
-    remote_dup = _existing_job_for(sha256, hp_key, client=client)
+    remote_dup = _existing_job_for(sha256, hp_key, file_id=file_id, client=client)
     if remote_dup:
         raise TrainingError(
             f"a remote job already exists for this dataset+config: {remote_dup}. "
