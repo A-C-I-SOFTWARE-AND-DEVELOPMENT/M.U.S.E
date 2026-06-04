@@ -83,6 +83,10 @@ def _gemma_curator_default() -> bool:
     return raw.strip().lower() not in ("0", "false", "no", "off", "")
 
 
+# Sentinel: the auto-detected Gemma runner is resolved lazily, once per instance.
+_GEMMA_UNSET: Any = object()
+
+
 @dataclass
 class JarvisConfig:
     persona: Persona = field(default_factory=Persona)
@@ -106,6 +110,10 @@ class JarvisConfig:
     # before. The runner is injectable: ``(prompt: str) -> str``.
     gemma_memory_curator_enabled: bool = field(default_factory=_gemma_curator_default)
     gemma_runner: Optional[Any] = None
+    # Optional factory ``() -> Optional[runner]`` used to AUTO-build a runner when
+    # ``gemma_runner`` is unset. Injected by tests/embedders; in production the
+    # runtime falls back to local-Ollama detection (opt-in via the env flag).
+    gemma_runner_factory: Optional[Any] = None
 
 
 @dataclass
@@ -170,6 +178,7 @@ class JarvisPrime:
 
     def __init__(self, config: Optional[JarvisConfig] = None) -> None:
         self.config = config or JarvisConfig()
+        self._gemma_runner_cache: Any = _GEMMA_UNSET
 
     # ------------------------------------------------------------------
     # Perception
@@ -243,6 +252,36 @@ class JarvisPrime:
         tree_block = pack.render()
         return f"{legacy}\n\n{tree_block}" if legacy else tree_block
 
+    def _resolve_gemma_runner(self):
+        """The Gemma curator runner — explicit ``config.gemma_runner`` wins;
+        otherwise auto-detect a local Ollama Gemma when opted in
+        (``HERMES_JARVIS_GEMMA_AUTO_RUNNER``). Default (no runner, auto off)
+        stays inert: byte-identical to before."""
+
+        cfg = self.config
+        if not cfg.gemma_memory_curator_enabled:
+            return None
+        if cfg.gemma_runner is not None:
+            return cfg.gemma_runner
+        if self._gemma_runner_cache is _GEMMA_UNSET:
+            self._gemma_runner_cache = self._build_auto_gemma_runner()
+        return self._gemma_runner_cache
+
+    def _build_auto_gemma_runner(self):
+        factory = self.config.gemma_runner_factory
+        try:
+            if factory is not None:
+                return factory()
+            from hermes_cli.jarvis_prime.gemma_runner import (
+                auto_runner_enabled,
+                build_gemma_runner,
+            )
+            if not auto_runner_enabled():
+                return None
+            return build_gemma_runner()
+        except Exception:  # detection never breaks a turn
+            return None
+
     def observe_turn(
         self,
         user_text: str,
@@ -289,7 +328,8 @@ class JarvisPrime:
         # additive and inert unless a runner is configured, so the deterministic
         # baseline above is never weakened. Curator-proposed keys are added to
         # the summary ONLY when the curator actually ran.
-        if self.config.gemma_memory_curator_enabled and self.config.gemma_runner is not None:
+        gemma_runner = self._resolve_gemma_runner()
+        if gemma_runner is not None:
             try:
                 from hermes_cli.jarvis_prime.gemma_memory_curator import (
                     capture_curator_proposals,
@@ -304,7 +344,7 @@ class JarvisPrime:
                     turn_text,
                     source_uri=source_uri,
                     deterministic_candidates=candidates,
-                    runner=self.config.gemma_runner,
+                    runner=gemma_runner,
                 )
                 gem_results = capture_curator_proposals(
                     tree, proposals, source_uri=source_uri

@@ -75,8 +75,9 @@ incumbent Gemma would actually overtake.
 ## Memory curation (owner-gated)
 
 The Gemma memory curator (`hermes_cli/jarvis_prime/gemma_memory_curator.py`)
-runs after a turn (on by default, but **inert until a runner is configured** via
-`JarvisConfig.gemma_runner`; disable with `HERMES_JARVIS_GEMMA_CURATOR=0`). It
+runs after a turn (on by default, but **inert until a runner is configured or
+auto-detected** — see "Making the curator actually run" below; disable the lane
+with `HERMES_JARVIS_GEMMA_CURATOR=0`). It
 proposes `{title, summary, namespace, tags, contradiction_candidate,
 freshness_due, source_note, confidence}` — all written through the same
 `capture_to_tree` path as deterministic capture, so the secret /
@@ -85,6 +86,21 @@ excluded from live recall (`include_pending=False`); after
 `set_approval(..., OWNER_APPROVED)` they become recall-eligible.
 
 Deterministic capture remains the safety baseline — Gemma only *enhances* it.
+
+### Making the curator actually run
+
+The curator ships wired but **off by default** (no runner). To make it run a
+local Gemma:
+
+1. Install Ollama and a Gemma model (see below), e.g. `ollama pull gemma4:e4b`.
+2. Opt in: `HERMES_JARVIS_GEMMA_AUTO_RUNNER=1`.
+
+On first use the runtime then auto-detects Ollama + the best installed Gemma tag
+(prefers `e4b`, then `e2b`) and builds the `(prompt) -> completion` runner
+(`hermes_cli/jarvis_prime/gemma_runner.py`, which pipes the prompt to
+`ollama run <tag>`). With no flag, no Ollama, or no Gemma model installed it
+stays a no-op — byte-identical to before. An explicit `JarvisConfig.gemma_runner`
+(or an injected `gemma_runner_factory`) always wins.
 
 ## Install locally (Ollama)
 
