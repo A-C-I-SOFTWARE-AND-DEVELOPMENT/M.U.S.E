@@ -84,6 +84,7 @@ def test_complete_raises_when_unconfigured(monkeypatch):
 def _load_runner(name):
     path = Path(__file__).resolve().parents[1] / "scripts" / "jarvis_self_audit_live.py"
     spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
