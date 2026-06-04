@@ -42,7 +42,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, cast
 
 # --------------------------------------------------------------------------
 # Paths & constants
@@ -259,10 +259,11 @@ def _validate_conversation(row: dict[str, Any], idx: int) -> tuple[list[str], li
     roles = []
     has_tool_msg = False
     assistant_targets = 0
-    for j, m in enumerate(messages):
-        if not isinstance(m, dict):
+    for j, raw_m in enumerate(messages):
+        if not isinstance(raw_m, dict):
             errors.append(f"row {idx} msg {j}: not an object")
             continue
+        m = cast("dict[str, Any]", raw_m)
         role = m.get("role")
         if role not in _ALLOWED_ROLES:
             errors.append(f"row {idx} msg {j}: invalid role {role!r}")
@@ -317,11 +318,13 @@ def _validate_tool_calls(tool_calls: Any, idx: int, j: int,
     if not isinstance(tool_calls, list) or not tool_calls:
         errors.append(f"row {idx} msg {j}: tool_calls is not a non-empty list")
         return
-    for k, tc in enumerate(tool_calls):
-        fn = (tc or {}).get("function") if isinstance(tc, dict) else None
-        if not isinstance(fn, dict):
+    for k, raw_tc in enumerate(tool_calls):
+        tc = cast("dict[str, Any]", raw_tc) if isinstance(raw_tc, dict) else None
+        fn_obj = tc.get("function") if tc is not None else None
+        if not isinstance(fn_obj, dict):
             errors.append(f"row {idx} msg {j} tool_call {k}: missing function object")
             continue
+        fn = cast("dict[str, Any]", fn_obj)
         name = fn.get("name")
         if not isinstance(name, str) or not name.strip():
             errors.append(f"row {idx} msg {j} tool_call {k}: missing function name")
@@ -561,9 +564,10 @@ def _normalize_turns(row: dict[str, Any]) -> Optional[list[dict[str, Any]]]:
     if not isinstance(turns, list) or not turns:
         return None
     out: list[dict[str, Any]] = []
-    for t in turns:
-        if not isinstance(t, dict):
+    for raw_t in turns:
+        if not isinstance(raw_t, dict):
             return None
+        t = cast("dict[str, Any]", raw_t)
         role = t.get("role") or _ROLE_MAP.get(str(t.get("from", "")).lower())
         role = _ROLE_MAP.get(str(role).lower(), role)
         content = t.get("content")
