@@ -120,6 +120,7 @@ def test_core_ingest_and_benchmark_wall_are_disjoint(registry):
 def test_documented_core_and_wall_members_present(registry):
     keys = {s.key for s in registry}
     expected_core = {
+        # code-github cluster
         "the-stack-v2",
         "github-bigquery",
         "gh-archive",
@@ -130,6 +131,15 @@ def test_documented_core_and_wall_members_present(registry):
         "commitpackft",
         "d2a",
         "travistorrent",
+        # v2 capability clusters (permissive core-ingest sources)
+        "toucan-1_5m",
+        "xlam-function-calling-60k",
+        "smoltalk",
+        "openr1-math-220k",
+        "openthoughts2-1m",
+        "numinamath-cot",
+        "asqa",
+        "helpsteer3",
     }
     expected_wall = {
         "swe-bench",
