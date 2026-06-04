@@ -785,6 +785,51 @@ def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_learning_free_recipe(args: argparse.Namespace) -> int:
+    """Emit a runnable free Unsloth+TRL training recipe (no paid API)."""
+
+    from hermes_cli.jarvis_prime.free_training import (
+        TrainingStage,
+        generate_recipe,
+    )
+
+    recipe = generate_recipe(
+        args.dataset,
+        stage=TrainingStage(args.stage),
+        base_model=args.base_model,
+        out_dir=args.out_dir,
+    )
+    if getattr(args, "write", None):
+        path = recipe.write(args.write)
+        print(f"wrote {path}")
+    if args.json:
+        _print_json(recipe.to_dict())
+    else:
+        print(f"# free {recipe.stage.value} recipe ({recipe.base_model}) — "
+              f"valid_python={recipe.valid_python()}, paid_api=False")
+        print(recipe.script)
+    return 0
+
+
+def _cmd_learning_free_plan(args: argparse.Namespace) -> int:
+    """Describe the free, continuous, gated self-improvement loop."""
+
+    from hermes_cli.jarvis_prime.free_training import FreeContinuousPlan
+
+    plan = FreeContinuousPlan(base_model=args.base_model)
+    if args.json:
+        _print_json(plan.to_dict())
+        return 0
+    print("Free continuous gated training loop:")
+    print(f"  base model : {plan.base_model}")
+    print(f"  stages     : {' -> '.join(plan.stages)}")
+    print(f"  reward     : {plan.reward}")
+    print(f"  eval set   : {plan.eval_set}")
+    print(f"  promotion  : {plan.promotion}")
+    print(f"  compute    : {', '.join(plan.compute)} (paid_api=False)")
+    return 0
+
+
 # --- open data sources registry --------------------------------------------
 
 
@@ -2257,6 +2302,25 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Assert citations were verified (research/evidence traces)",
     )
     p_learning_ingest.set_defaults(func=_cmd_learning_ingest_trajectory)
+
+    p_free_recipe = p_learning_sub.add_parser(
+        "free-recipe",
+        help="Emit a free Unsloth+TRL training recipe (SFT/ORPO/DPO/GRPO)")
+    p_free_recipe.add_argument("dataset", help="Path to the JSONL training/preference dataset")
+    p_free_recipe.add_argument(
+        "--stage", choices=["sft", "orpo", "dpo", "grpo"], default="sft")
+    p_free_recipe.add_argument("--base-model", dest="base_model",
+                               default="unsloth/Qwen3-8B")
+    p_free_recipe.add_argument("--out-dir", dest="out_dir", default="data/models/free")
+    p_free_recipe.add_argument("--write", help="Write the script+config to this directory")
+    p_free_recipe.add_argument("--json", action="store_true")
+    p_free_recipe.set_defaults(func=_cmd_learning_free_recipe)
+
+    p_free_plan = p_learning_sub.add_parser(
+        "free-plan", help="Describe the free continuous gated training loop")
+    p_free_plan.add_argument("--base-model", dest="base_model", default="unsloth/Qwen3-8B")
+    p_free_plan.add_argument("--json", action="store_true")
+    p_free_plan.set_defaults(func=_cmd_learning_free_plan)
 
     p_learning_ef = p_learning_sub.add_parser(
         "export-finetune",
