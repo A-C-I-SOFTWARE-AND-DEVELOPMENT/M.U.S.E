@@ -30,6 +30,10 @@ class FactRetriever:
         jaccard_weight: float = 0.3,
         hrr_weight: float = 0.3,
         embedding_weight: float = 0.0,
+        importance_weight: float = 0.0,
+        short_half_life_days: int = 0,
+        long_half_life_days: int = 0,
+        track_access: bool = False,
         hrr_dim: int = 1024,
     ):
         self.store = store
@@ -37,6 +41,15 @@ class FactRetriever:
         self.hrr_dim = hrr_dim
         # Per-search cache so the query is embedded at most once, not per row.
         self._query_emb_cache: tuple[str, "list[float] | None"] | None = None
+
+        # Longevity knobs (all opt-in; 0 / False preserve prior behavior).
+        # Tiered decay: long-tier facts fade slowly, short-tier quickly
+        # (FadeMem two-layer pattern). Active only when both half-lives are set.
+        self.short_half_life = short_half_life_days
+        self.long_half_life = long_half_life_days
+        self._tiered_decay_on = bool(short_half_life_days > 0 and long_half_life_days > 0)
+        # Recall records an access (recency/frequency signal for consolidation).
+        self.track_access = bool(track_access)
 
         # Auto-redistribute weights if numpy unavailable
         if hrr_weight > 0 and not hrr._HAS_NUMPY:
@@ -53,21 +66,28 @@ class FactRetriever:
         if not self._embeddings_on:
             embedding_weight = 0.0
 
-        # Re-normalize so the four weights always sum to 1.0. With the defaults
-        # (0.4 + 0.3 + 0.3) and embedding_weight == 0 the sum is already 1.0,
-        # so this is a no-op and recall is unchanged. The dense term only ever
-        # shrinks the others when embeddings are actually active.
-        total = fts_weight + jaccard_weight + hrr_weight + embedding_weight
+        # Importance contributes only when a positive weight is requested.
+        self._importance_on = bool(importance_weight > 0)
+        if not self._importance_on:
+            importance_weight = 0.0
+
+        # Re-normalize so the weights always sum to 1.0. With the defaults
+        # (0.4 + 0.3 + 0.3) and embedding_weight == importance_weight == 0 the
+        # sum is already 1.0, so this is a no-op and recall is unchanged. The
+        # extra terms only shrink the others when actually active.
+        total = fts_weight + jaccard_weight + hrr_weight + embedding_weight + importance_weight
         if total > 0:
             fts_weight /= total
             jaccard_weight /= total
             hrr_weight /= total
             embedding_weight /= total
+            importance_weight /= total
 
         self.fts_weight = fts_weight
         self.jaccard_weight = jaccard_weight
         self.hrr_weight = hrr_weight
         self.embedding_weight = embedding_weight
+        self.importance_weight = importance_weight
 
     def search(
         self,
@@ -116,18 +136,26 @@ class FactRetriever:
             # Dense embedding similarity (only when a backend is live)
             emb_sim = self._embedding_similarity(query, fact)
 
-            # Combine FTS5 + Jaccard + HRR + embeddings
+            # Importance prior (longevity): a global [0,1] signal, neutral 0.5
+            # when the column is unset. Only contributes when weighted.
+            if self.importance_weight > 0:
+                imp = fact.get("importance")
+                importance = 0.5 if imp is None else float(imp)
+            else:
+                importance = 0.5
+
+            # Combine FTS5 + Jaccard + HRR + embeddings + importance
             relevance = (self.fts_weight * fts_score
                         + self.jaccard_weight * jaccard
                         + self.hrr_weight * hrr_sim
-                        + self.embedding_weight * emb_sim)
+                        + self.embedding_weight * emb_sim
+                        + self.importance_weight * importance)
 
             # Trust weighting
             score = relevance * fact["trust_score"]
 
-            # Optional temporal decay
-            if self.half_life > 0:
-                score *= self._temporal_decay(fact.get("updated_at") or fact.get("created_at"))
+            # Optional temporal decay (tier-aware when longevity is on)
+            score *= self._decay_for(fact)
 
             fact["score"] = score
             scored.append(fact)
@@ -135,6 +163,12 @@ class FactRetriever:
         # Sort by score descending, return top limit
         scored.sort(key=lambda x: x["score"], reverse=True)
         results = scored[:limit]
+        # Record the recall as an access event (recency/frequency signal).
+        if self.track_access and results:
+            try:
+                self.store.record_access([r["fact_id"] for r in results])
+            except Exception:
+                pass
         # Strip raw vector bytes — callers expect JSON-serializable dicts
         for fact in results:
             fact.pop("hrr_vector", None)
@@ -142,6 +176,22 @@ class FactRetriever:
             fact.pop("embedding_dim", None)
             fact.pop("embedding_model", None)
         return results
+
+    def _decay_for(self, fact: dict) -> float:
+        """Temporal-decay multiplier for one fact.
+
+        When tiered decay is enabled, the half-life is chosen by the fact's
+        memory tier (long = slow fade, short = fast). Otherwise falls back to
+        the single ``half_life`` (which is 0/off by default — no change).
+        """
+        ts = fact.get("updated_at") or fact.get("created_at")
+        if self._tiered_decay_on:
+            tier = fact.get("memory_tier") or "short"
+            hl = self.long_half_life if tier == "long" else self.short_half_life
+            return self._temporal_decay(ts, half_life=hl)
+        if self.half_life > 0:
+            return self._temporal_decay(ts, half_life=self.half_life)
+        return 1.0
 
     def _query_embedding(self, query: str) -> "list[float] | None":
         """Embed the query once per search() call (memoized)."""
@@ -633,12 +683,15 @@ class FactRetriever:
         union = len(set_a | set_b)
         return intersection / union if union > 0 else 0.0
 
-    def _temporal_decay(self, timestamp_str: str | None) -> float:
+    def _temporal_decay(self, timestamp_str: str | None, half_life: int | None = None) -> float:
         """Exponential decay: 0.5^(age_days / half_life_days).
 
-        Returns 1.0 if decay is disabled or timestamp is missing.
+        ``half_life`` defaults to the retriever's ``self.half_life`` for
+        backward compatibility; callers (tiered decay) may pass a per-fact
+        half-life. Returns 1.0 if decay is disabled or the timestamp is missing.
         """
-        if not self.half_life or not timestamp_str:
+        hl = self.half_life if half_life is None else half_life
+        if not hl or not timestamp_str:
             return 1.0
 
         try:
@@ -655,6 +708,6 @@ class FactRetriever:
             if age_days < 0:
                 return 1.0
 
-            return math.pow(0.5, age_days / self.half_life)
+            return math.pow(0.5, age_days / hl)
         except (ValueError, TypeError):
             return 1.0

@@ -27,7 +27,10 @@ CREATE TABLE IF NOT EXISTS facts (
     hrr_vector      BLOB,
     embedding       BLOB,
     embedding_dim   INTEGER,
-    embedding_model TEXT
+    embedding_model TEXT,
+    importance      REAL DEFAULT 0.5,
+    last_accessed   TIMESTAMP,
+    memory_tier     TEXT DEFAULT 'short'
 );
 
 CREATE TABLE IF NOT EXISTS entities (
@@ -157,6 +160,17 @@ class MemoryStore:
             self._conn.execute("ALTER TABLE facts ADD COLUMN embedding_dim INTEGER")
         if "embedding_model" not in columns:
             self._conn.execute("ALTER TABLE facts ADD COLUMN embedding_model TEXT")
+        # Longevity columns (importance / recency / tier). All nullable or
+        # defaulted, so existing rows and old code keep working unchanged.
+        if "importance" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN importance REAL DEFAULT 0.5")
+        if "last_accessed" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN last_accessed TIMESTAMP")
+        if "memory_tier" not in columns:
+            self._conn.execute("ALTER TABLE facts ADD COLUMN memory_tier TEXT DEFAULT 'short'")
+            self._conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_facts_tier ON facts(memory_tier)"
+            )
         self._conn.commit()
 
     # ------------------------------------------------------------------
@@ -168,25 +182,31 @@ class MemoryStore:
         content: str,
         category: str = "general",
         tags: str = "",
+        importance: float | None = None,
     ) -> int:
         """Insert a fact and return its fact_id.
 
         Deduplicates by content (UNIQUE constraint). On duplicate, returns
         the existing fact_id without modifying the row. Extracts entities from
         the content and links them to the fact.
+
+        ``importance`` (0..1) is an optional longevity prior used by the
+        consolidation pass and, when enabled, by recall ranking. Defaults to
+        0.5 when not supplied.
         """
         with self._lock:
             content = content.strip()
             if not content:
                 raise ValueError("content must not be empty")
+            imp = 0.5 if importance is None else max(0.0, min(1.0, float(importance)))
 
             try:
                 cur = self._conn.execute(
                     """
-                    INSERT INTO facts (content, category, tags, trust_score)
-                    VALUES (?, ?, ?, ?)
+                    INSERT INTO facts (content, category, tags, trust_score, importance)
+                    VALUES (?, ?, ?, ?, ?)
                     """,
-                    (content, category, tags, self.default_trust),
+                    (content, category, tags, self.default_trust, imp),
                 )
                 self._conn.commit()
                 fact_id: int = cur.lastrowid  # type: ignore[assignment]
@@ -562,6 +582,112 @@ class MemoryStore:
             for row in rows:
                 self._compute_embedding(row["fact_id"], row["content"])
             return len(rows)
+
+    # ------------------------------------------------------------------
+    # Longevity helpers (importance, recency, tiering, consolidation)
+    # ------------------------------------------------------------------
+
+    def record_access(self, fact_ids: "list[int]") -> None:
+        """Bump retrieval_count and stamp last_accessed for recalled facts.
+
+        This is the recency/frequency signal the consolidation pass uses to
+        decide what to promote and what is safe to forget. Cheap, best-effort.
+        """
+        ids = [int(i) for i in fact_ids if i is not None]
+        if not ids:
+            return
+        with self._lock:
+            placeholders = ",".join("?" * len(ids))
+            self._conn.execute(
+                f"UPDATE facts SET retrieval_count = retrieval_count + 1, "
+                f"last_accessed = CURRENT_TIMESTAMP WHERE fact_id IN ({placeholders})",
+                ids,
+            )
+            self._conn.commit()
+
+    def set_memory_tier(self, fact_id: int, tier: str) -> bool:
+        """Set a fact's memory tier ('short' | 'long'). Returns True if it existed."""
+        if tier not in ("short", "long"):
+            raise ValueError("tier must be 'short' or 'long'")
+        with self._lock:
+            cur = self._conn.execute(
+                "UPDATE facts SET memory_tier = ? WHERE fact_id = ?", (tier, fact_id)
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def set_importance(self, fact_id: int, importance: float) -> bool:
+        """Set a fact's importance prior in [0, 1]. Returns True if it existed."""
+        imp = max(0.0, min(1.0, float(importance)))
+        with self._lock:
+            cur = self._conn.execute(
+                "UPDATE facts SET importance = ? WHERE fact_id = ?", (imp, fact_id)
+            )
+            self._conn.commit()
+            return cur.rowcount > 0
+
+    def merge_facts(self, keep_id: int, drop_id: int) -> bool:
+        """Merge ``drop_id`` into ``keep_id`` and delete the duplicate.
+
+        The kept fact inherits the higher trust/importance, the summed access
+        counts, and the union of tags. Non-destructive to the kept signal.
+        Returns True when the merge happened.
+        """
+        if keep_id == drop_id:
+            return False
+        with self._lock:
+            keep = self._conn.execute(
+                "SELECT fact_id, tags, trust_score, importance, retrieval_count, "
+                "helpful_count, memory_tier, category FROM facts WHERE fact_id = ?",
+                (keep_id,),
+            ).fetchone()
+            drop = self._conn.execute(
+                "SELECT fact_id, tags, trust_score, importance, retrieval_count, "
+                "helpful_count FROM facts WHERE fact_id = ?",
+                (drop_id,),
+            ).fetchone()
+            if keep is None or drop is None:
+                return False
+
+            keep_tags = {t.strip() for t in (keep["tags"] or "").split(",") if t.strip()}
+            drop_tags = {t.strip() for t in (drop["tags"] or "").split(",") if t.strip()}
+            merged_tags = ",".join(sorted(keep_tags | drop_tags))
+            self._conn.execute(
+                """
+                UPDATE facts SET
+                    tags = ?,
+                    trust_score = MAX(trust_score, ?),
+                    importance = MAX(importance, ?),
+                    retrieval_count = retrieval_count + ?,
+                    helpful_count = helpful_count + ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE fact_id = ?
+                """,
+                (
+                    merged_tags,
+                    drop["trust_score"],
+                    drop["importance"] if drop["importance"] is not None else 0.0,
+                    drop["retrieval_count"] or 0,
+                    drop["helpful_count"] or 0,
+                    keep_id,
+                ),
+            )
+            self._conn.execute("DELETE FROM fact_entities WHERE fact_id = ?", (drop_id,))
+            self._conn.execute("DELETE FROM facts WHERE fact_id = ?", (drop_id,))
+            self._conn.commit()
+            self._rebuild_bank(keep["category"])
+            return True
+
+    def all_facts_for_consolidation(self) -> "list[dict]":
+        """Return every fact with the columns the consolidation pass needs."""
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT fact_id, content, category, tags, trust_score, importance, "
+                "retrieval_count, helpful_count, memory_tier, created_at, "
+                "last_accessed, updated_at, embedding, embedding_dim "
+                "FROM facts"
+            ).fetchall()
+            return [dict(r) for r in rows]
 
     def _rebuild_bank(self, category: str) -> None:
         """Full rebuild of a category's memory bank from all its fact vectors."""

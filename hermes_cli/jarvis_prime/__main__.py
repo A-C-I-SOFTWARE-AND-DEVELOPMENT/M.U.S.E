@@ -567,6 +567,101 @@ def _cmd_learning_query(args: argparse.Namespace) -> int:
     return 0
 
 
+def _holographic_store():
+    """Open the holographic memory store at its configured (profile-aware) path.
+
+    Resolves ``plugins.hermes-memory-store.db_path`` the same way the plugin
+    does, so the CLI operates on the live store. Returns None when the plugin
+    isn't importable (e.g. minimal install).
+    """
+    try:
+        from hermes_constants import get_hermes_home
+        from plugins.memory.holographic import _load_plugin_config
+        from plugins.memory.holographic.store import MemoryStore
+    except Exception as exc:  # pragma: no cover - minimal install
+        print(f"holographic memory store unavailable: {exc}", file=sys.stderr)
+        return None
+
+    cfg = _load_plugin_config()
+    home = str(get_hermes_home())
+    db_path = cfg.get("db_path", home + "/memory_store.db")
+    if isinstance(db_path, str):
+        db_path = db_path.replace("$HERMES_HOME", home).replace("${HERMES_HOME}", home)
+    return MemoryStore(db_path=db_path)
+
+
+def _cmd_memory_consolidate(args: argparse.Namespace) -> int:
+    store = _holographic_store()
+    if store is None:
+        return 1
+    from plugins.memory.holographic.consolidation import consolidate
+
+    try:
+        report = consolidate(store, dry_run=not args.apply)
+    finally:
+        store.close()
+    data = report.to_dict()
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0
+    mode = "APPLIED" if args.apply else "dry-run (use --apply to write)"
+    s = data["summary"]
+    print(f"consolidation {mode}: {data['total']} fact(s) scanned")
+    print(
+        f"  merged={s['merged']}  contradictions={s['contradictions']}  "
+        f"promoted={s['promoted']}  forgotten={s['forgotten']}"
+    )
+    for m in data["merged"]:
+        print(f"  merge {m['drop']} -> {m['keep']} (sim {m['similarity']})")
+    for p in data["promoted"]:
+        print(f"  promote {p['fact_id']} (short->long, {p['reason']})")
+    for fgt in data["forgotten"]:
+        print(f"  forget {fgt['fact_id']}: {fgt['content']}")
+    return 0
+
+
+def _cmd_memory_stats(args: argparse.Namespace) -> int:
+    store = _holographic_store()
+    if store is None:
+        return 1
+    try:
+        facts = store.all_facts_for_consolidation()
+    finally:
+        store.close()
+    tiers: dict[str, int] = {}
+    cats: dict[str, int] = {}
+    imp_buckets = {"low(<0.34)": 0, "mid": 0, "high(>=0.67)": 0}
+    accessed = 0
+    for f in facts:
+        tiers[f.get("memory_tier") or "short"] = tiers.get(f.get("memory_tier") or "short", 0) + 1
+        cats[f.get("category") or "general"] = cats.get(f.get("category") or "general", 0) + 1
+        imp = f.get("importance")
+        imp = 0.5 if imp is None else float(imp)
+        if imp < 0.34:
+            imp_buckets["low(<0.34)"] += 1
+        elif imp >= 0.67:
+            imp_buckets["high(>=0.67)"] += 1
+        else:
+            imp_buckets["mid"] += 1
+        if (f.get("retrieval_count") or 0) > 0:
+            accessed += 1
+    data = {
+        "total": len(facts),
+        "tiers": tiers,
+        "categories": cats,
+        "importance": imp_buckets,
+        "ever_accessed": accessed,
+    }
+    if getattr(args, "json", False):
+        _print_json(data)
+        return 0
+    print(f"memory: {data['total']} fact(s)")
+    print(f"  tiers: {tiers}")
+    print(f"  importance: {imp_buckets}")
+    print(f"  ever recalled: {accessed}")
+    return 0
+
+
 def _cmd_learning_ingest_trajectory(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.learning_dataset import QualityGates
     from hermes_cli.jarvis_prime.learning_ingest import from_trajectory_file
@@ -1700,6 +1795,35 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_packetize.add_argument("--gate-check", dest="gate_check", action="store_true")
     p_packetize.add_argument("--json", action="store_true")
     p_packetize.set_defaults(func=_cmd_packet)
+
+    p_memory = sub.add_parser(
+        "memory",
+        help="Longevity ops on the holographic memory store (consolidate / stats)",
+        description=(
+            "Durable-memory maintenance for the holographic fact store: "
+            "merge duplicates, mark contradictions, promote important/"
+            "frequently-recalled facts to the long tier, and selectively "
+            "forget stale low-value short-tier facts. 'consolidate' is "
+            "dry-run by default; pass --apply to write."
+        ),
+    )
+    p_memory_sub = p_memory.add_subparsers(dest="memory_command", required=True)
+
+    p_memory_consolidate = p_memory_sub.add_parser(
+        "consolidate", help="Run a consolidation pass (dry-run unless --apply)"
+    )
+    p_memory_consolidate.add_argument(
+        "--apply", action="store_true",
+        help="Actually merge/promote/forget (default is a dry-run report)",
+    )
+    p_memory_consolidate.add_argument("--json", action="store_true")
+    p_memory_consolidate.set_defaults(func=_cmd_memory_consolidate)
+
+    p_memory_stats = p_memory_sub.add_parser(
+        "stats", help="Show tier / importance / access histogram"
+    )
+    p_memory_stats.add_argument("--json", action="store_true")
+    p_memory_stats.set_defaults(func=_cmd_memory_stats)
 
     p_memtree = sub.add_parser(
         "memory-tree",

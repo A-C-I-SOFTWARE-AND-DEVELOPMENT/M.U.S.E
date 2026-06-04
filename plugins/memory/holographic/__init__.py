@@ -157,6 +157,10 @@ class HolographicMemoryProvider(MemoryProvider):
             {"key": "embeddings.enabled", "description": "Enable optional semantic recall via dense embeddings", "default": "false", "choices": ["true", "false"]},
             {"key": "embeddings.backend", "description": "Embedding backend", "default": "auto", "choices": ["auto", "openai", "sentence-transformers"]},
             {"key": "embeddings.model", "description": "Embedding model (backend-specific default if blank)", "default": ""},
+            {"key": "longevity.enabled", "description": "Importance-weighted recall + tiered decay + access tracking", "default": "false", "choices": ["true", "false"]},
+            {"key": "longevity.importance_weight", "description": "Weight of the importance prior in recall (0 = off)", "default": "0.2"},
+            {"key": "longevity.short_half_life_days", "description": "Decay half-life (days) for short-tier facts", "default": "7"},
+            {"key": "longevity.long_half_life_days", "description": "Decay half-life (days) for long-tier facts", "default": "180"},
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
@@ -192,6 +196,14 @@ class HolographicMemoryProvider(MemoryProvider):
         _default_emb_weight = 0.3 if _embeddings_enabled else 0.0
         embedding_weight = float(self._config.get("embedding_weight", _default_emb_weight))
 
+        # Longevity layer (importance-weighted recall + tiered decay). Opt-in;
+        # when disabled, the retriever behaves exactly as before.
+        longevity = self._config.get("longevity") or {}
+        longevity_on = bool(longevity.get("enabled", False))
+        importance_weight = float(longevity.get("importance_weight", 0.2 if longevity_on else 0.0))
+        short_half_life = int(longevity.get("short_half_life_days", 7 if longevity_on else 0))
+        long_half_life = int(longevity.get("long_half_life_days", 180 if longevity_on else 0))
+
         self._store = MemoryStore(
             db_path=db_path,
             default_trust=default_trust,
@@ -203,6 +215,10 @@ class HolographicMemoryProvider(MemoryProvider):
             temporal_decay_half_life=temporal_decay,
             hrr_weight=hrr_weight,
             embedding_weight=embedding_weight,
+            importance_weight=importance_weight,
+            short_half_life_days=short_half_life,
+            long_half_life_days=long_half_life,
+            track_access=longevity_on,
             hrr_dim=hrr_dim,
         )
         self._session_id = session_id
