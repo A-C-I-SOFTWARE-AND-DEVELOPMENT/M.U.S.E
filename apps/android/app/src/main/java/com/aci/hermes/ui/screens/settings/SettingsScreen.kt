@@ -54,6 +54,7 @@ fun SettingsScreen(
     onOpenAvatarPicker: () -> Unit,
     onOpenKnowledge: () -> Unit = {},
     onOpenModelCenter: () -> Unit = {},
+    onOpenReleaseCenter: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -192,6 +193,9 @@ fun SettingsScreen(
                 }
                 OutlinedButton(onClick = onOpenModelCenter, modifier = Modifier.fillMaxWidth()) {
                     Text("Model Center (local / Gemma)")
+                }
+                OutlinedButton(onClick = onOpenReleaseCenter, modifier = Modifier.fillMaxWidth()) {
+                    Text("Release & download")
                 }
                 OutlinedButton(
                     onClick = { confirmReset = true },
