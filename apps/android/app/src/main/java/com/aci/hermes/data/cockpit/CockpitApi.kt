@@ -416,6 +416,35 @@ data class CockpitSkill(
 @Serializable
 data class CockpitSkillList(val skills: List<CockpitSkill> = emptyList())
 
+// ─── Navigation (HyperAgent pre-dispatch "where to look") ─────────────
+
+/**
+ * Wire model for `GET /v1/cockpit/navigation` — the HyperAgent navigator's
+ * pre-dispatch decision for an orchestrate job: the ranked candidate files it
+ * chose to look at (with rationale) before any worker ran. Read-only
+ * transparency; honest empty when a job never navigated.
+ */
+@Serializable
+data class CockpitNavigation(
+    @SerialName("job_id") val jobId: String = "",
+    val objective: String = "",
+    @SerialName("created_at") val createdAt: String = "",
+    val method: String = "",
+    @SerialName("candidate_files") val candidateFiles: List<NavCandidate> = emptyList(),
+    @SerialName("verify_with") val verifyWith: List<String> = emptyList(),
+)
+
+@Serializable
+data class NavCandidate(
+    val path: String = "",
+    val rank: Int = 0,
+    val confidence: Float = 0f,
+    val rationale: String = "",
+)
+
+@Serializable
+data class CockpitNavigationList(val navigations: List<CockpitNavigation> = emptyList())
+
 // ─── Models / router policy ───────────────────────────────────────────
 
 /**

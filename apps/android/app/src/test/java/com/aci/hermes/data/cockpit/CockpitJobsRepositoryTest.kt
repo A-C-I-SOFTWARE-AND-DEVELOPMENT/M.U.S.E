@@ -160,4 +160,33 @@ class CockpitJobsRepositoryTest {
         assertTrue(orchUrl!!.endsWith("/v1/cockpit/orchestrate"))
         assertEquals(1, repo.jobs.value.size)
     }
+
+    @Test
+    fun `navigation selects only this job's decision`() = runTest {
+        val repo = CockpitJobsRepository(
+            client {
+                CockpitRawResponse(
+                    200,
+                    """{"navigations":[
+                       {"job_id":"orc-2","objective":"other","candidate_files":[]},
+                       {"job_id":"orc-1","objective":"mine","candidate_files":[{"path":"x.py","rank":1,"confidence":0.5,"rationale":"r"}]}
+                    ]}""",
+                )
+            }
+        )
+        val res = repo.navigation("orc-1")
+        assertTrue(res is CockpitResult.Success)
+        assertEquals("mine", (res as CockpitResult.Success).value?.objective)
+        assertEquals("x.py", res.value?.candidateFiles?.first()?.path)
+    }
+
+    @Test
+    fun `navigation returns null when this job never navigated`() = runTest {
+        val repo = CockpitJobsRepository(
+            client { CockpitRawResponse(200, """{"navigations":[{"job_id":"orc-9","candidate_files":[]}]}""") }
+        )
+        val res = repo.navigation("orc-1")
+        assertTrue(res is CockpitResult.Success)
+        assertEquals(null, (res as CockpitResult.Success).value)
+    }
 }

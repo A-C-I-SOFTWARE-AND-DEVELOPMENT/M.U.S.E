@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.cockpit.CockpitJob
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
+import com.aci.hermes.data.cockpit.CockpitNavigation
 import com.aci.hermes.data.cockpit.CockpitResult
 import com.aci.hermes.data.cockpit.DiffSnapshot
 import com.aci.hermes.data.cockpit.JobDetail
@@ -27,6 +28,9 @@ data class JobDetailUiState(
     val patchLoading: Boolean = false,
     val verification: ValidationSnapshot? = null,
     val verifying: Boolean = false,
+    val navigation: CockpitNavigation? = null,
+    val navLoading: Boolean = false,
+    val navLoaded: Boolean = false,
     val snackbar: String? = null,
 ) {
     val uiState: JobUiState
@@ -139,6 +143,21 @@ class JobDetailViewModel(
                     _state.update { it.copy(verifying = false, snackbar = res.message) }
             }
             refreshOnce()
+        }
+    }
+
+    /** "Navigation" — load the HyperAgent pre-dispatch decision for this job. */
+    fun loadNavigation() {
+        _state.update { it.copy(navLoading = true) }
+        viewModelScope.launch {
+            when (val res = repo.navigation(jobId)) {
+                is CockpitResult.Success ->
+                    _state.update { it.copy(navigation = res.value, navLoading = false, navLoaded = true) }
+                is CockpitResult.Failure ->
+                    _state.update { it.copy(navLoading = false, navLoaded = true, snackbar = res.error.message) }
+                is CockpitResult.Unreachable ->
+                    _state.update { it.copy(navLoading = false, navLoaded = true, snackbar = res.message) }
+            }
         }
     }
 

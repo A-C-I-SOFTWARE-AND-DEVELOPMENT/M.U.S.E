@@ -136,3 +136,22 @@ def test_orchestrate_then_run_roundtrip(home, monkeypatch) -> None:
 def test_orchestrate_requires_prompt(home) -> None:
     resp = h.orchestrate_submit(h.Request(method="POST", path="x", body={"prompt": "  "}))
     assert resp.status == 400
+
+
+def test_navigation_job_filter_survives_recency_cap(home, monkeypatch) -> None:
+    """?job= filters before the limit truncation, so an older job's decision
+    isn't dropped by the global recency cap (the job-detail bug Codex flagged)."""
+    fake_ledger = {
+        "orc-old": [{"kind": "navigation_decision", "objective": "old", "created_at": "2026-01-01", "ranked_files": []}],
+        "orc-new": [{"kind": "navigation_decision", "objective": "new", "created_at": "2026-02-01", "ranked_files": []}],
+    }
+    monkeypatch.setattr(orch, "get_ledger", lambda: fake_ledger)
+
+    def _nav(**q):
+        return h.navigation_list(h.Request(method="GET", path="x", query=q))
+
+    # Unfiltered surfaces both.
+    assert {n["job_id"] for n in _nav().payload["navigations"]} == {"orc-old", "orc-new"}
+    # Filtered to the older job returns it even with limit=1 (would be cut otherwise).
+    one = _nav(job="orc-old", limit="1")
+    assert [n["job_id"] for n in one.payload["navigations"]] == ["orc-old"]
