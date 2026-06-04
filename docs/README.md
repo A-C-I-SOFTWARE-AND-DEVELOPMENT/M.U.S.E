@@ -298,6 +298,7 @@ Read in this order:
 | Decision ledger schema | [orchestration/decision-ledger.md](orchestration/decision-ledger.md) |
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
 | Open data sources for training JARVIS | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
+| Repo viability audit (2026-06) | [audit/repo-audit-2026-06.md](audit/repo-audit-2026-06.md) |
 | Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |
 | Android app contract | [android/hermes-apk-api-contract.md](android/hermes-apk-api-contract.md) |
 
