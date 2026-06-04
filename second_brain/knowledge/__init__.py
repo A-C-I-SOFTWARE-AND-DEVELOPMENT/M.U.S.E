@@ -20,7 +20,7 @@ a backend is first used.
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 from .config import Settings, configure_logging, load_settings
 from .confidence import ConfidenceEngine
@@ -132,20 +132,65 @@ class SecondBrain:
     def ingest(self, document: Document) -> IngestionResult:
         return self.ingestion.ingest(document)
 
-    def ingest_text(self, content: str, source_id: str, **kwargs: object) -> IngestionResult:
-        return self.ingestion.ingest_text(content, source_id, **kwargs)  # type: ignore[arg-type]
+    def ingest_text(
+        self,
+        content: str,
+        source_id: str,
+        *,
+        title: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> IngestionResult:
+        return self.ingestion.ingest_text(
+            content, source_id, title=title, metadata=metadata
+        )
 
-    def retrieve(self, query: str, **kwargs: object) -> InjectionPayload:
-        return self.orchestrator.retrieve(query, **kwargs)  # type: ignore[arg-type]
+    def retrieve(
+        self,
+        query: str,
+        *,
+        top_k: Optional[int] = None,
+        token_budget: Optional[int] = None,
+        hops: Optional[int] = None,
+        use_keyword_fallback: Optional[bool] = None,
+        min_confidence: float = 0.0,
+    ) -> InjectionPayload:
+        return self.orchestrator.retrieve(
+            query,
+            top_k=top_k,
+            token_budget=token_budget,
+            hops=hops,
+            use_keyword_fallback=use_keyword_fallback,
+            min_confidence=min_confidence,
+        )
 
     def reason(
-        self, nodes: Sequence[MemoryNode], **kwargs: object
+        self,
+        nodes: Sequence[MemoryNode],
+        *,
+        seeds: Optional[Sequence[str]] = None,
+        max_hops: Optional[int] = None,
     ) -> ReasoningResult:
-        return self.reasoning.reason(nodes, **kwargs)  # type: ignore[arg-type]
+        return self.reasoning.reason(nodes, seeds=seeds, max_hops=max_hops)
 
-    def retrieve_and_reason(self, query: str, **kwargs: object) -> ReasoningResult:
+    def retrieve_and_reason(
+        self,
+        query: str,
+        *,
+        top_k: Optional[int] = None,
+        token_budget: Optional[int] = None,
+        hops: Optional[int] = None,
+        use_keyword_fallback: Optional[bool] = None,
+        min_confidence: float = 0.0,
+    ) -> ReasoningResult:
         """Retrieve context for ``query`` then reason over the retrieved nodes."""
-        payload = self.retrieve(query, **kwargs)
+        payload = self.retrieve(
+            query,
+            top_k=top_k,
+            token_budget=token_budget,
+            hops=hops,
+            use_keyword_fallback=use_keyword_fallback,
+            min_confidence=min_confidence,
+        )
         node_ids = [block.node_id for block in payload.blocks]
         nodes: List[MemoryNode] = self.vector_store.get_many(node_ids)
         return self.reason(nodes)

@@ -181,10 +181,11 @@ class RetrievalOrchestrator:
         hops: int,
     ) -> None:
         cfg = self._settings.retrieval
+        graph_store = self._graph_store
+        if graph_store is None:
+            return
         try:
-            neighbors = self._graph_store.expand(
-                seed_ids, hops, cfg.graph_expansion_limit
-            )
+            neighbors = graph_store.expand(seed_ids, hops, cfg.graph_expansion_limit)
         except Exception:  # pragma: no cover - graph is best-effort
             logger.exception("Graph expansion failed; continuing without it")
             return

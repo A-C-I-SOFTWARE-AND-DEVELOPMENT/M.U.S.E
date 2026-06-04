@@ -18,7 +18,16 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Protocol, Sequence, runtime_checkable
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    Protocol,
+    Sequence,
+    runtime_checkable,
+)
 
 __all__ = [
     "utcnow",
@@ -39,6 +48,10 @@ __all__ = [
     "SupportsVectorSearch",
     "SupportsGraphExpansion",
     "SupportsKeywordSearch",
+    "SupportsGraphDelete",
+    "SupportsProvenanceRecord",
+    "LifecycleVectorStore",
+    "GraphNeighbor",
 ]
 
 
@@ -387,6 +400,56 @@ class SupportsKeywordSearch(Protocol):
     """Optional keyword/full-text search interface."""
 
     def keyword_search(self, query: str, top_k: int) -> List[RetrievalResult]:
+        ...
+
+
+@runtime_checkable
+class SupportsGraphDelete(Protocol):
+    """Graph store surface used by the lifecycle manager."""
+
+    def delete_node(self, node_id: str) -> None:
+        ...
+
+
+@runtime_checkable
+class SupportsProvenanceRecord(Protocol):
+    """Provenance tracker surface used by the lifecycle manager."""
+
+    def record(self, record: "ProvenanceRecord") -> str:
+        ...
+
+
+@runtime_checkable
+class LifecycleVectorStore(Protocol):
+    """Vector-store surface required by the governance/lifecycle layer."""
+
+    def get(self, node_id: str) -> Optional["MemoryNode"]:
+        ...
+
+    def upsert_node(self, node: "MemoryNode") -> None:
+        ...
+
+    def iter_all(self, *, batch_size: int = ...) -> Iterator["MemoryNode"]:
+        ...
+
+    def update_confidence(self, node_id: str, confidence: float) -> None:
+        ...
+
+    def update_embedding(self, node_id: str, embedding: Sequence[float]) -> None:
+        ...
+
+    def increment_reinforcement(
+        self, node_id: str, *, confidence: float, ttl_until: Optional[datetime]
+    ) -> None:
+        ...
+
+    def record_version(self, node: "MemoryNode", *, reason: str) -> None:
+        ...
+
+    def delete(self, node_id: str) -> None:
+        ...
+
+    def expired_node_ids(self, *, confidence_floor: float) -> List[str]:
         ...
 
 

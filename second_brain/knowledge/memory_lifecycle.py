@@ -21,11 +21,22 @@ import abc
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence
+from typing import TYPE_CHECKING, List, Optional, Sequence
 
 from .config import Settings
 from .confidence import ConfidenceEngine
-from .models import MemoryNode, ProvenanceRecord, cosine_similarity, utcnow
+from .models import (
+    LifecycleVectorStore,
+    MemoryNode,
+    ProvenanceRecord,
+    SupportsGraphDelete,
+    SupportsProvenanceRecord,
+    cosine_similarity,
+    utcnow,
+)
+
+if TYPE_CHECKING:
+    from .ingestion import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +110,13 @@ class MemoryLifecycleManager:
 
     def __init__(
         self,
-        vector_store: object,
+        vector_store: LifecycleVectorStore,
         *,
         settings: Settings,
         confidence_engine: Optional[ConfidenceEngine] = None,
-        graph_store: Optional[object] = None,
-        embedding_provider: Optional[object] = None,
-        provenance: Optional[object] = None,
+        graph_store: Optional[SupportsGraphDelete] = None,
+        embedding_provider: Optional["EmbeddingProvider"] = None,
+        provenance: Optional[SupportsProvenanceRecord] = None,
     ) -> None:
         self._vector_store = vector_store
         self._settings = settings
@@ -253,8 +264,11 @@ class MemoryLifecycleManager:
         return report
 
     def _reembed_batch(self, batch: Sequence[MemoryNode]) -> int:
+        provider = self._embeddings
+        if provider is None:
+            raise RuntimeError("refresh_embeddings requires an embedding_provider")
         texts = [node.content for node in batch]
-        vectors = self._embeddings.embed(texts)  # type: ignore[union-attr]
+        vectors = provider.embed(texts)
         count = 0
         for node, vector in zip(batch, vectors):
             self._vector_store.update_embedding(node.id, vector)
