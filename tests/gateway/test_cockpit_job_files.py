@@ -9,6 +9,8 @@ No network, no third-party deps.
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -265,3 +267,69 @@ def test_tree_and_file_disabled_on_non_loopback_cockpit(server, home: Path) -> N
         assert exc2.value.code == 403
     finally:
         handlers.configure_runtime(allow_remote_execute=False)
+
+
+# ── publish/preview (read-only, pure git) ──────────────────────────────────
+
+
+def _init_git_repo(ws: Path) -> None:
+    ws.mkdir(parents=True, exist_ok=True)
+    env = {
+        **os.environ,
+        "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+        "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+    }
+
+    def run(*args: str) -> None:
+        subprocess.run(["git", "-C", str(ws), *args], check=True,
+                       capture_output=True, env=env)
+
+    run("init", "-q", "-b", "main")
+    (ws / "a.txt").write_text("base\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "base commit")
+    run("checkout", "-qb", "feature")
+    (ws / "b.txt").write_text("feature\n", encoding="utf-8")
+    run("add", "-A")
+    run("commit", "-qm", "feat: add b")
+
+
+def test_publish_preview_lists_commits_ahead_of_base(server, home: Path) -> None:
+    ws = home / "repo"
+    _init_git_repo(ws)
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/publish/preview")
+    assert status == 200
+    assert body["base"] == "main"
+    assert body["branch"] == "feature"
+    subjects = [c["subject"] for c in body["commits"]]
+    assert subjects == ["feat: add b"]
+    assert body["default_title"] == "feat: add b"
+    assert body["default_body"] and "feat: add b" in body["default_body"]
+    assert body["existing_pr_url"] is None
+
+
+def test_publish_preview_honest_empty_without_git_workspace(server, home: Path) -> None:
+    ws = home / "plain2"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/publish/preview")
+    assert status == 200
+    assert body["commits"] == []
+    assert body["default_title"] is None
+
+
+def test_publish_preview_no_workspace_is_null(server) -> None:
+    from hermes_cli import orchestrator as orch
+
+    jid = orch.submit_job("Add a /healthz endpoint").id
+    status, body = _get(server, f"/v1/cockpit/jobs/{jid}/publish/preview")
+    assert status == 200
+    assert body["remote"] is None
+    assert body["commits"] == []
+
+
+def test_publish_preview_unknown_job_is_404(server) -> None:
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _get(server, "/v1/cockpit/jobs/nope/publish/preview")
+    assert exc.value.code == 404

@@ -70,9 +70,10 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Jobs — workspace reads | `/jobs/{id}/diff\|files-changed\|validation\|tree\|file` | ✅ live |
 | Jobs — live stream | `GET /jobs/{id}/stream` (SSE) | ⏳ planned |
 | Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
-| Publishing | `GET /jobs/{id}/publish/preview`, `POST /jobs/{id}/publish` | ⏳ planned |
+| Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
+| Publishing — open PR | `POST /jobs/{id}/publish` | ⏳ planned (owner-gated; needs a PAT) |
 | Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
-| Templates | `GET /v1/cockpit/templates` | ⏳ planned |
+| Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
 | Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
 | Graph / learning / skills / navigation / sessions | `/graph/*`, `/learning*`, `/skills`, `/navigation`, `/sessions` | ✅ live |
@@ -206,10 +207,12 @@ Lists the workers the gateway has detected on its host. The cockpit's
 
 ### `GET /v1/cockpit/templates`
 
-> ⏳ **Planned** — not yet served; the cockpit uses its bundled default list.
+> ✅ **Live.** Reads owner-defined templates from
+> `${HERMES_HOME:-~/.hermes}/cockpit/templates.json`; honest-empty
+> `{"templates": []}` when absent (the cockpit then uses its bundled defaults).
 
-Optional. Returns named prompt templates the gateway exposes. Cockpit
-falls back to a bundled default list if this returns 404.
+Returns named prompt templates the gateway exposes (`{"id","title","body"}`
+each). Malformed entries are skipped, never fabricated.
 
 ```json
 {
@@ -554,7 +557,9 @@ Response: `200` + new validation snapshot. `403` if policy disallows.
 
 ### `GET /v1/cockpit/jobs/{id}/publish/preview`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Read-only, pure-git: derives remote/branch/base, the commits on
+> the branch vs base, and a default PR title/body. Honest nulls/empty when the
+> job has no git workspace. (The `POST .../publish` below remains planned.)
 
 ```json
 {
