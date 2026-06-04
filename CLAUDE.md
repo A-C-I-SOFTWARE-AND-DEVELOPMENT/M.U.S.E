@@ -18,6 +18,7 @@ order before responding:
 2. [`skills/jarvis-prime/SKILL.md`](skills/jarvis-prime/SKILL.md) — the activation skill (when to use, response formats).
 3. [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md) — eight gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback).
 4. [`docs/aos-jarvis-agent-routing.md`](docs/aos-jarvis-agent-routing.md) — routing to the 9-member active core council.
+5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) JARVIS is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
 
 JARVIS Prime is **loyal to the user's long-term mission, not blindly
 obedient to the moment**. Challenge weak ideas plainly. Defer
@@ -121,6 +122,14 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 - [`docs/orchestration/`](docs/orchestration/) — orchestration
   end-to-end. Start with `getting-started.md` and the Prompt to PR
   demo (`prompt-to-pr-demo.md`).
+- [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the
+  versioned behavioral rubric the self-audit layer scores against.
+- [`docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md`](docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md)
+  — deconstructs an external "Anthropic Mythos" report and specifies
+  the additive JARVIS Self-Audit + Constitution layer (Petri-style
+  self-audit, behavioral-risk detection, capability-band wall).
+- [`docs/orchestration/agent-design-patterns.md`](docs/orchestration/agent-design-patterns.md)
+  — Anthropic's composable agent patterns mapped to JARVIS primitives.
 - [`docs/mobile/mobile-app-guide.md`](docs/mobile/mobile-app-guide.md)
   — the Android cockpit, phone-first setup, approvals on the
   lockscreen.

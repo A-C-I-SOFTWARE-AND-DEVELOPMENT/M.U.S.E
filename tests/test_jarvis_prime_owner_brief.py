@@ -35,7 +35,7 @@ def test_brief_surfaces_matters_and_approvals() -> None:
 def test_brief_attests_coverage_and_blind_spots() -> None:
     board, results = _results()
     brief = build_owner_brief(results, board=board)
-    assert brief.coverage["total"] == 8
+    assert brief.coverage["total"] == 9
     assert brief.coverage["blind_spots"]
     text = brief.render()
     assert "Monitor coverage attestation" in text
