@@ -1342,6 +1342,110 @@ def _cmd_navigate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_self_audit_run(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.self_audit import (
+        compliant_target,
+        noncompliant_target,
+        run_report,
+    )
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    pool = None if args.pool == "all" else args.pool
+    seed_list = sa_seeds.select_seeds(pool=pool)
+    target = noncompliant_target if args.target == "noncompliant" else compliant_target
+    report = run_report(seed_list, target)
+    payload = report.summary_payload()
+    record_id = None
+    if not args.dry_run:
+        record_id = report.record().record_id
+    if args.json:
+        out = dict(payload)
+        out["recorded_as"] = record_id
+        print(json.dumps(out, indent=2))
+    else:
+        print(
+            f"self-audit {report.run_id}: {payload['overall_verdict']} "
+            f"({payload['seed_count']} seeds, {payload['violation_count']} "
+            f"violations, {payload['fatal_violations']} fatal)"
+        )
+        for dim, score in payload["dimension_scores"].items():
+            print(f"  {dim}: {score['passed']}/{score['probed']} ({score['score']})")
+        print(
+            f"recorded to guardrail ledger as {record_id}"
+            if record_id
+            else "dry-run: not recorded"
+        )
+    return 1 if payload["overall_verdict"] == "blocked" else 0
+
+
+def _cmd_self_audit_list(args: argparse.Namespace) -> int:
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    pool = None if args.pool == "all" else args.pool
+    seed_list = sa_seeds.select_seeds(pool=pool)
+    if args.json:
+        print(
+            json.dumps(
+                [
+                    {
+                        "id": s.id,
+                        "title": s.title,
+                        "dimension": s.dimension.value,
+                        "probes": list(s.probes),
+                        "risk_class": s.risk_class,
+                        "pool": s.pool,
+                    }
+                    for s in seed_list
+                ],
+                indent=2,
+            )
+        )
+    else:
+        for s in seed_list:
+            print(
+                f"{s.id}  [{s.pool:<4}] {s.dimension.value:<26} "
+                f"probes={','.join(s.probes):<9} {s.title}"
+            )
+    return 0
+
+
+def _cmd_self_audit_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime import constitution
+    import hermes_cli.jarvis_prime.self_audit.seeds as sa_seeds
+
+    seed = next((s for s in sa_seeds.SEEDS if s.id == args.seed_id), None)
+    if seed is None:
+        print(f"unknown seed: {args.seed_id!r}", file=sys.stderr)
+        return 1
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    "id": seed.id,
+                    "title": seed.title,
+                    "dimension": seed.dimension.value,
+                    "probes": list(seed.probes),
+                    "risk_class": seed.risk_class,
+                    "pool": seed.pool,
+                    "prompt": seed.prompt,
+                    "fail_markers": list(seed.fail_markers),
+                    "pass_markers": list(seed.pass_markers),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    print(f"{seed.id} — {seed.title}  [{seed.pool}, {seed.risk_class}]")
+    print(f"dimension: {seed.dimension.value}")
+    print(f"prompt: {seed.prompt}")
+    print("probes:")
+    for cid in seed.probes:
+        clause = constitution.get(cid)
+        if clause is not None:
+            print(f"  {cid} ({clause.severity.value}): {clause.text}")
+    return 0
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -1631,6 +1735,49 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
     p_data_reg.add_argument("--json", action="store_true")
     p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
+
+    # self-audit — a Petri-style auditor->target->judge loop that scores JARVIS
+    # behavior against the JARVIS Constitution (docs/jarvis-constitution.md).
+    p_audit = sub.add_parser(
+        "self-audit",
+        help="Run a Petri-style self-audit against the JARVIS Constitution",
+        description=(
+            "Drive seed scenarios against a target and score the transcripts "
+            "against the JARVIS Constitution (clauses C1..C32). The deterministic "
+            "core needs no model; the CLI uses a reference target stand-in since "
+            "no live model is wired here. A run records an 'audit_result' record "
+            "to the hash-chained guardrail ledger unless --dry-run is passed."
+        ),
+    )
+    p_audit_sub = p_audit.add_subparsers(dest="self_audit_command", required=True)
+
+    p_audit_run = p_audit_sub.add_parser("run", help="Run the audit and score it")
+    p_audit_run.add_argument(
+        "--pool", choices=("core", "dev", "all"), default="all",
+        help="Seed pool: core (held out for gating), dev, or all",
+    )
+    p_audit_run.add_argument(
+        "--target", choices=("compliant", "noncompliant"), default="compliant",
+        help="Reference target stand-in (no live model is wired from the CLI)",
+    )
+    p_audit_run.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="Do not append an audit_result record to the guardrail ledger",
+    )
+    p_audit_run.add_argument("--json", action="store_true")
+    p_audit_run.set_defaults(func=_cmd_self_audit_run)
+
+    p_audit_list = p_audit_sub.add_parser("list", help="List audit seeds")
+    p_audit_list.add_argument(
+        "--pool", choices=("core", "dev", "all"), default="all"
+    )
+    p_audit_list.add_argument("--json", action="store_true")
+    p_audit_list.set_defaults(func=_cmd_self_audit_list)
+
+    p_audit_show = p_audit_sub.add_parser("show", help="Show one seed by id")
+    p_audit_show.add_argument("seed_id")
+    p_audit_show.add_argument("--json", action="store_true")
+    p_audit_show.set_defaults(func=_cmd_self_audit_show)
 
     p_handoff = sub.add_parser(
         "handoff",
