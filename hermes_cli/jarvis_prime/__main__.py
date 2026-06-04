@@ -825,6 +825,13 @@ def _cmd_launch_doctor(args: argparse.Namespace) -> int:
     return 0 if report.ok else 1
 
 
+def _cmd_gemma(args: argparse.Namespace) -> int:
+    """Module-CLI parity for ``hermes models gemma …`` (logic in gemma_cli)."""
+    from hermes_cli.jarvis_prime import gemma_cli
+
+    return gemma_cli.dispatch(args)
+
+
 def _cmd_memory_tree(args: argparse.Namespace) -> int:
     # Persistent Memory OS operations are addressed by a positional verb
     # (add / search / outline / export-markdown). Without a verb the command
@@ -1525,6 +1532,31 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_models.add_argument("--limit", type=int, default=5)
     p_models.add_argument("--json", action="store_true")
     p_models.set_defaults(func=_cmd_models)
+
+    # Gemma 4 wiring (module-CLI parity with `hermes models gemma …`).
+    p_gemma = sub.add_parser(
+        "gemma",
+        help="Gemma 4 wiring: status, doctor, smoke, recommend, scorecards, promote",
+    )
+    g_sub = p_gemma.add_subparsers(dest="gemma_command")
+    _gs = g_sub.add_parser("status", help="Configured/installed/promoted status")
+    _gs.add_argument("--json", action="store_true")
+    _gd = g_sub.add_parser("doctor", help="Gemma wiring + safety doctor")
+    _gd.add_argument("--json", action="store_true")
+    _gk = g_sub.add_parser("smoke", help="Opt-in local completion probe")
+    _gk.add_argument("--variant")
+    _gk.add_argument("--json", action="store_true")
+    _gr = g_sub.add_parser("recommend", help="Gemma recommendations by tier/task")
+    _gr.add_argument("--tier", choices=["laptop", "desktop", "workstation", "server"])
+    _gr.add_argument("--task")
+    _gr.add_argument("--json", action="store_true")
+    _gc = g_sub.add_parser("scorecards", help="Recorded Gemma scorecards")
+    _gc.add_argument("--json", action="store_true")
+    _gp = g_sub.add_parser("promote", help="Owner-gated route-promotion proposal")
+    _gp.add_argument("--task-class", dest="task_class")
+    _gp.add_argument("--dry-run", dest="dry_run", action="store_true")
+    _gp.add_argument("--json", action="store_true")
+    p_gemma.set_defaults(func=_cmd_gemma)
 
     p_presence = sub.add_parser(
         "presence",

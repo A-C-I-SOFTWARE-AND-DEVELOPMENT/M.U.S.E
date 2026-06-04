@@ -328,6 +328,280 @@ class ScorecardBook:
         return book
 
 
+# ---------------------------------------------------------------------------
+# Evidence-gated promotion (a model may overtake a task-class default only when
+# measured outcomes — never vendor benchmarks — justify it). This is the
+# mechanism that lets JARVIS auto-learn when Gemma is genuinely better, while
+# making it impossible to auto-promote Gemma on vibes.
+# ---------------------------------------------------------------------------
+
+# Lanes where tool use is core to the task — a promotion candidate must clear a
+# high tool-reliability floor here. (memory_curator/mobile_chat carry a small
+# tool weight but are NOT tool-use lanes for promotion purposes.)
+TOOL_LANES: frozenset[str] = frozenset(
+    ("coding_plan", "coding_build", "coding_review", "test_debug",
+     "research", "citation_verification")
+)
+# Lanes that depend on citation accuracy / memory usefulness.
+CITATION_LANES: frozenset[str] = frozenset(
+    k for k, w in TASK_CLASS_WEIGHTS.items() if "citation" in w
+)
+MEMORY_LANES: frozenset[str] = frozenset(("memory_curator",))
+# Latency budgets (ms) for latency-sensitive lanes; None elsewhere.
+LANE_LATENCY_BUDGET_MS: dict[str, float] = {
+    "voice_reply": 4_000.0,
+    "mobile_chat": 6_000.0,
+}
+
+DEFAULT_PROMOTION_MIN_SAMPLES = 20
+DEFAULT_PROMOTION_MIN_MEAN_DELTA = 0.05
+TOOL_RELIABILITY_FLOOR = 0.98
+
+
+def model_family(model: str) -> str:
+    """Coarse family id for a model name/tag (e.g. ``gemma4`` for ``gemma4:e4b``)."""
+    tail = (model or "").rsplit("/", 1)[-1].lower()
+    for sep in (":", "-"):
+        if sep in tail:
+            head = tail.split(sep, 1)[0]
+            if head:
+                return head
+    return tail
+
+
+def variant(model: str) -> str:
+    """The variant suffix for a model name/tag (e.g. ``e4b`` for ``gemma4:e4b``)."""
+    tail = (model or "").rsplit("/", 1)[-1]
+    for sep in (":", "-"):
+        if sep in tail:
+            return tail.split(sep, 1)[1]
+    return ""
+
+
+def _mean(values: list[Optional[float]]) -> Optional[float]:
+    nums = [v for v in values if v is not None]
+    return (sum(nums) / len(nums)) if nums else None
+
+
+@dataclass
+class _LaneAggregate:
+    model: str
+    samples: int
+    mean_score: float
+    hallucination_mean: float
+    owner_corr_mean: float
+    tool_reliability_mean: Optional[float]
+    citation_mean: Optional[float]
+    memory_mean: Optional[float]
+    latency_mean: Optional[float]
+
+
+def _aggregate_lane(book: "ScorecardBook", task_class: str, model: str) -> Optional[_LaneAggregate]:
+    cards = [c for c in book.scorecards if c.task_type == task_class and c.model == model]
+    if not cards:
+        return None
+    return _LaneAggregate(
+        model=model,
+        samples=len(cards),
+        mean_score=sum(c.score_for(task_class) for c in cards) / len(cards),
+        hallucination_mean=sum(c.hallucination_corrections for c in cards) / len(cards),
+        owner_corr_mean=sum(c.owner_corrections for c in cards) / len(cards),
+        tool_reliability_mean=_mean([c.tool_reliability for c in cards]),
+        citation_mean=_mean([c.citation_accuracy for c in cards]),
+        memory_mean=_mean([c.memory_usefulness for c in cards]),
+        latency_mean=_mean([c.latency_ms for c in cards]),
+    )
+
+
+@dataclass
+class PromotionAssessment:
+    task_class: str
+    candidate: str
+    baseline: Optional[str]
+    eligible: bool
+    candidate_samples: int
+    candidate_mean: float
+    baseline_mean: float
+    mean_delta: float
+    latency_delta_ms: Optional[float]
+    reasons: list[str] = field(default_factory=list)
+
+    @property
+    def candidate_family(self) -> str:
+        return model_family(self.candidate)
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "task_class": self.task_class,
+            "candidate": self.candidate,
+            "candidate_family": self.candidate_family,
+            "baseline": self.baseline,
+            "eligible": self.eligible,
+            "candidate_samples": self.candidate_samples,
+            "candidate_mean": round(self.candidate_mean, 4),
+            "baseline_mean": round(self.baseline_mean, 4),
+            "mean_delta": round(self.mean_delta, 4),
+            "latency_delta_ms": self.latency_delta_ms,
+            "reasons": list(self.reasons),
+        }
+
+    def rationale(self) -> str:
+        verdict = "ELIGIBLE" if self.eligible else "not eligible"
+        base = self.baseline or "(no measured baseline)"
+        head = (
+            f"{self.candidate} vs {base} on {self.task_class}: {verdict}. "
+            f"mean {self.candidate_mean:.2f} vs {self.baseline_mean:.2f} "
+            f"(Δ{self.mean_delta:+.2f}) over {self.candidate_samples} sample"
+            f"{'s' if self.candidate_samples != 1 else ''}."
+        )
+        if self.reasons:
+            head += " " + " ".join(self.reasons)
+        return head
+
+
+def promotion_eligible(
+    book: "ScorecardBook",
+    *,
+    task_class: str,
+    candidate: str,
+    baseline: Optional[str] = None,
+    min_samples: int = DEFAULT_PROMOTION_MIN_SAMPLES,
+    min_mean_delta: float = DEFAULT_PROMOTION_MIN_MEAN_DELTA,
+    latency_budget_ms: Optional[float] = None,
+) -> PromotionAssessment:
+    """Assess whether ``candidate`` may overtake the task-class default.
+
+    A candidate is eligible **only** when every gate holds (see § the spec):
+    samples ≥ ``min_samples``; mean task-class score ≥ baseline + ``min_mean_delta``;
+    hallucination corrections ≤ baseline; owner corrections ≤ baseline;
+    tool reliability ≥ 0.98 on tool lanes; citation accuracy ≥ baseline on
+    citation lanes; memory usefulness ≥ baseline on the memory lane; latency
+    within the lane budget. Vendor benchmarks are priors only and play no part
+    here — this function reads measured scorecards exclusively.
+    """
+    reasons: list[str] = []
+    cand = _aggregate_lane(book, task_class, candidate)
+    if cand is None:
+        return PromotionAssessment(
+            task_class=task_class, candidate=candidate, baseline=baseline,
+            eligible=False, candidate_samples=0, candidate_mean=0.0,
+            baseline_mean=0.0, mean_delta=0.0, latency_delta_ms=None,
+            reasons=["no scorecards recorded for this candidate/lane."],
+        )
+
+    # Resolve the baseline (best measured incumbent of a *different* family) if
+    # not pinned. Comparing against another variant of the same family would be
+    # meaningless — promotion is about overtaking the incumbent default.
+    if baseline is None:
+        cand_family = model_family(candidate)
+        ranked = book.recommend(task_class, task_class=task_class)
+        for model, _score, _n in ranked:
+            if model != candidate and model_family(model) != cand_family:
+                baseline = model
+                break
+    base = _aggregate_lane(book, task_class, baseline) if baseline else None
+    base_mean = base.mean_score if base else 0.0
+    mean_delta = cand.mean_score - base_mean
+
+    if latency_budget_ms is None:
+        latency_budget_ms = LANE_LATENCY_BUDGET_MS.get(task_class)
+    latency_delta = (
+        (cand.latency_mean - base.latency_mean)
+        if (cand.latency_mean is not None and base and base.latency_mean is not None)
+        else None
+    )
+
+    # --- gates ---
+    if cand.samples < min_samples:
+        reasons.append(f"needs ≥{min_samples} samples (have {cand.samples}).")
+    if base is None:
+        reasons.append("no measured baseline default to overtake.")
+    if mean_delta < min_mean_delta:
+        reasons.append(
+            f"mean score gain {mean_delta:+.3f} < required +{min_mean_delta:.2f}."
+        )
+    if base is not None and cand.hallucination_mean > base.hallucination_mean:
+        reasons.append(
+            f"hallucination corrections worse than baseline "
+            f"({cand.hallucination_mean:.2f} > {base.hallucination_mean:.2f})."
+        )
+    if base is not None and cand.owner_corr_mean > base.owner_corr_mean:
+        reasons.append(
+            f"owner corrections worse than baseline "
+            f"({cand.owner_corr_mean:.2f} > {base.owner_corr_mean:.2f})."
+        )
+    if task_class in TOOL_LANES:
+        if cand.tool_reliability_mean is None or cand.tool_reliability_mean < TOOL_RELIABILITY_FLOOR:
+            reasons.append(
+                f"tool reliability below {TOOL_RELIABILITY_FLOOR:.2f} floor "
+                f"(have {cand.tool_reliability_mean})."
+            )
+    if task_class in CITATION_LANES and base is not None:
+        if cand.citation_mean is None or (
+            base.citation_mean is not None and cand.citation_mean < base.citation_mean
+        ):
+            reasons.append("citation accuracy below baseline.")
+    if task_class in MEMORY_LANES and base is not None:
+        if cand.memory_mean is None or (
+            base.memory_mean is not None and cand.memory_mean < base.memory_mean
+        ):
+            reasons.append("memory usefulness below baseline.")
+    if latency_budget_ms is not None and cand.latency_mean is not None:
+        if cand.latency_mean > latency_budget_ms:
+            reasons.append(
+                f"latency {cand.latency_mean:.0f}ms over {latency_budget_ms:.0f}ms budget."
+            )
+
+    return PromotionAssessment(
+        task_class=task_class,
+        candidate=candidate,
+        baseline=baseline,
+        eligible=not reasons,
+        candidate_samples=cand.samples,
+        candidate_mean=cand.mean_score,
+        baseline_mean=base_mean,
+        mean_delta=mean_delta,
+        latency_delta_ms=latency_delta,
+        reasons=reasons,
+    )
+
+
+def route_promotion_candidates(
+    book: "ScorecardBook",
+    task_class: str,
+    *,
+    family: Optional[str] = None,
+    min_samples: int = DEFAULT_PROMOTION_MIN_SAMPLES,
+    min_mean_delta: float = DEFAULT_PROMOTION_MIN_MEAN_DELTA,
+) -> list[PromotionAssessment]:
+    """Assess measured candidates on ``task_class`` against the incumbent.
+
+    Returns assessments (eligible first, then by mean delta) for each measured
+    model — optionally filtered to a ``family`` (e.g. ``"gemma4"``). The baseline
+    is the best measured model of a *different* family than the candidate, so a
+    Gemma variant is judged against the incumbent default it would overtake.
+    """
+    ranked = book.recommend(task_class, task_class=task_class)
+    if not ranked:
+        return []
+    out: list[PromotionAssessment] = []
+    for model, _score, _n in ranked:
+        if family is not None and model_family(model) != family:
+            continue
+        out.append(
+            promotion_eligible(
+                book,
+                task_class=task_class,
+                candidate=model,
+                baseline=None,  # auto: best incumbent of a different family
+                min_samples=min_samples,
+                min_mean_delta=min_mean_delta,
+            )
+        )
+    out.sort(key=lambda a: (not a.eligible, -a.mean_delta))
+    return out
+
+
 def local_endpoint_packet(
     model: str,
     *,

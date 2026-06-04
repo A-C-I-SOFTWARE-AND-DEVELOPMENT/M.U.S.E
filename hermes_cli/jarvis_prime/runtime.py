@@ -64,6 +64,17 @@ def _memory_layers_default() -> bool:
     return raw.strip().lower() not in ("0", "false", "no", "off", "")
 
 
+def _gemma_curator_default() -> bool:
+    """The Gemma memory-curator lane defaults ON (it is proposed-only and
+    inert without a configured runner). ``HERMES_JARVIS_GEMMA_CURATOR=0``
+    (or false/no/off) disables it for an exact rollback path."""
+
+    raw = os.environ.get("HERMES_JARVIS_GEMMA_CURATOR")
+    if raw is None:
+        return True
+    return raw.strip().lower() not in ("0", "false", "no", "off", "")
+
+
 @dataclass
 class JarvisConfig:
     persona: Persona = field(default_factory=Persona)
@@ -82,6 +93,11 @@ class JarvisConfig:
     memory_layers_enabled: bool = field(default_factory=_memory_layers_default)
     memory_tree: Optional[MemoryTreeStore] = None
     memory_token_budget: int = 512
+    # Gemma memory-curator lane (proposed-only). On by default but inert until a
+    # ``gemma_runner`` is configured — so default behavior is byte-identical to
+    # before. The runner is injectable: ``(prompt: str) -> str``.
+    gemma_memory_curator_enabled: bool = field(default_factory=_gemma_curator_default)
+    gemma_runner: Optional[Any] = None
 
 
 @dataclass
@@ -99,6 +115,14 @@ class JarvisTurn:
     recollection: str = ""
     research_brief: Optional[ResearchBrief] = None
     notes: list[str] = field(default_factory=list)
+    # Optional model-route metadata (additive; populated when a model route was
+    # resolved for the turn). ``None``/empty when not applicable.
+    selected_model: Optional[str] = None
+    selected_provider: Optional[str] = None
+    selected_task_class: Optional[str] = None
+    fallback_chain: list[str] = field(default_factory=list)
+    scorecard_basis: Optional[str] = None
+    gemma_variant: Optional[str] = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -113,6 +137,12 @@ class JarvisTurn:
             "started_at": self.started_at.isoformat(),
             "finished_at": self.finished_at.isoformat(),
             "notes": list(self.notes),
+            "selected_model": self.selected_model,
+            "selected_provider": self.selected_provider,
+            "selected_task_class": self.selected_task_class,
+            "fallback_chain": list(self.fallback_chain),
+            "scorecard_basis": self.scorecard_basis,
+            "gemma_variant": self.gemma_variant,
         }
 
 
@@ -246,7 +276,99 @@ class JarvisPrime:
                     summary["rejected"] += 1
         except Exception:  # pragma: no cover - capture never breaks a turn
             return summary
+
+        # Gemma memory-curator enhancement (proposed-only, owner-gated). This is
+        # additive and inert unless a runner is configured, so the deterministic
+        # baseline above is never weakened. Curator-proposed keys are added to
+        # the summary ONLY when the curator actually ran.
+        if self.config.gemma_memory_curator_enabled and self.config.gemma_runner is not None:
+            try:
+                from hermes_cli.jarvis_prime.gemma_memory_curator import (
+                    capture_curator_proposals,
+                    curate,
+                    strip_gemma_thought_blocks,
+                )
+
+                turn_text = strip_gemma_thought_blocks(
+                    f"{user_text}\n\n{assistant_text}".strip()
+                )
+                proposals = curate(
+                    turn_text,
+                    source_uri=source_uri,
+                    deterministic_candidates=candidates,
+                    runner=self.config.gemma_runner,
+                )
+                gem_results = capture_curator_proposals(
+                    tree, proposals, source_uri=source_uri
+                )
+                summary["gemma_proposed"] = sum(1 for r in gem_results if r.ok)
+                summary["gemma_rejected"] = sum(1 for r in gem_results if not r.ok)
+            except Exception:  # pragma: no cover - curation never breaks a turn
+                pass
         return summary
+
+    def record_route_outcome(
+        self,
+        *,
+        model: str,
+        task_class: str,
+        provider: str = "unknown",
+        risk_class: str = "RC1",
+        latency_ms: Optional[float] = None,
+        tokens_in: Optional[int] = None,
+        tokens_out: Optional[int] = None,
+        tests_passed: Optional[int] = None,
+        tests_failed: Optional[int] = None,
+        owner_corrections: Optional[int] = None,
+        hallucination_corrections: Optional[int] = None,
+        memory_usefulness: Optional[float] = None,
+        citation_accuracy: Optional[float] = None,
+        tool_reliability: Optional[float] = None,
+        context_length: Optional[int] = None,
+        book: Optional[Any] = None,
+        persist: bool = True,
+    ) -> Optional[Any]:
+        """Record a model scorecard for a completed turn — evidence only.
+
+        Returns the recorded ``ModelScorecard`` or ``None`` when no real signal
+        was supplied. Unknown values stay unknown/neutral; nothing is fabricated.
+        This is what lets scorecards (later) promote/demote a model per lane.
+        """
+        signals = (
+            latency_ms, tokens_in, tokens_out, tests_passed, tests_failed,
+            owner_corrections, hallucination_corrections, memory_usefulness,
+            citation_accuracy, tool_reliability, context_length,
+        )
+        if all(s is None for s in signals):
+            return None
+        try:
+            from hermes_cli.jarvis_prime.model_scorecard import (
+                ModelScorecard,
+                ScorecardBook,
+            )
+
+            card = ModelScorecard(
+                model=model,
+                provider=provider,
+                task_type=task_class,
+                risk_class=risk_class,
+                latency_ms=latency_ms,
+                tokens_in=int(tokens_in or 0),
+                tokens_out=int(tokens_out or 0),
+                tests_passed=int(tests_passed or 0),
+                tests_failed=int(tests_failed or 0),
+                owner_corrections=int(owner_corrections or 0),
+                hallucination_corrections=int(hallucination_corrections or 0),
+                memory_usefulness=memory_usefulness,
+                citation_accuracy=citation_accuracy,
+                tool_reliability=tool_reliability,
+                context_length=int(context_length or 0),
+            )
+            book = book if book is not None else ScorecardBook.load()
+            book.record(card, persist=persist)
+            return card
+        except Exception:  # pragma: no cover - telemetry never breaks a turn
+            return None
 
     def remember(
         self,

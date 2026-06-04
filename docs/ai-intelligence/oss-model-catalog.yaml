@@ -331,8 +331,42 @@ families:
     sources:
       - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
 
+  - id: gemma4
+    vendor: Google DeepMind
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: strong
+    current_variant: gemma4-31b
+    context_window: 256000
+    params: "E2B/E4B effective + 12B/26B/31B variants (MatFormer); 12B is model-card only (no confirmed Ollama tag)"
+    local: true
+    local_runner: ollama
+    best_for:
+      - local_reasoning
+      - local_coding
+      - memory_curator
+      - mobile_chat
+      - voice_reply
+      - summarization
+      - multimodal_doc
+      - citation_verification
+    # Vendor-reported only — NOT locally verified. Scorecards, not these
+    # numbers, are what promote Gemma on any lane.
+    benchmarks: {}
+    providers:
+      - {provider: ollama, model: gemma4:e4b}
+      - {provider: ollama-cloud, model: gemma4:e4b}
+      - {provider: huggingface, model: google/gemma-4-e4b-it}
+    why: "Local-first Google open-weight family (Apache-2.0): mobile chat, voice, memory curation, summarization and multimodal docs run offline; 26B/31B add workstation/server reasoning and a review fallback. Vendor benchmarks are priors only — scorecards gate any coding/review promotion."
+    sources:
+      - "https://ai.google.dev/gemma/docs/core/model_card_4"
+      - "https://ai.google.dev/gemma/docs/integrations/ollama"
+
 # Task category -> ordered family ids (preference first, then fallbacks).
-# Tasks prefixed local_ bias toward families with local:true.
+# Tasks prefixed local_ bias toward families with local:true. Gemma 4 leads
+# the local/mobile/memory/voice/summary/multimodal lanes, trails on
+# local_coding, and is only a fallback for coding_review / deep_research.
 routing:
   coding:          [deepseek-v4, glm-5, kimi-k2, minimax-m2, qwen3-coder]
   agentic_coding:  [glm-5, deepseek-v4, kimi-k2, minimax-m2, qwen3-coder]
@@ -340,5 +374,12 @@ routing:
   code_edit:       [qwen3-coder, kimi-k2, glm-5, devstral-small, deepseek-v4]
   reasoning:       [deepseek-r1, qwen3-235b, glm-5, gpt-oss-120b, deepseek-v4]
   math:            [deepseek-r1, qwen3-235b, deepseek-r1-distill-8b]
-  local_coding:    [qwen3-coder, qwen3-27b, devstral-small, gpt-oss-20b]
-  local_reasoning: [deepseek-r1-distill-8b, gpt-oss-20b, qwen3-27b]
+  local_coding:    [qwen3-coder, qwen3-27b, devstral-small, gpt-oss-20b, gemma4]
+  local_reasoning: [gemma4, deepseek-r1-distill-8b, gpt-oss-20b, qwen3-27b]
+  memory_curator:  [gemma4, deepseek-r1-distill-8b, gpt-oss-20b]
+  mobile_chat:     [gemma4, gpt-oss-20b, deepseek-r1-distill-8b]
+  voice_reply:     [gemma4, gpt-oss-20b]
+  summarization:   [gemma4, deepseek-r1-distill-8b, gpt-oss-20b, qwen3-235b]
+  multimodal_doc:  [gemma4]
+  coding_review:   [glm-5, deepseek-v4, qwen3-coder, gemma4]
+  deep_research:   [deepseek-r1, qwen3-235b, gemma4]

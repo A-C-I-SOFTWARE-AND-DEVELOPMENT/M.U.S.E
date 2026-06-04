@@ -1,0 +1,103 @@
+"""Gemma 4 — evidence-gated scorecard promotion tests."""
+
+from __future__ import annotations
+
+from hermes_cli.jarvis_prime.model_scorecard import (
+    ModelScorecard,
+    ScorecardBook,
+    model_family,
+    promotion_eligible,
+    route_promotion_candidates,
+    variant,
+)
+
+
+def _book(task: str, baseline_n: int, gemma_n: int, **gemma_kw) -> ScorecardBook:
+    book = ScorecardBook(scorecards=[])
+    for _ in range(baseline_n):
+        book.scorecards.append(
+            ModelScorecard(
+                model="gpt-oss-20b", provider="ollama", task_type=task,
+                accepted_diff_rate=0.6, memory_usefulness=0.6,
+                tests_passed=6, tests_failed=4,
+                hallucination_corrections=1, owner_corrections=1,
+            )
+        )
+    defaults = dict(
+        accepted_diff_rate=0.9, memory_usefulness=0.9,
+        tests_passed=9, tests_failed=1,
+        hallucination_corrections=0, owner_corrections=0,
+    )
+    defaults.update(gemma_kw)
+    for _ in range(gemma_n):
+        book.scorecards.append(
+            ModelScorecard(model="gemma4-e4b", provider="ollama", task_type=task, **defaults)
+        )
+    return book
+
+
+def test_family_and_variant_parsers() -> None:
+    assert model_family("gemma4-e4b") == "gemma4"
+    assert model_family("gemma4:e4b") == "gemma4"
+    assert variant("gemma4:e4b") == "e4b"
+    assert variant("gemma4-26b-a4b") == "26b-a4b"
+
+
+def test_promotion_requires_enough_samples() -> None:
+    book = _book("memory_curator", baseline_n=25, gemma_n=5)
+    a = promotion_eligible(book, task_class="memory_curator", candidate="gemma4-e4b")
+    assert not a.eligible
+    assert any("samples" in r for r in a.reasons)
+
+
+def test_promotion_fails_on_correction_regression() -> None:
+    book = _book(
+        "memory_curator", baseline_n=25, gemma_n=25,
+        hallucination_corrections=3, owner_corrections=2,
+        accepted_diff_rate=0.6, memory_usefulness=0.6,
+    )
+    a = promotion_eligible(book, task_class="memory_curator", candidate="gemma4-e4b")
+    assert not a.eligible
+    assert any("hallucination" in r or "owner corrections" in r for r in a.reasons)
+
+
+def test_promotion_succeeds_when_gemma_beats_baseline() -> None:
+    book = _book("memory_curator", baseline_n=25, gemma_n=25)
+    a = promotion_eligible(book, task_class="memory_curator", candidate="gemma4-e4b")
+    assert a.eligible, a.reasons
+    assert a.baseline == "gpt-oss-20b"
+    assert a.mean_delta >= 0.05
+    candidates = route_promotion_candidates(book, "memory_curator", family="gemma4")
+    assert candidates and candidates[0].eligible
+    assert candidates[0].candidate == "gemma4-e4b"
+
+
+def test_tool_lane_requires_high_tool_reliability() -> None:
+    book = ScorecardBook(scorecards=[])
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="codex", provider="codex", task_type="coding_review",
+                accepted_diff_rate=0.7, tests_passed=7, tests_failed=3,
+                tool_reliability=0.99,
+            )
+        )
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="gemma4-26b-a4b", provider="ollama", task_type="coding_review",
+                accepted_diff_rate=0.85, tests_passed=9, tests_failed=1,
+                tool_reliability=0.95,  # below the 0.98 floor
+            )
+        )
+    a = promotion_eligible(book, task_class="coding_review", candidate="gemma4-26b-a4b")
+    assert not a.eligible
+    assert any("tool reliability" in r for r in a.reasons)
+
+
+def test_vendor_benchmarks_do_not_promote() -> None:
+    # No scorecards at all → not eligible regardless of any catalog priors.
+    a = promotion_eligible(
+        ScorecardBook(scorecards=[]), task_class="memory_curator", candidate="gemma4-e4b"
+    )
+    assert not a.eligible
