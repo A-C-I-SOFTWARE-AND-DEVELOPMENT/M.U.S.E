@@ -62,13 +62,28 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-import httpx
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+# ``httpx`` / ``tenacity`` back the HTTP transport only. The file-drop path is
+# intentionally stdlib-only, and minimal environments (e.g. the orchestration
+# CI job, which installs just pytest + PyYAML) import this module without those
+# deps. Guard the imports so ``from hermes_cli import remote_bridge`` always
+# works; the names are only dereferenced inside ``_post_http`` (the HTTP path),
+# which is unreachable without an ``http`` endpoint. Keeping them as module
+# attributes (vs. a function-local import) also lets tests patch
+# ``remote_bridge.httpx.Client``.
+try:
+    import httpx
+except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+    httpx = None  # type: ignore[assignment]
+
+try:
+    from tenacity import (
+        retry,
+        retry_if_exception_type,
+        stop_after_attempt,
+        wait_exponential,
+    )
+except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+    retry = retry_if_exception_type = stop_after_attempt = wait_exponential = None  # type: ignore[assignment]
 
 
 # ── public constants ──────────────────────────────────────────────────────
