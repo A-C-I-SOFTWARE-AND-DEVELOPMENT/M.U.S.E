@@ -1588,35 +1588,121 @@ def job_files_changed(req: Request) -> JsonResponse:
     return JsonResponse(200, {"files": _git_diff(workspace, base)["files"]})
 
 
+def _read_validation_results(workspace: str) -> Optional[dict[str, Any]]:
+    """The persisted ``validation/results.json`` for a workspace, or ``None``."""
+    import json
+    from pathlib import Path
+
+    path = Path(workspace) / "validation" / "results.json"
+    try:
+        if path.is_file():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                return loaded
+    except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
+        pass
+    return None
+
+
+def _read_validation_overrides(workspace: str) -> dict[str, Any]:
+    """Persisted gate overrides for a workspace (``{}`` when none)."""
+    import json
+    from pathlib import Path
+
+    path = Path(workspace) / "validation" / "overrides.json"
+    try:
+        if path.is_file():
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                return loaded
+    except Exception:  # pragma: no cover - defensive
+        pass
+    return {}
+
+
 def job_validation(req: Request) -> JsonResponse:
     """Latest verification-gate results for a job (contract §7) — read-only.
 
     The read companion to ``POST .../validate``: returns the persisted
     ``<workspace>/validation/results.json`` projected into the same snapshot
-    shape, **without** re-running the gates. Honest empty gates when the job
-    hasn't been validated yet (never a fabricated pass).
+    shape, **without** re-running the gates, with any recorded gate overrides
+    applied. Honest empty gates when the job hasn't been validated yet.
     """
     job_id = req.path_params.get("id", "")
     kind, obj = _resolve_job(job_id)
     if obj is None:
         return JsonResponse(404, {"error": f"unknown job: {job_id}"})
-    import json
-    from pathlib import Path
-
     from . import contract
 
     workspace = _job_workspace(kind, obj)
-    report: Optional[dict[str, Any]] = None
-    if workspace:
-        results_path = Path(workspace) / "validation" / "results.json"
-        try:
-            if results_path.is_file():
-                loaded = json.loads(results_path.read_text(encoding="utf-8"))
-                if isinstance(loaded, dict):
-                    report = loaded
-        except Exception:  # pragma: no cover - defensive (corrupt/unreadable)
-            report = None
-    return JsonResponse(200, contract.validation_snapshot(report))
+    report = _read_validation_results(workspace) if workspace else None
+    overrides = _read_validation_overrides(workspace) if workspace else {}
+    return JsonResponse(200, contract.validation_snapshot(report, overrides=overrides))
+
+
+def job_revalidate(req: Request) -> JsonResponse:
+    """Re-run verification gates for a job (contract §7).
+
+    Semantically identical to ``POST .../validate`` — a re-run that persists a
+    fresh ``validation/results.json`` and returns the new snapshot. Provided as
+    the contract's explicit "revalidate" verb.
+    """
+    return job_validate(req)
+
+
+def job_override(req: Request) -> JsonResponse:
+    """Override non-critical failed validation gates with a note (contract §7).
+
+    Records an owner override for the named ``gate_ids`` (each must be
+    ``override_allowed`` — never a critical gate) so they no longer block
+    publish. Requires a non-empty ``note`` (policy: override_requires_note).
+    Persists to ``<workspace>/validation/overrides.json`` and returns the updated
+    snapshot with ``publish_allowed`` recomputed. ``403`` if any gate is critical.
+    """
+    job_id = req.path_params.get("id", "")
+    kind, obj = _resolve_job(job_id)
+    if obj is None:
+        return JsonResponse(404, {"error": f"unknown job: {job_id}"})
+    workspace = _job_workspace(kind, obj)
+    if not workspace:
+        return JsonResponse(409, {"error": "job has no workspace to override"})
+    gate_ids = [str(g).strip() for g in (req.body.get("gate_ids") or []) if str(g).strip()]
+    note = str(req.body.get("note", "")).strip()
+    if not gate_ids:
+        return JsonResponse(400, {"error": "gate_ids is required"})
+    if not note:
+        return JsonResponse(
+            403, {"error": "override requires a note (policy: override_requires_note)"}
+        )
+    from . import contract
+
+    report = _read_validation_results(workspace)
+    if report is None:
+        return JsonResponse(
+            409, {"error": "no validation results to override; run validate first"}
+        )
+    by_id = {g["id"]: g for g in contract.validation_snapshot(report)["gates"]}
+    for gid in gate_ids:
+        gate = by_id.get(gid)
+        if gate is None:
+            return JsonResponse(404, {"error": f"unknown gate: {gid}"})
+        if not gate.get("override_allowed", False):
+            return JsonResponse(403, {"error": f"gate is critical and not overridable: {gid}"})
+
+    import json
+    from pathlib import Path
+
+    overrides = _read_validation_overrides(workspace)
+    ts = _now_iso()
+    for gid in gate_ids:
+        overrides[gid] = {"note": note, "ts": ts}
+    try:
+        path = Path(workspace) / "validation" / "overrides.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(overrides, indent=2, sort_keys=True), encoding="utf-8")
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(500, {"error": f"failed to record override: {exc}"})
+    return JsonResponse(200, contract.validation_snapshot(report, overrides=overrides))
 
 
 def job_tree(req: Request) -> JsonResponse:
@@ -3371,11 +3457,13 @@ __all__ = [
     "job_files_changed",
     "job_get",
     "job_ledger",
+    "job_override",
     "job_pause",
     "job_publish",
     "job_publish_preview",
     "job_rerun",
     "job_resume",
+    "job_revalidate",
     "job_tree",
     "job_validate",
     "job_validation",

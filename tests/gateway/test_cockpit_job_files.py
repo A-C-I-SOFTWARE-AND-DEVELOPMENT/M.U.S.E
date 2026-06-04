@@ -333,3 +333,109 @@ def test_publish_preview_unknown_job_is_404(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
         _get(server, "/v1/cockpit/jobs/nope/publish/preview")
     assert exc.value.code == 404
+
+
+# ── revalidate / override ──────────────────────────────────────────────────
+
+
+def _write_results(ws: Path, checks: list, blocking=None) -> None:
+    vdir = ws / "validation"
+    vdir.mkdir(parents=True, exist_ok=True)
+    (vdir / "results.json").write_text(
+        json.dumps({
+            "checks": checks,
+            "publish_allowed": not (blocking or []),
+            "blocking_failures": blocking or [],
+        }),
+        encoding="utf-8",
+    )
+
+
+def test_revalidate_reruns_and_returns_snapshot(server, home: Path) -> None:
+    ws = home / "ws_re"
+    ws.mkdir()
+    jid = _dispatch(server, str(ws))
+    status, body = _post(server, f"/v1/cockpit/jobs/{jid}/revalidate", {})
+    assert status == 200
+    assert body["policy"]["all_must_pass"] is True
+    assert isinstance(body["gates"], list)
+
+
+def test_override_records_non_critical_gate(server, home: Path) -> None:
+    ws = home / "ws_ov"
+    ws.mkdir()
+    _write_results(ws, [
+        {"name": "lint", "category": "x", "status": "warn", "summary": "style",
+         "critical": False},
+    ])
+    jid = _dispatch(server, str(ws))
+    status, body = _post(server, f"/v1/cockpit/jobs/{jid}/override",
+                         {"gate_ids": ["lint"], "note": "accepted by owner"})
+    assert status == 200
+    gate = {g["id"]: g for g in body["gates"]}["lint"]
+    assert gate["override_applied"] is True
+    assert gate["override_note"] == "accepted by owner"
+    # GET /validation reflects the recorded override.
+    _, got = _get(server, f"/v1/cockpit/jobs/{jid}/validation")
+    assert {g["id"]: g for g in got["gates"]}["lint"]["override_applied"] is True
+
+
+def test_override_clears_publish_block(server, home: Path) -> None:
+    ws = home / "ws_ov2"
+    ws.mkdir()
+    _write_results(ws, [
+        {"name": "tests", "category": "x", "status": "fail", "summary": "1 failed",
+         "critical": False},
+    ], blocking=["tests"])
+    jid = _dispatch(server, str(ws))
+    status, body = _post(server, f"/v1/cockpit/jobs/{jid}/override",
+                         {"gate_ids": ["tests"], "note": "flaky, overriding"})
+    assert status == 200
+    assert body["publish_allowed"] is True  # the only blocker is overridden
+
+
+def test_override_refuses_critical_gate(server, home: Path) -> None:
+    ws = home / "ws_ov3"
+    ws.mkdir()
+    _write_results(ws, [
+        {"name": "secrets", "category": "x", "status": "fail", "summary": "leak",
+         "critical": True},
+    ], blocking=["secrets"])
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/override",
+              {"gate_ids": ["secrets"], "note": "please"})
+    assert exc.value.code == 403
+
+
+def test_override_requires_note(server, home: Path) -> None:
+    ws = home / "ws_ov4"
+    ws.mkdir()
+    _write_results(ws, [
+        {"name": "lint", "category": "x", "status": "warn", "summary": "", "critical": False},
+    ])
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/override", {"gate_ids": ["lint"], "note": ""})
+    assert exc.value.code == 403
+
+
+def test_override_unknown_gate_is_404(server, home: Path) -> None:
+    ws = home / "ws_ov5"
+    ws.mkdir()
+    _write_results(ws, [
+        {"name": "lint", "category": "x", "status": "warn", "summary": "", "critical": False},
+    ])
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/override", {"gate_ids": ["ghost"], "note": "x"})
+    assert exc.value.code == 404
+
+
+def test_override_no_results_is_409(server, home: Path) -> None:
+    ws = home / "ws_ov6"
+    ws.mkdir()  # no validation/results.json
+    jid = _dispatch(server, str(ws))
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(server, f"/v1/cockpit/jobs/{jid}/override", {"gate_ids": ["lint"], "note": "x"})
+    assert exc.value.code == 409

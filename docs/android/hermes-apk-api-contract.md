@@ -4,9 +4,10 @@ Wire format between the Android cockpit APK and a Hermes gateway. The
 **cockpit namespace is now largely live** in `gateway/cockpit/` — chat,
 runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
 file), evidence, research, approvals, audit, coding, autonomy, graph,
-learning, and voice intake are implemented and covered by tests. A handful of
-routes remain **planned** (the SSE streams, publishing, and the validation
-override/revalidate verbs). Per-route status is in
+learning, and voice intake are implemented and covered by tests. The SSE
+streams, publishing, and the validation revalidate/override verbs are now live
+too; the main remaining gap is rewriting the buffered `GET /v1/cockpit/events`
+to the leveled-log shape. Per-route status is in
 [Route status](#route-status-live-vs-planned) below. The contract stays the
 source of truth so the Android and gateway sides don't drift.
 
@@ -69,7 +70,7 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Jobs — controls | `/jobs/{id}/run\|cancel\|pause\|resume\|rerun\|approve\|validate`, `/orchestrate`, `/jobs/lanes` | ✅ live |
 | Jobs — workspace reads | `/jobs/{id}/diff\|files-changed\|validation\|tree\|file` | ✅ live |
 | Jobs — live stream | `GET /jobs/stream` (SSE) | ✅ live |
-| Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
+| Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ✅ live |
 | Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
 | Publishing — open PR | `POST /jobs/{id}/publish` | ✅ live (owner-phrase + loopback gated; opens a PR for the pushed branch — needs a PAT) |
 | Events | `GET /v1/cockpit/events/stream` (SSE leveled log) live; `GET /v1/cockpit/events` still returns decision-ledger summaries (leveled-list rewrite pending) | ⏳ partial |
@@ -537,13 +538,17 @@ for non-critical gates.
 
 ### `POST /v1/cockpit/jobs/{id}/revalidate`
 
-> ⏳ **Planned.** Today, re-run gates with the live `POST /jobs/{id}/validate`.
+> ✅ **Live.** Re-runs the gates (identical to `POST /jobs/{id}/validate`) and
+> returns the fresh validation snapshot.
 
-No body. Triggers the gateway to re-run gates. Response: `202`.
+No body. Re-runs the gates and returns the updated snapshot.
 
 ### `POST /v1/cockpit/jobs/{id}/override`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Records an owner override (with a required `note`) for non-critical
+> gates, persists it to `validation/overrides.json`, and returns the snapshot
+> with `publish_allowed` recomputed. `403` for a critical gate or a missing
+> note; `409` when there's nothing validated to override.
 
 ```json
 {

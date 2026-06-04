@@ -697,7 +697,10 @@ def queue_job_detail(entry: Any) -> dict[str, Any]:
     }
 
 
-def validation_snapshot(report: Optional[dict[str, Any]]) -> dict[str, Any]:
+def validation_snapshot(
+    report: Optional[dict[str, Any]],
+    overrides: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """Project a persisted validation report into the cockpit gate snapshot.
 
     ``report`` is the ``results.json`` payload (== ``ValidationReport.to_dict``):
@@ -706,28 +709,43 @@ def validation_snapshot(report: Optional[dict[str, Any]]) -> dict[str, Any]:
     fabricated pass. Gate ``status`` is upper-cased so the read-only
     ``GET .../validation`` and the live ``POST .../validate`` share one
     projection and cannot drift.
+
+    ``overrides`` (gate-id → ``{"note", "ts"}``), when non-empty, marks the named
+    gates ``override_applied`` and lets ``publish_allowed`` clear once every
+    blocking failure is overridden. Absent/empty → the gate shape is unchanged.
     """
     data = report or {}
+    overrides = overrides or {}
     gates: list[dict[str, Any]] = []
     for c in data.get("checks") or []:
         if not isinstance(c, dict):
             continue
         name = str(c.get("name", "") or "")
-        gates.append({
+        gate: dict[str, Any] = {
             "id": name,
             "name": name,
             "status": str(c.get("status", "") or "").upper(),
             "summary": c.get("summary"),
             "log_excerpt": (str(c.get("stderr") or c.get("stdout") or ""))[:2000] or None,
             "override_allowed": not bool(c.get("critical", False)),
-        })
+        }
+        if name in overrides:
+            gate["override_applied"] = True
+            gate["override_note"] = (overrides[name] or {}).get("note")
+        gates.append(gate)
     snapshot: dict[str, Any] = {
         "gates": gates,
         "policy": {"all_must_pass": True, "override_requires_note": True},
     }
     if report:
-        snapshot["publish_allowed"] = bool(data.get("publish_allowed", False))
-        snapshot["blocking_failures"] = list(data.get("blocking_failures") or [])
+        blocking = list(data.get("blocking_failures") or [])
+        snapshot["blocking_failures"] = blocking
+        base_allowed = bool(data.get("publish_allowed", False))
+        if overrides and blocking:
+            unresolved = [b for b in blocking if b not in overrides]
+            snapshot["publish_allowed"] = base_allowed or not unresolved
+        else:
+            snapshot["publish_allowed"] = base_allowed
     return snapshot
 
 
