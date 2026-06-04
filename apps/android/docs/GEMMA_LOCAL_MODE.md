@@ -56,12 +56,17 @@ stored in history or memory — consistent with the memory rules (no
 chain-of-thought persisted). Only final answers and source-backed facts are
 eligible for memory, and only after owner approval.
 
-## Where it appears today vs. next
+## Where it appears
 
-- **Today:** the **Model Route** screen surfaces the free-first router policy
-  and per-task routes (`/v1/cockpit/model-routes`, `/v1/cockpit/models`) with
-  owner overrides; the coding packet shows the suggested `model_lane_hint`.
-- **Next (WS2):** a dedicated **Model Center** screen backed by
-  `GET /v1/cockpit/models/local` (+ an explicit `smoke` action) renders the
-  full label set above and an Ollama base-URL setting. Until it lands, Gemma
-  status is shown as "not yet probed" rather than a fabricated "ready".
+- **Model Center** (Settings → "Model Center (local / Gemma)") is backed by
+  `GET /v1/cockpit/models/local` and renders the honest label set above:
+  detected runtimes, installed Gemma/Ollama variants, per-task promotion, and a
+  per-model **Run smoke test** button (`POST /v1/cockpit/models/local/smoke`) —
+  the only path that earns "Smoke-tested". An unreachable/unpaired backend
+  degrades to a clear hint, never a fabricated "ready".
+- The **Model Route** screen surfaces the free-first router policy and per-task
+  routes (`/v1/cockpit/model-routes`, `/v1/cockpit/models`) with owner
+  overrides; the coding packet shows the suggested `model_lane_hint`.
+
+The Ollama base URL is owner-configured on the **backend** (`OLLAMA_HOST`); the
+app reads status through the gateway rather than probing Ollama directly.

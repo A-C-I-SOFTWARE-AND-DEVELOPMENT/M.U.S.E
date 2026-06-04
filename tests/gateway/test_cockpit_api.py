@@ -687,6 +687,67 @@ def test_coding_execute_reuses_staged_job_id(server) -> None:
 
 
 # ---------------------------------------------------------------------------
+# models/local — honest local-model status (Gemma / Ollama)
+# ---------------------------------------------------------------------------
+
+
+def test_models_local_is_honest_when_runtime_unreachable(server, monkeypatch) -> None:
+    from gateway.cockpit import generate as cockpit_generate
+
+    # No reachable runtime → never fabricate installed models or readiness.
+    def _boom(_base=None):
+        raise ConnectionError("connection refused")
+
+    monkeypatch.setattr(cockpit_generate, "installed_chat_models", _boom)
+
+    status, payload = _get(server, "/v1/cockpit/models/local")
+    assert status == 200
+    assert payload["reachable"] is False
+    assert payload["reach_error"]
+    assert payload["installed"] == []
+    assert payload["runtime_status"] in {"not_configured", "configured"}
+    assert payload["ollama_base"].startswith("http")
+
+
+def test_models_local_labels_are_evidence_based(server, monkeypatch) -> None:
+    from gateway.cockpit import generate as cockpit_generate
+
+    monkeypatch.setattr(
+        cockpit_generate,
+        "installed_chat_models",
+        lambda _base=None: ["gemma3:latest", "qwen3-coder:7b"],
+    )
+
+    status, payload = _get(server, "/v1/cockpit/models/local")
+    assert status == 200
+    assert payload["reachable"] is True
+    assert payload["runtime_status"] == "runtime_reachable"
+    names = {m["name"] for m in payload["installed"]}
+    assert names == {"gemma3:latest", "qwen3-coder:7b"}
+    allowed = {"promoted_for_task", "fallback_only", "variant_installed"}
+    for m in payload["installed"]:
+        # Honest vocabulary only — a GET never claims "smoke_tested" / "ready".
+        assert m["status"] in allowed
+        assert isinstance(m["promoted_for"], list)
+        assert isinstance(m["fallback_for"], list)
+
+
+def test_models_local_smoke_reports_blocked_without_runtime(server, monkeypatch) -> None:
+    from gateway.cockpit import generate as cockpit_generate
+
+    def _boom(_base=None):
+        raise RuntimeError("no local Ollama chat model installed")
+
+    monkeypatch.setattr(cockpit_generate, "pick_model", _boom)
+
+    status, raw = _post(server, "/v1/cockpit/models/local/smoke", {})
+    assert status == 200
+    payload = json.loads(raw)
+    assert payload["ok"] is False
+    assert payload["error"]
+
+
+# ---------------------------------------------------------------------------
 # evidence — search (read-only) / verify (non-mutating claim audit)
 # ---------------------------------------------------------------------------
 

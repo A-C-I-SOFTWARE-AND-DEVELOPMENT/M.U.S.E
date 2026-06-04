@@ -496,6 +496,56 @@ data class ModelRoute(
     val enabled: Boolean? = null,
 )
 
+// ─── Local models (Gemma / Ollama) — honest status ────────────────────
+//
+// Mirrors `GET /v1/cockpit/models/local`. The Model Center renders these with
+// the honest label vocabulary (see apps/android/docs/GEMMA_LOCAL_MODE.md): a
+// GET never reports "smoke-tested" / "ready" — that is earned only by the
+// explicit `models/local/smoke` POST.
+
+@Serializable
+data class LocalModelsStatus(
+    @SerialName("ollama_base") val ollamaBase: String = "",
+    /** not_configured | configured | runtime_reachable */
+    @SerialName("runtime_status") val runtimeStatus: String = "not_configured",
+    val reachable: Boolean = false,
+    @SerialName("reach_error") val reachError: String? = null,
+    val runtimes: List<LocalRuntime> = emptyList(),
+    val installed: List<LocalModelEntry> = emptyList(),
+    /** task_class -> chosen local model. */
+    val promotions: Map<String, String> = emptyMap(),
+    @SerialName("generated_at") val generatedAt: String? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class LocalRuntime(
+    val name: String = "",
+    val available: Boolean = false,
+    val path: String? = null,
+)
+
+@Serializable
+data class LocalModelEntry(
+    val name: String = "",
+    @SerialName("promoted_for") val promotedFor: List<String> = emptyList(),
+    @SerialName("fallback_for") val fallbackFor: List<String> = emptyList(),
+    /** promoted_for_task | fallback_only | variant_installed */
+    val status: String = "variant_installed",
+)
+
+@Serializable
+data class LocalModelSmokeRequest(val model: String? = null)
+
+@Serializable
+data class LocalModelSmokeResult(
+    val ok: Boolean = false,
+    val model: String = "",
+    @SerialName("reply_excerpt") val replyExcerpt: String = "",
+    @SerialName("latency_ms") val latencyMs: Long = 0,
+    val error: String? = null,
+)
+
 // ─── Research Vault (evidence store) ──────────────────────────────────
 
 /**
