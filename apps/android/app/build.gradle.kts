@@ -8,9 +8,12 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Hermes runs as a local orchestrator on this device. There is no
-// gateway, API key, or backend URL to inject at build time. The app
-// never calls OpenAI / Anthropic / OpenRouter from this process.
+// The app talks to a Hermes cockpit gateway over HTTP at runtime (endpoint
+// set in Settings; default loopback http://127.0.0.1:8765), authenticating
+// with a bearer token stored in EncryptedSharedPreferences. Provider API keys
+// live on the gateway, never on the phone — so nothing provider-related is
+// injected at build time and the app never calls OpenAI / Anthropic /
+// OpenRouter directly from this process.
 
 // Release signing — read from a gitignored keystore.properties (local) or
 // from environment variables (CI / GitHub Actions secrets). NOTHING here is

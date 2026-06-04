@@ -1,7 +1,9 @@
 """Tests for gateway service management helpers."""
 
 import os
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +16,20 @@ from gateway import status
 from gateway.restart import (
     DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT,
     GATEWAY_SERVICE_RESTART_EXIT_CODE,
+)
+
+# Some classes drive the *real* systemd preflight / system-unit generation
+# rather than fully mocking it. Those require a Linux host with `systemctl`
+# and a non-root user (the code correctly refuses to install a system unit as
+# root, and `systemctl --user` needs a user-scope systemd instance). CI
+# runners satisfy all three, so coverage is preserved there; root containers
+# and non-Linux dev machines skip these rather than fail spuriously.
+_SYSTEMD_HOST_REQUIRED = pytest.mark.skipif(
+    sys.platform != "linux"
+    or shutil.which("systemctl") is None
+    or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="needs a Linux host with systemctl and a non-root user (user-scope "
+    "systemd); skipped on root containers / non-systemd dev machines",
 )
 
 
@@ -37,6 +53,7 @@ class TestUserSystemdPrivateSocketPreflight:
         assert calls == ["env"]
 
 
+@_SYSTEMD_HOST_REQUIRED
 class TestSystemdServiceRefresh:
     def test_systemd_install_repairs_outdated_unit_without_force(self, tmp_path, monkeypatch):
         unit_path = tmp_path / "hermes-gateway.service"
@@ -310,6 +327,7 @@ class TestRequireServiceInstalled:
         gateway_cli._require_service_installed("start")
 
 
+@_SYSTEMD_HOST_REQUIRED
 class TestGeneratedSystemdUnits:
     def _expected_timeout_stop_sec(self) -> str:
         timeout = int(max(60, DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT) + 30)
@@ -736,6 +754,7 @@ class TestGatewayServiceDetection:
 
         assert gateway_cli._is_service_running() is False
 
+@_SYSTEMD_HOST_REQUIRED
 class TestGatewaySystemServiceRouting:
     def test_systemd_restart_gracefully_restarts_running_service_and_waits(self, monkeypatch, capsys):
         calls = []
@@ -1292,6 +1311,7 @@ class TestGeneratedUnitUsesDetectedVenv:
         assert "/venv/" not in unit or "/.venv/" in unit
 
 
+@_SYSTEMD_HOST_REQUIRED
 class TestGeneratedUnitIncludesLocalBin:
     """~/.local/bin must be in PATH so uvx/pipx tools are discoverable."""
 

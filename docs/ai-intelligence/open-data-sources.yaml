@@ -1,0 +1,439 @@
+# Open data sources registry for training / evaluating JARVIS.
+#
+# This file is the machine-readable source of truth behind
+# docs/ai-intelligence/top-open-data-sources-for-training.md. It is loaded by
+# hermes_cli/jarvis_prime/open_data_sources.py and bridged into the Research
+# Vault so the JARVIS learning pipeline can cite external open data.
+#
+# Field reference:
+#   rank              ordering / priority from the research review (unique)
+#   key               stable slug used by the CLI and code
+#   name              human name
+#   role              train | eval | both
+#   legal_posture     permissive | mixed | cdla_permissive | apache_2_0 | mit |
+#                     cc_by_4_0 | verify_at_ingest | no_llm_training
+#   license_notes     usage / licensing constraints, caveats
+#   languages         language coverage (free text)
+#   size              reported scale (free text)
+#   schema_provenance schema + provenance notes
+#   quality_strengths why it is valuable
+#   biases            main biases / duplication risks
+#   best_tasks        recommended tasks + subset to ingest
+#   source_uris       canonical URLs (first is used as the vault source_uri)
+#   evidence_strength primary | strong | moderate | weak | vendor_reported
+#                     (matches research_vault.EvidenceStrength)
+#   core_ingest       in the recommended core training-ingest set
+#   benchmark_wall    held out as an eval-only benchmark (never trained on)
+
+version: 1
+as_of: "2026-06-04"
+
+sources:
+  - rank: 1
+    key: swe-bench
+    name: "SWE-bench + SWE-bench Verified"
+    role: both
+    legal_posture: verify_at_ingest
+    license_notes: >-
+      Public benchmark assets; verify current redistribution terms at pull
+      time. Verified (500 human-validated tasks) is held out as eval-only;
+      original SWE-bench assets, if trained on, must be split by repo and time.
+    languages: "Python (12 repos)"
+    size: "2,294 task instances; Verified = 500"
+    schema_provenance: "Issue text + repo snapshot + executable harness + tests/patch evaluation"
+    quality_strengths: >-
+      Best public benchmark for repo-level issue resolution; Verified improves
+      instance clarity and correctness.
+    biases: "Python-only; benchmark-contamination risk; issue-selection bias"
+    best_tasks: >-
+      Bug fixing, repo navigation, patching, test-aware repair. Keep Verified
+      fully eval-only.
+    source_uris:
+      - "https://www.swebench.com"
+      - "https://github.com/princeton-nlp/SWE-bench"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 2
+    key: the-stack-v2
+    name: "The Stack v2"
+    role: train
+    legal_posture: mixed
+    license_notes: >-
+      Mixed original licenses, including no_license; must follow original terms
+      and honor removals. Permissive-only; exclude no_license, is_generated,
+      is_vendor, and oversized/low-value files. Card warns about PII, secrets,
+      and malicious code.
+    languages: "658 languages"
+    size: "3.28B unique files, 104.2M repos, 67.53 TB"
+    schema_provenance: >-
+      File-level metadata: blob_id, directory_id, path, content_id, detected
+      licenses, repo name, revision/snapshot, stars/forks, generated/vendor
+      flags. Provenance via Software Heritage + GH Archive.
+    quality_strengths: "Massive breadth; explicit license metadata; near-dedup pipeline"
+    biases: "Public-GitHub skew; possible PII/secrets; ~40% of permissive files near/exact duplicates"
+    best_tasks: "Base code pretraining, retrieval corpus, code-style prior"
+    source_uris:
+      - "https://huggingface.co/datasets/bigcode/the-stack-v2"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 3
+    key: gh-archive
+    name: "GH Archive"
+    role: train
+    legal_posture: verify_at_ingest
+    license_notes: "Public GitHub event metadata; content rights are separate from metadata."
+    languages: "n/a (event metadata)"
+    size: "Public GitHub timeline since 2011, updated hourly, 15+ event types"
+    schema_provenance: "JSON event stream over issues, PRs, comments, pushes, releases, actors, repos"
+    quality_strengths: "Primary, continuously updated workflow stream"
+    biases: "Public-only; no file contents; missing private/dev-local workflow"
+    best_tasks: >-
+      Issue/PR linking, review-thread mining, continual refresh. Ingest
+      IssuesEvent, IssueCommentEvent, PullRequestEvent, review/comment events,
+      PushEvent.
+    source_uris:
+      - "https://www.gharchive.org"
+    evidence_strength: primary
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 4
+    key: github-bigquery
+    name: "GitHub public data in BigQuery"
+    role: train
+    legal_posture: mixed
+    license_notes: >-
+      Open-source repos selected via GitHub License API; mixed source-license
+      obligations remain. Permissive repos only.
+    languages: "many"
+    size: ">2.8M repos, ~2B files; contents table holds ASCII files <10MB"
+    schema_provenance: "Queryable tables over repo contents/files/commits/licenses"
+    quality_strengths: "Large-scale code snapshot with queryable metadata; easy joins"
+    biases: "Snapshot-oriented; latest-revision bias; excludes large/binary/non-ASCII files"
+    best_tasks: "Repo snapshots, tests/docs extraction, dependency and file-graph mining"
+    source_uris:
+      - "https://console.cloud.google.com/marketplace/details/github/github-repos"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 5
+    key: software-heritage-graph
+    name: "Software Heritage Graph Dataset"
+    role: train
+    legal_posture: cc_by_4_0
+    license_notes: "CC BY 4.0 for graph structure; explicitly excludes file contents."
+    languages: "n/a (graph/provenance)"
+    size: ">5B unique source files, >1B unique commits, >80M projects"
+    schema_provenance: "Deduplicated Merkle DAG over archive objects and history"
+    quality_strengths: "Strongest provenance and lineage source in the open ecosystem"
+    biases: "Not itself a file-content corpus; public-archive bias"
+    best_tasks: "Provenance, dedup anchors, origin tracking, temporal splits. Canonical lineage layer."
+    source_uris:
+      - "https://docs.softwareheritage.org/devel/swh-dataset/graph/"
+    evidence_strength: primary
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 6
+    key: swe-smith
+    name: "SWE-smith"
+    role: train
+    legal_posture: mit
+    license_notes: "MIT repo and public dataset."
+    languages: "Python"
+    size: "50,137 task instances from 128 GitHub repos"
+    schema_provenance: "Executable env + synthesized bug/task + issue text + training trajectories"
+    quality_strengths: "Scalable SWE training data with broken-test guarantees"
+    biases: "Python-only; synthesized rather than organically reported issues"
+    best_tasks: >-
+      Agent SFT/RL for localization and repair. Hold out target/benchmark repos.
+    source_uris:
+      - "https://github.com/SWE-bench/SWE-smith"
+      - "https://swesmith.com"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 7
+    key: aacr-bench
+    name: "AACR-Bench"
+    role: eval
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0. Canonical repo URL unconfirmed — verify before ingest."
+    languages: "10 languages"
+    size: "200 real PRs from 50 projects"
+    schema_provenance: "PR diffs + full repo context + expert annotations"
+    quality_strengths: >-
+      Repository-level, multilingual, expert-verified code-review benchmark
+      (reported ~285% defect-coverage lift over raw PR comments).
+    biases: "Small; oriented to evaluation rather than scale training"
+    best_tasks: "Code review, review-comment generation, defect finding. Eval-only."
+    source_uris: []
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 8
+    key: commitpackft
+    name: "CommitPackFT"
+    role: train
+    legal_posture: verify_at_ingest
+    license_notes: >-
+      Source-license-bound commit/edit data from public repos; verify source
+      terms at ingest. Use only high-quality-message shards.
+    languages: "277 languages"
+    size: "2 GB filtered subset"
+    schema_provenance: "Commit message as instruction-like text paired with code edits"
+    quality_strengths: "High-signal edit supervision; messages filtered to resemble instructions"
+    biases: "Commit messages can be terse/misleading; patch intent can be underspecified"
+    best_tasks: "Code edit, commit summarization, instruction-following edits"
+    source_uris:
+      - "https://huggingface.co/datasets/bigcode/commitpackft"
+    evidence_strength: moderate
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 9
+    key: project-codenet
+    name: "Project CodeNet"
+    role: train
+    legal_posture: cdla_permissive
+    license_notes: "Dataset under CDLA-Permissive 2.0; tooling repo Apache-2.0."
+    languages: "55 languages"
+    size: "13,916,868 submissions, 4,053 problems; 53.6% accepted"
+    schema_provenance: >-
+      Source files + problem descriptions + problem_list.csv + per-problem
+      submission CSV metadata; duplicate/problem-cluster controls.
+    quality_strengths: "Rich runtime/status metadata; descriptions for 90%+; sample I/O for 98.5%"
+    biases: "Competitive-programming bias; weaker repository realism"
+    best_tasks: "Synthesis, translation, testing, wrong-answer to accepted repair"
+    source_uris:
+      - "https://github.com/IBM/Project_CodeNet"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 10
+    key: the-vault
+    name: "The Vault"
+    role: train
+    legal_posture: mit
+    license_notes: "Tooling repo MIT; data derived from permissive source corpus, retain provenance."
+    languages: "10 languages"
+    size: "43M code-text pairs"
+    schema_provenance: "Function/class/inline code-text pairs"
+    quality_strengths: "Large, cleaned code-text corpus for generation, search, summarization"
+    biases: "Docstring/comment-rich code overrepresented; OSS/GitHub style bias"
+    best_tasks: "Summarization, NL<->code alignment, documentation generation"
+    source_uris:
+      - "https://github.com/FSoft-AI4Code/TheVault"
+    evidence_strength: moderate
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 11
+    key: codesearchnet
+    name: "CodeSearchNet"
+    role: train
+    legal_posture: mixed
+    license_notes: "Mixed upstream OSS source licenses; preserve repo provenance."
+    languages: "6 languages"
+    size: "~2M comment-code pairs; ~6M functions"
+    schema_provenance: "JSONL of function/method code + docstrings/comments; query relevance benchmark"
+    quality_strengths: "Official GitHub/Microsoft benchmark; expert relevance annotations"
+    biases: "Six-language cap; scraping noise; docstring-heavy bias"
+    best_tasks: "Retrieval, summarization, doc-comment generation. Keep challenge labels for eval."
+    source_uris:
+      - "https://github.com/github/CodeSearchNet"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: false
+
+  - rank: 12
+    key: codexglue
+    name: "CodeXGLUE"
+    role: eval
+    legal_posture: mixed
+    license_notes: "Composite benchmark; legal posture varies by component dataset."
+    languages: "multiple"
+    size: "14 datasets / 10 tasks"
+    schema_provenance: "Task-specific schemas: code-code, text-code, code-text, text-text"
+    quality_strengths: "Broad standardized benchmark suite"
+    biases: "Composite contamination risk; not a unified clean training corpus"
+    best_tasks: "Evaluation wall and light auxiliary multitask finetuning; mostly eval-only"
+    source_uris:
+      - "https://github.com/microsoft/CodeXGLUE"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false
+
+  - rank: 13
+    key: defects4j
+    name: "Defects4J"
+    role: train
+    legal_posture: mit
+    license_notes: "MIT."
+    languages: "Java (17 projects)"
+    size: "854 active Java bugs (+10 deprecated)"
+    schema_provenance: "Buggy/fixed revisions, metadata export, triggering tests, reproducibility rules"
+    quality_strengths: "Real faults, minimized fixes, flaky/broken tests excluded, strong tooling"
+    biases: "Java-only; curated bug scope narrower than production PRs"
+    best_tasks: "Java repair and regression validation. Hold out full projects for eval."
+    source_uris:
+      - "https://github.com/rjust/defects4j"
+    evidence_strength: primary
+    core_ingest: false
+    benchmark_wall: false
+
+  - rank: 14
+    key: bugsinpy
+    name: "BugsInPy"
+    role: train
+    legal_posture: verify_at_ingest
+    license_notes: "Redistribution license not confirmed in the official snippet; verify before mirroring."
+    languages: "Python (17 projects)"
+    size: "493 bugs"
+    schema_provenance: "Buggy/fixed checkouts with compile/test/coverage/mutation/fuzz commands"
+    quality_strengths: "One of the best open Python bug benchmarks"
+    biases: "Python-only; favors large popular repos"
+    best_tasks: "Python repair, debugging, test reasoning. Keep several projects out for eval."
+    source_uris:
+      - "https://github.com/soarsmu/BugsInPy"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: false
+
+  - rank: 15
+    key: d2a
+    name: "D2A"
+    role: train
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0."
+    languages: "C/C++"
+    size: "Large static-analysis corpus (paper: millions of samples)"
+    schema_provenance: "auto_labeler / after_fix_extractor JSONs with traces, labels, function bodies"
+    quality_strengths: "Differential-analysis labeling ties alarms to before/after-fix behavior"
+    biases: "Labels bounded by static-analyzer quality/heuristics; vulnerability focus"
+    best_tasks: "Static-analysis ranking, vuln triage, bug-fix context. High-confidence positives + after-fix negatives."
+    source_uris:
+      - "https://github.com/IBM/D2A"
+    evidence_strength: strong
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 16
+    key: travistorrent
+    name: "TravisTorrent"
+    role: train
+    legal_posture: verify_at_ingest
+    license_notes: "Open database; verify exact redistribution terms for mirrored logs."
+    languages: "Ruby/Java specialties"
+    size: "Hundreds of thousands of analyzed Travis builds"
+    schema_provenance: "Build API metadata + parsed build-log features + GitHub/GHTorrent linkage"
+    quality_strengths: "Best-known open CI/log corpus tying build results to commits/repos"
+    biases: "Travis-centric and dated; excludes newer CI ecosystems"
+    best_tasks: "CI summarization, failing-build diagnosis, flaky-test signals. Failed->fixed build chains."
+    source_uris:
+      - "https://travistorrent.testroots.org"
+    evidence_strength: moderate
+    core_ingest: true
+    benchmark_wall: false
+
+  - rank: 17
+    key: repobench
+    name: "RepoBench"
+    role: eval
+    legal_posture: verify_at_ingest
+    license_notes: "Exact license not confirmed in the retrieved snippet."
+    languages: "Python and Java"
+    size: "Repository-level benchmark, three tasks"
+    schema_provenance: "Retrieval, next-line completion, end-to-end pipeline tasks"
+    quality_strengths: "Strong repo-context completion benchmark"
+    biases: "Two-language scope; narrower than full issue/PR workflows"
+    best_tasks: "Long-context completion and retrieval evaluation. Eval-only."
+    source_uris:
+      - "https://github.com/Leolty/repobench"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 18
+    key: crosscodeeval
+    name: "CrossCodeEval"
+    role: eval
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0; built on permissively licensed repos."
+    languages: "Python, Java, TypeScript, C#"
+    size: "Cross-file completion benchmark"
+    schema_provenance: "Cross-file completion tasks + retrieval settings"
+    quality_strengths: "Static-analysis-based construction that truly requires cross-file context"
+    biases: "Completion-only; four-language cap"
+    best_tasks: "Retriever tuning and cross-file completion eval. Eval-only."
+    source_uris:
+      - "https://github.com/amazon-science/cceval"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 19
+    key: bigcodebench
+    name: "BigCodeBench"
+    role: eval
+    legal_posture: apache_2_0
+    license_notes: "Apache-2.0."
+    languages: "Python"
+    size: "1,140 tasks; 139 libraries, 7 domains; avg 5.6 tests, 99% coverage"
+    schema_provenance: "task_id, rich prompts, canonical solutions, tests, entry points, libs"
+    quality_strengths: "Practical, library-heavy, high-coverage benchmark"
+    biases: "Python/function-level rather than repo-level"
+    best_tasks: "Tool use, library reasoning, complex-instruction eval. Eval-only."
+    source_uris:
+      - "https://github.com/bigcode-project/bigcodebench"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 20
+    key: evalplus
+    name: "EvalPlus (HumanEval+ / MBPP+)"
+    role: eval
+    legal_posture: verify_at_ingest
+    license_notes: "Public benchmark framework; verify redistribution terms for derived artifacts."
+    languages: "Python"
+    size: "HumanEval+ (164 tasks, 80x tests); MBPP+ (378 tasks, 35x tests)"
+    schema_provenance: "Function-level synthesis tasks with much stronger test suites"
+    quality_strengths: "Excellent guardrail against false-positive pass@k"
+    biases: "Python/function-level and increasingly saturated"
+    best_tasks: "Final regression gate only. Keep entirely out of training."
+    source_uris:
+      - "https://github.com/evalplus/evalplus"
+    evidence_strength: strong
+    core_ingest: false
+    benchmark_wall: true
+
+  - rank: 21
+    key: stackexchange-dump
+    name: "Stack Overflow / Stack Exchange public dump"
+    role: eval
+    legal_posture: no_llm_training
+    license_notes: >-
+      NOT recommended for LLM training via the public dump path. Stack's
+      download terms now require affirming the dump will not be used for LLM
+      training; a separate AI data-licensing route exists. Quarantined from
+      training by policy.
+    languages: "n/a (Q&A text)"
+    size: "Full Stack Exchange network dump"
+    schema_provenance: "Posts, comments, votes, tags across the Stack Exchange network"
+    quality_strengths: "Large Q&A corpus — but legally/operationally inferior here"
+    biases: "Licensing restriction makes default ingestion inappropriate"
+    best_tasks: "Do not ingest for training. Reference only; use the licensed path if needed."
+    source_uris:
+      - "https://archive.org/details/stackexchange"
+    evidence_strength: moderate
+    core_ingest: false
+    benchmark_wall: false

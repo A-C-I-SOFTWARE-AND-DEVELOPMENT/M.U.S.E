@@ -1,0 +1,58 @@
+# Reconstruction source registry — machine-readable companion to
+# docs/jarvis_architecture/MYTHOS_RECONSTRUCTION.md.
+#
+# Each entry is a source-cited reference behind the JARVIS Self-Audit +
+# Constitution layer. Phase 2's self_audit loader bridges these into the
+# Research Vault (hermes_cli/jarvis_prime/research_vault.py) as
+# ResearchArtifacts, so the layer's design is itself source-backed.
+#
+# `source_type` and `evidence_strength` values MUST match the enums in
+# research_vault.py (SourceType / EvidenceStrength). Do not invent new values.
+version: 1
+sources:
+  - key: petri
+    title: "Petri: An open-source auditing tool to accelerate AI safety research"
+    source_uri: https://www.anthropic.com/research/petri-open-source-auditing
+    source_type: official_doc
+    evidence_strength: primary
+    reconstructs: "self-audit harness — auditor -> target -> judge loop, seed scenarios, scored dimensions"
+    tags: [self-audit, red-team, evaluator-optimizer]
+  - key: reward-hacking-misalignment
+    title: "Natural Emergent Misalignment from Reward Hacking in Production RL"
+    source_uri: https://arxiv.org/abs/2511.18397
+    source_type: paper
+    evidence_strength: primary
+    reconstructs: "behavioral-risk classifier; reward-hacking trace exclusion from the learning dataset"
+    tags: [reward-hacking, misalignment, behavioral-risk]
+  - key: constitutional-ai
+    title: "Constitutional AI: Harmlessness from AI Feedback"
+    source_uri: https://www.anthropic.com/research/constitutional-ai-harmlessness-from-ai-feedback
+    source_type: paper
+    evidence_strength: primary
+    reconstructs: "explicit JARVIS Constitution rubric (evaluated and gated against, not trained on)"
+    tags: [constitution, alignment]
+  - key: building-effective-agents
+    title: "Building Effective Agents"
+    source_uri: https://www.anthropic.com/engineering/building-effective-agents
+    source_type: official_doc
+    evidence_strength: primary
+    reconstructs: "agent-design-patterns guide — the five composable workflow patterns"
+    tags: [agent-patterns, orchestration]
+  - key: multi-agent-research-system
+    title: "How we built our multi-agent research system"
+    source_uri: https://www.anthropic.com/engineering/multi-agent-research-system
+    source_type: official_doc
+    evidence_strength: primary
+    reconstructs: "lead -> parallel-subagent mapping onto AOS council + delegate_task"
+    tags: [multi-agent, orchestration]
+  # External seed report. Its "Mythos Preview"/"Project Glasswing" claims are
+  # UNVERIFIED and kept as-is per owner; bridged at WEAK/contested so the Vault
+  # never treats them as established fact and the learning loop never trains on them.
+  - key: anthropic-mythos-report
+    title: "Anthropic Mythos and the Publicly Observable Claude System (external seed report)"
+    source_uri: ""
+    source_type: manual
+    evidence_strength: weak
+    contested: true
+    reconstructs: "framing seed only — no engineering depends on its unverified claims"
+    tags: [seed, unverified, contested]

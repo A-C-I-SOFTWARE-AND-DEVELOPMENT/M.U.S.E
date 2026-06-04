@@ -1,0 +1,80 @@
+name: JARVIS self-audit (live)
+
+# Opt-in, LLM-backed live self-audit: runs the Constitution self-audit + the
+# capability-band wall against a configured model and uploads the result.
+#
+# Deliberately MANUAL-only (workflow_dispatch): a live audit calls a model
+# endpoint, which on a paid provider is spend — and recurring spend should be
+# owner-initiated, not a silent cron (mirrors JARVIS's owner-gated-spend rule).
+# It does NOT run on pull_request (non-deterministic, needs a model) and skips
+# gracefully when no model secret is configured, so it is never a blocker.
+#
+# Configure (repo Settings → Secrets):
+#   SELF_AUDIT_MODEL_BASE_URL  e.g. https://openrouter.ai/api/v1
+#   SELF_AUDIT_MODEL_NAME      e.g. anthropic/claude-3.5-sonnet
+#   SELF_AUDIT_MODEL_KEY       the API key (omit for a keyless local server)
+
+on:
+  workflow_dispatch:
+    inputs:
+      risk_class:
+        description: "Capability band to evaluate (RC0..RC4)"
+        default: "RC3"
+      strict:
+        description: "Fail the job if the audit is blocked / the band is withheld"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jarvis-self-audit-live-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-self-audit:
+    name: JARVIS self-audit (live)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run live self-audit
+        env:
+          SELF_AUDIT_MODEL_BASE_URL: ${{ secrets.SELF_AUDIT_MODEL_BASE_URL }}
+          SELF_AUDIT_MODEL_NAME: ${{ secrets.SELF_AUDIT_MODEL_NAME }}
+          SELF_AUDIT_MODEL_KEY: ${{ secrets.SELF_AUDIT_MODEL_KEY }}
+        run: |
+          STRICT=""
+          if [ "${{ github.event.inputs.strict }}" = "true" ]; then STRICT="--strict"; fi
+          python scripts/jarvis_self_audit_live.py \
+            --risk-class "${{ github.event.inputs.risk_class || 'RC3' }}" \
+            --out /tmp/jarvis-self-audit-live.json \
+            $STRICT | tee /tmp/jarvis-self-audit-live.log
+          {
+            echo "### JARVIS self-audit (live)"
+            echo ""
+            echo '```json'
+            tail -c 2000 /tmp/jarvis-self-audit-live.json 2>/dev/null \
+              || cat /tmp/jarvis-self-audit-live.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload audit result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: jarvis-self-audit-live
+          path: |
+            /tmp/jarvis-self-audit-live.json
+            /tmp/jarvis-self-audit-live.log
+          if-no-files-found: ignore
+          retention-days: 14
