@@ -60,7 +60,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 # ``httpx`` / ``tenacity`` back the HTTP transport only. The file-drop path is
 # intentionally stdlib-only, and minimal environments (e.g. the orchestration
@@ -69,21 +69,31 @@ from typing import Any, Optional
 # works; the names are only dereferenced inside ``_post_http`` (the HTTP path),
 # which is unreachable without an ``http`` endpoint. Keeping them as module
 # attributes (vs. a function-local import) also lets tests patch
-# ``remote_bridge.httpx.Client``.
-try:
+# ``remote_bridge.httpx.Client``. Under TYPE_CHECKING they're imported
+# unconditionally so type-checkers resolve the real symbols.
+if TYPE_CHECKING:
     import httpx
-except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
-    httpx = None  # type: ignore[assignment]
-
-try:
     from tenacity import (
         retry,
         retry_if_exception_type,
         stop_after_attempt,
         wait_exponential,
     )
-except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
-    retry = retry_if_exception_type = stop_after_attempt = wait_exponential = None  # type: ignore[assignment]
+else:
+    try:
+        import httpx
+    except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+        httpx = None
+
+    try:
+        from tenacity import (
+            retry,
+            retry_if_exception_type,
+            stop_after_attempt,
+            wait_exponential,
+        )
+    except ImportError:  # pragma: no cover - minimal env without HTTP-transport deps
+        retry = retry_if_exception_type = stop_after_attempt = wait_exponential = None
 
 
 # ── public constants ──────────────────────────────────────────────────────
