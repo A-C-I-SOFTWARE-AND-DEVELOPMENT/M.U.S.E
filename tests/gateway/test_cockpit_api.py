@@ -655,6 +655,37 @@ def test_coding_execute_requires_prompt(server) -> None:
     assert exc.value.code == 400
 
 
+def test_coding_execute_reuses_staged_job_id(server) -> None:
+    # The cockpit's approval retry passes the staged job's id back. Without a
+    # job_id every call submits a fresh job; with it, the gateway resumes the
+    # same job instead of leaking the staged one (and creating a second).
+    status, raw = _post(
+        server,
+        "/v1/cockpit/coding/execute",
+        {"prompt": "implement a new endpoint in the gateway"},
+    )
+    assert status == 200
+    staged_id = json.loads(raw)["job"]["id"]
+    assert staged_id
+
+    # A naked re-send creates a *different* job (the leak this guards against).
+    status, raw = _post(
+        server,
+        "/v1/cockpit/coding/execute",
+        {"prompt": "implement a new endpoint in the gateway"},
+    )
+    assert json.loads(raw)["job"]["id"] != staged_id
+
+    # Re-sending with the staged id resumes that exact job.
+    status, raw = _post(
+        server,
+        "/v1/cockpit/coding/execute",
+        {"prompt": "implement a new endpoint in the gateway", "job_id": staged_id},
+    )
+    assert status == 200
+    assert json.loads(raw)["job"]["id"] == staged_id
+
+
 # ---------------------------------------------------------------------------
 # evidence — search (read-only) / verify (non-mutating claim audit)
 # ---------------------------------------------------------------------------

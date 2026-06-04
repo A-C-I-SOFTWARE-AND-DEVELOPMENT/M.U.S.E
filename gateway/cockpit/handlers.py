@@ -2580,8 +2580,15 @@ def coding_execute(req: Request) -> JsonResponse:
         if gate.error is not None:
             return gate.error
 
-        # Real, gated dispatch path: submit an orchestrator job first.
-        job = orch.submit_job(prompt)
+        # Real, gated dispatch path. Reuse a previously-staged job when the
+        # client passes its id (the cockpit's approval retry: first tap stages a
+        # job, confirming the owner phrase resumes *that* job). Without reuse,
+        # confirming would submit a second job and leak the staged one. Fall
+        # back to a fresh job when no (or an unknown) id is supplied.
+        staged_job_id = str(req.body.get("job_id", "")).strip()
+        job = orch.get_job(staged_job_id) if staged_job_id else None
+        if job is None:
+            job = orch.submit_job(prompt)
 
         if gate.requires_approval and not gate.authorized:
             # Gate not satisfied → STAGE, do not run. The job is left awaiting

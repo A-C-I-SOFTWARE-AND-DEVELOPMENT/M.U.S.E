@@ -99,6 +99,10 @@ data class JarvisHomeNavigation(
     val openAudit: () -> Unit,
     val openDiagnostics: () -> Unit,
     val openNewTask: () -> Unit,
+    /** v1.5 standalone-local coding cockpit entry points. Defaulted so
+     *  existing previews / tests that build this holder still compile. */
+    val openNewCodingTask: () -> Unit = {},
+    val openCodeHandoff: () -> Unit = {},
 )
 
 object JarvisHomeTestTags {
@@ -214,8 +218,10 @@ fun JarvisPrimeHomeContent(
                     onAction = { action ->
                         when (action) {
                             QuickAction.ASK -> navigation.openChat()
-                            QuickAction.AUDIT_REPO -> navigation.openNewTask()
-                            QuickAction.CONTINUE_CODING -> navigation.openTasksList()
+                            QuickAction.NEW_CODING -> navigation.openNewCodingTask()
+                            QuickAction.CODE_HANDOFF -> navigation.openCodeHandoff()
+                            QuickAction.AUDIT_REPO -> navigation.openNewCodingTask()
+                            QuickAction.CONTINUE_CODING -> navigation.openCodeHandoff()
                             QuickAction.RUN_TESTS -> navigation.openNewTask()
                             QuickAction.REVIEW_PATCH -> navigation.openApprovals(null)
                             QuickAction.OPEN_APPROVALS -> navigation.openApprovals(null)
@@ -760,7 +766,7 @@ fun BackendUnavailableBanner(
 }
 
 enum class QuickAction {
-    ASK, AUDIT_REPO, CONTINUE_CODING, RUN_TESTS, REVIEW_PATCH,
+    ASK, NEW_CODING, CODE_HANDOFF, AUDIT_REPO, CONTINUE_CODING, RUN_TESTS, REVIEW_PATCH,
     OPEN_APPROVALS, OPEN_MEMORY, START_VOICE, STOP_ALL,
 }
 
@@ -774,9 +780,10 @@ fun QuickActionsCard(
     // Stop-all is intentionally omitted here — it is the dedicated emergency
     // button at the foot of the screen, so it cannot be triggered by a stray tap.
     val actions = listOf(
+        QuickAction.NEW_CODING to "New coding task",
+        QuickAction.CODE_HANDOFF to "Code handoff",
         QuickAction.ASK to "Ask JARVIS",
         QuickAction.AUDIT_REPO to "Audit repo",
-        QuickAction.CONTINUE_CODING to "Continue coding",
         QuickAction.RUN_TESTS to "Run tests",
         QuickAction.REVIEW_PATCH to "Review patch",
         QuickAction.OPEN_APPROVALS to "Approvals",
