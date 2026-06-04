@@ -24,6 +24,7 @@ from typing import Callable, Optional
 from urllib.parse import parse_qs, urlsplit
 
 from gateway.cockpit import auth as cockpit_auth
+from gateway.cockpit import event_log
 from gateway.cockpit import handlers as h
 from gateway.cockpit.agent import jarvis_responder
 from gateway.jarvis_local_http import (
@@ -163,6 +164,7 @@ _SSE_MAX_DURATION_S = 600.0  # backstop; the client reconnects with backoff
 
 _STREAM_ROUTES: list[tuple[re.Pattern[str], str]] = [
     (_compile("/v1/cockpit/jobs/stream"), "_stream_jobs"),
+    (_compile("/v1/cockpit/events/stream"), "_stream_events"),
 ]
 
 
@@ -187,6 +189,27 @@ def _job_deltas(prev: dict[str, dict], curr: dict[str, dict]):
             yield "job.upsert", job
     for jid in prev.keys() - curr.keys():
         yield "job.removed", {"id": jid}
+
+
+def _csv_set(value: Optional[str]) -> Optional[set[str]]:
+    """Parse a comma-separated query filter into a set, or ``None`` if empty."""
+    if not value:
+        return None
+    items = {v.strip() for v in value.split(",") if v.strip()}
+    return items or None
+
+
+def _event_passes(
+    rec: dict, levels: Optional[set[str]], sources: Optional[set[str]],
+    job_id: Optional[str],
+) -> bool:
+    if levels is not None and rec.get("level") not in levels:
+        return False
+    if sources is not None and rec.get("source") not in sources:
+        return False
+    if job_id and rec.get("job_id") != job_id:
+        return False
+    return True
 
 
 def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
@@ -339,6 +362,34 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                     for event, data in _job_deltas(prev, curr):
                         self._sse_send(event, data)
                     prev = curr
+                    now = time.monotonic()
+                    if now - last_beat >= _SSE_HEARTBEAT_S:
+                        self._sse_send("heartbeat", {"ts": h._now_iso()})
+                        last_beat = now
+                    if now - started >= _SSE_MAX_DURATION_S:
+                        break
+                    self._sse_sleep(_SSE_POLL_S)
+                self._write_chunk(b"")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        def _stream_events(self) -> None:
+            self._sse_headers()
+            q = self._query()
+            levels = _csv_set(q.get("level"))
+            sources = _csv_set(q.get("source"))
+            job_id = q.get("job_id") or None
+            offset = event_log.current_offset()
+            last_beat = time.monotonic()
+            started = time.monotonic()
+            try:
+                while not stop_event.is_set():
+                    records, offset = event_log.read_since_offset(offset)
+                    for rec in records:
+                        if _event_passes(rec, levels, sources, job_id):
+                            self._sse_send("log", rec)
                     now = time.monotonic()
                     if now - last_beat >= _SSE_HEARTBEAT_S:
                         self._sse_send("heartbeat", {"ts": h._now_iso()})

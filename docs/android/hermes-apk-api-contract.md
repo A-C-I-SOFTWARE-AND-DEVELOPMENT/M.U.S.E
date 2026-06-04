@@ -72,7 +72,7 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ⏳ planned |
 | Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
 | Publishing — open PR | `POST /jobs/{id}/publish` | ✅ live (owner-phrase + loopback gated; opens a PR for the pushed branch — needs a PAT) |
-| Events | `GET /v1/cockpit/events` (decision-ledger summaries live; the leveled-log shape below + `/events/stream` SSE are planned) | ⏳ partial |
+| Events | `GET /v1/cockpit/events/stream` (SSE leveled log) live; `GET /v1/cockpit/events` still returns decision-ledger summaries (leveled-list rewrite pending) | ⏳ partial |
 | Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
 | Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
@@ -621,9 +621,10 @@ Errors:
 
 ### `GET /v1/cockpit/events`
 
-> ⏳ **Partial.** A live `/v1/cockpit/events` route exists but currently returns
-> decision-**ledger** summaries, not the leveled-log shape below. The
-> structured log source (and `/events/stream`) is planned.
+> ⏳ **Partial.** This buffered route still returns decision-**ledger**
+> summaries, not the leveled-log shape below. The structured leveled source now
+> exists (`gateway/cockpit/event_log.py`) and powers the live `/events/stream`;
+> rewriting this list route to read it is the remaining gap.
 
 Query: `since` (ISO timestamp, optional), `level` (csv of
 `info|warn|error`, optional), `source` (csv of
@@ -648,7 +649,10 @@ Query: `since` (ISO timestamp, optional), `level` (csv of
 
 ### `GET /v1/cockpit/events/stream`
 
-> ⏳ **Planned.**
+> ✅ **Live.** Tails the cockpit event log (`event_log.py`) and emits each new
+> entry as an SSE `log` event, plus a `heartbeat` every 15s. Bearer-authed;
+> supports `?level=` / `?source=` / `?job_id=` filters; exits promptly on
+> disconnect/shutdown.
 
 SSE. Events use the same shape:
 

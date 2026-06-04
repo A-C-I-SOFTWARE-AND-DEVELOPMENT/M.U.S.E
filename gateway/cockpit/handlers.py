@@ -978,6 +978,9 @@ def jobs_dispatch(req: Request) -> JsonResponse:
         )
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
+    from . import event_log
+
+    event_log.emit("info", "gateway", f"job dispatched: {title}", job_id=job_id)
     return JsonResponse(201, contract.cockpit_job(entry))
 
 
@@ -1958,7 +1961,7 @@ def job_publish(req: Request) -> JsonResponse:
     title = str(req.body.get("title") or preview.get("default_title") or branch)
     body = str(req.body.get("body") or preview.get("default_body") or "")
     base = str(req.body.get("base") or preview.get("base") or "main")
-    draft = bool(req.body.get("draft", True))
+    draft = req.body.get("draft") is not False  # only an explicit JSON false → non-draft
     return _open_pull_request(client, owner, repo, branch, base, title, body, draft)
 
 
