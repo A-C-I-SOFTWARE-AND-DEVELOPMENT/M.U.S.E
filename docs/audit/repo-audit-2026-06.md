@@ -134,14 +134,40 @@ silent failure.
   (Discord/Telegram tokens, web-search keys, browser/computer-use system deps,
   local model runtimes). Expected; gated; not defects.
 
-## Optional follow-ups (not done — would improve local-dev ergonomics)
+## Local-dev ergonomics follow-ups
 
-These are quality-of-life suggestions, not viability blockers:
+These make the suite green on dev machines that differ from CI (root
+containers, no systemd, enforced commit signing). They do not change product
+code and never weaken CI coverage — each guard is inert on CI runners.
 
-1. Add environment skip-guards so systemd-service and git-fixture tests
-   `pytest.skip` when no user systemd / when commit signing is enforced — so the
-   suite is green on non-systemd or signed-commit dev machines, not just CI.
-2. Register the custom `ssh` pytest mark (`tests/tools/test_file_sync_perf.py`)
-   in `pyproject.toml` to clear the `PytestUnknownMarkWarning`.
-3. Tighten parallel-run isolation for the handful of flaky gateway tests
-   (env-var/global leakage under `-n auto`).
+**Done (this audit's follow-up PR):**
+
+1. ✅ **Git-fixture tests no longer depend on host commit-signing.** The
+   hermetic conftest fixture (`tests/conftest.py` `_hermetic_environment`) now
+   injects `commit.gpgsign=false` / `tag.gpgsign=false` via git's additive
+   `GIT_CONFIG_*` env mechanism (preserving the developer's identity). This
+   generalizes a pattern ~9 test files already applied ad-hoc, and fixes the
+   worktree / context-reference / path tests on signing-enforced hosts.
+2. ✅ **Systemd-host-dependent test classes skip off-CI.** A
+   `_SYSTEMD_HOST_REQUIRED` guard in `tests/hermes_cli/test_gateway_service.py`
+   skips the four classes that drive real system-unit generation / `systemctl`
+   when the host isn't Linux, lacks `systemctl`, or runs as root — so they pass
+   on CI (non-root Linux + systemd) and skip cleanly elsewhere. Classes that
+   *test the root-refusal itself* are intentionally left running.
+3. ✅ **`ssh` pytest mark registered** in `pyproject.toml`, clearing the
+   `PytestUnknownMarkWarning`.
+
+**Still open (needs deeper work, deliberately not forced):**
+
+4. **Parallel-run isolation flakiness.** A handful of gateway/discord/telegram
+   tests fail only under the full ~27k-test `-n auto` run and pass in isolation.
+   Investigation points to either cross-test global/env leakage in the same
+   xdist worker or per-test timeout pressure under load — not a defect in
+   shipped code. A safe fix needs bisection to the polluting test (or an
+   env-snapshot autouse fixture validated against the whole suite); shipping a
+   fragile guess here would risk masking real failures, so it is left for a
+   dedicated change.
+5. The `TERMINAL_VERCEL_RUNTIME=node20` log line in full runs is **not a code
+   issue** — the code default is empty and conftest unsets the var; it is a
+   test deliberately exercising the unsupported-runtime path, plus this
+   container's own env. No change needed.
