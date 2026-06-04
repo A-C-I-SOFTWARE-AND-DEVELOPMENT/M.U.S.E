@@ -888,6 +888,67 @@ def _cmd_packet(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_compile(args: argparse.Namespace) -> int:
+    """Compile plain English into a work packet or an automation flow."""
+
+    from hermes_cli.jarvis_prime import nl_compile
+
+    res = nl_compile.compile_request(
+        args.prompt,
+        backend=args.backend,
+        branch_prefix=args.branch_prefix,
+        gate_check=getattr(args, "gate_check", False),
+        learn=getattr(args, "learn", False),
+    )
+
+    if args.json:
+        _print_json(res.to_dict())
+        return 0 if not res.needs_clarification else 2
+
+    if res.needs_clarification:
+        print("Clarifying questions before I can compile:")
+        for q in res.clarifying_questions():
+            print(f"  - {q}")
+        return 2
+
+    decision = res.backend
+    if decision is not None and decision.blocked:
+        print("blocked: request attempts to bypass owner gates — no backend selected")
+        return 1
+
+    print(f"backend: {decision.selected.value}")
+    if getattr(args, "explain", False):
+        print(f"rationale: {decision.rationale}")
+        for s in decision.scores:
+            print(f"  score {s.target.value}: {s.score:.2f}  ({s.rationale})")
+
+    result = res.compile_result
+    if result is not None:
+        if result.target.value == "repo_work_packet":
+            packet = result.artifact
+            print(f"mission: {packet.mission}")
+            print(
+                f"intent: {packet.intent.value}  risk: {packet.risk_class}  "
+                f"branch: {packet.branch}"
+            )
+            print("allowed files: " + ", ".join(packet.allowed_files))
+        else:
+            flow = result.artifact
+            print(f"flow: {flow.name}  ({len(flow.triggers)} triggers, "
+                  f"{len(flow.steps)} steps)")
+            if flow.owner_gated_actions:
+                print("owner-gated: " + ", ".join(flow.owner_gated_actions))
+            validation = flow.validate()
+            print(f"flow valid: {validation.ok}")
+        for note in result.notes:
+            print(f"  note: {note}")
+
+    if res.gate_summary is not None:
+        print(res.gate_summary.render())
+
+    return 0
+
+
 def _cmd_bootstrap(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime import model_bootstrap as mb
 
@@ -2108,6 +2169,40 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_navigate.add_argument("--limit", type=int, default=5, help="Max candidate sites")
     p_navigate.add_argument("--json", action="store_true")
     p_navigate.set_defaults(func=_cmd_navigate)
+
+    # compile — natural-language programming front-end: English -> typed intent
+    # graph -> work packet or automation-flow DSL. Deterministic, no execution.
+    p_compile = sub.add_parser(
+        "compile",
+        help="Compile plain English into a work packet or automation flow",
+        description=(
+            "Parse a plain-English request into a typed semantic intent graph, "
+            "deterministically select a backend (repo work packet or automation "
+            "flow), and emit a gate-compatible artifact. Surfaces clarifying "
+            "questions instead of guessing; never executes."
+        ),
+    )
+    p_compile.add_argument("prompt", help="The plain-English request")
+    p_compile.add_argument(
+        "--backend",
+        choices=["auto", "work-packet", "workflow", "automation"],
+        default="auto",
+        help="Force a backend target (default: auto-select)",
+    )
+    p_compile.add_argument("--branch-prefix", dest="branch_prefix", default="jarvis")
+    p_compile.add_argument(
+        "--gate-check", dest="gate_check", action="store_true",
+        help="Run the verification gate summary over a compiled work packet",
+    )
+    p_compile.add_argument(
+        "--explain", action="store_true", help="Show backend selection scores"
+    )
+    p_compile.add_argument(
+        "--learn", action="store_true",
+        help="Propose parsed vocabulary to the Memory Tree (owner-review, never durable)",
+    )
+    p_compile.add_argument("--json", action="store_true")
+    p_compile.set_defaults(func=_cmd_compile)
 
     args = parser.parse_args(argv)
     return args.func(args)
