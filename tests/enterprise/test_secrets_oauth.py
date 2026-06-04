@@ -213,6 +213,27 @@ def test_missing_access_token_raises_oauth_error(oauth_env):
         fetch_secret("salesforce", caller_role="sales", http_post=post, now=0.0)
 
 
+def test_malformed_token_with_newline_is_rejected_and_not_cached(oauth_env):
+    # A token with an embedded newline is malformed. It must be rejected at
+    # mint time, *before* caching — otherwise the bad value would be reused for
+    # every fetch until expiry, blocking the service. After the bad response, a
+    # good response on the next call must succeed (proving the cache was not
+    # poisoned) and a fresh POST must be made.
+    post = RecordingPost(
+        FakeResponse(200, {"access_token": "bad\ntoken", "expires_in": 3600}),
+        FakeResponse(200, {"access_token": "good-token", "expires_in": 3600}),
+    )
+
+    with pytest.raises(OAuthRefreshError):
+        fetch_secret("salesforce", caller_role="sales", http_post=post, now=1_000.0)
+
+    second = fetch_secret(
+        "salesforce", caller_role="sales", http_post=post, now=1_010.0
+    )
+    assert second.value == "good-token"
+    assert post.call_count == 2
+
+
 def test_error_body_is_not_leaked_to_logs(oauth_env, caplog):
     post = RecordingPost(FakeResponse(401, {"error_description": "LEAKY-SECRET-DETAIL"}))
     with caplog.at_level(logging.INFO, logger="enterprise.secrets"):

@@ -338,6 +338,14 @@ def _mint_oauth_access_token(
             f"OAuth token endpoint for {service!r} returned no access_token."
         )
     access_token = access_token.strip()
+    # ``.strip()`` only removes *surrounding* whitespace; an embedded newline
+    # would survive and is a malformed token. Reject it here — before the
+    # caller caches the value — so a single bad response can't poison the
+    # process-wide cache and fail every fetch until expiry.
+    if any(ch in access_token for ch in ("\n", "\r")):
+        raise OAuthRefreshError(
+            f"OAuth token endpoint for {service!r} returned a malformed access_token."
+        )
 
     # ``expires_in`` is seconds-from-now per RFC 6749. Coerce defensively;
     # if absent or junk, fall back to DEFAULT_TTL_SECONDS so we still expire.
