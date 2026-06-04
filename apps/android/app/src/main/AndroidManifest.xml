@@ -6,6 +6,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
+    <!-- Reaching the user's own local Hermes gateway (default
+         http://127.0.0.1:8765) over loopback/LAN requires INTERNET — Android
+         gates every socket, including localhost, behind this permission.
+         Used ONLY to talk to the paired local gateway; never to remote AI
+         providers, and no provider API keys ever live in this app. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Sentient avatar: the body lives over other apps and operates the
          device; the voice loop listens through a headset. These are the
          power-user permissions the personal-tool fork opts into. -->

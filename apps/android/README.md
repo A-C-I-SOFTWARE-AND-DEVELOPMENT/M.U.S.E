@@ -4,8 +4,10 @@
 > cockpit**: it organizes work for the official AI tools you already
 > subscribe to (Codex, Claude Code, ChatGPT, Claude), and hands off
 > via clipboard, deep links, or the Termux bridge. It does **not**
-> proxy any provider, does **not** require any API key, and does
-> **not** make HTTP calls of its own.
+> proxy any provider and does **not** require any API key. Its only
+> network traffic is to **your own local Hermes gateway** (default
+> `http://127.0.0.1:8765`) when you pair one — never to remote AI
+> providers. Unpaired, it runs fully offline against an on-device mock.
 
 ## ⬇️ Download & install (sideload)
 
@@ -34,7 +36,7 @@ This module is the native Android shell.
 - **Language / UI:** Kotlin + Jetpack Compose (Material 3)
 - **Architecture:** MVVM with hand-rolled DI ([`AppContainer`](app/src/main/java/com/aci/hermes/di/AppContainer.kt))
 - **Persistence:** Jetpack DataStore (`hermes_settings`) + a single JSON file (`hermes_tasks.json`) in `filesDir`
-- **No networking client.** No OkHttp / Retrofit / Ktor / WebSocket / SSE dependency in `app/build.gradle.kts`.
+- **No third-party networking client.** No OkHttp / Retrofit / Ktor / WebSocket / SSE dependency in `app/build.gradle.kts`. The cockpit/chat features talk to your local gateway over the JDK's `HttpURLConnection` only (default `http://127.0.0.1:8765`); there is no remote-provider client.
 
 Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

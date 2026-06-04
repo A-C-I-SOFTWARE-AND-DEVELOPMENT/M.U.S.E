@@ -117,8 +117,24 @@ in GitHub Actions secrets and your local keystore.
 
 ---
 
+## Versioning
+
+`versionCode` is **not** hard-coded for CI builds. `app/build.gradle.kts` reads
+the `ANDROID_VERSION_CODE` env var (falling back to `1` for local builds), and
+`android-release.yml` sets it to the workflow **run number**. This gives every
+rolling `android-latest` APK a unique, monotonically increasing `versionCode`,
+so a freshly downloaded build actually supersedes the one already installed —
+Android treats an equal `versionCode` as "not newer" and would otherwise refuse
+the sideload update. `versionName` (e.g. `0.1.0`) stays the human-facing
+marketing string and is what tagged `android-v*` releases are cut from.
+
 ## Notes
 - `minSdk 26` (Android 8.0+), `targetSdk`/`compileSdk 35`.
-- The app is a **local orchestrator** — no API keys or backend URLs are baked
-  into the build; signing secrets are the only sensitive inputs, and they
-  live only in your keystore / GitHub secrets.
+- The app is a **local orchestrator** — no API keys or remote-provider URLs are
+  baked into the build. Its only network traffic is to the user's own local
+  Hermes gateway (default `127.0.0.1:8765`); signing secrets are the only
+  sensitive inputs, and they live only in your keystore / GitHub secrets.
+- Release integrity: every CI build runs `apksigner verify --print-certs` and
+  reports the signer identity (release vs. debug) to the job summary. GitHub
+  Actions secrets supply the signing key; set `REQUIRE_RELEASE_SIGNING=true` to
+  make a debug-signed build fail closed.

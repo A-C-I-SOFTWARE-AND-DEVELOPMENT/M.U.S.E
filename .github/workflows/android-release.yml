@@ -51,21 +51,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Cache Gradle caches
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.gradle/caches
@@ -97,7 +97,13 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon --stacktrace --info :app:assembleRelease
+          # Each build gets a unique, monotonically increasing versionCode so a
+          # freshly downloaded rolling APK actually supersedes the prior install
+          # (Android treats an equal versionCode as "not newer"). versionName
+          # stays the source-of-truth marketing version for tagged releases.
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        # --warn (not --info) keeps signing-config env reads out of verbose logs.
+        run: ./gradlew --no-daemon --stacktrace --warn :app:assembleRelease
 
       - name: Determine release context
         id: rel
@@ -178,7 +184,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK as workflow artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: ${{ steps.apk.outputs.name }}
           path: ${{ steps.apk.outputs.path }}
@@ -206,7 +212,7 @@ jobs:
           {
             printf '%s\n' "**Jarvis Prime** — the **local-only Hermes/JARVIS Android cockpit**. Version ${VERSION}."
             printf '%s\n' ""
-            printf '%s\n' "> This app runs entirely on your device: it organizes handoffs to the AI tools you already use (Codex, Claude Code, ChatGPT, Claude) via clipboard / deep links / the Termux bridge. It makes **no network calls of its own**, proxies **no** AI provider, and holds **no** API keys."
+            printf '%s\n' "> This app runs on your device: it organizes handoffs to the AI tools you already use (Codex, Claude Code, ChatGPT, Claude) via clipboard / deep links / the Termux bridge. Its only network traffic is to **your own local Hermes gateway** (default \`127.0.0.1:8765\`) when you pair one — **never** to remote AI providers — and it holds **no** API keys. Unpaired, it runs fully offline against an on-device mock."
             printf '%s\n' ""
             printf '%s\n' "Signing: ${sign_line}"
             printf '%s\n' ""

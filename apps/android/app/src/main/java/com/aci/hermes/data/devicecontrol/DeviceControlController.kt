@@ -110,9 +110,10 @@ class DeviceControlController(
         // QUERY_ALL_PACKAGES is an install-time permission declared in the
         // manifest, so package visibility is always available on this build.
         add(DeviceControlCapability.PACKAGE_VISIBILITY)
-        // The INTERNET permission is install-time too; reaching the local
-        // backend is a pairing/consent concern surfaced on the Control
-        // screen, not an OS grant — so the capability is always available.
+        // INTERNET is an install-time permission declared in the manifest
+        // (needed to reach the local gateway over loopback), so reaching the
+        // backend is a pairing/consent concern surfaced on the Control screen,
+        // not a runtime OS grant — the capability is always available.
         add(DeviceControlCapability.BACKEND_CONNECTION)
     }
 
