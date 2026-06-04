@@ -11522,10 +11522,14 @@ def main():
 
     # =========================================================================
     # guardrails command — verifiable guardrail subsystem (ledger, strict
-    # gates, owner challenges, secret scan). Logic lives in its own module so
-    # this file only carries the registration.
+    # gates, owner challenges, secret scan). Logic lives in its own top-level
+    # module so this file only carries the registration. The module lives at
+    # ``hermes_cli.guardrails_cli`` (NOT under ``jarvis_prime``) on purpose:
+    # registering the subparser must not eagerly import the heavy
+    # ``jarvis_prime`` package at ``--help`` time — the implementation
+    # lazy-imports it only at command dispatch, like ``cmd_jarvis``.
     # =========================================================================
-    from hermes_cli.jarvis_prime.guardrails_cli import register as _register_guardrails
+    from hermes_cli.guardrails_cli import register as _register_guardrails
 
     _register_guardrails(subparsers)
 

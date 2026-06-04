@@ -88,7 +88,7 @@ def test_self_attested_packet_fails_strict_gates() -> None:
 def test_packet_with_matching_artifacts_passes_strict_gates(repo_with_change: Path) -> None:
     packet = build_work_packet("refactor the helper in a.py")
     gp = packet.to_gate_packet()
-    bundle = _full_bundle(repo_with_change, gp["packet_id"])
+    bundle = _full_bundle(repo_with_change, str(gp["packet_id"]))
     summary = run_strict_gate_summary(gp, bundle)
     assert summary.overall is GateOutcome.PASS, summary.render()
 
@@ -115,7 +115,7 @@ def test_secret_in_diff_fails_security_gate(tmp_path: Path) -> None:
     )
     packet = build_work_packet("refactor the helper in a.py")
     gp = packet.to_gate_packet()
-    bundle = _full_bundle(repo, gp["packet_id"])
+    bundle = _full_bundle(repo, str(gp["packet_id"]))
     summary = run_strict_gate_summary(gp, bundle)
     security = next(r for r in summary.results if r.name == "security")
     assert security.outcome is GateOutcome.FAIL
@@ -125,8 +125,10 @@ def test_owner_gate_requires_grant_artifact(repo_with_change: Path) -> None:
     # A packet carrying an owner-gated action needs a challenge-bound grant.
     packet = build_work_packet("deploy the service to production")
     gp = packet.to_gate_packet()
-    assert gp["owner_gated_actions"], "deploy should surface an owner-gated action"
-    bundle = _full_bundle(repo_with_change, gp["packet_id"])
+    owner_actions = list(gp["owner_gated_actions"])  # type: ignore[arg-type]
+    packet_id = str(gp["packet_id"])
+    assert owner_actions, "deploy should surface an owner-gated action"
+    bundle = _full_bundle(repo_with_change, packet_id)
     summary = run_strict_gate_summary(gp, bundle)
     owner = next(r for r in summary.results if r.name == "owner_approval")
     assert owner.outcome is GateOutcome.NEEDS_OWNER_APPROVAL
@@ -134,9 +136,9 @@ def test_owner_gate_requires_grant_artifact(repo_with_change: Path) -> None:
     # Add the matching grant artifact -> the owner gate clears.
     from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
 
-    action = gp["owner_gated_actions"][0]
-    ch = create_challenge(action, subject=gp["packet_id"])
+    ch = create_challenge(str(owner_actions[0]), subject=packet_id)
     grant = authorize_challenge(ch, ch.required_phrase)
+    assert grant is not None
     bundle.add(grant.to_artifact())
     summary2 = run_strict_gate_summary(gp, bundle)
     owner2 = next(r for r in summary2.results if r.name == "owner_approval")

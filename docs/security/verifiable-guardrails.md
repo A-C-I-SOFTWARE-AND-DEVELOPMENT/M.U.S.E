@@ -23,7 +23,7 @@ Everything here is **stdlib-only**. No new required dependency is introduced.
 | `hermes_cli/jarvis_prime/guardrail_collectors.py` | Collectors that observe reality (git diff, test runs, secret scan, review, rollback). |
 | `hermes_cli/jarvis_prime/gates.py` | Strict, evidence-bound gate evaluation (`run_strict_gate_summary`). |
 | `hermes_cli/jarvis_prime/owner_auth.py` | Nonce-bound owner challenge/response. |
-| `hermes_cli/jarvis_prime/guardrails_cli.py` | The `hermes guardrails` command group. |
+| `hermes_cli/guardrails_cli.py` | The `hermes guardrails` command group (top-level so `--help` never eagerly imports `jarvis_prime`). |
 | `hermes_cli/jarvis_prime/launch_doctor.py` | Proves the guardrails are *operational*, not just importable. |
 
 ## What is cryptographically verifiable
