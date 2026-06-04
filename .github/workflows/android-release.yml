@@ -20,6 +20,16 @@ on:
   push:
     tags:
       - 'android-v*'
+    branches:
+      # `main` keeps a rolling `android-latest` download fresh on every
+      # Android change. The `claude/live-app-download-*` line is the initial
+      # bring-up so the first installable APK publishes before this merges to
+      # main; it can be dropped once `main` is publishing on its own.
+      - main
+      - 'claude/live-app-download-*'
+    paths:
+      - 'apps/android/**'
+      - '.github/workflows/android-release.yml'
   workflow_dispatch:
     inputs:
       tag:
@@ -89,13 +99,44 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew --no-daemon --stacktrace --info :app:assembleRelease
 
+      - name: Determine release context
+        id: rel
+        run: |
+          ver="$(grep -E '^\s*versionName' app/build.gradle.kts | head -1 | sed -E 's/.*"(.*)".*/\1/')"
+          echo "version=${ver:-0.0.0}" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Real version tag → permanent, versioned release.
+            echo "publish=true"     >> "$GITHUB_OUTPUT"
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
+            echo "title=Jarvis Prime ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ github.event.inputs.tag }}" ]; then
+            # Manually dispatched against an explicit tag.
+            echo "publish=true"     >> "$GITHUB_OUTPUT"
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
+            echo "title=Jarvis Prime ${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # Branch push → refresh the rolling 'android-latest' download. The
+            # asset name is stable so the download URL never changes.
+            echo "publish=true"     >> "$GITHUB_OUTPUT"
+            echo "tag=android-latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true"  >> "$GITHUB_OUTPUT"
+            echo "asset=jarvis-prime-android.apk" >> "$GITHUB_OUTPUT"
+            echo "title=Jarvis Prime — latest Android build" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false"    >> "$GITHUB_OUTPUT"
+            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Locate and name the APK
         id: apk
         run: |
           src="$(find app/build/outputs/apk/release -name '*.apk' | head -1)"
           if [ -z "$src" ]; then echo "No release APK produced" >&2; exit 1; fi
-          ver="$(grep -E '^\s*versionName' app/build.gradle.kts | head -1 | sed -E 's/.*"(.*)".*/\1/')"
-          dest="jarvis-${ver:-release}.apk"
+          dest="${{ steps.rel.outputs.asset }}"
           cp "$src" "$dest"
           echo "path=apps/android/$dest" >> "$GITHUB_OUTPUT"
           echo "name=$dest" >> "$GITHUB_OUTPUT"
@@ -109,20 +150,42 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Attach APK to the GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.tag != ''
+      - name: Publish the downloadable GitHub Release
+        if: steps.rel.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.inputs.tag != '' && github.event.inputs.tag || github.ref_name }}
+          TAG: ${{ steps.rel.outputs.tag }}
+          TITLE: ${{ steps.rel.outputs.title }}
+          PRERELEASE: ${{ steps.rel.outputs.prerelease }}
+          VERSION: ${{ steps.rel.outputs.version }}
+          ASSET: ${{ steps.apk.outputs.name }}
           SIGNED: ${{ steps.apk.outputs.signed }}
         run: |
-          notes="Jarvis Prime Android APK."
           if [ "$SIGNED" = "true" ]; then
-            notes="$notes Signed release build."
+            sign_line="Signed release build."
           else
-            notes="$notes NOTE: built without release keystore secret — debug-signed."
+            sign_line="Built without a release keystore secret, so this APK is debug-signed — fully installable via sideload (Android may warn it is from an \"unknown developer\")."
           fi
-          # Create the release if it doesn't exist yet, then upload/clobber the asset.
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
-            || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "Jarvis Prime $TAG" --notes "$notes"
-          gh release upload "$TAG" "${{ steps.apk.outputs.name }}" --repo "$GITHUB_REPOSITORY" --clobber
+          # printf keeps every Markdown line at column 0 regardless of the
+          # YAML block indentation, so nothing renders as an accidental code block.
+          {
+            printf '%s\n' "Jarvis Prime Android app — version ${VERSION}. ${sign_line}"
+            printf '%s\n' ""
+            printf '%s\n' "## Install"
+            printf '%s\n' "1. On your Android phone, download \`${ASSET}\` from the Assets below."
+            printf '%s\n' "2. Open it and tap install; allow installs from this source if prompted."
+            printf '%s\n' "3. Launch **Jarvis Prime**."
+            printf '%s\n' ""
+            printf '%s\n' "Requires Android 8.0+ (API 26). Built for arm64-v8a / armeabi-v7a."
+          } > release-notes.md
+          pre_flag=""
+          [ "$PRERELEASE" = "true" ] && pre_flag="--prerelease"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
+          fi
+          gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Download: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}"
