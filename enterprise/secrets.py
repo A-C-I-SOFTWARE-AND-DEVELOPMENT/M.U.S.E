@@ -29,9 +29,10 @@ from __future__ import annotations
 import logging
 import os
 import re
+import threading
 import time
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 # Map of "service.scope-prefix" → set of agent roles allowed to call.
 # Keep this small and explicit. Any service not listed is rejected
@@ -59,6 +60,21 @@ _ACL: dict[str, frozenset[str]] = {
 # real provider's expiry may be shorter; that's fine — the bundle's
 # `expires_at` is a hint, not a promise.
 DEFAULT_TTL_SECONDS = 900
+
+# We refresh this many seconds *before* the provider-declared expiry so a
+# cached token never goes stale mid-call. Keep it well below the typical
+# 3600s OAuth access-token lifetime.
+_REFRESH_SKEW_SECONDS = 60
+
+# Network timeout for the token endpoint round-trip. Short on purpose — a
+# slow IdP should fail fast, not hang an agent action.
+_TOKEN_HTTP_TIMEOUT = 20.0
+
+# Callable that performs the token-endpoint POST. Signature mirrors a thin
+# slice of ``httpx.post`` so production uses httpx and tests inject a fake
+# without monkeypatching the module. ``data`` is the form body; the return
+# is an object exposing ``.status_code`` (int) and ``.json()`` (-> dict).
+HttpPost = Callable[..., Any]
 
 _logger = logging.getLogger("enterprise.secrets")
 
@@ -164,6 +180,210 @@ def _resolve_from_pool(service: str) -> Optional[str]:
     return None
 
 
+class OAuthRefreshError(RuntimeError):
+    """The token endpoint rejected the refresh or returned a bad body.
+
+    Raised only when a refresh-token entry *is* configured but the
+    exchange fails. Callers that want graceful degradation should catch
+    this and fall back to the long-lived key path — ``fetch_secret``
+    does NOT do that automatically, because a configured-but-failing
+    OAuth source is an operator error worth surfacing, not silently
+    masking with a long-lived key.
+    """
+
+
+@dataclass(frozen=True)
+class OAuthRefreshConfig:
+    """Everything needed to mint a short-lived access token via OAuth2.
+
+    All fields are read from configuration (env / .env), never hardcoded.
+    The class is provider-agnostic: point ``token_endpoint`` at any
+    standards-compliant OAuth2 token URL.
+    """
+
+    token_endpoint: str
+    client_id: str
+    client_secret: Optional[str]
+    refresh_token: str
+    scope: Optional[str] = None
+
+
+# Process-wide cache of minted access tokens, keyed by service (lowercased).
+# Value is ``(access_token, expires_at_epoch)``. Guarded by a lock because
+# council agents may run concurrently and we don't want two threads racing
+# the same token endpoint. The cache is best-effort: a miss just means we
+# mint again, never a correctness problem.
+_token_cache: dict[str, tuple[str, float]] = {}
+_token_cache_lock = threading.Lock()
+
+
+def _resolve_oauth_config(service: str) -> Optional[OAuthRefreshConfig]:
+    """Read the OAuth2 refresh-token config for ``service`` from env / .env.
+
+    Convention (uppercased, ``-`` → ``_``); for ``"salesforce"``:
+
+      * ``SALESFORCE_OAUTH_TOKEN_URL``       — token endpoint (required)
+      * ``SALESFORCE_OAUTH_CLIENT_ID``       — OAuth client id (required)
+      * ``SALESFORCE_OAUTH_REFRESH_TOKEN``   — stored refresh token (required)
+      * ``SALESFORCE_OAUTH_CLIENT_SECRET``   — client secret (optional; many
+        public/PKCE clients omit it)
+      * ``SALESFORCE_OAUTH_SCOPE``           — space-delimited scopes (optional)
+
+    Returns ``None`` (NOT an error) when the three required keys aren't all
+    present — that's the signal to fall back to the long-lived key path.
+    This keeps the existing safe default intact for every service that has
+    no refresh config.
+    """
+    prefix = service.upper().replace("-", "_")
+
+    def _env(suffix: str) -> Optional[str]:
+        val = os.environ.get(f"{prefix}_OAUTH_{suffix}")
+        return val.strip() if val and val.strip() else None
+
+    token_endpoint = _env("TOKEN_URL")
+    client_id = _env("CLIENT_ID")
+    refresh_token = _env("REFRESH_TOKEN")
+
+    # All three required pieces must be present, else there's no usable
+    # refresh source — fall back silently.
+    if not (token_endpoint and client_id and refresh_token):
+        return None
+
+    return OAuthRefreshConfig(
+        token_endpoint=token_endpoint,
+        client_id=client_id,
+        client_secret=_env("CLIENT_SECRET"),
+        refresh_token=refresh_token,
+        scope=_env("SCOPE"),
+    )
+
+
+def _default_http_post(url: str, *, data: Mapping[str, str], timeout: float) -> Any:
+    """Production token-endpoint POST using the repo's httpx convention.
+
+    Imported lazily so importing ``enterprise.secrets`` in a minimal test
+    context (or one that injects its own ``http_post``) never requires
+    httpx at module-import time.
+    """
+    import httpx
+
+    return httpx.post(
+        url,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        },
+        data=dict(data),
+        timeout=timeout,
+    )
+
+
+def _mint_oauth_access_token(
+    service: str,
+    cfg: OAuthRefreshConfig,
+    *,
+    http_post: HttpPost,
+    now: float,
+) -> tuple[str, float]:
+    """Exchange a refresh token for a short-lived access token.
+
+    Standard OAuth2 ``grant_type=refresh_token`` flow (RFC 6749 §6). Returns
+    ``(access_token, expires_at_epoch)``. Raises ``OAuthRefreshError`` on any
+    transport error, non-2xx response, or malformed body.
+    """
+    body: dict[str, str] = {
+        "grant_type": "refresh_token",
+        "refresh_token": cfg.refresh_token,
+        "client_id": cfg.client_id,
+    }
+    if cfg.client_secret:
+        body["client_secret"] = cfg.client_secret
+    if cfg.scope:
+        body["scope"] = cfg.scope
+
+    try:
+        resp = http_post(
+            cfg.token_endpoint,
+            data=body,
+            timeout=_TOKEN_HTTP_TIMEOUT,
+        )
+    except Exception as exc:  # network / DNS / TLS failure
+        raise OAuthRefreshError(
+            f"OAuth token request for {service!r} failed: {exc}"
+        ) from exc
+
+    status = getattr(resp, "status_code", None)
+    if status is None or not (200 <= int(status) < 300):
+        # Do NOT include the response body — it can echo back client_secret
+        # or token-shaped material. The status code is enough to triage.
+        raise OAuthRefreshError(
+            f"OAuth token endpoint for {service!r} returned HTTP {status}."
+        )
+
+    try:
+        payload = resp.json()
+    except Exception as exc:
+        raise OAuthRefreshError(
+            f"OAuth token endpoint for {service!r} returned a non-JSON body."
+        ) from exc
+
+    if not isinstance(payload, Mapping):
+        raise OAuthRefreshError(
+            f"OAuth token endpoint for {service!r} returned an unexpected body."
+        )
+
+    access_token = payload.get("access_token")
+    if not isinstance(access_token, str) or not access_token.strip():
+        raise OAuthRefreshError(
+            f"OAuth token endpoint for {service!r} returned no access_token."
+        )
+    access_token = access_token.strip()
+
+    # ``expires_in`` is seconds-from-now per RFC 6749. Coerce defensively;
+    # if absent or junk, fall back to DEFAULT_TTL_SECONDS so we still expire.
+    try:
+        expires_in = int(payload.get("expires_in", DEFAULT_TTL_SECONDS))
+    except (TypeError, ValueError):
+        expires_in = DEFAULT_TTL_SECONDS
+    if expires_in <= 0:
+        expires_in = DEFAULT_TTL_SECONDS
+
+    return access_token, now + expires_in
+
+
+def _resolve_oauth_token(
+    service: str,
+    cfg: OAuthRefreshConfig,
+    *,
+    http_post: HttpPost,
+    now: float,
+) -> tuple[str, float]:
+    """Return a cached-or-freshly-minted access token + its expiry.
+
+    Refreshes when there is no cached token or the cached one is within
+    ``_REFRESH_SKEW_SECONDS`` of expiry. Thread-safe.
+    """
+    key = service.lower()
+    with _token_cache_lock:
+        cached = _token_cache.get(key)
+        if cached is not None:
+            token, expires_at = cached
+            if now < (expires_at - _REFRESH_SKEW_SECONDS):
+                return token, expires_at
+
+        token, expires_at = _mint_oauth_access_token(
+            service, cfg, http_post=http_post, now=now
+        )
+        _token_cache[key] = (token, expires_at)
+        return token, expires_at
+
+
+def reset_oauth_token_cache() -> None:
+    """Drop all cached access tokens. For tests and operator rotation."""
+    with _token_cache_lock:
+        _token_cache.clear()
+
+
 def fetch_secret(
     service: str,
     *,
@@ -171,6 +391,8 @@ def fetch_secret(
     scope: Optional[str] = None,
     delegated_for: Optional[str] = None,
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
+    http_post: Optional[HttpPost] = None,
+    now: Optional[float] = None,
 ) -> SecretBundle:
     """Return a bundled secret for ``service`` if the caller is allowed.
 
@@ -182,15 +404,61 @@ def fetch_secret(
       * Audit-style log entry is emitted via the standard logger so
         the RedactingFormatter masks any incidental token-shaped text.
         We never log ``value`` directly even when redaction is off.
-      * If the underlying source is an OAuth refresh-token entry, a
-        short-lived access token *would* be minted (left as a TODO
-        hook — depends on which OAuth library Hermes pulls in next).
-        Until then, all returned bundles are ephemeral=False and the
-        operator is responsible for rotating long-lived keys.
+      * If an OAuth2 refresh-token entry is configured for the service
+        (``<SERVICE>_OAUTH_TOKEN_URL`` / ``_CLIENT_ID`` / ``_REFRESH_TOKEN``,
+        plus optional ``_CLIENT_SECRET`` / ``_SCOPE``), a short-lived
+        access token is minted via the standard ``grant_type=refresh_token``
+        exchange and returned with ``ephemeral=True`` and a real
+        ``expires_at``. Minted tokens are cached and re-minted shortly
+        before expiry. If a refresh source is configured but the exchange
+        fails, ``OAuthRefreshError`` is raised (we do NOT silently fall
+        back to a long-lived key — that would mask an operator error).
+      * Otherwise we fall back to the long-lived API key path
+        (``<SERVICE>_API_KEY`` / credential pool), returned with
+        ``ephemeral=False`` — the original safe default, unchanged for
+        every service without refresh config.
       * Refuses to return a value containing ``\\n`` or other obvious
         corruption (defence against accidental concatenation bugs).
+
+    ``http_post`` and ``now`` are injection points for testing the OAuth
+    path without real network calls or wall-clock dependence; production
+    callers leave them at their defaults.
     """
     _check_access(service, caller_role, delegated_for)
+
+    clock = time.time() if now is None else now
+
+    # OAuth2 refresh-token path: only taken when a full refresh config
+    # exists. Anything missing → fall through to the long-lived key path
+    # so the safe default is never broken for unconfigured services.
+    oauth_cfg = _resolve_oauth_config(service)
+    if oauth_cfg is not None:
+        token, expires_at = _resolve_oauth_token(
+            service,
+            oauth_cfg,
+            http_post=http_post or _default_http_post,
+            now=clock,
+        )
+        if any(ch in token for ch in ("\n", "\r")):
+            raise SecretNotFound(
+                f"Minted OAuth token for {service!r} contains a newline — refusing to return."
+            )
+        ephemeral = True
+        _logger.info(
+            "fetch_secret service=%s scope=%s role=%s delegated_for=%s ephemeral=%s",
+            service,
+            scope or "",
+            caller_role,
+            delegated_for or "",
+            ephemeral,
+        )
+        return SecretBundle(
+            service=service,
+            scope=scope,
+            value=token,
+            expires_at=expires_at,
+            ephemeral=ephemeral,
+        )
 
     raw = _resolve_from_env(service) or _resolve_from_pool(service)
     if not raw:
@@ -204,8 +472,9 @@ def fetch_secret(
             f"Credential for {service!r} contains a newline — refusing to return."
         )
 
+    # Long-lived API key path: no expiry, ephemeral=False (the safe default).
     expires_at: Optional[float] = None
-    ephemeral = False  # TODO: flip to True once OAuth refresh path lands.
+    ephemeral = False
 
     _logger.info(
         "fetch_secret service=%s scope=%s role=%s delegated_for=%s ephemeral=%s",
