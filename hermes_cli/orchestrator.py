@@ -50,6 +50,12 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from hermes_cli import orchestrator_ledger as _ledger
+from hermes_cli.decision_engine import (
+    DecisionTier,
+    merge_decision_inputs,
+    owner_gate_input,
+    policy_input,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -304,7 +310,23 @@ def submit_job(prompt: str) -> Job:
     jobs = _load_jobs()
     jobs.append(job)
     _save_jobs(jobs)
-    _append_ledger(job.id, {"kind": "submit", "prompt": prompt})
+    # Sprint 2 breadth: attach the unified verdict to the submit entry (not a
+    # separate entry, mirroring how the execute boundary records its verdict on
+    # the worker entry). Submitting a job records intent only — no worker runs,
+    # no owner-gated action is taken — so the verdict is `auto`. Recorded, not
+    # gating: this does not change that the job is queued.
+    submit_verdict = merge_decision_inputs(
+        "orchestrator.submit_job",
+        [policy_input(DecisionTier.AUTO, "job queued; no action taken")],
+    )
+    _append_ledger(
+        job.id,
+        {
+            "kind": "submit",
+            "prompt": prompt,
+            "decision_verdict": submit_verdict.to_redacted_dict(),
+        },
+    )
     return job
 
 
@@ -398,8 +420,6 @@ def dispatch_job(
     # Unified decision verdict for the execute boundary (Sprint 2 wiring):
     # compose the owner gate into one auto/ask/refuse verdict the cockpit can
     # render. Behavior-preserving — the block below fires on the same condition.
-    from hermes_cli.decision_engine import merge_decision_inputs, owner_gate_input
-
     execute_verdict = merge_decision_inputs(
         "orchestrator.worker_execute",
         [owner_gate_input(needs_owner, action=f"worker {worker_id} execute")],
