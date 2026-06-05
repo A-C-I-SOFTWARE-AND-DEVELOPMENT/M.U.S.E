@@ -139,6 +139,17 @@ class TestPrepareBody:
         body = gp.prepare_pr_body("job-1")
         assert "- [ ] Reviewer confirms automated changes." in body
 
+    def test_decision_block_present_with_verdict_id(self) -> None:
+        body = gp.prepare_pr_body("job-7", verdict_id="dv_abc123", decision_tier="ask")
+        assert "## Decision" in body
+        assert "`dv_abc123`" in body
+        assert "tier: ask" in body
+        assert body.index("## Decision") < body.index("## Provenance")
+
+    def test_decision_block_absent_by_default(self) -> None:
+        # additive: callers that don't pass a verdict get the prior output
+        assert "## Decision" not in gp.prepare_pr_body("job-7")
+
 
 # ── secret blocking ──────────────────────────────────────────────────────────
 
@@ -366,6 +377,9 @@ class TestDryRun:
         body = (artifact_dir / "pr-body.md").read_text(encoding="utf-8")
         assert "Adds foo." in body
         assert "- [ ] pytest tests/test_foo.py" in body
+        # run() now surfaces the decision verdict id in the body (Sprint 5 wiring)
+        assert "## Decision" in body
+        assert "- Verdict: `dv_" in body
 
         # Status JSON is well-formed and dry-run
         status = json.loads(
