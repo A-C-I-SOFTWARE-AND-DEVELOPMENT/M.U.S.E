@@ -15,7 +15,9 @@ import kotlinx.serialization.Serializable
  * per-device token that is returned exactly once. Nothing here makes network
  * calls or carries provider secrets — [DevicePairingClient] performs the
  * transport, and the only secret the phone ever stores is the device token,
- * persisted through [com.aci.hermes.data.preferences.SecureTokenStore].
+ * persisted through [com.aci.hermes.data.preferences.SettingsRepository.setCockpitToken]
+ * (which writes [com.aci.hermes.data.preferences.SecureTokenStore] and updates
+ * the in-memory bearer source the live client reads).
  *
  * One-to-one with the JSON shapes the gateway returns; absent fields stay at
  * their declared defaults under the tolerant [CockpitHttp.json] decoder.

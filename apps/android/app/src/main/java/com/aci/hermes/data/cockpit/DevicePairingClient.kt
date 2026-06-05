@@ -1,6 +1,6 @@
 package com.aci.hermes.data.cockpit
 
-import com.aci.hermes.data.preferences.SecureTokenStore
+import com.aci.hermes.data.preferences.SettingsRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,15 +22,20 @@ import kotlinx.serialization.json.Json
  * endpoint is read through a provider, not captured at construction, so the
  * client picks up *Settings → Connection* changes without being rebuilt.
  *
- * On a successful confirm the raw device token is persisted immediately via
- * [SecureTokenStore.write] — the same encrypted-at-rest mechanism
- * [com.aci.hermes.data.preferences.SettingsRepository.setCockpitToken] uses —
- * because the gateway returns the raw token exactly once. The token is never
+ * On a successful confirm the raw device token (returned by the gateway
+ * exactly once) is persisted through [SettingsRepository.setCockpitToken] —
+ * the *same* path every other "pair a gateway" flow uses. That setter writes
+ * the encrypted-at-rest store **and** updates the in-memory `cockpitToken`
+ * StateFlow that [HermesCockpitClient] reads its bearer from (mirrored into
+ * [com.aci.hermes.di.AppContainer]'s token cache); persisting straight to
+ * [com.aci.hermes.data.preferences.SecureTokenStore] would leave that cache
+ * `null` until the process is recreated, so authenticated calls would still
+ * fail with "Not paired" right after a successful confirm. The token is never
  * logged.
  */
 class DevicePairingClient(
     private val endpointProvider: () -> String,
-    private val tokenStore: SecureTokenStore,
+    private val settingsRepository: SettingsRepository,
     private val executor: CockpitHttpExecutor = JdkHttpExecutor,
     private val json: Json = CockpitHttp.json,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -57,9 +62,12 @@ class DevicePairingClient(
      * Confirm a pairing [code] and exchange it for the per-device token.
      * Issuing a token is owner-gated, so [authorization] must equal the exact
      * owner phrase ([OWNER_AUTHORIZATION_PHRASE]) — the gateway returns `403`
-     * otherwise; a bad/expired code is a `401`. On success the raw token is
-     * persisted through [SecureTokenStore] (returned by the gateway exactly
-     * once) before the result is handed back.
+     * otherwise; a bad/expired code is a `401`. On success the raw token
+     * (returned by the gateway exactly once) is persisted through
+     * [SettingsRepository.setCockpitToken] — which writes the encrypted store
+     * *and* updates the in-memory `cockpitToken` StateFlow the live client
+     * reads — before the result is handed back, so the very next authenticated
+     * call is already paired.
      */
     suspend fun confirmPairing(
         code: String,
@@ -74,9 +82,11 @@ class DevicePairingClient(
             ),
         )
         if (result is CockpitResult.Success) {
-            // The raw token is handed back exactly once — persist it now, on
-            // the same encrypted-at-rest store the rest of the app reads from.
-            tokenStore.write(result.value.token)
+            // The raw token is handed back exactly once — persist it through the
+            // repository so secure storage AND the in-memory source the live
+            // client reads from both update (no double-write: setCockpitToken
+            // already wraps SecureTokenStore.write).
+            settingsRepository.setCockpitToken(result.value.token)
         }
         return result
     }

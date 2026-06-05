@@ -1,38 +1,48 @@
 package com.aci.hermes.ui.screens.pairing
 
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.test.core.app.ApplicationProvider
 import com.aci.hermes.data.cockpit.CockpitHttpExecutor
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.CockpitRequest
 import com.aci.hermes.data.cockpit.DevicePairingClient
 import com.aci.hermes.data.preferences.SecureTokenStore
+import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import java.io.File
+import java.nio.file.Files
 
 /**
  * State-machine behaviour for the pairing screen. Drives the real
  * [DevicePairingViewModel] over a real [DevicePairingClient] backed by an
- * injected executor + in-memory token store, so the start→confirm→persist path
- * and the error mapping are exercised on the JVM (no emulator, no socket) —
- * the same shape as ModelRouteViewModelTest.
+ * injected executor + a real [SettingsRepository], so the start→confirm→persist
+ * path and the error mapping are exercised on the JVM (no socket).
+ *
+ * The confirmed token is asserted on [SettingsRepository.cockpitToken] — the
+ * in-memory source the live cockpit client reads its bearer from — so the test
+ * guards the actual bug: the UI must not reach [DevicePairingState.Paired] while
+ * the live client's cached token stays null. The repository's secure store is an
+ * in-memory fake (no Keystore); its DataStore is a fresh isolated file.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class DevicePairingViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
-
-    @Before fun setUp() = Dispatchers.setMain(testDispatcher)
-    @After fun tearDown() = Dispatchers.resetMain()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     /** In-memory stand-in for the encrypted store (mirrors its semantics). */
     private class FakeSecureTokenStore(private var value: String? = null) : SecureTokenStore {
@@ -41,13 +51,21 @@ class DevicePairingViewModelTest {
         override fun clear() { value = null }
     }
 
+    /** Real repository over an isolated DataStore + in-memory secure store. */
+    private fun settings(secure: SecureTokenStore = FakeSecureTokenStore()): SettingsRepository {
+        val ctx = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = Files.createTempDirectory("hermes-pairing-vm-test").toFile().also { it.deleteOnExit() }
+        val store = PreferenceDataStoreFactory.create { File(dir, "settings.preferences_pb") }
+        return SettingsRepository(ctx, store, secure)
+    }
+
     private fun vm(
-        store: SecureTokenStore = FakeSecureTokenStore(),
+        settings: SettingsRepository = settings(),
         exec: (CockpitRequest) -> CockpitRawResponse,
     ): DevicePairingViewModel {
         val client = DevicePairingClient(
             endpointProvider = { "http://127.0.0.1:8765" },
-            tokenStore = store,
+            settingsRepository = settings,
             executor = CockpitHttpExecutor { exec(it) },
             ioDispatcher = Dispatchers.Unconfined,
         )
@@ -74,9 +92,9 @@ class DevicePairingViewModelTest {
     }
 
     @Test
-    fun `confirm happy path moves to Paired and persists the token`() = runTest {
-        val store = FakeSecureTokenStore()
-        val vm = vm(store) { req ->
+    fun `confirm happy path moves to Paired and persists the token to the live source`() = runTest {
+        val settings = settings()
+        val vm = vm(settings) { req ->
             if (req.url.endsWith("/pair/start")) {
                 CockpitRawResponse(201, """{"pairing_code":"ABCD2345","expires_at":0,"expires_in":300}""")
             } else {
@@ -91,13 +109,15 @@ class DevicePairingViewModelTest {
         val s = vm.state.value
         assertTrue(s is DevicePairingState.Paired)
         assertEquals("dev_abc", (s as DevicePairingState.Paired).confirm.deviceId)
-        assertEquals("tok-xyz", store.read())
+        // Reaching Paired must mean the live client's bearer source is set, not
+        // just secure storage — otherwise authenticated calls fail "Not paired".
+        assertEquals("tok-xyz", settings.cockpitToken.value)
     }
 
     @Test
     fun `confirm with the wrong owner phrase is a non-retryable Error and stores nothing`() = runTest {
-        val store = FakeSecureTokenStore()
-        val vm = vm(store) {
+        val settings = settings()
+        val vm = vm(settings) {
             CockpitRawResponse(403, """{"error":"owner authorization required"}""")
         }
         vm.confirmPairing("ABCD2345", authorization = "nope")
@@ -107,7 +127,7 @@ class DevicePairingViewModelTest {
         assertTrue(s is DevicePairingState.Error)
         assertTrue((s as DevicePairingState.Error).message.contains("authorization", ignoreCase = true))
         assertEquals(false, s.retryable)
-        assertNull(store.read())
+        assertNull(settings.cockpitToken.value)
     }
 
     @Test
