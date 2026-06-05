@@ -66,9 +66,12 @@ def test_disabled_blocks(monkeypatch, mock_client):
 def test_qr_code_builds_url_no_network(enabled, mock_client):
     out = _parse(tools.handle_qr_code({"data": "https://example.com", "size": 300}))
     assert out["success"] is True
-    assert out["url"].startswith("https://api.qrserver.com/v1/create-qr-code/")
-    assert "300x300" in out["url"]
-    assert "example.com" in out["url"]
+    # Assert the exact constructed URL (the data is percent-encoded).
+    assert out["url"] == (
+        "https://api.qrserver.com/v1/create-qr-code/"
+        "?size=300x300&data=https%3A%2F%2Fexample.com"
+    )
+    assert out["size"] == 300
     # qr_code must not touch the network client.
     mock_client.public_ip.assert_not_called()
 
