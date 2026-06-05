@@ -2964,6 +2964,196 @@ def voice_intake_decide(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
+# Server-side voice audio duplex (transcribe in / synthesize out)
+# ---------------------------------------------------------------------------
+#
+# The intake/decide handlers above are transcript-only — the app sends an
+# already-transcribed string. These two routes close the *audio* loop so a
+# thin client can hand the server raw audio and get redacted text back, and
+# hand the server text and get spoken audio back, reusing the existing STT
+# (``tools.transcription_tools``) and TTS (``tools.tts_tool``) providers — no
+# new provider logic here. Audio is carried as base64 in JSON (the cockpit
+# transport is JSON-only) and is **never retained**: the temp file (and, for
+# TTS, the whole temp dir) is deleted in a ``finally``. The transcript is
+# secret-redacted before it leaves the server, like every cockpit projection.
+
+# Reject oversized uploads early (before decoding into memory). ~34 MiB of
+# base64 ≈ the STT layer's own 25 MB raw-file cap; the tool re-checks too.
+_MAX_VOICE_AUDIO_B64 = 34 * 1024 * 1024
+_MAX_TTS_TEXT_CHARS = 8000
+
+# Common audio MIME -> temp-file suffix. The suffix must be one the STT layer
+# accepts (``transcription_tools.SUPPORTED_FORMATS``); unknown types fall back
+# to ``.wav`` (PCM-friendly and always supported).
+_AUDIO_MIME_SUFFIX = {
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+    "audio/wave": ".wav",
+    "audio/mpeg": ".mp3",
+    "audio/mp3": ".mp3",
+    "audio/mp4": ".m4a",
+    "audio/m4a": ".m4a",
+    "audio/x-m4a": ".m4a",
+    "audio/aac": ".aac",
+    "audio/ogg": ".ogg",
+    "audio/opus": ".ogg",
+    "audio/webm": ".webm",
+    "audio/flac": ".flac",
+}
+_SUFFIX_MIME = {
+    ".wav": "audio/wav",
+    ".mp3": "audio/mpeg",
+    ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
+    ".ogg": "audio/ogg",
+    ".webm": "audio/webm",
+    ".flac": "audio/flac",
+}
+
+
+def _audio_suffix_for_mime(mime: str) -> str:
+    base = mime.split(";", 1)[0].strip().lower()
+    return _AUDIO_MIME_SUFFIX.get(base, ".wav")
+
+
+def _mime_for_path(path: str) -> str:
+    import os
+
+    return _SUFFIX_MIME.get(os.path.splitext(path)[1].lower(), "audio/mpeg")
+
+
+def voice_transcribe(req: Request) -> JsonResponse:
+    """Transcribe uploaded audio to redacted text (audio is NOT retained).
+
+    Body: ``{audio_base64, mime?, model?}``. The base64 audio is decoded to a
+    temp file, transcribed via the configured STT provider, and the temp file
+    is deleted before returning. The transcript is secret-redacted. Honest
+    degradation: when no STT provider is available the tool's own error is
+    surfaced (``transcript: ""`` + ``error``) rather than crashing — exactly
+    how the rest of the cockpit degrades.
+    """
+    import base64
+    import binascii
+    import os
+    import tempfile
+
+    audio_b64 = req.body.get("audio_base64")
+    if not isinstance(audio_b64, str) or not audio_b64.strip():
+        return JsonResponse(400, {"error": "audio_base64 is required"})
+    if len(audio_b64) > _MAX_VOICE_AUDIO_B64:
+        return JsonResponse(413, {"error": "audio too large"})
+    try:
+        audio_bytes = base64.b64decode(audio_b64, validate=True)
+    except (binascii.Error, ValueError):
+        return JsonResponse(400, {"error": "audio_base64 is not valid base64"})
+    if not audio_bytes:
+        return JsonResponse(400, {"error": "audio_base64 decoded to empty"})
+
+    suffix = _audio_suffix_for_mime(str(req.body.get("mime", "")))
+    raw_model = req.body.get("model")
+    model = str(raw_model) if raw_model else None
+
+    from tools.transcription_tools import transcribe_audio
+
+    from gateway.cockpit.redaction import redact_text
+
+    tmp_path: Optional[str] = None
+    try:
+        fd, tmp_path = tempfile.mkstemp(prefix="cockpit-voice-", suffix=suffix)
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(audio_bytes)
+        result = transcribe_audio(tmp_path, model=model)
+    finally:
+        # Never retain the uploaded audio, success or failure.
+        if tmp_path:
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+    if not isinstance(result, dict) or not result.get("success"):
+        detail = result.get("error") if isinstance(result, dict) else None
+        return JsonResponse(
+            200,
+            {
+                "transcript": "",
+                "error": detail or "transcription unavailable",
+                "audio_retained": False,
+            },
+        )
+    return JsonResponse(
+        200,
+        {
+            "transcript": redact_text(result.get("transcript", "")),
+            "provider": result.get("provider"),
+            "audio_retained": False,
+        },
+    )
+
+
+def voice_responses(req: Request) -> JsonResponse:
+    """Synthesize spoken audio for a response string (returned as base64).
+
+    Body: ``{text}``. The text is sent to the configured TTS provider; the
+    resulting audio is returned base64-encoded and the temp dir holding it is
+    removed before returning (audio is NOT retained server-side). Honest
+    degradation: when no TTS provider is available the tool's own error is
+    surfaced instead of a crash.
+    """
+    import base64
+    import json as _json
+    import os
+    import shutil
+    import tempfile
+
+    text = str(req.body.get("text", "")).strip()
+    if not text:
+        return JsonResponse(400, {"error": "text is required"})
+    if len(text) > _MAX_TTS_TEXT_CHARS:
+        return JsonResponse(413, {"error": "text too long"})
+
+    from tools.tts_tool import text_to_speech_tool
+
+    tmp_dir = tempfile.mkdtemp(prefix="cockpit-tts-")
+    try:
+        out_path = os.path.join(tmp_dir, "speech.mp3")
+        raw = text_to_speech_tool(text, output_path=out_path)
+        try:
+            result = _json.loads(raw) if isinstance(raw, str) else {}
+        except (ValueError, TypeError):
+            result = {}
+        if not result.get("success"):
+            return JsonResponse(
+                200,
+                {
+                    "audio_base64": "",
+                    "error": result.get("error", "speech synthesis unavailable"),
+                    "audio_retained": False,
+                },
+            )
+        file_path = result.get("file_path") or out_path
+        try:
+            with open(file_path, "rb") as fh:
+                audio_bytes = fh.read()
+        except OSError as exc:
+            return JsonResponse(500, {"error": f"synthesized audio unreadable: {exc}"})
+        return JsonResponse(
+            200,
+            {
+                "audio_base64": base64.b64encode(audio_bytes).decode("ascii"),
+                "mime": _mime_for_path(file_path),
+                "provider": result.get("provider"),
+                "chars": len(text),
+                "audio_retained": False,
+            },
+        )
+    finally:
+        # Wipe the whole temp dir so any provider-written siblings (e.g. an
+        # Opus conversion next to the mp3) are removed too.
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
 # Sessions (decision-ledger sessions)
 # ---------------------------------------------------------------------------
 
