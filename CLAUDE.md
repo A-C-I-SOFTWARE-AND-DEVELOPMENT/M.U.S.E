@@ -112,6 +112,53 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 5. **No secrets in code.** API keys live in `~/.hermes/.env`. The
    plugin layer reads them; the agent never sees them.
 
+## Parallel follow-up execution contract
+
+When closing out a backlog of follow-ups (e.g. the post-launch 10/10
+follow-ups) by fanning work out to **parallel agents**, this contract is
+binding. Its purpose is that *no context is lost* across turns/compaction
+and that parallel work *never collides* (no overlap, no merge conflicts).
+
+1. **Single-writer ledger = the audit trail.**
+   [`docs/launch/10_10_followups_ledger.md`](docs/launch/10_10_followups_ledger.md)
+   is the one source of truth for what is planned, in-flight, and done.
+   **Only the orchestrator** (the top-level session) writes it. Parallel
+   builder agents **never** edit the ledger — that file is how a resumed
+   session rebuilds state, so read it *first* on resume.
+2. **Per-task snapshots, one writer each.** Every task gets a snapshot at
+   `docs/launch/followups/<task-id>.md` (intent, owned files, branch, base
+   commit, validation status, PR, residual risks). The task that owns it is
+   the *only* writer. Distinct filenames ⇒ distinct owners ⇒ no conflict on
+   the snapshot itself.
+3. **Disjoint file ownership.** Each parallel task declares the exact set of
+   files it may create/modify, recorded in the ledger *before* it starts.
+   Two in-flight tasks **must not** share a writable file. If an audit shows
+   overlap, those tasks are **sequenced**, not parallelized — the second
+   branches from `main` only after the first merges.
+4. **Branch + worktree per task, from `main`.** One task = one branch
+   (`claude/fu-<id>-<slug>`) cut from the current `main`, built in its own
+   git worktree so working trees never interfere. Builder and reviewer are
+   separate agents (the orchestrator reviews; a builder never self-merges).
+5. **Validate before every PR.** `uv run ruff check`, `uv run ty check`
+   (no new diagnostics vs base), and the relevant `pytest` selection must
+   pass locally; the snapshot records the commands + results. Default code
+   paths stay byte-for-byte unchanged unless the task is explicitly a
+   behavior change.
+6. **Merge gating mirrors the owner gates.** Strictly additive / opt-in
+   follow-ups may auto-merge on green CI. Any follow-up that changes default
+   runtime behavior or is architecturally significant is **owner-gated** —
+   open the draft PR, summarize the behavior change in the ledger, and wait
+   for the owner's exact `Yes, with authorization.` before merging to
+   `main`.
+7. **Conflict-resolution rule.** If two tasks discover a shared file
+   mid-flight, the *later-starting* one stops, records the collision in its
+   snapshot, and rebases after the earlier task merges. Never resolve by
+   force-pushing over another task's branch.
+
+The ledger's status columns (`planned → building → in-review → merged` /
+`blocked` / `deferred`) are refreshed by the orchestrator on every event so
+the thread always shows live state.
+
 ## Cross-references
 
 - [`AGENTS.md`](AGENTS.md) — full dev guide (do read).

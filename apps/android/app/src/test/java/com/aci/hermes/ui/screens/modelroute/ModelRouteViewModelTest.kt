@@ -48,7 +48,7 @@ class ModelRouteViewModelTest {
 
     @Test
     fun `loads routes on init`() = runTest {
-        val vm = ModelRouteViewModel(repo { CockpitRawResponse(200, routesJson) })
+        val vm = mainDispatcherRule.register(ModelRouteViewModel(repo { CockpitRawResponse(200, routesJson) }))
         advanceUntilIdle()
         val s = vm.state.value
         assertEquals(1, s.routes.size)
@@ -58,7 +58,7 @@ class ModelRouteViewModelTest {
 
     @Test
     fun `unpaired shows NotPaired and no fabricated routes`() = runTest {
-        val vm = ModelRouteViewModel(repo(token = null) { error("must not hit wire") })
+        val vm = mainDispatcherRule.register(ModelRouteViewModel(repo(token = null) { error("must not hit wire") }))
         advanceUntilIdle()
         assertEquals(ModelRoutesSync.NotPaired, vm.state.value.sync)
         assertTrue(vm.state.value.routes.isEmpty())
@@ -67,7 +67,7 @@ class ModelRouteViewModelTest {
     @Test
     fun `override posts then reflects refreshed routes`() = runTest {
         var posted = false
-        val vm = ModelRouteViewModel(
+        val vm = mainDispatcherRule.register(ModelRouteViewModel(
             repo { req ->
                 if (req.method == "POST") {
                     posted = true
@@ -76,7 +76,7 @@ class ModelRouteViewModelTest {
                     CockpitRawResponse(200, routesJson)
                 }
             },
-        )
+        ))
         advanceUntilIdle()
         vm.setOverride("mobile_chat", "pinned")
         advanceUntilIdle()
@@ -86,7 +86,7 @@ class ModelRouteViewModelTest {
 
     @Test
     fun `paid toggle is rejected without owner authorization`() = runTest {
-        val vm = ModelRouteViewModel(
+        val vm = mainDispatcherRule.register(ModelRouteViewModel(
             repo { req ->
                 if (req.method == "POST") {
                     CockpitRawResponse(403, """{"error":"owner authorization required"}""")
@@ -94,7 +94,7 @@ class ModelRouteViewModelTest {
                     CockpitRawResponse(200, routesJson)
                 }
             },
-        )
+        ))
         advanceUntilIdle()
         vm.setPaidEnabled(enabled = true, authorization = "wrong phrase")
         advanceUntilIdle()

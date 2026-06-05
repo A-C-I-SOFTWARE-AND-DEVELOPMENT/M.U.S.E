@@ -32,7 +32,7 @@ class ReleaseCenterViewModelTest {
             executor = CockpitHttpExecutor { exec(it) },
             ioDispatcher = Dispatchers.Unconfined,
         )
-        return ReleaseCenterViewModel(client, appVersion = "0.1.0", buildType = "debug", applicationId = "com.aci.hermes.debug")
+        return mainDispatcherRule.register(ReleaseCenterViewModel(client, appVersion = "0.1.0", buildType = "debug", applicationId = "com.aci.hermes.debug"))
     }
 
     @Test

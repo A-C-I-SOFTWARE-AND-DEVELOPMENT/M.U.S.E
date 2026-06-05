@@ -73,7 +73,7 @@ class DevicePairingViewModelTest {
             executor = CockpitHttpExecutor { exec(it) },
             ioDispatcher = ioDispatcher,
         )
-        return DevicePairingViewModel(client)
+        return mainDispatcherRule.register(DevicePairingViewModel(client))
     }
 
     @Test

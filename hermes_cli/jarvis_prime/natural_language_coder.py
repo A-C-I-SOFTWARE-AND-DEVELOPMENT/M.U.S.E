@@ -43,6 +43,7 @@ class CodingIntent(Enum):
     DEVICE_ACTION = "device_action"
     RELEASE = "release"
     SECURITY = "security"
+    UPDATE = "update"
     UNKNOWN = "unknown"
 
 
@@ -356,6 +357,20 @@ _INTENT_KEYWORDS: tuple[tuple[CodingIntent, tuple[str, ...]], ...] = (
     (
         CodingIntent.ANDROID,
         ("android", "kotlin", "apk", "gradle", "accessibility service"),
+    ),
+    (
+        CodingIntent.UPDATE,
+        (
+            "update hermes",
+            "update the agent",
+            "update jarvis",
+            "sync fork",
+            "sync my fork",
+            "merge upstream",
+            "pull upstream",
+            "consolidate my branch",
+            "consolidate branches",
+        ),
     ),
     (
         CodingIntent.AUDIT,

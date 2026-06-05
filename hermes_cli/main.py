@@ -8525,11 +8525,70 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
         current_branch = result.stdout.strip()
 
+        # Fork consolidation (default for forks): bring the original code
+        # (upstream/main) and the current working branch together into the
+        # fork's main, with reviewed, model-assisted conflict resolution.
+        # See hermes_cli/branch_consolidation.py. Non-fork installs and
+        # `hermes update --no-consolidate` skip this and use the legacy path.
+        consolidation_done = False
+        if is_fork and not getattr(args, "no_consolidate", False):
+            from hermes_cli.branch_consolidation import (
+                consolidate_into_main,
+                STATUS_MERGED,
+                STATUS_SKIPPED,
+            )
+
+            pre_consolidate_stash = _stash_local_changes_if_needed(
+                git_cmd, PROJECT_ROOT
+            )
+            stash_restore_prompt = (
+                pre_consolidate_stash is not None
+                and not assume_yes
+                and (gateway_mode or (sys.stdin.isatty() and sys.stdout.isatty()))
+            )
+
+            def _restore_consolidate_stash():
+                if pre_consolidate_stash is not None:
+                    _restore_stashed_changes(
+                        git_cmd,
+                        PROJECT_ROOT,
+                        pre_consolidate_stash,
+                        prompt_user=stash_restore_prompt,
+                        input_fn=gw_input_fn,
+                    )
+
+            cresult = consolidate_into_main(
+                git_cmd,
+                PROJECT_ROOT,
+                current_branch=current_branch,
+                assume_yes=assume_yes,
+                interactive=getattr(args, "interactive", False),
+                push=not getattr(args, "no_push", False),
+                input_fn=gw_input_fn,
+                validate_syntax=_validate_critical_files_syntax,
+            )
+            if cresult.status == STATUS_SKIPPED:
+                # No upstream remote — restore work and fall through to the
+                # standard update path (which prompts to add upstream).
+                _restore_consolidate_stash()
+            else:
+                print()
+                print(cresult.summary)
+                if cresult.status == STATUS_MERGED:
+                    consolidation_done = True
+                    current_branch = "main"
+                    _restore_consolidate_stash()
+                else:
+                    # declined / safe_stop / error — nothing landed on main.
+                    _restore_consolidate_stash()
+                    _invalidate_update_cache()
+                    return
+
         # Always update against main
         branch = "main"
 
         # If user is on a non-main branch or detached HEAD, switch to main
-        if current_branch != "main":
+        if current_branch != "main" and not consolidation_done:
             label = (
                 "detached HEAD"
                 if current_branch == "HEAD"
@@ -8564,7 +8623,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
         commit_count = int(result.stdout.strip())
 
-        if commit_count == 0:
+        if commit_count == 0 and not consolidation_done:
             _invalidate_update_cache()
             # Restore stash and switch back to original branch if we moved
             if auto_stash_ref is not None:
@@ -8586,7 +8645,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
             print("✓ Already up to date!")
             return
 
-        print(f"→ Found {commit_count} new commit(s)")
+        if not consolidation_done:
+            print(f"→ Found {commit_count} new commit(s)")
 
         # Snapshot critical state (state.db, config, pairing JSONs, etc.)
         # before pulling so a user can recover if something goes wrong.
@@ -8604,7 +8664,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # Never let a snapshot failure block an update.
             logger.debug("Pre-update snapshot failed: %s", exc)
 
-        print("→ Pulling updates...")
+        if not consolidation_done:
+            print("→ Pulling updates...")
+        else:
+            print("→ Finalizing consolidated update...")
         update_succeeded = False
         # Capture the pre-pull SHA so we can auto-roll-back if the new code
         # has a syntax error in a critical-path file (PR #28452 incident:
@@ -8613,33 +8676,40 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
-            pull_result = subprocess.run(
-                git_cmd + ["pull", "--ff-only", "origin", branch],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True,
-            )
-            if pull_result.returncode != 0:
-                # ff-only failed — local and remote have diverged (e.g. upstream
-                # force-pushed or rebase).  Since local changes are already
-                # stashed, reset to match the remote exactly.
-                print(
-                    "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
-                )
-                reset_result = subprocess.run(
-                    git_cmd + ["reset", "--hard", f"origin/{branch}"],
+            # When consolidation already produced the final main, skip the
+            # legacy pull/reset entirely. Re-pulling is at best a no-op, and if
+            # origin/main advanced after our fetch (so the auto-push was
+            # rejected non-fast-forward), the ff-only pull would fail and the
+            # reset --hard below would discard the consolidation commit(s). The
+            # consolidated main already incorporates upstream + your branch.
+            if not consolidation_done:
+                pull_result = subprocess.run(
+                    git_cmd + ["pull", "--ff-only", "origin", branch],
                     cwd=PROJECT_ROOT,
                     capture_output=True,
                     text=True,
                 )
-                if reset_result.returncode != 0:
-                    print(f"✗ Failed to reset to origin/{branch}.")
-                    if reset_result.stderr.strip():
-                        print(f"  {reset_result.stderr.strip()}")
+                if pull_result.returncode != 0:
+                    # ff-only failed — local and remote have diverged (e.g. upstream
+                    # force-pushed or rebase).  Since local changes are already
+                    # stashed, reset to match the remote exactly.
                     print(
-                        "  Try manually: git fetch origin && git reset --hard origin/main"
+                        "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
                     )
-                    sys.exit(1)
+                    reset_result = subprocess.run(
+                        git_cmd + ["reset", "--hard", f"origin/{branch}"],
+                        cwd=PROJECT_ROOT,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if reset_result.returncode != 0:
+                        print(f"✗ Failed to reset to origin/{branch}.")
+                        if reset_result.stderr.strip():
+                            print(f"  {reset_result.stderr.strip()}")
+                        print(
+                            "  Try manually: git fetch origin && git reset --hard origin/main"
+                        )
+                        sys.exit(1)
 
             # Post-pull syntax guard: validate critical-path files actually
             # parse before declaring the update successful. If a bad commit
@@ -8712,8 +8782,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 f"  ✓ Cleared {removed} stale __pycache__ director{'y' if removed == 1 else 'ies'}"
             )
 
-        # Fork upstream sync logic (only for main branch on forks)
-        if is_fork and branch == "main":
+        # Fork upstream sync logic (only for main branch on forks). Skipped
+        # when consolidation already merged upstream/main into main above.
+        if is_fork and branch == "main" and not consolidation_done:
             _sync_with_upstream_if_needed(git_cmd, PROJECT_ROOT)
 
         # Reinstall Python dependencies. Prefer .[all], but if one optional extra
@@ -12999,7 +13070,16 @@ Examples:
     update_parser = subparsers.add_parser(
         "update",
         help="Update Hermes Agent to the latest version",
-        description="Pull the latest changes from git and reinstall dependencies",
+        description=(
+            "Update Hermes Agent. On a fork this autonomously consolidates "
+            "the original code (upstream/main) and your current branch into "
+            "your main — auto-resolving conflicts with the configured model, "
+            "merging into main, and pushing to origin without prompting — then "
+            "reinstalls dependencies. An unresolvable conflict stops safely "
+            "before touching main. Use --interactive to review before merging, "
+            "--no-push to skip the push, or --no-consolidate for the legacy "
+            "fast-forward behavior."
+        ),
     )
     update_parser.add_argument(
         "--gateway",
@@ -13037,6 +13117,24 @@ Examples:
         action="store_true",
         default=False,
         help="Windows: proceed with the update even when another hermes.exe is detected. The concurrent process will likely cause WinError 32 warnings and may leave a reboot-deferred .exe replacement.",
+    )
+    update_parser.add_argument(
+        "--no-consolidate",
+        action="store_true",
+        default=False,
+        help="Forks only: skip merging upstream/main + your current branch into main; just fast-forward main from origin (the legacy update behavior).",
+    )
+    update_parser.add_argument(
+        "--interactive",
+        action="store_true",
+        default=False,
+        help="Forks only: require a review-and-confirm before the consolidated result is merged into main (consolidation is autonomous by default).",
+    )
+    update_parser.add_argument(
+        "--no-push",
+        action="store_true",
+        default=False,
+        help="Forks only: after consolidating into main, do not push main back to origin (push happens automatically by default).",
     )
     update_parser.set_defaults(func=cmd_update)
 

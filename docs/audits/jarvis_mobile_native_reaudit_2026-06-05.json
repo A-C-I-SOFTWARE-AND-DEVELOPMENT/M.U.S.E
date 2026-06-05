@@ -1,0 +1,108 @@
+{
+  "generated_at": "2026-06-05",
+  "repo": "A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent",
+  "base_branch_audited": "main@313e21f",
+  "in_flight_prs_referenced": [324, 325, 336, 319, 317],
+  "method": "read-only static inspection; four parallel evidence sweeps (mobile wiring, cockpit routes, testing/CI/security, device-control safety) cross-checked against git history; no functional code edited",
+  "supersedes": "jarvis_mobile_native_full_build_audit.json (2026-06-03)",
+  "executive_summary": "The June-3 'wiring not building' conclusion has been acted on. Every High/Medium built-but-not-wired item is now consumed by a real screen; the cockpit grew from ~25 to 90 routes (all additive, owner gates intact); device pairing (#319) landed; device-control hardening (#4/#5) is implemented and locally unit-verified on open PRs #324/#325 but not yet merged. Remaining work is hardening, dependency hygiene, and on-device verification — not new surfaces. The top new finding is 26 Dependabot vulnerabilities (7 high).",
+  "architecture_map": {
+    "http_surfaces": [
+      {"name": "cockpit", "location": "gateway/cockpit/{server,handlers,contract,auth}.py", "audience": "mobile app", "routes": 90, "loopback_default": true, "auth": "bearer-token-only"},
+      {"name": "orchestrator_api", "location": "hermes_cli/orchestrator_api.py", "audience": "backend/CLI", "notes": "hosts GET /jobs/{id}/snapshot replay (PR #317); not exposed to mobile"},
+      {"name": "web_server", "location": "hermes_cli/web_server.py", "audience": "desktop", "notes": "separate FastAPI /api/*"}
+    ],
+    "android": {"framework": "Kotlin/Compose", "nav": "ui/navigation/HermesNavGraph.kt", "route_objects": 32, "composable_blocks": 26, "di": "di/AppContainer.kt", "transport": "data/cockpit/HermesCockpitClient.kt"}
+  },
+  "mobile_state": {
+    "wired": [
+      {"capability": "Job Queue (list/dispatch/run/cancel/pause/resume/rerun/approve/diff/validate)", "evidence": "HermesCockpitClient.kt:432-687; CockpitJobsRepository.kt:24-150; ui/screens/jobs/*; TasksScreen.kt", "owner_gate": "CockpitJobsRepository.kt:136-143"},
+      {"capability": "Backend diagnostics", "evidence": "DiagnosticsViewModel.kt:36-80"},
+      {"capability": "Sessions", "evidence": "DiagnosticsViewModel.kt:72-75"},
+      {"capability": "Navigation (HyperAgent, ?job=)", "evidence": "JobDetailViewModel.kt:149-162"},
+      {"capability": "Capability + installed skills", "evidence": "CapabilityViewModel.kt:68-84"},
+      {"capability": "Models / scorecards (routes+center)", "evidence": "ui/screens/modelroute/*; ModelCenter*"},
+      {"capability": "Research Vault / evidence", "evidence": "HermesCockpitClient.kt:393-821; ui/screens/research/*"},
+      {"capability": "Ledger timeline + rollback", "evidence": "HermesCockpitClient.kt:401-429; ui/screens/ledger/*"},
+      {"capability": "Autonomy / TokenJuice grants", "evidence": "HermesCockpitClient.kt:607-646; ControlScreen.kt:164"},
+      {"capability": "Learning queue", "evidence": "HermesCockpitClient.kt:293-312"},
+      {"capability": "Device pairing (#319)", "evidence": "ui/screens/pairing/*; Screen.Pairing; SettingsScreen.kt:160"},
+      {"capability": "Chat (SSE), Memory + Memory Tree, Approvals (owner phrase), Avatar/persona/room, Voice", "evidence": "AppContainer.kt wiring"}
+    ],
+    "unwired_by_design": [
+      {"capability": "/v1/cockpit/events stream", "reason": "superseded by wired Ledger timeline"},
+      {"capability": "/v1/cockpit/proposals", "reason": "overlaps actionable Approvals screen"}
+    ],
+    "local_by_design": ["HermesTaskRepository clipboard-handoff task flow preserved alongside backend Job Queue"],
+    "leftovers": ["PlaceholderScreen.kt unreferenced in nav (smoke-test only)", "getRaw passthrough now unused; typed accessors everywhere"]
+  },
+  "backend_state": {
+    "route_count": 90,
+    "route_table_evidence": "gateway/cockpit/server.py:47-155",
+    "added_since_last_audit": ["jobs/lanes (handlers.py:1052)", "orchestrate (handlers.py:1077)", "voice/transcribe", "voice/responses", "evidence/* family", "memory tree/contradictions/freshness", "ledger family", "autonomy", "learning", "templates", "graph"],
+    "owner_gates": [
+      {"gate": "job_run double-gate (owner phrase + loopback-only refusal)", "evidence": "handlers.py:3239-3259", "phrase_constant": "Yes, with authorization. (hermes_cli/jarvis_prime/owner_auth.py:20)"},
+      {"gate": "approvals_decide approve requires exact owner phrase", "evidence": "handlers.py:2661-2680"}
+    ],
+    "loopback_default": "server.py:456-480 (default host 127.0.0.1)",
+    "secrets": "bearer-token-only; token stored 0600; models route rejects API keys (handlers.py:144)",
+    "backend_only_no_route": ["TokenJuice budget", "model scorecards (scoring.py)", "orchestrator_api replay snapshot"]
+  },
+  "resolved_since_last_audit": [
+    "All §5 built-but-not-wired items (Job Queue + read surfaces) now WIRED",
+    "Two-task-model confusion addressed (backend jobs visible on phone)",
+    "Capability catalog drift addressed (installed skills surfaced)",
+    "Diagnostics now shows backend readiness + sessions",
+    "Job Queue UI/VM test coverage added"
+  ],
+  "risks": [
+    {"id": 1, "area": "dependencies", "severity": "high", "new": true, "issue": "26 Dependabot vulnerabilities (7 high, 19 moderate) on default branch", "evidence": "push-time alert; pyproject.toml; apps/android/gradle/libs.versions.toml; app/build.gradle.kts; .github/workflows/osv-scanner.yml is detection-only (fail-on-vuln disabled)", "mitigation": "Triage 7 high first; bump pins; re-scan; owner-gate any major bump"},
+    {"id": 2, "area": "device-control safety", "severity": "high", "in_flight": true, "issue": "On main, sensitivity is still binary + confirmation disableable, and the device halt is a local writable flag with an unguarded releaseEmergencyStop() that can diverge from the audited global stop", "evidence": "DeviceControlController.kt:60,102,146 on main", "mitigation": "Merge #324 (IRREVERSIBLE floor) + #325 (emergency-stop unification); both locally unit-verified"},
+    {"id": 3, "area": "on-device testing", "severity": "medium", "issue": "No instrumented androidTest suite; gated Run + device-control emergency/irreversible flows lack on-device proof", "evidence": "no app/src/androidTest; 124 JVM/Robolectric + 3 Compose smoke tests; #324/#325 flag pending emulator smoke", "mitigation": "Add connected test runner; smoke owner-phrase Run, emergency stop/resume, IRREVERSIBLE confirm"},
+    {"id": 4, "area": "test reliability", "severity": "medium", "issue": "Android Main-dispatcher flake fix applied but unconfirmed (~1-in-N)", "evidence": "docs/testing/known-flaky-tests.md:12; #336", "mitigation": "Re-run Android JVM unit CI several times; close only after sustained green"},
+    {"id": 5, "area": "privacy/permissions", "severity": "medium", "issue": "Accessibility (window content) + overlay + query-all-packages automation surface", "evidence": "AndroidManifest.xml; res/xml/jarvis_accessibility.xml; JarvisAccessibilityService.kt:47,68-95", "mitigation": "Already mitigated: pure broker chokepoint; captured node content on-demand and never persisted; PrivacyRedactor + SecretRedactor at write+render; ledger stores labels/outcomes only. Remaining: formal pre-Play privacy review"},
+    {"id": 6, "area": "duplication", "severity": "low", "issue": "Three HTTP surfaces (cockpit/orchestrator-api/web_server)", "evidence": "architecture_map", "mitigation": "Keep cockpit as the mobile surface; don't add a fourth; preserve local handoff flow"},
+    {"id": 7, "area": "backend-only powers", "severity": "low", "issue": "TokenJuice budget, scorecards, raw replay snapshot have no cockpit route", "evidence": "backend_state.backend_only_no_route", "mitigation": "Add read-only routes only on concrete mobile need"}
+  ],
+  "testing_ci": {
+    "android_unit_tests": 124,
+    "instrumented_tests": 0,
+    "compose_smoke_tests": ["PlaceholderScreenSmokeTest", "CapabilityScreenSmokeTest", "DiagnosticsScreenSmokeTest"],
+    "flaky": [
+      {"name": "Android Main-dispatcher (ViewModel scope leak)", "status": "fix applied (#336), awaiting CI confirmation", "evidence": "docs/testing/known-flaky-tests.md:12"},
+      {"name": "python test_wait_time_capped_at_8", "status": "mitigated", "evidence": "docs/testing/known-flaky-tests.md:95"}
+    ],
+    "workflows": ["android-build.yml", "android-release.yml", "tests.yml", "jarvis-prime-unit.yml", "lint.yml", "launch-gate.yml", "orchestration-tests.yml", "osv-scanner.yml", "supply-chain-audit.yml", "jarvis-self-audit-live.yml", "nix.yml"],
+    "branch_protection_required": ["Build debug APK", "Lint", "Android JVM unit (testDebugUnitTest)", "Python unit (Jarvis Prime + redact + orchestrator)", "ruff enforcement (blocking)", "Tests", "Orchestration tests", "Scan PR for critical supply chain risks"]
+  },
+  "governance": {
+    "constitution": "docs/jarvis-constitution.md v1.0 (2026-06-04)",
+    "verification_gates": ["Planning", "Build", "Review", "Test", "Security", "Release", "Owner Approval", "Rollback"],
+    "evidence_bound_strict_mode": true,
+    "challenge_bound_owner_auth": "hermes guardrails authorize -> owner_authorization_grant artifact"
+  },
+  "recommended_sequence": [
+    {"phase": 1, "action": "Patch dependencies: triage 7 high Dependabot alerts, bump pyproject.toml + Gradle pins, re-scan"},
+    {"phase": 2, "action": "Merge device-control hardening: land #324 then #325; retarget #325 to main after #324"},
+    {"phase": 3, "action": "On-device verification: connected/emulator job; smoke gated Run, emergency stop/resume, IRREVERSIBLE confirm; confirm #336 flake fix over repeated runs"},
+    {"phase": 4, "action": "Pre-Play privacy review of accessibility/overlay surface; confirm redactor coverage end-to-end"},
+    {"phase": 5, "action": "Defer events-stream/proposals wiring and backend-only route exposure until a concrete need exists"}
+  ],
+  "do_not_overwrite": [
+    "gateway/cockpit/contract.py",
+    "gateway/cockpit/{server,handlers,auth}.py route table + owner gates",
+    "hermes_cli/jarvis_prime/owner_auth.py AUTHORIZATION_PHRASE",
+    "apps/android/.../data/cockpit/CockpitApi.kt + HermesCockpitClient.kt",
+    "apps/android/.../data/orchestrator/HermesTaskRepository.kt + OrchestratorViewModel",
+    "apps/android/.../data/devicecontrol/DeviceActionBroker.kt",
+    "apps/android/.../data/emergency/EmergencyStopController.kt",
+    "hermes_cli/decision_ledger.py + ledger files",
+    "SettingsRepository EncryptedSharedPreferences token storage"
+  ],
+  "extend_not_replace": [
+    {"target": "apps/android/gradle/libs.versions.toml + pyproject.toml", "why": "patch pins in place (Finding 1)"},
+    {"target": "MainDispatcherRule test util", "why": "extend #336 register/clear pattern for new ViewModel tests"},
+    {"target": "gateway/cockpit/handlers.py + contract.py", "why": "add new read routes via existing adapter pattern"},
+    {"target": "ui/screens/diagnostics/*", "why": "augment for events streaming if ever needed, no new tab"}
+  ]
+}
