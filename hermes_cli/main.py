@@ -5812,6 +5812,8 @@ def cmd_doctor(args):
     """Check configuration and dependencies."""
     if getattr(args, "jarvis_launch", False):
         return cmd_jarvis_launch_doctor(args)
+    if getattr(args, "release_gate", False):
+        return cmd_release_gate(args)
     if getattr(args, "ten_ten", False):
         return cmd_10_10_doctor(args)
     from hermes_cli.doctor import run_doctor
@@ -5847,6 +5849,22 @@ def cmd_10_10_doctor(args):
         print(report.render())
     # Exit nonzero only on a hard (safe-to-ship) gate failure; soft 10/10
     # punch-list items are warnings and never block.
+    raise SystemExit(0 if report.ok else 1)
+
+
+def cmd_release_gate(args):
+    """Run the unified release gate (10/10 checks + ruff + fast test slice)."""
+    import json as _json
+
+    from hermes_cli.release_gate import run_release_gate
+
+    report = run_release_gate(run_tests=not getattr(args, "no_tests", False))
+    if getattr(args, "json", False):
+        print(_json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    # Exit nonzero only on a hard FAIL (a doctor hard gate, ruff, or the fast
+    # test slice); soft 10/10 punch-list warnings never block.
     raise SystemExit(0 if report.ok else 1)
 
 
@@ -11506,9 +11524,31 @@ def main():
         ),
     )
     doctor_parser.add_argument(
+        "--release-gate",
+        dest="release_gate",
+        action="store_true",
+        help=(
+            "Run the unified release gate: the 10/10 readiness checks PLUS a "
+            "ruff lint and a fast launch-critical pytest slice, aggregated "
+            "behind one safe-to-ship verdict (matches scripts/hermes-10-10-smoke.sh)."
+        ),
+    )
+    doctor_parser.add_argument(
+        "--no-tests",
+        dest="no_tests",
+        action="store_true",
+        help=(
+            "With --release-gate, skip the fast pytest slice (run only the "
+            "10/10 readiness checks + ruff)."
+        ),
+    )
+    doctor_parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON (used with --jarvis-launch or --10-10).",
+        help=(
+            "Emit machine-readable JSON (used with --jarvis-launch, --10-10, "
+            "or --release-gate)."
+        ),
     )
     doctor_parser.set_defaults(func=cmd_doctor)
 
