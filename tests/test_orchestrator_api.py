@@ -259,6 +259,70 @@ class TestStatusAndArtifacts:
         assert resp.json() == {"id": job_id, "artifacts": []}
 
 
+class TestSnapshotEndpoint:
+    """GET /jobs/{id}/snapshot — state rebuilt from the recorded event stream.
+
+    The route is the live entry point for ``JobStore.snapshot`` (folds
+    ``job.events`` through ``rebuild_snapshot``). It derives state solely from
+    the event log, not from the mutated in-memory ``Job``.
+    """
+
+    def test_snapshot_fresh_job_is_intake(self, client):
+        job_id = client.post("/jobs", json={"name": "snap", "spec": {"goal": "x"}}).json()["id"]
+        resp = client.get(f"/jobs/{job_id}/snapshot")
+        assert resp.status_code == 200
+        body = resp.json()
+        # Reconstructed from the single job.created event.
+        assert body["job_id"] == job_id
+        assert body["name"] == "snap"
+        assert body["spec"] == {"goal": "x"}
+        assert body["phase"] == "intake"
+        assert body["status"] == "pending"
+        assert body["event_count"] == 1
+
+    def test_snapshot_reflects_lifecycle_actions(self, client):
+        # Drive real HTTP lifecycle actions, then confirm the snapshot route
+        # rebuilds matching state purely from the emitted events.
+        job_id = client.post("/jobs", json={"name": "life"}).json()["id"]
+        client.post(f"/jobs/{job_id}/validate", json={"checks": ["lint"]})
+        client.post(
+            f"/jobs/{job_id}/publish-plan", json={"pr_url": "https://x/pr/7"}
+        )
+        body = client.get(f"/jobs/{job_id}/snapshot").json()
+        assert body["phase"] == "publish_ready"
+        assert body["status"] == "publish_ready"
+        # /validate stamps a requested_at; the reducer carries the whole result.
+        assert body["validation"]["checks"] == ["lint"]
+        assert body["publish_plan"]["pr_url"] == "https://x/pr/7"
+        assert body["pr_url"] == "https://x/pr/7"
+
+    def test_snapshot_reconstructs_workers(self, client):
+        # Seed worker events via the shared store, then read them back through
+        # the route to confirm the workers map is rebuilt from the stream.
+        app = create_app()
+        store = app.state.store
+        with TestClient(app) as c:
+            job_id = c.post("/jobs", json={"name": "wk"}).json()["id"]
+
+            async def _seed():
+                await store.emit_event(
+                    job_id, EVENT_WORKER_STARTED, {"worker": "claude-code"}
+                )
+                await store.emit_event(
+                    job_id, EVENT_VALIDATION_COMPLETED, {"result": {"ok": True}}
+                )
+
+            asyncio.run(_seed())
+
+            body = c.get(f"/jobs/{job_id}/snapshot").json()
+            assert body["workers"] == {"claude-code": "running"}
+            assert body["validation"] == {"ok": True}
+
+    def test_snapshot_missing_job_returns_404(self, client):
+        resp = client.get("/jobs/does-not-exist/snapshot")
+        assert resp.status_code == 404
+
+
 class TestCostAndBudget:
     """Per-job cost aggregate + budget evaluation (Sprint 10, additive)."""
 
