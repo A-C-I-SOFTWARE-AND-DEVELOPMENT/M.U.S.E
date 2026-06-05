@@ -35,9 +35,12 @@ safety unification* — a single decision verdict, durable per-device
 sessions/pairing, push-based approval recovery, per-job telemetry, and
 the optional integrations — are where the real gaps live.
 
-A reasonable one-line grade: **~60–65% of the target loop.** The front
-half is at or near 10/10; the back half (phone-side reliability and the
-one-verdict safety spine) is the work that remains.
+A reasonable one-line grade **at the time of the original audit** was
+**~60–65%**. Since then (see *§ Update — post-merge audit* just below the
+table), 23 PRs landed and an independent re-audit confirms the decision /
+approval / pairing / bridge / cost-consumer spine is wired and verified —
+call it **~80%**, with the remainder being six well-scoped integration
+"glue" hops rather than missing kernels.
 
 ### Score summary
 
@@ -48,21 +51,49 @@ the number.
 |---|---|:--:|---|
 | 0 | Baseline & governance | 🟡 5/10 | Policies exist but distributed; no `docs/architecture/`; this doc closes part of it. |
 | 1 | Architecture & contracts | 🟡 5/10 | Models live in code, not as named contract docs; fixtures are inline, not JSON. |
-| 2 | **Decision engine & owner gates** | 🔴 4/10 | **No unified auto/ask/refuse verdict.** Fragmented across 4 surfaces. Owner phrase + audit store exist. |
+| 2 | **Decision engine & owner gates** | 🟢 8/10 | Unified `auto/ask/refuse` `DecisionVerdict` engine shipped **and wired at the publish boundary** (recorded in PR body + status). Hop: adopt it at orchestrator/merge/bridge mutation points too. |
 | 3 | Worker actuators (real diffs) | 🟢 8/10 | Execute/handoff modes, worktree isolation, real diffs. Missing fixture repos + some artifacts. |
-| 4 | Merge / validation / replay | 🟡 6.5/10 | Merge + scoring + most gates done; durable event stream present; **no event-sourced job rebuild**. |
-| 5 | GitHub PR publisher | 🟢 7.5/10 | Dry-run default, gated live path, allowlist, secret scan. PR-body/idempotency/test gaps. |
-| 6 | Gateway cockpit API & sessions | 🟡 6/10 | Routes + SSE + cursor replay strong; **no mobile pairing / per-device session / token hashing / revocation**. |
-| 7 | Android cockpit | 🟢 9/10 | All surfaces real, secure token storage, state machines, ~123 tests. Strongest sprint. |
+| 4 | Merge / validation / replay | 🟢 8/10 | Merge + scoring + most gates done; durable event stream + **event-sourced `JobStore.snapshot` rebuild** landed. Hop: invoke it via a route + restart-rebuild. |
+| 5 | GitHub PR publisher | 🟢 8.5/10 | Dry-run default, gated live path, allowlist, secret scan, **+ verdict id in the PR body**. |
+| 6 | Gateway cockpit API & sessions | 🟢 8/10 | **Per-device pairing (owner-gated, hashed-at-rest) + device tokens accepted in the auth gate.** Hop: Android pairing screen/nav; legacy shared token still plaintext. |
+| 7 | Android cockpit | 🟢 9/10 | All surfaces real, secure token storage, state machines, ~123 tests. Pairing client/VM added (nav-wiring pending). |
 | 8 | Voice-first duplex | 🟡 6/10 | STT/TTS stack + privacy + barge-in solid; **gateway audio duplex routes incomplete**. |
-| 9 | **Phone approval push & recovery** | 🔴 2/10 | **No push provider, no subscription backend, no approval race rules.** Weakest backend sprint. |
-| 10 | Routing / telemetry / cost | 🟡 5.5/10 | Deterministic router present; per-job telemetry + budget ask/stop + cockpit panel missing. |
+| 9 | Phone approval push & recovery | 🟡 6.5/10 | **Approval race rules wired** (idempotent/expired/superseded) + local-SSE notification provider + enqueue-on-create. Hops: notify-on-decision (clear pending), optional push provider. |
+| 10 | Routing / telemetry / cost | 🟡 7/10 | Budget kernel + **per-job cost consumer wired** (`/status`). Hop: producer glue so cost auto-accumulates from real runs. |
 | 11 | Supabase & Vercel | 🔴 1.5/10 | Supabase absent; Vercel is sandbox-exec only (no deploy/preview/logs). |
-| 12 | Windows Claude bridge | 🟡 5/10 | Bridge code mature + tested; **no signed envelope (sig/nonce/expiry), no threat-model docs**. |
-| 13 | Multi-host orchestration | 🟡 5/10 | Lease kernel + durable store + host registry landed; `RuntimeAdapter` Protocol (+ `LocalRuntimeAdapter`) and pure reschedule policy added. **Deferred: runner integration, cockpit multi-host status, checksum/host-failure containment.** |
+| 12 | Windows Claude bridge | 🟢 8/10 | **Signed envelope (HMAC+nonce+expiry) wired into the bridge — opt-in, backward-compatible; forged/expired/replayed rejected, nonce persisted.** Hop: threat-model docs + key rotation ops. |
+| 13 | Multi-host orchestration | 🟡 6/10 | Lease kernel + durable store + host registry + **observational lease recording in the runner**; `RuntimeAdapter` Protocol + pure reschedule policy added (standalone). Hop: runner→adapter integration + reschedule loop. |
 | 14 | Security hardening & release | 🟡 5/10 | Release artifacts distributed; no unified 10/10 gate, smoke script, or `doctor --10-10`. |
 
 Legend: 🟢 mostly done · 🟡 partial · 🔴 missing/weak.
+
+### Update — 2026-06-05 (post-merge audit)
+
+Since the original audit above, **23 PRs landed on `main`** (9 kernels, 4
+wirings, 3 features, 4 follow-ups, 3 producers/clients). An independent
+re-audit of `main` (read-only, four parallel sweeps) confirms the following
+are **wired and verified — no regressions**:
+
+- Unified decision verdict at the publish boundary → `hermes_cli/github_publisher.py` (status + `## Decision` block in the PR body).
+- Approval race rules in `gateway/cockpit/handlers.py::approvals_decide` (`resolve_decision`: idempotent / expired / superseded / phrase-gated).
+- Per-device pairing — `pair/confirm` is **owner-phrase-gated** (`handlers.py`), tokens **hashed at rest** (`device_pairing.py` + `cockpit_token.py`); device tokens accepted in `auth.authorize_bearer` (fail-closed, revoke-aware).
+- Per-job cost **consumer** + budget on `/status` (`orchestrator_api.update_worker` → `accumulate_cost`).
+- **Signed bridge envelope** (`bridge_envelope.py` ↔ `remote_bridge.py`): opt-in/backward-compatible, forged/expired/replayed rejected, key never logged or auto-generated, nonce persisted across restart.
+- Observational worker-lease recording in `orchestrator_parallel.py` (best-effort; execution unchanged).
+
+**Remaining = six integration "glue" hops** (the kernels exist and are
+tested; only the wiring into live paths is left):
+
+1. **Cost producer** — `agent.conversation_loop.build_usage_record`, the `orchestrator_parallel` `usage.json` sidecar, and `iter_worker_usage` have **no non-test callers**; a worker must write the sidecar and a dispatcher must drain `iter_worker_usage → JobStore.update_worker` so per-job cost auto-accumulates (today it stays 0 in real runs).
+2. **Replay** — `JobStore.snapshot` (rebuild-from-events) is invoked nowhere live; expose it via a route + a restart-rebuild path (the Sprint 14 "restart mid-job → replay" gate).
+3. **Notify-on-decision** *(UX bug)* — `approvals_decide` never clears the pending alert (`PendingApprovalQueue.resolve` / a "decided" notify are uncalled), so a phone shows "approval pending" forever after a grant.
+4. **decision_engine breadth** — only the publisher records a verdict; orchestrator dispatch/submit, merge, and remote bridge still use ad-hoc phrase/`approval_policy` checks.
+5. **Runtime adapter + scheduler** — `hermes_cli/runtime_adapter.py` + `lease_scheduler.py` have **zero importers**; wire `ParallelRunner` to run workers through a `RuntimeAdapter` + a reschedule loop using `reschedule_plan`.
+6. **Android pairing nav** — `DevicePairingClient`/`DevicePairingViewModel` are built and persist correctly, but there's **no `DevicePairingScreen` and no nav route**, so the flow is unreachable.
+
+Optional / unchanged: Supabase (S11) absent; Sprint 14 unified release-gate /
+smoke / `doctor --10-10` still distributed; the legacy *shared* cockpit token
+remains plaintext-at-rest (per-device tokens are hashed).
 
 ### Critical path to close the loop
 
