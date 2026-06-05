@@ -141,6 +141,52 @@ def _contains_any(rel: str, *needles: str) -> bool:
     return bool(text) and any(n in text for n in needles)
 
 
+_MISSING = object()  # parameter has no default
+_NON_LITERAL = object()  # default is not a simple literal
+
+
+def _param_default(rel: str, func: str, param: str) -> Any:
+    """Return the literal default of ``func``'s ``param``, via AST (no import).
+
+    Returns the constant value, ``_MISSING`` if the parameter has no default
+    (or the function/param is absent), or ``_NON_LITERAL`` for a non-constant
+    default. Import-free, so a safe-to-ship gate can inspect the *actual*
+    signature default — not a file-wide substring that a regression can fool.
+    """
+    import ast
+
+    src = _read(rel)
+    if not src:
+        return _MISSING
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return _MISSING
+
+    def _literal(node: Optional[ast.expr]) -> Any:
+        if node is None:
+            return _MISSING
+        return node.value if isinstance(node, ast.Constant) else _NON_LITERAL
+
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name == func
+        ):
+            args = node.args
+            # positional-or-keyword: defaults align to the tail of args.args
+            offset = len(args.args) - len(args.defaults)
+            for i, arg in enumerate(args.args):
+                if arg.arg == param:
+                    di = i - offset
+                    return _literal(args.defaults[di]) if di >= 0 else _MISSING
+            # keyword-only: kw_defaults aligns 1:1 (None == no default)
+            for arg, default in zip(args.kwonlyargs, args.kw_defaults):
+                if arg.arg == param:
+                    return _literal(default)
+    return _MISSING
+
+
 def _check(fn: Callable[[], ReadinessCheck]) -> ReadinessCheck:
     try:
         return fn()
@@ -204,16 +250,17 @@ def _check_redaction() -> ReadinessCheck:
 
 
 def _check_publisher_dry_run_default() -> ReadinessCheck:
-    # The publisher's run() must default to dry-run (approve=False).
-    ok = _contains_any(
-        "hermes_cli/github_publisher.py", "approve: bool = False", "approve=False"
-    )
+    # Inspect github_publisher.run()'s actual ``approve`` default, not file text:
+    # a regression to approve=True must flip this gate even if a docstring or
+    # another dry-run call still mentions approve=False.
+    default = _param_default("hermes_cli/github_publisher.py", "run", "approve")
+    ok = default is False
     return ReadinessCheck(
         "github publisher dry-run default",
         PASS if ok else FAIL,
-        "publish is dry-run unless explicitly approved"
+        "run(approve=False) — publish is dry-run unless explicitly approved"
         if ok
-        else "could not confirm dry-run default",
+        else f"publisher run() approve default is {default!r}, not False",
     )
 
 
@@ -255,14 +302,26 @@ def _check_cockpit_constant_time_auth() -> ReadinessCheck:
 
 
 def _check_cockpit_localhost_default() -> ReadinessCheck:
-    ok = _contains_any("gateway/cockpit/server.py", "127.0.0.1", "allow_external")
-    return ReadinessCheck(
-        "cockpit loopback default",
-        PASS if ok else FAIL,
-        "cockpit binds loopback unless explicitly allowed external"
-        if ok
-        else "could not confirm loopback-only default",
-    )
+    # Inspect serve()'s actual host + allow_external defaults AND the non-loopback
+    # refusal path — so flipping the default bind to 0.0.0.0 trips this gate even
+    # if the allow_external plumbing remains.
+    rel = "gateway/cockpit/server.py"
+    host = _param_default(rel, "serve", "host")
+    ext = _param_default(rel, "serve", "allow_external")
+    refusal = _contains(rel, "_is_loopback_host", "allow_external")
+    host_ok = host in ("127.0.0.1", "::1", "localhost")
+    ok = host_ok and ext is False and refusal
+    if ok:
+        detail = (
+            "serve(host=loopback, allow_external=False) with a non-loopback refusal"
+        )
+    elif not host_ok:
+        detail = f"serve() host default is {host!r}, not loopback"
+    elif ext is not False:
+        detail = f"serve() allow_external default is {ext!r}, not False"
+    else:
+        detail = "no non-loopback refusal path found in serve()"
+    return ReadinessCheck("cockpit loopback default", PASS if ok else FAIL, detail)
 
 
 def _check_deps_exact_pinned() -> ReadinessCheck:

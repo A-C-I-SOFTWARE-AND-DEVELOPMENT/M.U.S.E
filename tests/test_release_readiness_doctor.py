@@ -117,3 +117,27 @@ def test_release_artifacts_check_sees_the_shipped_docs():
     # The artifacts this PR adds should make the release-gate-artifacts check pass.
     by_name = {c.name: c for c in run_10_10_doctor().checks}
     assert by_name["release-gate artifacts"].status == PASS
+
+
+def test_hard_gates_inspect_real_signature_defaults():
+    # The publisher/cockpit hard gates read the ACTUAL parameter default (AST),
+    # not a file-wide substring a regression could fool.
+    assert (
+        rrd._param_default("hermes_cli/github_publisher.py", "run", "approve") is False
+    )
+    assert (
+        rrd._param_default("gateway/cockpit/server.py", "serve", "host") == "127.0.0.1"
+    )
+    assert (
+        rrd._param_default("gateway/cockpit/server.py", "serve", "allow_external")
+        is False
+    )
+    # absent function / parameter -> sentinel (gate would fail, not false-pass)
+    assert (
+        rrd._param_default("hermes_cli/github_publisher.py", "nope", "x")
+        is rrd._MISSING
+    )
+    assert (
+        rrd._param_default("hermes_cli/github_publisher.py", "run", "nope")
+        is rrd._MISSING
+    )
