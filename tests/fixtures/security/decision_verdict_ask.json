@@ -1,0 +1,18 @@
+{
+  "id": "dv_000000000001",
+  "tier": "ask",
+  "action_type": "github.publish_pr",
+  "rationale": "live_publish: live publish allowlisted; owner approval required",
+  "reason_codes": ["live_publish"],
+  "inputs": [
+    {
+      "source": "live_publish",
+      "tier": "ask",
+      "reason": "live_publish",
+      "detail": "live publish allowlisted; owner approval required"
+    }
+  ],
+  "required_owner_phrase": "Yes, with authorization.",
+  "allowed_until": null,
+  "audit_id": null
+}
