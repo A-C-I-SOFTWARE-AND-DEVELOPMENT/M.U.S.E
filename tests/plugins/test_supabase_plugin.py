@@ -137,7 +137,8 @@ def test_execute_sql_approval_required(monkeypatch):
     assert out["verdict"]["required_owner_phrase"] == PHRASE
 
 
-def test_execute_sql_authorized_writes_file(monkeypatch, tmp_path):
+def test_execute_sql_propose_only_writes_nothing(monkeypatch, tmp_path):
+    # Even with allow_writes and a phrase supplied, nothing is authored on disk.
     _set_cfg(monkeypatch, enabled=True, allow_writes=True)
     monkeypatch.setattr(stools, "_scan_secrets", lambda _t: [])
     monkeypatch.chdir(tmp_path)
@@ -145,16 +146,15 @@ def test_execute_sql_authorized_writes_file(monkeypatch, tmp_path):
         stools.handle_execute_sql({
             "sql": "create table x();",
             "name": "make x",
-            "authorization": PHRASE,
+            "authorization": PHRASE,  # ignored — not a real gate
         })
     )
     assert out["success"] is True
-    assert out["executed"] is True
-    assert out["applied"] is False  # never touches a live DB
-    path = tmp_path / "supabase" / "migrations"
-    files = list(path.glob("*.sql"))
-    assert len(files) == 1
-    assert "create table x();" in files[0].read_text()
+    assert out["executed"] is False
+    assert out["approval_required"] is True
+    assert out["proposed"]["sql"] == "create table x();"
+    # nothing was written to disk
+    assert not (tmp_path / "supabase").exists()
 
 
 def test_execute_sql_secret_refused_even_when_authorized(monkeypatch, tmp_path):
@@ -175,7 +175,7 @@ def test_execute_sql_secret_refused_even_when_authorized(monkeypatch, tmp_path):
     assert not (tmp_path / "supabase" / "migrations").exists()
 
 
-def test_apply_migration_authorized_writes_named_file(monkeypatch, tmp_path):
+def test_apply_migration_propose_only_writes_nothing(monkeypatch, tmp_path):
     _set_cfg(monkeypatch, enabled=True, allow_writes=True)
     monkeypatch.setattr(stools, "_scan_secrets", lambda _t: [])
     monkeypatch.chdir(tmp_path)
@@ -186,9 +186,9 @@ def test_apply_migration_authorized_writes_named_file(monkeypatch, tmp_path):
             "authorization": PHRASE,
         })
     )
-    assert out["executed"] is True
-    files = list((tmp_path / "supabase" / "migrations").glob("*_add_profiles.sql"))
-    assert len(files) == 1
+    assert out["executed"] is False
+    assert out["approval_required"] is True
+    assert not (tmp_path / "supabase").exists()
 
 
 def test_check_requirements(monkeypatch):

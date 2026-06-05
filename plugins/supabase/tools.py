@@ -24,9 +24,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, Optional
 
 from plugins.supabase import config as supabase_config
@@ -97,15 +94,23 @@ def _scan_secrets(text: str) -> list[Any]:
         return []
 
 
-def _gate_write(
+def _propose_write(
     cfg: supabase_config.SupabaseConfig,
     action_type: str,
     *,
     summary: str,
     sql: str = "",
-    authorization: str = "",
-) -> tuple[Optional[str], Any]:
-    """Owner-gated verdict for a write. See plugins/vercel/tools.py._gate_write."""
+    proposed: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Owner-gated *proposal* for a write — never the mutation itself.
+
+    See ``plugins/vercel/tools.py._propose_write``. A tool cannot self-enforce
+    an owner gate (the model controls its arguments and the owner phrase is a
+    public constant), so these tools neither author a file nor touch a database
+    here. They compute the verdict and return it with ``executed: false``; the
+    change is carried out by the out-of-band cockpit owner-approval path. A
+    secret detected in the SQL forces a ``refuse``.
+    """
     from hermes_cli.decision_engine import (
         merge_decision_inputs,
         owner_gate_input,
@@ -120,59 +125,34 @@ def _gate_write(
     redacted = verdict.to_redacted_dict()
 
     if verdict.is_refuse:
-        return _err(
-            "refused", verdict.rationale, verdict=redacted, executed=False
-        ), verdict
+        return _err("refused", verdict.rationale, verdict=redacted, executed=False)
     if not cfg.allow_writes:
-        return (
-            _err(
-                "writes_disabled",
-                "supabase.allow_writes is false; refusing to author a migration. "
-                "Set supabase.allow_writes: true in ~/.hermes/config.yaml to enable.",
-                verdict=redacted,
-                executed=False,
-            ),
-            verdict,
+        return _err(
+            "writes_disabled",
+            "supabase.allow_writes is false; set it true in ~/.hermes/config.yaml "
+            "to let this tool propose a migration.",
+            verdict=redacted,
+            executed=False,
         )
-    required = verdict.required_owner_phrase or ""
-    if authorization.strip() != required:
-        return (
-            _json({
-                "success": True,
-                "executed": False,
-                "approval_required": True,
-                "verdict": redacted,
-                "message": (
-                    "Owner authorization required. Re-call this tool with "
-                    f"authorization set to exactly: {required!r}"
-                ),
-            }),
-            verdict,
-        )
-    return None, verdict
-
-
-def _write_migration(name: str, sql: str) -> Path:
-    slug = re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_") or "migration"
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    out_dir = Path.cwd() / "supabase" / "migrations"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    path = out_dir / f"{ts}_{slug}.sql"
-    path.write_text(sql if sql.endswith("\n") else sql + "\n", encoding="utf-8")
-    return path
+    body: Dict[str, Any] = {
+        "success": True,
+        "executed": False,
+        "approval_required": True,
+        "verdict": redacted,
+        "message": (
+            "Migration proposed and owner-gated. It is NOT written or applied "
+            "from the tool loop — approve it through the cockpit owner-approval "
+            "path, then apply with `supabase db push`."
+        ),
+    }
+    if proposed:
+        body["proposed"] = proposed
+    return _json(body)
 
 
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
-
-_AUTH_PROP = {
-    "type": "string",
-    "description": (
-        "Owner authorization phrase. Leave empty to preview the decision "
-        "verdict; supply the exact required phrase to authorize."
-    ),
-}
 
 QUERY_SCHEMA: Dict[str, Any] = {
     "name": "supabase_query",
@@ -211,22 +191,22 @@ LIST_TABLES_SCHEMA: Dict[str, Any] = {
 EXECUTE_SQL_SCHEMA: Dict[str, Any] = {
     "name": "supabase_execute_sql",
     "description": (
-        "Author a SQL migration file (OWNER-GATED, dry-run by default). When "
-        "authorized, writes the SQL to supabase/migrations/<ts>.sql for the "
-        "operator to apply with `supabase db push`. Does NOT touch a live DB."
+        "Propose a SQL migration. OWNER-GATED and PROPOSE-ONLY: returns a "
+        "decision verdict with executed=false and writes nothing. A secret in "
+        "the SQL forces a refuse. The migration is authored and applied "
+        "out-of-band via the cockpit owner-approval path."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "sql": {
                 "type": "string",
-                "description": "SQL statement(s) to write into the migration.",
+                "description": "SQL statement(s) for the proposed migration.",
             },
             "name": {
                 "type": "string",
                 "description": "Short migration name (default 'adhoc').",
             },
-            "authorization": _AUTH_PROP,
         },
         "required": ["sql"],
         "additionalProperties": False,
@@ -236,9 +216,10 @@ EXECUTE_SQL_SCHEMA: Dict[str, Any] = {
 APPLY_MIGRATION_SCHEMA: Dict[str, Any] = {
     "name": "supabase_apply_migration",
     "description": (
-        "Author a named SQL migration file (OWNER-GATED, dry-run by default). "
-        "When authorized, writes supabase/migrations/<ts>_<name>.sql for the "
-        "operator to apply with `supabase db push`. Does NOT touch a live DB."
+        "Propose a named SQL migration. OWNER-GATED and PROPOSE-ONLY: returns a "
+        "decision verdict with executed=false and writes nothing. A secret in "
+        "the SQL forces a refuse. The migration is authored and applied "
+        "out-of-band via the cockpit owner-approval path."
     ),
     "parameters": {
         "type": "object",
@@ -248,7 +229,6 @@ APPLY_MIGRATION_SCHEMA: Dict[str, Any] = {
                 "description": "Migration name (e.g. 'add_profiles').",
             },
             "sql": {"type": "string", "description": "Migration SQL."},
-            "authorization": _AUTH_PROP,
         },
         "required": ["name", "sql"],
         "additionalProperties": False,
@@ -317,7 +297,7 @@ def handle_list_tables(args: Dict[str, Any], **_kw) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Write handlers (owner-gated; author local migration files only)
+# Write handlers (owner-gated, propose-only — never author or apply here)
 # ---------------------------------------------------------------------------
 
 
@@ -337,24 +317,12 @@ def handle_execute_sql(args: Dict[str, Any], **_kw) -> str:
     except _GateFailure as exc:
         return exc.payload_json
     name = args.get("name") if isinstance(args.get("name"), str) else "adhoc"
-
-    stop, verdict = _gate_write(
+    return _propose_write(
         cfg,
         "supabase.execute_sql",
-        summary=f"author SQL migration '{name}'",
+        summary=f"SQL migration '{name}'",
         sql=sql,
-        authorization=str(args.get("authorization") or ""),
-    )
-    if stop is not None:
-        return stop
-    path = _write_migration(name or "adhoc", sql)
-    return _ok(
-        executed=True,
-        wrote_migration=True,
-        applied=False,
-        migration_path=str(path),
-        verdict=verdict.to_redacted_dict(),
-        message="Migration file written. Run `supabase db push` to apply it to the database.",
+        proposed={"name": name, "sql": sql},
     )
 
 
@@ -367,24 +335,12 @@ def handle_apply_migration(args: Dict[str, Any], **_kw) -> str:
     name = args.get("name")
     if not isinstance(name, str) or not name.strip():
         return _err("bad_args", "name is required")
-
-    stop, verdict = _gate_write(
+    return _propose_write(
         cfg,
         "supabase.apply_migration",
-        summary=f"author migration '{name}'",
+        summary=f"migration '{name}'",
         sql=sql,
-        authorization=str(args.get("authorization") or ""),
-    )
-    if stop is not None:
-        return stop
-    path = _write_migration(name, sql)
-    return _ok(
-        executed=True,
-        wrote_migration=True,
-        applied=False,
-        migration_path=str(path),
-        verdict=verdict.to_redacted_dict(),
-        message="Migration file written. Run `supabase db push` to apply it to the database.",
+        proposed={"name": name, "sql": sql},
     )
 
 

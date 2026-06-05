@@ -98,19 +98,22 @@ def _require_client() -> VercelClient:
     return client
 
 
-def _gate_write(
+def _propose_write(
     cfg: vercel_config.VercelConfig,
     action_type: str,
     *,
     summary: str,
-    authorization: str = "",
-) -> tuple[Optional[str], Any]:
-    """Compute an owner-gated verdict for a write.
+    proposed: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Owner-gated *proposal* for a write — never the mutation itself.
 
-    Returns ``(stop_json, verdict)``. When ``stop_json`` is non-None the caller
-    must return it (the write is blocked or awaiting approval). When it is None
-    the write is authorized and ``verdict`` should be recorded alongside the
-    result.
+    A tool cannot enforce an owner gate from inside the model-visible tool loop:
+    the model controls its own arguments and the owner phrase is a public
+    constant, so any "supply the phrase to proceed" check is self-authorizable.
+    Therefore write tools never perform the API mutation here. They compute the
+    :class:`DecisionVerdict` and return it with ``executed: false``; the actual
+    change must be carried out by the out-of-band owner-approval path (the
+    cockpit), which is outside the model's control.
     """
     from hermes_cli.decision_engine import merge_decision_inputs, owner_gate_input
 
@@ -121,38 +124,29 @@ def _gate_write(
     redacted = verdict.to_redacted_dict()
 
     if verdict.is_refuse:
-        return _err(
-            "refused", verdict.rationale, verdict=redacted, executed=False
-        ), verdict
-
-    # ask (owner-gated): require the config master switch AND the exact phrase.
+        return _err("refused", verdict.rationale, verdict=redacted, executed=False)
     if not cfg.allow_writes:
-        return (
-            _err(
-                "writes_disabled",
-                "vercel.allow_writes is false; refusing to mutate. Set "
-                "vercel.allow_writes: true in ~/.hermes/config.yaml to enable.",
-                verdict=redacted,
-                executed=False,
-            ),
-            verdict,
+        return _err(
+            "writes_disabled",
+            "vercel.allow_writes is false; set it true in ~/.hermes/config.yaml "
+            "to let this tool propose a write.",
+            verdict=redacted,
+            executed=False,
         )
-    required = verdict.required_owner_phrase or ""
-    if authorization.strip() != required:
-        return (
-            _json({
-                "success": True,
-                "executed": False,
-                "approval_required": True,
-                "verdict": redacted,
-                "message": (
-                    "Owner authorization required. Re-call this tool with "
-                    f"authorization set to exactly: {required!r}"
-                ),
-            }),
-            verdict,
-        )
-    return None, verdict  # authorized — proceed
+    body: Dict[str, Any] = {
+        "success": True,
+        "executed": False,
+        "approval_required": True,
+        "verdict": redacted,
+        "message": (
+            "Write proposed and owner-gated. The mutation is NOT performed from "
+            "the tool loop — approve and execute it through the cockpit "
+            "owner-approval path."
+        ),
+    }
+    if proposed:
+        body["proposed"] = proposed
+    return _json(body)
 
 
 # ---------------------------------------------------------------------------
@@ -163,14 +157,6 @@ _PROJECT_PROP = {
     "type": "string",
     "description": "Vercel project name or id (e.g. 'my-app' or 'prj_…').",
 }
-_AUTH_PROP = {
-    "type": "string",
-    "description": (
-        "Owner authorization phrase. Leave empty to preview the decision "
-        "verdict; supply the exact required phrase to authorize the write."
-    ),
-}
-
 LIST_PROJECTS_SCHEMA: Dict[str, Any] = {
     "name": "vercel_list_projects",
     "description": "List Vercel projects the token can access (read-only).",
@@ -240,9 +226,10 @@ TAIL_LOGS_SCHEMA: Dict[str, Any] = {
 SET_ENV_SCHEMA: Dict[str, Any] = {
     "name": "vercel_set_env",
     "description": (
-        "Set a project environment variable. OWNER-GATED: dry-run unless "
-        "vercel.allow_writes is true and the exact authorization phrase is "
-        "supplied. The value is never echoed back."
+        "Propose setting a project environment variable. OWNER-GATED and "
+        "PROPOSE-ONLY: returns a decision verdict with executed=false; the "
+        "change is applied out-of-band via the cockpit owner-approval path, "
+        "never from this tool. The value is never echoed back."
     ),
     "parameters": {
         "type": "object",
@@ -261,7 +248,6 @@ SET_ENV_SCHEMA: Dict[str, Any] = {
                 },
                 "description": "Environments to apply to (default ['preview']).",
             },
-            "authorization": _AUTH_PROP,
         },
         "required": ["project", "key", "value"],
         "additionalProperties": False,
@@ -271,9 +257,10 @@ SET_ENV_SCHEMA: Dict[str, Any] = {
 DEPLOY_SCHEMA: Dict[str, Any] = {
     "name": "vercel_deploy",
     "description": (
-        "Trigger a deployment via a project Deploy Hook URL. OWNER-GATED: "
-        "dry-run unless vercel.allow_writes is true and the exact authorization "
-        "phrase is supplied."
+        "Propose triggering a deployment via a project Deploy Hook URL. "
+        "OWNER-GATED and PROPOSE-ONLY: returns a decision verdict with "
+        "executed=false; the deploy is triggered out-of-band via the cockpit "
+        "owner-approval path, never from this tool."
     ),
     "parameters": {
         "type": "object",
@@ -283,7 +270,6 @@ DEPLOY_SCHEMA: Dict[str, Any] = {
                 "type": "string",
                 "description": "Vercel Deploy Hook URL (https://api.vercel.com/v1/integrations/deploy/…).",
             },
-            "authorization": _AUTH_PROP,
         },
         "required": ["project", "deploy_hook_url"],
         "additionalProperties": False,
@@ -293,8 +279,9 @@ DEPLOY_SCHEMA: Dict[str, Any] = {
 CANCEL_DEPLOYMENT_SCHEMA: Dict[str, Any] = {
     "name": "vercel_cancel_deployment",
     "description": (
-        "Cancel an in-progress deployment. OWNER-GATED: dry-run unless "
-        "vercel.allow_writes is true and the exact authorization phrase is supplied."
+        "Propose cancelling an in-progress deployment. OWNER-GATED and "
+        "PROPOSE-ONLY: returns a decision verdict with executed=false; the "
+        "cancel is performed out-of-band via the cockpit owner-approval path."
     ),
     "parameters": {
         "type": "object",
@@ -304,7 +291,6 @@ CANCEL_DEPLOYMENT_SCHEMA: Dict[str, Any] = {
                 "type": "string",
                 "description": "Deployment id to cancel.",
             },
-            "authorization": _AUTH_PROP,
         },
         "required": ["project", "deployment_id"],
         "additionalProperties": False,
@@ -410,7 +396,7 @@ def handle_tail_logs(args: Dict[str, Any], **_kw) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Write handlers (owner-gated)
+# Write handlers (owner-gated, propose-only — never mutate from the tool loop)
 # ---------------------------------------------------------------------------
 
 
@@ -429,27 +415,12 @@ def handle_set_env(args: Dict[str, Any], **_kw) -> str:
     target = args.get("target") or ["preview"]
     if not isinstance(target, list) or not all(isinstance(t, str) for t in target):
         return _err("bad_args", "target must be a list of strings")
-
-    stop, verdict = _gate_write(
+    # The value is intentionally omitted from the proposal echo.
+    return _propose_write(
         cfg,
         "vercel.set_env",
         summary=f"set env {key} on {project} {target}",
-        authorization=str(args.get("authorization") or ""),
-    )
-    if stop is not None:
-        return stop
-    try:
-        client = _require_client()
-    except _GateFailure as exc:
-        return exc.payload_json
-    res = client.create_env(project_id=project, key=key, value=value, target=target)
-    if not res.get("success"):
-        return _json(res)
-    # Never echo the value back — only the key + targets.
-    return _ok(
-        executed=True,
-        verdict=verdict.to_redacted_dict(),
-        env={"key": key, "target": target},
+        proposed={"project": project, "key": key, "target": target},
     )
 
 
@@ -462,23 +433,13 @@ def handle_deploy(args: Dict[str, Any], **_kw) -> str:
     hook = args.get("deploy_hook_url")
     if not isinstance(hook, str) or not hook.startswith("https://api.vercel.com/"):
         return _err("bad_args", "deploy_hook_url must be a https://api.vercel.com/ URL")
-
-    stop, verdict = _gate_write(
+    # The hook URL is a capability token — describe the action, don't echo it.
+    return _propose_write(
         cfg,
         "vercel.deploy",
-        summary=f"trigger deploy hook for {project}",
-        authorization=str(args.get("authorization") or ""),
+        summary=f"trigger a deploy hook for {project}",
+        proposed={"project": project, "via": "deploy_hook"},
     )
-    if stop is not None:
-        return stop
-    try:
-        client = _require_client()
-    except _GateFailure as exc:
-        return exc.payload_json
-    res = client.trigger_deploy_hook(hook)
-    if not res.get("success"):
-        return _json(res)
-    return _ok(executed=True, verdict=verdict.to_redacted_dict(), project=project)
 
 
 def handle_cancel_deployment(args: Dict[str, Any], **_kw) -> str:
@@ -490,24 +451,13 @@ def handle_cancel_deployment(args: Dict[str, Any], **_kw) -> str:
     deployment_id = args.get("deployment_id")
     if not isinstance(deployment_id, str) or not deployment_id:
         return _err("bad_args", "deployment_id is required")
-
-    stop, verdict = _gate_write(
+    # Cancellation by id is owner-approved out-of-band, where the approver can
+    # confirm the deployment actually belongs to ``project`` before it runs.
+    return _propose_write(
         cfg,
         "vercel.cancel_deployment",
         summary=f"cancel deployment {deployment_id} on {project}",
-        authorization=str(args.get("authorization") or ""),
-    )
-    if stop is not None:
-        return stop
-    try:
-        client = _require_client()
-    except _GateFailure as exc:
-        return exc.payload_json
-    res = client.cancel_deployment(deployment_id)
-    if not res.get("success"):
-        return _json(res)
-    return _ok(
-        executed=True, verdict=verdict.to_redacted_dict(), deployment_id=deployment_id
+        proposed={"project": project, "deployment_id": deployment_id},
     )
 
 

@@ -163,7 +163,10 @@ class VercelClient:
             params={"limit": max(1, min(int(limit), HARD_LIST_CAP))},
         )
 
-    # -- write (callers must gate via the decision engine first) -----------
+    # -- write -------------------------------------------------------------
+    # Reserved for the out-of-band owner-approval executor (cockpit), NOT the
+    # model-facing tool loop — the write tools are propose-only and never call
+    # these. Kept here as the executor surface the follow-up will drive.
 
     def create_env(
         self,

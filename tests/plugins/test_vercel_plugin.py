@@ -111,80 +111,65 @@ def test_set_env_approval_required(monkeypatch):
     assert "SuperSecretVal" not in json.dumps(out)
 
 
-def test_set_env_authorized_executes(monkeypatch):
+def _boom():
+    raise RuntimeError("_require_client must not be called for a propose-only write")
+
+
+def test_set_env_propose_only_never_executes(monkeypatch):
+    # Even with allow_writes and a phrase supplied, the tool never mutates and
+    # never reaches the client — the model cannot self-authorize a write.
     _set_cfg(monkeypatch, enabled=True, allow_writes=True)
-    seen: dict = {}
-
-    def handler(req: httpx.Request) -> httpx.Response:
-        seen["path"] = req.url.path
-        seen["body"] = json.loads(req.content)
-        return httpx.Response(200, json={"key": "K"})
-
-    monkeypatch.setattr(vtools, "_require_client", lambda: _client(handler))
+    monkeypatch.setattr(vtools, "_require_client", _boom)
     out = json.loads(
         vtools.handle_set_env({
             "project": "app",
             "key": "K",
             "value": "SuperSecretVal",
             "target": ["preview"],
-            "authorization": PHRASE,
+            "authorization": PHRASE,  # ignored — not a real gate
         })
     )
     assert out["success"] is True
-    assert out["executed"] is True
+    assert out["executed"] is False
+    assert out["approval_required"] is True
     assert out["verdict"]["tier"] == "ask"
-    # The value WAS sent to the API…
-    assert seen["path"] == "/v10/projects/app/env"
-    assert seen["body"]["value"] == "SuperSecretVal"
-    # …but is never echoed back to the model.
+    assert out["verdict"]["required_owner_phrase"] == PHRASE
+    # value never echoed anywhere
     assert "SuperSecretVal" not in json.dumps(out)
 
 
-def test_set_env_wrong_phrase_blocks(monkeypatch):
-    _set_cfg(monkeypatch, enabled=True, allow_writes=True)
-    out = json.loads(
-        vtools.handle_set_env({
-            "project": "app",
-            "key": "K",
-            "value": "V",
-            "authorization": "yes please",
-        })
-    )
-    assert out["executed"] is False
-    assert out["approval_required"] is True
-
-
-def test_deploy_requires_vercel_hook_url(monkeypatch):
+def test_deploy_bad_hook_url(monkeypatch):
     _set_cfg(monkeypatch, enabled=True, allow_writes=True)
     out = json.loads(
         vtools.handle_deploy({
             "project": "app",
             "deploy_hook_url": "https://evil.example/hook",
-            "authorization": PHRASE,
         })
     )
     assert out["success"] is False
     assert out["error"] == "bad_args"
 
 
-def test_cancel_deployment_authorized(monkeypatch):
+def test_deploy_propose_only(monkeypatch):
     _set_cfg(monkeypatch, enabled=True, allow_writes=True)
+    monkeypatch.setattr(vtools, "_require_client", _boom)
+    hook = "https://api.vercel.com/v1/integrations/deploy/prj_abc/secrettoken"
+    out = json.loads(vtools.handle_deploy({"project": "app", "deploy_hook_url": hook}))
+    assert out["executed"] is False
+    assert out["approval_required"] is True
+    # the deploy-hook URL is a capability token — never echoed back
+    assert "secrettoken" not in json.dumps(out)
 
-    def handler(req: httpx.Request) -> httpx.Response:
-        assert req.url.path == "/v12/deployments/dpl_1/cancel"
-        assert req.method == "PATCH"
-        return httpx.Response(200, json={"uid": "dpl_1", "state": "CANCELED"})
 
-    monkeypatch.setattr(vtools, "_require_client", lambda: _client(handler))
+def test_cancel_deployment_propose_only(monkeypatch):
+    _set_cfg(monkeypatch, enabled=True, allow_writes=True)
+    monkeypatch.setattr(vtools, "_require_client", _boom)
     out = json.loads(
-        vtools.handle_cancel_deployment({
-            "project": "app",
-            "deployment_id": "dpl_1",
-            "authorization": PHRASE,
-        })
+        vtools.handle_cancel_deployment({"project": "app", "deployment_id": "dpl_1"})
     )
-    assert out["success"] is True
-    assert out["executed"] is True
+    assert out["executed"] is False
+    assert out["approval_required"] is True
+    assert out["proposed"]["deployment_id"] == "dpl_1"
 
 
 # -- requirements gate ------------------------------------------------------

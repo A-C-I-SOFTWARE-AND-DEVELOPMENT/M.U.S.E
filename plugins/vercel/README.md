@@ -34,16 +34,21 @@ Writes pass three independent gates:
 
 1. `vercel.enabled` is true **and** `VERCEL_TOKEN` is set.
 2. `vercel.allow_writes` is true **and** the project is on the allowlist.
-3. The unified **decision engine** returns a verdict. Writes are owner-gated, so
-   the verdict is `ask` with `required_owner_phrase: "Yes, with authorization."`.
-   Re-call the tool with `authorization` set to exactly that phrase to proceed;
-   otherwise the tool returns the verdict with `executed: false` and makes no
-   API call. A `refuse` verdict always blocks.
+3. The unified **decision engine** returns a verdict (`ask` for these
+   owner-gated actions). Write tools are **propose-only**: they return the
+   verdict with `executed: false` and never perform the mutation or trust a
+   model-supplied phrase — a tool cannot enforce an owner gate on a value the
+   model controls (and the owner phrase is a public constant). A `refuse`
+   verdict always blocks.
 
-Env-var **values** are sent to the Vercel API but are never echoed back in a
-tool response. Tokens are scrubbed from any error text.
+The actual change is applied **out-of-band** via the cockpit owner-approval
+path, which is outside the model's control. Env-var **values** and deploy-hook
+URLs are never echoed back in a tool response; tokens are scrubbed from any
+error text.
 
 ## Not yet (follow-ups)
 
-- Live deploy via the Deployments API (today `vercel_deploy` uses a Deploy Hook).
+- Out-of-band execution of an approved write (set_env / deploy / cancel) via the
+  cockpit owner-approval path.
+- Live deploy via the Deployments API (today `vercel_deploy` proposes a Deploy Hook).
 - Cockpit preview-URL chips surfaced after a PR job.

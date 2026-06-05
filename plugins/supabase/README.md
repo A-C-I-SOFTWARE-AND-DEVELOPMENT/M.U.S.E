@@ -34,22 +34,24 @@ supabase:
 
 ## Safety model
 
-Writes **do not mutate a live database** in this release. When fully authorized
-they author a timestamped file under `supabase/migrations/` for the operator to
-apply with `supabase db push`. A write passes three gates:
+Write tools are **propose-only** and never touch a live database or author a
+file. A write passes three gates:
 
 1. `supabase.enabled` is true **and** the project is configured.
 2. `supabase.allow_writes` is true.
-3. The unified **decision engine** returns a verdict: owner-gated (`ask` +
-   exact `"Yes, with authorization."` phrase), and a secret detected inside the
-   SQL forces a `refuse`. Without the phrase the tool returns the verdict with
-   `executed: false` and writes nothing.
+3. The unified **decision engine** returns a verdict: owner-gated (`ask`), and a
+   secret detected inside the SQL forces a `refuse`. The tool returns the
+   verdict with `executed: false` — it does not trust a model-supplied phrase
+   (a tool cannot self-enforce an owner gate). The migration is authored and
+   applied **out-of-band** via the cockpit owner-approval path, then
+   `supabase db push`.
 
 Keys are scrubbed from any error text. Returned rows are size-capped.
 
 ## Not yet (follow-ups)
 
-- Live SQL execution via the Management API (today writes author a local file).
+- Out-of-band authoring + execution of an approved migration via the cockpit
+  owner-approval path (today the write tools only propose).
 - A Supabase **memory provider** (`plugins/memory/supabase/`) conforming to
   `agent/memory_provider.py`.
 - Optional decision-ledger mirror to Supabase for cockpit history.
