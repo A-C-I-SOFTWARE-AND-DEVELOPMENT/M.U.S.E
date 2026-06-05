@@ -7,31 +7,24 @@ import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.memory.MemoryTreeRepository
 import com.aci.hermes.ui.screens.memory.MemoryTab
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 /** Covers the Memory Tree tabs wired into [MemoryViewModel]. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class MemoryTreeViewModelTest {
 
-    private val dispatcher = UnconfinedTestDispatcher()
-
-    @Before
-    fun setUp() { Dispatchers.setMain(dispatcher) }
-
-    @After
-    fun tearDown() { Dispatchers.resetMain() }
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private class FakeExecutor(
         private val responder: (CockpitRequest) -> CockpitRawResponse,
