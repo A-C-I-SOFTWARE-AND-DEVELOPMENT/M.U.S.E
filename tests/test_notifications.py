@@ -30,8 +30,10 @@ def test_enqueue_does_not_overwrite_on_duplicate():
     q = PendingApprovalQueue()
     q.enqueue(_notif(created_at=1.0))
     q.enqueue(ApprovalNotification("appr_1", "job_1", "DIFFERENT", "refuse", 99.0))
-    assert q.get("appr_1").summary == "Create PR from validated patch"
-    assert q.get("appr_1").created_at == 1.0
+    item = q.get("appr_1")
+    assert item is not None
+    assert item.summary == "Create PR from validated patch"
+    assert item.created_at == 1.0
 
 
 def test_pending_excludes_notified():
