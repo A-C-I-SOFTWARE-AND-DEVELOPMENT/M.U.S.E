@@ -5812,6 +5812,8 @@ def cmd_doctor(args):
     """Check configuration and dependencies."""
     if getattr(args, "jarvis_launch", False):
         return cmd_jarvis_launch_doctor(args)
+    if getattr(args, "ten_ten", False):
+        return cmd_10_10_doctor(args)
     from hermes_cli.doctor import run_doctor
 
     run_doctor(args)
@@ -5829,6 +5831,22 @@ def cmd_jarvis_launch_doctor(args):
     else:
         print(report.render())
     # Exit nonzero only on a hard launch blocker.
+    raise SystemExit(0 if report.ok else 1)
+
+
+def cmd_10_10_doctor(args):
+    """Run the Hermes 10/10 release-readiness doctor."""
+    import json as _json
+
+    from hermes_cli.release_readiness_doctor import run_10_10_doctor
+
+    report = run_10_10_doctor()
+    if getattr(args, "json", False):
+        print(_json.dumps(report.to_dict(), indent=2))
+    else:
+        print(report.render())
+    # Exit nonzero only on a hard (safe-to-ship) gate failure; soft 10/10
+    # punch-list items are warnings and never block.
     raise SystemExit(0 if report.ok else 1)
 
 
@@ -11477,9 +11495,20 @@ def main():
         ),
     )
     doctor_parser.add_argument(
+        "--10-10",
+        dest="ten_ten",
+        action="store_true",
+        help=(
+            "Run the Hermes 10/10 release-readiness doctor: verifies the "
+            "safe-to-ship gates (dry-run publish, owner gate, redaction, signed "
+            "remote bridge, loopback default, exact-pinned deps) and reports the "
+            "remaining 10/10 loop-closure punch list as warnings."
+        ),
+    )
+    doctor_parser.add_argument(
         "--json",
         action="store_true",
-        help="Emit machine-readable JSON (used with --jarvis-launch).",
+        help="Emit machine-readable JSON (used with --jarvis-launch or --10-10).",
     )
     doctor_parser.set_defaults(func=cmd_doctor)
 
