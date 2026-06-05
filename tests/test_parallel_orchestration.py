@@ -1084,6 +1084,107 @@ def test_default_runtime_adapter_is_none(repo: Path):
     assert runner._runtime_adapter is None
 
 
+class _RecordingAdapter:
+    """A RuntimeAdapter spy that counts ``run`` calls and delegates to a real
+    LocalRuntimeAdapter, so a test can assert *whether* the adapter path ran."""
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.run_calls = 0
+
+    @property
+    def host_id(self) -> str:
+        return self._inner.host_id
+
+    @property
+    def kind(self) -> str:
+        return self._inner.kind
+
+    def prepare(self) -> None:
+        self._inner.prepare()
+
+    def run(self, command, *, timeout):
+        self.run_calls += 1
+        return self._inner.run(command, timeout=timeout)
+
+    def cleanup(self) -> None:
+        self._inner.cleanup()
+
+
+def test_adapter_used_for_plain_local_run_worker(repo: Path):
+    # A plain LOCAL_RUN worker (no per-worker cwd/env/worktree) goes through the
+    # injected adapter: run() is invoked exactly once and the worker completes.
+    adapter = _RecordingAdapter(_local_adapter_for_worker(repo, "job-plain", "w1"))
+    plan = op.ExecutionPlan(
+        job_id="job-plain",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('hi')"),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    s = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, runtime_adapter=adapter
+    ).run()["w1"]
+    assert s.state is op.WorkerState.COMPLETED
+    assert adapter.run_calls == 1
+
+
+def test_adapter_skipped_for_placement_worker_falls_back_to_inline(repo: Path):
+    # A worker that carries a per-worker env overlay must NOT be routed through a
+    # shared injected adapter (whose env is a single construction-time value).
+    # It falls back to the inline subprocess path that honors worker.env, so the
+    # adapter's run() is never called, the worker still completes, and the env
+    # var reaches the child — proving placement is honored, not silently dropped.
+    adapter = _RecordingAdapter(_local_adapter_for_worker(repo, "job-envfb", "w1"))
+    plan = op.ExecutionPlan(
+        job_id="job-envfb",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command(
+                    "import os",
+                    "print(os.environ.get('HERMES_FALLBACK_PROBE', 'MISSING'))",
+                ),
+                env={"HERMES_FALLBACK_PROBE": "present"},
+                timeout_seconds=10,
+            )
+        ],
+    )
+    s = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, runtime_adapter=adapter
+    ).run()["w1"]
+    assert s.state is op.WorkerState.COMPLETED
+    assert adapter.run_calls == 0  # fell back to inline; adapter unused
+    assert "present" in Path(s.stdout_path or "").read_text(encoding="utf-8")
+
+
+def test_needs_inline_placement_predicate():
+    # The selector that keeps placement-bearing workers off the adapter path.
+    def _w(*, cwd=None, env=None, use_worktree=False) -> op.WorkerPlan:
+        return op.WorkerPlan(
+            worker_id="w1",
+            profile="p",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=["true"],
+            timeout_seconds=10,
+            cwd=cwd,
+            env=env,
+            use_worktree=use_worktree,
+        )
+
+    assert op._needs_inline_placement(_w()) is False
+    assert op._needs_inline_placement(_w(cwd="/tmp")) is True
+    assert op._needs_inline_placement(_w(env={"A": "B"})) is True
+    assert op._needs_inline_placement(_w(use_worktree=True)) is True
+
+
 # ─── reschedule plan exposure (Sprint 13, observational only) ─────────
 
 
@@ -1128,7 +1229,9 @@ def test_compute_reschedule_plan_proposes_for_expired_idempotent_lease(
     # …and the lease is NOT mutated to a non-terminal/re-leased state — the
     # plan only *proposes*; the originating lease stays EXPIRED (retries are a
     # documented follow-up, never auto-executed here).
-    assert store.get("job-x:w1").status is wl.LeaseStatus.EXPIRED
+    expired_lease = store.get("job-x:w1")
+    assert expired_lease is not None
+    assert expired_lease.status is wl.LeaseStatus.EXPIRED
 
 
 def test_compute_reschedule_plan_expires_stale_running_lease(
@@ -1153,7 +1256,9 @@ def test_compute_reschedule_plan_expires_stale_running_lease(
         ttl=30.0,
     )  # RUNNING, expires at 130
     store.upsert(lease)
-    assert store.get("job-y:w1").status is wl.LeaseStatus.RUNNING
+    running_lease = store.get("job-y:w1")
+    assert running_lease is not None
+    assert running_lease.status is wl.LeaseStatus.RUNNING
 
     plan = op.ExecutionPlan(
         job_id="job-resched2",

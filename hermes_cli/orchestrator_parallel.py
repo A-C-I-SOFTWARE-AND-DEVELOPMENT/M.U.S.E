@@ -71,14 +71,21 @@ path — when neither is requested, execution is byte-for-byte the existing
 inline-subprocess local run:
 
 * ``runtime_adapter`` (a :class:`hermes_cli.runtime_adapter.RuntimeAdapter`,
-  default ``None``) — when supplied, a LOCAL_RUN worker's command runs through
-  ``adapter.run(command, timeout=...)`` instead of the inline ``subprocess``
-  loop, and the returned :class:`~hermes_cli.runtime_adapter.RuntimeResult`
+  default ``None``) — when supplied, a *plain* LOCAL_RUN worker's command runs
+  through ``adapter.run(command, timeout=...)`` instead of the inline
+  ``subprocess`` loop, and the returned
+  :class:`~hermes_cli.runtime_adapter.RuntimeResult`
   (returncode / stdout_path / stderr_path / duration / timed_out) is mapped onto
   the same :class:`WorkerStatus` fields. For a
   :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter` the two paths are
   observably equivalent (same terminal state, return code, captured streams).
-  When ``None`` (the default) nothing about the local path changes.
+  A worker that carries per-worker placement the adapter cannot honor — its own
+  ``cwd``, an ``env`` overlay, or a worktree-derived cwd — stays on the inline
+  path (see ``_needs_inline_placement``), so the adapter path is never used
+  where it would run the command in the wrong directory/environment; and
+  adapter-backed cancellation is bounded by ``timeout_seconds`` rather than
+  prompt (see :meth:`ParallelRunner._run_via_adapter`). When ``None`` (the
+  default) nothing about the local path changes.
 * :meth:`ParallelRunner.compute_reschedule_plan` — an *observable* computation
   that folds :func:`hermes_cli.lease_scheduler.reschedule_plan` over the lease
   store's host registry + leases and returns / records the resulting
@@ -334,6 +341,23 @@ def request_cancel(repo: Path, job_id: str) -> Path:
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _needs_inline_placement(worker: WorkerPlan) -> bool:
+    """True when a worker must run inline even if a runtime adapter is injected.
+
+    The :class:`~hermes_cli.runtime_adapter.RuntimeAdapter` contract takes only
+    ``command`` + ``timeout``; an adapter's working directory and environment
+    are single-valued, construction-time concerns. A worker that carries its own
+    ``cwd``, an ``env`` overlay, or a worktree-derived ``cwd`` therefore cannot
+    be honored faithfully by a shared, injected adapter — routing it there would
+    silently run the command in the adapter's directory/environment instead of
+    the worker's. Such workers stay on :meth:`ParallelRunner._run_subprocess`,
+    the only path that applies per-worker placement, so the adapter path is used
+    only where it is genuinely equivalent.
+    """
+
+    return bool(worker.cwd or worker.env or worker.use_worktree)
 
 
 # ─── runner ───────────────────────────────────────────────────────────
@@ -681,10 +705,16 @@ class ParallelRunner:
             return
 
         # LOCAL_RUN. With no runtime adapter (the default) this is the existing
-        # inline-subprocess path, unchanged. When an adapter is injected, the
-        # command runs through it and its RuntimeResult is mapped onto the same
-        # WorkerStatus fields (observably equivalent for LocalRuntimeAdapter).
-        if self._runtime_adapter is None:
+        # inline-subprocess path, unchanged. When an adapter is injected, a
+        # *plain* local-run worker runs through it and its RuntimeResult is
+        # mapped onto the same WorkerStatus fields (observably equivalent for
+        # LocalRuntimeAdapter). A worker that carries per-worker placement — its
+        # own cwd, an env overlay, or a worktree-derived cwd — stays on the
+        # inline path, the only one that honors those: a shared injected adapter
+        # has a single construction-time cwd/env and cannot apply them per
+        # worker, so routing such a worker through it would silently run the
+        # command in the wrong directory/environment.
+        if self._runtime_adapter is None or _needs_inline_placement(worker):
             self._run_subprocess(worker, worker_root)
         else:
             self._run_via_adapter(worker, worker_root, self._runtime_adapter)
@@ -804,11 +834,21 @@ class ParallelRunner:
         concerns); the runner only hands it the command + timeout and records
         the result.
 
-        Unlike the inline loop, ``adapter.run`` blocks until the command
-        finishes (or its own timeout fires), so cancellation is observed at the
-        boundaries: a worker cancelled before launch is recorded as cancelled
-        without running, and a cancel that lands while the command is in flight
-        is honored once ``run`` returns.
+        Cancellation here is **bounded, not prompt**, and that is the one
+        deliberate difference from the inline loop. ``adapter.run`` blocks until
+        the command finishes (or its own ``timeout`` fires), and the
+        :class:`~hermes_cli.runtime_adapter.RuntimeAdapter` contract exposes no
+        terminate hook, so a cancel is observed only at the boundaries: a worker
+        cancelled *before* launch is recorded as cancelled without running, and a
+        cancel that lands *while the command is in flight* is honored once
+        ``run`` returns — at most ``timeout_seconds`` later, since the adapter
+        kills its own child at the deadline. The inline path, by contrast, polls
+        and kills the child mid-flight. Prompt mid-flight cancellation for
+        adapter-backed workers needs a cancel/terminate member on the adapter
+        Protocol and is a documented follow-up (tracked with the ssh/docker
+        adapter work); until then the bounded latency above applies. Workers
+        that need either prompt cancellation or per-worker cwd/env/worktree are
+        already kept on the inline path by ``_needs_inline_placement``.
         """
 
         # Honor an already-requested cancel before doing any work, mirroring the
