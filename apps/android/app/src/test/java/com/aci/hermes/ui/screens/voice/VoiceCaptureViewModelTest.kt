@@ -27,7 +27,7 @@ class VoiceCaptureViewModelTest {
 
     private fun newViewModel(
         sink: FakeJarvisTaskSink = FakeJarvisTaskSink(),
-    ): VoiceCaptureViewModel = VoiceCaptureViewModel(taskSink = sink, logBuffer = logBuffer)
+    ): VoiceCaptureViewModel = mainDispatcherRule.register(VoiceCaptureViewModel(taskSink = sink, logBuffer = logBuffer))
 
     @Test
     fun `transcript populates state and clears listening`() {

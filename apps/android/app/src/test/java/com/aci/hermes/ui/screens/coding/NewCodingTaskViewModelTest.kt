@@ -48,7 +48,7 @@ class NewCodingTaskViewModelTest {
 
     @Test
     fun `mock generate produces a navigable planned demo task`() = runTest {
-        val vm = NewCodingTaskViewModel(repo(paired = false, mock = true, scope = this), { false }, { true })
+        val vm = mainDispatcherRule.register(NewCodingTaskViewModel(repo(paired = false, mock = true, scope = this), { false }, { true }))
         vm.updatePrompt("build a thing")
         vm.generatePacket()
         advanceUntilIdle()
@@ -58,7 +58,7 @@ class NewCodingTaskViewModelTest {
 
     @Test
     fun `empty prompt is rejected with a message`() = runTest {
-        val vm = NewCodingTaskViewModel(repo(paired = true, mock = false, scope = this), { true }, { false })
+        val vm = mainDispatcherRule.register(NewCodingTaskViewModel(repo(paired = true, mock = false, scope = this), { true }, { false }))
         vm.generatePacket()
         advanceUntilIdle()
         assertTrue(vm.state.value.message!!.contains("Describe", ignoreCase = true))
@@ -68,7 +68,7 @@ class NewCodingTaskViewModelTest {
     @Test
     fun `offline generate still navigates so there is no dead end`() = runTest {
         val r = repo(paired = false, mock = false, scope = this) { error("must not hit wire") }
-        val vm = NewCodingTaskViewModel(r, { false }, { false })
+        val vm = mainDispatcherRule.register(NewCodingTaskViewModel(r, { false }, { false }))
         vm.updatePrompt("offline task")
         vm.generatePacket()
         advanceUntilIdle()

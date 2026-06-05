@@ -9,14 +9,21 @@ this repo, so known issues are tracked here.
 
 ## Android ViewModel tests — `Dispatchers.resetMain()` throws `IllegalStateException`
 
-- **Status:** open — **`MainDispatcherRule` migration (#303) reduced but did NOT
-  eliminate it.** Still reproduces (e.g. PR #297 on the post-#303 base:
-  `OrchestratorViewModelTest > copying a prompt for an unknown task is a safe
-  no-op`, `IllegalStateException` at `TestMainDispatcher.kt:67` — the `setMain`
-  side). Centralising set/reset in one rule was necessary but not sufficient.
+- **Status:** fix applied (awaiting CI confirmation) — the leaked-`viewModelScope`
+  root cause below is now addressed: `MainDispatcherRule` cancels each
+  registered ViewModel's `viewModelScope` (via a `ViewModelStore.clear()`) in
+  `finished()` **before** `resetMain()`, and every ViewModel test wraps its VM
+  construction in `mainDispatcherRule.register(...)`. **This could not be
+  validated locally** (the change was authored in an environment without the
+  Android SDK); the `Android JVM unit (testDebugUnitTest)` CI job is the
+  validation gate, and because the failure is ~1-in-N a single green run is not
+  proof — re-run the job several times before considering it closed.
 - **Surface:** `Android JVM unit (testDebugUnitTest)` CI job
 - **Observed on:** PR #262, #272 (`resetMain` side); PR #297 after #303
   (`setMain` side)
+- **History:** #303 centralised set/reset in `MainDispatcherRule` (necessary,
+  not sufficient); the follow-up adds per-VM scope cancellation to stop the leak
+  at the source.
 
 ### Why #303 wasn't enough (refined root cause)
 

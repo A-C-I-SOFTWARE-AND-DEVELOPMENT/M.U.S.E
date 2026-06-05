@@ -49,7 +49,7 @@ class JarvisChatViewModelTest {
         jobDispatcher: FakeJarvisJobDispatcher = FakeJarvisJobDispatcher(available = false),
         approvalGateway: FakeJarvisApprovalGateway = FakeJarvisApprovalGateway(available = false),
         recordInspector: FakeJarvisRecordInspector = FakeJarvisRecordInspector(available = false),
-    ): JarvisChatViewModel = JarvisChatViewModel(
+    ): JarvisChatViewModel = mainDispatcherRule.register(JarvisChatViewModel(
         gateway = gateway,
         taskSink = taskSink,
         logBuffer = logBuffer,
@@ -57,7 +57,7 @@ class JarvisChatViewModelTest {
         jobDispatcher = jobDispatcher,
         approvalGateway = approvalGateway,
         recordInspector = recordInspector,
-    )
+    ))
 
     @Test
     fun `welcome message is present on init`() {

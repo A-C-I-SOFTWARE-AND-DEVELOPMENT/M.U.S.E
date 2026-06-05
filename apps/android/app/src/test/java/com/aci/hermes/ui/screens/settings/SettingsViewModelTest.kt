@@ -44,12 +44,12 @@ class SettingsViewModelTest {
             java.nio.file.Files.createTempDirectory("settings-coding").toFile(),
             ioDispatcher = Dispatchers.Unconfined,
         )
-        return SettingsViewModel(
+        return mainDispatcherRule.register(SettingsViewModel(
             settings = settings,
             tasks = HermesTaskRepository(ctx),
             logBuffer = LogBuffer(),
             codingTasks = codingStore,
-        )
+        ))
     }
 
 

@@ -18,7 +18,7 @@ class AuditViewModelTest {
     @Test
     fun `records mirror the repository seed`() {
         val repo = AuditRepository()
-        val vm = AuditViewModel(repo)
+        val vm = mainDispatcherRule.register(AuditViewModel(repo))
         assertTrue("expected seeded audit records", vm.records.value.isNotEmpty())
         assertEquals(repo.records.value.map { it.id }, vm.records.value.map { it.id })
     }
@@ -28,7 +28,7 @@ class AuditViewModelTest {
         // The repository redacts before exposing; the VM must not re-introduce
         // raw secrets. We assert the VM surfaces exactly the repo's display set.
         val repo = AuditRepository()
-        val vm = AuditViewModel(repo)
+        val vm = mainDispatcherRule.register(AuditViewModel(repo))
         vm.records.value.forEach { record ->
             assertTrue(record.id.isNotBlank())
         }
