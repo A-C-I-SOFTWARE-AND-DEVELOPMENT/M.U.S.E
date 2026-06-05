@@ -1,0 +1,8 @@
+name: news
+version: 1.0.0
+description: "Headlines for Hermes. news_top reads Hacker News (free, no key, always available). news_headlines uses NewsAPI.org and only appears when NEWSAPI_KEY is set in ~/.hermes/.env. Both read-only and host-pinned; the NewsAPI key is sent as a header and never echoed. Opt-in via `news.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - news_top
+  - news_headlines

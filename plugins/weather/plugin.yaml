@@ -1,0 +1,9 @@
+name: weather
+version: 1.0.0
+description: "Free weather + geocoding for Hermes via the Open-Meteo API — no API key required. Three read-only tools: weather_geocode (place name → coordinates), weather_current (current conditions), weather_forecast (daily forecast). Host-pinned to *.open-meteo.com; responses are size-capped. Opt-in via `weather.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - weather_geocode
+  - weather_current
+  - weather_forecast
