@@ -40,6 +40,7 @@ __all__ = [
     "pending_approvals",
     "default_provider",
     "enqueue_and_notify",
+    "resolve_and_notify",
 ]
 
 
@@ -129,3 +130,38 @@ def enqueue_and_notify(
     except Exception:  # pragma: no cover - defensive; notify must not break caller
         pass
     return True
+
+
+def resolve_and_notify(
+    approval_id: str,
+    *,
+    decision: str,
+    queue: PendingApprovalQueue | None = None,
+) -> bool:
+    """Clear a decided approval from the queue and emit a bounded event.
+
+    Mirrors :func:`enqueue_and_notify` for the decision side: removes
+    ``approval_id`` from the process pending-approval queue (so a phone tailing
+    the SSE stream stops showing "approval pending" once the owner decides) and
+    emits one bounded ``approval decided`` event. The payload carries only the
+    approval id and the decision — never a diff, request body, or secret.
+
+    Returns True when the approval was present in the queue and removed, False
+    otherwise (e.g. unknown id). Best-effort: never raises into the caller, so a
+    queue/notify failure can never break the decision that succeeded.
+    """
+    q = queue if queue is not None else _QUEUE
+    try:
+        removed = q.resolve(approval_id)
+    except Exception:  # pragma: no cover - defensive; queue must not break caller
+        removed = False
+    try:
+        event_log.emit(
+            "info",
+            "gateway",
+            "approval decided",
+            attributes={"approval_id": approval_id, "decision": decision},
+        )
+    except Exception:  # pragma: no cover - defensive; notify must not break caller
+        pass
+    return removed

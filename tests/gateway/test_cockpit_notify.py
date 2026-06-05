@@ -7,9 +7,13 @@ Covers ``gateway.cockpit.notify``:
   cockpit event log (which powers the SSE stream) can read back,
 * ``enqueue_and_notify`` is idempotent on ``approval_id`` (a duplicate emits no
   second alert), and never raises,
-* the emitted attributes carry no secret, and
+* ``resolve_and_notify`` clears a decided approval from the queue and emits a
+  bounded ``approval decided`` event (no secret), and never raises,
+* the emitted attributes carry no secret,
 * the real proposal-creation site (``ledger_rollback_request``) enqueues +
-  emits for the newly created pending approval.
+  emits for the newly created pending approval, and
+* the real decision site (``approvals_decide``) clears the pending approval and
+  emits ``approval decided`` once a decision succeeds.
 
 Hermetic: each test isolates ``HERMES_HOME`` (so the event log + ledger live in
 a tmp dir) and resets the process-singleton queue.
@@ -198,3 +202,134 @@ def test_rollback_request_creation_enqueues_and_emits(home: Path) -> None:
     attrs = matching[0]["attributes"]
     assert set(attrs.keys()) == {"approval_id", "risk_tier", "summary"}
     assert attrs["summary"]  # short rationale, non-empty
+
+
+# ── resolve_and_notify: clears the queue + emits a bounded decided event ─────
+
+
+def _read_decided_events() -> list[dict]:
+    return [
+        ev
+        for ev in event_log.read(level="info", source="gateway", limit=100)
+        if ev["message"] == "approval decided"
+    ]
+
+
+def test_resolve_and_notify_clears_queue_and_emits(home: Path) -> None:
+    q = notify.pending_approvals()
+    notify.enqueue_and_notify(_notif("a"))
+    assert "a" in q
+
+    # Deciding the approval removes it from the queue (returns True) and emits a
+    # bounded "approval decided" event carrying only the id + decision.
+    assert notify.resolve_and_notify("a", decision="approve") is True
+    assert "a" not in q
+    assert q.pending() == []
+
+    decided = _read_decided_events()
+    assert len(decided) == 1
+    attrs = decided[0]["attributes"]
+    assert set(attrs.keys()) == {"approval_id", "decision"}
+    assert attrs["approval_id"] == "a"
+    assert attrs["decision"] == "approve"
+
+
+def test_resolve_and_notify_unknown_id_emits_but_returns_false(home: Path) -> None:
+    # An unknown id still emits a decided event (best-effort) but reports that
+    # nothing was removed from the queue.
+    assert notify.resolve_and_notify("missing", decision="reject") is False
+    decided = _read_decided_events()
+    assert len(decided) == 1
+    assert decided[0]["attributes"]["decision"] == "reject"
+
+
+def test_resolve_and_notify_never_raises_on_queue_failure(home: Path) -> None:
+    class BoomQueue:
+        def resolve(self, approval_id: str) -> bool:
+            raise RuntimeError("queue down")
+
+    # A failing queue must not break the caller.
+    assert notify.resolve_and_notify("a", decision="approve", queue=BoomQueue()) is False  # type: ignore[arg-type]
+    # The decided event is still emitted.
+    assert len(_read_decided_events()) == 1
+
+
+# ── decision site: approvals_decide clears the pending approval + emits ──────
+
+
+def _seed_proposal(home: Path) -> str:
+    """Write a single pending proposal and return its derived approval id."""
+    import hashlib
+
+    path = home / "jarvis_prime" / "proposals.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    prop = {
+        "kind": "skill_update",
+        "target_path": "skills/foo/SKILL.md",
+        "rationale": "improve",
+        "risk_class": "RC2",
+        "requires_owner_approval": True,
+        "status": "proposed",
+        "created_at": "2026-05-30T00:00:00+00:00",
+    }
+    path.write_text(json.dumps(prop) + "\n", encoding="utf-8")
+    raw = f"{prop['kind']}|{prop['target_path']}|{prop['created_at']}"
+    return hashlib.sha1(raw.encode()).hexdigest()[:10]
+
+
+def test_approvals_decide_clears_pending_and_emits(home: Path) -> None:
+    from gateway.cockpit.handlers import Request, approvals_decide
+
+    pid = _seed_proposal(home)
+    # Mirror the real flow: the proposal was enqueued as pending when created.
+    notify.enqueue_and_notify(_notif(pid))
+    assert pid in notify.pending_approvals()
+
+    req = Request(
+        method="POST",
+        path=f"/v1/cockpit/approvals/{pid}",
+        body={"decision": "approve", "authorization": "Yes, with authorization."},
+        path_params={"id": pid},
+    )
+    resp = approvals_decide(req)
+    assert resp.status == 200
+    assert resp.payload["status"] == "approve"
+
+    # The pending approval is no longer listed...
+    assert pid not in notify.pending_approvals()
+    assert notify.pending_approvals().pending() == []
+    # ...and a bounded "approval decided" event was emitted for it.
+    decided = [ev for ev in _read_decided_events() if ev["attributes"].get("approval_id") == pid]
+    assert len(decided) == 1
+    assert decided[0]["attributes"]["decision"] == "approve"
+
+
+def test_approvals_decide_idempotent_repeat_keeps_no_pending(home: Path) -> None:
+    # The idempotent early-return path must NOT re-emit a decided event, and the
+    # queue stays cleared from the first (successful) decision.
+    from gateway.cockpit.handlers import Request, approvals_decide
+
+    pid = _seed_proposal(home)
+    notify.enqueue_and_notify(_notif(pid))
+
+    def _decide() -> object:
+        return approvals_decide(
+            Request(
+                method="POST",
+                path=f"/v1/cockpit/approvals/{pid}",
+                body={"decision": "approve", "authorization": "Yes, with authorization."},
+                path_params={"id": pid},
+            )
+        )
+
+    first = _decide()
+    second = _decide()
+    assert first.status == 200  # type: ignore[attr-defined]
+    assert second.status == 200  # type: ignore[attr-defined]
+    assert second.payload["idempotent"] is True  # type: ignore[attr-defined]
+
+    # Only the first (real) decision cleared the queue + emitted; the idempotent
+    # repeat added no second decided event.
+    assert pid not in notify.pending_approvals()
+    decided = [ev for ev in _read_decided_events() if ev["attributes"].get("approval_id") == pid]
+    assert len(decided) == 1

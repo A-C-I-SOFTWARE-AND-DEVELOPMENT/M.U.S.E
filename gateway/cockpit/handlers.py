@@ -2731,6 +2731,19 @@ def approvals_decide(req: Request) -> JsonResponse:
     matched["resolved_at"] = _now_iso()
     matched["owner_decision_note"] = f"{decision} via cockpit"
     _save_proposals(items)
+
+    # Best-effort: clear the now-decided proposal from the shared pending-approval
+    # queue and emit a bounded "approval decided" event, so a phone tailing the
+    # SSE stream stops showing "approval pending" forever. This runs only after a
+    # decision actually succeeds (not the idempotent/expired/superseded returns
+    # above), carries no secret, and must never break the decision.
+    try:
+        from . import notify
+
+        notify.resolve_and_notify(proposal_id, decision=decision)
+    except Exception:  # pragma: no cover - notify is best-effort
+        pass
+
     return JsonResponse(200, {"id": proposal_id, "status": decision})
 
 
