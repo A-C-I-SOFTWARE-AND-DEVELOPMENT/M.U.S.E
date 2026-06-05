@@ -86,6 +86,7 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 | Command | What it does |
 |---|---|
 | `/orchestrate <goal>` | Start an orchestrated job |
+| `/swarm <goal>` | Run a Swarm Grainler Parallel job — non-overlapping grains, each its own specialized LLM in an isolated worktree, dated + ledgered |
 | `/orchestrator status` | List active jobs |
 | `/orchestrator status <job-id>` | One job's task graph |
 | `/reload-skills` | Re-scan skill files after editing |
