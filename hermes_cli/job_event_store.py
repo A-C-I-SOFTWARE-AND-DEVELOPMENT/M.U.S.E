@@ -89,7 +89,18 @@ def _safe_events_path(job_id: str) -> Optional[Path]:
         segment = sanitize_segment(job_id, field_name="job_id")
     except WorktreeError:
         return None
-    return _jobs_root() / segment / _EVENTS_FILENAME
+    root = _jobs_root()
+    candidate = root / segment / _EVENTS_FILENAME
+    # Defense in depth + an explicit barrier for static path-injection analysis:
+    # the allow-list sanitizer above already yields a single in-root segment, but
+    # confirm the resolved target stays within the jobs root (also defeats any
+    # symlink trickery) before returning it for filesystem use.
+    try:
+        if not candidate.resolve().is_relative_to(root.resolve()):
+            return None
+    except OSError:
+        return None
+    return candidate
 
 
 def append(job_id: str, envelope: Dict[str, Any]) -> None:
