@@ -418,6 +418,27 @@ def test_reject_needs_no_phrase(server, home: Path) -> None:
     assert status == 200
 
 
+def test_decide_is_idempotent_on_repeat(server, home: Path) -> None:
+    # Sprint 9 race rule: a proposal is decided once. A repeat decide returns
+    # the existing decision instead of re-deciding.
+    pid = _seed_proposal(home)
+    status, _ = _post(
+        server,
+        f"/v1/cockpit/approvals/{pid}",
+        {"decision": "approve", "authorization": "Yes, with authorization."},
+    )
+    assert status == 200
+    status2, raw2 = _post(
+        server,
+        f"/v1/cockpit/approvals/{pid}",
+        {"decision": "approve", "authorization": "Yes, with authorization."},
+    )
+    assert status2 == 200
+    payload = json.loads(raw2)
+    assert payload["idempotent"] is True
+    assert payload["status"] == "approved"
+
+
 def test_sessions_list_real_or_empty(server) -> None:
     _, payload = _get(server, "/v1/cockpit/sessions")
     assert "sessions" in payload and isinstance(payload["sessions"], list)
