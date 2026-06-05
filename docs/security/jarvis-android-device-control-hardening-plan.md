@@ -87,18 +87,29 @@ reboot (state is persisted) instead of resetting to `false`.
    forces a compile error until its author classifies it — that is the
    enforcement mechanism. Today's five intents stay STANDARD/SENSITIVE, so
    existing flows are byte-for-byte unchanged.
-2. **`DeviceActionBroker.kt`** — the confirmation floor:
+2. **`DeviceActionBroker.kt`** — the confirmation floor. Give `evaluate(...)` an
+   explicit `confirmationObtained: Boolean = false` input so the floor requires
+   confirmation **once** but does not deadlock the post-approval re-run:
    ```
    needsConfirm = when (sensitivity) {
-       IRREVERSIBLE -> true                          // floor: always confirm
+       IRREVERSIBLE -> !confirmationObtained         // floor: confirm once
        SENSITIVE    -> consent.confirmSensitiveActions
        STANDARD     -> false
    }
    ```
-   This also closes the approval re-check path: `DeviceControlController.approvePending`
-   re-evaluates with `confirmSensitiveActions = false`; because IRREVERSIBLE
-   ignores that flag, the floor is never cleared by the re-check (the owner's tap
-   on the pending card *is* the one per-action confirmation).
+   - Normal dispatch passes `confirmationObtained = false` → IRREVERSIBLE ⇒
+     `NeedsConfirmation` (held as a `PendingDeviceAction`).
+   - `DeviceControlController.approvePending` re-evaluates after the owner taps
+     Approve and **must pass `confirmationObtained = true`** (the card tap *is*
+     the one per-action confirmation). Emergency/consent/permission re-checks
+     still run on that path and can still block — only the confirmation
+     requirement is satisfied, so the approved IRREVERSIBLE action can execute.
+   > ⚠️ This corrects an earlier draft (flagged in review): if IRREVERSIBLE
+   > returned `NeedsConfirmation` *unconditionally*, `approvePending` — which
+   > executes only on `BrokerDecision.Approved` — would refuse the action even
+   > after approval, so it could never run. The `confirmationObtained` input is
+   > required; do **not** reuse the `confirmSensitiveActions = false` re-check
+   > copy to mean "already confirmed" (IRREVERSIBLE ignores that flag by design).
 3. **`DeviceConsentState.kt`** — KDoc only: state that `confirmSensitiveActions`
    governs SENSITIVE only and **cannot** disable confirmation for IRREVERSIBLE.
 4. **UI** — distinguish IRREVERSIBLE visually (e.g. red tier) on the pending card,
@@ -130,7 +141,10 @@ unit-tests off-device (`DeviceActionBroker` is a pure function;
    (Existing `releaseEmergencyStop` tests in `JarvisLiveViewModelTest` /
    `ControlViewModelTest` are the *global* resume and should keep passing.)
 3. **Approval re-check:** a held SENSITIVE action runs after the owner tap; a held
-   IRREVERSIBLE action still requires the floor.
+   IRREVERSIBLE action is refused until approval and then **runs** when
+   `approvePending` re-evaluates with `confirmationObtained = true` (and is still
+   blocked if emergency/consent/permission changed in the meantime); without that
+   flag IRREVERSIBLE is never `Approved`.
 4. **Instrumented smoke:** global Emergency Stop stops orchestrator + overlay +
    voice loop + drops the accessibility gesture guard in one tap; resume requires
    approval; the halt survives a process restart.
