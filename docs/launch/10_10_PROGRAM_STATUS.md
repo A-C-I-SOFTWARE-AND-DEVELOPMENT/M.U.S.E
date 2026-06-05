@@ -37,10 +37,20 @@ the optional integrations — are where the real gaps live.
 
 A reasonable one-line grade **at the time of the original audit** was
 **~60–65%**. Since then (see *§ Update — post-merge audit* just below the
-table), 23 PRs landed and an independent re-audit confirms the decision /
+table), 23 PRs landed and an independent re-audit confirmed the decision /
 approval / pairing / bridge / cost-consumer spine is wired and verified —
-call it **~80%**, with the remainder being six well-scoped integration
-"glue" hops rather than missing kernels.
+~80%, with the remainder being six well-scoped integration "glue" hops
+rather than missing kernels. **As of the capstone update below, all six of
+those hops have now landed** (PRs #317–#322): each is tested and strictly
+additive, and is *either* wired into a live code path (replay route,
+notify-on-decision, decision recording, pairing nav) *or* added as a tested
+opt-in seam whose production caller is still pending — specifically the
+cost-producer writer (no live caller yet, so real per-job cost still reads
+0) and the runtime adapter (nothing injects one by default). Call it
+**~85%** — the loop is closed at the *seam* level; what remains is *choosing
+to use* the opt-in seams in production flows (notably a live caller +
+`JobStore` drain for per-job cost), plus the Sprint-14 unified release gate
+and the optional integrations (none of which are missing kernels).
 
 ### Score summary
 
@@ -94,6 +104,54 @@ tested; only the wiring into live paths is left):
 Optional / unchanged: Supabase (S11) absent; Sprint 14 unified release-gate /
 smoke / `doctor --10-10` still distributed; the legacy *shared* cockpit token
 remains plaintext-at-rest (per-device tokens are hashed).
+
+### Update — 2026-06-05 (glue-hops complete)
+
+All **six** integration glue-hops listed in the post-merge audit have now
+landed on `main` (PRs #317–#322), each strictly additive / opt-in with the
+existing default path unchanged. Each is *tested*; four are *wired into a
+live path* (hops 2–4, 6) and two are *tested opt-in seams whose production
+caller is still pending* (hop 1 cost writer, hop 5 runtime adapter). Where a
+hop closes an API/seam but the production-default wiring is deliberately
+deferred, the residual follow-up is named on the function and repeated here
+— no overclaiming.
+
+1. **Cost producer — done (emit seam).** `orchestrator_parallel.write_usage_sidecar`
+   (#322) is the supported, atomic producer counterpart to the existing
+   `iter_worker_usage` drain; it no-ops on the `None` an empty turn yields and
+   stays free of the agent runtime (takes the already-built
+   `build_usage_record` block). *Residual:* no in-repo agent-worker subprocess
+   calls it yet, so per-job cost still reads 0 in a real run until a worker
+   emits — the live caller and the `ParallelRunner → JobStore` auto-drain
+   remain follow-ups (documented on `iter_worker_usage` / `write_usage_sidecar`).
+2. **Replay — done (route).** `GET /jobs/{id}/snapshot` (#317) exposes
+   `rebuild_snapshot`. *Residual:* `JobStore` is in-memory; restart-rebuild
+   persistence is deferred.
+3. **Notify-on-decision — done.** `approvals_decide` now calls
+   `resolve_and_notify` (#318) so a decided approval clears the phone's pending
+   alert instead of showing "pending" forever.
+4. **decision_engine breadth — done.** A unified `DecisionVerdict` is now
+   recorded at the orchestrator dispatch/merge and remote-bridge mutation
+   points, not only the publisher (#320).
+5. **Runtime adapter + scheduler — done (opt-in).** `ParallelRunner` can run a
+   LOCAL_RUN worker through an injected `RuntimeAdapter` and compute a
+   reschedule plan (#321). Placement-bearing workers (cwd / env / worktree)
+   stay on the inline path; the reschedule plan *decides, it does not act*;
+   adapter cancellation is bounded by `timeout_seconds`. *Residual:* nothing
+   injects an adapter by default, and ssh/docker adapters are stubs.
+6. **Android pairing nav — done.** `DevicePairingScreen` + a `Screen.Pairing`
+   route + a Settings entry make the (already-correct) pairing client/VM
+   reachable, with an owner-phrase-gated confirm (#319).
+
+**Net:** the 10/10 loop is closed *at the seam level* — every kernel is now
+either wired into a live path (hops 2–4, 6) or available as a tested,
+additive opt-in seam (hops 1 and 5), all covered by tests. The remaining
+work is no longer "missing kernels" but: (a) opting the opt-in seams into
+production use — a live caller + runner→JobStore drain so real per-job cost
+stops reading 0 (hop 1), and a default adapter injection (hop 5); (b) replay
+persistence behind the snapshot route (hop 2); (c) the Sprint-14 unified
+release gate / `doctor --10-10`; and (d) the optional integrations (Supabase
+S11). The shared-cockpit-token-at-rest note above is unchanged.
 
 ### Critical path to close the loop
 
