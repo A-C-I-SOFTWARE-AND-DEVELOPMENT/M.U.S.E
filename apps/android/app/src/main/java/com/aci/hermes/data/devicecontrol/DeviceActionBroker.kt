@@ -48,6 +48,14 @@ object DeviceActionBroker {
         consent: DeviceConsentState,
         emergencyEngaged: Boolean,
         grantedCapabilities: Set<DeviceControlCapability>,
+        /**
+         * True when this evaluation is the post-approval re-check of a held
+         * action — the owner's tap on the pending card *is* the per-action
+         * confirmation. It satisfies the [DeviceActionSensitivity.IRREVERSIBLE]
+         * floor (so an approved irreversible action can run) while emergency /
+         * consent / permission are still re-verified above.
+         */
+        confirmationObtained: Boolean = false,
     ): BrokerDecision {
         if (emergencyEngaged) return BrokerDecision.Blocked(BlockReason.EMERGENCY_STOP)
         if (!consent.enabled) return BrokerDecision.Blocked(BlockReason.CONSENT_DISABLED)
@@ -57,9 +65,16 @@ object DeviceActionBroker {
         }
         if (missing) return BrokerDecision.Blocked(BlockReason.MISSING_PERMISSION)
 
-        if (packet.sensitivity == DeviceActionSensitivity.SENSITIVE && consent.confirmSensitiveActions) {
-            return BrokerDecision.NeedsConfirmation
+        // Confirmation floor (step 4): IRREVERSIBLE/external actions ALWAYS need
+        // explicit per-action owner confirmation — the confirm toggle can raise
+        // the bar (also confirm SENSITIVE) but can never lower it below this
+        // floor. SENSITIVE follows the toggle; STANDARD never confirms.
+        val needsConfirmation = when (packet.sensitivity) {
+            DeviceActionSensitivity.IRREVERSIBLE -> !confirmationObtained
+            DeviceActionSensitivity.SENSITIVE -> consent.confirmSensitiveActions
+            DeviceActionSensitivity.STANDARD -> false
         }
+        if (needsConfirmation) return BrokerDecision.NeedsConfirmation
         return BrokerDecision.Approved
     }
 

@@ -134,4 +134,63 @@ class DeviceActionBrokerTest {
         assertEquals(DeviceActionLogEntry.Outcome.BLOCKED, entry.outcome)
         assertTrue(entry.reason?.contains("emergency") == true)
     }
+
+    // ── 5. irreversible-action confirmation floor (non-disableable) ──────
+
+    // No current AutomationIntent maps to IRREVERSIBLE, so build the packet
+    // directly to exercise the floor the tier exists to enforce.
+    private fun irreversiblePacket() = DeviceActionPacket(
+        intent = sensitiveIntent,
+        requiredCapabilities = DeviceControlCapability.requiredFor(sensitiveIntent),
+        sensitivity = DeviceActionSensitivity.IRREVERSIBLE,
+        requiresResolvedTarget = true,
+        previewLabel = "Send message (irreversible)",
+    )
+
+    @Test
+    fun `irreversible action always needs confirmation, even with the confirm toggle off`() {
+        val decision = DeviceActionBroker.evaluate(
+            packet = irreversiblePacket(),
+            consent = consent(confirmSensitive = false), // toggle cannot lower the floor
+            emergencyEngaged = false,
+            grantedCapabilities = allCaps,
+        )
+        assertEquals(BrokerDecision.NeedsConfirmation, decision)
+    }
+
+    @Test
+    fun `irreversible action runs once the owner confirms (confirmationObtained)`() {
+        val decision = DeviceActionBroker.evaluate(
+            packet = irreversiblePacket(),
+            consent = consent(confirmSensitive = false),
+            emergencyEngaged = false,
+            grantedCapabilities = allCaps,
+            confirmationObtained = true, // the owner's tap on the held action
+        )
+        assertEquals(BrokerDecision.Approved, decision)
+    }
+
+    @Test
+    fun `a confirmed irreversible action is still blocked by emergency stop`() {
+        val decision = DeviceActionBroker.evaluate(
+            packet = irreversiblePacket(),
+            consent = consent(),
+            emergencyEngaged = true,
+            grantedCapabilities = allCaps,
+            confirmationObtained = true,
+        )
+        assertEquals(BrokerDecision.Blocked(BlockReason.EMERGENCY_STOP), decision)
+    }
+
+    @Test
+    fun `a confirmed irreversible action is still blocked by missing permission`() {
+        val decision = DeviceActionBroker.evaluate(
+            packet = irreversiblePacket(),
+            consent = consent(capabilities = emptySet()), // not consented
+            emergencyEngaged = false,
+            grantedCapabilities = allCaps,
+            confirmationObtained = true,
+        )
+        assertEquals(BrokerDecision.Blocked(BlockReason.MISSING_PERMISSION), decision)
+    }
 }

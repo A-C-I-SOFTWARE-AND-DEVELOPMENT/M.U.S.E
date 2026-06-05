@@ -9,6 +9,21 @@ enum class DeviceActionSensitivity {
 
     /** Acts on content: launches an app or taps a specific on-screen target. */
     SENSITIVE,
+
+    /**
+     * Irreversible or externally-visible side effect (send a message, post,
+     * share, purchase, place a call, delete). ALWAYS requires explicit
+     * per-action owner confirmation: the [DeviceConsentState.confirmSensitiveActions]
+     * toggle can raise the bar but can never lower it below this floor (enforced
+     * in [DeviceActionBroker.evaluate]).
+     *
+     * No current [com.aci.hermes.data.automation.AutomationIntent] maps here, so
+     * this changes no shipping behaviour — the tier exists so a *future*
+     * irreversible intent cannot inherit the "auto-run when confirm is off" path.
+     * Keep [DeviceActionPacket.sensitivityOf] an exhaustive `when` so adding such
+     * an intent fails the build until it is classified.
+     */
+    IRREVERSIBLE,
 }
 
 /**

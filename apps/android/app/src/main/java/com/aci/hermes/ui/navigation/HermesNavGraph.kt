@@ -109,10 +109,12 @@ fun HermesNavHost(
     }
 
     val emergencyStop: () -> Unit = {
-        // Stand the whole agent down with one tap: stop the orchestrator AND
-        // halt device control (drop gestures, stop the overlay + voice loop).
-        container.orchestratorServiceController.emergencyStop()
-        container.deviceControlController.engageEmergencyStop()
+        // Stand the whole agent down with one tap through the single audited
+        // entry: it engages the EmergencyStopController and stops the
+        // orchestrator. Device control halts as a projection of that stop
+        // state (see DeviceControlController), so it tears down the overlay +
+        // voice loop and drops gestures without a separate, divergent call.
+        container.emergencyStop()
     }
     val openSettings: () -> Unit = { nav.navigate(Screen.Settings.route) }
     val openDiagnostics: () -> Unit = { nav.navigate(Screen.Diagnostics.route) }

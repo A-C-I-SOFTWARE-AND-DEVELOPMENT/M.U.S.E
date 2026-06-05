@@ -11,6 +11,7 @@ import com.aci.hermes.data.automation.AutomationIntent
 import com.aci.hermes.data.automation.JarvisChoreographer
 import com.aci.hermes.data.automation.ResolvedTarget
 import com.aci.hermes.data.automation.ScreenPoint
+import com.aci.hermes.data.emergency.EmergencyStopController
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.service.JarvisAccessibilityService
 import com.aci.hermes.service.JarvisOverlayService
@@ -20,11 +21,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
@@ -36,19 +41,29 @@ import kotlinx.coroutines.launch
  *  - reads live OS grant status for each capability,
  *  - routes every device action through the pure [DeviceActionBroker],
  *  - records every outcome to the [DeviceActionLedger],
- *  - owns the device-control emergency halt and feeds the accessibility
- *    service's `gestureGuard` so a halt drops gestures mid-flight.
+ *  - projects the global [EmergencyStopController] halt onto device control
+ *    and feeds the accessibility service's `gestureGuard` so any engaged
+ *    stop — from any surface — drops gestures mid-flight.
  *
  * It never bypasses the broker, and it executes only what the broker
  * approves. Sensitive actions that need confirmation are logged and
  * refused on the voice path — the owner confirms them deliberately from
  * the Device control screen, never silently.
+ *
+ * The emergency halt is **not** a local flag the controller can flip: it is
+ * a read-only projection of [EmergencyStopController.state]. So there is no
+ * device-local "release" that could silently disagree with the audited
+ * global stop, and the halt survives a process restart (the stop state is
+ * persisted) instead of resetting to false. The only path back to running
+ * is the replay-protected `requestResume` → `approveResume` on the global
+ * controller.
  */
 class DeviceControlController(
     private val context: Context,
     private val settings: SettingsRepository,
     private val ledger: DeviceActionLedger,
     private val logBuffer: LogBuffer,
+    private val emergencyStop: EmergencyStopController,
     private val clock: () -> Long = System::currentTimeMillis,
     private val idGenerator: () -> String = { java.util.UUID.randomUUID().toString() },
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
@@ -57,9 +72,21 @@ class DeviceControlController(
     @Volatile
     private var consent: DeviceConsentState = DeviceConsentState()
 
-    private val _halted = MutableStateFlow(false)
-    /** True while the device-control emergency stop is engaged. */
-    val halted: StateFlow<Boolean> = _halted.asStateFlow()
+    /**
+     * Synchronous mirror of the global stop's active state, read by the
+     * (non-suspending) [gesturesAllowed] gate and the broker call. Updated by
+     * the [emergencyStop] state collector in [init].
+     */
+    @Volatile
+    private var haltedSnapshot: Boolean = emergencyStop.state.value.isActive
+
+    /**
+     * True while any global emergency stop level is engaged. A pure projection
+     * of [EmergencyStopController.state] — the controller never writes it.
+     */
+    val halted: StateFlow<Boolean> = emergencyStop.state
+        .map { it.isActive }
+        .stateIn(scope, SharingStarted.Eagerly, emergencyStop.state.value.isActive)
 
     private val _pending = MutableStateFlow<PendingDeviceAction?>(null)
     /**
@@ -89,6 +116,20 @@ class DeviceControlController(
 
         scope.launch { ledger.load() }
 
+        // Project the global emergency stop onto device control. Any engaged
+        // level (SOFT_PAUSE/HARD_STOP/LOCKDOWN), from any surface, flips the
+        // synchronous snapshot and — on the rising edge — tears down the
+        // overlay + voice loop and records the halt in the device ledger. The
+        // controller never sets this false; only the audited global resume can.
+        emergencyStop.state
+            .map { it.isActive }
+            .distinctUntilChanged()
+            .onEach { active ->
+                haltedSnapshot = active
+                if (active) onEmergencyHalt()
+            }
+            .launchIn(scope)
+
         // Wire the accessibility service's gesture guard: gestures are only
         // allowed while device control is enabled and not halted. This is the
         // last line of defense — even a stray plan is dropped when halted.
@@ -99,7 +140,7 @@ class DeviceControlController(
     fun consentState(): DeviceConsentState = consent
 
     /** Whether the accessibility service may dispatch a gesture right now. */
-    fun gesturesAllowed(): Boolean = consent.enabled && !_halted.value
+    fun gesturesAllowed(): Boolean = consent.enabled && !haltedSnapshot
 
     /** Capabilities the OS currently grants (independent of owner consent). */
     fun grantedCapabilities(): Set<DeviceControlCapability> = buildSet {
@@ -117,18 +158,20 @@ class DeviceControlController(
         add(DeviceControlCapability.BACKEND_CONNECTION)
     }
 
-    // ── Emergency stop ──────────────────────────────────────────────────
+    // ── Emergency stop projection ───────────────────────────────────────
 
     /**
-     * Halt device control immediately: drop the gesture guard, stop the
-     * floating overlay and the voice loop, and record the halt. Called by
-     * the global emergency stop so one tap stands the whole agent down.
+     * React to the global emergency stop engaging: drop the floating overlay
+     * and the voice loop and record the halt. Driven by the [emergencyStop]
+     * state projection in [init], so it fires for a stop engaged from *any*
+     * surface — not only the device button — and never sets the halt itself.
+     * Releasing is owner-gated on the global controller (`requestResume` →
+     * `approveResume`); device control has no local release.
      */
-    fun engageEmergencyStop() {
-        _halted.value = true
+    private fun onEmergencyHalt() {
         runCatching { JarvisOverlayService.stop(context) }
         runCatching { VoiceLoopService.stop(context) }
-        logBuffer.warn(TAG, "Device control emergency stop engaged")
+        logBuffer.warn(TAG, "Device control halted by emergency stop")
         scope.launch {
             ledger.record(
                 DeviceActionLogEntry(
@@ -140,12 +183,6 @@ class DeviceControlController(
                 ),
             )
         }
-    }
-
-    /** Release the device-control halt (the owner resumes deliberately). */
-    fun releaseEmergencyStop() {
-        _halted.value = false
-        logBuffer.info(TAG, "Device control emergency stop released")
     }
 
     // ── Voice / automation entry point ──────────────────────────────────
@@ -194,7 +231,7 @@ class DeviceControlController(
         val decision = DeviceActionBroker.evaluate(
             packet = packet,
             consent = consent,
-            emergencyEngaged = _halted.value,
+            emergencyEngaged = haltedSnapshot,
             grantedCapabilities = grantedCapabilities(),
         )
         ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))
@@ -233,9 +270,13 @@ class DeviceControlController(
             val packet = DeviceActionPacket.from(held.intent, held.resolved?.label)
             val decision = DeviceActionBroker.evaluate(
                 packet = packet,
+                // The owner's tap is the confirmation: lift the SENSITIVE confirm
+                // gate and satisfy the IRREVERSIBLE floor — emergency / master
+                // switch / permissions are still re-verified by the broker.
                 consent = consent.copy(confirmSensitiveActions = false),
-                emergencyEngaged = _halted.value,
+                emergencyEngaged = haltedSnapshot,
                 grantedCapabilities = grantedCapabilities(),
+                confirmationObtained = true,
             )
             if (decision is BrokerDecision.Approved) {
                 ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))

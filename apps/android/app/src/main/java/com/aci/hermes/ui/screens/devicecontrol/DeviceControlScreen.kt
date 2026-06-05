@@ -202,23 +202,25 @@ fun DeviceControlScreen(
                 }
             }
 
-            // Emergency stop / release.
+            // Emergency stop / resume.
             CommandCard(
                 title = "Emergency stop",
-                subtitle = "Drops every gesture, stops the floating avatar and the voice loop, " +
-                    "and refuses new device actions until you release it.",
+                subtitle = "Stands the whole agent down: stops the orchestrator, drops every " +
+                    "gesture, stops the floating avatar and the voice loop. Resuming is " +
+                    "owner-approved and audited.",
                 tier = CardTier.CRITICAL,
             ) {
                 if (state.halted) {
                     Text(
-                        "Device control is halted.",
+                        "Emergency stop is engaged — device control is halted along with " +
+                            "the rest of the agent. Resuming is owner-approved and audited.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
                     OutlinedButton(
-                        onClick = viewModel::releaseEmergencyStop,
+                        onClick = viewModel::requestResume,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Release halt") }
+                    ) { Text("Request resume") }
                 } else {
                     EmergencyStopButton(onConfirmed = viewModel::engageEmergencyStop)
                 }
