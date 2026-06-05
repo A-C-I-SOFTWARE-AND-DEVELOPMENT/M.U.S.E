@@ -7800,6 +7800,7 @@ class HermesCLI:
 
         runners = {
             "orchestrate":              _orch.run_orchestrate,
+            "swarm":                    _orch.run_swarm,
             "orchestrator":             _orch.run_orchestrator,
             "model-router":             _orch.run_model_router,
             "decision-ledger":          _orch.run_decision_ledger,
@@ -8158,6 +8159,7 @@ class HermesCLI:
             self._handle_kanban_command(cmd_original)
         elif canonical in {
             "orchestrate",
+            "swarm",
             "orchestrator",
             "model-router",
             "decision-ledger",

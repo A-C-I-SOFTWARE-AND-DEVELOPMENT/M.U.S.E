@@ -1582,6 +1582,60 @@ def run_self_improve(rest: str) -> str:
     )
 
 
+_SWARM_HELP = (
+    "/swarm <goal>            — run a Swarm Grainler Parallel job\n"
+    "  Decomposes the goal into non-overlapping grains (each owning a disjoint\n"
+    "  file-domain), proves them disjoint, runs each as its own specialized LLM\n"
+    "  in an isolated git worktree, writes a dated Decision Ledger, and applies\n"
+    "  the reversible self-update learnings.\n"
+    "  Options: --no-self-update, --no-claim, --decomposer {directory,keyword,\n"
+    "           workpacket,llm}. Default executor isolates + materialises specs\n"
+    "  (launches no model, pushes nothing)."
+)
+
+
+def run_swarm(rest: str) -> str:
+    """Dispatch ``/swarm`` to the Swarm Grainler Parallel coordinator.
+
+    Runs the conservative PROMPT_ONLY pipeline: decompose → prove disjoint →
+    isolate per-grain worktrees → Decision Ledger → reversible self-update. It
+    launches no model and pushes nothing; a real per-grain agent executor is
+    opt-in via the Python API (``AgentExecutor``).
+    """
+
+    rest = (rest or "").strip()
+    if not rest or rest in {"-h", "--help", "?", "help"}:
+        return _SWARM_HELP
+    try:
+        from hermes_cli.swarm.coordinator import run_swarm as _run_swarm
+        from hermes_cli.swarm.grain import OverlapError
+    except Exception as exc:  # pragma: no cover - defensive
+        return f"⚠ /swarm: import failed — {exc}"
+
+    try:
+        result = _run_swarm(rest, ".")
+    except OverlapError as exc:
+        return f"⚠ /swarm: decomposition overlaps — no grain ran.\n  {exc}"
+    except Exception as exc:  # pragma: no cover - defensive
+        return f"⚠ /swarm: {exc}"
+
+    lines = [
+        f"✓ swarm job {result.job_id} ({'trivial' if result.trivial else len(result.grains)} grain(s))",
+    ]
+    for g in result.grains:
+        lines.append(f"  • {g.grain_id}: {g.state}" + (f" [{g.branch}]" if g.branch else ""))
+    if result.ledger_path:
+        lines.append(f"  ledger: {result.ledger_path}")
+    if result.applied_updates:
+        lines.append(f"  auto-applied (reversible): {len(result.applied_updates)}")
+    if result.queued_updates:
+        lines.append(f"  queued for owner: {len(result.queued_updates)}")
+    conv = result.convergence or {}
+    if conv.get("requires_manual_review"):
+        lines.append("  ⚠ runtime file overlap — manual review required")
+    return "\n".join(lines)
+
+
 def run_profile(rest: str) -> str:
     """Dispatch for the ``/profile`` subcommands managed by the orchestrator.
 

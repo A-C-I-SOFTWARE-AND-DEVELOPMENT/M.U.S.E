@@ -101,12 +101,51 @@ the multi-agent token lesson (don't pay 15× to fix a typo). Token budgets are
 bounded per grain by TokenJuice. As the system learns (skills + knowledge
 graph), repeated work amortizes the parallelism cost.
 
+## Module map
+
+| Module | Responsibility |
+|---|---|
+| `grain.py` | `Grain` / `FileDomain` / `SwarmPlan` + the `prove_disjoint()` non-overlap kernel. |
+| `grainler.py` | `partition()` (decompose → prove disjoint) and `to_execution_plan()`. |
+| `decompose.py` | Decomposers: `directory_decomposer` (default, deterministic), `keyword_decomposer`, and `make_llm_decomposer` (model proposes, proof disposes). |
+| `specialist.py` | `build_grain_agent_spec` (token-juice + memory namespace + lane/toolset/budget), `claim_grain` (lease backstop), `spawn_agent`. |
+| `coordinator.py` | `run_swarm` end-to-end; `PromptOnlyExecutor` (safe default). |
+| `executor.py` | `AgentExecutor` — runs each grain as its real specialized `AIAgent` in its worktree (model call behind the `AgentRunner` seam). |
+| `converge.py` | Cooperative conflict backstop + competitive best-of-N (`scoring`/`merge_engine`). |
+| `blackboard.py` | `SwarmBlackboard` — stigmergic, indirect coordination over the memory namespace. |
+| `archive.py` | Evolutionary `VariantArchive` + `benchmark_gated_promotion` (Darwin-Gödel/HGM). |
+| `learning.py` | Dated trace capture + the reversible-apply hook (records change + rollback). |
+
+### Execution modes
+
+- **`PromptOnlyExecutor`** (default) — isolates each grain and materialises its
+  specialized prompt + token-juice context into the worktree; launches no model,
+  pushes nothing.
+- **`AgentExecutor`** — spawns each grain's specialized `AIAgent` and runs it in
+  its worktree, writing scoring artifacts + a usage sidecar. The model call lives
+  behind the injectable `AgentRunner` seam, so orchestration is testable offline.
+
+```python
+from hermes_cli.swarm import run_swarm, AgentExecutor
+run_swarm("build api and web", repo=".", executor=AgentExecutor(concurrency=3))
+```
+
+### Decomposers
+
+`run_swarm` defaults to `directory_decomposer` (splits a goal across distinct
+repo directories it names → disjoint `<dir>/**` grains; falls back to a single
+inline grain). `--decomposer {directory,keyword,workpacket,llm}` selects others.
+An LLM decomposer only *proposes*; `prove_disjoint()` still rejects any overlap.
+
 ## Usage
 
 ```bash
 # Decompose + isolate + ledger (PROMPT_ONLY, launches no model, pushes nothing):
 python -m hermes_cli.swarm "build the api and the web layer separately" \
     --repo . --grains grains.json
+
+# Or from the interactive CLI / any gateway DM:
+/swarm build the api and the web layer separately
 
 # grains.json:
 # [{"intent":"api endpoints","globs":["src/api/**"],"model_lane":"claude"},

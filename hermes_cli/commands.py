@@ -235,6 +235,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
     # full catalogue.
     CommandDef("orchestrate", "Queue a new local orchestrator job (no auto-execution)",
                "Tools & Skills", cli_only=True, args_hint="<prompt>"),
+    CommandDef("swarm",
+               "Run a Swarm Grainler Parallel job: non-overlapping grains, each "
+               "its own specialized LLM in an isolated worktree, dated + ledgered",
+               "Tools & Skills", cli_only=True, args_hint="<goal>"),
     CommandDef("orchestrator", "Inspect / resume / approve / publish local orchestrator jobs",
                "Tools & Skills", cli_only=True, args_hint="[subcommand]",
                subcommands=("status", "list", "open", "resume", "cancel",

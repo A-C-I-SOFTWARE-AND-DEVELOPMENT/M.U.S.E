@@ -366,15 +366,27 @@ def _lane_for(plan: SwarmPlan, grain_id: str) -> str:
 def _record_blackboard(
     plan: SwarmPlan, results: Sequence[SwarmGrainResult], memory_store: Optional[Any]
 ) -> None:
-    if memory_store is None:
-        return
+    """Post each grain's outcome + a job summary to the Swarm Blackboard.
+
+    Stigmergic coordination: grains and the coordinator communicate indirectly
+    via dated traces in the shared ``swarm/<job>`` namespace, never directly.
+    """
+
     try:
-        summary = "; ".join(f"{r.grain_id}={r.state}" for r in results)
-        memory_store.write(
-            f"Swarm job {plan.job_id} for goal: {plan.goal}\nOutcomes: {summary}",
-            namespace=plan.blackboard_namespace,
-            title=f"swarm {plan.job_id}",
-            source_uri=f"swarm://{plan.job_id}",
+        from hermes_cli.swarm.blackboard import SwarmBlackboard
+
+        board = SwarmBlackboard(plan.job_id, memory_store=memory_store)
+        for r in results:
+            board.post(
+                r.grain_id,
+                f"ended {r.state}" + (f": {r.error}" if r.error else ""),
+                kind="decision",
+            )
+        board.post(
+            "coordinator",
+            f"Swarm job {plan.job_id} for goal: {plan.goal}; "
+            + "; ".join(f"{r.grain_id}={r.state}" for r in results),
+            kind="note",
         )
     except Exception:
         pass

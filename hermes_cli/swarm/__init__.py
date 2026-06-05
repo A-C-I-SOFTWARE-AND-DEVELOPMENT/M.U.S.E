@@ -66,6 +66,7 @@ from hermes_cli.swarm.learning import (
     capture_swarm_trace,
     record_applied_update,
 )
+from hermes_cli.swarm.blackboard import BlackboardEntry, SwarmBlackboard
 
 __all__ = [
     "FileDomain",
@@ -98,4 +99,6 @@ __all__ = [
     "benchmark_gated_promotion",
     "capture_swarm_trace",
     "record_applied_update",
+    "BlackboardEntry",
+    "SwarmBlackboard",
 ]
