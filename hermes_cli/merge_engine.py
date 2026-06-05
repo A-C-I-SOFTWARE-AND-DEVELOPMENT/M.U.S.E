@@ -46,6 +46,15 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
+from hermes_cli.decision_engine import (
+    DecisionTier,
+    DecisionVerdict,
+    merge_decision_inputs,
+    policy_input,
+    protected_path_input,
+    secret_input,
+    validation_input,
+)
 from hermes_cli.scoring import (
     SCORE_CATEGORIES,
     Scorecard,
@@ -100,6 +109,10 @@ class MergeResult:
     manual_review_required: bool = False
     review_reasons: list[str] = field(default_factory=list)
     output_dir: Optional[Path] = None
+    # Sprint 2 breadth: the unified auto/ask/refuse verdict for the selection.
+    # Recorded, not gating — the policy gates above (high-risk-no-tests,
+    # secrets-safety, score floor, manual-review) remain the sole control flow.
+    decision_verdict: Optional[DecisionVerdict] = None
 
     def as_dict(self) -> Mapping[str, object]:
         return {
@@ -110,6 +123,11 @@ class MergeResult:
             "manual_review_required": self.manual_review_required,
             "review_reasons": list(self.review_reasons),
             "output_dir": str(self.output_dir) if self.output_dir else None,
+            "decision_verdict": (
+                self.decision_verdict.to_redacted_dict()
+                if self.decision_verdict
+                else None
+            ),
         }
 
 
@@ -211,6 +229,71 @@ def _detect_conflicts(
     ]
 
 
+def _high_risk_paths(art: Optional[WorkerArtifact]) -> list[str]:
+    """Return the winner's changed files that hit a high-risk surface.
+
+    Mirrors :pyattr:`scoring.WorkerArtifact.touches_high_risk` but returns the
+    specific paths so the protected-path signal carries detail. Imported lazily
+    to avoid coupling to scoring's private hint tuple at module import time.
+    """
+    if art is None:
+        return []
+    from hermes_cli.scoring import _HIGH_RISK_PATH_HINTS
+
+    hits: list[str] = []
+    for path in art.changed_files:
+        lowered = path.lower()
+        if any(hint in lowered for hint in _HIGH_RISK_PATH_HINTS):
+            hits.append(path)
+    return hits
+
+
+def _build_merge_verdict(
+    result: MergeResult,
+    artifacts_by_id: Mapping[str, WorkerArtifact],
+) -> DecisionVerdict:
+    """Compute the unified verdict for a completed selection (recorded, not gating).
+
+    The merge engine's own policy gates already decided what to ship; this maps
+    the *same* signals onto the canonical auto/ask/refuse verdict so the cockpit
+    and audit ledger see one verdict per merge. It never changes the outcome:
+
+    * No winner  → ``policy`` refuse (nothing passed selection).
+    * Winner     → ``validation`` (override-allowed, so a failed run is ``ask``
+      not ``refuse`` — matching the existing manual-review path), ``secret``
+      (a winner below the secrets floor would have been rejected, so this is
+      normally ``auto``), and ``protected_path`` (soft ``ask`` for a high-risk
+      winner — the engine already surfaces these for human eyes, never blocks).
+    """
+    if result.winner is None:
+        return merge_decision_inputs(
+            "merge_engine.select_winner",
+            [
+                policy_input(
+                    DecisionTier.REFUSE,
+                    "no worker survived the policy + score-floor gates",
+                )
+            ],
+        )
+
+    winner = result.winner
+    art = artifacts_by_id.get(winner.worker_id)
+    secrets_score = winner.scores.get("secrets_safety", 1.0)
+    secret_findings = (
+        [f"secrets_safety {secrets_score:.2f} below floor {SECRETS_SAFETY_FLOOR:.2f}"]
+        if secrets_score < SECRETS_SAFETY_FLOOR
+        else []
+    )
+    return merge_decision_inputs(
+        "merge_engine.select_winner",
+        [
+            validation_input(winner.tests_passed is True, override_allowed=True),
+            secret_input(secret_findings),
+            protected_path_input(_high_risk_paths(art), hard=False),
+        ],
+    )
+
+
 def select_winner(
     artifacts: Sequence[WorkerArtifact],
     scorecards: Sequence[Scorecard],
@@ -233,7 +316,7 @@ def select_winner(
     rejected = rejected_risk + rejected_secrets + rejected_floor
 
     if not survivors:
-        return MergeResult(
+        no_winner = MergeResult(
             winner=None,
             rejected=rejected,
             manual_review_required=True,
@@ -241,6 +324,8 @@ def select_winner(
                 "no worker survived the policy + score-floor gates",
             ],
         )
+        no_winner.decision_verdict = _build_merge_verdict(no_winner, by_id)
+        return no_winner
 
     ranked = rank(survivors)
     winner = ranked[0]
@@ -275,7 +360,7 @@ def select_winner(
             "confirm the winning patch resolves them correctly"
         )
 
-    return MergeResult(
+    result = MergeResult(
         winner=winner,
         rejected=rejected,
         runners_up=runners_up,
@@ -283,6 +368,8 @@ def select_winner(
         manual_review_required=manual,
         review_reasons=reasons,
     )
+    result.decision_verdict = _build_merge_verdict(result, by_id)
+    return result
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -309,6 +396,13 @@ def _write_scorecard_json(
         "scorecards": [c.as_dict() for c in scorecards],
         "rejected": [r.as_dict() for r in result.rejected],
         "conflicts": [c.as_dict() for c in result.conflicts],
+        # Sprint 2 breadth: persist the unified verdict alongside the scores.
+        # Recorded only — the winner/manual-review fields above are unchanged.
+        "decision_verdict": (
+            result.decision_verdict.to_redacted_dict()
+            if result.decision_verdict
+            else None
+        ),
     }
     target = out_dir / "scorecard.json"
     target.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")

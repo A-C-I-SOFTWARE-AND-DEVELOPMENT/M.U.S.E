@@ -343,6 +343,46 @@ class TestDispatch:
         assert dispatched[0]["job_id"] == job.job_id
         assert dispatched[0]["approved"] is True
 
+    def test_dispatch_records_ask_decision_verdict(self, bridge: rb.RemoteBridge):
+        # Sprint 2 breadth: the dispatch boundary records the unified verdict.
+        # Remote execution is never auto, so the verdict is always `ask`.
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        events = bridge.audit_log.read_all()
+        dispatched = next(e for e in events if e.get("event") == "dispatch")
+        verdict = dispatched.get("decision_verdict")
+        assert verdict is not None
+        assert verdict["tier"] == "ask"
+        assert verdict["action_type"] == "remote_bridge.dispatch"
+        assert "remote_execution" in verdict["reason_codes"]
+        # Recorded, not gating: the dispatch outcome is unchanged — an approved
+        # dispatch is still queued, and the audit still marks it approved.
+        assert job.state is rb.JobState.QUEUED
+        assert dispatched["approved"] is True
+
+    def test_decision_verdict_does_not_change_unapproved_outcome(
+        self, endpoint_root: Path, audit_log: rb.AuditLog
+    ):
+        # An endpoint that has not opted in must still park the job in
+        # awaiting_approval — recording the verdict changes nothing.
+        endpoint = make_endpoint(endpoint_root, allow_remote_execute=False)
+        bridge = rb.RemoteBridge(endpoint, audit_log=audit_log)
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state is rb.JobState.AWAITING_APPROVAL
+        dispatched = next(
+            e for e in audit_log.read_all() if e.get("event") == "dispatch"
+        )
+        assert dispatched["approved"] is False
+        # The verdict is still recorded even on the unapproved path.
+        assert dispatched["decision_verdict"]["tier"] == "ask"
+
     def test_prompt_secrets_not_in_audit_log(self, bridge: rb.RemoteBridge):
         bridge.dispatch(
             prompt="run with sk-zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",

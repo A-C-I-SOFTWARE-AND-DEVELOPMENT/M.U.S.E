@@ -549,3 +549,84 @@ def test_merge_result_as_dict_is_json_serialisable(tmp_path):
     decoded = json.loads(encoded)
     assert decoded["winner"]["worker_id"] == "a"
     assert decoded["output_dir"] == str(out_dir)
+
+
+# ── Unified decision verdict at the selection boundary (Sprint 2) ──────
+
+
+def test_clean_validated_winner_records_auto_verdict(tmp_path):
+    """A small, validated, non-risky winner yields an `auto` verdict."""
+    arts, cards = _load_pair([_write_worker(tmp_path, "clean")])
+    result = select_winner(arts, cards)
+    assert result.winner is not None and result.winner.worker_id == "clean"
+    assert result.decision_verdict is not None
+    assert result.decision_verdict.tier.value == "auto"
+    assert result.decision_verdict.action_type == "merge_engine.select_winner"
+
+
+def test_high_risk_winner_records_ask_protected_path_verdict(tmp_path):
+    """A high-risk-but-tested winner is surfaced for review -> `ask` verdict
+    with a protected_path reason. This must NOT block selection (recorded
+    only): the same worker still wins, exactly as the policy gates decide."""
+    careful = _write_worker(
+        tmp_path,
+        "careful",
+        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        validation_output="2 passed in 0.05s",
+    )
+    arts, cards = _load_pair([careful])
+    result = select_winner(arts, cards)
+    assert result.winner is not None and result.winner.worker_id == "careful"
+    verdict = result.decision_verdict
+    assert verdict is not None
+    assert verdict.tier.value == "ask"
+    assert "protected_path" in [r.value for r in verdict.reason_codes]
+
+
+def test_no_winner_records_refuse_verdict(tmp_path):
+    """When nothing survives the gates, the recorded verdict is `refuse` —
+    and the winner is still None (outcome unchanged)."""
+    bad_dir = tmp_path / "bad"
+    bad_dir.mkdir()
+    (bad_dir / "output.md").write_text("", encoding="utf-8")
+    arts, cards = _load_pair([bad_dir])
+    result = select_winner(arts, cards)
+    assert result.winner is None
+    assert result.manual_review_required is True
+    assert result.decision_verdict is not None
+    assert result.decision_verdict.tier.value == "refuse"
+
+
+def test_verdict_is_recorded_only_winner_unchanged(tmp_path):
+    """The verdict is recorded but never changes which worker wins.
+
+    A high-risk winner with tests gets an `ask` verdict, yet the selection
+    pipeline still picks it over a clean-but-weaker alternative exactly as it
+    would without the verdict — proving the verdict does not gate the outcome.
+    """
+    careful = _write_worker(
+        tmp_path,
+        "careful",
+        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        validation_output="3 passed in 0.05s",
+    )
+    arts, cards = _load_pair([careful])
+    result = select_winner(arts, cards)
+    # Outcome identical to test_high_risk_with_tests_is_eligible (no verdict gate).
+    assert result.winner is not None and result.winner.worker_id == "careful"
+    assert result.decision_verdict is not None
+    assert result.decision_verdict.tier.value == "ask"
+    assert result.manual_review_required is False
+
+
+def test_scorecard_json_persists_decision_verdict(tmp_path):
+    """run_merge writes the verdict into scorecard.json (the audit sink)."""
+    workers_dir = tmp_path / "workers"
+    workers_dir.mkdir()
+    _write_worker(workers_dir, "a")
+    out_dir = tmp_path / "merge"
+    run_merge(workers_dir, out_dir)
+    payload = json.loads((out_dir / "scorecard.json").read_text())
+    assert "decision_verdict" in payload
+    assert payload["decision_verdict"] is not None
+    assert payload["decision_verdict"]["tier"] == "auto"

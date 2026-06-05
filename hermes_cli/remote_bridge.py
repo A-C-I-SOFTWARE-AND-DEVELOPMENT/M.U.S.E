@@ -64,6 +64,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
 from hermes_cli import bridge_envelope
+from hermes_cli.decision_engine import (
+    merge_decision_inputs,
+    remote_execution_input,
+)
 
 # ``httpx`` / ``tenacity`` back the HTTP transport only. The file-drop path is
 # intentionally stdlib-only, and minimal environments (e.g. the orchestration
@@ -851,6 +855,16 @@ class RemoteBridge:
                 encoding="utf-8",
             )
 
+        # Sprint 2 breadth: record the unified decision verdict for the remote
+        # dispatch boundary. Remote execution is *never* auto, so this is always
+        # an ``ask`` verdict (owner authorization required). Recorded, not
+        # gating — the dispatch already happened under the existing
+        # endpoint/per-call opt-in gates above; this only adds the verdict to
+        # the audit trail so the cockpit can render one canonical verdict.
+        dispatch_verdict = merge_decision_inputs(
+            "remote_bridge.dispatch",
+            [remote_execution_input(True)],
+        )
         self.audit_log.record(
             {
                 "event": "dispatch",
@@ -864,6 +878,7 @@ class RemoteBridge:
                 "state": state.value,
                 "device_id": self.endpoint.device_id,
                 "allowed_device_count": len(self.endpoint.allowed_device_ids),
+                "decision_verdict": dispatch_verdict.to_redacted_dict(),
             }
         )
 

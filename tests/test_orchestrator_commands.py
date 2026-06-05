@@ -210,6 +210,43 @@ class TestDecisionLedger:
 
 
 # ---------------------------------------------------------------------------
+# Controller: unified decision verdict at the submit boundary (Sprint 2)
+# ---------------------------------------------------------------------------
+
+class TestSubmitDecisionVerdict:
+    def test_submit_attaches_auto_verdict_to_submit_entry(self) -> None:
+        """submit_job records the unified verdict on its `submit` ledger entry.
+
+        Submitting is intent-only — no worker runs, no owner-gated action — so
+        the verdict is `auto`.
+        """
+        job = orch.submit_job("verdict at submit")
+        entries = orch.get_ledger(job.id)[job.id]
+        submit = next(e for e in entries if e.get("kind") == "submit")
+        verdict = submit.get("decision_verdict")
+        assert verdict is not None
+        assert verdict["tier"] == "auto"
+        assert verdict["action_type"] == "orchestrator.submit_job"
+        # auto verdicts carry no reason codes and never require an owner phrase.
+        assert verdict["reason_codes"] == []
+        assert verdict["required_owner_phrase"] is None
+
+    def test_submit_verdict_is_recorded_only_not_gating(self) -> None:
+        """Recording the verdict must not change the submit outcome.
+
+        The job is still queued and the ledger still holds exactly one
+        `submit` entry (the verdict rides on it, it is not a second entry).
+        """
+        job = orch.submit_job("recorded not gating")
+        assert job.status == "queued"
+        entries = orch.get_ledger(job.id)[job.id]
+        submit_entries = [e for e in entries if e.get("kind") == "submit"]
+        assert len(submit_entries) == 1
+        # Behaviour preserved: the original submit fields are untouched.
+        assert submit_entries[0]["prompt"] == "recorded not gating"
+
+
+# ---------------------------------------------------------------------------
 # Controller: model router / radar / mission
 # ---------------------------------------------------------------------------
 
