@@ -30,7 +30,7 @@ class JarvisLiveViewModelTest {
     private fun newVm(): JarvisLiveViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         // No avatar repo and no cockpit client → procedural body, no network.
-        return JarvisLiveViewModel(app, avatarRepository = null, cockpitClient = null)
+        return mainDispatcherRule.register(JarvisLiveViewModel(app, avatarRepository = null, cockpitClient = null))
     }
 
     @Test

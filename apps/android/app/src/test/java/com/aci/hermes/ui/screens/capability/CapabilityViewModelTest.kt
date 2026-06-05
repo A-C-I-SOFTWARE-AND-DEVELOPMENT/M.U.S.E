@@ -27,7 +27,7 @@ class CapabilityViewModelTest {
 
     private fun newVm(): CapabilityViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
-        return CapabilityViewModel(app, CapabilityRepository(), LogBuffer())
+        return mainDispatcherRule.register(CapabilityViewModel(app, CapabilityRepository(), LogBuffer()))
     }
 
     @Test

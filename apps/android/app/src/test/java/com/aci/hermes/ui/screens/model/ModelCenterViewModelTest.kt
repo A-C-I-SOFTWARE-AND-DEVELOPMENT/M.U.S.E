@@ -41,7 +41,7 @@ class ModelCenterViewModelTest {
             executor = CockpitHttpExecutor { exec(it) },
             ioDispatcher = Dispatchers.Unconfined,
         )
-        return ModelCenterViewModel(client)
+        return mainDispatcherRule.register(ModelCenterViewModel(client))
     }
 
     @Test

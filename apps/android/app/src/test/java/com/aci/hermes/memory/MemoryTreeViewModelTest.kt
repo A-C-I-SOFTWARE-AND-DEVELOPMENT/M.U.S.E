@@ -55,7 +55,7 @@ class MemoryTreeViewModelTest {
                 CockpitRawResponse(200, """{"nodes":[]}""")
             }
         }
-        val vm = MemoryViewModel(MemoryRepository(emptyList()), LogBuffer(), tree)
+        val vm = mainDispatcherRule.register(MemoryViewModel(MemoryRepository(emptyList()), LogBuffer(), tree))
         vm.selectTab(MemoryTab.INBOX)
         assertEquals(MemoryTab.INBOX, vm.state.value.tab)
         assertEquals(1, vm.state.value.proposed.size)
@@ -74,7 +74,7 @@ class MemoryTreeViewModelTest {
                 else -> CockpitRawResponse(200, """{"nodes":[]}""")
             }
         }
-        val vm = MemoryViewModel(MemoryRepository(emptyList()), LogBuffer(), tree)
+        val vm = mainDispatcherRule.register(MemoryViewModel(MemoryRepository(emptyList()), LogBuffer(), tree))
         vm.approveProposed("n1")
         assertTrue(vm.state.value.snackbar != null)
     }
@@ -82,7 +82,7 @@ class MemoryTreeViewModelTest {
     @Test
     fun `viewmodel works without a tree repository`() = runTest {
         // The tree repo is optional — legacy construction must still work.
-        val vm = MemoryViewModel(MemoryRepository(emptyList()), LogBuffer())
+        val vm = mainDispatcherRule.register(MemoryViewModel(MemoryRepository(emptyList()), LogBuffer()))
         vm.selectTab(MemoryTab.INBOX)
         assertEquals(MemoryTab.INBOX, vm.state.value.tab)
         assertTrue(vm.state.value.proposed.isEmpty())

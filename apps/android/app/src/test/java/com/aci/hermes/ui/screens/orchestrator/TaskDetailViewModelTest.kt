@@ -32,7 +32,7 @@ class TaskDetailViewModelTest {
     private fun newVm(taskId: String?, target: TargetTool? = TargetTool.CODEX): TaskDetailViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         tasks = HermesTaskRepository(app)
-        return TaskDetailViewModel(
+        return mainDispatcherRule.register(TaskDetailViewModel(
             application = app,
             tasksRepo = tasks,
             promptBuilder = PromptBuilder(),
@@ -40,7 +40,7 @@ class TaskDetailViewModelTest {
             logBuffer = LogBuffer(),
             initialTaskId = taskId,
             initialTarget = target,
-        )
+        ))
     }
 
     @Test

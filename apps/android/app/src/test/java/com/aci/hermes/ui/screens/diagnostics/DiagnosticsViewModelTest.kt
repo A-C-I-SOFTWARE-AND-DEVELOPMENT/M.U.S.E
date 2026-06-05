@@ -33,10 +33,10 @@ class DiagnosticsViewModelTest {
 
     @Test
     fun `loads the backend report when paired`() = runTest {
-        val vm = DiagnosticsViewModel(
+        val vm = mainDispatcherRule.register(DiagnosticsViewModel(
             LogBuffer(),
             client { CockpitRawResponse(200, """{"ok":true,"checks":[{"name":"memory","status":"pass","detail":"ok"}]}""") },
-        )
+        ))
         advanceUntilIdle()
         val backend = vm.state.value.backend
         assertTrue(backend is BackendDiagnosticsSync.Loaded)
@@ -45,17 +45,17 @@ class DiagnosticsViewModelTest {
 
     @Test
     fun `unpaired reports NotPaired, never a faked report`() = runTest {
-        val vm = DiagnosticsViewModel(
+        val vm = mainDispatcherRule.register(DiagnosticsViewModel(
             LogBuffer(),
             client(token = null) { error("must not hit the wire") },
-        )
+        ))
         advanceUntilIdle()
         assertEquals(BackendDiagnosticsSync.NotPaired, vm.state.value.backend)
     }
 
     @Test
     fun `no client leaves backend idle (offline-safe)`() = runTest {
-        val vm = DiagnosticsViewModel(LogBuffer())
+        val vm = mainDispatcherRule.register(DiagnosticsViewModel(LogBuffer()))
         advanceUntilIdle()
         assertEquals(BackendDiagnosticsSync.Idle, vm.state.value.backend)
     }

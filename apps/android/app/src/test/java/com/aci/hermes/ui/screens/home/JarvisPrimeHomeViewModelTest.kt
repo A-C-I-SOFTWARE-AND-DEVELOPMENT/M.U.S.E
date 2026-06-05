@@ -37,7 +37,7 @@ class JarvisPrimeHomeViewModelTest {
         settings = isolatedSettings(ctx)
         // Unpaired cockpit client — repos degrade to honest empty in tests.
         val client = HermesCockpitClient(endpointProvider = { "" }, tokenProvider = { null })
-        return JarvisPrimeHomeViewModel(
+        return mainDispatcherRule.register(JarvisPrimeHomeViewModel(
             application = ctx as android.app.Application,
             settings = settings,
             tasksRepo = HermesTaskRepository(ctx),
@@ -48,7 +48,7 @@ class JarvisPrimeHomeViewModelTest {
                 EmergencyStopRepository(java.io.File(ctx.cacheDir, "estop-${System.nanoTime()}")),
                 LogBuffer(),
             ),
-        )
+        ))
     }
 
 

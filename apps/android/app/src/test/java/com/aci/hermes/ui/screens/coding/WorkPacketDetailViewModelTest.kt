@@ -51,7 +51,7 @@ class WorkPacketDetailViewModelTest {
         val r = repo(paired = false, mock = true, scope = this)
         val draft = r.createDraft("demo task", "")
         r.runPlan(draft.id)
-        val vm = WorkPacketDetailViewModel(r, draft.id)
+        val vm = mainDispatcherRule.register(WorkPacketDetailViewModel(r, draft.id))
         advanceUntilIdle()
         vm.copyPrompt()
         advanceUntilIdle()
@@ -74,7 +74,7 @@ class WorkPacketDetailViewModelTest {
         }
         val draft = r.createDraft("ship", "/repo")
         // Give it a packet first so Send is meaningful.
-        val vm = WorkPacketDetailViewModel(r, draft.id)
+        val vm = mainDispatcherRule.register(WorkPacketDetailViewModel(r, draft.id))
         advanceUntilIdle()
         vm.sendToBackend(null)
         advanceUntilIdle()

@@ -183,6 +183,18 @@ hermes kanban tail <job-id>           # follow one job
 
 That's the whole loop. The rest of this folder is variations on it.
 
+## Swarm Grainler Parallel
+
+For code-producing work specifically, **Swarm Grainler Parallel**
+([swarm-grainler-parallel.md](swarm-grainler-parallel.md)) composes the five
+primitives into one canonical, collision-free pipeline: a goal is decomposed
+into **grains** with *provably disjoint file-domains*, each grain becomes its
+own specialized LLM (own model lane, toolset, iteration budget, token-juice
+context, dedicated memory namespace), the grains run in parallel in isolated
+git worktrees, every step is dated and ledgered, and a self-update loop
+auto-applies the reversible learnings. Run it with `python -m hermes_cli.swarm
+"<goal>" --grains grains.json` or the `/swarm` skill.
+
 ## Where to go next
 
 Start with [getting-started.md](getting-started.md). When that
