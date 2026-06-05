@@ -47,10 +47,14 @@ notify-on-decision, decision recording, pairing nav) *or* added as a tested
 opt-in seam whose production caller is still pending — specifically the
 cost-producer writer (no live caller yet, so real per-job cost still reads
 0) and the runtime adapter (nothing injects one by default). Call it
-**~85%** — the loop is closed at the *seam* level; what remains is *choosing
+**~86%** — the loop is closed at the *seam* level; what remains is *choosing
 to use* the opt-in seams in production flows (notably a live caller +
 `JobStore` drain for per-job cost), plus the Sprint-14 unified release gate
-and the optional integrations (none of which are missing kernels).
+and the optional integrations (none of which are missing kernels). The
+modest bump from ~85% reflects a correction, not new work: the Supabase (S11)
+integration was previously under-credited as "absent" but in fact ships a
+tool plugin, a memory backend, an integration adapter, and 47 passing tests
+(see Sprint 11 below); only two optional owner-gated follow-ons remain.
 
 ### Score summary
 
@@ -70,7 +74,7 @@ the number.
 | 8 | Voice-first duplex | 🟡 6/10 | STT/TTS stack + privacy + barge-in solid; **gateway audio duplex routes incomplete**. |
 | 9 | Phone approval push & recovery | 🟡 6.5/10 | **Approval race rules wired** (idempotent/expired/superseded) + local-SSE notification provider + enqueue-on-create. Hops: notify-on-decision (clear pending), optional push provider. |
 | 10 | Routing / telemetry / cost | 🟡 7/10 | Budget kernel + **per-job cost consumer wired** (`/status`). Hop: producer glue so cost auto-accumulates from real runs. |
-| 11 | Supabase & Vercel | 🔴 1.5/10 | Supabase absent; Vercel is sandbox-exec only (no deploy/preview/logs). |
+| 11 | Supabase & Vercel | 🟡 6.5/10 | **Supabase shipped** — tool plugin (`plugins/supabase/`, 4 tools), memory backend (`plugins/memory/supabase/`), integration adapter (`hermes_cli/integrations/supabase.py`), 47 tests. Two optional owner-gated follow-ons remain (live SQL exec, pgvector recall). Vercel is sandbox-exec only (no deploy/preview/logs). |
 | 12 | Windows Claude bridge | 🟢 8/10 | **Signed envelope (HMAC+nonce+expiry) wired into the bridge — opt-in, backward-compatible; forged/expired/replayed rejected, nonce persisted.** Hop: threat-model docs + key rotation ops. |
 | 13 | Multi-host orchestration | 🟡 6/10 | Lease kernel + durable store + host registry + **observational lease recording in the runner**; `RuntimeAdapter` Protocol + pure reschedule policy added (standalone). Hop: runner→adapter integration + reschedule loop. |
 | 14 | Security hardening & release | 🟡 5/10 | Release artifacts distributed; no unified 10/10 gate, smoke script, or `doctor --10-10`. |
@@ -101,7 +105,11 @@ tested; only the wiring into live paths is left):
 5. **Runtime adapter + scheduler** — `hermes_cli/runtime_adapter.py` + `lease_scheduler.py` have **zero importers**; wire `ParallelRunner` to run workers through a `RuntimeAdapter` + a reschedule loop using `reschedule_plan`.
 6. **Android pairing nav** — `DevicePairingClient`/`DevicePairingViewModel` are built and persist correctly, but there's **no `DevicePairingScreen` and no nav route**, so the flow is unreachable.
 
-Optional / unchanged: Supabase (S11) absent; Sprint 14 unified release-gate /
+Optional / unchanged: Supabase (S11) is **shipped** — tool plugin
+(`plugins/supabase/`), memory backend (`plugins/memory/supabase/`), and
+integration adapter (`hermes_cli/integrations/supabase.py`), 47 tests passing;
+two optional owner-gated follow-ons remain (live SQL execution behind a gate,
+pgvector semantic recall). Sprint 14 unified release-gate /
 smoke / `doctor --10-10` still distributed; the legacy *shared* cockpit token
 remains plaintext-at-rest (per-device tokens are hashed).
 
@@ -150,8 +158,12 @@ work is no longer "missing kernels" but: (a) opting the opt-in seams into
 production use — a live caller + runner→JobStore drain so real per-job cost
 stops reading 0 (hop 1), and a default adapter injection (hop 5); (b) replay
 persistence behind the snapshot route (hop 2); (c) the Sprint-14 unified
-release gate / `doctor --10-10`; and (d) the optional integrations (Supabase
-S11). The shared-cockpit-token-at-rest note above is unchanged.
+release gate / `doctor --10-10`; and (d) the two optional, owner-gated
+Supabase (S11) follow-ons — live SQL execution behind a gate and pgvector
+semantic recall — atop the already-shipped Supabase tool plugin
+(`plugins/supabase/`), memory backend (`plugins/memory/supabase/`), and
+integration adapter (`hermes_cli/integrations/supabase.py`). The
+shared-cockpit-token-at-rest note above is unchanged.
 
 ### Critical path to close the loop
 
@@ -427,19 +439,32 @@ in the actual *loop* and should follow S2/S6.
 
 **Gap:** per-job telemetry aggregation + cockpit panel + soft/hard budget gates.
 
-### Sprint 11 — Supabase & Vercel integrations · 🔴 MOSTLY MISSING
+### Sprint 11 — Supabase & Vercel integrations · 🟡 SUPABASE SHIPPED, VERCEL PARTIAL
 
-- 🔴 Supabase — **absent**. No `plugins/supabase/`, no memory backend, no
-  ledger mirror. (Memory backends exist for byterover/honcho/mem0/supermemory/…
-  but not Supabase.) Note: a Supabase **MCP server** is available to this
-  session, but that is *not* an in-repo plugin.
+- 🟢 Supabase — **shipped** across all three surfaces:
+  - **Tool plugin** `plugins/supabase/` — four tools (`tools.py:348`):
+    `supabase_query` and `supabase_list_tables` are read-only reads via
+    PostgREST; `supabase_execute_sql` and `supabase_apply_migration` are
+    **propose-only / owner-gated** writes (a tool returns a proposal and a
+    `DecisionVerdict`; it never authors or applies the mutation —
+    `tools.py:_propose_write`).
+  - **Memory backend** `plugins/memory/supabase/` — persistent, recency-based
+    recall over a Supabase PostgREST table (surfaces the most recent N turns
+    for the session before the next reply).
+  - **Integration adapter** `hermes_cli/integrations/supabase.py` —
+    detect / plan / explain / execute, **dry-run by default** (`dry_run=True`).
+  - 🟢 47 mocked tests pass: `tests/plugins/test_supabase_plugin.py`,
+    `tests/plugins/memory/test_supabase_memory.py`,
+    `tests/test_integration_supabase.py`.
 - 🟡 Vercel — only a sandbox *execution* adapter (`tools/environments/vercel_sandbox.py`)
   and a `vercel-worker` reference in the router (`model_router.py:137`); no
   deploy/preview/logs/env operations.
-- 🔴 No mocked integration tests.
 
-**Gap:** essentially the whole sprint, by design optional. Fine to defer
-unless hosted state / deploy previews are launch-scoped.
+**Gap:** two **optional, owner-gated Supabase follow-ons** remain — live SQL
+execution behind a gate (today writes are propose-only) and pgvector semantic
+recall (today recall is recency-based). The Vercel deploy/preview/logs surface
+is still missing and, like these, is by design optional — fine to defer unless
+hosted state / deploy previews are launch-scoped.
 
 ### Sprint 12 — Secure remote Windows Claude bridge · 🟡 PARTIAL
 
