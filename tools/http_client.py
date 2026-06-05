@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import re
 from typing import Any, Mapping, Optional, Sequence
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import requests
 
@@ -35,6 +35,10 @@ DEFAULT_TIMEOUT_SECONDS = 20.0
 # 256 KB — generous for JSON data feeds, small enough to protect context.
 DEFAULT_MAX_BYTES = 256 * 1024
 DEFAULT_USER_AGENT = "hermes-agent/public-apis"
+# Hops we'll follow ourselves (auto-redirects are disabled so we can
+# re-check the allowlist on every hop — see _request).
+DEFAULT_MAX_REDIRECTS = 5
+_REDIRECT_CODES = frozenset({301, 302, 303, 307, 308})
 
 # Generic secret-shaped patterns. These are intentionally broad — false
 # positives only cost a few redacted characters in an error string.
@@ -90,11 +94,13 @@ class PublicApiClient:
         max_bytes: int = DEFAULT_MAX_BYTES,
         secrets: Sequence[str] = (),
         user_agent: str = DEFAULT_USER_AGENT,
+        max_redirects: int = DEFAULT_MAX_REDIRECTS,
     ) -> None:
         self._allowed_hosts = tuple(h.lower() for h in allowed_hosts)
         self._session = session or requests.Session()
         self._timeout = timeout
         self._max_bytes = max_bytes
+        self._max_redirects = max_redirects
         # Keep the secret list private; only used by redact(), never echoed.
         self._secrets = tuple(s for s in secrets if s)
         self._user_agent = user_agent
@@ -159,21 +165,22 @@ class PublicApiClient:
             h.update(extra)
         return h
 
-    def _request(
+    def _call_with_retry(
         self,
         method: str,
         url: str,
-        *,
-        params: Optional[Mapping[str, Any]],
+        params: Mapping[str, Any],
         headers: Optional[Mapping[str, str]],
     ) -> requests.Response:
-        """Issue one request with a single retry on transient failure.
+        """One network call with a single retry on transient failure.
 
-        Retries exactly once on connect/read timeout, connection error, or
-        a 5xx status. Anything still failing after the retry is raised as a
-        sanitised HttpClientError.
+        Retries exactly once on connect/read timeout, connection error, or a
+        5xx status. ``allow_redirects=False`` so the caller can re-check the
+        host allowlist on every redirect hop rather than letting ``requests``
+        silently follow a 3xx to an off-allowlist host. Returns the response
+        (including 3xx/4xx); raises a sanitised HttpClientError only on a
+        transport-level failure that survives the retry.
         """
-        self._check_host(url)
         last_exc: Optional[Exception] = None
         for attempt in range(2):
             try:
@@ -183,6 +190,7 @@ class PublicApiClient:
                     headers=self._headers(headers),
                     params=dict(params or {}),
                     timeout=self._timeout,
+                    allow_redirects=False,
                 )
             except requests.Timeout as exc:
                 last_exc = exc
@@ -193,7 +201,46 @@ class PublicApiClient:
             if resp.status_code >= 500 and attempt == 0:
                 # Transient server error — retry once.
                 continue
-            if resp.status_code >= 400:
+            return resp
+        if isinstance(last_exc, requests.Timeout):
+            raise HttpClientError("timeout", "request timed out") from last_exc
+        raise HttpClientError(
+            "transport", self._clean(str(last_exc) if last_exc else "request failed")
+        ) from last_exc
+
+    def _request(
+        self,
+        method: str,
+        url: str,
+        *,
+        params: Optional[Mapping[str, Any]],
+        headers: Optional[Mapping[str, str]],
+    ) -> requests.Response:
+        """Issue a request, following redirects manually with allowlist re-checks.
+
+        Auto-redirects are disabled; we follow up to ``max_redirects`` hops
+        ourselves and run :meth:`_check_host` against every hop's target. This
+        keeps the host-pinning / SSRF guard intact even when an allowlisted
+        host 3xx-redirects elsewhere — and prevents an auth header (e.g.
+        NewsAPI's ``X-Api-Key``) from being carried to a foreign host.
+        """
+        self._check_host(url)
+        hop_url = url
+        hop_params: Mapping[str, Any] = dict(params or {})
+        for _hop in range(self._max_redirects + 1):
+            resp = self._call_with_retry(method, hop_url, hop_params, headers)
+            status = resp.status_code
+            if status in _REDIRECT_CODES:
+                location = resp.headers.get("Location")
+                if location:
+                    # Resolve relative redirects against the current URL, then
+                    # re-validate the new host before following it. Drop our
+                    # query params — the redirect target is fully formed.
+                    hop_url = urljoin(hop_url, location)
+                    self._check_host(hop_url)
+                    hop_params = {}
+                    continue
+            if status is not None and status >= 400:
                 body = ""
                 try:
                     body = self._clean((resp.text or "")[:300])
@@ -201,13 +248,11 @@ class PublicApiClient:
                     body = ""
                 raise HttpClientError(
                     "http_error",
-                    f"{url and urlsplit(url).hostname} returned {resp.status_code}: {body}",
-                    status=resp.status_code,
+                    f"{urlsplit(hop_url).hostname} returned {status}: {body}",
+                    status=status,
                 )
             return resp
-        # Both attempts raised a transport-level error.
-        if isinstance(last_exc, requests.Timeout):
-            raise HttpClientError("timeout", "request timed out") from last_exc
         raise HttpClientError(
-            "transport", self._clean(str(last_exc) if last_exc else "request failed")
-        ) from last_exc
+            "too_many_redirects",
+            f"exceeded {self._max_redirects} redirects",
+        )

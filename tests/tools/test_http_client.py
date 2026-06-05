@@ -12,24 +12,36 @@ import requests
 from tools.http_client import HttpClientError, PublicApiClient, redact
 
 
-def _make_response(status: int = 200, *, json_body: Any = None, text: str = "") -> Any:
+def _make_response(
+    status: int = 200,
+    *,
+    json_body: Any = None,
+    text: str = "",
+    headers: dict | None = None,
+) -> Any:
     resp = MagicMock(spec=requests.Response)
     resp.status_code = status
     body = text if text else ("" if json_body is None else "json")
     resp.text = body
     resp.content = body.encode("utf-8")
     resp.json = MagicMock(return_value=json_body)
+    resp.headers = headers or {}
     return resp
 
 
 def _session_with(*items: Any):
     """A requests.Session mock whose .request() pops canned items in order.
 
-    An item may be a response, or an Exception instance to raise.
+    An item may be a response, or an Exception instance to raise. The mock
+    accepts ``allow_redirects`` so it matches the real call signature.
     """
     queue: deque = deque(items)
+    seen_urls: list = []
 
-    def _request(method, url, headers=None, params=None, timeout=None):
+    def _request(
+        method, url, headers=None, params=None, timeout=None, allow_redirects=None
+    ):
+        seen_urls.append(url)
         if not queue:
             raise AssertionError(f"no queued response for {method} {url}")
         item = queue.popleft()
@@ -40,6 +52,7 @@ def _session_with(*items: Any):
     session = MagicMock(spec=requests.Session)
     session.request.side_effect = _request
     session._queue = queue
+    session._seen_urls = seen_urls
     return session
 
 
@@ -59,6 +72,56 @@ def test_allowed_host_passes():
     session = _session_with(_make_response(200, json_body={"ok": True}))
     client = PublicApiClient(allowed_hosts=("api.example.com",), session=session)
     assert client.get_json("https://api.example.com/v1") == {"ok": True}
+
+
+def test_auto_redirects_are_disabled():
+    session = _session_with(_make_response(200, json_body={"ok": True}))
+    client = PublicApiClient(allowed_hosts=("api.example.com",), session=session)
+    client.get_json("https://api.example.com/v1")
+    # The host-pinning guard depends on us, not requests, following 3xx.
+    assert session.request.call_args.kwargs["allow_redirects"] is False
+
+
+def test_redirect_to_off_allowlist_host_is_refused():
+    # An allowlisted host 3xx-redirects to a foreign host; the guard must
+    # re-check the hop and refuse rather than following it (SSRF / key-leak).
+    session = _session_with(
+        _make_response(302, headers={"Location": "https://evil.example.net/x"}),
+    )
+    client = PublicApiClient(allowed_hosts=("api.example.com",), session=session)
+    with pytest.raises(HttpClientError) as exc:
+        client.get_json("https://api.example.com/v1")
+    assert exc.value.error == "host_not_allowed"
+    # We never issued a request to the evil host.
+    assert all("evil.example.net" not in u for u in session._seen_urls)
+
+
+def test_redirect_to_allowlisted_host_is_followed():
+    session = _session_with(
+        _make_response(302, headers={"Location": "https://api.example.com/v2"}),
+        _make_response(200, json_body={"ok": True}),
+    )
+    client = PublicApiClient(allowed_hosts=("api.example.com",), session=session)
+    assert client.get_json("https://api.example.com/v1") == {"ok": True}
+    assert session._seen_urls == [
+        "https://api.example.com/v1",
+        "https://api.example.com/v2",
+    ]
+
+
+def test_redirect_loop_is_bounded():
+    # Always redirects back to an allowlisted URL → must stop, not spin.
+    loop = [
+        _make_response(302, headers={"Location": "https://api.example.com/loop"})
+        for _ in range(10)
+    ]
+    session = _session_with(*loop)
+    client = PublicApiClient(
+        allowed_hosts=("api.example.com",), session=session, max_redirects=3
+    )
+    with pytest.raises(HttpClientError) as exc:
+        client.get_json("https://api.example.com/start")
+    assert exc.value.error == "too_many_redirects"
 
 
 # ── redaction ───────────────────────────────────────────────────────────────
