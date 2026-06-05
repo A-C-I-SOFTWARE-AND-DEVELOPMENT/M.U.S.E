@@ -45,7 +45,7 @@ import uuid
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TypedDict
 
 from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
@@ -134,6 +134,24 @@ class DecisionInput:
             )
 
 
+class RedactedVerdict(TypedDict):
+    """The serialized, redaction-safe shape of a :class:`DecisionVerdict`.
+
+    Precisely typed so consumers (audit ledger, gateway, cockpit) index it
+    without falling back to ``object``.
+    """
+
+    id: str
+    tier: str
+    action_type: str
+    rationale: str
+    reason_codes: list[str]
+    inputs: list[dict[str, Optional[str]]]
+    required_owner_phrase: Optional[str]
+    allowed_until: Optional[str]
+    audit_id: Optional[str]
+
+
 @dataclass(frozen=True)
 class DecisionVerdict:
     """The single verdict. Mirrors the Sprint 1 ``DecisionVerdict`` contract."""
@@ -160,7 +178,7 @@ class DecisionVerdict:
     def needs_owner_phrase(self) -> bool:
         return bool(self.required_owner_phrase)
 
-    def to_redacted_dict(self) -> dict[str, object]:
+    def to_redacted_dict(self) -> RedactedVerdict:
         """Serialize with every human string passed through the redactor.
 
         Imported lazily so the engine stays cheap to import and free of any
@@ -169,21 +187,22 @@ class DecisionVerdict:
 
         from hermes_cli.secrets_policy import redact
 
+        inputs: list[dict[str, Optional[str]]] = [
+            {
+                "source": i.source,
+                "tier": i.tier.value,
+                "reason": i.reason.value if i.reason else None,
+                "detail": redact(i.detail),
+            }
+            for i in self.inputs
+        ]
         return {
             "id": self.id,
             "tier": self.tier.value,
             "action_type": self.action_type,
             "rationale": redact(self.rationale),
             "reason_codes": [r.value for r in self.reason_codes],
-            "inputs": [
-                {
-                    "source": i.source,
-                    "tier": i.tier.value,
-                    "reason": i.reason.value if i.reason else None,
-                    "detail": redact(i.detail),
-                }
-                for i in self.inputs
-            ],
+            "inputs": inputs,
             "required_owner_phrase": self.required_owner_phrase,
             "allowed_until": (
                 self.allowed_until.isoformat() if self.allowed_until else None
