@@ -669,6 +669,33 @@ def create_app(
             "budget": job.budget_status(),
         }
 
+    @app.get("/jobs/{job_id}/snapshot")
+    async def get_job_snapshot(job_id: str) -> Dict[str, Any]:
+        """Reconstruct a job's state purely from its recorded event stream.
+
+        This is the live entry point for :meth:`JobStore.snapshot`, which folds
+        the job's event envelopes through the replay reducer
+        (:func:`hermes_cli.job_replay.rebuild_snapshot`) to rebuild status /
+        phase / workers / approvals / validation / publish plan. Unlike
+        ``GET /jobs/{id}/status`` (which reads the mutated in-memory ``Job``),
+        this route derives state solely from ``job.events`` — the same fold
+        that would rehydrate a job after a restart.
+
+        Restart-replay is **not yet wired**: :class:`JobStore` is purely
+        in-memory (``self._jobs`` is built fresh per process, with no
+        load/restore path), so after a restart there are no persisted events to
+        replay from. Persisting ``job.events`` to durable storage and rebuilding
+        the store from them via ``rebuild_snapshot`` is a documented follow-up;
+        this route makes the reducer reachable live in the meantime.
+
+        Returns 404 for an unknown job (matching ``/status``) rather than the
+        empty snapshot :meth:`JobStore.snapshot` would otherwise yield, so a bad
+        id is an explicit client error.
+        """
+        await _get_job_or_404(job_id)
+        snapshot = await store.snapshot(job_id)
+        return snapshot.to_dict()
+
     @app.get("/jobs/{job_id}/artifacts")
     async def get_job_artifacts(job_id: str) -> Dict[str, Any]:
         job = await _get_job_or_404(job_id)
