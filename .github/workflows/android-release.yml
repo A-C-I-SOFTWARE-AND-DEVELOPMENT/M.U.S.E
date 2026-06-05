@@ -1,8 +1,12 @@
 name: Android release
 
-# Build a signed release APK and publish it as a downloadable release asset
-# on every Android version tag (e.g. `android-v0.1.0`). Also runnable on
-# demand via the Actions tab.
+# Build a signed release APK and publish it as a downloadable release asset.
+# One-button release: Actions → "Android release" → "Run workflow" (no input)
+# cuts a permanent versioned release whose version is auto-derived from the
+# repo's real history (build date + commit count, e.g. 2026.06.05.107) — no
+# tag to type. Pushing an explicit `android-v*` tag still works for a
+# hand-named version, and pushes to the build branches refresh the rolling
+# `android-latest` download.
 #
 # Signing is driven entirely by repository secrets — nothing sensitive lives
 # in the repo. Set these four secrets (Settings → Secrets and variables →
@@ -33,7 +37,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Optional release tag to attach the APK to (e.g. android-v0.1.0)'
+        description: 'Optional: hand-name the release tag (e.g. android-v1.0.0). Leave blank for an auto-versioned date.commits release.'
         required: false
         default: ''
 
@@ -52,6 +56,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # Full history so the version can be derived from the real commit
+          # count (work done), not the default shallow clone of depth 1.
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
@@ -76,6 +84,72 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      - name: Determine release context + version
+        id: ctx
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          # Version is auto-derived from the repo's real history so it always
+          # reflects the actual time + work done — never a hand-edited
+          # placeholder. Format: <UTC build date>.<total commit count>, e.g.
+          # 2026.06.05.107. APP_COMMITS counts commits that actually touched
+          # the Android app (surfaced in the release notes).
+          DATE="$(date -u +%Y.%m.%d)"
+          REPO_COMMITS="$(git rev-list --count HEAD)"
+          # The job runs from apps/android (defaults.run.working-directory), so
+          # the '.' pathspec counts commits that touched the Android app.
+          APP_COMMITS="$(git rev-list --count HEAD -- . || echo 0)"
+          SHA="$(git rev-parse --short HEAD)"
+          AUTO_VERSION="${DATE}.${REPO_COMMITS}"
+
+          if [[ "$REF" == refs/tags/android-v* ]]; then
+            # Explicit version tag → permanent, versioned release; the APK is
+            # stamped with the tag's version.
+            VERSION="${REF_NAME#android-v}"; TAG="$REF_NAME"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
+            # Manual dispatch against an explicit tag.
+            VERSION="${INPUT_TAG#android-v}"; TAG="$INPUT_TAG"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            # THE ONE BUTTON: Actions → Android release → Run workflow with no
+            # input cuts a permanent versioned release auto-stamped with the
+            # build date + commit count. No tag to type.
+            VERSION="$AUTO_VERSION"; TAG="android-v${VERSION}"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+          elif [ "$EVENT" = "push" ]; then
+            # Branch push → refresh the rolling 'android-latest' download; the
+            # asset name is stable so the URL never changes, but the APK inside
+            # still carries the real date+work version.
+            VERSION="$AUTO_VERSION"; TAG="android-latest"
+            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
+            ASSET="jarvis-prime-android.apk"; TITLE="Jarvis Prime — latest Android build"
+          else
+            VERSION="$AUTO_VERSION"; TAG=""; PUBLISH=false; CHANNEL=none
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${VERSION}"
+          fi
+
+          {
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "publish=$PUBLISH"
+            echo "prerelease=$PRERELEASE"
+            echo "channel=$CHANNEL"
+            echo "asset=$ASSET"
+            echo "title=$TITLE"
+            echo "date=$DATE"
+            echo "repo_commits=$REPO_COMMITS"
+            echo "app_commits=$APP_COMMITS"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION → ${CHANNEL} release (tag: ${TAG:-none}, asset: $ASSET)"
 
       - name: Decode release keystore (if configured)
         id: keystore
@@ -102,47 +176,18 @@ jobs:
           # (Android treats an equal versionCode as "not newer"). versionName
           # stays the source-of-truth marketing version for tagged releases.
           ANDROID_VERSION_CODE: ${{ github.run_number }}
+          # versionName auto-derived from real repo history (build date + commit
+          # count) so the version reflects the actual time + work done.
+          ANDROID_VERSION_NAME: ${{ steps.ctx.outputs.version }}
         # --warn (not --info) keeps signing-config env reads out of verbose logs.
         run: ./gradlew --no-daemon --stacktrace --warn :app:assembleRelease
-
-      - name: Determine release context
-        id: rel
-        run: |
-          ver="$(grep -E '^\s*versionName' app/build.gradle.kts | head -1 | sed -E 's/.*"(.*)".*/\1/')"
-          echo "version=${ver:-0.0.0}" >> "$GITHUB_OUTPUT"
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # Real version tag → permanent, versioned release.
-            echo "publish=true"     >> "$GITHUB_OUTPUT"
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
-            echo "title=Jarvis Prime ${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          elif [ -n "${{ github.event.inputs.tag }}" ]; then
-            # Manually dispatched against an explicit tag.
-            echo "publish=true"     >> "$GITHUB_OUTPUT"
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-            echo "prerelease=false" >> "$GITHUB_OUTPUT"
-            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
-            echo "title=Jarvis Prime ${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            # Branch push → refresh the rolling 'android-latest' download. The
-            # asset name is stable so the download URL never changes.
-            echo "publish=true"     >> "$GITHUB_OUTPUT"
-            echo "tag=android-latest" >> "$GITHUB_OUTPUT"
-            echo "prerelease=true"  >> "$GITHUB_OUTPUT"
-            echo "asset=jarvis-prime-android.apk" >> "$GITHUB_OUTPUT"
-            echo "title=Jarvis Prime — latest Android build" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish=false"    >> "$GITHUB_OUTPUT"
-            echo "asset=jarvis-prime-${ver:-release}.apk" >> "$GITHUB_OUTPUT"
-          fi
 
       - name: Locate and name the APK
         id: apk
         run: |
           src="$(find app/build/outputs/apk/release -name '*.apk' | head -1)"
           if [ -z "$src" ]; then echo "No release APK produced" >&2; exit 1; fi
-          dest="${{ steps.rel.outputs.asset }}"
+          dest="${{ steps.ctx.outputs.asset }}"
           cp "$src" "$dest"
           echo "path=apps/android/$dest" >> "$GITHUB_OUTPUT"
           echo "name=$dest" >> "$GITHUB_OUTPUT"
@@ -192,13 +237,17 @@ jobs:
           retention-days: 90
 
       - name: Publish the downloadable GitHub Release
-        if: steps.rel.outputs.publish == 'true'
+        if: steps.ctx.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.rel.outputs.tag }}
-          TITLE: ${{ steps.rel.outputs.title }}
-          PRERELEASE: ${{ steps.rel.outputs.prerelease }}
-          VERSION: ${{ steps.rel.outputs.version }}
+          TAG: ${{ steps.ctx.outputs.tag }}
+          TITLE: ${{ steps.ctx.outputs.title }}
+          PRERELEASE: ${{ steps.ctx.outputs.prerelease }}
+          VERSION: ${{ steps.ctx.outputs.version }}
+          BUILD_DATE: ${{ steps.ctx.outputs.date }}
+          REPO_COMMITS: ${{ steps.ctx.outputs.repo_commits }}
+          APP_COMMITS: ${{ steps.ctx.outputs.app_commits }}
+          SHA: ${{ steps.ctx.outputs.sha }}
           ASSET: ${{ steps.apk.outputs.name }}
           SIGNING: ${{ steps.verify.outputs.signing }}
         run: |
@@ -211,6 +260,8 @@ jobs:
           # YAML block indentation, so nothing renders as an accidental code block.
           {
             printf '%s\n' "**Jarvis Prime** — the **local-only Hermes/JARVIS Android cockpit**. Version ${VERSION}."
+            printf '%s\n' ""
+            printf '%s\n' "_Auto-versioned from the repo's real history: built **${BUILD_DATE}** (UTC) from commit \`${SHA}\` — **${REPO_COMMITS}** commits of work total, **${APP_COMMITS}** of them touching the Android app._"
             printf '%s\n' ""
             printf '%s\n' "> This app runs on your device: it organizes handoffs to the AI tools you already use (Codex, Claude Code, ChatGPT, Claude) via clipboard / deep links / the Termux bridge. Its only network traffic is to **your own local Hermes gateway** (default \`127.0.0.1:8765\`) when you pair one — **never** to remote AI providers — and it holds **no** API keys. Unpaired, it runs fully offline against an on-device mock."
             printf '%s\n' ""
