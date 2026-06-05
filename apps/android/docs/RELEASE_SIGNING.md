@@ -41,16 +41,24 @@ requires the same signing identity across updates).
 
 ## 2. In CI (GitHub Actions) — `android-release.yml`
 
-The workflow publishes a downloadable APK two ways:
+The workflow publishes a downloadable APK three ways:
 
+- **One-button versioned release (recommended)** — **Actions → Android release
+  → Run workflow** with **no input** cuts a permanent versioned GitHub Release.
+  The version is auto-derived from the repo's real history as
+  `<UTC build date>.<total commit count>` (e.g. `2026.06.05.107`), so it always
+  reflects the actual time and work done — nothing to hand-edit. Tag:
+  `android-v<version>`, asset: `jarvis-prime-<version>.apk`.
 - **Rolling `android-latest`** — every push that touches `apps/android/**`
   refreshes a single prerelease tagged `android-latest` whose asset name is
-  stable (`jarvis-prime-android.apk`), so the download URL never changes.
-- **Versioned releases** — pushing a tag like `android-v0.1.0` cuts a
-  permanent, versioned GitHub Release (`jarvis-prime-<version>.apk`).
+  stable (`jarvis-prime-android.apk`), so the download URL never changes. The
+  APK inside still carries the real date+commit version.
+- **Hand-named versioned release** — pushing a tag like `android-v1.0.0` (or
+  Run workflow with the optional `tag` input) cuts a permanent release stamped
+  with exactly that version, for when you want a marketing version instead of
+  the auto date+commit one.
 
-Both also upload the APK as a 90-day workflow artifact. Manual runs are
-available via **Actions → Android release → Run workflow**.
+All three also upload the APK as a 90-day workflow artifact.
 
 Every run executes an **`apksigner verify --print-certs`** step that fails if
 the APK does not verify and reports whether it is **release-signed** or
@@ -82,10 +90,17 @@ lack of secrets.
 
 ### Cutting a release
 
+**One button (recommended):** Actions → **Android release** → **Run workflow**
+→ leave the tag blank → **Run workflow**. CI builds, signs, computes the
+version from the repo's history (`<date>.<commits>`), and publishes
+`jarvis-prime-<version>.apk` to a permanent versioned GitHub Release.
+
+**Hand-named version (optional):**
+
 ```bash
-git tag android-v0.1.0
-git push origin android-v0.1.0
-# CI builds, signs, and publishes jarvis-0.1.0.apk to the GitHub Release.
+git tag android-v1.0.0
+git push origin android-v1.0.0
+# CI builds, signs, and publishes jarvis-prime-1.0.0.apk to the GitHub Release.
 ```
 
 ---
@@ -119,14 +134,22 @@ in GitHub Actions secrets and your local keystore.
 
 ## Versioning
 
-`versionCode` is **not** hard-coded for CI builds. `app/build.gradle.kts` reads
-the `ANDROID_VERSION_CODE` env var (falling back to `1` for local builds), and
-`android-release.yml` sets it to the workflow **run number**. This gives every
-rolling `android-latest` APK a unique, monotonically increasing `versionCode`,
-so a freshly downloaded build actually supersedes the one already installed —
-Android treats an equal `versionCode` as "not newer" and would otherwise refuse
-the sideload update. `versionName` (e.g. `0.1.0`) stays the human-facing
-marketing string and is what tagged `android-v*` releases are cut from.
+Neither `versionCode` nor `versionName` is hard-coded for CI builds — both come
+from the environment so the published build reflects reality:
+
+- **`versionCode`** — `app/build.gradle.kts` reads `ANDROID_VERSION_CODE`
+  (falling back to `1` locally); `android-release.yml` sets it to the workflow
+  **run number**. This gives every APK a unique, monotonically increasing
+  `versionCode`, so a freshly downloaded build actually supersedes the one
+  already installed — Android treats an equal `versionCode` as "not newer" and
+  would otherwise refuse the sideload update.
+- **`versionName`** — read from `ANDROID_VERSION_NAME` (falling back to a
+  static string locally). CI computes it from the repo's real history as
+  `<UTC build date>.<total commit count>` (e.g. `2026.06.05.107`), so the
+  human-facing version always reflects the actual **time** (build date) and
+  **work** (commit count) rather than a hand-edited placeholder. A pushed
+  `android-v<x>` tag or the optional Run-workflow `tag` input overrides it with
+  an explicit version when you want a marketing string instead.
 
 ## Notes
 - `minSdk 26` (Android 8.0+), `targetSdk`/`compileSdk 35`.

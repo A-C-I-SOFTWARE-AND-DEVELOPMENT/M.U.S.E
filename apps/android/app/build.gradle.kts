@@ -45,7 +45,12 @@ android {
         // prior install — Android treats an equal versionCode as "not newer".
         // Falls back to 1 for local builds. versionName is the marketing string.
         versionCode = System.getenv("ANDROID_VERSION_CODE")?.toIntOrNull() ?: 1
-        versionName = "0.1.0"
+        // versionName is the human-facing marketing string. CI injects a value
+        // auto-derived from the repo's real history (build date + commit count,
+        // e.g. "2026.06.05.107") via ANDROID_VERSION_NAME so the version always
+        // reflects the actual time and work, not a hand-edited placeholder.
+        // Falls back to a static string for local/offline builds.
+        versionName = System.getenv("ANDROID_VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
