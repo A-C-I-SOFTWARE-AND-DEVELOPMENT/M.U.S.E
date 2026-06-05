@@ -2,19 +2,16 @@ package com.aci.hermes.ui.screens.control
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.testutil.awaitUntil
 import com.aci.hermes.testutil.isolatedSettings
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -37,6 +34,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class ControlViewModelTest {
 
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
     private fun newVm(): ControlViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         // Isolated settings store → each test starts from a clean baseline.
@@ -48,16 +48,6 @@ class ControlViewModelTest {
         awaitUntil(message = "init refresh projected state") {
             state.value.connectedServices.isNotEmpty()
         }
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(Dispatchers.Unconfined)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
 
     @Test
     fun `emergency stop is gated behind a confirmation warning`() {

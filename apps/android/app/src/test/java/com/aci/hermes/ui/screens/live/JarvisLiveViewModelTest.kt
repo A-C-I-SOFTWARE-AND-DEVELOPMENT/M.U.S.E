@@ -2,16 +2,13 @@ package com.aci.hermes.ui.screens.live
 
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
-import kotlinx.coroutines.Dispatchers
+import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,22 +24,13 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class JarvisLiveViewModelTest {
 
-    private val dispatcher = UnconfinedTestDispatcher()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private fun newVm(): JarvisLiveViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         // No avatar repo and no cockpit client → procedural body, no network.
         return JarvisLiveViewModel(app, avatarRepository = null, cockpitClient = null)
-    }
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

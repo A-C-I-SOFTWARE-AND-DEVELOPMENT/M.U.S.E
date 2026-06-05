@@ -16,24 +16,21 @@ import com.aci.hermes.data.jarvis.JarvisRecordRef
 import com.aci.hermes.data.jarvis.JarvisToolStatus
 import com.aci.hermes.data.jarvis.JarvisTone
 import com.aci.hermes.data.jarvis.MockJarvisChatGateway
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,15 +39,8 @@ class JarvisChatViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val logBuffer = LogBuffer()
 
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(testDispatcher)
 
     private fun newViewModel(
         gateway: JarvisChatGateway = MockJarvisChatGateway(chunkDelayMs = 0L),
@@ -78,7 +68,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `sending a casual message produces a jarvis reply`() = runTest(testDispatcher) {
+    fun `sending a casual message produces a jarvis reply`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("hi")
         vm.send()
@@ -92,7 +82,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `task prompt yields inline task card and promotes to sink`() = runTest(testDispatcher) {
+    fun `task prompt yields inline task card and promotes to sink`() = runTest {
         val sink = FakeJarvisTaskSink()
         val vm = newViewModel(taskSink = sink)
         vm.onDraftChange("build a chat screen for jarvis")
@@ -108,7 +98,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `approval prompt yields approval card and approve flips state`() = runTest(testDispatcher) {
+    fun `approval prompt yields approval card and approve flips state`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("deploy gateway to prod")
         vm.send()
@@ -121,7 +111,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `serious prompt yields serious card`() = runTest(testDispatcher) {
+    fun `serious prompt yields serious card`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("review the password handling for leaks")
         vm.send()
@@ -131,7 +121,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `critical prompt yields critical card and bad ack is rejected`() = runTest(testDispatcher) {
+    fun `critical prompt yields critical card and bad ack is rejected`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("drop table users in prod")
         vm.send()
@@ -146,7 +136,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `expand detail toggles the expanded set`() = runTest(testDispatcher) {
+    fun `expand detail toggles the expanded set`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("walk me through the architecture")
         vm.send()
@@ -160,7 +150,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `gateway error surfaces error bubble and retry re-sends`() = runTest(testDispatcher) {
+    fun `gateway error surfaces error bubble and retry re-sends`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("/error simulate")
         vm.send()
@@ -174,7 +164,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `stop cancels an in-flight stream`() = runTest(testDispatcher) {
+    fun `stop cancels an in-flight stream`() = runTest {
         val slow = SlowGateway()
         val vm = newViewModel(gateway = slow)
         vm.onDraftChange("hello")
@@ -186,7 +176,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `copy message uses the clipboard sink`() = runTest(testDispatcher) {
+    fun `copy message uses the clipboard sink`() = runTest {
         val clipboard = FakeJarvisClipboard()
         val vm = newViewModel(clipboard = clipboard)
         val welcome = vm.state.value.messages.single()
@@ -196,7 +186,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `clear transcript resets to the welcome message`() = runTest(testDispatcher) {
+    fun `clear transcript resets to the welcome message`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("hi")
         vm.send()
@@ -208,7 +198,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `task turn surfaces phase rail and tool calls`() = runTest(testDispatcher) {
+    fun `task turn surfaces phase rail and tool calls`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("build a chat screen for jarvis")
         vm.send()
@@ -225,7 +215,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `tool detail expands and collapses`() = runTest(testDispatcher) {
+    fun `tool detail expands and collapses`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("fix the bug in the gateway")
         vm.send()
@@ -239,7 +229,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `continue re-streams without adding a user message`() = runTest(testDispatcher) {
+    fun `continue re-streams without adding a user message`() = runTest {
         val vm = newViewModel()
         vm.onDraftChange("hi")
         vm.send()
@@ -253,7 +243,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `createJob dispatches to cockpit when paired`() = runTest(testDispatcher) {
+    fun `createJob dispatches to cockpit when paired`() = runTest {
         val dispatcher = FakeJarvisJobDispatcher(available = true, result = JarvisDispatchResult.Ok("job_42"))
         val vm = newViewModel(jobDispatcher = dispatcher)
         vm.onDraftChange("build a chat screen for jarvis")
@@ -267,7 +257,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `createJob falls back to local draft when unpaired`() = runTest(testDispatcher) {
+    fun `createJob falls back to local draft when unpaired`() = runTest {
         val sink = FakeJarvisTaskSink()
         val dispatcher = FakeJarvisJobDispatcher(available = false)
         val vm = newViewModel(taskSink = sink, jobDispatcher = dispatcher)
@@ -282,7 +272,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `approve with live id submits to the gateway`() = runTest(testDispatcher) {
+    fun `approve with live id submits to the gateway`() = runTest {
         val approvals = FakeJarvisApprovalGateway(available = true, result = JarvisApprovalResult.Accepted)
         val vm = newViewModel(approvalGateway = approvals)
         val msgId = "m1"
@@ -299,7 +289,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `approve without live id stays local`() = runTest(testDispatcher) {
+    fun `approve without live id stays local`() = runTest {
         val approvals = FakeJarvisApprovalGateway(available = true)
         val vm = newViewModel(approvalGateway = approvals)
         val card = JarvisInlineCard.Approval(title = "x", summary = "y", impact = "z") // approvalId null
@@ -309,7 +299,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `gateway rejection rolls back the optimistic approval`() = runTest(testDispatcher) {
+    fun `gateway rejection rolls back the optimistic approval`() = runTest {
         val approvals = FakeJarvisApprovalGateway(
             available = true,
             result = JarvisApprovalResult.Rejected("phrase required"),
@@ -325,7 +315,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `inspectRecord loads a view when an inspector is available`() = runTest(testDispatcher) {
+    fun `inspectRecord loads a view when an inspector is available`() = runTest {
         val inspector = FakeJarvisRecordInspector(available = true)
         val vm = newViewModel(recordInspector = inspector)
         vm.inspectRecord(JarvisRecordRef("aud-1", "Evidence", JarvisRecordRef.Kind.EVIDENCE))
@@ -337,7 +327,7 @@ class JarvisChatViewModelTest {
     }
 
     @Test
-    fun `inspectRecord is a no-op without an inspector`() = runTest(testDispatcher) {
+    fun `inspectRecord is a no-op without an inspector`() = runTest {
         val vm = newViewModel() // recordInspector unavailable by default
         vm.inspectRecord(JarvisRecordRef("aud-1", "Evidence", JarvisRecordRef.Kind.EVIDENCE))
         advanceUntilIdle()

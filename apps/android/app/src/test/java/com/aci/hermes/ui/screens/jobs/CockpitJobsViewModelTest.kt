@@ -7,29 +7,25 @@ import com.aci.hermes.data.cockpit.CockpitRequest
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.cockpit.JobLane
 import com.aci.hermes.data.cockpit.JobsSync
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CockpitJobsViewModelTest {
 
-    private val testDispatcher = StandardTestDispatcher()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
     private val logBuffer = LogBuffer()
-
-    @Before fun setUp() { Dispatchers.setMain(testDispatcher) }
-    @After fun tearDown() { Dispatchers.resetMain() }
 
     private fun job(id: String, status: String = "QUEUED") = """
         {"id":"$id","title":"T","worker_id":"","status":"$status",

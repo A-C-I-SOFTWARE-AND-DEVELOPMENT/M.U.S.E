@@ -9,16 +9,13 @@ import com.aci.hermes.data.emergency.EmergencyStopRepository
 import com.aci.hermes.data.jarvis.JarvisPresence
 import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.preferences.SettingsRepository
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.testutil.awaitUntil
 import com.aci.hermes.testutil.isolatedSettings
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,6 +25,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class JarvisPrimeHomeViewModelTest {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var settings: SettingsRepository
 
@@ -51,15 +51,6 @@ class JarvisPrimeHomeViewModelTest {
         )
     }
 
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(Dispatchers.Unconfined)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
 
     @Test
     fun `with no running service the home reads as service-stopped`() {

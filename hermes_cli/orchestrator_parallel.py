@@ -51,6 +51,8 @@ import threading
 import time
 
 from hermes_cli import worktrees as wt
+from hermes_cli import worker_lease as wl
+from hermes_cli.worker_lease_store import DEFAULT_HOST_ID, WorkerLeaseStore
 
 ORCHESTRATOR_DIRNAME = wt.ORCHESTRATOR_DIRNAME
 JOBS_SUBDIR = "jobs"
@@ -250,6 +252,8 @@ class ParallelRunner:
         *,
         on_status: Optional[StatusCallback] = None,
         poll_interval: float = 0.5,
+        lease_store: Optional[WorkerLeaseStore] = None,
+        record_leases: bool = True,
     ) -> None:
         self.repo = Path(repo).resolve()
         plan.validate()
@@ -265,6 +269,23 @@ class ParallelRunner:
         self._cancel_event = threading.Event()
         self._status_lock = threading.Lock()
         self._worktrees: dict[str, wt.WorktreeInfo] = {}
+        # Durable lease recording. This is *observational only*: it records
+        # lease lifecycle alongside the run and must never change scheduling,
+        # timeout, or cancel behavior. Any store failure is swallowed so a
+        # broken/locked store can't break a run.
+        self._record_leases = record_leases
+        self._lease_store: Optional[WorkerLeaseStore]
+        if not record_leases:
+            self._lease_store = None
+        elif lease_store is not None:
+            self._lease_store = lease_store
+        else:
+            try:
+                self._lease_store = WorkerLeaseStore.load()
+            except Exception:
+                self._lease_store = None
+        self._lease_lock = threading.Lock()
+        self._leases: dict[str, wl.WorkerLease] = {}
 
     # ── public API ────────────────────────────────────────────────
 
@@ -334,6 +355,93 @@ class ParallelRunner:
                 branch=info.branch,
             )
 
+    # ── lease recording (observational only) ─────────────────────
+
+    def _lease_id(self, worker_id: str) -> str:
+        return f"{self.plan.job_id}:{worker_id}"
+
+    def _lease_enabled(self) -> bool:
+        return self._record_leases and self._lease_store is not None
+
+    def _record_acquire(self, worker: WorkerPlan) -> None:
+        """Record that a worker started by acquiring + persisting a lease.
+
+        Best-effort: a kernel/store error is swallowed so recording can
+        never alter the run. The lease TTL mirrors the worker timeout so a
+        crashed worker's lease lapses on the same horizon the runner uses.
+        """
+
+        if not self._lease_enabled():
+            return
+        try:
+            now = time.time()
+            ttl = max(1.0, float(worker.timeout_seconds))
+            lease = wl.WorkerLease(
+                lease_id=self._lease_id(worker.worker_id),
+                job_id=self.plan.job_id,
+                worker_id=worker.worker_id,
+                host_id=DEFAULT_HOST_ID,
+            )
+            lease = wl.acquire(lease, now=now, ttl=ttl)
+            with self._lease_lock:
+                self._leases[worker.worker_id] = lease
+            self._lease_store.upsert(lease)  # type: ignore[union-attr]
+        except Exception:
+            pass
+
+    def _record_complete(self, worker_id: str) -> None:
+        """Record a worker that finished cleanly by completing its lease."""
+
+        if not self._lease_enabled():
+            return
+        try:
+            with self._lease_lock:
+                lease = self._leases.get(worker_id)
+            if lease is None:
+                return
+            now = time.time()
+            # The kernel rejects completing a lapsed lease; in that race the
+            # lease is effectively lost, so record it as expired instead.
+            if wl.can_complete(lease, now=now):
+                updated = wl.complete(lease, now=now)
+            else:
+                updated = wl.expire_if_stale(lease, now=now)
+            self._store_lease(worker_id, updated)
+        except Exception:
+            pass
+
+    def _record_lost(self, worker_id: str) -> None:
+        """Record a worker that timed out / failed / was cancelled.
+
+        A still-running lease is cancelled (an explicit non-terminal stop);
+        a lapsed one is expired. Either way the recorded lease ends terminal.
+        """
+
+        if not self._lease_enabled():
+            return
+        try:
+            with self._lease_lock:
+                lease = self._leases.get(worker_id)
+            if lease is None:
+                return
+            now = time.time()
+            staled = wl.expire_if_stale(lease, now=now)
+            if staled.status is not lease.status:
+                updated = staled  # lapsed → EXPIRED
+            elif lease.is_terminal:
+                updated = lease
+            else:
+                updated = wl.cancel(lease)
+            self._store_lease(worker_id, updated)
+        except Exception:
+            pass
+
+    def _store_lease(self, worker_id: str, lease: wl.WorkerLease) -> None:
+        with self._lease_lock:
+            self._leases[worker_id] = lease
+        if self._lease_store is not None:
+            self._lease_store.upsert(lease)
+
     # ── per-worker execution ─────────────────────────────────────
 
     def _execute_worker(self, worker: WorkerPlan) -> None:
@@ -350,15 +458,18 @@ class ParallelRunner:
         self._update(worker.worker_id, prompt_path=str(prompt_path) if worker.prompt else None)
 
         if worker.mode is ExecutionMode.PROMPT_ONLY:
+            self._record_acquire(worker)
             self._update(
                 worker.worker_id,
                 state=WorkerState.COMPLETED,
                 started_at=_now_iso(),
                 ended_at=_now_iso(),
             )
+            self._record_complete(worker.worker_id)
             return
 
         if worker.mode is ExecutionMode.HANDOFF_REQUIRED:
+            self._record_acquire(worker)
             handoff_path = worker_root / HANDOFF_FILENAME
             handoff_path.write_text(
                 json.dumps(worker.handoff, indent=2, sort_keys=True) + "\n",
@@ -371,6 +482,10 @@ class ParallelRunner:
                 ended_at=_now_iso(),
                 handoff_path=str(handoff_path),
             )
+            # The worker finished its local responsibility (the handoff was
+            # written); the external step happens elsewhere. Record the lease
+            # as completed rather than lost.
+            self._record_complete(worker.worker_id)
             return
 
         # LOCAL_RUN
@@ -398,6 +513,7 @@ class ParallelRunner:
             stdout_path=str(stdout_path),
             stderr_path=str(stderr_path),
         )
+        self._record_acquire(worker)
 
         try:
             with stdout_path.open("w", encoding="utf-8") as out, \
@@ -421,6 +537,10 @@ class ParallelRunner:
                             ended_at=_now_iso(),
                             error=None if rc == 0 else f"exit code {rc}",
                         )
+                        if rc == 0:
+                            self._record_complete(worker.worker_id)
+                        else:
+                            self._record_lost(worker.worker_id)
                         return
                     if self._is_cancelled():
                         _terminate(proc)
@@ -431,6 +551,7 @@ class ParallelRunner:
                             error="cancelled by orchestrator",
                             return_code=proc.returncode,
                         )
+                        self._record_lost(worker.worker_id)
                         return
                     if time.monotonic() >= deadline:
                         _terminate(proc)
@@ -441,6 +562,7 @@ class ParallelRunner:
                             error=f"exceeded timeout {worker.timeout_seconds}s",
                             return_code=proc.returncode,
                         )
+                        self._record_lost(worker.worker_id)
                         return
                     time.sleep(self.poll_interval)
         except FileNotFoundError as exc:
@@ -450,6 +572,7 @@ class ParallelRunner:
                 ended_at=_now_iso(),
                 error=f"command not found: {exc}",
             )
+            self._record_lost(worker.worker_id)
         except OSError as exc:
             self._update(
                 worker.worker_id,
@@ -457,6 +580,7 @@ class ParallelRunner:
                 ended_at=_now_iso(),
                 error=f"os error: {exc}",
             )
+            self._record_lost(worker.worker_id)
 
     # ── status bookkeeping ──────────────────────────────────────
 

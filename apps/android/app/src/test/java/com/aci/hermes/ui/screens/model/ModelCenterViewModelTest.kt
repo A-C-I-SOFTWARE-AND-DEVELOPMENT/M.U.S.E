@@ -4,27 +4,23 @@ import com.aci.hermes.data.cockpit.CockpitHttpExecutor
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.CockpitRequest
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ModelCenterViewModelTest {
 
-    private val dispatcher = StandardTestDispatcher()
-
-    @Before fun setUp() = Dispatchers.setMain(dispatcher)
-    @After fun tearDown() = Dispatchers.resetMain()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(StandardTestDispatcher())
 
     private val statusJson = """
         {"ollama_base":"http://127.0.0.1:11434","runtime_status":"runtime_reachable",
