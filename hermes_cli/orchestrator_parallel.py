@@ -63,6 +63,31 @@ workers (in-flight workers finish). The stop is persisted as a ``budget``
 block in ``status.json``. Both limits default to ``None`` (no enforcement),
 so the budget feature is strictly additive and behavior-preserving.
 
+Runtime adapter + reschedule plan (the Sprint 13 wiring, both opt-in)
+----------------------------------------------------------------------
+
+Two Sprint 13 building blocks can be wired in *without* changing the default
+path — when neither is requested, execution is byte-for-byte the existing
+inline-subprocess local run:
+
+* ``runtime_adapter`` (a :class:`hermes_cli.runtime_adapter.RuntimeAdapter`,
+  default ``None``) — when supplied, a LOCAL_RUN worker's command runs through
+  ``adapter.run(command, timeout=...)`` instead of the inline ``subprocess``
+  loop, and the returned :class:`~hermes_cli.runtime_adapter.RuntimeResult`
+  (returncode / stdout_path / stderr_path / duration / timed_out) is mapped onto
+  the same :class:`WorkerStatus` fields. For a
+  :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter` the two paths are
+  observably equivalent (same terminal state, return code, captured streams).
+  When ``None`` (the default) nothing about the local path changes.
+* :meth:`ParallelRunner.compute_reschedule_plan` — an *observable* computation
+  that folds :func:`hermes_cli.lease_scheduler.reschedule_plan` over the lease
+  store's host registry + leases and returns / records the resulting
+  :class:`~hermes_cli.lease_scheduler.Reschedule` proposals (also exposed as
+  :attr:`ParallelRunner.reschedule_plan`). It **decides, it does not act**: no
+  retry is auto-executed and no lease is mutated — actually re-leasing the lost
+  work on the chosen host is a documented follow-up. Computing the plan is the
+  deliverable.
+
 Safety invariants enforced here (matches Phase 12 requirements):
 
 * No ``git push``, ``git push --force``, ``git reset --hard``, or other
@@ -89,9 +114,12 @@ import subprocess
 import threading
 import time
 
+from hermes_cli import lease_scheduler
 from hermes_cli import worktrees as wt
 from hermes_cli import worker_lease as wl
 from hermes_cli.budget_policy import BudgetDecision, evaluate_budget
+from hermes_cli.lease_scheduler import Reschedule
+from hermes_cli.runtime_adapter import RuntimeAdapter, RuntimeResult
 from hermes_cli.worker_lease_store import DEFAULT_HOST_ID, WorkerLeaseStore
 
 ORCHESTRATOR_DIRNAME = wt.ORCHESTRATOR_DIRNAME
@@ -328,6 +356,7 @@ class ParallelRunner:
         record_leases: bool = True,
         budget_soft_limit: Optional[float] = None,
         budget_hard_limit: Optional[float] = None,
+        runtime_adapter: Optional[RuntimeAdapter] = None,
     ) -> None:
         self.repo = Path(repo).resolve()
         plan.validate()
@@ -381,6 +410,17 @@ class ParallelRunner:
         self._spent_usd = 0.0
         self._costed_workers: set[str] = set()
         self._budget_event: Optional[dict[str, Any]] = None
+        # Optional runtime adapter (Sprint 13). ``None`` (default) keeps the
+        # existing inline-subprocess LOCAL_RUN path byte-for-byte; when set, a
+        # LOCAL_RUN worker's command runs through ``adapter.run(...)`` and its
+        # RuntimeResult is mapped onto the same WorkerStatus fields. Purely
+        # additive — no other mode and no other behavior is affected.
+        self._runtime_adapter = runtime_adapter
+        # Last computed reschedule plan (Sprint 13). ``None`` until
+        # :meth:`compute_reschedule_plan` runs; the plan is *observational* — it
+        # is never auto-executed (re-leasing lost work is a documented
+        # follow-up).
+        self._reschedule_plan: Optional[list[Reschedule]] = None
 
     # ── public API ────────────────────────────────────────────────
 
@@ -640,8 +680,14 @@ class ParallelRunner:
             self._record_complete(worker.worker_id)
             return
 
-        # LOCAL_RUN
-        self._run_subprocess(worker, worker_root)
+        # LOCAL_RUN. With no runtime adapter (the default) this is the existing
+        # inline-subprocess path, unchanged. When an adapter is injected, the
+        # command runs through it and its RuntimeResult is mapped onto the same
+        # WorkerStatus fields (observably equivalent for LocalRuntimeAdapter).
+        if self._runtime_adapter is None:
+            self._run_subprocess(worker, worker_root)
+        else:
+            self._run_via_adapter(worker, worker_root, self._runtime_adapter)
 
     def _run_subprocess(self, worker: WorkerPlan, worker_root: Path) -> None:
         stdout_path = worker_root / STDOUT_LOG
@@ -742,6 +788,162 @@ class ParallelRunner:
                 error=f"os error: {exc}",
             )
             self._record_lost(worker.worker_id)
+
+    def _run_via_adapter(
+        self, worker: WorkerPlan, worker_root: Path, adapter: RuntimeAdapter
+    ) -> None:
+        """Run a LOCAL_RUN worker through an injected :class:`RuntimeAdapter`.
+
+        This is the adapter-backed twin of :meth:`_run_subprocess`. It maps the
+        adapter's :class:`~hermes_cli.runtime_adapter.RuntimeResult` onto the
+        same :class:`WorkerStatus` fields the inline path uses, so for a
+        :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter` the observable
+        outcome (terminal state, return code, captured stream paths, lease
+        lifecycle) matches the default path. The adapter owns *where* the
+        command runs (its ``cwd``/``env``/streams are construction-time
+        concerns); the runner only hands it the command + timeout and records
+        the result.
+
+        Unlike the inline loop, ``adapter.run`` blocks until the command
+        finishes (or its own timeout fires), so cancellation is observed at the
+        boundaries: a worker cancelled before launch is recorded as cancelled
+        without running, and a cancel that lands while the command is in flight
+        is honored once ``run`` returns.
+        """
+
+        # Honor an already-requested cancel before doing any work, mirroring the
+        # _execute_worker entry guard (the inline path's poll loop catches this
+        # on its first iteration).
+        if self._is_cancelled():
+            self._mark_cancelled(worker.worker_id, reason="cancelled by orchestrator")
+            return
+
+        self._update(
+            worker.worker_id,
+            state=WorkerState.RUNNING,
+            started_at=_now_iso(),
+        )
+        self._record_acquire(worker)
+
+        try:
+            result: RuntimeResult = adapter.run(
+                list(worker.command or []), timeout=float(worker.timeout_seconds)
+            )
+        except FileNotFoundError as exc:
+            self._update(
+                worker.worker_id,
+                state=WorkerState.FAILED,
+                ended_at=_now_iso(),
+                error=f"command not found: {exc}",
+            )
+            self._record_lost(worker.worker_id)
+            return
+        except OSError as exc:
+            self._update(
+                worker.worker_id,
+                state=WorkerState.FAILED,
+                ended_at=_now_iso(),
+                error=f"os error: {exc}",
+            )
+            self._record_lost(worker.worker_id)
+            return
+
+        stdout_path = str(result.stdout_path)
+        stderr_path = str(result.stderr_path)
+
+        # A cancel that arrived while the command ran takes precedence over a
+        # natural exit — same precedence the inline loop gives the cancel check.
+        if self._is_cancelled():
+            self._update(
+                worker.worker_id,
+                state=WorkerState.CANCELLED,
+                ended_at=_now_iso(),
+                error="cancelled by orchestrator",
+                return_code=result.returncode,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+            )
+            self._record_lost(worker.worker_id)
+            return
+
+        if result.timed_out:
+            self._update(
+                worker.worker_id,
+                state=WorkerState.TIMED_OUT,
+                ended_at=_now_iso(),
+                error=f"exceeded timeout {worker.timeout_seconds}s",
+                return_code=result.returncode,
+                stdout_path=stdout_path,
+                stderr_path=stderr_path,
+            )
+            self._record_lost(worker.worker_id)
+            return
+
+        rc = result.returncode
+        # On clean exit, fold in any usage the worker reported via its
+        # ``usage.json`` sidecar — identical to the inline path's contract.
+        usage_block = _read_usage_sidecar(worker_root) if rc == 0 else None
+        self._update(
+            worker.worker_id,
+            state=WorkerState.COMPLETED if rc == 0 else WorkerState.FAILED,
+            return_code=rc,
+            ended_at=_now_iso(),
+            error=None if rc == 0 else f"exit code {rc}",
+            stdout_path=stdout_path,
+            stderr_path=stderr_path,
+            usage=usage_block,
+        )
+        if rc == 0:
+            self._record_complete(worker.worker_id)
+        else:
+            self._record_lost(worker.worker_id)
+
+    # ── reschedule plan (observational; never auto-executed) ─────
+
+    def compute_reschedule_plan(
+        self, now: Optional[float] = None
+    ) -> list[Reschedule]:
+        """Compute (and record) a reschedule plan for lost-but-retryable leases.
+
+        Folds the frozen :func:`hermes_cli.lease_scheduler.reschedule_plan` over
+        the lease store's host registry and leases: each ``EXPIRED`` + idempotent
+        lease yields a :class:`~hermes_cli.lease_scheduler.Reschedule` proposal
+        onto the least-loaded registered host. Stale ``RUNNING`` leases past
+        their deadline are first folded to ``EXPIRED`` via the store's own
+        ``expire_stale`` (the frozen kernel rule) so a lost-but-not-yet-reaped
+        lease is considered.
+
+        This **decides; it does not act** — no retry is launched and no lease is
+        re-leased here (that is a documented follow-up). The returned plan is
+        also stored on :attr:`reschedule_plan` for later inspection. Returns an
+        empty list when there is no lease store, no registered host, or nothing
+        retryable (the additive default).
+        """
+
+        store = self._lease_store
+        if store is None:
+            self._reschedule_plan = []
+            return []
+        when = time.time() if now is None else float(now)
+        # Best-effort: a locked/broken store must never raise out of an
+        # observational helper. On any failure, record an empty plan.
+        try:
+            # Fold stale RUNNING leases to EXPIRED first (kernel rule), so a
+            # lost lease whose worker never reported done is reschedulable.
+            store.expire_stale(when)
+            plan = lease_scheduler.reschedule_plan(
+                when, hosts=store.hosts(), leases=store.all_leases()
+            )
+        except Exception:
+            plan = []
+        self._reschedule_plan = plan
+        return plan
+
+    @property
+    def reschedule_plan(self) -> Optional[list[Reschedule]]:
+        """The last plan from :meth:`compute_reschedule_plan` (``None`` if never run)."""
+
+        return self._reschedule_plan
 
     # ── status bookkeeping ──────────────────────────────────────
 
