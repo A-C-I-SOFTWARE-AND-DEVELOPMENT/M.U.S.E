@@ -38,10 +38,19 @@ def _session_with(*items: Any):
     queue: deque = deque(items)
     seen_urls: list = []
 
+    seen_calls: list = []
+
     def _request(
-        method, url, headers=None, params=None, timeout=None, allow_redirects=None
+        method,
+        url,
+        headers=None,
+        params=None,
+        timeout=None,
+        allow_redirects=None,
+        json=None,
     ):
         seen_urls.append(url)
+        seen_calls.append({"method": method, "url": url, "json": json})
         if not queue:
             raise AssertionError(f"no queued response for {method} {url}")
         item = queue.popleft()
@@ -53,6 +62,7 @@ def _session_with(*items: Any):
     session.request.side_effect = _request
     session._queue = queue
     session._seen_urls = seen_urls
+    session._seen_calls = seen_calls
     return session
 
 
@@ -202,3 +212,53 @@ def test_timeout_twice_raises_clean_timeout():
         client.get_json("https://api.example.com/v1")
     assert exc.value.error == "timeout"
     assert session.request.call_count == 2
+
+
+# ── post_json ───────────────────────────────────────────────────────────────
+
+
+def test_post_json_sends_body_and_parses_response():
+    session = _session_with(_make_response(200, json_body={"vulns": []}))
+    client = PublicApiClient(allowed_hosts=("api.osv.dev",), session=session)
+    out = client.post_json(
+        "https://api.osv.dev/v1/query",
+        json_body={"package": {"name": "flask", "ecosystem": "PyPI"}},
+    )
+    assert out == {"vulns": []}
+    call = session._seen_calls[-1]
+    assert call["method"] == "POST"
+    assert call["json"] == {"package": {"name": "flask", "ecosystem": "PyPI"}}
+
+
+def test_post_json_enforces_allowlist():
+    session = _session_with()
+    client = PublicApiClient(allowed_hosts=("api.osv.dev",), session=session)
+    with pytest.raises(HttpClientError) as exc:
+        client.post_json("https://evil.example.net/run", json_body={"x": 1})
+    assert exc.value.error == "host_not_allowed"
+    session.request.assert_not_called()
+
+
+def test_post_json_redacts_secret_in_error():
+    secret = "piston-token-LEAK-7777"
+    session = _session_with(_make_response(403, text=f"denied key={secret}"))
+    client = PublicApiClient(
+        allowed_hosts=("emkc.org",), session=session, secrets=[secret]
+    )
+    with pytest.raises(HttpClientError) as exc:
+        client.post_json("https://emkc.org/api/v2/piston/execute", json_body={})
+    assert exc.value.error == "http_error"
+    assert secret not in exc.value.message
+
+
+def test_post_json_refuses_oversized_body():
+    big = {"out": "Z" * 5000}
+    session = _session_with(
+        _make_response(200, json_body=big, text='{"out":"' + "Z" * 5000 + '"}')
+    )
+    client = PublicApiClient(
+        allowed_hosts=("emkc.org",), session=session, max_bytes=1000
+    )
+    with pytest.raises(HttpClientError) as exc:
+        client.post_json("https://emkc.org/api/v2/piston/execute", json_body={})
+    assert exc.value.error == "response_too_large"

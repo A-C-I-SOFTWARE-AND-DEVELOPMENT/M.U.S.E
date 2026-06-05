@@ -144,6 +144,38 @@ class PublicApiClient:
             text = encoded[: self._max_bytes].decode("utf-8", "ignore")
         return text
 
+    def post_json(
+        self,
+        url: str,
+        *,
+        json_body: Any = None,
+        params: Optional[Mapping[str, Any]] = None,
+        headers: Optional[Mapping[str, str]] = None,
+    ) -> Any:
+        """POST a JSON body to ``url`` and parse the JSON response.
+
+        Used by read-style query APIs that require POST (e.g. OSV.dev's
+        vulnerability query) and the opt-in code sandbox. Inherits every
+        guarantee of :meth:`get_json` — host allowlist (re-checked on each
+        redirect hop), 256 KB cap, secret redaction, and one retry on a
+        transient/5xx failure. Raises HttpClientError on any failure.
+        """
+        resp = self._request(
+            "POST", url, params=params, headers=headers, json_body=json_body
+        )
+        content = resp.content or b""
+        if len(content) > self._max_bytes:
+            raise HttpClientError(
+                "response_too_large",
+                f"response exceeded {self._max_bytes} bytes",
+            )
+        try:
+            return resp.json()
+        except ValueError as exc:
+            raise HttpClientError(
+                "bad_response", self._clean(f"response was not valid JSON: {exc}")
+            ) from exc
+
     # -- plumbing ------------------------------------------------------------
 
     def _clean(self, text: str) -> str:
@@ -171,6 +203,7 @@ class PublicApiClient:
         url: str,
         params: Mapping[str, Any],
         headers: Optional[Mapping[str, str]],
+        json_body: Any = None,
     ) -> requests.Response:
         """One network call with a single retry on transient failure.
 
@@ -191,6 +224,7 @@ class PublicApiClient:
                     params=dict(params or {}),
                     timeout=self._timeout,
                     allow_redirects=False,
+                    json=json_body,
                 )
             except requests.Timeout as exc:
                 last_exc = exc
@@ -215,6 +249,7 @@ class PublicApiClient:
         *,
         params: Optional[Mapping[str, Any]],
         headers: Optional[Mapping[str, str]],
+        json_body: Any = None,
     ) -> requests.Response:
         """Issue a request, following redirects manually with allowlist re-checks.
 
@@ -228,7 +263,9 @@ class PublicApiClient:
         hop_url = url
         hop_params: Mapping[str, Any] = dict(params or {})
         for _hop in range(self._max_redirects + 1):
-            resp = self._call_with_retry(method, hop_url, hop_params, headers)
+            resp = self._call_with_retry(
+                method, hop_url, hop_params, headers, json_body
+            )
             status = resp.status_code
             if status in _REDIRECT_CODES:
                 location = resp.headers.get("Location")
