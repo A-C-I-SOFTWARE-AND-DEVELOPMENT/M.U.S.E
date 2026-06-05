@@ -5,9 +5,9 @@ Wire format between the Android cockpit APK and a Hermes gateway. The
 runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
 file), evidence, research, approvals, audit, coding, autonomy, graph,
 learning, and voice intake are implemented and covered by tests. The SSE
-streams, publishing, and the validation revalidate/override verbs are now live
-too; the main remaining gap is rewriting the buffered `GET /v1/cockpit/events`
-to the leveled-log shape. Per-route status is in
+streams, publishing, the validation revalidate/override verbs, and the leveled
+`GET /v1/cockpit/events` are now live too — the cockpit API surface is fully
+implemented. Per-route status is in
 [Route status](#route-status-live-vs-planned) below. The contract stays the
 source of truth so the Android and gateway sides don't drift.
 
@@ -73,7 +73,7 @@ Legend: ✅ **live** (implemented in `gateway/cockpit/` and covered by tests) ·
 | Validation — override verbs | `POST /jobs/{id}/revalidate\|override` | ✅ live |
 | Publishing — preview | `GET /jobs/{id}/publish/preview` | ✅ live |
 | Publishing — open PR | `POST /jobs/{id}/publish` | ✅ live (owner-phrase + loopback gated; opens a PR for the pushed branch — needs a PAT) |
-| Events | `GET /v1/cockpit/events/stream` (SSE leveled log) live; `GET /v1/cockpit/events` still returns decision-ledger summaries (leveled-list rewrite pending) | ⏳ partial |
+| Events | `GET /v1/cockpit/events/stream` (SSE) + `GET /v1/cockpit/events` (leveled list) — both read the event log | ✅ live |
 | Templates | `GET /v1/cockpit/templates` | ✅ live |
 | Evidence / research / approvals / audit | `/v1/cockpit/evidence*`, `/research*`, `/approvals*`, `/audit*` | ✅ live |
 | Coding lanes / autonomy / emergency-stop | `/coding/*`, `/autonomy*`, `/emergency-stop` | ✅ live |
@@ -626,10 +626,10 @@ Errors:
 
 ### `GET /v1/cockpit/events`
 
-> ⏳ **Partial.** This buffered route still returns decision-**ledger**
-> summaries, not the leveled-log shape below. The structured leveled source now
-> exists (`gateway/cockpit/event_log.py`) and powers the live `/events/stream`;
-> rewriting this list route to read it is the remaining gap.
+> ✅ **Live.** Reads the structured event log (`gateway/cockpit/event_log.py`)
+> in the leveled `CockpitEvent` shape, filtered by the query params below;
+> honest-empty until events are emitted. (Decision-ledger summaries live at
+> `GET /v1/cockpit/audit`.)
 
 Query: `since` (ISO timestamp, optional), `level` (csv of
 `info|warn|error`, optional), `source` (csv of
@@ -1200,10 +1200,10 @@ only.
 
 > **Note (events vs audit):** the home command center's "Audit / ledger"
 > card reads the canonical **`GET /v1/cockpit/audit`** records (§10b,
-> `auditList()`), not `GET /v1/cockpit/events`. The events handler returns a
-> `_ledger_summary` shape (`id/title/type/status/source/timestamp`) that does
-> **not** match the contract's `CockpitEvent` (`ts/level/source/message`), so
-> the typed `audit` records are the reliable source for the card.
+> `auditList()`). `GET /v1/cockpit/events` is a separate, leveled
+> **`CockpitEvent`** stream/list (`ts/level/source/message`) from the event
+> log — use it for live activity, and the typed `audit` records for the
+> decision ledger.
 
 ## 10g. Research Mode — **canonical, implemented** (Evidence Engine)
 

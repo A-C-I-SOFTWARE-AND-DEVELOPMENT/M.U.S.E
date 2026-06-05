@@ -345,6 +345,10 @@ data class ValidationGate(
     val summary: String? = null,
     @SerialName("log_excerpt") val logExcerpt: String? = null,
     @SerialName("override_allowed") val overrideAllowed: Boolean = false,
+    // Present only on gates carried back by an override response; absent (and so
+    // defaulted) on plain validation/revalidate snapshots.
+    @SerialName("override_applied") val overrideApplied: Boolean = false,
+    @SerialName("override_note") val overrideNote: String? = null,
 )
 
 @Serializable

@@ -139,3 +139,35 @@ def test_events_stream_level_filter(
         assert got[1]["message"] == "kept-error"
     finally:
         resp.close()
+
+
+# ── buffered GET /events (leveled list) ────────────────────────────────────
+
+
+def _get(server, path: str):
+    host, port = server.server_address
+    req = urllib.request.Request(f"http://{host}:{port}{path}", method="GET")
+    req.add_header("Authorization", f"Bearer {TOKEN}")
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return resp.status, json.loads(resp.read())
+
+
+def test_events_list_returns_leveled_events(server, home: Path) -> None:
+    event_log.emit("warn", "gateway", "hello-list", job_id="j1")
+    status, body = _get(server, "/v1/cockpit/events")
+    assert status == 200
+    assert isinstance(body["events"], list)
+    assert body["next_cursor"] is None
+    rec = next(e for e in body["events"] if e["message"] == "hello-list")
+    assert rec["level"] == "warn"
+    assert rec["job_id"] == "j1"
+
+
+def test_events_list_level_filter(server, home: Path) -> None:
+    event_log.emit("info", "gateway", "i1")
+    event_log.emit("error", "gateway", "e1")
+    status, body = _get(server, "/v1/cockpit/events?level=error")
+    assert status == 200
+    msgs = [e["message"] for e in body["events"]]
+    assert "e1" in msgs
+    assert "i1" not in msgs

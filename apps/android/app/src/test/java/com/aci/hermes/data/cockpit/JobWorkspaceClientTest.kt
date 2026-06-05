@@ -99,6 +99,56 @@ class JobWorkspaceClientTest {
         assertNull(gate.summary)
         assertNull(gate.logExcerpt)
         assertFalse(gate.overrideAllowed) // defaulted false when absent
+        // The override-only fields default when the gate didn't come from an override.
+        assertFalse(gate.overrideApplied)
+        assertNull(gate.overrideNote)
+    }
+
+    // ─── revalidate (POST — re-runs the gates) ──────────────────────────────
+
+    @Test
+    fun `revalidate POSTs an empty body and decodes the fresh snapshot`() = runTest {
+        var body: String? = null
+        val c = client { req ->
+            body = req.body
+            CockpitRawResponse(
+                200,
+                """{"gates":[{"id":"pytest","name":"pytest","status":"PASS"}],
+                   "policy":{"all_must_pass":true,"override_requires_note":true}}""".trimIndent(),
+            )
+        }
+        val res = c.jobRevalidate("job_1")
+        assertTrue(res is CockpitResult.Success)
+        val snap = (res as CockpitResult.Success).value
+        assertEquals("PASS", snap.gates.single().status)
+        assertTrue(seen.any { it == "POST" to "/jobs/job_1/revalidate" })
+        assertEquals("{}", body)
+    }
+
+    // ─── override (POST — owner gate override) ───────────────────────────────
+
+    @Test
+    fun `override POSTs gate_ids and note and decodes the applied override`() = runTest {
+        var body: String? = null
+        val c = client { req ->
+            body = req.body
+            CockpitRawResponse(
+                200,
+                """{"gates":[{"id":"pytest","name":"pytest","status":"FAIL",
+                             "override_allowed":true,"override_applied":true,
+                             "override_note":"flaky on CI"}],
+                   "policy":{"all_must_pass":true,"override_requires_note":true}}""".trimIndent(),
+            )
+        }
+        val res = c.jobOverride("job_1", listOf("pytest"), "flaky on CI")
+        assertTrue(res is CockpitResult.Success)
+        val gate = (res as CockpitResult.Success).value.gates.single()
+        assertTrue(gate.overrideApplied)
+        assertEquals("flaky on CI", gate.overrideNote)
+        assertTrue(seen.any { it == "POST" to "/jobs/job_1/override" })
+        // Snake-case keys carried in the request body.
+        assertTrue(body!!.contains("\"gate_ids\":[\"pytest\"]"))
+        assertTrue(body!!.contains("\"note\":\"flaky on CI\""))
     }
 
     // ─── tree ──────────────────────────────────────────────────────────────
