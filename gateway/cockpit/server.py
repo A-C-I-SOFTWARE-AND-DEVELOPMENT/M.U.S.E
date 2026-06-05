@@ -229,8 +229,12 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
 
         # -- auth -------------------------------------------------------
         def _authed(self) -> bool:
+            # Accept EITHER the shared cockpit token (unchanged path) OR a
+            # valid per-device pairing token. Additive + revoke-aware: a
+            # revoked device's token never authenticates, and a missing or
+            # invalid token still fails closed (-> 401).
             presented = cockpit_auth.extract_bearer(self.headers.get("Authorization"))
-            return cockpit_auth.token_matches(presented, token)
+            return cockpit_auth.authorize_bearer(presented, token)
 
         # -- JSON helpers ----------------------------------------------
         def _send_json(self, status: int, payload: dict) -> None:

@@ -98,7 +98,40 @@ def extract_bearer(authorization_header: str | None) -> str | None:
     return None
 
 
+def authorize_bearer(presented: str | None, expected: str | None) -> bool:
+    """Authorize a presented bearer token against EITHER credential path.
+
+    A request is authorized when the presented token is:
+
+    * the shared cockpit token (``expected``) — the original, unchanged
+      path, compared constant-time via :func:`token_matches`; or
+    * a valid per-device pairing token — i.e.
+      :func:`gateway.cockpit.device_pairing.verify_device_token` returns a
+      ``device_id`` (constant-time per stored hash, revoke-aware: a revoked
+      device's token never authenticates).
+
+    This is purely additive: the shared-token decision is identical to
+    :func:`token_matches`, and a missing/garbage token still returns
+    ``False`` (the caller 401s). The per-device check is consulted **only**
+    when the shared token does not match, so it can never weaken the
+    existing path.
+
+    ``device_pairing`` is imported lazily because that module imports this
+    one at load time; a top-level import here would be circular.
+    """
+    if not presented:
+        return False
+    if token_matches(presented, expected):
+        return True
+    # Lazy import (see docstring): avoids a circular import with
+    # gateway.cockpit.device_pairing, which imports this module.
+    from gateway.cockpit import device_pairing
+
+    return device_pairing.verify_device_token(presented) is not None
+
+
 __all__ = [
+    "authorize_bearer",
     "cockpit_dir",
     "extract_bearer",
     "load_or_create_token",
