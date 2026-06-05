@@ -3,18 +3,15 @@ package com.aci.hermes.ui.screens.capability
 import android.app.Application
 import androidx.test.core.app.ApplicationProvider
 import com.aci.hermes.data.capability.CapabilityRepository
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -25,21 +22,12 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class CapabilityViewModelTest {
 
-    private val dispatcher = UnconfinedTestDispatcher()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private fun newVm(): CapabilityViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         return CapabilityViewModel(app, CapabilityRepository(), LogBuffer())
-    }
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
     }
 
     @Test

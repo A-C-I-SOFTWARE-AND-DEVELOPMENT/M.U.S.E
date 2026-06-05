@@ -3,20 +3,17 @@ package com.aci.hermes.ui.screens.voice
 import com.aci.hermes.data.jarvis.FakeJarvisTaskSink
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -25,15 +22,8 @@ class VoiceCaptureViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val logBuffer = LogBuffer()
 
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(testDispatcher)
 
     private fun newViewModel(
         sink: FakeJarvisTaskSink = FakeJarvisTaskSink(),
@@ -52,7 +42,7 @@ class VoiceCaptureViewModelTest {
     }
 
     @Test
-    fun `empty transcript surfaces an error and saves nothing`() = runTest(testDispatcher) {
+    fun `empty transcript surfaces an error and saves nothing`() = runTest {
         val sink = FakeJarvisTaskSink()
         val vm = newViewModel(sink)
         vm.onTranscript("   ")
@@ -64,7 +54,7 @@ class VoiceCaptureViewModelTest {
     }
 
     @Test
-    fun `saveAsTask promotes transcript into a draft task on the sink`() = runTest(testDispatcher) {
+    fun `saveAsTask promotes transcript into a draft task on the sink`() = runTest {
         val sink = FakeJarvisTaskSink()
         val vm = newViewModel(sink)
         vm.onTranscript("draft the release notes for v2")
@@ -83,7 +73,7 @@ class VoiceCaptureViewModelTest {
     }
 
     @Test
-    fun `long transcript yields a truncated title but full description`() = runTest(testDispatcher) {
+    fun `long transcript yields a truncated title but full description`() = runTest {
         val sink = FakeJarvisTaskSink()
         val vm = newViewModel(sink)
         val long = "a".repeat(120)
@@ -98,7 +88,7 @@ class VoiceCaptureViewModelTest {
     }
 
     @Test
-    fun `consumeSavedTask clears the navigation signal`() = runTest(testDispatcher) {
+    fun `consumeSavedTask clears the navigation signal`() = runTest {
         val vm = newViewModel()
         vm.onTranscript("ping the team")
         vm.saveAsTask()

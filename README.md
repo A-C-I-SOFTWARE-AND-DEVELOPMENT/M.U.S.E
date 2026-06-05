@@ -9,10 +9,11 @@
   <a href="https://discord.gg/NousResearch"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
   <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Built%20by-Nous%20Research-blueviolet?style=for-the-badge" alt="Built by Nous Research"></a>
+  <a href="https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT"><img src="https://img.shields.io/badge/Developed%20by-A--C--I%20Software%20%26%20Development-0A7BBB?style=for-the-badge" alt="Developed by A-C-I Software and Development"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
 </p>
 
-**The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
+**The self-improving AI agent built by [Nous Research](https://nousresearch.com).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM. Developed and maintained by [A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT).
 
 Use any model you want — [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai) (AI-native cloud for Model API, Agent Sandbox, and GPU Cloud), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
 
@@ -24,7 +25,30 @@ Use any model you want — [Nous Portal](https://portal.nousresearch.com), [Open
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
 <tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
 <tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
+<tr><td><b>A full operating layer, not just a chatbot</b></td><td>JARVIS Prime ships as a runtime (<code>hermes_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
+<tr><td><b>Goal-to-PR orchestration</b></td><td>Decomposes one goal into a validated task graph — Job → specialist Worker → per-task Model routing → Validation gate → tamper-evident Decision ledger. Drive it with <code>/orchestrate</code> from the TUI, a gateway DM, or the Android cockpit.</td></tr>
+<tr><td><b>An inspectable knowledge graph</b></td><td>GraphRAG unifies repo code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (~28k nodes over the repo) with local, global, and coding query modes — so work reuses what already exists instead of rebuilding it.</td></tr>
+<tr><td><b>An autonomous-enterprise council</b></td><td>The AOS Enterprise Council — 233 top-level agents + 108 sub-agents across 18 domains (architecture, security, compliance, QA, release, product, psychology, HazMat Command, and more) that convene for audits, launch readiness, and multi-perspective review.</td></tr>
+<tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the Hermes gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
 </table>
+
+---
+
+## Built on top by A-C-I Software and Development
+
+Hermes Agent is the open base. On top of it, **[A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT)** builds the layer that turns it into a governed, local-first AI operating partner — **JARVIS Prime**. Everything below is real, tested code in this repository, not a roadmap.
+
+- **JARVIS Prime operating layer** — a runtime in [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) (~100 modules): six modes, an intent/mode classifier, runtime persona injection, owner-authorization with exact-phrase grants, an emergency stop, and read-only monitors with a daily owner brief. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md).
+- **Provenance-first cognition plane** — a Memory Tree (working/session/durable memory with source citations, confidence floors, contradiction reports, supersession, and no silent overwrites), a Research Vault, an evidence engine (BM25 + memory hybrid retrieval with citation verification), and TokenJuice — a deterministic, token-bounded context compiler that screens secrets.
+- **GraphRAG knowledge graph** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) unifies code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (~28k nodes / ~52k edges over the repo) with local/global/coding queries. See [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
+- **Goal-to-PR orchestration** — five primitives (Job, Worker, Model routing, Validation gate, Decision ledger) decompose a goal into a validated task graph and publish the result, auditing every decision in a tamper-evident ledger. See [`docs/orchestration/`](docs/orchestration/).
+- **AOS Enterprise Council** — 233 top-level agents + 108 sub-agents across 18 domains for audits, hardening, launch readiness, and multi-perspective review. See [`skills/aos-enterprise-council/`](skills/aos-enterprise-council/).
+- **Eight verification gates + verifiable guardrails** — Planning, Build, Review, Test, Security, Release, Owner Approval, and Rollback — backed by a hash-chained, tamper-evident evidence ledger (`verify_chain()`). See [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md).
+- **A versioned Constitution + self-audit layer** — an append-only behavioral rubric (clauses `C1…Cn`, severity-rated) the agent is scored against, plus reward-hacking / Goodhart detection and a capability-band wall. See [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md).
+- **Owner control by construction** — owner-gated actions (spend, deploy, publish, OAuth, credential change, package publish, regulated claims) defer until you reply exactly `Yes, with authorization.`; a workspace-scoped high-autonomy coding mode auto-approves only local friction and never weakens those gates; and every self-update is a reviewable proposal, never a silent rewrite.
+- **Free-first model routing + a closed learning loop** — routes local OSS → hosted-free → official Claude Code / Codex worker lanes → paid (opt-in only), choosing per task class from measured scorecards; an owner-approved pipeline (SFT → ORPO/DPO → GRPO) promotes a model only when it beats the incumbent on a held-out benchmark wall. See [`docs/ai-intelligence/`](docs/ai-intelligence/).
+- **Native Android cockpit + voice-first** — a Kotlin/Compose app ([`apps/android/`](apps/android/)) pairing to the cockpit gateway: streaming chat, on-device voice intake, job control, owner approvals, evidence/memory/graph views, autonomy controls, and an emergency stop — with a clipboard-handoff fallback when unpaired. Provider keys never leave the gateway.
+- **Runs where you are** — native Windows support ([`scripts/install.ps1`](scripts/install.ps1), a scheduled-task service with a locked-down fallback, portable Git, no admin) alongside the Linux/macOS/WSL2 and Termux paths.
 
 ---
 
@@ -388,4 +412,4 @@ scripts/run_tests.sh
 
 MIT — see [LICENSE](LICENSE).
 
-Built by [Nous Research](https://nousresearch.com).
+Built by [Nous Research](https://nousresearch.com). Developed and maintained by [A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT).
