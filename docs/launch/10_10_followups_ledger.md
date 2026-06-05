@@ -22,7 +22,7 @@ audits → conflict-free partition (no two in-flight tasks shared a writable fil
 | Task | Title | Owned files | Risk | Status |
 |---|---|---|---|---|
 | **FU-1** | Dispatch seam — drain `iter_worker_usage` → `JobStore` (+ adapter passthrough) | `hermes_cli/orchestrator_dispatch.py` + test | additive | **merged → #329** (`c118e200`) |
-| **FU-3** | JobStore durability — on-disk event log + restart rebuild | `hermes_cli/job_event_store.py` · `hermes_cli/orchestrator_api.py` · test | **behavior change → owner-gated** | **in-review → #330** (awaiting `Yes, with authorization.`) |
+| **FU-3** | JobStore durability — on-disk event log + restart rebuild | `hermes_cli/job_event_store.py` · `hermes_cli/orchestrator_api.py` · test | **behavior change → owner-gated** | **merged → #330** (`842b0d53`, owner-authorized) |
 | **FU-4** | Unified release gate — `doctor --release-gate` | `hermes_cli/release_gate.py` · `hermes_cli/main.py` (doctor block) · test | additive | **merged → #328** (`ca8420ae`) |
 | **FU-5** | Supabase status-doc correction (it was already built — 47 tests pass) | `docs/launch/10_10_PROGRAM_STATUS.md` | doc-only | **merged → #327** (`f0592da9`) |
 
@@ -82,3 +82,13 @@ Tracking/governance PR (contract + this ledger): **#326** (merges last).
   stays a clean, validated open draft awaiting the owner's exact
   `Yes, with authorization.` + FP dismissal. No behavior change reaches `main`
   without explicit owner consent.
+- `2026-06-05` — **Owner authorized (`Yes, with authorization.`) → FU-3 merged
+  (#330, `842b0d53`).** Pre-merge, the path-traversal defense was re-verified
+  against the actual code: `sanitize_segment` destroys every `/` (→ `-`) so no
+  separator survives into a path component, rejects pure-`..`/dot segments
+  (`.strip("-.")` → empty → raise), and `realpath`+`commonpath` backstops it —
+  two independent barriers. Merge was mechanically clean (`mergeable_state:
+  unstable` ⇒ only the non-required CodeQL-FP + Android flake were red; every
+  required gate green). **All four follow-ups + the contract are now on `main`.**
+  Residual: dismiss the CodeQL FP in the Security tab (cosmetic); the
+  restored-job cost-meter reset stays a documented follow-up.
