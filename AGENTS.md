@@ -1247,6 +1247,21 @@ If a change you're making interacts with any of these five, it needs
 to land its semantics in `docs/orchestration/` (or update the
 existing doc) in the same PR.
 
+### Swarm Grainler Parallel (code-task pipeline)
+
+For code-producing work, `hermes_cli/swarm/` composes the five
+primitives into one collision-free pipeline: a goal is decomposed into
+**grains** with *provably disjoint file-domains* (`grain.SwarmPlan.prove_disjoint`),
+each grain becomes its own specialized LLM (token-juice context +
+dedicated Memory Tree namespace + own model lane/toolset/budget), the
+grains run in parallel in isolated git worktrees, every step is dated
+and written to a Decision Ledger, and a self-update loop auto-applies
+the reversible learnings. It is **additive** — it does not replace
+`/orchestrate`. Reuse the existing primitives (`orchestrator_parallel`,
+`worktrees`, `worker_lease`, `decision_ledger`, `scoring`/`merge_engine`,
+`tokenjuice`, `memory_tree`, `self_improvement`); do not fork them. See
+`docs/orchestration/swarm-grainler-parallel.md`.
+
 ### Rules for orchestrator code
 
 - **Do not change ledger entry shape silently.** The ledger is a
