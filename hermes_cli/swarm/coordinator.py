@@ -79,6 +79,7 @@ class SwarmResult:
     applied_updates: list[dict[str, Any]] = field(default_factory=list)
     queued_updates: list[dict[str, Any]] = field(default_factory=list)
     blackboard_namespace: str = ""
+    convergence: Optional[dict[str, Any]] = None
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -92,6 +93,7 @@ class SwarmResult:
             "applied_updates": self.applied_updates,
             "queued_updates": self.queued_updates,
             "blackboard_namespace": self.blackboard_namespace,
+            "convergence": self.convergence,
             "notes": self.notes,
         }
 
@@ -324,6 +326,31 @@ def _emit_self_update(
     return applied, queued
 
 
+def _converge(results: Sequence[SwarmGrainResult]) -> dict[str, Any]:
+    """Cooperative convergence: read each grain's changed files + conflict check."""
+
+    try:
+        from hermes_cli.swarm.converge import converge_cooperative
+    except Exception:
+        return {"mode": "cooperative", "kept": [r.grain_id for r in results]}
+
+    changed_by_grain: dict[str, list[str]] = {}
+    for r in results:
+        files: list[str] = []
+        if r.worktree_path:
+            cf = Path(r.worktree_path) / "changed-files.txt"
+            try:
+                files = [
+                    line.strip()
+                    for line in cf.read_text(encoding="utf-8").splitlines()
+                    if line.strip() and not line.lstrip().startswith("#")
+                ]
+            except OSError:
+                files = []
+        changed_by_grain[r.grain_id] = files
+    return converge_cooperative(changed_by_grain).to_dict()
+
+
 def _lane_for(plan: SwarmPlan, grain_id: str) -> str:
     for g in plan.grains:
         if g.grain_id == grain_id:
@@ -382,6 +409,13 @@ def run_swarm(
     """
 
     repo_path = Path(repo)
+    # Default to the directory-aware decomposer for real multi-grain splitting;
+    # it falls back to a single whole-repo grain when it can't find ≥2 distinct
+    # components (which then runs inline as a trivial plan).
+    if decomposer is None and grains is None:
+        from hermes_cli.swarm.decompose import directory_decomposer
+
+        decomposer = directory_decomposer
     plan = _grainler.partition(
         goal, str(repo_path), job_id=job_id, grains=grains, decomposer=decomposer
     )
@@ -421,13 +455,42 @@ def run_swarm(
         exec_impl = executor or PromptOnlyExecutor()
         result.grains = exec_impl.run(repo_path, plan, specs)
 
+        # Convergence — keep every grain (disjoint domains) and run the runtime
+        # conflict backstop. A non-empty conflict set means drift escaped the
+        # static + worktree layers and must be surfaced, never silently merged.
+        result.convergence = _converge(result.grains)
+
         # Audit + coordination trails.
         _record_blackboard(plan, result.grains, memory_store)
         result.ledger_path = _write_decision_ledger(plan, result.grains)
 
-        # Self-update loop (auto-apply reversible).
+        # Learning capture — a dated, provenance-tagged record of the job.
+        try:
+            from hermes_cli.swarm.learning import capture_swarm_trace
+
+            capture_swarm_trace(
+                plan,
+                result.grains,
+                convergence=result.convergence,
+                ledger_path=result.ledger_path,
+            )
+        except Exception:
+            pass
+
+        # Self-update loop (auto-apply reversible). Default apply hook records the
+        # change + its rollback recipe (reversible by deletion; no silent edit).
         if apply_reversible:
-            applied, queued = _emit_self_update(plan, result.grains, apply_fn=apply_fn)
+            effective_apply = apply_fn
+            if effective_apply is None:
+                try:
+                    from hermes_cli.swarm.learning import record_applied_update
+
+                    effective_apply = record_applied_update
+                except Exception:
+                    effective_apply = None
+            applied, queued = _emit_self_update(
+                plan, result.grains, apply_fn=effective_apply
+            )
             result.applied_updates = applied
             result.queued_updates = queued
     finally:

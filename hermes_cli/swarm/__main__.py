@@ -31,6 +31,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Path to a JSON file of explicit grain specs (skips decomposition).",
     )
     parser.add_argument(
+        "--decomposer",
+        default="directory",
+        choices=["directory", "keyword", "workpacket", "llm"],
+        help="How to carve the goal into grains (default: directory).",
+    )
+    parser.add_argument(
         "--no-self-update",
         action="store_true",
         help="Disable the auto-apply-reversible self-update loop.",
@@ -49,11 +55,24 @@ def main(argv: list[str] | None = None) -> int:
             print("--grains file must contain a JSON list of grain specs", file=sys.stderr)
             return 2
 
+    decomposer = None
+    if grains is None:
+        from hermes_cli.swarm import decompose as _d
+        from hermes_cli.swarm.grainler import default_decomposer
+
+        decomposer = {
+            "directory": _d.directory_decomposer,
+            "keyword": _d.keyword_decomposer,
+            "workpacket": default_decomposer,
+            "llm": _d.llm_decomposer,
+        }[args.decomposer]
+
     try:
         result = run_swarm(
             args.goal,
             args.repo,
             grains=grains,
+            decomposer=decomposer,
             apply_reversible=not args.no_self_update,
             claim_domains=not args.no_claim,
         )

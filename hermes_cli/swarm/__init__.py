@@ -36,9 +36,35 @@ from hermes_cli.swarm.specialist import (
     release_grain,
 )
 from hermes_cli.swarm.coordinator import (
+    PromptOnlyExecutor,
     SwarmGrainResult,
     SwarmResult,
     run_swarm,
+)
+from hermes_cli.swarm.executor import (
+    AgentExecutor,
+    DefaultAgentRunner,
+    GrainRunOutput,
+)
+from hermes_cli.swarm.converge import (
+    ConvergenceResult,
+    converge_competitive,
+    converge_cooperative,
+    detect_runtime_conflicts,
+)
+from hermes_cli.swarm.decompose import (
+    directory_decomposer,
+    keyword_decomposer,
+    make_llm_decomposer,
+)
+from hermes_cli.swarm.archive import (
+    GrainVariant,
+    VariantArchive,
+    benchmark_gated_promotion,
+)
+from hermes_cli.swarm.learning import (
+    capture_swarm_trace,
+    record_applied_update,
 )
 
 __all__ = [
@@ -53,7 +79,23 @@ __all__ = [
     "build_grain_agent_spec",
     "claim_grain",
     "release_grain",
+    "PromptOnlyExecutor",
     "SwarmGrainResult",
     "SwarmResult",
     "run_swarm",
+    "AgentExecutor",
+    "DefaultAgentRunner",
+    "GrainRunOutput",
+    "ConvergenceResult",
+    "converge_competitive",
+    "converge_cooperative",
+    "detect_runtime_conflicts",
+    "directory_decomposer",
+    "keyword_decomposer",
+    "make_llm_decomposer",
+    "GrainVariant",
+    "VariantArchive",
+    "benchmark_gated_promotion",
+    "capture_swarm_trace",
+    "record_applied_update",
 ]
