@@ -176,9 +176,7 @@ def handle_current(args: Dict[str, Any], **_kw) -> str:
     lat, lon = args.get("latitude"), args.get("longitude")
     if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         return _err("bad_args", "latitude and longitude are required numbers")
-    units = (
-        args.get("units") if args.get("units") in {"metric", "imperial"} else "metric"
-    )
+    units = "imperial" if args.get("units") == "imperial" else "metric"
     try:
         payload = WeatherClient().current(float(lat), float(lon), units=units)
     except HttpClientError as exc:
@@ -209,9 +207,7 @@ def handle_forecast(args: Dict[str, Any], **_kw) -> str:
     if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
         return _err("bad_args", "latitude and longitude are required numbers")
     days = int(args.get("days") or 7)
-    units = (
-        args.get("units") if args.get("units") in {"metric", "imperial"} else "metric"
-    )
+    units = "imperial" if args.get("units") == "imperial" else "metric"
     try:
         payload = WeatherClient().forecast(
             float(lat), float(lon), days=days, units=units
