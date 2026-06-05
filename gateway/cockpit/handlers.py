@@ -2556,18 +2556,58 @@ def approvals_decide(req: Request) -> JsonResponse:
             )
 
     items = _load_proposals()
-    matched = False
+    matched = None
     for p in items:
         if _proposal_id(p) == proposal_id:
-            p["status"] = "approved" if decision == "approve" else "rejected"
-            p["resolved_at"] = _now_iso()
-            p["owner_decision_note"] = f"{decision} via cockpit"
-            matched = True
+            matched = p
             break
-    if not matched:
+    if matched is None:
         return JsonResponse(404, {"error": f"unknown proposal: {proposal_id}"})
+
+    # Sprint 9 race rules: a proposal is decided once. A duplicate decide
+    # returns the existing decision (idempotent) instead of re-deciding, and
+    # an expired/superseded proposal rejects the late decision. Expiry and
+    # supersession only fire when a proposal carries those fields, so for
+    # today's proposals (which don't) the only behaviour change is that a
+    # repeat decide is now idempotent rather than silently re-mutating.
+    import time
+
+    from hermes_cli.approval_rules import (
+        ApprovalRecord,
+        ApprovalState,
+        DecisionResult,
+        resolve_decision,
+    )
+
+    _state = {
+        "approved": ApprovalState.GRANTED,
+        "rejected": ApprovalState.REJECTED,
+    }.get(str(matched.get("status", "")).lower(), ApprovalState.PENDING)
+    _exp = matched.get("expires_at")
+    record = ApprovalRecord(
+        approval_id=proposal_id,
+        state=_state,
+        expires_at=_exp if isinstance(_exp, (int, float)) else None,
+        decided_at=0.0 if matched.get("resolved_at") else None,
+        superseded_by=matched.get("superseded_by"),
+    )
+    outcome = resolve_decision(record, approve=(decision == "approve"), now=time.time())
+    if outcome.result is DecisionResult.ALREADY_DECIDED:
+        return JsonResponse(
+            200,
+            {"id": proposal_id, "status": matched.get("status"), "idempotent": True},
+        )
+    if outcome.result in (DecisionResult.EXPIRED, DecisionResult.SUPERSEDED):
+        return JsonResponse(
+            409,
+            {"error": outcome.result.value, "detail": outcome.detail, "id": proposal_id},
+        )
+
+    matched["status"] = "approved" if decision == "approve" else "rejected"
+    matched["resolved_at"] = _now_iso()
+    matched["owner_decision_note"] = f"{decision} via cockpit"
     _save_proposals(items)
-    return JsonResponse(200, {"id": proposal_id, "status": items and decision})
+    return JsonResponse(200, {"id": proposal_id, "status": decision})
 
 
 # ---------------------------------------------------------------------------
