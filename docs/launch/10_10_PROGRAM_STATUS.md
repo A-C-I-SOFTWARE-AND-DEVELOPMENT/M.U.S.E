@@ -59,7 +59,7 @@ the number.
 | 10 | Routing / telemetry / cost | 🟡 5.5/10 | Deterministic router present; per-job telemetry + budget ask/stop + cockpit panel missing. |
 | 11 | Supabase & Vercel | 🔴 1.5/10 | Supabase absent; Vercel is sandbox-exec only (no deploy/preview/logs). |
 | 12 | Windows Claude bridge | 🟡 5/10 | Bridge code mature + tested; **no signed envelope (sig/nonce/expiry), no threat-model docs**. |
-| 13 | Multi-host orchestration | 🟡 3.5/10 | Runtime adapters present; **no leases/heartbeats/failure isolation/multi-host status**. |
+| 13 | Multi-host orchestration | 🟡 5/10 | Lease kernel + durable store + host registry landed; `RuntimeAdapter` Protocol (+ `LocalRuntimeAdapter`) and pure reschedule policy added. **Deferred: runner integration, cockpit multi-host status, checksum/host-failure containment.** |
 | 14 | Security hardening & release | 🟡 5/10 | Release artifacts distributed; no unified 10/10 gate, smoke script, or `doctor --10-10`. |
 
 Legend: 🟢 mostly done · 🟡 partial · 🔴 missing/weak.
@@ -373,16 +373,34 @@ expiry + threat-model bar. Treat as red until that lands.
 
 - 🟢 Runtime abstraction — `tools/environments/base.py:288` (`BaseEnvironment`
   ABC) with Local/Docker/SSH/Singularity/Modal/Daytona/VercelSandbox adapters.
-- 🔴 No `WorkerLease` model, no heartbeats, no lease expiry/retry semantics.
+- 🟢 `WorkerLease` state machine + durable store landed:
+  `hermes_cli/worker_lease.py` (acquire/heartbeat/expire/complete, `can_retry`)
+  and `hermes_cli/worker_lease_store.py` (durable JSONL lease store + host
+  registry: `register_host`/`hosts`, `for_job`/`active`/`expire_stale`).
+- 🟢 Host-execution adapter layer + reschedule policy landed (Sprint 13,
+  additive, fully tested):
+  - `hermes_cli/runtime_adapter.py` — `@runtime_checkable` `RuntimeAdapter`
+    Protocol (`host_id`/`kind`/`prepare`/`run`→`RuntimeResult`/`cleanup`),
+    concrete `LocalRuntimeAdapter` (subprocess, streams→files, timeout→124),
+    documented `SSHRuntimeAdapter`/`DockerRuntimeAdapter` stubs.
+  - `hermes_cli/lease_scheduler.py` — pure `reschedule_plan(now, hosts, leases)`
+    that reschedules only EXPIRED + idempotent leases (`can_retry`) to the
+    least-loaded registered host; deterministic, clock-injected.
 - 🟡 Content-addressed artifacts exist for *evidence* (jarvis_prime), but job
   worker artifacts are not checksummed for cross-host distribution.
-- 🔴 No multi-host worker status surfaced to the cockpit; no host registry.
-- 🔴 Failure-isolation rules (duplicate-completion reject, checksum-refuse,
-  host-failure containment) absent; single-host parallel runner is solid
+- 🟡 Host registry exists in the lease store; multi-host worker status is not
+  yet surfaced to the cockpit.
+- 🟡 Failure-isolation rules: duplicate-completion-after-expiry reject is
+  enforced by the lease kernel; checksum-refuse / host-failure containment
+  still absent. Single-host parallel runner is solid
   (`hermes_cli/orchestrator_parallel.py`, tests in `test_parallel_*`).
 
-**Gap:** durable leasing + multi-host failure semantics. Defer until the
-single-host loop is fully closed.
+**Deferred (next step):** wire `RuntimeAdapter`/`lease_scheduler` into the
+runner — have `orchestrator_parallel.ParallelRunner` spawn `LOCAL_RUN` workers
+through a `RuntimeAdapter` selected per `host_id` from the lease store's host
+registry, and act on each `Reschedule` (acquire a fresh lease on the chosen
+host, append a ledger entry). The adapters + scheduler are standalone and pure
+so this is a runner-side change with no kernel/store edits.
 
 ### Sprint 14 — Security hardening & release · 🟡 PARTIAL
 
