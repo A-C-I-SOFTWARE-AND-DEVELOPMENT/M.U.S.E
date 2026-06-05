@@ -2602,8 +2602,33 @@ def ledger_rollback_request(req: Request) -> JsonResponse:
 
     from . import contract
 
+    approval_id = _proposal_id(proposal)
+
+    # Best-effort: enqueue this newly-created pending approval and emit a
+    # bounded "approval pending" event so a phone tailing the SSE stream is
+    # notified. The summary is the short rationale (no diff/secret). This must
+    # never break proposal creation, so any failure is swallowed.
+    try:
+        import time as _time
+
+        from hermes_cli.notifications import ApprovalNotification
+
+        from . import notify
+
+        notify.enqueue_and_notify(
+            ApprovalNotification(
+                approval_id=approval_id,
+                job_id=job_id or "",
+                summary=str(proposal.get("rationale", "") or ""),
+                risk_tier=contract.approval_card_tier(proposal.get("risk_class")),
+                created_at=_time.time(),
+            )
+        )
+    except Exception:  # pragma: no cover - notify is best-effort
+        pass
+
     return JsonResponse(
-        201, contract.approval_card(proposal, approval_id=_proposal_id(proposal))
+        201, contract.approval_card(proposal, approval_id=approval_id)
     )
 
 
