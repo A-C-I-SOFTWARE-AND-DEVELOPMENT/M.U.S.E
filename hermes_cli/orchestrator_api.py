@@ -54,6 +54,7 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     WebSocketDisconnect = Exception  # type: ignore[assignment]
     FASTAPI_AVAILABLE = False
 
+from hermes_cli.job_cost import JobCost
 from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
 from hermes_cli.orchestrator_events import (
     ALL_EVENTS,
@@ -115,6 +116,9 @@ class Job:
     error: Optional[str] = None
     events: List[Dict[str, Any]] = field(default_factory=list)
     source: Optional[str] = None
+    # Per-job cost / token aggregate (Sprint 10). Starts empty (zero cost,
+    # zero tokens), so attaching it changes nothing until usage is recorded.
+    cost: JobCost = field(default_factory=JobCost)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -133,7 +137,78 @@ class Job:
             "publish_plan": self.publish_plan,
             "error": self.error,
             "source": self.source,
+            "cost": self.cost.totals(),
         }
+
+    def budget_status(self) -> Optional[Dict[str, Any]]:
+        """Evaluate accumulated cost against any budget configured in ``spec``.
+
+        Reads ``spec["budget"]`` for ``soft_limit`` / ``hard_limit`` (USD) and
+        an optional ``meter`` label. Returns ``None`` when no budget is
+        configured (the additive default — existing jobs and tests see no
+        new behavior), otherwise a serialized
+        :class:`~hermes_cli.budget_policy.BudgetDecision`.
+        """
+        return _budget_status_for(self.spec, self.cost)
+
+
+def _coerce_limit(value: Any) -> Optional[float]:
+    """Parse a budget limit from a spec value, ignoring junk.
+
+    Returns ``None`` for missing / non-numeric / negative limits so a
+    malformed ``spec["budget"]`` degrades to "no limit" rather than raising.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        limit = float(value)
+    except (TypeError, ValueError):
+        return None
+    return limit if limit >= 0 else None
+
+
+def _budget_status_for(
+    spec: Optional[Dict[str, Any]],
+    cost: JobCost,
+) -> Optional[Dict[str, Any]]:
+    """Serialize a budget decision for ``cost`` given a job ``spec``.
+
+    The budget config lives at ``spec["budget"]`` as
+    ``{"soft_limit": float, "hard_limit": float, "meter": str}``. Any of the
+    three may be omitted. Returns ``None`` when no usable limit is configured;
+    otherwise the :class:`~hermes_cli.budget_policy.BudgetDecision` rendered as
+    a plain dict (``outcome`` / ``tier`` / ``should_stop`` / ``needs_approval``
+    / ``spent`` / limits / ``meter`` / ``detail``).
+    """
+    budget_cfg = (spec or {}).get("budget")
+    if not isinstance(budget_cfg, dict):
+        return None
+    soft_limit = _coerce_limit(budget_cfg.get("soft_limit"))
+    hard_limit = _coerce_limit(budget_cfg.get("hard_limit"))
+    if soft_limit is None and hard_limit is None:
+        return None
+    # If both are set but mis-ordered, fall back to "no budget" rather than
+    # raising — a malformed spec must not break the status endpoint.
+    if soft_limit is not None and hard_limit is not None and soft_limit > hard_limit:
+        return None
+    meter = budget_cfg.get("meter")
+    meter = meter if isinstance(meter, str) and meter.strip() else "cost"
+    decision = cost.budget_decision(
+        soft_limit=soft_limit,
+        hard_limit=hard_limit,
+        meter=meter,
+    )
+    return {
+        "outcome": decision.outcome.value,
+        "tier": decision.tier,
+        "should_stop": decision.should_stop,
+        "needs_approval": decision.needs_approval,
+        "spent": decision.spent,
+        "soft_limit": decision.soft_limit,
+        "hard_limit": decision.hard_limit,
+        "meter": decision.meter,
+        "detail": decision.detail,
+    }
 
 
 class JobStore:
@@ -217,6 +292,40 @@ class JobStore:
             current["updated_at"] = time.time()
             job.workers[worker] = current
             job.updated_at = current["updated_at"]
+        return job
+
+    async def accumulate_cost(
+        self,
+        job_id: str,
+        *,
+        usage: Optional[Any] = None,
+        cost_usd: Any = None,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+    ) -> Job:
+        """Fold one recorded model call into the job's cost aggregate.
+
+        Mirrors :meth:`record_worker`: it locates the job under the store
+        lock and updates :attr:`Job.cost` via
+        :meth:`hermes_cli.job_cost.JobCost.add_usage`. ``usage`` is any object
+        exposing the ``CanonicalUsage`` token attributes;
+        ``agent.usage_pricing.CanonicalUsage`` satisfies it directly.
+
+        This is the orchestrator-side aggregation point. Producers (the worker
+        dispatcher reporting per-call token usage) are a documented follow-up
+        — see the module docstring of ``hermes_cli.job_cost``.
+        """
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                raise KeyError(job_id)
+            job.cost.add_usage(
+                usage,
+                cost_usd=cost_usd,
+                model=model,
+                provider=provider,
+            )
+            job.updated_at = time.time()
         return job
 
     # ------------------------------------------------------------------
@@ -455,6 +564,11 @@ def create_app(
             "status": job.status,
             "updated_at": job.updated_at,
             "error": job.error,
+            # Per-job cost aggregate + budget evaluation (Sprint 10). ``cost``
+            # is always present (zero when nothing was recorded); ``budget`` is
+            # ``None`` unless the job spec configures soft/hard limits.
+            "cost": job.cost.totals(),
+            "budget": job.budget_status(),
         }
 
     @app.get("/jobs/{job_id}/artifacts")
@@ -863,6 +977,7 @@ __all__ = [
     "EVENT_WORKER_STARTED",
     "EventBroker",
     "Job",
+    "JobCost",
     "JobStore",
     "create_app",
     "make_envelope",

@@ -258,6 +258,106 @@ class TestStatusAndArtifacts:
         assert resp.json() == {"id": job_id, "artifacts": []}
 
 
+class TestCostAndBudget:
+    """Per-job cost aggregate + budget evaluation (Sprint 10, additive)."""
+
+    def test_status_includes_zero_cost_and_no_budget_by_default(self, client):
+        job_id = client.post("/jobs", json={"name": "c"}).json()["id"]
+        body = client.get(f"/jobs/{job_id}/status").json()
+        assert body["cost"]["cost_usd"] == 0.0
+        assert body["cost"]["total_tokens"] == 0
+        # No budget configured in the spec -> additive default is None.
+        assert body["budget"] is None
+
+    def test_job_dict_includes_cost(self, client):
+        job_id = client.post("/jobs", json={"name": "c2"}).json()["id"]
+        body = client.get(f"/jobs/{job_id}").json()
+        assert body["cost"]["cost_usd"] == 0.0
+        assert body["cost"]["call_count"] == 0
+
+    def test_accumulate_cost_surfaces_in_status(self):
+        async def _run():
+            store = JobStore()
+            job = await store.create("acc", {})
+            await store.accumulate_cost(
+                job.id, cost_usd=0.03, provider="anthropic", model="claude-opus-4-7"
+            )
+            await store.accumulate_cost(job.id, cost_usd=0.02)
+            refreshed = await store.get(job.id)
+            totals = refreshed.cost.totals()
+            assert totals["cost_usd"] == 0.05
+            assert totals["call_count"] == 2
+            assert totals["by_model"] == {"anthropic/claude-opus-4-7": 0.03}
+        asyncio.run(_run())
+
+    def test_accumulate_cost_unknown_job_raises(self):
+        async def _run():
+            store = JobStore()
+            with pytest.raises(KeyError):
+                await store.accumulate_cost("nope", cost_usd=0.01)
+        asyncio.run(_run())
+
+    def test_budget_within_when_under_limits(self):
+        async def _run():
+            store = JobStore()
+            job = await store.create(
+                "b", {"budget": {"soft_limit": 1.0, "hard_limit": 2.0}}
+            )
+            await store.accumulate_cost(job.id, cost_usd=0.5)
+            budget = (await store.get(job.id)).budget_status()
+            assert budget is not None
+            assert budget["outcome"] == "within"
+            assert budget["tier"] == "auto"
+            assert budget["should_stop"] is False
+            assert budget["spent"] == 0.5
+        asyncio.run(_run())
+
+    def test_budget_soft_exceeded_needs_approval(self):
+        async def _run():
+            store = JobStore()
+            job = await store.create(
+                "b", {"budget": {"soft_limit": 1.0, "hard_limit": 2.0}}
+            )
+            await store.accumulate_cost(job.id, cost_usd=1.5)
+            budget = (await store.get(job.id)).budget_status()
+            assert budget["outcome"] == "soft_exceeded"
+            assert budget["tier"] == "ask"
+            assert budget["needs_approval"] is True
+        asyncio.run(_run())
+
+    def test_budget_hard_exceeded_should_stop(self):
+        async def _run():
+            store = JobStore()
+            job = await store.create("b", {"budget": {"hard_limit": 2.0}})
+            await store.accumulate_cost(job.id, cost_usd=2.0)
+            budget = (await store.get(job.id)).budget_status()
+            assert budget["outcome"] == "hard_exceeded"
+            assert budget["tier"] == "refuse"
+            assert budget["should_stop"] is True
+        asyncio.run(_run())
+
+    def test_malformed_budget_spec_degrades_to_none(self):
+        async def _run():
+            store = JobStore()
+            # soft > hard is invalid; status must not raise, just no budget.
+            job = await store.create(
+                "b", {"budget": {"soft_limit": 5.0, "hard_limit": 1.0}}
+            )
+            await store.accumulate_cost(job.id, cost_usd=3.0)
+            assert (await store.get(job.id)).budget_status() is None
+        asyncio.run(_run())
+
+    def test_budget_appears_in_status_endpoint(self, client):
+        job_id = client.post(
+            "/jobs",
+            json={"name": "be", "spec": {"budget": {"hard_limit": 0.10}}},
+        ).json()["id"]
+        body = client.get(f"/jobs/{job_id}/status").json()
+        assert body["budget"] is not None
+        assert body["budget"]["outcome"] == "within"
+        assert body["budget"]["hard_limit"] == 0.10
+
+
 class TestLifecycleActions:
     def test_resume_sets_running_and_emits_event(self, client):
         job_id = client.post("/jobs", json={"name": "r"}).json()["id"]
