@@ -19,6 +19,7 @@ from hermes_cli.orchestrator_api import (  # noqa: E402
     EVENT_VALIDATION_COMPLETED,
     EVENT_WORKER_STARTED,
     JobStore,
+    _extract_usage_report,
     create_app,
     run,
 )
@@ -665,6 +666,108 @@ class TestWorkers:
         )
         body = client.get(f"/jobs/{job_id}/workers").json()
         assert set(body["workers"]) == {"a", "b"}
+
+
+class TestWorkerUsageReporting:
+    """A worker report carrying usage/cost folds into the job cost aggregate.
+
+    This is the producer seam documented in ``hermes_cli.job_cost``: the
+    ``POST /jobs/{id}/workers/{worker}`` endpoint already accepts a free-form
+    report body; when that body carries token usage / cost, it accumulates onto
+    the job's :class:`~hermes_cli.job_cost.JobCost`.
+    """
+
+    def test_extract_usage_report_none_for_plain_heartbeat(self):
+        # A liveness-only heartbeat carries no cost signal -> no accumulation.
+        assert _extract_usage_report({"state": "running", "progress": 0.5}) is None
+
+    def test_extract_usage_report_tokens_and_cost(self):
+        report = _extract_usage_report(
+            {
+                "state": "done",
+                "usage": {"input_tokens": 100, "output_tokens": 40},
+                "cost_usd": 0.012,
+                "model": "claude-opus-4-7",
+                "provider": "anthropic",
+            }
+        )
+        assert report is not None
+        assert report["cost_usd"] == 0.012
+        assert report["model"] == "claude-opus-4-7"
+        assert report["provider"] == "anthropic"
+        usage = report["usage"]
+        assert usage.input_tokens == 100
+        assert usage.output_tokens == 40
+
+    def test_extract_usage_report_cost_only(self):
+        report = _extract_usage_report({"cost_usd": 0.5})
+        assert report == {"usage": None, "cost_usd": 0.5}
+
+    def test_extract_usage_report_rejects_bool_cost_and_junk_tokens(self):
+        # bool cost and non-numeric / negative token values are dropped; an
+        # empty usage block with no usable signal degrades to None.
+        assert _extract_usage_report({"cost_usd": True}) is None
+        assert (
+            _extract_usage_report({"usage": {"input_tokens": "lots", "output_tokens": -5}})
+            is None
+        )
+
+    def test_worker_report_accumulates_job_cost(self, client):
+        job_id = client.post("/jobs", json={"name": "ucost"}).json()["id"]
+        # Plain heartbeat first — must not move the meter.
+        client.post(
+            f"/jobs/{job_id}/workers/builder",
+            json={"state": "running", "progress": 0.2},
+        )
+        assert client.get(f"/jobs/{job_id}/status").json()["cost"]["cost_usd"] == 0.0
+
+        # Completion report with usage + cost — folds into the aggregate.
+        resp = client.post(
+            f"/jobs/{job_id}/workers/builder",
+            json={
+                "state": "done",
+                "usage": {"input_tokens": 200, "output_tokens": 80},
+                "cost_usd": 0.03,
+                "model": "claude-opus-4-7",
+                "provider": "anthropic",
+                "result": {"ok": True},
+            },
+        )
+        assert resp.status_code == 200
+        cost = client.get(f"/jobs/{job_id}/status").json()["cost"]
+        assert cost["cost_usd"] == 0.03
+        assert cost["input_tokens"] == 200
+        assert cost["output_tokens"] == 80
+        assert cost["call_count"] == 1
+        assert cost["by_model"] == {"anthropic/claude-opus-4-7": 0.03}
+
+    def test_worker_reports_accumulate_across_calls(self, client):
+        job_id = client.post("/jobs", json={"name": "uacc"}).json()["id"]
+        for amount in (0.01, 0.02, 0.04):
+            client.post(
+                f"/jobs/{job_id}/workers/runner",
+                json={"state": "running", "cost_usd": amount},
+            )
+        cost = client.get(f"/jobs/{job_id}/status").json()["cost"]
+        assert cost["cost_usd"] == pytest.approx(0.07)
+        assert cost["call_count"] == 3
+
+    def test_worker_report_drives_budget_decision(self, client):
+        # Usage reporting + a configured budget => the status endpoint reflects
+        # the breach. This is the end-to-end value: cost now actually moves the
+        # budget meter instead of staying pinned at zero.
+        job_id = client.post(
+            "/jobs",
+            json={"name": "ubudget", "spec": {"budget": {"hard_limit": 0.05}}},
+        ).json()["id"]
+        client.post(
+            f"/jobs/{job_id}/workers/runner",
+            json={"state": "done", "cost_usd": 0.10},
+        )
+        budget = client.get(f"/jobs/{job_id}/status").json()["budget"]
+        assert budget["spent"] == pytest.approx(0.10)
+        assert budget["outcome"] == "hard_exceeded"
+        assert budget["should_stop"] is True
 
 
 # ---------------------------------------------------------------------------

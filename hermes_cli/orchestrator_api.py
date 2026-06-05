@@ -211,6 +211,104 @@ def _budget_status_for(
     }
 
 
+# Token bucket names a worker report may carry, in the canonical
+# (``CanonicalUsage``) spelling. A worker that knows its model usage reports
+# these under ``payload["usage"]``; the orchestrator folds them into the job's
+# cost aggregate. Keeping the set explicit means a stray key in the report
+# (``"foo": 1``) can't sneak into the token math.
+_USAGE_TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_write_tokens",
+    "reasoning_tokens",
+)
+
+
+@dataclass
+class _ReportedUsage:
+    """A worker-reported token breakdown.
+
+    Structurally compatible with ``agent.usage_pricing.CanonicalUsage`` and the
+    ``UsageLike`` protocol that :meth:`hermes_cli.job_cost.JobCost.add_usage`
+    reads — it exposes exactly the five token attributes, so it can be passed
+    straight through without importing the pricing module into this hot path.
+    """
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    reasoning_tokens: int = 0
+
+
+def _extract_usage_report(
+    body: Dict[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Pull an optional usage/cost block out of a worker report ``body``.
+
+    This is the producer seam documented in ``hermes_cli.job_cost``: a worker
+    that knows its per-call token usage / cost reports it on its heartbeat or
+    completion payload, and the orchestrator folds it into the job's cost
+    aggregate. The recognised shape is::
+
+        {
+          "usage": {                # optional — token buckets
+            "input_tokens": int, "output_tokens": int,
+            "cache_read_tokens": int, "cache_write_tokens": int,
+            "reasoning_tokens": int
+          },
+          "cost_usd": float,        # optional — the call's cost in USD
+          "model": str,             # optional — for the by-model breakdown
+          "provider": str           # optional
+        }
+
+    Returns ``None`` when the body carries no usage signal at all (no ``usage``
+    block and no ``cost_usd``), so a plain heartbeat never moves the cost meter
+    — the additive, behavior-preserving default. Otherwise returns the kwargs
+    for :meth:`JobStore.accumulate_cost` (``usage`` / ``cost_usd`` / ``model``
+    / ``provider``). Malformed pieces are dropped rather than raised on: a junk
+    report must not break a worker heartbeat.
+    """
+    raw_usage = body.get("usage")
+    has_cost = "cost_usd" in body and body.get("cost_usd") is not None
+    if not isinstance(raw_usage, dict) and not has_cost:
+        return None
+
+    usage_obj: Optional[_ReportedUsage] = None
+    if isinstance(raw_usage, dict):
+        tokens: Dict[str, int] = {}
+        for field_name in _USAGE_TOKEN_FIELDS:
+            value = raw_usage.get(field_name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            count = int(value)
+            if count > 0:
+                tokens[field_name] = count
+        if tokens:
+            usage_obj = _ReportedUsage(**tokens)
+
+    cost_usd = body.get("cost_usd") if has_cost else None
+    # Only treat cost as numeric; anything else degrades to "no cost" (tokens,
+    # if any, still count). bool is rejected by JobCost downstream, so screen
+    # it here too rather than letting a ``True`` become ``1.0``.
+    if isinstance(cost_usd, bool) or not isinstance(cost_usd, (int, float)):
+        cost_usd = None
+
+    if usage_obj is None and cost_usd is None:
+        # Had a ``usage``/``cost_usd`` key but nothing usable in it.
+        return None
+
+    result: Dict[str, Any] = {"usage": usage_obj, "cost_usd": cost_usd}
+    model = body.get("model")
+    if isinstance(model, str) and model.strip():
+        result["model"] = model.strip()
+    provider = body.get("provider")
+    if isinstance(provider, str) and provider.strip():
+        result["provider"] = provider.strip()
+    return result
+
+
 class JobStore:
     """Thread-safe in-memory job store with per-job event broadcasting.
 
@@ -783,6 +881,14 @@ def create_app(
         ``state`` is free-form (``"running"``, ``"blocked"``, ``"done"``,
         …). When set to ``"running"`` we also emit ``worker.heartbeat``
         so cockpits can drive a liveness indicator without polling.
+
+        If the report carries a usage/cost block (``usage`` token buckets
+        and/or ``cost_usd``, optionally with ``model`` / ``provider``), it is
+        folded into the job's cost aggregate via
+        :meth:`JobStore.accumulate_cost`. This is the producer seam documented
+        in ``hermes_cli.job_cost``: a worker that knows its per-call model
+        usage reports it here, and per-job cost accumulates. A report with no
+        usage block leaves the cost meter untouched (additive default).
         """
         await _get_job_or_404(job_id)
         body = dict(payload or {})
@@ -792,6 +898,9 @@ def create_app(
             )
         body.setdefault("state", "running")
         job = await store.record_worker(job_id, worker, body)
+        usage_report = _extract_usage_report(body)
+        if usage_report is not None:
+            job = await store.accumulate_cost(job_id, **usage_report)
         state = body.get("state")
         if state == "running":
             await store.emit_event(
