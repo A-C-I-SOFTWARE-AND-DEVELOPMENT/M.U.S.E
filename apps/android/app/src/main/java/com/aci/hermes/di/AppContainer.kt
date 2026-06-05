@@ -299,6 +299,9 @@ class AppContainer(private val application: Application) {
         settings = settingsRepository,
         ledger = deviceActionLedger,
         logBuffer = logBuffer,
+        // Device control halts as a projection of the audited global stop, so
+        // every Emergency Stop surface drives one source of truth.
+        emergencyStop = emergencyStopController,
     )
 
     // Voice loop wiring: bind the on-device STT/TTS engines and the agent
@@ -606,7 +609,9 @@ class AppContainer(private val application: Application) {
             application = application,
             settings = settingsRepository,
             controller = deviceControlController,
+            emergencyController = emergencyStopController,
             logBuffer = logBuffer,
+            onEmergencyStop = { emergencyStop() },
         )
     }
 

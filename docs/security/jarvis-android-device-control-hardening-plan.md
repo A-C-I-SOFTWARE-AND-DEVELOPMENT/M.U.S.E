@@ -5,10 +5,17 @@ Diff-level implementation plan for the two **pre-Play** safety findings from
 Both are **fail-safe by construction**: they only ever *add* a gate, keep the
 broker the single chokepoint, and keep "deny by default" precedence intact.
 
-> Not implemented inline because the cockpit build-out ran without an Android
-> SDK, and a wrong change to the emergency-stop / confirmation **safety system**
-> could turn a guard into a gap. This is the spec for an engineer (or a CI-gated
-> change) to implement and validate on the Android suite/emulator.
+> **Status (2026-06-05): both implemented and unit-verified against the
+> installed Android SDK** (`:app:testDebugUnitTest` full suite green).
+> - **#4** (non-disableable IRREVERSIBLE confirmation floor) — PR #324.
+> - **#5** (emergency-stop unification — device halt is now a read-only
+>   projection of the audited `EmergencyStopController`, no device-local
+>   release) — this branch, stacked on #324.
+>
+> Verified by JVM/Robolectric unit tests only (broker pure-function tests +
+> a Robolectric controller projection test). The instrumented smoke
+> (overlay/voice teardown on a real device, halt surviving a process restart)
+> still needs an emulator/device run before Play release.
 
 Paths are under `apps/android/app/src/main/java/com/aci/hermes/`.
 
