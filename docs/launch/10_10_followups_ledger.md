@@ -67,3 +67,18 @@ Tracking/governance PR (contract + this ledger): **#326** (merges last).
   doc-only sibling PR passed the same Android job at the same time).
 - `2026-06-05` — **FU-3 (#330) held for owner authorization** (behavior-changing:
   server boot now restores jobs from disk + writes a new on-disk artifact).
+- `2026-06-05` — **FU-3 CodeQL is a verified false-positive.** CodeQL's
+  `py/path-injection` flags `job_id` → events-log path, but the code is provably
+  safe: `sanitize_segment` reduces `job_id` to a single `[A-Za-z0-9_.-]`
+  component (`/` and `..` cannot survive) and `realpath`+`commonpath` re-confirm
+  containment. Three canonical mitigations (allow-list, `is_relative_to`,
+  `realpath`/`commonpath`) are not recognized by this repo's CodeQL model. The
+  readable `jobs/<job_id>/` layout is **kept** (a hash-dir redesign would clear
+  the FP but worsen on-disk inspectability — a real cost for a cosmetic gain).
+  Resolution deferred to the owner: dismiss the FP in the Security tab
+  (recommended) at merge time.
+- `2026-06-05` — **Recommendation (factual): land the contract, hold FU-3.**
+  #326 (this contract + ledger) merged as the explicit deliverable; FU-3 (#330)
+  stays a clean, validated open draft awaiting the owner's exact
+  `Yes, with authorization.` + FP dismissal. No behavior change reaches `main`
+  without explicit owner consent.
