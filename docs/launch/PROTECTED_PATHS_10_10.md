@@ -33,7 +33,10 @@ blocklist entry without justification.
 - `tools/tirith_security.py` (secret scanners / command risk)
 - Secret-scan + blocklist code paths in `hermes_cli/validation.py`
 - Secret-scan paths in `hermes_cli/github_publisher.py` (`scan_for_secrets`, staging blocklist)
-- Any redactor used by the cockpit event/audit stream (`gateway/cockpit/event_log.py` and its payload redaction).
+- Cockpit event/audit **redaction**: `gateway/cockpit/redaction.py` (`redact_text` /
+  `redact_value`), applied via `gateway/cockpit/contract.py` before any ledger/audit
+  payload leaves the loopback API. (`gateway/cockpit/event_log.py` is the JSONL
+  transport, not the redactor — do not mistake one for the other.)
 
 ## 3. Gateway auth & device pairing
 
@@ -41,6 +44,9 @@ Reviewer lane: **Security / Gateway**. Tokens are hashed/compared in constant
 time; pairing is rate-limited and locks out — keep it that way.
 
 - `gateway/cockpit/auth.py` (bearer token, `hmac.compare_digest`)
+- `gateway/cockpit/server.py` — the `(method, pattern, handler, requires_auth)` route
+  table is the per-route auth boundary. Adding a `/v1/cockpit/*` route, or flipping an
+  existing route's `requires_auth` flag, changes what is reachable without a bearer token.
 - `gateway/pairing.py` (rate limit, lockout, code TTL, 0600 storage)
 
 ## 4. GitHub live publishing
