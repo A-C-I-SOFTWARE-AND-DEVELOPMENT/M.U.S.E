@@ -47,7 +47,7 @@ dependencies = [
   # Cron scheduler (built-in feature — scheduled cron/interval jobs use croniter).
   "croniter==6.0.0",
   # Skills Hub (GitHub App JWT auth — optional, only needed for bot identity)
-  "PyJWT[crypto]==2.12.1",  # CVE-2026-32597
+  "PyJWT[crypto]==2.13.0",  # security: PYSEC-2026-175/177/178/179 (was 2.12.1)
   # Windows has no IANA tzdata shipped with the OS, so Python's ``zoneinfo``
   # (PEP 615) raises ``ZoneInfoNotFoundError`` for every non-UTC timezone
   # out of the box.  ``tzdata`` ships the Olson database as a data package
@@ -88,9 +88,9 @@ embeddings = ["sentence-transformers==5.5.1", "numpy==2.4.3"]
 # Optional DuckDB/Parquet analytics over the learning-dataset JSONL export.
 analytics = ["duckdb==1.4.3"]
 dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.21", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
-messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.13.4", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
+messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.14.0", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
-slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.13.4"]
+slack = ["slack-bolt==1.27.0", "slack-sdk==3.40.1", "aiohttp==3.14.0"]
 matrix = ["mautrix[encryption]==0.21.0", "Markdown==3.10.2", "aiosqlite==0.22.1", "asyncpg==0.31.0", "aiohttp-socks==0.11.0"]
 cli = ["simple-term-menu==1.6.6"]
 tts-premium = ["elevenlabs==1.59.0"]
@@ -107,8 +107,8 @@ pty = [
 ]
 honcho = ["honcho-ai==2.0.1"]
 mcp = ["mcp==1.26.0"]
-homeassistant = ["aiohttp==3.13.4"]
-sms = ["aiohttp==3.13.4"]
+homeassistant = ["aiohttp==3.14.0"]
+sms = ["aiohttp==3.14.0"]
 # NOTE: SIA (Hexo Labs Self-Improving AI), used by the `sia` worker and the
 # `/sia-self-improve` skill, is intentionally NOT a Hermes dependency. Like
 # goose/codex/aider/claude-code it is an external CLI detected on PATH —
@@ -180,7 +180,7 @@ youtube = [
   "youtube-transcript-api==1.2.4",
 ]
 # `hermes dashboard` (localhost SPA + API).  Not in core to keep the default install lean.
-web = ["fastapi==0.133.1", "starlette==1.0.0", "uvicorn[standard]==0.41.0"]
+web = ["fastapi==0.133.1", "starlette==1.0.1", "uvicorn[standard]==0.41.0"]
 all = [
   # Policy (2026-05-12): `[all]` includes only extras that genuinely
   # CAN'T be lazy-installed via `tools/lazy_deps.py` — i.e. things every
