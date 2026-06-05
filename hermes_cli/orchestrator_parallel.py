@@ -76,7 +76,7 @@ Safety invariants enforced here (matches Phase 12 requirements):
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -411,35 +411,74 @@ class ParallelRunner:
                     continue
                 self._execute_worker(worker)
         else:
-            with ThreadPoolExecutor(max_workers=self.plan.concurrency) as pool:
-                futures = {
-                    pool.submit(self._execute_worker, worker): worker
-                    for worker in self.plan.workers
-                }
-                for future in as_completed(futures):
-                    # Surface unexpected exceptions through the worker
-                    # status (we already write per-worker errors inline,
-                    # but a raise here would be a programmer bug).
+            self._run_concurrent()
+
+        self._write_status_snapshot()
+        return dict(self.statuses)
+
+    def _run_concurrent(self) -> None:
+        """Run workers in a bounded pool, gating each *launch* on the budget.
+
+        A worker is only started while the accrued cost is still within the
+        hard budget, so a pre-exhausted hard budget (e.g. ``budget_hard_limit
+        =0.0``) starts nothing — exactly like the sequential path, and unlike a
+        submit-everything-up-front pool that would race ``concurrency`` workers
+        out before the first completion. The max-concurrency guarantee is
+        unchanged (the pool still runs at most ``concurrency`` at once); only
+        *when* a pending worker is queued differs.
+        """
+
+        pending = list(self.plan.workers)
+        next_index = 0
+        futures: dict[Future[None], WorkerPlan] = {}
+
+        with ThreadPoolExecutor(max_workers=self.plan.concurrency) as pool:
+
+            def _try_launch_one() -> bool:
+                """Launch the next pending worker, skipping those a cancel or an
+                exhausted budget rules out (recorded as stopped). Returns True
+                once a worker is actually submitted, False when none remain."""
+                nonlocal next_index
+                while next_index < len(pending):
+                    worker = pending[next_index]
+                    next_index += 1
+                    if self._is_cancelled():
+                        self._mark_cancelled(worker.worker_id)
+                        continue
+                    stop = self._budget_stop_decision()
+                    if stop is not None:
+                        self._record_budget_event(stop)
+                        self._mark_cancelled(
+                            worker.worker_id, reason=f"stopped: {stop.detail}"
+                        )
+                        continue
+                    futures[pool.submit(self._execute_worker, worker)] = worker
+                    return True
+                return False
+
+            # Prime the pool (budget-gated): a pre-exhausted budget submits none.
+            for _ in range(self.plan.concurrency):
+                if not _try_launch_one():
+                    break
+            # As each worker finishes, fold in its cost (via _update) and try to
+            # launch the next pending worker — which re-checks the budget, so a
+            # mid-run overrun stops the remaining workers before they start.
+            while futures:
+                done_set, _ = wait(list(futures), return_when=FIRST_COMPLETED)
+                for future in done_set:
+                    worker = futures.pop(future)
+                    # Surface unexpected exceptions through the worker status
+                    # (per-worker errors are written inline; a raise here would
+                    # be a programmer bug).
                     exc = future.exception()
                     if exc is not None:
-                        worker = futures[future]
                         self._update(
                             worker.worker_id,
                             state=WorkerState.FAILED,
                             error=f"runner exception: {exc!r}",
                             ended_at=_now_iso(),
                         )
-                    # Best-effort budget enforcement for the concurrent path:
-                    # workers already in flight finish, but once accumulated
-                    # cost reaches the hard limit we signal cancel so the pool
-                    # stops starting the not-yet-launched workers.
-                    stop = self._budget_stop_decision()
-                    if stop is not None:
-                        self._record_budget_event(stop)
-                        self.request_cancel()
-
-        self._write_status_snapshot()
-        return dict(self.statuses)
+                    _try_launch_one()
 
     def request_cancel(self) -> None:
         """In-process cancel signal. Sets the flag file too for symmetry."""
