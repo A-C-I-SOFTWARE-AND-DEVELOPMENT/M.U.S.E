@@ -1,0 +1,11 @@
+name: branding
+version: 1.0.0
+description: "Design / branding helpers for Hermes. color_info, color_scheme (TheColorAPI) and placeholder_image (Lorem Picsum URL builder) are free, no key. stock_photo_search (Unsplash) appears only when UNSPLASH_ACCESS_KEY is set; google_fonts (Google Fonts) appears only when GOOGLE_FONTS_API_KEY is set. All read-only and host-pinned; image tools return URLs, never binary blobs. Opt-in via `branding.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - color_info
+  - color_scheme
+  - placeholder_image
+  - stock_photo_search
+  - google_fonts
