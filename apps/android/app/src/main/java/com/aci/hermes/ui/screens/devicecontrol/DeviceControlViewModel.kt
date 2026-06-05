@@ -7,6 +7,7 @@ import com.aci.hermes.data.devicecontrol.DeviceActionLogEntry
 import com.aci.hermes.data.devicecontrol.DeviceControlCapability
 import com.aci.hermes.data.devicecontrol.DeviceControlController
 import com.aci.hermes.data.devicecontrol.PendingDeviceAction
+import com.aci.hermes.data.emergency.EmergencyStopController
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,7 +51,15 @@ class DeviceControlViewModel(
     application: Application,
     private val settings: SettingsRepository,
     private val controller: DeviceControlController,
+    private val emergencyController: EmergencyStopController,
     private val logBuffer: LogBuffer,
+    /**
+     * The single global emergency-stop entry (stops the orchestrator, engages
+     * the audited [EmergencyStopController], syncs the settings flag). The
+     * device button routes through this so it behaves identically to every
+     * other Emergency Stop surface — there is no device-only stop.
+     */
+    private val onEmergencyStop: () -> Unit,
 ) : AndroidViewModel(application) {
 
     private val grantedState = MutableStateFlow(controller.grantedCapabilities())
@@ -132,12 +141,31 @@ class DeviceControlViewModel(
         controller.dismissPending(id)
     }
 
+    /**
+     * Engage the global emergency stop. Routes through the one shared entry so
+     * the device button stops the orchestrator, engages the audited
+     * [EmergencyStopController], and halts device control (via the controller's
+     * state projection) — exactly like the Home and Live stop buttons.
+     */
     fun engageEmergencyStop() {
-        controller.engageEmergencyStop()
+        onEmergencyStop()
     }
 
-    fun releaseEmergencyStop() {
-        controller.releaseEmergencyStop()
+    /**
+     * Request and approve a resume. The owner is physically present at the
+     * device, so this performs the replay-protected request+approve in one
+     * step; every transition is written to the emergency-stop audit ledger.
+     * There is no unguarded device-local release — the halt can only clear
+     * through this audited path (mirrors the Home dashboard's resume).
+     */
+    fun requestResume() {
+        viewModelScope.launch {
+            val approval = emergencyController.requestResume(requestedBy = "owner")
+            if (approval != null) {
+                emergencyController.approveResume(approval.id, approver = "owner")
+                logBuffer.info(TAG, "Device control resume approved by owner")
+            }
+        }
     }
 
     private fun refreshProjection() {
