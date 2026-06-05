@@ -8562,6 +8562,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 PROJECT_ROOT,
                 current_branch=current_branch,
                 assume_yes=assume_yes,
+                interactive=getattr(args, "interactive", False),
+                push=not getattr(args, "no_push", False),
                 input_fn=gw_input_fn,
                 validate_syntax=_validate_critical_files_syntax,
             )
@@ -8674,33 +8676,40 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
-            pull_result = subprocess.run(
-                git_cmd + ["pull", "--ff-only", "origin", branch],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True,
-            )
-            if pull_result.returncode != 0:
-                # ff-only failed — local and remote have diverged (e.g. upstream
-                # force-pushed or rebase).  Since local changes are already
-                # stashed, reset to match the remote exactly.
-                print(
-                    "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
-                )
-                reset_result = subprocess.run(
-                    git_cmd + ["reset", "--hard", f"origin/{branch}"],
+            # When consolidation already produced the final main, skip the
+            # legacy pull/reset entirely. Re-pulling is at best a no-op, and if
+            # origin/main advanced after our fetch (so the auto-push was
+            # rejected non-fast-forward), the ff-only pull would fail and the
+            # reset --hard below would discard the consolidation commit(s). The
+            # consolidated main already incorporates upstream + your branch.
+            if not consolidation_done:
+                pull_result = subprocess.run(
+                    git_cmd + ["pull", "--ff-only", "origin", branch],
                     cwd=PROJECT_ROOT,
                     capture_output=True,
                     text=True,
                 )
-                if reset_result.returncode != 0:
-                    print(f"✗ Failed to reset to origin/{branch}.")
-                    if reset_result.stderr.strip():
-                        print(f"  {reset_result.stderr.strip()}")
+                if pull_result.returncode != 0:
+                    # ff-only failed — local and remote have diverged (e.g. upstream
+                    # force-pushed or rebase).  Since local changes are already
+                    # stashed, reset to match the remote exactly.
                     print(
-                        "  Try manually: git fetch origin && git reset --hard origin/main"
+                        "  ⚠ Fast-forward not possible (history diverged), resetting to match remote..."
                     )
-                    sys.exit(1)
+                    reset_result = subprocess.run(
+                        git_cmd + ["reset", "--hard", f"origin/{branch}"],
+                        cwd=PROJECT_ROOT,
+                        capture_output=True,
+                        text=True,
+                    )
+                    if reset_result.returncode != 0:
+                        print(f"✗ Failed to reset to origin/{branch}.")
+                        if reset_result.stderr.strip():
+                            print(f"  {reset_result.stderr.strip()}")
+                        print(
+                            "  Try manually: git fetch origin && git reset --hard origin/main"
+                        )
+                        sys.exit(1)
 
             # Post-pull syntax guard: validate critical-path files actually
             # parse before declaring the update successful. If a bad commit
@@ -13062,12 +13071,14 @@ Examples:
         "update",
         help="Update Hermes Agent to the latest version",
         description=(
-            "Update Hermes Agent. On a fork this consolidates the original "
-            "code (upstream/main) and your current branch into your main, "
-            "auto-resolving conflicts with the configured model and showing a "
-            "review before anything lands on main, then reinstalls "
-            "dependencies. Use --no-consolidate for the legacy fast-forward "
-            "behavior."
+            "Update Hermes Agent. On a fork this autonomously consolidates "
+            "the original code (upstream/main) and your current branch into "
+            "your main — auto-resolving conflicts with the configured model, "
+            "merging into main, and pushing to origin without prompting — then "
+            "reinstalls dependencies. An unresolvable conflict stops safely "
+            "before touching main. Use --interactive to review before merging, "
+            "--no-push to skip the push, or --no-consolidate for the legacy "
+            "fast-forward behavior."
         ),
     )
     update_parser.add_argument(
@@ -13112,6 +13123,18 @@ Examples:
         action="store_true",
         default=False,
         help="Forks only: skip merging upstream/main + your current branch into main; just fast-forward main from origin (the legacy update behavior).",
+    )
+    update_parser.add_argument(
+        "--interactive",
+        action="store_true",
+        default=False,
+        help="Forks only: require a review-and-confirm before the consolidated result is merged into main (consolidation is autonomous by default).",
+    )
+    update_parser.add_argument(
+        "--no-push",
+        action="store_true",
+        default=False,
+        help="Forks only: after consolidating into main, do not push main back to origin (push happens automatically by default).",
     )
     update_parser.set_defaults(func=cmd_update)
 

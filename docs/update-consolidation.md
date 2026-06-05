@@ -2,8 +2,8 @@
 
 On a **fork**, `hermes update` (and telling Jarvis to "update", "sync my
 fork", or "merge upstream") does more than pull the latest release: it
-**consolidates** the original code and your in-flight work into your fork's
-`main` in one reviewed step.
+**autonomously consolidates** the original code and your in-flight work into
+your fork's `main` — no prompts — and pushes the result back to your fork.
 
 It brings together:
 
@@ -11,8 +11,10 @@ It brings together:
   `NousResearch/hermes-agent` repo your fork tracks), and
 - **your branch** — whatever branch is currently checked out,
 
-resolving any conflicts and showing you a review **before** anything lands
-on `main`.
+resolving any conflicts, merging into `main`, and pushing to `origin`
+hands-off. The one thing it will **not** do silently is force a merge it
+can't resolve cleanly — an unresolvable conflict stops before `main` is
+touched.
 
 ## How it works
 
@@ -29,16 +31,17 @@ on `main`.
      the merge is aborted, `main` is left untouched, and the conflicted files
      are listed for you to resolve manually. It never guesses silently.
 5. Runs the critical-files syntax guard over the integrated tree.
-6. Prints a **review** (diffstat + the files it auto-resolved) and asks for
-   confirmation.
-7. Only on approval does it fast-forward `main` to the reviewed result and
-   delete the integration branch. Your original branch is restored on every
-   other path.
+6. Prints a summary (diffstat + the files it auto-resolved).
+7. Fast-forwards `main` to the integrated result, deletes the integration
+   branch, and **pushes `main` to `origin`**. Your original branch is
+   restored on every non-merge path. A push failure (no write access) is
+   reported but doesn't fail the update — your local `main` is already
+   current.
 
-Merging into `main` is governed by the LaunchGate policy (see
-`docs/launch/AUTOMATED_MERGE_POLICY.md`), so the gate here is a
-review-and-confirm prompt — not the `"Yes, with authorization."` owner
-phrase. Use `--yes` to skip the prompt in automation.
+Consolidation is **autonomous by default**. Merging into `main` is governed
+by the LaunchGate policy (see `docs/launch/AUTOMATED_MERGE_POLICY.md`); the
+syntax guard + safe-stop are the automated safety net. Run with
+`--interactive` to require a review-and-confirm before the merge.
 
 ## Enabling model-assisted conflict resolution
 
@@ -55,10 +58,13 @@ Without these set, conflicts trigger the safe-stop path described above.
 
 ## Flags and scope
 
+- `hermes update --interactive` — forks only: require a review-and-confirm
+  before the consolidated result is merged into `main` (off by default —
+  consolidation is autonomous).
+- `hermes update --no-push` — forks only: consolidate into local `main` but
+  don't push it back to `origin`.
 - `hermes update --no-consolidate` — forks only: skip consolidation and use
   the legacy behavior (fast-forward `main` from `origin`).
-- `hermes update --yes` — assume yes for the review prompt (and other
-  interactive prompts).
 - **Non-fork installs** (a direct clone of the official repo) are unchanged:
   there is no separate "your main vs upstream", so consolidation is skipped
   automatically.

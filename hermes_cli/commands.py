@@ -215,7 +215,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("image", "Attach a local image file for your next prompt", "Info",
                cli_only=True, args_hint="<path>"),
-    CommandDef("update", "Update Hermes Agent — on a fork, consolidates upstream/main + your current branch into main with reviewed conflict resolution", "Info"),
+    CommandDef("update", "Update Hermes Agent — on a fork, autonomously consolidates upstream/main + your current branch into main (auto-resolves conflicts, pushes to origin)", "Info"),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info"),
 
     # Orchestration (native slash commands).
