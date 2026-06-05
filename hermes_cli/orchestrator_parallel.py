@@ -24,6 +24,31 @@ Three execution modes are supported:
     files, and the worker is killed if the timeout elapses or
     ``cancel.requested`` appears.
 
+Per-job cost emission (the producer side of the Sprint 10 cost seam)
+----------------------------------------------------------------------
+
+A LOCAL_RUN worker that runs the agent can record its token/cost usage so
+the per-job cost meter actually accumulates. The contract is a sidecar
+file, ``usage.json``, written into the worker's own dir *before it exits*,
+in the shape produced by ``agent.conversation_loop.build_usage_record``::
+
+    {"usage": {<token buckets>}, "cost_usd": float,
+     "model": str, "provider": str}
+
+When such a worker finishes cleanly (exit code 0), the runner reads and
+sanitizes that sidecar and folds it into the worker's ``WorkerStatus.usage``,
+which is persisted into ``status.json`` verbatim — already in the exact shape
+``hermes_cli.orchestrator_api._extract_usage_report`` consumes.
+
+This runner is intentionally **standalone**: it is not wired to a
+``JobStore`` and never calls ``accumulate_cost`` itself (it only persists
+artifacts to disk). The one remaining hop — draining the persisted usage into
+a job's ``JobCost`` — is exposed as :func:`iter_worker_usage`, which yields
+``(worker_id, usage_block)`` pairs ready to hand to
+``JobStore.update_worker`` (the consumer seam merged in #301). A caller that
+holds a ``JobStore`` performs that final fold; the runner deliberately does
+not fabricate a store connection it doesn't own.
+
 Safety invariants enforced here (matches Phase 12 requirements):
 
 * No ``git push``, ``git push --force``, ``git reset --hard``, or other
@@ -62,6 +87,22 @@ HANDOFF_FILENAME = "handoff.json"
 PROMPT_FILENAME = "prompt.txt"
 STDOUT_LOG = "stdout.log"
 STDERR_LOG = "stderr.log"
+# A LOCAL_RUN worker that knows its model usage writes this sidecar into its
+# own worker dir before exiting; the runner reads it back when the worker
+# finishes cleanly and folds it into ``status.json`` (and the per-worker
+# ``WorkerStatus.usage``) in the exact ``{usage, cost_usd, model, provider}``
+# shape ``hermes_cli.orchestrator_api`` consumes. See ``_read_usage_sidecar``.
+USAGE_FILENAME = "usage.json"
+
+# Token bucket field names in the canonical (``CanonicalUsage``) spelling. Kept
+# explicit so a stray key in a worker's sidecar can't leak into the token math.
+_USAGE_TOKEN_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_write_tokens",
+    "reasoning_tokens",
+)
 
 DEFAULT_CONCURRENCY = 2
 MAX_CONCURRENCY = 8
@@ -191,6 +232,11 @@ class WorkerStatus:
     branch: Optional[str] = None
     handoff_path: Optional[str] = None
     prompt_path: Optional[str] = None
+    # Optional usage/cost block in the ``{usage, cost_usd, model, provider}``
+    # shape ``hermes_cli.orchestrator_api`` consumes. Populated from a worker's
+    # ``usage.json`` sidecar when a LOCAL_RUN worker finishes cleanly; ``None``
+    # for workers that report no usage (the additive default).
+    usage: Optional[dict[str, Any]] = None
 
     def as_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -209,6 +255,17 @@ def job_dir(repo: Path, job_id: str) -> Path:
 def worker_dir(repo: Path, job_id: str, worker_id: str) -> Path:
     worker = wt.sanitize_segment(worker_id, field_name="worker_id")
     return job_dir(repo, job_id) / worker
+
+
+def usage_path(repo: Path, job_id: str, worker_id: str) -> Path:
+    """Path to a worker's usage sidecar (``usage.json``) in its worker dir.
+
+    A LOCAL_RUN worker writes its machine-readable usage block here (via
+    ``agent.conversation_loop.build_usage_record``) before exiting; the runner
+    reads it back when the worker finishes cleanly.
+    """
+
+    return worker_dir(repo, job_id, worker_id) / USAGE_FILENAME
 
 
 def status_path(repo: Path, job_id: str) -> Path:
@@ -530,12 +587,21 @@ class ParallelRunner:
                 while True:
                     rc = proc.poll()
                     if rc is not None:
+                        # On clean exit, fold in any usage the worker reported
+                        # via its ``usage.json`` sidecar. Best-effort: a missing
+                        # / malformed sidecar yields ``None`` and the cost meter
+                        # stays untouched (additive default). Only successful
+                        # runs are trusted to have written a complete record.
+                        usage_block = (
+                            _read_usage_sidecar(worker_root) if rc == 0 else None
+                        )
                         self._update(
                             worker.worker_id,
                             state=WorkerState.COMPLETED if rc == 0 else WorkerState.FAILED,
                             return_code=rc,
                             ended_at=_now_iso(),
                             error=None if rc == 0 else f"exit code {rc}",
+                            usage=usage_block,
                         )
                         if rc == 0:
                             self._record_complete(worker.worker_id)
@@ -641,6 +707,72 @@ class ParallelRunner:
         path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _sanitize_usage_block(raw: Any) -> Optional[dict[str, Any]]:
+    """Validate a worker-reported usage mapping into the consumer's shape.
+
+    Accepts the dict produced by ``agent.conversation_loop.build_usage_record``
+    and returns a clean ``{usage, cost_usd, model, provider}`` block — exactly
+    what ``hermes_cli.orchestrator_api._extract_usage_report`` reads. Junk is
+    dropped rather than raised on: a malformed sidecar must never fail a run or
+    poison the cost meter. Returns ``None`` when there is no usable signal (no
+    positive token bucket and no positive cost).
+    """
+
+    if not isinstance(raw, dict):
+        return None
+
+    tokens: dict[str, int] = {}
+    raw_usage = raw.get("usage")
+    if isinstance(raw_usage, dict):
+        for field_name in _USAGE_TOKEN_FIELDS:
+            value = raw_usage.get(field_name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                continue
+            count = int(value)
+            if count > 0:
+                tokens[field_name] = count
+
+    cost_usd = raw.get("cost_usd")
+    if isinstance(cost_usd, bool) or not isinstance(cost_usd, (int, float)):
+        cost_usd = None
+    elif float(cost_usd) < 0:
+        cost_usd = None
+    else:
+        cost_usd = float(cost_usd)
+
+    has_positive_cost = cost_usd is not None and cost_usd > 0
+    if not tokens and not has_positive_cost:
+        return None
+
+    block: dict[str, Any] = {}
+    if tokens:
+        block["usage"] = tokens
+    block["cost_usd"] = cost_usd if cost_usd is not None else 0.0
+    model = raw.get("model")
+    if isinstance(model, str) and model.strip():
+        block["model"] = model.strip()
+    provider = raw.get("provider")
+    if isinstance(provider, str) and provider.strip():
+        block["provider"] = provider.strip()
+    return block
+
+
+def _read_usage_sidecar(worker_root: Path) -> Optional[dict[str, Any]]:
+    """Read + sanitize a worker's ``usage.json`` sidecar, or ``None``.
+
+    Best-effort: a missing file, unreadable bytes, or malformed JSON all yield
+    ``None`` so a worker that does not report usage (or writes garbage) simply
+    leaves the cost meter untouched — the additive, behavior-preserving default.
+    """
+
+    path = worker_root / USAGE_FILENAME
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return _sanitize_usage_block(raw)
+
+
 def _load_existing_created_at(path: Path) -> Optional[str]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -692,6 +824,47 @@ def load_status(repo: Path, job_id: str) -> Optional[dict[str, Any]]:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def iter_worker_usage(repo: Path, job_id: str) -> list[tuple[str, dict[str, Any]]]:
+    """Yield ``(worker_id, usage_block)`` for every worker that reported usage.
+
+    This is the bridge between the standalone runner and the per-job cost
+    aggregate. ``ParallelRunner`` is *not* wired to a ``JobStore`` — it only
+    persists artifacts to disk — so after a run, a caller that *does* hold a
+    ``JobStore`` (e.g. the orchestrator API / dispatcher) drains the reported
+    usage and folds it in. Each ``usage_block`` is already in the exact report
+    shape ``hermes_cli.orchestrator_api._extract_usage_report`` reads — i.e. a
+    body you hand straight to :meth:`JobStore.update_worker`, which detects the
+    ``usage`` / ``cost_usd`` keys and routes them into
+    :meth:`JobStore.accumulate_cost`::
+
+        runner = ParallelRunner(repo, plan); runner.run()
+        for worker_id, block in iter_worker_usage(repo, plan.job_id):
+            await store.update_worker(job_id, worker_id, block)
+
+    Note the block's ``usage`` sub-key is a plain token-bucket *dict*; the
+    ``update_worker`` seam converts it to the ``CanonicalUsage``-shaped object
+    ``JobCost.add_usage`` expects, so prefer ``update_worker`` over calling
+    ``accumulate_cost(**block)`` directly (the latter would need a usage object,
+    not a dict). Returns an empty list when the job has no status file or no
+    worker reported usage (the additive default — nothing to accumulate).
+    """
+
+    snapshot = load_status(repo, job_id)
+    if not snapshot:
+        return []
+    out: list[tuple[str, dict[str, Any]]] = []
+    for worker in snapshot.get("workers", []):
+        if not isinstance(worker, dict):
+            continue
+        block = _sanitize_usage_block(worker.get("usage"))
+        if block is None:
+            continue
+        worker_id = worker.get("worker_id")
+        if isinstance(worker_id, str) and worker_id:
+            out.append((worker_id, block))
+    return out
 
 
 def list_jobs(repo: Path) -> list[str]:
@@ -747,16 +920,19 @@ __all__ = [
     "OrchestratorError",
     "ParallelRunner",
     "STATUS_FILENAME",
+    "USAGE_FILENAME",
     "WorkerPlan",
     "WorkerState",
     "WorkerStatus",
     "cancel_flag_path",
     "cleanup_job_worktrees",
+    "iter_worker_usage",
     "job_dir",
     "list_jobs",
     "load_status",
     "parse_command",
     "request_cancel",
     "status_path",
+    "usage_path",
     "worker_dir",
 ]

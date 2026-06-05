@@ -460,3 +460,226 @@ def test_list_jobs_reflects_completed_runs(repo: Path):
         op.ParallelRunner(repo, plan).run()
 
     assert op.list_jobs(repo) == ["alpha", "beta"]
+
+
+# ─── usage emission (producer side of the per-job cost seam) ──────────
+
+
+def _usage_writer_command(usage_path: Path) -> list[str]:
+    """A LOCAL_RUN command that writes a usage sidecar then exits 0.
+
+    Stands in for a real worker that ran the agent and dumped
+    ``agent.conversation_loop.build_usage_record`` to ``usage.json``.
+    """
+
+    payload = {
+        "usage": {
+            "input_tokens": 1200,
+            "output_tokens": 300,
+            "cache_read_tokens": 800,
+            "cache_write_tokens": 0,
+            "reasoning_tokens": 40,
+        },
+        "cost_usd": 0.0731,
+        "model": "claude-opus-4-8",
+        "provider": "anthropic",
+    }
+    return _python_command(
+        "import json, pathlib",
+        f"p = pathlib.Path(r{str(usage_path)!r})",
+        "p.parent.mkdir(parents=True, exist_ok=True)",
+        f"p.write_text(json.dumps({payload!r}), encoding='utf-8')",
+        "print('worked')",
+    )
+
+
+def test_local_run_success_emits_usage_block(repo: Path):
+    usage_file = op.usage_path(repo, "job-usage", "w1")
+    plan = op.ExecutionPlan(
+        job_id="job-usage",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_usage_writer_command(usage_file),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    statuses = op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+
+    s = statuses["w1"]
+    assert s.state is op.WorkerState.COMPLETED
+    # The runner folded the worker's sidecar into WorkerStatus.usage in the
+    # exact {usage, cost_usd, model, provider} shape the consumer reads.
+    assert s.usage == {
+        "usage": {
+            "input_tokens": 1200,
+            "output_tokens": 300,
+            "cache_read_tokens": 800,
+            "reasoning_tokens": 40,
+        },
+        "cost_usd": 0.0731,
+        "model": "claude-opus-4-8",
+        "provider": "anthropic",
+    }
+
+    # …and it is persisted into status.json verbatim.
+    snapshot = op.load_status(repo, "job-usage")
+    assert snapshot is not None
+    worker_row = snapshot["workers"][0]
+    assert worker_row["usage"] == s.usage
+
+
+def test_local_run_without_sidecar_emits_no_usage(repo: Path):
+    plan = op.ExecutionPlan(
+        job_id="job-nousage",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('no usage here')"),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    statuses = op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+
+    s = statuses["w1"]
+    assert s.state is op.WorkerState.COMPLETED
+    # No sidecar => additive default: cost meter stays untouched.
+    assert s.usage is None
+    snapshot = op.load_status(repo, "job-nousage")
+    assert snapshot is not None
+    assert snapshot["workers"][0]["usage"] is None
+
+
+def test_failed_worker_does_not_emit_usage(repo: Path):
+    # Even if a sidecar exists, a non-zero exit is not trusted to have a
+    # complete record — usage is only read on clean exit.
+    usage_file = op.usage_path(repo, "job-failusage", "w1")
+    payload = {"usage": {"input_tokens": 10}, "cost_usd": 0.01}
+    plan = op.ExecutionPlan(
+        job_id="job-failusage",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command(
+                    "import json, pathlib, sys",
+                    f"p = pathlib.Path(r{str(usage_file)!r})",
+                    "p.parent.mkdir(parents=True, exist_ok=True)",
+                    f"p.write_text(json.dumps({payload!r}), encoding='utf-8')",
+                    "sys.exit(3)",
+                ),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    statuses = op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+
+    s = statuses["w1"]
+    assert s.state is op.WorkerState.FAILED
+    assert s.usage is None
+
+
+def test_iter_worker_usage_yields_reported_blocks(repo: Path):
+    usage_file = op.usage_path(repo, "job-iter", "w1")
+    plan = op.ExecutionPlan(
+        job_id="job-iter",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_usage_writer_command(usage_file),
+                timeout_seconds=10,
+            ),
+            op.WorkerPlan(
+                worker_id="w2",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('silent')"),
+                timeout_seconds=10,
+            ),
+        ],
+        concurrency=1,
+    )
+    op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+
+    reported = dict(op.iter_worker_usage(repo, "job-iter"))
+    # Only the worker that wrote a sidecar shows up.
+    assert set(reported) == {"w1"}
+    assert reported["w1"]["cost_usd"] == 0.0731
+    assert reported["w1"]["usage"]["input_tokens"] == 1200
+
+
+def test_iter_worker_usage_empty_for_unknown_job(repo: Path):
+    assert op.iter_worker_usage(repo, "no-such-job") == []
+
+
+def test_emitted_usage_round_trips_through_consumer_seam(repo: Path):
+    # End-to-end proof: a worker's emitted block, once persisted, folds into a
+    # JobCost via the exact consumer seam #301 shipped — with no translation.
+    from hermes_cli.job_cost import JobCost
+    from hermes_cli.orchestrator_api import _extract_usage_report
+
+    usage_file = op.usage_path(repo, "job-roundtrip", "w1")
+    plan = op.ExecutionPlan(
+        job_id="job-roundtrip",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_usage_writer_command(usage_file),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+
+    job = JobCost()
+    for _worker_id, block in op.iter_worker_usage(repo, "job-roundtrip"):
+        kwargs = _extract_usage_report(block)
+        assert kwargs is not None
+        job.add_usage(**kwargs)
+
+    totals = job.totals()
+    assert totals["input_tokens"] == 1200
+    assert totals["output_tokens"] == 300
+    assert totals["cache_read_tokens"] == 800
+    assert totals["reasoning_tokens"] == 40
+    assert totals["cost_usd"] == 0.0731
+    assert totals["call_count"] == 1
+    assert totals["by_model"] == {"anthropic/claude-opus-4-8": 0.0731}
+
+
+# ─── _sanitize_usage_block (defensive parsing) ────────────────────────
+
+
+def test_sanitize_usage_block_drops_non_positive_and_junk():
+    assert op._sanitize_usage_block("not a dict") is None
+    assert op._sanitize_usage_block({"usage": {"input_tokens": 0}, "cost_usd": 0.0}) is None
+    assert op._sanitize_usage_block({"usage": {"input_tokens": -5}}) is None
+    # bool must not slip through as 1 token / $1.
+    assert op._sanitize_usage_block({"usage": {"input_tokens": True}}) is None
+    assert op._sanitize_usage_block({"cost_usd": True}) is None
+    # Negative cost is dropped but positive tokens still count.
+    assert op._sanitize_usage_block({"usage": {"input_tokens": 5}, "cost_usd": -1}) == {
+        "usage": {"input_tokens": 5},
+        "cost_usd": 0.0,
+    }
+    # Cost-only entry is valid.
+    assert op._sanitize_usage_block({"cost_usd": 0.5}) == {"cost_usd": 0.5}
+
+
+def test_read_usage_sidecar_tolerates_missing_and_malformed(tmp_path: Path):
+    # Missing file.
+    assert op._read_usage_sidecar(tmp_path) is None
+    # Malformed JSON.
+    (tmp_path / op.USAGE_FILENAME).write_text("{not json", encoding="utf-8")
+    assert op._read_usage_sidecar(tmp_path) is None
