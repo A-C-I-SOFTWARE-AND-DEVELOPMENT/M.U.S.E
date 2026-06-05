@@ -1026,3 +1026,472 @@ class TestHttpTransport:
             bridge.approve(job.job_id)
         persisted = json.loads((job.workdir / "status.json").read_text())
         assert persisted["state"] == rb.JobState.AWAITING_APPROVAL.value
+
+
+# ── signed-envelope upgrade (opt-in, Sprint 12) ────────────────────────────
+
+
+_SIGNING_KEY = "test-bridge-signing-key-0123456789abcdef"
+
+
+def _write_worker_status_min(
+    workdir: Path,
+    *,
+    token: str,
+    state: str = "completed",
+    device_id: str = "jeremiah-windows",
+) -> None:
+    """Worker-side status reply (``from`` != hermes), so get_status validates
+    the manifest envelope before trusting it."""
+    payload = {
+        "schema": "hermes.remote.status.v1",
+        "job_id": workdir.name,
+        "state": state,
+        "auth_token": token,
+        "device_id": device_id,
+        "last_seen": 1_700_000_500.0,
+        "detail": "worker says hi",
+        "artifacts": {"output.md": "summary"},
+        "from": "windows-worker",
+    }
+    (workdir / "status.json").write_text(json.dumps(payload, indent=2))
+
+
+def _keyed_bridge(
+    root: Path,
+    audit: rb.AuditLog,
+    *,
+    clock,
+    seen_nonces=None,
+    nonce_factory=None,
+    envelope_ttl_seconds: float = rb.DEFAULT_ENVELOPE_TTL_SECONDS,
+) -> rb.RemoteBridge:
+    # Always supply an explicit, tmp-backed nonce store so tests never touch
+    # the real ``~/.hermes/bridge`` directory.
+    if seen_nonces is None:
+        seen_nonces = rb.SeenNonceStore(root.parent / "bridge-nonces")
+    return rb.RemoteBridge(
+        make_endpoint(root),
+        audit_log=audit,
+        clock=clock,
+        signing_key=_SIGNING_KEY,
+        seen_nonces=seen_nonces,
+        nonce_factory=nonce_factory,
+        envelope_ttl_seconds=envelope_ttl_seconds,
+    )
+
+
+class TestSigningKeySource:
+    def test_no_key_configured_returns_none(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.delenv(rb.SIGNING_KEY_ENV, raising=False)
+        assert rb.bridge_signing_key(state_dir=tmp_path / "bridge") is None
+
+    def test_env_var_wins(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv(rb.SIGNING_KEY_ENV, "  env-key-value  ")
+        # Even with a key file present, the env var takes precedence.
+        bridge_dir = tmp_path / "bridge"
+        bridge_dir.mkdir()
+        (bridge_dir / rb.SIGNING_KEY_FILENAME).write_text("file-key\n")
+        assert rb.bridge_signing_key(state_dir=bridge_dir) == "env-key-value"
+
+    def test_key_file_used_when_env_unset(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.delenv(rb.SIGNING_KEY_ENV, raising=False)
+        bridge_dir = tmp_path / "bridge"
+        bridge_dir.mkdir()
+        (bridge_dir / rb.SIGNING_KEY_FILENAME).write_text("file-key-value\n")
+        assert rb.bridge_signing_key(state_dir=bridge_dir) == "file-key-value"
+
+    def test_blank_env_falls_back_to_none(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv(rb.SIGNING_KEY_ENV, "   ")
+        assert rb.bridge_signing_key(state_dir=tmp_path / "bridge") is None
+
+
+class TestSeenNonceStore:
+    def test_persists_and_reloads(self, tmp_path: Path):
+        path = tmp_path / "seen_nonces"
+        store = rb.SeenNonceStore(path)
+        assert "n1" not in store
+        store.add("n1")
+        store.add("n1")  # idempotent
+        assert "n1" in store
+        # A fresh store rebuilt from disk remembers the burned nonce.
+        reloaded = rb.SeenNonceStore(path)
+        assert "n1" in reloaded
+        assert len(reloaded) == 1
+
+
+class TestLegacyUnchangedWithoutKey:
+    def test_no_envelope_fields_when_no_key(self, bridge: rb.RemoteBridge):
+        # The default `bridge` fixture has no signing key configured.
+        assert bridge.envelope_enabled is False
+        job = bridge.dispatch(
+            prompt="audit",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        assert rb.bridge_envelope.SIGNATURE_FIELD not in manifest
+        assert "nonce" not in manifest
+        assert "expires_at" not in manifest
+
+    def test_manifest_byte_for_byte_identical_to_pre_upgrade(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # Two bridges, neither keyed, fixed clock + fixed token → identical
+        # manifest bytes. Guards against the envelope layer leaking into the
+        # legacy path.
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = rb.RemoteBridge(
+            make_endpoint(endpoint_root),
+            audit_log=audit,
+            clock=lambda: 1_700_000_000.0,
+            token_factory=lambda: "fixed-token",
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        on_disk = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        # The on-disk payload is exactly JobManifest.to_dict() — no extra keys.
+        manifest_obj = rb.JobManifest(
+            job_id=job.job_id,
+            endpoint="jeremiah-windows",
+            command="claude",
+            prompt_filename="prompt.md",
+            expected_artifacts=("status.json",),
+            required_artifacts=(),
+            auth_token="fixed-token",
+            device_id="hermes-android",
+            allow_remote_execute=True,
+            created_at=1_700_000_000.0,
+        )
+        assert on_disk == manifest_obj.to_dict()
+
+
+class TestSignedEnvelopeDispatch:
+    def test_dispatch_attaches_valid_envelope(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        assert bridge.envelope_enabled is True
+        job = bridge.dispatch(
+            prompt="audit",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        assert rb.bridge_envelope.SIGNATURE_FIELD in manifest
+        assert "nonce" in manifest
+        assert manifest["expires_at"] == 1_700_000_000.0 + rb.DEFAULT_ENVELOPE_TTL_SECONDS
+        # The embedded envelope verifies under the same key.
+        v = rb.bridge_envelope.verify(
+            manifest, _SIGNING_KEY, now=1_700_000_100.0
+        )
+        assert v.ok
+
+    def test_signing_key_never_in_manifest_or_audit(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit_path = tmp_path / "a.jsonl"
+        audit = rb.AuditLog(audit_path)
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert _SIGNING_KEY not in job.manifest_path.read_text(encoding="utf-8")
+        assert _SIGNING_KEY not in audit_path.read_text(encoding="utf-8")
+
+    def test_valid_envelope_status_round_trips(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        clock = {"t": 1_700_000_000.0}
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: clock["t"]
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        # Still within TTL → manifest envelope validates, status accepted.
+        status = bridge.get_status(job.job_id)
+        assert status.state == rb.JobState.COMPLETED
+        assert status.artifacts == {"output.md": "summary"}
+
+    def test_polling_does_not_burn_nonce(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # Repeated get_status() reads must keep validating — the nonce is only
+        # consumed at the action boundary, not on every poll.
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        for _ in range(3):
+            assert bridge.get_status(job.job_id).state == rb.JobState.COMPLETED
+
+
+class TestSignedEnvelopeRejection:
+    def test_bad_signature_rejected(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        # Tamper with the manifest after signing: flip a field, keep the old
+        # signature. The signature no longer matches → rejected on intake.
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        manifest["command"] = "powershell"  # privilege escalation attempt
+        job.manifest_path.write_text(json.dumps(manifest, indent=2))
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+
+        status = bridge.get_status(job.job_id)
+        assert status.state == rb.JobState.UNKNOWN
+        events = audit.read_all()
+        bad = [
+            e
+            for e in events
+            if e.get("reason") == "envelope_invalid"
+            and e.get("envelope_result") == "bad_signature"
+        ]
+        assert bad
+
+    def test_forged_envelope_under_wrong_key_rejected(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # An attacker re-signs a malicious manifest with a key they control.
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        manifest.pop(rb.bridge_envelope.SIGNATURE_FIELD, None)
+        manifest["command"] = "powershell"
+        forged = rb.bridge_envelope.signed_envelope(manifest, "attacker-key")
+        job.manifest_path.write_text(json.dumps(forged, indent=2))
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        assert bridge.get_status(job.job_id).state == rb.JobState.UNKNOWN
+
+    def test_missing_envelope_rejected_when_key_configured(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # A legacy (unsigned) manifest must be refused once a key is required.
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        # Strip the envelope entirely.
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        for field_name in ("nonce", "expires_at", rb.bridge_envelope.SIGNATURE_FIELD):
+            manifest.pop(field_name, None)
+        job.manifest_path.write_text(json.dumps(manifest, indent=2))
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        assert bridge.get_status(job.job_id).state == rb.JobState.UNKNOWN
+
+    def test_expired_envelope_rejected(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        clock = {"t": 1_700_000_000.0}
+        bridge = _keyed_bridge(
+            endpoint_root,
+            audit,
+            clock=lambda: clock["t"],
+            envelope_ttl_seconds=60.0,
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        # Advance the clock past the 60s TTL → envelope expired → rejected.
+        clock["t"] = 1_700_000_000.0 + 61.0
+        status = bridge.get_status(job.job_id)
+        assert status.state == rb.JobState.UNKNOWN
+        events = audit.read_all()
+        assert any(
+            e.get("reason") == "envelope_invalid"
+            and e.get("envelope_result") == "expired"
+            for e in events
+        )
+
+    def test_replayed_nonce_rejected_at_action_boundary(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # Two distinct jobs whose manifests carry the SAME nonce (a captured /
+        # replayed envelope). The first collection burns the nonce; the second
+        # job's collection — presenting the same already-seen nonce — is
+        # rejected as a replay.
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        nonces = iter(["dup-nonce", "dup-nonce"])
+        clock = {"t": 1_700_000_000.0}
+        bridge = _keyed_bridge(
+            endpoint_root,
+            audit,
+            clock=lambda: clock["t"],
+            nonce_factory=lambda: next(nonces),
+        )
+        job1 = bridge.dispatch(
+            prompt="one",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        clock["t"] = 1_700_000_001.0
+        job2 = bridge.dispatch(
+            prompt="two",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        for job in (job1, job2):
+            (job.workdir / "output.md").write_text("summary")
+            _write_worker_status_min(job.workdir, token=job.auth_token)
+
+        # First collection succeeds and burns "dup-nonce".
+        files = bridge.collect_artifacts(job1.job_id, tmp_path / "out1")
+        assert any(p.name == "output.md" for p in files)
+
+        # Second job replays the same nonce → collection refuses.
+        with pytest.raises(rb.BridgeError, match="manifest.json missing"):
+            bridge.collect_artifacts(job2.job_id, tmp_path / "out2")
+        events = audit.read_all()
+        assert any(
+            e.get("reason") == "envelope_invalid"
+            and e.get("envelope_result") == "replayed"
+            for e in events
+        )
+
+    def test_same_job_collect_is_idempotent_under_key(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # Re-collecting the SAME job within a process must not self-reject as a
+        # replay (the per-job memo permits idempotent re-reads).
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        bridge = _keyed_bridge(
+            endpoint_root, audit, clock=lambda: 1_700_000_000.0
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        (job.workdir / "output.md").write_text("summary")
+        _write_worker_status_min(job.workdir, token=job.auth_token)
+        bridge.collect_artifacts(job.job_id, tmp_path / "out1")
+        # Second collect of the same job still works.
+        files = bridge.collect_artifacts(job.job_id, tmp_path / "out2")
+        assert any(p.name == "output.md" for p in files)
+
+
+class TestSignedEnvelopeApproval:
+    def test_approve_consumes_nonce_and_reenvelopes(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+        nonces = iter(["dispatch-nonce", "approve-nonce"])
+        bridge = rb.RemoteBridge(
+            make_endpoint(endpoint_root, allow_remote_execute=False),
+            audit_log=audit,
+            clock=lambda: 1_700_000_000.0,
+            signing_key=_SIGNING_KEY,
+            seen_nonces=rb.SeenNonceStore(tmp_path / "bridge-nonces"),
+            nonce_factory=lambda: next(nonces),
+        )
+        job = bridge.dispatch(
+            prompt="x",
+            expected_artifacts=("status.json",),
+            allow_remote_execute=True,
+        )
+        assert job.state == rb.JobState.AWAITING_APPROVAL
+        promoted = bridge.approve(job.job_id)
+        assert promoted.state == rb.JobState.QUEUED
+        # The approved manifest is re-enveloped with a fresh nonce + valid sig.
+        manifest = json.loads(job.manifest_path.read_text(encoding="utf-8"))
+        assert manifest["allow_remote_execute"] is True
+        assert manifest["nonce"] == "approve-nonce"
+        assert rb.bridge_envelope.verify(
+            manifest, _SIGNING_KEY, now=1_700_000_010.0
+        ).ok
+
+    def test_persisted_nonce_store_blocks_replay_across_restart(
+        self, endpoint_root: Path, tmp_path: Path
+    ):
+        # The seen-nonce store survives a process restart: a new bridge built
+        # over the same store rejects a manifest whose nonce was already burned.
+        store_path = tmp_path / "bridge" / "seen_nonces"
+        audit = rb.AuditLog(tmp_path / "a.jsonl")
+
+        nonces = iter(["dup", "dup"])
+        clock = {"t": 1_700_000_000.0}
+        bridge1 = _keyed_bridge(
+            endpoint_root,
+            audit,
+            clock=lambda: clock["t"],
+            seen_nonces=rb.SeenNonceStore(store_path),
+            nonce_factory=lambda: next(nonces),
+        )
+        job1 = bridge1.dispatch(
+            prompt="one",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        clock["t"] = 1_700_000_001.0
+        job2 = bridge1.dispatch(
+            prompt="two",
+            expected_artifacts=("output.md", "status.json"),
+            allow_remote_execute=True,
+        )
+        for job in (job1, job2):
+            (job.workdir / "output.md").write_text("summary")
+            _write_worker_status_min(job.workdir, token=job.auth_token)
+        bridge1.collect_artifacts(job1.job_id, tmp_path / "o1")
+
+        # Fresh bridge, fresh in-memory memo, but the SAME persisted store.
+        bridge2 = _keyed_bridge(
+            endpoint_root,
+            rb.AuditLog(tmp_path / "b.jsonl"),
+            clock=lambda: 1_700_000_002.0,
+            seen_nonces=rb.SeenNonceStore(store_path),
+        )
+        with pytest.raises(rb.BridgeError, match="manifest.json missing"):
+            bridge2.collect_artifacts(job2.job_id, tmp_path / "o2")
