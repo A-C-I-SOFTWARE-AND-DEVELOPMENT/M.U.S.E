@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+import hermes_cli.branch_consolidation as bc
 from hermes_cli.branch_consolidation import (
     INTEGRATION_BRANCH,
     STATUS_DECLINED,
@@ -157,8 +158,6 @@ def test_push_failure_keeps_local_main(fork_setup, monkeypatch):
     """A rejected push (e.g. origin advanced — the non-ff race) must still
     return MERGED with pushed=False and leave the consolidated local main
     intact, so the caller does not discard the integrated commits."""
-    import hermes_cli.branch_consolidation as bc
-
     work = fork_setup["work"]
     _make_feature_branch(work, "feature.txt", "feature\n")
     _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
