@@ -176,7 +176,12 @@ def test_pair_routes_need_no_shared_token(server) -> None:
     assert payload["expires_at"] > 0
 
     status, payload = _post(
-        server, "/v1/cockpit/pair/confirm", {"pairing_code": payload["pairing_code"]}
+        server,
+        "/v1/cockpit/pair/confirm",
+        {
+            "pairing_code": payload["pairing_code"],
+            "authorization": "Yes, with authorization.",
+        },
     )
     assert status == 201
     assert payload["device_id"].startswith("dev_")
@@ -195,8 +200,25 @@ def test_pair_confirm_requires_code(server) -> None:
 
 def test_pair_confirm_bad_code_is_401(server) -> None:
     with pytest.raises(urllib.error.HTTPError) as exc:
-        _post(server, "/v1/cockpit/pair/confirm", {"pairing_code": "NOPE2345"})
+        _post(
+            server,
+            "/v1/cockpit/pair/confirm",
+            {"pairing_code": "NOPE2345", "authorization": "Yes, with authorization."},
+        )
     assert exc.value.code == 401
+
+
+def test_pair_confirm_requires_owner_phrase(server) -> None:
+    # Owner gate: a valid code without the exact owner phrase cannot mint a token.
+    status, payload = _post(server, "/v1/cockpit/pair/start", {"device_name": "Pixel"})
+    assert status == 201
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        _post(
+            server,
+            "/v1/cockpit/pair/confirm",
+            {"pairing_code": payload["pairing_code"], "authorization": "nope"},
+        )
+    assert exc.value.code == 403
 
 
 def test_pair_start_rate_limited_is_429(server) -> None:

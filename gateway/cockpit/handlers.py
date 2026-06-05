@@ -1150,16 +1150,35 @@ def pair_start(req: Request) -> JsonResponse:
 def pair_confirm(req: Request) -> JsonResponse:
     """Confirm a pairing code — returns a fresh per-device token ONCE.
 
-    Body: ``{"pairing_code": "ABCD2345"}``. On a valid, unexpired code a new
-    ``device_id`` + raw ``token`` are returned; only the token's hash is kept
-    at rest. A bad/expired code (or a locked-out store) is a 401 — and counts
-    toward the brute-force lockout. The raw token is never logged.
+    Body: ``{"pairing_code": "ABCD2345", "authorization": "<owner phrase>"}``.
+    Issuing a device token is owner-gated — the exact owner phrase is required,
+    so a process that can reach the (loopback) pairing route cannot self-issue
+    a credential. On a valid, unexpired code a new ``device_id`` + raw
+    ``token`` are returned; only the token's hash is kept at rest. A
+    bad/expired code (or a locked-out store) is a 401 — and counts toward the
+    brute-force lockout. The raw token is never logged.
     """
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
     from . import device_pairing as dp
 
     code = str((req.body or {}).get("pairing_code", "")).strip()
     if not code:
         return JsonResponse(400, {"error": "pairing_code is required"})
+
+    # Owner gate: pair/start only mints a short-lived, rate-limited code (no
+    # credential), so it stays open; the device token is issued only here, and
+    # only to a caller that presents the exact owner phrase.
+    phrase = str((req.body or {}).get("authorization", "")).strip()
+    if phrase != AUTHORIZATION_PHRASE:
+        return JsonResponse(
+            403,
+            {
+                "error": "owner authorization required",
+                "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+            },
+        )
+
     result = dp.confirm_pairing(code)
     if result is None:
         return JsonResponse(
