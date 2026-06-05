@@ -1,0 +1,10 @@
+name: supabase
+version: 0.1.0
+description: "Native Supabase access for Hermes — read tools (PostgREST row queries, table listing) plus owner-gated write tools (SQL execution, schema migrations) that reuse the hermes_cli.integrations.supabase planner. SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are read from env / ~/.hermes/.env; the service-role key is never logged, never returned to the model, and never sent to the Android cockpit. Writes are dry-run by default and require an owner-approved decision verdict."
+author: NousResearch
+kind: standalone
+provides_tools:
+  - supabase_query
+  - supabase_list_tables
+  - supabase_execute_sql
+  - supabase_apply_migration

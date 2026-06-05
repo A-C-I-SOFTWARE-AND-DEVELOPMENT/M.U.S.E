@@ -1,0 +1,13 @@
+name: vercel
+version: 0.1.0
+description: "Native Vercel access for Hermes — read tools (projects, deployments, preview URLs, build/runtime logs) plus owner-gated write tools (env vars, deploy, cancel/rollback). The VERCEL_TOKEN is read from env / ~/.hermes/.env, is never logged or returned to the model, and is never sent to the Android cockpit. Writes are dry-run by default and require an owner-approved decision verdict."
+author: NousResearch
+kind: standalone
+provides_tools:
+  - vercel_list_projects
+  - vercel_get_deployment
+  - vercel_get_preview_url
+  - vercel_tail_logs
+  - vercel_set_env
+  - vercel_deploy
+  - vercel_cancel_deployment
