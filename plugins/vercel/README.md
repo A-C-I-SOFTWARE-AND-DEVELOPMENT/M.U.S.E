@@ -41,14 +41,25 @@ Writes pass three independent gates:
    model controls (and the owner phrase is a public constant). A `refuse`
    verdict always blocks.
 
-The actual change is applied **out-of-band** via the cockpit owner-approval
-path, which is outside the model's control. Env-var **values** and deploy-hook
-URLs are never echoed back in a tool response; tokens are scrubbed from any
-error text.
+Env-var **values** and deploy-hook URLs are never echoed back in a tool
+response; tokens are scrubbed from any error text.
+
+## Execution (out-of-band)
+
+The approved mutation is performed by `plugins/vercel/executor.py`
+(`apply_set_env` / `apply_deploy` / `apply_cancel`), registered into the
+owner-gated `hermes_cli.action_executors` registry (`vercel.set_env`,
+`vercel.deploy`, `vercel.cancel_deployment`). These run **only** off the
+out-of-band owner-approval path — the cockpit decide handler (after device auth)
+or an owner-run CLI calls
+`action_executors.apply_owner_approved(action_type, params, owner_phrase=…)`,
+which requires the exact phrase before dispatching. The model never reaches them
+(they are not tools). The one remaining hookup is the cockpit decide → dispatch
+call, intentionally left in the cockpit lane.
 
 ## Not yet (follow-ups)
 
-- Out-of-band execution of an approved write (set_env / deploy / cancel) via the
-  cockpit owner-approval path.
+- Cockpit decide → `apply_owner_approved(...)` hookup (one call; lives in the
+  cockpit approval handler).
 - Live deploy via the Deployments API (today `vercel_deploy` proposes a Deploy Hook).
 - Cockpit preview-URL chips surfaced after a PR job.

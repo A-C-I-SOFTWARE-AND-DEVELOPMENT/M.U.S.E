@@ -45,4 +45,12 @@ def register(ctx) -> None:
             requires_env=["SUPABASE_URL", "SUPABASE_ANON_KEY"],
             emoji=emoji,
         )
+    # Register the out-of-band write executor (cockpit owner-approval / CLI
+    # call this on approval; the model-facing tools never do).
+    try:
+        from plugins.supabase.executor import register_executors
+
+        register_executors()
+    except Exception:  # pragma: no cover — out-of-band executors are optional
+        logger.debug("supabase executors not registered", exc_info=True)
     logger.debug("supabase registered %d tools", len(TOOL_REGISTRATIONS))

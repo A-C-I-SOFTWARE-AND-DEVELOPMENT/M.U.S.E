@@ -48,10 +48,21 @@ file. A write passes three gates:
 
 Keys are scrubbed from any error text. Returned rows are size-capped.
 
+## Execution (out-of-band)
+
+On owner approval, `plugins/supabase/executor.py` (`apply_migration`, registered
+as `supabase.execute_sql` / `supabase.apply_migration` in
+`hermes_cli.action_executors`) authors the timestamped migration file. It runs
+**only** off the out-of-band owner-approval path via
+`action_executors.apply_owner_approved(...)` (exact owner phrase required); the
+model never reaches it. Applying the file to a live database stays the
+operator's explicit `supabase db push`.
+
 ## Not yet (follow-ups)
 
-- Out-of-band authoring + execution of an approved migration via the cockpit
-  owner-approval path (today the write tools only propose).
+- Cockpit decide → `apply_owner_approved(...)` hookup (one call; lives in the
+  cockpit approval handler).
+- Live SQL execution via the Management API (today the executor authors a file).
 - A Supabase **memory provider** (`plugins/memory/supabase/`) conforming to
   `agent/memory_provider.py`.
 - Optional decision-ledger mirror to Supabase for cockpit history.

@@ -45,4 +45,12 @@ def register(ctx) -> None:
             requires_env=["VERCEL_TOKEN"],
             emoji=emoji,
         )
+    # Register the out-of-band write executors (cockpit owner-approval / CLI
+    # call these on approval; the model-facing tools never do).
+    try:
+        from plugins.vercel.executor import register_executors
+
+        register_executors()
+    except Exception:  # pragma: no cover — out-of-band executors are optional
+        logger.debug("vercel executors not registered", exc_info=True)
     logger.debug("vercel registered %d tools", len(TOOL_REGISTRATIONS))
