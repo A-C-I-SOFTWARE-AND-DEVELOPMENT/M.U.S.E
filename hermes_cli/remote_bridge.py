@@ -56,11 +56,14 @@ import re
 import secrets
 import shutil
 import time
-from collections.abc import Iterable, Mapping, Sequence
+import uuid
+from collections.abc import Iterable, Mapping, MutableSet, Sequence
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
+
+from hermes_cli import bridge_envelope
 
 # ``httpx`` / ``tenacity`` back the HTTP transport only. The file-drop path is
 # intentionally stdlib-only, and minimal environments (e.g. the orchestration
@@ -100,6 +103,52 @@ else:
 
 DEFAULT_AUDIT_FILENAME = "audit.log.jsonl"
 """Filename for the append-only audit log under the bridge state dir."""
+
+SIGNING_KEY_ENV = "HERMES_BRIDGE_SIGNING_KEY"
+"""Env var that carries the HMAC signing key for the signed-envelope upgrade.
+
+When this is set (or the key file below exists) the bridge signs every
+dispatched manifest and *requires* a valid signed envelope on intake — see
+:func:`bridge_signing_key`. When neither is configured the bridge behaves
+byte-for-byte as it did before this upgrade (legacy per-job token only); the
+envelope layer is strictly **opt-in**.
+"""
+
+SIGNING_KEY_FILENAME = "signing_key"
+"""Key file under ``${HERMES_HOME}/bridge/`` read when the env var is unset.
+
+Expected to be ``0600``. The bridge never auto-generates it: a missing key
+file plus an unset env var means "no key configured", which keeps legacy
+behavior intact rather than silently enabling signing.
+"""
+
+SEEN_NONCES_FILENAME = "seen_nonces"
+"""Append-only nonce ledger under ``${HERMES_HOME}/bridge/``.
+
+Backs :class:`SeenNonceStore` so the single-use nonce check in
+:func:`bridge_envelope.verify` survives a process restart.
+"""
+
+DEFAULT_ENVELOPE_TTL_SECONDS = 300.0
+"""Default lifetime of a signed dispatch envelope (5 minutes).
+
+The envelope's ``expires_at`` is ``created_at + ttl``. Short enough that a
+captured manifest cannot be replayed long after it was issued, generous
+enough to tolerate clock skew between Hermes and the worker host.
+"""
+
+ENVELOPE_NONCE_FIELD = "nonce"
+"""Manifest key carrying the single-use anti-replay nonce."""
+
+ENVELOPE_EXPIRES_FIELD = "expires_at"
+"""Manifest key carrying the envelope's absolute expiry (unix seconds).
+
+When a signing key is configured the on-disk ``manifest.json`` is the legacy
+manifest fields PLUS ``nonce``, ``expires_at``, and a ``signature``. A legacy
+reader ignores the extra keys; :meth:`RemoteBridge._read_manifest` verifies
+the signature/expiry/nonce first and reconstructs the :class:`JobManifest`
+from only its named fields (so the envelope keys are dropped on parse).
+"""
 
 DEFAULT_COMMAND_ALLOWLIST: tuple[str, ...] = ("claude",)
 """Commands the Windows worker is allowed to run on Hermes' behalf.
@@ -440,6 +489,104 @@ class AuditLog:
         return entries
 
 
+# ── signed-envelope key source + nonce store (opt-in upgrade) ──────────────
+
+
+def _bridge_state_dir() -> Path:
+    """Directory holding the signing key + nonce ledger.
+
+    Resolved the same way :meth:`RemoteBridge._default_audit_path` resolves the
+    audit dir — ``${HERMES_HOME}/bridge`` when ``HERMES_HOME`` is set, else
+    ``~/.hermes/bridge``. Kept stdlib-only (no ``hermes_constants`` import) so
+    the file-drop path stays dependency-free, matching the rest of this module.
+    """
+    home = os.environ.get("HERMES_HOME")
+    base = Path(home) if home else Path.home() / ".hermes"
+    return base / "bridge"
+
+
+def bridge_signing_key(*, state_dir: Optional[Path] = None) -> Optional[str]:
+    """Return the configured HMAC signing key, or ``None`` if none is set.
+
+    Resolution order:
+
+      1. ``HERMES_BRIDGE_SIGNING_KEY`` env var (stripped; blank counts as unset).
+      2. The key file ``${HERMES_HOME}/bridge/signing_key`` (expected ``0600``),
+         read and stripped.
+      3. ``None`` — no key configured.
+
+    Returning ``None`` is the load-bearing legacy path: the bridge then runs
+    exactly as it did before the envelope upgrade. The key is **never**
+    auto-generated here — silently minting one would flip behavior from
+    "legacy token" to "signing required" without operator intent. The value is
+    a secret and must never be logged; callers redact via :func:`scrub_secrets`.
+    """
+    env_value = (os.environ.get(SIGNING_KEY_ENV) or "").strip()
+    if env_value:
+        return env_value
+
+    directory = state_dir if state_dir is not None else _bridge_state_dir()
+    key_path = directory / SIGNING_KEY_FILENAME
+    try:
+        file_value = key_path.read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError):
+        return None
+    return file_value or None
+
+
+class SeenNonceStore(MutableSet[str]):
+    """File-backed set of nonces already accepted by the bridge.
+
+    Plugs straight into :func:`bridge_envelope.verify` as its
+    ``seen_nonces`` argument: ``verify`` records a nonce (``add``) only after
+    signature + expiry pass, so a forged or expired envelope can never burn a
+    nonce. Persisting the set to an append-only file means a captured envelope
+    cannot be replayed across a Hermes restart — the in-memory set is rebuilt
+    from disk on construction.
+
+    The on-disk format is one nonce per line. The store is intended for the
+    single-writer bridge process; it is not safe for concurrent writers across
+    processes (matching the rest of the file-drop design, which assumes one
+    Hermes owns the workspace).
+    """
+
+    def __init__(self, path: Path) -> None:
+        self._path = Path(path)
+        self._seen: set[str] = self._load()
+
+    def _load(self) -> set[str]:
+        try:
+            text = self._path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return set()
+        return {line.strip() for line in text.splitlines() if line.strip()}
+
+    def __contains__(self, value: object) -> bool:
+        return value in self._seen
+
+    def __iter__(self):
+        return iter(self._seen)
+
+    def __len__(self) -> int:
+        return len(self._seen)
+
+    def add(self, value: str) -> None:
+        nonce = str(value)
+        if nonce in self._seen:
+            return
+        self._seen.add(nonce)
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with self._path.open("a", encoding="utf-8") as handle:
+            handle.write(nonce)
+            handle.write("\n")
+
+    def discard(self, value: str) -> None:
+        # Removal is in-memory only — the append-only ledger is the durable
+        # record of "burned" nonces and is never rewritten. Discard exists to
+        # satisfy the MutableSet contract; the bridge never calls it.
+        self._seen.discard(str(value))
+
+
 # ── the bridge ────────────────────────────────────────────────────────────
 
 
@@ -476,6 +623,10 @@ class RemoteBridge:
         audit_log: Optional[AuditLog] = None,
         clock: Optional[Any] = None,
         token_factory: Optional[Any] = None,
+        signing_key: Optional[str] = None,
+        seen_nonces: Optional[MutableSet[str]] = None,
+        nonce_factory: Optional[Any] = None,
+        envelope_ttl_seconds: float = DEFAULT_ENVELOPE_TTL_SECONDS,
     ) -> None:
         self.endpoint = endpoint
         self._clock = clock or time.time
@@ -484,6 +635,62 @@ class RemoteBridge:
             default_path = self._default_audit_path()
             audit_log = AuditLog(default_path)
         self.audit_log = audit_log
+
+        # ── signed-envelope upgrade (opt-in) ──────────────────────────────
+        # The key is resolved exactly once, here. An explicit ``signing_key``
+        # (config/tests) wins; otherwise we read env → key file via
+        # ``bridge_signing_key``. ``None`` means "no key configured" → legacy
+        # behavior, untouched. The key value is held in memory only and is
+        # never written to the audit log.
+        self._signing_key: Optional[str] = (
+            signing_key if signing_key else bridge_signing_key()
+        )
+        self._nonce_factory = nonce_factory or (lambda: uuid.uuid4().hex)
+        self._envelope_ttl_seconds = float(envelope_ttl_seconds)
+        # Lazily-bound nonce store: only materialised when a key is configured,
+        # so legacy mode never touches the filesystem for nonces.
+        self._seen_nonces: Optional[MutableSet[str]] = seen_nonces
+        # Per-job memo of the nonce already consumed for that job_id. Lets the
+        # action boundary (approve / collect) re-read the *same* job
+        # idempotently within a process while still rejecting any *other*
+        # manifest that presents an already-burned nonce (a copy/replay).
+        self._consumed_nonces: dict[str, str] = {}
+
+    @property
+    def envelope_enabled(self) -> bool:
+        """True when a signing key is configured (the opt-in upgrade is live)."""
+        return bool(self._signing_key)
+
+    def _nonce_store(self) -> MutableSet[str]:
+        """Return the persisted seen-nonce set, building it on first use."""
+        if self._seen_nonces is None:
+            self._seen_nonces = SeenNonceStore(
+                self._default_bridge_dir() / SEEN_NONCES_FILENAME
+            )
+        return self._seen_nonces
+
+    def _serialize_manifest(
+        self, manifest: JobManifest, *, created_at: float
+    ) -> dict[str, Any]:
+        """Return the dict to write/POST for ``manifest``.
+
+        Legacy mode (no key): exactly ``manifest.to_dict()`` — byte-for-byte
+        what the bridge produced before this upgrade. With a key configured:
+        the same dict wrapped by :func:`bridge_envelope.signed_envelope`, which
+        adds a fresh ``nonce``, an ``expires_at`` (``created_at + ttl``), and a
+        detached HMAC ``signature`` over the whole payload. The signature
+        therefore covers every manifest field — flipping ``allow_remote_execute``
+        or swapping ``command`` invalidates it.
+        """
+        payload = manifest.to_dict()
+        if not self._signing_key:
+            return payload
+        enveloped = {
+            **payload,
+            ENVELOPE_NONCE_FIELD: self._nonce_factory(),
+            ENVELOPE_EXPIRES_FIELD: created_at + self._envelope_ttl_seconds,
+        }
+        return bridge_envelope.signed_envelope(enveloped, self._signing_key)
 
     # ── dispatch ──────────────────────────────────────────────────────────
 
@@ -580,9 +787,13 @@ class RemoteBridge:
             created_at=now,
             extra=dict(extra_manifest or {}),
         )
+        # Serialize once so the on-disk manifest and any HTTP hand-off carry
+        # the identical envelope (same nonce/expiry/signature). In legacy mode
+        # this is just ``manifest.to_dict()``.
+        manifest_payload = self._serialize_manifest(manifest, created_at=now)
         manifest_path = workdir / "manifest.json"
         manifest_path.write_text(
-            json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n",
+            json.dumps(manifest_payload, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
 
@@ -620,7 +831,9 @@ class RemoteBridge:
         # hard error: the local artifacts persist for forensics, but the
         # caller must know the worker did not receive the job.
         if self.endpoint.transport == TRANSPORT_HTTP and approved:
-            ack = self._post_http(manifest, prompt=prompt, token=token)
+            ack = self._post_http(
+                manifest, prompt=prompt, token=token, payload=manifest_payload
+            )
             ack_state = ack.get("state")
             if ack_state:
                 try:
@@ -771,7 +984,12 @@ class RemoteBridge:
                 f"{sorted(s.value for s in allowed)!r}"
             )
         workdir = self._workdir_for(job_id)
-        manifest = self._read_manifest(workdir / "manifest.json")
+        # Collection is an action boundary: consume the single-use nonce so a
+        # replayed manifest cannot drive a second collection. Idempotent for
+        # the same job within a process (see ``_verify_manifest_envelope``).
+        manifest = self._read_manifest(
+            workdir / "manifest.json", consume_nonce=True
+        )
         if manifest is None:
             raise BridgeError(
                 f"refusing to collect: manifest.json missing for {job_id}"
@@ -880,7 +1098,12 @@ class RemoteBridge:
         verified out-of-band that the job is safe to run.
         """
         workdir = self._workdir_for(job_id)
-        manifest = self._read_manifest(workdir / "manifest.json")
+        # Approval is the explicit execution-authorization gate: consume the
+        # single-use nonce so a replayed/duplicated manifest can't be
+        # re-approved. The re-issued manifest below gets a fresh nonce.
+        manifest = self._read_manifest(
+            workdir / "manifest.json", consume_nonce=True
+        )
         if manifest is None:
             raise BridgeError(f"approve: manifest missing for {job_id}")
         status_path = workdir / "status.json"
@@ -912,8 +1135,13 @@ class RemoteBridge:
             created_at=manifest.created_at,
             extra=manifest.extra,
         )
+        # Re-envelope on approval: ``allow_remote_execute`` changed, so the
+        # old signature no longer covers the new manifest. A fresh nonce +
+        # expiry mean the approved manifest is a newly issued, single-use
+        # command. Legacy mode (no key) writes the plain dict as before.
+        new_payload = self._serialize_manifest(new_manifest, created_at=now)
         (workdir / "manifest.json").write_text(
-            json.dumps(new_manifest.to_dict(), indent=2, sort_keys=True) + "\n",
+            json.dumps(new_payload, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
 
@@ -937,7 +1165,10 @@ class RemoteBridge:
                     f"approve: prompt missing for {job_id}: {exc}"
                 ) from exc
             ack = self._post_http(
-                new_manifest, prompt=prompt, token=new_manifest.auth_token
+                new_manifest,
+                prompt=prompt,
+                token=new_manifest.auth_token,
+                payload=new_payload,
             )
             ack_state = ack.get("state")
             if ack_state:
@@ -997,23 +1228,27 @@ class RemoteBridge:
         *,
         prompt: str,
         token: str,
+        payload: Optional[Mapping[str, Any]] = None,
     ) -> dict[str, Any]:
         """POST the staged job packet to the configured HTTP endpoint.
 
         The request body mirrors the file-drop contract: the full job
         manifest plus the prompt body, under the ``hermes.remote.job.v1``
-        schema. Transient failures (timeouts, connection errors, 5xx) are
-        retried with exponential backoff via :mod:`tenacity`; a 4xx is a
-        hard, non-retryable error. Every failure mode is mapped to
-        :class:`BridgeError` so callers see one exception type, and is
-        recorded as an audit refusal first.
+        schema. When the signed-envelope upgrade is active the caller passes
+        the already-enveloped ``payload`` so the POSTed manifest is identical
+        to the one written to disk (same nonce/expiry/signature); otherwise we
+        fall back to ``manifest.to_dict()``. Transient failures (timeouts,
+        connection errors, 5xx) are retried with exponential backoff via
+        :mod:`tenacity`; a 4xx is a hard, non-retryable error. Every failure
+        mode is mapped to :class:`BridgeError` so callers see one exception
+        type, and is recorded as an audit refusal first.
 
         Returns the parsed JSON acknowledgement (``{}`` if the worker
         replies with a non-JSON / empty 2xx body).
         """
         body = {
             "schema": "hermes.remote.job.v1",
-            "manifest": manifest.to_dict(),
+            "manifest": dict(payload) if payload is not None else manifest.to_dict(),
             "prompt": prompt,
         }
         headers = {
@@ -1116,7 +1351,20 @@ class RemoteBridge:
         safe = _safe_filename(job_id)
         return self.endpoint.workspace_root / "jobs" / safe
 
-    def _read_manifest(self, path: Path) -> Optional[JobManifest]:
+    def _read_manifest(
+        self, path: Path, *, consume_nonce: bool = False
+    ) -> Optional[JobManifest]:
+        """Read + (when keyed) verify the manifest envelope, then parse it.
+
+        Legacy mode (no signing key) is unchanged: parse the JSON and return a
+        :class:`JobManifest`, ignoring any extra keys. With a key configured
+        the manifest MUST carry a valid signed envelope — signature + expiry
+        are checked on every read; when ``consume_nonce`` is set the single-use
+        nonce is additionally enforced against the persisted store. A
+        missing/forged/expired/replayed envelope yields ``None`` (callers treat
+        that as "manifest unreadable" and refuse) plus an audit refusal. The
+        signing key is never logged.
+        """
         if not path.is_file():
             return None
         try:
@@ -1124,6 +1372,10 @@ class RemoteBridge:
         except (OSError, json.JSONDecodeError):
             return None
         if not isinstance(raw, Mapping):
+            return None
+        if self._signing_key and not self._verify_manifest_envelope(
+            raw, consume_nonce=consume_nonce
+        ):
             return None
         try:
             return JobManifest(
@@ -1141,6 +1393,53 @@ class RemoteBridge:
             )
         except (KeyError, TypeError, ValueError):
             return None
+
+    def _verify_manifest_envelope(
+        self, raw: Mapping[str, Any], *, consume_nonce: bool
+    ) -> bool:
+        """Verify a signed manifest envelope; audit + return False on failure.
+
+        Only called when a signing key is configured. Always checks signature
+        and expiry. The single-use nonce is enforced only when
+        ``consume_nonce`` is set (the action boundaries — :meth:`approve` and
+        :meth:`collect_artifacts`); read-only polling via :meth:`get_status`
+        passes ``consume_nonce=False`` so repeated polls never burn the nonce.
+        A job may re-consume its *own* already-burned nonce idempotently (memo
+        keyed by ``job_id``); any *other* manifest presenting a burned nonce is
+        rejected as a replay.
+        """
+        assert self._signing_key is not None  # guarded by caller
+        nonce = raw.get(ENVELOPE_NONCE_FIELD)
+        job_id = str(raw.get("job_id", ""))
+
+        seen: Optional[MutableSet[str]] = None
+        if consume_nonce:
+            already = self._consumed_nonces.get(job_id)
+            if already is not None and already == (
+                str(nonce) if nonce is not None else None
+            ):
+                # Idempotent re-validation of the same job's manifest.
+                seen = None
+            else:
+                seen = self._nonce_store()
+
+        result = bridge_envelope.verify(
+            raw,
+            self._signing_key,
+            now=float(self._clock()),
+            seen_nonces=seen,
+        )
+        if not result.ok:
+            self._record_refusal(
+                "envelope_invalid",
+                job_id=job_id,
+                envelope_result=result.result.value,
+            )
+            return False
+
+        if consume_nonce and seen is not None and nonce is not None:
+            self._consumed_nonces[job_id] = str(nonce)
+        return True
 
     def _status_from(
         self,
@@ -1188,6 +1487,11 @@ class RemoteBridge:
             return Path(home) / "remote" / DEFAULT_AUDIT_FILENAME
         return Path.home() / ".hermes" / "remote" / DEFAULT_AUDIT_FILENAME
 
+    @staticmethod
+    def _default_bridge_dir() -> Path:
+        """``${HERMES_HOME}/bridge`` (or ``~/.hermes/bridge``) for key + nonces."""
+        return _bridge_state_dir()
+
 
 # ── helpers ───────────────────────────────────────────────────────────────
 
@@ -1210,17 +1514,23 @@ __all__ = [
     "BridgeError",
     "DEFAULT_AUDIT_FILENAME",
     "DEFAULT_COMMAND_ALLOWLIST",
+    "DEFAULT_ENVELOPE_TTL_SECONDS",
     "JobManifest",
     "JobState",
     "RemoteBridge",
     "RemoteEndpoint",
     "RemoteJob",
     "RemoteStatus",
+    "SEEN_NONCES_FILENAME",
+    "SIGNING_KEY_ENV",
+    "SIGNING_KEY_FILENAME",
     "SUPPORTED_TRANSPORTS",
+    "SeenNonceStore",
     "TRANSPORT_FILE_DROP",
     "TRANSPORT_HTTP",
     "TRANSPORT_SSH",
     "TRANSPORT_WEBSOCKET",
     "TransportNotImplementedError",
+    "bridge_signing_key",
     "scrub_secrets",
 ]
