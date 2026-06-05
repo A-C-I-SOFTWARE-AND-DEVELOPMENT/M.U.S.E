@@ -233,9 +233,13 @@ class DeviceControlController(
             val packet = DeviceActionPacket.from(held.intent, held.resolved?.label)
             val decision = DeviceActionBroker.evaluate(
                 packet = packet,
+                // The owner's tap is the confirmation: lift the SENSITIVE confirm
+                // gate and satisfy the IRREVERSIBLE floor — emergency / master
+                // switch / permissions are still re-verified by the broker.
                 consent = consent.copy(confirmSensitiveActions = false),
                 emergencyEngaged = _halted.value,
                 grantedCapabilities = grantedCapabilities(),
+                confirmationObtained = true,
             )
             if (decision is BrokerDecision.Approved) {
                 ledger.record(DeviceActionBroker.logEntryFor(packet, decision, clock()))
