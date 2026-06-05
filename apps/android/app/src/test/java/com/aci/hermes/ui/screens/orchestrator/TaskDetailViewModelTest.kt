@@ -56,6 +56,12 @@ class TaskDetailViewModelTest {
     @Test
     fun `a brand new task starts in the new state with a prompt preview`() {
         val vm = newVm(taskId = "new")
+        // promptPreview renders from an async settings read; wait for it rather
+        // than reading state.value immediately — reading it eagerly was an
+        // intermittent CI-load flake (preview still blank when asserted).
+        awaitUntil(message = "prompt preview should be rendered") {
+            vm.state.value.promptPreview.isNotBlank()
+        }
         val state = vm.state.value
         assertTrue("a fresh task is marked new", state.isNew)
         assertEquals(TargetTool.CODEX, state.task.targetTool)
@@ -67,7 +73,10 @@ class TaskDetailViewModelTest {
         val vm = newVm(taskId = "new")
         vm.setTitle("Tidy the uploader")
         assertEquals("Tidy the uploader", vm.state.value.task.title)
-        assertTrue(vm.state.value.promptPreview.contains("Tidy the uploader"))
+        // The re-render is async; wait for the edited title to reach the preview.
+        awaitUntil(message = "preview reflects the edited title") {
+            vm.state.value.promptPreview.contains("Tidy the uploader")
+        }
     }
 
     @Test
