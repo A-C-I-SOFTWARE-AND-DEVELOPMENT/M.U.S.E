@@ -143,8 +143,11 @@ class AgentExecutor:
         def _one(grain: Grain) -> None:
             res = results[grain.grain_id]
             res.started_at = now_iso()
-            workdir = worktrees.get(grain.grain_id, repo)
+            placement = worktrees.get(grain.grain_id)
+            workdir = placement[0] if placement else repo
             res.worktree_path = str(workdir)
+            if placement:
+                res.branch = placement[1]
             try:
                 out = self.agent_runner.run(specs[grain.grain_id], workdir, grain)
             except Exception as exc:  # runner crash → failed grain, never raises out
@@ -164,10 +167,10 @@ class AgentExecutor:
 
         return [results[g.grain_id] for g in plan.grains]
 
-    def _provision(self, repo: Path, plan: SwarmPlan) -> dict[str, Path]:
+    def _provision(self, repo: Path, plan: SwarmPlan) -> dict[str, tuple[Path, str]]:
         from hermes_cli import worktrees as wt
 
-        out: dict[str, Path] = {}
+        out: dict[str, tuple[Path, str]] = {}
         for grain in plan.grains:
             info = wt.create_worktree(
                 repo,
@@ -176,7 +179,7 @@ class AgentExecutor:
                 base_ref=self.base_ref,
                 extra_metadata={"intent": grain.intent, "lane": grain.model_lane},
             )
-            out[grain.grain_id] = Path(info.path)
+            out[grain.grain_id] = (Path(info.path), info.branch)
         return out
 
 
