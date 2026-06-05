@@ -503,3 +503,42 @@ class TestGitPlumbing:
         dirty = gp.get_status(repo)
         assert dirty.clean is False
         assert "new.py" in dirty.untracked
+
+
+# ── decision verdict at the publish boundary (Sprint 2 wiring) ───────────────
+
+
+@requires_git
+def test_publish_status_includes_auto_verdict_for_clean_dry_run(repo: Path) -> None:
+    (repo / "foo.py").write_text("x = 1\n", encoding="utf-8")
+    result = gp.run(
+        job_id="verdict-clean",
+        files=["foo.py"],
+        commit_message="feat: foo",
+        repo_root=repo,
+        approve=False,
+    )
+    verdict = result.plan.decision_verdict
+    assert verdict is not None
+    assert verdict["tier"] == "auto"
+    # and it is surfaced in the written status artifact
+    status = json.loads(
+        (repo / "github" / "publish-status.json").read_text(encoding="utf-8")
+    )
+    assert status["decision_verdict"]["tier"] == "auto"
+
+
+@requires_git
+def test_publish_status_refuses_on_secret(repo: Path) -> None:
+    (repo / ".env").write_text("API_KEY=supersecretvalue\n", encoding="utf-8")
+    result = gp.run(
+        job_id="verdict-secret",
+        files=[".env"],
+        commit_message="chore: env",
+        repo_root=repo,
+        approve=False,
+    )
+    verdict = result.plan.decision_verdict
+    assert verdict is not None
+    assert verdict["tier"] == "refuse"
+    assert "secret_detected" in verdict["reason_codes"]

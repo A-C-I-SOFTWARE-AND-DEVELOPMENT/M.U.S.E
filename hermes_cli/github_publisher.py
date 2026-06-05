@@ -41,7 +41,13 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Any, Iterable, Mapping, Optional, Sequence
+
+from hermes_cli.decision_engine import (
+    merge_decision_inputs,
+    owner_gate_input,
+    secret_input,
+)
 
 __all__ = [
     "PublisherError",
@@ -133,6 +139,7 @@ class PublishPlan:
     output_dir: Path
     repo: RepoInfo
     created_at: str
+    decision_verdict: Optional[Mapping[str, Any]] = None
 
     def as_status(self, *, executed: bool, pushed: bool, errors: Sequence[str]) -> dict:
         return {
@@ -146,6 +153,7 @@ class PublishPlan:
             "executed": executed,
             "pushed": pushed,
             "errors": list(errors),
+            "decision_verdict": self.decision_verdict,
             "created_at": self.created_at,
             "repo": {
                 "owner": self.repo.owner,
@@ -810,6 +818,15 @@ def run(
         for path, reason in findings.items():
             errors.append(f"blocked: {path} — {reason}")
 
+    # Unified decision verdict for the publish boundary (Sprint 2 wiring):
+    # secrets -> refuse; a live publish (approve=True) is owner-gated -> ask;
+    # a dry-run with no findings -> auto. Behavior-preserving — this records
+    # the verdict for the cockpit; the existing publish gate below is unchanged.
+    _decision_inputs = [secret_input(list(findings))]
+    if approve:
+        _decision_inputs.append(owner_gate_input(True, action="github.publish_pr"))
+    verdict = merge_decision_inputs("github.publish_pr", _decision_inputs)
+
     branch = branch_name_for_job(job_id)
     title = (pr_title or commit_message.splitlines()[0] if commit_message else f"hermes: job {job_id}").strip()
     body = prepare_pr_body(
@@ -843,6 +860,7 @@ def run(
         output_dir=out,
         repo=repo,
         created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        decision_verdict=verdict.to_redacted_dict(),
     )
 
     executed = False
