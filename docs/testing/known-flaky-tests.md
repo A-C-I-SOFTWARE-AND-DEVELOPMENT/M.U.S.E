@@ -9,10 +9,33 @@ this repo, so known issues are tracked here.
 
 ## Android ViewModel tests — `Dispatchers.resetMain()` throws `IllegalStateException`
 
-- **Status:** open (pre-existing test-infra debt; not a product bug)
+- **Status:** open — **`MainDispatcherRule` migration (#303) reduced but did NOT
+  eliminate it.** Still reproduces (e.g. PR #297 on the post-#303 base:
+  `OrchestratorViewModelTest > copying a prompt for an unknown task is a safe
+  no-op`, `IllegalStateException` at `TestMainDispatcher.kt:67` — the `setMain`
+  side). Centralising set/reset in one rule was necessary but not sufficient.
 - **Surface:** `Android JVM unit (testDebugUnitTest)` CI job
-- **Observed on:** PR #262 (`OrchestratorViewModelTest`), PR #272
-  (`TaskDetailViewModelTest`)
+- **Observed on:** PR #262, #272 (`resetMain` side); PR #297 after #303
+  (`setMain` side)
+
+### Why #303 wasn't enough (refined root cause)
+
+`MainDispatcherRule` guarantees `setMain`/`resetMain` are *paired per test method*,
+but the tests construct ViewModels whose `init` starts **long-lived
+`viewModelScope` coroutines** (e.g. an infinite settings-flow `collect`) and
+never cancel them (no `onCleared`/scope cancel in the test). A leaked collector
+from one class can still be live when the next class's rule installs a new Main
+override, tripping `TestMainDispatcher`'s guard. The real fix is to stop the
+leak, not just centralise the override:
+
+- Cancel each ViewModel's `viewModelScope` at test end (e.g. a small helper that
+  calls the VM's `onCleared`/closes the scope in `@After`/the rule's `finished()`),
+  **or** inject the `CoroutineScope`/dispatcher into the ViewModels so tests own a
+  scope they can cancel, **or** make `init` collectors structured so they end when
+  the test scope ends.
+- This **must** be validated by running `:app:testDebugUnitTest` many times on an
+  Android-capable machine — the failure is ~1-in-N, so a single green run is not
+  proof (that is exactly how #303 looked green before this recurrence).
 
 ### Symptom
 
