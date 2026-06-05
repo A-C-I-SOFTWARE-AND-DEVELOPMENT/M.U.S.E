@@ -54,6 +54,7 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     WebSocketDisconnect = Exception  # type: ignore[assignment]
     FASTAPI_AVAILABLE = False
 
+from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
 from hermes_cli.orchestrator_events import (
     ALL_EVENTS,
     ALL_PHASES,
@@ -251,6 +252,21 @@ class JobStore:
             if job is None:
                 raise KeyError(job_id)
             return list(job.events)
+
+    async def snapshot(self, job_id: str) -> JobSnapshot:
+        """Reconstruct a job's state purely from its recorded events.
+
+        Folds the job's event envelopes through the replay reducer
+        (:func:`hermes_cli.job_replay.rebuild_snapshot`). This is the basis
+        for restart-replay: the same fold rebuilds status / phase / workers /
+        approvals from a persisted event stream, so job state can survive
+        losing the in-memory copy. An unknown job yields an empty snapshot
+        (no raise), mirroring the reducer's tolerance.
+        """
+        async with self._lock:
+            job = self._jobs.get(job_id)
+            events = list(job.events) if job is not None else []
+        return rebuild_snapshot(events, job_id=job_id)
 
 
 def _is_loopback_host(host: str) -> bool:
