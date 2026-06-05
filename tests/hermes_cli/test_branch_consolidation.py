@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 
-import hermes_cli.branch_consolidation as bc
 from hermes_cli.branch_consolidation import (
     INTEGRATION_BRANCH,
     STATUS_DECLINED,
@@ -163,7 +162,8 @@ def test_push_failure_keeps_local_main(fork_setup, monkeypatch):
     _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
 
     monkeypatch.setattr(
-        bc, "_push_main", lambda git_cmd, repo: (False, "  ℹ push rejected (non-ff)")
+        "hermes_cli.branch_consolidation._push_main",
+        lambda git_cmd, repo: (False, "  ℹ push rejected (non-ff)"),
     )
 
     result = consolidate_into_main(
