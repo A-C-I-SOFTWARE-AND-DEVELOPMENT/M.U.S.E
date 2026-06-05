@@ -1,0 +1,10 @@
+name: learning
+version: 1.0.0
+description: "Learning aids for Hermes. books_search (Open Library), gutenberg_search (Project Gutenberg / Gutendex), and quote_random (ZenQuotes) are free, no key. wolfram_answer uses Wolfram|Alpha's Short Answers API and only appears when WOLFRAM_APP_ID is set in ~/.hermes/.env. All read-only and host-pinned. Opt-in via `learning.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - books_search
+  - gutenberg_search
+  - quote_random
+  - wolfram_answer
