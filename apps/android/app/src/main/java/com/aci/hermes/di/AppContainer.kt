@@ -19,6 +19,7 @@ import com.aci.hermes.data.capability.CapabilityRepository
 import com.aci.hermes.data.cockpit.CockpitHomeRepository
 import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitModelRoutesRepository
+import com.aci.hermes.data.cockpit.DevicePairingClient
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.devicecontrol.DeviceActionLedger
 import com.aci.hermes.data.devicecontrol.DeviceControlController
@@ -66,6 +67,7 @@ import com.aci.hermes.ui.screens.evidence.EvidenceViewModel
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.screens.pairing.DevicePairingViewModel
 import com.aci.hermes.ui.screens.research.ResearchViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsViewModel
@@ -482,6 +484,22 @@ class AppContainer(private val application: Application) {
 
     fun settingsVmFactory(): ViewModelProvider.Factory = factory {
         SettingsViewModel(settingsRepository, taskRepository, logBuffer, codingTaskStore)
+    }
+
+    /**
+     * Device pairing (pre-auth handshake → per-device token). The client reads
+     * the same `cockpitEndpoint()` provider the live client uses, and persists
+     * the confirmed token through [settingsRepository] (`setCockpitToken`) so
+     * the in-memory bearer cache the live [cockpitClient] reads flips to paired
+     * immediately — no app restart.
+     */
+    fun devicePairingVmFactory(): ViewModelProvider.Factory = factory {
+        DevicePairingViewModel(
+            DevicePairingClient(
+                endpointProvider = ::cockpitEndpoint,
+                settingsRepository = settingsRepository,
+            ),
+        )
     }
 
     fun diagnosticsVmFactory(): ViewModelProvider.Factory = factory {
