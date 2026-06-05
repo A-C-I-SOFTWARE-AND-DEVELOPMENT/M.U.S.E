@@ -55,6 +55,7 @@ fun SettingsScreen(
     onOpenKnowledge: () -> Unit = {},
     onOpenModelCenter: () -> Unit = {},
     onOpenReleaseCenter: () -> Unit = {},
+    onOpenPairing: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
@@ -149,6 +150,16 @@ fun SettingsScreen(
                     checked = state.showSafetyWarnings,
                     onChange = viewModel::setShowSafetyWarnings,
                 )
+            }
+
+            SettingsSection("Connection") {
+                SettingsRow(
+                    title = "Pair a device",
+                    subtitle = "Request a code and confirm it to receive a per-device token.",
+                )
+                OutlinedButton(onClick = onOpenPairing, modifier = Modifier.fillMaxWidth()) {
+                    Text("Pair a device")
+                }
             }
 
             SettingsSection(stringResource(R.string.settings_section_personalization)) {

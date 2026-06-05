@@ -43,13 +43,28 @@ class DevicePairingViewModel(
     private val _state = MutableStateFlow<DevicePairingState>(DevicePairingState.Idle)
     val state: StateFlow<DevicePairingState> = _state.asStateFlow()
 
+    /**
+     * True while a `pair/start` or `pair/confirm` request is in flight. Drives
+     * the in-flight guard below (re-entrant taps are ignored) and lets the
+     * screen disable its action buttons, mirroring
+     * [com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel]'s `saving` flag.
+     */
+    private val _isSubmitting = MutableStateFlow(false)
+    val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
+
     /** Request a pairing code; moves to [DevicePairingState.CodeRequested] on success. */
     fun startPairing(deviceName: String? = null) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
         viewModelScope.launch {
-            _state.value = when (val res = client.startPairing(deviceName)) {
-                is CockpitResult.Success -> DevicePairingState.CodeRequested(res.value)
-                is CockpitResult.Failure -> DevicePairingState.Error(failureMessage(res))
-                is CockpitResult.Unreachable -> DevicePairingState.Error(res.message)
+            try {
+                _state.value = when (val res = client.startPairing(deviceName)) {
+                    is CockpitResult.Success -> DevicePairingState.CodeRequested(res.value)
+                    is CockpitResult.Failure -> DevicePairingState.Error(failureMessage(res))
+                    is CockpitResult.Unreachable -> DevicePairingState.Error(res.message)
+                }
+            } finally {
+                _isSubmitting.value = false
             }
         }
     }
@@ -59,19 +74,36 @@ class DevicePairingViewModel(
      * token is already persisted by the client and we move to
      * [DevicePairingState.Paired]; a `403` surfaces as a non-retryable
      * authorization error (the phrase, not the code, was wrong).
+     *
+     * Re-entrant taps are ignored while a request is in flight, and a late
+     * failure can never overwrite a successful [DevicePairingState.Paired]: the
+     * gateway consumes the code on the first success, so a duplicate request
+     * racing in afterwards would 401 — but the token is already persisted, so
+     * showing it as an error would be a lie.
      */
     fun confirmPairing(
         code: String,
         authorization: String = DevicePairingClient.OWNER_AUTHORIZATION_PHRASE,
     ) {
+        if (_isSubmitting.value) return
+        _isSubmitting.value = true
         viewModelScope.launch {
-            _state.value = when (val res = client.confirmPairing(code, authorization)) {
-                is CockpitResult.Success -> DevicePairingState.Paired(res.value)
-                is CockpitResult.Failure -> DevicePairingState.Error(
-                    failureMessage(res),
-                    retryable = res.httpStatus != 403,
-                )
-                is CockpitResult.Unreachable -> DevicePairingState.Error(res.message)
+            try {
+                val next = when (val res = client.confirmPairing(code, authorization)) {
+                    is CockpitResult.Success -> DevicePairingState.Paired(res.value)
+                    is CockpitResult.Failure -> DevicePairingState.Error(
+                        failureMessage(res),
+                        retryable = res.httpStatus != 403,
+                    )
+                    is CockpitResult.Unreachable -> DevicePairingState.Error(res.message)
+                }
+                // Never demote a successful pairing back to an error: once the
+                // token is persisted, a late/duplicate failure must not win.
+                if (_state.value !is DevicePairingState.Paired || next is DevicePairingState.Paired) {
+                    _state.value = next
+                }
+            } finally {
+                _isSubmitting.value = false
             }
         }
     }

@@ -65,6 +65,8 @@ import com.aci.hermes.ui.screens.modelroute.ModelRouteScreen
 import com.aci.hermes.ui.screens.modelroute.ModelRouteViewModel
 import com.aci.hermes.ui.screens.onboarding.OnboardingScreen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.screens.pairing.DevicePairingScreen
+import com.aci.hermes.ui.screens.pairing.DevicePairingViewModel
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailScreen
 import com.aci.hermes.ui.screens.orchestrator.TaskDetailViewModel
 import com.aci.hermes.ui.screens.settings.SettingsScreen
@@ -259,6 +261,7 @@ fun HermesNavHost(
                 onOpenKnowledge = { nav.navigate(Screen.Knowledge.route) },
                 onOpenModelCenter = openModelCenter,
                 onOpenReleaseCenter = openReleaseCenter,
+                onOpenPairing = { nav.navigate(Screen.Pairing.route) },
             )
         }
 
@@ -272,6 +275,13 @@ fun HermesNavHost(
                 factory = remember { container.deviceControlVmFactory() },
             )
             DeviceControlScreen(viewModel = vm, onBack = { nav.popBackStack() })
+        }
+
+        composable(Screen.Pairing.route) {
+            val vm: DevicePairingViewModel = viewModel(
+                factory = remember { container.devicePairingVmFactory() },
+            )
+            DevicePairingScreen(viewModel = vm, onBack = { nav.popBackStack() })
         }
         composable(Screen.ModelRoute.route) {
             val vm: ModelRouteViewModel = viewModel(factory = remember { container.modelRouteVmFactory() })

@@ -46,6 +46,9 @@ sealed class Screen(val route: String) {
     /** Device-control consent + action log; pushed from the Control tab. */
     data object DeviceControl : Screen("device_control")
 
+    /** Owner-gated device pairing (code → token); pushed from Settings. */
+    data object Pairing : Screen("pairing")
+
     data object AuditDetail : Screen("audit_detail/{auditId}") {
         const val ARG_AUDIT_ID = "auditId"
         fun forAudit(id: String): String = "audit_detail/$id"
