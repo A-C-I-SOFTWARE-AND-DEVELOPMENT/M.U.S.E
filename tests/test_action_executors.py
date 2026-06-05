@@ -8,6 +8,7 @@ Supabase executors driven through that gate (mock HTTP / tmp filesystem).
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -47,7 +48,7 @@ def test_register_rejects_bad_input():
     with pytest.raises(ValueError):
         ax.register("", lambda p: {})
     with pytest.raises(ValueError):
-        ax.register("x", "not-callable")  # type: ignore[arg-type]
+        ax.register("x", cast(Any, "not-callable"))
 
 
 def test_dispatch_unknown_raises():
