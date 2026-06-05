@@ -619,6 +619,8 @@ def prepare_pr_body(
     changes: Optional[Sequence[str]] = None,
     test_plan: Optional[Sequence[str]] = None,
     notes: str = "",
+    verdict_id: Optional[str] = None,
+    decision_tier: Optional[str] = None,
 ) -> str:
     """Render the PR body markdown for ``job_id``.
 
@@ -626,6 +628,11 @@ def prepare_pr_body(
     summary block, a bulleted changes list, a test-plan checklist, and
     an optional notes section. Empty sections are omitted so the body
     stays scannable.
+
+    When ``verdict_id`` is provided (the unified decision verdict from the
+    publish boundary), a ``## Decision`` block records it — closing the
+    Sprint 5 "PR body lacks a verdict id" gap. Defaults preserve the prior
+    output exactly for callers that don't pass it.
     """
     lines: list[str] = []
     lines.append(f"## Summary")
@@ -654,6 +661,12 @@ def prepare_pr_body(
     if notes.strip():
         lines.append("## Notes")
         lines.append(notes.strip())
+        lines.append("")
+
+    if verdict_id:
+        lines.append("## Decision")
+        tier_note = f" (tier: {decision_tier})" if decision_tier else ""
+        lines.append(f"- Verdict: `{verdict_id}`{tier_note}")
         lines.append("")
 
     lines.append("## Provenance")
@@ -835,6 +848,8 @@ def run(
         changes=pr_changes,
         test_plan=pr_test_plan,
         notes=pr_notes,
+        verdict_id=verdict.id,
+        decision_tier=verdict.tier.value,
     )
 
     gh_present = gh_available()
