@@ -114,4 +114,54 @@ class PublishSerializationTest {
         val empty = json.decodeFromString(TemplateList.serializer(), """{"templates":[]}""")
         assertTrue(empty.templates.isEmpty())
     }
+
+    @Test
+    fun `override validation request encodes gate_ids and note in snake_case`() {
+        val body = json.encodeToString(
+            OverrideValidationRequest.serializer(),
+            OverrideValidationRequest(gateIds = listOf("pytest", "ruff"), note = "flaky on CI"),
+        )
+        assertTrue(body.contains("\"gate_ids\":[\"pytest\",\"ruff\"]"))
+        assertTrue(body.contains("\"note\":\"flaky on CI\""))
+    }
+
+    @Test
+    fun `validation gate decodes the applied-override fields`() {
+        // A gate carried back by an override response gains override_applied + note.
+        val gate = json.decodeFromString(
+            ValidationGate.serializer(),
+            """{"id":"pytest","name":"pytest","status":"FAIL",
+               "override_allowed":true,"override_applied":true,"override_note":"flaky on CI"}""".trimIndent(),
+        )
+        assertEquals("pytest", gate.id)
+        assertTrue(gate.overrideAllowed)
+        assertTrue(gate.overrideApplied)
+        assertEquals("flaky on CI", gate.overrideNote)
+    }
+
+    @Test
+    fun `validation gate tolerates the override fields being absent`() {
+        // A plain validation/revalidate gate carries neither override field.
+        val gate = json.decodeFromString(
+            ValidationGate.serializer(),
+            """{"id":"g","name":"g","status":"PENDING"}""",
+        )
+        assertFalse(gate.overrideApplied) // defaulted false when absent
+        assertNull(gate.overrideNote)
+    }
+
+    @Test
+    fun `validation snapshot decodes gates with an applied override`() {
+        // The full override response shape: a ValidationSnapshot whose gate is overridden.
+        val snap = json.decodeFromString(
+            ValidationSnapshot.serializer(),
+            """{"gates":[{"id":"pytest","name":"pytest","status":"FAIL",
+                         "override_allowed":true,"override_applied":true,"override_note":"flaky"}],
+               "policy":{"all_must_pass":true,"override_requires_note":true}}""".trimIndent(),
+        )
+        assertEquals(1, snap.gates.size)
+        assertTrue(snap.gates[0].overrideApplied)
+        assertEquals("flaky", snap.gates[0].overrideNote)
+        assertTrue(snap.policy.overrideRequiresNote)
+    }
 }

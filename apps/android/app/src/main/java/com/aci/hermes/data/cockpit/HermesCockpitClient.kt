@@ -705,6 +705,39 @@ class HermesCockpitClient(
     suspend fun jobValidation(id: String): CockpitResult<ValidationSnapshot> =
         request("GET", "/v1/cockpit/jobs/" + enc(id) + "/validation", ValidationSnapshot.serializer())
 
+    /** Re-run the verification gates against a job's workspace (the live-rerun
+     *  companion to the read-only [jobValidation]). Returns the fresh
+     *  [ValidationSnapshot]. */
+    suspend fun jobRevalidate(id: String): CockpitResult<ValidationSnapshot> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/revalidate",
+            ValidationSnapshot.serializer(),
+            body = "{}",
+        )
+
+    /**
+     * Owner override for one or more failing/blocking verification gates on a
+     * job. Returns the refreshed [ValidationSnapshot]; each overridden gate comes
+     * back with `override_applied=true` and the recorded [note]
+     * ([ValidationGate.overrideApplied] / [ValidationGate.overrideNote]). The
+     * server records the override note in the audit trail.
+     */
+    suspend fun jobOverride(
+        id: String,
+        gateIds: List<String>,
+        note: String,
+    ): CockpitResult<ValidationSnapshot> =
+        request(
+            "POST",
+            "/v1/cockpit/jobs/" + enc(id) + "/override",
+            ValidationSnapshot.serializer(),
+            body = json.encodeToString(
+                OverrideValidationRequest.serializer(),
+                OverrideValidationRequest(gateIds = gateIds, note = note),
+            ),
+        )
+
     /** One directory level inside a job's workspace (path-sandboxed server-side).
      *  A blank/absent [path] lists the workspace root. */
     suspend fun jobTree(id: String, path: String? = null): CockpitResult<TreeListing> {
