@@ -48,6 +48,7 @@ import com.aci.hermes.data.cockpit.DevicePairingClient
 @Composable
 fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
     val state by viewModel.state.collectAsState()
+    val isSubmitting by viewModel.isSubmitting.collectAsState()
     var deviceName by remember { mutableStateOf("") }
 
     Scaffold(
@@ -86,6 +87,7 @@ fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
                     deviceName = deviceName,
                     onDeviceNameChange = { deviceName = it },
                     onRequestCode = { viewModel.startPairing(deviceName) },
+                    submitting = isSubmitting,
                 )
 
                 is DevicePairingState.CodeRequested -> CodeRequestedCard(
@@ -94,6 +96,7 @@ fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
                         viewModel.confirmPairing(code, authorization)
                     },
                     onCancel = viewModel::reset,
+                    submitting = isSubmitting,
                 )
 
                 is DevicePairingState.Paired -> PairedCard(
@@ -115,6 +118,7 @@ private fun IdleCard(
     deviceName: String,
     onDeviceNameChange: (String) -> Unit,
     onRequestCode: () -> Unit,
+    submitting: Boolean,
 ) {
     PairingCard {
         Text("Request a pairing code", style = MaterialTheme.typography.titleMedium)
@@ -125,7 +129,11 @@ private fun IdleCard(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Device name (optional)") },
         )
-        OutlinedButton(onClick = onRequestCode, modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = onRequestCode,
+            enabled = !submitting,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             Text("Request code")
         }
     }
@@ -136,6 +144,7 @@ private fun CodeRequestedCard(
     state: DevicePairingState.CodeRequested,
     onConfirm: (code: String, authorization: String) -> Unit,
     onCancel: () -> Unit,
+    submitting: Boolean,
 ) {
     // Pre-fill the issued code; the owner still has to type the authorization
     // phrase, which is what the gateway actually gates token issuance on.
@@ -175,7 +184,8 @@ private fun CodeRequestedCard(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = { onConfirm(code, authorization) },
-                enabled = code.isNotBlank() &&
+                enabled = !submitting &&
+                    code.isNotBlank() &&
                     authorization == DevicePairingClient.OWNER_AUTHORIZATION_PHRASE,
             ) {
                 Text("Confirm")

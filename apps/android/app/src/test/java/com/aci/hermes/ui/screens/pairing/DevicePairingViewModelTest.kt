@@ -9,8 +9,10 @@ import com.aci.hermes.data.cockpit.DevicePairingClient
 import com.aci.hermes.data.preferences.SecureTokenStore
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.testutil.MainDispatcherRule
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -23,6 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * State-machine behaviour for the pairing screen. Drives the real
@@ -61,13 +64,14 @@ class DevicePairingViewModelTest {
 
     private fun vm(
         settings: SettingsRepository = settings(),
+        ioDispatcher: CoroutineDispatcher = Dispatchers.Unconfined,
         exec: (CockpitRequest) -> CockpitRawResponse,
     ): DevicePairingViewModel {
         val client = DevicePairingClient(
             endpointProvider = { "http://127.0.0.1:8765" },
             settingsRepository = settings,
             executor = CockpitHttpExecutor { exec(it) },
-            ioDispatcher = Dispatchers.Unconfined,
+            ioDispatcher = ioDispatcher,
         )
         return DevicePairingViewModel(client)
     }
@@ -141,6 +145,61 @@ class DevicePairingViewModelTest {
         val s = vm.state.value
         assertTrue(s is DevicePairingState.Error)
         assertEquals(true, (s as DevicePairingState.Error).retryable)
+    }
+
+    @Test
+    fun `a re-entrant confirm while one is in flight is ignored - one request, ends Paired`() = runTest {
+        // Bind the client's IO to the test scheduler so the first confirm
+        // suspends in flight (isSubmitting stays true) until advanceUntilIdle().
+        val calls = AtomicInteger(0)
+        val settings = settings()
+        val vm = vm(settings, ioDispatcher = StandardTestDispatcher(testScheduler)) {
+            calls.incrementAndGet()
+            CockpitRawResponse(201, """{"device_id":"dev_abc","token":"tok-xyz","token_type":"Bearer"}""")
+        }
+        // Double-tap before the first network call returns.
+        vm.confirmPairing("ABCD2345", authorization = "Yes, with authorization.")
+        assertTrue("first confirm should mark the VM as submitting", vm.isSubmitting.value)
+        vm.confirmPairing("ABCD2345", authorization = "Yes, with authorization.")
+        advanceUntilIdle()
+
+        assertEquals("the second tap must be ignored while one is in flight", 1, calls.get())
+        assertTrue(vm.state.value is DevicePairingState.Paired)
+        assertTrue("submitting clears once the result arrives", !vm.isSubmitting.value)
+    }
+
+    @Test
+    fun `a late failed confirm after success does not overwrite Paired`() = runTest {
+        // Model the race outcome directly: succeed first (gateway consumes the
+        // code + persists the token), then a duplicate request 401s after the
+        // success. The terminal Paired state must survive the late failure.
+        val settings = settings()
+        var confirmCalls = 0
+        val vm = vm(settings) { req ->
+            if (req.url.endsWith("/pair/confirm")) {
+                confirmCalls++
+                if (confirmCalls == 1) {
+                    CockpitRawResponse(201, """{"device_id":"dev_abc","token":"tok-xyz","token_type":"Bearer"}""")
+                } else {
+                    CockpitRawResponse(401, """{"error":"invalid or expired pairing code"}""")
+                }
+            } else {
+                error("only confirm expected")
+            }
+        }
+        vm.confirmPairing("ABCD2345", authorization = "Yes, with authorization.")
+        advanceUntilIdle()
+        assertTrue(vm.state.value is DevicePairingState.Paired)
+
+        // The late duplicate (e.g. a retried tap whose response lost the race)
+        // resolves to a 401 — it must NOT demote the already-persisted pairing.
+        vm.confirmPairing("ABCD2345", authorization = "Yes, with authorization.")
+        advanceUntilIdle()
+
+        assertTrue("a late failure must not overwrite Paired", vm.state.value is DevicePairingState.Paired)
+        assertEquals("dev_abc", (vm.state.value as DevicePairingState.Paired).confirm.deviceId)
+        // The token persisted on the first success is still the live bearer.
+        assertEquals("tok-xyz", settings.cockpitToken.value)
     }
 
     @Test
