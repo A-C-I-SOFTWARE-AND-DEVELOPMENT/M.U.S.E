@@ -31,14 +31,14 @@ class OrchestratorViewModelTest {
 
     private fun newVm(): OrchestratorViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
-        return OrchestratorViewModel(
+        return mainDispatcherRule.register(OrchestratorViewModel(
             application = app,
             settings = isolatedSettings(app),
             tasksRepo = HermesTaskRepository(app),
             promptBuilder = PromptBuilder(),
             logBuffer = LogBuffer(),
             cockpitClient = HermesCockpitClient(endpointProvider = { "" }, tokenProvider = { null }),
-        )
+        ))
     }
 
     @Test

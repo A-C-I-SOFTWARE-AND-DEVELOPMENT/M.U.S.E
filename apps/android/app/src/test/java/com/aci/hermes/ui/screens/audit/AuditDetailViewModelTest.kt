@@ -22,7 +22,7 @@ class AuditDetailViewModelTest {
     fun `resolves the record for a known id`() = runTest {
         val repo = AuditRepository()
         val target = repo.records.value.first()
-        val vm = AuditDetailViewModel(repo, target.id)
+        val vm = mainDispatcherRule.register(AuditDetailViewModel(repo, target.id))
         advanceUntilIdle()
         val state = vm.state.value
         assertEquals(target.id, state.record?.id)
@@ -32,7 +32,7 @@ class AuditDetailViewModelTest {
     @Test
     fun `unknown id is reported as not found`() = runTest {
         val repo = AuditRepository()
-        val vm = AuditDetailViewModel(repo, "no-such-audit-id")
+        val vm = mainDispatcherRule.register(AuditDetailViewModel(repo, "no-such-audit-id"))
         advanceUntilIdle()
         assertTrue(vm.state.value.notFound)
         assertEquals(null, vm.state.value.record)

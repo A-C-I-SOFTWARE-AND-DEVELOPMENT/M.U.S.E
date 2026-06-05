@@ -60,14 +60,14 @@ class AvatarPickerViewModelTest {
             executor = offlineExecutor,
             ioDispatcher = Dispatchers.Unconfined,
         )
-        return AvatarPickerViewModel(
+        return mainDispatcherRule.register(AvatarPickerViewModel(
             application = app,
             pixelator = AvatarPixelator(app, imageStore),
             imageStore = imageStore,
             repo = repo,
             logBuffer = LogBuffer(),
             cockpitClient = client,
-        )
+        ))
     }
 
 

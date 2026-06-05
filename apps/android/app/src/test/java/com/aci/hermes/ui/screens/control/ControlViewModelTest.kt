@@ -40,7 +40,7 @@ class ControlViewModelTest {
     private fun newVm(): ControlViewModel {
         val app = ApplicationProvider.getApplicationContext<Application>()
         // Isolated settings store → each test starts from a clean baseline.
-        return ControlViewModel(app, isolatedSettings(app), LogBuffer(), cockpitClient = null)
+        return mainDispatcherRule.register(ControlViewModel(app, isolatedSettings(app), LogBuffer(), cockpitClient = null))
     }
 
     /** Block until the one-shot init refresh has projected state (services set). */

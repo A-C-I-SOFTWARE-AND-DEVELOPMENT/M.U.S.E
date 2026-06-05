@@ -53,7 +53,7 @@ class CockpitJobsViewModelTest {
 
     @Test
     fun `loads orchestrator jobs and runnable lanes when paired`() = runTest {
-        val vm = CockpitJobsViewModel(
+        val vm = mainDispatcherRule.register(CockpitJobsViewModel(
             repo { req ->
                 when {
                     req.url.endsWith("/jobs/lanes") -> CockpitRawResponse(200, lanesJson)
@@ -64,7 +64,7 @@ class CockpitJobsViewModelTest {
                 }
             },
             logBuffer,
-        )
+        ))
         advanceUntilIdle()
         assertEquals(1, vm.ui.value.jobs.size)
         assertTrue(vm.ui.value.sync is JobsSync.Loaded)
@@ -73,7 +73,7 @@ class CockpitJobsViewModelTest {
 
     @Test
     fun `unpaired shows NotPaired and no fabricated jobs`() = runTest {
-        val vm = CockpitJobsViewModel(repo(token = null) { error("must not hit the wire") }, logBuffer)
+        val vm = mainDispatcherRule.register(CockpitJobsViewModel(repo(token = null) { error("must not hit the wire") }, logBuffer))
         advanceUntilIdle()
         assertEquals(JobsSync.NotPaired, vm.ui.value.sync)
         assertTrue(vm.ui.value.jobs.isEmpty())
@@ -82,7 +82,7 @@ class CockpitJobsViewModelTest {
     @Test
     fun `dispatch creates an orchestrator job via the orchestrate endpoint`() = runTest {
         var orchestrateUrl: String? = null
-        val vm = CockpitJobsViewModel(
+        val vm = mainDispatcherRule.register(CockpitJobsViewModel(
             repo { req ->
                 when {
                     req.method == "POST" && req.url.endsWith("/orchestrate") -> {
@@ -94,7 +94,7 @@ class CockpitJobsViewModelTest {
                 }
             },
             logBuffer,
-        )
+        ))
         advanceUntilIdle()
         vm.dispatch("edit the uploader")
         advanceUntilIdle()
@@ -104,7 +104,7 @@ class CockpitJobsViewModelTest {
 
     @Test
     fun `run surfaces the gateway 403 hint when the owner phrase is missing`() = runTest {
-        val vm = CockpitJobsViewModel(
+        val vm = mainDispatcherRule.register(CockpitJobsViewModel(
             repo { req ->
                 when {
                     req.url.contains("/run") -> CockpitRawResponse(
@@ -117,7 +117,7 @@ class CockpitJobsViewModelTest {
                 }
             },
             logBuffer,
-        )
+        ))
         advanceUntilIdle()
         vm.run("orc-1", workerId = "codex-execute", authorization = null)
         advanceUntilIdle()

@@ -47,7 +47,7 @@ class JobsViewModelTest {
             ${job("e", "CANCELLED")}
         ],"next_cursor":null,"prev_cursor":null}""".trimIndent()
         val repo = repo(body)
-        val vm = JobsViewModel(repo, notifier = null)
+        val vm = mainDispatcherRule.register(JobsViewModel(repo, notifier = null))
         repo.refresh()
         advanceUntilIdle()
 
@@ -63,7 +63,7 @@ class JobsViewModelTest {
     @Test
     fun `unpaired shows an honest empty state, no fake jobs`() = runTest {
         val repo = repo("""{"jobs":[],"next_cursor":null,"prev_cursor":null}""", token = null)
-        val vm = JobsViewModel(repo, notifier = null)
+        val vm = mainDispatcherRule.register(JobsViewModel(repo, notifier = null))
         repo.refresh()
         advanceUntilIdle()
 

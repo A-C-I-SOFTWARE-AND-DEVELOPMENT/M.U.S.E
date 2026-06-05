@@ -29,7 +29,7 @@ class EvidenceViewModelTest {
     private fun newVm(): EvidenceViewModel {
         // Unpaired repository → renders the mock seed, no network.
         val repo = EvidenceRepository(seed = MockEvidenceSeed.items)
-        return EvidenceViewModel(repo, LogBuffer())
+        return mainDispatcherRule.register(EvidenceViewModel(repo, LogBuffer()))
     }
 
     private fun pairedVm(exec: (CockpitRequest) -> CockpitRawResponse): EvidenceViewModel {
@@ -40,7 +40,7 @@ class EvidenceViewModelTest {
             ioDispatcher = Dispatchers.Unconfined,
         )
         val repo = EvidenceRepository(seed = emptyList(), client = client, paired = { true })
-        return EvidenceViewModel(repo, LogBuffer())
+        return mainDispatcherRule.register(EvidenceViewModel(repo, LogBuffer()))
     }
 
     @Test

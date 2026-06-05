@@ -30,7 +30,7 @@ class MemoryViewModelTest {
 
     private fun newVm(items: List<MemoryItem> = MockMemorySeed.items): MemoryViewModel {
         val repo = MemoryRepository(items)
-        return MemoryViewModel(repo, LogBuffer())
+        return mainDispatcherRule.register(MemoryViewModel(repo, LogBuffer()))
     }
 
     @Test
