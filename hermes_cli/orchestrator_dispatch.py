@@ -23,6 +23,19 @@ the usage through the module-level
 ``CanonicalUsage`` object, so ``accumulate_cost(**block)`` would mis-shape the
 usage; ``_extract_usage_report`` is the converter the HTTP path already uses.
 
+**Adapter policy — inline by default; an adapter is caller opt-in.** The runner
+executes a LOCAL_RUN worker on its inline subprocess path unless a
+:class:`~hermes_cli.runtime_adapter.RuntimeAdapter` is injected. This seam does
+**not** default one in, on purpose: a ``ParallelRunner`` holds a *single* adapter
+instance shared across every worker, and a ``LocalRuntimeAdapter`` has one
+construction-time ``workdir`` / stream pair — so defaulting a bare adapter would
+make every plain worker in a multi-worker plan write ``stdout.log`` /
+``stderr.log`` into the *same* directory, clobbering each other, instead of each
+worker's own ``worker_dir`` the way the inline path does. The inline default
+preserves that per-worker isolation. A caller may still pass an explicit adapter
+(it then owns the workdir/stream placement); a *safe default* adapter needs a
+per-worker adapter factory on the runner — a separate follow-up, not this seam.
+
 Scope / honesty: this lands the **tested seam only**. An audit established there
 is no live caller of :class:`ParallelRunner` today, so nothing in a running
 server calls :func:`run_plan_into_store` yet — wiring the server's job
@@ -35,7 +48,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Any, Optional, Union
 
 from hermes_cli.orchestrator_api import JobStore, _extract_usage_report
 from hermes_cli.orchestrator_parallel import (
@@ -44,56 +57,9 @@ from hermes_cli.orchestrator_parallel import (
     WorkerStatus,
     iter_worker_usage,
 )
-from hermes_cli.runtime_adapter import LocalRuntimeAdapter, RuntimeAdapter
+from hermes_cli.runtime_adapter import RuntimeAdapter
 
-if TYPE_CHECKING:  # pragma: no cover - typing only
-    pass
-
-__all__ = ["run_plan_into_store", "_default_adapter"]
-
-
-def _default_adapter(
-    runtime_adapter: Union[RuntimeAdapter, bool, None],
-) -> Optional[RuntimeAdapter]:
-    """Resolve the runtime adapter :func:`run_plan_into_store` hands the runner.
-
-    The default is a :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter`
-    rather than ``None`` (the runner's own default, the inline subprocess path).
-    For a *plain* LOCAL_RUN worker the two are observably equivalent — the
-    adapter-backed run maps onto the same
-    :class:`~hermes_cli.orchestrator_parallel.WorkerStatus` fields (terminal
-    state, return code, captured streams, folded usage). For a worker that
-    carries per-worker placement the adapter cannot honor — its own ``cwd``, an
-    ``env`` overlay, or a worktree-derived cwd — the runner *already* keeps it on
-    the inline path via
-    :func:`~hermes_cli.orchestrator_parallel._needs_inline_placement`, so
-    defaulting the adapter never silently runs such a worker in the wrong
-    directory/environment. Defaulting it here therefore changes nothing
-    observable for plain LOCAL_RUN workers while making the dispatcher's
-    execution path explicit.
-
-    The three resolutions:
-
-    * ``runtime_adapter is False`` — an explicit opt-out: return ``None`` so the
-      runner uses its inline subprocess path for *every* worker (the historical
-      default). Use this to force the inline path even for plain workers.
-    * a concrete :class:`RuntimeAdapter` — passed straight through.
-    * ``None`` (the default) — a fresh
-      :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter`.
-    """
-
-    if runtime_adapter is None:
-        return LocalRuntimeAdapter()
-    if isinstance(runtime_adapter, bool):
-        # ``False`` is the explicit inline opt-out. ``True`` is not a valid
-        # adapter and is not a meaningful sentinel — reject it loudly rather
-        # than hand the runner a bool it would try to ``.run`` on.
-        if runtime_adapter is False:
-            return None
-        raise TypeError(
-            "runtime_adapter=True is not valid; pass an adapter, None, or False"
-        )
-    return runtime_adapter
+__all__ = ["run_plan_into_store"]
 
 
 async def run_plan_into_store(
@@ -101,17 +67,19 @@ async def run_plan_into_store(
     plan: ExecutionPlan,
     store: JobStore,
     *,
-    runtime_adapter: Union[RuntimeAdapter, bool, None] = None,
+    runtime_adapter: Optional[RuntimeAdapter] = None,
 ) -> dict[str, WorkerStatus]:
     """Run ``plan`` via a :class:`ParallelRunner` and drain usage into ``store``.
 
     This is the dispatcher seam that connects the standalone runner to a live
     job's cost aggregate. It:
 
-    1. constructs a :class:`ParallelRunner` for ``plan`` with the adapter
-       resolved by :func:`_default_adapter` (a
-       :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter` unless overridden
-       / opted out with ``runtime_adapter=False``);
+    1. constructs a :class:`ParallelRunner` for ``plan``. ``runtime_adapter``
+       defaults to ``None`` — the runner's inline subprocess path, which gives
+       each worker its own ``worker_dir`` stream files. Pass a concrete
+       :class:`~hermes_cli.runtime_adapter.RuntimeAdapter` to opt a run onto an
+       adapter (the caller then owns its ``workdir`` / stream placement); the
+       module docstring explains why no adapter is defaulted in here;
     2. runs it off the event loop via :func:`asyncio.to_thread` — the runner is
        blocking (real subprocesses, ``time.sleep`` polling), so running it inline
        would stall the loop and every other coroutine sharing it; and
@@ -123,19 +91,16 @@ async def run_plan_into_store(
        contributes nothing (``_extract_usage_report`` returns ``None``).
 
     The single drain pass is the double-count guard: ``iter_worker_usage`` yields
-    each reporting worker once, and we fold each at most once, so calling this for
-    a job that already accumulated cost from another source still only adds this
-    run's usage one time.
+    each reporting worker once, and we fold each at most once.
 
     Args:
         repo: The repository root the plan's artifacts live under.
         plan: The :class:`ExecutionPlan` to execute.
         store: The :class:`JobStore` whose ``plan.job_id`` job receives the
             per-worker state and accumulated cost.
-        runtime_adapter: Adapter override. ``None`` (default) uses a
-            :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter`; ``False``
-            forces the runner's inline subprocess path; a concrete adapter is
-            used as-is. See :func:`_default_adapter`.
+        runtime_adapter: ``None`` (default) runs every worker on the runner's
+            inline subprocess path; a concrete adapter opts the run onto that
+            adapter.
 
     Returns:
         The per-worker :class:`WorkerStatus` map the runner produced.
@@ -144,11 +109,7 @@ async def run_plan_into_store(
     # Normalize once: the runner / drain helpers take a ``Path``; accepting a
     # ``str`` here is a caller convenience.
     repo_path = Path(repo)
-    runner = ParallelRunner(
-        repo_path,
-        plan,
-        runtime_adapter=_default_adapter(runtime_adapter),
-    )
+    runner = ParallelRunner(repo_path, plan, runtime_adapter=runtime_adapter)
     # The runner blocks (subprocess launches + poll-sleep loop); keep the event
     # loop free so concurrent coroutines (e.g. WebSocket fan-out) are not stalled.
     statuses = await asyncio.to_thread(runner.run)

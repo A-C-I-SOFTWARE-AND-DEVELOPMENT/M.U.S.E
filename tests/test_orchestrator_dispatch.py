@@ -23,29 +23,11 @@ import pytest
 
 from hermes_cli import orchestrator_parallel as op
 from hermes_cli.orchestrator_api import JobStore
-from hermes_cli.orchestrator_dispatch import _default_adapter, run_plan_into_store
+from hermes_cli.orchestrator_dispatch import run_plan_into_store
 from hermes_cli.runtime_adapter import LocalRuntimeAdapter
 
 
 # ─── helpers ──────────────────────────────────────────────────────────
-
-
-@pytest.fixture(autouse=True)
-def _isolated_cwd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Run each test from a throwaway cwd.
-
-    The dispatcher's default adapter is a bare
-    :class:`~hermes_cli.runtime_adapter.LocalRuntimeAdapter`, whose ``workdir``
-    defaults to ``Path.cwd()`` — so a plain LOCAL_RUN worker routed through it
-    drops ``stdout.log`` / ``stderr.log`` in the current directory. chdir'ing
-    into ``tmp_path`` keeps those out of the repo. All other paths in these
-    tests are absolute (under their own ``tmp_path/repo``), so the chdir is
-    otherwise inert.
-    """
-
-    cwd_root = tmp_path / "cwd"
-    cwd_root.mkdir()
-    monkeypatch.chdir(cwd_root)
 
 
 def _run(cmd: list[str], cwd: Path) -> str:
@@ -154,24 +136,6 @@ def _adapter_for_worker(repo: Path, job_id: str, worker_id: str) -> LocalRuntime
     worker_root = op.worker_dir(repo, job_id, worker_id)
     worker_root.mkdir(parents=True, exist_ok=True)
     return LocalRuntimeAdapter(workdir=worker_root)
-
-
-# ─── _default_adapter ─────────────────────────────────────────────────
-
-
-def test_default_adapter_none_yields_local_adapter():
-    adapter = _default_adapter(None)
-    assert isinstance(adapter, LocalRuntimeAdapter)
-
-
-def test_default_adapter_false_is_inline_optout():
-    # False is the explicit opt-out to the runner's inline subprocess path.
-    assert _default_adapter(False) is None
-
-
-def test_default_adapter_passes_concrete_adapter_through():
-    given = LocalRuntimeAdapter()
-    assert _default_adapter(given) is given
 
 
 # ─── run_plan_into_store: usage drain ─────────────────────────────────
@@ -283,16 +247,38 @@ def test_run_plan_does_not_double_count(repo: Path):
 # ─── run_plan_into_store: adapter selection ───────────────────────────
 
 
-def test_run_plan_uses_default_adapter_for_plain_worker(repo: Path):
-    # Default (runtime_adapter unset) routes a plain LOCAL_RUN worker through an
-    # adapter. A recording adapter proves run() was invoked exactly once and the
-    # worker still completes + drains its usage.
+def test_run_plan_defaults_to_inline_path(repo: Path):
+    # With no adapter, every worker runs on the runner's inline subprocess path,
+    # which writes each worker's streams into its OWN worker_dir (per-worker
+    # isolation) — not a shared bare-adapter cwd. Assert completion, the usage
+    # drain, and that the recorded stdout_path lives under the worker's dir.
     async def _run_test():
         store = JobStore()
-        job = await store.create("plain", {})
+        job = await store.create("inline-default", {})
         plan = op.ExecutionPlan(
-            job_id=job.id,
-            workers=_usage_plan(repo, job.id).workers,
+            job_id=job.id, workers=_usage_plan(repo, job.id).workers
+        )
+
+        statuses = await run_plan_into_store(repo, plan, store)
+
+        assert statuses["w1"].state is op.WorkerState.COMPLETED
+        worker_root = op.worker_dir(repo, job.id, "w1")
+        assert str(worker_root) in (statuses["w1"].stdout_path or "")
+
+        refreshed = await store.get(job.id)
+        assert refreshed.cost.totals()["cost_usd"] == 0.0731
+
+    asyncio.run(_run_test())
+
+
+def test_run_plan_uses_explicit_adapter_when_given(repo: Path):
+    # A caller may opt a run onto a concrete adapter; the runner consults it
+    # exactly once for the plain worker, which still completes and drains usage.
+    async def _run_test():
+        store = JobStore()
+        job = await store.create("explicit", {})
+        plan = op.ExecutionPlan(
+            job_id=job.id, workers=_usage_plan(repo, job.id).workers
         )
         adapter = _RecordingAdapter(_adapter_for_worker(repo, job.id, "w1"))
 
@@ -301,71 +287,40 @@ def test_run_plan_uses_default_adapter_for_plain_worker(repo: Path):
         )
 
         assert statuses["w1"].state is op.WorkerState.COMPLETED
-        # The adapter path ran exactly once for the plain worker.
         assert adapter.run_calls == 1
-        # …and usage still drained into the store.
         refreshed = await store.get(job.id)
         assert refreshed.cost.totals()["cost_usd"] == 0.0731
 
     asyncio.run(_run_test())
 
 
-def test_run_plan_false_adapter_forces_inline_path(repo: Path):
-    # runtime_adapter=False opts out to the runner's inline subprocess path: the
-    # injected recording adapter is NEVER consulted (run_calls stays 0), yet the
-    # worker completes and its usage still drains. We pass the recording adapter
-    # only to observe that it is bypassed — _default_adapter(False) returns None,
-    # so the runner never receives it.
+def test_run_plan_inline_and_explicit_adapter_agree_on_cost(repo: Path):
+    # The inline default and an explicit worker-rooted adapter drain identical
+    # cost for a plain LOCAL_RUN worker.
     async def _run_test():
-        store = JobStore()
-        job = await store.create("inline", {})
-        plan = op.ExecutionPlan(
-            job_id=job.id,
-            workers=_usage_plan(repo, job.id).workers,
-        )
-        # Even if a caller mistakenly tracks a spy, False wins and the inline
-        # path is used; assert via the equivalent outcome + an explicitly-built
-        # spy that is bypassed because _default_adapter(False) -> None.
-        spy = _RecordingAdapter(_adapter_for_worker(repo, job.id, "w1"))
-        # Sanity: _default_adapter(False) is the inline opt-out.
-        assert _default_adapter(False) is None
-
-        statuses = await run_plan_into_store(repo, plan, store, runtime_adapter=False)
-
-        assert statuses["w1"].state is op.WorkerState.COMPLETED
-        # The spy was never wired in (False forced inline), so it saw no calls.
-        assert spy.run_calls == 0
-        # The inline path drains usage the same way.
-        refreshed = await store.get(job.id)
-        assert refreshed.cost.totals()["cost_usd"] == 0.0731
-
-    asyncio.run(_run_test())
-
-
-def test_run_plan_inline_and_adapter_paths_agree_on_cost(repo: Path):
-    # Defaulting the adapter is observably equivalent to the inline path for a
-    # plain LOCAL_RUN worker: both drain the same cost into the store.
-    async def _run_test():
-        store_default = JobStore()
         store_inline = JobStore()
-        job_d = await store_default.create("eq-default", {})
+        store_adapter = JobStore()
         job_i = await store_inline.create("eq-inline", {})
+        job_a = await store_adapter.create("eq-adapter", {})
 
-        plan_d = op.ExecutionPlan(
-            job_id=job_d.id, workers=_usage_plan(repo, job_d.id).workers
-        )
         plan_i = op.ExecutionPlan(
             job_id=job_i.id, workers=_usage_plan(repo, job_i.id).workers
         )
+        plan_a = op.ExecutionPlan(
+            job_id=job_a.id, workers=_usage_plan(repo, job_a.id).workers
+        )
 
-        await run_plan_into_store(repo, plan_d, store_default)  # default adapter
+        await run_plan_into_store(repo, plan_i, store_inline)  # inline default
         await run_plan_into_store(
-            repo, plan_i, store_inline, runtime_adapter=False
-        )  # inline
+            repo,
+            plan_a,
+            store_adapter,
+            runtime_adapter=_adapter_for_worker(repo, job_a.id, "w1"),
+        )  # explicit, worker-rooted adapter
 
-        totals_d = (await store_default.get(job_d.id)).cost.totals()
         totals_i = (await store_inline.get(job_i.id)).cost.totals()
-        assert totals_d == totals_i
-        assert totals_d["cost_usd"] == 0.0731
+        totals_a = (await store_adapter.get(job_a.id)).cost.totals()
+        assert totals_i == totals_a
+        assert totals_i["cost_usd"] == 0.0731
 
     asyncio.run(_run_test())
