@@ -4137,8 +4137,12 @@ def build_usage_record(
 
     A worker that runs the agent in a subprocess writes the returned dict to a
     usage sidecar (``orchestrator_parallel.USAGE_FILENAME``) so the parallel
-    runner can fold it back into ``status.json``; a worker that owns the agent
-    in-process can report it on its heartbeat / completion payload directly.
+    runner can fold it back into ``status.json``; the supported way is to hand
+    this helper's result to
+    :func:`hermes_cli.orchestrator_parallel.write_usage_sidecar`, which atomically
+    writes it to the worker's ``usage_path`` (and no-ops on the ``None`` this
+    returns for an empty turn). A worker that owns the agent in-process can
+    instead report it on its heartbeat / completion payload directly.
 
     Args:
         source: Either a ``run_conversation`` result ``dict`` or any object (an

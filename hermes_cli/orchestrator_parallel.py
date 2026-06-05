@@ -1228,6 +1228,53 @@ def load_status(repo: Path, job_id: str) -> Optional[dict[str, Any]]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def write_usage_sidecar(
+    repo: Path,
+    job_id: str,
+    worker_id: str,
+    record: Optional[dict[str, Any]],
+) -> Optional[Path]:
+    """Atomically write a worker's ``usage.json`` sidecar — the producer
+    counterpart to the consumer pair :func:`_read_usage_sidecar` /
+    :func:`iter_worker_usage`.
+
+    ``record`` is the canonical ``{usage, cost_usd, model, provider}`` block
+    produced by :func:`agent.conversation_loop.build_usage_record`. Pass that
+    function's return value straight through: a no-op turn (no tokens, no cost)
+    yields ``None`` and this writes nothing and returns ``None``, so the cost
+    meter never moves. Building the record on the caller side (a worker that ran
+    the agent already holds ``build_usage_record``) keeps this module free of the
+    agent runtime — the consumer side only ever reads JSON. The supported emit
+    pattern is one line::
+
+        from agent.conversation_loop import build_usage_record
+        write_usage_sidecar(repo, job_id, worker_id, build_usage_record(result))
+
+    The block lands at :func:`usage_path` so the runner folds it into
+    ``status.json`` and a ``JobStore``-holding caller drains it via
+    :func:`iter_worker_usage`. The write goes through a temp file + :func:`os.replace`
+    so a concurrent reader never sees a torn sidecar; ``record`` should already be
+    in report shape (the reader still sanitizes defensively).
+
+    Returns the written path, or ``None`` for a ``None`` record. This is the
+    *emit* seam only — wiring a concrete in-repo agent-worker to call it, and
+    auto-draining the standalone runner into a ``JobStore``, remain the documented
+    follow-ups noted on :func:`iter_worker_usage`.
+    """
+
+    if record is None:
+        return None
+
+    path = usage_path(Path(repo), job_id, worker_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(
+        json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    os.replace(tmp, path)
+    return path
+
+
 def iter_worker_usage(repo: Path, job_id: str) -> list[tuple[str, dict[str, Any]]]:
     """Yield ``(worker_id, usage_block)`` for every worker that reported usage.
 
@@ -1337,4 +1384,5 @@ __all__ = [
     "status_path",
     "usage_path",
     "worker_dir",
+    "write_usage_sidecar",
 ]

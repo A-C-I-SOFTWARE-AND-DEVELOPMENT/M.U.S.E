@@ -685,6 +685,101 @@ def test_read_usage_sidecar_tolerates_missing_and_malformed(tmp_path: Path):
     assert op._read_usage_sidecar(tmp_path) is None
 
 
+# ─── write_usage_sidecar (producer emit seam) ─────────────────────────
+
+
+def _usage_record(**overrides) -> dict:
+    """A canonical build_usage_record-shaped block (what the writer persists)."""
+    rec = {
+        "usage": {
+            "input_tokens": 1200,
+            "output_tokens": 300,
+            "cache_read_tokens": 800,
+            "reasoning_tokens": 40,
+        },
+        "cost_usd": 0.0731,
+        "model": "claude-opus-4-8",
+        "provider": "anthropic",
+    }
+    rec.update(overrides)
+    return rec
+
+
+def test_write_usage_sidecar_roundtrips_to_consumer(repo: Path):
+    # The writer emits exactly what the consumer reads back, at usage_path.
+    path = op.write_usage_sidecar(repo, "job-emit", "w1", _usage_record())
+    assert path == op.usage_path(repo, "job-emit", "w1")
+    assert path is not None and path.exists()
+
+    block = op._read_usage_sidecar(op.worker_dir(repo, "job-emit", "w1"))
+    assert block is not None
+    assert block["cost_usd"] == 0.0731
+    assert block["usage"]["input_tokens"] == 1200
+    assert block["usage"]["cache_read_tokens"] == 800
+
+
+def test_write_usage_sidecar_feeds_cost_seam(repo: Path):
+    # A written sidecar drains through the exact consumer seam into a JobCost.
+    from hermes_cli.job_cost import JobCost
+    from hermes_cli.orchestrator_api import _extract_usage_report
+
+    op.write_usage_sidecar(repo, "job-emit2", "w1", _usage_record())
+    block = op._read_usage_sidecar(op.worker_dir(repo, "job-emit2", "w1"))
+    assert block is not None
+    kwargs = _extract_usage_report(block)
+    assert kwargs is not None
+    job = JobCost()
+    job.add_usage(**kwargs)
+    totals = job.totals()
+    assert totals["cost_usd"] == 0.0731
+    assert totals["input_tokens"] == 1200
+    assert totals["by_model"] == {"anthropic/claude-opus-4-8": 0.0731}
+
+
+def test_write_usage_sidecar_noops_on_none(repo: Path):
+    # Passing None (an empty turn's build_usage_record result) writes nothing.
+    assert op.write_usage_sidecar(repo, "job-none", "w1", None) is None
+    assert not op.usage_path(repo, "job-none", "w1").exists()
+
+
+def test_write_usage_sidecar_overwrites_atomically(repo: Path):
+    # A second write wins cleanly and leaves no temp file behind.
+    p1 = op.write_usage_sidecar(repo, "job-ow", "w1", _usage_record(cost_usd=0.10))
+    p2 = op.write_usage_sidecar(repo, "job-ow", "w1", _usage_record(cost_usd=0.20))
+    assert p1 == p2
+    block = op._read_usage_sidecar(op.worker_dir(repo, "job-ow", "w1"))
+    assert block is not None and block["cost_usd"] == 0.20
+    leftovers = list(op.worker_dir(repo, "job-ow", "w1").glob("*.tmp"))
+    assert leftovers == []
+
+
+def test_write_usage_sidecar_composes_with_build_usage_record(repo: Path):
+    # The documented one-line pattern: hand build_usage_record's output straight
+    # to the writer. A real run result (flat session totals) becomes a sidecar
+    # the consumer reads; an empty turn composes to a no-op.
+    from agent.conversation_loop import build_usage_record
+
+    source = {
+        "input_tokens": 1200,
+        "output_tokens": 300,
+        "cache_read_tokens": 800,
+        "reasoning_tokens": 40,
+        "estimated_cost_usd": 0.0731,
+        "model": "claude-opus-4-8",
+        "provider": "anthropic",
+    }
+    path = op.write_usage_sidecar(repo, "job-compose", "w1", build_usage_record(source))
+    assert path is not None and path.exists()
+    block = op._read_usage_sidecar(op.worker_dir(repo, "job-compose", "w1"))
+    assert block is not None
+    assert block["usage"]["input_tokens"] == 1200
+    assert block["cost_usd"] == 0.0731
+
+    # An empty turn -> build_usage_record None -> writer no-op.
+    assert op.write_usage_sidecar(repo, "job-compose", "w2", build_usage_record({})) is None
+    assert not op.usage_path(repo, "job-compose", "w2").exists()
+
+
 # ─── budget hard-stop (Sprint 10 enforcement) ─────────────────────────
 
 
