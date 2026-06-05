@@ -14,16 +14,13 @@ import com.aci.hermes.data.cockpit.CockpitHttpExecutor
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.CockpitRequest
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.testutil.awaitUntil
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -39,6 +36,9 @@ class AvatarPickerViewModelTest {
 
     @get:Rule
     val tmp = TemporaryFolder()
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     /** A transport that always fails → every cockpit call maps to Unreachable,
      *  so the VM's network-touching init stays benign and offline. */
@@ -70,15 +70,6 @@ class AvatarPickerViewModelTest {
         )
     }
 
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(Dispatchers.Unconfined)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
 
     @Test
     fun `starts idle with no avatar configured`() {

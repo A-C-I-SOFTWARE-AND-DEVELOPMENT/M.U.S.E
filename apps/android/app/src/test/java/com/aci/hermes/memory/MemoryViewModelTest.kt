@@ -7,38 +7,26 @@ import com.aci.hermes.data.memory.MemoryItem
 import com.aci.hermes.data.memory.MemoryProvenance
 import com.aci.hermes.data.memory.MemoryRepository
 import com.aci.hermes.data.memory.MockMemorySeed
+import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.ui.screens.memory.MemoryViewModel
 import com.aci.hermes.util.LogBuffer
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MemoryViewModelTest {
 
-    private val dispatcher = UnconfinedTestDispatcher()
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     private fun newVm(items: List<MemoryItem> = MockMemorySeed.items): MemoryViewModel {
         val repo = MemoryRepository(items)
@@ -107,7 +95,7 @@ class MemoryViewModelTest {
     }
 
     @Test
-    fun `correct flow updates content`() = runTest(dispatcher) {
+    fun `correct flow updates content`() = runTest {
         val vm = newVm(listOf(item("c1", "Title", "old", MemoryCategory.OWNER_PREFERENCE)))
         val target = vm.state.value.visibleItems.first()
         vm.beginCorrect(target)
@@ -121,7 +109,7 @@ class MemoryViewModelTest {
     }
 
     @Test
-    fun `delete flow removes item`() = runTest(dispatcher) {
+    fun `delete flow removes item`() = runTest {
         val vm = newVm(
             listOf(
                 item("d1", "Title 1", "x", MemoryCategory.OWNER_PREFERENCE),

@@ -1,31 +1,19 @@
 package com.aci.hermes.ui.screens.audit
 
 import com.aci.hermes.data.audit.AuditRepository
-import kotlinx.coroutines.Dispatchers
+import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuditViewModelTest {
 
-    private val dispatcher = UnconfinedTestDispatcher()
-
-    @Before
-    fun setUp() {
-        Dispatchers.setMain(dispatcher)
-    }
-
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(UnconfinedTestDispatcher())
 
     @Test
     fun `records mirror the repository seed`() {

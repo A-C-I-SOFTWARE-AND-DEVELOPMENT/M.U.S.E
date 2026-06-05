@@ -5,17 +5,14 @@ import com.aci.hermes.data.cockpit.CockpitJobsRepository
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.cockpit.JobsSync
-import kotlinx.coroutines.Dispatchers
+import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -23,9 +20,8 @@ class JobsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
 
-    @Before fun setUp() = Dispatchers.setMain(dispatcher)
-
-    @After fun tearDown() = Dispatchers.resetMain()
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule(dispatcher)
 
     private fun repo(body: String, token: String? = "tok") = CockpitJobsRepository(
         HermesCockpitClient(
@@ -42,7 +38,7 @@ class JobsViewModelTest {
     """.trimIndent()
 
     @Test
-    fun `buckets jobs into the five sections`() = runTest(dispatcher) {
+    fun `buckets jobs into the five sections`() = runTest {
         val body = """{"jobs":[
             ${job("a", "RUNNING")},
             ${job("b", "BLOCKED")},
@@ -65,7 +61,7 @@ class JobsViewModelTest {
     }
 
     @Test
-    fun `unpaired shows an honest empty state, no fake jobs`() = runTest(dispatcher) {
+    fun `unpaired shows an honest empty state, no fake jobs`() = runTest {
         val repo = repo("""{"jobs":[],"next_cursor":null,"prev_cursor":null}""", token = null)
         val vm = JobsViewModel(repo, notifier = null)
         repo.refresh()
