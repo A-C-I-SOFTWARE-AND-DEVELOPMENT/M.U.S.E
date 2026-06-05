@@ -85,6 +85,36 @@ class TestJobStore:
             assert envelope["data"] == {"kind": "test"}
         asyncio.run(_run())
 
+    def test_snapshot_reconstructs_state_from_events(self):
+        async def _run():
+            store = JobStore()
+            job = await store.create("snap", {"goal": "x"})
+            await store.emit_event(
+                job.id, EVENT_WORKER_STARTED, {"worker": "claude-code"}
+            )
+            await store.emit_event(
+                job.id, EVENT_VALIDATION_COMPLETED, {"result": {"ok": True}}
+            )
+            await store.emit_event(
+                job.id, EVENT_PUBLISH_READY, {"plan": {"pr_url": "https://x/pr/1"}}
+            )
+            snap = await store.snapshot(job.id)
+            assert snap.job_id == job.id
+            assert snap.name == "snap"
+            assert snap.spec == {"goal": "x"}
+            assert snap.workers == {"claude-code": "running"}
+            assert snap.validation == {"ok": True}
+            assert snap.pr_url == "https://x/pr/1"
+        asyncio.run(_run())
+
+    def test_snapshot_unknown_job_is_empty(self):
+        async def _run():
+            store = JobStore()
+            snap = await store.snapshot("nope")
+            assert snap.job_id == "nope"
+            assert snap.event_count == 0
+        asyncio.run(_run())
+
     def test_emit_unknown_event_raises(self):
         async def _run():
             store = JobStore()
