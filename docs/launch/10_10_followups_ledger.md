@@ -25,8 +25,8 @@ construction (no two in-flight tasks share a writable file).
 |---|---|---|---|---|---|
 | **FU-1** | Orchestrator dispatch seam — drain `iter_worker_usage` → `JobStore` **+** default `LocalRuntimeAdapter` (old FU-1+FU-2 combined: both live in one new module) | **CREATE** `hermes_cli/orchestrator_dispatch.py` · **CREATE** `tests/test_orchestrator_dispatch.py` (imports but never writes `orchestrator_parallel`/`orchestrator_api`/`runtime_adapter`) | additive (new module; no live caller yet) | building | [`followups/fu-1-dispatch-seam.md`](followups/fu-1-dispatch-seam.md) |
 | **FU-3** | JobStore durability — on-disk event log + restart rebuild | **CREATE** `hermes_cli/job_event_store.py` · **MODIFY** `hermes_cli/orchestrator_api.py` (tee in `emit_event`, new `restore_from_disk`, one line in `create_app`) · **CREATE** `tests/test_orchestrator_restart_replay.py` | **behavior change (server boot now restores) → owner-gated** | building | [`followups/fu-3-jobstore-persistence.md`](followups/fu-3-jobstore-persistence.md) |
-| **FU-4** | Unified release gate — `doctor --release-gate` aggregating the 22 `--10-10` checks + ruff + a fast test slice | **CREATE** `hermes_cli/release_gate.py` · **MODIFY** `hermes_cli/main.py` (doctor subparser block only: new `--release-gate` flag + `cmd_release_gate` handler + one dispatch line) · **CREATE** `tests/test_release_gate.py` | additive | building | [`followups/fu-4-release-gate.md`](followups/fu-4-release-gate.md) |
-| **FU-5** | Supabase status-doc correction (it is **already built** — full tool plugin + memory backend + integration adapter, **47 tests pass**; the "absent" claim was stale) | **MODIFY** `docs/launch/10_10_PROGRAM_STATUS.md` (Supabase rows only) | doc-only | building | [`followups/fu-5-supabase-doc.md`](followups/fu-5-supabase-doc.md) |
+| **FU-4** | Unified release gate — `doctor --release-gate` aggregating the 22 `--10-10` checks + ruff + a fast test slice | **CREATE** `hermes_cli/release_gate.py` · **MODIFY** `hermes_cli/main.py` (doctor subparser block only: new `--release-gate` flag + `cmd_release_gate` handler + one dispatch line) · **CREATE** `tests/test_release_gate.py` | additive | in-review (#328) | [`followups/fu-4-release-gate.md`](followups/fu-4-release-gate.md) |
+| **FU-5** | Supabase status-doc correction (it is **already built** — full tool plugin + memory backend + integration adapter, **47 tests pass**; the "absent" claim was stale) | **MODIFY** `docs/launch/10_10_PROGRAM_STATUS.md` (Supabase rows only) | doc-only | in-review (#327) | [`followups/fu-5-supabase-doc.md`](followups/fu-5-supabase-doc.md) |
 
 **Disjointness proof (pairwise):** FU-1 → {`orchestrator_dispatch.py`, its test};
 FU-3 → {`job_event_store.py`, `orchestrator_api.py`, its test} (sole writer of
@@ -79,3 +79,7 @@ manufacture a conflict.
   + pgvector recall are deferred optional follow-ons (owner-gated, new files).
 - `2026-06-05` — All four writable sets pairwise disjoint → dispatched FU-1,
   FU-3, FU-4, FU-5 builders in parallel (worktrees, background).
+- `2026-06-05` — **FU-5** built (`b2984b6b`) → draft PR **#327**; only the status
+  doc + snapshot touched; 47 Supabase tests verified. **FU-4** built → draft PR
+  **#328**; ruff/ty clean, 20 tests pass, `doctor --release-gate` exits 0. Both
+  additive → merge on green. FU-1, FU-3 still building.
