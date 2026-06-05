@@ -63,6 +63,10 @@ def _file_on_main(repo: Path, name: str) -> str | None:
     return res.stdout if res.returncode == 0 else None
 
 
+def _main_sha(repo: Path) -> str:
+    return _run(repo, "rev-parse", "main").stdout.strip()
+
+
 @pytest.fixture
 def fork_setup(tmp_path: Path):
     """Build upstream → origin (fork) → working clone on a feature branch.
@@ -75,8 +79,10 @@ def fork_setup(tmp_path: Path):
     _init_repo(upstream)
     _write_commit(upstream, "base.txt", "base\n", "initial")
 
-    origin = tmp_path / "origin"
-    _run(tmp_path, "clone", "-q", str(upstream), str(origin))
+    # Origin is bare so the working clone can push main back to it (mirrors a
+    # remote like GitHub).
+    origin = tmp_path / "origin.git"
+    _run(tmp_path, "clone", "-q", "--bare", str(upstream), str(origin))
 
     work = tmp_path / "work"
     _run(tmp_path, "clone", "-q", str(origin), str(work))
@@ -100,14 +106,15 @@ def _add_upstream_commit(upstream: Path, work: Path, name: str, content: str) ->
 
 def test_clean_three_way_merge_merges_into_main(fork_setup):
     work = fork_setup["work"]
+    origin = fork_setup["origin"]
     _make_feature_branch(work, "feature.txt", "feature\n")
     _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
 
+    # Autonomous by default: no input_fn, no interactive — it just merges.
     result = consolidate_into_main(
         GIT,
         work,
         current_branch="feature",
-        assume_yes=True,
         is_model_configured=lambda: False,  # not needed; no conflicts
     )
 
@@ -119,6 +126,31 @@ def test_clean_three_way_merge_merges_into_main(fork_setup):
     # Integration branch cleaned up; feature branch preserved.
     assert not _branch_exists(work, INTEGRATION_BRANCH)
     assert _branch_exists(work, "feature")
+    # Auto-pushed to origin: the bare origin's main matches local main.
+    assert result.pushed is True
+    assert _main_sha(origin) == _main_sha(work)
+
+
+def test_no_push_keeps_origin_unchanged(fork_setup):
+    work = fork_setup["work"]
+    origin = fork_setup["origin"]
+    origin_before = _main_sha(origin)
+    _make_feature_branch(work, "feature.txt", "feature\n")
+    _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
+
+    result = consolidate_into_main(
+        GIT,
+        work,
+        current_branch="feature",
+        push=False,
+        is_model_configured=lambda: False,
+    )
+
+    assert result.status == STATUS_MERGED
+    assert result.pushed is False
+    # Local main advanced, origin did not.
+    assert _file_on_main(work, "feature.txt") == "feature\n"
+    assert _main_sha(origin) == origin_before
 
 
 def test_conflict_without_model_safe_stops(fork_setup):
@@ -186,16 +218,19 @@ def test_model_returns_unresolved_markers_safe_stops(fork_setup):
     assert not _branch_exists(work, INTEGRATION_BRANCH)
 
 
-def test_review_declined_leaves_main_untouched(fork_setup):
+def test_interactive_review_declined_leaves_main_untouched(fork_setup):
     work = fork_setup["work"]
+    origin = fork_setup["origin"]
+    origin_before = _main_sha(origin)
     _make_feature_branch(work, "feature.txt", "feature\n")
     _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
 
+    # With interactive=True the review gate applies; declining touches nothing.
     result = consolidate_into_main(
         GIT,
         work,
         current_branch="feature",
-        assume_yes=False,
+        interactive=True,
         input_fn=lambda q, d: "n",
         is_model_configured=lambda: False,
     )
@@ -205,6 +240,7 @@ def test_review_declined_leaves_main_untouched(fork_setup):
     assert _file_on_main(work, "upstream.txt") is None
     assert not _branch_exists(work, INTEGRATION_BRANCH)
     assert _current_branch(work) == "feature"
+    assert _main_sha(origin) == origin_before
 
 
 def test_no_upstream_remote_skips(tmp_path: Path):

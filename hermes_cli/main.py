@@ -8562,6 +8562,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 PROJECT_ROOT,
                 current_branch=current_branch,
                 assume_yes=assume_yes,
+                interactive=getattr(args, "interactive", False),
+                push=not getattr(args, "no_push", False),
                 input_fn=gw_input_fn,
                 validate_syntax=_validate_critical_files_syntax,
             )
@@ -13062,12 +13064,14 @@ Examples:
         "update",
         help="Update Hermes Agent to the latest version",
         description=(
-            "Update Hermes Agent. On a fork this consolidates the original "
-            "code (upstream/main) and your current branch into your main, "
-            "auto-resolving conflicts with the configured model and showing a "
-            "review before anything lands on main, then reinstalls "
-            "dependencies. Use --no-consolidate for the legacy fast-forward "
-            "behavior."
+            "Update Hermes Agent. On a fork this autonomously consolidates "
+            "the original code (upstream/main) and your current branch into "
+            "your main — auto-resolving conflicts with the configured model, "
+            "merging into main, and pushing to origin without prompting — then "
+            "reinstalls dependencies. An unresolvable conflict stops safely "
+            "before touching main. Use --interactive to review before merging, "
+            "--no-push to skip the push, or --no-consolidate for the legacy "
+            "fast-forward behavior."
         ),
     )
     update_parser.add_argument(
@@ -13112,6 +13116,18 @@ Examples:
         action="store_true",
         default=False,
         help="Forks only: skip merging upstream/main + your current branch into main; just fast-forward main from origin (the legacy update behavior).",
+    )
+    update_parser.add_argument(
+        "--interactive",
+        action="store_true",
+        default=False,
+        help="Forks only: require a review-and-confirm before the consolidated result is merged into main (consolidation is autonomous by default).",
+    )
+    update_parser.add_argument(
+        "--no-push",
+        action="store_true",
+        default=False,
+        help="Forks only: after consolidating into main, do not push main back to origin (push happens automatically by default).",
     )
     update_parser.set_defaults(func=cmd_update)
 

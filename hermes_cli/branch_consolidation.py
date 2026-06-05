@@ -62,6 +62,8 @@ class ConsolidationResult:
     summary: str = ""
     resolved_files: list[str] = field(default_factory=list)
     conflict_files: list[str] = field(default_factory=list)
+    pushed: bool = False
+    push_message: str = ""
 
     @property
     def merged(self) -> bool:
@@ -249,12 +251,20 @@ def consolidate_into_main(
     *,
     current_branch: str,
     assume_yes: bool = False,
+    interactive: bool = False,
+    push: bool = True,
     input_fn: Optional[Callable[[str, str], str]] = None,
     validate_syntax: Optional[Callable[[Path], tuple[bool, Optional[str], Optional[str]]]] = None,
     complete_fn: Optional[Callable[[str], str]] = None,
     is_model_configured: Optional[Callable[[], bool]] = None,
 ) -> ConsolidationResult:
     """Consolidate ``upstream/main`` + ``current_branch`` into ``main``.
+
+    Autonomous by default: the integrated result is merged into ``main`` and
+    (when ``push``) pushed to ``origin`` without prompting.  A still-unresolved
+    conflict always stops short of ``main`` (safe-stop) — autonomy never
+    silently drops work.  Pass ``interactive=True`` to require a
+    review-and-confirm before the merge.
 
     The caller is expected to have already fetched ``origin`` and verified
     this is a fork.  ``validate_syntax`` is the critical-files syntax guard
@@ -377,8 +387,10 @@ def consolidate_into_main(
             lines.append(f"  • {rel}")
     summary = "\n".join(lines)
 
-    # 5) Review-and-confirm gate (LaunchGate-style, not the owner phrase).
-    if not assume_yes:
+    # 5) Optional review-and-confirm gate. Autonomous by default — only prompts
+    #    when explicitly run with interactive=True (e.g. `hermes update
+    #    --interactive`). `assume_yes` (-y) still suppresses the prompt.
+    if interactive and not assume_yes:
         print()
         print(summary)
         print()
@@ -399,7 +411,7 @@ def consolidate_into_main(
                 resolved_files=resolved,
             )
 
-    # 6) Fast-forward main to the reviewed integration branch.
+    # 6) Fast-forward main to the integration branch.
     co_main = _git(git_cmd, repo, "checkout", "main")
     if co_main.returncode != 0:
         # main may not exist locally yet — create it tracking origin/main.
@@ -416,10 +428,24 @@ def consolidate_into_main(
         )
     _git(git_cmd, repo, "branch", "-D", INTEGRATION_BRANCH)
 
+    # 7) Auto-push the consolidated main back to origin (hands-off). This is a
+    #    plain fast-forward push because main descends from origin/main; a
+    #    failure (no write access / non-ff) is reported but does not fail the
+    #    update — local main is already current.
+    pushed = False
+    push_message = ""
+    if push:
+        pushed, push_message = _push_main(git_cmd, repo)
+    final = summary + "\n\n  ✓ Merged into main."
+    if push:
+        final += f"\n{push_message}"
+
     return ConsolidationResult(
         status=STATUS_MERGED,
-        summary=summary + "\n\n  ✓ Merged into main.",
+        summary=final,
         resolved_files=resolved,
+        pushed=pushed,
+        push_message=push_message,
     )
 
 
@@ -442,6 +468,22 @@ def _safe_stop(
         summary="\n".join(lines),
         resolved_files=resolved,
         conflict_files=conflicts,
+    )
+
+
+def _push_main(git_cmd: list[str], repo: Path) -> tuple[bool, str]:
+    """Push the local ``main`` to ``origin``. Returns ``(pushed, message)``."""
+
+    print("→ Pushing consolidated main to origin...")
+    result = _git(git_cmd, repo, "push", "origin", "main")
+    if result.returncode == 0:
+        return True, "  ✓ Pushed main to origin."
+    detail = (result.stderr or result.stdout).strip().splitlines()
+    first = detail[0] if detail else "push failed"
+    return (
+        False,
+        "  ℹ Updated local main but couldn't push to origin "
+        f"({first}). Push manually with: git push origin main",
     )
 
 
