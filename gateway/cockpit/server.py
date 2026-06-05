@@ -46,6 +46,12 @@ def _compile(path: str) -> re.Pattern[str]:
 
 _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/health"), h.health, False),
+    # Per-device pairing (Sprint 6) — gated like /v1/health (no shared-token
+    # requirement) so a NEW device can obtain its own per-device token. The
+    # short-lived pairing code + lockout are the protection; the existing
+    # shared token still guards every other route below, unchanged.
+    ("POST", _compile("/v1/cockpit/pair/start"), h.pair_start, False),
+    ("POST", _compile("/v1/cockpit/pair/confirm"), h.pair_confirm, False),
     ("GET", _compile("/v1/cockpit/runtime/status"), h.runtime_status, True),
     ("GET", _compile("/v1/cockpit/runtime/workers"), h.runtime_workers, True),
     ("GET", _compile("/v1/cockpit/diagnostics"), h.diagnostics, True),

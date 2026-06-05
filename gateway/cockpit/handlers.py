@@ -1101,6 +1101,105 @@ def orchestrate_submit(req: Request) -> JsonResponse:
     return JsonResponse(201, contract.orchestrator_job(job))
 
 
+# ---------------------------------------------------------------------------
+# Per-device pairing (Sprint 6) — additive credential path that runs
+# ALONGSIDE the shared cockpit token (gateway.cockpit.auth), never replacing
+# it. These two routes are gated exactly like /v1/health (no shared-token
+# requirement) so a brand-new device can obtain its OWN per-device token; the
+# pairing code + lockout/rate-limit are the protection, and tokens are stored
+# only as hashes (gateway.cockpit.device_pairing). The raw device token is
+# returned exactly once, here, and never logged.
+# ---------------------------------------------------------------------------
+
+
+def pair_start(req: Request) -> JsonResponse:
+    """Begin pairing a new device — returns a short-lived pairing code.
+
+    Body: ``{"device_name": "Jeremiah's Pixel"}`` (optional). Returns the
+    ``pairing_code`` and its ``expires_at`` epoch. A 429 is returned when the
+    request is refused (rate-limited, locked out after repeated bad confirms,
+    or too many codes already pending) — honest, never a fabricated code.
+    """
+    from . import device_pairing as dp
+
+    device_name = str((req.body or {}).get("device_name", "")).strip()
+    result = dp.start_pairing(device_name)
+    if result is None:
+        return JsonResponse(
+            429,
+            {
+                "error": "pairing temporarily unavailable",
+                "hint": "rate-limited, locked out, or too many pending codes; "
+                "wait and retry",
+            },
+        )
+    from . import event_log
+
+    # Audit only — the pairing code itself is deliberately NOT logged.
+    event_log.emit("info", "gateway", "device pairing started")
+    return JsonResponse(
+        201,
+        {
+            "pairing_code": result.pairing_code,
+            "expires_at": result.expires_at,
+            "expires_in": dp.CODE_TTL_SECONDS,
+        },
+    )
+
+
+def pair_confirm(req: Request) -> JsonResponse:
+    """Confirm a pairing code — returns a fresh per-device token ONCE.
+
+    Body: ``{"pairing_code": "ABCD2345", "authorization": "<owner phrase>"}``.
+    Issuing a device token is owner-gated — the exact owner phrase is required,
+    so a process that can reach the (loopback) pairing route cannot self-issue
+    a credential. On a valid, unexpired code a new ``device_id`` + raw
+    ``token`` are returned; only the token's hash is kept at rest. A
+    bad/expired code (or a locked-out store) is a 401 — and counts toward the
+    brute-force lockout. The raw token is never logged.
+    """
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    from . import device_pairing as dp
+
+    code = str((req.body or {}).get("pairing_code", "")).strip()
+    if not code:
+        return JsonResponse(400, {"error": "pairing_code is required"})
+
+    # Owner gate: pair/start only mints a short-lived, rate-limited code (no
+    # credential), so it stays open; the device token is issued only here, and
+    # only to a caller that presents the exact owner phrase.
+    phrase = str((req.body or {}).get("authorization", "")).strip()
+    if phrase != AUTHORIZATION_PHRASE:
+        return JsonResponse(
+            403,
+            {
+                "error": "owner authorization required",
+                "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
+            },
+        )
+
+    result = dp.confirm_pairing(code)
+    if result is None:
+        return JsonResponse(
+            401, {"error": "invalid or expired pairing code"}
+        )
+    from . import event_log
+
+    # Audit the device id only — never the token.
+    event_log.emit(
+        "info", "gateway", "device paired", attributes={"device_id": result.device_id}
+    )
+    return JsonResponse(
+        201,
+        {
+            "device_id": result.device_id,
+            "token": result.token,
+            "token_type": "Bearer",
+        },
+    )
+
+
 def avatar_persona_get(_req: Request) -> JsonResponse:
     """The companion's adopted persona (e.g. 'Goku'), or null if default."""
     from gateway.cockpit import persona_store as ps
@@ -3525,6 +3624,8 @@ __all__ = [
     "memory_list",
     "models",
     "navigation_list",
+    "pair_confirm",
+    "pair_start",
     "proposals_list",
     "research_create_task",
     "research_get",
