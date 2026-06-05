@@ -810,7 +810,7 @@ class ParallelRunner:
     def _write_status_snapshot_locked(self, *, initial: bool = False) -> None:
         path = status_path(self.repo, self.plan.job_id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
+        payload: dict[str, Any] = {
             "job_id": self.plan.job_id,
             "updated_at": _now_iso(),
             "concurrency": self.plan.concurrency,
