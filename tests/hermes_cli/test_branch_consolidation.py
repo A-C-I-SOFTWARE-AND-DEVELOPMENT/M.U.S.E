@@ -153,6 +153,35 @@ def test_no_push_keeps_origin_unchanged(fork_setup):
     assert _main_sha(origin) == origin_before
 
 
+def test_push_failure_keeps_local_main(fork_setup, monkeypatch):
+    """A rejected push (e.g. origin advanced — the non-ff race) must still
+    return MERGED with pushed=False and leave the consolidated local main
+    intact, so the caller does not discard the integrated commits."""
+    import hermes_cli.branch_consolidation as bc
+
+    work = fork_setup["work"]
+    _make_feature_branch(work, "feature.txt", "feature\n")
+    _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
+
+    monkeypatch.setattr(
+        bc, "_push_main", lambda git_cmd, repo: (False, "  ℹ push rejected (non-ff)")
+    )
+
+    result = consolidate_into_main(
+        GIT,
+        work,
+        current_branch="feature",
+        is_model_configured=lambda: False,
+    )
+
+    assert result.status == STATUS_MERGED
+    assert result.pushed is False
+    # The integrated commits survive on local main despite the push failure.
+    assert _file_on_main(work, "feature.txt") == "feature\n"
+    assert _file_on_main(work, "upstream.txt") == "upstream\n"
+    assert not _branch_exists(work, INTEGRATION_BRANCH)
+
+
 def test_conflict_without_model_safe_stops(fork_setup):
     work = fork_setup["work"]
     # Feature and upstream both edit base.txt → conflict.
