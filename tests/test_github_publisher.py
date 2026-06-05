@@ -588,5 +588,7 @@ def test_live_publish_refused_when_repo_not_allowlisted(
     assert result.executed is False
     assert result.pushed is False
     assert any("not in the publish allowlist" in e for e in result.errors)
-    assert result.plan.decision_verdict["tier"] == "refuse"
-    assert "live_publish" in result.plan.decision_verdict["reason_codes"]
+    verdict = result.plan.decision_verdict
+    assert verdict is not None
+    assert verdict["tier"] == "refuse"
+    assert "live_publish" in verdict["reason_codes"]
