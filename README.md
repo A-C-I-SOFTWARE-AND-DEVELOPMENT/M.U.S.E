@@ -182,7 +182,7 @@ hermes config set   # Set individual config values
 hermes gateway      # Start the messaging gateway (Telegram, Discord, etc.)
 hermes setup        # Run the full setup wizard (configures everything at once)
 hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-hermes update       # Update to the latest version
+hermes update       # Update to the latest version (on a fork: consolidates upstream/main + your branch into main)
 hermes doctor       # Diagnose any issues
 ```
 
