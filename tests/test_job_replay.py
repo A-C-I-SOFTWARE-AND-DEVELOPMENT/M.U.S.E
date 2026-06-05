@@ -7,6 +7,8 @@ prefix-consistent, and tolerant of junk.
 
 from __future__ import annotations
 
+from typing import Any
+
 from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
 from hermes_cli.orchestrator_events import (
     EVENT_APPROVAL_GRANTED,
@@ -145,15 +147,17 @@ def test_pr_url_tolerates_alternate_key():
 
 
 def test_tolerates_unknown_events_and_missing_data():
-    # Raw dicts (bypassing make_envelope, which would reject unknown events).
-    events = [
+    # Raw, deliberately-heterogeneous input (bypassing make_envelope, which
+    # would reject unknown events). Typed list[Any] because the point of the
+    # test is that the reducer tolerates junk it isn't statically promised.
+    events: list[Any] = [
         {"event": "some.future.event", "job_id": JOB, "data": {"x": 1}},
         {"event": EVENT_PHASE_CHANGED, "job_id": JOB},  # no data
         {"not": "an envelope"},
         "garbage",
         {"event": EVENT_WORKER_STARTED, "job_id": JOB, "data": {"no_worker_key": True}},
     ]
-    snap = rebuild_snapshot(events, job_id=JOB)  # type: ignore[arg-type]
+    snap = rebuild_snapshot(events, job_id=JOB)
     assert snap.job_id == JOB
     assert snap.workers == {}  # worker event without a worker key folds to nothing
     # only the mapping envelopes are counted (the str is skipped)
