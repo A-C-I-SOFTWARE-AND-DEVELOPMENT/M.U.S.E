@@ -27,8 +27,13 @@ Design rules, deliberately copied from
   variable :data:`PERSIST_ENV` to a falsey value (``0`` / ``false`` / ``no`` /
   ``off``) turns the tee off entirely, restoring pure in-memory behavior.
 
-Stdlib-only; no import of FastAPI or the orchestrator. The module is safe to
-import from the hot path.
+Stdlib-only apart from the orchestrator's leaf path-segment sanitizer
+(:func:`hermes_cli.worktrees.sanitize_segment`); no FastAPI, no
+``orchestrator_api``, no import cycle. Safe to import from the hot path.
+
+Security: ``job_id`` is caller-supplied and is used to build a filesystem path,
+so it is reduced to a single safe path segment before any disk use (see
+:func:`_safe_events_path`) — a crafted id cannot escape the jobs root.
 """
 
 from __future__ import annotations
@@ -36,7 +41,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from hermes_cli.worktrees import WorktreeError, sanitize_segment
 
 # Environment switch that disables persistence. When set to a falsey value
 # (case-insensitive ``0`` / ``false`` / ``no`` / ``off`` / empty), every public
@@ -67,12 +74,22 @@ def _jobs_root() -> Path:
     return Path(base) / "jobs"
 
 
-def _job_dir(job_id: str) -> Path:
-    return _jobs_root() / job_id
+def _safe_events_path(job_id: str) -> Optional[Path]:
+    """``jobs/<job_id>/events.jsonl`` with ``job_id`` reduced to one safe path
+    segment, or ``None`` if it cannot be made safe.
 
-
-def _events_path(job_id: str) -> Path:
-    return _job_dir(job_id) / _EVENTS_FILENAME
+    ``job_id`` is caller-supplied, so it is run through the orchestrator's
+    canonical path-segment sanitizer (the ``[A-Za-z0-9_.-]`` allow-list used by
+    ``worktree_path`` / ``worker_dir``; ``/`` and ``..`` cannot survive it),
+    preventing a crafted id from escaping the jobs root. Never raises — the
+    module's best-effort contract — so an unusable id yields ``None`` and the
+    caller no-ops.
+    """
+    try:
+        segment = sanitize_segment(job_id, field_name="job_id")
+    except WorktreeError:
+        return None
+    return _jobs_root() / segment / _EVENTS_FILENAME
 
 
 def append(job_id: str, envelope: Dict[str, Any]) -> None:
@@ -82,10 +99,12 @@ def append(job_id: str, envelope: Dict[str, Any]) -> None:
     orchestrator's event-emission fast path. A no-op when persistence is
     disabled or ``job_id`` is empty.
     """
-    if not job_id or not persistence_enabled():
+    if not persistence_enabled():
+        return
+    path = _safe_events_path(job_id)
+    if path is None:
         return
     try:
-        path = _events_path(job_id)
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(envelope, default=str) + "\n")
@@ -101,10 +120,10 @@ def read(job_id: str) -> List[Dict[str, Any]]:
     :func:`gateway.cockpit.event_log.read`. Returns ``[]`` when persistence is
     disabled, the file is absent, or it cannot be read.
     """
-    if not job_id or not persistence_enabled():
+    if not persistence_enabled():
         return []
-    path = _events_path(job_id)
-    if not path.is_file():
+    path = _safe_events_path(job_id)
+    if path is None or not path.is_file():
         return []
     out: List[Dict[str, Any]] = []
     try:

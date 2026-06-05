@@ -147,6 +147,29 @@ class TestJobEventStore:
         assert job_event_store.read("nope") == []
         assert job_event_store.iter_job_ids() == []
 
+    def test_unsafe_job_id_cannot_escape_jobs_root(self, hermes_home):
+        # job_id is caller-supplied and used to build a path, so a traversal
+        # attempt must be neutralized to a single safe segment — never writing
+        # outside jobs/ (CodeQL: uncontrolled data in path expression).
+        escape = "../../etc/evil"
+        job_event_store.append(escape, {"event": "x", "job_id": escape})
+        jobs_root = hermes_home / "jobs"
+        # Nothing landed outside the jobs root.
+        assert not (jobs_root.parent / "etc" / "evil" / "events.jsonl").exists()
+        # Whatever the sanitizer produced stays strictly under jobs/.
+        for p in jobs_root.rglob("events.jsonl"):
+            assert jobs_root.resolve() in p.resolve().parents
+        # A read with the same crafted id is consistent (same sanitizer) and safe.
+        assert isinstance(job_event_store.read(escape), list)
+
+    def test_blank_job_id_is_noop(self, hermes_home):
+        # sanitize_segment rejects empty/blank → _safe_events_path returns None
+        # → append/read no-op without raising.
+        job_event_store.append("", {"event": "x"})
+        job_event_store.append("   ", {"event": "y"})
+        assert job_event_store.read("") == []
+        assert job_event_store.iter_job_ids() == []
+
     def test_persist_disabled_makes_ops_noop(self, hermes_home, monkeypatch):
         monkeypatch.setenv(job_event_store.PERSIST_ENV, "0")
         assert job_event_store.persistence_enabled() is False
