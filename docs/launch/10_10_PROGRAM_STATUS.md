@@ -41,12 +41,16 @@ table), 23 PRs landed and an independent re-audit confirmed the decision /
 approval / pairing / bridge / cost-consumer spine is wired and verified —
 ~80%, with the remainder being six well-scoped integration "glue" hops
 rather than missing kernels. **As of the capstone update below, all six of
-those hops have now landed** (PRs #317–#322): every kernel is reachable
-from a live path, tested, and strictly additive. Call it **~85%** — the
-loop is wired end-to-end at the seam level; what remains is *choosing to
-use* some seams by default in production flows, plus the Sprint-14 unified
-release gate and the optional integrations (none of which are missing
-kernels).
+those hops have now landed** (PRs #317–#322): each is tested and strictly
+additive, and is *either* wired into a live code path (replay route,
+notify-on-decision, decision recording, pairing nav) *or* added as a tested
+opt-in seam whose production caller is still pending — specifically the
+cost-producer writer (no live caller yet, so real per-job cost still reads
+0) and the runtime adapter (nothing injects one by default). Call it
+**~85%** — the loop is closed at the *seam* level; what remains is *choosing
+to use* the opt-in seams in production flows (notably a live caller +
+`JobStore` drain for per-job cost), plus the Sprint-14 unified release gate
+and the optional integrations (none of which are missing kernels).
 
 ### Score summary
 
@@ -137,13 +141,15 @@ repeated here — no overclaiming.
    route + a Settings entry make the (already-correct) pairing client/VM
    reachable, with an owner-phrase-gated confirm (#319).
 
-**Net:** the 10/10 loop is wired end-to-end *at the seam level* — every
-kernel is now reachable, additive, and covered by tests. The remaining work
-is no longer "missing kernels" but: (a) opting some seams into production
-defaults (cost live-caller + runner→JobStore drain; replay persistence;
-default adapter injection), (b) the Sprint-14 unified release gate /
-`doctor --10-10`, and (c) the optional integrations (Supabase S11). The
-shared-cockpit-token-at-rest note above is unchanged.
+**Net:** the 10/10 loop is closed *at the seam level* — every kernel is now
+either wired into a live path (hops 2–4, 6) or available as a tested,
+additive opt-in seam (hops 1 and 5), all covered by tests. The remaining
+work is no longer "missing kernels" but: (a) opting the opt-in seams into
+production use — a live caller + runner→JobStore drain so real per-job cost
+stops reading 0 (hop 1), and a default adapter injection (hop 5); (b) replay
+persistence behind the snapshot route (hop 2); (c) the Sprint-14 unified
+release gate / `doctor --10-10`; and (d) the optional integrations (Supabase
+S11). The shared-cockpit-token-at-rest note above is unchanged.
 
 ### Critical path to close the loop
 
