@@ -49,6 +49,20 @@ a job's ``JobCost`` — is exposed as :func:`iter_worker_usage`, which yields
 holds a ``JobStore`` performs that final fold; the runner deliberately does
 not fabricate a store connection it doesn't own.
 
+Budget hard-stop (the enforcement side of the Sprint 10 budget kernel)
+----------------------------------------------------------------------
+
+The runner can be given an optional per-job budget via
+``budget_soft_limit`` / ``budget_hard_limit`` (USD). It meters each
+worker's reported ``cost_usd`` as it completes, and — once the accumulated
+spend reaches the **hard** limit — stops launching the remaining workers
+(:func:`hermes_cli.budget_policy.evaluate_budget`). In the sequential path
+every still-pending worker is recorded as stopped; in the concurrent path
+the runner signals cancel so the pool stops starting not-yet-launched
+workers (in-flight workers finish). The stop is persisted as a ``budget``
+block in ``status.json``. Both limits default to ``None`` (no enforcement),
+so the budget feature is strictly additive and behavior-preserving.
+
 Safety invariants enforced here (matches Phase 12 requirements):
 
 * No ``git push``, ``git push --force``, ``git reset --hard``, or other
@@ -62,7 +76,7 @@ Safety invariants enforced here (matches Phase 12 requirements):
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
@@ -77,6 +91,7 @@ import time
 
 from hermes_cli import worktrees as wt
 from hermes_cli import worker_lease as wl
+from hermes_cli.budget_policy import BudgetDecision, evaluate_budget
 from hermes_cli.worker_lease_store import DEFAULT_HOST_ID, WorkerLeaseStore
 
 ORCHESTRATOR_DIRNAME = wt.ORCHESTRATOR_DIRNAME
@@ -311,6 +326,8 @@ class ParallelRunner:
         poll_interval: float = 0.5,
         lease_store: Optional[WorkerLeaseStore] = None,
         record_leases: bool = True,
+        budget_soft_limit: Optional[float] = None,
+        budget_hard_limit: Optional[float] = None,
     ) -> None:
         self.repo = Path(repo).resolve()
         plan.validate()
@@ -343,6 +360,27 @@ class ParallelRunner:
                 self._lease_store = None
         self._lease_lock = threading.Lock()
         self._leases: dict[str, wl.WorkerLease] = {}
+        # Per-job budget enforcement (Sprint 10). Both ``None`` => no
+        # enforcement (the behavior-preserving default). When a hard limit is
+        # set, the runner stops launching further workers once the accumulated
+        # worker cost reaches it; a soft limit is surfaced but never blocks the
+        # runner here (owner confirmation lives at the orchestrator layer).
+        if budget_soft_limit is not None and budget_soft_limit < 0:
+            raise OrchestratorError("budget_soft_limit must be >= 0")
+        if budget_hard_limit is not None and budget_hard_limit < 0:
+            raise OrchestratorError("budget_hard_limit must be >= 0")
+        if (
+            budget_soft_limit is not None
+            and budget_hard_limit is not None
+            and budget_soft_limit > budget_hard_limit
+        ):
+            raise OrchestratorError("budget_soft_limit must be <= budget_hard_limit")
+        self._budget_soft_limit = budget_soft_limit
+        self._budget_hard_limit = budget_hard_limit
+        self._budget_lock = threading.Lock()
+        self._spent_usd = 0.0
+        self._costed_workers: set[str] = set()
+        self._budget_event: Optional[dict[str, Any]] = None
 
     # ── public API ────────────────────────────────────────────────
 
@@ -361,29 +399,86 @@ class ParallelRunner:
                 if self._is_cancelled():
                     self._mark_cancelled(worker.worker_id)
                     continue
+                # Hard budget reached by a prior worker's cost → stop launching
+                # the rest. Each remaining worker is recorded as stopped (never
+                # run), so the halt is auditable in status.json.
+                stop = self._budget_stop_decision()
+                if stop is not None:
+                    self._record_budget_event(stop)
+                    self._mark_cancelled(
+                        worker.worker_id, reason=f"stopped: {stop.detail}"
+                    )
+                    continue
                 self._execute_worker(worker)
         else:
-            with ThreadPoolExecutor(max_workers=self.plan.concurrency) as pool:
-                futures = {
-                    pool.submit(self._execute_worker, worker): worker
-                    for worker in self.plan.workers
-                }
-                for future in as_completed(futures):
-                    # Surface unexpected exceptions through the worker
-                    # status (we already write per-worker errors inline,
-                    # but a raise here would be a programmer bug).
+            self._run_concurrent()
+
+        self._write_status_snapshot()
+        return dict(self.statuses)
+
+    def _run_concurrent(self) -> None:
+        """Run workers in a bounded pool, gating each *launch* on the budget.
+
+        A worker is only started while the accrued cost is still within the
+        hard budget, so a pre-exhausted hard budget (e.g. ``budget_hard_limit
+        =0.0``) starts nothing — exactly like the sequential path, and unlike a
+        submit-everything-up-front pool that would race ``concurrency`` workers
+        out before the first completion. The max-concurrency guarantee is
+        unchanged (the pool still runs at most ``concurrency`` at once); only
+        *when* a pending worker is queued differs.
+        """
+
+        pending = list(self.plan.workers)
+        next_index = 0
+        futures: dict[Future[None], WorkerPlan] = {}
+
+        with ThreadPoolExecutor(max_workers=self.plan.concurrency) as pool:
+
+            def _try_launch_one() -> bool:
+                """Launch the next pending worker, skipping those a cancel or an
+                exhausted budget rules out (recorded as stopped). Returns True
+                once a worker is actually submitted, False when none remain."""
+                nonlocal next_index
+                while next_index < len(pending):
+                    worker = pending[next_index]
+                    next_index += 1
+                    if self._is_cancelled():
+                        self._mark_cancelled(worker.worker_id)
+                        continue
+                    stop = self._budget_stop_decision()
+                    if stop is not None:
+                        self._record_budget_event(stop)
+                        self._mark_cancelled(
+                            worker.worker_id, reason=f"stopped: {stop.detail}"
+                        )
+                        continue
+                    futures[pool.submit(self._execute_worker, worker)] = worker
+                    return True
+                return False
+
+            # Prime the pool (budget-gated): a pre-exhausted budget submits none.
+            for _ in range(self.plan.concurrency):
+                if not _try_launch_one():
+                    break
+            # As each worker finishes, fold in its cost (via _update) and try to
+            # launch the next pending worker — which re-checks the budget, so a
+            # mid-run overrun stops the remaining workers before they start.
+            while futures:
+                done_set, _ = wait(list(futures), return_when=FIRST_COMPLETED)
+                for future in done_set:
+                    worker = futures.pop(future)
+                    # Surface unexpected exceptions through the worker status
+                    # (per-worker errors are written inline; a raise here would
+                    # be a programmer bug).
                     exc = future.exception()
                     if exc is not None:
-                        worker = futures[future]
                         self._update(
                             worker.worker_id,
                             state=WorkerState.FAILED,
                             error=f"runner exception: {exc!r}",
                             ended_at=_now_iso(),
                         )
-
-        self._write_status_snapshot()
-        return dict(self.statuses)
+                    _try_launch_one()
 
     def request_cancel(self) -> None:
         """In-process cancel signal. Sets the flag file too for symmetry."""
@@ -660,6 +755,12 @@ class ParallelRunner:
             # turns it into a string)
             snapshot.state = status.state if isinstance(status.state, WorkerState) else WorkerState(status.state)
             self._write_status_snapshot_locked()
+        # Fold a completed worker's reported cost into the running budget meter.
+        # ``usage`` is attached exactly once (on clean completion), so counting
+        # here — outside the status lock to avoid lock ordering — meters each
+        # worker at most once (the dedupe set is belt-and-braces).
+        if "usage" in fields:
+            self._note_cost(worker_id, fields.get("usage"))
         if self.on_status is not None:
             try:
                 self.on_status(snapshot)
@@ -667,13 +768,70 @@ class ParallelRunner:
                 # Status callbacks must never break execution.
                 pass
 
-    def _mark_cancelled(self, worker_id: str) -> None:
+    def _mark_cancelled(
+        self, worker_id: str, *, reason: str = "cancelled before start"
+    ) -> None:
         with self._status_lock:
             status = self.statuses[worker_id]
             if status.state in (WorkerState.PENDING,):
                 status.state = WorkerState.CANCELLED
                 status.ended_at = _now_iso()
-                status.error = "cancelled before start"
+                status.error = reason
+            self._write_status_snapshot_locked()
+
+    # ── budget enforcement (Sprint 10) ───────────────────────────
+
+    def _note_cost(self, worker_id: str, usage_block: Optional[dict[str, Any]]) -> None:
+        """Add a completed worker's reported ``cost_usd`` to the meter, once.
+
+        A worker that reported no usage (or a non-positive / malformed cost)
+        leaves the meter untouched — the additive, behavior-preserving default.
+        """
+
+        if not isinstance(usage_block, dict):
+            return
+        cost = usage_block.get("cost_usd")
+        if isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost <= 0:
+            return
+        with self._budget_lock:
+            if worker_id in self._costed_workers:
+                return
+            self._costed_workers.add(worker_id)
+            self._spent_usd += float(cost)
+
+    def _budget_stop_decision(self) -> Optional[BudgetDecision]:
+        """Return the hard-stop budget decision when the meter is exhausted.
+
+        ``None`` when no budget is configured or the spend is still within the
+        hard limit (so the runner keeps launching workers).
+        """
+
+        if self._budget_soft_limit is None and self._budget_hard_limit is None:
+            return None
+        with self._budget_lock:
+            spent = self._spent_usd
+        decision = evaluate_budget(
+            spent,
+            soft_limit=self._budget_soft_limit,
+            hard_limit=self._budget_hard_limit,
+            meter="cost",
+        )
+        return decision if decision.should_stop else None
+
+    def _record_budget_event(self, decision: BudgetDecision) -> None:
+        """Persist the budget hard-stop into ``status.json`` exactly once."""
+
+        with self._status_lock:
+            if self._budget_event is not None:
+                return
+            self._budget_event = {
+                "stopped": True,
+                "meter": decision.meter,
+                "spent": decision.spent,
+                "soft_limit": decision.soft_limit,
+                "hard_limit": decision.hard_limit,
+                "detail": decision.detail,
+            }
             self._write_status_snapshot_locked()
 
     def _is_cancelled(self) -> bool:
@@ -691,13 +849,15 @@ class ParallelRunner:
     def _write_status_snapshot_locked(self, *, initial: bool = False) -> None:
         path = status_path(self.repo, self.plan.job_id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
+        payload: dict[str, Any] = {
             "job_id": self.plan.job_id,
             "updated_at": _now_iso(),
             "concurrency": self.plan.concurrency,
             "use_worktrees": self.plan.use_worktrees,
             "workers": [s.as_dict() for s in self.statuses.values()],
         }
+        if self._budget_event is not None:
+            payload["budget"] = dict(self._budget_event)
         if initial:
             payload["created_at"] = payload["updated_at"]
         else:

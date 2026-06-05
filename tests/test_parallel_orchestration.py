@@ -683,3 +683,238 @@ def test_read_usage_sidecar_tolerates_missing_and_malformed(tmp_path: Path):
     # Malformed JSON.
     (tmp_path / op.USAGE_FILENAME).write_text("{not json", encoding="utf-8")
     assert op._read_usage_sidecar(tmp_path) is None
+
+
+# ─── budget hard-stop (Sprint 10 enforcement) ─────────────────────────
+
+
+def _cost_writer_command(usage_path: Path, cost: float) -> list[str]:
+    """A LOCAL_RUN worker that reports ``cost`` USD via its usage sidecar."""
+
+    payload = {"cost_usd": cost, "model": "test", "provider": "test"}
+    return _python_command(
+        "import json, pathlib",
+        f"p = pathlib.Path(r{str(usage_path)!r})",
+        "p.parent.mkdir(parents=True, exist_ok=True)",
+        f"p.write_text(json.dumps({payload!r}), encoding='utf-8')",
+    )
+
+
+def _marker_writer_command(marker: Path) -> list[str]:
+    """A worker whose only effect is to create ``marker`` — proves it ran."""
+
+    return _python_command(
+        "import pathlib",
+        f"pathlib.Path(r{str(marker)!r}).write_text('ran', encoding='utf-8')",
+    )
+
+
+def test_sequential_budget_hard_stop_halts_remaining_workers(
+    repo: Path, tmp_path: Path
+):
+    # w1 reports a cost over the hard limit; the runner must NOT launch w2.
+    usage_file = op.usage_path(repo, "job-budget", "w1")
+    marker = tmp_path / "w2-ran.txt"
+    plan = op.ExecutionPlan(
+        job_id="job-budget",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_cost_writer_command(usage_file, 5.0),
+                timeout_seconds=10,
+            ),
+            op.WorkerPlan(
+                worker_id="w2",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_marker_writer_command(marker),
+                timeout_seconds=10,
+            ),
+        ],
+        concurrency=1,
+    )
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, budget_hard_limit=1.0
+    ).run()
+
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    w1_usage = statuses["w1"].usage
+    assert w1_usage is not None and w1_usage["cost_usd"] == 5.0
+    # w2 was stopped before launch; its command never executed.
+    assert statuses["w2"].state is op.WorkerState.CANCELLED
+    assert "limit" in (statuses["w2"].error or "")
+    assert not marker.exists()
+    # The hard stop is recorded in status.json for audit.
+    snapshot = op.load_status(repo, "job-budget")
+    assert snapshot is not None
+    assert snapshot["budget"]["stopped"] is True
+    assert snapshot["budget"]["spent"] == 5.0
+    assert snapshot["budget"]["hard_limit"] == 1.0
+
+
+def test_no_budget_limit_runs_all_workers(repo: Path, tmp_path: Path):
+    # Behavior-preserving default: with no budget, every worker runs even when
+    # it reports a large cost, and no budget block is written.
+    usage_file = op.usage_path(repo, "job-nobudget", "w1")
+    marker = tmp_path / "w2-ran.txt"
+    plan = op.ExecutionPlan(
+        job_id="job-nobudget",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_cost_writer_command(usage_file, 99.0),
+                timeout_seconds=10,
+            ),
+            op.WorkerPlan(
+                worker_id="w2",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_marker_writer_command(marker),
+                timeout_seconds=10,
+            ),
+        ],
+        concurrency=1,
+    )
+    statuses = op.ParallelRunner(repo, plan, poll_interval=0.05).run()
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    assert statuses["w2"].state is op.WorkerState.COMPLETED
+    assert marker.exists()
+    snapshot = op.load_status(repo, "job-nobudget")
+    assert snapshot is not None
+    assert "budget" not in snapshot
+
+
+def test_budget_within_limit_keeps_running(repo: Path, tmp_path: Path):
+    # Spend stays under the hard limit → the next worker still runs.
+    usage_file = op.usage_path(repo, "job-underbudget", "w1")
+    marker = tmp_path / "w2-ran.txt"
+    plan = op.ExecutionPlan(
+        job_id="job-underbudget",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_cost_writer_command(usage_file, 0.25),
+                timeout_seconds=10,
+            ),
+            op.WorkerPlan(
+                worker_id="w2",
+                profile="builder",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_marker_writer_command(marker),
+                timeout_seconds=10,
+            ),
+        ],
+        concurrency=1,
+    )
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, budget_hard_limit=1.0
+    ).run()
+    assert statuses["w2"].state is op.WorkerState.COMPLETED
+    assert marker.exists()
+    snapshot = op.load_status(repo, "job-underbudget")
+    assert snapshot is not None
+    assert "budget" not in snapshot
+
+
+def test_invalid_budget_limits_rejected(repo: Path):
+    plan = op.ExecutionPlan(
+        job_id="job-badbudget",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="builder",
+                mode=op.ExecutionMode.PROMPT_ONLY,
+                prompt="x",
+            )
+        ],
+    )
+    with pytest.raises(op.OrchestratorError, match="budget_soft_limit must be <="):
+        op.ParallelRunner(repo, plan, budget_soft_limit=5.0, budget_hard_limit=1.0)
+
+
+def test_concurrent_pre_exhausted_budget_launches_nothing(repo: Path, tmp_path: Path):
+    # A pre-exhausted hard budget (0.0) must start NO worker, even on the
+    # concurrent path — symmetric with the sequential pre-launch check. The
+    # bounded pool gates each launch, so it never races ``concurrency`` workers
+    # out before the first completion.
+    markers = [tmp_path / f"w{i}-ran.txt" for i in range(4)]
+    workers = [
+        op.WorkerPlan(
+            worker_id=f"w{i}",
+            profile="builder",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=_marker_writer_command(markers[i]),
+            timeout_seconds=10,
+        )
+        for i in range(4)
+    ]
+    plan = op.ExecutionPlan(job_id="job-zerobudget", workers=workers, concurrency=2)
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, budget_hard_limit=0.0
+    ).run()
+    # Not one worker command executed.
+    assert not any(m.exists() for m in markers)
+    # Every worker is recorded as stopped (cancelled), none completed.
+    assert all(s.state is op.WorkerState.CANCELLED for s in statuses.values())
+    snapshot = op.load_status(repo, "job-zerobudget")
+    assert snapshot is not None
+    assert snapshot["budget"]["stopped"] is True
+
+
+def test_concurrent_budget_stops_remaining_after_overrun(repo: Path, tmp_path: Path):
+    # The first wave (within concurrency) runs and overruns the hard limit;
+    # the later workers must be stopped before they launch. Deterministic
+    # because bounded submission only queues w2/w3 after w0/w1 complete, by
+    # which point the meter is already over the limit.
+    u0 = op.usage_path(repo, "job-cbud", "w0")
+    u1 = op.usage_path(repo, "job-cbud", "w1")
+    m2 = tmp_path / "w2-ran.txt"
+    m3 = tmp_path / "w3-ran.txt"
+    workers = [
+        op.WorkerPlan(
+            worker_id="w0",
+            profile="builder",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=_cost_writer_command(u0, 5.0),
+            timeout_seconds=10,
+        ),
+        op.WorkerPlan(
+            worker_id="w1",
+            profile="builder",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=_cost_writer_command(u1, 5.0),
+            timeout_seconds=10,
+        ),
+        op.WorkerPlan(
+            worker_id="w2",
+            profile="builder",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=_marker_writer_command(m2),
+            timeout_seconds=10,
+        ),
+        op.WorkerPlan(
+            worker_id="w3",
+            profile="builder",
+            mode=op.ExecutionMode.LOCAL_RUN,
+            command=_marker_writer_command(m3),
+            timeout_seconds=10,
+        ),
+    ]
+    plan = op.ExecutionPlan(job_id="job-cbud", workers=workers, concurrency=2)
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, budget_hard_limit=1.0
+    ).run()
+    assert statuses["w0"].state is op.WorkerState.COMPLETED
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    assert statuses["w2"].state is op.WorkerState.CANCELLED
+    assert statuses["w3"].state is op.WorkerState.CANCELLED
+    assert not m2.exists() and not m3.exists()
+    snapshot = op.load_status(repo, "job-cbud")
+    assert snapshot is not None
+    assert snapshot["budget"]["stopped"] is True

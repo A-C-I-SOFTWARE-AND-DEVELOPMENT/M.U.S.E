@@ -89,6 +89,7 @@ def _hermes_home() -> Path:
     """
     try:
         from hermes_constants import get_hermes_home
+
         return get_hermes_home()
     except Exception:
         return Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))
@@ -238,6 +239,7 @@ def _find_job(jobs: list[Job], job_id: str) -> Optional[Job]:
 # The legacy combined file is still merged in by ``_load_ledger`` so users
 # upgrading don't lose history, but no new writes go to it.
 
+
 def _load_legacy_ledger() -> dict[str, list[dict[str, Any]]]:
     """Read the deprecated combined-JSON ledger if it still exists on disk.
 
@@ -282,6 +284,7 @@ def _append_ledger(job_id: str, entry: dict[str, Any]) -> None:
 # Public controller API — used by both CLI and gateway dispatchers
 # ---------------------------------------------------------------------------
 
+
 def submit_job(prompt: str) -> Job:
     """Record a new orchestration job.
 
@@ -291,8 +294,13 @@ def submit_job(prompt: str) -> Job:
     prompt = (prompt or "").strip()
     if not prompt:
         raise ValueError("/orchestrate requires a prompt")
-    job = Job(id=_new_job_id(), prompt=prompt, status="queued",
-              created_at=_now(), updated_at=_now())
+    job = Job(
+        id=_new_job_id(),
+        prompt=prompt,
+        status="queued",
+        created_at=_now(),
+        updated_at=_now(),
+    )
     jobs = _load_jobs()
     jobs.append(job)
     _save_jobs(jobs)
@@ -371,10 +379,14 @@ def dispatch_job(
         try:
             adapter = _wr.get(worker_id)
         except Exception:
-            _append_ledger(job_id, {
-                "kind": "worker_error", "worker_id": worker_id,
-                "error": "unknown worker",
-            })
+            _append_ledger(
+                job_id,
+                {
+                    "kind": "worker_error",
+                    "worker_id": worker_id,
+                    "error": "unknown worker",
+                },
+            )
             return job
 
     # Owner gate: a worker that mutates the repo / runs external tools declares
@@ -382,21 +394,42 @@ def dispatch_job(
     # 'execute' phase is approved. Non-destructive workers (the local planner,
     # handoff workers) opt out via `requires_approval = False`. Never bypass.
     requires_approval = bool(getattr(adapter, "requires_approval", True))
-    if requires_approval and not has_approval(job, "execute"):
-        _append_ledger(job_id, {
-            "kind": "worker_blocked", "worker_id": worker_id,
-            "reason": "execute phase requires owner approval",
-        })
+    needs_owner = requires_approval and not has_approval(job, "execute")
+    # Unified decision verdict for the execute boundary (Sprint 2 wiring):
+    # compose the owner gate into one auto/ask/refuse verdict the cockpit can
+    # render. Behavior-preserving — the block below fires on the same condition.
+    from hermes_cli.decision_engine import merge_decision_inputs, owner_gate_input
+
+    execute_verdict = merge_decision_inputs(
+        "orchestrator.worker_execute",
+        [owner_gate_input(needs_owner, action=f"worker {worker_id} execute")],
+    )
+    if needs_owner:
+        _append_ledger(
+            job_id,
+            {
+                "kind": "worker_blocked",
+                "worker_id": worker_id,
+                "reason": "execute phase requires owner approval",
+                "decision_verdict": execute_verdict.to_redacted_dict(),
+            },
+        )
         job.status = "blocked"
         job.updated_at = _now()
         _save_jobs(jobs)
         return job
 
     detection = adapter.detect()
-    _append_ledger(job_id, {
-        "kind": "worker_dispatch", "worker_id": worker_id,
-        "available": bool(detection.available), "reason": detection.reason,
-    })
+    _append_ledger(
+        job_id,
+        {
+            "kind": "worker_dispatch",
+            "worker_id": worker_id,
+            "available": bool(detection.available),
+            "reason": detection.reason,
+            "decision_verdict": execute_verdict.to_redacted_dict(),
+        },
+    )
     if not detection.available:
         job.status = "blocked"
         job.updated_at = _now()
@@ -409,24 +442,39 @@ def dispatch_job(
         artifacts = adapter.collect(job)
         score = adapter.score(artifacts)
     except Exception as exc:  # best-effort: a worker error never crashes dispatch
-        _append_ledger(job_id, {
-            "kind": "worker_error", "worker_id": worker_id, "error": str(exc),
-        })
+        _append_ledger(
+            job_id,
+            {
+                "kind": "worker_error",
+                "worker_id": worker_id,
+                "error": str(exc),
+            },
+        )
         job.status = "failed"
         job.updated_at = _now()
         _save_jobs(jobs)
         return job
 
-    _append_ledger(job_id, {
-        "kind": "worker_result", "worker_id": worker_id,
-        "ok": bool(run_result.ok), "summary": (run_result.stdout or "")[:500],
-        "error": run_result.error,
-    })
-    _append_ledger(job_id, {
-        "kind": "worker_score", "worker_id": worker_id,
-        "value": round(float(score.value), 4), "rationale": score.rationale,
-        "files": list(artifacts.files),
-    })
+    _append_ledger(
+        job_id,
+        {
+            "kind": "worker_result",
+            "worker_id": worker_id,
+            "ok": bool(run_result.ok),
+            "summary": (run_result.stdout or "")[:500],
+            "error": run_result.error,
+        },
+    )
+    _append_ledger(
+        job_id,
+        {
+            "kind": "worker_score",
+            "worker_id": worker_id,
+            "value": round(float(score.value), 4),
+            "rationale": score.rationale,
+            "files": list(artifacts.files),
+        },
+    )
     for f in artifacts.files:
         if f not in job.artifacts:
             job.artifacts.append(f)
@@ -485,6 +533,7 @@ def get_ledger(job_id: Optional[str] = None) -> dict[str, list[dict[str, Any]]]:
 # ---------------------------------------------------------------------------
 # Cancel / approve / validate / publish-plan
 # ---------------------------------------------------------------------------
+
 
 def cancel_job(job_id: str) -> Optional[Job]:
     """Mark a job as cancelled.
@@ -571,9 +620,7 @@ def validate_job(job_id: str) -> Optional[dict[str, Any]]:
         # ValidationReport.to_dict() is the documented contract.
         report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
         status_counts = (
-            report.status_counts()
-            if hasattr(report, "status_counts")
-            else {}
+            report.status_counts() if hasattr(report, "status_counts") else {}
         )
         summary = {
             "job_id": job.id,
@@ -602,11 +649,14 @@ def validate_job(job_id: str) -> Optional[dict[str, Any]]:
         all_validations = {}
     all_validations[job.id] = summary
     _write_json(_orch_dir() / _VALIDATION_FILE, all_validations)
-    _append_ledger(job.id, {
-        "kind": "validate",
-        "status_counts": summary.get("status_counts", {}),
-        "publish_blocked": summary.get("publish_blocked", False),
-    })
+    _append_ledger(
+        job.id,
+        {
+            "kind": "validate",
+            "status_counts": summary.get("status_counts", {}),
+            "publish_blocked": summary.get("publish_blocked", False),
+        },
+    )
     return summary
 
 
@@ -633,9 +683,7 @@ def publish_plan(job_id: str) -> dict[str, Any]:
             "job_id": job.id,
         }
     validations = _read_json(_orch_dir() / _VALIDATION_FILE, default={})
-    val_summary = (
-        validations.get(job.id) if isinstance(validations, dict) else None
-    )
+    val_summary = validations.get(job.id) if isinstance(validations, dict) else None
     if val_summary and val_summary.get("publish_blocked"):
         return {
             "ok": False,
@@ -677,6 +725,7 @@ def publish_plan(job_id: str) -> dict[str, Any]:
 # Voice capture state
 # ---------------------------------------------------------------------------
 
+
 def _default_voice_capture_state() -> dict[str, Any]:
     return {
         "mode": "disabled",
@@ -686,8 +735,9 @@ def _default_voice_capture_state() -> dict[str, Any]:
 
 
 def voice_capture_status() -> dict[str, Any]:
-    raw = _read_json(_orch_dir() / _VOICE_CAPTURE_FILE,
-                     default=_default_voice_capture_state())
+    raw = _read_json(
+        _orch_dir() / _VOICE_CAPTURE_FILE, default=_default_voice_capture_state()
+    )
     if not isinstance(raw, dict):
         return _default_voice_capture_state()
     raw.setdefault("mode", "disabled")
@@ -718,6 +768,7 @@ def set_voice_capture_mode(mode: str) -> dict[str, Any]:
 # Remote-worker status
 # ---------------------------------------------------------------------------
 
+
 def remote_worker_status() -> dict[str, Any]:
     """Return a snapshot of registered remote workers.
 
@@ -747,6 +798,7 @@ def remote_worker_status() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Self-improve
 # ---------------------------------------------------------------------------
+
 
 def self_improve_run(job_id: str) -> dict[str, Any]:
     """Record a request to run the self-improvement loop against *job_id*.
@@ -795,6 +847,7 @@ def self_improve_run(job_id: str) -> dict[str, Any]:
 # Profile: build GitHub history
 # ---------------------------------------------------------------------------
 
+
 def profile_build_github_history() -> dict[str, Any]:
     """Refresh the local profile's GitHub history snapshot.
 
@@ -806,6 +859,7 @@ def profile_build_github_history() -> dict[str, Any]:
     """
     try:
         from hermes_cli.profiles import get_active_profile_name
+
         profile_name = get_active_profile_name()
     except Exception:
         profile_name = "default"
@@ -824,8 +878,9 @@ def profile_build_github_history() -> dict[str, Any]:
 
 
 def profile_github_history_status() -> dict[str, Any]:
-    return _read_json(_orch_dir() / _PROFILE_GITHUB_HISTORY_FILE,
-                      default={"built_at": 0})
+    return _read_json(
+        _orch_dir() / _PROFILE_GITHUB_HISTORY_FILE, default={"built_at": 0}
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -872,6 +927,7 @@ def model_router_explain(prompt: str) -> dict[str, Any]:
 # AI radar
 # ---------------------------------------------------------------------------
 
+
 def ai_radar_update() -> dict[str, Any]:
     """Record a manual AI-radar refresh and return the new snapshot.
 
@@ -900,6 +956,7 @@ def ai_radar_status() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # "Best coding tool" mission
 # ---------------------------------------------------------------------------
+
 
 def best_coding_tool_mission_status() -> dict[str, Any]:
     """Return the mission status snapshot.
@@ -938,6 +995,7 @@ def best_coding_tool_mission_status() -> dict[str, Any]:
 # Formatting helpers (used by run_slash + cli.py + gateway/run.py)
 # ---------------------------------------------------------------------------
 
+
 def _fmt_ts(ts: Any) -> str:
     """Render a timestamp for display.
 
@@ -950,6 +1008,7 @@ def _fmt_ts(ts: Any) -> str:
         return "—"
     if isinstance(ts, str):
         from datetime import datetime
+
         try:
             return datetime.fromisoformat(ts).strftime("%Y-%m-%d %H:%M")
         except ValueError:
@@ -1034,11 +1093,7 @@ _DECISION_LEDGER_HELP = (
 )
 
 
-_AI_RADAR_HELP = (
-    "Usage: /ai-radar update\n"
-    "\n"
-    "Refresh the local AI-radar snapshot.\n"
-)
+_AI_RADAR_HELP = "Usage: /ai-radar update\n\nRefresh the local AI-radar snapshot.\n"
 
 
 _MISSION_HELP = (
@@ -1092,6 +1147,7 @@ _PROFILE_HELP = (
 # Slash dispatchers
 # ---------------------------------------------------------------------------
 
+
 def run_orchestrate(rest: str) -> str:
     """Handle ``/orchestrate <prompt>``."""
     prompt = (rest or "").strip()
@@ -1109,7 +1165,9 @@ def run_orchestrate(rest: str) -> str:
     if packet:
         files = packet.get("candidate_files") or []
         if files:
-            nav_line = f"\n  navigation:  {len(files)} candidate file(s) — top: {files[0]}"
+            nav_line = (
+                f"\n  navigation:  {len(files)} candidate file(s) — top: {files[0]}"
+            )
     return (
         f"✓ Orchestration job queued: {job.id}\n"
         f"  status:  {job.status}\n"
@@ -1187,8 +1245,7 @@ def _run_orchestrator_resume(args: list[str]) -> str:
     if not job:
         return f"⚠ /orchestrator: unknown job id {args[0]!r}"
     return (
-        f"✓ Job {job.id} re-queued (status={job.status}, "
-        f"resumes={job.resumed_count})."
+        f"✓ Job {job.id} re-queued (status={job.status}, resumes={job.resumed_count})."
     )
 
 
@@ -1198,9 +1255,7 @@ def _run_orchestrator_publish(args: list[str]) -> str:
     job = publish_job(args[0])
     if not job:
         return f"⚠ /orchestrator: unknown job id {args[0]!r}"
-    return (
-        f"✓ Job {job.id} marked published at {_fmt_ts(job.published_at)}."
-    )
+    return f"✓ Job {job.id} marked published at {_fmt_ts(job.published_at)}."
 
 
 def _run_orchestrator_cancel(args: list[str]) -> str:
@@ -1243,9 +1298,7 @@ def _run_orchestrator_validate(args: list[str]) -> str:
     if summary is None:
         return f"⚠ /orchestrator: unknown job id {args[0]!r}"
     counts = summary.get("status_counts") or {}
-    count_line = ", ".join(
-        f"{k}={v}" for k, v in sorted(counts.items())
-    ) or "—"
+    count_line = ", ".join(f"{k}={v}" for k, v in sorted(counts.items())) or "—"
     blocked = "yes" if summary.get("publish_blocked") else "no"
     lines = [
         f"  job:              {summary.get('job_id')}",
@@ -1277,16 +1330,16 @@ def _run_orchestrator_publish_plan(args: list[str]) -> str:
 
 
 _ORCHESTRATOR_SUBCOMMANDS: dict[str, Any] = {
-    "status":       _run_orchestrator_status,
-    "list":         _run_orchestrator_list,
-    "open":         _run_orchestrator_open,
-    "dispatch":     _run_orchestrator_dispatch,
-    "replay":       _run_orchestrator_replay,
-    "resume":       _run_orchestrator_resume,
-    "cancel":       _run_orchestrator_cancel,
-    "approve":      _run_orchestrator_approve,
-    "validate":     _run_orchestrator_validate,
-    "publish":      _run_orchestrator_publish,
+    "status": _run_orchestrator_status,
+    "list": _run_orchestrator_list,
+    "open": _run_orchestrator_open,
+    "dispatch": _run_orchestrator_dispatch,
+    "replay": _run_orchestrator_replay,
+    "resume": _run_orchestrator_resume,
+    "cancel": _run_orchestrator_cancel,
+    "approve": _run_orchestrator_approve,
+    "validate": _run_orchestrator_validate,
+    "publish": _run_orchestrator_publish,
     "publish-plan": _run_orchestrator_publish_plan,
 }
 
@@ -1342,7 +1395,9 @@ def run_decision_ledger(rest: str) -> str:
         return f"⚠ /decision-ledger: {exc}\n{_DECISION_LEDGER_HELP}"
     sub, *args = tokens
     if sub != "show":
-        return f"⚠ /decision-ledger: unknown subcommand {sub!r}\n{_DECISION_LEDGER_HELP}"
+        return (
+            f"⚠ /decision-ledger: unknown subcommand {sub!r}\n{_DECISION_LEDGER_HELP}"
+        )
     job_id = args[0] if args else None
     ledger = get_ledger(job_id)
     if not ledger:
@@ -1393,8 +1448,7 @@ def run_best_coding_tool_mission(rest: str) -> str:
     sub = tokens[0]
     if sub != "status":
         return (
-            f"⚠ /best-coding-tool-mission: unknown subcommand {sub!r}\n"
-            f"{_MISSION_HELP}"
+            f"⚠ /best-coding-tool-mission: unknown subcommand {sub!r}\n{_MISSION_HELP}"
         )
     snapshot = best_coding_tool_mission_status()
     metrics = snapshot.get("metrics") or {}
@@ -1427,7 +1481,8 @@ def run_voice_capture(rest: str) -> str:
         last = history[-1] if history else None
         last_line = (
             f"{last.get('from')} → {last.get('to')} at {_fmt_ts(last.get('ts'))}"
-            if last else "—"
+            if last
+            else "—"
         )
         return (
             f"  mode:          {state.get('mode')}\n"
@@ -1438,8 +1493,7 @@ def run_voice_capture(rest: str) -> str:
     if sub == "mode":
         if not args:
             return (
-                f"⚠ /voice-capture mode requires a mode argument\n"
-                f"{_VOICE_CAPTURE_HELP}"
+                f"⚠ /voice-capture mode requires a mode argument\n{_VOICE_CAPTURE_HELP}"
             )
         try:
             state = set_voice_capture_mode(args[0])
@@ -1462,10 +1516,7 @@ def run_remote_worker(rest: str) -> str:
         return f"⚠ /remote-worker: {exc}\n{_REMOTE_WORKER_HELP}"
     sub = tokens[0]
     if sub != "status":
-        return (
-            f"⚠ /remote-worker: unknown subcommand {sub!r}\n"
-            f"{_REMOTE_WORKER_HELP}"
-        )
+        return f"⚠ /remote-worker: unknown subcommand {sub!r}\n{_REMOTE_WORKER_HELP}"
     snapshot = remote_worker_status()
     workers = snapshot.get("workers") or []
     if not workers:

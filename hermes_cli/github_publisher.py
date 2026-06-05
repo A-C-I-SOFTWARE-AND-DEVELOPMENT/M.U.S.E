@@ -44,8 +44,8 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from hermes_cli.decision_engine import (
+    live_publish_input,
     merge_decision_inputs,
-    owner_gate_input,
     secret_input,
 )
 
@@ -317,29 +317,27 @@ def get_status(repo_root: Optional[Path] = None) -> GitStatus:
 
 # Filenames or path fragments we always refuse. Lowercased; matched as a
 # basename equality OR substring against the relative path.
-_BLOCKED_BASENAMES = frozenset(
-    {
-        ".env",
-        ".env.local",
-        ".env.production",
-        ".env.development",
-        ".env.staging",
-        ".envrc.local",
-        "id_rsa",
-        "id_dsa",
-        "id_ecdsa",
-        "id_ed25519",
-        "credentials",
-        "credentials.json",
-        "service-account.json",
-        "secrets.yaml",
-        "secrets.yml",
-        "secrets.json",
-        ".npmrc.local",
-        ".pypirc",
-        ".netrc",
-    }
-)
+_BLOCKED_BASENAMES = frozenset({
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.development",
+    ".env.staging",
+    ".envrc.local",
+    "id_rsa",
+    "id_dsa",
+    "id_ecdsa",
+    "id_ed25519",
+    "credentials",
+    "credentials.json",
+    "service-account.json",
+    "secrets.yaml",
+    "secrets.yml",
+    "secrets.json",
+    ".npmrc.local",
+    ".pypirc",
+    ".netrc",
+})
 
 _BLOCKED_SUFFIXES = (
     ".pem",
@@ -368,7 +366,10 @@ _CONTENT_SECRET_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
     ("Google API key", re.compile(r"AIza[0-9A-Za-z\-_]{30,}")),
     ("OpenAI API key", re.compile(r"sk-(?:proj-)?[A-Za-z0-9]{20,}")),
     ("Anthropic API key", re.compile(r"sk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_\-]{20,}")),
-    ("Private key PEM", re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |)PRIVATE KEY-----")),
+    (
+        "Private key PEM",
+        re.compile(r"-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |)PRIVATE KEY-----"),
+    ),
 )
 
 # Don't scan content of files larger than this (bytes) — they're almost
@@ -707,8 +708,14 @@ def _render_publish_plan(plan: PublishPlan, *, gh_present: bool) -> str:
     if plan.pr_create_command:
         lines.append(" ".join(_shell_quote(p) for p in plan.pr_create_command))
     else:
-        lines.append("# gh not present — open the PR manually using github/pr-title.txt")
-        lines.append("# and github/pr-body.md against base `{base}`.".format(base=plan.base_branch))
+        lines.append(
+            "# gh not present — open the PR manually using github/pr-title.txt"
+        )
+        lines.append(
+            "# and github/pr-body.md against base `{base}`.".format(
+                base=plan.base_branch
+            )
+        )
     lines.append("```")
     lines.append("")
     lines.append("## Rollback")
@@ -722,7 +729,9 @@ def _render_publish_plan(plan: PublishPlan, *, gh_present: bool) -> str:
         f"`git branch -D {plan.branch}` once you've confirmed nothing else "
         "depends on the local copy."
     )
-    lines.append("- This module never force-pushes, never merges, and never deletes the base branch.")
+    lines.append(
+        "- This module never force-pushes, never merges, and never deletes the base branch."
+    )
     lines.append("")
     return "\n".join(lines)
 
@@ -792,6 +801,34 @@ def write_publish_artifacts(
 # ── top-level orchestration ──────────────────────────────────────────────────
 
 
+def _load_allowed_repos() -> list[str]:
+    """Repos a *live* publish (approve=True) may target, as ``owner/name``.
+
+    Sourced from the ``github.allowed_repositories`` config block (shared with
+    the github_assistant plugin) plus the ``HERMES_PUBLISH_ALLOWED_REPOS`` env
+    var (comma/space separated). An **empty** list means no allowlist is
+    enforced — dry-run is always safe regardless. Any failure degrades to empty.
+    """
+    repos: list[str] = []
+    try:
+        from hermes_cli.config import load_config
+
+        cfg = load_config()
+        block = cfg.get("github") if isinstance(cfg, dict) else None
+        if isinstance(block, dict):
+            for item in block.get("allowed_repositories") or []:
+                if isinstance(item, str) and item.strip():
+                    repos.append(item.strip())
+    except Exception:
+        pass
+    for item in (
+        os.environ.get("HERMES_PUBLISH_ALLOWED_REPOS", "").replace(",", " ").split()
+    ):
+        if item.strip():
+            repos.append(item.strip())
+    return repos
+
+
 def run(
     *,
     job_id: str,
@@ -824,7 +861,9 @@ def run(
 
     cleaned = [_normalized_rel(f, repo.root) for f in files if f]
     cleaned = [c for c in cleaned if c and c != "."]
-    findings = scan_for_secrets(cleaned, repo_root=repo.root, scan_contents=scan_contents)
+    findings = scan_for_secrets(
+        cleaned, repo_root=repo.root, scan_contents=scan_contents
+    )
 
     errors: list[str] = []
     if findings:
@@ -832,16 +871,32 @@ def run(
             errors.append(f"blocked: {path} — {reason}")
 
     # Unified decision verdict for the publish boundary (Sprint 2 wiring):
-    # secrets -> refuse; a live publish (approve=True) is owner-gated -> ask;
-    # a dry-run with no findings -> auto. Behavior-preserving — this records
-    # the verdict for the cockpit; the existing publish gate below is unchanged.
+    # secrets -> refuse; a live publish (approve=True) must target an
+    # allowlisted repo and is owner-gated -> ask (allowlisted) / refuse (not);
+    # a dry-run with no findings -> auto.
+    allowed_repos = _load_allowed_repos()
+    repo_allowlisted = (not allowed_repos) or (repo.slug in allowed_repos)
     _decision_inputs = [secret_input(list(findings))]
     if approve:
-        _decision_inputs.append(owner_gate_input(True, action="github.publish_pr"))
+        _decision_inputs.append(
+            live_publish_input(
+                repo_allowlisted=repo_allowlisted, action_allowlisted=True
+            )
+        )
     verdict = merge_decision_inputs("github.publish_pr", _decision_inputs)
 
+    if approve and not repo_allowlisted:
+        errors.append(
+            f"blocked: repo {repo.slug!r} is not in the publish allowlist "
+            "(set github.allowed_repositories or HERMES_PUBLISH_ALLOWED_REPOS)"
+        )
+
     branch = branch_name_for_job(job_id)
-    title = (pr_title or commit_message.splitlines()[0] if commit_message else f"hermes: job {job_id}").strip()
+    title = (
+        pr_title or commit_message.splitlines()[0]
+        if commit_message
+        else f"hermes: job {job_id}"
+    ).strip()
     body = prepare_pr_body(
         job_id,
         summary=pr_summary,
@@ -881,7 +936,7 @@ def run(
     executed = False
     pushed = False
 
-    if approve and not findings:
+    if approve and not findings and repo_allowlisted:
         try:
             create_branch(job_id, repo_root=repo.root, base_branch=base, dry_run=False)
             stage_files(

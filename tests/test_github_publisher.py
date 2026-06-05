@@ -258,9 +258,7 @@ class TestGhFallback:
         assert gp.gh_available() is True
 
     @requires_git
-    def test_run_without_gh_omits_pr_command(
-        self, repo: Path, monkeypatch
-    ) -> None:
+    def test_run_without_gh_omits_pr_command(self, repo: Path, monkeypatch) -> None:
         monkeypatch.setattr(gp.shutil, "which", lambda _: None)
         # File to "stage" so files list isn't empty
         (repo / "foo.py").write_text("x = 1\n", encoding="utf-8")
@@ -456,9 +454,7 @@ class TestDryRun:
         assert result.pushed is False
         # Plan artifact still written so the operator can see what happened
         status = json.loads(
-            (result.plan.output_dir / "publish-status.json").read_text(
-                encoding="utf-8"
-            )
+            (result.plan.output_dir / "publish-status.json").read_text(encoding="utf-8")
         )
         assert status["executed"] is False
         assert any(".env" in e for e in status["errors"])
@@ -556,3 +552,43 @@ def test_publish_status_refuses_on_secret(repo: Path) -> None:
     assert verdict is not None
     assert verdict["tier"] == "refuse"
     assert "secret_detected" in verdict["reason_codes"]
+
+
+# ── live-publish repo allowlist ──────────────────────────────────────────────
+
+
+def test_load_allowed_repos_reads_env(monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_PUBLISH_ALLOWED_REPOS", "a/b, c/d  e/f")
+    assert gp._load_allowed_repos() == ["a/b", "c/d", "e/f"]
+
+
+@requires_git
+def test_live_publish_refused_when_repo_not_allowlisted(
+    repo: Path, monkeypatch
+) -> None:
+    # An allowlist that does NOT include the target repo refuses the live
+    # publish: the verdict is refuse and the push block is never entered.
+    _git(
+        "remote",
+        "add",
+        "origin",
+        "https://github.com/some-owner/some-repo.git",
+        cwd=repo,
+    )
+    monkeypatch.setattr(gp.shutil, "which", lambda _: None)
+    monkeypatch.setenv("HERMES_PUBLISH_ALLOWED_REPOS", "other-owner/other-repo")
+    (repo / "foo.py").write_text("x = 1\n", encoding="utf-8")
+    result = gp.run(
+        job_id="allow-block",
+        files=["foo.py"],
+        commit_message="feat: foo",
+        repo_root=repo,
+        approve=True,
+    )
+    assert result.executed is False
+    assert result.pushed is False
+    assert any("not in the publish allowlist" in e for e in result.errors)
+    verdict = result.plan.decision_verdict
+    assert verdict is not None
+    assert verdict["tier"] == "refuse"
+    assert "live_publish" in verdict["reason_codes"]

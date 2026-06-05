@@ -117,6 +117,54 @@ def test_destructive_worker_blocked_without_owner_approval(isolated_home: Path) 
     assert "worker_error" in [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
 
 
+def test_dispatch_records_decision_verdict_in_ledger(
+    isolated_home: Path, sample_repo: Path
+) -> None:
+    # The unified verdict is composed at the execute boundary and recorded so the
+    # cockpit can render one verdict. The ungated local planner -> auto.
+    job = orch.submit_job("verdict at dispatch")
+    orch.dispatch_job(job.id, repo_root=str(sample_repo))
+    dispatch = next(
+        e for e in orch.get_ledger(job.id)[job.id] if e.get("kind") == "worker_dispatch"
+    )
+    verdict = dispatch.get("decision_verdict")
+    assert verdict is not None
+    assert verdict["tier"] == "auto"
+    assert verdict["action_type"] == "orchestrator.worker_execute"
+
+
+def test_blocked_dispatch_records_ask_verdict(isolated_home: Path) -> None:
+    class FakeDestructive2(WorkerAdapter):
+        id = "fake-destructive-2"
+        display_name = "Fake destructive 2"
+
+        def detect(self):
+            return WorkerDetection(available=True)
+
+        def prepare_prompt(self, job):
+            return WorkerPrompt(text="x")
+
+        def run(self, job):
+            raise AssertionError("must not run without owner approval")
+
+        def collect(self, job):
+            return WorkerArtifacts()
+
+        def score(self, artifacts):
+            return WorkerScore(value=1.0)
+
+    wr.register(FakeDestructive2(), replace=True)
+    job = orch.submit_job("dangerous thing")
+    orch.dispatch_job(job.id, worker_id="fake-destructive-2")
+    blocked = next(
+        e for e in orch.get_ledger(job.id)[job.id] if e.get("kind") == "worker_blocked"
+    )
+    verdict = blocked.get("decision_verdict")
+    assert verdict is not None
+    assert verdict["tier"] == "ask"
+    assert "owner_required" in verdict["reason_codes"]
+
+
 def test_load_builtins_registers_both_workers() -> None:
     from hermes_cli.workers import load_builtins, known_workers
 
@@ -143,9 +191,13 @@ def test_aider_handoff_adapter_is_non_executing(sample_repo: Path) -> None:
     assert 0.0 <= w.score(arts).value <= 1.0
 
 
-def test_dispatch_aider_handoff_runs_ungated(isolated_home: Path, sample_repo: Path) -> None:
+def test_dispatch_aider_handoff_runs_ungated(
+    isolated_home: Path, sample_repo: Path
+) -> None:
     job = orch.submit_job("upload_file fails on large files")
-    out = orch.dispatch_job(job.id, worker_id="aider-handoff", repo_root=str(sample_repo))
+    out = orch.dispatch_job(
+        job.id, worker_id="aider-handoff", repo_root=str(sample_repo)
+    )
     assert out is not None and out.status == "completed"  # ungated, no approval needed
     kinds = [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
     assert {"worker_dispatch", "worker_result", "worker_score"} <= set(kinds)
@@ -154,7 +206,9 @@ def test_dispatch_aider_handoff_runs_ungated(isolated_home: Path, sample_repo: P
 import pytest as _pytest
 
 
-@_pytest.mark.parametrize("worker_id", ["aider-handoff", "goose-handoff", "codex-handoff", "claude-handoff"])
+@_pytest.mark.parametrize(
+    "worker_id", ["aider-handoff", "goose-handoff", "codex-handoff", "claude-handoff"]
+)
 def test_all_handoff_workers_registered_and_non_executing(
     worker_id: str, isolated_home: Path, sample_repo: Path
 ) -> None:
@@ -231,9 +285,13 @@ class _FakeModule:
         self.run_calls.append(execute)
         ws = _Path(workspace)
         return WorkerResult(
-            worker="fake", status=WorkerStatus.EXECUTED, workspace=ws,
-            prompt_path=ws / "prompt.md", status_path=ws / "status.json",
-            command_available=True, exit_code=0,
+            worker="fake",
+            status=WorkerStatus.EXECUTED,
+            workspace=ws,
+            prompt_path=ws / "prompt.md",
+            status_path=ws / "status.json",
+            command_available=True,
+            exit_code=0,
         )
 
 
@@ -262,7 +320,9 @@ def test_execute_worker_is_gated_without_owner_approval(
     isolated_home: Path, sample_repo: Path
 ) -> None:
     job = orch.submit_job("edit the uploader")
-    out = orch.dispatch_job(job.id, worker_id="aider-execute", repo_root=str(sample_repo))
+    out = orch.dispatch_job(
+        job.id, worker_id="aider-execute", repo_root=str(sample_repo)
+    )
     assert out is not None and out.status == "blocked"
     assert "worker_blocked" in [e.get("kind") for e in orch.get_ledger(job.id)[job.id]]
 
@@ -274,7 +334,9 @@ def test_execute_worker_blocks_honestly_when_binary_absent(
     # detect() reports unavailable → dispatch blocks; no execution attempted.
     job = orch.submit_job("edit the uploader")
     orch.approve_phase(job.id, "execute")
-    out = orch.dispatch_job(job.id, worker_id="aider-execute", repo_root=str(sample_repo))
+    out = orch.dispatch_job(
+        job.id, worker_id="aider-execute", repo_root=str(sample_repo)
+    )
     assert out is not None and out.status == "blocked"
     dispatch = next(
         e for e in orch.get_ledger(job.id)[job.id] if e.get("kind") == "worker_dispatch"

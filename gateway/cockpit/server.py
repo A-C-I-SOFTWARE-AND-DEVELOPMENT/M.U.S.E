@@ -129,6 +129,11 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/autonomy"), h.autonomy_set, True),
     ("GET", _compile("/v1/cockpit/autonomy/decisions"), h.autonomy_decisions, True),
     ("POST", _compile("/v1/cockpit/voice/intake"), h.voice_intake_create, True),
+    # Server-side audio duplex. Literal sub-paths registered before the
+    # "/voice/{id}/decide" capture so "transcribe"/"responses" are never read
+    # as an intake id (first-match dispatch).
+    ("POST", _compile("/v1/cockpit/voice/transcribe"), h.voice_transcribe, True),
+    ("POST", _compile("/v1/cockpit/voice/responses"), h.voice_responses, True),
     ("POST", _compile("/v1/cockpit/voice/{id}/decide"), h.voice_intake_decide, True),
     ("GET", _compile("/v1/cockpit/proposals"), h.proposals_list, True),
     ("GET", _compile("/v1/cockpit/learning"), h.learning_list, True),
