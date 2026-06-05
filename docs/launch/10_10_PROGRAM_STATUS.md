@@ -109,10 +109,12 @@ remains plaintext-at-rest (per-device tokens are hashed).
 
 All **six** integration glue-hops listed in the post-merge audit have now
 landed on `main` (PRs #317–#322), each strictly additive / opt-in with the
-existing default path unchanged. Each is *reachable from a live path and
-tested*; where a hop closes an API/seam but the production-default wiring is
-deliberately deferred, the residual follow-up is named on the function and
-repeated here — no overclaiming.
+existing default path unchanged. Each is *tested*; four are *wired into a
+live path* (hops 2–4, 6) and two are *tested opt-in seams whose production
+caller is still pending* (hop 1 cost writer, hop 5 runtime adapter). Where a
+hop closes an API/seam but the production-default wiring is deliberately
+deferred, the residual follow-up is named on the function and repeated here
+— no overclaiming.
 
 1. **Cost producer — done (emit seam).** `orchestrator_parallel.write_usage_sidecar`
    (#322) is the supported, atomic producer counterpart to the existing
