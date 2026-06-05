@@ -106,4 +106,54 @@ def read_since_offset(offset: int) -> tuple[list[dict[str, Any]], int]:
     return records, new_offset
 
 
-__all__ = ["emit", "current_offset", "read_since_offset", "LEVELS", "SOURCES"]
+def read(
+    *,
+    since: Optional[str] = None,
+    level: Optional[str] = None,
+    source: Optional[str] = None,
+    job_id: Optional[str] = None,
+    limit: int = 100,
+) -> list[dict[str, Any]]:
+    """Recent events (filtered), oldest→newest, capped at ``limit``.
+
+    ``level`` / ``source`` are comma-separated allow-lists; ``since`` is an
+    inclusive ISO-timestamp lower bound. Reads the whole (small, rotated) log and
+    returns the last ``limit`` matching records. Honest-empty when absent.
+    """
+    path = _path()
+    if not path.is_file():
+        return []
+    levels = {v.strip() for v in (level or "").split(",") if v.strip()} or None
+    sources = {v.strip() for v in (source or "").split(",") if v.strip()} or None
+    out: list[dict[str, Any]] = []
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    rec = json.loads(raw)
+                except ValueError:
+                    continue
+                if not isinstance(rec, dict):
+                    continue
+                if since and str(rec.get("ts", "")) < since:
+                    continue
+                if levels is not None and rec.get("level") not in levels:
+                    continue
+                if sources is not None and rec.get("source") not in sources:
+                    continue
+                if job_id and rec.get("job_id") != job_id:
+                    continue
+                out.append(rec)
+    except OSError:  # pragma: no cover - defensive
+        return []
+    if limit and len(out) > limit:
+        out = out[-limit:]
+    return out
+
+
+__all__ = [
+    "emit", "current_offset", "read_since_offset", "read", "LEVELS", "SOURCES",
+]

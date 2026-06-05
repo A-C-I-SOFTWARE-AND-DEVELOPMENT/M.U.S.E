@@ -801,20 +801,28 @@ def memory_freshness(req: Request) -> JsonResponse:
 
 
 def audit_events(req: Request) -> JsonResponse:
-    limit = int(req.query.get("limit", "100"))
-    events: list[dict[str, Any]] = []
-    try:
-        from hermes_cli import decision_ledger as dl
+    """Leveled cockpit events (contract §9) from the structured event log.
 
-        for path in dl.list_ledgers()[:limit]:
-            try:
-                ledger = dl.read_ledger(path)
-                events.append(_ledger_summary(ledger, path))
-            except Exception:
-                continue
-    except Exception as exc:  # pragma: no cover - defensive
-        return JsonResponse(200, {"events": [], "error": str(exc)})
-    return JsonResponse(200, {"events": events})
+    Returns ``{"events": [...], "next_cursor": null}`` in the ``CockpitEvent``
+    shape (ts/level/source/job_id/message/attributes), filtered by the §9 query
+    params (``since``/``level``/``source``/``job_id``/``limit``). Honest-empty
+    until events are emitted. (Decision-ledger summaries live at
+    ``GET /v1/cockpit/audit``.)
+    """
+    from . import event_log
+
+    try:
+        limit = max(1, min(int(req.query.get("limit", "100")), 500))
+    except ValueError:
+        limit = 100
+    events = event_log.read(
+        since=req.query.get("since"),
+        level=req.query.get("level"),
+        source=req.query.get("source"),
+        job_id=req.query.get("job_id"),
+        limit=limit,
+    )
+    return JsonResponse(200, {"events": events, "next_cursor": None})
 
 
 def audit_list(req: Request) -> JsonResponse:
