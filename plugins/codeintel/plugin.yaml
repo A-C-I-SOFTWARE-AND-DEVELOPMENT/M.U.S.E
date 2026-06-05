@@ -1,0 +1,9 @@
+name: codeintel
+version: 1.0.0
+description: "Code-review intelligence for Hermes. dependency_audit (OSV.dev known-vulnerability scan) and dependency_info (deps.dev licenses/versions/advisories) are free, no key, read-only. run_code executes a snippet in the public Piston sandbox and is DOUBLE-gated (needs both `codeintel.enabled` and `codeintel.allow_code_execution`) because it sends the code to a third-party sandbox. Opt-in via ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - dependency_audit
+  - dependency_info
+  - run_code

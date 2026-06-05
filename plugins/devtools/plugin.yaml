@@ -1,0 +1,10 @@
+name: devtools
+version: 1.0.0
+description: "Developer reference lookups for Hermes — no API key required. pypi_package, npm_package, crates_package (package registry metadata) and stackoverflow_search (Stack Exchange). All read-only and host-pinned. Opt-in via `devtools.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - pypi_package
+  - npm_package
+  - crates_package
+  - stackoverflow_search
