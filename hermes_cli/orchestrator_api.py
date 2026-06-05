@@ -54,6 +54,7 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     WebSocketDisconnect = Exception  # type: ignore[assignment]
     FASTAPI_AVAILABLE = False
 
+from hermes_cli import job_event_store
 from hermes_cli.job_cost import JobCost
 from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
 from hermes_cli.orchestrator_events import (
@@ -443,6 +444,17 @@ class JobStore:
                 job.events.append(envelope)
                 job.logs.append(envelope)
                 job.updated_at = envelope["ts"]
+        # Durable tee for restart-replay (Sprint 14). Best-effort and
+        # guarded so a persistence failure can NEVER raise into this
+        # fast path — the in-memory store above is the live source of
+        # truth. ``job_event_store.append`` already swallows every error
+        # and no-ops when ``HERMES_JOB_PERSIST`` is disabled; the extra
+        # try/except here is belt-and-braces against an import-time or
+        # signature surprise.
+        try:
+            job_event_store.append(job_id, envelope)
+        except Exception:  # pragma: no cover - durability must never break emit
+            logger.debug("orchestrator_api: job_event_store.append failed", exc_info=True)
         return envelope
 
     async def subscribe(self, job_id: str) -> "asyncio.Queue[Dict[str, Any]]":
@@ -474,6 +486,97 @@ class JobStore:
             job = self._jobs.get(job_id)
             events = list(job.events) if job is not None else []
         return rebuild_snapshot(events, job_id=job_id)
+
+    # ------------------------------------------------------------------
+    # Restart-replay
+    # ------------------------------------------------------------------
+    def restore_from_disk(self) -> int:
+        """Rehydrate jobs from the durable per-job event log on disk.
+
+        For every job id that :func:`hermes_cli.job_event_store.iter_job_ids`
+        reports, this reads the persisted envelopes, folds them through
+        :func:`hermes_cli.job_replay.rebuild_snapshot`, and reconstructs a
+        :class:`Job` in ``self._jobs``. The loaded envelopes are re-seeded onto
+        ``job.events`` so the live ``GET /jobs/{id}/snapshot`` route — which
+        re-folds ``job.events`` — keeps working after a restart.
+
+        This is **synchronous and meant to run once at startup**, before the
+        event loop is serving requests, so it does not take the async
+        ``self._lock`` (there are no concurrent mutators yet). Constructing a
+        bare ``JobStore()`` does *not* call this — restore is wired only in
+        :func:`create_app`, so the in-memory-only tests stay pure.
+
+        Known limitation: :class:`hermes_cli.job_cost.JobCost` is **not**
+        event-sourced (``rebuild_snapshot`` has no cost field), so a restored
+        job's cost resets to zero. Status / phase / workers / approvals /
+        validation / publish plan are faithfully restored — sufficient for the
+        Sprint-14 restart-replay gate. A job already in ``self._jobs`` is left
+        untouched (the live copy wins).
+
+        Returns the number of jobs newly restored. Best-effort: a malformed or
+        unreadable job log is skipped, never raised on.
+        """
+        restored = 0
+        for job_id in job_event_store.iter_job_ids():
+            if not job_id or job_id in self._jobs:
+                continue
+            try:
+                envelopes = job_event_store.read(job_id)
+            except Exception:  # pragma: no cover - defensive
+                continue
+            if not envelopes:
+                continue
+            snapshot = rebuild_snapshot(envelopes, job_id=job_id)
+            job = self._job_from_snapshot(snapshot, envelopes)
+            self._jobs[job.id] = job
+            restored += 1
+        return restored
+
+    @staticmethod
+    def _job_from_snapshot(
+        snapshot: JobSnapshot,
+        envelopes: List[Dict[str, Any]],
+    ) -> Job:
+        """Build a :class:`Job` from a replayed :class:`JobSnapshot`.
+
+        Bridges the two shapes the codebase uses for the same concepts:
+
+        * ``JobSnapshot.workers`` is ``{worker: state}``; ``Job.workers`` is
+          ``{worker: {...}}`` — each state is wrapped as ``{"state": state}``
+          so the ``/workers`` routes keep their dict shape.
+        * ``JobSnapshot.approvals`` is ``{id: state}``; ``Job.approvals`` is a
+          ``list[dict]`` — each becomes ``{"id": id, "state": state}``.
+
+        The loaded ``envelopes`` are copied onto ``job.events``/``job.logs`` so
+        the live snapshot/log routes re-fold the same stream post-restart.
+        ``JobCost`` is intentionally left at its zero default (see
+        :meth:`restore_from_disk`).
+        """
+        workers: Dict[str, Dict[str, Any]] = {
+            name: {"state": state} for name, state in snapshot.workers.items()
+        }
+        approvals: List[Dict[str, Any]] = [
+            {"id": appr_id, "state": state}
+            for appr_id, state in snapshot.approvals.items()
+        ]
+        events = list(envelopes)
+        last_ts = snapshot.last_ts if snapshot.last_ts is not None else time.time()
+        job = Job(
+            id=snapshot.job_id,
+            name=snapshot.name or snapshot.job_id,
+            spec=dict(snapshot.spec),
+            status=snapshot.status,
+            phase=snapshot.phase,
+            updated_at=last_ts,
+            workers=workers,
+            approvals=approvals,
+            validation=snapshot.validation,
+            publish_plan=snapshot.publish_plan,
+            error=snapshot.error,
+            events=events,
+            logs=list(events),
+        )
+        return job
 
 
 def _is_loopback_host(host: str) -> bool:
@@ -557,7 +660,26 @@ def create_app(
             "with: pip install 'hermes-agent[web]' or `pip install fastapi`."
         )
 
+    # Restore from disk only for a store *we* create — never for an injected
+    # (test/gateway) store, which owns its own lifecycle. A bare ``JobStore()``
+    # built directly by a test stays pure in-memory; restore is wired here and
+    # only here. Gated on the persistence switch so ``HERMES_JOB_PERSIST=0``
+    # boots a clean store with no replay.
+    owns_store = store is None
     store = store or JobStore()
+    if owns_store and job_event_store.persistence_enabled():
+        try:
+            restored = store.restore_from_disk()
+            if restored:
+                logger.info(
+                    "orchestrator_api: restored %d job(s) from disk on startup",
+                    restored,
+                )
+        except Exception:  # pragma: no cover - startup restore must not crash boot
+            logger.warning(
+                "orchestrator_api: restore_from_disk failed; starting empty",
+                exc_info=True,
+            )
     app = FastAPI(title="Hermes Orchestrator API", version="1.0.0")
     app.state.store = store
     app.state.token = token
@@ -681,12 +803,14 @@ def create_app(
         this route derives state solely from ``job.events`` — the same fold
         that would rehydrate a job after a restart.
 
-        Restart-replay is **not yet wired**: :class:`JobStore` is purely
-        in-memory (``self._jobs`` is built fresh per process, with no
-        load/restore path), so after a restart there are no persisted events to
-        replay from. Persisting ``job.events`` to durable storage and rebuilding
-        the store from them via ``rebuild_snapshot`` is a documented follow-up;
-        this route makes the reducer reachable live in the meantime.
+        Restart-replay is wired (Sprint 14): :meth:`JobStore.emit_event` tees
+        each envelope to a durable per-job log
+        (:mod:`hermes_cli.job_event_store`), and :func:`create_app` calls
+        :meth:`JobStore.restore_from_disk` at startup to fold those envelopes
+        back through ``rebuild_snapshot`` and re-seed ``job.events``. So this
+        route keeps working after a restart. (One caveat: per-job *cost* is not
+        event-sourced and resets to zero on restore — see
+        :meth:`JobStore.restore_from_disk`.)
 
         Returns 404 for an unknown job (matching ``/status``) rather than the
         empty snapshot :meth:`JobStore.snapshot` would otherwise yield, so a bad
