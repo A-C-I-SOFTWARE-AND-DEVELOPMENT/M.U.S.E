@@ -19,6 +19,7 @@ from .ambition import AmbitionProfile, apply_ambition
 from .apply import ApplyRefused, GitApplier, GitRollback, current_head
 from .archive import Archive, ArchiveMember
 from .archive.store import ArchiveStore
+from .benchmarks import BenchmarkTaskSpec, SuiteResult, load_suite, run_suite
 from .catalog import (
     ABSOLUTE_FLOOR,
     COMPOSITE_MARGIN,
@@ -77,6 +78,10 @@ __all__ = [
     "admit_for_autonomy",
     "ImprovementRun",
     "run_algorithms_improvement",
+    "BenchmarkTaskSpec",
+    "SuiteResult",
+    "load_suite",
+    "run_suite",
     "cli_main",
 ]
 

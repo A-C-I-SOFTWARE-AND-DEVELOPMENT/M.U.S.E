@@ -37,6 +37,7 @@ from hermes_cli.jarvis_prime.self_update import ProposalKind
 
 from .apply import GitApplier, GitRollback
 from .archive.store import ArchiveStore
+from .benchmarks import load_suite, run_suite
 from .catalog import candidate_dicts
 from .domains import DomainNotAutonomous, admit_for_autonomy, domains as list_domains
 from .improve import run_algorithms_improvement, run_swe_improvement
@@ -327,6 +328,34 @@ def _cmd_archive_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_benchmarks_run(args: argparse.Namespace) -> int:
+    suite_path = Path(args.suite)
+    if not suite_path.is_file():
+        print(f"error: suite not found: {suite_path}", file=sys.stderr)
+        return 1
+    specs = load_suite(suite_path)
+    result = run_suite(specs, base_dir=suite_path.parent)
+    payload: dict[str, Any] = {"suite": str(suite_path), **result.to_dict()}
+    if args.gate:
+        ctx = open_context(Path(args.repo_root))
+        try:
+            champ = ctx.champions.current()
+            scores = result.per_domain_scores()
+            verdict = evaluate_ratchet(
+                champion_domain_scores=champ.domain_scores if champ else None,
+                candidate_domain_scores=scores,
+                holdout_scores=scores,
+                champion_safety_counts=champ.safety_counts if champ else None,
+                eval_win_rate=args.eval_win_rate,
+            )
+            ctx.store.record_snapshot("benchmark_gate", str(suite_path), verdict.to_dict())
+            payload["ratchet"] = verdict.to_dict()
+        finally:
+            ctx.close()
+    _print(payload)
+    return 0
+
+
 def _cmd_domains_list(args: argparse.Namespace) -> int:
     _print(
         {
@@ -524,6 +553,15 @@ def build_parser() -> argparse.ArgumentParser:
     # inventory
     p_inv = sub.add_parser("inventory", help="Print the registered candidate catalog.")
     p_inv.set_defaults(func=_cmd_inventory)
+
+    # benchmarks
+    p_bench = sub.add_parser("benchmarks", help="Benchmark-harness wall (Plane 4 scale).")
+    bench_sub = p_bench.add_subparsers(dest="benchmarks_command", required=True)
+    p_bench_run = bench_sub.add_parser("run", help="Grade a JSONL suite through the verifiers.")
+    p_bench_run.add_argument("--suite", required=True, help="Path to a JSONL benchmark suite.")
+    p_bench_run.add_argument("--gate", action="store_true", help="Evaluate the ratchet vs champion.")
+    p_bench_run.add_argument("--eval-win-rate", type=float, default=None)
+    p_bench_run.set_defaults(func=_cmd_benchmarks_run)
 
     # domains
     p_dom = sub.add_parser("domains", help="Cross-domain registry (Plane 4).")

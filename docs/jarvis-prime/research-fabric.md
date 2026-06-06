@@ -58,6 +58,7 @@ statistical margin, not a coin flip. That is exactly the **ratchet** here.
 | `selfplay/llm.py` | Live LLM **solver/mutator** behind `solve`/`propose_variants`; OpenAI-compatible provider (vLLM/Ollama/OpenRouter/NIM) or any injected callable. |
 | `verifier/swe.py` | Plane 4 **repo-level** verifier — applies a patch in an isolated copy and runs the repo's real test command (download-free SWE-bench-style grading). |
 | `domains.py` | Plane 4 **domain registry** — a domain is autonomy-eligible only if it brings an executable verifier (fail-closed). |
+| `benchmarks/` | Plane 4 **benchmark-harness wall** — loads a local JSONL suite (SWE-bench/SWE-rebench/LiveCodeBench shape), grades each task through the executable verifiers, aggregates per-domain scores, and (optionally) gates them through the ratchet. Offline/download-free. |
 | `improve.py` | Top-level orchestration tying domain → propose (LLM or reference) → verify → ratchet → archive. |
 | `pipeline.py`, `main.py` | Wiring + CLI. |
 
@@ -132,6 +133,7 @@ python -m hermes_cli.jarvis_prime research-fabric archive list           # champ
 python -m hermes_cli.jarvis_prime research-fabric archive members        # diversity archive
 python -m hermes_cli.jarvis_prime research-fabric archive sample-parent  # stepping stone
 python -m hermes_cli.jarvis_prime research-fabric domains list   # Plane 4 domain registry
+python -m hermes_cli.jarvis_prime research-fabric benchmarks run --suite suite.jsonl [--gate]
 python -m hermes_cli.jarvis_prime research-fabric improve --domain algorithms [--model M]
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
