@@ -29,6 +29,8 @@ from .catalog import (
 from .champion import Champion, ChampionStore
 from .charter import AutonomyCharter, CharterBook, HARD_WALL_KINDS, is_hard_walled
 from .controller import AutoApplyOutcome, AutonomyController
+from .domains import Domain, admit_for_autonomy, domains, get_domain
+from .improve import ImprovementRun, run_algorithms_improvement
 from .monitor import AlignmentMonitor, TripwireSignal
 from .pipeline import FabricContext, open_context, report_payload
 from .store import SnapshotStore
@@ -69,6 +71,12 @@ __all__ = [
     "Archive",
     "ArchiveMember",
     "ArchiveStore",
+    "Domain",
+    "domains",
+    "get_domain",
+    "admit_for_autonomy",
+    "ImprovementRun",
+    "run_algorithms_improvement",
     "cli_main",
 ]
 

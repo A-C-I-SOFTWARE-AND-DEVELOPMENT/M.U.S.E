@@ -38,6 +38,9 @@ from hermes_cli.jarvis_prime.self_update import ProposalKind
 from .apply import GitApplier, GitRollback
 from .archive.store import ArchiveStore
 from .catalog import candidate_dicts
+from .domains import DomainNotAutonomous, admit_for_autonomy, domains as list_domains
+from .improve import run_algorithms_improvement
+from .selfplay.llm import load_openai_provider
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
 from .selfplay.evolve import evolve
@@ -323,6 +326,55 @@ def _cmd_archive_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_domains_list(args: argparse.Namespace) -> int:
+    _print(
+        {
+            "domains": [
+                {
+                    "key": d.key,
+                    "description": d.description,
+                    "verifier_kind": d.verifier_kind,
+                    "lane": d.lane,
+                    "autonomy_eligible": d.autonomy_eligible,
+                }
+                for d in list_domains()
+            ]
+        }
+    )
+    return 0
+
+
+def _cmd_improve(args: argparse.Namespace) -> int:
+    try:
+        admit_for_autonomy(args.domain)
+    except DomainNotAutonomous as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    provider = None
+    if getattr(args, "model", None):
+        try:
+            provider = load_openai_provider(args.model, base_url=args.base_url)
+        except RuntimeError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+    ctx = open_context(Path(args.repo_root))
+    try:
+        if args.domain == "algorithms":
+            run = run_algorithms_improvement(
+                provider=provider,
+                generations=args.generations,
+                ledger=ctx.ledger,
+                archive=ArchiveStore(),
+            )
+            _print(run.to_dict())
+        else:
+            print(f"error: improve loop for domain {args.domain!r} not yet wired", file=sys.stderr)
+            return 1
+    finally:
+        ctx.close()
+    return 0
+
+
 def _cmd_archive_members(args: argparse.Namespace) -> int:
     store = ArchiveStore()
     _print(
@@ -462,6 +514,23 @@ def build_parser() -> argparse.ArgumentParser:
     # inventory
     p_inv = sub.add_parser("inventory", help="Print the registered candidate catalog.")
     p_inv.set_defaults(func=_cmd_inventory)
+
+    # domains
+    p_dom = sub.add_parser("domains", help="Cross-domain registry (Plane 4).")
+    dom_sub = p_dom.add_subparsers(dest="domains_command", required=True)
+    p_dom_list = dom_sub.add_parser("list", help="List registered domains + autonomy eligibility.")
+    p_dom_list.set_defaults(func=_cmd_domains_list)
+
+    # improve
+    p_imp = sub.add_parser(
+        "improve",
+        help="Run a verifier-gated improvement on a domain (optionally LLM-driven).",
+    )
+    p_imp.add_argument("--domain", default="algorithms")
+    p_imp.add_argument("--generations", type=int, default=5)
+    p_imp.add_argument("--model", default=None, help="OpenAI-compatible model id (vLLM/Ollama/etc.).")
+    p_imp.add_argument("--base-url", default=None, help="OpenAI-compatible base URL.")
+    p_imp.set_defaults(func=_cmd_improve)
 
     return parser
 

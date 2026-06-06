@@ -136,4 +136,46 @@ def run_python_script(
     )
 
 
-__all__ = ["ExecResult", "run_python_script"]
+def run_command(
+    argv: list[str],
+    *,
+    cwd: Optional[Path] = None,
+    timeout_s: float = 60.0,
+) -> ExecResult:
+    """Run an arbitrary command with a scrubbed env + timeout (no shell).
+
+    Used by the SWE-style verifier to run a repo's real test command. The last
+    JSON object on stdout, if any, is surfaced as ``parsed`` (usually unused
+    here — the exit code is the signal).
+    """
+
+    start = time.monotonic()
+    try:
+        proc = subprocess.run(
+            argv,
+            cwd=str(cwd) if cwd else None,
+            env=_scrubbed_env(),
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+        )
+    except subprocess.TimeoutExpired as exc:
+        return ExecResult(
+            ok=False,
+            exit_code=None,
+            timed_out=True,
+            latency_s=time.monotonic() - start,
+            stdout=(exc.stdout or "") if isinstance(exc.stdout, str) else "",
+            stderr=(exc.stderr or "") if isinstance(exc.stderr, str) else "",
+        )
+    return ExecResult(
+        ok=proc.returncode == 0,
+        exit_code=proc.returncode,
+        timed_out=False,
+        latency_s=time.monotonic() - start,
+        stdout=proc.stdout,
+        stderr=proc.stderr,
+    )
+
+
+__all__ = ["ExecResult", "run_python_script", "run_command"]

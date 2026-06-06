@@ -107,6 +107,27 @@ def test_archive_members_after_evolve(tmp_path, capsys) -> None:
     assert out3["parent"] is not None
 
 
+def test_domains_list(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "domains", "list"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    keys = {d["key"] for d in out["domains"]}
+    assert {"algorithms", "swe_local", "prose"} <= keys
+
+
+def test_improve_algorithms_reference(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "improve", "--domain", "algorithms"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["used_llm"] is False
+    assert out["result"]["improved"] is True
+
+
+def test_improve_verifierless_domain_refused(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "improve", "--domain", "prose"])
+    assert rc == 1  # fail-closed: no executable verifier
+
+
 def test_run_dry_run_no_charter_proposes(tmp_path, capsys) -> None:
     spec = {
         "candidate_id": "c1",

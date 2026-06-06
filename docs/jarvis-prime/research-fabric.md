@@ -55,6 +55,10 @@ statistical margin, not a coin flip. That is exactly the **ratchet** here.
 | `selfplay/` | Plane 2 — a **runnable** ReST-EM loop (`loop.py`) + seed tasks/reference solver (`tasks.py`); learnability filter; verifier-gated. |
 | `archive/` | Plane 3 — Darwin-Gödel diversity archive: persistent `ArchiveStore` (JSONL) of every accepted improvement with lineage, stepping-stone parent sampling (score × editability); champion lineage also recorded as `champion_freeze` snapshots. The evolutionary loop writes members as it improves. |
 | `apply.py` | **Live** git-backed `GitApplier` / `GitRollback` for charter-gated auto-apply. |
+| `selfplay/llm.py` | Live LLM **solver/mutator** behind `solve`/`propose_variants`; OpenAI-compatible provider (vLLM/Ollama/OpenRouter/NIM) or any injected callable. |
+| `verifier/swe.py` | Plane 4 **repo-level** verifier — applies a patch in an isolated copy and runs the repo's real test command (download-free SWE-bench-style grading). |
+| `domains.py` | Plane 4 **domain registry** — a domain is autonomy-eligible only if it brings an executable verifier (fail-closed). |
+| `improve.py` | Top-level orchestration tying domain → propose (LLM or reference) → verify → ratchet → archive. |
 | `pipeline.py`, `main.py` | Wiring + CLI. |
 
 ## The ratchet rule (`evaluate_ratchet`)
@@ -127,9 +131,23 @@ python -m hermes_cli.jarvis_prime research-fabric selfplay evolve  # evolve to l
 python -m hermes_cli.jarvis_prime research-fabric archive list           # champion lineage
 python -m hermes_cli.jarvis_prime research-fabric archive members        # diversity archive
 python -m hermes_cli.jarvis_prime research-fabric archive sample-parent  # stepping stone
+python -m hermes_cli.jarvis_prime research-fabric domains list   # Plane 4 domain registry
+python -m hermes_cli.jarvis_prime research-fabric improve --domain algorithms [--model M]
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
 ```
+
+`improve` is the unifying entry point: it admits an autonomy-eligible domain
+(Plane 4), proposes with a **live LLM** when `--model` is given (any
+OpenAI-compatible endpoint — vLLM, Ollama `/v1`, OpenRouter, NIM — else the
+deterministic reference), verifies by execution, ratchets, and records lineage.
+A model's output is always a *candidate* the executable verifier must accept; the
+model is never trusted on its own.
+
+`domains list` shows each domain's verifier and **autonomy eligibility**: a domain
+with no executable verifier (e.g. `prose`) is refused for autonomous auto-apply
+and stays supervised + owner-gated — autonomy expands only as fast as trustworthy
+verifiers appear.
 
 `run --execute` performs **real, git-committed auto-apply** via `GitApplier` —
 but only when (a) an autonomy charter is active, (b) the candidate clears the
