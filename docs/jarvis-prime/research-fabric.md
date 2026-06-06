@@ -122,7 +122,8 @@ python -m hermes_cli.jarvis_prime research-fabric validate --scores '{...}' \
 python -m hermes_cli.jarvis_prime research-fabric champion show
 python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json  # dry-run
 python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json --execute  # LIVE
-python -m hermes_cli.jarvis_prime research-fabric selfplay run   # verifier-gated self-play
+python -m hermes_cli.jarvis_prime research-fabric selfplay run     # verifier-gated self-play
+python -m hermes_cli.jarvis_prime research-fabric selfplay evolve  # evolve to lower op-count
 python -m hermes_cli.jarvis_prime research-fabric archive list   # champion lineage
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
@@ -140,6 +141,14 @@ The **self-play loop is real and runnable** today on the algorithms lane: it
 executes candidate code in an isolated subprocess (`-I -S`, scrubbed env, dead
 proxies, wall-clock timeout) and accepts only solutions that pass the held-out
 cases. A real LLM solver implements the same `solve(task) -> code` signature.
+
+`selfplay evolve` runs an **AlphaEvolve/FunSearch-style** loop: propose variants
+-> execute-verify (correctness is a hard gate) -> keep the one with the lowest
+**op-count** (executed entrypoint lines over held-out cases — exact and
+deterministic, unlike latency). It is a monotone ratchet: a variant is adopted
+only if it is correct *and* strictly cheaper, so the evolved program can never be
+worse than the baseline. The demo evolves a naive summation (op-count 14) to the
+built-in (op-count 2) — a 12-op reduction, fully verified.
 
 ## Constitution relationship
 

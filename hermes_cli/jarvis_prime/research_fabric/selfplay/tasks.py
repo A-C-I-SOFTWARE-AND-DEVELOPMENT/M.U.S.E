@@ -63,4 +63,33 @@ def reference_solver(task: AlgorithmTask) -> str:
     return _REFERENCE_SOLUTIONS.get(task.task_id, "def solve(*a):\n    return None\n")
 
 
-__all__ = ["SEED_TASKS", "reference_solver"]
+# --- Evolution demo: a correct-but-wasteful baseline the loop can improve. ---
+
+DEMO_EVOLVE_TASK: AlgorithmTask = next(t for t in SEED_TASKS if t.task_id == "sum_list")
+
+# Correct but does O(n) explicit Python-level work (many traced lines).
+DEMO_BASELINE_CODE = (
+    "def solve(xs):\n"
+    "    total = 0\n"
+    "    for x in xs:\n"
+    "        total = total + x\n"
+    "    return total\n"
+)
+
+# An optimized, still-correct rewrite (one traced line; the loop runs in C).
+_DEMO_OPTIMIZED_CODE = "def solve(xs):\n    return sum(xs)\n"
+
+
+def demo_variant_proposer(_best_code: str) -> list[str]:
+    """Stand-in mutator: proposes the optimized rewrite (an LLM plugs in here)."""
+
+    return [_DEMO_OPTIMIZED_CODE]
+
+
+__all__ = [
+    "SEED_TASKS",
+    "reference_solver",
+    "DEMO_EVOLVE_TASK",
+    "DEMO_BASELINE_CODE",
+    "demo_variant_proposer",
+]

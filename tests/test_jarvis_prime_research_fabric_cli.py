@@ -78,6 +78,14 @@ def test_selfplay_run_accepts_seed_tasks(tmp_path, capsys) -> None:
     assert out["acceptance_rate"] == 1.0
 
 
+def test_selfplay_evolve_improves(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "selfplay", "evolve", "--generations", "3"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["improved"] is True
+    assert out["best_opcount"] < out["baseline_opcount"]
+
+
 def test_archive_list_empty(tmp_path, capsys) -> None:
     rc = cli_main(["--repo-root", str(tmp_path), "archive", "list"])
     assert rc == 0

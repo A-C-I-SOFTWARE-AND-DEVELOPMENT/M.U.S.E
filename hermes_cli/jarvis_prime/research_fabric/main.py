@@ -39,8 +39,15 @@ from .apply import GitApplier, GitRollback
 from .catalog import candidate_dicts
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
+from .selfplay.evolve import evolve
 from .selfplay.loop import run_selfplay
-from .selfplay.tasks import SEED_TASKS, reference_solver
+from .selfplay.tasks import (
+    DEMO_BASELINE_CODE,
+    DEMO_EVOLVE_TASK,
+    SEED_TASKS,
+    demo_variant_proposer,
+    reference_solver,
+)
 from .validators import evaluate_ratchet
 from .verifier import Candidate
 
@@ -275,6 +282,22 @@ def _cmd_selfplay_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_selfplay_evolve(args: argparse.Namespace) -> int:
+    ctx = open_context(Path(args.repo_root))
+    try:
+        result = evolve(
+            DEMO_EVOLVE_TASK,
+            DEMO_BASELINE_CODE,
+            demo_variant_proposer,
+            generations=args.generations,
+            ledger=ctx.ledger,
+        )
+        _print(result.to_dict())
+    finally:
+        ctx.close()
+    return 0
+
+
 def _cmd_archive_list(args: argparse.Namespace) -> int:
     ctx = open_context(Path(args.repo_root))
     try:
@@ -390,6 +413,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp_sub = p_sp.add_subparsers(dest="selfplay_command", required=True)
     p_sp_run = sp_sub.add_parser("run", help="Run the seed self-play loop (verifier-gated).")
     p_sp_run.set_defaults(func=_cmd_selfplay_run)
+    p_sp_evolve = sp_sub.add_parser(
+        "evolve", help="Evolve a correct baseline toward lower op-count (demo)."
+    )
+    p_sp_evolve.add_argument("--generations", type=int, default=5)
+    p_sp_evolve.set_defaults(func=_cmd_selfplay_evolve)
 
     # archive
     p_arch = sub.add_parser("archive", help="Champion/challenger archive operations.")
