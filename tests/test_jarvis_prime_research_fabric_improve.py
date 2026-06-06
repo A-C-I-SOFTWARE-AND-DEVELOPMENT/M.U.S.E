@@ -4,7 +4,14 @@ from __future__ import annotations
 
 from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
 from hermes_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore
-from hermes_cli.jarvis_prime.research_fabric.improve import run_algorithms_improvement
+from hermes_cli.jarvis_prime.research_fabric.improve import (
+    run_algorithms_improvement,
+    run_swe_improvement,
+)
+from hermes_cli.jarvis_prime.research_fabric.selfplay.swe_tasks import (
+    demo_swe_baseline,
+    make_demo_swe_repo,
+)
 
 
 def test_reference_improvement_runs_and_improves(tmp_path) -> None:
@@ -37,3 +44,28 @@ def test_llm_with_wrong_output_does_not_improve(tmp_path) -> None:
     )
     assert run.used_llm is True
     assert run.result.improved is False
+
+
+def test_swe_reference_improvement_fixes_repo(tmp_path) -> None:
+    task = make_demo_swe_repo(tmp_path / "repo")
+    ledger = GuardrailLedger(tmp_path / "l.jsonl")
+    run = run_swe_improvement(task, demo_swe_baseline(), ledger=ledger)
+    assert run.baseline_failed is True
+    assert run.accepted is True
+    assert run.used_llm is False
+    assert "swe_improve" in [r.kind for r in ledger.read_all()]
+
+
+def test_swe_llm_improvement(tmp_path) -> None:
+    task = make_demo_swe_repo(tmp_path / "repo")
+    provider = lambda _p: "```python\ndef f(x):\n    return x * x\n```"
+    run = run_swe_improvement(task, demo_swe_baseline(), provider=provider)
+    assert run.used_llm is True
+    assert run.accepted is True
+
+
+def test_swe_wrong_llm_patch_rejected(tmp_path) -> None:
+    task = make_demo_swe_repo(tmp_path / "repo")
+    provider = lambda _p: "```python\ndef f(x):\n    return x + 1\n```"
+    run = run_swe_improvement(task, demo_swe_baseline(), provider=provider)
+    assert run.accepted is False

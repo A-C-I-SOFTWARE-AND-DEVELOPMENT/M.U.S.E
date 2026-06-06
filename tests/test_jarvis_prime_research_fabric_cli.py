@@ -128,6 +128,14 @@ def test_improve_verifierless_domain_refused(tmp_path, capsys) -> None:
     assert rc == 1  # fail-closed: no executable verifier
 
 
+def test_improve_swe_local(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "improve", "--domain", "swe_local"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["baseline_failed"] is True
+    assert out["accepted"] is True
+
+
 def test_run_dry_run_no_charter_proposes(tmp_path, capsys) -> None:
     spec = {
         "candidate_id": "c1",

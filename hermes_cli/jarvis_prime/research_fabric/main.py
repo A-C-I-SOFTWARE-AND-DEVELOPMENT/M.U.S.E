@@ -39,8 +39,9 @@ from .apply import GitApplier, GitRollback
 from .archive.store import ArchiveStore
 from .catalog import candidate_dicts
 from .domains import DomainNotAutonomous, admit_for_autonomy, domains as list_domains
-from .improve import run_algorithms_improvement
+from .improve import run_algorithms_improvement, run_swe_improvement
 from .selfplay.llm import load_openai_provider
+from .selfplay.swe_tasks import demo_swe_baseline, make_demo_swe_repo
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
 from .selfplay.evolve import evolve
@@ -367,6 +368,15 @@ def _cmd_improve(args: argparse.Namespace) -> int:
                 archive=ArchiveStore(),
             )
             _print(run.to_dict())
+        elif args.domain == "swe_local":
+            import tempfile
+
+            work = Path(tempfile.mkdtemp(prefix="rf_swe_demo_"))
+            task = make_demo_swe_repo(work / "repo")
+            swe_run = run_swe_improvement(
+                task, demo_swe_baseline(), provider=provider, ledger=ctx.ledger
+            )
+            _print(swe_run.to_dict())
         else:
             print(f"error: improve loop for domain {args.domain!r} not yet wired", file=sys.stderr)
             return 1
