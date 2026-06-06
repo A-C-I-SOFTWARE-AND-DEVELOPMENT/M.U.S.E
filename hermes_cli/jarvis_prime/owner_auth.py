@@ -43,6 +43,12 @@ OWNER_GATED_ACTIONS: frozenset[str] = frozenset({
     "change_default_active_agents",
     "registry_mutation",
     "regulated_claim",  # legal, compliance, security, health, financial
+    # Grant a standing, scoped, revocable autonomy charter to the research
+    # fabric (see hermes_cli/jarvis_prime/research_fabric/charter.py). The
+    # agent can never mint its own charter — only the owner, via the
+    # nonce-bound challenge, can. This is the sole gate that unlocks the
+    # bounded-autonomy exception (Constitution C33).
+    "grant_autonomy_charter",
 })
 
 

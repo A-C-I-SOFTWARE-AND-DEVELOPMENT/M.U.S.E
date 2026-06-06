@@ -2132,6 +2132,14 @@ def _cmd_availability(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_research_fabric(args: argparse.Namespace) -> int:
+    """Delegate to the standalone research_fabric CLI (keeps its tree self-contained)."""
+
+    from hermes_cli.jarvis_prime.research_fabric.main import cli_main as _rf_cli
+
+    return _rf_cli(list(getattr(args, "rf_args", []) or []))
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -3265,6 +3273,25 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_flow.add_argument("--json", action="store_true")
     p_flow.set_defaults(func=_cmd_flow_exec)
+
+    # research-fabric — bounded-autonomous, verifier-gated self-improvement. The
+    # full subcommand tree lives in research_fabric.main; we delegate to it so it
+    # stays independently runnable (python -m ...research_fabric ...) and tested.
+    p_rf = sub.add_parser(
+        "research-fabric",
+        help="Bounded-autonomous, verifier-gated self-improvement fabric",
+        description=(
+            "Charter-gated self-improvement with a strict non-regression ratchet, "
+            "the eight verification gates, and automatic canary rollback. "
+            "Subcommands: charter | validate | champion | run | report | inventory."
+        ),
+    )
+    p_rf.add_argument(
+        "rf_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to the research_fabric CLI (e.g. 'report').",
+    )
+    p_rf.set_defaults(func=_cmd_research_fabric)
 
     args = parser.parse_args(argv)
     return args.func(args)
