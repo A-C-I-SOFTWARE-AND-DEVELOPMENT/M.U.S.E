@@ -121,6 +121,35 @@ def test_garbage_token_is_401(server) -> None:
     assert _get_status(server, PROTECTED, token="not-a-real-token") == 401
 
 
+def test_revoking_one_device_is_scoped_mid_flight(server, monkeypatch) -> None:
+    """Revocation cuts off exactly one device, mid-session, and nothing else.
+
+    Two devices are paired and both authenticate (the "in-flight" state).
+    Revoking device A must 401 A's very next request while device B and the
+    shared token keep working — proving revocation is per-device, not global.
+    """
+    # Pair two devices back-to-back: relax only the inter-pairing rate limit
+    # (a separate concern from the scoping behavior under test).
+    monkeypatch.setattr(dp, "RATE_LIMIT_SECONDS", 0)
+    token_a = _pair_device(server)
+    token_b = _pair_device(server)
+    assert token_a != token_b
+
+    # Both devices + the shared token are live.
+    assert _get_status(server, PROTECTED, token=token_a) == 200
+    assert _get_status(server, PROTECTED, token=token_b) == 200
+    assert _get_status(server, PROTECTED, token=TOKEN) == 200
+
+    device_a = dp.verify_device_token(token_a)
+    assert device_a is not None
+    assert dp.revoke_device(device_a) is True
+
+    # A is cut off immediately; B and the shared token are unaffected.
+    assert _get_status(server, PROTECTED, token=token_a) == 401
+    assert _get_status(server, PROTECTED, token=token_b) == 200
+    assert _get_status(server, PROTECTED, token=TOKEN) == 200
+
+
 # ---------------------------------------------------------------------------
 # authorize_bearer unit behavior (no server, no header parsing)
 # ---------------------------------------------------------------------------
