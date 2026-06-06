@@ -112,6 +112,31 @@ class TestScanDiffText:
         )
         assert hits == []
 
+    def test_multiline_pem_block_is_caught(self):
+        # Markers built by concatenation so this test file's own source never
+        # forms a contiguous PEM block (which would trip the repo gate on it).
+        begin = "-----BEGIN " + "RSA PRIVATE KEY-----"
+        end = "-----END " + "RSA PRIVATE KEY-----"
+        diff = _diff(
+            "id_rsa",
+            begin,
+            "MIIBOwIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Q",
+            "uKUpRKfFLfRYC9AIKjbJTWit+CqvjSFmGEsAvw==",
+            end,
+        )
+        hits = scan_secrets.scan_diff_text(diff, allow_globs=())
+        kinds = {h.kind for h in hits}
+        assert "pem_block" in kinds
+        blocking, _ = scan_secrets.partition(hits, strict=False)
+        assert any(h.kind == "pem_block" for h in blocking)
+
+    def test_multiline_pem_block_respects_pragma(self):
+        begin = "-----BEGIN " + "RSA PRIVATE KEY-----  # pragma: allowlist secret"
+        end = "-----END " + "RSA PRIVATE KEY-----"
+        diff = _diff("id_rsa", begin, "MIIBOwIBAAJBAKj34GkxFhD90==", end)
+        hits = scan_secrets.scan_diff_text(diff, allow_globs=())
+        assert not any(h.kind == "pem_block" for h in hits)
+
 
 # ---------------------------------------------------------------------------
 # partition — kind policy (blocking vs advisory)

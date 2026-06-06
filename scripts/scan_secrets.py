@@ -169,12 +169,43 @@ def _scan_line(path: str, lineno: int, text: str) -> list[Hit]:
     return hits
 
 
+def _pem_block_hit(path: str, numbered: Sequence[tuple[int, str]]) -> Hit | None:
+    """Detect a multi-line PEM private key across a set of lines.
+
+    ``secrets_policy.scan_text`` is line-oriented, so when a private key is
+    added in its normal multi-line PEM form no single line carries both the
+    BEGIN and END markers and ``pem_block`` is never reported (the body only
+    trips advisory ``high_entropy``). We re-check the joined block against the
+    canonical ``PEM_BLOCK_PATTERN`` (which is DOTALL) so the declared blocking
+    kind actually blocks. Reuses the canonical pattern — no new regex.
+    """
+    joined = "\n".join(t for _, t in numbered)
+    if ALLOWLIST_PRAGMA in joined or not sp.PEM_BLOCK_PATTERN.search(joined):
+        return None
+    begin = next(
+        (no for no, t in numbered if "BEGIN" in t and "PRIVATE KEY" in t),
+        numbered[0][0] if numbered else 0,
+    )
+    return Hit(
+        path=path,
+        line=begin,
+        kind="pem_block",
+        excerpt="-----BEGIN …PRIVATE KEY----- (multi-line block, redacted)",
+    )
+
+
 def scan_diff_text(diff_text: str, allow_globs: Sequence[str]) -> list[Hit]:
     hits: list[Hit] = []
+    by_file: dict[str, list[tuple[int, str]]] = {}
     for path, lineno, text in iter_added_lines(diff_text):
         if path in ("<deleted>", "<unknown>") or _is_allowed(path, allow_globs):
             continue
         hits.extend(_scan_line(path, lineno, text))
+        by_file.setdefault(path, []).append((lineno, text))
+    for path, numbered in by_file.items():
+        pem = _pem_block_hit(path, numbered)
+        if pem is not None:
+            hits.append(pem)
     return hits
 
 
@@ -191,8 +222,12 @@ def scan_tree(allow_globs: Sequence[str]) -> list[Hit]:
             lines = p.read_text(encoding="utf-8").splitlines()
         except (UnicodeDecodeError, OSError):
             continue  # binary / unreadable — scan_file would skip it too
-        for idx, text in enumerate(lines, start=1):
+        numbered = list(enumerate(lines, start=1))
+        for idx, text in numbered:
             hits.extend(_scan_line(path, idx, text))
+        pem = _pem_block_hit(path, numbered)
+        if pem is not None:
+            hits.append(pem)
     return hits
 
 
