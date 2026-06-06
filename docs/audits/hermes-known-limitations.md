@@ -259,39 +259,49 @@ The Phase 27 readiness report (§2) calls this out explicitly.
 
 ---
 
-## 13. Website (Docusaurus) build-time npm advisories have no clean fix
+## 13. Website (Docusaurus) build/dev npm advisories — high fixed, dev-only moderates accepted
 
-**Where:** `website/` (the Docusaurus documentation site).
-`npm audit` reports 24 advisories there (23 moderate, 1 high).
+**Where:** `website/` (the Docusaurus documentation site). Before this
+work `npm audit` reported 24 advisories (23 moderate, 1 high); after the
+fix below it reports **20 moderate, 0 high**.
 
-**What:** The high (`serialize-javascript`) and the bulk of the
-moderates resolve to **build-time-only** dev dependencies pulled in
-transitively under `@docusaurus/bundler` → `copy-webpack-plugin` /
-the webpack dev stack: `serialize-javascript`, `copy-webpack-plugin`,
-`css-minimizer-webpack-plugin`, `sockjs`, `uuid`, `webpack-dev-server`.
-They run during `docusaurus build` / `docusaurus start`; they are **not
-shipped in the static HTML output** and never process untrusted input.
+**What & disposition (two distinct cases — do not conflate them):**
 
-**Why no fix is applied:**
-- Upgrading Docusaurus to the latest 3.x (3.10.1 at time of writing)
-  clears **zero** of these — the latest release still ships the same
-  bundler transitives. `serialize-javascript` is already at its latest
-  published version (6.0.2).
-- `npm audit fix --force`'s only offered path is to **downgrade**
-  `@easyops-cn/docusaurus-search-local` to `0.26.1` — a Docusaurus-2-era
-  major that would break this 3.x site, and which does not even sit on
-  the vulnerable dependency path (the leaves live under `core`/`bundler`,
-  not the search plugin). So the "fix" is both breaking and ineffective.
-- The non-website JS trees (`web/`, `ui-tui/`, `scripts/whatsapp-bridge/`)
-  and the Python deps were fully remediated (PRs #338, #339); the
-  non-breaking subset of the website advisories + a Docusaurus version-skew
-  fix landed in #340. Only this irreducible build-time tail remains.
+1. **High — `serialize-javascript` (FIXED).** It reaches the *production
+   build* path via `@docusaurus/bundler` → `copy-webpack-plugin`. The
+   vulnerable range is `<=7.0.4`; the patched release **7.0.5 exists**.
+   Docusaurus 3.x (incl. the latest 3.10.1) still pins the old `6.x`
+   transitively, so the fix is an explicit npm **`overrides`** entry in
+   `website/package.json` pinning `serialize-javascript` to `^7.0.5`
+   (7.0.x is API-compatible with 6.x). This also cleared 3 `@docusaurus/*`
+   moderates that were flagged only via that transitive.
 
-**Mitigation:** Treat these as **accepted, build-time-only** risk for a
-static docs site. Disposition options, none of which forces a breaking
-build: (1) dismiss the corresponding Dependabot alerts with
-"build-time only / no fix available"; (2) revisit when upstream Docusaurus
-ships a release that bumps `copy-webpack-plugin` / `serialize-javascript`.
-Re-checking is a one-liner: `cd website && npm audit`. See the 2026-06-05
-re-audit ([`JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md`](JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md))
-for the surrounding dependency-hardening campaign.
+2. **20 moderates — `uuid@8.3.2` (ACCEPTED, dev-server-only).** Every
+   remaining advisory traces to one deep copy of `uuid@8.3.2` (advisory
+   range `<11.1.1`) on the path
+   `@docusaurus/core → webpack-dev-server@5.2.4 → sockjs@0.3.24 → uuid@8.3.2`.
+   This chain is the **local dev server** (`docusaurus start`) — it is
+   **not in the `docusaurus build` output and never shipped**.
+   `webpack-dev-server` and `sockjs` are already at their **latest**
+   published versions and still pin old `uuid`, so upstream has no newer
+   release to pull.
+
+**Why the moderates are not force-fixed:** the only remediation is a global
+`overrides` pin of `uuid` to `>=11.1.1`, a **major** jump (uuid changed its
+import API across majors) that risks breaking `sockjs`/`webpack-dev-server`
+i.e. `docusaurus start`. That is real breakage risk to local dev for
+**moderate, dev-only, non-shipped** advisories whose upstream maintainers
+have not themselves moved — a bad trade. `npm audit fix --force` is also
+useless here: its only offered path downgrades `@easyops-cn/docusaurus-search-local`
+to a Docusaurus-2-era major (breaking, and not even on the vulnerable path).
+
+**Mitigation / how to revisit:** Treat the 20 `uuid`-driven moderates as
+**accepted dev-only risk**; dismiss those Dependabot alerts as
+"dev-server only / upstream pins old uuid". To clear them later when worth
+the risk: add `"uuid": ">=11.1.1"` to `website/package.json` `overrides`,
+then **build- AND `start`-verify** before merging. Re-check is a one-liner:
+`cd website && npm audit`. Other JS trees (`web/`, `ui-tui/`,
+`scripts/whatsapp-bridge/`) and the Python deps were fully remediated
+(PRs #338, #339, #340); see the 2026-06-05 re-audit
+([`JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md`](JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md))
+for the surrounding campaign.
