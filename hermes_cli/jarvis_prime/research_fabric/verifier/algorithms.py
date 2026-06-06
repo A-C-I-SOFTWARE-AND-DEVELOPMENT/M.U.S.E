@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Optional
 
 from .sandbox import run_python_script
 
@@ -112,6 +112,54 @@ def _grade(code: str, task: AlgorithmTask, cases: tuple[AlgorithmCase, ...]) -> 
     return passed / total, float(res.parsed.get("latency_s", res.latency_s)), True, "ok"
 
 
+# Counts executed *lines of the entrypoint function* across the held-out cases.
+# This is a deterministic op-count proxy (lower = less work), unlike wall-clock
+# latency — the right metric to evolve against (AlphaDev counts instructions).
+_OPCOUNT_HARNESS = """
+
+if __name__ == "__main__":
+    import json as _json, sys as _sys
+    _cases = _json.loads(open(_sys.argv[1], encoding="utf-8").read())
+    _fn = globals().get({entrypoint!r})
+    if _fn is None:
+        print(_json.dumps({{"opcount": None}}))
+        raise SystemExit(2)
+    _count = [0]
+    def _tr(frame, event, arg):
+        if event == "line" and frame.f_code.co_name == {entrypoint!r}:
+            _count[0] += 1
+        return _tr
+    _sys.settrace(_tr)
+    for _c in _cases:
+        try:
+            _fn(*_c["args"])
+        except Exception:
+            pass
+    _sys.settrace(None)
+    print(_json.dumps({{"opcount": _count[0]}}))
+"""
+
+
+def measure_opcount(code: str, task: AlgorithmTask) -> Optional[int]:
+    """Deterministic op-count (executed entrypoint lines over held-out cases)."""
+
+    import tempfile
+    from pathlib import Path
+
+    cases = task.holdout_cases or task.public_cases
+    if not cases:
+        return None
+    script = code + _OPCOUNT_HARNESS.format(entrypoint=task.entrypoint)
+    with tempfile.TemporaryDirectory(prefix="rf_op_") as td:
+        cases_path = Path(td) / "cases.json"
+        cases_path.write_text(json.dumps([c.to_dict() for c in cases]), encoding="utf-8")
+        res = run_python_script(script, args=[str(cases_path)], timeout_s=task.timeout_s)
+    if res.parsed is None:
+        return None
+    val = res.parsed.get("opcount")
+    return int(val) if isinstance(val, (int, float)) else None
+
+
 def score_algorithm_candidate(code: str, task: AlgorithmTask) -> AlgorithmScore:
     """Execute ``code`` against the task and return a verifier-grounded score."""
 
@@ -134,4 +182,5 @@ __all__ = [
     "AlgorithmTask",
     "AlgorithmScore",
     "score_algorithm_candidate",
+    "measure_opcount",
 ]
