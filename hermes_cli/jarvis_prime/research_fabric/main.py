@@ -35,9 +35,12 @@ from hermes_cli.jarvis_prime.owner_auth import (
 )
 from hermes_cli.jarvis_prime.self_update import ProposalKind
 
+from .apply import GitApplier, GitRollback
 from .catalog import candidate_dicts
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
+from .selfplay.loop import run_selfplay
+from .selfplay.tasks import SEED_TASKS, reference_solver
 from .validators import evaluate_ratchet
 from .verifier import Candidate
 
@@ -223,9 +226,22 @@ def _cmd_champion_show(args: argparse.Namespace) -> int:
 
 
 def _cmd_run(args: argparse.Namespace) -> int:
-    ctx = open_context(Path(args.repo_root))
+    spec = json.loads(Path(args.candidate_json).read_text(encoding="utf-8"))
+    repo_root = Path(args.repo_root).resolve()
+
+    execute = bool(getattr(args, "execute", False))
+    controller_kwargs: dict[str, Any] = {}
+    if execute:
+        # Live auto-apply path: charter-gated (the controller enforces an active
+        # charter) + real git apply/rollback. Default gate runner = strict gates.
+        controller_kwargs["applier"] = GitApplier(repo_root)
+        controller_kwargs["rollback"] = GitRollback(repo_root)
+        canary_scores = _to_floats(spec.get("canary_scores", {}))
+        if canary_scores:
+            controller_kwargs["canary"] = lambda _c, _s=canary_scores: {"domain_scores": _s}
+
+    ctx = open_context(repo_root, **controller_kwargs)
     try:
-        spec = json.loads(Path(args.candidate_json).read_text(encoding="utf-8"))
         candidate = Candidate(
             candidate_id=str(spec.get("candidate_id", "cand")),
             kind=ProposalKind(spec.get("kind", "skill_update")),
@@ -241,9 +257,42 @@ def _cmd_run(args: argparse.Namespace) -> int:
         bundle = GuardrailEvidenceBundle(packet_id=candidate.candidate_id)
         packet = {"packet_id": candidate.candidate_id}
         outcome = ctx.controller.evaluate_and_apply(
-            candidate, evidence_bundle=bundle, packet=packet, dry_run=True
+            candidate, evidence_bundle=bundle, packet=packet, dry_run=not execute
         )
         _print(outcome.to_dict())
+    finally:
+        ctx.close()
+    return 0
+
+
+def _cmd_selfplay_run(args: argparse.Namespace) -> int:
+    ctx = open_context(Path(args.repo_root))
+    try:
+        result = run_selfplay(SEED_TASKS, reference_solver, ledger=ctx.ledger)
+        _print(result.to_dict())
+    finally:
+        ctx.close()
+    return 0
+
+
+def _cmd_archive_list(args: argparse.Namespace) -> int:
+    ctx = open_context(Path(args.repo_root))
+    try:
+        rows = ctx.store.list_snapshots("champion_freeze")
+        lineage = []
+        for r in rows:
+            payload = json.loads(r["payload_json"])
+            champ = payload.get("champion", {})
+            lineage.append(
+                {
+                    "champion_id": champ.get("champion_id"),
+                    "composite": champ.get("composite"),
+                    "frozen_at": champ.get("frozen_at"),
+                    "reason": payload.get("reason"),
+                    "rollback_handle": champ.get("rollback_handle"),
+                }
+            )
+        _print({"lineage": lineage, "count": len(lineage)})
     finally:
         ctx.close()
     return 0
@@ -324,9 +373,29 @@ def build_parser() -> argparse.ArgumentParser:
     p_champ_show.set_defaults(func=_cmd_champion_show)
 
     # run
-    p_run = sub.add_parser("run", help="Dry-run a candidate through the envelope.")
+    p_run = sub.add_parser(
+        "run",
+        help="Run a candidate through the envelope (dry-run unless --execute).",
+    )
     p_run.add_argument("--candidate-json", required=True, help="Path to a candidate spec JSON.")
+    p_run.add_argument(
+        "--execute",
+        action="store_true",
+        help="Live auto-apply via git (charter-gated; uses real GitApplier/rollback).",
+    )
     p_run.set_defaults(func=_cmd_run)
+
+    # selfplay
+    p_sp = sub.add_parser("selfplay", help="Self-play curriculum operations.")
+    sp_sub = p_sp.add_subparsers(dest="selfplay_command", required=True)
+    p_sp_run = sp_sub.add_parser("run", help="Run the seed self-play loop (verifier-gated).")
+    p_sp_run.set_defaults(func=_cmd_selfplay_run)
+
+    # archive
+    p_arch = sub.add_parser("archive", help="Champion/challenger archive operations.")
+    arch_sub = p_arch.add_subparsers(dest="archive_command", required=True)
+    p_arch_list = arch_sub.add_parser("list", help="List champion lineage (promotions).")
+    p_arch_list.set_defaults(func=_cmd_archive_list)
 
     # report
     p_rep = sub.add_parser("report", help="Ledger + champion + charter + chain check.")

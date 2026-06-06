@@ -16,6 +16,7 @@ harness, and the Constitution itself can never auto-apply (C34).
 from __future__ import annotations
 
 from .ambition import AmbitionProfile, apply_ambition
+from .apply import ApplyRefused, GitApplier, GitRollback, current_head
 from .catalog import (
     ABSOLUTE_FLOOR,
     COMPOSITE_MARGIN,
@@ -59,6 +60,10 @@ __all__ = [
     "FabricContext",
     "open_context",
     "report_payload",
+    "GitApplier",
+    "GitRollback",
+    "ApplyRefused",
+    "current_head",
     "cli_main",
 ]
 

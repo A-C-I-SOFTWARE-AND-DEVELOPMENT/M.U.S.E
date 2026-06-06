@@ -51,8 +51,10 @@ statistical margin, not a coin flip. That is exactly the **ratchet** here.
 | `controller.py` | `AutonomyController` — composes the full envelope. |
 | `monitor.py` | `AlignmentMonitor` — tripwires that revoke the charter and halt autonomy. |
 | `ambition.py` | `apply_ambition` — additive, bar-raising objective dimensions. |
-| `verifier/` | Plane 1 reward channel: `Candidate` + `screen_for_reward_hacking`. |
-| `selfplay/`, `archive/` | Plane 2/3 scaffolds (AZR/POET self-play; Darwin-Gödel archive). |
+| `verifier/` | Plane 1 reward channel: `Candidate` + `screen_for_reward_hacking`, plus a **real executable** sandbox (`sandbox.py`) and the algorithms-lane verifier (`algorithms.py`). |
+| `selfplay/` | Plane 2 — a **runnable** ReST-EM loop (`loop.py`) + seed tasks/reference solver (`tasks.py`); learnability filter; verifier-gated. |
+| `archive/` | Plane 3 — Darwin-Gödel diversity archive; champion lineage is recorded as `champion_freeze` snapshots. |
+| `apply.py` | **Live** git-backed `GitApplier` / `GitRollback` for charter-gated auto-apply. |
 | `pipeline.py`, `main.py` | Wiring + CLI. |
 
 ## The ratchet rule (`evaluate_ratchet`)
@@ -119,9 +121,25 @@ python -m hermes_cli.jarvis_prime research-fabric validate --scores '{...}' \
     --holdout '{...}' --eval-win-rate 0.6
 python -m hermes_cli.jarvis_prime research-fabric champion show
 python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json  # dry-run
+python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json --execute  # LIVE
+python -m hermes_cli.jarvis_prime research-fabric selfplay run   # verifier-gated self-play
+python -m hermes_cli.jarvis_prime research-fabric archive list   # champion lineage
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
 ```
+
+`run --execute` performs **real, git-committed auto-apply** via `GitApplier` —
+but only when (a) an autonomy charter is active, (b) the candidate clears the
+ratchet, and (c) the **eight strict evidence-bound gates pass**. With no captured
+evidence bundle the strict gates correctly fail-closed, so the CLI never
+fake-passes a gate; a live caller must supply real evidence (or inject a gate
+runner programmatically). On any canary regression the change is hard-reset back
+to the prior champion's commit.
+
+The **self-play loop is real and runnable** today on the algorithms lane: it
+executes candidate code in an isolated subprocess (`-I -S`, scrubbed env, dead
+proxies, wall-clock timeout) and accepts only solutions that pass the held-out
+cases. A real LLM solver implements the same `solve(task) -> code` signature.
 
 ## Constitution relationship
 

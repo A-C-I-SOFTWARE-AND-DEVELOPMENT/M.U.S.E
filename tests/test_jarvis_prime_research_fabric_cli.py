@@ -70,6 +70,21 @@ def test_charter_challenge_then_status(tmp_path, capsys) -> None:
     assert status["active_charter"] is None
 
 
+def test_selfplay_run_accepts_seed_tasks(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "selfplay", "run"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["accepted_count"] == out["attempted"]
+    assert out["acceptance_rate"] == 1.0
+
+
+def test_archive_list_empty(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "archive", "list"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["count"] == 0
+
+
 def test_run_dry_run_no_charter_proposes(tmp_path, capsys) -> None:
     spec = {
         "candidate_id": "c1",
