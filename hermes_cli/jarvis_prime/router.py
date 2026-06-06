@@ -127,15 +127,25 @@ class Router:
                     "self-improvement",
                     "get better at",
                     "sia self",
+                    # research-fabric / verifier-gated self-improvement intents
+                    "research fabric",
+                    "research-fabric",
+                    "evolve",
+                    "benchmark wall",
+                    "autonomy charter",
+                    "ratchet",
+                    "op-count",
+                    "verifier-gated",
                 )
             ):
                 return RouteDecision(
                     target=RouteTarget.SKILL,
                     rationale=(
-                        "builder mode + self-improvement intent → SIA self-improve "
-                        "skill (sandboxed iteration; promotion is owner-gated)"
+                        "builder mode + self-improvement intent → research-fabric "
+                        "skill (verifier-gated ratchet; sandboxed iteration with SIA; "
+                        "auto-apply only inside an owner-signed charter, else proposal)"
                     ),
-                    delegate_to="sia-self-improve",
+                    delegate_to="research-fabric",
                     requires_owner_authorization=True,
                 )
             if any(k in text for k in ("review", "code review", "verdict", "second pass")):

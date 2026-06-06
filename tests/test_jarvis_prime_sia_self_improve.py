@@ -143,10 +143,26 @@ def test_never_edits_the_live_target(tmp_path):
 
 
 def test_router_self_improve_intent_is_owner_gated_skill():
+    # Self-improvement now routes to the research-fabric skill — the unified,
+    # verifier-gated engine (SIA runs inside it as the sandboxed iterator).
+    # Promotion/auto-apply remains owner-gated (charter), so the route still
+    # requires owner authorization.
     decision = Router().route(Mode.BUILDER, "please self-improve the planner skill")
     assert decision.target is RouteTarget.SKILL
-    assert decision.delegate_to == "sia-self-improve"
+    assert decision.delegate_to == "research-fabric"
     assert decision.requires_owner_authorization is True
+
+
+def test_router_fabric_intent_routes_to_research_fabric():
+    for intent in (
+        "evolve a faster implementation",
+        "grant the autonomy charter",
+        "run the benchmark wall",
+        "use the research fabric",
+    ):
+        decision = Router().route(Mode.BUILDER, intent)
+        assert decision.delegate_to == "research-fabric", intent
+        assert decision.requires_owner_authorization is True
 
 
 def test_router_normal_build_intent_unchanged():
