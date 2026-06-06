@@ -96,6 +96,10 @@ tool-raw/
 # Layered-memory raw event log (provenance-bearing; may contain sensitive
 # content). Lives under ~/.hermes/memory-raw/ — guard against repo HERMES_HOME.
 memory-raw/
+# Research-fabric runtime index (SQLite). Default path is
+# <repo>/artifacts/research_fabric/ when --repo-root is the repo; the
+# tamper-evident ledger lives under ~/.hermes/. Never commit either.
+artifacts/research_fabric/
 
 # Built APKs are delivered as CI artifacts / release assets, not via git
 *.apk

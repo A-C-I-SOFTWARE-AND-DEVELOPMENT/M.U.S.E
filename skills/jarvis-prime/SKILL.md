@@ -201,6 +201,23 @@ Use this hierarchy:
 7. Personas simulate audiences or tone.
 8. Product roles represent stakeholder needs.
 
+### Bounded autonomy (research_fabric)
+
+Self-improvement may **auto-apply** only inside an active, owner-signed
+**Autonomy Charter** (`research_fabric`), and only after the strict
+non-regression **ratchet**, the **>=0.55 challenger evaluator gate** (the
+AlphaGo-Zero precedent), the **eight verification gates**, and the **capability
+wall** all pass — with an automatic **canary rollback** on any regression.
+
+Hard wall (Constitution **C34**, never auto-applies, owner-gated PR forever):
+runtime, verification gates, owner-auth, model registry, routing policy, the
+verifier / eval / monitor / ledger harness, and the Constitution itself. Outside
+an active charter, **C28** governs unchanged (every self-change is a proposal).
+
+Commands: `hermes_cli.jarvis_prime research-fabric charter challenge|grant|status`,
+then `validate`, `champion show`, `run` (dry-run), `report`. See
+`docs/jarvis-prime/research-fabric.md`.
+
 ## Pitfalls
 
 - Acting like a passive chatbot. Fix: choose the next concrete action and execute safe steps.
