@@ -256,3 +256,42 @@ documentation tax with no functional payoff.
 **Mitigation:** Any reviewer following an old prompt that mentions
 `hermes_cli/integrations/*.py` should read the list above instead.
 The Phase 27 readiness report (§2) calls this out explicitly.
+
+---
+
+## 13. Website (Docusaurus) build-time npm advisories have no clean fix
+
+**Where:** `website/` (the Docusaurus documentation site).
+`npm audit` reports 24 advisories there (23 moderate, 1 high).
+
+**What:** The high (`serialize-javascript`) and the bulk of the
+moderates resolve to **build-time-only** dev dependencies pulled in
+transitively under `@docusaurus/bundler` → `copy-webpack-plugin` /
+the webpack dev stack: `serialize-javascript`, `copy-webpack-plugin`,
+`css-minimizer-webpack-plugin`, `sockjs`, `uuid`, `webpack-dev-server`.
+They run during `docusaurus build` / `docusaurus start`; they are **not
+shipped in the static HTML output** and never process untrusted input.
+
+**Why no fix is applied:**
+- Upgrading Docusaurus to the latest 3.x (3.10.1 at time of writing)
+  clears **zero** of these — the latest release still ships the same
+  bundler transitives. `serialize-javascript` is already at its latest
+  published version (6.0.2).
+- `npm audit fix --force`'s only offered path is to **downgrade**
+  `@easyops-cn/docusaurus-search-local` to `0.26.1` — a Docusaurus-2-era
+  major that would break this 3.x site, and which does not even sit on
+  the vulnerable dependency path (the leaves live under `core`/`bundler`,
+  not the search plugin). So the "fix" is both breaking and ineffective.
+- The non-website JS trees (`web/`, `ui-tui/`, `scripts/whatsapp-bridge/`)
+  and the Python deps were fully remediated (PRs #338, #339); the
+  non-breaking subset of the website advisories + a Docusaurus version-skew
+  fix landed in #340. Only this irreducible build-time tail remains.
+
+**Mitigation:** Treat these as **accepted, build-time-only** risk for a
+static docs site. Disposition options, none of which forces a breaking
+build: (1) dismiss the corresponding Dependabot alerts with
+"build-time only / no fix available"; (2) revisit when upstream Docusaurus
+ships a release that bumps `copy-webpack-plugin` / `serialize-javascript`.
+Re-checking is a one-liner: `cd website && npm audit`. See the 2026-06-05
+re-audit ([`JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md`](JARVIS_MOBILE_NATIVE_REAUDIT_2026-06-05.md))
+for the surrounding dependency-hardening campaign.
