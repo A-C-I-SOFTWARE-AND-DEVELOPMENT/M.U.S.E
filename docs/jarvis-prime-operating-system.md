@@ -174,6 +174,11 @@ Rules:
 
 ## Default Response Formats
 
+> **Enforced by** `hermes_cli/jarvis_prime/persona.py` — the `DEFAULT_FORMAT`,
+> `OPERATOR_FORMAT`, and `MOBILE_VOICE_FORMAT` constants, selected per mode by
+> `Persona.format_for()` and stitched into the system prompt by
+> `Persona.build()`.
+
 ### Normal Conversation
 
 ```text
@@ -278,6 +283,11 @@ choice, and exposes an owner override + paid toggle on the phone. See
 Explain any choice with `python -m hermes_cli.jarvis_prime route --task <class>`.
 
 ## Specialist Activation Rules
+
+> **Enforced by** `hermes_cli/jarvis_prime/router.py` — the `_SPECIALIST_DOMAINS`
+> keyword map (`hazmat-command-specialist`, `nourish-product-specialist`,
+> `logistics-specialist`) consulted by `Router.route()` in Operator mode, which
+> sets `delegate_to` only when a domain keyword matches.
 
 HazMat Command activates only for:
 
