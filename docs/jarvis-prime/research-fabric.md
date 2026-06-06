@@ -135,6 +135,7 @@ python -m hermes_cli.jarvis_prime research-fabric archive sample-parent  # stepp
 python -m hermes_cli.jarvis_prime research-fabric domains list   # Plane 4 domain registry
 python -m hermes_cli.jarvis_prime research-fabric benchmarks run --suite suite.jsonl [--gate]
 python -m hermes_cli.jarvis_prime research-fabric improve --domain algorithms [--model M]
+python -m hermes_cli.jarvis_prime research-fabric status     # one-glance fabric status
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
 ```
