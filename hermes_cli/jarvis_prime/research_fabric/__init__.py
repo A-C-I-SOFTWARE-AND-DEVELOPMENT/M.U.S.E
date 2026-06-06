@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from .ambition import AmbitionProfile, apply_ambition
 from .apply import ApplyRefused, GitApplier, GitRollback, current_head
+from .archive import Archive, ArchiveMember
+from .archive.store import ArchiveStore
 from .catalog import (
     ABSOLUTE_FLOOR,
     COMPOSITE_MARGIN,
@@ -27,6 +29,8 @@ from .catalog import (
 from .champion import Champion, ChampionStore
 from .charter import AutonomyCharter, CharterBook, HARD_WALL_KINDS, is_hard_walled
 from .controller import AutoApplyOutcome, AutonomyController
+from .domains import Domain, admit_for_autonomy, domains, get_domain
+from .improve import ImprovementRun, run_algorithms_improvement
 from .monitor import AlignmentMonitor, TripwireSignal
 from .pipeline import FabricContext, open_context, report_payload
 from .store import SnapshotStore
@@ -64,6 +68,15 @@ __all__ = [
     "GitRollback",
     "ApplyRefused",
     "current_head",
+    "Archive",
+    "ArchiveMember",
+    "ArchiveStore",
+    "Domain",
+    "domains",
+    "get_domain",
+    "admit_for_autonomy",
+    "ImprovementRun",
+    "run_algorithms_improvement",
     "cli_main",
 ]
 

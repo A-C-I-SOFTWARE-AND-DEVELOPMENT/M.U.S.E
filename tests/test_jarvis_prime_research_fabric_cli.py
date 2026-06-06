@@ -93,6 +93,41 @@ def test_archive_list_empty(tmp_path, capsys) -> None:
     assert out["count"] == 0
 
 
+def test_archive_members_after_evolve(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "selfplay", "evolve"])
+    assert rc == 0
+    capsys.readouterr()  # discard evolve output
+    rc2 = cli_main(["--repo-root", str(tmp_path), "archive", "members"])
+    assert rc2 == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["count"] >= 2  # baseline + evolved
+    rc3 = cli_main(["--repo-root", str(tmp_path), "archive", "sample-parent", "--seed", "1"])
+    assert rc3 == 0
+    out3 = json.loads(capsys.readouterr().out)
+    assert out3["parent"] is not None
+
+
+def test_domains_list(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "domains", "list"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    keys = {d["key"] for d in out["domains"]}
+    assert {"algorithms", "swe_local", "prose"} <= keys
+
+
+def test_improve_algorithms_reference(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "improve", "--domain", "algorithms"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["used_llm"] is False
+    assert out["result"]["improved"] is True
+
+
+def test_improve_verifierless_domain_refused(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "improve", "--domain", "prose"])
+    assert rc == 1  # fail-closed: no executable verifier
+
+
 def test_run_dry_run_no_charter_proposes(tmp_path, capsys) -> None:
     spec = {
         "candidate_id": "c1",
