@@ -46,10 +46,16 @@ class TestResolveSafeCwd:
     def test_returns_root_when_only_root_exists(self, monkeypatch):
         """If every ancestor except the filesystem root is gone, the root
         itself is still a valid recovery target — don't skip it just because
-        ``os.path.dirname('/') == '/'`` is the loop's exit condition."""
-        sep = os.path.sep
-        monkeypatch.setattr(os.path, "isdir", lambda p: p == sep)
-        assert _resolve_safe_cwd("/no/such/deep/dir") == sep
+        ``os.path.dirname(root) == root`` is the loop's exit condition."""
+        # Keep this as a POSIX-path unit case even on Windows. Otherwise
+        # ``_msys_to_windows_path`` correctly treats ``/no/...`` as a possible
+        # Git Bash drive path (``N:\o\...``), and the assertion becomes about
+        # MSYS normalization rather than root recovery.
+        monkeypatch.setattr("tools.environments.local._IS_WINDOWS", False)
+        root = (os.path.splitdrive(os.getcwd())[0] + os.path.sep) if os.name == "nt" else os.path.sep
+        missing = os.path.join(root, "no", "such", "deep", "dir")
+        monkeypatch.setattr(os.path, "isdir", lambda p: p == root)
+        assert _resolve_safe_cwd(missing) == root
 
 
 def _fake_interrupt():

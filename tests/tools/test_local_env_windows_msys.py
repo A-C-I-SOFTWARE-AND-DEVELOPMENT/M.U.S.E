@@ -19,7 +19,7 @@ on the real OS.
 """
 
 import os
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -198,3 +198,34 @@ class TestExtractCwdFromOutputWindowsMsys:
             env._extract_cwd_from_output(result)
 
         assert env.cwd == str(new_dir)
+
+
+# ---------------------------------------------------------------------------
+# Process spawning: Windows creationflags must be passed exactly once
+# ---------------------------------------------------------------------------
+
+class TestRunBashWindowsCreationFlags:
+    def test_windows_popen_creationflags_not_duplicated(self, monkeypatch, tmp_path):
+        """Regression test for Windows terminal calls failing with:
+
+        ``TypeError: subprocess.Popen() got multiple values for keyword argument
+        'creationflags'``. The real call used to pass ``creationflags`` both
+        explicitly and via ``**_popen_kwargs``.
+        """
+        monkeypatch.setattr(local_mod, "_IS_WINDOWS", True)
+        monkeypatch.setattr(local_mod, "_find_bash", lambda: "bash")
+        monkeypatch.setattr(local_mod, "windows_hide_flags", lambda: 0x08000000)
+
+        fake_proc = MagicMock()
+        fake_proc.pid = 1234
+
+        with patch.object(
+            LocalEnvironment, "init_session", autospec=True, return_value=None
+        ), patch.object(local_mod.subprocess, "Popen", return_value=fake_proc) as popen:
+            env = LocalEnvironment(cwd=str(tmp_path), timeout=10)
+            proc = env._run_bash("pwd", timeout=10)
+
+        assert proc is fake_proc
+        kwargs = popen.call_args.kwargs
+        assert kwargs["creationflags"] == 0x08000000
+        assert kwargs["cwd"] == str(tmp_path)
