@@ -46,6 +46,7 @@ from .selfplay.swe_tasks import demo_swe_baseline, make_demo_swe_repo
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
 from .selfplay.evolve import evolve
+from .status import fabric_status
 from .selfplay.loop import run_selfplay
 from .selfplay.tasks import (
     DEMO_BASELINE_CODE,
@@ -453,6 +454,15 @@ def _cmd_inventory(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_status(args: argparse.Namespace) -> int:
+    ctx = open_context(Path(args.repo_root))
+    try:
+        _print(fabric_status(ctx, ArchiveStore()))
+    finally:
+        ctx.close()
+    return 0
+
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -553,6 +563,10 @@ def build_parser() -> argparse.ArgumentParser:
     # inventory
     p_inv = sub.add_parser("inventory", help="Print the registered candidate catalog.")
     p_inv.set_defaults(func=_cmd_inventory)
+
+    # status
+    p_status = sub.add_parser("status", help="One-glance fabric status (ledger/champion/charter/archive).")
+    p_status.set_defaults(func=_cmd_status)
 
     # benchmarks
     p_bench = sub.add_parser("benchmarks", help="Benchmark-harness wall (Plane 4 scale).")

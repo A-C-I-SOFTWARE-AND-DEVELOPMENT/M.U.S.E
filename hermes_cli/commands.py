@@ -278,6 +278,16 @@ COMMAND_REGISTRY: list[CommandDef] = [
                aliases=("jarvis", "jp"),
                args_hint="<intent> | stop",
                subcommands=("stop",)),
+    CommandDef("research-fabric",
+               "Bounded-autonomous, verifier-gated self-improvement fabric — "
+               "charter, ratchet, self-play/evolve, domains, benchmark wall, status.",
+               "Tools & Skills",
+               aliases=("rf",),
+               cli_only=True,
+               args_hint="<subcommand>",
+               subcommands=("charter", "validate", "champion", "improve", "selfplay",
+                            "domains", "benchmarks", "archive", "report", "status",
+                            "inventory", "run")),
 
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",

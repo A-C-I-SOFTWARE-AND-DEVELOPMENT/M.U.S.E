@@ -43,6 +43,14 @@ def test_validate_cold_start_json(tmp_path, capsys) -> None:
     assert out["passed"] is True
 
 
+def test_status_command(tmp_path, capsys) -> None:
+    rc = cli_main(["--repo-root", str(tmp_path), "status"])
+    assert rc == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["autonomy_active"] is False
+    assert out["ledger_chain_ok"] is True
+
+
 def test_report_chain_ok(tmp_path, capsys) -> None:
     rc = cli_main(["--repo-root", str(tmp_path), "report"])
     assert rc == 0
