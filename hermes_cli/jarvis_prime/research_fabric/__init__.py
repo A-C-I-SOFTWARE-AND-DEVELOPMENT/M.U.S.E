@@ -17,6 +17,8 @@ from __future__ import annotations
 
 from .ambition import AmbitionProfile, apply_ambition
 from .apply import ApplyRefused, GitApplier, GitRollback, current_head
+from .archive import Archive, ArchiveMember
+from .archive.store import ArchiveStore
 from .catalog import (
     ABSOLUTE_FLOOR,
     COMPOSITE_MARGIN,
@@ -64,6 +66,9 @@ __all__ = [
     "GitRollback",
     "ApplyRefused",
     "current_head",
+    "Archive",
+    "ArchiveMember",
+    "ArchiveStore",
     "cli_main",
 ]
 

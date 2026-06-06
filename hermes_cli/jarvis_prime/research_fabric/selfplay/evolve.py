@@ -18,6 +18,7 @@ from typing import Any, Callable, Optional
 
 from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
 
+from ..archive.store import ArchiveStore, new_member
 from ..verifier.algorithms import AlgorithmTask, measure_opcount, score_algorithm_candidate
 
 # Given the current best code, propose candidate variants (mutations/rewrites).
@@ -76,8 +77,14 @@ def evolve(
     *,
     generations: int = 5,
     ledger: Optional[GuardrailLedger] = None,
+    archive: Optional[ArchiveStore] = None,
 ) -> EvolveResult:
-    """Evolve ``baseline_code`` toward a correct, lower-op-count solution."""
+    """Evolve ``baseline_code`` toward a correct, lower-op-count solution.
+
+    When ``archive`` is supplied, every accepted improvement is recorded as an
+    :class:`ArchiveMember` chained to the prior best (lineage), so a later search
+    can branch from any stepping stone rather than only the reigning champion.
+    """
 
     # The baseline must itself be correct, or there is nothing to ratchet from.
     base_score = score_algorithm_candidate(baseline_code, task)
@@ -94,6 +101,20 @@ def evolve(
 
     best_code = baseline_code
     best_op = measure_opcount(baseline_code, task)
+
+    parent_id: Optional[str] = None
+    if archive is not None:
+        base_member = archive.add(
+            new_member(
+                parent_id=None,
+                config={"task_id": task.task_id, "opcount": best_op, "role": "baseline"},
+                composite=base_score.correctness,
+                domain_scores={"correctness": base_score.correctness},
+                note=f"baseline op-count {best_op}",
+            )
+        )
+        parent_id = base_member.member_id
+
     result = EvolveResult(
         task_id=task.task_id,
         baseline_opcount=best_op,
@@ -125,6 +146,17 @@ def evolve(
                         task.task_id,
                         {"generation": gen, "opcount": op, "baseline": result.baseline_opcount},
                     )
+                if archive is not None:
+                    member = archive.add(
+                        new_member(
+                            parent_id=parent_id,
+                            config={"task_id": task.task_id, "opcount": op, "generation": gen},
+                            composite=score.correctness,
+                            domain_scores={"correctness": score.correctness},
+                            note=f"evolved op-count {op} (gen {gen})",
+                        )
+                    )
+                    parent_id = member.member_id
             else:
                 result.steps.append(EvolveStep(gen, False, op, "no op-count improvement"))
         if not gen_improved:

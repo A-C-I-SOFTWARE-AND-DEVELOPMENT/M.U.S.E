@@ -53,7 +53,7 @@ statistical margin, not a coin flip. That is exactly the **ratchet** here.
 | `ambition.py` | `apply_ambition` — additive, bar-raising objective dimensions. |
 | `verifier/` | Plane 1 reward channel: `Candidate` + `screen_for_reward_hacking`, plus a **real executable** sandbox (`sandbox.py`) and the algorithms-lane verifier (`algorithms.py`). |
 | `selfplay/` | Plane 2 — a **runnable** ReST-EM loop (`loop.py`) + seed tasks/reference solver (`tasks.py`); learnability filter; verifier-gated. |
-| `archive/` | Plane 3 — Darwin-Gödel diversity archive; champion lineage is recorded as `champion_freeze` snapshots. |
+| `archive/` | Plane 3 — Darwin-Gödel diversity archive: persistent `ArchiveStore` (JSONL) of every accepted improvement with lineage, stepping-stone parent sampling (score × editability); champion lineage also recorded as `champion_freeze` snapshots. The evolutionary loop writes members as it improves. |
 | `apply.py` | **Live** git-backed `GitApplier` / `GitRollback` for charter-gated auto-apply. |
 | `pipeline.py`, `main.py` | Wiring + CLI. |
 
@@ -124,7 +124,9 @@ python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json
 python -m hermes_cli.jarvis_prime research-fabric run --candidate-json cand.json --execute  # LIVE
 python -m hermes_cli.jarvis_prime research-fabric selfplay run     # verifier-gated self-play
 python -m hermes_cli.jarvis_prime research-fabric selfplay evolve  # evolve to lower op-count
-python -m hermes_cli.jarvis_prime research-fabric archive list   # champion lineage
+python -m hermes_cli.jarvis_prime research-fabric archive list           # champion lineage
+python -m hermes_cli.jarvis_prime research-fabric archive members        # diversity archive
+python -m hermes_cli.jarvis_prime research-fabric archive sample-parent  # stepping stone
 python -m hermes_cli.jarvis_prime research-fabric report     # ledger + champion + chain check
 python -m hermes_cli.jarvis_prime research-fabric inventory  # registered candidates
 ```

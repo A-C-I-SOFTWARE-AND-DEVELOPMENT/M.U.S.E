@@ -36,6 +36,7 @@ from hermes_cli.jarvis_prime.owner_auth import (
 from hermes_cli.jarvis_prime.self_update import ProposalKind
 
 from .apply import GitApplier, GitRollback
+from .archive.store import ArchiveStore
 from .catalog import candidate_dicts
 from .charter import CharterBook, CharterRejected, DEFAULT_ALLOWED_KINDS
 from .pipeline import open_context, report_payload
@@ -291,6 +292,7 @@ def _cmd_selfplay_evolve(args: argparse.Namespace) -> int:
             demo_variant_proposer,
             generations=args.generations,
             ledger=ctx.ledger,
+            archive=ArchiveStore(),
         )
         _print(result.to_dict())
     finally:
@@ -318,6 +320,27 @@ def _cmd_archive_list(args: argparse.Namespace) -> int:
         _print({"lineage": lineage, "count": len(lineage)})
     finally:
         ctx.close()
+    return 0
+
+
+def _cmd_archive_members(args: argparse.Namespace) -> int:
+    store = ArchiveStore()
+    _print(
+        {
+            "members": [m.to_dict() for m in store.members()],
+            "count": len(store.members()),
+        }
+    )
+    return 0
+
+
+def _cmd_archive_sample_parent(args: argparse.Namespace) -> int:
+    import random
+
+    store = ArchiveStore()
+    rng = random.Random(args.seed) if args.seed is not None else None
+    member = store.sample_parent(rng=rng)
+    _print({"parent": member.to_dict() if member else None})
     return 0
 
 
@@ -424,6 +447,13 @@ def build_parser() -> argparse.ArgumentParser:
     arch_sub = p_arch.add_subparsers(dest="archive_command", required=True)
     p_arch_list = arch_sub.add_parser("list", help="List champion lineage (promotions).")
     p_arch_list.set_defaults(func=_cmd_archive_list)
+    p_arch_members = arch_sub.add_parser("members", help="List diversity-archive members.")
+    p_arch_members.set_defaults(func=_cmd_archive_members)
+    p_arch_sample = arch_sub.add_parser(
+        "sample-parent", help="Sample a stepping-stone parent (score x editability)."
+    )
+    p_arch_sample.add_argument("--seed", type=int, default=None)
+    p_arch_sample.set_defaults(func=_cmd_archive_sample_parent)
 
     # report
     p_rep = sub.add_parser("report", help="Ledger + champion + charter + chain check.")
