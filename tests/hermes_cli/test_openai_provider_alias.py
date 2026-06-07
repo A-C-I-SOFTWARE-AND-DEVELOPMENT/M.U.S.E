@@ -7,6 +7,8 @@ in that ``openai`` resolves to the real OpenAI endpoint while the OpenRouter
 aggregator keeps working independently.
 """
 
+from urllib.parse import urlparse
+
 from hermes_cli.providers import get_provider, normalize_provider
 
 
@@ -17,7 +19,7 @@ def test_openai_does_not_alias_to_openrouter():
 def test_openai_resolves_to_real_openai_endpoint():
     pdef = get_provider("openai")
     assert pdef is not None
-    assert "api.openai.com" in pdef.base_url
+    assert urlparse(pdef.base_url).hostname == "api.openai.com"
     assert "OPENAI_API_KEY" in pdef.api_key_env_vars
     assert pdef.is_aggregator is False
     assert pdef.name == "OpenAI"
@@ -29,4 +31,4 @@ def test_openrouter_aggregator_still_resolves():
     router = get_provider("openrouter")
     assert router is not None
     assert router.is_aggregator is True
-    assert "openrouter.ai" in router.base_url
+    assert urlparse(router.base_url).hostname == "openrouter.ai"
