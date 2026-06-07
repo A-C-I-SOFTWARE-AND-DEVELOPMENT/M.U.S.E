@@ -367,6 +367,13 @@ families:
 # Tasks prefixed local_ bias toward families with local:true. Gemma 4 leads
 # the local/mobile/memory/voice/summary/multimodal lanes, trails on
 # local_coding, and is only a fallback for coding_review / deep_research.
+#
+# NOTE on variant + lane policy (enforced in task_router.py, not here): the
+# local Gemma lanes are routed by job weight — fast-daily lanes use E2B, deeper
+# reasoning/coding use E4B (load-gated, falling back to E2B), and 26B/31B are
+# never an auto local default. `deep_research` / `citation` route OFF-local
+# (hosted/worker/paid first) because the small local variants can't carry large
+# autonomous research; Gemma here stays a last-ditch local fallback only.
 routing:
   coding:          [deepseek-v4, glm-5, kimi-k2, minimax-m2, qwen3-coder]
   agentic_coding:  [glm-5, deepseek-v4, kimi-k2, minimax-m2, qwen3-coder]

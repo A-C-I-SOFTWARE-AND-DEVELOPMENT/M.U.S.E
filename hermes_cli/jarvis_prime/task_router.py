@@ -101,42 +101,73 @@ class TaskProfile:
     # Optional per-class re-ordering of the route tiers. When empty the
     # free/local-first ROUTE_TIERS order is used.
     preferred_tiers: tuple[str, ...] = ()
+    # Which local Gemma variant a lane should prefer, by job weight:
+    #   "local_fast"      → E2B  (fast daily: chat/voice/summarize/memory)
+    #   "local_reasoning" → E4B  (deeper reasoning)
+    #   "local_coding"    → E4B  (coding / planning / test-debug)
+    # Empty falls back to a catalog_task-derived purpose (back-compat).
+    local_purpose: str = ""
+
+
+# Cloud/server-first tier order for heavy *research* lanes: large autonomous
+# research is too big for the small local Gemma variants (and 26B/31B don't fit
+# an 8 GB box), so research routes to a hosted/worker/paid endpoint and only
+# reaches local_oss as a last-ditch fallback.
+_RESEARCH_TIERS: tuple[str, ...] = (
+    "hosted_free_or_user_configured_oss",
+    "claude_code_worker",
+    "codex_worker",
+    "paid_api_explicit_only",
+    "local_oss",
+)
 
 
 # Per-class routing profile. ``coding_*`` / ``test_debug`` prefer the strong
 # worker lanes (Claude Code / Codex) when enabled; chat/voice/summarize stay
-# local-first for latency + privacy. Paid is only ever *allowed* for the
-# heaviest classes, and even then only when the owner has opted in.
+# local-first for latency + privacy; *research* is explicitly off-local (cloud/
+# server). Paid is only ever *allowed* for the heaviest classes, and even then
+# only when the owner has opted in. ``local_purpose`` picks the Gemma variant by
+# job weight (fast→E2B, reasoning/coding→E4B).
 TASK_PROFILES: dict[TaskClass, TaskProfile] = {
-    TaskClass.MOBILE_CHAT: TaskProfile("RC1", "reasoning", True, False),
-    TaskClass.VOICE_REPLY: TaskProfile("RC1", "reasoning", True, False),
-    TaskClass.SUMMARIZATION: TaskProfile("RC1", "reasoning", True, False),
-    TaskClass.MEMORY_CURATOR: TaskProfile("RC1", "reasoning", True, False),
-    TaskClass.RESEARCH: TaskProfile("RC2", "reasoning", True, True),
-    TaskClass.CITATION_VERIFICATION: TaskProfile("RC2", "reasoning", True, True),
+    TaskClass.MOBILE_CHAT: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
+    TaskClass.VOICE_REPLY: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
+    TaskClass.SUMMARIZATION: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
+    TaskClass.MEMORY_CURATOR: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
+    TaskClass.RESEARCH: TaskProfile(
+        "RC2", "reasoning", False, True,
+        preferred_tiers=_RESEARCH_TIERS, local_purpose="local_reasoning",
+    ),
+    TaskClass.CITATION_VERIFICATION: TaskProfile(
+        "RC2", "reasoning", False, True,
+        preferred_tiers=_RESEARCH_TIERS, local_purpose="local_reasoning",
+    ),
     TaskClass.CODING_PLAN: TaskProfile(
         "RC2", "reasoning", False, True,
         preferred_tiers=("claude_code_worker", "local_oss",
                          "hosted_free_or_user_configured_oss", "codex_worker",
                          "paid_api_explicit_only"),
+        local_purpose="local_coding",
     ),
     TaskClass.CODING_BUILD: TaskProfile(
         "RC3", "agentic_coding", False, True,
         preferred_tiers=("claude_code_worker", "codex_worker", "local_oss",
                          "hosted_free_or_user_configured_oss",
                          "paid_api_explicit_only"),
+        local_purpose="local_coding",
     ),
     TaskClass.CODING_REVIEW: TaskProfile(
         "RC2", "coding", False, True,
         preferred_tiers=("codex_worker", "claude_code_worker", "local_oss",
                          "hosted_free_or_user_configured_oss",
                          "paid_api_explicit_only"),
+        local_purpose="local_coding",
     ),
     TaskClass.TEST_DEBUG: TaskProfile(
         "RC2", "bug_fix", False, True,
         preferred_tiers=("local_oss", "claude_code_worker", "codex_worker",
                          "hosted_free_or_user_configured_oss",
                          "paid_api_explicit_only"),
+        local_purpose="local_coding",
     ),
 }
 
@@ -255,27 +286,116 @@ def resolve_policy(policy: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     return loaded if loaded is not None else _default_policy()
 
 
+def _purpose_for(profile: TaskProfile) -> str:
+    """The local-model purpose for a lane: fast / reasoning / coding."""
+    if profile.local_purpose:
+        return profile.local_purpose
+    if "coding" in profile.catalog_task or profile.catalog_task in (
+        "agentic_coding", "bug_fix",
+    ):
+        return "local_coding"
+    return "local_reasoning"
+
+
+def _gemma_variant_key(name: str) -> Optional[str]:
+    """The variant token (``e2b``/``e4b``/``26b``/``31b``/``12b``) of a Gemma
+    model name/tag, or ``None`` when it isn't a Gemma model."""
+    if not is_gemma(name):
+        return None
+    low = name.lower()
+    for key in ("e2b", "e4b", "26b", "31b", "12b"):
+        if key in low:
+            return key
+    return None
+
+
+def _gated_preferred_key(purpose: str) -> str:
+    """Preferred Gemma variant token for ``purpose``, applying the load-gate.
+
+    Fast lanes always prefer E2B. Reasoning/coding prefer E4B, **unless** a
+    recorded smoke check shows E4B fails to load cleanly on this host — then we
+    demote to E2B (``gemma_load_status.variant_failed`` is True only for a
+    *demonstrated* failure, so a fresh/unprobed install still prefers E4B).
+    """
+    if purpose == "local_fast":
+        return "e2b"
+    key = "e4b"
+    try:
+        from hermes_cli.jarvis_prime import gemma_load_status as gls
+
+        if gls.variant_failed("gemma4-e4b"):
+            key = "e2b"
+    except Exception:  # pragma: no cover - defensive (stripped install)
+        pass
+    return key
+
+
+def _apply_gemma_policy(names: list[str], purpose: str) -> list[str]:
+    """Reorder local candidates per the Gemma routing policy.
+
+    Among the *available* Gemma variants, lead with the job-weight-preferred
+    one (load-gated); keep the other small variant as immediate fallback; and
+    sink 26B/31B to the tail so they are **never** an auto local default (they
+    only fit workstation/server hardware and are a scorecard-gated fallback).
+    Non-Gemma local models keep their order as a secondary fallback. When no
+    Gemma model is present the list is returned unchanged.
+    """
+    preferred = _gated_preferred_key(purpose)
+    order = [preferred] + [k for k in ("e2b", "e4b", "12b") if k != preferred]
+    small: dict[str, list[str]] = {k: [] for k in order}
+    big_gemma: list[str] = []   # 26B/31B — tail-only, never auto-default
+    other_gemma: list[str] = []
+    non_gemma: list[str] = []
+    for n in names:
+        key = _gemma_variant_key(n)
+        if key in ("26b", "31b"):
+            big_gemma.append(n)
+        elif key in small:
+            small[key].append(n)
+        elif key is not None:
+            other_gemma.append(n)
+        else:
+            non_gemma.append(n)
+    ordered_small = [n for k in order for n in small[k]]
+    return ordered_small + other_gemma + non_gemma + big_gemma
+
+
+def _names_from_local_defaults(policy: dict[str, Any], purpose: str) -> list[str]:
+    """Local candidate tags from the policy's per-purpose ``local_defaults``.
+
+    Includes the purpose match first, then any sibling Gemma defaults (so the
+    load-gate can substitute E2B↔E4B), then a generic fallback.
+    """
+    defaults = policy.get("local_defaults", [])
+    names: list[str] = []
+    for d in defaults:
+        if d.get("purpose") == purpose:
+            tag = d.get("ollama_tag") or d.get("model_id")
+            if tag:
+                names.append(tag)
+    for d in defaults:
+        if str(d.get("model_id", "")).startswith("gemma4"):
+            tag = d.get("ollama_tag") or d.get("model_id")
+            if tag and tag not in names:
+                names.append(tag)
+    if not names:
+        for d in defaults:
+            tag = d.get("ollama_tag") or d.get("model_id")
+            if tag:
+                names.append(tag)
+                break
+    return names
+
+
 def _local_candidates(policy: dict[str, Any], profile: TaskProfile) -> list[str]:
     route = policy.get("routes", {}).get("local_oss", {})
+    purpose = _purpose_for(profile)
     names: list[str] = list(route.get("recommended_local_models") or [])
     if not names:
-        purpose = "local_coding" if "coding" in profile.catalog_task or profile.catalog_task in (
-            "agentic_coding", "bug_fix",
-        ) else "local_reasoning"
-        for d in policy.get("local_defaults", []):
-            if d.get("purpose") == purpose:
-                tag = d.get("ollama_tag") or d.get("model_id")
-                if tag:
-                    names.append(tag)
-        # also accept the generic reasoning default if nothing matched
-        if not names:
-            for d in policy.get("local_defaults", []):
-                tag = d.get("ollama_tag") or d.get("model_id")
-                if tag:
-                    names.append(tag)
-                    break
+        names = _names_from_local_defaults(policy, purpose)
     if not names and route.get("enabled"):
         names.append("local-model")
+    names = _apply_gemma_policy(names, purpose)
     # de-dup, preserve order
     seen: set[str] = set()
     out: list[str] = []
@@ -321,6 +441,7 @@ class Candidate:
     tier_rank: int
     score: Optional[float]  # task-class scorecard score, if measured
     samples: int = 0
+    seq: int = 0  # stable position in the candidate build order (intra-tier rank)
 
     @property
     def effective(self) -> float:
@@ -411,11 +532,15 @@ def route_for_task(
                     tier_rank=rank,
                     score=score_n[0] if score_n else None,
                     samples=score_n[1] if score_n else 0,
+                    seq=len(candidates),
                 )
             )
 
-    # Deterministic ranking: effective score desc, then tier preference, then name.
-    candidates.sort(key=lambda c: (-c.effective, c.tier_rank, c.model))
+    # Deterministic ranking: effective score desc, then tier preference, then
+    # the candidate's build position (so the local-policy ordering from
+    # ``_tier_candidates`` is authoritative for equal-score same-tier ties —
+    # e.g. Gemma E4B leading E2B for coding), and finally name as a last resort.
+    candidates.sort(key=lambda c: (-c.effective, c.tier_rank, c.seq, c.model))
 
     evidence = [
         {"model": m, "score": round(s, 4), "samples": n}
