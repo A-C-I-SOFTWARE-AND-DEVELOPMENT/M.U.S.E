@@ -44,6 +44,13 @@ class HermesOverlay:
 
 
 HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
+    "openai": HermesOverlay(
+        # models.dev lists no api URL for openai; pin the real OpenAI endpoint so
+        # `openai` hits api.openai.com (and the runtime's GPT-5.x Responses-API
+        # special-casing) rather than falling through to an empty base URL.
+        transport="openai_chat",
+        base_url_override="https://api.openai.com/v1",
+    ),
     "openrouter": HermesOverlay(
         transport="openai_chat",
         is_aggregator=True,
@@ -238,9 +245,6 @@ class ProviderDef:
 # Uses models.dev IDs where possible.
 
 ALIASES: Dict[str, str] = {
-    # openrouter
-    "openai": "openrouter",     # bare "openai" → route through aggregator
-
     # zai
     "glm": "zai",
     "z-ai": "zai",
