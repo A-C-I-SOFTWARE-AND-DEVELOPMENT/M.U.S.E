@@ -12,8 +12,6 @@ import io
 import json
 from pathlib import Path
 
-import pytest
-
 from hermes_cli.jarvis_prime.context_handoff import (
     ContextHandoff,
     build_context_handoff,
@@ -23,8 +21,8 @@ from hermes_cli.jarvis_prime.graphrag.indexers import index_code, index_docs
 from hermes_cli.jarvis_prime.graphrag.store import GraphStore
 
 
-@pytest.fixture(autouse=True)
-def _clean_home(tmp_path, monkeypatch):
+def _clean_home(tmp_path, monkeypatch) -> None:
+    """Point HERMES_HOME at a clean tmpdir so routing reads the default policy."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
 
 
@@ -51,8 +49,9 @@ def _built_store(tmp_path: Path) -> GraphStore:
     return store
 
 
-def test_context_packet_builds_offline_without_graph(tmp_path):
+def test_context_packet_builds_offline_without_graph(tmp_path, monkeypatch):
     """No graph + build_if_missing=False → honest-empty, non-crashing, lane present."""
+    _clean_home(tmp_path, monkeypatch)
     store = GraphStore(tmp_path / "missing.json")  # nothing saved
     h = build_context_handoff("add a retry helper", store=store, build_if_missing=False)
     assert isinstance(h, ContextHandoff)
@@ -64,7 +63,8 @@ def test_context_packet_builds_offline_without_graph(tmp_path):
     assert any("graph not built" in n for n in h.notes)
 
 
-def test_context_packet_with_built_graph(tmp_path):
+def test_context_packet_with_built_graph(tmp_path, monkeypatch):
+    _clean_home(tmp_path, monkeypatch)
     store = _built_store(tmp_path)
     h = build_context_handoff("add function in calculator", store=store)
     assert h.graph_built is True
@@ -77,7 +77,8 @@ def test_context_packet_with_built_graph(tmp_path):
     assert h.citations
 
 
-def test_context_render_and_to_dict(tmp_path):
+def test_context_render_and_to_dict(tmp_path, monkeypatch):
+    _clean_home(tmp_path, monkeypatch)
     store = _built_store(tmp_path)
     h = build_context_handoff("calculator add", store=store)
     text = h.render()
@@ -92,21 +93,24 @@ def test_context_render_and_to_dict(tmp_path):
     }
 
 
-def test_context_unknown_task_class_is_noted(tmp_path):
+def test_context_unknown_task_class_is_noted(tmp_path, monkeypatch):
+    _clean_home(tmp_path, monkeypatch)
     store = GraphStore(tmp_path / "missing.json")
     h = build_context_handoff("x", store=store, task_class="not_a_lane")
     assert any("unknown task class" in n for n in h.notes)
     assert h.model_lane == {}
 
 
-def test_context_token_budget_clamps_render(tmp_path):
+def test_context_token_budget_clamps_render(tmp_path, monkeypatch):
+    _clean_home(tmp_path, monkeypatch)
     store = _built_store(tmp_path)
     h = build_context_handoff("calculator add", store=store, token_budget=1)
     # Clamp invariant: render never exceeds max(256, budget*4) + a short marker.
     assert len(h.render()) <= max(256, h.token_budget * 4) + 64
 
 
-def test_cli_context_json_returns_zero(tmp_path):
+def test_cli_context_json_returns_zero(tmp_path, monkeypatch):
+    _clean_home(tmp_path, monkeypatch)
     from hermes_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()

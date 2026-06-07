@@ -169,8 +169,10 @@ def test_research_routes_off_local_when_cloud_available() -> None:
     )
     assert d.local_first is False
     assert d.route_tier == "hosted_free_or_user_configured_oss"
-    assert d.chosen.startswith("openrouter/")
-    assert "deepseek-r1" in d.chosen  # reasoning lane leads, not a coder
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")
+    assert "deepseek-r1" in chosen  # reasoning lane leads, not a coder
     # Local Gemma stays only as a last-ditch fallback.
     assert d.fallback_chain[-1] in {"gemma4-e2b", "gemma4-e4b"}
 

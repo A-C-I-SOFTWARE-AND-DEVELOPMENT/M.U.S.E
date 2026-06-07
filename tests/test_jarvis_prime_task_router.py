@@ -226,8 +226,10 @@ def test_hosted_taskclass_expands_for_coding(tmp_path):
         overrides={"paid_enabled": None, "task_overrides": {}},
     )
     assert d.route_tier == "hosted_free_or_user_configured_oss"
-    assert d.chosen.startswith("openrouter/")
-    assert "glm-5" in d.chosen  # agentic_coding lane leads with GLM
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")
+    assert "glm-5" in chosen  # agentic_coding lane leads with GLM
 
 
 def test_hosted_taskclass_research_leads_reasoning(tmp_path):
@@ -238,8 +240,10 @@ def test_hosted_taskclass_research_leads_reasoning(tmp_path):
         book=_empty_book(tmp_path),
         overrides={"paid_enabled": None, "task_overrides": {}},
     )
-    assert d.chosen.startswith("openrouter/")
-    assert "deepseek-r1" in d.chosen
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")
+    assert "deepseek-r1" in chosen
 
 
 def test_hosted_disable_flag_restores_bare_provider(tmp_path, monkeypatch):
