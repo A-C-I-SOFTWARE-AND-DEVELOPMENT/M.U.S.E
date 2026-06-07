@@ -18,6 +18,8 @@ from hermes_cli.branch_consolidation import (
     STATUS_MERGED,
     STATUS_SAFE_STOP,
     STATUS_SKIPPED,
+    _has_committer_identity,
+    _with_fallback_identity,
     consolidate_into_main,
 )
 
@@ -179,6 +181,59 @@ def test_push_failure_keeps_local_main(fork_setup, monkeypatch):
     assert _file_on_main(work, "feature.txt") == "feature\n"
     assert _file_on_main(work, "upstream.txt") == "upstream\n"
     assert not _branch_exists(work, INTEGRATION_BRANCH)
+
+
+def _isolate_git_identity(repo: Path, tmp_path: Path, monkeypatch) -> None:
+    """Strip every committer-identity source so git has none (fresh Termux)."""
+    subprocess.run(["git", "config", "--unset", "user.email"], cwd=repo)
+    subprocess.run(["git", "config", "--unset", "user.name"], cwd=repo)
+    empty = tmp_path / "empty_gitconfig"
+    empty.write_text("", encoding="utf-8")
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(empty))
+    monkeypatch.setenv("GIT_CONFIG_SYSTEM", str(empty))
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.delenv("GIT_AUTHOR_NAME", raising=False)
+    monkeypatch.delenv("GIT_AUTHOR_EMAIL", raising=False)
+    monkeypatch.delenv("GIT_COMMITTER_NAME", raising=False)
+    monkeypatch.delenv("GIT_COMMITTER_EMAIL", raising=False)
+
+
+def test_with_fallback_identity_injects_only_when_missing(fork_setup, tmp_path, monkeypatch):
+    work = fork_setup["work"]
+    # Identity configured (fixture set it) → command is returned unchanged.
+    assert _has_committer_identity(GIT, work) is True
+    assert _with_fallback_identity(GIT, work) == GIT
+
+    _isolate_git_identity(work, tmp_path, monkeypatch)
+
+    # No identity anywhere → fallback -c flags are appended.
+    assert _has_committer_identity(GIT, work) is False
+    augmented = _with_fallback_identity(GIT, work)
+    assert augmented[:1] == ["git"]
+    assert "user.name=Hermes Update" in augmented
+    assert any(a.startswith("user.email=") for a in augmented)
+
+
+def test_consolidation_succeeds_without_git_identity(fork_setup, tmp_path, monkeypatch):
+    """Reproduces the Termux 'Committer identity unknown' failure: the merge
+    commit must still succeed via the injected fallback identity."""
+    work = fork_setup["work"]
+    _make_feature_branch(work, "feature.txt", "feature\n")
+    _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
+
+    _isolate_git_identity(work, tmp_path, monkeypatch)
+
+    result = consolidate_into_main(
+        GIT,
+        work,
+        current_branch="feature",
+        push=False,
+        is_model_configured=lambda: False,
+    )
+
+    assert result.status == STATUS_MERGED
+    assert _file_on_main(work, "feature.txt") == "feature\n"
+    assert _file_on_main(work, "upstream.txt") == "upstream\n"
 
 
 def test_conflict_without_model_safe_stops(fork_setup):
