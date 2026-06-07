@@ -91,8 +91,11 @@ _CODE_LANGS = (
 )
 
 # File-path / extension signals (e.g. ``run_agent.py``, ``src/app.tsx``).
+# The stem class excludes the ``.``/``/`` separators that the optional middle
+# groups consume, so no two quantifiers can match the same character — this
+# keeps matching linear (no polynomial backtracking / ReDoS) on user input.
 _FILE_PATH = re.compile(
-    r"[\w./~-]+\.(py|js|ts|tsx|jsx|rs|go|java|kt|swift|cpp|cc|h|hpp|cs|rb|"
+    r"\b[\w~-]+(?:[./][\w~-]+)*\.(py|js|ts|tsx|jsx|rs|go|java|kt|swift|cpp|cc|h|hpp|cs|rb|"
     r"php|sh|bash|sql|yaml|yml|toml|json|md|html|css|scss)\b",
     re.IGNORECASE,
 )
