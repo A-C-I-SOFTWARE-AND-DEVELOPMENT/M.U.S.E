@@ -48,6 +48,38 @@ def test_local_provider_available_only_with_installed_model():
     assert have["custom"].available_now is True
 
 
+def test_provider_statuses_sorted_available_first():
+    """The cockpit/CLI render the first usable provider first, so the resolver
+    must sort available-now ahead of unavailable (then cloud before local,
+    then by name). Only novita has a credential here; nothing else is usable."""
+    statuses = ma.provider_statuses(
+        _SPECS, env={"NOVITA_API_KEY": "k"}, installed_local_models=[]
+    )
+    assert [s.name for s in statuses] == ["novita", "anthropic", "custom"]
+    assert statuses[0].available_now is True
+    assert all(not s.available_now for s in statuses[1:])
+
+
+def test_report_available_returns_only_usable_providers():
+    """``AvailabilityReport.available()`` filters to providers usable right now:
+    a cloud provider with a credential and a local provider with an installed
+    model qualify; a cloud provider without a credential does not."""
+    report = ma.AvailabilityReport(
+        providers=ma.provider_statuses(
+            _SPECS,
+            env={"ANTHROPIC_API_KEY": "k"},
+            installed_local_models=["gemma4:e4b"],
+        ),
+        installed_local_models=["gemma4:e4b"],
+        recommended_local_models=[],
+        recommended_missing=[],
+    )
+    usable = {p.name for p in report.available()}
+    assert usable == {"anthropic", "custom"}  # cloud w/ key + local w/ model
+    assert "novita" not in usable  # no credential → not usable
+    assert report.to_dict()["available_count"] == 2
+
+
 def test_recommended_but_missing_normalizes_tags():
     # policy "gemma4-e4b" matches installed "gemma4:e4b"; llama3.2 is missing.
     assert ma.recommended_but_missing(["gemma4-e4b", "llama3.2"], ["gemma4:e4b"]) == ["llama3.2"]
