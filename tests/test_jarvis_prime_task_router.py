@@ -210,3 +210,74 @@ def test_paid_toggle_requires_authorization(tmp_path):
         pass
     set_paid_enabled(True, authorized=True, path=path)
     assert load_overrides(path)["paid_enabled"] is True
+
+
+# ---------------------------------------------------------------------------
+# Hosted-tier task-class routing (default ON; OSS-catalog-ordered; reversible)
+# ---------------------------------------------------------------------------
+
+
+def test_hosted_taskclass_expands_for_coding(tmp_path):
+    """coding_build hosted candidates expand to coding families (GLM leads agentic)."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.route_tier == "hosted_free_or_user_configured_oss"
+    assert d.chosen.startswith("openrouter/")
+    assert "glm-5" in d.chosen  # agentic_coding lane leads with GLM
+
+
+def test_hosted_taskclass_research_leads_reasoning(tmp_path):
+    """research hosted candidates lead with a reasoning family, not a coder."""
+    d = route_for_task(
+        TaskClass.RESEARCH,
+        policy=_policy(local=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen.startswith("openrouter/")
+    assert "deepseek-r1" in d.chosen
+
+
+def test_hosted_disable_flag_restores_bare_provider(tmp_path, monkeypatch):
+    """The owner escape hatch restores the legacy bare-provider-id candidate."""
+    monkeypatch.setenv("HERMES_JARVIS_HOSTED_TASKCLASS", "off")
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "openrouter"
+
+
+def test_hosted_expansion_falls_back_when_catalog_unavailable(tmp_path, monkeypatch):
+    """If the OSS catalog can't load, hosted stays the bare provider id."""
+    import hermes_cli.oss_model_brain as ob
+
+    def _boom(*a, **k):
+        raise RuntimeError("no catalog / no PyYAML")
+
+    monkeypatch.setattr(ob, "load_oss_catalog", _boom)
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "openrouter"
+
+
+def test_owner_override_wins_over_hosted_expansion(tmp_path):
+    """An owner pin beats the (default-on) hosted task-class expansion."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {"coding_build": "pinned"}},
+    )
+    assert d.chosen == "pinned"
+    assert d.route_tier == "owner_override"

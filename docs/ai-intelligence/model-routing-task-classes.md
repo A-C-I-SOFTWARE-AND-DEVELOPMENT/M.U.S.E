@@ -5,6 +5,11 @@ vibes — and it can explain the choice, on the phone or the CLI. This page
 documents the task classes, the scorecard dimensions, the routing policy, and
 the mobile surface.
 
+> **The symbiotic per-lane portfolio** (which open family owns which lane, the
+> hosted-tier task-class expansion + its rollback switch, the catalog sync
+> points, and the `context` handoff) is documented in
+> [`task-class-model-routing.md`](./task-class-model-routing.md).
+
 > **Gemma 4** leads the local lanes (`memory_curator`, `mobile_chat`,
 > `voice_reply`, `summarization`, `multimodal_doc`, `local_reasoning`) and is a
 > scorecard-gated fallback on coding/review/research. See

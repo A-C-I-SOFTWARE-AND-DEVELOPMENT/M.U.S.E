@@ -152,7 +152,13 @@ def test_e4b_load_failure_demotes_coding_to_e2b(tmp_path, monkeypatch) -> None:
 
 
 def test_research_routes_off_local_when_cloud_available() -> None:
-    """Large research prefers a hosted/cloud route, not the small local Gemma."""
+    """Large research prefers a hosted/cloud route, not the small local Gemma.
+
+    With hosted task-class routing ON (the default), the bare ``openrouter``
+    provider is expanded into the ``deep_research`` lane's reasoning families
+    (DeepSeek-R1 leads), not a coder — while local Gemma stays a last-ditch
+    fallback.
+    """
     pol = _policy_with_both_gemma_variants()
     pol["routes"]["hosted_free_or_user_configured_oss"] = {
         "enabled": True,
@@ -162,10 +168,27 @@ def test_research_routes_off_local_when_cloud_available() -> None:
         tr.TaskClass.RESEARCH, policy=pol, book=None, overrides=_NO_OVERRIDES
     )
     assert d.local_first is False
-    assert d.chosen == "openrouter"
     assert d.route_tier == "hosted_free_or_user_configured_oss"
+    assert d.chosen.startswith("openrouter/")
+    assert "deepseek-r1" in d.chosen  # reasoning lane leads, not a coder
     # Local Gemma stays only as a last-ditch fallback.
     assert d.fallback_chain[-1] in {"gemma4-e2b", "gemma4-e4b"}
+
+
+def test_research_hosted_legacy_bare_provider_when_disabled(monkeypatch) -> None:
+    """The owner escape hatch (HERMES_JARVIS_HOSTED_TASKCLASS=0) restores the
+    legacy bare-provider-id hosted candidate, byte-for-byte."""
+    monkeypatch.setenv("HERMES_JARVIS_HOSTED_TASKCLASS", "0")
+    pol = _policy_with_both_gemma_variants()
+    pol["routes"]["hosted_free_or_user_configured_oss"] = {
+        "enabled": True,
+        "providers": ["openrouter"],
+    }
+    d = tr.route_for_task(
+        tr.TaskClass.RESEARCH, policy=pol, book=None, overrides=_NO_OVERRIDES
+    )
+    assert d.chosen == "openrouter"
+    assert d.route_tier == "hosted_free_or_user_configured_oss"
 
 
 def test_big_gemma_never_auto_defaults() -> None:

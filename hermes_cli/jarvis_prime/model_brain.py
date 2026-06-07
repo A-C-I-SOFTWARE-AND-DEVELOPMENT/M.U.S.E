@@ -37,7 +37,11 @@ KNOWN_TASKS = (
     "voice_reply",
     "summarization",
     "multimodal_doc",
+    "multimodal",
+    "embeddings",
+    "rerank",
     "coding_review",
+    "citation_verification",
     "deep_research",
 )
 
