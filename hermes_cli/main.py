@@ -7902,16 +7902,35 @@ def _install_psutil_android_compat(
 
 
 def _ensure_uv_for_termux(pip_cmd: list[str]) -> str | None:
-    """Best-effort uv bootstrap on Termux for faster update installs."""
+    """Best-effort uv bootstrap on Termux for faster update installs.
+
+    NEVER compiles uv from source. ``uv`` is a Rust tool and PyPI has no wheel
+    compatible with Termux/Android (aarch64 + bionic libc), so a plain
+    ``pip install uv`` falls back to building the sdist — a 30+ minute Rust
+    build that hangs / OOMs on a phone (the "Building wheel for uv ..." freeze).
+    We force ``--only-binary=:all:`` so pip fails fast when no wheel exists, add
+    a timeout as a safety net, and otherwise fall back to pip (the caller's
+    ``uv_bin is None`` path already handles the Termux dependency install).
+    """
     uv_bin = shutil.which("uv")
     if uv_bin or not _is_termux_env():
         return uv_bin
+    if os.getenv("HERMES_SKIP_UV", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return None
     try:
-        print("  → Termux detected: trying to install uv for faster dependency updates...")
-        subprocess.run(pip_cmd + ["install", "uv"], cwd=PROJECT_ROOT, check=False)
+        print("  → Termux detected: trying a prebuilt uv (no source build)...")
+        subprocess.run(
+            pip_cmd + ["install", "--only-binary=:all:", "uv"],
+            cwd=PROJECT_ROOT,
+            check=False,
+            timeout=180,
+        )
     except Exception:
         pass
-    return shutil.which("uv")
+    uv_bin = shutil.which("uv")
+    if not uv_bin:
+        print("  → No prebuilt uv available; using pip. Tip: `pkg install uv` for faster Termux updates.")
+    return uv_bin
 
 
 def _update_node_dependencies() -> None:
