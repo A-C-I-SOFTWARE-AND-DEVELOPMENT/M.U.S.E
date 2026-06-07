@@ -1241,8 +1241,11 @@ Pulls the latest `hermes-agent` code and reinstalls dependencies in your venv, t
 | `--check` | Print the current commit and the latest `origin/main` commit side by side, and exit 0 if in sync or 1 if behind. Does not pull, install, or restart anything. |
 | `--backup` | Create a labeled pre-update snapshot of `HERMES_HOME` (config, auth, sessions, skills, pairing data) before pulling. Default is **off** — the previous always-backup behavior was adding minutes to every update on large homes. Flip it on permanently via `update.backup: true` in `config.yaml`. |
 | `--restart-gateway` | After a successful update, restart the running gateway service. Implies `--all` semantics if multiple profiles are installed. |
+| `--no-consolidate` | **Forks only.** Skip merging `upstream/main` + your current branch into `main`; just fast-forward `main` from your fork's `origin`. Use this when your fork has diverged from upstream and `hermes update` stops with merge conflicts ("no model is configured for auto-resolution"). Make it the default permanently with `update.consolidate: false` in `config.yaml` (or `HERMES_NO_CONSOLIDATE=1`). |
 
 Additional behavior:
+
+- **Fork consolidation.** When `origin` is a fork, `hermes update` defaults to bringing `upstream/main` and your working branch together into `main` (with optional model-assisted conflict resolution). A heavily-diverged fork can hit unresolvable conflicts and safe-stop without touching `main`; in that case re-run with `--no-consolidate` (or set `update.consolidate: false`) to update only from your fork's `origin/main`.
 
 - **Pairing data snapshot.** Even when `--backup` is off, `hermes update` takes a lightweight snapshot of `~/.hermes/pairing/` and the Feishu comment rules before `git pull`. You can roll it back with `hermes backup restore --state pre-update` if a pull rewrites a file you were editing.
 - **Legacy `hermes.service` warning.** If Hermes detects a pre-rename `hermes.service` systemd unit (instead of the current `hermes-gateway.service`), it prints a one-time migration hint so you can avoid flap-loop issues.
