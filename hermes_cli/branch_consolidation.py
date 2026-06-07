@@ -501,6 +501,13 @@ def _safe_stop(
     _delete_integration_branch(git_cmd, repo, current_branch)
     lines.append("")
     lines.append("Stopped before touching main — resolve the above and re-run update.")
+    # The most common escape for a diverged fork: skip the upstream merge and
+    # just fast-forward from the fork's own origin/main.
+    lines.append(
+        "Or run `hermes update --no-consolidate` to update only from your fork "
+        "(skip the upstream merge). Set `update.consolidate: false` in "
+        "~/.hermes/config.yaml (or HERMES_NO_CONSOLIDATE=1) to make that the default."
+    )
     return ConsolidationResult(
         status=STATUS_SAFE_STOP,
         summary="\n".join(lines),

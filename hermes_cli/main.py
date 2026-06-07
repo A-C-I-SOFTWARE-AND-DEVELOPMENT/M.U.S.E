@@ -8446,6 +8446,34 @@ def _cmd_update_pip(args):
     print("✓ Update complete! Restart hermes to use the new version.")
 
 
+def _consolidation_enabled(args) -> bool:
+    """Whether `hermes update` should consolidate upstream/main into a fork's main.
+
+    Precedence (first decisive wins):
+      1. CLI ``--no-consolidate`` flag → disabled.
+      2. env ``HERMES_NO_CONSOLIDATE`` truthy → disabled.
+      3. config ``update.consolidate: false`` in ~/.hermes/config.yaml → disabled.
+      4. default → enabled (preserves existing fork behavior).
+
+    Lets a heavily-diverged fork opt out of the upstream merge permanently
+    instead of typing ``--no-consolidate`` on every update.
+    """
+    if getattr(args, "no_consolidate", False):
+        return False
+    env = os.getenv("HERMES_NO_CONSOLIDATE", "").strip().lower()
+    if env in {"1", "true", "yes", "on"}:
+        return False
+    try:
+        from hermes_cli.config import load_config
+
+        update_cfg = (load_config() or {}).get("update")
+        if isinstance(update_cfg, dict) and update_cfg.get("consolidate") is False:
+            return False
+    except Exception:
+        pass
+    return True
+
+
 def _cmd_update_impl(args, gateway_mode: bool):
     """Body of ``cmd_update`` — kept separate so the wrapper can always
     restore stdio even on ``sys.exit``."""
@@ -8573,9 +8601,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # (upstream/main) and the current working branch together into the
         # fork's main, with reviewed, model-assisted conflict resolution.
         # See hermes_cli/branch_consolidation.py. Non-fork installs and
-        # `hermes update --no-consolidate` skip this and use the legacy path.
+        # `hermes update --no-consolidate` (or update.consolidate: false /
+        # HERMES_NO_CONSOLIDATE=1) skip this and use the legacy path.
         consolidation_done = False
-        if is_fork and not getattr(args, "no_consolidate", False):
+        if is_fork and _consolidation_enabled(args):
             from hermes_cli.branch_consolidation import (
                 consolidate_into_main,
                 STATUS_MERGED,

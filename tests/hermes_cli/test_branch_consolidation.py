@@ -236,6 +236,27 @@ def test_consolidation_succeeds_without_git_identity(fork_setup, tmp_path, monke
     assert _file_on_main(work, "upstream.txt") == "upstream\n"
 
 
+def test_safe_stop_message_points_to_no_consolidate(fork_setup):
+    """A conflict safe-stop must tell the user about the --no-consolidate escape
+    (the most common fix for a diverged fork), not just 'set a model'."""
+    work = fork_setup["work"]
+    # Feature and upstream both edit base.txt → conflict; no model configured.
+    _make_feature_branch(work, "base.txt", "feature edit\n")
+    _add_upstream_commit(fork_setup["upstream"], work, "base.txt", "upstream edit\n")
+
+    result = consolidate_into_main(
+        GIT,
+        work,
+        current_branch="feature",
+        is_model_configured=lambda: False,
+    )
+
+    assert result.status == STATUS_SAFE_STOP
+    assert "--no-consolidate" in result.summary
+    # main untouched on a safe-stop
+    assert _current_branch(work) == "feature"
+
+
 def test_conflict_without_model_safe_stops(fork_setup):
     work = fork_setup["work"]
     # Feature and upstream both edit base.txt → conflict.
