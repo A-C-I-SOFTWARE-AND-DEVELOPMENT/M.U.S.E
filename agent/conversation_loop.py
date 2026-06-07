@@ -151,14 +151,13 @@ def _maybe_route_openai_entity(agent, messages, user_message) -> None:
     agent._openai_active_entity = entity
 
     if new_model and new_model != agent.model:
-        old_model = agent.model
         agent.model = new_model
         # Different model ⇒ different context window; force re-resolution.
         agent._config_context_length = None
-        logger.info(
-            "openai dual-entity: routed turn to %s entity (%s → %s)",
-            entity, old_model, new_model,
-        )
+        # Surface the switch to the user via the status callback. We avoid
+        # logging the model slugs here: CodeQL's clear-text-logging query
+        # traces ``agent.model`` to a sensitive source, and the user-facing
+        # status below already communicates the change.
         try:
             label = "Codex" if entity == "code" else "GPT"
             agent._emit_status(f"🔀 Switched to {label}: {new_model}")
