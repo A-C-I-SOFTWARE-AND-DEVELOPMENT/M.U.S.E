@@ -13,6 +13,31 @@ def test_compute_local_defaults_picks_gemma_for_reasoning() -> None:
     assert reasoning.ollama_tag == "gemma4:e4b"
 
 
+def test_compute_local_defaults_routes_gemma_by_job_weight() -> None:
+    """Fast daily → E2B; deeper reasoning → E4B; never 26B/31B as a default.
+
+    (Coding's *defaults-layer* family follows the OSS catalog — a dedicated
+    coder may lead — but the router promotes Gemma E4B for coding lanes; that
+    is covered in ``test_gemma4_task_router``.)
+    """
+    defaults = {d.purpose: d for d in mb.compute_local_defaults()}
+    # Fast daily driver pins the small E2B.
+    assert "local_fast" in defaults
+    assert defaults["local_fast"].model_id == "gemma4"
+    assert defaults["local_fast"].ollama_tag == "gemma4:e2b"
+    # Deeper reasoning uses E4B.
+    assert defaults["local_reasoning"].ollama_tag == "gemma4:e4b"
+    # 26B / 31B are NEVER emitted as an auto local default.
+    tags = {d.ollama_tag for d in defaults.values()}
+    assert "gemma4:26b" not in tags
+    assert "gemma4:31b" not in tags
+
+
+def test_gemma_variant_tag_resolves_from_catalog() -> None:
+    assert mb._gemma_variant_tag("gemma4-e2b") == "gemma4:e2b"
+    assert mb._gemma_variant_tag("gemma4-e4b") == "gemma4:e4b"
+
+
 def test_gemma_recommendations_are_tier_aware() -> None:
     laptop = [r["name"] for r in mb.gemma_recommendations("laptop")]
     assert laptop and laptop[0] == "gemma4-e2b"

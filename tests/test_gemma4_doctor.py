@@ -50,7 +50,10 @@ def test_smoke_requires_variant_and_is_opt_in() -> None:
     assert rc == 2
 
 
-def test_smoke_uses_injected_runner() -> None:
+def test_smoke_uses_injected_runner_and_records_load_status(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+    from hermes_cli.jarvis_prime import gemma_load_status as gls
+
     args = argparse.Namespace(
         gemma_command="smoke", variant="gemma4-e4b", json=True,
         _smoke_runner=lambda tag: (True, f"ok {tag}"),
@@ -62,6 +65,15 @@ def test_smoke_uses_injected_runner() -> None:
     payload = json.loads(buf.getvalue())
     assert payload["status"] == "smoke_tested"
     assert payload["tag"] == "gemma4:e4b"
+    # The smoke result is persisted so the router's load-gate can read it.
+    assert gls.variant_status("gemma4-e4b") == gls.STATUS_OK
+
+    # A failing smoke records a failure (arms the E4B→E2B downgrade).
+    args.json = True
+    args._smoke_runner = lambda tag: (False, "OOM")
+    with contextlib.redirect_stdout(io.StringIO()):
+        gemma_cli.dispatch(args)
+    assert gls.variant_failed("gemma4-e4b") is True
 
 
 def test_status_json_lists_configured_and_candidates() -> None:

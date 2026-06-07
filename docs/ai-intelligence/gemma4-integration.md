@@ -27,10 +27,38 @@ Variants (configured in `config/model-catalog.yaml` and the OSS brain):
 
 | Variant | Ollama tag | Tiers | Role |
 |---|---|---|---|
-| `gemma4-e2b` | `gemma4:e2b` | laptop→server | mobile / voice / memory |
-| `gemma4-e4b` | `gemma4:e4b` | laptop→server | local reasoning / memory (default) |
-| `gemma4-26b-a4b` | `gemma4:26b` | workstation/server | reasoning / review fallback |
-| `gemma4-31b` | `gemma4:31b` | workstation/server | deep reasoning / review fallback |
+| `gemma4-e2b` | `gemma4:e2b` | laptop→server | **fast-daily default** — mobile / voice / summarize / memory |
+| `gemma4-e4b` | `gemma4:e4b` | laptop→server | **reasoning / coding default** — *load-gated, falls back to E2B* |
+| `gemma4-26b-a4b` | `gemma4:26b` | workstation/server | reasoning / review fallback — **never an auto local default** |
+| `gemma4-31b` | `gemma4:31b` | workstation/server | deep reasoning / review fallback — **never an auto local default** |
+
+### Local routing by job weight
+
+Local Gemma lanes are routed by job weight, not one blanket default
+(`hermes_cli/jarvis_prime/task_router.py`, `model_bootstrap.compute_local_defaults`):
+
+- **Fast daily** (`mobile_chat`, `voice_reply`, `summarization`, `memory_curator`)
+  → **E2B** — low latency, low footprint (`TaskProfile.local_purpose="local_fast"`).
+- **Coding / planning / deeper reasoning** (`coding_*`, `test_debug`) → **E4B**,
+  **only if it loads cleanly**. The opt-in smoke check
+  (`hermes models gemma smoke --variant gemma4-e4b`) persists the result to
+  `gemma_load_status.json`; if E4B is on record as *failed* (e.g. OOM on an 8 GB
+  box) the router automatically demotes those lanes to **E2B**. A fresh/unprobed
+  install still prefers E4B — only a *demonstrated* failure downgrades it.
+- **Large autonomous research** (`research`, `citation_verification`) routes
+  **off-local** — to a hosted/worker/paid endpoint first (the small Gemma
+  variants are too small, and 26B/31B don't fit an 8 GB box); `local_oss` is only
+  a last-ditch fallback (`local_first=False`).
+- **26B / 31B are never an auto local default** — they are sunk to the tail of
+  the local candidate list and reached only through a measured, scorecard-gated
+  promotion.
+
+The Gemma preference is a *prior*: measured scorecards still move any lane
+(`model_scorecard.promotion_eligible`), so a better-measured local coder can
+overtake E4B for coding through an owner-visible promotion.
+
+> One-shot setup for a local-only 8 GB box: `scripts/setup-local-gemma-8gb.sh`
+> (pulls E2B+E4B, runs bootstrap + the E4B smoke gate, pins the lanes).
 
 > **12B** is represented as a **model-card variant only** in the OSS model brain
 > (`docs/ai-intelligence/oss-model-catalog.yaml`). It has no confirmed Ollama tag,

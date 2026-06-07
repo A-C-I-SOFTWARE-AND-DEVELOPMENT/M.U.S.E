@@ -190,19 +190,57 @@ def _ollama_tag_for(model: Any) -> Optional[str]:
 
 _EMBEDDING_TAG = "nomic-embed-text"  # tiny, ubiquitous; no catalog tier for embeddings
 
+# When Gemma 4 is the local default family, route local lanes by *job weight*:
+# the fast daily driver uses the small E2B; deeper reasoning / coding use E4B
+# (the router additionally falls E4B back to E2B if E4B fails to load cleanly —
+# see ``gemma_load_status``). 26B/31B are intentionally **never** an auto local
+# default here — they only fit workstation/server hardware and are reached as a
+# scorecard-gated fallback, never the out-of-the-box pick.
+_GEMMA_PURPOSE_VARIANT: dict[str, str] = {
+    "local_fast": "gemma4-e2b",
+    "local_reasoning": "gemma4-e4b",
+    "local_coding": "gemma4-e4b",
+}
+_GEMMA_FAMILY_ID = "gemma4"
+
+
+def _gemma_variant_tag(variant_name: str, *, catalog: Any = None) -> str:
+    """Resolve a Gemma variant name (``gemma4-e2b``) to its Ollama tag.
+
+    Reads the open-weight catalog (``source: ollama:gemma4:e2b``) so the tag
+    stays a data edit; degrades to the deterministic ``gemma4-e2b`` →
+    ``gemma4:e2b`` mapping (mirrors ``gemma_cli``) on a stripped install.
+    """
+    try:
+        if catalog is None:
+            from hermes_cli.local_models.catalog import load_open_weight_catalog
+
+            catalog = load_open_weight_catalog()
+        model = catalog.get(variant_name)
+        if model is not None and model.source.startswith("ollama:"):
+            return model.source.split("ollama:", 1)[1]
+    except Exception:  # pragma: no cover - defensive (stripped install)
+        pass
+    return variant_name.replace("gemma4-", "gemma4:").replace("-a4b", "")
+
 
 def compute_local_defaults() -> list[LocalDefault]:
-    """Preferred local model *families* for reasoning/coding/embeddings.
+    """Preferred local model *families* for fast/reasoning/coding/embeddings.
 
     These are the route-layer preferences (from the OSS model brain — the
     cross-referenced catalog). The concrete, hardware-fit *download* plan
     comes from the local model layer (see :func:`build_local_plan`); the
     two are folded together in the written policy.
+
+    When the recommended local family is **Gemma 4**, the per-purpose entries
+    are pinned to the policy variants (fast→E2B, reasoning/coding→E4B) via
+    :data:`_GEMMA_PURPOSE_VARIANT`; 26B/31B are never emitted as a default.
     """
     from hermes_cli import oss_model_brain as ob
 
     catalog = ob.load_oss_catalog()
     defaults: list[LocalDefault] = []
+    family_by_purpose: dict[str, str] = {}
 
     for purpose in ("local_reasoning", "local_coding"):
         best = None
@@ -215,6 +253,10 @@ def compute_local_defaults() -> list[LocalDefault]:
                 best = (model, None)
         if best is not None:
             model, tag = best
+            family_by_purpose[purpose] = model.id
+            # Pin the variant by job weight when Gemma is the local family.
+            if model.id == _GEMMA_FAMILY_ID and purpose in _GEMMA_PURPOSE_VARIANT:
+                tag = _gemma_variant_tag(_GEMMA_PURPOSE_VARIANT[purpose])
             defaults.append(
                 LocalDefault(
                     purpose=purpose,
@@ -223,6 +265,20 @@ def compute_local_defaults() -> list[LocalDefault]:
                     why=model.why,
                 )
             )
+
+    # Fast daily lane: only meaningful when Gemma leads local reasoning. Pin the
+    # small E2B so quick chat/voice/memory stay snappy and never auto-load E4B.
+    if family_by_purpose.get("local_reasoning") == _GEMMA_FAMILY_ID:
+        defaults.insert(
+            0,
+            LocalDefault(
+                purpose="local_fast",
+                model_id=_GEMMA_FAMILY_ID,
+                ollama_tag=_gemma_variant_tag(_GEMMA_PURPOSE_VARIANT["local_fast"]),
+                why="Fast daily driver: small Gemma (E2B) for mobile chat, voice, "
+                "summarization and memory curation — low latency, low footprint.",
+            ),
+        )
 
     defaults.append(
         LocalDefault(

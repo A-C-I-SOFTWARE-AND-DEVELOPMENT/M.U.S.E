@@ -54,12 +54,14 @@ def _cmd_status(args: argparse.Namespace) -> int:
     ]
     installed = _detect_installed(getattr(args, "_ollama_runner", None))
     promoted = _promoted_lanes()
+    load_status = _load_status_map()
 
     payload = {
         "configured": configured,
         "open_weight_candidates": candidates,
         "installed": installed,  # None ⇒ not probed (opt-in)
         "smoke_tested": "opt-in (run `hermes models gemma smoke --variant <v>`)",
+        "load_status": load_status,  # persisted smoke results, by variant
         "promoted_lanes": promoted,
     }
     if getattr(args, "json", False):
@@ -72,9 +74,26 @@ def _cmd_status(args: argparse.Namespace) -> int:
         print("  installed  : not probed (installed/smoke checks are opt-in)")
     else:
         print(f"  installed  : {', '.join(installed) or '(none found)'}")
-    print("  smoke      : opt-in — `hermes models gemma smoke --variant <variant>`")
+    if load_status:
+        summary = ", ".join(
+            f"{v}={(e.get('status') if isinstance(e, dict) else e)}"
+            for v, e in sorted(load_status.items())
+        )
+        print(f"  smoke      : {summary}")
+    else:
+        print("  smoke      : opt-in — `hermes models gemma smoke --variant <variant>`")
     print(f"  promoted   : {', '.join(promoted) or '(none — scorecards govern)'}")
     return 0
+
+
+def _load_status_map() -> dict[str, Any]:
+    """Persisted Gemma load (smoke) results, by variant. ``{}`` when none."""
+    try:
+        from hermes_cli.jarvis_prime import gemma_load_status as gls
+
+        return gls.load_status()
+    except Exception:
+        return {}
 
 
 def _detect_installed(runner: Optional[Callable[[], str]]) -> Optional[list[str]]:
@@ -139,6 +158,15 @@ def _cmd_smoke(args: argparse.Namespace) -> int:
         ok, detail = runner(tag)
     except Exception as exc:  # pragma: no cover - defensive
         ok, detail = False, f"smoke runner error: {exc}"
+    # Persist the load result so the router's load-gate can prefer (or demote)
+    # E4B for coding/reasoning lanes. Best-effort: never fail the smoke command
+    # because the status file couldn't be written.
+    try:
+        from hermes_cli.jarvis_prime import gemma_load_status as gls
+
+        gls.record_status(variant, ok, detail)
+    except Exception:  # pragma: no cover - defensive
+        pass
     status = "smoke_tested" if ok else "wired_not_confirmed"
     payload = {"variant": variant, "tag": tag, "status": status, "detail": detail}
     if getattr(args, "json", False):
