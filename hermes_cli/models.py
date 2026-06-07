@@ -3189,6 +3189,19 @@ def fetch_api_models(
 _OLLAMA_CLOUD_CACHE_TTL = 3600  # 1 hour
 
 
+# Curated Ollama Cloud models surfaced even when the live ``/v1/models`` probe
+# and the models.dev registry are both unavailable (no OLLAMA_API_KEY on a
+# fresh install, offline first run, transient API failure). Keeps headline
+# open models — notably Gemma 4 — selectable in ``hermes model`` out of the box.
+_OLLAMA_CLOUD_CURATED: list[str] = [
+    "gemma4:31b",
+    "gemma4",
+    "qwen3-coder:480b",
+    "gpt-oss:120b",
+    "deepseek-v3.1:671b",
+]
+
+
 def _strip_ollama_cloud_suffix(model_id: str) -> str:
     """Strip :cloud / -cloud suffixes that models.dev appends to Ollama Cloud IDs.
 
@@ -3310,7 +3323,10 @@ def fetch_ollama_cloud_models(
     if stale is not None:
         return stale["models"]
 
-    return []
+    # No discovery and no cache (fresh install, no OLLAMA_API_KEY, offline) —
+    # fall back to the curated headline list so the picker isn't empty and
+    # Gemma 4 stays selectable out of the box.
+    return list(_OLLAMA_CLOUD_CURATED)
 
 
 def validate_requested_model(
