@@ -429,6 +429,160 @@ def auth_add_command(args) -> None:
     raise SystemExit(f"`hermes auth add {provider}` is not implemented for auth type {requested_type} yet.")
 
 
+# Providers the unified headless login walks through, in order. Each rides a
+# URL-paste / device-code ("backdoor URL") flow that works on browser-less
+# remotes (phone/Termux, SSH jump-box, Cloud Shell).
+_HEADLESS_LOGIN_PROVIDERS = ("openai-codex", "anthropic")
+
+
+def _configure_openai_dual_entity_defaults() -> None:
+    """After a Codex login, make GPT-5.5 the chat entity and wire auto-switch.
+
+    Codex and GPT share the one ChatGPT OAuth login; this sets the persisted
+    config so the user *talks to* GPT-5.5 by default and Hermes auto-switches
+    to a Codex model on coding turns (see agent/openai_entity_router.py).
+    """
+    from hermes_cli.config import load_config, save_config
+
+    try:
+        from agent.openai_entity_router import resolve_entity_models
+
+        available = []
+        try:
+            from hermes_cli.codex_models import get_codex_model_ids
+
+            available = get_codex_model_ids()
+        except Exception:
+            available = []
+        chat_model, codex_model = resolve_entity_models(
+            default_model="gpt-5.5",
+            available_models=available,
+        )
+    except Exception:
+        chat_model, codex_model = "gpt-5.5", "gpt-5.3-codex"
+
+    config = load_config()
+    if not isinstance(config.get("model"), dict):
+        config["model"] = {}
+    config["model"]["provider"] = "openai-codex"
+    config["model"]["default"] = chat_model
+    config["model"]["chat_model"] = chat_model
+    config["model"]["codex_model"] = codex_model
+    config["model"].setdefault("openai_dual_entity", True)
+    save_config(config)
+    print(
+        f"  Configured: talk to {chat_model} by default; "
+        f"auto-switch to {codex_model} on coding turns."
+    )
+
+
+def _capture_claude_code_token() -> None:
+    """Prompt for a Claude Code OAuth token and store it in ~/.hermes/.env.
+
+    Claude Code is not a provider Hermes logs into — it mints its own token
+    via ``claude setup-token`` (a URL-paste flow). Hermes simply *reads*
+    CLAUDE_CODE_OAUTH_TOKEN, so we capture it here for completeness.
+    """
+    from hermes_cli.config import save_env_value
+
+    print()
+    print("Claude Code (optional) — Hermes reads a token you mint yourself:")
+    print("  1. Run `claude setup-token` (opens a URL; paste the code back).")
+    print("  2. Paste the resulting token below (or press Enter to skip).")
+    try:
+        token = getpass("Claude Code OAuth token (hidden, Enter to skip): ").strip()
+    except (EOFError, KeyboardInterrupt):
+        token = ""
+    if not token:
+        print("  Skipped Claude Code token.")
+        return
+    try:
+        save_env_value("CLAUDE_CODE_OAUTH_TOKEN", token)
+        print("  Saved CLAUDE_CODE_OAUTH_TOKEN to ~/.hermes/.env")
+    except Exception as exc:
+        print(f"  Could not save token: {exc}")
+
+
+def headless_login_command(args) -> None:
+    """Unified headless login across Codex/GPT and Claude via URL-paste flows.
+
+    Runs each provider's browser-less OAuth in sequence so a phone/Termux or
+    SSH-only user can authenticate everything from one command. Codex login
+    also configures the GPT-5.5 chat entity + Codex auto-switch. A failed or
+    skipped provider does not abort the rest.
+
+    ``--provider <id>`` delegates to ``auth add`` for a single provider.
+    """
+    import argparse
+
+    # Single-provider mode: delegate to the per-provider OAuth path.
+    requested = (getattr(args, "provider", "") or "").strip()
+    if requested:
+        single = argparse.Namespace(
+            provider=requested,
+            auth_type="oauth",
+            manual_paste=bool(getattr(args, "manual_paste", True)),
+            no_browser=bool(getattr(args, "no_browser", True)),
+            label=None,
+            api_key=None,
+            timeout=getattr(args, "timeout", None),
+            insecure=bool(getattr(args, "insecure", False)),
+            ca_bundle=getattr(args, "ca_bundle", None),
+        )
+        auth_add_command(single)
+        if requested == "openai-codex":
+            _configure_openai_dual_entity_defaults()
+        return
+
+    # Unified mode: walk every provider, URL-paste / device-code by default.
+    manual_paste = bool(getattr(args, "manual_paste", True))
+    no_browser = bool(getattr(args, "no_browser", True))
+    succeeded: list[str] = []
+    skipped: list[str] = []
+
+    print("Unified headless login — authorize each in any browser, paste back.")
+    print("(Press Ctrl-C at a prompt to skip that provider.)")
+    for provider in _HEADLESS_LOGIN_PROVIDERS:
+        label = {"openai-codex": "Codex + GPT-5.5", "anthropic": "Claude"}.get(provider, provider)
+        print()
+        print(f"── {label} ({provider}) ──")
+        sub = argparse.Namespace(
+            provider=provider,
+            auth_type="oauth",
+            manual_paste=manual_paste,
+            no_browser=no_browser,
+            label=None,
+            api_key=None,
+            timeout=getattr(args, "timeout", None),
+            insecure=bool(getattr(args, "insecure", False)),
+            ca_bundle=getattr(args, "ca_bundle", None),
+        )
+        try:
+            auth_add_command(sub)
+            succeeded.append(provider)
+            if provider == "openai-codex":
+                _configure_openai_dual_entity_defaults()
+        except (KeyboardInterrupt, EOFError):
+            print(f"  Skipped {provider}.")
+            skipped.append(provider)
+        except SystemExit as exc:
+            print(f"  {provider} login did not complete: {exc}")
+            skipped.append(provider)
+        except Exception as exc:
+            print(f"  {provider} login failed: {exc}")
+            skipped.append(provider)
+
+    _capture_claude_code_token()
+
+    print()
+    print("Done.")
+    if succeeded:
+        print(f"  Logged in: {', '.join(succeeded)}")
+    if skipped:
+        print(f"  Skipped/failed: {', '.join(skipped)}")
+    print("  Switch models any time with `hermes model`.")
+
+
 def auth_list_command(args) -> None:
     provider_filter = _normalize_provider(getattr(args, "provider", "") or "")
     if provider_filter:

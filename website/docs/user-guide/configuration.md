@@ -1038,6 +1038,46 @@ and Codex models after, and fills in `chat_model` / `codex_model` for you.
 The auto-switch only changes the model slug — same credentials, same
 endpoint, no extra login.
 
+**Headless "backdoor URL" login** (`hermes login`):
+
+One command logs you into everything using browser-less URL-paste /
+device-code flows — ideal on a phone/Termux, an SSH jump-box, or Cloud Shell
+where a loopback redirect can't reach you:
+
+```bash
+hermes login                 # unified: Codex + GPT-5.5, then Claude, then Claude Code token
+hermes login --provider anthropic   # just one provider
+hermes login --browser       # opt back into the local browser + loopback flow
+```
+
+It walks:
+
+1. **Codex / GPT-5.5** (`openai-codex`) — device-code: authorize in any
+   browser, paste the code. Also sets `gpt-5.5` as your chat entity with
+   Codex auto-switch (above).
+2. **Claude** (`anthropic`) — opens `console.anthropic.com`; paste the auth
+   code back.
+3. **Claude Code** (optional) — mint a token with `claude setup-token` and
+   paste it; Hermes stores it as `CLAUDE_CODE_OAUTH_TOKEN` in `~/.hermes/.env`.
+
+A skipped or failed provider never aborts the rest. GPT and Codex share the
+one ChatGPT login — there's no separate "GPT" login.
+
+**Gemma 4** (open model, local or Ollama Cloud):
+
+```bash
+# Local (Ollama) — runs on your own machine/phone:
+ollama pull gemma4          # or: gemma4:31b
+hermes model                # pick provider "Ollama (local)", model "gemma4"
+
+# Ollama Cloud (hosted) — set OLLAMA_API_KEY in ~/.hermes/.env, then:
+hermes model                # provider "Ollama Cloud" → "gemma4:31b"
+```
+
+Gemma 4 stays selectable in `hermes model` even before you set an
+`OLLAMA_API_KEY` (it's in the curated Ollama Cloud fallback). For a local
+llama.cpp build instead, see the [local LLM guides](../guides/local-ollama-setup.md).
+
 **Using MiniMax OAuth** (browser login, no API key needed):
 ```yaml
 model:

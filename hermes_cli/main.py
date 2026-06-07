@@ -5766,10 +5766,10 @@ def _model_flow_anthropic(config, current_model=""):
 
 
 def cmd_login(args):
-    """Authenticate Hermes CLI with a provider."""
-    from hermes_cli.auth import login_command
+    """Unified headless login across Codex/GPT and Claude (URL-paste flows)."""
+    from hermes_cli.auth_commands import headless_login_command
 
-    login_command(args)
+    headless_login_command(args)
 
 
 def cmd_logout(args):
@@ -11128,14 +11128,32 @@ def main():
     # =========================================================================
     login_parser = subparsers.add_parser(
         "login",
-        help="Authenticate with an inference provider",
-        description="Run OAuth device authorization flow for Hermes CLI",
+        help="Headless login across Codex/GPT + Claude (URL-paste flows)",
+        description=(
+            "Authenticate Codex/GPT-5.5 and Claude in one pass using "
+            "browser-less URL-paste / device-code flows (phone/Termux, SSH, "
+            "Cloud Shell). Also prompts for an optional Claude Code token. "
+            "Pass --provider to log into just one."
+        ),
     )
     login_parser.add_argument(
         "--provider",
-        choices=["nous", "openai-codex", "xai-oauth"],
+        choices=["nous", "openai-codex", "anthropic", "xai-oauth"],
         default=None,
-        help="Provider to authenticate with (default: nous)",
+        help="Log into just this provider (default: run the unified flow)",
+    )
+    login_parser.add_argument(
+        "--manual-paste",
+        dest="manual_paste",
+        action="store_true",
+        default=True,
+        help="Use URL-paste flows (default). Authorize in any browser, paste back.",
+    )
+    login_parser.add_argument(
+        "--browser",
+        dest="manual_paste",
+        action="store_false",
+        help="Use a local browser + loopback listener instead of URL-paste.",
     )
     login_parser.add_argument(
         "--portal-url", help="Portal base URL (default: production portal)"
