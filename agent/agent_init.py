@@ -1165,6 +1165,44 @@ def init_agent(
                 )
     agent._session_init_model_config["max_tokens"] = agent.max_tokens
 
+    # ── OpenAI GPT/Codex dual-entity routing ──
+    # Under the ChatGPT OAuth (openai-codex) provider, treat plain GPT chat
+    # models and Codex coding models as two separate entities sharing the
+    # same credentials/endpoint. The conversation loop talks to the GPT chat
+    # model by default and auto-switches to the Codex model on coding turns.
+    # Inert for every other provider. Opt out with model.openai_dual_entity:
+    # false.
+    agent._openai_dual_entity = False
+    agent._openai_chat_model = ""
+    agent._openai_codex_model = ""
+    agent._openai_active_entity = None
+    if (agent.provider or "").strip().lower() == "openai-codex" and isinstance(_model_cfg, dict):
+        _dual_raw = _model_cfg.get("openai_dual_entity", True)
+        _dual_enabled = _dual_raw if isinstance(_dual_raw, bool) else str(_dual_raw).strip().lower() in {"1", "true", "yes", "on"}
+        if _dual_enabled:
+            try:
+                from agent.openai_entity_router import resolve_entity_models
+
+                _avail: list = []
+                try:
+                    from hermes_cli.codex_models import get_codex_model_ids
+
+                    _avail = get_codex_model_ids()
+                except Exception:
+                    _avail = []
+                _chat_m, _codex_m = resolve_entity_models(
+                    default_model=agent.model,
+                    chat_model=_model_cfg.get("chat_model"),
+                    codex_model=_model_cfg.get("codex_model"),
+                    available_models=_avail,
+                )
+                agent._openai_dual_entity = True
+                agent._openai_chat_model = _chat_m
+                agent._openai_codex_model = _codex_m
+            except Exception:
+                # Never let entity resolution block agent startup.
+                agent._openai_dual_entity = False
+
     # Read explicit context_length override from model config
     if isinstance(_model_cfg, dict):
         _config_context_length = _model_cfg.get("context_length")
