@@ -89,6 +89,40 @@ def _git(
     )
 
 
+# Used only as a last resort when the environment has no git identity at all
+# (common on a fresh Termux / container install). Injected via ``-c`` so it
+# never overwrites a real configured identity and never persists to git config.
+_FALLBACK_GIT_NAME = "Hermes Update"
+_FALLBACK_GIT_EMAIL = "hermes-agent@users.noreply.github.com"
+
+
+def _has_committer_identity(git_cmd: list[str], repo: Path) -> bool:
+    """True when both user.name and user.email resolve (any scope)."""
+    name = _git(git_cmd, repo, "config", "user.name").stdout.strip()
+    email = _git(git_cmd, repo, "config", "user.email").stdout.strip()
+    return bool(name) and bool(email)
+
+
+def _with_fallback_identity(git_cmd: list[str], repo: Path) -> list[str]:
+    """Augment ``git_cmd`` with a fallback commit identity when none is set.
+
+    The consolidation merges create real commits (merge commits, auto-resolved
+    conflict commits). On a box with no ``user.name`` / ``user.email`` git
+    aborts with "Committer identity unknown", which previously stopped
+    ``hermes update`` dead. We inject a fallback identity via ``-c`` only when
+    the user has none configured, so a real identity is always preferred and
+    nothing is written to their git config.
+    """
+    if _has_committer_identity(git_cmd, repo):
+        return git_cmd
+    return git_cmd + [
+        "-c",
+        f"user.name={_FALLBACK_GIT_NAME}",
+        "-c",
+        f"user.email={_FALLBACK_GIT_EMAIL}",
+    ]
+
+
 def _conflicted_files(git_cmd: list[str], repo: Path) -> list[str]:
     """Return the relative paths of files with unresolved merge conflicts."""
 
@@ -291,6 +325,10 @@ def consolidate_into_main(
             status=STATUS_SKIPPED,
             summary="No 'upstream' remote — falling back to standard update.",
         )
+
+    # Ensure merge/commit operations below have a committer identity even on a
+    # fresh install with no git config (fixes "Committer identity unknown").
+    git_cmd = _with_fallback_identity(git_cmd, repo)
 
     model_ready = bool(is_model_configured())
     active_complete = complete_fn if model_ready else None
