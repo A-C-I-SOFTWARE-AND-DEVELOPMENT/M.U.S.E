@@ -280,6 +280,33 @@ class TestOwnerHighAutonomyCoding:
         )
         assert r.decision is ap.Decision.DENY
 
+    def test_every_always_confirm_action_is_gated_under_high_autonomy(self, tmp_path):
+        """Security invariant: high-autonomy must never auto-approve an action
+        in the always-confirm set. Driven by the live ``_ALWAYS_CONFIRM``
+        frozenset, so a future addition to it — or a weakened gate — is caught
+        automatically rather than silently slipping through.
+        """
+        assert ap._ALWAYS_CONFIRM, "the always-confirm set must not be empty"
+        for action in sorted(ap._ALWAYS_CONFIRM, key=lambda a: a.value):
+            # Inputs satisfy the always-deny preconditions (explicit target,
+            # non-protected branch, allowlisted tunnel) so each action reaches
+            # the confirm branch instead of trivially denying — proving it is
+            # gated, never auto-approved, even inside an approved workspace.
+            r = ap.evaluate(
+                _req(
+                    action,
+                    target="x",
+                    branch="feature",
+                    remote_branch="feature",
+                    details={"allowlisted": True},
+                ),
+                autonomy=self.LEVEL,
+                workspace_root=str(tmp_path),
+            )
+            assert r.decision is not ap.Decision.ALLOW, action
+            assert r.decision is ap.Decision.CONFIRM, action
+            assert r.needs_prompt, action
+
     def test_outbound_message_confirms(self, tmp_path):
         r = ap.evaluate(
             _req(ap.Action.OUTBOUND_MESSAGE, target="x@y.z"),
