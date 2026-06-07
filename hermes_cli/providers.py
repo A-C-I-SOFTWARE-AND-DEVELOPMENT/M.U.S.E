@@ -44,6 +44,18 @@ class HermesOverlay:
 
 
 HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
+    "openai": HermesOverlay(
+        # models.dev lists no api URL for openai; pin the real OpenAI endpoint so
+        # `openai` hits api.openai.com (and the runtime's GPT-5.x Responses-API
+        # special-casing) rather than falling through to an empty base URL.
+        # extra_env_vars duplicates the key models.dev already lists, so the
+        # provider still knows to read OPENAI_API_KEY when the models.dev catalog
+        # is unavailable (offline / air-gapped / fresh CI). When models.dev is
+        # present the merge in get_provider() dedupes it, so this is a no-op there.
+        transport="openai_chat",
+        base_url_override="https://api.openai.com/v1",
+        extra_env_vars=("OPENAI_API_KEY",),
+    ),
     "openrouter": HermesOverlay(
         transport="openai_chat",
         is_aggregator=True,
@@ -238,9 +250,6 @@ class ProviderDef:
 # Uses models.dev IDs where possible.
 
 ALIASES: Dict[str, str] = {
-    # openrouter
-    "openai": "openrouter",     # bare "openai" → route through aggregator
-
     # zai
     "glm": "zai",
     "z-ai": "zai",
@@ -370,6 +379,9 @@ ALIASES: Dict[str, str] = {
 # not in the catalog.
 
 _LABEL_OVERRIDES: Dict[str, str] = {
+    # Pin the display name so it is "OpenAI" even when the models.dev catalog
+    # (which normally supplies the name) is unavailable offline / in CI.
+    "openai": "OpenAI",
     "nous": "Nous Portal",
     "openai-codex": "OpenAI Codex",
     "copilot-acp": "GitHub Copilot ACP",
