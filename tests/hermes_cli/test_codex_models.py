@@ -147,7 +147,9 @@ def test_model_command_uses_runtime_access_token_for_codex_list(monkeypatch):
     _model_flow_openai_codex({}, current_model="openai/gpt-5.4")
 
     assert captured["access_token"] == "codex-access-token"
-    assert captured["model_ids"] == ["gpt-5.2-codex", "gpt-5.2"]
+    # GPT chat and Codex are now separate entities; the picker lists GPT chat
+    # models first (the default you talk to) and Codex models after.
+    assert captured["model_ids"] == ["gpt-5.2", "gpt-5.2-codex"]
     assert captured["current_model"] == "openai/gpt-5.4"
 
 

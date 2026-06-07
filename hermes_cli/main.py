@@ -2944,13 +2944,57 @@ def _model_flow_openai_codex(config, current_model=""):
         except Exception:
             pass
 
-    codex_models = get_codex_model_ids(access_token=_codex_token)
+    all_models = get_codex_model_ids(access_token=_codex_token)
 
-    selected = _prompt_model_selection(codex_models, current_model=current_model)
+    # GPT chat and Codex coding are two separate entities under the same
+    # ChatGPT OAuth credentials. Present the GPT chat models first (the one
+    # you talk to by default); Codex models follow and are auto-switched to
+    # for coding turns.
+    from agent.openai_entity_router import (
+        split_model_ids,
+        resolve_entity_models,
+        is_codex_model,
+    )
+
+    gpt_models, codex_only = split_model_ids(all_models)
+    # Keep any unclassified slugs available so the picker never loses options.
+    ordered = gpt_models + codex_only
+    for m in all_models:
+        if m not in ordered:
+            ordered.append(m)
+
+    print()
+    print("  GPT and Codex are separate entities (same login):")
+    print("    • the GPT chat model is what you talk to by default")
+    print("    • coding turns auto-switch to the Codex model")
+    print()
+
+    selected = _prompt_model_selection(ordered, current_model=current_model)
     if selected:
+        # Persist the chosen default plus the resolved chat/codex pair so the
+        # runtime can auto-switch between the two entities.
+        chat_model, codex_model = resolve_entity_models(
+            default_model=selected,
+            available_models=all_models,
+        )
         _save_model_choice(selected)
+        try:
+            from hermes_cli.config import save_config, load_config
+
+            _cfg = load_config()
+            if not isinstance(_cfg.get("model"), dict):
+                _cfg["model"] = {}
+            _cfg["model"]["chat_model"] = chat_model
+            _cfg["model"]["codex_model"] = codex_model
+            _cfg["model"].setdefault("openai_dual_entity", True)
+            save_config(_cfg)
+        except Exception:
+            pass
         _update_config_for_provider("openai-codex", DEFAULT_CODEX_BASE_URL)
-        print(f"Default model set to: {selected} (via OpenAI Codex)")
+        entity = "Codex" if is_codex_model(selected) else "GPT"
+        print(f"Default model set to: {selected} ({entity} via OpenAI Codex)")
+        print(f"  GPT chat entity:  {chat_model}")
+        print(f"  Codex entity:     {codex_model}  (auto-switched on coding turns)")
     else:
         print("No change.")
 

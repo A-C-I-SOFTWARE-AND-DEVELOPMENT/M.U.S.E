@@ -1017,6 +1017,27 @@ auxiliary:
     # model defaults to gpt-5.3-codex (supports vision)
 ```
 
+**GPT and Codex as separate entities** (ChatGPT OAuth / `openai-codex`):
+
+Under the ChatGPT OAuth provider, plain GPT chat models and Codex coding
+models are treated as two **entities** sharing the same login and endpoint.
+You talk to the GPT chat model by default, and Hermes auto-switches to the
+Codex model on coding/tool turns (then switches back for plain chat).
+
+```yaml
+model:
+  provider: openai-codex
+  default: gpt-5.5            # what you talk to by default (GPT chat entity)
+  chat_model: gpt-5.5        # optional — GPT chat entity (defaults from `default`)
+  codex_model: gpt-5.3-codex # optional — Codex entity, auto-switched for coding
+  openai_dual_entity: true   # set false to disable auto-switching
+```
+
+`hermes model` → **OpenAI Codex** lists GPT chat models first (your default)
+and Codex models after, and fills in `chat_model` / `codex_model` for you.
+The auto-switch only changes the model slug — same credentials, same
+endpoint, no extra login.
+
 **Using MiniMax OAuth** (browser login, no API key needed):
 ```yaml
 model:
