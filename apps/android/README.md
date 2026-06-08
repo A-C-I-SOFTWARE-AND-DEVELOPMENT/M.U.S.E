@@ -1,4 +1,4 @@
-# Hermes Agent — Android (MUSE cockpit)
+# M.U.S.E. — Android cockpit
 
 > **Status:** alpha. The Android app is the **MUSE cockpit**: a
 > networked review-and-control client for a Hermes **cockpit gateway**. When
