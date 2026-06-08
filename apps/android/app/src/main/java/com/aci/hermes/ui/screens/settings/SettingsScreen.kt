@@ -13,14 +13,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -43,6 +40,12 @@ import com.aci.hermes.R
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.PreferredReviewer
 import com.aci.hermes.data.preferences.ThemeMode
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,15 +82,16 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
 
             SettingsSection(stringResource(R.string.settings_section_orchestrator)) {
                 Text(
                     stringResource(R.string.settings_preferred_builder_label),
                     style = MaterialTheme.typography.titleSmall,
+                    color = JarvisSignal,
                 )
                 RadioRow("Codex", state.preferredBuilder == PreferredBuilder.CODEX) {
                     viewModel.setPreferredBuilder(PreferredBuilder.CODEX)
@@ -104,6 +108,7 @@ fun SettingsScreen(
                 Text(
                     stringResource(R.string.settings_preferred_reviewer_label),
                     style = MaterialTheme.typography.titleSmall,
+                    color = JarvisSignal,
                 )
                 RadioRow("Claude Code", state.preferredReviewer == PreferredReviewer.CLAUDE_CODE) {
                     viewModel.setPreferredReviewer(PreferredReviewer.CLAUDE_CODE)
@@ -157,9 +162,12 @@ fun SettingsScreen(
                     title = "Pair a device",
                     subtitle = "Request a code and confirm it to receive a per-device token.",
                 )
-                OutlinedButton(onClick = onOpenPairing, modifier = Modifier.fillMaxWidth()) {
-                    Text("Pair a device")
-                }
+                MuseButton(
+                    onClick = onOpenPairing,
+                    text = "Pair a device",
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             SettingsSection(stringResource(R.string.settings_section_personalization)) {
@@ -167,9 +175,12 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_avatar_title),
                     subtitle = stringResource(R.string.settings_avatar_subtitle),
                 )
-                OutlinedButton(onClick = onOpenAvatarPicker, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.settings_open_avatar_picker))
-                }
+                MuseButton(
+                    onClick = onOpenAvatarPicker,
+                    text = stringResource(R.string.settings_open_avatar_picker),
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             SettingsSection(stringResource(R.string.settings_section_appearance)) {
@@ -193,27 +204,42 @@ fun SettingsScreen(
                     title = stringResource(R.string.diagnostics_build_type),
                     subtitle = BuildConfig.BUILD_TYPE,
                 )
-                OutlinedButton(onClick = onOpenDiagnostics, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.nav_diagnostics))
-                }
-                OutlinedButton(onClick = onOpenKnowledge, modifier = Modifier.fillMaxWidth()) {
-                    Text("Knowledge graph")
-                }
-                OutlinedButton(onClick = onOpenModelRoutes, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.model_route_open))
-                }
-                OutlinedButton(onClick = onOpenModelCenter, modifier = Modifier.fillMaxWidth()) {
-                    Text("Model Center (local / Gemma)")
-                }
-                OutlinedButton(onClick = onOpenReleaseCenter, modifier = Modifier.fillMaxWidth()) {
-                    Text("Release & download")
-                }
-                OutlinedButton(
-                    onClick = { confirmReset = true },
+                MuseButton(
+                    onClick = onOpenDiagnostics,
+                    text = stringResource(R.string.nav_diagnostics),
+                    variant = MuseButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(stringResource(R.string.settings_reset))
-                }
+                )
+                MuseButton(
+                    onClick = onOpenKnowledge,
+                    text = "Knowledge graph",
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseButton(
+                    onClick = onOpenModelRoutes,
+                    text = stringResource(R.string.model_route_open),
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseButton(
+                    onClick = onOpenModelCenter,
+                    text = "Model Center (local / Gemma)",
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseButton(
+                    onClick = onOpenReleaseCenter,
+                    text = "Release & download",
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseButton(
+                    onClick = { confirmReset = true },
+                    text = stringResource(R.string.settings_reset),
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }
@@ -240,9 +266,9 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    MuseCard {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
             HorizontalDivider()
             content()
         }
@@ -251,9 +277,9 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun SettingsRow(title: String, subtitle: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium)
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = JarvisTokens.SpaceXs)) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
     }
 }
 
@@ -274,7 +300,7 @@ private fun RadioRow(label: String, selected: Boolean, onSelect: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null)
-        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Text(label, style = MaterialTheme.typography.bodyLarge, color = JarvisSignal)
     }
 }
 
@@ -286,12 +312,12 @@ private fun SwitchRow(
     onChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = JarvisTokens.SpaceXs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall)
+            Text(title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
         }
         Switch(checked = checked, onCheckedChange = onChange)
     }
