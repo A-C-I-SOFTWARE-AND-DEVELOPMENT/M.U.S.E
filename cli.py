@@ -362,7 +362,9 @@ def load_cli_config() -> Dict[str, Any]:
             "persistent_output": True,
             "persistent_output_max_lines": 200,
 
-            "skin": "default",
+            # M.U.S.E. "Singularity" — white core + thin spectral ring — is the
+            # default skin. The classic gold Hermes look is available as `caduceus`.
+            "skin": "singularity",
         },
         "clarify": {
             "timeout": 120,  # Seconds to wait for a clarify answer before auto-proceeding
@@ -5619,10 +5621,10 @@ class HermesCLI:
 
         try:
             from hermes_cli.skin_engine import get_active_help_header
-            header = get_active_help_header("(^_^)? Available Commands")
+            header = get_active_help_header("✦ M.U.S.E. Commands")
         except Exception:
-            header = "(^_^)? Available Commands"
-        header = (header or "").strip() or "(^_^)? Available Commands"
+            header = "✦ M.U.S.E. Commands"
+        header = (header or "").strip() or "✦ M.U.S.E. Commands"
         inner_width = 55
         if len(header) > inner_width:
             header = header[:inner_width]
@@ -11764,9 +11766,9 @@ class HermesCLI:
         else:
             try:
                 from hermes_cli.skin_engine import get_active_goodbye
-                goodbye = get_active_goodbye("Goodbye! ⚕")
+                goodbye = get_active_goodbye("Goodbye. ◯")
             except Exception:
-                goodbye = "Goodbye! ⚕"
+                goodbye = "Goodbye. ◯"
             print(goodbye)
 
     def _get_tui_prompt_symbols(self) -> tuple[str, str]:
@@ -12023,11 +12025,11 @@ class HermesCLI:
         try:
             from hermes_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Hermes Agent! Type your message or /help for commands.")
-            _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands.")
+            _welcome_color = _welcome_skin.get_color("banner_text", "#EEF2F7")
         except Exception:
-            _welcome_text = "Welcome to Hermes Agent! Type your message or /help for commands."
-            _welcome_color = "#FFF8DC"
+            _welcome_text = "Welcome to M.U.S.E. — one mind, many pathways. Type your message or /help for commands."
+            _welcome_color = "#EEF2F7"
         self._console_print(f"[{_welcome_color}]{_welcome_text}[/]")
 
         # Redaction opt-out warning (#17691): ON by default, loud when off.
