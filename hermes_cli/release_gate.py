@@ -1,6 +1,6 @@
-"""Unified release gate for Hermes — one verdict over every ship signal.
+"""Unified release gate for M.U.S.E. — one verdict over every ship signal.
 
-Backs ``hermes doctor --release-gate``. It aggregates the existing 10/10
+Backs ``muse doctor --release-gate``. It aggregates the existing 10/10
 release-readiness checks (:func:`hermes_cli.release_readiness_doctor.run_10_10_doctor`)
 with the two *runtime* gates the smoke script (``scripts/hermes-10-10-smoke.sh``)
 also runs — ``ruff check .`` and a fast, launch-critical pytest slice — into a
@@ -35,10 +35,21 @@ system interpreter (``sys.executable``) / a bare ``ruff``. If *no* reachable
 interpreter has the tool at all, the check reports a clearly-labeled,
 non-blocking ``WARN`` (tooling absent) — distinct from a genuine ``FAIL``
 (the tool ran and the suite/lint was red).
+
+Strict tooling (WC-2): the FU-10 anti-false-RED behavior above protects dev
+checkouts but inverts the gate on a release host (a stripped Termux release
+lane or CI runner with no ``ruff``/``pytest`` reports GREEN ship having
+validated nothing). When ``HERMES_RELEASE_GATE_STRICT=1`` (set on release
+hosts and CI), missing tools become a *hard FAIL* with a clear "tooling
+absent on release host" message. Default stays soft for dev convenience —
+this is strictly opt-in. Equivalently, callers can pass
+``strict_tooling=True`` to :func:`run_release_gate` to force the strict
+verdict regardless of env.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -52,6 +63,22 @@ from hermes_cli.release_readiness_doctor import (
     ReadinessReport,
     run_10_10_doctor,
 )
+
+# WC-2: the env var that flips the gate from "anti-false-RED" (dev default)
+# to "fail-closed on missing tools" (release host / CI). Truthy values are
+# the canonical set: 1 / true / yes / on (case-insensitive).
+_STRICT_TOOLING_ENV = "HERMES_RELEASE_GATE_STRICT"
+_STRICT_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def _strict_tooling_enabled() -> bool:
+    """True iff ``HERMES_RELEASE_GATE_STRICT`` is set to a truthy value.
+
+    Read at every check (not cached) so tests / CI can flip it via
+    monkeypatch without restarting the process. Default OFF preserves the
+    FU-10 anti-false-RED behavior on dev hosts; release lanes opt in.
+    """
+    return os.environ.get(_STRICT_TOOLING_ENV, "").strip().lower() in _STRICT_TRUTHY
 
 # Fast, launch-critical pytest slice — kept in lockstep with
 # scripts/hermes-10-10-smoke.sh (readiness + action executors + a couple of
@@ -189,17 +216,44 @@ def _looks_tool_absent(tail: str, markers: tuple[str, ...]) -> bool:
     return any(m in low for m in markers)
 
 
-def _ruff_check() -> ReadinessCheck:
+def _tool_absent_check(name: str, dev_msg: str, strict_msg: str, *, strict: bool) -> ReadinessCheck:
+    """Render a "tool absent" verdict.
+
+    WC-2: in strict mode (release host / CI), tool absence is a hard FAIL —
+    the gate refuses to ship without having actually run the check. In dev
+    mode (the default) it is a soft WARN, preserving FU-10's anti-false-RED
+    behavior on an un-synced checkout. The message names the strict mode
+    explicitly so an operator who sees a FAIL knows exactly which env var
+    inverted the verdict.
+    """
+    if strict:
+        return ReadinessCheck(
+            name,
+            FAIL,
+            f"{strict_msg} [release-host strict mode: {_STRICT_TOOLING_ENV}=1]",
+            hard=True,
+        )
+    return ReadinessCheck(name, WARN, dev_msg, hard=False)
+
+
+def _ruff_check(*, strict_tooling: bool = False) -> ReadinessCheck:
     argv, available = _ruff_argv()
     if not available:
-        # No reachable ruff (neither ``uv run ruff`` nor a bare ``ruff``). That
-        # is tooling absent, not a dirty tree — WARN, soft, never blocks ship.
-        return ReadinessCheck(
+        # No reachable ruff (neither ``uv run ruff`` nor a bare ``ruff``).
+        # In dev mode that's tooling absent (soft WARN, FU-10 behavior). In
+        # strict mode it's a hard FAIL — a release host with no ruff cannot
+        # claim a clean lint.
+        return _tool_absent_check(
             "ruff lint",
-            WARN,
-            "ruff unavailable (no uv/ruff on this host) — lint not run; "
-            "install ruff or sync the uv venv to enforce this gate",
-            hard=False,
+            dev_msg=(
+                "ruff unavailable (no uv/ruff on this host) — lint not run; "
+                "install ruff or sync the uv venv to enforce this gate"
+            ),
+            strict_msg=(
+                "ruff unavailable on a release host — refusing to ship without "
+                "the lint check actually running; install ruff or sync the uv venv"
+            ),
+            strict=strict_tooling,
         )
     code, tail = _run_subprocess(argv, timeout=_RUFF_TIMEOUT_S)
     if code == 0:
@@ -207,29 +261,34 @@ def _ruff_check() -> ReadinessCheck:
     # Defensive: a probe-passed interpreter that still reports the tool missing
     # (e.g. PATH raced) is tooling-absent, not a lint failure.
     if _looks_tool_absent(tail, _RUFF_ABSENT_MARKERS):
-        return ReadinessCheck(
+        return _tool_absent_check(
             "ruff lint",
-            WARN,
-            f"ruff unavailable in chosen env (exit {code}): {tail}".rstrip(": "),
-            hard=False,
+            dev_msg=f"ruff unavailable in chosen env (exit {code}): {tail}".rstrip(": "),
+            strict_msg=f"ruff unavailable on a release host (exit {code}): {tail}".rstrip(": "),
+            strict=strict_tooling,
         )
     detail = f"ruff check . failed (exit {code}): {tail}".rstrip(": ")
     return ReadinessCheck("ruff lint", FAIL, detail, hard=True)
 
 
-def _fast_test_slice_check() -> ReadinessCheck:
+def _fast_test_slice_check(*, strict_tooling: bool = False) -> ReadinessCheck:
     argv, available = _pytest_argv()
     if not available:
-        # No reachable interpreter has pytest. The suite never ran — this is
-        # tooling absent, NOT a red slice. WARN (soft) so it never false-REDs
-        # the gate; the verdict stays honest about *why* it couldn't run.
-        return ReadinessCheck(
+        # No reachable interpreter has pytest. In dev mode that's a soft WARN
+        # (FU-10 behavior). In strict mode the gate refuses to ship: a release
+        # host cannot pass on a test slice that never ran.
+        return _tool_absent_check(
             "fast test slice",
-            WARN,
-            "pytest unavailable (no uv/system interpreter with pytest) — "
-            "fast slice not run; sync the uv venv or install pytest to "
-            "enforce this gate",
-            hard=False,
+            dev_msg=(
+                "pytest unavailable (no uv/system interpreter with pytest) — "
+                "fast slice not run; sync the uv venv or install pytest to "
+                "enforce this gate"
+            ),
+            strict_msg=(
+                "pytest unavailable on a release host — refusing to ship without "
+                "the fast slice actually running; install pytest or sync the uv venv"
+            ),
+            strict=strict_tooling,
         )
     code, tail = _run_subprocess(argv, timeout=_PYTEST_TIMEOUT_S)
     if code == 0:
@@ -242,17 +301,19 @@ def _fast_test_slice_check() -> ReadinessCheck:
     # Defensive: if the chosen interpreter still reports pytest missing (the
     # FU-10 false-RED), treat it as tooling absent — never a red suite.
     if _looks_tool_absent(tail, _PYTEST_ABSENT_MARKERS):
-        return ReadinessCheck(
+        return _tool_absent_check(
             "fast test slice",
-            WARN,
-            f"pytest unavailable in chosen env (exit {code}): {tail}".rstrip(": "),
-            hard=False,
+            dev_msg=f"pytest unavailable in chosen env (exit {code}): {tail}".rstrip(": "),
+            strict_msg=f"pytest unavailable on a release host (exit {code}): {tail}".rstrip(": "),
+            strict=strict_tooling,
         )
     detail = f"fast pytest slice failed (exit {code}): {tail}".rstrip(": ")
     return ReadinessCheck("fast test slice", FAIL, detail, hard=True)
 
 
-def run_release_gate(*, run_tests: bool = True) -> ReadinessReport:
+def run_release_gate(
+    *, run_tests: bool = True, strict_tooling: bool | None = None
+) -> ReadinessReport:
     """Aggregate the 10/10 doctor + ruff (+ fast test slice) into one verdict.
 
     Starts from every :func:`run_10_10_doctor` check, then appends a ruff gate
@@ -261,12 +322,23 @@ def run_release_gate(*, run_tests: bool = True) -> ReadinessReport:
     hard FAIL anywhere (a doctor hard gate, ruff, or the slice) blocks ship,
     while soft punch-list warnings never do.
 
+    WC-2 ``strict_tooling``:
+
+    * ``None`` (default) → consult the ``HERMES_RELEASE_GATE_STRICT`` env var;
+      truthy values flip the gate to fail-closed on missing tools.
+    * ``True`` → force strict mode regardless of env (used by tests and by the
+      release-host launch lane).
+    * ``False`` → force dev-friendly mode regardless of env (escape hatch for
+      manual local runs on an un-synced checkout).
+
     Never raises: subprocess failures become FAIL checks.
     """
+    if strict_tooling is None:
+        strict_tooling = _strict_tooling_enabled()
     report = run_10_10_doctor()
     checks = list(report.checks)
-    checks.append(_ruff_check())
+    checks.append(_ruff_check(strict_tooling=strict_tooling))
     if run_tests:
-        checks.append(_fast_test_slice_check())
+        checks.append(_fast_test_slice_check(strict_tooling=strict_tooling))
     ok = not any(c.status == FAIL and c.hard for c in checks)
     return ReadinessReport(ok=ok, checks=checks)

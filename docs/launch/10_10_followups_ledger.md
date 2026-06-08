@@ -456,3 +456,94 @@ grains' code is intact** on `main` (`handlers_autonomy.py`, `cli_route.py`, the
 sms `capabilities()`, the new tests, 9 snapshots — all present); only this audit
 doc's section was affected, and it is **restored** in this commit.
 
+---
+
+# Wave C — Comprehensive AOS audit closeout (2026-06-08)
+
+**Date opened:** 2026-06-08 · **Base:** `main` @ `860a88b8e` (post-Wave-B,
+post-swarm, post-#411 docs sweep).
+
+A comprehensive `/aos-audit` ran six council members in parallel against the
+post-Wave-B state and surfaced four bounded packets. Owner authorized via
+`Yes, with authorization.` on the same day. Wave C lands as a **single
+branch / single PR** on `claude/vigilant-knuth-519h3u` (the session's
+designated branch — the cross-task parallel-worktree pattern of Wave B does
+not apply here because the branch is fixed by the session contract).
+
+## Audit findings → packet map
+
+| Finding | Source agent | Packet |
+|---|---|---|
+| `muse` first-run gate ignores `model_policy.json` — README's headless instruction is a dead end | product-experience-architect, evidence-architect | **WC-1** |
+| `_parser.py:90 prog="hermes"` + 4 more happy-path "hermes" leaks (deferred from g1b cascade) | contrarian-reviewer, evidence-architect | **WC-1** (collapsed) |
+| Release gate fails OPEN when both interpreters lack pytest/ruff (`release_gate.py:222-272`) — highest single risk | assurance-risk-director | **WC-2** |
+| No test in the repo calls a real model — "proof bar" is partially synthetic + offline E2E not even gated by CI unit job | contrarian-reviewer, evidence-architect | **WC-3** |
+| FU-18 "233 → routed catalog" honesty did not propagate to 4 `AOS_*.md` surfaces | evidence-architect | **WC-4** |
+| `handlers.py` is a 3,810-line god-module with 17 imported subsystems; three hand-mirrored web clients (cockpit static / desktop Tauri / Android) | principal-systems-architect | **out-of-scope — EPIC-COCKPIT-SEAM, owner-decision-gated** |
+
+## Ownership map + outcomes
+
+| Task | Title | Owned files | Risk | Status |
+|---|---|---|---|---|
+| **WC-1** | First-run gate reads `model_policy.json` + detection-aware non-interactive guidance + happy-path "hermes"→"muse" sweep (collapsed single writer) | `hermes_cli/main.py` · `hermes_cli/setup.py` · `hermes_cli/_parser.py` · `tests/hermes_cli/test_api_key_providers.py` · `tests/hermes_cli/test_setup_noninteractive.py` | **behavior change → owner-gated** | building → in-review |
+| **WC-2** | Release gate hard `tooling_present` precondition (`HERMES_RELEASE_GATE_STRICT=1` opt-in; FU-10 default preserved) | `hermes_cli/release_gate.py` · `tests/test_release_gate.py` | **behavior change → owner-gated** | building → in-review |
+| **WC-3** | `tests/e2e/test_core_loop_live_smoke.py` (`@pytest.mark.live`, `--run-live`/`HERMES_E2E_LIVE=1` opt-in) + conftest hook + CI annotation | `tests/e2e/test_core_loop_live_smoke.py` (new) · `tests/conftest.py` · `.github/workflows/tests.yml` | additive (test) | building → in-review |
+| **WC-4** | Propagate FU-18 "routed catalog" qualifier to 4 stale `AOS_*.md` surfaces | `AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` · `docs/aos-recovery/AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_INSTALLATION_REPORT.md` | doc-only (RC0) | building → in-review |
+
+Per-task snapshots: `docs/launch/followups/wc-1-firstrun-rebrand.md`,
+`wc-2-release-gate-tooling.md`, `wc-3-live-smoke.md`,
+`wc-4-honesty-233-docs.md`.
+
+## Decision log
+
+- `2026-06-08` — `/aos-audit` (comprehensive) dispatched six council members
+  in parallel: `evidence-architect`, `principal-systems-architect`,
+  `product-experience-architect`, `assurance-risk-director`,
+  `contrarian-reviewer`, `delivery-scope-controller`. All read-only; tree
+  unchanged before/after.
+- `2026-06-08` — `delivery-scope-controller` returned a 4-task partition with
+  one explicit **collapse**: WC-1 and WC-2 of the original proposal both
+  wanted `hermes_cli/main.py` line 1394 (the same string for the gate
+  message AND the rebrand). Single writer is mandatory by the parallel
+  contract §7 → collapsed into WC-1. Final partition is 4 tasks, disjoint
+  on writable files.
+- `2026-06-08` — Owner authorized: `Yes, with authorization.` (covers WC-1
+  + WC-2 behavior-change merges + WC-3 CI lane edit; WC-4 auto-merges as
+  RC0).
+- `2026-06-08` — Three `/deep-research` agents dispatched in parallel as a
+  read-only council seat: (a) cold-start UX for autonomous agent CLIs
+  (Aider's ordered-env-var scan + OpenRouter OAuth fallback is the
+  strongest pattern; informs WC-1 design); (b) free/local LLM stack
+  mid-2026 (GLM-4.5 / Qwen3 32B / vLLM is the recommended stack; BFCL v3
+  multi-turn / τ²-bench / SWE-bench Pro are the real benchmarks; informs
+  the post-WC-3 depth program); (c) god-module decomposition (Pattern 2+1
+  hybrid — per-domain `_ROUTES` siblings + central registry; 5-phase
+  strangler; informs the out-of-scope EPIC-COCKPIT-SEAM). Synthesis lands
+  in the PR description; full reports archived in the chat transcript.
+- `2026-06-08` — All four packets built on `claude/vigilant-knuth-519h3u`,
+  validated locally (`ruff check` clean; `ty check` no new diagnostics on
+  edited lines; focused pytest selection 218 passed, 1 skipped — the
+  WC-3 live smoke is correctly skipped by default). Single draft PR opens
+  on push.
+
+## Out-of-scope (tracked separately)
+
+**EPIC-COCKPIT-SEAM** — owner-decision-gated. Multi-week. Phase
+breakdown:
+
+- P0 — Freeze the cockpit wire contract as an OpenAPI snapshot + Syrupy
+  golden fixtures + `oasdiff` CI gate (no behavior change).
+- P1 — Introduce `gateway/cockpit/handlers/__init__.py` re-export shim
+  plus `ROUTE_GROUPS = [LEGACY_ROUTES]`, no handler moves yet (the
+  registry seam pattern, validated by FastAPI / Netflix Dispatch /
+  Django's historical `core/management` split).
+- P2–P4 — Extract domain siblings one PR per domain, lowest-coupling
+  first (`health`+`pairing` → `runtime`+`models`+`capabilities` →
+  `memory`+`evidence`+`audit`+`ledger` → `jobs`+`orchestrate`).
+  Preserves first-match `_ROUTES` order byte-for-byte (the cockpit's
+  regex dispatch table requires it).
+- P5 — Unify the TypeScript client across cockpit-static and desktop
+  Tauri; regenerate from the (unchanged) OpenAPI spec; verify zero diff.
+
+Awaits owner go/no-go before any branch is cut.
+
