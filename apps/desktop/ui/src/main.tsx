@@ -1,8 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { registerSW } from "virtual:pwa-register";
-// Seed the route registry (side-effect import) BEFORE rendering the shell.
+// Seed the route registry (side-effect imports) BEFORE rendering the shell.
+// The scaffold registers Home; the DESK client surfaces register their own
+// routes from their own module (views/register), keeping registration additive
+// and conflict-free.
 import "./routes.register";
+import "./views/register";
 import { App } from "./App";
 import "./styles/tokens.css";
 

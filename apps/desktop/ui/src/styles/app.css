@@ -308,3 +308,248 @@ textarea:focus {
     animation: none;
   }
 }
+
+/* ---- select (matches the scaffold's input styling) ----------------------- */
+select {
+  font: inherit;
+  color: var(--signal);
+  background: var(--void-2);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--ring-1);
+}
+
+/* The Approve action borrows the cockpit's OK-toned outline button. */
+button.approve {
+  background: transparent;
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+button.approve:hover {
+  background: var(--ok);
+  color: #04060c;
+  border-color: var(--ok);
+}
+
+/* Focus-visible ring on every control — never removed (design language §Button). */
+button:focus-visible,
+.nav-item:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ring-1);
+  outline-offset: 1px;
+}
+
+/* ---- small utility classes (avoid inline styles in views) ---------------- */
+.flex-1 {
+  flex: 1;
+}
+
+.gap-top {
+  margin-top: 12px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--edge);
+  margin: 14px 0;
+}
+
+/* ---- section header (design-language SectionHeader) ---------------------- */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 4px 2px 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--signal-mute);
+}
+
+.section-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+/* ---- notices ------------------------------------------------------------- */
+.notice {
+  border-color: var(--ring-1);
+  color: var(--signal);
+}
+
+.danger-notice {
+  border-color: var(--danger);
+  color: #ffd7d9;
+  background: #1a0e10;
+}
+
+/* ---- offline banner ------------------------------------------------------ */
+.offline-banner {
+  background: #1a0e10;
+  border: 1px solid var(--danger);
+  color: #ffd7d9;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 14px 18px 0;
+}
+
+/* ---- stream / health mini indicator -------------------------------------- */
+.streamdot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--signal-mute);
+}
+
+.dot-mini {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--signal-mute);
+  transition: background var(--dur-fast) var(--ease-emphasized);
+}
+
+.streamdot.live {
+  color: var(--signal-dim);
+}
+
+.streamdot.live .dot-mini {
+  background: var(--ring-1);
+}
+
+/* ---- chat ---------------------------------------------------------------- */
+.chat-card .chatlog {
+  min-height: 320px;
+  max-height: 62vh;
+}
+
+/* ---- jobs ---------------------------------------------------------------- */
+.job-meta {
+  margin-top: 8px;
+}
+
+/* ---- phase rail (design-language PhaseRail; mirrors the cockpit) ---------- */
+.phaserail {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 12px 0 2px;
+  flex-wrap: wrap;
+}
+
+.phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--void);
+  border: 1px solid var(--edge);
+  transition:
+    background var(--dur-fast) var(--ease-emphasized),
+    border-color var(--dur-fast) var(--ease-emphasized);
+}
+
+/* Done = spectral ring; current = the incandescent core; failed = danger.
+   The ring stays matte — these are flat tonal fills, no neon/glow. */
+.phase.done .phase-node {
+  background: var(--ring-1);
+  border-color: var(--ring-1);
+}
+
+.phase.current .phase-node {
+  background: var(--core);
+  border-color: var(--core);
+}
+
+.phase.failed .phase-node {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.phase-label {
+  font-size: 11px;
+  color: var(--signal-mute);
+}
+
+.phase.done .phase-label {
+  color: var(--signal-dim);
+}
+
+.phase.current .phase-label {
+  color: var(--signal);
+}
+
+.phase-bar {
+  width: 26px;
+  height: 1px;
+  background: var(--edge);
+  margin: 0 2px;
+}
+
+.phase.done .phase-bar {
+  background: var(--ring-1);
+}
+
+/* ---- approvals ----------------------------------------------------------- */
+.proposed {
+  margin-top: 8px;
+  color: var(--signal-dim);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.approval-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.hint {
+  color: var(--signal-mute);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.k {
+  color: var(--signal-mute);
+}
+
+/* ---- autonomy ------------------------------------------------------------ */
+.autonomy-controls {
+  margin-top: 14px;
+}
+
+.ws-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.caps {
+  margin-top: 14px;
+  line-height: 1.7;
+}
+
+/* ---- emergency stop card ------------------------------------------------- */
+.danger-card {
+  border-color: var(--danger);
+}

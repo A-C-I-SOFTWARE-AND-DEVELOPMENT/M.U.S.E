@@ -352,6 +352,287 @@ function dispatchJobEvent(
   else if (event === "job.removed") handlers.onRemoved?.(obj.id);
 }
 
+// ---- job phase rail (vocabulary + position) -------------------------------
+
+/**
+ * Canonical job lifecycle phases the rail walks through. Mirrors the cockpit's
+ * (gateway/cockpit/static/index.html) collapsed, owner-meaningful progression
+ * over the server's CockpitJob status vocabulary (contract.JOB_STATUSES).
+ */
+export const JOB_PHASES = [
+  "QUEUED",
+  "RUNNING",
+  "WAITING_FOR_APPROVAL",
+  "APPROVED",
+  "PUBLISHING",
+  "PUBLISHED",
+] as const;
+
+export type JobPhase = (typeof JOB_PHASES)[number];
+
+export const JOB_PHASE_LABEL: Record<JobPhase, string> = {
+  QUEUED: "Queued",
+  RUNNING: "Running",
+  WAITING_FOR_APPROVAL: "Approval",
+  APPROVED: "Approved",
+  PUBLISHING: "Publishing",
+  PUBLISHED: "Published",
+};
+
+const TERMINAL_OK = new Set(["COMPLETED", "PUBLISHED"]);
+const TERMINAL_BAD = new Set(["FAILED", "CANCELLED"]);
+
+export type PhaseState = "done" | "current" | "pending" | "failed";
+
+/**
+ * Resolve, for a given job status, the visual state of each rail segment.
+ * Mirrors the cockpit's `phaseRail` mapping exactly: COMPLETED maps to the end
+ * of the build arc; paused/blocked/draft sit at the start; terminal-bad marks
+ * the current segment failed.
+ */
+export function phaseStates(status: string | undefined): PhaseState[] {
+  const st = String(status || "").toUpperCase();
+  let idx: number = (JOB_PHASES as readonly string[]).indexOf(st);
+  if (st === "COMPLETED") idx = JOB_PHASES.indexOf("PUBLISHED");
+  if (st === "PAUSED" || st === "BLOCKED" || st === "DISCONNECTED" || st === "DRAFT") {
+    idx = 0;
+  }
+  const failed = TERMINAL_BAD.has(st);
+  return JOB_PHASES.map((_ph, i): PhaseState => {
+    if (failed && i === Math.max(idx, 0)) return "failed";
+    if (i < idx) return "done";
+    if (i === idx) return TERMINAL_OK.has(st) ? "done" : "current";
+    return "pending";
+  });
+}
+
+// ---- approvals (owner-gated decide) ---------------------------------------
+
+export type CockpitApproval = {
+  id: string;
+  title?: string;
+  kind?: string;
+  tier?: string;
+  status?: string;
+  summary?: string;
+  proposed_action?: string;
+  [k: string]: unknown;
+};
+
+export type ApprovalsResult =
+  | { ok: true; approvals: CockpitApproval[] }
+  | { ok: false; unauthorized?: boolean; error?: string };
+
+/** GET /v1/cockpit/approvals. Tolerates the `approvals` or `items` envelope. */
+export async function getApprovals(): Promise<ApprovalsResult> {
+  try {
+    const r = await api("/v1/cockpit/approvals");
+    if (!r.ok) {
+      return { ok: false, unauthorized: r.status === 401, error: String(r.status) };
+    }
+    const d = (await r.json()) as {
+      approvals?: CockpitApproval[];
+      items?: CockpitApproval[];
+    };
+    return { ok: true, approvals: d.approvals || d.items || [] };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export type DecideResult = {
+  ok: boolean;
+  /** Server demanded the owner phrase (or it mismatched). */
+  forbidden?: boolean;
+  error?: string;
+};
+
+/**
+ * POST /v1/cockpit/approvals/{id}. `approve` is owner-gated: pass the owner
+ * `authorization` phrase (prompted for at action time, never stored). `reject`
+ * needs no phrase, but a 403 is surfaced as `forbidden` so the caller can
+ * re-prompt once — exactly the cockpit's behavior.
+ */
+export async function decideApproval(
+  id: string,
+  decision: "approve" | "reject",
+  authorization?: string,
+): Promise<DecideResult> {
+  const body: Record<string, unknown> = { decision };
+  if (authorization) body.authorization = authorization;
+  try {
+    const r = await api("/v1/cockpit/approvals/" + encodeURIComponent(id), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- autonomy (raise is owner-gated; lower/revoke is token-only) ----------
+
+export type AutonomyCapabilities = {
+  auto_approved?: string[];
+  requires_approval?: string[];
+  always_deny?: string[];
+};
+
+export type AutonomyState = {
+  level?: string;
+  display_name?: string;
+  set_by?: string;
+  workspace_root?: string;
+  capabilities?: AutonomyCapabilities;
+  [k: string]: unknown;
+};
+
+export type AutonomyResult =
+  | { ok: true; state: AutonomyState }
+  | { ok: false; unauthorized?: boolean; error?: string };
+
+/** The selectable autonomy levels, in display order (mirrors the cockpit). */
+export const AUTONOMY_LEVELS: ReadonlyArray<readonly [string, string]> = [
+  ["read_only", "Read-only"],
+  ["assisted", "Assisted"],
+  ["autonomous", "Autonomous"],
+  ["yolo", "YOLO"],
+  ["owner_high_autonomy_coding", "High-Autonomy Coding"],
+];
+
+/**
+ * Ordinal rank used to decide whether a level change is a *raise* (more
+ * autonomy). A raise is owner-gated; the same ranking the cockpit uses.
+ */
+export const AUTONOMY_RANK: Record<string, number> = {
+  read_only: 0,
+  assisted: 1,
+  autonomous: 2,
+  owner_high_autonomy_coding: 3,
+  yolo: 4,
+};
+
+/** True iff moving `from`→`to` increases autonomy (an owner-gated raise). */
+export function isAutonomyRaise(from: string, to: string): boolean {
+  return (AUTONOMY_RANK[to] ?? 0) > (AUTONOMY_RANK[from] ?? 0);
+}
+
+/** GET /v1/cockpit/autonomy. */
+export async function getAutonomy(): Promise<AutonomyResult> {
+  try {
+    const r = await api("/v1/cockpit/autonomy");
+    if (!r.ok) {
+      return { ok: false, unauthorized: r.status === 401, error: String(r.status) };
+    }
+    const d = (await r.json()) as AutonomyState;
+    return { ok: true, state: d };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export type SetAutonomyResult = {
+  ok: boolean;
+  forbidden?: boolean;
+  error?: string;
+};
+
+/**
+ * POST /v1/cockpit/autonomy to set the level. A raise (more autonomy than the
+ * current level) is owner-gated server-side; pass the `authorization` phrase
+ * for raises (sending it on a lower/equal change is harmless). `workspacePath`
+ * scopes High-Autonomy Coding. A 403 is surfaced for a single re-prompt.
+ */
+export async function setAutonomy(
+  level: string,
+  opts?: { authorization?: string; workspacePath?: string },
+): Promise<SetAutonomyResult> {
+  const body: Record<string, unknown> = { level };
+  if (opts?.workspacePath) body.workspace_path = opts.workspacePath;
+  if (opts?.authorization) body.authorization = opts.authorization;
+  return postAutonomy(body);
+}
+
+/** POST /v1/cockpit/autonomy with `revoke: true` (token-only; lowers to Assisted). */
+export async function revokeAutonomy(): Promise<SetAutonomyResult> {
+  return postAutonomy({ revoke: true });
+}
+
+async function postAutonomy(body: Record<string, unknown>): Promise<SetAutonomyResult> {
+  try {
+    const r = await api("/v1/cockpit/autonomy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- emergency stop (owner-gated) -----------------------------------------
+
+/**
+ * POST /v1/cockpit/emergency-stop — cancel all jobs and latch autonomy to
+ * read-only. Owner-gated: pass the owner `authorization` phrase. A 403 is
+ * surfaced so the caller can re-prompt once.
+ */
+export async function emergencyStop(authorization?: string): Promise<SetAutonomyResult> {
+  const body: Record<string, unknown> = {};
+  if (authorization) body.authorization = authorization;
+  try {
+    const r = await api("/v1/cockpit/emergency-stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- owner-gate helper ----------------------------------------------------
+
+/**
+ * Prompt for the owner authorization phrase at the moment of an owner-gated
+ * action. Returns the trimmed phrase, or null if the user cancelled. The phrase
+ * is NEVER persisted (no localStorage, no module state) — it is handed straight
+ * to the request and discarded. Mirrors the cockpit's `promptOwnerPhrase`.
+ */
+export function promptOwnerPhrase(action: string): string | null {
+  let v: string | null;
+  try {
+    v = window.prompt(
+      "Owner-gated: " +
+        action +
+        "\n\nEnter the exact owner authorization phrase to proceed.",
+    );
+  } catch {
+    return null;
+  }
+  if (v == null) return null;
+  return v.trim();
+}
+
 // ---- localStorage helpers (SSR/Tauri-safe) --------------------------------
 
 function safeLocalStorageGet(key: string): string {
