@@ -1,5 +1,10 @@
 package com.aci.hermes.ui.screens.jobs
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,10 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -25,7 +27,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -33,6 +34,15 @@ import com.aci.hermes.data.cockpit.CockpitJob
 import com.aci.hermes.data.cockpit.JobsSync
 import com.aci.hermes.ui.components.JobStatusChip
 import com.aci.hermes.ui.components.JobUiState
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object JobsScreenTags {
     const val EMPTY = "jobs-empty"
@@ -84,14 +94,20 @@ fun JobsScreen(
 
     Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         when {
-            state.sync is JobsSync.NotPaired -> EmptyState(
-                text = "Pair a gateway in Settings → Connection to see your jobs.",
+            state.sync is JobsSync.NotPaired -> JobsEmptyState(
+                title = "No gateway paired",
+                body = "Pair a gateway in Settings → Connection to see your jobs.",
                 tag = JobsScreenTags.NOT_PAIRED,
             )
             state.isEmpty && state.sync is JobsSync.Error ->
-                EmptyState(text = (state.sync as JobsSync.Error).message, tag = JobsScreenTags.EMPTY)
-            state.isEmpty -> EmptyState(
-                text = "No jobs yet. Dispatch one to get started.",
+                JobsEmptyState(
+                    title = "Couldn't reach the gateway",
+                    body = (state.sync as JobsSync.Error).message,
+                    tag = JobsScreenTags.EMPTY,
+                )
+            state.isEmpty -> JobsEmptyState(
+                title = "No jobs yet",
+                body = "Dispatch an orchestrated job and it will show up here with live phases.",
                 tag = JobsScreenTags.EMPTY,
             )
             else -> JobsList(state = state, onOpenJob = onOpenJob, onResume = viewModel::resume)
@@ -110,9 +126,9 @@ private fun JobsList(
     onResume: (String) -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(vertical = 12.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = JarvisTokens.SpaceLg),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+        contentPadding = PaddingValues(vertical = JarvisTokens.SpaceMd),
     ) {
         section("Active", state.active, onOpenJob, onResume)
         section("Blocked", state.blocked, onOpenJob, onResume)
@@ -130,11 +146,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
 ) {
     if (jobs.isEmpty()) return
     item(key = "header-$title") {
-        Text(
-            text = "$title (${jobs.size})",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 8.dp, bottom = 2.dp),
+        MuseSectionHeader(
+            title = title,
+            modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
+            trailing = { MuseChip(label = "${jobs.size}") },
         )
     }
     items(jobs, key = { it.id }) { job ->
@@ -149,33 +164,42 @@ private fun JobRow(
     onResume: () -> Unit,
 ) {
     val state = JobUiState.fromWire(job.status)
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth().testTag(JobsScreenTags.row(job.id)),
+    // Subtle entrance: rows fade + rise in on the standard curve.
+    val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = appear,
+        enter = fadeIn(MuseMotion.standard()) +
+            slideInVertically(MuseMotion.standard()) { it / 6 },
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        MuseCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(JobsScreenTags.row(job.id))
+                .clickable(onClick = onClick),
         ) {
-            Text(text = job.title, style = MaterialTheme.typography.titleSmall)
-            JobStatusChip(state = state)
-            if (job.workerId.isNotBlank()) {
-                Text(
-                    text = "Worker: ${job.workerId}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (state.needsAttention) {
-                // Waiting-for-approval needs the owner phrase → send to detail;
-                // a plain blocked/disconnected job can be resumed inline.
-                val waiting = state == JobUiState.WAITING_APPROVAL
-                OutlinedButton(
-                    onClick = if (waiting) onClick else onResume,
-                    modifier = Modifier.testTag(JobsScreenTags.unblock(job.id)),
-                ) {
-                    Text(if (waiting) "Review / approve" else "Resume")
+            Column(
+                modifier = Modifier.padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+            ) {
+                Text(text = job.title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
+                JobStatusChip(state = state)
+                if (job.workerId.isNotBlank()) {
+                    Text(
+                        text = "Worker: ${job.workerId}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (state.needsAttention) {
+                    // Waiting-for-approval needs the owner phrase → send to detail;
+                    // a plain blocked/disconnected job can be resumed inline.
+                    val waiting = state == JobUiState.WAITING_APPROVAL
+                    MuseButton(
+                        onClick = if (waiting) onClick else onResume,
+                        text = if (waiting) "Review / approve" else "Resume",
+                        variant = if (waiting) MuseButtonVariant.Approve else MuseButtonVariant.Secondary,
+                        modifier = Modifier.testTag(JobsScreenTags.unblock(job.id)),
+                    )
                 }
             }
         }
@@ -183,11 +207,11 @@ private fun JobRow(
 }
 
 @Composable
-private fun EmptyState(text: String, tag: String) {
+private fun JobsEmptyState(title: String, body: String, tag: String) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(24.dp).testTag(tag),
+        modifier = Modifier.fillMaxSize().testTag(tag),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = MaterialTheme.typography.bodyLarge)
+        MuseEmptyState(title = title, body = body)
     }
 }

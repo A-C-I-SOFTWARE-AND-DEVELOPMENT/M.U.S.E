@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -26,15 +25,10 @@ import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -72,6 +66,11 @@ import com.aci.hermes.data.jarvis.SuggestedAction
 import com.aci.hermes.data.jarvis.SuggestedKind
 import com.aci.hermes.data.jarvis.WorkerStatus
 import com.aci.hermes.voice.VoicePhase
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseGlyph
 import com.aci.hermes.ui.jarvis.rememberJarvisHaptics
 import com.aci.hermes.ui.theme.HermesError
 import com.aci.hermes.ui.theme.HermesGold
@@ -350,17 +349,22 @@ fun JarvisPrimeHomeContent(
                 Text("Halts MUSE immediately and blocks ask, voice, and worker actions until you deactivate.")
             },
             confirmButton = {
-                Button(
+                MuseButton(
                     onClick = {
                         haptics.confirm()
                         emergencyConfirmOpen = false
                         onEmergencyConfirmed()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HermesError),
-                ) { Text("Engage") }
+                    text = "Engage",
+                    variant = MuseButtonVariant.Danger,
+                )
             },
             dismissButton = {
-                OutlinedButton(onClick = { emergencyConfirmOpen = false }) { Text("Cancel") }
+                MuseButton(
+                    onClick = { emergencyConfirmOpen = false },
+                    text = "Cancel",
+                    variant = MuseButtonVariant.Secondary,
+                )
             },
         )
     }
@@ -397,11 +401,9 @@ fun JarvisPrimeIcon(
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = "☤",
-            color = tint,
-            style = MaterialTheme.typography.headlineLarge,
-        )
+        // The brand mark: one white core in the void, matte cyan→violet ring.
+        // The presence-tinted ring lives on the surrounding Box border above.
+        MuseGlyph(size = 44.dp)
     }
 }
 
@@ -556,19 +558,18 @@ fun ActiveTaskCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ACTIVE_TASK)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Active task", style = MaterialTheme.typography.labelMedium, color = HermesGold)
             Text(task.title, style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = onClick, label = { Text(task.target.name.lowercase().replace('_', ' ')) })
-                AssistChip(onClick = onClick, label = { Text(task.status.name.lowercase().replace('_', ' ')) })
+                MuseChip(label = task.target.name.lowercase().replace('_', ' '))
+                MuseChip(label = task.status.name.lowercase().replace('_', ' '))
             }
         }
     }
@@ -586,21 +587,17 @@ fun PendingApprovalCard(
         ApprovalRisk.SERIOUS -> HermesGoldDeep
         ApprovalRisk.LOW -> HermesViolet
     }
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.PENDING_APPROVAL)
             .fillMaxWidth()
-            .border(2.dp, border, RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .border(2.dp, border, RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Approval needed", style = MaterialTheme.typography.labelMedium, color = border)
-                AssistChip(
-                    onClick = onClick,
-                    label = { Text(approval.risk.name.lowercase()) },
-                )
+                MuseChip(label = approval.risk.name.lowercase())
             }
             Text(approval.title, style = MaterialTheme.typography.titleMedium)
             Text(approval.reason, style = MaterialTheme.typography.bodySmall)
@@ -615,12 +612,11 @@ fun WorkerStatusCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.WORKER_STATUS)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Workers", style = MaterialTheme.typography.labelMedium, color = HermesGold)
@@ -661,12 +657,11 @@ fun MemoryPulseCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.MEMORY_PULSE)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Memory pulse", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
@@ -691,21 +686,19 @@ fun EmergencyStopButton(
     onPressed: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val container = if (active) MaterialTheme.colorScheme.surfaceVariant else HermesError
     val label = if (active) "Deactivate emergency stop" else "Emergency stop"
-    Button(
+    // Engaged → quiet "deactivate"; armed → the danger emergency-stop control.
+    MuseButton(
         onClick = onPressed,
+        text = label,
+        variant = if (active) MuseButtonVariant.Secondary else MuseButtonVariant.Danger,
+        leadingIcon = Icons.Default.PowerSettingsNew,
         modifier = modifier
             .testTag(JarvisHomeTestTags.EMERGENCY_STOP)
             .fillMaxWidth()
             .height(56.dp)
             .semantics { contentDescription = label },
-        colors = ButtonDefaults.buttonColors(containerColor = container),
-    ) {
-        Icon(Icons.Default.PowerSettingsNew, contentDescription = null)
-        Spacer(Modifier.width(8.dp))
-        Text(label)
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -715,12 +708,11 @@ fun SuggestedNextActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.SUGGESTED_ACTION)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Suggested next action", style = MaterialTheme.typography.labelMedium, color = HermesGold)
@@ -744,21 +736,20 @@ fun BackendUnavailableBanner(
             "workers, memory, and audit. Local controls still work."
         else -> message ?: "Showing last-known local state. Tap retry once the gateway is up."
     }
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.BACKEND_BANNER)
             .fillMaxWidth()
             .border(2.dp, HermesGoldDeep, RoundedCornerShape(12.dp)),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = HermesGoldDeep)
             Text(body, style = MaterialTheme.typography.bodySmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (notPaired) {
-                    Button(onClick = onPair) { Text("Open Settings") }
+                    MuseButton(onClick = onPair, text = "Open Settings", variant = MuseButtonVariant.Primary)
                 } else {
-                    Button(onClick = onRetry) { Text("Retry") }
+                    MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Primary)
                 }
             }
         }
@@ -790,22 +781,23 @@ fun QuickActionsCard(
         QuickAction.OPEN_MEMORY to "Memory",
         QuickAction.START_VOICE to "Start voice",
     )
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.QUICK_ACTIONS)
             .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Quick actions", style = MaterialTheme.typography.labelMedium, color = HermesGold)
             actions.chunked(2).forEach { row ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     row.forEach { (action, label) ->
-                        OutlinedButton(
+                        MuseButton(
                             onClick = { onAction(action) },
+                            text = label,
+                            variant = MuseButtonVariant.Secondary,
                             enabled = enabled,
                             modifier = Modifier.weight(1f),
-                        ) { Text(label, style = MaterialTheme.typography.labelLarge) }
+                        )
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -821,12 +813,11 @@ fun ModelRouterCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.MODEL_ROUTER)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Model / router", style = MaterialTheme.typography.labelMedium, color = HermesGold)
@@ -843,12 +834,11 @@ fun JobsCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.JOBS)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             val active = jobs.count { it.active }
@@ -886,12 +876,11 @@ fun AuditEventsCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.AUDIT_EVENTS)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Audit / ledger", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
@@ -913,12 +902,11 @@ fun EvidenceCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.EVIDENCE)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Evidence / research", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
@@ -953,15 +941,13 @@ fun VoiceStateCard(
         phase == VoicePhase.THINKING -> "Thinking…"
         else -> "Speaking…"
     }
-    Card(
-        modifier = modifier
-            .testTag(JarvisHomeTestTags.VOICE_STATE)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    MuseCard(
         // Disabled card is a no-op while the emergency stop is engaged — voice
         // is one of the actions the stop dialog promises to block.
-        enabled = enabled,
-        onClick = onClick,
+        modifier = modifier
+            .testTag(JarvisHomeTestTags.VOICE_STATE)
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Voice", style = MaterialTheme.typography.labelMedium, color = HermesGold)
@@ -981,12 +967,11 @@ fun DeviceCapabilityCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    MuseCard(
         modifier = modifier
             .testTag(JarvisHomeTestTags.DEVICE_CAPABILITY)
-            .fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("Device", style = MaterialTheme.typography.labelMedium, color = HermesGold)

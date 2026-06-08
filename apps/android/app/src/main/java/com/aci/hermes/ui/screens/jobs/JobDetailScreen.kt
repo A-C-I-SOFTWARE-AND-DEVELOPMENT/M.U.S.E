@@ -14,20 +14,16 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -50,6 +46,10 @@ import com.aci.hermes.data.cockpit.JobTimelineEntry
 import com.aci.hermes.data.cockpit.JobWorkerRef
 import com.aci.hermes.ui.components.JobStatusChip
 import com.aci.hermes.ui.components.JobUiState
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
 
 /**
  * Read-only job story + the full control set. The timeline, worker
@@ -182,9 +182,9 @@ private fun JobDetailBody(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ControlButton("Pause", enabled = uiState.isActive, onClick = onPause)
                 ControlButton("Resume", enabled = uiState.needsAttention || uiState == JobUiState.PAUSED, onClick = onResume)
-                ControlButton("Cancel", enabled = uiState.isActive || uiState.needsAttention, onClick = onCancel)
+                ControlButton("Cancel", enabled = uiState.isActive || uiState.needsAttention, onClick = onCancel, variant = MuseButtonVariant.Danger)
                 ControlButton("Rerun step", enabled = uiState == JobUiState.FAILED || uiState == JobUiState.BLOCKED, onClick = onRerun)
-                ControlButton("Approve", enabled = uiState.needsAttention, onClick = onApprove)
+                ControlButton("Approve", enabled = uiState.needsAttention, onClick = onApprove, variant = MuseButtonVariant.Approve)
                 ControlButton("Open patch", enabled = true, onClick = onOpenPatch)
                 ControlButton("Run verification", enabled = !verifying, onClick = onVerify)
                 ControlButton("Navigation", enabled = !navLoading, onClick = onLoadNavigation)
@@ -304,8 +304,13 @@ private fun JobDetailBody(
 }
 
 @Composable
-private fun ControlButton(label: String, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, enabled = enabled) { Text(label) }
+private fun ControlButton(
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    variant: MuseButtonVariant = MuseButtonVariant.Secondary,
+) {
+    MuseButton(onClick = onClick, text = label, variant = variant, enabled = enabled)
 }
 
 @Composable
@@ -344,12 +349,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sectionCard(
     content: @Composable () -> Unit,
 ) {
     item(key = "section-$title") {
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
+        MuseCard(modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall)
+                MuseSectionHeader(title = title)
                 content()
             }
         }
@@ -373,7 +375,11 @@ private fun OwnerApproveDialog(onDismiss: () -> Unit, onApprove: (String) -> Uni
                 )
             }
         },
-        confirmButton = { TextButton(onClick = { onApprove(phrase) }) { Text("Approve") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            MuseButton(onClick = { onApprove(phrase) }, text = "Approve", variant = MuseButtonVariant.Approve)
+        },
+        dismissButton = {
+            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
+        },
     )
 }
