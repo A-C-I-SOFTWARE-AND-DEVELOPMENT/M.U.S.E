@@ -158,6 +158,7 @@ def test_live_worker_produces_nonempty_artifact() -> None:
             "live smoke requires one of {!r} on PATH — install Claude Code "
             "or the Codex CLI to run this lane.".format(_WORKER_CANDIDATES)
         )
+        return  # unreachable (pytest.skip raises); narrows `chosen` for the type checker
     worker_name, worker_path = chosen
     argv = _build_argv(worker_name, worker_path)
 
