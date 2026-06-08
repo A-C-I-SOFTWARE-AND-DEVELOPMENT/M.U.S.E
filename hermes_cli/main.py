@@ -5966,6 +5966,7 @@ def cmd_cockpit(args):
             port=getattr(args, "port", 8765),
             token=token,
             allow_external=getattr(args, "allow_external", False),
+            allow_external_hosts=getattr(args, "allow_external_hosts", None),
         )
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
@@ -11809,6 +11810,17 @@ def main():
     cockpit_serve.add_argument(
         "--allow-external", dest="allow_external", action="store_true",
         help="Bind a non-loopback host (exposes the agent endpoint — risky).",
+    )
+    cockpit_serve.add_argument(
+        "--allow-external-host", dest="allow_external_hosts", action="append",
+        default=None, metavar="HOST/CIDR",
+        help=(
+            "Allowlist a non-loopback host (or CIDR range) the cockpit may bind. "
+            "Repeatable. Required in addition to --allow-external for any "
+            "non-loopback bind (fail-closed): the bound host must match a host "
+            "or CIDR given here, e.g. --allow-external-host 10.0.0.5 "
+            "--allow-external-host 192.168.1.0/24."
+        ),
     )
     cockpit_token = cockpit_sub.add_parser(
         "token", help="Print (or --rotate) the cockpit pairing token"
