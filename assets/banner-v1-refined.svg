@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
+  <!--
+    M.U.S.E. banner — COMP V1 "Refined restraint" (Google/Material-led).
+    Single soft cool-white core glow, clean spectral ring, crisp white wordmark.
+    Value hierarchy by opacity only; no blur stack, no depth field, no specular.
+    Palette: gateway/cockpit/static/tokens.css. Glyph: the cockpit core+ring mark.
+  -->
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7ae0ff"/>
+      <stop offset="1" stop-color="#b388ff"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#1a2640" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#0a0f1c" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#050507" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="coreglow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.92"/>
+      <stop offset="0.42" stop-color="#e0f8ff" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1145" height="232" fill="#050507"/>
+
+  <g transform="translate(212,-5) scale(1.12)">
+    <!-- ambient glow behind the glyph -->
+    <circle cx="70" cy="90" r="84" fill="url(#glow)"/>
+
+    <!-- spectral ring: one ~70% arc with a single gap (the cockpit mark) -->
+    <circle cx="70" cy="90" r="62" fill="none" stroke="url(#ring)" stroke-width="6.5"
+            stroke-dasharray="273 116" stroke-linecap="round"
+            transform="rotate(-32 70 90)"/>
+
+    <!-- white core + soft cool bloom -->
+    <circle cx="70" cy="90" r="26" fill="url(#coreglow)"/>
+    <circle cx="70" cy="90" r="12.5" fill="#ffffff"/>
+
+    <!-- wordmark M.U.S.E. — bespoke monoline geometric letters (white, weight 15) -->
+    <g fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+      <!-- M -->
+      <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>
+      <!-- U -->
+      <path d="M 316,46 L 316,96 A 38,38 0 0 0 392,96 L 392,46"/>
+      <!-- S -->
+      <path d="M 496,68 C 496,49 436,49 436,76 C 436,99 496,85 496,110 C 496,137 436,137 436,114"/>
+      <!-- E -->
+      <path d="M 608,46 L 540,46 L 540,134 L 608,134"/>
+      <path d="M 540,90 L 600,90"/>
+    </g>
+    <!-- periods -->
+    <g fill="#ffffff">
+      <circle cx="292" cy="128" r="8"/>
+      <circle cx="412" cy="128" r="8"/>
+      <circle cx="520" cy="128" r="8"/>
+      <circle cx="628" cy="128" r="8"/>
+    </g>
+  </g>
+
+  <!-- tier 1: acronym expansion -->
+  <text x="572" y="180" text-anchor="middle"
+        font-family="Liberation Sans, DejaVu Sans, Helvetica, Arial, sans-serif"
+        font-size="18" font-weight="700" letter-spacing="7" fill="#aab2c4">MULTI-USE SYNAPTIC ENTITY</text>
+  <!-- tier 2: tagline / motto -->
+  <text x="572" y="208" text-anchor="middle"
+        font-family="Liberation Sans, DejaVu Sans, Helvetica, Arial, sans-serif"
+        font-size="15.5" font-weight="400" letter-spacing="3" fill="#8b93a6">One mind, many pathways.</text>
+</svg>
