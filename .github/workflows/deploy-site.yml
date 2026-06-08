@@ -29,7 +29,7 @@ jobs:
         run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
 
   deploy-docs:
-    if: github.repository == 'NousResearch/hermes-agent'
+    if: github.repository == 'NousResearch/muse'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
