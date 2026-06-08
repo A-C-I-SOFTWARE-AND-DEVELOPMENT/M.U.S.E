@@ -19,18 +19,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -50,12 +46,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.capability.RoutePreview
 import com.aci.hermes.data.cockpit.CockpitSkill
 import com.aci.hermes.data.model.Capability
 import com.aci.hermes.data.model.CapabilityCategory
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisTokens
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -140,18 +142,13 @@ fun CapabilityScreen(
 private fun InstalledSkillsCard(sync: InstalledSkillsSync, skills: List<CockpitSkill>) {
     // Nothing to show before pairing — keep the screen clean (catalog still works).
     if (sync is InstalledSkillsSync.Idle || sync is InstalledSkillsSync.NotPaired) return
-    Card(
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                stringResource(R.string.capability_installed_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseSectionHeader(title = stringResource(R.string.capability_installed_title))
             when (sync) {
                 is InstalledSkillsSync.Error ->
                     Text(sync.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -176,23 +173,16 @@ private fun InstalledSkillsCard(sync: InstalledSkillsSync, skills: List<CockpitS
 
 @Composable
 private fun HeaderBlurb() {
-    Card(
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceSm),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
-            Text(
-                text = stringResource(R.string.capability_header_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            MuseSectionHeader(title = stringResource(R.string.capability_header_title))
             Text(
                 text = stringResource(R.string.capability_header_body),
                 style = MaterialTheme.typography.bodySmall,
@@ -212,7 +202,7 @@ private fun SearchField(
         onValueChange = onQueryChange,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs)
             .semantics { contentDescription = "Capability search field" },
         leadingIcon = {
             Icon(Icons.Default.Search, contentDescription = null)
@@ -229,7 +219,6 @@ private fun SearchField(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CategoryFilters(
     selected: CapabilityCategory?,
@@ -240,20 +229,19 @@ private fun CategoryFilters(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(scrollState)
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
+        horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
     ) {
-        FilterChip(
+        MuseChip(
+            label = stringResource(R.string.capability_filter_all),
             selected = selected == null,
             onClick = { onSelect(null) },
-            label = { Text(stringResource(R.string.capability_filter_all)) },
         )
         CapabilityCategory.values().forEach { cat ->
-            FilterChip(
+            MuseChip(
+                label = cat.displayName,
                 selected = selected == cat,
                 onClick = { onSelect(cat) },
-                label = { Text(cat.displayName) },
-                colors = FilterChipDefaults.filterChipColors(),
             )
         }
     }
@@ -269,7 +257,7 @@ private fun AdvancedToggle(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -303,20 +291,20 @@ private fun CapabilityList(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(JarvisTokens.SpaceXxl),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                stringResource(R.string.capability_empty),
-                style = MaterialTheme.typography.bodyMedium,
+            MuseEmptyState(
+                title = "No capabilities",
+                body = stringResource(R.string.capability_empty),
             )
         }
         return
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(JarvisTokens.SpaceLg),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
     ) {
         items(capabilities, key = { it.id }) { cap ->
             SkillCard(capability = cap, onClick = { onTap(cap) })
@@ -340,19 +328,15 @@ private fun InvocationSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp)
+                .padding(horizontal = JarvisTokens.SpaceXxl, vertical = JarvisTokens.SpaceSm)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Text(capability.name, style = MaterialTheme.typography.titleLarge)
             Text(capability.summary, style = MaterialTheme.typography.bodyMedium)
 
             HorizontalDivider()
-            Text(
-                stringResource(R.string.capability_route_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            MuseSectionHeader(title = stringResource(R.string.capability_route_title))
             preview.lines.forEach { line ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -374,19 +358,11 @@ private fun InvocationSheet(
             }
 
             HorizontalDivider()
-            Text(
-                stringResource(R.string.capability_prompt_title),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
-            ) {
+            MuseSectionHeader(title = stringResource(R.string.capability_prompt_title))
+            MuseCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = preview.staged,
-                    modifier = Modifier.padding(12.dp),
+                    modifier = Modifier.padding(JarvisTokens.SpaceMd),
                     style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                 )
             }
@@ -398,15 +374,19 @@ private fun InvocationSheet(
             FlowRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(vertical = JarvisTokens.SpaceSm),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                Button(onClick = onStage) {
-                    Text(stringResource(R.string.capability_stage_prompt))
-                }
-                OutlinedButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.action_close))
-                }
+                MuseButton(
+                    onClick = onStage,
+                    text = stringResource(R.string.capability_stage_prompt),
+                    variant = MuseButtonVariant.Primary,
+                )
+                MuseButton(
+                    onClick = onDismiss,
+                    text = stringResource(R.string.action_close),
+                    variant = MuseButtonVariant.Secondary,
+                )
             }
         }
     }
@@ -414,6 +394,10 @@ private fun InvocationSheet(
 
 @Composable
 private fun OwnerGatedBanner() {
+    // Kept as an error-container surface: the red banner *is* the owner-gate
+    // warning signal (no icon carries it otherwise), and the contentDescription
+    // is an a11y hook. MuseCard has no danger fill, so swapping it would drop
+    // the warning valence.
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
@@ -422,7 +406,7 @@ private fun OwnerGatedBanner() {
             .fillMaxWidth()
             .semantics { contentDescription = "Owner-gated warning" },
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceMd), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(
                 text = stringResource(R.string.capability_owner_gated_title),
                 style = MaterialTheme.typography.titleSmall,
