@@ -287,6 +287,147 @@ def _append_ledger(job_id: str, entry: dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Per-job budget hard-stop (Sprint 10 wiring on the single-job path)
+# ---------------------------------------------------------------------------
+#
+# The parallel runner (``orchestrator_parallel.ParallelRunner``) already meters
+# each worker's reported ``cost_usd`` and stops launching further workers once
+# the accumulated spend reaches a configured hard limit
+# (``hermes_cli.budget_policy.evaluate_budget``). The single-job ``dispatch_job``
+# path historically never consulted the budget — these helpers close that gap by
+# reusing the *same* policy kernel with the *same* cost-extraction guards as
+# ``ParallelRunner._note_cost`` / ``ParallelRunner._budget_stop_decision``.
+#
+# Both limits default to ``None`` everywhere (no budget configured), so the
+# default dispatch path stays byte-identical — enforcement only engages when a
+# caller passes an explicit limit.
+
+
+def _worker_reported_cost(run_result: Any) -> float:
+    """Best-effort positive ``cost_usd`` a worker reported, else ``0.0``.
+
+    Mirrors ``ParallelRunner._note_cost``: the cost lives in the worker's
+    ``WorkerRunResult.details`` mapping, either directly as ``cost_usd`` or
+    nested under a ``{usage, cost_usd, ...}`` ``usage`` block (the shape a
+    LOCAL_RUN worker's ``usage.json`` sidecar uses). A missing / non-numeric /
+    boolean / non-positive value leaves the meter untouched — the additive,
+    behavior-preserving default. Never raises.
+    """
+
+    try:
+        details = getattr(run_result, "details", None)
+        if not isinstance(details, dict):
+            return 0.0
+        cost = details.get("cost_usd")
+        if cost is None:
+            usage = details.get("usage")
+            if isinstance(usage, dict):
+                cost = usage.get("cost_usd")
+        if isinstance(cost, bool) or not isinstance(cost, (int, float)) or cost <= 0:
+            return 0.0
+        return float(cost)
+    except Exception:
+        return 0.0
+
+
+def _budget_stop_for_spend(
+    spent: float,
+    *,
+    soft_limit: Optional[float],
+    hard_limit: Optional[float],
+) -> Optional[Any]:
+    """Return the hard-stop ``BudgetDecision`` when ``spent`` exhausts the budget.
+
+    ``None`` when no budget is configured, the spend is still within the hard
+    limit, or the budget subsystem is unavailable / errors — so a missing or
+    broken budget policy never blocks (or crashes) the single-job path. Mirrors
+    ``ParallelRunner._budget_stop_decision`` (same ``evaluate_budget`` call, same
+    ``should_stop`` semantics).
+    """
+
+    if soft_limit is None and hard_limit is None:
+        return None
+    try:
+        from hermes_cli.budget_policy import evaluate_budget
+
+        decision = evaluate_budget(
+            spent,
+            soft_limit=soft_limit,
+            hard_limit=hard_limit,
+            meter="cost",
+        )
+    except Exception:
+        return None
+    return decision if decision.should_stop else None
+
+
+def _job_recorded_cost(job_id: str) -> float:
+    """Sum the ``cost_usd`` recorded across a job's ledger ``worker_result``s.
+
+    This is the single-job analogue of ``ParallelRunner._spent_usd``: each
+    completed worker records its ``cost_usd`` into its ``worker_result`` entry,
+    so the accrued spend is recoverable from the ledger across ``dispatch_job``
+    calls. Malformed / missing values are ignored. Never raises.
+    """
+
+    total = 0.0
+    try:
+        entries = _load_ledger().get(job_id, [])
+        for entry in entries:
+            if not isinstance(entry, dict) or entry.get("kind") != "worker_result":
+                continue
+            cost = entry.get("cost_usd")
+            if (
+                isinstance(cost, bool)
+                or not isinstance(cost, (int, float))
+                or cost <= 0
+            ):
+                continue
+            total += float(cost)
+    except Exception:
+        return total
+    return total
+
+
+def _record_budget_stop(
+    job_id: str, jobs: list[Job], job: Job, decision: Any
+) -> None:
+    """Block a job for a budget hard-stop and record it in the ledger, once.
+
+    Sets ``job.status = "blocked"`` (the existing terminal/blocked convention)
+    and appends a ``budget_stop`` ledger entry whose ``reason`` is
+    ``budget_exhausted`` plus the policy's numbers/detail. Idempotent: a job
+    already carrying a ``budget_stop`` entry is not re-recorded. Never raises.
+    """
+
+    try:
+        existing = _load_ledger().get(job_id, [])
+        already = any(
+            isinstance(e, dict) and e.get("kind") == "budget_stop" for e in existing
+        )
+        if not already:
+            _append_ledger(
+                job_id,
+                {
+                    "kind": "budget_stop",
+                    "reason": "budget_exhausted",
+                    "meter": getattr(decision, "meter", "cost"),
+                    "spent": getattr(decision, "spent", None),
+                    "soft_limit": getattr(decision, "soft_limit", None),
+                    "hard_limit": getattr(decision, "hard_limit", None),
+                    "detail": getattr(decision, "detail", ""),
+                },
+            )
+        job.status = "blocked"
+        job.updated_at = _now()
+        _save_jobs(jobs)
+    except Exception:
+        # Honesty over crashing: if persistence fails, leave the in-memory job
+        # marked blocked but never raise into the dispatch caller.
+        job.status = "blocked"
+
+
+# ---------------------------------------------------------------------------
 # Public controller API — used by both CLI and gateway dispatchers
 # ---------------------------------------------------------------------------
 
@@ -369,6 +510,8 @@ def dispatch_job(
     *,
     worker_id: str = "hermes-local-planner",
     repo_root: Optional[str] = None,
+    budget_soft_limit: Optional[float] = None,
+    budget_hard_limit: Optional[float] = None,
 ) -> Optional[Job]:
     """Dispatch a job to a worker via the five-step adapter contract.
 
@@ -380,6 +523,15 @@ def dispatch_job(
     Repo-mutating / external workers implement the same contract but require an
     approved ``execute`` phase first (the owner gate is never bypassed).
 
+    Per-job budget hard-stop: pass ``budget_hard_limit`` (USD) to meter the
+    worker's reported ``cost_usd`` and, once the accrued spend reaches the hard
+    limit, stop the job with status ``"blocked"`` and a ``budget_stop`` ledger
+    entry (reason ``budget_exhausted``) — the same policy kernel and
+    ``should_stop`` semantics the parallel runner uses
+    (:func:`hermes_cli.budget_policy.evaluate_budget`). Both limits default to
+    ``None`` (no budget configured), so the default dispatch path is unchanged.
+    The budget check is wrapped defensively and never raises.
+
     Best-effort: an unknown/unavailable worker or a worker error is recorded
     and the job is left in an honest state — never raised to the caller.
     """
@@ -387,6 +539,20 @@ def dispatch_job(
     job = _find_job(jobs, job_id)
     if not job:
         return None
+
+    # Budget hard-stop, pre-dispatch (mirrors ParallelRunner gating each launch):
+    # if a configured hard budget is *already* exhausted by prior workers'
+    # recorded cost, refuse to launch the next worker. No-op when no budget is
+    # configured (both limits None) — the default path is unaffected. Never raises.
+    if budget_soft_limit is not None or budget_hard_limit is not None:
+        prior_stop = _budget_stop_for_spend(
+            _job_recorded_cost(job_id),
+            soft_limit=budget_soft_limit,
+            hard_limit=budget_hard_limit,
+        )
+        if prior_stop is not None:
+            _record_budget_stop(job_id, jobs, job, prior_stop)
+            return job
 
     # Ensure the built-in adapters are registered (they self-register on import).
     from hermes_cli.workers import builtin_worker_classes, load_builtins
@@ -475,6 +641,9 @@ def dispatch_job(
         _save_jobs(jobs)
         return job
 
+    # Meter this worker's reported cost (same extraction guards as the parallel
+    # runner). 0.0 when the worker reported no usage — the additive default.
+    worker_cost = _worker_reported_cost(run_result)
     _append_ledger(
         job_id,
         {
@@ -483,6 +652,9 @@ def dispatch_job(
             "ok": bool(run_result.ok),
             "summary": (run_result.stdout or "")[:500],
             "error": run_result.error,
+            # Recorded so the pre-dispatch budget guard can sum prior spend on a
+            # later dispatch. Always present (0.0 when no usage) — purely additive.
+            "cost_usd": worker_cost,
         },
     )
     _append_ledger(
@@ -501,6 +673,21 @@ def dispatch_job(
     job.status = "completed" if run_result.ok else "failed"
     job.updated_at = _now()
     _save_jobs(jobs)
+
+    # Budget hard-stop, post-result (mirrors ParallelRunner metering each
+    # completed worker's cost then halting before the next launch): if the
+    # accrued spend now reaches the configured hard limit, mark the job blocked
+    # and record the stop *before* any next worker can be dispatched. No-op when
+    # no budget is configured. Never raises — a budget-subsystem error logs via
+    # the ledger nowhere and simply leaves the job's honest terminal status.
+    if budget_soft_limit is not None or budget_hard_limit is not None:
+        stop = _budget_stop_for_spend(
+            _job_recorded_cost(job_id),
+            soft_limit=budget_soft_limit,
+            hard_limit=budget_hard_limit,
+        )
+        if stop is not None:
+            _record_budget_stop(job_id, jobs, job, stop)
     return job
 
 
