@@ -1,0 +1,26 @@
+{
+  "name": "@muse/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Canonical M.U.S.E. 'Singularity' design tokens — the single source of craft shared by the web cockpit and the Android app.",
+  "type": "module",
+  "files": [
+    "tokens.json",
+    "dist/",
+    "scripts/",
+    "README.md"
+  ],
+  "exports": {
+    "./tokens.json": "./tokens.json",
+    "./tokens.css": "./dist/tokens.css"
+  },
+  "scripts": {
+    "build": "node scripts/generate.mjs",
+    "test": "node test/tokens.test.mjs",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

@@ -196,3 +196,110 @@ the decision (V2, refined, was chosen):
 | `web/public/favicon.ico` | rendered | the web app |
 | `website/static/img/muse-banner.png` | = `assets/banner.png` | Docusaurus `themeConfig.image` |
 | `gateway/cockpit/static/{index.html, tokens.css}` | code | the live cockpit + palette source |
+
+---
+
+## Component catalog
+
+The **canonical UI components** every M.U.S.E. product surface (web cockpit,
+Android app) implements. This is the spec; the tokens live in
+[`design-system/tokens.json`](../../design-system/tokens.json) and are emitted
+to `design-system/dist/tokens.css` (web) and `design-system/dist/Tokens.kt`
+(Compose). When a component and this catalog disagree, this catalog wins; when
+a token value here and `tokens.json` disagree, fix `tokens.json` to match this
+file. Every component obeys the §6 *Do / Don't* — elevation is **tonal** (lift
+the `--void` tone), never a drop shadow; status color (`--ok`/`--warn`/
+`--danger`) is for UI only, never brand art.
+
+Token shorthand below: `void/void-2/void-3/edge/core/signal/signal-dim/
+signal-mute/ring-1/ring-2/ok/warn/danger` = the color tokens; `space-N` = the
+4/8 spacing step; `radius-{sm,md,lg,pill}`; `type-{display,title,body,label}`;
+`duration-{fast,standard,slow}` + `easing-{standard,emphasized,decelerate}`.
+
+### Button
+
+The primary action control. Three variants, one shape (`radius-md`), label is
+`type-label`, padding `space-3` × `space-2`, transitions on
+`duration-fast`/`easing-standard`.
+
+| Variant | Rest | Hover | Active | Disabled |
+|---|---|---|---|---|
+| **Primary** | `core` fill, `void` text | bloom up (raise tone) | scale 0.98 | 40% opacity |
+| **Secondary** | transparent, `1px edge`, `signal` text | `void-2` fill | `void-3` fill | 40% opacity |
+| **Ghost** | transparent, `signal-dim` text | `signal` text, `void-2` fill | `void-3` fill | 40% opacity |
+| **Danger** | `danger` text on transparent, `1px danger` | `danger` 12% fill | `danger` 20% fill | 40% opacity |
+
+Focus-visible: 2px `ring-1` outline (never remove the focus ring). The cockpit
+Emergency-stop is a **Danger** button.
+
+### Card
+
+The default content container. `void-3` surface (the `elevation-card` tonal
+overlay), `1px edge` hairline border, `radius-md`, inner padding `space-4`,
+`space-3` gap between stacked cards. No shadow — depth comes from the lighter
+tone against `void`. A raised/interactive card may step to `void-2` on hover.
+
+### Chip / StatusPill
+
+A small, pill-shaped status or filter token. `radius-pill`, `type-label`,
+padding `space-2` × `space-1`, optional leading `StatusDot`.
+
+| State | Fill | Text |
+|---|---|---|
+| Neutral | `void-2`, `1px edge` | `signal-dim` |
+| OK / online | `ok` 14% | `ok` |
+| Warn / pending | `warn` 14% | `warn` |
+| Danger / blocked | `danger` 14% | `danger` |
+| Accent / active | `ring-1` 14% | `ring-1` |
+
+Selected filter chips invert to `core` fill + `void` text (same as a Primary
+button at pill radius).
+
+### StatusDot
+
+A 8px (`space-2`) filled circle signalling liveness, paired with text. Color =
+the status token: `ok` (online/done), `warn` (attention/pending), `danger`
+(error/stopped), `signal-mute` (idle/disconnected). A "live" dot may pulse
+opacity 1↔0.4 on `duration-slow`/`easing-standard`. This is the cockpit header
+connection indicator.
+
+### PhaseRail
+
+The horizontal job/phase progress indicator (orchestration runs). A row of
+segments separated by `space-2`; each segment is a 4px-tall bar at
+`radius-pill`.
+
+| Phase state | Bar |
+|---|---|
+| Done | `ring-1` fill (the cockpit's `.phase.done .bar`) |
+| Active | `ring-grad` fill, optional shimmer on `duration-slow`/`easing-decelerate` |
+| Pending | `edge` fill |
+| Failed | `danger` fill |
+
+Labels under each segment use `type-label` in `signal-mute` (active = `signal`).
+
+### Glyph
+
+The brand mark, reused verbatim from §2 — one `core` circle + one `ring-grad`
+ring with a single gap, **round** caps, rotated `-32°`. Geometry is driven by
+the `glyph` block in `tokens.json` (ratios relative to the viewBox:
+core ≈ `0.0646`, ring ≈ `0.3125`, stroke ≈ `0.0333`, dasharray `66 28`). The
+ring is **matte** — never bloom or glow it. A slow continuous spin
+(`duration`-independent, ~8s linear loop) is allowed for the live cockpit
+header only. Must survive 16px (§7): keep the core tight so the ring stays a
+distinct circle.
+
+### EmptyState
+
+The zero-data placeholder. Centered stack, `space-6` gap: a dimmed `Glyph`
+(opacity ~0.5, no spin), a `type-title` headline in `signal`, a `type-body`
+line in `signal-dim`, and an optional Primary/Secondary `Button`. Generous
+negative space (§6) — no illustration clutter, no shadow.
+
+### SectionHeader
+
+The divider between content groups. A `type-label` uppercase eyebrow in
+`signal-mute` (tracking from `type-label`), an optional `type-title` heading in
+`signal`, and a `1px edge` rule below with `space-4` of breathing room above
+and `space-3` below. Optional trailing slot for a Ghost button or Chip.
+

@@ -1,0 +1,17 @@
+# UI build artifacts — keep the Vite output and deps out of git.
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Vite / PWA generated assets
+dev-dist/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Editor noise
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store

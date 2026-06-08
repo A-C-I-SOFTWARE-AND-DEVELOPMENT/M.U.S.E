@@ -1,0 +1,8 @@
+# Desktop app build artifacts (defense in depth alongside the per-subdir
+# .gitignores in ui/ and src-tauri/). The repo-root .gitignore already excludes
+# node_modules/ globally.
+ui/node_modules/
+ui/dist/
+ui/dev-dist/
+src-tauri/target/
+src-tauri/gen/

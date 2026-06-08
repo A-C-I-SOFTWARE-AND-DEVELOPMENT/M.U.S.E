@@ -1,0 +1,652 @@
+/**
+ * M.U.S.E. gateway client.
+ *
+ * A small, dependency-free typed wrapper over the cockpit gateway API. It
+ * mirrors the live browser cockpit (gateway/cockpit/static/index.html) so the
+ * desktop app speaks exactly the same protocol:
+ *
+ *   - bearer token in the `Authorization` header (stored in localStorage under
+ *     `muse.cockpit.token`);
+ *   - pairing via POST /v1/cockpit/pair/start → POST /v1/cockpit/pair/confirm;
+ *   - the jobs stream over GET /v1/cockpit/jobs/stream as Server-Sent Events,
+ *     consumed with fetch() + a ReadableStream reader (NOT EventSource, because
+ *     EventSource cannot attach the bearer header);
+ *   - chat over POST /v1/jarvis/chat as newline-delimited JSON (NDJSON);
+ *   - health over GET /v1/health.
+ *
+ * The gateway base URL is configurable (default http://127.0.0.1:8765). In the
+ * Tauri shell it can be overridden; in a plain browser it defaults to the
+ * page origin so the cockpit's same-origin paths keep working.
+ */
+
+export const TOKEN_KEY = "muse.cockpit.token";
+const BASE_KEY = "muse.gateway.base";
+export const DEFAULT_GATEWAY_BASE = "http://127.0.0.1:8765";
+
+/** Resolve the configured gateway base URL (no trailing slash). */
+export function getGatewayBase(): string {
+  const stored = safeLocalStorageGet(BASE_KEY);
+  if (stored) return stripTrailingSlash(stored);
+  // A Vite build-time default lets packagers point at a different gateway.
+  const env = (import.meta.env.VITE_GATEWAY_BASE as string | undefined) || "";
+  if (env) return stripTrailingSlash(env);
+  return DEFAULT_GATEWAY_BASE;
+}
+
+export function setGatewayBase(base: string): void {
+  safeLocalStorageSet(BASE_KEY, stripTrailingSlash(base.trim()));
+}
+
+export function getToken(): string {
+  return safeLocalStorageGet(TOKEN_KEY) || "";
+}
+
+export function setToken(token: string): void {
+  safeLocalStorageSet(TOKEN_KEY, token.trim());
+}
+
+function stripTrailingSlash(s: string): string {
+  return s.replace(/\/+$/, "");
+}
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const h: Record<string, string> = { ...(extra || {}) };
+  const token = getToken();
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+
+/** A single authenticated fetch against the gateway. */
+export async function api(path: string, opts?: RequestInit): Promise<Response> {
+  const o: RequestInit = { ...(opts || {}) };
+  o.headers = authHeaders(o.headers as Record<string, string> | undefined);
+  return fetch(getGatewayBase() + path, o);
+}
+
+// ---- health ---------------------------------------------------------------
+
+/** Ping GET /v1/health. Resolves true iff the gateway answers ok. */
+export async function pingHealth(): Promise<boolean> {
+  try {
+    const r = await fetch(getGatewayBase() + "/v1/health");
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ---- pairing --------------------------------------------------------------
+
+export type PairStartResult = {
+  ok: boolean;
+  pairingCode?: string;
+  error?: string;
+  hint?: string;
+};
+
+/**
+ * POST /v1/cockpit/pair/start. Unauthenticated by design (a new device has no
+ * token yet). Returns a short-lived pairing code on success.
+ */
+export async function pairStart(deviceName?: string): Promise<PairStartResult> {
+  try {
+    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_name: (deviceName || "").trim() }),
+    });
+    const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+    if (!r.ok) {
+      return {
+        ok: false,
+        error: String(d.error ?? r.status),
+        hint: d.hint ? String(d.hint) : undefined,
+      };
+    }
+    return { ok: true, pairingCode: String(d.pairing_code ?? "") };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export type PairConfirmResult = {
+  ok: boolean;
+  token?: string;
+  forbidden?: boolean;
+  error?: string;
+};
+
+/**
+ * POST /v1/cockpit/pair/confirm with the pairing code + owner authorization
+ * phrase. On success, mints and returns a per-device token (also persisted).
+ * A 403 means the owner authorization was wrong/required.
+ */
+export async function pairConfirm(
+  pairingCode: string,
+  authorization: string,
+): Promise<PairConfirmResult> {
+  try {
+    const r = await fetch(getGatewayBase() + "/v1/cockpit/pair/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pairing_code: pairingCode, authorization }),
+    });
+    const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok || !d.token) {
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    const token = String(d.token);
+    setToken(token);
+    return { ok: true, token };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- chat (NDJSON) --------------------------------------------------------
+
+export type ChatTurn = { role: string; content: string };
+
+export type ChatCallbacks = {
+  /** Called with the accumulated assistant text as it streams. */
+  onDelta?: (accumulated: string) => void;
+  onError?: (message: string) => void;
+};
+
+/**
+ * POST /v1/jarvis/chat (NDJSON). Streams the assistant reply line-by-line and
+ * returns the final accumulated text. Mirrors the cockpit's NDJSON parser:
+ * each line is a JSON object; assistant content is concatenated.
+ */
+export async function chat(
+  prompt: string,
+  history: ChatTurn[],
+  cb?: ChatCallbacks,
+): Promise<string> {
+  const r = await api("/v1/jarvis/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, history }),
+  });
+  if (!r.ok || !r.body) {
+    const msg = "error: " + r.status + (r.status === 401 ? " — pair this device" : "");
+    cb?.onError?.(msg);
+    return "";
+  }
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  let acc = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line) continue;
+      try {
+        const obj = JSON.parse(line) as Record<string, unknown>;
+        if (obj.error) {
+          acc += "\n[error] " + String(obj.error);
+        } else if (obj.role === "assistant" && obj.content != null) {
+          acc += String(obj.content);
+        } else if (
+          obj.content != null &&
+          obj.role !== "user" &&
+          obj.role !== "system"
+        ) {
+          acc += String(obj.content);
+        }
+      } catch {
+        /* ignore partial / non-JSON lines */
+      }
+      cb?.onDelta?.(acc);
+    }
+  }
+  return acc;
+}
+
+// ---- jobs (SSE over fetch + ReadableStream) -------------------------------
+
+export type CockpitJob = {
+  id: string;
+  title?: string;
+  status?: string;
+  worker_id?: string;
+  branch?: string;
+  [k: string]: unknown;
+};
+
+export type JobStreamHandlers = {
+  onUpsert?: (job: CockpitJob) => void;
+  onRemoved?: (id: string) => void;
+  /** Connection liveness toggled by stream open/close and heartbeats. */
+  onLive?: (live: boolean) => void;
+};
+
+/**
+ * Subscribe to GET /v1/cockpit/jobs/stream. The endpoint is bearer-authed and
+ * authorizes ONLY via the Authorization header, and a native EventSource cannot
+ * attach headers — so we stream the SSE body with fetch() and parse the
+ * text/event-stream frames ourselves. Reconnects with capped backoff. Returns a
+ * disposer that aborts the stream.
+ *
+ * Falls back to a single poll of GET /v1/cockpit/jobs if fetch/ReadableStream/
+ * AbortController are unavailable.
+ */
+export function subscribeJobs(handlers: JobStreamHandlers): () => void {
+  if (!getToken()) {
+    // Nothing to stream without a token; caller re-subscribes after pairing.
+    return () => {};
+  }
+  if (
+    typeof fetch === "undefined" ||
+    typeof ReadableStream === "undefined" ||
+    typeof AbortController === "undefined"
+  ) {
+    void pollJobsOnce(handlers);
+    const timer = setInterval(() => void pollJobsOnce(handlers), 8000);
+    return () => clearInterval(timer);
+  }
+  const ctrl = new AbortController();
+  void runJobStream(ctrl, handlers);
+  return () => {
+    try {
+      ctrl.abort();
+    } catch {
+      /* already aborted */
+    }
+  };
+}
+
+async function pollJobsOnce(handlers: JobStreamHandlers): Promise<void> {
+  if (!getToken()) return;
+  try {
+    const r = await api("/v1/cockpit/jobs");
+    if (!r.ok) return;
+    const d = (await r.json()) as { jobs?: CockpitJob[] };
+    if (d && Array.isArray(d.jobs)) {
+      d.jobs.forEach((j) => handlers.onUpsert?.(j));
+    }
+  } catch {
+    /* offline */
+  }
+}
+
+async function runJobStream(
+  ctrl: AbortController,
+  handlers: JobStreamHandlers,
+): Promise<void> {
+  let backoff = 1000;
+  while (!ctrl.signal.aborted && getToken()) {
+    try {
+      const r = await fetch(getGatewayBase() + "/v1/cockpit/jobs/stream", {
+        headers: authHeaders({ Accept: "text/event-stream" }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok || !r.body) {
+        if (r.status === 401) {
+          handlers.onLive?.(false);
+          return; // unpaired/expired — stop until token changes
+        }
+        throw new Error("stream status " + r.status);
+      }
+      handlers.onLive?.(true);
+      backoff = 1000;
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        // Normalize CRLF → LF (server emits \r\n\r\n between frames).
+        buf += dec.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+        let sep: number;
+        while ((sep = buf.indexOf("\n\n")) >= 0) {
+          const frame = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          let event = "message";
+          const dataLines: string[] = [];
+          for (const raw of frame.split("\n")) {
+            if (raw.startsWith("event:")) event = raw.slice(6).trim();
+            else if (raw.startsWith("data:"))
+              dataLines.push(raw.slice(5).replace(/^ /, ""));
+          }
+          if (dataLines.length) {
+            dispatchJobEvent(event, dataLines.join("\n"), handlers);
+          } else if (event === "heartbeat") {
+            handlers.onLive?.(true);
+          }
+        }
+      }
+    } catch {
+      if (ctrl.signal.aborted) return; // intentional stop
+    }
+    handlers.onLive?.(false);
+    if (ctrl.signal.aborted || !getToken()) return;
+    await new Promise((res) => setTimeout(res, backoff));
+    backoff = Math.min(backoff * 2, 8000);
+  }
+}
+
+function dispatchJobEvent(
+  event: string,
+  data: string,
+  handlers: JobStreamHandlers,
+): void {
+  if (event === "heartbeat") {
+    handlers.onLive?.(true);
+    return;
+  }
+  let obj: CockpitJob;
+  try {
+    obj = JSON.parse(data) as CockpitJob;
+  } catch {
+    return;
+  }
+  if (!obj || !obj.id) return;
+  if (event === "job.upsert") handlers.onUpsert?.(obj);
+  else if (event === "job.removed") handlers.onRemoved?.(obj.id);
+}
+
+// ---- job phase rail (vocabulary + position) -------------------------------
+
+/**
+ * Canonical job lifecycle phases the rail walks through. Mirrors the cockpit's
+ * (gateway/cockpit/static/index.html) collapsed, owner-meaningful progression
+ * over the server's CockpitJob status vocabulary (contract.JOB_STATUSES).
+ */
+export const JOB_PHASES = [
+  "QUEUED",
+  "RUNNING",
+  "WAITING_FOR_APPROVAL",
+  "APPROVED",
+  "PUBLISHING",
+  "PUBLISHED",
+] as const;
+
+export type JobPhase = (typeof JOB_PHASES)[number];
+
+export const JOB_PHASE_LABEL: Record<JobPhase, string> = {
+  QUEUED: "Queued",
+  RUNNING: "Running",
+  WAITING_FOR_APPROVAL: "Approval",
+  APPROVED: "Approved",
+  PUBLISHING: "Publishing",
+  PUBLISHED: "Published",
+};
+
+const TERMINAL_OK = new Set(["COMPLETED", "PUBLISHED"]);
+const TERMINAL_BAD = new Set(["FAILED", "CANCELLED"]);
+
+export type PhaseState = "done" | "current" | "pending" | "failed";
+
+/**
+ * Resolve, for a given job status, the visual state of each rail segment.
+ * Mirrors the cockpit's `phaseRail` mapping exactly: COMPLETED maps to the end
+ * of the build arc; paused/blocked/draft sit at the start; terminal-bad marks
+ * the current segment failed.
+ */
+export function phaseStates(status: string | undefined): PhaseState[] {
+  const st = String(status || "").toUpperCase();
+  let idx: number = (JOB_PHASES as readonly string[]).indexOf(st);
+  if (st === "COMPLETED") idx = JOB_PHASES.indexOf("PUBLISHED");
+  if (st === "PAUSED" || st === "BLOCKED" || st === "DISCONNECTED" || st === "DRAFT") {
+    idx = 0;
+  }
+  const failed = TERMINAL_BAD.has(st);
+  return JOB_PHASES.map((_ph, i): PhaseState => {
+    if (failed && i === Math.max(idx, 0)) return "failed";
+    if (i < idx) return "done";
+    if (i === idx) return TERMINAL_OK.has(st) ? "done" : "current";
+    return "pending";
+  });
+}
+
+// ---- approvals (owner-gated decide) ---------------------------------------
+
+export type CockpitApproval = {
+  id: string;
+  title?: string;
+  kind?: string;
+  tier?: string;
+  status?: string;
+  summary?: string;
+  proposed_action?: string;
+  [k: string]: unknown;
+};
+
+export type ApprovalsResult =
+  | { ok: true; approvals: CockpitApproval[] }
+  | { ok: false; unauthorized?: boolean; error?: string };
+
+/** GET /v1/cockpit/approvals. Tolerates the `approvals` or `items` envelope. */
+export async function getApprovals(): Promise<ApprovalsResult> {
+  try {
+    const r = await api("/v1/cockpit/approvals");
+    if (!r.ok) {
+      return { ok: false, unauthorized: r.status === 401, error: String(r.status) };
+    }
+    const d = (await r.json()) as {
+      approvals?: CockpitApproval[];
+      items?: CockpitApproval[];
+    };
+    return { ok: true, approvals: d.approvals || d.items || [] };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export type DecideResult = {
+  ok: boolean;
+  /** Server demanded the owner phrase (or it mismatched). */
+  forbidden?: boolean;
+  error?: string;
+};
+
+/**
+ * POST /v1/cockpit/approvals/{id}. `approve` is owner-gated: pass the owner
+ * `authorization` phrase (prompted for at action time, never stored). `reject`
+ * needs no phrase, but a 403 is surfaced as `forbidden` so the caller can
+ * re-prompt once — exactly the cockpit's behavior.
+ */
+export async function decideApproval(
+  id: string,
+  decision: "approve" | "reject",
+  authorization?: string,
+): Promise<DecideResult> {
+  const body: Record<string, unknown> = { decision };
+  if (authorization) body.authorization = authorization;
+  try {
+    const r = await api("/v1/cockpit/approvals/" + encodeURIComponent(id), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- autonomy (raise is owner-gated; lower/revoke is token-only) ----------
+
+export type AutonomyCapabilities = {
+  auto_approved?: string[];
+  requires_approval?: string[];
+  always_deny?: string[];
+};
+
+export type AutonomyState = {
+  level?: string;
+  display_name?: string;
+  set_by?: string;
+  workspace_root?: string;
+  capabilities?: AutonomyCapabilities;
+  [k: string]: unknown;
+};
+
+export type AutonomyResult =
+  | { ok: true; state: AutonomyState }
+  | { ok: false; unauthorized?: boolean; error?: string };
+
+/** The selectable autonomy levels, in display order (mirrors the cockpit). */
+export const AUTONOMY_LEVELS: ReadonlyArray<readonly [string, string]> = [
+  ["read_only", "Read-only"],
+  ["assisted", "Assisted"],
+  ["autonomous", "Autonomous"],
+  ["yolo", "YOLO"],
+  ["owner_high_autonomy_coding", "High-Autonomy Coding"],
+];
+
+/**
+ * Ordinal rank used to decide whether a level change is a *raise* (more
+ * autonomy). A raise is owner-gated; the same ranking the cockpit uses.
+ */
+export const AUTONOMY_RANK: Record<string, number> = {
+  read_only: 0,
+  assisted: 1,
+  autonomous: 2,
+  owner_high_autonomy_coding: 3,
+  yolo: 4,
+};
+
+/** True iff moving `from`→`to` increases autonomy (an owner-gated raise). */
+export function isAutonomyRaise(from: string, to: string): boolean {
+  return (AUTONOMY_RANK[to] ?? 0) > (AUTONOMY_RANK[from] ?? 0);
+}
+
+/** GET /v1/cockpit/autonomy. */
+export async function getAutonomy(): Promise<AutonomyResult> {
+  try {
+    const r = await api("/v1/cockpit/autonomy");
+    if (!r.ok) {
+      return { ok: false, unauthorized: r.status === 401, error: String(r.status) };
+    }
+    const d = (await r.json()) as AutonomyState;
+    return { ok: true, state: d };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+export type SetAutonomyResult = {
+  ok: boolean;
+  forbidden?: boolean;
+  error?: string;
+};
+
+/**
+ * POST /v1/cockpit/autonomy to set the level. A raise (more autonomy than the
+ * current level) is owner-gated server-side; pass the `authorization` phrase
+ * for raises (sending it on a lower/equal change is harmless). `workspacePath`
+ * scopes High-Autonomy Coding. A 403 is surfaced for a single re-prompt.
+ */
+export async function setAutonomy(
+  level: string,
+  opts?: { authorization?: string; workspacePath?: string },
+): Promise<SetAutonomyResult> {
+  const body: Record<string, unknown> = { level };
+  if (opts?.workspacePath) body.workspace_path = opts.workspacePath;
+  if (opts?.authorization) body.authorization = opts.authorization;
+  return postAutonomy(body);
+}
+
+/** POST /v1/cockpit/autonomy with `revoke: true` (token-only; lowers to Assisted). */
+export async function revokeAutonomy(): Promise<SetAutonomyResult> {
+  return postAutonomy({ revoke: true });
+}
+
+async function postAutonomy(body: Record<string, unknown>): Promise<SetAutonomyResult> {
+  try {
+    const r = await api("/v1/cockpit/autonomy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- emergency stop (owner-gated) -----------------------------------------
+
+/**
+ * POST /v1/cockpit/emergency-stop — cancel all jobs and latch autonomy to
+ * read-only. Owner-gated: pass the owner `authorization` phrase. A 403 is
+ * surfaced so the caller can re-prompt once.
+ */
+export async function emergencyStop(authorization?: string): Promise<SetAutonomyResult> {
+  const body: Record<string, unknown> = {};
+  if (authorization) body.authorization = authorization;
+  try {
+    const r = await api("/v1/cockpit/emergency-stop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (r.status === 403) return { ok: false, forbidden: true };
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}) as Record<string, unknown>);
+      return { ok: false, error: String(d.error ?? r.status) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+// ---- owner-gate helper ----------------------------------------------------
+
+/**
+ * Prompt for the owner authorization phrase at the moment of an owner-gated
+ * action. Returns the trimmed phrase, or null if the user cancelled. The phrase
+ * is NEVER persisted (no localStorage, no module state) — it is handed straight
+ * to the request and discarded. Mirrors the cockpit's `promptOwnerPhrase`.
+ */
+export function promptOwnerPhrase(action: string): string | null {
+  let v: string | null;
+  try {
+    v = window.prompt(
+      "Owner-gated: " +
+        action +
+        "\n\nEnter the exact owner authorization phrase to proceed.",
+    );
+  } catch {
+    return null;
+  }
+  if (v == null) return null;
+  return v.trim();
+}
+
+// ---- localStorage helpers (SSR/Tauri-safe) --------------------------------
+
+function safeLocalStorageGet(key: string): string {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function safeLocalStorageSet(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage unavailable */
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capabilities for the M.U.S.E. main window. Deliberately minimal: the UI talks to the gateway over plain HTTP/fetch, so only core window + tray permissions are granted. No filesystem, shell, or HTTP-plugin scopes are opened.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-unminimize",
+    "core:tray:default",
+    "core:menu:default"
+  ]
+}

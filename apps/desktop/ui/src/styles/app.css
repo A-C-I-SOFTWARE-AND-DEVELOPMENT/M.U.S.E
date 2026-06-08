@@ -1,0 +1,555 @@
+/* M.U.S.E. desktop app shell styles.
+ *
+ * Honors docs/brand/muse-design-language.md:
+ *   - white core is the hero; spectral color is a sparing accent (the ring).
+ *   - value/tonal elevation for hierarchy — NO drop-shadows on surfaces.
+ *   - the ring is matte — NO glow/neon on it.
+ *   - ≤3 color roles in any composition (white + the two ring stops).
+ *   - emphasized-easing motion, 250–350ms.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  /* One broad atmospheric depth pool behind the lockup; the rest is pure void. */
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #0a0e1a 0%, var(--void) 60%);
+  color: var(--signal);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: var(--ring-1);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---- header / lockup ----------------------------------------------------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--edge);
+  background: rgba(5, 5, 7, 0.85);
+  backdrop-filter: blur(8px);
+  /* Reserve room for native window controls on macOS when the title bar is
+     overlaid; harmless elsewhere. */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wordmark {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  /* Value ladder: near-white, never pure white — the core owns the peak. */
+  color: #eef2f7;
+}
+
+.wordmark .full {
+  display: block;
+  color: var(--signal-mute);
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.grow {
+  flex: 1;
+}
+
+/* status dot — uses the status palette (never brand art). */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--signal-dim);
+  font-size: 12px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--signal-mute);
+  display: inline-block;
+  transition: background var(--dur-fast) var(--ease-emphasized);
+}
+
+.dot.ok {
+  background: var(--ok);
+}
+
+.dot.off {
+  background: var(--danger);
+}
+
+.dot.live {
+  background: var(--ring-1);
+}
+
+/* ---- nav (route registry) ------------------------------------------------ */
+.app-nav {
+  display: flex;
+  gap: 4px;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid var(--edge);
+  flex-wrap: wrap;
+}
+
+.nav-item {
+  font: inherit;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--signal-mute);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-emphasized);
+}
+
+.nav-item:hover {
+  color: var(--signal-dim);
+}
+
+.nav-item.active {
+  color: var(--signal);
+  border-bottom-color: var(--ring-1);
+}
+
+/* ---- main / cards -------------------------------------------------------- */
+.app-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+.view {
+  max-width: 940px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--void-3);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.muted {
+  color: var(--signal-mute);
+}
+
+.pill {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--edge);
+  color: var(--signal-dim);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.empty {
+  color: var(--signal-mute);
+  padding: 28px;
+  text-align: center;
+}
+
+button {
+  font: inherit;
+  color: var(--signal);
+  background: var(--void-3);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-emphasized);
+}
+
+button:hover {
+  border-color: var(--ring-1);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--core);
+  color: #04060c;
+  border-color: var(--core);
+  font-weight: 600;
+}
+
+button.danger {
+  background: transparent;
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+button.danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+input[type="text"],
+input[type="password"],
+textarea {
+  font: inherit;
+  color: var(--signal);
+  background: var(--void-2);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--ring-1);
+}
+
+/* ---- chat ---------------------------------------------------------------- */
+.chatlog {
+  min-height: 220px;
+  max-height: 52vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.msg {
+  padding: 10px 12px;
+  border-radius: 10px;
+  max-width: 85%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.msg.user {
+  align-self: flex-end;
+  background: var(--void-2);
+  border: 1px solid var(--edge);
+}
+
+.msg.asst {
+  align-self: flex-start;
+  background: #0a0f1c;
+  border: 1px solid var(--edge);
+  /* The one spectral accent in the chat: a thin ring-gradient left edge. */
+  border-left: 2px solid;
+  border-image: var(--ring-grad) 1;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.composer textarea {
+  flex: 1;
+  resize: vertical;
+}
+
+/* ---- glyph --------------------------------------------------------------- */
+.glyph-spin {
+  transform-origin: center;
+  animation: glyph-rot 9s linear infinite;
+}
+
+@keyframes glyph-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glyph-spin {
+    animation: none;
+  }
+}
+
+/* ---- select (matches the scaffold's input styling) ----------------------- */
+select {
+  font: inherit;
+  color: var(--signal);
+  background: var(--void-2);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--ring-1);
+}
+
+/* The Approve action borrows the cockpit's OK-toned outline button. */
+button.approve {
+  background: transparent;
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+button.approve:hover {
+  background: var(--ok);
+  color: #04060c;
+  border-color: var(--ok);
+}
+
+/* Focus-visible ring on every control — never removed (design language §Button). */
+button:focus-visible,
+.nav-item:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ring-1);
+  outline-offset: 1px;
+}
+
+/* ---- small utility classes (avoid inline styles in views) ---------------- */
+.flex-1 {
+  flex: 1;
+}
+
+.gap-top {
+  margin-top: 12px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--edge);
+  margin: 14px 0;
+}
+
+/* ---- section header (design-language SectionHeader) ---------------------- */
+.section-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 4px 2px 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--signal-mute);
+}
+
+.section-title {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+/* ---- notices ------------------------------------------------------------- */
+.notice {
+  border-color: var(--ring-1);
+  color: var(--signal);
+}
+
+.danger-notice {
+  border-color: var(--danger);
+  color: #ffd7d9;
+  background: #1a0e10;
+}
+
+/* ---- offline banner ------------------------------------------------------ */
+.offline-banner {
+  background: #1a0e10;
+  border: 1px solid var(--danger);
+  color: #ffd7d9;
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin: 14px 18px 0;
+}
+
+/* ---- stream / health mini indicator -------------------------------------- */
+.streamdot {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--signal-mute);
+}
+
+.dot-mini {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--signal-mute);
+  transition: background var(--dur-fast) var(--ease-emphasized);
+}
+
+.streamdot.live {
+  color: var(--signal-dim);
+}
+
+.streamdot.live .dot-mini {
+  background: var(--ring-1);
+}
+
+/* ---- chat ---------------------------------------------------------------- */
+.chat-card .chatlog {
+  min-height: 320px;
+  max-height: 62vh;
+}
+
+/* ---- jobs ---------------------------------------------------------------- */
+.job-meta {
+  margin-top: 8px;
+}
+
+/* ---- phase rail (design-language PhaseRail; mirrors the cockpit) ---------- */
+.phaserail {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 12px 0 2px;
+  flex-wrap: wrap;
+}
+
+.phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.phase-node {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--void);
+  border: 1px solid var(--edge);
+  transition:
+    background var(--dur-fast) var(--ease-emphasized),
+    border-color var(--dur-fast) var(--ease-emphasized);
+}
+
+/* Done = spectral ring; current = the incandescent core; failed = danger.
+   The ring stays matte — these are flat tonal fills, no neon/glow. */
+.phase.done .phase-node {
+  background: var(--ring-1);
+  border-color: var(--ring-1);
+}
+
+.phase.current .phase-node {
+  background: var(--core);
+  border-color: var(--core);
+}
+
+.phase.failed .phase-node {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+
+.phase-label {
+  font-size: 11px;
+  color: var(--signal-mute);
+}
+
+.phase.done .phase-label {
+  color: var(--signal-dim);
+}
+
+.phase.current .phase-label {
+  color: var(--signal);
+}
+
+.phase-bar {
+  width: 26px;
+  height: 1px;
+  background: var(--edge);
+  margin: 0 2px;
+}
+
+.phase.done .phase-bar {
+  background: var(--ring-1);
+}
+
+/* ---- approvals ----------------------------------------------------------- */
+.proposed {
+  margin-top: 8px;
+  color: var(--signal-dim);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.approval-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.hint {
+  color: var(--signal-mute);
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.k {
+  color: var(--signal-mute);
+}
+
+/* ---- autonomy ------------------------------------------------------------ */
+.autonomy-controls {
+  margin-top: 14px;
+}
+
+.ws-input {
+  flex: 1;
+  min-width: 220px;
+}
+
+.caps {
+  margin-top: 14px;
+  line-height: 1.7;
+}
+
+/* ---- emergency stop card ------------------------------------------------- */
+.danger-card {
+  border-color: var(--danger);
+}
