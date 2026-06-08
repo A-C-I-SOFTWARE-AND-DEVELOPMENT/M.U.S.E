@@ -218,6 +218,104 @@ class SmsAdapter(BasePlatformAdapter):
         return strip_markdown(content)
 
     # ------------------------------------------------------------------
+    # Capability / health describe surface
+    # ------------------------------------------------------------------
+
+    def _platform_id(self) -> str:
+        """Platform identifier for describe surfaces.
+
+        Resolved defensively so the describe surface never raises even on a
+        partially-constructed adapter (e.g. ``object.__new__`` in tests).
+        """
+        platform = getattr(self, "platform", None)
+        value = getattr(platform, "value", None)
+        return value if isinstance(value, str) else Platform.SMS.value
+
+    def capabilities(self) -> Dict[str, Any]:
+        """Describe what this adapter actually supports.
+
+        Returns a STABLE, JSON-serialisable dict so callers (cockpit,
+        diagnostics, parity checks) can introspect the gateway without
+        platform-specific knowledge.  Every adapter that grows a describe
+        surface returns the same key set; values are derived honestly from
+        what *this* adapter implements:
+
+          - ``platform``: the platform identifier (``"sms"``).
+          - ``supports_media``: False — the SMS adapter does not override
+            ``send_image`` / ``send_image_file``, so media degrades to a
+            plain-text URL rather than a real MMS attachment.
+          - ``supports_threads``: False — each phone number maps to a flat
+            DM session; SMS has no thread/topic concept.
+          - ``supports_draft_streaming``: mirrors
+            :meth:`BasePlatformAdapter.supports_draft_streaming` (False for
+            SMS; there is no streaming-draft channel).
+
+        Never raises and never performs I/O — safe to call at any time,
+        including before :meth:`connect`.
+        """
+        try:
+            supports_draft = bool(self.supports_draft_streaming())
+        except Exception:
+            # Describe surfaces must never raise; degrade conservatively.
+            supports_draft = False
+        return {
+            "platform": self._platform_id(),
+            "supports_media": False,
+            "supports_threads": False,
+            "supports_draft_streaming": supports_draft,
+        }
+
+    def health(self) -> Dict[str, Any]:
+        """Describe readiness without credentials or network access.
+
+        Returns a STABLE dict::
+
+            {
+                "platform": "sms",
+                "healthy": bool,
+                "detail": str,
+                "running": bool,
+            }
+
+        ``health`` is intentionally *passive*: it inspects only already-known
+        local configuration (the from-number and webhook URL) and never makes
+        a Twilio API call or starts the webhook server.  When the adapter is
+        not yet wired (e.g. missing ``TWILIO_PHONE_NUMBER`` or
+        ``SMS_WEBHOOK_URL``) it degrades to an honest ``healthy: False`` with a
+        human-readable reason rather than raising.  This makes it safe to call
+        before :meth:`connect` and without live credentials.
+        """
+        # Use getattr so health() is safe even on a partially-constructed
+        # adapter (e.g. before __init__ has populated every attribute).
+        from_number = getattr(self, "_from_number", "") or ""
+        webhook_url = getattr(self, "_webhook_url", "") or ""
+        try:
+            insecure_no_sig = (
+                os.getenv("SMS_INSECURE_NO_SIGNATURE", "").lower() == "true"
+            )
+        except Exception:
+            insecure_no_sig = False
+        running = bool(getattr(self, "_running", False))
+
+        reasons = []
+        if not from_number:
+            reasons.append("TWILIO_PHONE_NUMBER not set — cannot send replies")
+        if not webhook_url and not insecure_no_sig:
+            reasons.append(
+                "SMS_WEBHOOK_URL not set — required for Twilio signature "
+                "validation (or set SMS_INSECURE_NO_SIGNATURE=true for dev)"
+            )
+
+        healthy = not reasons
+        detail = "ready" if healthy else "; ".join(reasons)
+        return {
+            "platform": self._platform_id(),
+            "healthy": healthy,
+            "detail": detail,
+            "running": running,
+        }
+
+    # ------------------------------------------------------------------
     # Twilio signature validation
     # ------------------------------------------------------------------
 

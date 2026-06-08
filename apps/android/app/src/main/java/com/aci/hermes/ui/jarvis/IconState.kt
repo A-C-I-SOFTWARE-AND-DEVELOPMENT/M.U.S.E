@@ -26,10 +26,10 @@ enum class IconState {
     /** Running a non-blocking task on the user's behalf. */
     WORKING,
 
-    /** A non-destructive action is queued and needs explicit user OK. Gold ring. */
+    /** A non-destructive action is queued and needs explicit user OK. White core + violet ring. */
     WAITING_FOR_APPROVAL,
 
-    /** A reversible-but-serious action is pending approval. Gold ring, stronger pulse. */
+    /** A reversible-but-serious action is pending approval. Violet core + violet ring (heightened), stronger pulse. */
     SERIOUS_ACTION_PENDING,
 
     /** A destructive / hard-to-reverse action is pending approval. Red ring. */
