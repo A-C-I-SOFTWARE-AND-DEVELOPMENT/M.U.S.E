@@ -20,10 +20,14 @@ Design contract:
 * **Bounded.** Lists are capped by ``limit`` and the rendered block is clamped
   to ``max(256, token_budget*4)`` chars (~``token_budget`` tokens, with a small
   floor) — the whole point is to *avoid* whole-repo context stuffing.
-* **Secret-screened (request).** The echoed *request* is passed through
-  ``secrets_policy.redact`` (best-effort), so a pasted key in the prompt never
-  lands in the packet. Graph-derived titles/citations come from already-indexed
-  repo/docs content and are not re-screened here.
+* **Secret-screened (defence in depth).** The echoed *request* is passed
+  through ``secrets_policy.redact`` (best-effort), so a pasted key in the
+  prompt never lands in the packet. Graph-derived strings (node titles/refs,
+  citation URIs/kinds, the architecture summary) come from already-indexed
+  repo/docs content, but they are *also* screened on the way into the packet —
+  the index is an assumption, not a guarantee, and this module advertises
+  secret-screening. Screening uses the same never-raises ``_redact`` wrapper,
+  so it cannot turn a graph hiccup into an exception.
 """
 
 from __future__ import annotations
@@ -49,6 +53,22 @@ def _redact(text: str) -> str:
         return text
 
 
+def _redact_citation(citation: Any) -> dict[str, Any]:
+    """Secret-screen the string fields of a graph citation (never raises).
+
+    Citations are graph-derived dicts (``kind``, ``uri``, …) copied verbatim
+    into the packet and rendered by :meth:`ContextHandoff.render`. We screen
+    every string value — preserving the dict shape and any non-string fields —
+    so a key that somehow reached the index can't ride out via a citation. Non
+    dict inputs are returned unchanged so the never-raises contract holds.
+    """
+    if not isinstance(citation, dict):
+        return citation
+    return {
+        k: (_redact(v) if isinstance(v, str) else v) for k, v in citation.items()
+    }
+
+
 def _is_test(key: str, title: str) -> bool:
     """Path-aware test detection (avoids false positives like ``latest.py``,
     ``attestation``, ``contest``). Matches a ``tests/`` path segment or a
@@ -65,11 +85,15 @@ def _is_test(key: str, title: str) -> bool:
 
 
 def _node_view(node: Any) -> dict[str, Any]:
-    """A compact, source-aware view of a graph Node (no whole-node dump)."""
+    """A compact, source-aware view of a graph Node (no whole-node dump).
+
+    Title/ref are graph-derived free text, so they are secret-screened on the
+    way out (``_redact`` never raises and is idempotent).
+    """
     return {
         "type": node.type.value,
-        "title": node.title,
-        "ref": node.key,
+        "title": _redact(node.title),
+        "ref": _redact(node.key),
         "source_backed": bool(node.sources),
     }
 
@@ -245,7 +269,7 @@ def build_context_handoff(
                 _node_view(n) for n in code_nodes if _is_test(n.key, n.title)
             ][:limit]
             handoff.graph_nodes = [_node_view(n) for n in answer.nodes[:limit]]
-            handoff.citations = list(answer.citations[:20])
+            handoff.citations = [_redact_citation(c) for c in answer.citations[:20]]
 
             # Prior decisions: decision/task nodes in the coding answer, plus
             # the decisions linked to the top seed node.
@@ -260,8 +284,8 @@ def build_context_handoff(
                         decisions.append(
                             {
                                 "type": item.get("node_type", "decision"),
-                                "title": item.get("title", ""),
-                                "ref": item.get("ref", ""),
+                                "title": _redact(item.get("title", "")),
+                                "ref": _redact(item.get("ref", "")),
                                 "source_backed": bool(item.get("source_backed")),
                             }
                         )
@@ -275,9 +299,13 @@ def build_context_handoff(
             handoff.prior_decisions = deduped[:limit]
 
             arch = global_query(graph, request)
+            # Community labels + top node titles are graph-derived free text;
+            # screen each composed line before it enters the packet.
             handoff.architecture_summary = [
-                f"{c.get('label', '?')[:8]} ({c.get('size', 0)} nodes): "
-                + ", ".join(c.get("top_titles", [])[:4])
+                _redact(
+                    f"{c.get('label', '?')[:8]} ({c.get('size', 0)} nodes): "
+                    + ", ".join(c.get("top_titles", [])[:4])
+                )
                 for c in arch.communities[:5]
             ]
         else:
