@@ -81,8 +81,8 @@ This isn't a quality bar — it's a coupling-and-maintenance decision. Memory pr
 ### Clone and install
 
 ```bash
-git clone --recurse-submodules https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse.git
-cd muse
+git clone --recurse-submodules https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+cd M.U.S.E
 
 # Create venv with Python 3.11
 uv venv venv --python 3.11
@@ -901,7 +901,7 @@ test(tools): add unit tests for file_operations
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/muse/issues)
+- Use [GitHub Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
 - Include: OS, Python version, Hermes version (`hermes version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates

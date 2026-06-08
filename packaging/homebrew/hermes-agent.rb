@@ -1,11 +1,11 @@
-class Muse < Formula
+class HermesAgent < Formula
   include Language::Python::Virtualenv
 
   desc "Self-improving AI agent that creates skills from experience"
   homepage "https://hermes-agent.nousresearch.com"
   # Stable source should point at the semver-named sdist asset attached by
   # scripts/release.py, not the CalVer tag tarball.
-  url "https://github.com/NousResearch/muse/releases/download/v2026.3.30/hermes_agent-0.6.0.tar.gz"
+  url "https://github.com/NousResearch/hermes-agent/releases/download/v2026.3.30/hermes_agent-0.6.0.tar.gz"
   sha256 "<replace-with-release-asset-sha256>"
   license "MIT"
 
@@ -17,7 +17,7 @@ class Muse < Formula
   pypi_packages ignore_packages: %w[certifi cryptography pydantic]
 
   # Refresh resource stanzas after bumping the source url/version:
-  #   brew update-python-resources --print-only muse
+  #   brew update-python-resources --print-only hermes-agent
 
   def install
     venv = virtualenv_create(libexec, "python3.14")
@@ -43,6 +43,6 @@ class Muse < Formula
 
     managed = shell_output("#{bin}/hermes update 2>&1")
     assert_match "managed by Homebrew", managed
-    assert_match "brew upgrade muse", managed
+    assert_match "brew upgrade hermes-agent", managed
   end
 end

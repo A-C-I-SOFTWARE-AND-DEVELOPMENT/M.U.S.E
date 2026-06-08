@@ -8,7 +8,7 @@ description: >
 
 inputs:
   image:
-    description: Fully-qualified image tag (e.g. nousresearch/muse:test)
+    description: Fully-qualified image tag (e.g. nousresearch/hermes-agent:test)
     required: true
 
 runs:

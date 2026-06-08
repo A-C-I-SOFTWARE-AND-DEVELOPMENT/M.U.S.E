@@ -1,4 +1,15 @@
-# g-rename-prep: repo-slug `hermes-agent` → `muse` (outward surfaces)
+# g-rename-prep: repo-slug `hermes-agent` → `M.U.S.E` (outward surfaces)
+
+> **REWORKED at merge time (2026-06-08).** The owner renamed the GitHub repo to
+> **`M.U.S.E`** (not lowercase `muse`), so the GitHub URLs were re-pointed
+> `hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`** (README,
+> CONTRIBUTING, issue/PR templates). The publish/deploy guards, Docker/PyPI/Cachix
+> registry names, and the homebrew formula were **reverted to status quo** — they
+> are dormant on this repo (the `github.repository ==` guards never matched it) and
+> the registry renames are owner-coordinated, so changing them here would only risk
+> dead refs or activating dormant publishing. GitHub's rename redirect covers any
+> remaining `hermes-agent` references. The notes below describe the original
+> (pre-rework) `muse` plan and are kept for history.
 
 - **Status:** in-review
 - **Risk class:** behavior-change (owner-gated) — **STAGED**: must merge in
