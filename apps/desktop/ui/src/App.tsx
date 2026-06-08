@@ -94,6 +94,14 @@ export function App() {
         ))}
       </nav>
 
+      {health === "offline" && (
+        <div className="offline-banner" role="status">
+          Offline — can’t reach the gateway. Is{" "}
+          <span className="mono">hermes cockpit serve</span> running? Check the
+          gateway URL in Settings.
+        </div>
+      )}
+
       <main className="app-main">{active ? active.render() : null}</main>
     </div>
   );
