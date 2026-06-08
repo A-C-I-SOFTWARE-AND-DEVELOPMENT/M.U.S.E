@@ -16,9 +16,6 @@ import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -27,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -53,6 +49,10 @@ import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.data.model.TaskStatus
 import com.aci.hermes.data.model.TaskType
 import com.aci.hermes.data.model.WorkerPhase
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,7 +238,7 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+            MuseCard(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AssistChip(
@@ -255,11 +255,7 @@ fun TaskDetailScreen(
                         }
                     }
                     HorizontalDivider()
-                    Text(
-                        text = stringResource(R.string.task_detail_prompt_preview),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                    MuseSectionHeader(title = stringResource(R.string.task_detail_prompt_preview))
                     Text(
                         text = state.promptPreview,
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -268,12 +264,17 @@ fun TaskDetailScreen(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = viewModel::markHandedOff) {
-                    Text(stringResource(R.string.task_detail_mark_handed_off))
-                }
-                OutlinedButton(onClick = viewModel::save, enabled = !state.saving) {
-                    Text(stringResource(R.string.action_save))
-                }
+                MuseButton(
+                    onClick = viewModel::markHandedOff,
+                    text = stringResource(R.string.task_detail_mark_handed_off),
+                    variant = MuseButtonVariant.Primary,
+                )
+                MuseButton(
+                    onClick = viewModel::save,
+                    text = stringResource(R.string.action_save),
+                    variant = MuseButtonVariant.Secondary,
+                    enabled = !state.saving,
+                )
             }
 
             // GraphRAG: related files/sources/decisions for this job (honest
