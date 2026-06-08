@@ -23,7 +23,7 @@ TEST_SLICE_CHECK = "fast test slice"
 
 def test_release_gate_appends_ruff_to_doctor_checks(monkeypatch):
     # Stub the ruff subprocess so the shape test is deterministic and fast.
-    monkeypatch.setattr(rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "x"))
+    monkeypatch.setattr(rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "x"))
 
     doctor_checks = run_10_10_doctor().checks
     report = run_release_gate(run_tests=False)
@@ -40,11 +40,11 @@ def test_release_gate_appends_ruff_to_doctor_checks(monkeypatch):
 
 
 def test_release_gate_includes_test_slice_when_requested(monkeypatch):
-    monkeypatch.setattr(rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "x"))
+    monkeypatch.setattr(rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "x"))
     monkeypatch.setattr(
         rg,
         "_fast_test_slice_check",
-        lambda: ReadinessCheck(TEST_SLICE_CHECK, PASS, "x"),
+        lambda **_kw: ReadinessCheck(TEST_SLICE_CHECK, PASS, "x"),
     )
 
     doctor_checks = run_10_10_doctor().checks
@@ -64,7 +64,7 @@ def test_ok_aggregates_only_hard_failures(monkeypatch):
     monkeypatch.setattr(
         rg,
         "_ruff_check",
-        lambda: ReadinessCheck(RUFF_CHECK, FAIL, "dirty", hard=True),
+        lambda **_kw: ReadinessCheck(RUFF_CHECK, FAIL, "dirty", hard=True),
     )
     report = run_release_gate(run_tests=False)
     assert report.ok is False
@@ -76,7 +76,7 @@ def test_soft_fail_in_appended_check_does_not_block(monkeypatch):
     monkeypatch.setattr(
         rg,
         "_ruff_check",
-        lambda: ReadinessCheck(RUFF_CHECK, FAIL, "soft", hard=False),
+        lambda **_kw: ReadinessCheck(RUFF_CHECK, FAIL, "soft", hard=False),
     )
     report = run_release_gate(run_tests=False)
     # ok reflects only hard fails; the appended soft fail must not block.
@@ -85,7 +85,7 @@ def test_soft_fail_in_appended_check_does_not_block(monkeypatch):
 
 def test_clean_ruff_keeps_healthy_tree_shippable(monkeypatch):
     monkeypatch.setattr(
-        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+        rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "clean")
     )
     report = run_release_gate(run_tests=False)
     # On a healthy tree (no doctor hard failures) a clean ruff stays shippable.
@@ -265,12 +265,12 @@ def test_tool_absent_warn_keeps_gate_shippable(monkeypatch):
     # A soft WARN from a tool-absent slice must NOT flip the verdict to not-ok
     # on an otherwise-healthy tree (no hard failures => still shippable).
     monkeypatch.setattr(
-        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+        rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "clean")
     )
     monkeypatch.setattr(
         rg,
         "_fast_test_slice_check",
-        lambda: ReadinessCheck(TEST_SLICE_CHECK, WARN, "pytest unavailable", hard=False),
+        lambda **_kw: ReadinessCheck(TEST_SLICE_CHECK, WARN, "pytest unavailable", hard=False),
     )
     report = run_release_gate(run_tests=True)
     assert report.ok == (not run_10_10_doctor().hard_failures)
@@ -310,7 +310,7 @@ def test_probe_ok_never_raises_on_bogus_argv():
 
 def test_release_gate_json_shape(monkeypatch):
     monkeypatch.setattr(
-        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+        rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "clean")
     )
     report = run_release_gate(run_tests=False)
     d = report.to_dict()
@@ -330,7 +330,7 @@ def test_release_gate_json_shape(monkeypatch):
 
 def test_release_gate_render_is_human_readable(monkeypatch):
     monkeypatch.setattr(
-        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+        rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "clean")
     )
     text = run_release_gate(run_tests=False).render()
     # Reuses the doctor's renderer, so the heading + a verdict line are present.
@@ -344,7 +344,7 @@ def test_release_gate_render_is_human_readable(monkeypatch):
 
 def test_every_check_is_wellformed(monkeypatch):
     monkeypatch.setattr(
-        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+        rg, "_ruff_check", lambda **_kw: ReadinessCheck(RUFF_CHECK, PASS, "clean")
     )
     report = run_release_gate(run_tests=False)
     assert len(report.checks) >= 20
@@ -354,3 +354,111 @@ def test_every_check_is_wellformed(monkeypatch):
     s = report.to_dict()["summary"]
     assert s["total"] == len(report.checks)
     assert s["failures"] >= s["hard_failures"]
+
+
+# -- WC-2: strict tooling on release hosts ---------------------------------
+#
+# The FU-10 anti-false-RED design (soft WARN on tool absence) protects dev
+# checkouts but inverts the gate on a release host: a stripped Termux release
+# lane or CI runner with no ruff/pytest reports GREEN ship having validated
+# nothing. WC-2 adds an opt-in strict mode — set ``HERMES_RELEASE_GATE_STRICT=1``
+# (or pass ``strict_tooling=True``) and missing tools become a hard FAIL.
+
+
+def test_ruff_missing_under_strict_is_hard_fail(monkeypatch):
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
+    check = rg._ruff_check(strict_tooling=True)
+    assert check.status == FAIL
+    assert check.hard is True
+    assert "release-host strict mode" in check.detail
+    assert "HERMES_RELEASE_GATE_STRICT" in check.detail
+
+
+def test_ruff_missing_under_dev_default_stays_soft_warn(monkeypatch):
+    """FU-10 behavior preserved: tool absent on a dev box never false-REDs."""
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
+    check = rg._ruff_check(strict_tooling=False)
+    assert check.status == WARN
+    assert check.hard is False
+
+
+def test_test_slice_missing_under_strict_is_hard_fail(monkeypatch):
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    check = rg._fast_test_slice_check(strict_tooling=True)
+    assert check.status == FAIL
+    assert check.hard is True
+    assert "release-host strict mode" in check.detail
+
+
+def test_test_slice_missing_under_dev_default_stays_soft_warn(monkeypatch):
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    check = rg._fast_test_slice_check(strict_tooling=False)
+    assert check.status == WARN
+    assert check.hard is False
+
+
+def test_env_var_enables_strict_mode_by_default(monkeypatch):
+    """The env var is the canonical release-lane opt-in."""
+    monkeypatch.setenv("HERMES_RELEASE_GATE_STRICT", "1")
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    # No explicit strict_tooling arg — env var should drive the verdict.
+    report = run_release_gate(run_tests=True)
+    # On a release host where both ruff and pytest are missing, the gate
+    # MUST refuse to ship (the WC-2 headline behavior).
+    assert report.ok is False
+    names = [c.name for c in report.failures]
+    assert RUFF_CHECK in names
+    assert TEST_SLICE_CHECK in names
+
+
+def test_env_var_off_keeps_dev_default(monkeypatch):
+    """Without the opt-in env var, dev hosts stay shippable on tool absence."""
+    monkeypatch.delenv("HERMES_RELEASE_GATE_STRICT", raising=False)
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    report = run_release_gate(run_tests=True)
+    # Soft WARNs on both runtime checks — overall verdict tracks the doctor.
+    assert report.ok == (not run_10_10_doctor().hard_failures)
+    warn_names = [c.name for c in report.warnings]
+    assert RUFF_CHECK in warn_names
+    assert TEST_SLICE_CHECK in warn_names
+
+
+def test_strict_tooling_explicit_override_beats_env(monkeypatch):
+    """``strict_tooling=False`` is the dev escape hatch even with env set."""
+    monkeypatch.setenv("HERMES_RELEASE_GATE_STRICT", "1")
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    report = run_release_gate(run_tests=True, strict_tooling=False)
+    # Explicit False overrides the env var truthy value.
+    assert report.ok == (not run_10_10_doctor().hard_failures)
+    # And tool-absent slots are WARN, not FAIL.
+    statuses = {c.name: c.status for c in report.checks}
+    assert statuses[RUFF_CHECK] == WARN
+    assert statuses[TEST_SLICE_CHECK] == WARN
+
+
+def test_strict_env_truthy_variants(monkeypatch):
+    """Every canonical truthy value flips the gate."""
+    for value in ("1", "true", "True", "yes", "ON"):
+        monkeypatch.setenv("HERMES_RELEASE_GATE_STRICT", value)
+        assert rg._strict_tooling_enabled() is True, f"value={value!r} should enable strict"
+
+
+def test_strict_env_falsey_and_unset_stay_off(monkeypatch):
+    for value in ("0", "false", "no", "off", ""):
+        monkeypatch.setenv("HERMES_RELEASE_GATE_STRICT", value)
+        assert rg._strict_tooling_enabled() is False, f"value={value!r} should stay off"
+    monkeypatch.delenv("HERMES_RELEASE_GATE_STRICT", raising=False)
+    assert rg._strict_tooling_enabled() is False

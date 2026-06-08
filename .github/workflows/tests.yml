@@ -95,6 +95,13 @@ jobs:
           uv pip install -e ".[all,dev]"
 
       - name: Run e2e tests
+        # WC-3: this lane runs the offline E2E (test_core_loop_depth_e2e.py +
+        # other hermetic suites). Tests marked @pytest.mark.live are skipped
+        # by default (see tests/conftest.py pytest_collection_modifyitems);
+        # they opt in via --run-live or HERMES_E2E_LIVE=1, neither of which
+        # is set here. The live smoke (test_core_loop_live_smoke.py) is
+        # therefore registered with CI but does not consume free runner time
+        # — devs and release lanes run it explicitly.
         run: |
           source .venv/bin/activate
           python -m pytest tests/e2e/ -v --tb=short
