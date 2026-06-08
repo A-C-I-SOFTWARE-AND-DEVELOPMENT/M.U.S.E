@@ -15,7 +15,7 @@ subscription/session — not as generic model API backends.
 
 ```bash
 # Fresh install (Linux / macOS / WSL2 / Termux)
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh) --jarvis-launch
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh) --jarvis-launch
 
 # Already installed
 hermes jarvis launch

@@ -5,7 +5,7 @@ for MUSE and how parallel repository work must be coordinated.
 
 ## Canonical source of truth
 
-`A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent` is the canonical source of
+`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` is the canonical source of
 truth for the MUSE runtime.
 
 All MUSE runtime files — the `hermes_cli/jarvis_prime/` package
@@ -32,7 +32,7 @@ without first declaring which one is canonical for that change.
 ## Branching policy
 
 * All future MUSE runtime work branches from
-  `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent` `main`.
+  `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` `main`.
 * Do not edit `main` directly.
 * Do not edit multiple Hermes/JARVIS repositories in parallel without
   declaring which repo is canonical for that change. If a change must
