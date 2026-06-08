@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.assertExists
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.aci.hermes.ui.theme.JarvisPrimeTheme
@@ -43,7 +43,7 @@ class MuseGlyphSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag("glyph-host").assertExists()
+        composeRule.onNodeWithTag("glyph-host").assertIsDisplayed()
     }
 
     @Test
@@ -62,7 +62,7 @@ class MuseGlyphSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag("dot-host").assertExists()
+        composeRule.onNodeWithTag("dot-host").assertIsDisplayed()
     }
 
     @Test
@@ -75,6 +75,6 @@ class MuseGlyphSmokeTest {
             }
         }
 
-        composeRule.onNodeWithTag("gallery-host").assertExists()
+        composeRule.onNodeWithTag("gallery-host").assertIsDisplayed()
     }
 }
