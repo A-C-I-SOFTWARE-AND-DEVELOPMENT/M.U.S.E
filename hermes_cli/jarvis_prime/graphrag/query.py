@@ -208,6 +208,13 @@ def global_query(
             "top_titles": [n.title for n in top],
             "edge_types": dict(sorted(edge_counts.items())),
         })
+    # Rank the surfaced nodes by the *same* deterministic contract as
+    # ``local_query``/``coding_query`` — relevance score, then id — so all
+    # modes hand back a consistently-ranked ``GraphAnswer.nodes`` (reusing
+    # ``_score_node`` rather than duplicating any ranking logic). The
+    # per-community degree sort above still chooses which representatives to
+    # surface; this only fixes their final, cross-cluster order.
+    shown_nodes.sort(key=lambda n: (-_score_node(n, terms), n.id))
     edges = _edges_among(graph, {n.id for n in shown_nodes})
     return GraphAnswer(
         mode="global",
