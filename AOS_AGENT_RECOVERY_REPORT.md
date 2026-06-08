@@ -42,6 +42,20 @@ Methods: direct file enumeration (`find`), grep across both repos for `subagent 
 | HazMat product roles | 5 |
 | **TOTAL registry entries (top-level agents + sub-agents)** | **341** |
 
+> **Read this 341 as a routed-catalog tally, not a file count.** Every row
+> above counts *registry entries* — distinct frontmatter `name:` entries
+> recovered across both source repos, including duplicates (248 vs 233
+> distinct top-level), reconstructed-from-context names, judgement-lens
+> personas, and product roles. It is **not** 341 standalone agent
+> definition files. On disk the installed pack's
+> `skills/aos-enterprise-council/agents/` holds **261** `.md` files, of
+> which **177 are the general `agents/hermes/` skill library**
+> (`1password.md`, `arxiv.md`, …), not council agents — leaving **~84**
+> genuine council category agents across the 16 non-`hermes` category
+> folders. The registries route to specs that may be inline,
+> reconstructed, or shared with the general skill library, so the catalog
+> tally is intentionally larger than the per-agent file set.
+
 ## What was created
 
 ### Repo-root recovery artifacts
