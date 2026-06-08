@@ -26,16 +26,20 @@
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--signal-mute); display: inline-block; }
   .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
   .dot.off { background: var(--danger); }
+  .dot.live { background: var(--ring-1); box-shadow: 0 0 8px var(--ring-1); }
   .status { display: flex; align-items: center; gap: 7px; color: var(--signal-dim); font-size: 12px; }
   button {
     font: inherit; color: var(--signal); background: var(--void-3);
     border: 1px solid var(--edge); border-radius: 8px; padding: 7px 12px; cursor: pointer;
   }
   button:hover { border-color: var(--ring-1); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
   button.primary { background: var(--core); color: #04060c; border-color: var(--core); font-weight: 600; }
+  button.approve { background: transparent; color: var(--ok); border-color: var(--ok); }
+  button.approve:hover { background: var(--ok); color: #04060c; }
   button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
   button.danger:hover { background: var(--danger); color: #fff; }
-  .tabs { display: flex; gap: 4px; padding: 10px 18px 0; border-bottom: 1px solid var(--edge); }
+  .tabs { display: flex; gap: 4px; padding: 10px 18px 0; border-bottom: 1px solid var(--edge); flex-wrap: wrap; }
   .tab { padding: 8px 14px; border: none; background: transparent; color: var(--signal-mute); border-bottom: 2px solid transparent; border-radius: 0; }
   .tab.active { color: var(--signal); border-bottom-color: var(--ring-1); }
   main { padding: 18px; max-width: 940px; margin: 0 auto; }
@@ -51,17 +55,36 @@
   .msg.user { align-self: flex-end; background: var(--void-2); border: 1px solid var(--edge); }
   .msg.asst { align-self: flex-start; background: #0a0f1c; border: 1px solid var(--edge); border-left: 2px solid; border-image: var(--ring-grad) 1; }
   .composer { display: flex; gap: 8px; margin-top: 12px; }
-  textarea, input[type=password] {
+  textarea, input[type=password], input[type=text], select {
     flex: 1; font: inherit; color: var(--signal); background: var(--void-2);
     border: 1px solid var(--edge); border-radius: 8px; padding: 10px; resize: vertical;
   }
-  textarea:focus, input:focus { outline: none; border-color: var(--ring-1); }
+  textarea:focus, input:focus, select:focus { outline: none; border-color: var(--ring-1); }
   .empty { color: var(--signal-mute); padding: 28px; text-align: center; }
   .banner { background: #1a0e10; border: 1px solid var(--danger); color: #ffd7d9; padding: 10px 14px; border-radius: 10px; margin: 14px 18px 0; display: none; }
   .banner.show { display: block; }
+  .pairbanner { background: #0a0f1c; border: 1px solid var(--ring-1); color: var(--signal); padding: 12px 16px; border-radius: 10px; margin: 14px 18px 0; display: none; }
+  .pairbanner.show { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   dialog { background: var(--void-3); color: var(--signal); border: 1px solid var(--edge); border-radius: var(--radius); max-width: 460px; }
   dialog::backdrop { background: rgba(0,0,0,.6); }
   .k { color: var(--signal-mute); }
+  /* ---- Phase rail: a per-job phase progression, lit with the spectral ring -- */
+  .phaserail { display: flex; align-items: center; gap: 0; margin: 10px 0 2px; flex-wrap: wrap; }
+  .phase { display: flex; align-items: center; gap: 6px; }
+  .phase .node {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--void); border: 1px solid var(--edge);
+  }
+  .phase.done .node { background: var(--ring-1); border-color: var(--ring-1); box-shadow: 0 0 6px var(--ring-1); }
+  .phase.current .node { background: var(--core); border-color: var(--core); box-shadow: 0 0 8px var(--core); }
+  .phase.failed .node { background: var(--danger); border-color: var(--danger); box-shadow: 0 0 6px var(--danger); }
+  .phase .label { font-size: 11px; color: var(--signal-mute); }
+  .phase.done .label, .phase.current .label { color: var(--signal-dim); }
+  .phase.current .label { color: var(--signal); }
+  .phase .bar { width: 26px; height: 1px; background: var(--edge); margin: 0 2px; }
+  .phase.done .bar { background: var(--ring-1); }
+  .approval-actions { margin-top: 10px; display: flex; gap: 8px; }
+  .hint { color: var(--signal-mute); font-size: 12px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -85,11 +108,20 @@
 
 <div id="offline" class="banner">Offline — can't reach the gateway. Is <code>hermes cockpit serve</code> running?</div>
 
+<!-- First-run pairing entry point: shown when this browser has no token. -->
+<div id="pairbanner" class="pairbanner">
+  <span>This browser isn't paired yet. Pair it to control MUSE.</span>
+  <span class="grow"></span>
+  <button id="pairbtn" class="primary">Pair this device</button>
+  <button id="tokenpastebtn">Paste a token instead</button>
+</div>
+
 <div class="tabs">
   <button class="tab active" data-tab="chat">Chat</button>
   <button class="tab" data-tab="jobs">Jobs</button>
   <button class="tab" data-tab="approvals">Approvals</button>
   <button class="tab" data-tab="routes">Routes</button>
+  <button class="tab" data-tab="autonomy">Autonomy</button>
 </div>
 
 <main>
@@ -101,9 +133,10 @@
     </div>
   </section>
 
-  <section id="jobs" class="panel"><div id="joblist"><div class="empty">No jobs yet. Live updates stream here.</div></div></section>
+  <section id="jobs" class="panel"><div id="joblist"><div class="empty">No jobs yet. Live updates stream here over SSE.</div></div></section>
   <section id="approvals" class="panel"><div id="approvallist"><div class="empty muted">Loading approvals…</div></div></section>
   <section id="routes" class="panel"><div id="routelist"><div class="empty muted">Loading routes…</div></div></section>
+  <section id="autonomy" class="panel"><div id="autonomylist"><div class="empty muted">Loading autonomy…</div></div></section>
 </main>
 
 <dialog id="tokendlg">
@@ -118,9 +151,38 @@
   </form>
 </dialog>
 
+<dialog id="pairdlg">
+  <form method="dialog">
+    <h3 style="margin-top:0">Pair a new device</h3>
+    <p class="muted">
+      Generate a short-lived pairing code, then confirm it with the owner
+      phrase. A fresh per-device token is minted once and stored only in this
+      browser.
+    </p>
+    <label class="k" for="pairname">Device name (optional)</label>
+    <input type="text" id="pairname" placeholder="e.g. Jeremiah's laptop" style="width:100%" autocomplete="off" />
+    <div class="row" style="margin-top:12px">
+      <button type="button" id="pairstart" class="primary">Get pairing code</button>
+      <span id="paircode" class="mono"></span>
+    </div>
+    <div id="pairconfirmrow" style="display:none;margin-top:14px">
+      <label class="k" for="pairphrase">Owner authorization phrase</label>
+      <input type="password" id="pairphrase" placeholder="owner phrase" style="width:100%" autocomplete="off" />
+      <p class="hint">Issuing a device token is owner-gated. Enter the exact owner phrase.</p>
+    </div>
+    <div id="pairmsg" class="hint"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button value="cancel">Close</button>
+      <button type="button" value="confirm" class="primary" id="pairconfirm" disabled>Confirm &amp; pair</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const TOKEN_KEY = "muse.cockpit.token";
+// The exact owner phrase is NEVER hardcoded or stored: it is prompted for at
+// the moment of each owner-gated action and discarded after the request.
 let token = localStorage.getItem(TOKEN_KEY) || "";
 
 function authHeaders(extra) {
@@ -135,17 +197,32 @@ async function api(path, opts) {
 }
 function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
 
+// Prompt for the owner phrase at action time. Returns the trimmed phrase or
+// null if cancelled. We never persist it.
+function promptOwnerPhrase(action) {
+  const v = window.prompt(
+    "Owner-gated: " + action + "\n\nEnter the exact owner authorization phrase to proceed."
+  );
+  if (v == null) return null;
+  return v.trim();
+}
+
 // ---- connection / health -------------------------------------------------
 async function ping() {
   try {
     const r = await fetch("/v1/health");
     const ok = r.ok;
-    $("#dot").className = "dot " + (ok ? "ok" : "off");
-    $("#statustext").textContent = ok ? "online" : "degraded";
+    // Don't clobber a live SSE indicator with the plain "online" dot.
+    if (!streamLive) {
+      $("#dot").className = "dot " + (ok ? "ok" : "off");
+      $("#statustext").textContent = ok ? "online" : "degraded";
+    }
     $("#offline").classList.toggle("show", !ok);
   } catch (e) {
-    $("#dot").className = "dot off";
-    $("#statustext").textContent = "offline";
+    if (!streamLive) {
+      $("#dot").className = "dot off";
+      $("#statustext").textContent = "offline";
+    }
     $("#offline").classList.add("show");
   }
 }
@@ -159,16 +236,91 @@ document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () 
   $("#" + t.dataset.tab).classList.add("active");
   if (t.dataset.tab === "approvals") loadApprovals();
   if (t.dataset.tab === "routes") loadRoutes();
+  if (t.dataset.tab === "autonomy") loadAutonomy();
 }));
 
-// ---- token dialog --------------------------------------------------------
+// ---- token + pairing entry points ---------------------------------------
+function refreshTokenUi() {
+  $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
+  // First-run: surface the pairing flow instead of a dead end when unpaired.
+  $("#pairbanner").classList.toggle("show", !token);
+}
 $("#tokenbtn").addEventListener("click", () => { $("#tokenin").value = token; $("#tokendlg").showModal(); });
+$("#tokenpastebtn").addEventListener("click", () => { $("#tokenin").value = token; $("#tokendlg").showModal(); });
 $("#tokensave").addEventListener("click", () => {
   token = $("#tokenin").value.trim();
   localStorage.setItem(TOKEN_KEY, token);
-  $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
+  refreshTokenUi();
+  startJobStream();  // (re)connect the live stream with the new token
 });
-if (token) $("#tokenbtn").textContent = "Token ✓";
+refreshTokenUi();
+
+// First-run auto-pair: POST /v1/cockpit/pair/start then /v1/cockpit/pair/confirm.
+let pendingPairCode = "";
+$("#pairbtn").addEventListener("click", () => {
+  $("#paircode").textContent = "";
+  $("#pairmsg").textContent = "";
+  $("#pairconfirmrow").style.display = "none";
+  $("#pairconfirm").disabled = true;
+  pendingPairCode = "";
+  $("#pairdlg").showModal();
+});
+$("#pairstart").addEventListener("click", async () => {
+  $("#pairmsg").textContent = "Requesting a pairing code…";
+  try {
+    // pair/start is unauthenticated by design (a new device has no token yet).
+    const r = await fetch("/v1/cockpit/pair/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_name: $("#pairname").value.trim() }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      $("#pairmsg").textContent = "Pairing unavailable: " + (d.error || r.status) +
+        (d.hint ? " — " + d.hint : "");
+      return;
+    }
+    pendingPairCode = d.pairing_code || "";
+    $("#paircode").textContent = "code: " + pendingPairCode;
+    $("#pairconfirmrow").style.display = "block";
+    $("#pairconfirm").disabled = false;
+    $("#pairmsg").textContent = "Code generated. Enter the owner phrase, then confirm.";
+  } catch (e) {
+    $("#pairmsg").textContent = "Pairing failed: " + e;
+  }
+});
+$("#pairconfirm").addEventListener("click", async () => {
+  const phrase = $("#pairphrase").value.trim();
+  if (!pendingPairCode) { $("#pairmsg").textContent = "Get a pairing code first."; return; }
+  if (!phrase) { $("#pairmsg").textContent = "The owner phrase is required."; return; }
+  $("#pairmsg").textContent = "Confirming…";
+  try {
+    const r = await fetch("/v1/cockpit/pair/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pairing_code: pendingPairCode, authorization: phrase }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 403) {
+      $("#pairmsg").textContent = "Owner authorization required — re-enter the exact phrase.";
+      return;
+    }
+    if (!r.ok || !d.token) {
+      $("#pairmsg").textContent = "Pairing failed: " + (d.error || r.status);
+      return;
+    }
+    token = d.token;
+    localStorage.setItem(TOKEN_KEY, token);
+    $("#pairphrase").value = "";
+    pendingPairCode = "";
+    refreshTokenUi();
+    startJobStream();
+    $("#pairmsg").textContent = "Paired. This device now has its own token.";
+    setTimeout(() => $("#pairdlg").close(), 700);
+  } catch (e) {
+    $("#pairmsg").textContent = "Pairing failed: " + e;
+  }
+});
 
 // ---- chat (NDJSON stream) ------------------------------------------------
 function addMsg(role, text) {
@@ -183,7 +335,7 @@ function addMsg(role, text) {
 async function send() {
   const p = $("#prompt").value.trim();
   if (!p) return;
-  if (!token) { $("#tokendlg").showModal(); return; }
+  if (!token) { $("#pairdlg").showModal(); return; }
   $("#prompt").value = "";
   addMsg("user", p);
   const out = addMsg("asst", "…");
@@ -194,7 +346,7 @@ async function send() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ prompt: p, history: [] }),
     });
-    if (!r.ok) { out.textContent = "error: " + r.status + (r.status === 401 ? " — set your token" : ""); return; }
+    if (!r.ok) { out.textContent = "error: " + r.status + (r.status === 401 ? " — pair this device" : ""); return; }
     const reader = r.body.getReader();
     const dec = new TextDecoder();
     let buf = "";
@@ -224,66 +376,411 @@ $("#prompt").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
 });
 
-// ---- jobs (SSE) ----------------------------------------------------------
+// ---- jobs (live SSE stream + phase rail) ---------------------------------
+// The cockpit server streams job deltas as Server-Sent Events at
+// GET /v1/cockpit/jobs/stream: `job.upsert` (full CockpitJob), `job.removed`
+// ({id}), and `heartbeat`. The endpoint is bearer-authed and authorizes ONLY
+// via the Authorization header (server _authed() reads no query token), and a
+// native EventSource cannot attach headers — so we subscribe by streaming the
+// SSE body with fetch(), carrying the bearer token exactly like every other
+// API call, and parse the text/event-stream frames ourselves. This is a real
+// live subscription (no polling). We fall back to a one-shot poll only if the
+// streaming primitives (fetch + ReadableStream) are unavailable.
 const jobs = new Map();
+let streamAbort = null;     // AbortController for the active SSE fetch (or null)
+let streamLive = false;     // drives the header "live" dot
+let pollTimer = null;       // fallback polling handle when streaming is absent
+
+// Canonical job lifecycle phases the rail walks through. Mirrors the server's
+// CockpitJob status vocabulary (contract.JOB_STATUSES), collapsed to the
+// owner-meaningful progression.
+const PHASES = ["QUEUED", "RUNNING", "WAITING_FOR_APPROVAL", "APPROVED", "PUBLISHING", "PUBLISHED"];
+const PHASE_LABEL = {
+  QUEUED: "Queued", RUNNING: "Running", WAITING_FOR_APPROVAL: "Approval",
+  APPROVED: "Approved", PUBLISHING: "Publishing", PUBLISHED: "Published",
+};
+const TERMINAL_OK = new Set(["COMPLETED", "PUBLISHED"]);
+const TERMINAL_BAD = new Set(["FAILED", "CANCELLED"]);
+
+function phaseRail(status) {
+  const st = String(status || "").toUpperCase();
+  // Where in the rail is this job? COMPLETED maps to the end of the build arc.
+  let idx = PHASES.indexOf(st);
+  if (st === "COMPLETED") idx = PHASES.indexOf("PUBLISHED");
+  if (st === "PAUSED" || st === "BLOCKED" || st === "DISCONNECTED" || st === "DRAFT") idx = 0;
+  const failed = TERMINAL_BAD.has(st);
+  const segs = PHASES.map((ph, i) => {
+    let cls = "phase";
+    if (failed && i === Math.max(idx, 0)) cls += " failed";
+    else if (i < idx) cls += " done";
+    else if (i === idx) cls += (TERMINAL_OK.has(st) ? " done" : " current");
+    const bar = i < PHASES.length - 1 ? '<span class="bar"></span>' : "";
+    return `<span class="${cls}"><span class="node"></span><span class="label">${esc(PHASE_LABEL[ph])}</span></span>${bar}`;
+  });
+  return `<div class="phaserail" data-rail>${segs.join("")}</div>`;
+}
+
 function renderJobs() {
   const el = $("#joblist");
-  if (jobs.size === 0) { el.innerHTML = '<div class="empty">No jobs yet. Live updates stream here.</div>'; return; }
+  if (jobs.size === 0) { el.innerHTML = '<div class="empty">No jobs yet. Live updates stream here over SSE.</div>'; return; }
   el.innerHTML = [...jobs.values()].map((j) => `
     <div class="card">
       <div class="row"><b>${esc(j.title || j.id)}</b><span class="grow"></span>
         <span class="pill">${esc(j.status || "")}</span></div>
-      <div class="muted mono">${esc(j.worker_id || "")} · ${esc(j.branch || "")}</div>
+      ${phaseRail(j.status)}
+      <div class="muted mono">${esc(j.worker_id || "")}${j.branch ? " · " + esc(j.branch) : ""}</div>
     </div>`).join("");
 }
-function startJobStream() {
-  if (!token) return;
-  // EventSource can't send headers, so pass the token as a query param the
-  // server also accepts; fall back to a one-shot fetch list if unsupported.
-  fetch("/v1/cockpit/jobs", { headers: authHeaders() }).then(r => r.ok ? r.json() : null).then((d) => {
-    if (d && Array.isArray(d.jobs)) { jobs.clear(); d.jobs.forEach((j) => jobs.set(j.id, j)); renderJobs(); }
-  }).catch(() => {});
+
+function setLive(on) {
+  streamLive = on;
+  if (on) {
+    $("#dot").className = "dot live";
+    $("#statustext").textContent = "live";
+  }
 }
 
-// ---- approvals -----------------------------------------------------------
+function stopJobStream() {
+  if (streamAbort) { try { streamAbort.abort(); } catch (e) {} streamAbort = null; }
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  setLive(false);
+}
+
+// Dispatch one parsed SSE frame (event name + data) into the job map.
+function handleJobEvent(event, data) {
+  if (event === "heartbeat") { setLive(true); return; }
+  let obj;
+  try { obj = JSON.parse(data); } catch (e) { return; }
+  if (!obj || !obj.id) return;
+  if (event === "job.upsert") { jobs.set(obj.id, obj); renderJobs(); }
+  else if (event === "job.removed") { jobs.delete(obj.id); renderJobs(); }
+}
+
+// Graceful fallback used ONLY when the streaming primitives are unavailable.
+function pollJobsOnce() {
+  if (!token) return;
+  fetch("/v1/cockpit/jobs", { headers: authHeaders() })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      if (d && Array.isArray(d.jobs)) { jobs.clear(); d.jobs.forEach((j) => jobs.set(j.id, j)); renderJobs(); }
+    })
+    .catch(() => {});
+}
+
+// Subscribe to the jobs SSE stream over a fetch() body reader, reconnecting
+// with a short backoff if the connection drops (the server caps each stream's
+// duration, then the client reconnects).
+async function subscribeJobStream(ctrl) {
+  let backoff = 1000;
+  while (!ctrl.signal.aborted && token) {
+    try {
+      const r = await fetch("/v1/cockpit/jobs/stream", {
+        headers: authHeaders({ Accept: "text/event-stream" }),
+        signal: ctrl.signal,
+      });
+      if (!r.ok || !r.body) {
+        // 401 → unpaired/expired; stop trying until the token changes.
+        if (r.status === 401) { setLive(false); return; }
+        throw new Error("stream status " + r.status);
+      }
+      setLive(true);
+      backoff = 1000;
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        // Normalize CRLF → LF so frame splitting is line-ending agnostic
+        // (the server emits \r\n\r\n between frames).
+        buf += dec.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+        // SSE frames are separated by a blank line (\n\n after normalization).
+        let sep;
+        while ((sep = buf.indexOf("\n\n")) >= 0) {
+          const frame = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          let event = "message";
+          const dataLines = [];
+          for (const raw of frame.split("\n")) {
+            if (raw.startsWith("event:")) event = raw.slice(6).trim();
+            else if (raw.startsWith("data:")) dataLines.push(raw.slice(5).replace(/^ /, ""));
+          }
+          if (dataLines.length) handleJobEvent(event, dataLines.join("\n"));
+          else if (event === "heartbeat") setLive(true);
+        }
+      }
+    } catch (e) {
+      if (ctrl.signal.aborted) return;  // intentional stop
+    }
+    setLive(false);
+    if (ctrl.signal.aborted || !token) return;
+    // Brief backoff before reconnecting (capped).
+    await new Promise((res) => setTimeout(res, backoff));
+    backoff = Math.min(backoff * 2, 8000);
+  }
+}
+
+function startJobStream() {
+  stopJobStream();
+  if (!token) return;
+  // Primary path: a live SSE subscription via fetch (carries the bearer token).
+  // Fallback: if fetch/ReadableStream/AbortController aren't available, poll.
+  if (typeof fetch === "undefined" || typeof ReadableStream === "undefined" ||
+      typeof AbortController === "undefined") {
+    pollJobsOnce();
+    pollTimer = setInterval(pollJobsOnce, 8000);
+    return;
+  }
+  const ctrl = new AbortController();
+  streamAbort = ctrl;
+  subscribeJobStream(ctrl);
+}
+
+// ---- approvals (owner-gated approve / deny) ------------------------------
 async function loadApprovals() {
   const el = $("#approvallist");
   try {
     const r = await api("/v1/cockpit/approvals");
-    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Set your token to view approvals." : "error " + r.status}</div>`; return; }
+    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Pair this device to view approvals." : "error " + r.status}</div>`; return; }
     const d = await r.json();
     const items = d.approvals || d.items || [];
     if (!items.length) { el.innerHTML = '<div class="empty muted">No pending approvals. 🟢</div>'; return; }
-    el.innerHTML = items.map((a) => `
+    el.innerHTML = items.map((a) => {
+      const id = esc(a.id || "");
+      const pending = String(a.status || "PENDING").toUpperCase() === "PENDING";
+      const actions = pending
+        ? `<div class="approval-actions">
+             <button class="approve" data-approve="${id}">Approve</button>
+             <button class="danger" data-deny="${id}">Deny</button>
+           </div>`
+        : `<div class="hint">Decision: ${esc(a.status)}</div>`;
+      return `
       <div class="card">
-        <div class="row"><b>${esc(a.kind || "approval")}</b><span class="grow"></span><span class="pill">${esc(a.job_id || "")}</span></div>
-        <div>${esc(a.summary || "")}</div>
-      </div>`).join("");
+        <div class="row"><b>${esc(a.title || a.kind || "approval")}</b><span class="grow"></span>
+          <span class="pill">${esc(a.tier || "")}</span><span class="pill">${esc(a.status || "")}</span></div>
+        <div>${esc(a.summary || a.proposed_action || "")}</div>
+        ${actions}
+      </div>`;
+    }).join("");
+    el.querySelectorAll("[data-approve]").forEach((b) =>
+      b.addEventListener("click", () => decideApproval(b.getAttribute("data-approve"), "approve")));
+    el.querySelectorAll("[data-deny]").forEach((b) =>
+      b.addEventListener("click", () => decideApproval(b.getAttribute("data-deny"), "reject")));
   } catch (e) { el.innerHTML = '<div class="empty">offline</div>'; }
 }
 
-// ---- routes --------------------------------------------------------------
+async function decideApproval(id, decision) {
+  if (!id) return;
+  const body = { decision };
+  // Approve is owner-gated: prompt for the exact owner phrase at action time.
+  // (Reject needs no phrase, but a 403 from the server re-prompts either way.)
+  if (decision === "approve") {
+    const phrase = promptOwnerPhrase("Approve proposal " + id);
+    if (phrase == null) return;       // cancelled
+    body.authorization = phrase;
+  }
+  let r;
+  try {
+    r = await api("/v1/cockpit/approvals/" + encodeURIComponent(id), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) { alert("Request failed: " + e); return; }
+  if (r.status === 403) {
+    // Owner authorization required / phrase mismatch — re-prompt once.
+    const retry = promptOwnerPhrase("Authorization required — re-enter the exact phrase to approve " + id);
+    if (retry == null) return;
+    try {
+      r = await api("/v1/cockpit/approvals/" + encodeURIComponent(id), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision, authorization: retry }),
+      });
+    } catch (e) { alert("Request failed: " + e); return; }
+  }
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    alert("Decision failed (" + r.status + "): " + (d.error || ""));
+  }
+  loadApprovals();
+}
+
+// ---- routes + model switcher ---------------------------------------------
 async function loadRoutes() {
   const el = $("#routelist");
   try {
     const r = await api("/v1/cockpit/model-routes");
-    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Set your token to view routes." : "error " + r.status}</div>`; return; }
+    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Pair this device to view routes." : "error " + r.status}</div>`; return; }
     const d = await r.json();
     const routes = d.routes || [];
     if (!routes.length) { el.innerHTML = '<div class="empty muted">No routes reported.</div>'; return; }
-    el.innerHTML = routes.map((rt) => `
+    el.innerHTML = routes.map((rt) => {
+      const tc = esc(rt.task_class);
+      const fallbacks = (rt.fallback_chain || []).map((m) => esc(m));
+      // Candidate models the operator can pin: the chosen model plus its
+      // fallbacks (de-duplicated). "auto" clears any override.
+      const cands = [];
+      if (rt.chosen) cands.push(rt.chosen);
+      (rt.fallback_chain || []).forEach((m) => { if (m && cands.indexOf(m) < 0) cands.push(m); });
+      const opts = ['<option value="">auto (clear override)</option>']
+        .concat(cands.map((m) => {
+          const sel = rt.owner_override && rt.owner_override === m ? " selected" : "";
+          return `<option value="${esc(m)}"${sel}>${esc(m)}</option>`;
+        }));
+      return `
       <div class="card">
-        <div class="row"><b>${esc(rt.task_class)}</b><span class="grow"></span>
-          <span class="pill">${esc(rt.route_tier || "")}</span></div>
+        <div class="row"><b>${tc}</b><span class="grow"></span>
+          <span class="pill">${esc(rt.route_tier || "")}</span>
+          ${rt.owner_override ? '<span class="pill">override</span>' : ""}</div>
         <div class="mono">→ ${esc(rt.chosen || "—")}</div>
+        ${fallbacks.length ? `<div class="muted mono" style="margin-top:4px">fallback: ${fallbacks.join(" → ")}</div>` : ""}
         ${rt.why ? `<div class="muted" style="margin-top:6px">${esc(rt.why)}</div>` : ""}
-      </div>`).join("");
+        <div class="row" style="margin-top:10px">
+          <span class="k">Switch model</span>
+          <select data-route="${tc}">${opts.join("")}</select>
+          <button data-apply="${tc}">Apply</button>
+        </div>
+      </div>`;
+    }).join("");
+    el.querySelectorAll("[data-apply]").forEach((b) =>
+      b.addEventListener("click", () => {
+        const tc = b.getAttribute("data-apply");
+        const sel = el.querySelector(`select[data-route="${CSS.escape(tc)}"]`);
+        applyRouteOverride(tc, sel ? sel.value : "");
+      }));
   } catch (e) { el.innerHTML = '<div class="empty">offline</div>'; }
+}
+
+async function applyRouteOverride(taskClass, model) {
+  // Override body mirrors POST /v1/cockpit/model-routes/override: an empty
+  // `model` clears the override. (Pinning a task to a model is a reversible,
+  // token-authenticated preference — no owner phrase required.)
+  try {
+    const r = await api("/v1/cockpit/model-routes/override", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ task_class: taskClass, model: model || null }),
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      alert("Override failed (" + r.status + "): " + (d.error || ""));
+    }
+  } catch (e) { alert("Override failed: " + e); }
+  loadRoutes();
+}
+
+// ---- autonomy control ----------------------------------------------------
+const AUTONOMY_LEVELS = [
+  ["read_only", "Read-only"],
+  ["assisted", "Assisted"],
+  ["autonomous", "Autonomous"],
+  ["yolo", "YOLO"],
+  ["owner_high_autonomy_coding", "High-Autonomy Coding"],
+];
+// Order used to decide whether a change is a *raise* (more autonomy) — a raise
+// is owner-gated, so we attach the owner phrase to those requests.
+const AUTONOMY_RANK = { read_only: 0, assisted: 1, autonomous: 2, owner_high_autonomy_coding: 3, yolo: 4 };
+
+async function loadAutonomy() {
+  const el = $("#autonomylist");
+  try {
+    const r = await api("/v1/cockpit/autonomy");
+    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Pair this device to view autonomy." : "error " + r.status}</div>`; return; }
+    const d = await r.json();
+    const cur = String(d.level || "");
+    const opts = AUTONOMY_LEVELS.map(([v, label]) =>
+      `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(label)}</option>`);
+    const caps = d.capabilities || {};
+    const wsScoped = cur === "owner_high_autonomy_coding";
+    el.innerHTML = `
+      <div class="card">
+        <div class="row"><b>Autonomy</b><span class="grow"></span>
+          <span class="pill">${esc(d.display_name || cur || "unknown")}</span></div>
+        <div class="muted">Set by ${esc(d.set_by || "owner")}${d.workspace_root ? " · scope " + esc(d.workspace_root) : ""}</div>
+        <div class="row" style="margin-top:12px">
+          <span class="k">Level</span>
+          <select id="autonomysel">${opts.join("")}</select>
+          <input type="text" id="autonomyws" placeholder="workspace path (for High-Autonomy Coding)"
+                 value="${esc(d.workspace_root || "")}" style="${wsScoped ? "" : "display:none"}" />
+          <button id="autonomyapply" class="primary">Apply</button>
+          <button id="autonomyrevoke" class="danger">Revoke → Assisted</button>
+        </div>
+        <div class="hint">Raising autonomy is owner-gated; you'll be asked for the owner phrase.</div>
+        <div style="margin-top:12px" class="muted mono">
+          auto-approved: ${esc((caps.auto_approved || []).join(", ") || "—")}<br/>
+          requires approval: ${esc((caps.requires_approval || []).join(", ") || "—")}<br/>
+          always deny: ${esc((caps.always_deny || []).join(", ") || "—")}
+        </div>
+      </div>`;
+    const sel = $("#autonomysel");
+    sel.addEventListener("change", () => {
+      $("#autonomyws").style.display = sel.value === "owner_high_autonomy_coding" ? "" : "none";
+    });
+    $("#autonomyapply").addEventListener("click", () => applyAutonomy(cur));
+    $("#autonomyrevoke").addEventListener("click", () => revokeAutonomy());
+  } catch (e) { el.innerHTML = '<div class="empty">offline</div>'; }
+}
+
+async function applyAutonomy(currentLevel) {
+  const level = $("#autonomysel").value;
+  const workspace_path = $("#autonomyws").value.trim();
+  const body = { level };
+  if (workspace_path) body.workspace_path = workspace_path;
+  // A *raise* (more autonomy than current) is owner-gated server-side. Attach
+  // the owner phrase for raises; sending it on a lower/equal change is harmless.
+  const isRaise = (AUTONOMY_RANK[level] ?? 0) > (AUTONOMY_RANK[currentLevel] ?? 0);
+  if (isRaise) {
+    const phrase = promptOwnerPhrase("Raise autonomy to " + level);
+    if (phrase == null) return;
+    body.authorization = phrase;
+  }
+  let r;
+  try {
+    r = await api("/v1/cockpit/autonomy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (e) { alert("Request failed: " + e); return; }
+  if (r.status === 403) {
+    // Server owner-gates the raise — re-prompt for the exact phrase once.
+    const retry = promptOwnerPhrase("Authorization required — re-enter the exact phrase to raise autonomy");
+    if (retry == null) return;
+    body.authorization = retry;
+    try {
+      r = await api("/v1/cockpit/autonomy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (e) { alert("Request failed: " + e); return; }
+  }
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    alert("Autonomy change failed (" + r.status + "): " + (d.error || ""));
+  }
+  loadAutonomy();
+}
+
+async function revokeAutonomy() {
+  try {
+    const r = await api("/v1/cockpit/autonomy", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revoke: true }),
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      alert("Revoke failed (" + r.status + "): " + (d.error || ""));
+    }
+  } catch (e) { alert("Revoke failed: " + e); }
+  loadAutonomy();
 }
 
 // ---- emergency stop ------------------------------------------------------
 $("#estop").addEventListener("click", async () => {
-  if (!token) { $("#tokendlg").showModal(); return; }
+  if (!token) { $("#pairdlg").showModal(); return; }
   if (!confirm("Emergency stop: cancel all jobs and latch autonomy to read-only?")) return;
   try {
     const r = await api("/v1/cockpit/emergency-stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -291,8 +788,8 @@ $("#estop").addEventListener("click", async () => {
   } catch (e) { alert("Emergency stop failed: " + e); }
 });
 
+// Kick off the live job stream (no-op until a token exists).
 startJobStream();
-setInterval(() => { if ($("#jobs").classList.contains("active")) startJobStream(); }, 8000);
 </script>
 </body>
 </html>
