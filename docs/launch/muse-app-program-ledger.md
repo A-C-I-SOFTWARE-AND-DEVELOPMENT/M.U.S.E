@@ -24,7 +24,7 @@ builder ≠ reviewer, validate before every PR, disjoint file ownership.
 ## Wave 0 — foundation (disjoint dirs; scaffolds the shared files later waves consume)
 | Grain | Scope | Owns | Branch | Status |
 |---|---|---|---|---|
-| **G0.1** | MUSE design system (tokens.json → tokens.css + Tokens.kt; component catalog) | `design-system/**`, append `docs/brand/muse-design-language.md` | `claude/muse-app-g01-design-system` | building |
+| **G0.1** | MUSE design system (tokens.json → tokens.css + Tokens.kt; component catalog) | `design-system/**`, append `docs/brand/muse-design-language.md` | `claude/muse-app-g01-design-system` | **merged** (#400 → `a7f2fc9f`) |
 | **G0.2** | Tauri v2 desktop scaffold + Singularity Vite/React client + PWA | `apps/desktop/**` | `claude/muse-app-g02-desktop-scaffold` | building |
 | **G0.3** | Android Compose design-system module (components + gallery + tests) | `apps/android/.../ui/designsystem/**`, `.../test/.../ui/designsystem/**` | `claude/muse-app-g03-android-ds` | building |
 
@@ -52,3 +52,5 @@ builder ≠ reviewer, validate before every PR, disjoint file ownership.
 ## Event log
 - `2026-06-08` — Program approved. `main` advanced to `d22c3e4a` via PR #398 (design foundation).
   Wave 0 launched: G0.1, G0.2, G0.3 building in isolated worktrees.
+- `2026-06-08` — **G0.1 merged** (PR #400 → `main` `a7f2fc9f`): shared `design-system/` token
+  source (validated, 35/35 assertions, committed `dist/` matches generator). G0.2/G0.3 still building.
