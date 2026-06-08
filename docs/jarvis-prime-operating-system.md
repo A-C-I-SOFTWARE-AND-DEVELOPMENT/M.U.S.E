@@ -246,9 +246,9 @@ CLIs and your own subscription/session), never generic model API backends.
 Bring MUSE up, or (re)configure routing, with:
 
 ```bash
-hermes jarvis launch                            # full free-first launch path
-hermes models bootstrap --free-first --jarvis   # (re)configure model routing only
-hermes doctor --jarvis-launch                   # verify launch readiness
+muse jarvis launch                            # full free-first launch path
+muse models bootstrap --free-first --jarvis   # (re)configure model routing only
+muse doctor --jarvis-launch                   # verify launch readiness
 ```
 
 Or one-click from a fresh machine:
@@ -472,7 +472,7 @@ Security, Release, Owner Approval, Rollback) and prints a summary.
 This packet-level path is *self-attestable* and is for planning. To make a
 gate pass only on **captured evidence** (a real git diff, an executed test
 run, a clean secret scan, a reviewer note, a rollback plan, a challenge-bound
-owner grant) use the verifiable guardrail subsystem — `hermes guardrails` and
+owner grant) use the verifiable guardrail subsystem — `muse guardrails` and
 strict evidence mode. See
 [`docs/security/verifiable-guardrails.md`](security/verifiable-guardrails.md).
 

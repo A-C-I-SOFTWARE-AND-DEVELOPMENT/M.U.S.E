@@ -1,6 +1,6 @@
-# Hermes phone-first runtime on Termux
+# M.U.S.E. phone-first runtime on Termux
 
-Hermes Agent runs as a real local development backend on an Android phone
+M.U.S.E. runs as a real local development backend on an Android phone
 through [Termux](https://termux.dev/). The phone is the primary host: it
 owns the venv, the working directories, and the service lifecycle. No
 desktop machine is required, and no traffic leaves the device unless you
@@ -15,7 +15,7 @@ companion guides cover the OS-level pieces:
 ## Why phone-first
 
 Termux gives you a real POSIX userland (`bash`, `python`, `git`, `node`,
-`ssh`, `pkg`) inside a normal Android app sandbox. Hermes treats this as
+`ssh`, `pkg`) inside a normal Android app sandbox. M.U.S.E. treats this as
 a first-class deployment target rather than a curiosity:
 
 - **No round trips.** Tools, models, and state live on the device.
@@ -78,7 +78,7 @@ What it checks, grouped:
 3. **Wake lock support** — `termux-wake-lock` / `termux-wake-unlock`.
 4. **Core tooling** — `git`, `python`/`python3`, `pip`, `node`.
 5. **Optional CLI agents** — `gh`, `codex`, `claude`, `aider`, `goose`.
-6. **Hermes install state** — `HERMES_HOME`, `hermes-agent` checkout,
+6. **M.U.S.E. install state** — `HERMES_HOME`, `hermes-agent` checkout,
    venv discovery, `hermes` command on PATH.
 
 Sample output (abridged):
@@ -106,7 +106,7 @@ variables — no separate config file, no secrets in version control.
 
 | Variable                    | Purpose                                          | Default      |
 | --------------------------- | ------------------------------------------------ | ------------ |
-| `HERMES_HOME`               | Hermes data directory                            | `~/.hermes`  |
+| `HERMES_HOME`               | M.U.S.E. data directory                            | `~/.hermes`  |
 | `HERMES_REPO_DIR`           | Path to the `hermes-agent` checkout              | auto-detect  |
 | `HERMES_TERMUX_API_PORT`    | Local API port                                   | `8765`       |
 | `HERMES_TERMUX_GATEWAY`     | Set to `1` to also start the gateway             | unset        |

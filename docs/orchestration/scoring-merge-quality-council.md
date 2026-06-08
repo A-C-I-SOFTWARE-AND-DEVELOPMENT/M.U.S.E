@@ -1,6 +1,6 @@
 # Scoring, merge, and quality council (Phase 14)
 
-Hermes orchestrates several workers in parallel against the same task.
+M.U.S.E. orchestrates several workers in parallel against the same task.
 Phase 14 is the bookkeeper that runs *after* the workers finish: it
 scores each one across sixteen categories, compares them, identifies
 conflicts, picks the best candidate, and writes both a machine-readable

@@ -1,9 +1,9 @@
-# Android permissions and constraints for Hermes on Termux
+# Android permissions and constraints for M.U.S.E. on Termux
 
 Android is not a general-purpose Linux. A process running inside
 Termux is still bound by the platform's background-execution rules,
 its battery optimizer, and its storage sandbox. This document calls
-out the constraints that matter for the Hermes phone-first runtime,
+out the constraints that matter for the M.U.S.E. phone-first runtime,
 and how the service script accommodates each one.
 
 ## Background execution limits
@@ -15,7 +15,7 @@ of the screen turning off.
 
 Termux ships its own foreground service that holds the notification
 you see when Termux is running. While that notification is visible,
-Termux itself is exempt from background restrictions. Hermes inherits
+Termux itself is exempt from background restrictions. M.U.S.E. inherits
 that exemption only as long as:
 
 1. **The Termux notification is showing.** Do not swipe it away. On
@@ -30,7 +30,7 @@ must be met. The service script handles #2 for you; you handle #1 and
 
 ## Foreground service / notification
 
-Termux's foreground notification is what gives Hermes a stable home
+Termux's foreground notification is what gives M.U.S.E. a stable home
 on Android. The Termux team strongly recommends leaving it visible,
 and so do we — there is no reliable way to keep a long-running Linux
 process alive on modern Android without it.
@@ -107,7 +107,7 @@ beyond installing Termux:Boot and opening it once.
 
 ## File storage paths
 
-Termux has two distinct filesystems, and Hermes uses both:
+Termux has two distinct filesystems, and M.U.S.E. uses both:
 
 | Path                        | Owned by      | Notes                                          |
 | --------------------------- | ------------- | ---------------------------------------------- |
@@ -117,7 +117,7 @@ Termux has two distinct filesystems, and Hermes uses both:
 | `/sdcard`, `/storage/...`   | Shared        | Requires storage permission                    |
 
 Run `termux-setup-storage` once after installing Termux to create the
-`~/storage` symlinks. Hermes itself does not require shared storage —
+`~/storage` symlinks. M.U.S.E. itself does not require shared storage —
 `$HERMES_HOME` defaults to `$HOME/.hermes`, which lives entirely
 inside the Termux-private sandbox. The doctor script will warn
 if `~/storage` is missing but will not treat it as a failure.
@@ -160,7 +160,7 @@ deliberately does not do.
   Android's Private DNS and per-app VPNs can block them silently.
 - Mobile networks (LTE/5G) often run behind carrier NAT — exposing
   the API to the public internet requires a tunnel (Tailscale,
-  Cloudflare Tunnel, etc.). Hermes does not require this and the
+  Cloudflare Tunnel, etc.). M.U.S.E. does not require this and the
   default install does not configure it.
 
 ## Summary table
@@ -170,7 +170,7 @@ deliberately does not do.
 | Doze / background limits         | Wake lock + persistent Termux notification              |
 | Vendor battery optimizer         | Whitelist Termux + Termux:Boot manually (once per device)|
 | Boot autostart                   | Termux:Boot add-on + `~/.termux/boot/10-hermes`         |
-| Shared storage access            | `termux-setup-storage` once; optional for Hermes itself |
+| Shared storage access            | `termux-setup-storage` once; optional for M.U.S.E. itself |
 | Privileged ports                 | Use a port >=1024 (`HERMES_TERMUX_API_PORT`)            |
 | Public reachability              | Bring your own tunnel (out of scope)                    |
 

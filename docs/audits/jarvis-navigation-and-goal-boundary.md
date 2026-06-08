@@ -65,11 +65,11 @@ Tests (all passing): `tests/test_goal_boundary.py`.
 | Worker actuators (Claude/Codex/Aider/Goose/local) | **scaffolded (pre-existing)**; real git diffs via `collect_git_artifacts` | `hermes_cli/workers/` |
 | Worktree/sandbox isolation | **scaffolded (pre-existing)** | `hermes_cli/workers/isolation.py` |
 | Hardware probe + open-weight catalog | **shipped (tested)** | `hermes_cli/local_models/{hardware_probe,catalog}.py` (this branch) |
-| Local model download layer (consent-gated) | **shipped (tested)** | `hermes_cli/local_models/bootstrap.py` + `server_adapters.py` (note: the `hermes models bootstrap` CLI command is the free-first router in `jarvis_prime/model_bootstrap.py`) |
+| Local model download layer (consent-gated) | **shipped (tested)** | `hermes_cli/local_models/bootstrap.py` + `server_adapters.py` (note: the `muse models bootstrap` CLI command is the free-first router in `jarvis_prime/model_bootstrap.py`) |
 | Model scorecards (local selection by composite) | **shipped (tested)** | `hermes_cli/local_models/scorecards.py` (this branch; distinct from PR #177's worker scorecard) |
 | Orchestrator → navigator wiring before dispatch | **shipped (tested)** | `orchestrator.navigate_job()` (this branch) |
 | Repair loop (test→localize→patch→rerun→stop) | **shipped (tested)** | `hermes_cli/workers/repair_loop.py` (this branch) |
-| Job replay (`hermes orchestrate replay <job-id>`) | **shipped (tested)** | `hermes_cli/orchestrator_replay.py` (this branch) |
+| Job replay (`muse orchestrate replay <job-id>`) | **shipped (tested)** | `hermes_cli/orchestrator_replay.py` (this branch) |
 
 ## What was deliberately NOT done (and why)
 
@@ -112,7 +112,7 @@ This is exercised by `tests/test_orchestrator_navigation.py` (submit → navigat
   (Qwen / DeepSeek / Kimi / GLM coding+reasoning, plus local embeddings +
   reranker), each with **license**, runtime, min RAM/VRAM, context, lanes, and
   checksum/source `verify` guidance. The existing provider catalog is untouched.
-- `hermes models bootstrap --tier <t> [--accept-downloads]` plans against
+- `muse models bootstrap --tier <t> [--accept-downloads]` plans against
   detected hardware and **never downloads without `--accept-downloads`**.
 - Docs: `docs/ai-intelligence/oss-model-catalog.md` (extended, not replaced) +
   `model-routing-policy.md` (pre-existing).
@@ -120,7 +120,7 @@ This is exercised by `tests/test_orchestrator_navigation.py` (submit → navigat
 ## Still deferred (honest)
 
 - Phases 1/2/7/8 remain in PR #177 (not duplicated here).
-- A `hermes jarvis navigate "<issue>"` interactive CLI lane is intentionally not
+- A `muse jarvis navigate "<issue>"` interactive CLI lane is intentionally not
   wired into the 666 KB `cli.py` without integration tests; the orchestrator
   `navigate_job()` hook is the programmatic integration point and is tested.
 - Repair-loop ledger persistence (`ledger_records()`) is provided but the
@@ -130,9 +130,9 @@ This is exercised by `tests/test_orchestrator_navigation.py` (submit → navigat
 ## One-command demo
 
 ```bash
-hermes orchestrate "make a tiny safe code change, test it, and open a draft PR"
+muse orchestrate "make a tiny safe code change, test it, and open a draft PR"
 ```
 
 The navigator localizes the change, the goal boundary bounds the loop, the
 repair loop verifies via tests, and the decision trail is replayable with
-`hermes orchestrate replay <job-id>`.
+`muse orchestrate replay <job-id>`.

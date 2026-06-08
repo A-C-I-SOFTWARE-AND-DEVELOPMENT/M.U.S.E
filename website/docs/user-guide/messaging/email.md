@@ -1,12 +1,12 @@
 ---
 sidebar_position: 7
 title: "Email"
-description: "Set up Hermes Agent as an email assistant via IMAP/SMTP"
+description: "Set up M.U.S.E. as an email assistant via IMAP/SMTP"
 ---
 
 # Email Setup
 
-Hermes can receive and reply to emails using standard IMAP and SMTP protocols. Send an email to the agent's address and it replies in-thread — no special client or bot API needed. Works with Gmail, Outlook, Yahoo, Fastmail, or any provider that supports IMAP/SMTP.
+M.U.S.E. can receive and reply to emails using standard IMAP and SMTP protocols. Send an email to the agent's address and it replies in-thread — no special client or bot API needed. Works with Gmail, Outlook, Yahoo, Fastmail, or any provider that supports IMAP/SMTP.
 
 :::info No External Dependencies
 The Email adapter uses Python's built-in `imaplib`, `smtplib`, and `email` modules. No additional packages or external services are required.
@@ -16,7 +16,7 @@ The Email adapter uses Python's built-in `imaplib`, `smtplib`, and `email` modul
 
 ## Prerequisites
 
-- **A dedicated email account** for your Hermes agent (don't use your personal email)
+- **A dedicated email account** for your M.U.S.E. agent (don't use your personal email)
 - **IMAP enabled** on the email account
 - **An app password** if using Gmail or another provider with 2FA
 
@@ -43,12 +43,12 @@ Most email providers support IMAP/SMTP. Check your provider's documentation for:
 
 ---
 
-## Step 1: Configure Hermes
+## Step 1: Configure M.U.S.E.
 
 The easiest way:
 
 ```bash
-hermes gateway setup
+muse gateway setup
 ```
 
 Select **Email** from the platform menu. The wizard prompts for your email address, password, IMAP/SMTP hosts, and allowed senders.
@@ -79,9 +79,9 @@ EMAIL_HOME_ADDRESS=your@email.com      # Default delivery target for cron jobs
 ## Step 2: Start the Gateway
 
 ```bash
-hermes gateway              # Run in foreground
-hermes gateway install      # Install as a user service
-sudo hermes gateway install --system   # Linux only: boot-time system service
+muse gateway              # Run in foreground
+muse gateway install      # Install as a user service
+sudo muse gateway install --system   # Linux only: boot-time system service
 ```
 
 On startup, the adapter:
@@ -135,7 +135,7 @@ When enabled, attachment and inline parts are skipped before payload decoding. T
 
 ## Access Control
 
-Email access follows the same pattern as all other Hermes platforms:
+Email access follows the same pattern as all other M.U.S.E. platforms:
 
 1. **`EMAIL_ALLOWED_USERS` set** → only emails from those addresses are processed
 2. **No allowlist set** → unknown senders get a pairing code
@@ -155,7 +155,7 @@ Email access follows the same pattern as all other Hermes platforms:
 | **"SMTP connection failed"** at startup | Verify `EMAIL_SMTP_HOST` and `EMAIL_SMTP_PORT`. Check that your password is correct (use App Password for Gmail). |
 | **Messages not received** | Check `EMAIL_ALLOWED_USERS` includes the sender's email. Check spam folder — some providers flag automated replies. |
 | **"Authentication failed"** | For Gmail, you must use an App Password, not your regular password. Ensure 2FA is enabled first. |
-| **Duplicate replies** | Ensure only one gateway instance is running. Check `hermes gateway status`. |
+| **Duplicate replies** | Ensure only one gateway instance is running. Check `muse gateway status`. |
 | **Slow response** | The default poll interval is 15 seconds. Reduce with `EMAIL_POLL_INTERVAL=5` for faster response (but more IMAP connections). |
 | **Replies not threading** | The adapter uses In-Reply-To headers. Some email clients (especially web-based) may not thread correctly with automated messages. |
 

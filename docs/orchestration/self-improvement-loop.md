@@ -14,11 +14,11 @@ Related runtime: `enterprise/` (council orchestrator + monitor),
 
 Principles 8 and 9 of the mission:
 
-> 8. Hermes learns from every job.
+> 8. M.U.S.E. learns from every job.
 > 9. Current AI improvements update the routing policy.
 
 A job that produced output but did not feed those two principles is
-incomplete. The loop is the bookkeeping that makes "Hermes learns"
+incomplete. The loop is the bookkeeping that makes "M.U.S.E. learns"
 something you can audit rather than something you have to take on
 faith.
 

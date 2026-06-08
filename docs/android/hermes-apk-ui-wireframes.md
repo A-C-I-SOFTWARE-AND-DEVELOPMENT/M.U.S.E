@@ -1,4 +1,4 @@
-# Hermes APK Cockpit — UI wireframes
+# M.U.S.E. APK Cockpit — UI wireframes
 
 ASCII wireframes for the nine cockpit screens. Phone-first
 (360 × 740 dp ≈ 6.0", portrait). System bars not drawn; the
@@ -26,7 +26,7 @@ and writes.
  «  Prompt Command Center                  ⋯
 ─────────────────────────────────────────────
  Worker
- ( Codex CLI )( Claude Code )( Hermes batch )
+ ( Codex CLI )( Claude Code )( M.U.S.E. batch )
                                   ▸ Custom
 ─────────────────────────────────────────────
  Workspace
@@ -76,7 +76,7 @@ and writes.
    Claude Code · 4m ago     [· Approve ·]
 ─────────────────────────────────────────────
  ▸ Refactor cron scheduler      ■ failed
-   Hermes batch · 1h ago
+   M.U.S.E. batch · 1h ago
 ─────────────────────────────────────────────
  ▸ Draft release notes 0.15.0   ■ done
    Codex CLI · 3h ago
@@ -356,7 +356,7 @@ and writes.
 ─────────────────────────────────────────────
  ▾ Workers (gateway-side)               [↻]
    ✅ Codex CLI            v0.6.2  termux
-   ✅ Hermes batch         v0.14.0 internal
+   ✅ M.U.S.E. batch         v0.14.0 internal
    ⚠ Claude Code          not installed
 ─────────────────────────────────────────────
  ▾ Behaviour
@@ -392,7 +392,7 @@ Reused across multiple screens:
 
 ```
  ╭─────────────────────────────────────╮
- │  No reachable Hermes gateway.        │
+ │  No reachable M.U.S.E. gateway.        │
  │                                       │
  │  • Point at one in Settings → Conn.  │
  │  • Start one in Termux from Control  │

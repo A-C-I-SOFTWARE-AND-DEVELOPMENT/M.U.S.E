@@ -1,6 +1,6 @@
-# Hermes APK ↔ Gateway — Cockpit API contract
+# M.U.S.E. APK ↔ Gateway — Cockpit API contract
 
-Wire format between the Android cockpit APK and a Hermes gateway. The
+Wire format between the Android cockpit APK and a M.U.S.E. gateway. The
 **cockpit namespace is now largely live** in `gateway/cockpit/` — chat,
 runtime, memory, jobs (+ controls, diff, validation, files-changed, tree,
 file), evidence, research, approvals, audit, coding, autonomy, graph,
@@ -92,7 +92,7 @@ aliases**. See
 The cockpit advertises two versions on every `GET /v1/health` (and
 `GET /v1/cockpit/capabilities`): `api_version` — the cockpit **contract**
 version (`COCKPIT_API_VERSION` in `gateway/cockpit/handlers.py`) — and
-`gateway_version`, the Hermes package version. The Android `HealthStatus`
+`gateway_version`, the M.U.S.E. package version. The Android `HealthStatus`
 negotiates on `api_version` and tolerates an unknown `gateway_version`.
 
 | `api_version` | Cockpit surface | Minimum client | Notes |
@@ -193,7 +193,7 @@ Lists the workers the gateway has detected on its host. The cockpit's
     },
     {
       "id": "hermes_batch",
-      "display_name": "Hermes batch runner",
+      "display_name": "M.U.S.E. batch runner",
       "kind": "internal",
       "available": true,
       "version": "0.14.0",

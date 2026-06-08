@@ -1,6 +1,6 @@
 # Codex Worker
 
-The Codex worker is the Hermes orchestrator's adapter for the **official
+The Codex worker is the M.U.S.E. orchestrator's adapter for the **official
 local Codex CLI** from OpenAI. It is shipped as
 `hermes_cli/workers/codex.py` and is designed to be safe-by-default: it
 prefers handoff (the operator drives Codex themselves) over execution,
@@ -89,7 +89,7 @@ task = CodexTask(
         "python -m py_compile hermes_cli/workers/codex.py",
         "python -m pytest tests/test_worker_codex.py -q",
     ],
-    do_not_change=["Hermes core orchestrator APIs."],
+    do_not_change=["M.U.S.E. core orchestrator APIs."],
 )
 
 result = run_worker(task, workspace=Path.cwd())

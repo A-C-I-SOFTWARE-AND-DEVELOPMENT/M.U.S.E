@@ -1,7 +1,7 @@
 # Job Controller Roadmap (Phase 7)
 
 > Status: **design / pre-implementation**. This document describes the
-> next layer of Hermes orchestration. Nothing here is wired into the
+> next layer of M.U.S.E. orchestration. Nothing here is wired into the
 > production CLI yet. The Python skeletons in `hermes_cli/orchestrator.py`
 > and `hermes_cli/workers/` are intentionally inert — they import cleanly,
 > raise `NotImplementedError` for any unfinished method, and have no
@@ -9,12 +9,12 @@
 
 ## 1. Motivation
 
-Hermes already has the right *primitives* for orchestration:
+M.U.S.E. already has the right *primitives* for orchestration:
 
 - Skills (`skills/`) describe how to delegate to external coding agents
   (Claude Code, Codex, Aider, Goose, etc.).
 - The Android local orchestrator (`docs/hermes-local-orchestrator.md`)
-  defines a hand-off model where Hermes prepares a structured prompt
+  defines a hand-off model where M.U.S.E. prepares a structured prompt
   and the user routes it to whichever paid CLI they already use.
 - The Enterprise Council (`skills/enterprise-council/`) shows a working
   pattern for plan-of-record + dispatch + judge + audit.
@@ -25,7 +25,7 @@ What is missing is a **first-class Job Controller** that ties these
 pieces together as a single, scriptable surface. Today, "run this
 prompt against Claude Code, then Codex, then Aider, and let me compare"
 requires the user to drive three separate skills by hand or write a
-bespoke batch script. Phase 7 turns that workflow into a Hermes
+bespoke batch script. Phase 7 turns that workflow into a M.U.S.E.
 command: `/orchestrate <prompt>` produces a *Job*, dispatches one or
 more *WorkerRuns*, records every step in a *Decision Ledger*, and
 exposes a small set of follow-up commands.

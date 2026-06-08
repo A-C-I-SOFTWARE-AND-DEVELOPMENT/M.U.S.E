@@ -169,7 +169,7 @@ The legacy signature (`run_gate_summary(packet)`) is unchanged for backward
 compatibility. See
 [`docs/security/verifiable-guardrails.md`](security/verifiable-guardrails.md)
 for the evidence model, the tamper-evident ledger, and the
-`hermes guardrails` CLI.
+`muse guardrails` CLI.
 
 ## Challenge-bound owner authorization
 
@@ -178,10 +178,10 @@ carries no binding to *which* action was approved. Strict owner approval
 therefore requires a **nonce-bound challenge**:
 
 ```text
-$ hermes guardrails authorize production_deploy --subject "release v2"
+$ muse guardrails authorize production_deploy --subject "release v2"
 required_phrase: Yes, with authorization. Code: 728193
 
-$ hermes guardrails authorize-response <challenge-id> "Yes, with authorization. Code: 728193"
+$ muse guardrails authorize-response <challenge-id> "Yes, with authorization. Code: 728193"
 authorized: true   # a grant artifact is appended to the ledger
 ```
 

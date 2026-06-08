@@ -1,6 +1,6 @@
 # Voice-first user guide
 
-Hermes is **voice-first** in the sense that you can drive every
+M.U.S.E. is **voice-first** in the sense that you can drive every
 orchestrated workflow by speaking. This guide is the plain-English
 walkthrough: how voice capture works, how driving mode works
 safely, how to keep audio on-device, and what to say when.
@@ -36,7 +36,7 @@ Supabase / Vercel integrations — is unchanged.
 
 ## How voice capture works
 
-Three capture surfaces. All three end up as a normal Hermes turn on
+Three capture surfaces. All three end up as a normal M.U.S.E. turn on
 the same backend.
 
 ### 1. Mobile cockpit (hold-to-talk)
@@ -57,7 +57,7 @@ the same backend.
 
 ### 2. Telegram / Discord / WhatsApp voice memos
 
-Send a voice memo to your Hermes bot DM exactly as you'd send one
+Send a voice memo to your M.U.S.E. bot DM exactly as you'd send one
 to a human. The platform delivers it as an audio file; the gateway
 transcribes it; the transcript becomes the turn. No app required.
 
@@ -66,14 +66,14 @@ transcribes it; the transcript becomes the turn. No app required.
 Some shells ship a push-to-talk wrapper:
 
 ```bash
-hermes voice listen --device default --hotkey f9
+muse voice listen --device default --hotkey f9
 ```
 
 Holding F9 captures, releasing submits. Same gateway endpoint.
 
 ### What about wake-words?
 
-The mobile cockpit supports an **optional** wake word ("Hey Hermes"
+The mobile cockpit supports an **optional** wake word ("Hey M.U.S.E."
 by default, configurable). It is **off by default**. Once enabled,
 the wake word arms a **single capture** — it does not stream the
 mic continuously. After the capture completes, the wake-word listener
@@ -147,7 +147,7 @@ voice:
 > `piper`.)
 
 The driving-mode cap (below) overrides this with a stricter limit.
-Hermes will choose a short-form summary path automatically when TTS
+M.U.S.E. will choose a short-form summary path automatically when TTS
 runs into the cap.
 
 ---
@@ -160,9 +160,9 @@ cockpit or by voice command.
 
 ### Activate / deactivate
 
-- *"Hey Hermes, start driving mode."*
+- *"Hey M.U.S.E., start driving mode."*
 - Cockpit → **Settings → Driving mode → On.**
-- *"Hey Hermes, stop driving mode."*
+- *"Hey M.U.S.E., stop driving mode."*
 - Cockpit → tap the lock icon at the top.
 
 ### What changes when it's on
@@ -227,15 +227,15 @@ Spoken phrases the cockpit and gateway recognize as control commands
 
 | Phrase | Effect |
 |--------|--------|
-| *"Hey Hermes, start driving mode."* | Activates driving mode. |
-| *"Hey Hermes, stop driving mode."* | Deactivates driving mode. |
-| *"Hermes, cancel."* | Cancels the current capture before submission. |
-| *"Hermes, cancel job."* | Cancels the most recent job. |
-| *"Hermes, what's the status?"* | Reads back `hermes orchestrator status` summary. |
-| *"Hermes, repeat that."* | Re-plays the last TTS reply. |
-| *"Hermes, save that as a memory."* | Stores the previous turn as a memory entry. |
-| *"Hermes, new conversation."* | Starts a fresh session (same as `/new` in chat). |
-| *"Hermes, approve."* | Approves the topmost queued approval (only when not driving). |
+| *"Hey M.U.S.E., start driving mode."* | Activates driving mode. |
+| *"Hey M.U.S.E., stop driving mode."* | Deactivates driving mode. |
+| *"M.U.S.E., cancel."* | Cancels the current capture before submission. |
+| *"M.U.S.E., cancel job."* | Cancels the most recent job. |
+| *"M.U.S.E., what's the status?"* | Reads back `muse orchestrator status` summary. |
+| *"M.U.S.E., repeat that."* | Re-plays the last TTS reply. |
+| *"M.U.S.E., save that as a memory."* | Stores the previous turn as a memory entry. |
+| *"M.U.S.E., new conversation."* | Starts a fresh session (same as `/new` in chat). |
+| *"M.U.S.E., approve."* | Approves the topmost queued approval (only when not driving). |
 
 Everything else after the wake word is treated as a normal prompt.
 

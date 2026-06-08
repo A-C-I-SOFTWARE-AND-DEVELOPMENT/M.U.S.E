@@ -1,6 +1,6 @@
 # Knowledge + learning plugins (knowledge, learning)
 
-Two native Hermes plugins that give the agent general-knowledge and learning
+Two native M.U.S.E. plugins that give the agent general-knowledge and learning
 lookups over free public APIs. They follow the
 [public-API plugin](public-apis-plugins.md) pattern and reuse the shared,
 host-pinned, redacting HTTP helper at
@@ -30,7 +30,7 @@ learning:
   enabled: true
 ```
 
-Then `hermes plugins enable knowledge learning` (or `/reload-skills`).
+Then `muse plugins enable knowledge learning` (or `/reload-skills`).
 
 ## The one optional key: Wolfram|Alpha
 

@@ -13,7 +13,7 @@ out the security properties each one ships with.
 
 | Option                 | Auth model               | Default exposure | Crypto    | NAT traversal | Cost | Recommended for                |
 |------------------------|--------------------------|------------------|-----------|---------------|------|---------------------------------|
-| **Tailscale**          | Identity (SSO + ACL)     | Tailnet only     | WireGuard | DERP relay    | Free for personal use | Default. Hermes mobile + Windows desktop. |
+| **Tailscale**          | Identity (SSO + ACL)     | Tailnet only     | WireGuard | DERP relay    | Free for personal use | Default. M.U.S.E. mobile + Windows desktop. |
 | **WireGuard (manual)** | Static peer keys         | Mesh only        | WireGuard | Manual port forward or relay needed | Free | Hardened static setup with no SaaS. |
 | **SSH reverse tunnel** | SSH keys / certs         | Loopback on the SSH server | SSH (AES-GCM / ChaCha20) | Reverse — no inbound on Windows needed | Free | A small VPS as the rendezvous point. |
 | **Cloudflare Tunnel**  | Cloudflare Access (SSO + token) | Authenticated edge only | TLS via Cloudflare | Outbound from Windows only | Free for small use | Replacing a VPN when one side cannot run Tailscale. |
@@ -22,7 +22,7 @@ out the security properties each one ships with.
 
 Throughout the rest of this document the term *shared directory*
 means the directory you mount on both sides as
-`<workspace_root>` in the Hermes endpoint config.
+`<workspace_root>` in the M.U.S.E. endpoint config.
 
 ---
 
@@ -43,7 +43,7 @@ forwarding, and the link is end-to-end encrypted with WireGuard.
   option and tolerates intermittent connectivity.
 * **Tailscale + SMB.** Share a Windows folder over SMB, set the
   Windows firewall to allow inbound 445 from the Tailscale subnet
-  only, and mount it from the Hermes host. Higher throughput than
+  only, and mount it from the M.U.S.E. host. Higher throughput than
   Syncthing for large diffs but less forgiving when the link drops.
 * **Tailscale Drive / Taildrop.** Both ship with Tailscale and need
   no extra config; suitable for occasional handoffs.
@@ -92,7 +92,7 @@ unreachable from anything outside the WireGuard mesh.
 If both sides can reach a small VPS (Hetzner / Fly / a Pi at home
 with a static address), use SSH reverse tunneling to expose the
 Windows shared folder over loopback on the VPS, then have the
-Hermes host SSH into the VPS to read it.
+M.U.S.E. host SSH into the VPS to read it.
 
 Sketch:
 
@@ -102,7 +102,7 @@ ssh -N -R 4445:localhost:445 hermes-bridge@vps.example
 ```
 
 ```bash
-# On the Hermes side, mounting from the VPS
+# On the M.U.S.E. side, mounting from the VPS
 sshfs hermes-bridge@vps.example:/path/to/share /mnt/jeremiah \
   -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3
 ```
@@ -133,7 +133,7 @@ authentication. Useful when one side cannot run a Tailscale client
 (work-managed Windows, a strict firewall).
 
 **What to expose:** the simplest pattern is a WebDAV server on the
-Windows side, tunneled out, mounted from the Hermes host via
+Windows side, tunneled out, mounted from the M.U.S.E. host via
 `davfs2` / `rclone mount`. The shared directory rides on top of the
 mount.
 
@@ -164,7 +164,7 @@ mount it directly. No tunneling layer needed.
 
 ## Manual handoff fallback
 
-The original Hermes Local Orchestrator flow ([see
+The original M.U.S.E. Local Orchestrator flow ([see
 `docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md))
 already supports a "copy the prompt to the clipboard, walk over to the
 desktop, paste it into Claude Code, copy the output back" workflow.
@@ -199,7 +199,7 @@ daemon writing artifacts out of order without truncation issues.
 
 ## Mapping a transport to the endpoint config
 
-The Hermes config does not care which transport you picked — it only
+The M.U.S.E. config does not care which transport you picked — it only
 needs to know the local path of the shared directory. Both of these
 configs talk to the same Windows worker; only the mount point differs:
 

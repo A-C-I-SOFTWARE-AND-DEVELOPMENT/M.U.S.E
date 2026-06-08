@@ -434,7 +434,7 @@ hairy. **Defer until single-host actuators are rock-solid
 
 **Missing for 10/10.**
 
-1. `hermes orchestrate replay <job-id>` loads
+1. `muse orchestrate replay <job-id>` loads
    `.hermes/runs/run-<id>.json`, re-runs the arbiter + merge
    engine, writes a fresh artefact, and diffs against original.
 2. Deterministic when weights unchanged.

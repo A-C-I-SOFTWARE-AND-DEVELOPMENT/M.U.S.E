@@ -14,7 +14,7 @@ Simplest distributed training API. 4 lines to add distributed support to any PyT
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/accelerate` |
+| Source | Optional — install with `muse skills install official/mlops/accelerate` |
 | Path | `optional-skills/mlops/accelerate` |
 | Version | `1.0.0` |
 | Author | Orchestra Research |
@@ -26,7 +26,7 @@ Simplest distributed training API. 4 lines to add distributed support to any PyT
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # HuggingFace Accelerate - Unified Distributed Training

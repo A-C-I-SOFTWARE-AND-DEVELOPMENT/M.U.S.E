@@ -10,7 +10,7 @@ animates from the **real** voice/job/action state — not a demo.
 > [voice-first-user-guide.md](voice-first-user-guide.md) and
 > [driving-mode-safety.md](driving-mode-safety.md). Presence Mode does
 > **not** change what the backend can do — a spoken turn and a typed
-> turn produce the same Hermes job, ledger, and gates.
+> turn produce the same M.U.S.E. job, ledger, and gates.
 
 ---
 

@@ -599,7 +599,7 @@ applies) or against generic launch-quality expectations.
 - **Blocker.** Termux gateway mode is declared as a runtime mode in
   `apps/android/README.md` but the app cannot start, stop, or talk to
   a local Termux gateway today.
-- **Risk.** Anyone following the README's "run `hermes gateway start`
+- **Risk.** Anyone following the README's "run `muse gateway start`
   inside Termux on the *same device*" path will find no
   corresponding UI on the phone.
 - **Fix.** Build the Termux Control Panel screen from

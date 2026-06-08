@@ -25,7 +25,7 @@ Bring-up (matches CI `.github/workflows/tests.yml`):
 
 ```bash
 uv pip install -e ".[all,dev]"   # ~4s warm cache; installs core + all extras + dev
-hermes doctor                    # health check
+muse doctor                    # health check
 python -m hermes_cli.jarvis_prime launch-doctor   # MUSE launch readiness
 ```
 
@@ -41,15 +41,15 @@ manual steps. It is synchronous, idempotent, and web-only (`$CLAUDE_CODE_REMOTE`
 | Import chain (was broken pre-install) | `python -c "import run_agent, hermes_cli.main, gateway"` | ✅ clean |
 | Repo-wide byte-compile | `python -m compileall -q -x '(\.git\|node_modules\|build\|apps/android)' .` | ✅ clean |
 | Top-level package imports | import `run_agent, hermes_cli, agent, gateway, tools, providers, cron, acp_adapter, tui_gateway, toolsets` | ✅ all import |
-| Health check | `hermes doctor` | ✅ exit 0 (only env issues: no `.env`/API keys) |
+| Health check | `muse doctor` | ✅ exit 0 (only env issues: no `.env`/API keys) |
 | Launch readiness | `python -m hermes_cli.jarvis_prime launch-doctor` | ✅ LAUNCH READY (soft warnings only) |
-| CLI smoke | `hermes --help`, `hermes version`, `data-sources list` | ✅ all respond |
+| CLI smoke | `muse --help`, `muse version`, `data-sources list` | ✅ all respond |
 | Lint (CI blocking subset) | `ruff check .` | ✅ All checks passed |
 | Orchestration gate | mirrors `orchestration-tests.yml` | ✅ 755 passed |
 | `hermes_cli` gate | `pytest tests/hermes_cli/` | ✅ 4,931 passed (8 env-only, see below) |
 | Full non-integration suite | `pytest -m 'not integration'` | **27,326 passed**, 182 skipped; 96 failed + 12 errored — **all environmental** |
 
-`hermes version` → `Hermes Agent v0.14.0 (2026.5.16)`, Python 3.11.15.
+`muse version` → `Hermes Agent v0.14.0 (2026.5.16)`, Python 3.11.15.
 
 ## Triage of the 96 failures + 12 errors — zero are code defects
 
@@ -90,7 +90,7 @@ because this container sets an unsupported `TERMINAL_VERCEL_RUNTIME=node20`.
 ## Subsystem wiring map (all live)
 
 ```
-hermes <cmd>
+muse <cmd>
   └─ hermes_cli/main.py:main()  (50+ subcommands)
        ├─ discover_plugins()    plugins/*/ + ~/.hermes/plugins + pip entry-points → register(ctx)
        ├─ discover_mcp_tools()  tools/mcp_tool.py (stdio MCP servers)
@@ -130,7 +130,7 @@ silent failure.
 - **`sync-aci-to-base44.yml`** fails on `push` to `main` only because the org
   secret `TWO_WAY_SYNC_PAT` is absent/expired. It is an automation mirror, not a
   required check, and unrelated to code correctness.
-- **Optional capabilities** report ⚠ in `hermes doctor` until configured
+- **Optional capabilities** report ⚠ in `muse doctor` until configured
   (Discord/Telegram tokens, web-search keys, browser/computer-use system deps,
   local model runtimes). Expected; gated; not defects.
 

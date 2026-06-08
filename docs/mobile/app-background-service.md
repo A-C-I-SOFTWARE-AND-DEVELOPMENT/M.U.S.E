@@ -80,7 +80,7 @@ before the first notification post.
 
 | Trigger | Channel | Notification |
 |---|---|---|
-| Foreground service running | `STATUS` | *Hermes cockpit is connected to <host>.* Subtext: queue summary. |
+| Foreground service running | `STATUS` | *M.U.S.E. cockpit is connected to <host>.* Subtext: queue summary. |
 | Job moved to `waiting_approval` | `APPROVAL_NEEDED` | *Job <id> needs approval.* Actions: **Approve**, **Open**. |
 | Backend requested destructive confirmation | `DESTRUCTIVE_NEEDED` | *Backend wants to force-push.* Actions: **Allow once**, **Deny**, **Open**. |
 | Publish succeeded | `PUBLISH_RESULT` | *PR opened: <pr_url>* — tap opens the URL in the browser. |
@@ -202,7 +202,7 @@ second listening channel.
 
 ## 12. Non-goals
 
-- **No WorkManager.** Hermes orchestration is interactive; deferring
+- **No WorkManager.** M.U.S.E. orchestration is interactive; deferring
   to OS-scheduled `WorkRequest`s would smear latency across minutes
   and produce a worse UX than a foreground service. We accept the
   trade-off of higher battery usage while jobs are in flight.

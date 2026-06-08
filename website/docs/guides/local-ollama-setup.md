@@ -1,10 +1,10 @@
 ---
 sidebar_position: 9
-title: "Run Hermes Locally with Ollama — Zero API Cost"
-description: "Step-by-step guide to running Hermes Agent entirely on your own machine with Ollama and open-weight models like Gemma 4, no cloud API keys or paid subscriptions needed"
+title: "Run M.U.S.E. Locally with Ollama — Zero API Cost"
+description: "Step-by-step guide to running M.U.S.E. entirely on your own machine with Ollama and open-weight models like Gemma 4, no cloud API keys or paid subscriptions needed"
 ---
 
-# Run Hermes Locally with Ollama — Zero API Cost
+# Run M.U.S.E. Locally with Ollama — Zero API Cost
 
 ## The Problem
 
@@ -12,12 +12,12 @@ Cloud LLM APIs charge per token. A heavy coding session can cost $5–20. For pe
 
 ## What This Guide Solves
 
-You'll set up Hermes Agent running entirely on your own hardware, using [Ollama](https://ollama.com) as the model backend. No API keys, no subscriptions, no data leaving your machine. Once configured, Hermes works exactly like it does with OpenRouter or Anthropic — terminal commands, file editing, web browsing, delegation — but the model runs locally.
+You'll set up M.U.S.E. running entirely on your own hardware, using [Ollama](https://ollama.com) as the model backend. No API keys, no subscriptions, no data leaving your machine. Once configured, M.U.S.E. works exactly like it does with OpenRouter or Anthropic — terminal commands, file editing, web browsing, delegation — but the model runs locally.
 
 By the end, you'll have:
 
 - Ollama serving one or more open-weight models
-- Hermes connected to Ollama as a custom endpoint
+- M.U.S.E. connected to Ollama as a custom endpoint
 - A working local agent that can edit files, run commands, and browse the web
 - Optional: a Telegram/Discord bot powered entirely by your own hardware
 
@@ -64,7 +64,7 @@ Choose based on your hardware:
 | `llama3.2:3b` | ~2 GB | 4+ GB | No | Lightweight quick answers only |
 
 :::warning Tool calling matters
-Hermes is an **agentic** assistant — it edits files, runs commands, and browses the web through tool calls. Models without tool-call support can only chat; they can't take actions. For the full Hermes experience, use a model that supports tools (like `gemma4:31b`).
+M.U.S.E. is an **agentic** assistant — it edits files, runs commands, and browses the web through tool calls. Models without tool-call support can only chat; they can't take actions. For the full M.U.S.E. experience, use a model that supports tools (like `gemma4:31b`).
 :::
 
 Pull your chosen model:
@@ -74,7 +74,7 @@ ollama pull gemma4:31b
 ```
 
 :::info Multiple models
-You can pull several models and switch between them inside Hermes with `/model`. Ollama loads the active model into memory on demand and unloads idle ones automatically.
+You can pull several models and switch between them inside M.U.S.E. with `/model`. Ollama loads the active model into memory on demand and unloads idle ones automatically.
 :::
 
 Verify the model works:
@@ -91,12 +91,12 @@ curl http://localhost:11434/v1/chat/completions \
 
 You should see a JSON response with the model's reply.
 
-## Step 3: Configure Hermes
+## Step 3: Configure M.U.S.E.
 
-Run the Hermes setup wizard:
+Run the M.U.S.E. setup wizard:
 
 ```bash
-hermes setup
+muse setup
 ```
 
 When prompted for a provider, select **Custom Endpoint** and enter:
@@ -114,10 +114,10 @@ model:
   base_url: "http://localhost:11434/v1"
 ```
 
-## Step 4: Start Using Hermes
+## Step 4: Start Using M.U.S.E.
 
 ```bash
-hermes
+muse
 ```
 
 That's it. You're now running a fully local agent. Try it out:
@@ -130,7 +130,7 @@ You: Read the README.md and summarize what this project does
 You: Create a Python script that fetches the weather for Ho Chi Minh City
 ```
 
-Hermes will use the terminal tool, file operations, and your local model — no cloud calls.
+M.U.S.E. will use the terminal tool, file operations, and your local model — no cloud calls.
 
 ## Step 5: Pick the Right Model for Your Task
 
@@ -168,7 +168,7 @@ EOF
 ollama create gemma4-16k -f /tmp/Modelfile
 ```
 
-Then update your Hermes config to use `gemma4-16k` as the model name.
+Then update your M.U.S.E. config to use `gemma4-16k` as the model name.
 
 ### Keep the Model Loaded
 
@@ -200,7 +200,7 @@ For a 31B model on a 12 GB GPU, you'll get partial offload (~40 layers on GPU, r
 
 ## Step 7: Run as a Gateway Bot (Optional)
 
-Once Hermes works locally in the CLI, you can expose it as a Telegram or Discord bot — still running entirely on your hardware.
+Once M.U.S.E. works locally in the CLI, you can expose it as a Telegram or Discord bot — still running entirely on your hardware.
 
 ### Telegram
 
@@ -222,7 +222,7 @@ platforms:
 3. Start the gateway:
 
 ```bash
-hermes gateway
+muse gateway
 ```
 
 Now message your bot on Telegram — it responds using your local model.
@@ -239,7 +239,7 @@ platforms:
     token: "YOUR_DISCORD_BOT_TOKEN"
 ```
 
-3. Start: `hermes gateway`
+3. Start: `muse gateway`
 
 ## Step 8: Set Up Fallbacks (Optional)
 
@@ -281,8 +281,8 @@ ollama serve
 Smaller models (3B, 7B) sometimes ignore tool-call instructions and produce plain text instead of structured function calls. Solutions:
 
 - **Use a bigger model** — `gemma4:31b` or `gemma2:27b` handle tool calls much better than 3B/7B models.
-- **Hermes has auto-repair** — it detects malformed tool calls and attempts to fix them automatically.
-- **Set up a fallback** — if the local model fails 3 times, Hermes falls back to a cloud provider.
+- **M.U.S.E. has auto-repair** — it detects malformed tool calls and attempts to fix them automatically.
+- **Set up a fallback** — if the local model fails 3 times, M.U.S.E. falls back to a cloud provider.
 
 ### Context window errors
 
@@ -303,7 +303,7 @@ Your only cost is electricity — roughly $0.01–0.05 per session depending on 
 ## What Works Well Locally
 
 - **File editing and code generation** — models 9B+ handle this well
-- **Terminal commands** — Hermes wraps the command, runs it, reads output regardless of model
+- **Terminal commands** — M.U.S.E. wraps the command, runs it, reads output regardless of model
 - **Web browsing** — the browser tool does the fetching; the model just interprets results
 - **Cron jobs and scheduled tasks** — work identically to cloud setups
 - **Multi-platform gateway** — Telegram, Discord, Slack all work with local models

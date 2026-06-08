@@ -1,6 +1,6 @@
-# Hermes orchestration — phase log
+# M.U.S.E. orchestration — phase log
 
-This file records the orchestration phases delivered against the Hermes
+This file records the orchestration phases delivered against the M.U.S.E.
 codebase. Each phase entry summarises what shipped, where to find it, and
 what was deliberately deferred.
 

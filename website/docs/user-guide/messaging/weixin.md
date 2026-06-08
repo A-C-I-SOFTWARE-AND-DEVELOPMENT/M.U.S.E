@@ -1,33 +1,33 @@
 ---
 sidebar_position: 15
 title: "Weixin (WeChat)"
-description: "Connect Hermes Agent to personal WeChat accounts via the iLink Bot API"
+description: "Connect M.U.S.E. to personal WeChat accounts via the iLink Bot API"
 ---
 
 # Weixin (WeChat)
 
-Connect Hermes to [WeChat](https://weixin.qq.com/) (微信), Tencent's personal messaging platform. The adapter uses Tencent's **iLink Bot API** for personal WeChat accounts — this is distinct from WeCom (Enterprise WeChat). Messages are delivered via long-polling, so no public endpoint or webhook is required.
+Connect M.U.S.E. to [WeChat](https://weixin.qq.com/) (微信), Tencent's personal messaging platform. The adapter uses Tencent's **iLink Bot API** for personal WeChat accounts — this is distinct from WeCom (Enterprise WeChat). Messages are delivered via long-polling, so no public endpoint or webhook is required.
 
 :::info
 This adapter is for **personal WeChat accounts** (微信). If you need enterprise/corporate WeChat, see the [WeCom adapter](./wecom.md) instead.
 :::
 
 :::warning iLink bot identity — ordinary WeChat groups may not work
-QR login connects Hermes to an **iLink bot identity** (e.g. `a5ace6fd482e@im.bot`), **not** a fully scriptable ordinary personal WeChat account. Consequences:
+QR login connects M.U.S.E. to an **iLink bot identity** (e.g. `a5ace6fd482e@im.bot`), **not** a fully scriptable ordinary personal WeChat account. Consequences:
 
 - The iLink bot identity generally **cannot be invited into ordinary WeChat groups** the way a normal contact can.
 - iLink typically **does not deliver ordinary WeChat group events** (including `@`-mentions of the personal account used for QR login) to the gateway for most bot-type accounts.
 - `@`-mentioning the personal WeChat account used to scan the QR code is **not** the same as `@`-mentioning the iLink bot — the bot is a separate identity.
-- The `WEIXIN_GROUP_POLICY` / `WEIXIN_GROUP_ALLOWED_USERS` settings below only take effect when iLink actually returns group events for your account type. If it doesn't, group messages will never reach Hermes regardless of policy.
+- The `WEIXIN_GROUP_POLICY` / `WEIXIN_GROUP_ALLOWED_USERS` settings below only take effect when iLink actually returns group events for your account type. If it doesn't, group messages will never reach M.U.S.E. regardless of policy.
 
-In practice, most deployments only get DMs to the iLink bot working reliably. If group delivery doesn't work after configuration, the limitation is on the iLink side, not in Hermes. The gateway logs a `WARNING` at startup whenever `WEIXIN_GROUP_POLICY` is set to anything other than `disabled`.
+In practice, most deployments only get DMs to the iLink bot working reliably. If group delivery doesn't work after configuration, the limitation is on the iLink side, not in M.U.S.E.. The gateway logs a `WARNING` at startup whenever `WEIXIN_GROUP_POLICY` is set to anything other than `disabled`.
 :::
 
 ## Prerequisites
 
 - A personal WeChat account
 - Python packages: `aiohttp` and `cryptography`
-- Terminal QR rendering is included when Hermes is installed with the `messaging` extra
+- Terminal QR rendering is included when M.U.S.E. is installed with the `messaging` extra
 
 Install the required dependencies:
 
@@ -44,7 +44,7 @@ pip install hermes-agent[messaging]
 The easiest way to connect your WeChat account is through the interactive setup:
 
 ```bash
-hermes gateway setup
+muse gateway setup
 ```
 
 Select **Weixin** when prompted. The wizard will:
@@ -88,7 +88,7 @@ WEIXIN_HOME_CHANNEL_NAME=Home
 ### 3. Start the Gateway
 
 ```bash
-hermes gateway
+muse gateway
 ```
 
 The adapter will restore saved credentials, connect to the iLink API, and begin long-polling for messages.
@@ -96,7 +96,7 @@ The adapter will restore saved credentials, connect to the iLink API, and begin 
 ## Features
 
 - **Long-poll transport** — no public endpoint, webhook, or WebSocket needed
-- **QR code login** — scan-to-connect setup via `hermes gateway setup`
+- **QR code login** — scan-to-connect setup via `muse gateway setup`
 - **DM messaging** — configurable access policies; group messaging depends on iLink actually delivering group events for the connected identity (often not the case for iLink bot accounts — see the warning above)
 - **Media support** — images, video, files, and voice messages
 - **AES-128-ECB encrypted CDN** — automatic encryption/decryption for all media transfers
@@ -297,13 +297,13 @@ Only one Weixin gateway instance can use a given token at a time. The adapter ac
 | Problem | Fix |
 |---------|-----|
 | `Weixin startup failed: aiohttp and cryptography are required` | Install both: `pip install aiohttp cryptography` |
-| `Weixin startup failed: WEIXIN_TOKEN is required` | Run `hermes gateway setup` to complete QR login, or set `WEIXIN_TOKEN` manually |
-| `Weixin startup failed: WEIXIN_ACCOUNT_ID is required` | Set `WEIXIN_ACCOUNT_ID` in your `.env` or run `hermes gateway setup` |
-| `Another local Hermes gateway is already using this Weixin token` | Stop the other gateway instance first — only one poller per token is allowed |
-| Session expired (`errcode=-14`) | Your login session has expired. Re-run `hermes gateway setup` to scan a new QR code |
+| `Weixin startup failed: WEIXIN_TOKEN is required` | Run `muse gateway setup` to complete QR login, or set `WEIXIN_TOKEN` manually |
+| `Weixin startup failed: WEIXIN_ACCOUNT_ID is required` | Set `WEIXIN_ACCOUNT_ID` in your `.env` or run `muse gateway setup` |
+| `Another local M.U.S.E. gateway is already using this Weixin token` | Stop the other gateway instance first — only one poller per token is allowed |
+| Session expired (`errcode=-14`) | Your login session has expired. Re-run `muse gateway setup` to scan a new QR code |
 | QR code expired during setup | The QR auto-refreshes up to 3 times. If it keeps expiring, check your network connection |
 | Bot doesn't respond to DMs | Check `WEIXIN_DM_POLICY` — if set to `allowlist`, the sender must be in `WEIXIN_ALLOWED_USERS` |
-| Bot ignores group messages | Group policy defaults to `disabled`. Set `WEIXIN_GROUP_POLICY=open` or `allowlist` — but note that QR-login iLink bot identities (`...@im.bot`) typically cannot receive ordinary WeChat group messages at all. If the gateway logs show no raw inbound events for group messages, the limitation is on the iLink side, not in Hermes. |
+| Bot ignores group messages | Group policy defaults to `disabled`. Set `WEIXIN_GROUP_POLICY=open` or `allowlist` — but note that QR-login iLink bot identities (`...@im.bot`) typically cannot receive ordinary WeChat group messages at all. If the gateway logs show no raw inbound events for group messages, the limitation is on the iLink side, not in M.U.S.E.. |
 | Media download/upload fails | Ensure `cryptography` is installed. Check network access to `novac2c.cdn.weixin.qq.com` |
 | `Blocked unsafe URL (SSRF protection)` | The outbound media URL points to a private/internal address. Only public URLs are allowed |
 | Voice messages show as text | If WeChat provides a transcription, the adapter uses the text. This is expected behavior |

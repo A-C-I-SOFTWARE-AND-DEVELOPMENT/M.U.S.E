@@ -1,6 +1,6 @@
-# Hermes APK ↔ Termux intent bridge
+# M.U.S.E. APK ↔ Termux intent bridge
 
-> When the Hermes gateway runs **inside Termux on the same Android
+> When the M.U.S.E. gateway runs **inside Termux on the same Android
 > device**, the cockpit APK can drive it via Android's intent system
 > instead of going through a network round-trip first. This document
 > defines that bridge.
@@ -21,7 +21,7 @@ this — it lets another app start commands inside the Termux userland
 without prompting the user every time, as long as the user has granted
 the *Run external apps* permission to Termux.
 
-Hermes uses three intents only:
+M.U.S.E. uses three intents only:
 
 1. **`com.termux.RUN_COMMAND`** — for **start / stop / restart** of
    the gateway and for **tailing logs**.
@@ -90,13 +90,13 @@ Each action below maps to one method on `TermuxIntentBridge`.
 
 ### 4.1 Backend status
 
-**Goal:** answer the question *"is `hermes gateway` running inside Termux right now?"*
+**Goal:** answer the question *"is `muse gateway` running inside Termux right now?"*
 
 **How:**
 
 1. Fast path: `GET http://127.0.0.1:8080/v1/health` with a 1500 ms
    call timeout. 2xx → up.
-2. Fallback: `RUN_COMMAND` invoking `hermes gateway status --plain`
+2. Fallback: `RUN_COMMAND` invoking `muse gateway status --plain`
    in background mode, capturing exit code. `0` → up, `1` → down,
    anything else → unknown.
 
@@ -111,7 +111,7 @@ URL. It exposes a toggle in *Settings → Connection* labelled *"Use
 on-device Termux gateway"* which, when on, overrides whatever URL is
 otherwise configured. The override is purely local — there is no
 "discovery" protocol, no mDNS, no implicit fallback. If the user
-points at a different port (because they ran `hermes gateway start
+points at a different port (because they ran `muse gateway start
 --port 8181`), they enter it explicitly.
 
 ### 4.3 Wake-lock controls
@@ -159,7 +159,7 @@ RUN_COMMAND_BACKGROUND = true
 
 After firing, poll `GET /v1/health` until the connection refuses (≤6
 s). Flip status to *down* when that happens. The bridge **does not**
-escalate to `kill -9`; if `hermes gateway stop` doesn't work, the
+escalate to `kill -9`; if `muse gateway stop` doesn't work, the
 cockpit tells the user instead of asking Termux to send SIGKILL.
 
 ### 4.6 Restart the gateway
@@ -191,7 +191,7 @@ Implemented entirely in the cockpit process — no intent required. The
 last dispatched prompt is kept in-memory in `OrchestratorViewModel`
 (it's not persisted past process death; secrets-in-prompts hygiene).
 The button fires `ClipboardManager.setPrimaryClip(...)` with a label
-of `"Hermes — last worker prompt"`.
+of `"M.U.S.E. — last worker prompt"`.
 
 ### 4.9 Approve publish
 
@@ -283,9 +283,9 @@ Manual:
 adb shell pm list packages com.termux
 adb shell appops get com.termux RUN_IN_BACKGROUND
 
-# 2. Inside Termux, install Hermes and start the gateway once manually:
+# 2. Inside Termux, install M.U.S.E. and start the gateway once manually:
 #      curl -fsSL https://hermes.example/install | bash
-#      hermes gateway start --no-banner
+#      muse gateway start --no-banner
 #    Confirm http://127.0.0.1:8080/v1/health from the host.
 
 # 3. In the cockpit:
@@ -318,4 +318,4 @@ is intentionally not under test yet).
   long-running RPC channel.
 - No script generation. The bridge does not write scripts into the
   Termux home directory; everything it runs is a binary already in the
-  Hermes Termux install.
+  M.U.S.E. Termux install.

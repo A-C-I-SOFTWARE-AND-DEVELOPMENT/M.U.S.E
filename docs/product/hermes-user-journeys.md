@@ -389,13 +389,13 @@ says *"Hermes, status"* and asks *"Why did you pick that?"*.
    - Unit tests in `tests/foo/` pass.
    - `ruff check` is clean.
    - `mypy --strict tests/foo/` is clean.
-   - The CLI command `hermes foo bar` exits 0 on the sample input.
+   - The CLI command `muse foo bar` exits 0 on the sample input.
 
    ## What was tested
    - Ran `pytest tests/foo/` — 42 passed, 0 failed.
    - Ran `ruff check tests/foo/` — clean.
    - Ran `mypy --strict tests/foo/` — clean.
-   - Ran `hermes foo bar --input fixtures/sample.json` — exit 0.
+   - Ran `muse foo bar --input fixtures/sample.json` — exit 0.
 
    ## What failed
    - (None.)

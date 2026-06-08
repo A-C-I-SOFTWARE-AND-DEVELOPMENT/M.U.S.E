@@ -639,11 +639,11 @@ Shared infrastructure: `gateway/run.py` (entry),
 
 ## Existing TUI / dashboard surfaces
 
-- **`hermes --tui`** — Ink (React) TUI driven by
+- **`muse --tui`** — Ink (React) TUI driven by
   `tui_gateway/server.py` over newline-delimited JSON-RPC.
   Surface: `ui-tui/src/{app.tsx,entry.tsx,gatewayClient.ts,components/*,domain/*,lib/*}`,
   ~26 `.tsx` components plus a local `hermes-ink` ink-helper package.
-- **`hermes dashboard`** — `hermes_cli/web_server.py` (FastAPI),
+- **`muse dashboard`** — `hermes_cli/web_server.py` (FastAPI),
   serving `web/` (Vite + React 19) at `127.0.0.1:9119`. Pages:
   `ChatPage` (embeds TUI via PTY WebSocket), `ConfigPage`,
   `EnvPage`, `DocsPage`, `PluginsPage`, `SessionsPage`,
@@ -651,13 +651,13 @@ Shared infrastructure: `gateway/run.py` (entry),
   `SkillsPage`, `ModelsPage`. xterm.js + WebGL renderer,
   `@xterm/addon-fit` + `@xterm/addon-unicode11`.
 - **PTY bridge** — `hermes_cli/pty_bridge.py` +
-  `/api/pty` WebSocket; spawns `hermes --tui` and forwards bytes.
-- **Curses UI** — `hermes_cli/curses_ui.py` (`hermes tools` /
-  `hermes setup` use curses for TTY pickers).
+  `/api/pty` WebSocket; spawns `muse --tui` and forwards bytes.
+- **Curses UI** — `hermes_cli/curses_ui.py` (`muse tools` /
+  `muse setup` use curses for TTY pickers).
 - **ACP adapter** — `acp_adapter/{server,session,events,tools,permissions,edit_approval,auth,entry,__main__}.py`
   + `acp_registry/agent.json` + `acp_registry/icon.svg`. Drives
   VS Code / Zed / JetBrains.
-- **TUI inside dashboard** — the same `hermes --tui` is the canonical
+- **TUI inside dashboard** — the same `muse --tui` is the canonical
   chat experience inside the dashboard; do NOT re-implement in React
   (per AGENTS.md).
 
@@ -877,7 +877,7 @@ Headline items:
     + queryable from the cockpit.
 12. **Multi-host orchestration** — workers running on different
     machines.
-13. **Replay + re-arbitration** — `hermes orchestrate replay`
+13. **Replay + re-arbitration** — `muse orchestrate replay`
     so a weight change can be A/B'd against a past run.
 14. **More validation gates** — `tests` (pytest), `style` (ruff),
     `policy.skill` (SKILL.md version bump).

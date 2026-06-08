@@ -1,14 +1,14 @@
 ---
-title: "Debugging Hermes Tui Commands — Debug Hermes TUI slash commands: Python, gateway, Ink UI"
-sidebar_label: "Debugging Hermes Tui Commands"
-description: "Debug Hermes TUI slash commands: Python, gateway, Ink UI"
+title: "Debugging M.U.S.E. Tui Commands — Debug M.U.S.E. TUI slash commands: Python, gateway, Ink UI"
+sidebar_label: "Debugging M.U.S.E. Tui Commands"
+description: "Debug M.U.S.E. TUI slash commands: Python, gateway, Ink UI"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
-# Debugging Hermes Tui Commands
+# Debugging M.U.S.E. Tui Commands
 
-Debug Hermes TUI slash commands: Python, gateway, Ink UI.
+Debug M.U.S.E. TUI slash commands: Python, gateway, Ink UI.
 
 ## Skill metadata
 
@@ -17,7 +17,7 @@ Debug Hermes TUI slash commands: Python, gateway, Ink UI.
 | Source | Bundled (installed by default) |
 | Path | `skills/software-development/debugging-hermes-tui-commands` |
 | Version | `1.0.0` |
-| Author | Hermes Agent |
+| Author | M.U.S.E. |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `debugging`, `hermes-agent`, `tui`, `slash-commands`, `typescript`, `python` |
@@ -26,16 +26,16 @@ Debug Hermes TUI slash commands: Python, gateway, Ink UI.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
-# Debugging Hermes TUI Slash Commands
+# Debugging M.U.S.E. TUI Slash Commands
 
 ## Overview
 
-Hermes slash commands span three layers — Python command registry, tui_gateway JSON-RPC bridge, and the Ink/TypeScript frontend. When a command misbehaves (missing from autocomplete, works in CLI but not TUI, config persists but UI doesn't update), the bug is almost always one layer being out of sync with another.
+M.U.S.E. slash commands span three layers — Python command registry, tui_gateway JSON-RPC bridge, and the Ink/TypeScript frontend. When a command misbehaves (missing from autocomplete, works in CLI but not TUI, config persists but UI doesn't update), the bug is almost always one layer being out of sync with another.
 
-Use this skill when you encounter issues with slash commands in the Hermes TUI, particularly when commands aren't showing in autocomplete, aren't working properly in the TUI, or need to be added/updated.
+Use this skill when you encounter issues with slash commands in the M.U.S.E. TUI, particularly when commands aren't showing in autocomplete, aren't working properly in the TUI, or need to be added/updated.
 
 ## When to Use
 
@@ -159,7 +159,7 @@ After fixing:
 
 2. Run the TUI and test the command:
    ```bash
-   hermes --tui
+   muse --tui
    ```
 
 3. Type `/` and verify the command appears in autocomplete suggestions with the expected description and args hint.

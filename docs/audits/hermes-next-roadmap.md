@@ -75,7 +75,7 @@ templates, and worker selection automatically, with a single human
 `.hermes/scoring.json`), the radar can emit a one-line "weights
 changed because …" entry to the decision ledger, and an operator
 can review a 30-day delta of scoring weight drift in
-`hermes orchestrator retro`.
+`muse orchestrator retro`.
 
 ---
 

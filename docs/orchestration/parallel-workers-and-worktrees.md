@@ -1,6 +1,6 @@
 # Parallel workers and git worktrees
 
-Phase 12 of the Hermes local orchestrator adds two narrow capabilities:
+Phase 12 of the M.U.S.E. local orchestrator adds two narrow capabilities:
 
 1. A **parallel runner** that takes an execution plan of workers and
    runs them sequentially or with bounded concurrency, capturing logs

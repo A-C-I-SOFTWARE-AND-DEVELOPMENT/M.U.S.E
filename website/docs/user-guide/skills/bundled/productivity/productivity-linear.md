@@ -17,7 +17,7 @@ Linear: manage issues, projects, teams via GraphQL + curl.
 | Source | Bundled (installed by default) |
 | Path | `skills/productivity/linear` |
 | Version | `1.0.0` |
-| Author | Hermes Agent |
+| Author | M.U.S.E. |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Linear`, `Project Management`, `Issues`, `GraphQL`, `API`, `Productivity` |
@@ -25,7 +25,7 @@ Linear: manage issues, projects, teams via GraphQL + curl.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Linear — Issue & Project Management
@@ -35,7 +35,7 @@ Manage Linear issues, projects, and teams directly via the GraphQL API using `cu
 ## Setup
 
 1. Get a personal API key from **Linear Settings > Account > Security & access > Personal API keys** (URL: https://linear.app/settings/account/security). Note: the org-level *Settings > API* page only shows OAuth apps and workspace-member keys, not personal keys.
-2. Set `LINEAR_API_KEY` in your environment (via `hermes setup` or your env config)
+2. Set `LINEAR_API_KEY` in your environment (via `muse setup` or your env config)
 
 ## API Basics
 

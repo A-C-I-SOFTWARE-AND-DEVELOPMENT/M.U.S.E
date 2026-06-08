@@ -17,7 +17,7 @@ MCP client: connect servers, register tools (stdio/HTTP).
 | Source | Bundled (installed by default) |
 | Path | `skills/mcp/native-mcp` |
 | Version | `1.0.0` |
-| Author | Hermes Agent |
+| Author | M.U.S.E. |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `MCP`, `Tools`, `Integrations` |
@@ -26,17 +26,17 @@ MCP client: connect servers, register tools (stdio/HTTP).
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Native MCP Client
 
-Hermes Agent has a built-in MCP client that connects to MCP servers at startup, discovers their tools, and makes them available as first-class tools the agent can call directly. No bridge CLI needed -- tools from MCP servers appear alongside built-in tools like `terminal`, `read_file`, etc.
+M.U.S.E. has a built-in MCP client that connects to MCP servers at startup, discovers their tools, and makes them available as first-class tools the agent can call directly. No bridge CLI needed -- tools from MCP servers appear alongside built-in tools like `terminal`, `read_file`, etc.
 
 ## When to Use
 
 Use this whenever you want to:
-- Connect to MCP servers and use their tools from within Hermes Agent
+- Connect to MCP servers and use their tools from within M.U.S.E.
 - Add external capabilities (filesystem access, GitHub, databases, APIs) via MCP
 - Run local stdio-based MCP servers (npx, uvx, or any command)
 - Connect to remote HTTP/StreamableHTTP MCP servers
@@ -69,7 +69,7 @@ mcp_servers:
     args: ["mcp-server-time"]
 ```
 
-Restart Hermes Agent. On startup it will:
+Restart M.U.S.E.. On startup it will:
 1. Connect to the server
 2. Discover available tools
 3. Register them with the prefix `mcp_time_*`
@@ -124,12 +124,12 @@ Note: A server config must have either `command` (stdio) or `url` (HTTP), not bo
 
 ### Startup Discovery
 
-When Hermes Agent starts, `discover_mcp_tools()` is called during tool initialization:
+When M.U.S.E. starts, `discover_mcp_tools()` is called during tool initialization:
 
 1. Reads `mcp_servers` from `~/.hermes/config.yaml`
 2. For each server, spawns a connection in a dedicated background event loop
 3. Initializes the MCP session and calls `list_tools()` to discover available tools
-4. Registers each tool in the Hermes tool registry
+4. Registers each tool in the M.U.S.E. tool registry
 
 ### Tool Naming Convention
 
@@ -165,7 +165,7 @@ After discovery, MCP tools are automatically injected into all `hermes-*` platfo
 
 ### Stdio Transport
 
-The most common transport. Hermes launches the MCP server as a subprocess and communicates over stdin/stdout.
+The most common transport. M.U.S.E. launches the MCP server as a subprocess and communicates over stdin/stdout.
 
 ```yaml
 mcp_servers:
@@ -194,7 +194,7 @@ If HTTP support is not available in your installed `mcp` version, the server wil
 
 ### Environment Variable Filtering
 
-For stdio servers, Hermes does NOT pass your full shell environment to MCP subprocesses. Only safe baseline variables are inherited:
+For stdio servers, M.U.S.E. does NOT pass your full shell environment to MCP subprocesses. Only safe baseline variables are inherited:
 
 - `PATH`, `HOME`, `USER`, `LANG`, `LC_ALL`, `TERM`, `SHELL`, `TMPDIR`
 - Any `XDG_*` variables
@@ -254,7 +254,7 @@ pip install --upgrade mcp
 
 - Check that the server is listed under `mcp_servers` (not `mcp` or `servers`)
 - Ensure the YAML indentation is correct
-- Look at Hermes Agent startup logs for connection messages
+- Look at M.U.S.E. startup logs for connection messages
 - Tool names are prefixed with `mcp_{server}_{tool}` -- look for that pattern
 
 ### Connection keeps dropping
@@ -342,7 +342,7 @@ All tools from all servers are registered and available simultaneously. Each ser
 
 ## Sampling (Server-Initiated LLM Requests)
 
-Hermes supports MCP's `sampling/createMessage` capability — MCP servers can request LLM completions through the agent during tool execution. This enables agent-in-the-loop workflows (data analysis, content generation, decision-making).
+M.U.S.E. supports MCP's `sampling/createMessage` capability — MCP servers can request LLM completions through the agent during tool execution. This enables agent-in-the-loop workflows (data analysis, content generation, decision-making).
 
 Sampling is **enabled by default**. Configure per server:
 

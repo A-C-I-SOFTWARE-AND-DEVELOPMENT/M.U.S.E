@@ -1,10 +1,10 @@
 # Windows Claude Code bridge guide
 
-This guide is for running Hermes against a **Windows** host that
+This guide is for running M.U.S.E. against a **Windows** host that
 runs Claude Code (or a Claude Code session running on Windows that
-you want to drive from a Hermes backend elsewhere).
+you want to drive from a M.U.S.E. backend elsewhere).
 
-> **Heads-up:** Native Windows Hermes is **early beta**. WSL2 is the
+> **Heads-up:** Native Windows M.U.S.E. is **early beta**. WSL2 is the
 > battle-tested Windows path. If you're starting from scratch and
 > can use WSL2, do that — the rest of this doc still applies and is
 > simpler. The native-Windows path below works for users who
@@ -14,23 +14,23 @@ you want to drive from a Hermes backend elsewhere).
 
 ## What the bridge is
 
-The Claude Code Windows bridge is a small adapter that lets a Hermes
+The Claude Code Windows bridge is a small adapter that lets a M.U.S.E.
 worker drive a **Claude Code** session running on Windows as if it
-were a Hermes worker environment. It exists because:
+were a M.U.S.E. worker environment. It exists because:
 
-- Some users have Claude Code subscriptions and want to point Hermes
+- Some users have Claude Code subscriptions and want to point M.U.S.E.
   at *that* runtime rather than calling a model API directly.
 - Some users have Windows-only toolchains (Visual Studio, MSBuild,
   Unreal, custom hardware drivers) where the Windows file system is
   the only place the work can actually happen.
-- Some shops keep Windows for compliance reasons and want Hermes
+- Some shops keep Windows for compliance reasons and want M.U.S.E.
   orchestration on top.
 
 The bridge maps a `claude-code-windows` worker environment to:
 
 - a long-lived Claude Code session on a Windows box, addressable
   over an SSH-ish wire protocol,
-- with **Hermes' validation gates, ledger, and approvals** in front
+- with **M.U.S.E.' validation gates, ledger, and approvals** in front
   of it.
 
 You get the best of both: Claude Code's tooling on the Windows host
@@ -41,16 +41,16 @@ around it.
 
 ## Two deployment shapes
 
-The bridge supports two shapes depending on where the Hermes backend
+The bridge supports two shapes depending on where the M.U.S.E. backend
 lives.
 
-### Shape A: Hermes backend on Linux, Claude Code on Windows
+### Shape A: M.U.S.E. backend on Linux, Claude Code on Windows
 
 ```
 [ Your phone / laptop / CLI ]
             │
             ▼
-  [ Hermes backend (Linux) ]
+  [ M.U.S.E. backend (Linux) ]
     ── ledger ── gates ── kanban ──
             │
             ▼  (ssh / claude-code-bridge)
@@ -60,30 +60,30 @@ lives.
        [ Windows file system, tools, builds ]
 ```
 
-This is the recommended shape. Hermes' backend runs where it's
+This is the recommended shape. M.U.S.E.' backend runs where it's
 happiest (Linux), and only the worker environment lives on Windows.
 
-### Shape B: Hermes backend on Windows native
+### Shape B: M.U.S.E. backend on Windows native
 
 ```
 [ Your phone / laptop / CLI ]
             │
             ▼
-  [ Hermes backend (Windows native) ]
+  [ M.U.S.E. backend (Windows native) ]
     ── ledger ── gates ── kanban ──
             │
             ▼  (in-process)
   [ Claude Code (Windows) ]
 ```
 
-Works, but pulls Hermes' own runtime onto Windows. Use this only if
+Works, but pulls M.U.S.E.' own runtime onto Windows. Use this only if
 you have a reason to avoid Linux entirely on this machine.
 
 ---
 
 ## Windows setup (from scratch)
 
-### 1. Install Hermes on Windows
+### 1. Install M.U.S.E. on Windows
 
 ```powershell
 iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
@@ -140,9 +140,9 @@ ssh you@windows-host claude --version
 
 If that prints a Claude Code version, the wire is up.
 
-### 4. Configure a Hermes profile that uses the bridge
+### 4. Configure a M.U.S.E. profile that uses the bridge
 
-In `~/.hermes/config.yaml` (on whichever host runs the Hermes
+In `~/.hermes/config.yaml` (on whichever host runs the M.U.S.E.
 backend):
 
 ```yaml
@@ -157,7 +157,7 @@ profiles:
         - --dangerously-skip-permissions   # only for trusted, sandboxed work
     enabled_toolsets: [terminal, file_edit, file_read, github_assistant]
     # The "model" field is ignored — Claude Code uses its own model
-    # selection. Hermes routes the *phase* here; Claude Code handles
+    # selection. M.U.S.E. routes the *phase* here; Claude Code handles
     # generation.
 ```
 
@@ -174,13 +174,13 @@ bash scripts/hermes-orchestrate.sh "On the Windows host, run `npm run build` and
   --assign-to windows-engineer
 ```
 
-Hermes:
+M.U.S.E.:
 
 1. Decomposes the goal.
 2. Routes the build phase to `windows-engineer`.
 3. Bridges into the Claude Code session on Windows.
 4. Claude Code runs the build inside the Windows workdir.
-5. Output streams back to the Hermes ledger and the user surface.
+5. Output streams back to the M.U.S.E. ledger and the user surface.
 6. Gates run against the output.
 7. Final summary lands in the job folder.
 
@@ -190,10 +190,10 @@ Hermes:
 
 | Step | Runs on | Why |
 |------|---------|-----|
-| Orchestrator skill (decomposes the goal) | Hermes backend | The orchestrator profile lives in Hermes. |
-| Kanban dispatcher | Hermes backend | Source of truth for phase state. |
-| Validation gates (schema, policy, judge) | Hermes backend | Gates aren't optional — they apply to bridge workers too. |
-| Decision ledger | Hermes backend | Every bridge invocation logs `kind=spawn`, `kind=tool_call`, etc. |
+| Orchestrator skill (decomposes the goal) | M.U.S.E. backend | The orchestrator profile lives in M.U.S.E.. |
+| Kanban dispatcher | M.U.S.E. backend | Source of truth for phase state. |
+| Validation gates (schema, policy, judge) | M.U.S.E. backend | Gates aren't optional — they apply to bridge workers too. |
+| Decision ledger | M.U.S.E. backend | Every bridge invocation logs `kind=spawn`, `kind=tool_call`, etc. |
 | The actual Claude Code work | Windows host | Claude Code's editor, build tools, file ops. |
 | Approvals (HIGH-risk) | Whichever surface you respond on | The bridge cannot bypass `enterprise.policy`. |
 
@@ -211,11 +211,11 @@ cannot ship anything without you approving.
 Each phase that lands on the Windows bridge is mapped to a single
 Claude Code session **task** with a structured input/output contract:
 
-- **Input.** The Hermes phase's `input.md` is fed in as the prompt.
+- **Input.** The M.U.S.E. phase's `input.md` is fed in as the prompt.
   Any attached files are staged in a workdir Claude Code can see.
 - **Output.** Claude Code writes back to the workdir; the bridge
   collects the diff, the stdout, and a structured summary block.
-- **Validation.** The Hermes side runs the schema gate (did Claude
+- **Validation.** The M.U.S.E. side runs the schema gate (did Claude
   Code produce the requested output shape?), the policy gate
   (sandbox checks), and the optional judge gate.
 - **Ledger.** Every bridge tool call ends up in `ledger.jsonl` with
@@ -297,9 +297,9 @@ muse kanban reclaim <task-id>
 
 The bridge is a **mutual-trust** boundary:
 
-- The Hermes backend trusts the Windows host enough to ship prompts,
+- The M.U.S.E. backend trusts the Windows host enough to ship prompts,
   diffs, and (sometimes) source code to it.
-- The Windows host trusts the Hermes backend enough to take its
+- The Windows host trusts the M.U.S.E. backend enough to take its
   instructions.
 
 That means:
@@ -307,7 +307,7 @@ That means:
 - **SSH key pinning.** Use a dedicated SSH key, not your personal
   one. Configure `~/.ssh/known_hosts` strictly. Disable password
   auth in Windows OpenSSH.
-- **No API keys cross the bridge.** Hermes does **not** send your
+- **No API keys cross the bridge.** M.U.S.E. does **not** send your
   Anthropic / OpenAI / GitHub keys to the Windows host. The Windows
   Claude Code session uses its own credentials, configured on the
   Windows side. The bridge is data-only.
@@ -336,7 +336,7 @@ Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 Start-Service sshd
 # (install Claude Code separately, confirm `claude --version` works)
 
-# On the host running the Hermes backend
+# On the host running the M.U.S.E. backend
 muse plugin enable claude-code-bridge
 muse config set claude_code_bridge.host windows-host.local
 muse config set claude_code_bridge.user $YOUR_WINDOWS_USER

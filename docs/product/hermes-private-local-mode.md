@@ -86,7 +86,7 @@ the promise holds without inspecting the code.
 ### 4.1 The audit script
 
 ```
-hermes doctor --private-mode
+muse doctor --private-mode
 ```
 
 This script:
@@ -137,7 +137,7 @@ bar. Tapping the pill opens a screen that shows:
 - The local model server the backend is using.
 - The list of capabilities currently disabled.
 - The last 10 entries of the privacy ledger.
-- A **"Run audit"** button that triggers `hermes doctor
+- A **"Run audit"** button that triggers `muse doctor
   --private-mode` on the backend and renders the result.
 
 The cockpit refuses to switch modes mid-job. Switching modes is

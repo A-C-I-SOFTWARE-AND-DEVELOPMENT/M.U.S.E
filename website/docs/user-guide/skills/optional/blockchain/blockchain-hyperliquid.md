@@ -14,10 +14,10 @@ Hyperliquid market data, account history, trade review.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/blockchain/hyperliquid` |
+| Source | Optional — install with `muse skills install official/blockchain/hyperliquid` |
 | Path | `optional-skills/blockchain/hyperliquid` |
 | Version | `0.1.0` |
-| Author | Hugo Sequier (Hugo-SEQUIER), Hermes Agent |
+| Author | Hugo Sequier (Hugo-SEQUIER), M.U.S.E. |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Hyperliquid`, `Blockchain`, `Crypto`, `Trading`, `Perpetuals`, `Spot`, `DeFi` |
@@ -25,7 +25,7 @@ Hyperliquid market data, account history, trade review.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Hyperliquid Skill

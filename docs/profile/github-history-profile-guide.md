@@ -1,6 +1,6 @@
 # GitHub history profile guide
 
-Hermes builds a **persistent profile** of how you work over time —
+M.U.S.E. builds a **persistent profile** of how you work over time —
 your repositories, your typical PR patterns, the projects you care
 about, your usual reviewers. The richest input to that profile is
 your GitHub history.
@@ -34,7 +34,7 @@ GitHub-derived facts at `~/.hermes/profile/github/`. It includes:
 
 | Field | Where it comes from |
 |-------|---------------------|
-| GitHub username | You tell Hermes once, or `github_assistant` derives it from your PAT. |
+| GitHub username | You tell M.U.S.E. once, or `github_assistant` derives it from your PAT. |
 | Repositories you own / collaborate on | `GET /user/repos` via `github_assistant`. |
 | Languages you write | Aggregated from repo `language` fields and the orchestrator's observations. |
 | Repos you've worked on recently | From `GET /users/{user}/events` + your job history. |
@@ -72,13 +72,13 @@ profile cache.
 
 ## How the profile gets built
 
-Three loops, all running quietly when you ask Hermes to do GitHub
+Three loops, all running quietly when you ask M.U.S.E. to do GitHub
 work.
 
 ### 1. Initial backfill
 
 The first time you run a GitHub-touching workflow (or explicitly
-`/profile sync github`), Hermes:
+`/profile sync github`), M.U.S.E.:
 
 1. Lists your accessible repos.
 2. Pulls the most recent N (default 25) PRs and their reviewers,
@@ -91,7 +91,7 @@ The first time you run a GitHub-touching workflow (or explicitly
 You can see what it derived:
 
 ```bash
-hermes profile show github
+muse profile show github
 ```
 
 ```
@@ -126,11 +126,11 @@ the profile doesn't drift on a single bad observation.
 If you've enabled the AI radar or a profile-refresh cron job, the
 profile re-syncs from GitHub on schedule (default: weekly). You can
 trigger manually with `/profile sync github` or
-`hermes profile sync github`.
+`muse profile sync github`.
 
 ---
 
-## What Hermes does with the profile
+## What M.U.S.E. does with the profile
 
 The profile is **input** to the orchestrator and the worker skills.
 Concretely:
@@ -149,7 +149,7 @@ Concretely:
   for "drafts only," the orchestrator routes those phases to a
   draft-only publishing config.
 
-If you'd rather Hermes ignore the profile and ask you every time,
+If you'd rather M.U.S.E. ignore the profile and ask you every time,
 disable it (see [Controls](#controls) below).
 
 ---
@@ -162,20 +162,20 @@ The profile pulls from GitHub via the `github_assistant` plugin.
 See [`../github-integration.md`](../github-integration.md) and
 [`../integrations/github-supabase-vercel-guide.md`](../integrations/github-supabase-vercel-guide.md)
 for the canonical setup. You need a fine-grained PAT scoped to the
-repositories you want Hermes to know about.
+repositories you want M.U.S.E. to know about.
 
 ```bash
-hermes plugin enable github_assistant
-hermes config set github.allowed_repositories "owner1/repo1,owner2/repo2"
+muse plugin enable github_assistant
+muse config set github.allowed_repositories "owner1/repo1,owner2/repo2"
 # Or grant access to all of your repos:
-hermes config set github.allowed_repositories "@me"
+muse config set github.allowed_repositories "@me"
 echo "GITHUB_PERSONAL_ACCESS_TOKEN=ghp_..." >> ~/.hermes/.env
 ```
 
 ### 2. Trigger the initial sync
 
 ```bash
-hermes profile sync github
+muse profile sync github
 ```
 
 The first sync can take a minute on large accounts; it streams
@@ -184,7 +184,7 @@ progress.
 ### 3. Confirm
 
 ```bash
-hermes profile show github
+muse profile show github
 ```
 
 You should see the structured summary shown above.
@@ -196,26 +196,26 @@ You should see the structured summary shown above.
 ### Pause profile updates
 
 ```bash
-hermes profile pause github
+muse profile pause github
 ```
 
 The cache stays; ambient updates stop. Resume with
-`hermes profile resume github`.
+`muse profile resume github`.
 
 ### Wipe the profile
 
 ```bash
-hermes profile wipe github                # interactive confirm
-hermes profile wipe github --yes          # no confirm
+muse profile wipe github                # interactive confirm
+muse profile wipe github --yes          # no confirm
 ```
 
 Deletes `~/.hermes/profile/github/` and removes GitHub-derived facts
-from memory. The next time you do GitHub work, Hermes will rebuild
+from memory. The next time you do GitHub work, M.U.S.E. will rebuild
 from scratch unless paused.
 
 ### Restrict scope
 
-By default Hermes pulls history only for repositories in
+By default M.U.S.E. pulls history only for repositories in
 `github.allowed_repositories`. To exclude specific ones:
 
 ```yaml
@@ -234,7 +234,7 @@ profile:
     enabled: false
 ```
 
-Hermes still uses `github_assistant` for live work (PRs, issues,
+M.U.S.E. still uses `github_assistant` for live work (PRs, issues,
 comments). It just won't aggregate history into the profile.
 
 ### Disable ambient updates only
@@ -260,7 +260,7 @@ memories like:
 - "Jeremiah's most recently active repo is echerd27-design/hermes-agent." (source: profile.github)
 ```
 
-These appear in `hermes memory list` like any other memory. Editing
+These appear in `muse memory list` like any other memory. Editing
 or deleting them is fine — the next profile sync will repropose
 them, but the curator will respect a deletion if it understands you
 explicitly removed it.
@@ -322,7 +322,7 @@ Prompts you might want to use *against* the profile:
   `~/.hermes/.env` and are read by the `github_assistant` plugin
   inside the same process; they are not sent to model providers,
   not logged in the ledger, not synced into memory.
-- **Wipe is a real wipe.** `hermes profile wipe github` deletes the
+- **Wipe is a real wipe.** `muse profile wipe github` deletes the
   cache and removes profile-sourced memories. The
   `~/.hermes/memory/*.db` file no longer contains them.
 
@@ -335,12 +335,12 @@ For the full lockdown, see
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `profile show github` says "no data yet" | Initial sync never ran | `hermes profile sync github`. |
+| `profile show github` says "no data yet" | Initial sync never ran | `muse profile sync github`. |
 | Sync errors with 401/403 | PAT scope insufficient | Regenerate PAT with `repo:read` (or `repo` if you also want write); update `~/.hermes/.env`. |
 | Sync errors with 404 on a specific repo | Repo removed or you lost access | Edit `github.allowed_repositories` to drop it; re-sync. |
-| Profile suggests the wrong default branch | Convention changed recently | `hermes profile sync github` to refresh; then `hermes memory update <fact-id>` if needed. |
+| Profile suggests the wrong default branch | Convention changed recently | `muse profile sync github` to refresh; then `muse memory update <fact-id>` if needed. |
 | Reviewer suggestions feel stale | Your team changed | Re-sync; consider lowering `profile.github.history_window` to last 30 days. |
-| You see a memory you didn't expect | Auto-derived from ambient observation | `hermes memory rm <id>`; the curator respects deletions. |
+| You see a memory you didn't expect | Auto-derived from ambient observation | `muse memory rm <id>`; the curator respects deletions. |
 | Sync is slow | Account has hundreds of repos | Set `profile.github.history_window` smaller; or limit `github.allowed_repositories`. |
 
 Anything else: see

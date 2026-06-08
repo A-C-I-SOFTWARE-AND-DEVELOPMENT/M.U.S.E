@@ -158,7 +158,7 @@ journeys this spec commits to:
 | C10 | Persistent queue | SQLite kanban board + `~/.hermes/jobs/` | Resumes after reboot. |
 | C11 | Checkpointing | job folder + decision ledger | Any phase can resume from its last good checkpoint. |
 | C12 | Validation loops | local validation gates, judge, auto-lint/auto-test | Every promise is verified; nothing self-attests. |
-| C13 | Monitoring | cockpit dashboard + gateway SSE + `hermes orchestrator status` | Live state per job. |
+| C13 | Monitoring | cockpit dashboard + gateway SSE + `muse orchestrator status` | Live state per job. |
 | C14 | User profile learning from GitHub history | `plugins/github_assistant/` + memory | Extracts style, naming, review tone, preferred libraries. |
 | C15 | Secrets management | `~/.hermes/.env` + EncryptedSharedPreferences on device | No secret ever crosses the cockpit→backend boundary in cleartext over an untrusted network. |
 | C16 | GitHub / Supabase / Vercel integrations | first-party plugins | Read-only by default; mutating actions gated. |
@@ -194,7 +194,7 @@ The bar. Each row defines what 10/10 looks like and how it is verified.
 | Persistent queue + checkpointing | If the backend is killed at any point, restarting it picks every in-flight job up at the last checkpoint with no human action. The cockpit reflects the restart within 5 s. Long jobs (≥ 1 h) checkpoint at least every 60 s of wall time. | Restart drill in CI (kill -9 every 30 s during a 5-min job); checkpoint cadence asserted from ledger timestamps. |
 | Network recovery / resume | If the cockpit loses connection mid-stream, it reconnects with exponential backoff and replays missed events from the gateway's SSE buffer. If the backend loses connection to a remote worker, it pauses the worker's lane (not the whole job) and surfaces a "worker unreachable" card with **Retry** and **Reassign** actions. | Chaos test that drops the link every 30 s; SSE replay test; "worker unreachable" surfaced in cockpit within 10 s. |
 | Validation loops | Every job declares its validation contract up front (tests, lint, type-check, smoke-run, manual review). The validation phase runs that contract verbatim; results are written to `validation-report.md`; the gate cannot be bypassed without an explicit "override" decision logged to the ledger with the operator's identity. | Validation contract schema test; bypass requires explicit flag asserted in integration test; report shape asserted against a fixture. |
-| Monitoring | The cockpit dashboard updates each job card in < 2 s of a backend state change; `hermes orchestrator status <job-id>` matches the cockpit byte-for-byte; the gateway emits SSE events that any other client can subscribe to without polling. | SSE latency budget enforced; CLI-vs-cockpit diff test; long-poll fallback test for clients without SSE. |
+| Monitoring | The cockpit dashboard updates each job card in < 2 s of a backend state change; `muse orchestrator status <job-id>` matches the cockpit byte-for-byte; the gateway emits SSE events that any other client can subscribe to without polling. | SSE latency budget enforced; CLI-vs-cockpit diff test; long-poll fallback test for clients without SSE. |
 
 ### 5.3 Workers, models, and integrations
 

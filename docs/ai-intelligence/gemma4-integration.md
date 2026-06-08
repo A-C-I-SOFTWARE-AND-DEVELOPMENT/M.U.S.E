@@ -41,7 +41,7 @@ Local Gemma lanes are routed by job weight, not one blanket default
   → **E2B** — low latency, low footprint (`TaskProfile.local_purpose="local_fast"`).
 - **Coding / planning / deeper reasoning** (`coding_*`, `test_debug`) → **E4B**,
   **only if it loads cleanly**. The opt-in smoke check
-  (`hermes models gemma smoke --variant gemma4-e4b`) persists the result to
+  (`muse models gemma smoke --variant gemma4-e4b`) persists the result to
   `gemma_load_status.json`; if E4B is on record as *failed* (e.g. OOM on an 8 GB
   box) the router automatically demotes those lanes to **E2B**. A fresh/unprobed
   install still prefers E4B — only a *demonstrated* failure downgrades it.
@@ -141,19 +141,19 @@ ollama pull gemma4:26b
 ollama pull gemma4:31b
 ```
 
-Hermes never downloads weights on a normal install. `hermes models bootstrap`
+Hermes never downloads weights on a normal install. `muse models bootstrap`
 plans downloads but pulls only with explicit consent (`--force`, not `--no-pull`,
 not `--dry-run`).
 
 ## Inspect / operate
 
 ```bash
-hermes models gemma status         # configured / installed / promoted matrix
-hermes models gemma doctor         # wiring + safety doctor
-hermes models gemma recommend --tier laptop
-hermes models gemma smoke --variant gemma4-e4b   # opt-in; needs Ollama
-hermes models gemma scorecards     # measured Gemma scorecards
-hermes models gemma promote --task-class memory_curator --dry-run
+muse models gemma status         # configured / installed / promoted matrix
+muse models gemma doctor         # wiring + safety doctor
+muse models gemma recommend --tier laptop
+muse models gemma smoke --variant gemma4-e4b   # opt-in; needs Ollama
+muse models gemma scorecards     # measured Gemma scorecards
+muse models gemma promote --task-class memory_curator --dry-run
 ```
 
 The same commands are available via the module CLI:
@@ -169,7 +169,7 @@ never a launch blocker.
 1. MUSE records per-turn scorecards for Gemma-backed turns
    (`JarvisPrime.record_route_outcome`, evidence-only — unknown values stay
    unknown, never fabricated).
-2. When the gates above are met, `hermes models gemma promote --task-class <t>`
+2. When the gates above are met, `muse models gemma promote --task-class <t>`
    produces an **owner-visible** `routing_rule_update` proposal (queued in
    `~/.hermes/jarvis_prime/proposals.jsonl`) with the sample count, mean-score
    delta, latency delta, correction/hallucination deltas, and a rollback plan.

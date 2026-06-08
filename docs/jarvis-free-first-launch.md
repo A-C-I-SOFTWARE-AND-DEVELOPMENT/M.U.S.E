@@ -18,29 +18,29 @@ subscription/session — not as generic model API backends.
 bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh) --jarvis-launch
 
 # Already installed
-hermes jarvis launch
+muse jarvis launch
 
 # Just (re)configure model routing
-hermes models bootstrap --free-first --jarvis
+muse models bootstrap --free-first --jarvis
 
 # Verify launch readiness
-hermes doctor --jarvis-launch
+muse doctor --jarvis-launch
 ```
 
 After launch:
 
 | Action | Command |
 |---|---|
-| Start Hermes | `hermes` |
+| Start Hermes | `muse` |
 | Invoke MUSE | `/jarvis` (aliases `/jp`, `/jarvis-prime`) |
-| Run launch doctor | `hermes doctor --jarvis-launch` |
+| Run launch doctor | `muse doctor --jarvis-launch` |
 | **Stop MUSE immediately** | `/jarvis stop` or `python -m hermes_cli.jarvis_prime stop` |
 
 ---
 
 ## What the launch path does
 
-`hermes jarvis launch` (and the installer's `--jarvis-launch`) runs, in order:
+`muse jarvis launch` (and the installer's `--jarvis-launch`) runs, in order:
 
 1. **Runtime check** — MUSE imports and `handle()` works.
 2. **Model bootstrap** — detects what's runnable and writes a free-first
@@ -60,7 +60,7 @@ It ends by printing exactly how to start, invoke, verify, and stop.
 
 ## The free-first route order
 
-`hermes models bootstrap --free-first --jarvis` writes a routing policy to
+`muse models bootstrap --free-first --jarvis` writes a routing policy to
 `${HERMES_HOME:-~/.hermes}/jarvis_prime/model_policy.json`. Routes are
 ordered free first:
 
@@ -155,7 +155,7 @@ explicitly opt in:
 
 ```bash
 export HERMES_JARVIS_ENABLE_PAID=1
-hermes models bootstrap --free-first --jarvis
+muse models bootstrap --free-first --jarvis
 ```
 
 The free-first launch path requires **no** paid API key. The launch
@@ -180,7 +180,7 @@ disables the proactive tick, and journals a STOP record to memory.
 ## Rollback
 
 - **Model policy:** delete `${HERMES_HOME}/jarvis_prime/model_policy.json`
-  and re-run `hermes models bootstrap` (or restore the prior file).
+  and re-run `muse models bootstrap` (or restore the prior file).
 - **A worker change:** revert the branch the lane built on
   (`git revert` / `git checkout`). Branch leases auto-expire.
 - **Install:** the installer never deletes your data dir; re-run the
@@ -191,8 +191,8 @@ disables the proactive tick, and journals a STOP record to memory.
 ## Launch doctor
 
 ```bash
-hermes doctor --jarvis-launch          # human-readable
-hermes doctor --jarvis-launch --json   # machine-readable
+muse doctor --jarvis-launch          # human-readable
+muse doctor --jarvis-launch --json   # machine-readable
 ```
 
 It verifies: package + CLI import, MUSE import, `python -m
@@ -213,7 +213,7 @@ runtimes/workers are warnings.
   time** — it loads on Termux and in slim CI images.
 - The dependency-free CLI surface is available as
   `python -m hermes_cli.jarvis_prime {bootstrap,launch,launch-doctor,stop}`
-  when the full `hermes` console script isn't on `PATH`.
+  when the full `muse` console script isn't on `PATH`.
 - `${HERMES_HOME}` is honored everywhere; file permission tightening is
   best-effort (a no-op where the platform can't `chmod`).
 - The installer keeps the Termux path intact and does not pull models in

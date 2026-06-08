@@ -1,11 +1,11 @@
 # Mobile-first MUSE — documentation hub
 
 This is the index for running **MUSE** from your phone: the
-native Android cockpit, how it pairs with a Hermes backend, what it can
+native Android cockpit, how it pairs with a M.U.S.E. backend, what it can
 do, and how the safety model keeps a powerful personal assistant from
 doing anything you didn't authorize.
 
-> New to Hermes itself? Start with the repo [`README.md`](../../README.md)
+> New to M.U.S.E. itself? Start with the repo [`README.md`](../../README.md)
 > and the plain-English [`docs/README.md`](../README.md) operating manual.
 
 ---

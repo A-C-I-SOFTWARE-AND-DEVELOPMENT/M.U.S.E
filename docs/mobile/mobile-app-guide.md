@@ -1,6 +1,6 @@
-# Mobile app guide — Hermes from your phone
+# Mobile app guide — M.U.S.E. from your phone
 
-This is the plain-English guide to running Hermes from your phone:
+This is the plain-English guide to running M.U.S.E. from your phone:
 what the Android app is, what the backend is, how they talk, what
 "approval" looks like on the lockscreen, and how to keep working when
 your network drops.
@@ -15,8 +15,8 @@ your network drops.
 ## What the app does
 
 The Android app at [`apps/android/`](../../apps/android/) is a
-**cockpit** for a running Hermes backend. It is **not** a
-self-contained Hermes — there's no Python, no model, no kanban
+**cockpit** for a running M.U.S.E. backend. It is **not** a
+self-contained M.U.S.E. — there's no Python, no model, no kanban
 database inside the app. It is:
 
 - a **window** into your backend (live job list, task graph, logs),
@@ -51,8 +51,8 @@ Same backend on every surface; only the input/output differs.
 | Mode | Backend lives where | App reaches it at | Pick when |
 |------|---------------------|-------------------|-----------|
 | **Remote gateway** *(recommended)* | A VPS, home server, or workstation you control | `https://<your-host>` | You want phone access from anywhere, want the backend to keep running while the phone sleeps. |
-| **On-device Termux** | `hermes gateway start` inside Termux on this same phone | `http://127.0.0.1:8080` | You want everything on-device — no cloud, no other machines. |
-| **Local handoff (fallback)** | No Hermes backend at all | n/a | You only want the clipboard handoff to Codex / Claude / ChatGPT — the workflow that predates the orchestration stack. |
+| **On-device Termux** | `muse gateway start` inside Termux on this same phone | `http://127.0.0.1:8080` | You want everything on-device — no cloud, no other machines. |
+| **Local handoff (fallback)** | No M.U.S.E. backend at all | n/a | You only want the clipboard handoff to Codex / Claude / ChatGPT — the workflow that predates the orchestration stack. |
 
 The cockpit detects which mode is reachable on first launch. You can
 change modes any time under **Settings → Mode**.
@@ -64,7 +64,7 @@ change modes any time under **Settings → Mode**.
 The shortest path to a working cockpit, in roughly the order you'll
 do it.
 
-### 1. Install Hermes on your backend host
+### 1. Install M.U.S.E. on your backend host
 
 Pick the host first. Options:
 
@@ -77,22 +77,22 @@ Install:
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 source ~/.bashrc
-hermes doctor              # confirm clean install
+muse doctor              # confirm clean install
 ```
 
 Configure a default model:
 
 ```bash
-hermes model               # interactive picker
+muse model               # interactive picker
 # Or directly:
-hermes config set provider openrouter
-hermes config set model openrouter/anthropic/claude-sonnet
+muse config set provider openrouter
+muse config set model openrouter/anthropic/claude-sonnet
 ```
 
 ### 2. Start the gateway
 
 ```bash
-hermes gateway start --listen 0.0.0.0:8080
+muse gateway start --listen 0.0.0.0:8080
 ```
 
 The gateway exposes the HTTP API the app talks to. For a remote
@@ -420,7 +420,7 @@ Safety guardrails — these are not optional:
   the car is moving.
 - **No text input.** The keyboard is hidden. Only voice and the big
   red **Cancel** button are reachable.
-- **Wake word optional.** If enabled, the wake word ("Hey Hermes")
+- **Wake word optional.** If enabled, the wake word ("Hey M.U.S.E.")
   only arms a single capture — it doesn't leave the mic open.
 - **TTS is short-form.** Replies longer than 60s of speech truncate
   to a summary; the full reply is queued for after-drive review.
@@ -429,8 +429,8 @@ Safety guardrails — these are not optional:
   icon.
 
 You activate it from **Settings → Driving mode** or via the
-voice command *"Hermes, start driving mode."* You exit with
-*"Hermes, stop driving mode"* or by tapping the lock icon. The full
+voice command *"M.U.S.E., start driving mode."* You exit with
+*"M.U.S.E., stop driving mode"* or by tapping the lock icon. The full
 behavior is in [voice/voice-first-user-guide.md §driving-mode](../voice/voice-first-user-guide.md#driving-mode).
 
 ---
@@ -468,7 +468,7 @@ The orchestrator looks at:
 1. **The phase's nature.** A research phase prefers a `researcher`
    profile; a code-change phase prefers `engineer`. The orchestrator
    skill (`kanban-orchestrator`) writes the assignee.
-2. **Which profiles you have configured.** `hermes profile list`
+2. **Which profiles you have configured.** `muse profile list`
    shows the set. Unknown assignees stall in `ready` — the dispatcher
    never invents profiles.
 3. **Routing rules.** `orchestration.routing` in
@@ -548,7 +548,7 @@ in the chat input is equivalent to typing them in the terminal.
   cache reloads from the gateway.
 
 So losing the phone = lose the bearer token = revoke from the
-backend with `hermes gateway revoke-token <phone-id>` and that's it.
+backend with `muse gateway revoke-token <phone-id>` and that's it.
 None of your conversation or job history was on the phone.
 
 ---
@@ -559,7 +559,7 @@ If your backend lives in Termux on the phone, the cockpit launches
 and monitors it for you:
 
 - **Settings → Termux runtime → Start.** Sends the right intent into
-  Termux to run `hermes gateway start --listen 127.0.0.1:8080`.
+  Termux to run `muse gateway start --listen 127.0.0.1:8080`.
 - **Settings → Termux runtime → Stop.** Graceful stop with state
   flush.
 - **Settings → Termux runtime → Status.** PID, uptime, last log
@@ -596,7 +596,7 @@ and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
 - [voice/presence-mode.md](../voice/presence-mode.md) — hands-free
   Presence Mode, the trigger fallback chain, gestures, approval-by-voice.
 - [remote/windows-claude-code-bridge-guide.md](../remote/windows-claude-code-bridge-guide.md)
-  — using Hermes on the phone to drive a Windows Claude Code session.
+  — using M.U.S.E. on the phone to drive a Windows Claude Code session.
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)
   — keeping the on-device path fully private-local.
 - [orchestration/getting-started.md](../orchestration/getting-started.md)
