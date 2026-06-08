@@ -69,12 +69,3 @@ def test_route_subcommand_help_exits_0(capsys) -> None:
     out = capsys.readouterr().out
     assert "--task" in out
     assert "--json" in out
-
-
-def test_route_wiring_reexports_handler() -> None:
-    """The extracted handler is the one ``__main__`` dispatches to."""
-    from hermes_cli.jarvis_prime import __main__ as jp_main
-    from hermes_cli.jarvis_prime import cli_route
-
-    # ``__main__`` re-exports the canonical handler under its historical name.
-    assert jp_main._cmd_route is cli_route.cmd_route

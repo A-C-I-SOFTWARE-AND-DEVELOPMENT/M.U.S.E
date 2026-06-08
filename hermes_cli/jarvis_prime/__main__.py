@@ -66,7 +66,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from hermes_cli.jarvis_prime.awareness import perceive
-from hermes_cli.jarvis_prime.cli_route import add_route_parser, cmd_route
+from hermes_cli.jarvis_prime.cli_route import add_route_parser
 from hermes_cli.jarvis_prime.gates import GATES, run_gate_summary
 from hermes_cli.jarvis_prime.modes import (
     ClassifierContext,
@@ -1806,12 +1806,6 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
 
     print(f"error: unknown model-scorecard op {args.op!r}", file=sys.stderr)
     return 2
-
-
-# ``route`` lives in cli_route.py (behavior-preserving extraction). The
-# handler is re-exported here under its historical name so any in-repo
-# reference to ``_cmd_route`` keeps resolving.
-_cmd_route = cmd_route
 
 
 def _cmd_context(args: argparse.Namespace) -> int:
