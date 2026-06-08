@@ -316,3 +316,43 @@ agents did FU-11/14/16/17/23), each validated to the proof bar, draft-PR'd, and
   H6–H10 theory), **FU-10** (release-gate `sys.executable` fallback hardening),
   **FU-15** (recorded core-loop E2E — now unblocked: FU-11/FU-12 are on `main`).
 
+## Wave-2 + keystone outcomes — ALL MERGED (2026-06-08) · PROGRAM COMPLETE
+
+Wave-2 and the keystone/polish tasks built as parallel worktree builders,
+validated to the proof bar, and **merged to `main`** on green CI under the wave
+pre-authorization:
+
+| Task | PR | Squash commit | What landed |
+|---|---|---|---|
+| FU-18 | #375 | `c26ba52d` | AOS "233 agents" restated as an honest routed-catalog tally (233 names/248 entries/108 sub-agents; ~84 council files + 177 `agents/hermes/` general skills) |
+| FU-10 | #376 | `965ccbe2` | Release gate hardened: probe interpreter for pytest, fall back to `sys.executable`; tool-absent → WARN not false-RED (builder *reproduced* the false-RED) |
+| FU-13 | #378 | `ae406e33` | `--allow-external` host/CIDR allowlist (fail-closed non-loopback bind) + `_STATIC_TYPES` suffix allowlist |
+| FU-22 | #379 | `4a915d17` | Self-play theory **H6–H10** appended (Parts VI–VIII: federation-interference, verifier-diversity bound, identity invariance, cross-niche allocation, provably-non-relaxing safety gate) + honesty ledger |
+| FU-24 | #377 | `3af96285` | Context-handoff redaction extended to graph-derived citations/titles/summary (was request-only) |
+| FU-15 | #380 | `1fd94e14` | **Recorded core-loop E2E** over real cockpit HTTP: submit → run (offline planner, `queued→completed`) → owner-gated publish (`github_not_configured`) → owner-gated approve, asserting FU-12 autonomy gate + audit ledger; `1 passed in 1.27s` |
+| FU-17b | #381 | `56639c5b` | Distinct on-brand attention states: IDLE cyan → WAITING violet ring → SERIOUS violet core+ring → CRITICAL red (no gold at rest; CVD-robust) |
+
+### Program scorecard — 13 tasks, all merged
+
+- **Wave 1 (6):** FU-11, FU-12, FU-14, FU-16, FU-17, FU-23.
+- **Wave 2 + keystone/polish (7):** FU-18, FU-10, FU-13, FU-22, FU-24, FU-15, FU-17b.
+- **Proof bar met:** `ruff`/`ty`/`pytest` green (no new *real* diagnostics; pytest-import FP exempt) · free/local benchmark scorecard (FU-16) · **recorded core-loop E2E** (FU-15).
+- **Safety net intact + strengthened:** autonomy escalation owner-gated (FU-12) + env kill-switch; budget hard-stop on the single-job path (FU-11); non-loopback bind allowlisted (FU-13); handoff redaction widened (FU-24); no owner gate / paid-opt-in / emergency-stop weakened anywhere.
+
+### Honest residuals (carried, not regressions)
+
+- **CodeQL aggregate flaked red (2s) on FU-24 #377** while every real `Analyze` job passed — non-required; merged correctly. Cosmetic; no code issue.
+- **FU-15 run hop uses the offline planner** (repo-mutating execute lanes shell out to paid CLIs + network, not hermetic). A live owner-present execute→real-PR run is the next layer, intentionally out of the no-network test.
+- **Planner perf:** rooting the navigator at the full checkout takes ~306s (FU-15 finding) — a real optimization opportunity, out of this program's scope.
+- **`IconState.kt` stale "Gold ring" doc comments** (FU-17b residual) — cosmetic, deferred to a doc sweep.
+- **Owner-only outward actions remain (by design, never builder-merged):** GitHub repo rename to the MUSE slug; real Android release signing + Play Store permission/disclosure; any paid-API enablement (still OFF / ask-per-call).
+
+### Decision log (close)
+
+- `2026-06-08` — **Program complete.** 13 tasks merged across waves 1–2 + keystone.
+  All under the owner's four-answer scope envelope (all-parallel · merge
+  pre-authorized on green · paid off/ask-per-call · proof = green + E2E +
+  free/local benchmark). Builder≠reviewer honored (orchestrator did FU-12 +
+  reviewed/merged all builder PRs); disjoint file ownership held conflict-free
+  end-to-end. This tracking PR (#374) merges last.
+
