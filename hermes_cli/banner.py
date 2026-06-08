@@ -114,19 +114,15 @@ MUSE_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   █�
 # ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
 # left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
 # brand tiers: the acronym expansion (signal-dim) and the motto (dim).
-MUSE_GLYPH = """          [#90BEFF]╭[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╮[/]
-       [#89C8FF]╭[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╯[/]     [#9DAAFF]╰[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╮[/]
-     [#85CFFF]╭[/][#87CCFF]─[/][#89C8FF]╯[/]           [#A4A0FF]╰[/][#A69CFF]─[/][#A899FF]╮[/]
-    [#83D2FF]╭[/][#85CFFF]╯[/]               [#A899FF]╰[/][#AA96FF]╮[/]
-   [#81D6FF]╭[/][#83D2FF]╯[/]                 [#AA96FF]╰[/][#AC92FF]╮[/]
-   [#81D6FF]│[/]                   [#AC92FF]│[/]
-   [#81D6FF]│[/]         [bold #FFFFFF]◉[/]         [#AC92FF]│[/]
-   [#81D6FF]│[/]
-   [#81D6FF]╰[/][#83D2FF]╮[/]
-    [#83D2FF]╰[/][#85CFFF]╮[/]                [#AA96FF]╭[/]
-     [#85CFFF]╰[/][#87CCFF]─[/][#89C8FF]╮[/]           [#A4A0FF]╭[/][#A69CFF]─[/][#A899FF]╯[/]
-       [#89C8FF]╰[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╮[/]     [#9DAAFF]╭[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╯[/]
-          [#90BEFF]╰[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╯[/]
+MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+        [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
+      [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
+     [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
+     [#7AE0FF]│[/]        [bold #FFFFFF]◉[/]        [#B388FF]│[/]
+     [#7AE0FF]╰[/][#7DDBFF]╮[/]               [#B08DFF]╭[/][#B388FF]╯[/]
+      [#7DDBFF]╰[/][#80D6FF]─[/][#84D1FF]╮[/]           [#AA97FF]╭[/][#AD92FF]─[/][#B08DFF]╯[/]
+        [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
+           [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
 
         [#AAB2C4]Multi-Use Synaptic Entity[/]
          [dim #8B93A6]One mind, many pathways.[/]"""
