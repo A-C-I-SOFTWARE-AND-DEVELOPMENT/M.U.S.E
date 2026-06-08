@@ -64,8 +64,6 @@ import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -76,7 +74,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -101,6 +98,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
 import com.aci.hermes.ui.theme.HermesCrimson
 import com.aci.hermes.ui.theme.HermesCyan
 import com.aci.hermes.ui.theme.HermesGold
@@ -502,40 +501,32 @@ fun JarvisLiveScreen(
                 if (projection.showApprovalCta) {
                     // Do NOT approve from the avatar — route to the gated
                     // Approvals screen which enforces the owner phrase.
-                    Button(
+                    MuseButton(
                         onClick = onOpenApprovals,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HermesGold,
-                            contentColor = HermesInk,
-                        ),
-                    ) { Text(stringResource(R.string.jarvis_cta_open_approvals)) }
+                        text = stringResource(R.string.jarvis_cta_open_approvals),
+                        variant = MuseButtonVariant.Primary,
+                    )
                 }
                 if (projection.showFixCta) {
-                    Button(
+                    MuseButton(
                         onClick = { onOpenCurrentJob(currentJobId) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HermesCrimson,
-                            contentColor = Color.White,
-                        ),
-                    ) { Text(stringResource(R.string.jarvis_cta_fix)) }
+                        text = stringResource(R.string.jarvis_cta_fix),
+                        variant = MuseButtonVariant.Danger,
+                    )
                 }
                 if (projection.showWarningCta) {
-                    Button(
+                    MuseButton(
                         onClick = { onOpenCurrentJob(currentJobId) },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HermesGold,
-                            contentColor = HermesInk,
-                        ),
-                    ) { Text(stringResource(R.string.jarvis_cta_warning)) }
+                        text = stringResource(R.string.jarvis_cta_warning),
+                        variant = MuseButtonVariant.Primary,
+                    )
                 }
                 if (projection.showEmergencyReleaseCta) {
-                    Button(
+                    MuseButton(
                         onClick = viewModel::releaseEmergencyStop,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = HermesCrimson,
-                            contentColor = Color.White,
-                        ),
-                    ) { Text(stringResource(R.string.jarvis_cta_emergency_release)) }
+                        text = stringResource(R.string.jarvis_cta_emergency_release),
+                        variant = MuseButtonVariant.Danger,
+                    )
                 }
             }
         }
@@ -559,18 +550,18 @@ fun JarvisLiveScreen(
             title = { Text(stringResource(R.string.jarvis_emergency_dialog_title)) },
             text = { Text(stringResource(R.string.jarvis_emergency_dialog_body)) },
             confirmButton = {
-                Button(
+                MuseButton(
                     onClick = viewModel::confirmEmergencyStop,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = HermesCrimson,
-                        contentColor = Color.White,
-                    ),
-                ) { Text(stringResource(R.string.jarvis_cta_emergency_stop)) }
+                    text = stringResource(R.string.jarvis_cta_emergency_stop),
+                    variant = MuseButtonVariant.Danger,
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissEmergencyConfirm) {
-                    Text(stringResource(R.string.action_cancel))
-                }
+                MuseButton(
+                    onClick = viewModel::dismissEmergencyConfirm,
+                    text = stringResource(R.string.action_cancel),
+                    variant = MuseButtonVariant.Secondary,
+                )
             },
             containerColor = HermesInkSoft,
         )
