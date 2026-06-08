@@ -20,6 +20,7 @@ import threading
 import time
 import warnings
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Callable, Optional
 from urllib.parse import parse_qs, urlsplit
 
@@ -268,10 +269,65 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             q = parse_qs(urlsplit(self.path).query)
             return {k: v[0] for k, v in q.items() if v}
 
+        # -- static UI shell -------------------------------------------
+        _STATIC_TYPES = {
+            ".html": "text/html; charset=utf-8",
+            ".css": "text/css; charset=utf-8",
+            ".js": "application/javascript; charset=utf-8",
+            ".svg": "image/svg+xml",
+            ".json": "application/json",
+            ".ico": "image/x-icon",
+            ".png": "image/png",
+            ".webmanifest": "application/manifest+json",
+        }
+
+        def _serve_static(self, path: str) -> bool:
+            """Serve the bundled browser cockpit. Returns True if it handled the
+            request. Path-traversal-safe; falls back to index.html for unknown
+            sub-paths so the single-page app can route client-side."""
+            root = (Path(__file__).resolve().parent / "static").resolve()
+            if path in ("/", "/cockpit", "/cockpit/"):
+                rel = "index.html"
+            elif path.startswith("/cockpit/"):
+                rel = path[len("/cockpit/"):].lstrip("/") or "index.html"
+            else:
+                return False
+            try:
+                target = (root / rel).resolve()
+                target.relative_to(root)  # reject ../ traversal
+            except (ValueError, OSError):
+                return False
+            if not target.is_file():
+                target = root / "index.html"  # SPA fallback
+                if not target.is_file():
+                    return False
+            try:
+                data = target.read_bytes()
+            except OSError:
+                return False
+            ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
+            self.close_connection = True
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return True
+
         # -- dispatch ---------------------------------------------------
         def _dispatch(self, method: str) -> None:
             self.close_connection = True
             path = urlsplit(self.path).path
+
+            # Static cockpit UI shell (the browser app). Unauthenticated — it's
+            # just HTML/CSS/JS; every API call it makes carries the bearer token.
+            # GET only, path-traversal-safe. Served before the API route table.
+            if method == "GET" and (path == "/" or path.startswith("/cockpit")):
+                if self._serve_static(path):
+                    return
 
             # Streaming chat endpoint (real agent) — POST only.
             if method == "POST" and path.rstrip("/") == CHAT_PATH:
