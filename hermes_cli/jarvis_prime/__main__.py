@@ -66,6 +66,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from hermes_cli.jarvis_prime.awareness import perceive
+from hermes_cli.jarvis_prime.cli_route import add_route_parser, cmd_route
 from hermes_cli.jarvis_prime.gates import GATES, run_gate_summary
 from hermes_cli.jarvis_prime.modes import (
     ClassifierContext,
@@ -1807,32 +1808,10 @@ def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     return 2
 
 
-def _cmd_route(args: argparse.Namespace) -> int:
-    """Explain the evidence-backed model route for a task class."""
-    from hermes_cli.jarvis_prime import task_router as tr
-
-    if getattr(args, "task", None):
-        try:
-            decision = tr.route_for_task(args.task)
-        except ValueError as exc:
-            print(
-                f"error: {exc}. Known task classes: "
-                + ", ".join(t.value for t in tr.TaskClass),
-                file=sys.stderr,
-            )
-            return 2
-        if args.json:
-            _print_json(decision.to_dict())
-        else:
-            print(tr.explain(decision))
-        return 0
-
-    decisions = tr.all_routes()
-    if args.json:
-        _print_json([d.to_dict() for d in decisions])
-    else:
-        print("\n\n".join(tr.explain(d) for d in decisions))
-    return 0
+# ``route`` lives in cli_route.py (behavior-preserving extraction). The
+# handler is re-exported here under its historical name so any in-repo
+# reference to ``_cmd_route`` keeps resolving.
+_cmd_route = cmd_route
 
 
 def _cmd_context(args: argparse.Namespace) -> int:
@@ -3125,20 +3104,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_score.add_argument("--json", action="store_true")
     p_score.set_defaults(func=_cmd_model_scorecard)
 
-    p_route = sub.add_parser(
-        "route",
-        help="Explain the evidence-backed model route for a task class",
-        epilog=(
-            "Hosted task-class routing is ON by default; disable it (restore "
-            "bare provider ids) with HERMES_JARVIS_HOSTED_TASKCLASS=0."
-        ),
-    )
-    p_route.add_argument(
-        "--task",
-        help="Task class (e.g. coding_build); omit to show all task classes",
-    )
-    p_route.add_argument("--json", action="store_true")
-    p_route.set_defaults(func=_cmd_route)
+    # route — registered from cli_route.py (behavior-preserving extraction).
+    add_route_parser(sub)
 
     # context — local-first GraphRAG context handoff for a coding request.
     p_context = sub.add_parser(
