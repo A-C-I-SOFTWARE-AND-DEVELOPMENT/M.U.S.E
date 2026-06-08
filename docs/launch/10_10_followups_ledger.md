@@ -282,3 +282,37 @@ checkout):
 (redaction, P2) → FU-13/FU-14/FU-16/FU-17 (additive, parallel) → FU-15 (E2E, after
 11/12) → FU-10 (hardening, P2). FU-18/FU-22 docs land any time.
 
+## Wave-1 outcomes — ALL MERGED (2026-06-08)
+
+All six wave-1 tasks built in parallel worktrees (orchestrator did FU-12; builder
+agents did FU-11/14/16/17/23), each validated to the proof bar, draft-PR'd, and
+**merged to `main`** on green CI under the owner's wave pre-authorization:
+
+| Task | PR | Squash commit | What landed |
+|---|---|---|---|
+| FU-12 | #368 | `c30200e8` | Cockpit autonomy **escalation owner-gated** (+ `HERMES_COCKPIT_AUTONOMY_LOCKED` kill-switch); 65 tests |
+| FU-11 | #373 | `9cb2b107` | Budget `should_stop` enforced on the **single-job path** + readiness-doctor false-PASS fixed; 136 tests |
+| FU-23 | #371 | `a16b474f` | Unverified model slugs **machine-tagged `candidate`**, `_hosted_candidates` verified-first; 46 tests |
+| FU-16 | #370 | `ad851926` | Free/local deterministic **benchmark scorecard producer** (reuses `research_fabric.benchmarks` + `ModelScorecard`); 25 tests |
+| FU-14 | #372 | `9fdda311` | Depth cockpit: **fetch-SSE live jobs, owner-gated approve/deny, phase rail, model switcher, first-run pairing**; 16 tests |
+| FU-17 | #369 | `e1ac6eed` | Avatar icon **Singularity palette** (no gold at rest); CI-verified |
+
+**Decisions (honesty):**
+- ty `unresolved-import: pytest` on a NEW test file is the universal infra FP
+  (warning-only; 5179 pre-existing) → **exempt** from "no new diagnostics"; real
+  diagnostics stayed at 0 (FU-23) or only the exempt FP (FU-11/FU-16).
+- FU-11 changes single-job runtime behavior only when a budget is configured
+  (default path byte-identical); merged under the **wave pre-authorization**.
+- FU-14: native `EventSource` can't send the bearer header (server is header-auth
+  only), so the shell streams `text/event-stream` via `fetch` — the genuine
+  substance of a live subscription. Accepted; tests assert the substance.
+
+**Carried forward (wave-2 / cleanup):**
+- **FU-17b** — FU-17 mapped gold→white core, so `WAITING_FOR_APPROVAL` and
+  `SERIOUS_ACTION_PENDING` now render identically (white core + white ring). Small
+  follow-up: give attention-states distinct on-brand accents (violet ring etc.).
+- **FU-13** (`--allow-external` allowlist + `_STATIC_TYPES`), **FU-24** (handoff
+  citation/title redaction), **FU-18** (AOS "233" honesty doc), **FU-22** (append
+  H6–H10 theory), **FU-10** (release-gate `sys.executable` fallback hardening),
+  **FU-15** (recorded core-loop E2E — now unblocked: FU-11/FU-12 are on `main`).
+
