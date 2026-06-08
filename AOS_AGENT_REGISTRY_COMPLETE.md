@@ -20,6 +20,18 @@
 **Distinct names registered:** 233
 **Total entries (incl. duplicates across sources):** 248
 
+> **Routed-catalog tally, not a file count** (WC-4 honesty propagation,
+> following FU-18). The 233 figure counts distinct frontmatter `name:`
+> entries across both source repos — canonical, alias, *and* mentioned
+> buckets, plus reconstructed-from-context entries. It is **not** 233
+> standalone council-agent files. On disk, the installed pack at
+> `skills/aos-enterprise-council/agents/` holds **261** `.md` files, of
+> which **177** are the general `agents/hermes/` skill library
+> (`1password.md`, `arxiv.md`, …), not council agents — leaving **~84**
+> genuine council category agents across the 16 non-`hermes` category
+> folders. The registries route to specs that may be defined inline,
+> reconstructed from context, or shared with the general skill library.
+
 ## A. Executive / Operator Layer
 
 ### Canonical

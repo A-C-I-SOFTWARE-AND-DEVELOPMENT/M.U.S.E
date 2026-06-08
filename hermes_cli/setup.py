@@ -175,21 +175,51 @@ def is_interactive_stdin() -> bool:
 
 
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
-    """Print guidance for headless/non-interactive setup flows."""
+    """Print guidance for headless/non-interactive setup flows.
+
+    WC-1: when a runnable agent CLI is already on PATH (``claude`` or
+    ``codex``), point the user at ``muse models bootstrap`` first — that is
+    the cheapest one-line recovery on a container with Claude Code or Codex
+    already installed, and after `_has_any_provider_configured` learned to
+    read the bootstrap-written ``model_policy.json``, it actually unblocks
+    the first run. Falls back to the env-var recipe when no agent CLI is
+    detected.
+    """
+    import shutil as _shutil
+
     print()
-    print(color("⚕ Hermes Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ M.U.S.E. Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Hermes using environment variables or config commands:")
-    print_info("  hermes config set model.provider custom")
-    print_info("  hermes config set model.base_url http://localhost:8080/v1")
-    print_info("  hermes config set model.default your-model-name")
+
+    detected_claude = bool(_shutil.which("claude"))
+    detected_codex = bool(_shutil.which("codex"))
+    if detected_claude or detected_codex:
+        which = "Claude Code" if detected_claude else "Codex"
+        print_info(
+            f"Detected the {which} CLI on PATH. The cheapest one-line fix:"
+        )
+        print()
+        print_info("  muse models bootstrap --jarvis --no-pull")
+        print()
+        print_info("Then re-run `muse`. The bootstrap writes a free-first routing")
+        print_info("policy that uses the already-installed worker — no API key needed.")
+        print()
+        print_info("Or, if you'd rather set a key directly:")
+    else:
+        print_info("Configure M.U.S.E. using environment variables or config commands:")
+
+    print_info("  muse config set model.provider custom")
+    print_info("  muse config set model.base_url http://localhost:8080/v1")
+    print_info("  muse config set model.default your-model-name")
     print()
-    print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
-    print_info("Run 'hermes setup' in an interactive terminal to use the full wizard.")
+    print_info(
+        "Or set OPENROUTER_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY in your environment."
+    )
+    print_info("Run 'muse setup' in an interactive terminal to use the full wizard.")
     print()
 
 

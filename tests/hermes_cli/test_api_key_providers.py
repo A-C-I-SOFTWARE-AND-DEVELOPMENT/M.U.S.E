@@ -1320,3 +1320,135 @@ class TestMinimaxOAuthProvider:
         from agent.auxiliary_client import _API_KEY_PROVIDER_AUX_MODELS
         assert "minimax-oauth" in _API_KEY_PROVIDER_AUX_MODELS
         assert _API_KEY_PROVIDER_AUX_MODELS["minimax-oauth"]  # non-empty
+
+
+# =============================================================================
+# WC-1: model_policy.json gate branch tests
+# =============================================================================
+
+class TestProviderGateReadsBootstrapPolicy:
+    """The first-run gate must read what ``muse models bootstrap`` writes.
+
+    Pre-WC-1 the gate read env vars, ``.env``, auth.json, and config.yaml but
+    never the ``jarvis_prime/model_policy.json`` file the bootstrap produces
+    — so a user who ran the README's headless instruction (``muse models
+    bootstrap``) was still told "not configured" on the next ``muse`` run.
+    These tests pin the fix: a bootstrap-written policy with a locally
+    executable enabled route satisfies the gate.
+    """
+
+    def _isolate(self, monkeypatch, tmp_path):
+        """Strip all provider env vars + point config/home at a clean tmpdir.
+
+        Mirrors ``test_claude_code_creds_ignored_on_fresh_install``'s isolation
+        so the new branch is the only thing that can flip the gate.
+        """
+        from hermes_cli import config as config_module
+        from hermes_cli.auth import PROVIDER_REGISTRY
+
+        hermes_home = tmp_path / ".hermes"
+        hermes_home.mkdir()
+        monkeypatch.setattr(config_module, "get_env_path", lambda: hermes_home / ".env")
+        monkeypatch.setattr(config_module, "get_hermes_home", lambda: hermes_home)
+        monkeypatch.setattr("hermes_cli.copilot_auth.resolve_copilot_token", lambda: ("", ""))
+        all_vars = {"OPENROUTER_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY",
+                    "ANTHROPIC_TOKEN", "OPENAI_BASE_URL"}
+        for pconfig in PROVIDER_REGISTRY.values():
+            if pconfig.auth_type == "api_key":
+                all_vars.update(pconfig.api_key_env_vars)
+        for var in all_vars:
+            monkeypatch.delenv(var, raising=False)
+        monkeypatch.setattr("hermes_cli.auth.get_auth_status", lambda _pid: {})
+        return hermes_home
+
+    def _write_policy(self, hermes_home, policy: dict) -> None:
+        import json as _json
+
+        jp_dir = hermes_home / "jarvis_prime"
+        jp_dir.mkdir(parents=True, exist_ok=True)
+        (jp_dir / "model_policy.json").write_text(_json.dumps(policy))
+
+    def test_bootstrapped_claude_worker_with_binary_satisfies_gate(self, monkeypatch, tmp_path):
+        """The headline fix: bootstrap + `claude` on PATH ⇒ gate passes."""
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "claude_code_worker": {"enabled": True, "tool": "claude"},
+            },
+        })
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/claude" if name == "claude" else None)
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is True
+
+    def test_bootstrapped_claude_worker_without_binary_does_not_satisfy_gate(self, monkeypatch, tmp_path):
+        """If the bootstrap is stale (binary removed) the gate stays closed."""
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "claude_code_worker": {"enabled": True, "tool": "claude"},
+            },
+        })
+        monkeypatch.setattr("shutil.which", lambda _name: None)
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is False
+
+    def test_bootstrapped_codex_worker_with_binary_satisfies_gate(self, monkeypatch, tmp_path):
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "codex_worker": {"enabled": True, "tool": "codex"},
+            },
+        })
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/codex" if name == "codex" else None)
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is True
+
+    def test_bootstrapped_local_oss_with_runtimes_satisfies_gate(self, monkeypatch, tmp_path):
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "local_oss": {"enabled": True, "runtimes": ["ollama"]},
+            },
+        })
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is True
+
+    def test_bootstrapped_local_oss_without_runtimes_does_not_satisfy_gate(self, monkeypatch, tmp_path):
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "local_oss": {"enabled": True, "runtimes": []},
+            },
+        })
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is False
+
+    def test_bootstrapped_disabled_routes_do_not_satisfy_gate(self, monkeypatch, tmp_path):
+        """A policy whose every route is `enabled: false` must not pass."""
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        self._write_policy(hermes_home, {
+            "routes": {
+                "claude_code_worker": {"enabled": False, "tool": "claude"},
+                "codex_worker": {"enabled": False, "tool": "codex"},
+                "local_oss": {"enabled": False, "runtimes": ["ollama"]},
+            },
+        })
+        monkeypatch.setattr("shutil.which", lambda name: "/usr/local/bin/" + name)
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is False
+
+    def test_missing_policy_file_does_not_break_gate(self, monkeypatch, tmp_path):
+        """Absence of model_policy.json is normal — the gate must not raise."""
+        self._isolate(monkeypatch, tmp_path)  # no policy written
+        from hermes_cli.main import _has_any_provider_configured
+        # Should return False (no provider) without raising.
+        assert _has_any_provider_configured() is False
+
+    def test_corrupted_policy_file_does_not_break_gate(self, monkeypatch, tmp_path):
+        """A truncated/corrupt JSON file must not crash the gate."""
+        hermes_home = self._isolate(monkeypatch, tmp_path)
+        jp_dir = hermes_home / "jarvis_prime"
+        jp_dir.mkdir(parents=True, exist_ok=True)
+        (jp_dir / "model_policy.json").write_text("{not json")
+        from hermes_cli.main import _has_any_provider_configured
+        assert _has_any_provider_configured() is False

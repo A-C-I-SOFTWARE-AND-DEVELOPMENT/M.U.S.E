@@ -669,6 +669,26 @@ def _reset_tool_registry_caches():
 _LIVE_SYSTEM_GUARD_BYPASS_MARK = "live_system_guard_bypass"
 
 
+def pytest_addoption(parser):  # noqa: D401 — pytest hook
+    """Register CLI options for opt-in live-model smoke tests (WC-3).
+
+    The default test run is hermetic — no real model calls. Tests marked
+    ``@pytest.mark.live`` opt the user into hitting a real local agent CLI
+    (e.g. the ``claude`` worker) and asserting on its generated output.
+    They are skipped unless ``--run-live`` is passed or
+    ``HERMES_E2E_LIVE=1`` is set in the env.
+    """
+    parser.addoption(
+        "--run-live",
+        action="store_true",
+        default=False,
+        help=(
+            "Run @pytest.mark.live smoke tests that hit a real local agent CLI "
+            "(default: skipped). Equivalent to HERMES_E2E_LIVE=1."
+        ),
+    )
+
+
 def pytest_configure(config):  # noqa: D401 — pytest hook
     """Register markers used by hermetic conftest."""
     config.addinivalue_line(
@@ -677,6 +697,32 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
         "(only for tests that genuinely need real os.kill / subprocess "
         "behaviour — e.g. PTY tests that signal their own child).",
     )
+    # WC-3: opt-in live smoke marker. Tests so marked actually invoke a
+    # local agent CLI worker (e.g. ``claude``) and assert on the model-
+    # generated output — they are the "is this a tool or a demo" proof.
+    # Skipped by default to keep CI free/local and credential-less.
+    config.addinivalue_line(
+        "markers",
+        "live: real-model smoke test (requires --run-live or HERMES_E2E_LIVE=1; "
+        "skipped by default to keep CI free and hermetic).",
+    )
+
+
+def pytest_collection_modifyitems(config, items):  # noqa: D401 — pytest hook
+    """Skip ``@pytest.mark.live`` tests unless explicitly opted in.
+
+    WC-3: the live smoke lane (``tests/e2e/test_core_loop_live_smoke.py``)
+    exists to prove that the core loop actually produces model output on a
+    box with a free/local agent CLI installed — but it must not run on the
+    default CI lane (no credentials, no installed worker). Opt-in is
+    ``--run-live`` (test-runner flag) or ``HERMES_E2E_LIVE=1`` (env var).
+    """
+    if config.getoption("--run-live") or os.environ.get("HERMES_E2E_LIVE") == "1":
+        return
+    skip_live = pytest.mark.skip(reason="@pytest.mark.live; opt in with --run-live or HERMES_E2E_LIVE=1")
+    for item in items:
+        if "live" in item.keywords:
+            item.add_marker(skip_live)
 
 
 @pytest.fixture(autouse=True)
