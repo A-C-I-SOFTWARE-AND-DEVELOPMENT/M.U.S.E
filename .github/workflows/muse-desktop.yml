@@ -1,0 +1,77 @@
+name: MUSE desktop
+
+# Desktop CI lane for the Tauri v2 app under apps/desktop/. Runs only when
+# desktop sources (or this workflow) change. Two jobs:
+#   - ui-build:    the cheap, fast gate (Vite/React client) — no system libs.
+#   - tauri-check: compiles the Rust shell after installing the WebKitGTK libs
+#                  the *-sys crates probe for via pkg-config.
+
+on:
+  push:
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/muse-desktop.yml'
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/muse-desktop.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  ui-build:
+    name: UI build (Vite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/desktop/ui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/desktop/ui
+
+      - name: Build UI bundle
+        run: npm run build
+        working-directory: apps/desktop/ui
+
+  tauri-check:
+    name: Tauri check (cargo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # WebKitGTK / GTK system libs the Tauri *-sys crates probe for via
+      # pkg-config. Without these, cargo check fails at the probe, not at
+      # Rust compile time. This is the exact line that works locally.
+      - name: Install WebKitGTK system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            librsvg2-dev \
+            libayatana-appindicator3-dev \
+            pkg-config
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: cargo check
+        run: cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml
