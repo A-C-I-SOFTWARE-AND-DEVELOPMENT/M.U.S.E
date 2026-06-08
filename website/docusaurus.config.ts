@@ -3,8 +3,8 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Hermes Agent',
-  tagline: 'The self-improving AI agent',
+  title: 'M.U.S.E.',
+  tagline: 'One mind, many pathways.',
   favicon: 'img/favicon.ico',
 
   url: 'https://hermes-agent.nousresearch.com',
@@ -88,7 +88,7 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/hermes-agent-banner.png',
+    image: 'img/muse-banner.png',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
@@ -100,9 +100,9 @@ const config: Config = {
       },
     },
     navbar: {
-      title: 'Hermes Agent',
+      title: 'M.U.S.E.',
       logo: {
-        alt: 'Hermes Agent',
+        alt: 'M.U.S.E.',
         src: 'img/logo.png',
       },
       items: [
