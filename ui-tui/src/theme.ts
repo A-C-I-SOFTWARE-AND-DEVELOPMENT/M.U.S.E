@@ -237,14 +237,38 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Hermes Agent',
-  icon: '⚕',
+  name: 'M.U.S.E.',
+  icon: '◉',
   prompt: '❯',
-  welcome: 'Type your message or /help for commands.',
-  goodbye: 'Goodbye! ⚕',
+  welcome: 'one mind, many pathways. Type your message or /help for commands.',
+  goodbye: 'Goodbye. ◯',
   tool: '┊',
-  helpHeader: '(^_^)? Commands'
+  helpHeader: '✦ M.U.S.E. Commands'
 }
+
+// M.U.S.E. "Singularity" banner art — Rich markup parsed per-character by
+// banner.ts parseRichMarkup, identical to the merged CLI skin
+// (hermes_cli/banner.py): a near-white block wordmark and a core+ring glyph
+// with a white core, a lower-right gap, and a matte cyan→violet ring.
+const MUSE_WORDMARK = `[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]`
+
+const MUSE_GLYPH = `           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+        [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
+      [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
+     [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
+     [#7AE0FF]│[/]        [bold #FFFFFF]◉[/]        [#B388FF]│[/]
+     [#7AE0FF]╰[/][#7DDBFF]╮[/]               [#B08DFF]╭[/][#B388FF]╯[/]
+      [#7DDBFF]╰[/][#80D6FF]─[/][#84D1FF]╮[/]           [#AA97FF]╭[/][#AD92FF]─[/][#B08DFF]╯[/]
+        [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
+           [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
+
+        [#AAB2C4]Multi-Use Synaptic Entity[/]
+         [dim #8B93A6]One mind, many pathways.[/]`
 
 const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
   const cleaned = String(s ?? '')
@@ -256,52 +280,47 @@ const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
 
 export const DARK_THEME: Theme = {
   color: {
-    primary: '#FFD700',
-    accent: '#FFBF00',
-    border: '#CD7F32',
-    text: '#FFF8DC',
-    muted: '#CC9B1F',
-    // Bumped from the old `#B8860B` darkgoldenrod (~53% luminance) which
-    // read as barely-visible on dark terminals for long body text.  The
-    // new value sits ~60% luminance — readable without losing the "muted /
-    // secondary" semantic.  Field labels still use `label` (65%) which
-    // stays brighter so hierarchy holds.
-    completionBg: '#1a1a2e',
-    completionCurrentBg: '#333355',
-    completionMetaBg: '#1a1a2e',
-    completionMetaCurrentBg: '#333355',
+    primary: '#FFFFFF',
+    accent: '#7AE0FF',
+    border: '#1C2030',
+    text: '#E8ECF4',
+    muted: '#AAB2C4',
+    // The Singularity value ladder: core white → signal → signal-dim → void.
+    // The spectral ring (cyan→violet) is the only chromatic accent; everything
+    // else is value, not hue (≤3 color roles).
+    completionBg: '#0B0D12',
+    completionCurrentBg: '#1C2030',
+    completionMetaBg: '#0B0D12',
+    completionMetaCurrentBg: '#1C2030',
 
-    label: '#DAA520',
-    ok: '#4caf50',
-    error: '#ef5350',
-    warn: '#ffa726',
+    label: '#7AE0FF',
+    ok: '#5BE3A0',
+    error: '#FF5C63',
+    warn: '#F5C451',
 
-    prompt: '#FFF8DC',
-    // sessionLabel/sessionBorder intentionally track the `dim` value — they
-    // are "same role, same colour" by design.  fromSkin's banner_dim fallback
-    // relies on this pairing (#11300).
-    sessionLabel: '#CC9B1F',
-    sessionBorder: '#CC9B1F',
+    prompt: '#7AE0FF',
+    sessionLabel: '#AAB2C4',
+    sessionBorder: '#1C2030',
 
-    statusBg: '#1a1a2e',
-    statusFg: '#C0C0C0',
-    statusGood: '#8FBC8F',
-    statusWarn: '#FFD700',
-    statusBad: '#FF8C00',
-    statusCritical: '#FF6B6B',
-    selectionBg: '#3a3a55',
+    statusBg: '#0B0D12',
+    statusFg: '#AAB2C4',
+    statusGood: '#5BE3A0',
+    statusWarn: '#F5C451',
+    statusBad: '#FF5C63',
+    statusCritical: '#FF5C63',
+    selectionBg: '#1C2030',
 
     diffAdded: 'rgb(220,255,220)',
     diffRemoved: 'rgb(255,220,220)',
     diffAddedWord: 'rgb(36,138,61)',
     diffRemovedWord: 'rgb(207,34,46)',
-    shellDollar: '#4dabf7'
+    shellDollar: '#7AE0FF'
   },
 
   brand: BRAND,
 
-  bannerLogo: '',
-  bannerHero: ''
+  bannerLogo: MUSE_WORDMARK,
+  bannerHero: MUSE_GLYPH
 }
 
 // Light-terminal palette: darker golds/ambers that stay legible on white
@@ -309,11 +328,11 @@ export const DARK_THEME: Theme = {
 // cleanly (#11300).
 export const LIGHT_THEME: Theme = {
   color: {
-    primary: '#8B6914',
-    accent: '#A0651C',
-    border: '#7A4F1F',
-    text: '#3D2F13',
-    muted: '#7A5A0F',
+    primary: '#12151D',
+    accent: '#2E7DA0',
+    border: '#C8CEDA',
+    text: '#1C2030',
+    muted: '#6B7388',
     completionBg: '#F5F5F5',
     completionCurrentBg: mix('#F5F5F5', '#A0651C', 0.25),
     completionMetaBg: '#F5F5F5',

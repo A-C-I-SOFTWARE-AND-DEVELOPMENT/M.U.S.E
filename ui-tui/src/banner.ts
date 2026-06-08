@@ -43,35 +43,35 @@ export function parseRichMarkup(markup: string): Line[] {
   return lines
 }
 
+// Fallback art (used only when a theme leaves bannerLogo/bannerHero empty —
+// e.g. light mode). The dark default renders the faithful per-character
+// markup from theme.ts (MUSE_WORDMARK / MUSE_GLYPH). M.U.S.E. block wordmark:
 const LOGO_ART = [
-  '██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗',
-  '██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝',
-  '███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║   ',
-  '██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║   ',
-  '██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║   ',
-  '╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   '
+  '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
+  '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',
+  '██╔████╔██║   ██║   ██║   ███████╗   █████╗',
+  '██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝',
+  '██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗',
+  '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
 ]
 
+// The Singularity mark: a white core inside one thin ring with a lower-right gap.
 const CADUCEUS_ART = [
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀',
-  '⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀',
-  '⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀'
+  '           ╭─────╮',
+  '        ╭─╯       ╰─╮',
+  '      ╭─╯           ╰─╮',
+  '     ╭╯               ╰╮',
+  '     │        ◉        │',
+  '     ╰╮               ╭╯',
+  '      ╰─╮           ╭─╯',
+  '        ╰─╮',
+  '           ╰─────╯'
 ]
 
-const LOGO_GRADIENT = [0, 0, 1, 1, 2, 2] as const
-const CADUC_GRADIENT = [2, 2, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 3] as const
+// All wordmark rows are the white core hero (primary). The glyph's ring rows
+// take the cyan accent; the core row (index 4) is the white core (primary).
+const LOGO_GRADIENT = [0, 0, 0, 0, 0, 0] as const
+const CADUC_GRADIENT = [1, 1, 1, 1, 0, 1, 1, 1, 1] as const
 
 const colorize = (art: string[], gradient: readonly number[], c: ThemeColors): Line[] => {
   const p = [c.primary, c.accent, c.border, c.muted]
@@ -79,8 +79,8 @@ const colorize = (art: string[], gradient: readonly number[], c: ThemeColors): L
   return art.map((text, i) => [p[gradient[i]!] ?? c.muted, text])
 }
 
-export const LOGO_WIDTH = 98
-export const CADUCEUS_WIDTH = 30
+export const LOGO_WIDTH = 47
+export const CADUCEUS_WIDTH = 24
 
 export const logo = (c: ThemeColors, customLogo?: string): Line[] =>
   customLogo ? parseRichMarkup(customLogo) : colorize(LOGO_ART, LOGO_GRADIENT, c)
