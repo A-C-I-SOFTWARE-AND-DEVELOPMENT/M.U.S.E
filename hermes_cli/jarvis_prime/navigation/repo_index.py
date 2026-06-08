@@ -9,8 +9,12 @@ issue localizer, and edit-site ranker all build on.
 Design rules:
 
 - Best-effort and side-effect free. Unreadable files are skipped, never fatal.
-- Honour an ignore list (``.git``, ``node_modules``, ``.venv`` …) so large
-  repos stay fast and we never index vendored junk.
+- Honour an ignore list (``.git``, ``node_modules``, ``.venv``, ``.claude`` …)
+  so large repos stay fast and we never index vendored junk or sibling
+  worktree checkouts. The ignore set is pruned *in place* during ``os.walk``
+  so heavy subtrees are never descended into — at a full hermes checkout the
+  ``.claude/worktrees`` tree alone is six figures of files, so pruning it is
+  the difference between a sub-second walk and a multi-minute one.
 - Pure data out. Callers decide what to do with it.
 """
 
@@ -22,6 +26,13 @@ from pathlib import Path
 from typing import Iterable, Iterator
 
 # Directories we never descend into. Keeps the walk fast and the map clean.
+#
+# Entries are matched against each directory's *basename* during ``os.walk``;
+# a few well-known nested paths (e.g. ``.claude/worktrees``) are also accepted
+# and matched against the path relative to the walk root. The single most
+# important entry for the hermes checkout is ``.claude`` — its ``worktrees``
+# subtree holds full sibling repo checkouts (six figures of files), and
+# walking it was the dominant cost (~minutes) before it was pruned.
 DEFAULT_IGNORE_DIRS: frozenset[str] = frozenset({
     ".git",
     ".hg",
@@ -29,10 +40,13 @@ DEFAULT_IGNORE_DIRS: frozenset[str] = frozenset({
     "node_modules",
     ".venv",
     "venv",
+    ".claude",  # agent worktrees / scratch — never index sibling checkouts
+    ".claude/worktrees",  # explicit nested form; covered by ``.claude`` too
     "__pycache__",
     ".mypy_cache",
     ".ruff_cache",
     ".pytest_cache",
+    ".cache",
     "dist",
     "build",
     ".idea",
@@ -40,6 +54,7 @@ DEFAULT_IGNORE_DIRS: frozenset[str] = frozenset({
     "target",
     ".next",
     ".tox",
+    ".eggs",
     "site-packages",
 })
 
@@ -193,11 +208,24 @@ class RepoIndex:
         *,
         ignore_dirs: Iterable[str] | None = None,
         max_file_bytes: int = 2_000_000,
+        max_files: int | None = None,
     ) -> "RepoIndex":
+        """Walk ``root`` once and classify every interesting file.
+
+        ``ignore_dirs`` extends :data:`DEFAULT_IGNORE_DIRS`; matching
+        directories are pruned in place so ``os.walk`` never descends into
+        them. ``max_files`` is an optional hard cap on how many files are
+        indexed (a backstop against pathologically large trees); the default
+        of ``None`` means "no cap", so default behaviour is unchanged — only
+        faster, because the heavy ignored directories are no longer walked.
+        """
+
         root_path = Path(root).resolve()
         ignore = DEFAULT_IGNORE_DIRS | set(ignore_dirs or ())
         files: list[IndexedFile] = []
         for rel in _walk(root_path, ignore):
+            if max_files is not None and len(files) >= max_files:
+                break
             abs_path = root_path / rel
             try:
                 size = abs_path.stat().st_size
@@ -281,12 +309,36 @@ class RepoIndex:
         }
 
 
-def _walk(root: Path, ignore: set[str]) -> Iterator[str]:
+def _walk(root: Path, ignore: frozenset[str] | set[str]) -> Iterator[str]:
+    # Split the ignore set once: plain basenames vs. nested "a/b" forms. The
+    # nested forms are matched against each directory's path relative to the
+    # walk root so e.g. ``.claude/worktrees`` can be targeted without also
+    # pruning every directory literally named "worktrees".
+    basename_ignore = {p for p in ignore if "/" not in p and os.sep not in p}
+    nested_ignore = {
+        Path(p).as_posix() for p in ignore if "/" in p or os.sep in p
+    }
     for dirpath, dirnames, filenames in os.walk(root):
-        # Prune ignored directories in place so os.walk never descends.
-        dirnames[:] = [
-            d for d in dirnames if d not in ignore and not d.startswith(".egg")
-        ]
+        # Prune ignored directories in place so os.walk never descends into
+        # them. This is the load-bearing perf line: a single mutation of
+        # ``dirnames[:]`` keeps os.walk from recursing into heavy/vendored
+        # subtrees (``.git``, ``node_modules``, ``.claude/worktrees`` …) that
+        # were never meaningful to index. At a full hermes checkout this turns
+        # a multi-minute whole-tree walk into a sub-second one.
+        kept: list[str] = []
+        for d in dirnames:
+            if d in basename_ignore or d.startswith(".egg"):
+                continue
+            if nested_ignore:
+                child = Path(dirpath, d)
+                try:
+                    rel_dir = child.relative_to(root).as_posix()
+                except ValueError:
+                    rel_dir = ""
+                if rel_dir in nested_ignore:
+                    continue
+            kept.append(d)
+        dirnames[:] = kept
         for fname in filenames:
             if fname.startswith("."):
                 # Keep a couple of meaningful dotfiles; skip the rest.
