@@ -2,7 +2,7 @@
   <!--
     M.U.S.E. "Singularity" banner: one white core in the void, a single thin
     spectral ring (cyan to violet), and a bespoke geometric white wordmark.
-    Canonical source; rasterized to assets/banner.png with cairosvg at 2x.
+    Canonical source; rasterized to assets/banner.png with cairosvg at 4x (4580x784).
     Palette: gateway/cockpit/static/tokens.css. Glyph: the cockpit core+ring mark.
   -->
   <defs>
@@ -11,11 +11,13 @@
       <stop offset="1" stop-color="#b388ff"/>
     </linearGradient>
     <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#1b2742" stop-opacity="1"/>
+      <stop offset="0" stop-color="#1a2640" stop-opacity="1"/>
+      <stop offset="0.55" stop-color="#0a0f1c" stop-opacity="0.5"/>
       <stop offset="1" stop-color="#050507" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="coreglow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.4" stop-color="#d6ecff" stop-opacity="0.22"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
   </defs>
@@ -23,16 +25,16 @@
   <rect x="0" y="0" width="1145" height="196" fill="#050507"/>
 
   <g transform="translate(212,-13) scale(1.12)">
-    <!-- ambient glow behind the glyph -->
-    <circle cx="70" cy="90" r="110" fill="url(#glow)"/>
+    <!-- ambient glow behind the glyph (tight, defined) -->
+    <circle cx="70" cy="90" r="84" fill="url(#glow)"/>
 
     <!-- spectral ring: one ~70% arc with a single gap (the cockpit mark) -->
     <circle cx="70" cy="90" r="62" fill="none" stroke="url(#ring)" stroke-width="6.5"
             stroke-dasharray="273 116" stroke-linecap="round"
             transform="rotate(-32 70 90)"/>
 
-    <!-- white core + soft bloom -->
-    <circle cx="70" cy="90" r="34" fill="url(#coreglow)"/>
+    <!-- white core + tight luminous bloom -->
+    <circle cx="70" cy="90" r="24" fill="url(#coreglow)"/>
     <circle cx="70" cy="90" r="12.5" fill="#ffffff"/>
 
     <!-- wordmark M.U.S.E. — bespoke monoline geometric letters (white) -->
