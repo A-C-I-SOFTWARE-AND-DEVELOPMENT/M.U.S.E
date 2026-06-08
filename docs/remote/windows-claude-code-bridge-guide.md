@@ -96,11 +96,11 @@ system Git stays untouched.
 Verify:
 
 ```powershell
-hermes doctor
-hermes --version
+muse doctor
+muse --version
 ```
 
-If `hermes doctor` flags anything, fix it before continuing. The
+If `muse doctor` flags anything, fix it before continuing. The
 common Windows issues are PATH ordering (Git Bash vs MinGit), the
 PSReadLine version on PowerShell 5.1, and antivirus quarantining
 `node_modules`.
@@ -113,11 +113,11 @@ sure you can `claude` from a fresh PowerShell.
 ### 3. Install the bridge adapter
 
 ```powershell
-hermes plugin enable claude-code-bridge
-hermes config set claude_code_bridge.transport ssh
-hermes config set claude_code_bridge.host 127.0.0.1
-hermes config set claude_code_bridge.port 22
-hermes config set claude_code_bridge.user $env:USERNAME
+muse plugin enable claude-code-bridge
+muse config set claude_code_bridge.transport ssh
+muse config set claude_code_bridge.host 127.0.0.1
+muse config set claude_code_bridge.port 22
+muse config set claude_code_bridge.user $env:USERNAME
 ```
 
 For Shape A (backend on Linux), the Linux backend talks to your
@@ -164,7 +164,7 @@ profiles:
 Confirm:
 
 ```bash
-hermes profile list   # → windows-engineer should appear
+muse profile list   # → windows-engineer should appear
 ```
 
 ### 5. Smoke test
@@ -288,7 +288,7 @@ The bridge is designed to survive both ends going up and down.
 You can force a manual reclaim:
 
 ```bash
-hermes kanban reclaim <task-id>
+muse kanban reclaim <task-id>
 ```
 
 ---
@@ -319,7 +319,7 @@ That means:
 If you want to disable the bridge in a hurry:
 
 ```bash
-hermes plugin disable claude-code-bridge
+muse plugin disable claude-code-bridge
 ```
 
 Any `in_progress` Windows phase rolls back on the next dispatcher
@@ -337,9 +337,9 @@ Start-Service sshd
 # (install Claude Code separately, confirm `claude --version` works)
 
 # On the host running the Hermes backend
-hermes plugin enable claude-code-bridge
-hermes config set claude_code_bridge.host windows-host.local
-hermes config set claude_code_bridge.user $YOUR_WINDOWS_USER
+muse plugin enable claude-code-bridge
+muse config set claude_code_bridge.host windows-host.local
+muse config set claude_code_bridge.user $YOUR_WINDOWS_USER
 
 # Configure a profile, then:
 ssh $YOUR_WINDOWS_USER@windows-host.local claude --version   # smoke test
@@ -370,7 +370,7 @@ Bridge prompts work best when they make the Windows scope explicit.
 |---------|--------------|-----|
 | `bridge: host_unreachable` | OpenSSH server stopped, or firewall blocking | `Get-Service sshd`; allow port 22; retry. |
 | `bridge: claude_not_found` | Claude Code not on PATH for the SSH user | Reinstall Claude Code with system-wide PATH, or hardcode `environment_config.claude_bin`. |
-| Phase stuck `in_progress` for hours | Claude Code is silent on the Windows side (likely a UAC / interactive prompt blocking) | `hermes kanban reclaim <task-id>`; on Windows, run the same command in an interactive shell to surface the prompt. |
+| Phase stuck `in_progress` for hours | Claude Code is silent on the Windows side (likely a UAC / interactive prompt blocking) | `muse kanban reclaim <task-id>`; on Windows, run the same command in an interactive shell to surface the prompt. |
 | Phase finishes but output is empty | Workdir scope mismatch — Claude Code wrote outside the configured workdir | Set `environment_config.workdir` explicitly; rerun. |
 | `policy: HIGH-risk refused (sandbox=off)` | Policy rejects because workdir is wide-open | Narrow the workdir, or wrap Claude Code in a constrained user account. |
 | Repeated judge fails on a bridge phase | Claude Code's output shape doesn't match the orchestrator's acceptance criteria | Sharpen the orchestrator skill's acceptance criteria, or downgrade the judge to peer-level. |

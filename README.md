@@ -11,7 +11,7 @@
 
 **One mind, many pathways.** MUSE is a self-improving, local-first AI operating partner: a single identity — the *mind* — running over a **synaptic substrate** (its gateway, routing, and model pathways). It creates skills from experience, improves them during use, remembers across sessions, builds a deepening model of who you are, and defers owner-gated actions until you authorize them. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle — and talk to it from Telegram while it works on a cloud VM.
 
-Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
+Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `muse model` — no code changes, no lock-in.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
@@ -50,7 +50,7 @@ MUSE is a governed, local-first AI operating partner: **one mind over a synaptic
 
 ## MUSE Operating Layer
 
-> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `hermes` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
+> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
 
 MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (Hermes: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
@@ -124,9 +124,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPME
 Already installed? Bring MUSE up (or re-verify) with:
 
 ```bash
-hermes jarvis launch                            # full free-first launch path
-hermes models bootstrap --free-first --jarvis   # (re)configure model routing only
-hermes doctor --jarvis-launch                   # verify launch readiness
+muse jarvis launch                            # full free-first launch path
+muse models bootstrap --free-first --jarvis   # (re)configure model routing only
+muse doctor --jarvis-launch                   # verify launch readiness
 ```
 
 Then invoke MUSE with `/jarvis` (aliases `/jp`, `/jarvis-prime`) and stop
@@ -163,7 +163,7 @@ After installation:
 
 ```bash
 source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-hermes              # start chatting!
+muse                # start chatting!
 ```
 
 ---
@@ -171,15 +171,15 @@ hermes              # start chatting!
 ## Getting Started
 
 ```bash
-hermes              # Interactive CLI — start a conversation
-hermes model        # Choose your LLM provider and model
-hermes tools        # Configure which tools are enabled
-hermes config set   # Set individual config values
-hermes gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-hermes setup        # Run the full setup wizard (configures everything at once)
-hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-hermes update       # Update to the latest version (on a fork: autonomously consolidates upstream/main + your branch into main and pushes)
-hermes doctor       # Diagnose any issues
+muse                # Interactive CLI — start a conversation
+muse model          # Choose your LLM provider and model
+muse tools          # Configure which tools are enabled
+muse config set     # Set individual config values
+muse gateway        # Start the messaging gateway (Telegram, Discord, etc.)
+muse setup          # Run the full setup wizard (configures everything at once)
+muse claw migrate   # Migrate from OpenClaw (if coming from OpenClaw)
+muse update         # Update to the latest version (on a fork: autonomously consolidates upstream/main + your branch into main and pushes)
+muse doctor         # Diagnose any issues
 ```
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
@@ -195,7 +195,7 @@ cockpit).
 
 ```bash
 bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
-hermes                                                    # interactive
+muse                                                      # interactive
 /reload-skills                                            # after editing skills
 /orchestrate Build this repo into production quality      # from inside a session
 /orchestrator status                                      # see what's running
@@ -230,11 +230,11 @@ points to one guide per topic:
 
 ## CLI vs Messaging Quick Reference
 
-Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+Hermes has two entry points: start the terminal UI with `muse`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
 | Action | CLI | Messaging platforms |
 |---------|-----|---------------------|
-| Start chatting | `hermes` | Run `hermes gateway setup` + `hermes gateway start`, then send the bot a message |
+| Start chatting | `muse` | Run `muse gateway setup` + `muse gateway start`, then send the bot a message |
 | Start fresh conversation | `/new` or `/reset` | `/new` or `/reset` |
 | Change model | `/model [provider:model]` | `/model [provider:model]` |
 | Set a personality | `/personality [name]` | `/personality [name]` |
@@ -279,7 +279,7 @@ A native Android companion app lives at [`apps/android`](apps/android/) — Kotl
 **Three runtime modes:**
 
 1. **Remote gateway** — point the app at a Hermes install on your VPS / home server. Recommended.
-2. **Local Termux gateway** — `hermes gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
+2. **Local Termux gateway** — `muse gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
 3. **Mock mode** — UI sandbox with canned responses, no backend required (great for trying the UI before committing to a setup).
 
 **Build the debug APK:**
@@ -344,15 +344,15 @@ for the Android cockpit contract.
 
 If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
 
-**During first-time setup:** The setup wizard (`hermes setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+**During first-time setup:** The setup wizard (`muse setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
 **Anytime after install:**
 
 ```bash
-hermes claw migrate              # Interactive migration (full preset)
-hermes claw migrate --dry-run    # Preview what would be migrated
-hermes claw migrate --preset user-data   # Migrate without secrets
-hermes claw migrate --overwrite  # Overwrite existing conflicts
+muse claw migrate              # Interactive migration (full preset)
+muse claw migrate --dry-run    # Preview what would be migrated
+muse claw migrate --preset user-data   # Migrate without secrets
+muse claw migrate --overwrite  # Overwrite existing conflicts
 ```
 
 What gets imported:
@@ -365,7 +365,7 @@ What gets imported:
 - **TTS assets** — workspace audio files
 - **Workspace instructions** — AGENTS.md (with `--workspace-target`)
 
-See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+See `muse claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
 
 ---
 
@@ -378,7 +378,7 @@ Quick start for contributors — clone and go with `setup-hermes.sh`:
 ```bash
 git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
 cd M.U.S.E
-./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
+./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/muse
 ./hermes              # auto-detects the venv, no need to `source` first
 ```
 
