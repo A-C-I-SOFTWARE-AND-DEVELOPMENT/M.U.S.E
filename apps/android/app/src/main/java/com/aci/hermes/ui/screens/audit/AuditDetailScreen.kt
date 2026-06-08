@@ -16,8 +16,6 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -47,6 +45,9 @@ import com.aci.hermes.data.model.audit.RouteSummary
 import com.aci.hermes.data.model.audit.VerificationResult
 import com.aci.hermes.data.model.audit.VerificationStatus
 import com.aci.hermes.data.model.audit.WorkerRun
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object AuditDetailTags {
     const val ROOT = "audit-detail"
@@ -90,13 +91,12 @@ fun AuditDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp)
                     .testTag(AuditDetailTags.NOT_FOUND),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    stringResource(R.string.audit_detail_missing),
-                    style = MaterialTheme.typography.bodyLarge,
+                MuseEmptyState(
+                    title = stringResource(R.string.audit_detail_missing),
+                    body = "This audit record could not be found.",
                 )
             }
             return@Scaffold
@@ -106,10 +106,10 @@ fun AuditDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = JarvisTokens.SpaceLg)
                 .testTag(AuditDetailTags.ROOT),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = JarvisTokens.SpaceMd),
         ) {
             item { SummaryCard(record) }
 
@@ -147,15 +147,15 @@ fun AuditDetailScreen(
 @Composable
 private fun SummaryCard(record: AuditRecord) {
     val scheme = MaterialTheme.colorScheme
-    Card(colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant)) {
+    MuseCard {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
@@ -172,7 +172,7 @@ private fun SummaryCard(record: AuditRecord) {
                     text = record.riskTier.displayLabel(),
                     style = MaterialTheme.typography.labelLarge,
                     color = record.riskTier.colorOn(scheme),
-                    modifier = Modifier.padding(start = 4.dp),
+                    modifier = Modifier.padding(start = JarvisTokens.SpaceXs),
                 )
             }
             Text(
@@ -189,7 +189,7 @@ private fun SummaryCard(record: AuditRecord) {
             Text(record.action, style = MaterialTheme.typography.bodyMedium)
             HorizontalDivider()
             RouteRow(record.route)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 AssistChip(
                     onClick = {},
                     label = { Text(record.approvalState.displayLabel()) },
@@ -216,7 +216,7 @@ private fun SummaryCard(record: AuditRecord) {
 @Composable
 private fun RouteRow(route: RouteSummary) {
     val scheme = MaterialTheme.colorScheme
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs)) {
         Text(
             stringResource(R.string.audit_detail_route),
             style = MaterialTheme.typography.labelMedium,
@@ -244,15 +244,14 @@ private fun RouteRow(route: RouteSummary) {
 @Composable
 fun ProofDetail(proof: ProofRecord) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant),
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.PROOF),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
             Text(
                 stringResource(R.string.audit_proof_rationale),
@@ -294,10 +293,10 @@ fun ProofDetail(proof: ProofRecord) {
 private fun EvidenceRow(item: EvidenceItem) {
     val scheme = MaterialTheme.colorScheme
     Column(
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-        modifier = Modifier.padding(top = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs),
+        modifier = Modifier.padding(top = JarvisTokens.SpaceXs),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             AssistChip(onClick = {}, label = { Text(item.kind.name.lowercase()) })
             Text(item.title, style = MaterialTheme.typography.titleSmall)
         }
@@ -318,7 +317,7 @@ private fun EvidenceRow(item: EvidenceItem) {
 @Composable
 private fun LabeledList(label: String, items: List<String>) {
     val scheme = MaterialTheme.colorScheme
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
         items.forEach { item ->
             Text(
@@ -332,19 +331,18 @@ private fun LabeledList(label: String, items: List<String>) {
 @Composable
 fun FailedVerificationCard(verification: VerificationResult) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        colors = CardDefaults.cardColors(containerColor = scheme.errorContainer),
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.FAILED_VERIFICATION),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
                 Icon(
                     Icons.Default.ErrorOutline,
@@ -360,7 +358,7 @@ fun FailedVerificationCard(verification: VerificationResult) {
             Text(
                 verification.summary,
                 style = MaterialTheme.typography.bodyMedium,
-                color = scheme.onErrorContainer,
+                color = scheme.onSurface,
             )
             if (verification.failingChecks.isNotEmpty()) {
                 Text(
@@ -372,7 +370,7 @@ fun FailedVerificationCard(verification: VerificationResult) {
                     Text(
                         "• $check",
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                        color = scheme.onErrorContainer,
+                        color = scheme.onSurface,
                     )
                 }
             }
@@ -388,19 +386,16 @@ fun ApprovalHistoryCard(
     val scheme = MaterialTheme.colorScheme
     val highlight = riskTier == RiskTier.SERIOUS || riskTier == RiskTier.CRITICAL
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (highlight) scheme.secondaryContainer else scheme.surfaceVariant,
-        ),
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.APPROVAL_HISTORY),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Text(
                     stringResource(R.string.audit_approval_history_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -416,8 +411,8 @@ fun ApprovalHistoryCard(
                 }
             }
             items.forEach { item ->
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
                         Text(
                             formatTimestamp(item.timestamp),
                             style = MaterialTheme.typography.labelMedium,
@@ -445,15 +440,12 @@ fun ApprovalHistoryCard(
 @Composable
 fun WorkerRunCard(run: WorkerRun) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceMd),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Surface(
                     shape = CircleShape,
                     color = run.status.colorOn(scheme),
@@ -482,7 +474,7 @@ fun WorkerRunCard(run: WorkerRun) {
 @Composable
 private fun WorkerRunsSection(runs: List<WorkerRun>) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.WORKER_RUNS),
@@ -498,17 +490,16 @@ private fun WorkerRunsSection(runs: List<WorkerRun>) {
 @Composable
 fun RollbackCard(plan: RollbackPlan) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant),
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.ROLLBACK),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Text(
                     stringResource(R.string.audit_rollback_title),
                     style = MaterialTheme.typography.titleMedium,
@@ -538,17 +529,16 @@ fun RollbackCard(plan: RollbackPlan) {
 @Composable
 private fun ImpactReportCard(report: String) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        colors = CardDefaults.cardColors(containerColor = scheme.tertiaryContainer),
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(AuditDetailTags.IMPACT_REPORT),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Icon(
                     Icons.Default.ReportProblem,
                     contentDescription = null,

@@ -11,18 +11,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -32,8 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.model.ledger.LedgerEventDetail
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisTokens
 import com.aci.hermes.ui.screens.audit.displayLabel
 
 object LedgerDetailTags {
@@ -77,7 +77,12 @@ fun LedgerEventDetailScreen(
                     .padding(padding)
                     .testTag(LedgerDetailTags.NOT_FOUND),
                 contentAlignment = Alignment.Center,
-            ) { Text("Event not found.") }
+            ) {
+                MuseEmptyState(
+                    title = "Event not found",
+                    body = "This ledger event is no longer available.",
+                )
+            }
 
             else -> DetailBody(
                 detail = detail,
@@ -110,9 +115,9 @@ private fun DetailBody(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .padding(JarvisTokens.SpaceLg)
             .testTag(LedgerDetailTags.ROOT),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
     ) {
         Section(title = "What happened") {
             Text(detail.summary.ifBlank { detail.kind }, style = MaterialTheme.typography.bodyMedium)
@@ -199,12 +204,14 @@ private fun DetailBody(
                 style = MaterialTheme.typography.bodyMedium,
             )
             RollbackRequestState.Idle -> if (detail.rollbackAvailable) {
-                OutlinedButton(
+                MuseButton(
                     onClick = onRequestRollback,
+                    text = "Request rollback",
+                    variant = MuseButtonVariant.Danger,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag(LedgerDetailTags.ROLLBACK_BUTTON),
-                ) { Text("Request rollback") }
+                )
             }
         }
     }
@@ -212,16 +219,12 @@ private fun DetailBody(
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Card(colors = CardDefaults.cardColors()) {
+    MuseCard {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            MuseSectionHeader(title = title)
             content()
         }
     }
@@ -234,7 +237,7 @@ private fun RollbackDialog(onDismiss: () -> Unit, onConfirm: (String?) -> Unit) 
         onDismissRequest = onDismiss,
         title = { Text("Request rollback") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Text(
                     "This queues an owner-gated approval. Nothing is rolled back until " +
                         "you approve it with your owner phrase in Approvals.",
@@ -249,8 +252,14 @@ private fun RollbackDialog(onDismiss: () -> Unit, onConfirm: (String?) -> Unit) 
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(reason.ifBlank { null }) }) { Text("Queue request") }
+            MuseButton(
+                onClick = { onConfirm(reason.ifBlank { null }) },
+                text = "Queue request",
+                variant = MuseButtonVariant.Danger,
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = {
+            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
+        },
     )
 }

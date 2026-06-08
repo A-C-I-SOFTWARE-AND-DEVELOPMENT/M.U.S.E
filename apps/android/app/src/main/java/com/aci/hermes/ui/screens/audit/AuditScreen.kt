@@ -1,5 +1,10 @@
 package com.aci.hermes.ui.screens.audit
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +22,6 @@ import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -37,6 +41,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.model.audit.AuditRecord
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object AuditScreenTags {
     const val LIST = "audit-list"
@@ -88,13 +96,12 @@ fun AuditScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp)
                     .testTag(AuditScreenTags.EMPTY),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    stringResource(R.string.audit_empty),
-                    style = MaterialTheme.typography.bodyLarge,
+                MuseEmptyState(
+                    title = stringResource(R.string.audit_empty),
+                    body = "Decisions and approvals will appear here once Jarvis acts.",
                 )
             }
         } else {
@@ -102,10 +109,10 @@ fun AuditScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(horizontal = 16.dp)
+                    .padding(horizontal = JarvisTokens.SpaceLg)
                     .testTag(AuditScreenTags.LIST),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = JarvisTokens.SpaceMd),
             ) {
                 items(records, key = AuditRecord::id) { record ->
                     AuditCard(
@@ -118,7 +125,6 @@ fun AuditScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuditCard(
     record: AuditRecord,
@@ -127,98 +133,103 @@ fun AuditCard(
     val scheme = MaterialTheme.colorScheme
     val failed = record.result.isFailureLike()
 
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = if (failed) scheme.errorContainer else scheme.surfaceVariant,
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(AuditScreenTags.row(record.id)),
+    // Subtle entrance: rows fade + rise in on the standard curve.
+    val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = appear,
+        enter = fadeIn(MuseMotion.standard()) +
+            slideInVertically(MuseMotion.standard()) { it / 6 },
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        MuseCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(AuditScreenTags.row(record.id))
+                .clickable(onClick = onClick),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier.padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = record.result.colorOn(scheme),
-                    modifier = Modifier.size(10.dp),
-                ) {}
-                Text(
-                    text = formatTimestamp(record.timestamp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = scheme.onSurfaceVariant,
-                )
-                Text(
-                    text = record.riskTier.displayLabel(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = record.riskTier.colorOn(scheme),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-                if (failed) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .testTag(AuditScreenTags.failedBadge(record.id)),
-                    ) {
-                        Icon(
-                            Icons.Default.ErrorOutline,
-                            contentDescription = null,
-                            tint = scheme.error,
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Text(
-                            stringResource(R.string.audit_failed_badge),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = scheme.error,
-                        )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = record.result.colorOn(scheme),
+                        modifier = Modifier.size(10.dp),
+                    ) {}
+                    Text(
+                        text = formatTimestamp(record.timestamp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = record.riskTier.displayLabel(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = record.riskTier.colorOn(scheme),
+                        modifier = Modifier.padding(start = JarvisTokens.SpaceSm),
+                    )
+                    if (failed) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
+                            modifier = Modifier
+                                .padding(start = JarvisTokens.SpaceSm)
+                                .testTag(AuditScreenTags.failedBadge(record.id)),
+                        ) {
+                            Icon(
+                                Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = scheme.error,
+                                modifier = Modifier.size(16.dp),
+                            )
+                            Text(
+                                stringResource(R.string.audit_failed_badge),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = scheme.error,
+                            )
+                        }
                     }
                 }
+                Text(
+                    text = record.userRequest,
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = record.action,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AssistChip(
+                        onClick = onClick,
+                        label = { Text(record.route.destination.displayLabel()) },
+                    )
+                    AssistChip(
+                        onClick = onClick,
+                        label = { Text(record.approvalState.displayLabel()) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = record.approvalState.colorOn(scheme),
+                        ),
+                    )
+                    AssistChip(
+                        onClick = onClick,
+                        label = { Text(record.result.displayLabel()) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = record.result.colorOn(scheme),
+                        ),
+                    )
+                }
+                Text(
+                    text = confidenceLabel(record.confidence),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant,
+                )
             }
-            Text(
-                text = record.userRequest,
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                text = record.action,
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AssistChip(
-                    onClick = onClick,
-                    label = { Text(record.route.destination.displayLabel()) },
-                )
-                AssistChip(
-                    onClick = onClick,
-                    label = { Text(record.approvalState.displayLabel()) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = record.approvalState.colorOn(scheme),
-                    ),
-                )
-                AssistChip(
-                    onClick = onClick,
-                    label = { Text(record.result.displayLabel()) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = record.result.colorOn(scheme),
-                    ),
-                )
-            }
-            Text(
-                text = confidenceLabel(record.confidence),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurfaceVariant,
-            )
         }
     }
 }

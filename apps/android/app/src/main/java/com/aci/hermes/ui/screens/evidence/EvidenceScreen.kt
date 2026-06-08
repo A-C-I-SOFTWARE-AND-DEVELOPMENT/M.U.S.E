@@ -1,5 +1,6 @@
 package com.aci.hermes.ui.screens.evidence
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,24 +13,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,9 +34,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.evidence.EvidenceItem
 import com.aci.hermes.data.evidence.EvidenceSync
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object EvidenceScreenTags {
     const val ROOT = "evidence_screen"
@@ -88,8 +87,8 @@ fun EvidenceScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
             OutlinedTextField(
                 value = state.query,
@@ -135,13 +134,21 @@ fun EvidenceScreen(
                     },
                 )
             } else if (state.items.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No evidence yet.", modifier = Modifier.testTag(EvidenceScreenTags.EMPTY))
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag(EvidenceScreenTags.EMPTY),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseEmptyState(
+                        title = "No evidence yet",
+                        body = "Run a search above, or pair a gateway to load live evidence.",
+                    )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.testTag(EvidenceScreenTags.LIST),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 ) {
                     items(state.items, key = { it.id }) { item ->
                         EvidenceCard(item = item, onClick = { viewModel.open(item) })
@@ -162,28 +169,23 @@ fun EvidenceScreen(
 
 @Composable
 private fun EvidenceCard(item: EvidenceItem, onClick: () -> Unit) {
-    Card(
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag(EvidenceScreenTags.card(item.id)),
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            .testTag(EvidenceScreenTags.card(item.id))
+            .clickable(onClick = onClick),
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceMd), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(item.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             Text(
                 item.summary.ifBlank { item.excerpt },
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 3,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AssistChip(onClick = {}, label = { Text(item.trust.display) })
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm), verticalAlignment = Alignment.CenterVertically) {
+                MuseChip(label = item.trust.display)
                 if (item.isStale()) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("Stale") },
-                        leadingIcon = { Icon(Icons.Filled.Warning, contentDescription = null) },
-                    )
+                    MuseChip(label = "Stale")
                 }
             }
         }
@@ -202,13 +204,13 @@ private fun EvidenceDetail(
         modifier = Modifier
             .fillMaxSize()
             .testTag(EvidenceScreenTags.DETAIL),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
     ) {
         Text(item.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text(item.sourceUri, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            AssistChip(onClick = {}, label = { Text(item.trust.display) })
-            AssistChip(onClick = {}, label = { Text(if (item.isStale()) "Stale" else "Fresh") })
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseChip(label = item.trust.display)
+            MuseChip(label = if (item.isStale()) "Stale" else "Fresh")
         }
         HorizontalDivider()
         Text(item.excerpt, style = MaterialTheme.typography.bodyMedium)
@@ -221,13 +223,13 @@ private fun EvidenceDetail(
         verificationText?.let {
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onVerify) { Text("Verify") }
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseButton(onClick = onVerify, text = "Verify", variant = MuseButtonVariant.Secondary)
             // Sends no owner phrase: the gateway promotes high-trust items and
             // rejects low-confidence/unverified ones, which raises an explicit
             // owner-authorization dialog rather than promoting on a tap.
-            Button(onClick = onPromote) { Text("Promote to memory") }
-            OutlinedButton(onClick = onClose) { Text("Close") }
+            MuseButton(onClick = onPromote, text = "Promote to memory")
+            MuseButton(onClick = onClose, text = "Close", variant = MuseButtonVariant.Secondary)
         }
     }
 }
@@ -254,10 +256,10 @@ private fun OwnerAuthorizationDialog(
             )
         },
         confirmButton = {
-            Button(onClick = onConfirm) { Text("Authorize & promote") }
+            MuseButton(onClick = onConfirm, text = "Authorize & promote", variant = MuseButtonVariant.Approve)
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            MuseButton(onClick = onDismiss, text = "Cancel", variant = MuseButtonVariant.Secondary)
         },
     )
 }
