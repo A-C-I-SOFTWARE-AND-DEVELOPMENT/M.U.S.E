@@ -34,7 +34,7 @@ iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/script
 
 See the full **[Installation Guide](/docs/getting-started/installation)** for what the installer does, the per-user vs root layout, and Windows-specific notes.
 
-## What is Hermes Agent?
+## What is M.U.S.E.?
 
 It's not a coding copilot tethered to an IDE or a chatbot wrapper around a single API. It's an **autonomous agent** that gets more capable the longer it runs. It lives wherever you put it — a $5 VPS, a GPU cluster, or serverless infrastructure (Daytona, Modal) that costs nearly nothing when idle. Talk to it from Telegram while it works on a cloud VM you never SSH into yourself. It's not tied to your laptop.
 
