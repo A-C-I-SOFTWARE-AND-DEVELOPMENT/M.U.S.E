@@ -110,6 +110,6 @@ The **clipboard handoff** toggle is in Settings.
 | Symptom | Cause | Fix |
 |---|---|---|
 | "owner approval required to run an execute lane" | No / wrong phrase | Reply exactly `Yes, with authorization.` |
-| "agentic execution is disabled on a non-loopback cockpit" | Backend bound with `--allow-external` | Restart `hermes cockpit serve` on loopback; tunnel instead of binding wide |
-| Job stuck in `queued` | No worker available for the lane | Check `hermes orchestrator status`; configure the builder/reviewer |
+| "agentic execution is disabled on a non-loopback cockpit" | Backend bound with `--allow-external` | Restart `muse cockpit serve` on loopback; tunnel instead of binding wide |
+| Job stuck in `queued` | No worker available for the lane | Check `muse orchestrator status`; configure the builder/reviewer |
 | PR never appears | Validation gate failed | Read the ledger / job detail; fix and re-dispatch |

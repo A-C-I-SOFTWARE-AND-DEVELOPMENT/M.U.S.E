@@ -1,4 +1,4 @@
-# Hermes mobile ↔ backend contract
+# M.U.S.E. mobile ↔ backend contract
 
 This document is the **mobile-facing summary** of the wire format the
 Android cockpit speaks. It points at the existing, authoritative

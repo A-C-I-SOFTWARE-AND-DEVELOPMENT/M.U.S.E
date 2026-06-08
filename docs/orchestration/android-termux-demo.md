@@ -1,6 +1,6 @@
 # Demo — Android cockpit + Termux runtime
 
-Two ways to use Hermes Orchestration from a phone, and one hybrid
+Two ways to use M.U.S.E. Orchestration from a phone, and one hybrid
 that combines them. None of these require an app-store install — the
 Android app side-loads from CI artifacts, and Termux is open-source
 on F-Droid.
@@ -14,7 +14,7 @@ on F-Droid.
 The cockpit is the native Android app at
 [`apps/android`](../../apps/android/). It is a **thin client** — it
 does not embed a model and it does not run agents itself. It talks
-to a Hermes gateway, wherever that gateway happens to live.
+to a M.U.S.E. gateway, wherever that gateway happens to live.
 
 ## Cockpit, in 60 seconds
 
@@ -32,11 +32,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 First launch shows the **Connection** screen. Three modes:
 
-1. **Remote Hermes gateway** (recommended). Paste the URL of a
+1. **Remote M.U.S.E. gateway** (recommended). Paste the URL of a
    running gateway (e.g. `https://hermes.your-domain.tld`) and a
    bearer token. Tap **Test connection**.
 2. **Local Termux gateway**. Default URL `http://127.0.0.1:8080`.
-   Requires Termux + Hermes installed on the same device — see the
+   Requires Termux + M.U.S.E. installed on the same device — see the
    Termux section below.
 3. **Mock mode**. Sandboxed UI with canned responses. No backend
    required. Good for exploring the orchestrator pane before
@@ -80,9 +80,9 @@ Run the gateway on your VPS or home server:
 ```bash
 ssh user@your-vps
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-hermes setup           # wizard, includes provider keys
-hermes gateway setup   # pick auth, set bearer token
-hermes gateway start   # foreground, or use systemd
+muse setup           # wizard, includes provider keys
+muse gateway setup   # pick auth, set bearer token
+muse gateway start   # foreground, or use systemd
 ```
 
 Open `https://hermes.your-domain.tld/v1/health` from the phone to
@@ -106,7 +106,7 @@ trip.
 From F-Droid (preferred — the Play Store build is frozen):
 <https://f-droid.org/en/packages/com.termux/>
 
-### Install Hermes in Termux
+### Install M.U.S.E. in Termux
 
 ```bash
 pkg update && pkg upgrade -y
@@ -118,16 +118,16 @@ curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scri
   PIP_CONSTRAINT=https://raw.githubusercontent.com/NousResearch/hermes-agent/main/constraints-termux.txt bash
 ```
 
-On Termux, Hermes installs `.[termux]` instead of `.[all]` — the full
+On Termux, M.U.S.E. installs `.[termux]` instead of `.[all]` — the full
 extra pulls Android-incompatible voice deps. Everything orchestration
 needs is in `.[termux]`.
 
 ### Start the gateway in Termux
 
 ```bash
-hermes setup           # at minimum, pick a provider and add a key
-hermes gateway setup   # bearer auth, bind to 127.0.0.1 only
-hermes gateway start   # leave Termux open or use termux-services
+muse setup           # at minimum, pick a provider and add a key
+muse gateway setup   # bearer auth, bind to 127.0.0.1 only
+muse gateway start   # leave Termux open or use termux-services
 ```
 
 The gateway binds to loopback by default. The Android cockpit on the
@@ -140,7 +140,7 @@ In the cockpit's **Settings → Connection**, switch to **Local Termux
 gateway**, paste the bearer token, tap **Test connection**, then
 **Connect**.
 
-That's a fully self-contained Hermes Orchestration setup on one
+That's a fully self-contained M.U.S.E. Orchestration setup on one
 device, no cloud, no network. The orchestrator profile, kanban
 dispatcher, judge, worker — all of it runs inside the Termux
 sandbox.
@@ -164,7 +164,7 @@ orchestration loop from the Termux shell. Skip the cockpit entirely.
 
 ```bash
 # Termux
-hermes
+muse
 > /orchestrate Audit this repo and write a short report.
 > /orchestrator status
 ```
@@ -188,7 +188,7 @@ The most common production setup:
 - **Android cockpit on the phone.** Notifications for escalations,
   approve/deny from anywhere.
 - **Termux on the phone** as a fallback — when the server is
-  unreachable, you still have a working Hermes you can talk to.
+  unreachable, you still have a working M.U.S.E. you can talk to.
 
 The cockpit's connection setting can store multiple profiles. Tap
 the profile picker on the connection screen to switch between
@@ -201,7 +201,7 @@ Yes. There is no Google Play Services dependency in the debug build.
 F-Droid builds are forthcoming.
 
 **Does Termux need root?**
-No. Hermes runs entirely in the Termux user sandbox.
+No. M.U.S.E. runs entirely in the Termux user sandbox.
 
 **Can I run the orchestrator and watch the same job from both
 phones?**
@@ -211,9 +211,9 @@ SQLite on the gateway side.
 
 **What happens if the phone reboots while a job is running?**
 On a remote backend: the job keeps running on the server, the
-cockpit reconnects when it comes back. On a Termux backend: Hermes
+cockpit reconnects when it comes back. On a Termux backend: M.U.S.E.
 checkpoints the job in SQLite, but the in-flight workers die.
-Restart Hermes and run `hermes orchestrator resume <job-id>` to
+Restart M.U.S.E. and run `muse orchestrator resume <job-id>` to
 re-spawn any `running` cards.
 
 ## See also

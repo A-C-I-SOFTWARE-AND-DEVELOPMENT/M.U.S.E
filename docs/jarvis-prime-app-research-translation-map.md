@@ -295,7 +295,7 @@ updates.
 Source: `__main__.py`.
 
 Android target: not used. The cockpit talks to the gateway, not to
-the local Python CLI. Termux users continue to use `hermes` from a
+the local Python CLI. Termux users continue to use `muse` from a
 shell.
 
 ---

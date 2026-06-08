@@ -45,7 +45,7 @@ vault/replay. Do **not** build a third API surface or a second task model.
 |---|---|---|
 | Android cockpit | `apps/android` (Kotlin/Compose) | Single `NavHost` in `ui/navigation/HermesNavGraph.kt`; routes in `Screen.kt`; hand-rolled DI in `di/AppContainer.kt`. |
 | Cockpit transport | `data/cockpit/HermesCockpitClient.kt`, `CockpitHttp.kt`, wire models `CockpitApi.kt` | Bearer token, typed `CockpitResult`, honest `Unreachable`. |
-| Cockpit API server | `gateway/cockpit/{server,handlers,contract,auth,agent}.py` | Stdlib HTTP (Termux-safe), loopback-only by default. Launched by `hermes cockpit serve` (`hermes_cli/main.py:5868`). |
+| Cockpit API server | `gateway/cockpit/{server,handlers,contract,auth,agent}.py` | Stdlib HTTP (Termux-safe), loopback-only by default. Launched by `muse cockpit serve` (`hermes_cli/main.py:5868`). |
 | MUSE runtime | `hermes_cli/jarvis_prime/` | `__main__.py` (perceive/classify/gate/handle/stop/forget/remember/recollect/tick), `memory.py`, `research_vault.py`, `avatar.py`. |
 | Orchestration | `hermes_cli/job_queue.py`, `orchestrator.py`, `orchestrator_api.py`, `orchestrator_replay.py`, `workers.py` | Real job execution + replay. |
 | Decision ledger | `hermes_cli/decision_ledger.py` | Source for cockpit audit/proof. |

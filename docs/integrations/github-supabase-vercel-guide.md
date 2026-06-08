@@ -1,6 +1,6 @@
 # GitHub, Supabase, and Vercel integrations guide
 
-This page is the plain-English guide to wiring Hermes to the three
+This page is the plain-English guide to wiring M.U.S.E. to the three
 integrations most teams reach for first: **GitHub** (for code, PRs,
 issues), **Supabase** (for database, auth, storage), and **Vercel**
 (for deploys and runtime logs).
@@ -14,7 +14,7 @@ verbs change.
 
 ## How integrations plug in
 
-Hermes has two integration shapes:
+M.U.S.E. has two integration shapes:
 
 1. **Native plugins** under `plugins/`. The canonical example is
    `github_assistant` — a first-party plugin written in Python that
@@ -23,7 +23,7 @@ Hermes has two integration shapes:
    the agent never sees them.
 2. **MCP servers** the gateway forwards tool calls to. Used for
    Supabase and Vercel by default — both publish official MCP
-   servers, and Hermes can connect to any MCP server you list under
+   servers, and M.U.S.E. can connect to any MCP server you list under
    `mcp_servers` in `~/.hermes/config.yaml`.
 
 Either way, the agent calls tools, the plugin / MCP server calls the
@@ -43,7 +43,7 @@ shortest path:
 GitHub → **Settings → Developer settings → Personal access tokens →
 Fine-grained tokens → Generate new token**.
 
-- **Repository access:** select only the repos you want Hermes to
+- **Repository access:** select only the repos you want M.U.S.E. to
   touch.
 - **Permissions:**
   - *Contents:* Read (Read & Write if you want PRs).
@@ -54,7 +54,7 @@ Fine-grained tokens → Generate new token**.
 
 Copy the token (`github_pat_...` or `ghp_...`).
 
-### 2. Add it to Hermes
+### 2. Add it to M.U.S.E.
 
 ```bash
 echo "GITHUB_PERSONAL_ACCESS_TOKEN=ghp_..." >> ~/.hermes/.env
@@ -64,10 +64,10 @@ chmod 600 ~/.hermes/.env
 ### 3. Enable the plugin
 
 ```bash
-hermes plugin enable github_assistant
-hermes config set github.enabled true
-hermes config set github.allow_writes true
-hermes config set github.allowed_repositories "echerd27-design/hermes-agent,owner2/repo2"
+muse plugin enable github_assistant
+muse config set github.enabled true
+muse config set github.allow_writes true
+muse config set github.allowed_repositories "echerd27-design/hermes-agent,owner2/repo2"
 ```
 
 `allowed_repositories` is a defense-in-depth list. Even if a worker
@@ -78,12 +78,12 @@ fence; this list is the second.
 ### 4. Confirm
 
 ```bash
-hermes config get github.enabled         # true
-hermes config get github.allow_writes    # true
-hermes config get github.allowed_repositories
+muse config get github.enabled         # true
+muse config get github.allow_writes    # true
+muse config get github.allowed_repositories
 ```
 
-Then in `hermes`:
+Then in `muse`:
 
 ```
 /github status
@@ -95,7 +95,7 @@ You should see your username + the writable-repo list.
 
 ```bash
 bash scripts/hermes-orchestrate.sh \
-  "Open a draft issue on echerd27-design/hermes-agent titled 'Hermes integration smoke test' with body 'ignore me'." \
+  "Open a draft issue on echerd27-design/hermes-agent titled 'M.U.S.E. integration smoke test' with body 'ignore me'." \
   --deliver gateway
 ```
 
@@ -114,12 +114,12 @@ users the native `github_assistant` plugin is the right default.
 
 ## Supabase setup
 
-Supabase ships an official MCP server you point Hermes at.
+Supabase ships an official MCP server you point M.U.S.E. at.
 
 ### 1. Get a Supabase access token
 
 Supabase Studio → **Account → Access Tokens → Generate new
-token**. Scope it to the projects you want Hermes to manage.
+token**. Scope it to the projects you want M.U.S.E. to manage.
 
 ### 2. Add the token
 
@@ -150,7 +150,7 @@ mcp_servers:
 ### 4. Confirm
 
 ```bash
-hermes mcp status
+muse mcp status
 ```
 
 You should see `supabase: connected` and a count of tools the
@@ -204,7 +204,7 @@ Vercel publishes an MCP server too. Same shape.
 ### 1. Get a Vercel token
 
 Vercel dashboard → **Settings → Tokens → Create**. Scope to the
-team / project you want Hermes to manage.
+team / project you want M.U.S.E. to manage.
 
 ### 2. Add the token
 
@@ -232,7 +232,7 @@ mcp_servers:
 ### 4. Confirm
 
 ```bash
-hermes mcp status
+muse mcp status
 ```
 
 `vercel: connected` and the tool list (list_projects,
@@ -297,16 +297,16 @@ echo "VERCEL_TOKEN=..."                     >> ~/.hermes/.env
 chmod 600 ~/.hermes/.env
 
 # Plugins / MCP
-hermes plugin enable github_assistant
-hermes config set github.enabled true
-hermes config set github.allow_writes true
-hermes config set github.allowed_repositories "owner/repo"
+muse plugin enable github_assistant
+muse config set github.enabled true
+muse config set github.allow_writes true
+muse config set github.allowed_repositories "owner/repo"
 
 # Edit ~/.hermes/config.yaml to add the supabase + vercel mcp_servers blocks above.
 
 # Confirm
-hermes config get github.allowed_repositories
-hermes mcp status
+muse config get github.allowed_repositories
+muse mcp status
 
 # Smoke test
 bash scripts/hermes-orchestrate.sh \
@@ -320,7 +320,7 @@ read-only).
 
 ## How secrets are protected across the three
 
-Same model as everywhere in Hermes:
+Same model as everywhere in M.U.S.E.:
 
 - Tokens live in `~/.hermes/.env` (`chmod 600`).
 - Plugins / MCP servers read them at startup; the agent itself never
@@ -354,13 +354,13 @@ The full security model is
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `github: not configured` | Plugin not enabled or token missing | `hermes plugin enable github_assistant`; check `~/.hermes/.env`. |
+| `github: not configured` | Plugin not enabled or token missing | `muse plugin enable github_assistant`; check `~/.hermes/.env`. |
 | `github: write blocked: repo not in allowed_repositories` | Second-fence list doesn't cover the target | Add the repo to `github.allowed_repositories`; `/reload-skills`. |
-| `mcp: supabase failed to start` | `npx` not on PATH, or token invalid | `which npx`; rotate the Supabase token; restart Hermes. |
+| `mcp: supabase failed to start` | `npx` not on PATH, or token invalid | `which npx`; rotate the Supabase token; restart M.U.S.E.. |
 | `supabase: allow_destructive=false` refuses delete | Defense-in-depth refusal | Set `supabase.allow_destructive: true` *only if you mean it*. |
 | `vercel: production env write refused` | Same as above for Vercel | Set `vercel.allow_production_env_writes: true` if you mean it. |
 | Approval notification not arriving | Gateway down or device unsubscribed | See [mobile/mobile-app-guide.md §disconnect-recovery](../mobile/mobile-app-guide.md#disconnect-recovery). |
-| MCP server connects but no tools appear | Server started but the `tools/list` call failed; check `~/.hermes/logs/agent.log` | Update the MCP server package; restart Hermes. |
+| MCP server connects but no tools appear | Server started but the `tools/list` call failed; check `~/.hermes/logs/agent.log` | Update the MCP server package; restart M.U.S.E.. |
 | Tools available but every call fails 401 | Token expired or scoped wrong | Rotate at the provider, update `~/.hermes/.env`, restart. |
 
 Anything else: see
@@ -375,7 +375,7 @@ Anything else: see
 - [security/private-local-security-guide.md](../security/private-local-security-guide.md)
   — secrets and the approval model.
 - [profile/github-history-profile-guide.md](../profile/github-history-profile-guide.md)
-  — what Hermes learns from your GitHub history.
+  — what M.U.S.E. learns from your GitHub history.
 - [orchestration/prompt-to-pr-demo.md](../orchestration/prompt-to-pr-demo.md)
   — the canonical multi-phase GitHub example.
 - [orchestration/worker-adapters.md](../orchestration/worker-adapters.md)

@@ -1,4 +1,4 @@
-# Hermes orchestration — known limitations
+# M.U.S.E. orchestration — known limitations
 
 This document is the honesty contract for Phase 24. Every component that
 is mocked, stubbed, or otherwise not yet production-grade is listed here

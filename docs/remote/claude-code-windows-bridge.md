@@ -1,6 +1,6 @@
 # Claude Code Windows remote-execution bridge
 
-**Status:** Phase 10 — Hermes side complete, Windows worker daemon
+**Status:** Phase 10 — M.U.S.E. side complete, Windows worker daemon
 external. File-drop transport is implemented and tested. HTTP and
 WebSocket transports are documented as future work and refused at
 dispatch time by the bridge.
@@ -14,10 +14,10 @@ dispatch time by the bridge.
 
 ## Why this exists
 
-Hermes typically runs on Jeremiah's Android phone (in Termux) or on a
+M.U.S.E. typically runs on Jeremiah's Android phone (in Termux) or on a
 small Linux backend. Claude Code, by contrast, runs best on his
 Windows desktop where it has fast disk, a real IDE handoff, and an
-already-authenticated subscription. The bridge lets Hermes use that
+already-authenticated subscription. The bridge lets M.U.S.E. use that
 desktop as a remote worker without ever exposing it to the public
 internet.
 
@@ -25,7 +25,7 @@ internet.
 
 ```text
 ┌────────────────────────────┐         ┌────────────────────────────┐
-│ Hermes (Android / Linux)   │         │ Windows desktop            │
+│ M.U.S.E. (Android / Linux)   │         │ Windows desktop            │
 │                            │         │                            │
 │ ┌──────────────────────┐   │  prompt │ ┌──────────────────────┐   │
 │ │ orchestrator         │───┼────────►│ │ claude_code_windows  │   │
@@ -53,12 +53,12 @@ matrix.
 
 ## End-to-end flow
 
-1. **Android/Termux Hermes backend creates a job** — usually via
+1. **Android/Termux M.U.S.E. backend creates a job** — usually via
    `/orchestrate <goal>` or a kanban task being decomposed.
-2. **Hermes selects `claude-code-windows`** — either explicitly via
+2. **M.U.S.E. selects `claude-code-windows`** — either explicitly via
    the user's profile config or because the orchestrator scored this
    worker highest for the task.
-3. **Hermes writes a worker prompt** — the `claude_code_windows`
+3. **M.U.S.E. writes a worker prompt** — the `claude_code_windows`
    adapter reuses the local Claude Code prompt template and appends a
    Windows-specific epilogue (`Remote worker contract`, status
    protocol, required artifacts).
@@ -81,10 +81,10 @@ matrix.
      command, if one was configured.
    - `status.json` — terminal state, axis scores, `auth_token` echoed
      back, `verdict` (`approve` / `revise` / `block`).
-7. **Hermes collects artifacts** via
+7. **M.U.S.E. collects artifacts** via
    `RemoteBridge.collect_artifacts(job_id, dest_dir)`, which refuses
    to copy until the worker reports `state == "completed"`.
-8. **Hermes scores / merges** — the orchestrator hands the artifacts
+8. **M.U.S.E. scores / merges** — the orchestrator hands the artifacts
    to the council reviewer and ranks them against other workers using
    the same `SCORING_WEIGHTS` as the local Claude Code worker.
 9. **No publish without approval** — `github_publisher` (and the
@@ -138,7 +138,7 @@ out-of-band:
 * the user calls `bridge.approve(job_id)` after reading the prompt,
 * or hits a confirm button in the cockpit (the Android UI shows the
   staged prompt before unlocking),
-* or runs `hermes orchestrator approve <job_id>` from the CLI.
+* or runs `muse orchestrator approve <job_id>` from the CLI.
 
 ### Secret hygiene
 
@@ -154,7 +154,7 @@ out-of-band:
 
 ### Failure recovery
 
-* The bridge holds no long-lived state. Restarting Hermes mid-job
+* The bridge holds no long-lived state. Restarting M.U.S.E. mid-job
   rehydrates from the manifest and status files in the shared
   directory.
 * If the tunnel drops mid-job, `get_status` returns
@@ -173,15 +173,15 @@ The file-drop transport carries these files:
 <workspace_root>/
   jobs/
     <job_id>/
-      manifest.json        # Hermes → worker (immutable after dispatch)
-      prompt.md            # Hermes → worker
+      manifest.json        # M.U.S.E. → worker (immutable after dispatch)
+      prompt.md            # M.U.S.E. → worker
       status.json          # both sides write; latest writer wins
-      cancel.json          # Hermes → worker (presence = abort)
-      env/<files>          # Hermes → worker, opt-in only
-      output.md            # worker → Hermes
-      patch.diff           # worker → Hermes (optional)
-      changed-files.txt    # worker → Hermes
-      validation-output.txt# worker → Hermes
+      cancel.json          # M.U.S.E. → worker (presence = abort)
+      env/<files>          # M.U.S.E. → worker, opt-in only
+      output.md            # worker → M.U.S.E.
+      patch.diff           # worker → M.U.S.E. (optional)
+      changed-files.txt    # worker → M.U.S.E.
+      validation-output.txt# worker → M.U.S.E.
 ```
 
 ### Manifest schema (`hermes.remote.job.v1`)
@@ -291,7 +291,7 @@ selects them. Implementing them requires:
 
 1. Mutual TLS via the tunnel's identity layer (Tailscale's
    `tsnet` / SSH cert auth / Cloudflare Access mTLS — not a
-   self-signed cert managed by Hermes).
+   self-signed cert managed by M.U.S.E.).
 2. A token-bound device allowlist enforced server-side.
 3. The same `command_allowlist`, env-transfer refusal, and audit-log
    guarantees the file-drop transport already enforces.

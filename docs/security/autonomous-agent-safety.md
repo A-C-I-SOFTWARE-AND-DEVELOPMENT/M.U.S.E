@@ -1,6 +1,6 @@
 # Autonomous agent safety
 
-Hermes can run at varying degrees of autonomy. The approval policy
+M.U.S.E. can run at varying degrees of autonomy. The approval policy
 ([`hermes_cli/approval_policy.py`](../../hermes_cli/approval_policy.py))
 decides, for each proposed action, whether the agent may proceed on
 its own, must pause for a confirmation prompt, or must refuse

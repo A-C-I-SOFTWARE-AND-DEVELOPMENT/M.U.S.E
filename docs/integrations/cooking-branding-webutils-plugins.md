@@ -1,6 +1,6 @@
 # Cooking + branding + utilities plugins (cooking, branding, webutils)
 
-Three native Hermes plugins that add recipes/food, design/branding, and small
+Three native M.U.S.E. plugins that add recipes/food, design/branding, and small
 web utilities over free public APIs. They follow the
 [public-API plugin](public-apis-plugins.md) pattern and reuse the shared,
 host-pinned, redacting HTTP helper at
@@ -32,7 +32,7 @@ webutils:
   enabled: true
 ```
 
-Then `hermes plugins enable cooking branding webutils` (or `/reload-skills`).
+Then `muse plugins enable cooking branding webutils` (or `/reload-skills`).
 
 ## Optional keys (branding)
 

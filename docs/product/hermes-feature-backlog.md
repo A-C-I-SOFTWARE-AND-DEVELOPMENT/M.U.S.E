@@ -108,7 +108,7 @@ their own YAML.
   `allow-users`, `safety-strategy` (default `drop-sudo`),
   `unprivileged-user` — modeled on Codex Action's safety controls
 - Outputs: `result`, `commit-sha`, `pr-number`
-- Reuses `hermes webhook subscribe` mechanic under the hood
+- Reuses `muse webhook subscribe` mechanic under the hood
 
 **Effort:** ~1-2 weeks including docs + a sample workflow file.
 
@@ -136,7 +136,7 @@ mode (auto-approve safe tool classes).
 
 ---
 
-### 5b. `[P23]` Per-category usage accounting (`hermes usage --by skill|subagent|plugin|mcp`)
+### 5b. `[P23]` Per-category usage accounting (`muse usage --by skill|subagent|plugin|mcp`)
 
 **Inspiration:** Claude Code v2.1.149 `/usage` per-category breakdown.
 
@@ -146,7 +146,7 @@ get raw rows, not a roll-up. Five major competitors expose some flavor
 of this; Claude Code's per-category breakdown is the strongest pattern.
 
 **Implementation target:**
-- New `hermes usage` subcommand reading the existing ledger
+- New `muse usage` subcommand reading the existing ledger
 - Group-by options: `skill`, `subagent`, `plugin`, `mcp_server`, `model`
 - Output: table + JSON; JSON feeds the dashboard
 - Add a "projected vs actual" column once Claude Code's
@@ -313,7 +313,7 @@ a separate app).
 never bounce.
 
 **Implementation target:**
-- New CLI subcommand `hermes session teleport <id> --to modal|daytona|local`
+- New CLI subcommand `muse session teleport <id> --to modal|daytona|local`
 - Pack session DB row + working tree state + env vars into a transfer
   bundle
 - Wakes/spawns target backend, restores state, prints new connection URL
@@ -401,7 +401,7 @@ from Claude Code is a low-cost reliability win.
 **Implementation target:**
 - Add `dependencies:` and `estimated_context_tokens:` fields to
   `plugin.yaml`
-- New `hermes plugin show <name>` that prints the plugin's exposed tools,
+- New `muse plugin show <name>` that prints the plugin's exposed tools,
   hooks, slash commands, MCP servers, dependencies, and projected cost
   before activation
 - Loader validates dependencies and refuses to load on missing prereqs
@@ -501,13 +501,13 @@ matching paths; loader marks them cache-eligible.
 **Why:** Any editor becomes a Hermes frontend with zero plugin. Hermes
 currently requires CLI/gateway interaction.
 
-**Target:** `hermes watch <dir>` mode using `watchdog`; configurable
+**Target:** `muse watch <dir>` mode using `watchdog`; configurable
 trigger pattern (default `HERMES!` / `HERMES?`); on save, extract the
 trigger comment + surrounding context and dispatch to the agent.
 
 ---
 
-### 18. Plan branches / diff sandbox (`hermes plan branch`)
+### 18. Plan branches / diff sandbox (`muse plan branch`)
 
 **Inspiration:** Plandex.
 
@@ -567,7 +567,7 @@ concatenated up to a byte cap. Cleaner for monorepos.
 **Why:** Hermes resumes by session ID; export to portable formats with
 metadata (tokens, model, cwd, timestamps) is missing.
 
-**Target:** `hermes session export <id> --format md|json|yaml`.
+**Target:** `muse session export <id> --format md|json|yaml`.
 
 ---
 
@@ -638,7 +638,7 @@ hence T3.
 
 **Target:** Optional `ledger.hmac_chain: true` config. Each ledger row
 includes `prev_hmac` computed from the previous row + a per-job key. Add
-`hermes ledger verify <job-id>` to detect breaks. Document the threat
+`muse ledger verify <job-id>` to detect breaks. Document the threat
 model honestly: this defends against post-hoc tampering of a stored
 ledger, not against a compromised process while a job runs.
 

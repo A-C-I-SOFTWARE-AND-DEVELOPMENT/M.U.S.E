@@ -16,7 +16,7 @@ and lock the synergy in with a reproducible test.
 
 | Surface | How validated | Result |
 |---|---|---|
-| Python core + CLI | `uv pip install -e .[all,dev]`; full `pytest` | **26,800 passed**; entrypoint `hermes --help` OK |
+| Python core + CLI | `uv pip install -e .[all,dev]`; full `pytest` | **26,800 passed**; entrypoint `muse --help` OK |
 | Cockpit HTTP server | live boot + `urllib` client; `tests/gateway/test_cockpit_*` | health/auth/stream OK; **103 cockpit tests pass** |
 | MUSE runtime | streamed turn (perceive→classify→route→gate) | real `thinking→tone→detail→body→done` stream |
 | Cross-surface memory | fresh-instance recollect round-trip | **shared brain confirmed** |

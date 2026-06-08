@@ -57,7 +57,7 @@ wired.
 
 **Mitigation:** The gateway's local test suite covers parsing,
 session bookkeeping, and webhook secret validation. Operators run
-the end-to-end smoke manually with `hermes gateway --platform X
+the end-to-end smoke manually with `muse gateway --platform X
 --dry-run` before flipping a platform live.
 
 **Roadmap link:**

@@ -7,12 +7,12 @@ sidebar_position: 6
 
 # Web Search & Extract
 
-Hermes Agent includes two model-callable web tools backed by multiple providers:
+M.U.S.E. includes two model-callable web tools backed by multiple providers:
 
 - **`web_search`** — search the web and return ranked results
 - **`web_extract`** — fetch and extract readable content from one or more URLs (with built-in deep-crawl support when the backend provides it)
 
-Both are configured through a single backend selection. Providers are chosen via `hermes tools` or set directly in `config.yaml`. Recursive crawling capabilities (Firecrawl/Tavily) are exposed through `web_extract` rather than as a separate `web_crawl` tool.
+Both are configured through a single backend selection. Providers are chosen via `muse tools` or set directly in `config.yaml`. Recursive crawling capabilities (Firecrawl/Tavily) are exposed through `web_extract` rather than as a separate `web_crawl` tool.
 
 ## Backends
 
@@ -26,12 +26,12 @@ Both are configured through a single backend selection. Providers are chosen via
 | **Exa** | `EXA_API_KEY` | ✔ | ✔ | — | 1 000 searches/mo |
 | **Parallel** | `PARALLEL_API_KEY` | ✔ | ✔ | — | Paid |
 
-Brave Search and DDGS are **search-only** — pair either with Firecrawl/Tavily/Exa/Parallel when you also need `web_extract`. DDGS uses the [`ddgs` Python package](https://pypi.org/project/ddgs/) under the hood; if it isn't already installed, run `pip install ddgs` (or let Hermes lazy-install it on first use).
+Brave Search and DDGS are **search-only** — pair either with Firecrawl/Tavily/Exa/Parallel when you also need `web_extract`. DDGS uses the [`ddgs` Python package](https://pypi.org/project/ddgs/) under the hood; if it isn't already installed, run `pip install ddgs` (or let M.U.S.E. lazy-install it on first use).
 
 **Per-capability split:** you can use different providers for search and extract independently — for example SearXNG (free) for search and Firecrawl for extract. See [Per-capability configuration](#per-capability-configuration) below.
 
 :::tip Nous Subscribers
-If you have a paid [Nous Portal](https://portal.nousresearch.com) subscription, web search and extract are available through the **[Tool Gateway](tool-gateway.md)** via managed Firecrawl — no API key needed. Run `hermes tools` to enable it.
+If you have a paid [Nous Portal](https://portal.nousresearch.com) subscription, web search and extract are available through the **[Tool Gateway](tool-gateway.md)** via managed Firecrawl — no API key needed. Run `muse tools` to enable it.
 :::
 
 ---
@@ -47,11 +47,11 @@ Backends return raw page markdown, which can be huge (forum threads, docs sites,
 | 500 000 – 2 000 000 | Chunked: split into 100 k-char chunks, summarize each in parallel, then synthesize a final summary (~5 000 chars) |
 | Over 2 000 000 | Refused with a hint to use `web_crawl` with focused extraction instructions or a more specific source |
 
-The summary keeps quotes, code blocks, and key facts in their original formatting — it's a content compressor, not a paraphraser. If summarization fails or times out, Hermes falls back to the first ~5 000 chars of raw content rather than a useless error.
+The summary keeps quotes, code blocks, and key facts in their original formatting — it's a content compressor, not a paraphraser. If summarization fails or times out, M.U.S.E. falls back to the first ~5 000 chars of raw content rather than a useless error.
 
 ### Which model does the summarizing?
 
-The `web_extract` auxiliary task. By default (`auxiliary.web_extract.provider: "auto"`), this is your **main chat model** — same provider, same model as `hermes model`. That's fine for most setups, but on expensive reasoning models (Opus, MiniMax M2.7, etc.) every long-page extract adds meaningful cost.
+The `web_extract` auxiliary task. By default (`auxiliary.web_extract.provider: "auto"`), this is your **main chat model** — same provider, same model as `muse model`. That's fine for most setups, but on expensive reasoning models (Opus, MiniMax M2.7, etc.) every long-page extract adds meaningful cost.
 
 To route extraction summaries to a cheap, fast model regardless of your main:
 
@@ -64,7 +64,7 @@ auxiliary:
     timeout: 360       # seconds; raise if you hit summarization timeouts
 ```
 
-Or pick interactively: `hermes model` → **Configure auxiliary models** → `web_extract`.
+Or pick interactively: `muse model` → **Configure auxiliary models** → `web_extract`.
 
 See [Auxiliary Models](/docs/user-guide/configuration#auxiliary-models) for the full reference and per-task override patterns.
 
@@ -76,12 +76,12 @@ If you specifically need raw, unsummarized page content — for example, you're 
 
 ## Setup
 
-### Quick setup via `hermes tools`
+### Quick setup via `muse tools`
 
-Run `hermes tools`, navigate to **Web Search & Extract**, and pick a provider. The wizard prompts for the required URL or API key and writes it to your config.
+Run `muse tools`, navigate to **Web Search & Extract**, and pick a provider. The wizard prompts for the required URL or API key and writes it to your config.
 
 ```bash
-hermes tools
+muse tools
 ```
 
 ---
@@ -110,7 +110,7 @@ When `FIRECRAWL_API_URL` is set, the API key is optional (disable server auth wi
 
 ### SearXNG (free, self-hosted)
 
-SearXNG is a privacy-respecting, open-source metasearch engine that aggregates results from 70+ search engines. **No API key required** — just point Hermes at a running SearXNG instance.
+SearXNG is a privacy-respecting, open-source metasearch engine that aggregates results from 70+ search engines. **No API key required** — just point M.U.S.E. at a running SearXNG instance.
 
 SearXNG is **search-only** — `web_extract` (including its crawl modes) requires a separate extract provider.
 
@@ -164,7 +164,7 @@ Open `~/searxng/searxng/settings.yml` and find the `formats` block (around line 
 formats:
   - html
 
-# After (enable JSON for Hermes):
+# After (enable JSON for M.U.S.E.):
 formats:
   - html
   - json
@@ -186,7 +186,7 @@ curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c \
 
 You should see something like `10 results`. If you get a `403 Forbidden`, JSON format is still disabled — recheck step 4.
 
-**7. Configure Hermes:**
+**7. Configure M.U.S.E.:**
 
 ```bash
 # ~/.hermes/.env
@@ -200,7 +200,7 @@ web:
   search_backend: "searxng"
 ```
 
-Or set via `hermes tools` → Web Search & Extract → SearXNG.
+Or set via `muse tools` → Web Search & Extract → SearXNG.
 
 ---
 
@@ -230,7 +230,7 @@ web:
   extract_backend: "firecrawl"   # or tavily, exa, parallel
 ```
 
-With this config, Hermes uses SearXNG for all search queries and Firecrawl for URL extraction — combining free search with high-quality extraction.
+With this config, M.U.S.E. uses SearXNG for all search queries and Firecrawl for URL extraction — combining free search with high-quality extraction.
 
 ---
 
@@ -305,7 +305,7 @@ When per-capability keys are empty, both fall through to `web.backend`. When `we
 
 ### Auto-detection
 
-If no backend is explicitly configured, Hermes picks the first available one based on which credentials are set:
+If no backend is explicitly configured, M.U.S.E. picks the first available one based on which credentials are set:
 
 | Credential present | Auto-selected backend |
 |--------------------|-----------------------|
@@ -319,7 +319,7 @@ If no backend is explicitly configured, Hermes picks the first available one bas
 
 ## Verify your setup
 
-Run `hermes setup` to see which web backend is detected:
+Run `muse setup` to see which web backend is detected:
 
 ```
 ✅ Web Search & Extract (searxng)
@@ -386,7 +386,7 @@ The auxiliary model didn't finish summarizing within the configured timeout. Eit
 For agents that need to use SearXNG via `curl` directly (e.g. as a fallback when the web toolset isn't available), install the `searxng-search` optional skill:
 
 ```bash
-hermes skills install official/research/searxng-search
+muse skills install official/research/searxng-search
 ```
 
 This adds a skill that teaches the agent how to:

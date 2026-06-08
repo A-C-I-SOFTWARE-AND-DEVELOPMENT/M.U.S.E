@@ -1,9 +1,9 @@
 # Goose worker
 
-The Goose worker is the Hermes adapter for
+The Goose worker is the M.U.S.E. adapter for
 [Block/Goose](https://block.github.io/goose/), an open-source local
-agent runtime with a recipe + extension model. Like every Hermes
-worker, the adapter only invokes the user's local `goose` CLI — Hermes
+agent runtime with a recipe + extension model. Like every M.U.S.E.
+worker, the adapter only invokes the user's local `goose` CLI — M.U.S.E.
 never talks to a hosted provider on the user's behalf.
 
 ## When to use Goose
@@ -63,7 +63,7 @@ workspace/
 
 ## Default mode is handoff-required
 
-`run(..., execute=False)` is the default. Hermes writes the prompt and
+`run(..., execute=False)` is the default. M.U.S.E. writes the prompt and
 status file, then surfaces a copy-pasteable command for the user:
 
 ```text
@@ -74,7 +74,7 @@ goose run --no-session \
           --instructions /tmp/ws/prompt.md
 ```
 
-The user reviews, runs, and stays in control. **Hermes never invokes
+The user reviews, runs, and stays in control. **M.U.S.E. never invokes
 Goose automatically with auto-approval flags.**
 
 ## Safe defaults
@@ -89,7 +89,7 @@ When `execute=True`, the worker passes only conservative arguments:
 | `--recipe FILE`        | Optional; only when caller supplies one.           |
 | `--with-extension X`   | Optional; only the extensions caller requested.    |
 
-Flags Hermes **never** adds automatically:
+Flags M.U.S.E. **never** adds automatically:
 
 - Any "auto-approve / yes-to-all" toggle.
 - Anything that pushes, force-updates, or resets the working tree.
@@ -143,7 +143,7 @@ dashboard can render the box.
 
 ## Limits
 
-- Hermes does not install Goose or any extensions for the user.
+- M.U.S.E. does not install Goose or any extensions for the user.
 - The worker drives a single `goose run` invocation; long-running
   interactive sessions are out of scope.
 - Recipe and extension paths are passed through verbatim — the user

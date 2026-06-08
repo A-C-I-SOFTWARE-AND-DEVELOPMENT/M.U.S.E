@@ -1,8 +1,8 @@
 # Aider worker
 
-The Aider worker is the Hermes adapter for [Aider](https://aider.chat),
+The Aider worker is the M.U.S.E. adapter for [Aider](https://aider.chat),
 a git-native pair-programming CLI. It is one of the local CLI agents
-Hermes can hand work to without ever calling a hosted API on the
+M.U.S.E. can hand work to without ever calling a hosted API on the
 user's behalf — the user already has Aider installed and configured.
 
 ## When to use Aider
@@ -65,7 +65,7 @@ workspace/
 
 ## Default mode is handoff-required
 
-`run(..., execute=False)` is the default. Hermes writes the prompt and
+`run(..., execute=False)` is the default. M.U.S.E. writes the prompt and
 the status file, then surfaces the printed command for the user to run:
 
 ```text
@@ -92,7 +92,7 @@ documented as safe for non-interactive use:
 | `--no-show-release-notes`  | Quiet startup.                            |
 | `--no-analytics`           | No telemetry on the user's behalf.        |
 
-Flags Hermes **never** adds automatically:
+Flags M.U.S.E. **never** adds automatically:
 
 - `--yes-always` (auto-applies every suggestion)
 - `--auto-commits`
@@ -140,7 +140,7 @@ dashboard can render the box.
 
 ## Limits
 
-- Hermes does not install Aider for the user — that is a deliberate
+- M.U.S.E. does not install Aider for the user — that is a deliberate
   choice to avoid silently pulling network dependencies.
 - The worker cannot drive Aider's interactive `/commands`; it sends a
   single prompt via `--message-file`.

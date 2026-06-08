@@ -45,8 +45,8 @@ cp -r ~/hermes-agent/recovered-agent-sources \
       ~/.hermes/aos-recovered-sources
 
 # 5) Reload Hermes' skill index and verify
-hermes skills list
-hermes doctor
+muse skills list
+muse doctor
 hermes        # inside REPL: /reload-skills, then /aos-enterprise-council audit this repo
 ```
 
@@ -54,7 +54,7 @@ hermes        # inside REPL: /reload-skills, then /aos-enterprise-council audit 
 
 ```bash
 # Confirm the pack is loaded
-hermes skills list | grep aos-enterprise-council
+muse skills list | grep aos-enterprise-council
 
 # Count installed agent specs
 find ~/.hermes/skills/aos-enterprise-council/agents -name "*.md" | wc -l

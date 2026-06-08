@@ -1,17 +1,17 @@
-# Getting started with Hermes Orchestration
+# Getting started with M.U.S.E. Orchestration
 
-This doc walks you from a clean Hermes install to a first
+This doc walks you from a clean M.U.S.E. install to a first
 orchestrated job, and explains every piece of jargon that shows up
 along the way. Allow ~10 minutes.
 
-> If you have not installed Hermes yet, do the
+> If you have not installed M.U.S.E. yet, do the
 > [Quick Install](../../README.md#quick-install) first and come back.
 
 ## Prerequisites
 
-- Hermes installed (`hermes doctor` passes).
-- At least one provider configured (`hermes model` shows a default
-  model). Anything that works for `hermes` works for the
+- M.U.S.E. installed (`muse doctor` passes).
+- At least one provider configured (`muse model` shows a default
+  model). Anything that works for `muse` works for the
   orchestrator — there is no separate API key surface.
 - A working directory with a `git` repo if you want the
   prompt-to-PR flow. For local-only jobs, any folder is fine.
@@ -27,7 +27,7 @@ The orchestrator dispatches to **profiles**, not to abstract roles.
 Find out what you have:
 
 ```bash
-hermes profile list
+muse profile list
 ```
 
 You'll see something like:
@@ -43,7 +43,7 @@ reviewer        openai:gpt-5              local     judge
 A fresh install only has `default`. That's enough to run your first
 orchestrated job — the orchestrator will route everything to
 `default`. To get real parallelism and specialization, add a few
-profiles with `hermes profile create <name>` and assign different
+profiles with `muse profile create <name>` and assign different
 models / toolsets to them. See [worker-adapters.md](worker-adapters.md)
 for recipes.
 
@@ -59,7 +59,7 @@ What happens:
 
 1. The script resolves the current git repo (or CWD) and writes a
    new job folder under `~/.hermes/jobs/<job-id>/`.
-2. It spawns a Hermes process with the **orchestrator profile**
+2. It spawns a M.U.S.E. process with the **orchestrator profile**
    (default: `default` with the `kanban-orchestrator` skill
    pre-loaded). That process reads the prompt, decomposes it into
    Kanban cards, and assigns each card to a profile.
@@ -75,7 +75,7 @@ You'll see a job id in stdout — something like
 `job_2026_05_23_a4f7c1`. Hold onto it; the next few commands take it
 as an argument.
 
-> **Equivalent in-CLI flow.** Inside `hermes`, type
+> **Equivalent in-CLI flow.** Inside `muse`, type
 > `/orchestrate Audit this repo` and you get the same behavior. The
 > shell script is what you reach for from CI or a phone shortcut.
 
@@ -84,13 +84,13 @@ as an argument.
 Pick whichever you like:
 
 ```bash
-hermes orchestrator status             # all active jobs, one line each
-hermes orchestrator status <job-id>    # one job, with task graph
-hermes kanban tail <job-id>            # streaming task log
+muse orchestrator status             # all active jobs, one line each
+muse orchestrator status <job-id>    # one job, with task graph
+muse kanban tail <job-id>            # streaming task log
 ```
 
 The TUI dashboard (under `ui-tui/`) shows the same data with a graph
-view. Launch it with `hermes --tui` and switch to the **Orchestrator**
+view. Launch it with `muse --tui` and switch to the **Orchestrator**
 pane.
 
 If you have the Android cockpit installed, the same job appears on
@@ -101,16 +101,16 @@ your phone within seconds — see [android-termux-demo.md](android-termux-demo.m
 Some tasks finish silently. Some pause and ask you something — that's
 the policy gate doing its job. You'll see them as:
 
-- a row in `hermes orchestrator status` with state `escalated`,
+- a row in `muse orchestrator status` with state `escalated`,
 - a notification on the Android app or in your gateway DM,
 - an `ESCALATE:` line in the streaming log.
 
 Respond with:
 
 ```bash
-hermes kanban respond <task-id> approve
-hermes kanban respond <task-id> deny    --reason "drop the auth changes"
-hermes kanban respond <task-id> defer   --reason "ask me tomorrow"
+muse kanban respond <task-id> approve
+muse kanban respond <task-id> deny    --reason "drop the auth changes"
+muse kanban respond <task-id> defer   --reason "ask me tomorrow"
 ```
 
 Approve / deny / defer is the entire human-in-the-loop API. There is
@@ -130,7 +130,7 @@ publish:
   `~/.hermes/jobs/<job-id>/output/` and posts a link to your gateway
   DM.
 - A long-running automation publishes to wherever its cron job
-  declares (`hermes cron …` syntax — same engine).
+  declares (`muse cron …` syntax — same engine).
 
 You can override per-job with `--deliver`:
 
@@ -143,7 +143,7 @@ bash scripts/hermes-orchestrate.sh "Audit this repo" \
 
 ## Skill invocation — how the orchestrator picks its playbook
 
-The orchestrator is a Hermes profile with the
+The orchestrator is a M.U.S.E. profile with the
 **`kanban-orchestrator`** skill loaded (or
 `enterprise-council/orchestrator` for enterprise mode). The skill is
 the playbook — the "decompose, don't execute" rules, the fan-out
@@ -163,7 +163,7 @@ Skills are loaded in three ways:
          - autonomous-ai-agents/hermes-agent
    ```
 
-2. **Invoked inline via slash.** Inside any Hermes conversation:
+2. **Invoked inline via slash.** Inside any M.U.S.E. conversation:
 
    ```
    /kanban-orchestrator     # loads the playbook on demand
@@ -186,7 +186,7 @@ needed.
 
 ## Slash commands
 
-The full orchestration vocabulary, available in any Hermes
+The full orchestration vocabulary, available in any M.U.S.E.
 conversation (CLI, gateway, Android cockpit when connected to a
 gateway):
 
@@ -203,7 +203,7 @@ gateway):
 | `/<skill-name>` | Load any skill by name |
 
 The CLI also has top-level subcommands for the same operations
-(`hermes orchestrator …`, `hermes kanban …`). The slash forms live
+(`muse orchestrator …`, `muse kanban …`). The slash forms live
 inside an interactive session; the subcommand forms are scriptable.
 
 ## The job folder

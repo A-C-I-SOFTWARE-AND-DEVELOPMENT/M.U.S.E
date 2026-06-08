@@ -6,7 +6,7 @@ paired to a backend, and you'll know how to chat, run jobs, approve
 actions, use voice and the live avatar, and stop everything instantly.
 
 > The app is a **cockpit**, not a self-contained MUSE. The phone arms
-> switches and reads instruments; a Hermes **backend** does the thinking,
+> switches and reads instruments; a M.U.S.E. **backend** does the thinking,
 > runs the models, and executes work. See
 > [`mobile-app-guide.md`](mobile-app-guide.md) for the flight-cockpit
 > mental model and [`JARVIS_MOBILE_NATIVE_ARCHITECTURE.md`](JARVIS_MOBILE_NATIVE_ARCHITECTURE.md)
@@ -42,10 +42,10 @@ applied) so you can explore before connecting anything real.
 ## 2. Start a backend
 
 The app pairs with a loopback **cockpit API**. Run it wherever your
-Hermes lives — a VPS, your home server, or Termux on this same phone:
+M.U.S.E. lives — a VPS, your home server, or Termux on this same phone:
 
 ```bash
-hermes cockpit serve            # binds 127.0.0.1:8765 by default
+muse cockpit serve            # binds 127.0.0.1:8765 by default
 ```
 
 This is **loopback-only and bearer-authenticated** — it refuses to bind
@@ -53,8 +53,8 @@ a non-loopback host unless you pass `--allow-external` (don't, unless you
 fully understand the exposure). Print the pairing token:
 
 ```bash
-hermes cockpit token            # prints the token to paste into the app
-hermes cockpit token --rotate   # rotate it (revokes the old one)
+muse cockpit token            # prints the token to paste into the app
+muse cockpit token --rotate   # rotate it (revokes the old one)
 ```
 
 The token is generated once and stored owner-only (`0600`) under
@@ -71,7 +71,7 @@ In **Settings → Connection**:
 1. **Gateway endpoint** — the backend URL. Default is
    `http://127.0.0.1:8765` (local / Termux). For a remote backend use a
    secure tunnel — see [`../remote/secure-tunnel-options.md`](../remote/secure-tunnel-options.md).
-2. **Pairing token** — paste the token from `hermes cockpit token`.
+2. **Pairing token** — paste the token from `muse cockpit token`.
 3. The cockpit verifies with `GET /v1/health` and shows **Connected**.
 
 Your token is stored **encrypted at rest** on the device (Android
@@ -192,8 +192,8 @@ which clears pending owner gates and disables proactive ticks.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| App shows **Unreachable** | Backend not running, wrong endpoint, or no token | Start `hermes cockpit serve`; check endpoint; re-paste token from `hermes cockpit token`. |
-| **401 / "invalid bearer token"** | Token rotated or mistyped | Run `hermes cockpit token`, paste the current value; or `--rotate` and re-pair. |
+| App shows **Unreachable** | Backend not running, wrong endpoint, or no token | Start `muse cockpit serve`; check endpoint; re-paste token from `muse cockpit token`. |
+| **401 / "invalid bearer token"** | Token rotated or mistyped | Run `muse cockpit token`, paste the current value; or `--rotate` and re-pair. |
 | Everything looks fake / canned | **Mock mode** is on | Settings → turn Mock mode off. |
 | Chat replies are terse summaries, no prose | No local model reachable on the backend | Start your local model (e.g. Ollama) or configure a provider on the backend. |
 | Voice button does nothing | Mic permission denied or Voice disabled | Grant mic permission; enable Voice in Settings. |
@@ -203,4 +203,4 @@ which clears pending owner gates and disables proactive ticks.
 
 More symptom→fix coverage:
 [`../troubleshooting/hermes-orchestration-troubleshooting.md`](../troubleshooting/hermes-orchestration-troubleshooting.md)
-and `hermes doctor` on the backend.
+and `muse doctor` on the backend.

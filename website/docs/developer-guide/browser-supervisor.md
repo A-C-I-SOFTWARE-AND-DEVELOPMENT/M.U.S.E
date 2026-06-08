@@ -57,7 +57,7 @@ Camofox stays unsupported for this PR; follow-up upstream issue planned at
 
 ### CDPSupervisor
 
-One `asyncio.Task` running in a background daemon thread per Hermes `task_id`.
+One `asyncio.Task` running in a background daemon thread per M.U.S.E. `task_id`.
 Holds a persistent WebSocket to the backend's CDP endpoint. Maintains:
 
 - **Dialog queue** — `List[PendingDialog]` with `{id, type, message, default_prompt, session_id, opened_at}`

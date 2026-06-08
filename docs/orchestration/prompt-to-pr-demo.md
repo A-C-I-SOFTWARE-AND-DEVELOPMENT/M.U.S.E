@@ -24,7 +24,7 @@ T5. T5 publishes.
 
 ## Prerequisites
 
-- A clone of the repository you want to audit. Hermes will run
+- A clone of the repository you want to audit. M.U.S.E. will run
   inside it.
 - The `github_assistant` plugin enabled, with a fine-grained PAT
   scoped to that repo, write access allowed for *that one repo only*.
@@ -39,10 +39,10 @@ T5. T5 publishes.
 Confirm:
 
 ```bash
-hermes profile list | grep -E "researcher|engineer|reviewer"
-hermes config get github.enabled        # → true
-hermes config get github.allow_writes   # → true
-hermes config get github.allowed_repositories
+muse profile list | grep -E "researcher|engineer|reviewer"
+muse config get github.enabled        # → true
+muse config get github.allow_writes   # → true
+muse config get github.allowed_repositories
 ```
 
 ## Step 1 — Kick the job off
@@ -64,7 +64,7 @@ You'll see the job id in stdout:
 ✓ decomposing… (Sonnet, est. ~$0.02)
 ```
 
-Equivalent inside `hermes`:
+Equivalent inside `muse`:
 
 ```
 /orchestrate Audit this repo for unused imports, dead code, and stale dependencies. Open a draft PR with the cleanup.
@@ -73,7 +73,7 @@ Equivalent inside `hermes`:
 ## Step 2 — Watch the decomposition
 
 ```bash
-hermes orchestrator status job_2026_05_23_a4f7c1
+muse orchestrator status job_2026_05_23_a4f7c1
 ```
 
 ```
@@ -92,7 +92,7 @@ automatically.
 ## Step 3 — Follow one card
 
 ```bash
-hermes kanban tail T1
+muse kanban tail T1
 ```
 
 You'll see the worker's tool calls, model responses, and
@@ -160,7 +160,7 @@ T5 → engineer
 You respond:
 
 ```bash
-hermes kanban respond T5 approve
+muse kanban respond T5 approve
 ```
 
 (Or hit the green check on the Android cockpit, or reply `approve`
@@ -209,7 +209,7 @@ The job folder is the source of truth. Useful follow-ups:
 - **Replay a card** with a different model:
 
   ```bash
-  hermes orchestrator replay job_2026_05_23_a4f7c1 --card T2 --model anthropic:claude-opus
+  muse orchestrator replay job_2026_05_23_a4f7c1 --card T2 --model anthropic:claude-opus
   ```
 
 - **Diff two runs** of the same prompt across model providers:
@@ -221,8 +221,8 @@ The job folder is the source of truth. Useful follow-ups:
 - **Reuse the plan** as a template:
 
   ```bash
-  hermes orchestrator template save job_2026_05_23_a4f7c1 --name repo-audit
-  hermes orchestrator template run repo-audit --in ../other-repo
+  muse orchestrator template save job_2026_05_23_a4f7c1 --name repo-audit
+  muse orchestrator template run repo-audit --in ../other-repo
   ```
 
 ## Variations
@@ -264,12 +264,12 @@ Most failures fall into one of three buckets:
 
 - **Unknown profile assignee** — the orchestrator picked a profile
   name that doesn't exist on this machine. The card sits in `ready`
-  forever. Fix with `hermes kanban reassign <task-id> <profile>` or
+  forever. Fix with `muse kanban reassign <task-id> <profile>` or
   by editing `~/.hermes/config.yaml` to add the missing profile.
   See [troubleshooting.md#stuck-in-ready](troubleshooting.md#stuck-in-ready).
 - **Judge keeps failing** — the worker model is too weak for the
   card. Reassign with a stronger model:
-  `hermes kanban reassign T3 engineer-opus --reclaim`.
+  `muse kanban reassign T3 engineer-opus --reclaim`.
 - **GitHub write blocked** — `allow_writes: false` or the target
   repo isn't in `allowed_repositories`. The plugin refuses cleanly
   and the orchestrator surfaces the error. Edit

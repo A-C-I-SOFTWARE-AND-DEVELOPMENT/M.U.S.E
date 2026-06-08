@@ -14,7 +14,7 @@ High-performance vector similarity search engine for RAG and semantic search. Us
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/qdrant` |
+| Source | Optional — install with `muse skills install official/mlops/qdrant` |
 | Path | `optional-skills/mlops/qdrant` |
 | Version | `1.0.0` |
 | Author | Orchestra Research |
@@ -26,7 +26,7 @@ High-performance vector similarity search engine for RAG and semantic search. Us
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Qdrant - Vector Similarity Search Engine

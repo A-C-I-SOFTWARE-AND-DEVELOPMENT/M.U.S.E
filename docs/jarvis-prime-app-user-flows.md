@@ -811,7 +811,7 @@ MUSE running fully on the phone, with the app talking to
 2. App detects Termux (Intent resolves) and shows the **Gateway
    lifecycle** card: *Termux detected — gateway not running*.
 3. Owner taps **Start Termux gateway**. App sends an Intent to
-   Termux to run `hermes gateway start` (per
+   Termux to run `muse gateway start` (per
    [`docs/android/termux-intent-bridge.md`](android/termux-intent-bridge.md)).
 4. The Termux log streams into the app's *Termux log* affordance
    on Control.

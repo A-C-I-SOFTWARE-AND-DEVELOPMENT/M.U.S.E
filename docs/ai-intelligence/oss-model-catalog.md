@@ -166,8 +166,8 @@ locally* — without bloating a normal install:
 | `scorecards.py` | record outcomes; `select_model()` ranks by composite, not hype |
 
 ```bash
-hermes models bootstrap --tier laptop                 # plan only, zero downloads
-hermes models bootstrap --tier workstation --accept-downloads   # explicit consent
+muse models bootstrap --tier laptop                 # plan only, zero downloads
+muse models bootstrap --tier workstation --accept-downloads   # explicit consent
 ```
 
 See [`oss-model-catalog.md` companion → operating guide](./model-routing-policy.md)

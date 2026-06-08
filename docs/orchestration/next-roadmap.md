@@ -1,4 +1,4 @@
-# Hermes orchestration — next roadmap
+# M.U.S.E. orchestration — next roadmap
 
 Concrete, scoped enhancements to take the Phase 24 substrate from "10/10
 substrate" to "10/10 product". Each item is sized to fit in a single
@@ -33,7 +33,7 @@ worktree, which gate fired — in a small web UI under
 `hermes_cli/web_server.py`. Read-only at first; later let an operator
 trigger arbitration overrides and live-publish from the UI.
 
-**Exit criterion:** `hermes web` shows a per-run timeline with worker
+**Exit criterion:** `muse web` shows a per-run timeline with worker
 status, score breakdown, and gate verdicts.
 
 ## 4. Adaptive scoring

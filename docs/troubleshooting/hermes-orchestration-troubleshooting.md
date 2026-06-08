@@ -1,6 +1,6 @@
-# Hermes orchestration troubleshooting
+# M.U.S.E. orchestration troubleshooting
 
-The single-page symptom-to-fix table for everything in Hermes —
+The single-page symptom-to-fix table for everything in M.U.S.E. —
 orchestration, mobile, voice, the Windows bridge, integrations,
 disconnects, secrets.
 
@@ -14,13 +14,13 @@ disconnects, secrets.
 ## First, gather the obvious
 
 ```bash
-hermes doctor                          # general health
-hermes orchestrator status             # what's running
-hermes orchestrator status <job-id>    # one job in detail
-hermes kanban tail <task-id>           # streaming worker log
-hermes profile list                    # configured worker profiles
-hermes mcp status                      # MCP server health
-hermes gateway status                  # gateway / messaging
+muse doctor                          # general health
+muse orchestrator status             # what's running
+muse orchestrator status <job-id>    # one job in detail
+muse kanban tail <task-id>           # streaming worker log
+muse profile list                    # configured worker profiles
+muse mcp status                      # MCP server health
+muse gateway status                  # gateway / messaging
 tail -f ~/.hermes/logs/agent.log       # raw log
 ```
 
@@ -69,15 +69,15 @@ does not autocorrect.
 **Diagnose.**
 
 ```bash
-hermes orchestrator status <job-id>    # → "assignee: researcher (no such profile)"
-hermes profile list                    # does NOT include "researcher"
+muse orchestrator status <job-id>    # → "assignee: researcher (no such profile)"
+muse profile list                    # does NOT include "researcher"
 ```
 
 **Fix.** Add the missing profile, or reassign the card:
 
 ```bash
-hermes profile create researcher --model nous:hermes-3-405b
-hermes kanban reassign <task-id> researcher --reclaim
+muse profile create researcher --model nous:hermes-3-405b
+muse kanban reassign <task-id> researcher --reclaim
 ```
 
 Other causes (tenant mismatch, dispatcher not running) and detail in
@@ -97,8 +97,8 @@ parent at `done` (not `failed`, not `blocked`).
 **Fix.** Find the broken parent and reclaim it, or force-complete:
 
 ```bash
-hermes kanban tail <parent-task-id>
-hermes kanban force-complete <parent-task-id> --reason "manual override"
+muse kanban tail <parent-task-id>
+muse kanban force-complete <parent-task-id> --reason "manual override"
 ```
 
 Full notes at
@@ -120,8 +120,8 @@ escalates.
   higher-tier one.
 
 **Fix.** Either reassign with a stronger model
-(`hermes kanban reassign T3 engineer-opus --reclaim`) or override
-the judge with `hermes kanban respond <task-id> approve
+(`muse kanban reassign T3 engineer-opus --reclaim`) or override
+the judge with `muse kanban respond <task-id> approve
 --override-judge` (logged in the ledger explicitly).
 
 Full notes at
@@ -132,11 +132,11 @@ Full notes at
 ## Approvals not arriving
 
 **Symptom.** Card is in `escalated` per
-`hermes orchestrator status` but the cockpit / gateway never pinged.
+`muse orchestrator status` but the cockpit / gateway never pinged.
 
 **Causes.**
 
-- Gateway not running. `hermes gateway status`.
+- Gateway not running. `muse gateway status`.
 - Cockpit unsubscribed for the job (custom subscription filter).
 - Approval routed to a delivery target you forgot you configured.
 
@@ -144,7 +144,7 @@ Full notes at
 — all share state):
 
 ```bash
-hermes kanban respond <task-id> approve
+muse kanban respond <task-id> approve
 ```
 
 Full mobile notes at
@@ -192,7 +192,7 @@ Full guide at
 |---------|-------|-----|
 | `bridge: host_unreachable` | OpenSSH server stopped on Windows, firewall blocking 22 | `Get-Service sshd`; allow port 22; retry. |
 | `bridge: claude_not_found` | Claude Code not on PATH for SSH user | Reinstall Claude Code with system-wide PATH or set `environment_config.claude_bin`. |
-| Phase stuck `in_progress` for hours | UAC / interactive prompt blocking on Windows side | `hermes kanban reclaim <task-id>`; run the same command in an interactive Windows shell to surface the prompt. |
+| Phase stuck `in_progress` for hours | UAC / interactive prompt blocking on Windows side | `muse kanban reclaim <task-id>`; run the same command in an interactive Windows shell to surface the prompt. |
 | Output empty after completion | Workdir scope mismatch | Set `environment_config.workdir` explicitly; rerun. |
 | `policy: HIGH-risk refused (sandbox=off)` | Policy rejects unsandboxed workdir | Narrow the workdir, or use a constrained Windows user. |
 
@@ -205,9 +205,9 @@ Full guide at
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `github: not configured` | Plugin not enabled or token missing | `hermes plugin enable github_assistant`; check `~/.hermes/.env`. |
+| `github: not configured` | Plugin not enabled or token missing | `muse plugin enable github_assistant`; check `~/.hermes/.env`. |
 | `github: write blocked: repo not in allowed_repositories` | Defense-in-depth refusal | Add the repo to `github.allowed_repositories`; `/reload-skills`. |
-| Tool returns 401 / 403 | PAT scope insufficient or expired | Regenerate PAT, update `~/.hermes/.env`, restart Hermes. |
+| Tool returns 401 / 403 | PAT scope insufficient or expired | Regenerate PAT, update `~/.hermes/.env`, restart M.U.S.E.. |
 | Worker reports "I don't have a `github_create_issue` tool" | Toolset disabled in the worker profile | Profile's `enabled_toolsets` must include `github_assistant`, or remove from `disabled_toolsets`. |
 
 Full guide at
@@ -232,8 +232,8 @@ Full guide at
 |---------|-------|-----|
 | `mcp: vercel failed to start` | Same as Supabase — Node / npx missing | Install Node; retry. |
 | `vercel: production env write refused` | Second-fence refusal | Set `vercel.allow_production_env_writes: true` only if you mean it. |
-| Build logs return empty | Wrong deployment id | `hermes mcp call vercel list_deployments` to find the real id. |
-| Deploy approved but didn't run | Worker failed silently in the publishing phase | `hermes kanban tail <task-id>`; reclaim and retry. |
+| Build logs return empty | Wrong deployment id | `muse mcp call vercel list_deployments` to find the real id. |
+| Deploy approved but didn't run | Worker failed silently in the publishing phase | `muse kanban tail <task-id>`; reclaim and retry. |
 
 ---
 
@@ -252,7 +252,7 @@ chmod 600 ~/.hermes/.env
 1. **Rotate at the provider first.** Anthropic / GitHub / Vercel /
    Supabase — invalidate the old token at the source.
 2. **Update `~/.hermes/.env`** with the new key.
-3. **Restart Hermes.** `pkill hermes; hermes` (or restart the
+3. **Restart M.U.S.E..** `pkill hermes; hermes` (or restart the
    gateway service).
 4. **Audit.** `grep -l <last-4-chars-of-old-key>
    ~/.hermes/jobs/*/ledger.jsonl`. The publishing layer redacts
@@ -270,8 +270,8 @@ and `trace.jsonl`.
 
 ```bash
 du -sh ~/.hermes/jobs/* | sort -h | tail
-hermes orchestrator gc --dry-run    # preview
-hermes orchestrator gc              # actually GC
+muse orchestrator gc --dry-run    # preview
+muse orchestrator gc              # actually GC
 ```
 
 Configure retention in `~/.hermes/config.yaml`:
@@ -294,7 +294,7 @@ The backend keeps running. On reconnect, the cockpit / CLI resumes
 streaming. If something's actually stuck, reclaim and retry:
 
 ```bash
-hermes kanban reclaim <task-id>
+muse kanban reclaim <task-id>
 ```
 
 ### Backend host restart
@@ -307,7 +307,7 @@ on the bridge are marked `failed` and retried (see
 
 1. Revoke the cockpit token:
    ```bash
-   hermes gateway revoke-token <phone-device-id>
+   muse gateway revoke-token <phone-device-id>
    ```
 2. The phone never held API keys; only the bearer was on it. The
    conversation and job folders are on the backend.
@@ -318,10 +318,10 @@ on the bridge are marked `failed` and retried (see
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `profile show github` says "no data yet" | Initial sync never ran | `hermes profile sync github`. |
+| `profile show github` says "no data yet" | Initial sync never ran | `muse profile sync github`. |
 | Sync errors 401 / 403 | PAT scope insufficient | Regenerate PAT, update env. |
-| Profile suggests wrong default branch | Convention changed | Re-sync; manually edit fact with `hermes memory update`. |
-| Unexpected memory appeared | Auto-derived from ambient observation | `hermes memory rm <id>` — the curator respects deletions. |
+| Profile suggests wrong default branch | Convention changed | Re-sync; manually edit fact with `muse memory update`. |
+| Unexpected memory appeared | Auto-derived from ambient observation | `muse memory rm <id>` — the curator respects deletions. |
 | Sync is slow | Hundreds of repos | Lower `profile.github.history_window`. |
 
 Full guide at
@@ -332,12 +332,12 @@ Full guide at
 ## Local model issues
 
 Symptoms point to your local model server (llama.cpp / vLLM /
-Ollama), not Hermes.
+Ollama), not M.U.S.E..
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Workers fail with connection errors | Local model server crashed | Check the model server's own log. |
-| Timeouts on long phases | Hermes timeout too short for the model | `providers.<local>.request_timeout: 600` in `~/.hermes/config.yaml`. |
+| Timeouts on long phases | M.U.S.E. timeout too short for the model | `providers.<local>.request_timeout: 600` in `~/.hermes/config.yaml`. |
 | Server OOMs mid-job | Long-context cards push memory | Reduce `-c` on llama.cpp, or switch to a smaller quant. |
 | Wrong model responded | Routing rule misfired | `jq 'select(.kind == "spawn") | {card, profile, model, route_match}' ledger.jsonl`. |
 
@@ -374,10 +374,10 @@ jq -r 'select(.kind == "model_call") | .response_text' \
 ## Stop everything
 
 ```bash
-hermes orchestrator cancel <job-id>      # one job
-hermes orchestrator cancel --all         # every active job
-hermes kanban reclaim --all-running      # detach in-flight workers
-hermes orchestrator panic-stop           # nuclear: kill dispatcher + workers
+muse orchestrator cancel <job-id>      # one job
+muse orchestrator cancel --all         # every active job
+muse kanban reclaim --all-running      # detach in-flight workers
+muse orchestrator panic-stop           # nuclear: kill dispatcher + workers
 ```
 
 `panic-stop` leaves SQLite intact so you can restart cleanly. Reach
@@ -391,8 +391,8 @@ open an issue with the job folder attached.
 1. Reproduce on a fresh job. Many "weird" failures are stale state
    from an aborted previous run.
 2. Attach the job folder (tar / zip the directory).
-3. Include `hermes doctor` output.
-4. Include the exact prompt and a `hermes profile list` snapshot.
+3. Include `muse doctor` output.
+4. Include the exact prompt and a `muse profile list` snapshot.
 5. Redact secrets before attaching anything; the ledger should
    already be clean but double-check.
 

@@ -14,7 +14,7 @@ Simple Preference Optimization for LLM alignment. Reference-free alternative to 
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/mlops/simpo` |
+| Source | Optional — install with `muse skills install official/mlops/simpo` |
 | Path | `optional-skills/mlops/simpo` |
 | Version | `1.0.0` |
 | Author | Orchestra Research |
@@ -26,7 +26,7 @@ Simple Preference Optimization for LLM alignment. Reference-free alternative to 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # SimPO - Simple Preference Optimization

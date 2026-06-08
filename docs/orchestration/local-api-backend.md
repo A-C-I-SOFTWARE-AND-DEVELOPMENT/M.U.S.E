@@ -2,7 +2,7 @@
 
 > **Which backend does the Android cockpit use?** The shipped APK talks to
 > the **cockpit gateway** (`gateway/cockpit/`, routes `/v1/cockpit/...`,
-> `hermes cockpit serve`), *not* the `hermes_cli.orchestrator_api` app
+> `muse cockpit serve`), *not* the `hermes_cli.orchestrator_api` app
 > documented below. The cockpit gateway's `jobs_list` merges JobQueue +
 > orchestrator jobs and serves the job control + detail surface
 > (`/jobs/{id}/ledger|pause|resume|rerun|approve|diff|validate`) the
@@ -11,17 +11,17 @@
 > §4. `orchestrator_api` (below) remains a parallel, FastAPI-based
 > control plane for the TUI and other local clients.
 
-`hermes_cli.orchestrator_api` exposes Hermes orchestration jobs through a
+`hermes_cli.orchestrator_api` exposes M.U.S.E. orchestration jobs through a
 small local-only FastAPI app. The Android APK, the TUI, and any other
 on-device client can drive the orchestrator over plain HTTP/WebSocket
-without embedding Hermes' Python internals.
+without embedding M.U.S.E.' Python internals.
 
 This is **not** a public service. It is a control plane for a single
 user, intentionally scoped to the loopback interface.
 
 ## Threat model
 
-The orchestrator API has full authority over Hermes jobs: it can start,
+The orchestrator API has full authority over M.U.S.E. jobs: it can start,
 cancel, validate, and publish work on the user's behalf. Any process
 that can reach the bind address gets that authority. The defaults are
 chosen so the only such process is one running on the same machine as

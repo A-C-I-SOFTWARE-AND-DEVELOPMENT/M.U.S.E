@@ -9,7 +9,7 @@
 > Decision Ledger, and a self-update loop auto-applies the safe/reversible
 > learnings.
 
-This is an **additive** layer that *composes* existing Hermes primitives. It
+This is an **additive** layer that *composes* existing M.U.S.E. primitives. It
 does not replace `/orchestrate`; it gives code tasks a single canonical,
 auditable, collision-free pipeline. Code lives in
 [`hermes_cli/swarm/`](../../hermes_cli/swarm/).

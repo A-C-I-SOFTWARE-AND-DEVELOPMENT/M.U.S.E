@@ -1,16 +1,16 @@
 # Troubleshooting
 
-Hermes Orchestration has a lot of moving parts, but failures cluster
+M.U.S.E. Orchestration has a lot of moving parts, but failures cluster
 into a small number of patterns. This is the field guide. Open a
 ticket only after you've checked the matching section here.
 
 ## First, gather the obvious
 
 ```bash
-hermes doctor                          # general health
-hermes orchestrator status             # is anything actually running?
-hermes orchestrator status <job-id>    # what state is each card in?
-hermes kanban tail <task-id>           # what is the worker actually doing
+muse doctor                          # general health
+muse orchestrator status             # is anything actually running?
+muse orchestrator status <job-id>    # what state is each card in?
+muse kanban tail <task-id>           # what is the worker actually doing
 tail -f ~/.hermes/logs/agent.log       # raw log
 ```
 
@@ -29,24 +29,24 @@ fall back.
 
 ```bash
 # Confirm:
-hermes orchestrator status <job-id>      # → "assignee: researcher (no such profile)"
-hermes profile list                      # → does NOT include "researcher"
+muse orchestrator status <job-id>      # → "assignee: researcher (no such profile)"
+muse profile list                      # → does NOT include "researcher"
 ```
 
 **Fix:** either add the missing profile, or reassign the card:
 
 ```bash
-hermes profile create researcher --model nous:hermes-3-405b
-hermes kanban reassign <task-id> researcher --reclaim
+muse profile create researcher --model nous:hermes-3-405b
+muse kanban reassign <task-id> researcher --reclaim
 ```
 
 **Cause #2: tenant mismatch.** If `HERMES_TENANT` is set, the
 dispatcher only spawns workers whose profile and the card share a
 tenant. Check the ledger for the card's `tenant` field.
 
-**Cause #3: dispatcher not running.** Check `hermes orchestrator
+**Cause #3: dispatcher not running.** Check `muse orchestrator
 status`. If it says `dispatcher: not running`, restart the daemon
-or restart Hermes.
+or restart M.U.S.E..
 
 ## Stuck in `todo` (never promotes to `ready`)
 
@@ -59,15 +59,15 @@ promotion requires every parent to reach `done` (not `failed`, not
 `blocked`).
 
 ```bash
-hermes orchestrator status <job-id>    # check parent states
-hermes kanban tail <parent-task-id>    # what happened to the parent
+muse orchestrator status <job-id>    # check parent states
+muse kanban tail <parent-task-id>    # what happened to the parent
 ```
 
 **Fix:** complete or reclaim the stuck parent. If the parent is
 genuinely failed and you want to proceed anyway:
 
 ```bash
-hermes kanban force-complete <parent-task-id> --reason "manual override"
+muse kanban force-complete <parent-task-id> --reason "manual override"
 ```
 
 This writes a synthetic completion to the ledger (with the manual
@@ -85,12 +85,12 @@ reading them out of the actual `kanban_create` return values.
 **Fix:** in priority order:
 
 1. Try a stronger model for that profile:
-   `hermes profile model engineer anthropic:claude-opus`, then
-   `hermes kanban reclaim <task-id>`.
+   `muse profile model engineer anthropic:claude-opus`, then
+   `muse kanban reclaim <task-id>`.
 2. Sharpen the playbook. If you wrote a custom orchestrator skill,
    make the "store the returned id, don't invent" rule explicit.
 3. Re-spawn with a temperature reduction
-   (`hermes profile config engineer temperature 0.0`).
+   (`muse profile config engineer temperature 0.0`).
 
 The dashboard's drawer flags hallucination warnings on cards where
 this happens. The audit trail persists even after recovery.
@@ -114,18 +114,18 @@ similar reasons, then escalates to you.
   model as the judge, it may reject reasonable output. Try a peer
   model rather than a higher one.
 
-If you intentionally want the output: `hermes kanban respond
+If you intentionally want the output: `muse kanban respond
 <task-id> approve --override-judge` writes an explicit override to
 the ledger.
 
 ## Card escalates and you're not getting the notification
 
-**Symptom:** Card is in `escalated` per `hermes orchestrator status`
+**Symptom:** Card is in `escalated` per `muse orchestrator status`
 but no notification arrives on phone / gateway.
 
 **Causes:**
 
-- Gateway is not running. `hermes gateway status` should show
+- Gateway is not running. `muse gateway status` should show
   active.
 - The Android cockpit isn't subscribed to events for this job. The
   cockpit subscribes to `jobs/*` by default but custom subscriptions
@@ -141,21 +141,21 @@ state.
 
 ## "No such profile" on a profile you swear you configured
 
-**Symptom:** `hermes profile list` doesn't show a profile you just
+**Symptom:** `muse profile list` doesn't show a profile you just
 added to `~/.hermes/config.yaml`.
 
-**Cause:** Hermes hasn't picked up the config change yet.
+**Cause:** M.U.S.E. hasn't picked up the config change yet.
 
 **Fix:**
 
 ```bash
-/reload-skills      # inside hermes
+/reload-skills      # inside muse
 # or restart the process:
-exit && hermes
+exit && muse
 ```
 
 If it still doesn't show, you probably have a YAML syntax error.
-Run `hermes config validate` to see exactly where.
+Run `muse config validate` to see exactly where.
 
 ## Plugin tools missing inside a worker
 
@@ -164,7 +164,7 @@ tool" even though the plugin is installed.
 
 **Checklist:**
 
-1. `hermes config get github.enabled` → must be `true`.
+1. `muse config get github.enabled` → must be `true`.
 2. The worker's profile must have `github_assistant` in
    `enabled_toolsets` (or not in `disabled_toolsets`).
 3. The token file at `~/.hermes/.env` must contain
@@ -199,8 +199,8 @@ Each card writes `input.md`, `output.md`, `trace.jsonl`. For long
 runs this adds up.
 
 ```bash
-hermes orchestrator gc                # GC completed jobs older than N days
-hermes orchestrator gc --dry-run      # preview
+muse orchestrator gc                # GC completed jobs older than N days
+muse orchestrator gc --dry-run      # preview
 ```
 
 Configure retention in `~/.hermes/config.yaml`:
@@ -247,21 +247,21 @@ jq -r 'select(.kind == "model_call") | .response_text' \
 ```
 
 Save the prompt + plan pair when you find a decomposition you want
-to replicate — see `hermes orchestrator template save`.
+to replicate — see `muse orchestrator template save`.
 
 ## I want to abort everything, right now
 
 ```bash
-hermes orchestrator cancel <job-id>         # one job
-hermes orchestrator cancel --all            # every active job
-hermes kanban reclaim --all-running         # also detach any in-flight workers
+muse orchestrator cancel <job-id>         # one job
+muse orchestrator cancel --all            # every active job
+muse kanban reclaim --all-running         # also detach any in-flight workers
 ```
 
 This writes `cancelled` to the ledger and lets workers shut down
 on their next checkpoint. To kill workers harder:
 
 ```bash
-hermes orchestrator panic-stop
+muse orchestrator panic-stop
 # kills the dispatcher, every worker, leaves SQLite intact
 ```
 
@@ -293,8 +293,8 @@ jq -c 'select(.kind == "gate" and (.judge | startswith("fail") or .schema != "ok
 1. Reproduce on a fresh job. Many "weird" failures are stale
    state from an aborted previous run.
 2. Attach the job folder to the issue (it's mostly text, tar it).
-3. Include `hermes doctor` output.
-4. Include the exact prompt and a `hermes profile list` snapshot.
+3. Include `muse doctor` output.
+4. Include the exact prompt and a `muse profile list` snapshot.
 
 [FAQ](faq.md) covers common conceptual questions that aren't
 exactly failures.

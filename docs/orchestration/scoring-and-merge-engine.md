@@ -1,6 +1,6 @@
 # Scoring and merge engine (Phase 13)
 
-Hermes orchestrates several workers in parallel against the same task.
+M.U.S.E. orchestrates several workers in parallel against the same task.
 Phase 13 is the bookkeeper that runs *after* the workers finish: it
 scores each one, compares them, identifies conflicts, picks the best
 candidate, and writes a merge plan that a human (or the orchestrator
@@ -63,7 +63,7 @@ categories and how they're derived:
 | `ux_quality` | Self-score, falling back to depth of `output.md`. |
 | `speed` | Self-score, falling back to a curve over `elapsed_seconds`. |
 | `cost_efficiency` | Self-score, falling back to a curve over `tokens`. |
-| `local_first_fit` | Penalises external-network references in the patch (Hermes is local-first). |
+| `local_first_fit` | Penalises external-network references in the patch (M.U.S.E. is local-first). |
 | `jeremiah_fit` | Project-owner alignment: defaults to 0.5 * `local_first_fit` + 0.5 * `risk_control`. |
 
 Every category is bounded to `[0.0, 1.0]`. A missing category resolves

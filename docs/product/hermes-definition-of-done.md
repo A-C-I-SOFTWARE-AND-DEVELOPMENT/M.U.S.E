@@ -228,7 +228,7 @@ gate refusal asserted in integration test.
 <a id="dod-monitoring"></a>
 
 - [ ] Cockpit job cards update within 2 s of a backend state change.
-- [ ] `hermes orchestrator status <job-id>` matches the cockpit's
+- [ ] `muse orchestrator status <job-id>` matches the cockpit's
       view of the same job.
 - [ ] SSE stream is available on `/v1/cockpit/jobs/stream`.
 - [ ] Long-poll fallback exists for clients that cannot use SSE.
@@ -408,11 +408,11 @@ for the full requirements. Summary:
 - [ ] All memory backends are local SQLite.
 - [ ] All gateway adapters that need the internet are disabled.
 - [ ] Telemetry is off.
-- [ ] An audit script (`hermes doctor --private-mode`) confirms
+- [ ] An audit script (`muse doctor --private-mode`) confirms
       compliance.
 
 **Validation:** network egress test in CI with `iptables` denying
-non-loopback; `hermes doctor` exit code 0 in the test environment.
+non-loopback; `muse doctor` exit code 0 in the test environment.
 
 ---
 

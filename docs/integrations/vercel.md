@@ -64,7 +64,7 @@ gate even if `approve=True` is passed.
 
 - Env var **names** may be committed (e.g. in `.env.example`); values
   must not.
-- Add or rotate secrets via `vercel env add` or the dashboard. Hermes
+- Add or rotate secrets via `vercel env add` or the dashboard. M.U.S.E.
   never sends env values to Vercel.
 - If an env var is missing for the target environment, the deploy will
   succeed but the app will fail at runtime — confirm presence in the
@@ -102,4 +102,4 @@ are not.
 ## Related
 
 - [`hermes_cli/vercel_auth.py`](../../hermes_cli/vercel_auth.py) —
-  the OAuth/device-code login flow Hermes uses for the Vercel CLI.
+  the OAuth/device-code login flow M.U.S.E. uses for the Vercel CLI.

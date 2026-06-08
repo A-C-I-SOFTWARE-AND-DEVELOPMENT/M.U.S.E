@@ -1,13 +1,13 @@
-# Hermes Decision Quality System
+# M.U.S.E. Decision Quality System
 
-Hermes is built to operate with growing autonomy across cron jobs,
+M.U.S.E. is built to operate with growing autonomy across cron jobs,
 webhooks, gateway messages, kanban queues, and the enterprise council.
 The more autonomously it runs, the more important it becomes that the
 **reasoning** behind each non-trivial action is visible, inspectable,
 and challengeable — by the user, by a later session, by a reviewer, or
 by a peer agent.
 
-The decision quality system is how Hermes makes that reasoning visible
+The decision quality system is how M.U.S.E. makes that reasoning visible
 without exposing raw chain-of-thought. The core artefact is the
 **decision ledger** (a structured markdown record); the supporting
 machinery is a small set of skills, gates, and validators that make
@@ -34,7 +34,7 @@ wrong six months from now, there is no record of *why* the model
 believed it was right at the time. The reasoning has evaporated.
 
 For interactive single-turn use, this is fine — the user is right
-there to push back. For Hermes's autonomous modes (cron, webhooks,
+there to push back. For M.U.S.E.'s autonomous modes (cron, webhooks,
 kanban workers, enterprise leaves), nobody is watching at decision
 time. The audit happens *after the fact*, and "the model thought
 it was right" is not a thing one can audit.
@@ -64,7 +64,7 @@ gate skill enumerates them; the validator skill enforces them.
 
 ### 3. Model and worker selection is itself a decision
 
-Hermes routinely picks between models (`claude-opus-4-7` vs
+M.U.S.E. routinely picks between models (`claude-opus-4-7` vs
 `claude-sonnet-4-6` vs `claude-haiku-4-5`), between workers (main
 loop vs `delegation` vs spawned subprocess vs kanban dispatch), and
 between credential pool entries. These choices have cost, latency,
@@ -151,7 +151,7 @@ leaves).
 ### The validators (existing skills, in supporting roles)
 
 The decision quality system **does not introduce new validator
-machinery**; it integrates with what Hermes already has:
+machinery**; it integrates with what M.U.S.E. already has:
 
 - **Enterprise Judge** (`skills/enterprise-council/judge/SKILL.md`)
   validates structured leaf results and now also expects a
@@ -162,7 +162,7 @@ machinery**; it integrates with what Hermes already has:
   scans audit rows post-hoc for systemic regressions, including
   ledger-quality regressions (missing sections, anti-pattern matches,
   validation-plan no-ops).
-- **Curator** (`hermes curator` / `/curator`) scans persisted ledgers
+- **Curator** (`muse curator` / `/curator`) scans persisted ledgers
   during its background pass and flags ones that look like
   rubber-stamps, so the next interactive session can review them.
 
@@ -184,7 +184,7 @@ references to the same artefact.
 ### Interactive CLI session
 
 1. User issues a non-trivial request.
-2. Hermes's main loop detects gate triggers (multi-step, etc.) and
+2. M.U.S.E.'s main loop detects gate triggers (multi-step, etc.) and
    loads `decision-quality-gate` if not already loaded.
 3. The gate procedure walks the template top-to-bottom; if any
    section is genuinely thin, the gate either calls
@@ -192,7 +192,7 @@ references to the same artefact.
    gap as an open risk.
 4. The completed ledger is shown inline in the reply and persisted
    to `~/.hermes/decisions/<session>/<seq>-<slug>.md`.
-5. Hermes proceeds to execute the chosen option.
+5. M.U.S.E. proceeds to execute the chosen option.
 6. After execution, the Validation Plan commands run. Their outcome
    is appended to the ledger as a `## Validation Result` section
    (added post-hoc; not part of the original template parsing
@@ -324,8 +324,8 @@ The system as described above is the **minimum viable shape**.
 Reasonable extensions, each of which can be added without changing
 the parsing contract:
 
-- **`hermes decisions` CLI** — `list`, `show`, `grep`, `tail`.
-  Mirrors `hermes sessions`.
+- **`muse decisions` CLI** — `list`, `show`, `grep`, `tail`.
+  Mirrors `muse sessions`.
 - **`/decisions` slash command** — interactive picker for ledgers
   in the current session and cross-session search.
 - **Web dashboard view** — read-only browser view, served by the
@@ -371,5 +371,5 @@ curator) are sufficient.
 - [`../../skills/enterprise-council/orchestrator/SKILL.md`](../../skills/enterprise-council/orchestrator/SKILL.md) — orchestrator integration
 - [`../../skills/enterprise-council/judge/SKILL.md`](../../skills/enterprise-council/judge/SKILL.md) — Judge validates ledgers in structured leaf results
 - [`../../skills/enterprise-council/monitor/SKILL.md`](../../skills/enterprise-council/monitor/SKILL.md) — Monitor flags systemic ledger-quality regressions
-- [`../../skills/autonomous-ai-agents/hermes-agent/SKILL.md`](../../skills/autonomous-ai-agents/hermes-agent/SKILL.md) — Hermes overall surface area (cron, kanban, gateway, delegation)
+- [`../../skills/autonomous-ai-agents/hermes-agent/SKILL.md`](../../skills/autonomous-ai-agents/hermes-agent/SKILL.md) — M.U.S.E. overall surface area (cron, kanban, gateway, delegation)
 - [`../hermes-local-orchestrator.md`](../hermes-local-orchestrator.md) — Android local orchestrator (consumer of ledgers when manual handoff feeds back into a session)
