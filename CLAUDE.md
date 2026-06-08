@@ -240,10 +240,19 @@ readiness", "improve the product", "use the AOS team", "activate the
 council", "psychology audit", "Claude/Codex orchestration", "HazMat
 Command review", or "Nourish review", load that skill first.
 
-The pack contains 233 registered top-level agents + 108 sub-agents,
-grouped into 18 category folders under `agents/`. The 5 registry
-files in `skills/aos-enterprise-council/registry/` are the source of
-truth — never improvise a council member that isn't in the registry.
+The pack exposes a **routed catalog** of 233 registered top-level
+agent roles + 108 sub-agent entries (registry tallies — distinct
+frontmatter `name:` entries recovered across both source repos,
+including reconstructed and duplicate names; the agent registry also
+records 248 total entries once duplicates are counted). These are
+*catalog/routing* counts, **not** 341 standalone agent definition
+files. On disk, `skills/aos-enterprise-council/agents/` holds 261
+`.md` files, of which 177 live in `agents/hermes/` — the **general
+Hermes skill library** (`1password.md`, `arxiv.md`, … ), not council
+agents — leaving ~84 genuine council category agents across the 16
+non-`hermes` category folders. The 5 registry files in
+`skills/aos-enterprise-council/registry/` are the source of truth —
+never improvise a council member that isn't in the registry.
 
 The full recovery narrative + Termux install commands live at the
 repo root: `AOS_AGENT_RECOVERY_REPORT.md` and `AOS_INSTALLATION_REPORT.md`.
