@@ -1,6 +1,6 @@
 # Building the Android app in a headless / cloud session
 
-The Jarvis Prime app (`apps/android`) needs the **Android SDK** to compile,
+The MUSE app (`apps/android`) needs the **Android SDK** to compile,
 run its JVM/Robolectric unit tests, and assemble the debug APK. Claude Code
 on the web and most CI containers ship a JDK but **no SDK**, so a fresh
 session can't build until the SDK is installed.

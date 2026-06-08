@@ -25,7 +25,7 @@
 <tr><td><b>委派与并行</b></td><td>生成隔离子代理处理并行工作流。编写 Python 脚本通过 RPC 调用工具，将多步管道压缩为零上下文开销的轮次。</td></tr>
 <tr><td><b>随处运行</b></td><td>六种终端后端——本地、Docker、SSH、Daytona、Singularity 和 Modal。Daytona 和 Modal 提供 Serverless 持久化——代理环境空闲时休眠、按需唤醒，空闲期间几乎零成本。$5 VPS 或 GPU 集群都能跑。</td></tr>
 <tr><td><b>研究就绪</b></td><td>批量轨迹生成、轨迹压缩——用于训练下一代工具调用模型。</td></tr>
-<tr><td><b>完整的操作层，而非聊天机器人</b></td><td>JARVIS Prime 以运行时形式交付（<code>hermes_cli/jarvis_prime/</code>）：六种模式（Companion、Strategy、Critic、Operator、Builder、Mobile Voice）、意图/模式分类器、运行时人格注入、八道验证关卡、所有者授权和紧急停止。用 <code>/jarvis</code> 调用。</td></tr>
+<tr><td><b>完整的操作层，而非聊天机器人</b></td><td>MUSE 以运行时形式交付（<code>hermes_cli/jarvis_prime/</code>）：六种模式（Companion、Strategy、Critic、Operator、Builder、Mobile Voice）、意图/模式分类器、运行时人格注入、八道验证关卡、所有者授权和紧急停止。用 <code>/jarvis</code> 调用。</td></tr>
 <tr><td><b>从目标到 PR 的编排</b></td><td>将单个目标分解为经校验的任务图——Job → 专职 Worker → 按任务的模型路由 → 校验关卡 → 防篡改决策账本。可在 TUI、网关私信或 Android 驾驶舱用 <code>/orchestrate</code> 驱动。</td></tr>
 <tr><td><b>可检视的知识图谱</b></td><td>GraphRAG 将仓库代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 个节点），支持 local、global、coding 三种查询模式——让工作复用既有实现，而非重造。</td></tr>
 <tr><td><b>自治企业议会</b></td><td>AOS Enterprise Council——233 个顶层代理 + 108 个子代理，覆盖 18 个领域（架构、安全、合规、QA、发布、产品、心理、HazMat Command 等），用于审计、上线就绪评估和多视角评审。</td></tr>
@@ -36,9 +36,9 @@
 
 ## A-C-I Software and Development 构建的内容
 
-Hermes Agent 是开放底座。在其之上，**[A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT)** 构建了将其转变为受治理、本地优先 AI 操作伙伴的层——**JARVIS Prime**。以下每一项都是本仓库中真实、经测试的代码，而非路线图。
+Hermes Agent 是开放底座。在其之上，**[A-C-I Software and Development](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT)** 构建了将其转变为受治理、本地优先 AI 操作伙伴的层——**MUSE**。以下每一项都是本仓库中真实、经测试的代码，而非路线图。
 
-- **JARVIS Prime 操作层** — 位于 [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) 的运行时（约 100 个模块）：六种模式、意图/模式分类器、运行时人格注入、需精确口令的所有者授权、紧急停止，以及带每日所有者简报的只读监视器。见 [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md)。
+- **MUSE 操作层** — 位于 [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) 的运行时（约 100 个模块）：六种模式、意图/模式分类器、运行时人格注入、需精确口令的所有者授权、紧急停止，以及带每日所有者简报的只读监视器。见 [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md)。
 - **可溯源优先的认知层** — Memory Tree（工作/会话/持久记忆，带来源引用、置信度下限、矛盾报告、取代关系，且绝不静默覆写）、Research Vault、证据引擎（BM25 + 记忆混合检索，带引用校验），以及 TokenJuice——一个确定性、按 token 预算的上下文编译器，会筛除密钥。
 - **GraphRAG 知识图谱** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) 将代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 节点 / 52k 边），支持 local/global/coding 查询。见 [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md)。
 - **从目标到 PR 的编排** — 五个原语（Job、Worker、模型路由、校验关卡、决策账本）将目标分解为经校验的任务图并发布结果，每个决策都记入防篡改账本。见 [`docs/orchestration/`](docs/orchestration/)。

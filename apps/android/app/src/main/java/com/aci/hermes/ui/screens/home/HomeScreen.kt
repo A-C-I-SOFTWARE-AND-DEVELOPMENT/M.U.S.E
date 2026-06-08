@@ -55,7 +55,7 @@ import com.aci.hermes.ui.screens.orchestrator.OrchestratorUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
 
 /**
- * Primary landing surface for Jarvis Prime. Folds in the orchestrator status
+ * Primary landing surface for MUSE. Folds in the orchestrator status
  * card and tool launcher from the original Hermes dashboard, then adds
  * deep-link cards into every other section of the navigation shell.
  */

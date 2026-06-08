@@ -1,9 +1,9 @@
-"""Hermes cockpit API — the loopback HTTP surface the Jarvis Prime Android
+"""Hermes cockpit API — the loopback HTTP surface the MUSE Android
 app talks to.
 
 Implements the contract in ``docs/android/hermes-apk-api-contract.md``:
 bearer-token-authenticated, loopback-only JSON/NDJSON endpoints backed by
-the **real** Hermes subsystems (JARVIS Prime runtime for chat, the
+the **real** Hermes subsystems (MUSE runtime for chat, the
 orchestrator/job-queue for tasks, the decision ledger for audit, the
 JARVIS memory store, owner-auth for approvals, the model policy, the
 launch doctor for diagnostics, …) — never mocks or echoes.

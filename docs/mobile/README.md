@@ -1,6 +1,6 @@
-# Mobile-first JARVIS — documentation hub
+# Mobile-first MUSE — documentation hub
 
-This is the index for running **JARVIS Prime** from your phone: the
+This is the index for running **MUSE** from your phone: the
 native Android cockpit, how it pairs with a Hermes backend, what it can
 do, and how the safety model keeps a powerful personal assistant from
 doing anything you didn't authorize.
@@ -17,10 +17,10 @@ Read these in order the first time:
 1. **[JARVIS_MOBILE_NATIVE_USER_GUIDE.md](JARVIS_MOBILE_NATIVE_USER_GUIDE.md)**
    — install the app, pair it to a backend, mock vs. real mode, start a
    chat, run jobs, approve actions, voice, the live avatar, and the
-   emergency stop. Everything a new user needs to operate JARVIS from a
+   emergency stop. Everything a new user needs to operate MUSE from a
    phone.
 2. **[JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md)**
-   — what JARVIS can do (the capability catalog), every Android
+   — what MUSE can do (the capability catalog), every Android
    permission it asks for and why, the persistent mic / device-control
    indicators, autonomy levels, and how to inspect, revoke, and recover.
 3. **[JARVIS_CODING_FROM_PHONE_GUIDE.md](JARVIS_CODING_FROM_PHONE_GUIDE.md)**
@@ -51,13 +51,13 @@ The older, still-accurate plain-English walkthrough lives at
 - [`../../apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — the in-app architecture README, including **secure storage**.
 
-## JARVIS brains behind the cockpit
+## MUSE brains behind the cockpit
 
 - **[../jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md](../jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md)**
   — the autonomy tiers (scoped, logged, revocable) and the owner gates
   that never lift.
 - **[../jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](../jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md)**
-  — how JARVIS does cited research without fabricating sources.
+  — how MUSE does cited research without fabricating sources.
 - [`../jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md`](../jarvis_architecture/JARVIS_SYSTEM_OVERVIEW.md)
   and [`../jarvis_architecture/JARVIS_OWNER_GATES_AND_PERSONAL_AUTHORITY.md`](../jarvis_architecture/JARVIS_OWNER_GATES_AND_PERSONAL_AUTHORITY.md).
 

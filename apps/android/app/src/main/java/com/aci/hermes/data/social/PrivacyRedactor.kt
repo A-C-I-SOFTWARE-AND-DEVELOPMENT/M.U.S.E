@@ -6,9 +6,9 @@ import com.aci.hermes.data.model.ProvenanceKind
 import com.aci.hermes.data.model.SocialPattern
 
 /**
- * The privacy boundary for Jarvis Prime Social Intelligence.
+ * The privacy boundary for MUSE Social Intelligence.
  *
- * Jarvis Prime is allowed to learn *abstract* speech patterns. It is
+ * MUSE is allowed to learn *abstract* speech patterns. It is
  * never allowed to store identity. This object detects and redacts:
  *
  *  - usernames / handles  (`@alice`, `u/alice`, `t.me/alice`)

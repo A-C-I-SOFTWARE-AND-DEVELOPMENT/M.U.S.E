@@ -1,6 +1,6 @@
-# JARVIS Prime — Owner Gates & Personal Authority
+# MUSE — Owner Gates & Personal Authority
 
-JARVIS is **loyal to the owner's long-term mission, not blindly obedient
+MUSE is **loyal to the owner's long-term mission, not blindly obedient
 to the moment.** Personal-use authorization may reduce repeated permission
 friction, but **irreversible or external actions still require a final
 confirmation**. Owner gates are never removed.
@@ -31,7 +31,7 @@ requests via `OwnerGate` and maps them to the canonical vocabulary in
 ## Personal action authority (Android)
 A standing owner-authorized profile **may** exist to reduce friction, but:
 
-- Android **system permissions remain technical gates** that JARVIS cannot
+- Android **system permissions remain technical gates** that MUSE cannot
   bypass.
 - External post/send/purchase/security/destructive actions **pause before
   the final irreversible step**.
@@ -44,7 +44,7 @@ A standing owner-authorized profile **may** exist to reduce friction, but:
 disables proactive ticks. The Android avatar surfaces a visible emergency
 stop. Emergency stop overrides all presence/automation state.
 
-## What JARVIS will refuse
+## What MUSE will refuse
 Requests to bypass owner gates, exfiltrate credentials/secrets, or perform
 harmful/destructive production actions are classified `RC4` / blocked by
 `route_request()` and produce a **plan/review** packet, never an execution

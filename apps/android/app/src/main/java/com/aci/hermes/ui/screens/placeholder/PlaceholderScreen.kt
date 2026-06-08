@@ -16,7 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 /**
- * Shell placeholder for Jarvis Prime sections whose full UI is still being
+ * Shell placeholder for MUSE sections whose full UI is still being
  * built (Chat, Approvals, Memory, Audit). The screen still lives in the
  * navigation graph so the bottom tab, deep links from Home, and back-stack
  * tests all work; it just shows a "Coming soon" panel.

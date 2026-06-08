@@ -3,11 +3,11 @@ package com.aci.hermes.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ---------------------------------------------------------------------------
-// Jarvis Prime palette
+// MUSE palette
 //
 // Visual identity for the app surface. The package and namespace stay
 // com.aci.hermes for build / install compatibility, but the user-facing
-// product is "Jarvis Prime" — a command-center for an agent that asks
+// product is "MUSE" — a command-center for an agent that asks
 // permission, confirms intent, and shows real work happening.
 //
 // Source of truth lives in docs/jarvis-prime-app-design-system.md.
@@ -60,7 +60,7 @@ val JarvisViolet      = Color(0xFF8A7CFF)
 val JarvisVioletGlow  = Color(0x338A7CFF)
 
 // ---------------------------------------------------------------------------
-// Light-surface fallbacks — kept restrained. Jarvis Prime is dark-first;
+// Light-surface fallbacks — kept restrained. MUSE is dark-first;
 // light mode is a courtesy for daylight visibility.
 // ---------------------------------------------------------------------------
 val JarvisPaper       = Color(0xFFFAF9F6)

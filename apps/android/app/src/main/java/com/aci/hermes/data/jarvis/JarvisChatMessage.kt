@@ -5,7 +5,7 @@ import com.aci.hermes.data.model.TaskType
 import java.util.UUID
 
 /**
- * One entry in the Jarvis Prime chat transcript. The transcript is a
+ * One entry in the MUSE chat transcript. The transcript is a
  * sealed family rather than a single message bag because the rendering
  * rules differ sharply between user input, model output, transient
  * thinking/working indicators, and gateway errors.

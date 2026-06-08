@@ -1,6 +1,6 @@
-# JARVIS Prime mobile chat — streaming, phases & tool visibility
+# MUSE mobile chat — streaming, phases & tool visibility
 
-The Chat tab is the primary mobile surface for JARVIS Prime. It streams
+The Chat tab is the primary mobile surface for MUSE. It streams
 the **real** agent (or an offline-safe mock) and now shows *what the agent
 is doing*, not just the final words: a phase rail, compact tool activity,
 and one-tap evidence/ledger inspection — with inline owner approvals.
@@ -64,12 +64,12 @@ each call:
 Implemented in `gateway/cockpit/inline_tools.py`. Hard caps keep a turn
 well under half a second. Anything irreversible or external (deploy,
 publish, push, OAuth, spend) is **never** run here — it stays a pending
-owner gate surfaced by the JARVIS route and decided through the approval
+owner gate surfaced by the MUSE route and decided through the approval
 flow below.
 
 ## Message actions
 
-Each Jarvis reply offers:
+Each MUSE reply offers:
 
 - **Copy** — body + detail to the clipboard.
 - **Continue** — re-streams from where the reply left off (sends a

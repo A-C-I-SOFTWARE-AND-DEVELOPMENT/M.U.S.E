@@ -1,7 +1,9 @@
 {
-  "name": "JARVIS Prime",
-  "short_name": "Jarvis",
-  "tagline": "Your command-center agent.",
+  "name": "MUSE",
+  "full_name": "Multi-Use Synaptic Entity",
+  "display": "M.U.S.E.",
+  "short_name": "MUSE",
+  "tagline": "One mind, many pathways.",
   "glyph": "Two concentric rings — gold outer, cyan inner — around a luminous gold prime dot: the watchful eye.",
   "palette": {
     "ink": "#05070D",
@@ -76,7 +78,7 @@
     "tts_engine": "piper",
     "sample_rate_hz": 22050,
     "offline_first": true,
-    "wake_phrase": "Jarvis",
+    "wake_phrase": "Muse",
     "vad": true
   },
   "persona_spec": "docs/jarvis-prime-operating-system.md"

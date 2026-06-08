@@ -1,4 +1,4 @@
-# JARVIS Architecture Gap Analysis
+# MUSE Architecture Gap Analysis
 
 Target component model (from the brief) vs. what exists in Hermes today, with the
 gap and where this sprint moves the needle.

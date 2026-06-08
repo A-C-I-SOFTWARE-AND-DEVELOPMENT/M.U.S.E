@@ -93,7 +93,7 @@ import com.aci.hermes.ui.theme.JarvisSignalMute
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * The Jarvis Prime conversational chat surface — the "Chat" shell tab.
+ * The MUSE conversational chat surface — the "Chat" shell tab.
  *
  * Rendered inside [com.aci.hermes.ui.navigation.JarvisShell], so it takes
  * the shell's [paddingValues] and does NOT own a Scaffold or top bar. It
@@ -206,7 +206,7 @@ fun JarvisChatScreen(
                             RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
                         )
-                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to Jarvis Prime")
+                        putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to MUSE")
                     }
                     viewModel.onVoiceCaptureStart()
                     runCatching { voiceLauncher.launch(intent) }

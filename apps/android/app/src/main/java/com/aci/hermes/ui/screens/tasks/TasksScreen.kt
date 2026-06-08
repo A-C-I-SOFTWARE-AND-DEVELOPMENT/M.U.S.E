@@ -61,7 +61,7 @@ import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
  * same [OrchestratorViewModel] used by Home so changes propagate without an
  * extra refresh.
  *
- * Cards are grouped into the five Jarvis Prime sections (Active / Waiting for
+ * Cards are grouped into the five MUSE sections (Active / Waiting for
  * Approval / Blocked / Failed / Complete), derived purely from each task's
  * data via [HermesTask.section]. Waiting-for-approval cards deep-link to the
  * Approvals tab; completed (and proof-carrying) cards deep-link to Audit.

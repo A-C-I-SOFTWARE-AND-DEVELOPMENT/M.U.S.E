@@ -1,12 +1,12 @@
 package com.aci.hermes.ui.navigation
 
 /**
- * Jarvis Prime navigation routes.
+ * MUSE navigation routes.
  *
  * The Android module keeps the legacy `com.aci.hermes` package name and a few
  * internal class names (HermesService, AppContainer, HermesNavHost) where
  * technical compatibility requires it, but every route, screen title, and
- * user-facing label is Jarvis Prime.
+ * user-facing label is MUSE.
  *
  * Splash and Onboarding are pre-shell destinations. The main destinations
  * (Home, Chat, Tasks, Approvals, Memory, Audit, Control) are rendered inside

@@ -24,7 +24,7 @@ import com.aci.hermes.ui.theme.JarvisTokens
 /**
  * Top-of-screen identity bar for the command center.
  *
- * Left: brand glyph + "Jarvis Prime" + subtitle.
+ * Left: brand glyph + "MUSE" + subtitle.
  * Right: gateway status pill.
  *
  * Designed to sit in a Scaffold's content slot rather than the topBar

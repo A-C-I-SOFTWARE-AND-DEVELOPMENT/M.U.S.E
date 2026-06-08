@@ -1,4 +1,4 @@
-"""Daily owner brief for JARVIS Prime.
+"""Daily owner brief for MUSE.
 
 Aggregates monitor results into a structured brief the owner can read in
 under a minute:

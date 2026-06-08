@@ -1,4 +1,4 @@
-name: Jarvis Prime unit
+name: MUSE unit
 
 # The curated, launch-critical verification gate for mobile-first JARVIS
 # Prime. This workflow is deliberately NARROWER and FASTER than the
@@ -13,7 +13,7 @@ name: Jarvis Prime unit
 # updating launch-gate.yml and LAUNCH_GATE_CHECKLIST.md.
 #
 #   - Android JVM unit (testDebugUnitTest)
-#   - Python unit (Jarvis Prime + redact + orchestrator)
+#   - Python unit (MUSE + redact + orchestrator)
 
 on:
   push:
@@ -102,7 +102,7 @@ jobs:
           retention-days: 14
 
   python-unit:
-    name: Python unit (Jarvis Prime + redact + orchestrator)
+    name: Python unit (MUSE + redact + orchestrator)
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -125,7 +125,7 @@ jobs:
           source .venv/bin/activate
           uv pip install -e ".[all,dev]"
 
-      - name: Run curated Jarvis Prime + redact + orchestrator tests
+      - name: Run curated MUSE + redact + orchestrator tests
         run: |
           source .venv/bin/activate
           set +e
@@ -151,7 +151,7 @@ jobs:
           exitcode=${PIPESTATUS[0]}
           set -e
           {
-            echo "### Python unit (Jarvis Prime + redact + orchestrator)"
+            echo "### Python unit (MUSE + redact + orchestrator)"
             echo ""
             tail -n 1 /tmp/jarvis-prime-python-unit.log
           } >> "$GITHUB_STEP_SUMMARY"

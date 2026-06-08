@@ -1,4 +1,4 @@
-"""Conversational pacing + when-to-speak rules for JARVIS Prime.
+"""Conversational pacing + when-to-speak rules for MUSE.
 
 The user asked: "research websites… human psychology, human
 interactions, how we speak and patterns, knowing when it should

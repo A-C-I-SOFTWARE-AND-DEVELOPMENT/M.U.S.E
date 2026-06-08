@@ -1,4 +1,4 @@
-"""JARVIS Prime GraphRAG — a typed knowledge graph over the cognition plane.
+"""MUSE GraphRAG — a typed knowledge graph over the cognition plane.
 
 GraphRAG *supplements* (never replaces) the Memory Tree, Research Vault, and
 HyperAgent navigation substrates. It unifies them into one inspectable,

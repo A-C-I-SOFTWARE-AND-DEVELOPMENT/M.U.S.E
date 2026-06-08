@@ -74,7 +74,7 @@ class TaskDetailViewModel(
     fun setStatus(value: TaskStatus) = updateTask { it.copy(status = value) }
     fun setTargetTool(value: TargetTool) = updateTask { it.copy(targetTool = value) }
 
-    // Jarvis Prime worker-card field setters.
+    // MUSE worker-card field setters.
     fun setRiskTier(value: ApprovalRiskTier) = updateTask { it.copy(riskTier = value) }
     fun setWorkerPhase(value: WorkerPhase) = updateTask { it.copy(workerPhase = value) }
     fun setApprovalState(value: ApprovalStatus?) = updateTask { it.copy(approvalState = value) }

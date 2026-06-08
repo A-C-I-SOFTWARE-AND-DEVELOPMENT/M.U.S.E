@@ -1,15 +1,15 @@
-# JARVIS Code Operator Workflow
+# MUSE Code Operator Workflow
 
 ## Purpose
 
-The JARVIS Code Operator workflow coordinates autonomous coding work across Hermes, Claude Code, Codex, local verification, GitHub, and PR handoff. It exists to keep Builder Mode disciplined: scoped tasks, clean branch handling, independent review, tests, rollback notes, and no uncontrolled multi-agent edits.
+The MUSE Code Operator workflow coordinates autonomous coding work across Hermes, Claude Code, Codex, local verification, GitHub, and PR handoff. It exists to keep Builder Mode disciplined: scoped tasks, clean branch handling, independent review, tests, rollback notes, and no uncontrolled multi-agent edits.
 
-## Role in the JARVIS Stack
+## Role in the MUSE Stack
 
 ```text
-JARVIS Prime
+MUSE
 ↓
-JARVIS Code Operator
+MUSE Code Operator
 ↓
 Claude Code Builder / Codex Reviewer / Codex Bounded Fix Worker
 ↓
@@ -18,7 +18,7 @@ Local Test Runner
 GitHub PR Publisher
 ```
 
-JARVIS Prime owns intent and routing.
+MUSE owns intent and routing.
 
 AOS owns planning and specialist review when judgment is needed.
 
@@ -97,7 +97,7 @@ A weak coding task has:
 - unclear owner gate
 - multiple unrelated outcomes
 
-If the task is weak, JARVIS should say so and tighten it before dispatch.
+If the task is weak, MUSE should say so and tighten it before dispatch.
 
 ## Claude Code Build Packet
 

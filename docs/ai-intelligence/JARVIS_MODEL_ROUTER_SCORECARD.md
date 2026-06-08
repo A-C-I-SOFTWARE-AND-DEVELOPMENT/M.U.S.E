@@ -1,4 +1,4 @@
-# JARVIS Model Router — Scorecards
+# MUSE Model Router — Scorecards
 
 Status: **shipped**. File: `hermes_cli/jarvis_prime/model_scorecard.py`.
 Tests: `tests/test_jarvis_prime_model_scorecard.py`.

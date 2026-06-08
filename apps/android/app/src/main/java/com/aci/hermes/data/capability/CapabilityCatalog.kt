@@ -6,7 +6,7 @@ import com.aci.hermes.data.model.CapabilityRoute
 import com.aci.hermes.data.model.RouteSurface
 
 /**
- * Curated catalog of JARVIS Prime capabilities surfaced on mobile.
+ * Curated catalog of MUSE capabilities surfaced on mobile.
  *
  * The full agent surface is hundreds of specialist agents, council
  * members, and worker lanes. Exposing all of them on a phone would

@@ -1,4 +1,4 @@
-"""Tests for the JARVIS Prime semantic intent graph (IR).
+"""Tests for the MUSE semantic intent graph (IR).
 
 Covers id determinism, to_dict/from_dict round-trips, unresolved-slot
 detection, and the feature_vector contract the backend selector reads.

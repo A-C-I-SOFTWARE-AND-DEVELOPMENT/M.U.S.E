@@ -1,6 +1,6 @@
 """Natural-language compiler training: dataset validation + Together fine-tune dispatch.
 
-This module is the *outbound* half of the JARVIS Prime training pipeline. Where
+This module is the *outbound* half of the MUSE training pipeline. Where
 ``hermes_cli/jarvis_prime/nlp_training.py`` exports validated NL-compile traces
 *into* the local learning dataset, this module:
 

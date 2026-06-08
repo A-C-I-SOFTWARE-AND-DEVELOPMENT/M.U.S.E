@@ -1,9 +1,9 @@
-# JARVIS evidence & research (RAG) guide
+# MUSE evidence & research (RAG) guide
 
-When JARVIS researches something, it answers from a **cited evidence
+When MUSE researches something, it answers from a **cited evidence
 store**, not from thin air. This guide explains the Research Vault, how
 evidence connects to memory with provenance, and the hard rules that keep
-research honest. It applies everywhere JARVIS runs — including from the
+research honest. It applies everywhere MUSE runs — including from the
 [mobile cockpit](../mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md#8-evidence--research).
 
 ---
@@ -28,7 +28,7 @@ Design properties (all enforced in code):
 
 Each artifact connects to the **Memory Tree** through source pointers:
 `ResearchArtifact.as_memory_source()` yields a `MemorySource` with a
-`SourceTrust` level. That means anything JARVIS "knows" from research can
+`SourceTrust` level. That means anything MUSE "knows" from research can
 be traced back to the artifact and excerpt it came from. The Memory Tree's
 provenance, contradiction-handling, and sensitivity rules are specified in
 [`../jarvis_architecture/JARVIS_MEMORY_TREE_AND_NATURAL_LANGUAGE_CODER_SPEC.md`](../jarvis_architecture/JARVIS_MEMORY_TREE_AND_NATURAL_LANGUAGE_CODER_SPEC.md)
@@ -44,10 +44,10 @@ your excerpt / cited source ─▶ ResearchArtifact (stored, hashed, dated)
                                Memory Tree source pointer (SourceTrust)
                                       │
                                       ▼
-JARVIS answer ── cites the artifact, never invents one
+MUSE answer ── cites the artifact, never invents one
 ```
 
-If there is no stored evidence for a claim, JARVIS says so rather than
+If there is no stored evidence for a claim, MUSE says so rather than
 guessing. Contested or contradictory entries are flagged, not silently
 overwritten (see the memory-audit skill
 [`/jarvis-memory-audit`](../../skills/)).

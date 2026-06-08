@@ -1,10 +1,10 @@
-"""Intent routing for JARVIS Prime.
+"""Intent routing for MUSE.
 
 Honors the routing hierarchy from
 ``docs/jarvis-prime-operating-system.md``:
 
 1. Jeremiah owns final judgment.
-2. JARVIS Prime owns intake, challenge, routing, and handoff.
+2. MUSE owns intake, challenge, routing, and handoff.
 3. AOS Council owns multi-perspective judgment.
 4. Domain specialists advise on bounded subject matter.
 5. Skills encode repeatable procedures.

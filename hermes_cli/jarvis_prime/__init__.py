@@ -1,4 +1,4 @@
-"""JARVIS Prime — Jeremiah Echerd's local-first AI operating partner.
+"""MUSE — Jeremiah Echerd's local-first AI operating partner.
 
 Six-mode runtime (Companion / Strategy / Critic / Operator / Builder /
 Mobile Voice) for Hermes Agent. Spec lives in

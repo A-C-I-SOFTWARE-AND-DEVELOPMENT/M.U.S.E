@@ -180,7 +180,7 @@ fun TaskDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            // --- Jarvis Prime worker-card fields ---
+            // --- MUSE worker-card fields ---
             EnumDropdown(
                 label = stringResource(R.string.task_field_risk_tier),
                 selected = state.task.riskTier,

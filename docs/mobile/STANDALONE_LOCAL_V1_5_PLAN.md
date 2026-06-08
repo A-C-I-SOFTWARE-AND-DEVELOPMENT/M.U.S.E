@@ -1,4 +1,4 @@
-# Hermes / JARVIS Android — Standalone Local v1.5 Plan
+# Hermes / MUSE Android — Standalone Local v1.5 Plan
 
 > **Status:** living plan for the v1.5 *Standalone Local Coding Cockpit*.
 > v1.5 is **local-first**, has **no central cloud proxy**, ships **no bundled
@@ -40,7 +40,7 @@ Diagnostics, Settings, Model Route, …). A tolerant `HermesCockpitClient`
 
 **Backend** (`gateway/cockpit/`, `hermes_cli/jarvis_prime/`): a loopback
 cockpit HTTP server with ~70 `/v1/cockpit/*` routes (bearer-auth except
-`/v1/health`), NDJSON chat streaming, JARVIS runtime (task router, scorecards,
+`/v1/health`), NDJSON chat streaming, MUSE runtime (task router, scorecards,
 memory tree, 8 gates, owner auth with the exact phrase `Yes, with
 authorization.`, launch doctor), the `WorkPacket` schema, and Ollama /
 llama.cpp / vLLM adapters. The coding lanes `/v1/cockpit/coding/{audit,plan,

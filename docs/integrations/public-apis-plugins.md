@@ -1,7 +1,7 @@
 # Free public-API plugins (weather, finance, news, timeutil)
 
 Four native Hermes plugins wire a handful of **free public APIs** into the
-agent so JARVIS Prime can answer everyday questions — what's the weather,
+agent so MUSE can answer everyday questions — what's the weather,
 what's BTC at, what's in the news, what time is it for my team in Tokyo —
 without you standing up any infrastructure. Three of the four need **no API
 key at all**; only one optional news source needs a key.

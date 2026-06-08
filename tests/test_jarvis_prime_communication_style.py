@@ -73,7 +73,7 @@ def test_decide_pacing_short_user_after_long_response_is_brief() -> None:
 
 def test_decide_pacing_long_question_goes_deep() -> None:
     long_q = (
-        "Can you walk me through the full reasoning for choosing JARVIS Prime "
+        "Can you walk me through the full reasoning for choosing MUSE "
         "as the apex persona over a different naming convention, "
         "including the tradeoffs and how it interacts with the AOS council?"
     )

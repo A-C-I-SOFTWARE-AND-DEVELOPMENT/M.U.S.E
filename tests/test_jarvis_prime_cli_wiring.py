@@ -1,4 +1,4 @@
-"""Slash-command registration for JARVIS Prime (B2 from final release review)."""
+"""Slash-command registration for MUSE (B2 from final release review)."""
 
 from __future__ import annotations
 

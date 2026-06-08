@@ -50,7 +50,7 @@ data class JarvisChatUiState(
 )
 
 /**
- * Drives the Jarvis Prime chat surface (the "Chat" shell tab).
+ * Drives the MUSE chat surface (the "Chat" shell tab).
  *
  * Responsibilities:
  *  - own the chat transcript (user + jarvis + indicators + errors)
@@ -207,7 +207,7 @@ class JarvisChatViewModel(
             is JarvisChatMessage.Error -> msg.text
             is JarvisChatMessage.Thinking, is JarvisChatMessage.Working -> return
         }
-        val ok = clipboard.copy("Jarvis Prime", text)
+        val ok = clipboard.copy("MUSE", text)
         _state.update {
             it.copy(snackbar = if (ok) "Copied" else "Could not access clipboard")
         }
@@ -593,7 +593,7 @@ class JarvisChatViewModel(
     }
 
     private fun welcomeMessage(): JarvisChatMessage.Jarvis = JarvisChatMessage.Jarvis(
-        body = "Jarvis Prime here. Short replies on phone — ask for detail when you want the deep cut.",
+        body = "MUSE here. Short replies on phone — ask for detail when you want the deep cut.",
         detail = null,
     )
 

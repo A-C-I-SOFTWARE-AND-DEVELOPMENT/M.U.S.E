@@ -1,7 +1,7 @@
 # LaunchGate — Reviewer Checklist
 
 One-page checklist a reviewer runs through before enabling GitHub
-auto-merge on a Jarvis-Prime / Hermes PR. Pairs with the full policy
+auto-merge on a MUSE-Prime / Hermes PR. Pairs with the full policy
 in [`AUTOMATED_MERGE_POLICY.md`](AUTOMATED_MERGE_POLICY.md) and the
 operator steps in [`AUTO_MERGE_RUNBOOK.md`](AUTO_MERGE_RUNBOOK.md).
 
@@ -26,7 +26,7 @@ If any of these is `false`, **stop here**. Do not enable auto-merge.
 - [ ] `Build debug APK` (`android-build.yml`)
 - [ ] `Lint` (`android-build.yml`)
 - [ ] `Android JVM unit (testDebugUnitTest)` (`jarvis-prime-unit.yml`)
-- [ ] `Python unit (Jarvis Prime + redact + orchestrator)` (`jarvis-prime-unit.yml`)
+- [ ] `Python unit (MUSE + redact + orchestrator)` (`jarvis-prime-unit.yml`)
 - [ ] `ruff enforcement (blocking)` (`lint.yml`)
 - [ ] `Tests` (`tests.yml`)
 - [ ] `Orchestration tests` (`orchestration-tests.yml`)
@@ -35,7 +35,7 @@ If any of these is `false`, **stop here**. Do not enable auto-merge.
 
 > The two `jarvis-prime-unit.yml` checks above are produced by the
 > curated, launch-critical workflow `.github/workflows/jarvis-prime-unit.yml`
-> (Android `testDebugUnitTest` + the JARVIS Prime / redaction / orchestrator
+> (Android `testDebugUnitTest` + the MUSE / redaction / orchestrator
 > Python subset). It is intentionally narrower and faster than the
 > comprehensive `android-build.yml` / `tests.yml` suites, and its job
 > `name:` strings are a contract these checklist entries key on — keep them

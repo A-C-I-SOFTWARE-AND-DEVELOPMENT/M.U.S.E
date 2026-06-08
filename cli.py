@@ -7821,7 +7821,7 @@ class HermesCLI:
             print(output)
 
     def _handle_jarvis_prime_slash(self, cmd: str) -> None:
-        """Dispatch /jarvis, /jp, /jarvis-prime to the JARVIS Prime runtime.
+        """Dispatch /jarvis, /jp, /jarvis-prime to the MUSE runtime.
 
         Imports lazily so the cost only lands when the user invokes the
         slash command. ``/<cmd> stop`` is a special form that maps to
@@ -7847,7 +7847,7 @@ class HermesCLI:
         if intent.lower() in {"stop", "halt", "panic"}:
             result = jp.stop(reason="cli_user_requested")
             print(
-                f"(•̀ᴗ•́)✧ JARVIS Prime stopped. "
+                f"(•̀ᴗ•́)✧ MUSE stopped. "
                 f"cleared={result['cleared']} actions={result['cleared_actions']} "
                 f"tick_disabled={result['tick_disabled']}"
             )

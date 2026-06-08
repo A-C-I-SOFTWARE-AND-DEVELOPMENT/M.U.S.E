@@ -1,9 +1,9 @@
 package com.aci.hermes.data.model
 
 /**
- * One curated JARVIS Prime capability surfaced in the mobile UI.
+ * One curated MUSE capability surfaced in the mobile UI.
  *
- * JARVIS Prime is one visible assistant. The full agent surface
+ * MUSE is one visible assistant. The full agent surface
  * (200+ specialist agents, AOS council members, worker lanes) is
  * never exposed as a flat list. The UI presents a small curated set,
  * with everything else hidden behind an explicit "Advanced" toggle.

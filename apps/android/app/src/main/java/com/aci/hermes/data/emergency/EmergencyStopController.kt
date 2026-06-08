@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 /**
- * Jarvis Prime emergency stop controller. Owns the transition state
+ * MUSE emergency stop controller. Owns the transition state
  * machine, action gating, and the audit log.
  *
  * Transition rules:

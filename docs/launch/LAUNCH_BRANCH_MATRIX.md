@@ -1,4 +1,4 @@
-# Launch Branch Matrix — JARVIS Prime + Hermes runtime
+# Launch Branch Matrix — MUSE + Hermes runtime
 
 > ⚠️ **SUPERSEDED (2026-06-01).** The nine-lane integration plan below was
 > executed; PR #131's lanes have landed on `main` (211 commits past the
@@ -244,7 +244,7 @@ cd apps/android
 ./gradlew --no-daemon --stacktrace lint
 ```
 
-Manual: launch Jarvis Prime app, navigate to Chat route, send a mock
+Manual: launch MUSE app, navigate to Chat route, send a mock
 message via MockJarvisChatGateway, confirm bottom nav remains visible and
 emergency stop is reachable.
 

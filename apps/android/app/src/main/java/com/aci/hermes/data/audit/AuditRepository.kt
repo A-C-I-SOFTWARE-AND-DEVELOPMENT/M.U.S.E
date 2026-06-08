@@ -33,7 +33,7 @@ sealed interface AuditSync {
 }
 
 /**
- * Read access to the JARVIS Prime audit + proof ledger.
+ * Read access to the MUSE audit + proof ledger.
  *
  * - **Paired** (a [client] + [paired]==true): [refresh] pulls the real
  *   decision-ledger audit list (`GET /v1/cockpit/audit`); proofs are fetched

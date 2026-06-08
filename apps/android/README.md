@@ -1,6 +1,6 @@
-# Hermes Agent — Android (JARVIS Prime cockpit)
+# Hermes Agent — Android (MUSE cockpit)
 
-> **Status:** alpha. The Android app is the **JARVIS Prime cockpit**: a
+> **Status:** alpha. The Android app is the **MUSE cockpit**: a
 > networked review-and-control client for a Hermes **cockpit gateway**. When
 > paired, it talks to the gateway over HTTP with a bearer token — streaming
 > chat, jobs, approvals, evidence/research, autonomy, and voice intake — and
@@ -71,7 +71,7 @@ Architecture details live in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 1. **Pairs** to a Hermes cockpit gateway: set the endpoint and paste the
    gateway's bearer token (stored in `EncryptedSharedPreferences`).
-2. **Streams chat** with JARVIS Prime over `POST /v1/jarvis/chat` (NDJSON), and
+2. **Streams chat** with MUSE over `POST /v1/jarvis/chat` (NDJSON), and
    reads/controls **jobs, approvals, evidence/research, memory, autonomy, and
    diagnostics** over the `/v1/cockpit/*` REST routes.
 3. **Submits voice** by transcribing on-device and posting the transcript to
@@ -258,7 +258,7 @@ screen for per-job deep links).
 
 ## Sentient avatar (the living body)
 
-The cockpit now ships JARVIS Prime's **living body** — a character that
+The cockpit now ships MUSE's **living body** — a character that
 floats over your apps, physically operates the phone, and talks to you
 hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avatar/sentient-avatar-architecture.md).
 
@@ -298,7 +298,7 @@ hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avata
 
 ## Interactive surface (v1.0)
 
-For JARVIS Prime control without opening the full app:
+For MUSE control without opening the full app:
 
 - **Launcher shortcuts** (`res/xml/shortcuts.xml`) â€” long-press the
   launcher icon for **Approve** (Owner Approve flow) and **Stop JARVIS**

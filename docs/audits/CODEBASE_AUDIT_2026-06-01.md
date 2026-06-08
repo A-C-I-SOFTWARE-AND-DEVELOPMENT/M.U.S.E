@@ -75,7 +75,7 @@ Job graph, decision ledger (`decision_ledger.py`, `orchestrator_ledger.py`),
 parallel runner (`orchestrator_parallel.py`), events, and replay
 (`orchestrator_replay.py`, wired to `/orchestrator replay`) are all present.
 
-### JARVIS Prime runtime (`hermes_cli/jarvis_prime/`)
+### MUSE runtime (`hermes_cli/jarvis_prime/`)
 A real Python package: `owner_auth.py`, `gates.py`, `modes.py`, `router.py`,
 `work_packet.py`, `memory.py`, `reasoning.py`, `research.py`, `persona.py`, and
 more. The owner-gate model (`OWNER_GATED_ACTIONS` frozenset,
@@ -83,7 +83,7 @@ more. The owner-gate model (`OWNER_GATED_ACTIONS` frozenset,
 **234 launch-critical tests pass.**
 
 ### Android app (`apps/android/`)
-153 Kotlin source files + 61 test files. Rebranded to "Jarvis Prime"
+153 Kotlin source files + 61 test files. Rebranded to "MUSE"
 (`app_name`, splash, themes, colors all migrated). Screens present: splash,
 onboarding, home, tasks, **chat** (real `JarvisChatScreen` + ViewModel +
 `HttpJarvisChatGateway` + `RoutingJarvisChatGateway` + `MockJarvisChatGateway`),
@@ -119,14 +119,14 @@ expected and correct.
 ## 5. Blockers to verify/close before launch
 
 - **B6 — Expanded permission/privacy posture (owner-accepted risk,
-  2026-06-01).** Commit `b8df5c78` ("Sentient JARVIS avatar: living body,
+  2026-06-01).** Commit `b8df5c78` ("Sentient MUSE avatar: living body,
   device control, voice, OSS catalog", #170) added four capabilities that the
   app's `docs/jarvis-prime-app-permission-risk-register.md` originally forbade:
   - `JarvisAccessibilityService` / `BIND_ACCESSIBILITY_SERVICE` (device/app
     automation),
   - `JarvisOverlayService` / `SYSTEM_ALERT_WINDOW` (system overlay),
   - `QUERY_ALL_PACKAGES`,
-  - always-on `VoiceLoopService` ("Jarvis is listening", wake-listener) +
+  - always-on `VoiceLoopService` ("MUSE is listening", wake-listener) +
     `RECORD_AUDIO` + `FOREGROUND_SERVICE_MICROPHONE`.
 
   These back **real shipped features**. They are a Play Store policy minefield
@@ -173,7 +173,7 @@ authorization through the existing gate — the gate code itself is not modified
 ## 7. Bottom line
 
 The codebase is **substantially built and healthy** — core loop, gateway,
-worker engine, orchestration, JARVIS Prime runtime, and the Android cockpit are
+worker engine, orchestration, MUSE runtime, and the Android cockpit are
 all real and largely complete. There are **no large unfinished subsystems
 masquerading as done**; the residuals are documentation drift (G1, now fixed),
 Android test depth (G3), and a short list of minor edge TODOs (G4). The launch

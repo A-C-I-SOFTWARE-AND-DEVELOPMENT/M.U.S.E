@@ -1,15 +1,15 @@
-# Jarvis Prime — Android App Product Specification
+# MUSE — Android App Product Specification
 
 > **Status:** product spec, v1.
 > **Branch context:** transforms the existing native module at
-> [`apps/android/`](../apps/android/) into **Jarvis Prime**.
+> [`apps/android/`](../apps/android/) into **MUSE**.
 > **Companion docs:**
 > [`jarvis-prime-app-user-flows.md`](jarvis-prime-app-user-flows.md),
 > [`jarvis-prime-app-screen-map.md`](jarvis-prime-app-screen-map.md),
 > [`jarvis-prime-app-onboarding-spec.md`](jarvis-prime-app-onboarding-spec.md),
 > [`jarvis-prime-app-launch-standard.md`](jarvis-prime-app-launch-standard.md).
 >
-> **Naming policy.** Externally, the product is **Jarvis Prime**.
+> **Naming policy.** Externally, the product is **MUSE**.
 > The legacy name *Hermes* survives only inside this repository as a
 > technical compatibility surface — package id `com.aci.hermes`,
 > gateway path `/v1/*`, and the local foreground service class
@@ -17,13 +17,13 @@
 > existing installs, signed releases, and the running Python gateway
 > keep working. User-visible strings, screen titles, voice readbacks,
 > notifications, lock-screen widgets, marketing copy, and app store
-> metadata all say **Jarvis Prime**.
+> metadata all say **MUSE**.
 
 ---
 
 ## 1. Product promise
 
-**Jarvis Prime is a mobile-first AI operating partner that lets the
+**MUSE is a mobile-first AI operating partner that lets the
 owner talk, command, approve, monitor, remember, verify, and stop
 work from one app.**
 
@@ -35,14 +35,14 @@ Eight verbs anchor the entire product:
 
 | Verb | What the app must always make possible |
 |---|---|
-| **Talk** | A real conversation with Jarvis Prime, voice or text, in one tap from launch. |
+| **Talk** | A real conversation with MUSE, voice or text, in one tap from launch. |
 | **Command** | Convert a rough idea into a runnable task without sitting down at a desk. |
 | **Approve** | Pass owner gates (spend, deploy, publish, OAuth, main-branch merge, package publish, credential change, regulated claims) on a phone, with full diff visible and a hard-to-misfire confirm. |
-| **Monitor** | See what Jarvis Prime, the AOS Council, and the workers are doing right now, in plain English, at a glance. |
-| **Remember** | Inspect, correct, and delete the durable memory Jarvis is using to make decisions. |
+| **Monitor** | See what MUSE, the AOS Council, and the workers are doing right now, in plain English, at a glance. |
+| **Remember** | Inspect, correct, and delete the durable memory MUSE is using to make decisions. |
 | **Verify** | Read the audit / proof history of any consequential action, before or after it happens. |
 | **Stop** | Trigger an emergency stop from any screen, in one gesture, with no possibility of accidental dispatch in the same flow. |
-| **Resume** | Bring Jarvis Prime back online safely after an emergency stop with a written confirmation. |
+| **Resume** | Bring MUSE back online safely after an emergency stop with a written confirmation. |
 
 Anything in the app that does not serve one of these eight verbs is a
 candidate for removal.
@@ -54,7 +54,7 @@ candidate for removal.
 These are non-negotiable. Every screen, every flow, every component
 in this spec is reviewed against them.
 
-1. **Glanceable.** The owner can answer *"what is Jarvis doing right
+1. **Glanceable.** The owner can answer *"what is MUSE doing right
    now?"* in under one second from any screen, without scrolling.
 2. **Status-first.** Every screen renders its state (a coloured pill,
    a glyph, a one-line summary) before its body.
@@ -93,9 +93,9 @@ in this spec is reviewed against them.
 
 ## 3. Product surface (what the app actually is)
 
-Jarvis Prime is a **native Android control surface** for the
-Jarvis Prime operating partner (running in the Hermes gateway
-process — Python core, AOS Council, JARVIS Prime runtime, memory,
+MUSE is a **native Android control surface** for the
+MUSE operating partner (running in the Hermes gateway
+process — Python core, AOS Council, MUSE runtime, memory,
 verification gates). The phone:
 
 - **Watches** the operating partner's state (chat, tasks, approvals,
@@ -111,21 +111,21 @@ write-paths, scheduling, and verification gates all live on the
 gateway side. The Android app is a thin client over the gateway's
 HTTP + SSE surface and remains intentionally so.
 
-### 3.1 Existing module → Jarvis Prime mapping
+### 3.1 Existing module → MUSE mapping
 
 The current native module at [`apps/android/`](../apps/android/) is
-the basis for Jarvis Prime. The transformation is in-place: no new
+the basis for MUSE. The transformation is in-place: no new
 app module, no duplicate Gradle project, no package id change.
 
-| Existing surface (`apps/android/`) | Jarvis Prime concept |
+| Existing surface (`apps/android/`) | MUSE concept |
 |---|---|
-| `com.aci.hermes` package | Unchanged (compatibility). External name: **Jarvis Prime**. |
-| `HermesApplication` | Unchanged class name. App label resource → **Jarvis Prime**. |
-| `MainActivity` + `HermesNavGraph` | Hosts the new ten-screen Jarvis Prime nav graph. |
-| `HermesService` (foreground service) | Becomes the **Operating Partner Service** — owns gateway probe, SSE subscriptions, outbox replay, emergency-stop signal, lock-screen widget feed. Class name kept for manifest compatibility; user-visible notification title is "Jarvis Prime — listening". |
+| `com.aci.hermes` package | Unchanged (compatibility). External name: **MUSE**. |
+| `HermesApplication` | Unchanged class name. App label resource → **MUSE**. |
+| `MainActivity` + `HermesNavGraph` | Hosts the new ten-screen MUSE nav graph. |
+| `HermesService` (foreground service) | Becomes the **Operating Partner Service** — owns gateway probe, SSE subscriptions, outbox replay, emergency-stop signal, lock-screen widget feed. Class name kept for manifest compatibility; user-visible notification title is "MUSE — listening". |
 | `HermesGatewayClient` (`/v1/health`, `/v1/chat`) | Becomes `JarvisGatewayClient`; wire format unchanged. SSE consumer extended to cover task / approval / memory / audit / control streams. |
 | `HermesClientFactory` (Gateway · Mock) | Becomes `JarvisClientFactory` (Gateway · Mock · Termux-local). All three are runtime-selectable, never silently swapped. |
-| `SettingsRepository` (DataStore + EncryptedSharedPreferences) | Unchanged storage shape. Adds Jarvis Prime-specific keys (driving mode, voice opt-in, memory verbosity, lock-screen widget). |
+| `SettingsRepository` (DataStore + EncryptedSharedPreferences) | Unchanged storage shape. Adds MUSE-specific keys (driving mode, voice opt-in, memory verbosity, lock-screen widget). |
 | `LogBuffer` (in-memory ring) | Becomes the **Diagnostics buffer** — feeds the new Diagnostics screen and the audit export. |
 | Existing screens: splash, setup, provider, chat, status, settings, diagnostics | Re-mapped onto the new ten-screen spec (see §4 and `jarvis-prime-app-screen-map.md`). Orchestrator screens (`OrchestratorScreen`, `TaskDetailScreen`) are folded into **Tasks** and **Approvals**. Termux handoff (`TermuxIntentBridge`, `HandoffLauncher`) is preserved as the Termux gateway / local-handoff fallback. |
 
@@ -148,7 +148,7 @@ appears on **every** screen below.
 ### 4.1 Onboarding
 
 **Purpose.** Get the owner from a freshly installed app to a working,
-trusted connection to Jarvis Prime — gateway URL, optional token,
+trusted connection to MUSE — gateway URL, optional token,
 provider key, mock vs. live, voice and permission choices — with no
 required steps that block continuing in mock.
 
@@ -178,7 +178,7 @@ diagnosis (see §7 connection state model):
 
 - **Wrong backend URL.** *"That URL only works inside the Android
   emulator. Enter your gateway's LAN or public address."*
-- **Backend unreachable.** *"I can't reach Jarvis Prime at this URL.
+- **Backend unreachable.** *"I can't reach MUSE at this URL.
   Check the gateway is running, then tap Test connection."*
 - **Gateway token rejected.** *"The gateway rejected this token. Re-enter
   it or clear and continue without one."*
@@ -212,10 +212,10 @@ on the home screen with a banner.
 The full step-by-step is in
 [`jarvis-prime-app-onboarding-spec.md`](jarvis-prime-app-onboarding-spec.md).
 
-### 4.2 Jarvis Home
+### 4.2 MUSE Home
 
 **Purpose.** The single screen the owner opens to know, in one
-second: *Jarvis is up · these are the active tasks · these
+second: *MUSE is up · these are the active tasks · these
 approvals are waiting on me · this is the last consequential thing
 that happened.*
 
@@ -240,7 +240,7 @@ that happened.*
   Control · Diagnostics*.
 
 **Empty state.** Fresh connection, no active tasks, no approvals.
-*"Jarvis is online and idle. Say something, or tap the mic."*
+*"MUSE is online and idle. Say something, or tap the mic."*
 
 **Loading state.** Status pill shows *Connecting…*; tiles render
 skeletons; the interactive icon is in its *thinking* state.
@@ -262,9 +262,9 @@ never auto-dispatches anything.
 
 **Accessibility requirements.** Pill announces state changes via
 `AccessibilityEvent`; icon has a content description matching its
-current state ("Jarvis is ready", "Jarvis is listening", "Jarvis is
-working", "Jarvis is waiting for your approval", "Jarvis is paused",
-"Jarvis is stopped"). All tiles are screen-reader-traversable in
+current state ("MUSE is ready", "MUSE is listening", "MUSE is
+working", "MUSE is waiting for your approval", "MUSE is paused",
+"MUSE is stopped"). All tiles are screen-reader-traversable in
 priority order: status → approvals → tasks → last action.
 
 **Gateway / offline behavior.** Cached tiles render with their
@@ -275,7 +275,7 @@ queued)*.
 
 ### 4.3 Chat
 
-**Purpose.** The conversational surface with Jarvis Prime —
+**Purpose.** The conversational surface with MUSE —
 Companion, Strategy, Critic, Operator, Builder, and Mobile Voice
 modes all route through this screen.
 
@@ -283,20 +283,20 @@ modes all route through this screen.
 
 - **Header.** Mode chip (auto-routed; tappable to override), current
   thread title, *New chat* affordance.
-- **Message list.** User and Jarvis bubbles, streaming token deltas,
+- **Message list.** User and MUSE bubbles, streaming token deltas,
   inline tool / agent attributions (*"AOS Council · Principal
   Systems Architect"*).
 - **Composer.** Multi-line input that expands to 70% viewport on
   focus; mic button on the right; *Send* primary button; *Abort*
   button while a stream is in flight.
-- **Quick-task chip.** When Jarvis proposes converting the
+- **Quick-task chip.** When MUSE proposes converting the
   conversation into a task, a *Convert to task* chip appears
   beneath the latest assistant bubble. Tapping it opens the Task
   draft sheet pre-filled.
 
-**Empty state.** New thread: *"Jarvis is listening. What's on your
+**Empty state.** New thread: *"MUSE is listening. What's on your
 mind?"* with a row of suggested first prompts (e.g. *"Audit
-hermes-agent"*, *"What's the next move on Jarvis Prime?"*, *"Read
+hermes-agent"*, *"What's the next move on MUSE?"*, *"Read
 last night's PR feedback"*).
 
 **Loading state.** Streaming dots in the latest assistant bubble;
@@ -315,7 +315,7 @@ Long-press voice button = push-to-talk capture; release =
 transcribe + insert. Tap voice button = open Voice Capture screen
 (driving mode style).
 
-**Safety behavior.** Anything the owner says that Jarvis Prime
+**Safety behavior.** Anything the owner says that MUSE
 classifies as touching an Owner Gate (spend, deploy, publish,
 OAuth, main-branch merge, package publish, credential change,
 regulated claims) is **not executed from chat**; instead a *Risky
@@ -324,18 +324,18 @@ Chat never silently dispatches a destructive job.
 
 **Accessibility requirements.** Streaming text is announced in
 chunks (not character-by-character) for screen readers; *Abort*
-has a screen-reader label that reads *"Stop Jarvis"*; chat history
+has a screen-reader label that reads *"Stop MUSE"*; chat history
 is keyboard-traversable.
 
 **Gateway / offline behavior.** Outbound messages compose locally
 and queue in the visible outbox; a banner reads *"Offline — messages
-will send when Jarvis is back"*. Voice capture works offline and
+will send when MUSE is back"*. Voice capture works offline and
 queues. No silent retry of writes once back online — the outbox is
 visible and replayed only after the owner taps *Send queued*.
 
 ### 4.4 Tasks
 
-**Purpose.** The list of work Jarvis Prime is doing, has queued, or
+**Purpose.** The list of work MUSE is doing, has queued, or
 recently finished — research, audit, code, validation, publish,
 deploy.
 
@@ -353,7 +353,7 @@ deploy.
   Approvals* button when applicable.
 - **New task FAB.** Opens a new draft (voice or text).
 
-**Empty state.** *"No tasks yet. Ask Jarvis to do something."* with
+**Empty state.** *"No tasks yet. Ask MUSE to do something."* with
 a *Start a task* primary button that opens Chat in Operator mode.
 
 **Loading state.** Skeleton rows for the first page; thin progress
@@ -383,7 +383,7 @@ Swipe shortcuts have keyboard equivalents in the overflow menu.
 
 **Gateway / offline behavior.** The list renders from cache with a
 *last-synced* banner; *Cancel* is blocked offline with the message
-*"Cancel needs Jarvis online — try again in a moment."*; *Approve*
+*"Cancel needs MUSE online — try again in a moment."*; *Approve*
 is unconditionally blocked offline (see §4.5).
 
 ### 4.5 Approvals
@@ -397,7 +397,7 @@ screen. Nothing else in the app can complete a gated action.
 - **Pending list.** One card per pending approval, ranked
   highest-impact first. Each card shows: title, classification
   (*Risky · Serious · Critical*), proposed action in plain
-  English, files / endpoints affected, requested by (Jarvis
+  English, files / endpoints affected, requested by (MUSE
   Prime · AOS Council · worker name), time pending.
 - **Card actions.** *Review* opens the approval detail screen.
 - **Approval detail.** Plan summary, unified diff (no side-by-side;
@@ -412,7 +412,7 @@ screen. Nothing else in the app can complete a gated action.
 - **Impact Report.** For Critical approvals, the Impact Report is
   mandatory before the confirm sheet — see §6.
 
-**Empty state.** *"Nothing waiting on you. Jarvis will ping when
+**Empty state.** *"Nothing waiting on you. MUSE will ping when
 it needs your call."*
 
 **Loading state.** Skeleton cards; *Approve* / *Reject* buttons
@@ -440,7 +440,7 @@ viewport, not the document.
 - **Critical** = two-step gate **plus** Impact Report. The Impact
   Report must be acknowledged before step one is enabled. See §6.
 - Approvals are **disabled while emergency stop is engaged**. The
-  card shows *"Jarvis is in emergency stop — resume to approve."*
+  card shows *"MUSE is in emergency stop — resume to approve."*
 
 **Accessibility requirements.** Confirm phrases are voice-actionable.
 Reject is a red 64 dp button, *not* a small text link. Diff
@@ -450,13 +450,13 @@ context preserved.
 **Gateway / offline behavior.** Approvals are **never completable
 offline.** The screen renders the queued list from cache, but
 *Approve* and *Reject* are dimmed with the message *"Approvals need
-Jarvis online — they live in the gateway's audit ledger."* This is
+MUSE online — they live in the gateway's audit ledger."* This is
 intentional: approval = a signed write to the ledger, and the
 phone is not allowed to sign in the gateway's place.
 
 ### 4.6 Memory
 
-**Purpose.** Inspect, correct, and delete the durable memory Jarvis
+**Purpose.** Inspect, correct, and delete the durable memory MUSE
 Prime is using to make decisions. Implements the corrections policy
 in [`memory-and-personality-policy.md`](memory-and-personality-policy.md).
 
@@ -472,10 +472,10 @@ in [`memory-and-personality-policy.md`](memory-and-personality-policy.md).
   / event.
 - **Add memory.** Manual *"Remember this:"* entry from the FAB.
 - **Pending inferences.** A separate tile of *"Should I remember
-  this?"* candidates Jarvis has flagged from recent conversation;
+  this?"* candidates MUSE has flagged from recent conversation;
   each candidate has *Confirm* and *Reject*.
 
-**Empty state.** *"Jarvis hasn't saved anything durable yet. Once
+**Empty state.** *"MUSE hasn't saved anything durable yet. Once
 you make decisions, set preferences, or call out a mistake, they
 show up here."*
 
@@ -511,18 +511,18 @@ readers.
 **Gateway / offline behavior.** Memory list renders from cache
 offline; *Correct*, *Delete*, *Add*, *Confirm inference*, and
 *Reject inference* all queue in the visible outbox. The outbox is
-read-only until the owner taps *Send queued* once Jarvis is back —
+read-only until the owner taps *Send queued* once MUSE is back —
 this is the same no-silent-replay rule that applies to Chat.
 
 ### 4.7 Audit / Proof
 
 **Purpose.** The append-only, time-ordered ledger of consequential
-actions Jarvis Prime, the AOS Council, the workers, and the gateway
+actions MUSE, the AOS Council, the workers, and the gateway
 have taken. The owner's record.
 
 **Components.**
 
-- **Ledger timeline.** Each entry: timestamp · actor (Jarvis · AOS
+- **Ledger timeline.** Each entry: timestamp · actor (MUSE · AOS
   · worker · gateway · hook · owner) · action · classification
   (info · decision · approval · publish · deploy · memory · stop)
   · one-line plain-English summary · *Show details*.
@@ -567,7 +567,7 @@ cache. Owner annotations queue in the outbox.
 
 ### 4.8 Control
 
-**Purpose.** The owner's hardware-style control surface for Jarvis
+**Purpose.** The owner's hardware-style control surface for MUSE
 Prime itself: emergency stop, resume, mode override, voice mode,
 driving mode, mock toggle, and gateway lifecycle (when Termux is
 present on the same phone).
@@ -581,9 +581,9 @@ present on the same phone).
   and a persistent banner appears app-wide.
 - **Resume tile** (visible only when stopped). Single-tap arms; a
   confirm sheet completes the resume, requiring a typed or spoken
-  *"Resume Jarvis"* confirmation.
+  *"Resume MUSE"* confirmation.
 - **Mode override.** *Auto · Companion · Strategy · Critic ·
-  Operator · Builder · Mobile Voice*. Default *Auto* lets Jarvis
+  Operator · Builder · Mobile Voice*. Default *Auto* lets MUSE
   pick; manual override pins the next response.
 - **Voice mode.** *Off · Push-to-talk · Continuous hands-free ·
   Driving mode.* Each option clearly states what is captured and
@@ -605,7 +605,7 @@ state-changing actions show inline spinners during writes.
 
 **Error state.** Emergency stop write failure is a special case:
 the local app immediately enters a *stopped* state on the device
-side (no approvals, icon stopped), surfaces *"Jarvis didn't
+side (no approvals, icon stopped), surfaces *"MUSE didn't
 acknowledge — retrying"*, and keeps retrying the gateway-side stop
 on backoff. The local stop is **never** rolled back; only resume
 can clear it.
@@ -625,14 +625,14 @@ Other toggles use standard switches.
   even before reaching this screen.
 - Resume is **never automatic**. There is no timer-based resume.
 - Mock toggle off → on shows a banner; on → off shows a confirm
-  sheet (*"Switching to live — Jarvis will start using your real
+  sheet (*"Switching to live — MUSE will start using your real
   gateway. Continue?"*).
 - Starting a Termux gateway is **not** an owner-gate but does
-  surface a *"Starting Jarvis on this phone — log:" affordance*
+  surface a *"Starting MUSE on this phone — log:" affordance*
   during boot.
 
-**Accessibility requirements.** Emergency stop announces *"Jarvis
-stopped"* through `TYPE_ANNOUNCEMENT`; resume announces *"Jarvis
+**Accessibility requirements.** Emergency stop announces *"MUSE
+stopped"* through `TYPE_ANNOUNCEMENT`; resume announces *"MUSE
 resumed"*. Voice mode toggles each speak their new state aloud when
 voice readback is on.
 
@@ -659,7 +659,7 @@ and reset.
   has registered (e.g. `github.pat`, `supabase.service_role`,
   `vercel.token`); each row is a glyph + ID + last-rotated date.
   Tapping a row shows *"This secret lives on the gateway. Edit it
-  on the host running Jarvis Prime."* The app cannot edit them.
+  on the host running MUSE."* The app cannot edit them.
 - **Voice.** STT engine (*on-device default* · *cloud opt-in*),
   TTS confirmation on/off, push-to-talk button mapping, wake-word
   on/off, driving-mode auto-enter (Bluetooth A2DP heuristic).
@@ -668,7 +668,7 @@ and reset.
   daily summary. Routine progress notifications are disabled
   by default and cannot be enabled (calm-by-default rule).
 - **Memory.** Verbosity (*concise · standard · verbose* — controls
-  how often Jarvis surfaces *Should I remember this?* candidates),
+  how often MUSE surfaces *Should I remember this?* candidates),
   stale threshold, *Export memory* (JSONL), *Clear memory* (writes
   a confirm-phrase gate; logs the deletion in audit).
 - **Audit.** Default date range, *Export audit (JSONL)*, *Pin audit
@@ -728,7 +728,7 @@ errors, and a one-tap *Export diagnostics bundle* for support.
   fingerprint, base gateway URL (compile-time + runtime override),
   cleartext-allowed flag, Termux detected (yes / no).
 - **Mode card.** Mock on/off, voice mode, driving mode, current
-  Jarvis mode override.
+  MUSE mode override.
 - **Log buffer.** In-memory ring (the existing `LogBuffer`), most
   recent first; filter by level (info / warn / error) and source
   (gateway / app / service / voice / outbox).
@@ -738,7 +738,7 @@ errors, and a one-tap *Export diagnostics bundle* for support.
   build info into a sharable file (no secrets, no tokens, no memory
   contents).
 
-**Empty state.** *"Logs will appear here as Jarvis works."* —
+**Empty state.** *"Logs will appear here as MUSE works."* —
 realistically rare to see, since the app emits boot logs.
 
 **Loading state.** Connection card shows *Probing…* during a probe;
@@ -771,7 +771,7 @@ that needs the gateway; it shows the last-known state otherwise.
 
 ## 5. The interactive icon (always-on app surface)
 
-Jarvis Prime carries a single, persistent interactive icon — both
+MUSE carries a single, persistent interactive icon — both
 inside the app (on every screen) and on the lock-screen widget. It
 is the owner's at-a-glance signal and the always-reachable hot
 button.
@@ -819,12 +819,12 @@ bottom-right floating). Its behavior does not.
 A 2×2 widget mirroring the icon's current state, plus a one-line
 text:
 
-- Ready: *"Jarvis is ready."*
-- Listening: *"Jarvis is listening."*
-- Thinking: *"Jarvis is working: <task title>."*
-- Waiting on you: *"Jarvis needs you: <approval title>."*
-- Paused: *"Jarvis is offline — last sync HH:MM."*
-- Stopped: *"Jarvis is stopped. Tap to resume."*
+- Ready: *"MUSE is ready."*
+- Listening: *"MUSE is listening."*
+- Thinking: *"MUSE is working: <task title>."*
+- Waiting on you: *"MUSE needs you: <approval title>."*
+- Paused: *"MUSE is offline — last sync HH:MM."*
+- Stopped: *"MUSE is stopped. Tap to resume."*
 
 Tapping the widget jumps to the right screen:
 
@@ -864,7 +864,7 @@ app treats it as **Critical** and refuses to fall through.
   *Acknowledged* tapped) before step one is enabled.
 
 The literal voice phrase *"Yes, with authorization."* matches the
-JARVIS Prime owner-gate phrase already established in
+MUSE owner-gate phrase already established in
 [`jarvis-prime-operating-system.md`](jarvis-prime-operating-system.md).
 
 ### 6.3 Impact Report (critical only)
@@ -882,7 +882,7 @@ generated server-side and rendered as:
   to this action.
 
 If the gateway cannot produce all five sections, the Impact Report
-shows the missing sections as *"Jarvis could not produce this
+shows the missing sections as *"MUSE could not produce this
 section."* The owner is free to reject on that basis.
 
 ### 6.4 Emergency stop self-check (resume)
@@ -897,7 +897,7 @@ to *Ready*. The self-check reports:
 - any approvals that were pending at stop time and need re-review.
 
 The resume confirm sheet shows the self-check result and requires
-the owner to read or speak *"Resume Jarvis."*
+the owner to read or speak *"Resume MUSE."*
 
 ### 6.5 Audit trail (every approval)
 
@@ -908,7 +908,7 @@ classified as `approval`. The entry includes:
 - decision (approved / rejected / approved-with-note),
 - confirm-phrase mode (tap / voice),
 - whether Impact Report was shown and acknowledged,
-- the requestor (Jarvis Prime, AOS Council member, worker name),
+- the requestor (MUSE, AOS Council member, worker name),
 - the originating prompt / task / chat thread id,
 - timestamp and device fingerprint.
 
@@ -922,7 +922,7 @@ proposal — they keep both the proposal and the rejection.
 ### 7.1 Connection state model (unchanged from Hermes module)
 
 The existing `ConnectionState` carries forward verbatim — it is
-already correct for Jarvis Prime:
+already correct for MUSE:
 
 | State | Meaning | UI |
 |---|---|---|
@@ -963,7 +963,7 @@ outbox:
 
 The outbox is **visible** on a top-bar badge and on the relevant
 screens. It is **not** replayed silently — the owner taps *Send
-queued* to release the outbox once Jarvis is back. The exceptions
+queued* to release the outbox once MUSE is back. The exceptions
 are:
 
 - **Approvals never queue.** Approvals are blocked offline.
@@ -985,7 +985,7 @@ When the app detects Termux:
   successful `/v1/health` against `http://127.0.0.1:8080`.
 
 The Termux integration is the same `TermuxIntentBridge` already in
-the module today; the user-visible language is Jarvis Prime.
+the module today; the user-visible language is MUSE.
 
 ---
 
@@ -1016,7 +1016,7 @@ from the phone.
 
 - Reachable from every screen via the interactive icon's double-tap.
 - Reachable via long-press the lock-screen widget.
-- Reachable via the voice phrase *"Jarvis, stop everything."*
+- Reachable via the voice phrase *"MUSE, stop everything."*
 - The device-side stop takes effect immediately, even offline.
 - Resume requires the owner to explicitly confirm and runs a
   gateway self-check first. There is no timed auto-resume.
@@ -1062,7 +1062,7 @@ from the phone.
 
 ## 10. Acceptance checks
 
-The Jarvis Prime app build passes acceptance when *all* of the
+The MUSE app build passes acceptance when *all* of the
 following hold.
 
 1. **App spec matches existing `apps/android`.** Every screen in §4
@@ -1076,7 +1076,7 @@ following hold.
    surfaced as "Hermes cockpit" (prompt command center, worker
    dashboard, decision ledger, validation gate, GitHub publisher,
    deploy planner, voice capture, driving mode, lock-screen widget,
-   logs / events) is folded into one of the ten Jarvis Prime
+   logs / events) is folded into one of the ten MUSE
    screens or one of the three trust anchors (memory, audit,
    emergency stop). No legacy "cockpit" name appears in user-visible
    strings.
@@ -1093,7 +1093,7 @@ following hold.
 7. **Memory / audit / emergency stop explicit.** §4.6, §4.7, §4.8,
    and §8 define each in full; the home screen and every other
    screen reach them in one tap.
-8. **Externally Jarvis Prime; internally legacy compatibility
+8. **Externally MUSE; internally legacy compatibility
    preserved.** The package id `com.aci.hermes`, the gateway path
    `/v1/*`, the `HermesService` class, and the `HermesGatewayClient`
    identifier are unchanged. No user-visible string says "Hermes".
@@ -1117,7 +1117,7 @@ following hold.
 - [`jarvis-prime-app-launch-standard.md`](jarvis-prime-app-launch-standard.md)
   — release readiness, app store metadata, and the launch checklist.
 - [`jarvis-prime-operating-system.md`](jarvis-prime-operating-system.md)
-  — the runtime identity and modes Jarvis Prime in this app
+  — the runtime identity and modes MUSE in this app
   surfaces.
 - [`jarvis-verification-gates.md`](jarvis-verification-gates.md)
   — the eight verification gates the gateway enforces, surfaced

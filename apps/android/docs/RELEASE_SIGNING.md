@@ -1,4 +1,4 @@
-# Release signing — Jarvis Prime Android app
+# Release signing — MUSE Android app
 
 The release APK is signed with **your own keystore**. Nothing secret is ever
 committed: the keystore (`*.jks`) and `keystore.properties` are gitignored,
@@ -30,7 +30,7 @@ keytool -genkeypair -v \
   -alias jarvis \
   -keyalg RSA -keysize 4096 -validity 10000 \
   -storepass '<store-pass>' -keypass '<key-pass>' \
-  -dname "CN=Jarvis Prime, O=ACI Software and Development, C=US"
+  -dname "CN=MUSE, O=ACI Software and Development, C=US"
 ```
 
 Keep `jarvis-release.jks` and its passwords safe and backed up. **If you lose

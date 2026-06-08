@@ -1,4 +1,4 @@
-# JARVIS avatar — top-tier art + float-over-apps guide
+# MUSE avatar — top-tier art + float-over-apps guide
 
 Everything in the app is **wired**; the only thing that turns the breathing
 pixel character into a fully-rigged, expressive avatar is **art** authored to a
@@ -64,14 +64,14 @@ already live. Use 3D only if you specifically need a 3D model.
 
 ---
 
-## C) Float JARVIS over every app (the system overlay)
+## C) Float MUSE over every app (the system overlay)
 
 The Live screen has a **picture-in-picture toggle** (top-right). Tapping it:
 1. Requests the **draw-over-other-apps** permission (`SYSTEM_ALERT_WINDOW`) via
    Settings if not yet granted — a high-risk permission you grant once.
 2. Starts `JarvisOverlayService`, a foreground service that draws the **living
    avatar in a `TYPE_APPLICATION_OVERLAY` window** floating over all apps, and
-   **mirrors JARVIS's live state** (idle/think/speak…) onto it.
+   **mirrors MUSE's live state** (idle/think/speak…) onto it.
 3. Tap again to stop.
 
 Per platform guidance the overlay is small, unobtrusive, and dismissible; it runs
@@ -79,5 +79,5 @@ inside a foreground service so it survives app backgrounding, and is torn down
 cleanly on stop. Keep the Termux runtime alive so the floating avatar reflects a
 real agent.
 
-> One-device setup: grant "Display over other apps" for Jarvis Prime in
-> Settings → Apps → Jarvis Prime → Advanced, then tap the toggle.
+> One-device setup: grant "Display over other apps" for MUSE in
+> Settings → Apps → MUSE → Advanced, then tap the toggle.

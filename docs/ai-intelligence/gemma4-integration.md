@@ -1,7 +1,7 @@
-# Gemma 4 in Hermes / JARVIS
+# Gemma 4 in Hermes / MUSE
 
 Gemma 4 is wired into Hermes as a first-class **local / open-weight model
-family** (Google DeepMind, Apache-2.0). It makes JARVIS more useful offline and
+family** (Google DeepMind, Apache-2.0). It makes MUSE more useful offline and
 on mobile **without** weakening safety, memory integrity, routing quality, or
 owner control.
 
@@ -11,7 +11,7 @@ how to install/inspect it, how auto-learning promotes it, and how to roll back.
 
 ## What Gemma 4 is used for
 
-Gemma leads these JARVIS lanes **immediately** (no scorecards required), because
+Gemma leads these MUSE lanes **immediately** (no scorecards required), because
 the local lanes are local-first by policy:
 
 | Lane | Why Gemma |
@@ -166,7 +166,7 @@ never a launch blocker.
 
 ## Auto-learning: promote / demote
 
-1. JARVIS records per-turn scorecards for Gemma-backed turns
+1. MUSE records per-turn scorecards for Gemma-backed turns
    (`JarvisPrime.record_route_outcome`, evidence-only — unknown values stay
    unknown, never fabricated).
 2. When the gates above are met, `hermes models gemma promote --task-class <t>`

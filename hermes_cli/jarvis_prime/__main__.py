@@ -12,7 +12,7 @@ Subcommands:
 - ``remember --key K --value V [--durable]`` — capture a memory record.
 - ``recollect QUERY [--limit N]`` — print top relevant memories.
 - ``proposals {list|approve|reject}`` — owner review surface for
-  JARVIS Prime self-update proposals. ``approve`` requires the exact
+  MUSE self-update proposals. ``approve`` requires the exact
   phrase ``Yes, with authorization.`` Status updates only — execution
   of the proposed change belongs to a future lane.
 - ``registry-update [--check] [--no-refresh] [--json]`` — REG-1: diff the
@@ -2172,7 +2172,7 @@ def _cmd_research_fabric(args: argparse.Namespace) -> int:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
-        description="JARVIS Prime — Jeremiah Echerd's local-first AI operating partner",
+        description="MUSE — Jeremiah Echerd's local-first AI operating partner",
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -2246,9 +2246,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_recollect.set_defaults(func=_cmd_recollect)
     p_proposals = sub.add_parser(
         "proposals",
-        help="List, approve, or reject JARVIS Prime self-update proposals",
+        help="List, approve, or reject MUSE self-update proposals",
         description=(
-            "Owner review surface for JARVIS Prime's self-update proposals. "
+            "Owner review surface for MUSE's self-update proposals. "
             "The runtime stores proposals at "
             "${HERMES_HOME:-~/.hermes}/jarvis_prime/proposals.jsonl. "
             "'approve' requires the exact phrase 'Yes, with authorization.' "
@@ -2713,9 +2713,9 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     p_avatar = sub.add_parser(
         "avatar",
-        help="Print the JARVIS Prime avatar + locale-aware voice embodiment",
+        help="Print the MUSE avatar + locale-aware voice embodiment",
         description=(
-            "Print the canonical JARVIS Prime avatar (brand glyph, palette, "
+            "Print the canonical MUSE avatar (brand glyph, palette, "
             "tagline) and the locale-aware voice + local voice-stack "
             "embodiment shared with the Android cockpit "
             "(docs/jarvis-prime/avatar.json)."
@@ -2791,7 +2791,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         "presence",
         help="Companion presence state + task animation plan (policy only)",
         description=(
-            "Compute the JARVIS Prime living-companion presence state from "
+            "Compute the MUSE living-companion presence state from "
             "signals and, with --mission, a task animation plan. This is "
             "policy/state only — no camera, microphone, overlay, or device "
             "control is performed. Real device actions stay behind Android "
@@ -3220,7 +3220,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     p_launch = sub.add_parser(
         "launch",
-        help="Run the free-first JARVIS Prime launch path",
+        help="Run the free-first MUSE launch path",
         description=(
             "Runtime check → model bootstrap → memory init → owner gate → "
             "emergency stop → slash commands → worker detection → launch "

@@ -1,4 +1,4 @@
-"""Tests for the JARVIS Prime backend selector.
+"""Tests for the MUSE backend selector.
 
 Covers trigger->automation, repo-edit->work-packet, hint override, the
 "no silent drops" audit invariant, blocked short-circuit, and determinism.

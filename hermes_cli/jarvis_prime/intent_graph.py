@@ -1,4 +1,4 @@
-"""Typed semantic intent graph (IR) for the JARVIS Prime NL compiler.
+"""Typed semantic intent graph (IR) for the MUSE NL compiler.
 
 This is the *front half* of the natural-language programming pipeline: a
 plain-English request is parsed (by :mod:`semantic_frontend`) into a typed

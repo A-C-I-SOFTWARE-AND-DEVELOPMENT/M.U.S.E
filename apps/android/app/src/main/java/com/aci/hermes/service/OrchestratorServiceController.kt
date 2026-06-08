@@ -7,7 +7,7 @@ import androidx.core.content.ContextCompat
 import com.aci.hermes.util.LogBuffer
 
 /**
- * Thin wrapper around the Hermes foreground service so every Jarvis Prime
+ * Thin wrapper around the Hermes foreground service so every MUSE
  * surface (Home dashboard, Control screen, global emergency stop) starts and
  * stops the orchestrator through the same code path.
  *

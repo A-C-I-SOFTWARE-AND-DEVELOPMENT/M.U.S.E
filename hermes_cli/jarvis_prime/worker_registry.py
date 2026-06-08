@@ -1,4 +1,4 @@
-"""Subscription-aware worker lanes for JARVIS Prime.
+"""Subscription-aware worker lanes for MUSE.
 
 Claude Code and Codex are **official local tools**, used through their
 own installed CLIs and the owner's existing subscription/session. They

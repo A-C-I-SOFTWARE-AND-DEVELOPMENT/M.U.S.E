@@ -7,7 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalView
 
 /**
- * Jarvis Prime haptic vocabulary.
+ * MUSE haptic vocabulary.
  *
  * A tiny, deliberate set of taps so physical feedback stays consistent
  * across the command center:

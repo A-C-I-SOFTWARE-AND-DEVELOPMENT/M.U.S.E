@@ -116,7 +116,7 @@ launch stack lands.
 
 ACI has at least 50 open PRs (#101–#151). The launch stack:
 
-- **#131** — JARVIS Prime mass integration (53 PRs). **Treated as
+- **#131** — MUSE mass integration (53 PRs). **Treated as
   owner-gated** by this reconciliation; not merged here regardless of the
   GitHub draft flag.
 - **#128** — launch readiness fixes (docs · backup · tests · CI).
@@ -133,7 +133,7 @@ ACI has at least 50 open PRs (#101–#151). The launch stack:
   gates).
 - **#141** — final release review findings.
 - **#142** — `feat(android-base)`: wire missing audit model for #131.
-- **#143** — Jarvis Prime launch candidate assembly.
+- **#143** — MUSE launch candidate assembly.
 - **#144** — privacy-safe avatar picker.
 - **#145** — live avatar feedback during tasks.
 - **#146** — Jarvis live command screen.
@@ -325,7 +325,7 @@ declared in `pyproject.toml` extras and will be present in CI.
 
 ## 16. Remaining blockers
 
-1. **PR #131 owner authorization** — the JARVIS Prime mass integration
+1. **PR #131 owner authorization** — the MUSE mass integration
    is the single largest dependency for everything else. None of this
    PR's ports depend on #131, but the deferred items in §10 mostly will.
 2. **Android build green** (#137) — required before any Android UI

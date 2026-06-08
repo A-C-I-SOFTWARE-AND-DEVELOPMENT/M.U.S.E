@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Slack is the mobile command layer for JARVIS Prime. It should let Jeremiah capture ideas, request focused planning, start build preparation, ask for critique, route reviews, and manage durable memory without requiring a desktop session.
+Slack is the mobile command layer for MUSE. It should let Jeremiah capture ideas, request focused planning, start build preparation, ask for critique, route reviews, and manage durable memory without requiring a desktop session.
 
 This policy defines command patterns and safety expectations. It does not implement Slack runtime behavior by itself.
 
@@ -22,7 +22,7 @@ This policy defines command patterns and safety expectations. It does not implem
 Use:
 
 ```text
-JARVIS <command>: <payload>
+MUSE <command>: <payload>
 ```
 
 Commands:
@@ -37,7 +37,7 @@ Commands:
 - forget
 - correct
 
-## JARVIS Capture
+## MUSE Capture
 
 Purpose:
 Capture rough ideas while Jeremiah is moving.
@@ -45,7 +45,7 @@ Capture rough ideas while Jeremiah is moving.
 Command:
 
 ```text
-JARVIS capture: <raw idea>
+MUSE capture: <raw idea>
 ```
 
 Expected mode:
@@ -65,7 +65,7 @@ Next focused action:
 Example:
 
 ```text
-JARVIS capture: HazMat Command needs an audit trail for OCR confidence and who approved each shipping paper correction.
+MUSE capture: HazMat Command needs an audit trail for OCR confidence and who approved each shipping paper correction.
 ```
 
 Expected routing:
@@ -73,7 +73,7 @@ Expected routing:
 - Recommended agent: HazMat Command Specialist
 - Recommended worker: Claude Code Builder after focused scoping
 
-## JARVIS Focused
+## MUSE Focused
 
 Purpose:
 Expand a captured idea into a focused plan.
@@ -81,7 +81,7 @@ Expand a captured idea into a focused plan.
 Command:
 
 ```text
-JARVIS focused: <task title or captured idea>
+MUSE focused: <task title or captured idea>
 ```
 
 Expected mode:
@@ -100,7 +100,7 @@ Verification plan:
 Next action:
 ```
 
-## JARVIS Build
+## MUSE Build
 
 Purpose:
 Prepare a Builder Mode packet for code work.
@@ -108,7 +108,7 @@ Prepare a Builder Mode packet for code work.
 Command:
 
 ```text
-JARVIS build: repo=<repo> task=<task>
+MUSE build: repo=<repo> task=<task>
 ```
 
 Expected mode:
@@ -137,7 +137,7 @@ Rules:
 - Do not let Claude Code and Codex edit the same branch simultaneously.
 - Require tests or an explicit reason tests were not run.
 
-## JARVIS Critic
+## MUSE Critic
 
 Purpose:
 Challenge an idea or plan.
@@ -145,7 +145,7 @@ Challenge an idea or plan.
 Command:
 
 ```text
-JARVIS critic: <idea or plan>
+MUSE critic: <idea or plan>
 ```
 
 Expected mode:
@@ -169,7 +169,7 @@ Rules:
 - Name weak logic clearly.
 - Offer a stronger alternative if possible.
 
-## JARVIS Strategy
+## MUSE Strategy
 
 Purpose:
 Think through product, career, business, monetization, positioning, or partner decisions.
@@ -177,7 +177,7 @@ Think through product, career, business, monetization, positioning, or partner d
 Command:
 
 ```text
-JARVIS strategy: <decision or topic>
+MUSE strategy: <decision or topic>
 ```
 
 Expected mode:
@@ -194,7 +194,7 @@ What not to do yet:
 Next action:
 ```
 
-## JARVIS Review
+## MUSE Review
 
 Purpose:
 Route a plan, PR, diff, or product decision through review.
@@ -202,7 +202,7 @@ Route a plan, PR, diff, or product decision through review.
 Command:
 
 ```text
-JARVIS review: <PR, diff, file, plan, or decision>
+MUSE review: <PR, diff, file, plan, or decision>
 ```
 
 Expected mode:
@@ -216,7 +216,7 @@ Possible routing:
 - QA Release Gate for release readiness
 - Security / Compliance Reviewer for risky surfaces
 
-## JARVIS Remember
+## MUSE Remember
 
 Purpose:
 Save durable memory.
@@ -224,7 +224,7 @@ Save durable memory.
 Command:
 
 ```text
-JARVIS remember: <durable fact>
+MUSE remember: <durable fact>
 ```
 
 Save only:
@@ -248,7 +248,7 @@ Do not save:
 - stale PR numbers
 - raw private dumps
 
-## JARVIS Forget
+## MUSE Forget
 
 Purpose:
 Remove stale or wrong memory.
@@ -256,7 +256,7 @@ Remove stale or wrong memory.
 Command:
 
 ```text
-JARVIS forget: <memory or belief to remove>
+MUSE forget: <memory or belief to remove>
 ```
 
 Expected behavior:
@@ -265,7 +265,7 @@ Expected behavior:
 - remove it if available
 - confirm removal plainly
 
-## JARVIS Correct
+## MUSE Correct
 
 Purpose:
 Replace stale memory or a bad assumption.
@@ -273,7 +273,7 @@ Replace stale memory or a bad assumption.
 Command:
 
 ```text
-JARVIS correct: <old belief> -> <new belief>
+MUSE correct: <old belief> -> <new belief>
 ```
 
 Expected behavior:
@@ -330,7 +330,7 @@ Focused mode can be longer.
 ### Capture
 
 ```text
-JARVIS capture: Nourish should explain why a meal suggestion fits my goals without sounding medical.
+MUSE capture: Nourish should explain why a meal suggestion fits my goals without sounding medical.
 ```
 
 Expected:
@@ -347,16 +347,16 @@ Next focused action: Draft safe copy patterns and claim boundaries.
 ### Build
 
 ```text
-JARVIS build: repo=hermes-agent task=add jarvis context audit script
+MUSE build: repo=hermes-agent task=add jarvis context audit script
 ```
 
 Expected:
 
 ```text
-Mission understood: add JARVIS context audit script.
+Mission understood: add MUSE context audit script.
 Repo root: confirm before edits.
 Risk class: medium-low.
-Agents selected: JARVIS Code Operator.
+Agents selected: MUSE Code Operator.
 Worker selected: Claude Code Builder, Codex Reviewer after diff.
 Build/review plan: inspect paths, add script, run py_compile, run audit.
 Files likely affected: scripts/jarvis_context_audit.py.
@@ -368,7 +368,7 @@ Next action: focused repo inspection.
 ### Critic
 
 ```text
-JARVIS critic: I want to add every recovered AOS agent as always active.
+MUSE critic: I want to add every recovered AOS agent as always active.
 ```
 
 Expected:

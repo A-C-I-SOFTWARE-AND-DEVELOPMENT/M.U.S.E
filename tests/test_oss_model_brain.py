@@ -1,5 +1,5 @@
 """Tests for the OSS model brain — hermes_cli.oss_model_brain + the
-JARVIS Prime bridge in hermes_cli.jarvis_prime.model_brain.
+MUSE bridge in hermes_cli.jarvis_prime.model_brain.
 
 These are hermetic: they exercise the built-in fallback catalog and the
 shipped YAML on disk. No network, no provider credentials.
@@ -176,7 +176,7 @@ def test_yaml_and_builtin_cover_the_same_tasks() -> None:
 
 
 # ---------------------------------------------------------------------------
-# JARVIS Prime bridge
+# MUSE bridge
 # ---------------------------------------------------------------------------
 
 

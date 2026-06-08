@@ -1,7 +1,7 @@
-"""JARVIS Prime orchestrator runtime.
+"""MUSE orchestrator runtime.
 
 Ties persona + modes + awareness + gates + owner-auth + router into
-a single ``JarvisPrime`` class. One turn of JARVIS Prime is:
+a single ``JarvisPrime`` class. One turn of MUSE is:
 
     perceive → classify → decide → gate → delegate → speak
 
@@ -118,7 +118,7 @@ class JarvisConfig:
 
 @dataclass
 class JarvisTurn:
-    """One end-to-end turn of JARVIS Prime."""
+    """One end-to-end turn of MUSE."""
 
     intent: str
     awareness: AwarenessSnapshot

@@ -3,7 +3,7 @@ package com.aci.hermes.ui.jarvis
 import androidx.compose.ui.graphics.Color
 
 /**
- * Canonical Jarvis Prime palette. Kept here (separate from
+ * Canonical MUSE palette. Kept here (separate from
  * `ui/theme/Color.kt`) so the icon's visual contract is self-contained
  * and doesn't drift when the surrounding Material theme is retuned.
  */

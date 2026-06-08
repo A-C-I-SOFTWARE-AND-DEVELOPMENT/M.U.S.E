@@ -1,4 +1,4 @@
-# JARVIS Prime Integration Log
+# MUSE Integration Log
 
 > **Stale baseline (2026-05-26).** This log records the PR #131 integration
 > from base `bc97e43`; `main` has since advanced ~211 commits. Current launch

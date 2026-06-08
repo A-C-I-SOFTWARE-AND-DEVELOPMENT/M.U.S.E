@@ -6,7 +6,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Unit tests for the Jarvis Prime route model. These run on the JVM without
+ * Unit tests for the MUSE route model. These run on the JVM without
  * an emulator, so they cover the route catalog and bottom-nav wiring without
  * exercising Compose rendering.
  */

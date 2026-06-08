@@ -1,6 +1,6 @@
 # `update` — consolidating upstream + your branch into main
 
-On a **fork**, `hermes update` (and telling Jarvis to "update", "sync my
+On a **fork**, `hermes update` (and telling MUSE to "update", "sync my
 fork", or "merge upstream") does more than pull the latest release: it
 **autonomously consolidates** the original code and your in-flight work into
 your fork's `main` — no prompts — and pushes the result back to your fork.
@@ -25,7 +25,7 @@ touched.
 3. Merges `upstream/main`, then your current branch, into the integration
    branch.
 4. **Conflict handling** — for each conflicted file:
-   - If a model is configured (see below), Jarvis auto-resolves the conflict
+   - If a model is configured (see below), MUSE auto-resolves the conflict
      and the result is validated to contain no leftover conflict markers.
    - Otherwise — or if a resolution can't be made cleanly — it **safe-stops**:
      the merge is aborted, `main` is left untouched, and the conflicted files

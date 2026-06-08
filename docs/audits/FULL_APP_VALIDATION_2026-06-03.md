@@ -18,7 +18,7 @@ and lock the synergy in with a reproducible test.
 |---|---|---|
 | Python core + CLI | `uv pip install -e .[all,dev]`; full `pytest` | **26,800 passed**; entrypoint `hermes --help` OK |
 | Cockpit HTTP server | live boot + `urllib` client; `tests/gateway/test_cockpit_*` | health/auth/stream OK; **103 cockpit tests pass** |
-| JARVIS Prime runtime | streamed turn (perceive→classify→route→gate) | real `thinking→tone→detail→body→done` stream |
+| MUSE runtime | streamed turn (perceive→classify→route→gate) | real `thinking→tone→detail→body→done` stream |
 | Cross-surface memory | fresh-instance recollect round-trip | **shared brain confirmed** |
 | Web cockpit (React/Vite) | `npm ci` + `npm run build` + `eslint` | build green (`web_dist` produced); 5 safe lint fixes |
 | Android cockpit (Kotlin) | Android SDK install + `assembleDebug` + unit tests | **APK built (35 MB); 433 unit tests, 0 failures** |

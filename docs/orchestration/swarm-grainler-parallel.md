@@ -3,7 +3,7 @@
 > Every code-producing task can run as a **swarm**: a goal is decomposed into
 > **grains** that each own a *provably disjoint file-domain*, each grain becomes
 > its own **specialized LLM** (own model lane, toolset, iteration budget,
-> token-juice context pack, and a dedicated JARVIS Memory Tree namespace), and
+> token-juice context pack, and a dedicated MUSE Memory Tree namespace), and
 > the grains run **in parallel** in isolated git worktrees so they never overlap
 > on each other's work. Every step is dated, traceable, and recorded in a
 > Decision Ledger, and a self-update loop auto-applies the safe/reversible

@@ -1,6 +1,6 @@
 # Mobile-native launch checklist
 
-The gate to run through before you trust the native JARVIS cockpit with
+The gate to run through before you trust the native MUSE cockpit with
 real authority on a phone. Pairs with the general
 [`LAUNCH_GATE_CHECKLIST.md`](LAUNCH_GATE_CHECKLIST.md) (CI / merge
 ceremony) and the safety reference in the
@@ -20,7 +20,7 @@ floor are never waived here.
       `CapabilityCatalogTest`, `CapabilityRepositoryTest`,
       `ManifestPermissionsTest`, `ManifestPermissionAuditTest`,
       `ApprovalStoreTest`, `NoDirectDestructiveActionTest`.
-- [ ] Python unit (JARVIS Prime + redact + orchestrator) passes.
+- [ ] Python unit (MUSE + redact + orchestrator) passes.
 
 ## 2. Secrets never leak
 

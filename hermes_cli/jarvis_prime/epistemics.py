@@ -1,4 +1,4 @@
-"""Anti-hallucination + citation discipline for JARVIS Prime.
+"""Anti-hallucination + citation discipline for MUSE.
 
 The user said: "never hallucinates". This module enforces two
 disciplines on every JARVIS turn:

@@ -1,11 +1,11 @@
-# JARVIS Mobile (native) — user guide
+# MUSE Mobile (native) — user guide
 
-Operate JARVIS Prime from your Android phone, end to end. This guide
+Operate MUSE from your Android phone, end to end. This guide
 assumes no prior setup. By the end you will have the app installed,
 paired to a backend, and you'll know how to chat, run jobs, approve
 actions, use voice and the live avatar, and stop everything instantly.
 
-> The app is a **cockpit**, not a self-contained JARVIS. The phone arms
+> The app is a **cockpit**, not a self-contained MUSE. The phone arms
 > switches and reads instruments; a Hermes **backend** does the thinking,
 > runs the models, and executes work. See
 > [`mobile-app-guide.md`](mobile-app-guide.md) for the flight-cockpit
@@ -86,7 +86,7 @@ and the architecture guide for details.
 | Mode | What it does | When to use |
 |---|---|---|
 | **Mock** (default on fresh install) | The app serves canned data — no backend needed. Chat, jobs, memory all return safe stub content. | Explore the UI, demo offline, develop without a backend. |
-| **Real** | The app talks to the live cockpit. Chat streams the real JARVIS; jobs, memory, approvals are real. | Actual use. Requires a paired, reachable backend. |
+| **Real** | The app talks to the live cockpit. Chat streams the real MUSE; jobs, memory, approvals are real. | Actual use. Requires a paired, reachable backend. |
 
 Toggle **Mock mode** in Settings. With mock mode **off** and a valid
 endpoint + token, the app is live. An unpaired or unreachable backend
@@ -94,9 +94,9 @@ shows a typed **Unreachable** state — never silent fake data.
 
 ## 4. Start chatting
 
-Open **Chat** (or the **Ask JARVIS** bar on any screen) and type. The
-reply streams token-by-token from the real JARVIS turn on your backend.
-Ask in plain English — "JARVIS, companion mode, talk something through",
+Open **Chat** (or the **Ask MUSE** bar on any screen) and type. The
+reply streams token-by-token from the real MUSE turn on your backend.
+Ask in plain English — "MUSE, companion mode, talk something through",
 "strategy mode, help me reason about pricing", "prepare a build packet
 for …". The full menu of phrased entry points is the **capability
 catalog** (see the capability guide).
@@ -134,7 +134,7 @@ app cannot bypass it. See
 
 ## 7. Memory
 
-The **Memory** screen shows what JARVIS remembers about you, with
+The **Memory** screen shows what MUSE remembers about you, with
 provenance. You can add and delete entries. Memory writes are **redacted**
 — secrets, tokens, and identifiers are stripped before anything is stored
 (`MemoryRedactor`). Keep memory local-only with the **Privacy → local-only
@@ -144,7 +144,7 @@ contradiction rules are described in
 
 ## 8. Evidence / research
 
-Ask JARVIS to research a topic and it answers from a **cited evidence
+Ask MUSE to research a topic and it answers from a **cited evidence
 store** (the Research Vault), never invented sources. It summarizes only
 from stored citation text or excerpts you provide, and makes no network
 calls of its own. See
@@ -152,16 +152,16 @@ calls of its own. See
 
 ## 9. Voice
 
-Turn on **Voice** in Settings to talk to JARVIS hands-free. On-device
+Turn on **Voice** in Settings to talk to MUSE hands-free. On-device
 STT/TTS drives a listen → think → speak loop. While the mic is live a
 **persistent foreground-service notification and an in-app indicator**
-are shown — JARVIS can never listen silently. For the car, see
+are shown — MUSE can never listen silently. For the car, see
 [`../voice/voice-first-user-guide.md`](../voice/voice-first-user-guide.md)
 and [`../voice/driving-mode-safety.md`](../voice/driving-mode-safety.md).
 
 ## 10. The live avatar (the Den)
 
-The **Live** screen is JARVIS's animated body in its room (the *Den*) —
+The **Live** screen is MUSE's animated body in its room (the *Den*) —
 breathing, walking, reacting. You can adopt a persona, generate furniture,
 and let the avatar float over other apps (an explicit overlay toggle). The
 overlay and device-control surfaces run as clearly-typed foreground

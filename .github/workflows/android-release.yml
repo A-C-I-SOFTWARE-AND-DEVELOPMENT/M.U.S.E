@@ -111,29 +111,29 @@ jobs:
             # stamped with the tag's version.
             VERSION="${REF_NAME#android-v}"; TAG="$REF_NAME"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="MUSE ${TAG}"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
             # Manual dispatch against an explicit tag.
             VERSION="${INPUT_TAG#android-v}"; TAG="$INPUT_TAG"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="MUSE ${TAG}"
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             # THE ONE BUTTON: Actions → Android release → Run workflow with no
             # input cuts a permanent versioned release auto-stamped with the
             # build date + commit count. No tag to type.
             VERSION="$AUTO_VERSION"; TAG="android-v${VERSION}"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
-            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${TAG}"
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="MUSE ${TAG}"
           elif [ "$EVENT" = "push" ]; then
             # Branch push → refresh the rolling 'android-latest' download; the
             # asset name is stable so the URL never changes, but the APK inside
             # still carries the real date+work version.
             VERSION="$AUTO_VERSION"; TAG="android-latest"
             PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
-            ASSET="jarvis-prime-android.apk"; TITLE="Jarvis Prime — latest Android build"
+            ASSET="jarvis-prime-android.apk"; TITLE="MUSE — latest Android build"
           else
             VERSION="$AUTO_VERSION"; TAG=""; PUBLISH=false; CHANNEL=none
-            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="Jarvis Prime ${VERSION}"
+            ASSET="jarvis-prime-${VERSION}.apk"; TITLE="MUSE ${VERSION}"
           fi
 
           {
@@ -259,7 +259,7 @@ jobs:
           # printf keeps every Markdown line at column 0 regardless of the
           # YAML block indentation, so nothing renders as an accidental code block.
           {
-            printf '%s\n' "**Jarvis Prime** — the **local-only Hermes/JARVIS Android cockpit**. Version ${VERSION}."
+            printf '%s\n' "**MUSE** — the **local-only Hermes/JARVIS Android cockpit**. Version ${VERSION}."
             printf '%s\n' ""
             printf '%s\n' "_Auto-versioned from the repo's real history: built **${BUILD_DATE}** (UTC) from commit \`${SHA}\` — **${REPO_COMMITS}** commits of work total, **${APP_COMMITS}** of them touching the Android app._"
             printf '%s\n' ""
@@ -270,7 +270,7 @@ jobs:
             printf '%s\n' "## Install"
             printf '%s\n' "1. On your Android phone, download \`${ASSET}\` from the Assets below."
             printf '%s\n' "2. Open it and tap install; allow installs from this source if prompted."
-            printf '%s\n' "3. Launch **Jarvis Prime**."
+            printf '%s\n' "3. Launch **MUSE**."
             printf '%s\n' ""
             printf '%s\n' "Requires Android 8.0+ (API 26). Built for arm64-v8a / armeabi-v7a."
           } > release-notes.md

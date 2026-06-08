@@ -1,14 +1,14 @@
-# Canonical Repo Declaration for JARVIS Prime
+# Canonical Repo Declaration for MUSE
 
 This document establishes which repository owns the canonical runtime
-for JARVIS Prime and how parallel repository work must be coordinated.
+for MUSE and how parallel repository work must be coordinated.
 
 ## Canonical source of truth
 
 `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent` is the canonical source of
-truth for the JARVIS Prime runtime.
+truth for the MUSE runtime.
 
-All JARVIS Prime runtime files — the `hermes_cli/jarvis_prime/` package
+All MUSE runtime files — the `hermes_cli/jarvis_prime/` package
 (`runtime.py`, `router.py`, `modes.py`, `gates.py`, `owner_auth.py`,
 `memory.py`, `awareness.py`, `reasoning.py`, `research.py`,
 `social_research.py`, `epistemics.py`, `self_update.py`, `onboarding.py`,
@@ -31,7 +31,7 @@ without first declaring which one is canonical for that change.
 
 ## Branching policy
 
-* All future JARVIS Prime runtime work branches from
+* All future MUSE runtime work branches from
   `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent` `main`.
 * Do not edit `main` directly.
 * Do not edit multiple Hermes/JARVIS repositories in parallel without
@@ -45,7 +45,7 @@ without first declaring which one is canonical for that change.
 
 ## Worker assignments
 
-* Claude Code is the primary builder for JARVIS Prime runtime changes.
+* Claude Code is the primary builder for MUSE runtime changes.
 * Codex is the reviewer, bounded fix worker, refactorer, and
   second-pass engineer.
 * Claude Code and Codex must not edit the same branch at the same

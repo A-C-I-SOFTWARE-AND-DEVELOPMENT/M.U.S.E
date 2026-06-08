@@ -240,7 +240,7 @@ class ControlViewModel(
                 pendingWarning = PendingWarning(
                     level = level,
                     title = "Emergency stop?",
-                    message = "Jarvis Prime will halt the orchestrator service and " +
+                    message = "MUSE will halt the orchestrator service and " +
                         "decline any further outbound action until you release the stop. " +
                         "Pending tasks stay saved.",
                     confirmLabel = "Engage emergency stop",

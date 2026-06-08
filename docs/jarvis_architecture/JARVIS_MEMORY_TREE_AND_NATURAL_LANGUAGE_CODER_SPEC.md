@@ -95,7 +95,7 @@ python -m hermes_cli.jarvis_prime memory-tree export-markdown --store PATH
 
 ## Live-loop wiring (MEM-2)
 
-The Memory Tree is wired into the live JARVIS loop — it no longer sits
+The Memory Tree is wired into the live MUSE loop — it no longer sits
 beside it. The wiring **augments, never replaces** the legacy
 `MemoryStore`, and is on by default (`HERMES_MEMORY_LAYERS=0` reverts to
 byte-identical legacy recall).

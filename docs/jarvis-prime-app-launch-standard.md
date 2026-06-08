@@ -1,4 +1,4 @@
-# Jarvis Prime — Android App Launch Standard
+# MUSE — Android App Launch Standard
 
 > **Status:** product spec, v1. Companion to
 > [`jarvis-prime-app-product-spec.md`](jarvis-prime-app-product-spec.md),
@@ -6,7 +6,7 @@
 > [`jarvis-prime-app-screen-map.md`](jarvis-prime-app-screen-map.md),
 > [`jarvis-prime-app-onboarding-spec.md`](jarvis-prime-app-onboarding-spec.md).
 >
-> The launch readiness bar — what *"Jarvis Prime is ready to ship"*
+> The launch readiness bar — what *"MUSE is ready to ship"*
 > means. Every section here is a gate. A build that fails any one
 > is not a launch candidate, regardless of how close the others
 > are.
@@ -58,8 +58,8 @@ latest supported SDK.
 
 | # | Flow | Required to pass |
 |---|---|---|
-| 1 | Open app and see Jarvis status | happy path · cached state · emergency stop sticky |
-| 2 | Ask Jarvis a casual question | happy path · stream interruption · out-of-scope (gated proposal) · offline outbox |
+| 1 | Open app and see MUSE status | happy path · cached state · emergency stop sticky |
+| 2 | Ask MUSE a casual question | happy path · stream interruption · out-of-scope (gated proposal) · offline outbox |
 | 3 | Use voice capture | happy path · STT failure · mic denied · offline capture queue |
 | 4 | Convert rough voice idea into a task | happy path · gateway 5xx draft retention · mobile-voice format · explicit defer |
 | 5 | View active tasks | happy path · SSE drop · empty · failed task `View why` |
@@ -109,7 +109,7 @@ worse than launch failure on quality.
 ### 4.2 Emergency stop safety
 
 - Reachable from every screen via the icon's double-tap.
-- Reachable via the voice phrase *"Jarvis, stop everything."*
+- Reachable via the voice phrase *"MUSE, stop everything."*
 - Reachable via long-press on the lock-screen widget.
 - Local effect ≤ 200 ms.
 - Resume is **never automatic** — no timer, no fallback, no
@@ -154,7 +154,7 @@ worse than launch failure on quality.
   like `com.aci.hermes`, `HermesService`, and `/v1/*` remain
   internal-only and never surface on screen.)
 - The app label, all notification titles, voice readbacks,
-  widget text, and store metadata say **Jarvis Prime**.
+  widget text, and store metadata say **MUSE**.
 
 ### 4.8 Distribution safety
 
@@ -196,7 +196,7 @@ networking) before launch:
 
 | Field | Value |
 |---|---|
-| App name | **Jarvis Prime** |
+| App name | **MUSE** |
 | Tagline | *Talk. Command. Approve. Stop.* |
 | Short description (80 chars) | *Your mobile-first AI operating partner. You stay in control.* |
 | Long description | Pulled from §6.2 below. |
@@ -207,23 +207,23 @@ networking) before launch:
 ### 6.2 Long description copy (Play Store)
 
 ```
-Jarvis Prime is a mobile-first AI operating partner.
+MUSE is a mobile-first AI operating partner.
 
 From your phone, you can:
 
-· Talk to Jarvis — voice or text, anywhere.
+· Talk to MUSE — voice or text, anywhere.
 · Command — turn a rough idea into a runnable task.
 · Approve — sign off risky, serious, and critical actions with
   the right level of friction. No silent autopilot.
 · Monitor — see active tasks, pending approvals, and the last
-  thing Jarvis did, at a glance.
+  thing MUSE did, at a glance.
 · Remember — inspect, correct, and delete the durable memory
-  Jarvis is using.
+  MUSE is using.
 · Verify — audit every consequential action in plain English.
 · Stop — emergency stop is one gesture, any screen.
 · Resume — only when you say so.
 
-Jarvis Prime connects to a Jarvis Prime gateway you run — on a
+MUSE connects to a MUSE gateway you run — on a
 server, a VPS, or Termux on the same phone. It never silently
 swaps modes, never auto-approves, never writes memory without
 asking.
@@ -246,7 +246,7 @@ The user never sees any of these.
   layered).
 - Feature graphic (1024×500).
 - Phone screenshots (minimum 4):
-  1. Jarvis Home with status, icon, and tiles.
+  1. MUSE Home with status, icon, and tiles.
   2. Chat mid-stream.
   3. Approval detail with a Critical Impact Report.
   4. Audit / Proof timeline.
@@ -261,7 +261,7 @@ The user never sees any of these.
     processed on-device by default, optional cloud STT with
     per-session opt-in.
   - Personal info: only what the owner enters into Chat, Memory,
-    or Tasks. Stored on the owner's gateway, not on a Jarvis Prime
+    or Tasks. Stored on the owner's gateway, not on a MUSE
     server.
   - App activity: log buffer kept in-memory and surfaced in
     Diagnostics only.
@@ -269,7 +269,7 @@ The user never sees any of these.
   - Encrypted storage on device for tokens and provider keys.
 - **Privacy policy.** Hosted at a stable URL and linked from
   Settings → About → Privacy policy.
-- **Account deletion.** Not applicable (no Jarvis Prime cloud
+- **Account deletion.** Not applicable (no MUSE cloud
   account). Settings → Reset → *Clear everything* removes all
   local data.
 
@@ -339,7 +339,7 @@ with authorization."*
    - rollback (downgrade via Play Internal track + halt rollout),
    - why now (release notes).
 9. **Write the launch ledger entry.** Classification *publish*,
-   actor *owner*, action *"Released Jarvis Prime <version> to
+   actor *owner*, action *"Released MUSE <version> to
    Google Play."*
 
 The release rollout uses **staged rollout** (5% → 25% → 50% →
@@ -442,7 +442,7 @@ the launch ledger entry is written.
 - [`jarvis-prime-app-onboarding-spec.md`](jarvis-prime-app-onboarding-spec.md)
   — the first-run path that distribution must preserve.
 - [`jarvis-prime-operating-system.md`](jarvis-prime-operating-system.md)
-  — the runtime identity Jarvis Prime presents on launch.
+  — the runtime identity MUSE presents on launch.
 - [`jarvis-verification-gates.md`](jarvis-verification-gates.md)
   — the verification gates the gateway enforces; this doc covers
   app-side verification for the launch itself.

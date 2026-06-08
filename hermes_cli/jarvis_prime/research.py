@@ -1,4 +1,4 @@
-"""Deep-research trigger for JARVIS Prime.
+"""Deep-research trigger for MUSE.
 
 The user asked: "do deep research if it doesn't fully understand a
 topic or code". This module implements the trigger: when reasoning

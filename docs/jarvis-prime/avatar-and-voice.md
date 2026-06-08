@@ -1,6 +1,6 @@
-# JARVIS Prime — Avatar & Voice Embodiment
+# MUSE — Avatar & Voice Embodiment
 
-> One canonical definition of *who JARVIS is* as an embodied presence —
+> One canonical definition of *who MUSE is* as an embodied presence —
 > brand glyph, palette, tagline, and a **locale-aware voice** + local-first
 > voice stack — shared by the CLI, gateway, Termux runtime, and the Android
 > cockpit.
@@ -22,7 +22,7 @@ python -m hermes_cli.jarvis_prime avatar --json         # machine-readable
 
 | Field | Value | Sourced from |
 |---|---|---|
-| Name | **JARVIS Prime** | `res/values/strings.xml` (`app_name`) |
+| Name | **MUSE** | `res/values/strings.xml` (`app_name`) |
 | Tagline | *Your command-center agent.* | `strings.xml` (`app_tagline`) |
 | Glyph | Two concentric rings — gold outer, cyan inner — around a luminous gold **prime dot**: the watchful eye | `ui/components/JarvisPrimeIcon.kt` |
 | Gold (brand) | `#E6B341` | `ui/theme/Color.kt` (`JarvisGold`) |
@@ -30,10 +30,10 @@ python -m hermes_cli.jarvis_prime avatar --json         # machine-readable
 | Ink (bg) | `#05070D` | `JarvisInkAbyss` |
 | Signal (text) | `#E7ECF7` | `JarvisSignal` |
 
-The Android cockpit is **already** branded JARVIS Prime end to end (launcher
+The Android cockpit is **already** branded MUSE end to end (launcher
 icon, `JarvisPrimeIcon`, `JarvisStatusHeader`, `JarvisShell`, theme tokens).
 This module makes that identity a portable artifact so the CLI and any future
-surface render the *same* JARVIS instead of drifting.
+surface render the *same* MUSE instead of drifting.
 
 ---
 
@@ -59,7 +59,7 @@ Greetings/prompts match the tone of the existing Android voice strings
 
 ## Local-first voice stack
 
-`LocalVoiceStack` declares the on-device default JARVIS prefers when offline.
+`LocalVoiceStack` declares the on-device default MUSE prefers when offline.
 It is **declarative** — the runtime in
 [`hermes_cli/voice.py`](../../hermes_cli/voice.py) maps it to whatever STT/TTS
 backend is installed; the cloud path still works via the existing voice
@@ -72,7 +72,7 @@ providers.
 | `stt_compute` | `int8` | quantized for CPU/edge |
 | `tts_engine` | `piper` | offline neural TTS |
 | `offline_first` | `true` | prefer local; no audio leaves device |
-| `wake_phrase` | `Jarvis` | for opt-in wake-word capture |
+| `wake_phrase` | `MUSE` | for opt-in wake-word capture |
 | `vad` | `true` | voice-activity auto-stop |
 
 ---

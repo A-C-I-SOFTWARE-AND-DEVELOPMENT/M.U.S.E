@@ -1,6 +1,6 @@
 # Standalone Local Mode (v1.5)
 
-The Jarvis Prime Android app runs as a **standalone-local coding cockpit**: a
+The MUSE Android app runs as a **standalone-local coding cockpit**: a
 control plane you can use every day for coding work, that is local-first,
 privacy-preserving, and never routes provider traffic through a central
 company backend. There are no bundled API keys; the only secret the app holds

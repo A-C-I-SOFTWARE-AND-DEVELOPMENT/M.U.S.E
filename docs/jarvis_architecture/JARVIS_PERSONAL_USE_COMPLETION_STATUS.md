@@ -1,4 +1,4 @@
-# JARVIS Prime — Personal-Use Completion Status
+# MUSE — Personal-Use Completion Status
 
 Honest status of each build area. **Shipped** = implemented + tested.
 **Scaffolded** = structure present, integration remaining. **Remaining** =

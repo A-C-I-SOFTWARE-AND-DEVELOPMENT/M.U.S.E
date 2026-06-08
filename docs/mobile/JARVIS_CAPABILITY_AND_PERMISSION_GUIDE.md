@@ -1,14 +1,14 @@
-# JARVIS capability & permission guide
+# MUSE capability & permission guide
 
 A powerful personal assistant on your phone earns that power one explicit
-grant at a time. This guide covers **what JARVIS can do**, **what it asks
+grant at a time. This guide covers **what MUSE can do**, **what it asks
 for and why**, how you **see** when it's active, and how you **inspect,
 revoke, and recover**. It ends with the **security-audit mapping** tying
 each safety control to the code and tests that enforce it.
 
 ---
 
-## 1. Capabilities (what JARVIS can do)
+## 1. Capabilities (what MUSE can do)
 
 The phone surfaces a curated **capability catalog**
 (`apps/android/app/src/main/java/com/aci/hermes/data/capability/CapabilityCatalog.kt`).
@@ -43,7 +43,7 @@ The app does not silently acquire abilities:
 Declared in
 [`apps/android/app/src/main/AndroidManifest.xml`](../../apps/android/app/src/main/AndroidManifest.xml):
 
-| Permission | Why JARVIS asks | Gated by |
+| Permission | Why MUSE asks | Gated by |
 |---|---|---|
 | `POST_NOTIFICATIONS` | Show job/approval/voice notifications | OS runtime prompt |
 | `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_DATA_SYNC` | Keep syncing with the backend while backgrounded | Foreground notification |
@@ -51,10 +51,10 @@ Declared in
 | `SYSTEM_ALERT_WINDOW` | The floating avatar body draws over other apps | "Draw over other apps" grant + overlay toggle |
 | `FOREGROUND_SERVICE_SPECIAL_USE` (`on_screen_assistant_avatar`) | Run the avatar overlay service | FGS notification |
 | `BLUETOOTH_CONNECT` | Use a headset for the voice loop | OS runtime prompt |
-| `QUERY_ALL_PACKAGES` | Let JARVIS launch/automate the apps you name | Used only behind accessibility + your action |
-| `BIND_ACCESSIBILITY_SERVICE` (`JarvisAccessibilityService`) | JARVIS's "hands" — taps, swipes, app launches | System accessibility toggle (you enable it explicitly) |
+| `QUERY_ALL_PACKAGES` | Let MUSE launch/automate the apps you name | Used only behind accessibility + your action |
+| `BIND_ACCESSIBILITY_SERVICE` (`JarvisAccessibilityService`) | MUSE's "hands" — taps, swipes, app launches | System accessibility toggle (you enable it explicitly) |
 
-**Android system permissions remain technical gates JARVIS cannot
+**Android system permissions remain technical gates MUSE cannot
 bypass.** A standing owner-authorized profile reduces *repeated* approval
 friction, but it never grants a permission the OS hasn't.
 
@@ -62,7 +62,7 @@ friction, but it never grants a permission the OS hasn't.
 
 - **Microphone:** the voice loop runs as a `microphone` foreground service
   (`VoiceLoopService`) — a persistent system notification plus an in-app
-  indicator (`VoiceLoopState`). JARVIS cannot listen silently. Android's
+  indicator (`VoiceLoopState`). MUSE cannot listen silently. Android's
   own top-bar mic dot is also lit.
 - **Device control / avatar:** the overlay runs as a `specialUse`
   foreground service with its own notification; the accessibility "hands"
@@ -77,10 +77,10 @@ implicitly by the runtime:
 
 | Mode | Behaviour |
 |---|---|
-| **Manual** | JARVIS acts only when you tap a step. |
-| **Assisted** | JARVIS proposes; each action waits for owner approval. |
-| **Trusted (low risk)** | JARVIS runs low-risk steps; destructive actions still require approval. |
-| **Lockdown** | JARVIS is paused — no external actions, no handoffs, no automation. |
+| **Manual** | MUSE acts only when you tap a step. |
+| **Assisted** | MUSE proposes; each action waits for owner approval. |
+| **Trusted (low risk)** | MUSE runs low-risk steps; destructive actions still require approval. |
+| **Lockdown** | MUSE is paused — no external actions, no handoffs, no automation. |
 
 Even at the highest tier, **owner-gated and irreversible actions still
 pause** for the authorization phrase. See

@@ -1,14 +1,14 @@
-# Jarvis Prime — App Identity Migration
+# MUSE — App Identity Migration
 
-This is the **compatibility contract** for the Hermes → Jarvis Prime
+This is the **compatibility contract** for the Hermes → MUSE
 visual rebrand of the Android app. It tells the next person on this
 branch what changed, what intentionally did **not** change, and why.
 
 ---
 
-## 1. What is Jarvis Prime?
+## 1. What is MUSE?
 
-Jarvis Prime is the **user-facing product name** for the personal AI
+MUSE is the **user-facing product name** for the personal AI
 command center that runs as the Android app under `apps/android/`.
 
 The backend / runtime is still called **Hermes** — that name appears in
@@ -16,7 +16,7 @@ docs, repo paths, code identifiers, and developer-facing diagnostics.
 The agent runtime, gateway protocol, REST surface, and Python core
 remain Hermes.
 
-> Jarvis Prime is the cockpit. Hermes is the airframe.
+> MUSE is the cockpit. Hermes is the airframe.
 
 ---
 
@@ -48,7 +48,7 @@ com.aci.hermes
 ├── di/AppContainer.kt     // unchanged
 ├── service/HermesService.kt
 ├── ui/
-│   ├── components/        // NEW — Jarvis Prime component library
+│   ├── components/        // NEW — MUSE component library
 │   ├── navigation/        // unchanged
 │   ├── screens/           // unchanged signatures
 │   └── theme/             // rebranded internals; old names still alias
@@ -64,7 +64,7 @@ changed.
 |---|---|---|
 | `HermesTheme` | `JarvisPrimeTheme` | Old name is now a `@Composable` alias that delegates to the new one. Both still resolve. |
 | `HermesTypography` | `JarvisTypography` | Old name is a `val` alias. |
-| `HermesGold`, `HermesInk`, `HermesViolet`, `HermesError`, `HermesSurfaceDim`, `HermesSurfaceBright`, `HermesGoldDeep`, `HermesInkSoft`, `HermesPaper` | Re-pointed at `Jarvis*` tokens | Old names compile; render with the new palette. |
+| `HermesGold`, `HermesInk`, `HermesViolet`, `HermesError`, `HermesSurfaceDim`, `HermesSurfaceBright`, `HermesGoldDeep`, `HermesInkSoft`, `HermesPaper` | Re-pointed at `MUSE*` tokens | Old names compile; render with the new palette. |
 
 `MainActivity.kt` and `HermesNavGraph.kt` keep their old import lines
 and still work.
@@ -72,7 +72,7 @@ and still work.
 ### 2.4 String resource IDs — additive
 
 Every `R.string.*` key that existed before still exists. The values
-were edited to say "Jarvis Prime" where appropriate; the keys are
+were edited to say "MUSE" where appropriate; the keys are
 additive only. A grep verified that all 123 unique `R.string.*` call
 sites in Kotlin resolve against the new `strings.xml`.
 
@@ -143,7 +143,7 @@ Background: deep navy with a faint cross-hair grid.
 
 ### 3.3 New component library
 
-`ui/components/` is new. It contains every shareable Jarvis Prime
+`ui/components/` is new. It contains every shareable MUSE
 surface: header, status pill, ask bar, tier-coloured cards, emergency
 stop, permission education. Existing screens (`OrchestratorScreen`,
 `SettingsScreen`, `TaskDetailScreen`, `DiagnosticsScreen`) are **not**
@@ -155,7 +155,7 @@ component primitives one at a time without breaking the build.
 ### 3.4 Splash
 
 `SplashScreen.kt` now renders the new brand glyph and the
-`R.string.app_name` resource ("Jarvis Prime"), plus a tagline. The XML
+`R.string.app_name` resource ("MUSE"), plus a tagline. The XML
 splash window background is still the deepest navy so there is no
 flash-of-old-colour during cold start.
 

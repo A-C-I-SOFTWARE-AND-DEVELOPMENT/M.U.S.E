@@ -143,7 +143,7 @@ voice:
 
 > `piper` / `neutts` / `kittentts` run on-device with no cloud dependency;
 > `elevenlabs` / `openai` / `gemini` / `xai` are premium cloud voices that need
-> the matching API key. (The JARVIS local-voice / avatar stack defaults to
+> the matching API key. (The MUSE local-voice / avatar stack defaults to
 > `piper`.)
 
 The driving-mode cap (below) overrides this with a stricter limit.
@@ -350,7 +350,7 @@ For everything else, see
 
 ## See also
 
-- [presence-mode.md](presence-mode.md) — JARVIS Presence Mode: the
+- [presence-mode.md](presence-mode.md) — MUSE Presence Mode: the
   hands-free, avatar-over-the-launcher cockpit, the attention → wake →
   mic trigger fallback chain, gestures, and approval-by-voice.
 - [mobile/mobile-app-guide.md](../mobile/mobile-app-guide.md) — the

@@ -7,7 +7,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import com.aci.hermes.data.preferences.ThemeMode
 
-// Jarvis Prime is dark-first. The dark scheme is the canonical experience;
+// MUSE is dark-first. The dark scheme is the canonical experience;
 // the light scheme keeps the product usable in bright daylight but is not
 // the primary identity.
 

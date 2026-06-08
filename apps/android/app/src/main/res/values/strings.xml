@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      Jarvis Prime — user-facing strings.
+      MUSE — user-facing strings.
       The Android package stays com.aci.hermes for install / signing
       continuity, but every label the user sees in this file says
-      "Jarvis Prime". Technical / developer-facing wording (notification
+      "MUSE". Technical / developer-facing wording (notification
       service name, internal diagnostics) may still reference Hermes as
       the backend identifier.
     -->
 
-    <string name="app_name">Jarvis Prime</string>
+    <string name="app_name">MUSE</string>
     <string name="app_tagline">Your command-center agent.</string>
     <string name="app_backend_label">Hermes runtime</string>
 
     <!-- Splash / welcome -->
-    <string name="welcome_title">Welcome to Jarvis Prime</string>
+    <string name="welcome_title">Welcome to MUSE</string>
     <string name="welcome_subtitle">An agent that asks permission, confirms intent, and shows the work.</string>
     <string name="welcome_continue">Begin</string>
 
     <!-- Foreground service notification (keeps Hermes backend label for clarity) -->
-    <string name="orchestrator_notification_title">Jarvis Prime is on duty</string>
+    <string name="orchestrator_notification_title">MUSE is on duty</string>
     <string name="orchestrator_notification_text">Coordinating local AI workflow on this device.</string>
     <string name="orchestrator_notification_stop">Stand down</string>
     <string name="orchestrator_notification_owner_approve">Owner Approve</string>
 
     <!-- Work-watcher foreground service (only runs while active work exists) -->
     <string name="workwatch_notification_title">Watching active work</string>
-    <string name="workwatch_notification_text">Jarvis Prime is tracking running jobs and approvals.</string>
+    <string name="workwatch_notification_text">MUSE is tracking running jobs and approvals.</string>
 
     <!-- Long-running-work notifications (event-driven). Bodies take a job title
          or worker name; no prompts, diffs, tokens, or model reasoning. -->
@@ -47,22 +47,22 @@
     <string name="notify_research_text">%1$s is ready to review.</string>
     <string name="notify_tests_failed_title">Tests failed</string>
     <string name="notify_emergency_title">Emergency stop engaged</string>
-    <string name="notify_emergency_text">Jarvis Prime work is halted.</string>
+    <string name="notify_emergency_text">MUSE work is halted.</string>
 
     <!-- Launcher shortcuts -->
     <string name="shortcut_owner_approve_short">Approve</string>
     <string name="shortcut_owner_approve_long">Owner Approve action</string>
     <string name="shortcut_stop_short">Stop JARVIS</string>
-    <string name="shortcut_stop_long">Emergency stop for JARVIS Prime</string>
+    <string name="shortcut_stop_long">Emergency stop for MUSE</string>
 
     <!-- Orchestrator dashboard -->
-    <string name="orchestrator_title">Jarvis Prime</string>
+    <string name="orchestrator_title">MUSE</string>
     <string name="orchestrator_subtitle">Command center</string>
     <string name="orchestrator_tools_title">Connected AI tools</string>
     <string name="orchestrator_tasks_title">Active tasks</string>
     <string name="orchestrator_tasks_empty">Nothing on the docket yet. Tap + to brief Jarvis on a task.</string>
-    <string name="orchestrator_status_running">Jarvis Prime online</string>
-    <string name="orchestrator_status_stopped">Jarvis Prime standing by</string>
+    <string name="orchestrator_status_running">MUSE online</string>
+    <string name="orchestrator_status_stopped">MUSE standing by</string>
     <string name="orchestrator_status_mode_label">Mode</string>
     <string name="orchestrator_status_billing_label">API billing</string>
     <string name="orchestrator_status_billing_value">Not used</string>
@@ -76,8 +76,8 @@
     <string name="orchestrator_open_tool">Open tool</string>
     <string name="orchestrator_open_task">Open task</string>
     <string name="orchestrator_untitled_task">(untitled task)</string>
-    <string name="orchestrator_safety_title">About Jarvis Prime</string>
-    <string name="orchestrator_safety_body">Jarvis Prime does not bypass your AI provider logins. It organizes the work and hands off to the official tools you are already signed into.</string>
+    <string name="orchestrator_safety_title">About MUSE</string>
+    <string name="orchestrator_safety_body">MUSE does not bypass your AI provider logins. It organizes the work and hands off to the official tools you are already signed into.</string>
 
     <!-- Ask Jarvis (chat input bar) -->
     <string name="ask_jarvis_hint">Ask Jarvis…</string>
@@ -96,7 +96,7 @@
     <string name="voice_action_done">Done</string>
     <string name="voice_action_retry">Retry</string>
     <!-- Voice capture screen (hands-free task capture) -->
-    <string name="voice_privacy_note">Voice runs through your device\'s system speech recognizer. Jarvis Prime never records audio itself and uploads nothing.</string>
+    <string name="voice_privacy_note">Voice runs through your device\'s system speech recognizer. MUSE never records audio itself and uploads nothing.</string>
     <string name="voice_prompt">Speak your task or note</string>
     <string name="voice_listening">Listening…</string>
     <string name="voice_tap_to_speak">Tap the mic to speak</string>
@@ -297,12 +297,12 @@
     <string name="nav_emergency_stop">Emergency stop</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_title">Welcome to Jarvis Prime</string>
+    <string name="onboarding_title">Welcome to MUSE</string>
     <string name="onboarding_subtitle">A local orchestration shell for the AI tools you already use. Nothing leaves this device unless you say so.</string>
     <string name="onboarding_bullet_local_title">Local-first</string>
     <string name="onboarding_bullet_local_body">All tasks, prompts, and preferences live on this device. No backend, no API key required.</string>
     <string name="onboarding_bullet_handoff_title">Tool handoff, not proxy</string>
-    <string name="onboarding_bullet_handoff_body">Jarvis Prime prepares prompts and hands off to the official Codex, ChatGPT, Claude Code, or Claude apps you already use.</string>
+    <string name="onboarding_bullet_handoff_body">MUSE prepares prompts and hands off to the official Codex, ChatGPT, Claude Code, or Claude apps you already use.</string>
     <string name="onboarding_bullet_safety_title">Emergency stop, always</string>
     <string name="onboarding_bullet_safety_body">The orchestrator runs as a foreground service so you always know it is on, and a global Emergency Stop is one tap away from any screen.</string>
     <string name="onboarding_cta">Get started</string>
@@ -357,19 +357,19 @@
 
     <!-- Chat placeholder -->
     <string name="chat_title">Chat</string>
-    <string name="chat_description">A focused thread surface for talking to Jarvis Prime about the active task.</string>
+    <string name="chat_description">A focused thread surface for talking to MUSE about the active task.</string>
     <string name="chat_coming_soon">The conversational pane is still being built. Until then, use Prepare handoff on the Home screen to draft a prompt for your tool of choice.</string>
 
     <!-- Approvals placeholder + real-list empty states (#107) -->
     <string name="approvals_title">Approvals</string>
-    <string name="approvals_description">Review and approve actions Jarvis Prime wants to take on your behalf.</string>
+    <string name="approvals_description">Review and approve actions MUSE wants to take on your behalf.</string>
     <string name="approvals_coming_soon">Pending-approval queue ships with the next milestone. Run actions manually for now.</string>
     <string name="approvals_empty_pending">No approvals waiting. Jarvis is idle.</string>
     <string name="approvals_empty_history">No decisions yet.</string>
 
     <!-- Memory placeholder -->
     <string name="memory_title">Memory</string>
-    <string name="memory_description">Inspect long-term context, facts, and preferences Jarvis Prime has on file for you.</string>
+    <string name="memory_description">Inspect long-term context, facts, and preferences MUSE has on file for you.</string>
     <string name="memory_coming_soon">Memory inspection arrives once the local store is wired up. Tasks remain visible on the Tasks tab.</string>
     <!-- Memory screen (live) -->
     <string name="memory_search_hint">Search memory</string>
@@ -384,7 +384,7 @@
 
     <!-- Audit placeholder -->
     <string name="audit_title">Audit</string>
-    <string name="audit_description">A chronological log of every decision, handoff, and approval Jarvis Prime made on this device.</string>
+    <string name="audit_description">A chronological log of every decision, handoff, and approval MUSE made on this device.</string>
     <string name="audit_coming_soon">Audit timeline lands next. Use Diagnostics for the raw service log in the meantime.</string>
 
     <!-- Control -->
@@ -397,14 +397,14 @@
 
     <!-- Emergency stop (simpler screen variant from #112; coexists with confirm-flow strings above) -->
     <string name="emergency_stop_title">Emergency stop</string>
-    <string name="emergency_stop_body">Immediately stops the Jarvis Prime orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>
+    <string name="emergency_stop_body">Immediately stops the MUSE orchestrator service and dismisses its notification. You can restart it from the Home or Control screen.</string>
     <string name="emergency_stop_confirm">Stop now</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_section_orchestrator">Orchestrator preferences</string>
     <string name="settings_section_appearance">Appearance</string>
-    <string name="settings_section_about">About Jarvis Prime</string>
+    <string name="settings_section_about">About MUSE</string>
     <string name="settings_reset">Reset all settings and tasks</string>
     <string name="settings_reset_confirm">This will clear orchestrator preferences and all saved tasks. Continue?</string>
 
@@ -417,7 +417,7 @@
     <string name="settings_open_avatar_picker">Open avatar picker</string>
 
     <string name="settings_use_api_keys_label">Use API keys</string>
-    <string name="settings_use_api_keys_subtitle">Off by default. Jarvis Prime never requires an API key for the primary workflow.</string>
+    <string name="settings_use_api_keys_subtitle">Off by default. MUSE never requires an API key for the primary workflow.</string>
     <string name="settings_local_only_mode_label">Local-only mode</string>
     <string name="settings_local_only_mode_subtitle">On by default. All orchestrator state stays on this device.</string>
     <string name="settings_allow_external_label">Allow external app opening</string>
@@ -425,7 +425,7 @@
     <string name="settings_clipboard_label">Clipboard handoff enabled</string>
     <string name="settings_clipboard_subtitle">Allows the &quot;Copy prompt&quot; action. Each copy still requires a tap.</string>
     <string name="settings_safety_warnings_label">Show safety warnings</string>
-    <string name="settings_safety_warnings_subtitle">Show the reminder that Jarvis Prime does not bypass provider authentication.</string>
+    <string name="settings_safety_warnings_subtitle">Show the reminder that MUSE does not bypass provider authentication.</string>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
@@ -554,7 +554,7 @@
     <string name="jarvis_emergency_dialog_body">Emergency stop halts every running task. You can release the stop afterwards.</string>
 
     <!-- Audit screen and audit-detail screen -->
-    <string name="audit_empty">No audited actions yet. Jarvis Prime will log every decision here.</string>
+    <string name="audit_empty">No audited actions yet. MUSE will log every decision here.</string>
     <string name="audit_failed_badge">Failed</string>
     <string name="audit_activity_action">Activity timeline</string>
     <string name="audit_detail_title">Audit detail</string>
@@ -581,8 +581,8 @@
     <string name="capability_title">Capabilities</string>
     <string name="capability_installed_title">Installed on gateway</string>
     <string name="capability_installed_empty">No skills are installed on the paired gateway yet.</string>
-    <string name="capability_header_title">What Jarvis Prime can do</string>
-    <string name="capability_header_body">Browse every capability Jarvis Prime knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
+    <string name="capability_header_title">What MUSE can do</string>
+    <string name="capability_header_body">Browse every capability MUSE knows how to run on this device. Owner-gated actions still require your explicit approval.</string>
     <string name="capability_search_hint">Search capabilities</string>
     <string name="capability_filter_all">All</string>
     <string name="capability_advanced_label">Show advanced</string>
@@ -621,7 +621,7 @@
     <string name="model_route_override_save">Pin</string>
     <string name="model_route_override_clear">Clear</string>
     <string name="model_route_paid_title">Paid routing</string>
-    <string name="model_route_paid_subtitle">Off by default. Enabling lets Jarvis Prime route to paid APIs — a money-spend gate that needs your authorization.</string>
+    <string name="model_route_paid_subtitle">Off by default. Enabling lets MUSE route to paid APIs — a money-spend gate that needs your authorization.</string>
     <string name="model_route_paid_confirm_title">Authorize paid routing</string>
     <string name="model_route_paid_confirm_body">Type the exact phrase to authorize this change.</string>
     <string name="model_route_paid_confirm_cta">Authorize</string>

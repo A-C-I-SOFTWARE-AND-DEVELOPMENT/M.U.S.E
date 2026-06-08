@@ -3,7 +3,7 @@ package com.aci.hermes.data.emergency
 import kotlinx.serialization.Serializable
 
 /**
- * Jarvis Prime emergency stop levels. Each level raises the gate higher.
+ * MUSE emergency stop levels. Each level raises the gate higher.
  *
  * - [INACTIVE]: nothing blocked.
  * - [SOFT_PAUSE]: no new task starts; in-flight work continues.

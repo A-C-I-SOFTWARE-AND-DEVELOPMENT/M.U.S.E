@@ -10,7 +10,7 @@ task. The companion files are:
   this policy and applies it per task.
 - `oss-model-catalog.yaml` / `oss-model-catalog.md` — the **OSS model
   brain**: the cross-referenced catalog of open-weight models (which
-  *open model* is best per task) that JARVIS Prime can route to via the
+  *open model* is best per task) that MUSE can route to via the
   installed providers. The worker layer here answers "which agent";
   the OSS brain answers "which open model that agent should run."
 

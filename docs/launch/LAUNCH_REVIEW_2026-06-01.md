@@ -25,13 +25,13 @@ item (B6) is owner-accepted ship-as-is.**
 | Launch-critical tests | `pytest` (owner_auth + gates + workpacket + jarvis_prime) | 234 passed |
 | Owner-gate audit hatch | `AUTHORIZATION_PHRASE` + `OwnerAuth` present | present |
 
-The runtime, gateway, worker engine, orchestrator, JARVIS Prime package, and
+The runtime, gateway, worker engine, orchestrator, MUSE package, and
 the Android cockpit (incl. the now-landed **chat screen** and **interactive
 icon**) are real and substantially complete. See the audit §3 for the full map.
 
 ## Permission posture (B6) — owner-accepted
 
-The "Sentient JARVIS avatar" feature (#170) expanded the Android permission
+The "Sentient MUSE avatar" feature (#170) expanded the Android permission
 surface beyond the original safety model: accessibility service, system
 overlay, `QUERY_ALL_PACKAGES`, and always-on microphone. These back real
 shipped features and are a Play Store policy risk. **The owner reviewed this on
