@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Hermes Agent" width="100%">
+  <img src="assets/banner.png" alt="M.U.S.E." width="100%">
 </p>
 
-# Hermes Agent ☤
+# M.U.S.E. — 多用途突触实体 ◉
 
 <p align="center">
   <a href="https://hermes-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-hermes--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentation"></a>
