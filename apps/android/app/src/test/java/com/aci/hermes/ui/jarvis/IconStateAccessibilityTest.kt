@@ -74,15 +74,29 @@ class IconStateAccessibilityTest {
     }
 
     @Test
-    fun `approval ring uses gold`() {
+    fun `approval ring uses violet`() {
+        // FU-17b: the attention states use the violet spectral ring
+        // (--ring-2) rather than the retired gold. Both approval states
+        // share the violet ring; SERIOUS escalates by also taking a violet
+        // core (asserted separately), keeping the two perceivably distinct.
         assertEquals(
-            JarvisPalette.Gold,
+            JarvisPalette.Violet,
             JarvisIconColors.appearanceFor(IconState.WAITING_FOR_APPROVAL).ringColor,
         )
         assertEquals(
-            JarvisPalette.Gold,
+            JarvisPalette.Violet,
             JarvisIconColors.appearanceFor(IconState.SERIOUS_ACTION_PENDING).ringColor,
         )
+    }
+
+    @Test
+    fun `waiting and serious are perceivably distinct`() {
+        // FU-17b: with the gold→white→violet remap, the two attention states
+        // must not collapse into one another. They share the violet ring but
+        // differ in the core (white for WAITING, violet for SERIOUS).
+        val waiting = JarvisIconColors.appearanceFor(IconState.WAITING_FOR_APPROVAL)
+        val serious = JarvisIconColors.appearanceFor(IconState.SERIOUS_ACTION_PENDING)
+        assertNotEquals(waiting.coreColor, serious.coreColor)
     }
 
     @Test
