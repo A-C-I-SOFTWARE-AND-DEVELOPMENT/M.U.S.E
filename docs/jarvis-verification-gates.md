@@ -1,10 +1,10 @@
-# JARVIS Verification Gates
+# MUSE Verification Gates
 
-This document defines review gates for JARVIS Prime operating-layer work. It is documentation only and does not change runtime behavior.
+This document defines review gates for MUSE operating-layer work. It is documentation only and does not change runtime behavior.
 
 ## Gate Philosophy
 
-JARVIS Prime should move quickly without becoming reckless. Each gate exists to keep local-first work scoped, reviewable, and reversible.
+MUSE should move quickly without becoming reckless. Each gate exists to keep local-first work scoped, reviewable, and reversible.
 
 A gate can pass, fail, or require owner approval. When a gate is skipped, the handoff must state why and name the remaining risk.
 

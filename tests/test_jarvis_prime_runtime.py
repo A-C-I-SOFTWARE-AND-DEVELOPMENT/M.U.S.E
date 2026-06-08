@@ -44,14 +44,14 @@ def test_handle_explicit_mode_override(jp: JarvisPrime) -> None:
 def test_handle_recollection_injected_into_prompt(jp: JarvisPrime) -> None:
     jp.remember(
         "mission",
-        "ship JARVIS Prime v1.0.0",
+        "ship MUSE v1.0.0",
         durability="durable",
         confidence=0.95,
     )
     turn = jp.handle("ship the v1 release", skip_perceive=True)
     rendered = turn.persona_prompt.render()
     assert "RECOLLECTION" in rendered
-    assert "JARVIS Prime" in rendered
+    assert "MUSE" in rendered
 
 
 def test_handle_triggers_research_for_unfamiliar_topic(jp: JarvisPrime) -> None:

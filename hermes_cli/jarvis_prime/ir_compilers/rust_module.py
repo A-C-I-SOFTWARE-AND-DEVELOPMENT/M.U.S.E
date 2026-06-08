@@ -1,4 +1,4 @@
-"""Rust backend compiler (W3) for the JARVIS Prime NL compiler.
+"""Rust backend compiler (W3) for the MUSE NL compiler.
 
 Compiles an :class:`IntentGraph` into a ``RustModule`` — a small, validatable
 Rust *source scaffold* (one ``pub struct`` per ENTITY, one ``pub fn`` per
@@ -322,7 +322,7 @@ def _module_doc(graph: IntentGraph) -> str:
     text = (graph.raw_text or "").strip()
     if text:
         return text.replace("\n", " ")[:200]
-    return "JARVIS Prime generated module."
+    return "MUSE generated module."
 
 
 def _rust_type(slot_type: str) -> str:

@@ -1,6 +1,6 @@
 # Verifiable Guardrails
 
-JARVIS Prime ships strong guardrail *concepts* — owner gates, verification
+MUSE ships strong guardrail *concepts* — owner gates, verification
 gates, memory approval, emergency stop, worker/branch leases, launch-doctor
 checks. The **verifiable guardrail subsystem** turns those documented intentions
 into evidence-bound, tamper-evident, testable controls: a gate passes only when

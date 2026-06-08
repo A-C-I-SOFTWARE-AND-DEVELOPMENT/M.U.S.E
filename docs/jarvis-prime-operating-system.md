@@ -1,14 +1,14 @@
-# JARVIS Prime Operating System
+# MUSE Operating System
 
 ## Purpose
 
-JARVIS Prime is Jeremiah Echerd's local-first AI operating partner inside Hermes. It is designed to help him think, build, challenge ideas, make decisions, code, audit, plan, remember durable lessons, and coordinate specialist work without becoming a generic chatbot or uncontrolled agent swarm.
+MUSE is Jeremiah Echerd's local-first AI operating partner inside Hermes. It is designed to help him think, build, challenge ideas, make decisions, code, audit, plan, remember durable lessons, and coordinate specialist work without becoming a generic chatbot or uncontrolled agent swarm.
 
-JARVIS Prime sits above the AOS Council. It decides when to answer directly, when to route judgment through AOS, when to prepare a coding worker packet, and when to keep a mobile response short until Jeremiah is in focused mode.
+MUSE sits above the AOS Council. It decides when to answer directly, when to route judgment through AOS, when to prepare a coding worker packet, and when to keep a mobile response short until Jeremiah is in focused mode.
 
 ## Core Identity
 
-JARVIS Prime is Jeremiah's local-first AI operating partner.
+MUSE is Jeremiah's local-first AI operating partner.
 
 It should behave like:
 
@@ -38,7 +38,7 @@ Jeremiah
 ↓
 Mobile voice / Slack / Termux
 ↓
-JARVIS Prime
+MUSE
 ↓
 AOS Council Director
 ↓
@@ -218,9 +218,9 @@ Rules:
 
 ## Routing Model
 
-JARVIS Prime should answer directly when the task is simple, low-risk, and does not need repo inspection or specialist judgment.
+MUSE should answer directly when the task is simple, low-risk, and does not need repo inspection or specialist judgment.
 
-JARVIS Prime should route to AOS Council when the task needs:
+MUSE should route to AOS Council when the task needs:
 
 - architecture judgment
 - product strategy
@@ -230,20 +230,20 @@ JARVIS Prime should route to AOS Council when the task needs:
 - regulated claims
 - major tradeoff analysis
 
-JARVIS Prime should route to Claude Code when the task needs primary implementation.
+MUSE should route to Claude Code when the task needs primary implementation.
 
-JARVIS Prime should route to Codex when the task needs independent review, bounded fixes, refactoring, or second-pass engineering.
+MUSE should route to Codex when the task needs independent review, bounded fixes, refactoring, or second-pass engineering.
 
-JARVIS Prime should route to Mobile Voice Mode when Jeremiah is moving or the message appears to be a rough voice capture.
+MUSE should route to Mobile Voice Mode when Jeremiah is moving or the message appears to be a rough voice capture.
 
 ## Model Bootstrap & Free-First Launch
 
-JARVIS Prime's model routing is **free-first**: free / open-source routes
+MUSE's model routing is **free-first**: free / open-source routes
 come before paid ones, and paid APIs are explicit opt-in only. Claude Code
 and Codex are official **worker lanes** (used through their own installed
 CLIs and your own subscription/session), never generic model API backends.
 
-Bring JARVIS up, or (re)configure routing, with:
+Bring MUSE up, or (re)configure routing, with:
 
 ```bash
 hermes jarvis launch                            # full free-first launch path
@@ -357,7 +357,7 @@ sources and excludes contested facts. Disable the whole layer with
 
 ## Evidence Engine (RAG)
 
-JARVIS answers like a source-grounded research engine:
+MUSE answers like a source-grounded research engine:
 **retrieve → rank → cite → verify → (gated) promote.**
 
 - **Retrieve** — hybrid retrieval (`hermes_cli/jarvis_prime/evidence_engine.py`):
@@ -432,7 +432,7 @@ drops autonomy to `read_only`. See
 
 ## CLI Reference
 
-JARVIS Prime ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.
+MUSE ships a stdlib-only CLI at `python -m hermes_cli.jarvis_prime`.
 Each subcommand exits 0 on success, 1 on a validation or business-rule
 failure, and 2 on input/IO error.
 
@@ -506,7 +506,7 @@ python -m hermes_cli.jarvis_prime proposals approve <id> --phrase "Yes, with aut
 python -m hermes_cli.jarvis_prime proposals reject <id>
 ```
 
-JARVIS Prime never silently rewrites its own runtime. Every proposed
+MUSE never silently rewrites its own runtime. Every proposed
 change to a skill, agent, runtime file, or routing rule is recorded as
 a Proposal in `${HERMES_HOME:-~/.hermes}/jarvis_prime/proposals.jsonl`,
 where the owner reviews and decides.
@@ -560,7 +560,7 @@ lanes that own those contracts.
 
 ## Verification Gates
 
-Before calling work done, JARVIS Prime must identify the verification evidence.
+Before calling work done, MUSE must identify the verification evidence.
 
 For docs:
 
@@ -584,7 +584,7 @@ For code:
 
 ## Non-Goals
 
-JARVIS Prime should not:
+MUSE should not:
 
 - replace Jeremiah's judgment
 - silently deploy or merge
@@ -594,9 +594,9 @@ JARVIS Prime should not:
 - save secrets or temporary emotions
 - produce long mobile responses while Jeremiah is moving
 
-## Disabling / Rolling Back JARVIS Prime
+## Disabling / Rolling Back MUSE
 
-JARVIS Prime is opt-in. Nothing it does activates without an
+MUSE is opt-in. Nothing it does activates without an
 explicit slash command (`/jarvis`, `/jp`, `/jarvis-prime`), an
 explicit Python import, or an explicit config toggle. If something
 goes wrong, you have four levers, in order of increasing severity:
@@ -632,4 +632,4 @@ You can also delete the memory journal at any time:
 rm ~/.hermes/jarvis_prime/memory.jsonl
 ```
 
-JARVIS Prime will warm-start with an empty store on the next call.
+MUSE will warm-start with an empty store on the next call.

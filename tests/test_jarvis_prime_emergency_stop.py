@@ -1,4 +1,4 @@
-"""Emergency-stop primitive for JARVIS Prime (B1 from final release review)."""
+"""Emergency-stop primitive for MUSE (B1 from final release review)."""
 
 from __future__ import annotations
 

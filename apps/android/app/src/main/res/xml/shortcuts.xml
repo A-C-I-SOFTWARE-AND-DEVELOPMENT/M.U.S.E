@@ -2,7 +2,7 @@
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
-        Static launcher shortcuts for JARVIS Prime control surfaces.
+        Static launcher shortcuts for MUSE control surfaces.
         Long-press the launcher icon to expose these. They deep-link
         into MainActivity with an action extra; the activity inspects
         the extra and routes to the appropriate flow. Quick-settings

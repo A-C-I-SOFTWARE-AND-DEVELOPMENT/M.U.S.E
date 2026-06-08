@@ -1,4 +1,4 @@
-"""W6 refinement for the JARVIS Prime NL compiler.
+"""W6 refinement for the MUSE NL compiler.
 
 Two capabilities, both deterministic and safe:
 

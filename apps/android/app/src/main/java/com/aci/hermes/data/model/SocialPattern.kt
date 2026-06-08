@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
- * A Jarvis Prime Social Speech Pattern.
+ * A MUSE Social Speech Pattern.
  *
  * A SocialPattern is an ABSTRACT communication pattern — it captures
  * *how* a class of people typically writes (e.g. "engineers reply
@@ -38,7 +38,7 @@ data class SocialPattern(
 )
 
 /**
- * Allowed pattern kinds. These are the only categories Jarvis Prime
+ * Allowed pattern kinds. These are the only categories MUSE
  * may learn — they are abstract speech patterns, never identity.
  */
 @Serializable

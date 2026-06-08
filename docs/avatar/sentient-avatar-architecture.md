@@ -1,6 +1,6 @@
 # Sentient Avatar — architecture
 
-This is JARVIS Prime's **living body**: a character that lives on your
+This is MUSE's **living body**: a character that lives on your
 screen, physically operates the phone, talks to you hands-free, and
 keeps itself busy (idles, wanders, sleeps, offers ideas) when you're
 away. It's the personal-tool fork, so the usual permission restraint is
@@ -17,9 +17,9 @@ This doc is the map. It is implemented across the Android app
 | **Hands** | `service/JarvisAccessibilityService` | Performs the real taps/swipes, launches apps, reads the on-screen node tree. |
 | **Presence** | `service/JarvisOverlayService` | Floats the body over other apps (`TYPE_APPLICATION_OVERLAY`), animates the "run", runs the life loop, executes `MotionPlan`s. |
 | **Voice** | `service/VoiceLoopService` + `voice/` | Wake word → STT → agent → TTS over a Bluetooth headset. |
-| **Mind feed** | `data/jarvis/HttpJarvisChatGateway` + `gateway/jarvis_local_http.py` | Streams the real agent's state/reply so the body reacts to what the agent is actually doing. The stream also carries phase, tool-call (redacted), and evidence/ledger chunks — see [JARVIS Prime mobile chat](../mobile/jarvis-chat-streaming.md). |
+| **Mind feed** | `data/jarvis/HttpJarvisChatGateway` + `gateway/jarvis_local_http.py` | Streams the real agent's state/reply so the body reacts to what the agent is actually doing. The stream also carries phase, tool-call (redacted), and evidence/ledger chunks — see [MUSE mobile chat](../mobile/jarvis-chat-streaming.md). |
 
-## How "Jarvis runs to Facebook and pushes it" works
+## How "MUSE runs to Facebook and pushes it" works
 
 1. You say/type **"open Facebook."**
 2. `AutomationIntentParser` (pure) classifies it → `OpenApp("facebook")`.
@@ -68,7 +68,7 @@ Added to the manifest and pinned by the re-baselined invariant tests
 `FOREGROUND_SERVICE_MICROPHONE`, `RECORD_AUDIO`, `BLUETOOTH_CONNECT`,
 `QUERY_ALL_PACKAGES`. The user grants the overlay permission
 (`Settings.canDrawOverlays`) and enables the accessibility service the
-first time they ask Jarvis onto the screen (education strings:
+first time they ask MUSE onto the screen (education strings:
 `jarvis_overlay_enable_*`, `jarvis_accessibility_enable_*`,
 `jarvis_voice_enable_*`).
 

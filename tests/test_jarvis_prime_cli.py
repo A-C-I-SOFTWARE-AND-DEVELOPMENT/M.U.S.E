@@ -1,4 +1,4 @@
-"""Tests for the JARVIS Prime CLI subcommands added in the CLI lane.
+"""Tests for the MUSE CLI subcommands added in the CLI lane.
 
 Covers ``proposals {list,approve,reject}`` and ``handoff``. The existing
 subcommands (``perceive``, ``classify``, ``gate``, ``handle``, ``tick``)

@@ -1,4 +1,4 @@
-"""Benchmark validation gate for JARVIS Prime self-improvement.
+"""Benchmark validation gate for MUSE self-improvement.
 
 Adds an objective, score-based gate to the verification system: a
 candidate scaffold/skill/agent (e.g. one produced by the SIA worker) is

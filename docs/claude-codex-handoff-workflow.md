@@ -1,6 +1,6 @@
 # Claude and Codex Handoff Workflow
 
-This document defines the planned handoff workflow between Claude Code, Codex, Hermes, and JARVIS Prime. It is documentation only and does not change runtime behavior.
+This document defines the planned handoff workflow between Claude Code, Codex, Hermes, and MUSE. It is documentation only and does not change runtime behavior.
 
 ## Role Separation
 
@@ -8,7 +8,7 @@ Claude Code is the primary builder. Use Claude Code for implementation-heavy tas
 
 Codex is the reviewer, bounded second pass, or narrow fix worker. Use Codex for contrarian code review, bug-focused patches, small corrections, test expansion, and implementation critique.
 
-Hermes and JARVIS Prime coordinate the workflow, prepare packets, protect scope, run local verification, and produce the PR handoff.
+Hermes and MUSE coordinate the workflow, prepare packets, protect scope, run local verification, and produce the PR handoff.
 
 ## No Same-Branch Editing Conflict
 

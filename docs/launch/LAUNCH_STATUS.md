@@ -1,4 +1,4 @@
-# Launch Status — JARVIS Prime + Hermes runtime
+# Launch Status — MUSE + Hermes runtime
 
 > ⚠️ **SUPERSEDED (2026-06-01).** This document was written on 2026-05-26
 > against PR #131 / base `bc97e43`. `main` is now 211 commits past that base
@@ -163,7 +163,7 @@ Commit + open draft PR titled: fix(android): stabilize debug APK build
 ### Prompt 3 — Lane C (Claude)
 
 ```
-You are Claude reviving the Jarvis Prime chat composable for A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
+You are Claude reviving the MUSE chat composable for A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
 
 Base: PR #131 head branch claude/hopeful-bardeen-KBVqi (after lane B lands)
 Create branch: launch/chat-ui-claude-C
@@ -187,7 +187,7 @@ weakening redaction; replacing MockJarvisChatGateway wiring.
 Validate:
 cd apps/android && ./gradlew --no-daemon --stacktrace assembleDebug testDebugUnitTest --tests "com.aci.hermes.ui.screens.chat.*" lint
 
-Commit + open draft PR titled: feat(android): revive Jarvis chat screen
+Commit + open draft PR titled: feat(android): revive MUSE chat screen
 ```
 
 ### Prompt 4 — Lane D (Claude)
@@ -217,13 +217,13 @@ handlers that bypass EmergencyStopController.
 Validate:
 cd apps/android && ./gradlew --no-daemon --stacktrace assembleDebug testDebugUnitTest --tests "com.aci.hermes.ui.jarvis.*" lint
 
-Commit + open draft PR titled: feat(android): revive interactive Jarvis icon
+Commit + open draft PR titled: feat(android): revive interactive MUSE icon
 ```
 
 ### Prompt 5 — Lane E (Claude)
 
 ```
-You are Claude polishing the Jarvis Prime approval / memory / audit / control
+You are Claude polishing the MUSE approval / memory / audit / control
 surfaces for A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
 
 Base: PR #131 head branch claude/hopeful-bardeen-KBVqi (after lane B lands)
@@ -321,7 +321,7 @@ Commit + open draft PR titled: test(launch): expand coverage for launch gate
 ### Prompt 8 — Lane H (Claude)
 
 ```
-You are Claude finalising the JARVIS Prime + Hermes integration for A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
+You are Claude finalising the MUSE + Hermes integration for A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.
 
 Base: PR #131 head branch claude/hopeful-bardeen-KBVqi (after A, B, C, D, E, F, G have all merged)
 Create branch: launch/final-integration-claude-H

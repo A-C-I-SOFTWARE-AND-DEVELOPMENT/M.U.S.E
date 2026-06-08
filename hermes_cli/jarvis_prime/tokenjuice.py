@@ -1,4 +1,4 @@
-"""TokenJuice — deterministic context compiler for JARVIS Prime.
+"""TokenJuice — deterministic context compiler for MUSE.
 
 Packs task-relevant material (mission, work packet, memory tree, research
 vault, explicit repo snippets) into an ordered, token-bounded prompt

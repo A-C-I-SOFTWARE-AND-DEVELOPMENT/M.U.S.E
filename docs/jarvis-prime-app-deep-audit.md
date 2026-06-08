@@ -1,4 +1,4 @@
-# Jarvis Prime — Android app deep audit
+# MUSE — Android app deep audit
 
 Audit date: 2026-05-26
 Branch: `claude/jarvis-prime-app-audit-oLDQN`
@@ -27,12 +27,12 @@ to the clipboard, and optionally opens the target tool's installed app
 or web fallback. There is **no networking code in the app today** — no
 OkHttp dependency, no HTTP client, no gateway probe, no SSE reader, no
 voice intake, no approval queue, no memory transparency, no audit
-ledger, no Termux RUN_COMMAND firing path. Every Jarvis Prime concept
+ledger, no Termux RUN_COMMAND firing path. Every MUSE concept
 from `docs/jarvis-prime-operating-system.md` and the Python runtime in
 `hermes_cli/jarvis_prime/` (modes, gates, owner authorization,
 research briefs, persona prompts, memory, awareness, self-update
 proposals) is **completely absent from the Android surface**. The
-gap between the shipped product and the Jarvis Prime cockpit is
+gap between the shipped product and the MUSE cockpit is
 therefore a rebrand + a thin presentation layer over the existing
 Python runtime, not a full rewrite.
 
@@ -193,8 +193,8 @@ graph for approvals, no per-task notification deep link.
 | README headline                                           | `Hermes Agent — Android (native companion app)` |
 | Architecture doc                                          | `Hermes Agent Android module`       |
 
-There is **zero** use of the strings `Jarvis`, `Jarvis Prime`, or
-`JARVIS` anywhere under `apps/android/`. Confirmed via
+There is **zero** use of the strings `MUSE`, `MUSE`, or
+`MUSE` anywhere under `apps/android/`. Confirmed via
 `grep -ri "jarvis" apps/android/` returning nothing.
 
 ## 6. What still says "Hermes Agent"
@@ -211,10 +211,10 @@ The two doc files that contradict the code (`apps/android/README.md`
 and `apps/android/docs/ARCHITECTURE.md`) **still describe a network
 client** with `/v1/health`, `/v1/chat` SSE, EncryptedSharedPreferences,
 OkHttp, and a chat/provider/status screen stack. None of that exists
-in the codebase. Treat both files as stale fiction until the Jarvis
+in the codebase. Treat both files as stale fiction until the MUSE
 Prime build replaces them.
 
-## 7. What can safely become Jarvis Prime
+## 7. What can safely become MUSE
 
 Safe to change in the first wave (no external contracts depend on
 these — purely user-visible labels):
@@ -229,10 +229,10 @@ these — purely user-visible labels):
   must stay or migrate carefully — see §8).
 - README / ARCHITECTURE.md rewrite (see [research-translation map](jarvis-prime-app-research-translation-map.md)).
 - New launcher icon — current caduceus is a Hermes glyph; replace
-  with a Jarvis Prime mark.
+  with a MUSE mark.
 - Foreground service display title (the user-visible text on the
   notification, not the Java class name).
-- Splash glyph (`☤`) — replace with the Jarvis Prime mark.
+- Splash glyph (`☤`) — replace with the MUSE mark.
 
 ## 8. What must remain "Hermes" internally for compatibility
 
@@ -241,7 +241,7 @@ documented migration:
 
 | Identifier                                  | Why it must stay (or stay with migration)                                              |
 |---------------------------------------------|----------------------------------------------------------------------------------------|
-| `applicationId = "com.aci.hermes"`          | Changing the package id makes the new APK a different app — users have to uninstall the old one, lose all tasks. If we ever change it, plan a one-time migration + uninstall toast. Recommended: keep `com.aci.hermes` as the package id and ship the display label as "Jarvis Prime". |
+| `applicationId = "com.aci.hermes"`          | Changing the package id makes the new APK a different app — users have to uninstall the old one, lose all tasks. If we ever change it, plan a one-time migration + uninstall toast. Recommended: keep `com.aci.hermes` as the package id and ship the display label as "MUSE". |
 | `com.aci.hermes` Kotlin package roots       | Renaming is mechanical but blast-radius is the entire `apps/android/` source tree and the ProGuard keep rules in `proguard-rules.pro`. Defer until everything else is green. |
 | `com.aci.hermes.action.STOP_ORCHESTRATOR`   | Documented in `apps/android/README.md` §"Service intent contract" for ADB / Termux integration. External callers will break. |
 | `EXTRA_HERMES_*` intent extras              | Same as STOP_ORCHESTRATOR — README's "Service intent contract" is a public contract. |
@@ -365,7 +365,7 @@ lockscreen") describe a full approval pipeline. The Android app has
 
 ## 13. Memory transparency features that are missing
 
-The Jarvis Prime runtime carries first-class memory
+The MUSE runtime carries first-class memory
 (`hermes_cli/jarvis_prime/memory.py` — `MemoryRecord`, `MemoryStore`,
 JSONL journal, deduplication, expiry). On Android:
 
@@ -381,7 +381,7 @@ JSONL journal, deduplication, expiry). On Android:
 
 ## 14. Audit / proof features that are missing
 
-The Jarvis Prime gate set (`hermes_cli/jarvis_prime/gates.py` —
+The MUSE gate set (`hermes_cli/jarvis_prime/gates.py` —
 `Gate`, `GateOutcome`, `GateResult`, `GateSummary`, eight gates from
 `docs/jarvis-verification-gates.md`) produces structured outcomes the
 cockpit could render. On Android:
@@ -428,7 +428,7 @@ and the Python intake works (Phase 19). On Android:
   while driving).
 - No TTS readback.
 - No transcript intake screen.
-- No voice-mode awareness in any ViewModel (the Jarvis Prime
+- No voice-mode awareness in any ViewModel (the MUSE
   `MOBILE_VOICE_FORMAT` persona prompt is unused).
 
 ## 17. Notification behavior that exists today
@@ -463,8 +463,8 @@ service still runs (foreground service type `DATA_SYNC` does not
 require POST_NOTIFICATIONS to *exist*, only to *display* on Android
 13+); the user just won't see the notification.
 
-Implication for Jarvis Prime: the current flow is intentional but
-abrupt. The Jarvis Prime cockpit should keep the permission request
+Implication for MUSE: the current flow is intentional but
+abrupt. The MUSE cockpit should keep the permission request
 but route it through onboarding so the user understands *why* the
 persistent notification matters before being asked.
 
@@ -508,7 +508,7 @@ Headline list: `READ_CONTACTS`, `READ_SMS`, `RECEIVE_SMS`,
 in background, `CAMERA`, anything Play Console flags as a
 sensitive permission requiring a declared use case.
 
-The only permissions that *will* need to be added for Jarvis Prime
+The only permissions that *will* need to be added for MUSE
 cockpit milestones (in roughly this order):
 
 - `INTERNET` — gateway calls.
@@ -535,10 +535,10 @@ CI runs `assembleDebug` + `lintDebug`. There is no
 `test` / `connectedAndroidTest` step. A regression in MVP behavior
 will only be caught at runtime.
 
-The Python-side Jarvis Prime runtime is the opposite — 159 tests pass
+The Python-side MUSE runtime is the opposite — 159 tests pass
 in `tests/test_jarvis_prime_*.py` (see §23).
 
-## 22. Tests that are missing (minimum we'd want before Jarvis Prime ships)
+## 22. Tests that are missing (minimum we'd want before MUSE ships)
 
 Unit (JVM):
 
@@ -566,7 +566,7 @@ Instrumented / Compose:
   Automator).
 - Foreground service start / stop end-to-end.
 
-Jarvis Prime cockpit features (additive):
+MUSE cockpit features (additive):
 
 - Gate display per task / job.
 - Approvals list + decide.
@@ -611,11 +611,11 @@ Jarvis Prime cockpit features (additive):
 6. `CockpitApi.kt` defines all Phase 18 wire types but no client
    uses them.
 7. No tests exist in `apps/android/app/src/test/` or `androidTest/`.
-8. Splash glyph is the Hermes caduceus — needs Jarvis Prime mark.
+8. Splash glyph is the Hermes caduceus — needs MUSE mark.
 9. No approval queue UI / no per-approval notification.
 10. No memory transparency surface (memory store unused on Android).
 11. No verification-gate display (gates module unused on Android).
-12. No mode awareness (the six Jarvis Prime modes are not represented
+12. No mode awareness (the six MUSE modes are not represented
     in the UI or settings).
 13. No owner-authorization phrase capture.
 14. No voice intake / driving-mode toggle.
@@ -639,14 +639,14 @@ None of the gaps above are blockers in the literal sense — the app
 compiles, the CI runs, the Python runtime is healthy. The two items
 that need a decision before Wave 1 lands:
 
-- **Display name vs package id.** Jarvis Prime can ship as the
+- **Display name vs package id.** MUSE can ship as the
   *user-visible* label without changing `com.aci.hermes`. Recommended
   to keep the package id for the first three waves; revisit only if
   the Play Store listing strategy requires a different id.
 - **Notification channel migration.** Renaming the channel display
   name is safe; renaming the channel **id** orphans the user's
   importance setting. Recommendation: keep `hermes_orchestrator` as
-  the channel id, change display name to "Jarvis Prime".
+  the channel id, change display name to "MUSE".
 
 The blocker register lives in the
 [roadmap](jarvis-prime-app-finish-roadmap.md#blockers).

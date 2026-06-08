@@ -1,6 +1,6 @@
 # Cockpit review → publish workflow — from your phone
 
-This is the plain-English walkthrough for the part of the JARVIS Prime
+This is the plain-English walkthrough for the part of the MUSE
 cockpit that turns a finished job into a pull request: **watch the work,
 review the diff, browse the workspace, run the gates, then open a PR — all
 from your phone**, over the cockpit API in

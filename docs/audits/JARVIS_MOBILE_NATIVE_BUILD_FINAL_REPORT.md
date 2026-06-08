@@ -1,4 +1,4 @@
-# JARVIS Prime — Mobile-Native Cockpit Build: Final Report
+# MUSE — Mobile-Native Cockpit Build: Final Report
 
 - **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
 - **Working branch:** `claude/jarvis-prime-android-ZtoB7`
@@ -8,7 +8,7 @@
 
 ## 1. Mission & outcome
 
-Goal: finish JARVIS Prime as a mobile-first/mobile-native Android command
+Goal: finish MUSE as a mobile-first/mobile-native Android command
 center for the full Hermes backend, **without reducing backend power or
 duplicating existing systems**.
 

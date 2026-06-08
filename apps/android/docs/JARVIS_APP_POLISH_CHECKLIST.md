@@ -1,14 +1,14 @@
-# Jarvis Prime app polish checklist
+# MUSE app polish checklist
 
 This is the launch-demo polish pass that lives on
 `claude/jarvis-prime-app-polish-vjyqV`. It does *not* change product
 scope, ship new features, or expand permissions — it only smooths the
-existing Hermes Agent / Jarvis Prime cockpit so the demo build feels
+existing Hermes Agent / MUSE cockpit so the demo build feels
 intentional.
 
 The underlying app, package id (`com.aci.hermes`), launcher label, and
-screens are unchanged. Jarvis Prime is the persona running on top of
-Hermes; the visible branding inside the cockpit gets the Jarvis Prime
+screens are unchanged. MUSE is the persona running on top of
+Hermes; the visible branding inside the cockpit gets the MUSE
 subtitle and tagline while the platform label
 (`R.string.app_name = "Hermes Agent"`) is left alone so existing
 launchers, deep links, and notification channels stay valid.
@@ -99,7 +99,7 @@ launchers, deep links, and notification channels stay valid.
 - [x] Settings copy for "Allow external app opening" and
       "Clipboard handoff enabled" is unchanged — both are off-able
       and each invocation still requires an explicit tap.
-- [x] The orchestrator dashboard subtitle ("Jarvis Prime Cockpit")
+- [x] The orchestrator dashboard subtitle ("MUSE Cockpit")
       and the safety banner together make the off-by-default,
       manual-handoff posture obvious within the first screen.
 
@@ -172,13 +172,13 @@ launchers, deep links, and notification channels stay valid.
 
 ## 15. Onboarding polish
 
-- [x] Splash now reads `Hermes Agent` / `Jarvis Prime` (gold
+- [x] Splash now reads `Hermes Agent` / `MUSE` (gold
       accent) / tagline, with an animated glyph and a progress
       spinner — first-launch impression is intentional rather than
       a single un-styled headline.
 - [x] First-launch screen reader experience: the splash root has a
       `contentDescription` of
-      `"Hermes Agent, Jarvis Prime. Your local AI operating partner."`
+      `"Hermes Agent, MUSE. Your local AI operating partner."`
       so TalkBack users get an immediate identity announcement.
 - [x] Empty Tasks state on the dashboard acts as a soft
       onboarding nudge with a primary CTA, replacing the previous
@@ -224,7 +224,7 @@ launchers, deep links, and notification channels stay valid.
 
 ## 19. Haptics
 
-> Implemented against the shipped Jarvis Prime app surfaces (the
+> Implemented against the shipped MUSE app surfaces (the
 > earlier sections of this doc describe an interim proposal that the
 > merged app superseded — the real token layer is `JarvisTokens`
 > in `ui/theme/Tokens.kt`, and haptics live in
@@ -275,7 +275,7 @@ launchers, deep links, and notification channels stay valid.
 > layer). The app that actually shipped consolidated those ideas into
 > `ui/theme/Tokens.kt` (`JarvisTokens`), `ui/theme/Theme.kt`
 > (`JarvisPrimeTheme`), and `ui/theme/Type.kt` (`JarvisTypography`),
-> plus a full "Jarvis Prime" identity, onboarding, Ask-Jarvis bar,
+> plus a full "MUSE" identity, onboarding, Ask-Jarvis bar,
 > living-avatar screen, and a tiered approval surface. The
 > reduced-motion preference is read in
 > `ui/screens/live/JarvisLiveViewModel.kt`. The only checklist item
@@ -315,7 +315,7 @@ These intentionally did NOT happen in this pass — they would be
 features, rebrands, or backend changes rather than polish:
 
 - Renaming the package id or launcher label from "Hermes Agent" to
-  "Jarvis Prime" (full rebrand requires Play Store / install-base
+  "MUSE" (full rebrand requires Play Store / install-base
   coordination).
 - Adding a dedicated onboarding screen with “Get started / Skip
   with mock mode” buttons (the README mentions one, but no
@@ -346,7 +346,7 @@ existing components, strings, and the existing cockpit client are reused.
 
 1. **Backend vs local-service connectivity (was conflated).** The wired
    Home/Control cards showed only the local foreground service yet labelled
-   it "Jarvis Prime online", implying the backend was reachable. Added a
+   it "MUSE online", implying the backend was reachable. Added a
    throttled `/v1/health` probe (reusing `HermesCockpitClient.health()`) that
    publishes a `BackendStatus` (`CHECKING/CONNECTED/DISCONNECTED/UNPAIRED/
    ERROR`) kept **separate** from `serviceRunning`. Surfaced via a reused

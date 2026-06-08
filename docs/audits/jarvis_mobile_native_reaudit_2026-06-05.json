@@ -73,7 +73,7 @@
       {"name": "python test_wait_time_capped_at_8", "status": "mitigated", "evidence": "docs/testing/known-flaky-tests.md:95"}
     ],
     "workflows": ["android-build.yml", "android-release.yml", "tests.yml", "jarvis-prime-unit.yml", "lint.yml", "launch-gate.yml", "orchestration-tests.yml", "osv-scanner.yml", "supply-chain-audit.yml", "jarvis-self-audit-live.yml", "nix.yml"],
-    "branch_protection_required": ["Build debug APK", "Lint", "Android JVM unit (testDebugUnitTest)", "Python unit (Jarvis Prime + redact + orchestrator)", "ruff enforcement (blocking)", "Tests", "Orchestration tests", "Scan PR for critical supply chain risks"]
+    "branch_protection_required": ["Build debug APK", "Lint", "Android JVM unit (testDebugUnitTest)", "Python unit (MUSE + redact + orchestrator)", "ruff enforcement (blocking)", "Tests", "Orchestration tests", "Scan PR for critical supply chain risks"]
   },
   "governance": {
     "constitution": "docs/jarvis-constitution.md v1.0 (2026-06-04)",

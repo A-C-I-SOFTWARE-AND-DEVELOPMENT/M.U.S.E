@@ -4,7 +4,7 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
- * Jarvis Prime memory model.
+ * MUSE memory model.
  *
  * Every fact, preference, lesson, or decision Jarvis remembers is a
  * [MemoryItem]. The Memory screen renders these items and lets the

@@ -1,6 +1,6 @@
-# JARVIS Prime Wave Build Plan
+# MUSE Wave Build Plan
 
-This document records the actual sequence in which JARVIS Prime has
+This document records the actual sequence in which MUSE has
 been (and will be) built. It supersedes any earlier plan that assumed
 Wave 1 was still ahead of us — the runtime has already landed.
 
@@ -43,7 +43,7 @@ Modules that landed:
   anti-hallucination rule.
 * `modes.py` — `Mode` enum, `ModeClassifier`, slash-command mapping.
 * `router.py` — `Router`, `RouteDecision`, `RouteTarget` honoring
-  the Jeremiah → JARVIS → AOS Council → specialists → skills →
+  the Jeremiah → MUSE → AOS Council → specialists → skills →
   workers hierarchy.
 * `runtime.py` — `JarvisPrime` orchestrator (perceive → classify →
   decide → gate → delegate → speak).

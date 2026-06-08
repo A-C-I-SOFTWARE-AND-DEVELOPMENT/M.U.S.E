@@ -1,4 +1,4 @@
-"""Gemma 4 wiring doctor for JARVIS Prime.
+"""Gemma 4 wiring doctor for MUSE.
 
 Backs ``hermes models gemma doctor``. Verifies that Gemma 4 is correctly wired
 into the catalog / brain / candidate layers and that the safety invariants hold

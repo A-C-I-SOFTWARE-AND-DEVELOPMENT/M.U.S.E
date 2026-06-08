@@ -1,4 +1,4 @@
-# JARVIS Prime Android — Automation Surface Security & Privacy Review
+# MUSE Android — Automation Surface Security & Privacy Review
 
 - **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
 - **Date:** 2026-06-04

@@ -1,4 +1,4 @@
-# Jarvis Prime — Android App Screen Map
+# MUSE — Android App Screen Map
 
 > **Status:** product spec, v1. Companion to
 > [`jarvis-prime-app-product-spec.md`](jarvis-prime-app-product-spec.md),
@@ -14,14 +14,14 @@
 
 ## 1. Navigation model
 
-Jarvis Prime uses a **single-activity, single-NavHost** architecture
+MUSE uses a **single-activity, single-NavHost** architecture
 on top of the existing `MainActivity` + `HermesNavGraph`. The nav
 host renders inside a `Scaffold` that hosts the **global app shell**
 (top bar, persistent banners, the interactive icon's floating
 position when not on Home).
 
 The navigation graph is intentionally flat. Every primary screen is
-reachable from the **Jarvis Home** screen in one tap, and every
+reachable from the **MUSE Home** screen in one tap, and every
 primary screen has a path back to Home through the system back
 gesture.
 
@@ -32,7 +32,7 @@ gesture.
                      └────────────┬─────────────┘
                                   ▼
    ┌─────────────────────────────────────────────────────────────┐
-   │                       Jarvis Home                           │
+   │                       MUSE Home                           │
    │  status header · interactive icon · 3 tiles · quick actions │
    └──┬────────┬─────────┬─────────┬─────────┬─────────┬─────────┘
       │        │         │         │         │         │
@@ -64,7 +64,7 @@ is extended in-place — no parallel module).
 | # | Screen | Route | Composable | ViewModel |
 |---|---|---|---|---|
 | 1 | Onboarding | `onboarding` | `OnboardingPagerScreen` | `OnboardingViewModel` |
-| 2 | Jarvis Home | `home` | `JarvisHomeScreen` | `JarvisHomeViewModel` |
+| 2 | MUSE Home | `home` | `JarvisHomeScreen` | `JarvisHomeViewModel` |
 | 3 | Chat | `chat` | `JarvisChatScreen` | `JarvisChatViewModel` |
 | 3a | Chat thread | `chat/{threadId}` | `JarvisChatScreen` | shared |
 | 4 | Tasks | `tasks` | `TasksScreen` | `TasksViewModel` |
@@ -112,8 +112,8 @@ banner and disable confirm buttons).
 | Widget tap: Waiting on you | `jarvis://approvals` | Approvals |
 | Widget tap: Paused | `jarvis://diagnostics` | Diagnostics |
 | Widget tap: Stopped | `jarvis://control` | Control |
-| Voice phrase: *"Jarvis, stop everything"* | (sheet) | Emergency stop confirm |
-| Voice phrase: *"Jarvis, resume"* | (sheet over `control`) | Resume confirm |
+| Voice phrase: *"MUSE, stop everything"* | (sheet) | Emergency stop confirm |
+| Voice phrase: *"MUSE, resume"* | (sheet over `control`) | Resume confirm |
 
 The `jarvis://` scheme is declared in `AndroidManifest.xml`
 alongside the existing intent filter. Deep-link resolution never
@@ -128,10 +128,10 @@ The transformation reuses every existing screen file under
 `apps/android/app/src/main/java/com/aci/hermes/ui/screens/`. New
 files are created only where no equivalent exists.
 
-| Jarvis Prime screen | Existing file (reused / renamed) | New file (if any) |
+| MUSE screen | Existing file (reused / renamed) | New file (if any) |
 |---|---|---|
 | Onboarding | (none — current Hermes flow is splash → setup → provider) | `ui/screens/onboarding/OnboardingPagerScreen.kt` + `OnboardingViewModel.kt` |
-| Jarvis Home | (none — current Hermes module has no home screen) | `ui/screens/home/JarvisHomeScreen.kt` + `JarvisHomeViewModel.kt` |
+| MUSE Home | (none — current Hermes module has no home screen) | `ui/screens/home/JarvisHomeScreen.kt` + `JarvisHomeViewModel.kt` |
 | Chat | existing `ui/screens/chat/ChatScreen.kt` (per `app-screens.md`) | (reused; rename Composable to `JarvisChatScreen` in-place; legacy class kept as deprecated alias) |
 | Tasks | existing `ui/screens/orchestrator/OrchestratorScreen.kt` + `OrchestratorViewModel.kt` | (folded — `OrchestratorScreen` becomes `TasksScreen`; the orchestrator role is the source of tasks) |
 | Task detail | existing `ui/screens/orchestrator/TaskDetailScreen.kt` + `TaskDetailViewModel.kt` | (reused; ViewModel unchanged structurally) |
@@ -149,7 +149,7 @@ Supporting infrastructure (reused, names unchanged for compatibility):
 - `HermesApplication`, `MainActivity`, `HermesNavGraph` — host the
   new graph.
 - `HermesService` — runs the foreground service; user-facing
-  notification title is "Jarvis Prime — listening".
+  notification title is "MUSE — listening".
 - `HermesGatewayClient` / `HermesClientFactory` — wire format
   unchanged; extended to consume task / approval / memory / audit
   / control SSE streams.
@@ -174,7 +174,7 @@ The shell is hoisted in `MainActivity` so every screen inherits it.
 
 ### 5.1 Top bar
 
-- **Left.** Screen title (plain English: *"Jarvis Home"*, *"Chat"*,
+- **Left.** Screen title (plain English: *"MUSE Home"*, *"Chat"*,
   *"Tasks"*, etc.).
 - **Center.** **Status pill** — current `ConnectionState` rendered
   as Connected · Connecting · Degraded · Offline · Mock ·
@@ -183,7 +183,7 @@ The shell is hoisted in `MainActivity` so every screen inherits it.
 - **Right (cluster).**
   - **Outbox badge** — visible only when ≥ 1 pending write is
     queued. Count.
-  - **Mode chip** — current Jarvis mode (Auto / Companion /
+  - **Mode chip** — current MUSE mode (Auto / Companion /
     Strategy / Critic / Operator / Builder / Mobile Voice). Tap to
     override.
   - **Overflow menu** — *Open in Diagnostics*, *Settings*, *About*,
@@ -194,9 +194,9 @@ The shell is hoisted in `MainActivity` so every screen inherits it.
 Stack at the top of the content area, below the top bar. Mutually
 exclusive — at most one is visible per priority order below:
 
-1. **Emergency stop banner** — red, *"Jarvis is stopped. Tap to
+1. **Emergency stop banner** — red, *"MUSE is stopped. Tap to
    resume."* Tap → Control.
-2. **Mock mode banner** — purple, *"Mock mode is on — Jarvis is
+2. **Mock mode banner** — purple, *"Mock mode is on — MUSE is
    not connected to a real gateway."*
 3. **Offline banner** — amber, *"Offline — showing cached state
    from HH:MM. Writes queued in outbox."*
@@ -234,7 +234,7 @@ mapping are defined in
 | Screen | Icon placement | Notes |
 |---|---|---|
 | Onboarding | Hidden | Onboarding has its own brand mark on the welcome step. |
-| Jarvis Home | Centered, large (96 dp) | The hero element. |
+| MUSE Home | Centered, large (96 dp) | The hero element. |
 | Chat | Bottom-right floating (56 dp) | Stays out of composer / Send button. |
 | Tasks | Bottom-right floating (56 dp) | Stays out of New task FAB; if collision, FAB extends to a labelled chip and the icon stays. |
 | Approvals | Bottom-right floating (56 dp) | Stays well above the bottom action bar. |
@@ -268,7 +268,7 @@ the implementation has a stable contract and code review can check
 - `SkipForNowButton`
 - `OnboardingCompleteCard`
 
-### 7.2 Jarvis Home
+### 7.2 MUSE Home
 
 - `StatusHeader` (pill + gateway label + provider/model)
 - `InteractiveIconLarge`
@@ -364,7 +364,7 @@ the implementation has a stable contract and code review can check
   - `DaySeparator`
   - `LedgerEntry`
     - `Timestamp`
-    - `ActorChip` (Jarvis · AOS · worker · gateway · hook · owner)
+    - `ActorChip` (MUSE · AOS · worker · gateway · hook · owner)
     - `ActionSummary`
     - `ClassificationChip` (info · decision · approval · publish · deploy · memory · stop)
     - `ShowDetailsAffordance`
@@ -415,7 +415,7 @@ the implementation has a stable contract and code review can check
 
 - `ConnectionCard` (live `ConnectionState`, latency, last probe outcome, health echo)
 - `BuildCard` (version, build type, fingerprint, base URL, cleartext flag, Termux detected)
-- `ModeCard` (mock, voice, driving, Jarvis mode override)
+- `ModeCard` (mock, voice, driving, MUSE mode override)
 - `LogBufferList` (filter by level + source; chronological)
 - `LastErrorsList` (top 5 with Copy buttons)
 - `ExportDiagnosticsBundleButton` (scrubbed)

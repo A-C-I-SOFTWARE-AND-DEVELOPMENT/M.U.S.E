@@ -1,4 +1,4 @@
-"""Local JSONL chat endpoint for the Jarvis Prime Android cockpit.
+"""Local JSONL chat endpoint for the MUSE Android cockpit.
 
 The Android app's ``HttpJarvisChatGateway`` POSTs to
 ``http://127.0.0.1:8765/v1/jarvis/chat`` and reads a newline-delimited

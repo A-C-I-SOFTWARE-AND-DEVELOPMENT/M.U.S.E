@@ -1,4 +1,4 @@
-"""Living companion presence policy for JARVIS Prime.
+"""Living companion presence policy for MUSE.
 
 The goal is to make JARVIS feel present without becoming deceptive or unsafe.
 This module produces state and animation plans only. Actual Android overlay,

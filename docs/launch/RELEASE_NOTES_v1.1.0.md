@@ -1,13 +1,13 @@
-# Hermes Agent v1.1.0 — Free-First JARVIS Launch
+# Hermes Agent v1.1.0 — Free-First MUSE Launch
 
-This release makes JARVIS Prime **launchable in one command**, free-first,
+This release makes MUSE **launchable in one command**, free-first,
 with paid APIs strictly opt-in and Claude Code / Codex wired as official
 worker lanes.
 
 ## Highlights
 
 - **One-click launch.** `bash <(curl … install.sh) --jarvis-launch`
-  installs Hermes and brings JARVIS Prime up: free-first model routing,
+  installs Hermes and brings MUSE up: free-first model routing,
   local runtime detection, worker-lane detection, safe memory, and a launch
   doctor report. PowerShell parity via `-JarvisLaunch`.
 - **`hermes jarvis launch`** — full launch path for existing installs.

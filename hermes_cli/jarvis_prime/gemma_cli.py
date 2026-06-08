@@ -1,4 +1,4 @@
-"""``hermes models gemma …`` command logic for JARVIS Prime.
+"""``hermes models gemma …`` command logic for MUSE.
 
 Kept deliberately small and self-contained so the top-level CLI
 (``hermes_cli/main.py``) only needs a thin parser + a one-line dispatch hook.

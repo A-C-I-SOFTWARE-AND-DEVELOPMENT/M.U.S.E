@@ -1,6 +1,6 @@
-# JARVIS Prime — GraphRAG Knowledge Graph
+# MUSE — GraphRAG Knowledge Graph
 
-A typed, source-backed knowledge graph over the JARVIS Prime **cognition
+A typed, source-backed knowledge graph over the MUSE **cognition
 plane**. It *supplements* — never replaces — the Memory Tree, the Research
 Vault, and the HyperAgent navigation substrates. Its job is to unify those
 existing stores into one inspectable graph with three retrieval modes, so

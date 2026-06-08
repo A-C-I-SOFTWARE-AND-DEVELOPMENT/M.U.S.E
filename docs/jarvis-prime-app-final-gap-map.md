@@ -1,18 +1,18 @@
-# Jarvis Prime — final gap map (Android)
+# MUSE — final gap map (Android)
 
 This document is the line-by-line gap list between **what is shipped
 in `apps/android/`** and **what is required to call the app
-"Jarvis Prime" without lying to the user**. Numbered by the audit
+"MUSE" without lying to the user**. Numbered by the audit
 questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 
 - the file or surface it lives on,
 - the exact shipped state today,
-- the target state for Jarvis Prime,
+- the target state for MUSE,
 - the wave it lands in (W0 cosmetic → W4 voice; see the
   [roadmap](jarvis-prime-app-finish-roadmap.md) for the full order),
 - risk class (LOW / MED / HIGH).
 
-> "Required" means required to make the cockpit a faithful Jarvis
+> "Required" means required to make the cockpit a faithful MUSE
 > Prime surface. Nice-to-haves are tagged **NTH** and are not blockers.
 
 ---
@@ -21,36 +21,36 @@ questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 
 | # | Surface | Today | Target | Wave | Risk |
 |---|---|---|---|---|---|
-| B-01 | `apps/android/app/src/main/res/values/strings.xml:3` | `app_name = "Hermes Agent"` | `app_name = "Jarvis Prime"` | W0 | LOW |
-| B-02 | `strings.xml:6-7` | "Hermes Orchestrator Running" / "Hermes is coordinating your local AI workflow." | "Jarvis Prime — listening" / "Jarvis Prime is on-deck for builds and audits." | W0 | LOW |
-| B-03 | `strings.xml:11,15-31` | All `orchestrator_*` strings reference "HermesService" / "Hermes" | Rephrase to "Jarvis Prime", retain "Local Subscription Tools" mode label since that's a Hermes-internal contract | W0 | LOW |
-| B-04 | `SplashScreen.kt:46` | `Text("Hermes Agent")` | `Text("Jarvis Prime")` | W0 | LOW |
-| B-05 | `SplashScreen.kt:41` | Caduceus glyph `☤` | Jarvis Prime mark (new vector) | W0 | LOW |
+| B-01 | `apps/android/app/src/main/res/values/strings.xml:3` | `app_name = "Hermes Agent"` | `app_name = "MUSE"` | W0 | LOW |
+| B-02 | `strings.xml:6-7` | "Hermes Orchestrator Running" / "Hermes is coordinating your local AI workflow." | "MUSE — listening" / "MUSE is on-deck for builds and audits." | W0 | LOW |
+| B-03 | `strings.xml:11,15-31` | All `orchestrator_*` strings reference "HermesService" / "Hermes" | Rephrase to "MUSE", retain "Local Subscription Tools" mode label since that's a Hermes-internal contract | W0 | LOW |
+| B-04 | `SplashScreen.kt:46` | `Text("Hermes Agent")` | `Text("MUSE")` | W0 | LOW |
+| B-05 | `SplashScreen.kt:41` | Caduceus glyph `☤` | MUSE mark (new vector) | W0 | LOW |
 | B-06 | `apps/android/app/src/main/res/values/themes.xml:3` | `Theme.HermesAgent` style name | `Theme.JarvisPrime` (manifest references update in lockstep) | W0 | LOW |
-| B-07 | `apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml` | Caduceus glyph + Hermes Agent comment | New Jarvis Prime mark; comment updated | W0 | LOW |
+| B-07 | `apps/android/app/src/main/res/drawable/ic_launcher_foreground.xml` | Caduceus glyph + Hermes Agent comment | New MUSE mark; comment updated | W0 | LOW |
 | B-08 | `apps/android/settings.gradle.kts:23` | `rootProject.name = "HermesAgent"` | `rootProject.name = "JarvisPrime"` (CI cache key changes — accept one cold build) | W0 | LOW |
-| B-09 | `apps/android/README.md` (whole file) | Describes a network-client app that doesn't exist | Rewrite from scratch as Jarvis Prime cockpit README | W0 | LOW |
-| B-10 | `apps/android/docs/ARCHITECTURE.md` (whole file) | Describes the same stale network architecture | Rewrite as the Jarvis Prime architecture doc; cross-link to `docs/jarvis-prime-operating-system.md` | W0 | LOW |
-| B-11 | `OrchestratorScreen.kt:194` | "Mode" row literal `"Local Subscription Tools"` | Replace with "Jarvis Prime · Operator" by default; switch on mode (see C-01) | W2 | LOW |
-| B-12 | Strings safety banner (`orchestrator_safety_body`) | "Hermes does not bypass OpenAI or Anthropic." | "Jarvis Prime never bypasses provider authentication and only acts after explicit owner authorization." | W0 | LOW |
-| B-13 | Channel display name (`HermesService.kt:124`) | `"Hermes Orchestrator"` | `"Jarvis Prime"` (channel **id** stays — see C-04) | W0 | LOW |
-| B-14 | Notification channel description (`HermesService.kt:152`) | "Persistent indicator that Hermes is coordinating local AI workflows." | "Persistent indicator that Jarvis Prime is on-deck." | W0 | LOW |
+| B-09 | `apps/android/README.md` (whole file) | Describes a network-client app that doesn't exist | Rewrite from scratch as MUSE cockpit README | W0 | LOW |
+| B-10 | `apps/android/docs/ARCHITECTURE.md` (whole file) | Describes the same stale network architecture | Rewrite as the MUSE architecture doc; cross-link to `docs/jarvis-prime-operating-system.md` | W0 | LOW |
+| B-11 | `OrchestratorScreen.kt:194` | "Mode" row literal `"Local Subscription Tools"` | Replace with "MUSE · Operator" by default; switch on mode (see C-01) | W2 | LOW |
+| B-12 | Strings safety banner (`orchestrator_safety_body`) | "Hermes does not bypass OpenAI or Anthropic." | "MUSE never bypasses provider authentication and only acts after explicit owner authorization." | W0 | LOW |
+| B-13 | Channel display name (`HermesService.kt:124`) | `"Hermes Orchestrator"` | `"MUSE"` (channel **id** stays — see C-04) | W0 | LOW |
+| B-14 | Notification channel description (`HermesService.kt:152`) | "Persistent indicator that Hermes is coordinating local AI workflows." | "Persistent indicator that MUSE is on-deck." | W0 | LOW |
 | B-15 | Color palette names (`Color.kt`) | `HermesGold`, `HermesInk`, … | Rename to `JarvisGold`, `JarvisInk`, … in same wave as B-06 | W0 | LOW |
 
 ## Doc-vs-code drift gaps (W0 — must resolve before Wave 1)
 
 | # | Surface | Today | Target | Wave | Risk |
 |---|---|---|---|---|---|
-| D-01 | `apps/android/README.md:268-274` ("What's not wired up yet") | Lists push-from-gateway, skill picker, voice, release signing, HTTPS-only | Replace with the live Jarvis Prime gap list once W0 lands | W0 | LOW |
+| D-01 | `apps/android/README.md:268-274` ("What's not wired up yet") | Lists push-from-gateway, skill picker, voice, release signing, HTTPS-only | Replace with the live MUSE gap list once W0 lands | W0 | LOW |
 | D-02 | `apps/android/README.md:252-261` (Screens table) | Lists splash / setup / provider / chat / status / settings / diagnostics | Replace with the actual route list (splash / orchestrator / task_detail / settings / diagnostics) | W0 | LOW |
 | D-03 | `gradle.properties:14-32` (gateway URL docstring) | Documents `DEFAULT_GATEWAY_URL` BuildConfig field | `build.gradle.kts` doesn't define that field — either remove the docstring or add the field in W1 when the gateway client lands | W0 then W1 | MED |
 | D-04 | `apps/android/app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml` | Excludes `hermes_secure_prefs.xml` from backup/transfer | The file no longer exists in code. Keep the exclusion (forward compat, harmless) OR remove it if W1 brings the gateway-token store back at a new path | W0 / W1 | LOW |
-| D-05 | `ARCHITECTURE.md` `Wire format` section | Describes `/v1/health`, `/v1/chat` SSE | Move to the W1 Jarvis Prime cockpit gateway-client doc; remove from this file | W1 | MED |
+| D-05 | `ARCHITECTURE.md` `Wire format` section | Describes `/v1/health`, `/v1/chat` SSE | Move to the W1 MUSE cockpit gateway-client doc; remove from this file | W1 | MED |
 | D-06 | `data/cockpit/CockpitApi.kt` header comment | "Phase 18 cockpit API contract — Kotlin mirror." | Either land the W1 client that consumes these types or delete the file. Currently dead surface area. | W1 | MED |
 | D-07 | `data/termux/TermuxIntentBridge.kt` header | Labels itself a "stub" | Land the W1 fire path and remove the stub label, or delete the class. Currently dead surface area. | W1 | MED |
 | D-08 | `apps/android/README.md:283-332` ("Service intent contract") | Documents `com.aci.hermes.action.STOP_ORCHESTRATOR` + observational extras | Keep verbatim — this is an external contract for Termux integration | KEEP | LOW |
 
-## Connection / cockpit gaps (W1 — Jarvis Prime gateway client)
+## Connection / cockpit gaps (W1 — MUSE gateway client)
 
 | # | Surface | Today | Target | Wave | Risk |
 |---|---|---|---|---|---|
@@ -73,12 +73,12 @@ questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 | L-01 | `HermesTaskRepository` (file: `hermes_tasks.json`) | Working JSON envelope | **Keep**. Bump envelope version when (and only when) a field migration lands | KEEP | LOW |
 | L-02 | `DataStore name = "hermes_settings"` | Working | **Keep**. User prefs migrate cleanly across rebrand | KEEP | LOW |
 | L-03 | `HermesTask` schema | 7 types, 7 statuses, 5 targets | Add (without breaking existing JSON envelopes): `prUrl`, `commitSha`, `evidence: List<EvidenceRef>`, `parentTaskId`. All optional. | W2 | LOW |
-| L-04 | `HermesRole.kt` | 5 labels | Map onto the six Jarvis Prime modes; rename to `JarvisRole`; keep `displayName` strings for tasks already serialized | W2 | LOW |
-| L-05 | `PromptBuilder.SAFETY_BLOCK` | Already invariant across targets | **Keep verbatim**. The Jarvis Prime safety addendum stacks on top, not replaces. | KEEP | LOW |
+| L-04 | `HermesRole.kt` | 5 labels | Map onto the six MUSE modes; rename to `JarvisRole`; keep `displayName` strings for tasks already serialized | W2 | LOW |
+| L-05 | `PromptBuilder.SAFETY_BLOCK` | Already invariant across targets | **Keep verbatim**. The MUSE safety addendum stacks on top, not replaces. | KEEP | LOW |
 | L-06 | `HandoffLauncher.openOfficialTool` | Two-step (package → web fallback) | **Keep**. Add a third step: if `allowExternal` is false **and** a gateway is configured, post the prompt to the gateway as a worker job instead of the clipboard. | W1 | MED |
 | L-07 | `OrchestratorViewModel.isServiceRunning` | Uses deprecated `ActivityManager.getRunningServices` | Replace with a `ServiceConnection` + bound-service probe **or** a `MutableStateFlow` the service updates from `onCreate`/`onDestroy`. The deprecated API still works for self-services, so this is a polish item. | W3 | LOW |
 
-## Approval gaps (W2 — Jarvis Prime gate UI)
+## Approval gaps (W2 — MUSE gate UI)
 
 | # | Surface | Today | Target | Wave | Risk |
 |---|---|---|---|---|---|
@@ -104,7 +104,7 @@ questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 
 | # | Surface | Today | Target | Wave | Risk |
 |---|---|---|---|---|---|
-| P-01 | (new) `GatesPanel.kt` Composable | Doesn't exist | Visualizes the eight Jarvis Prime gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback) — mirrors `GateSummary` | W2 | MED |
+| P-01 | (new) `GatesPanel.kt` Composable | Doesn't exist | Visualizes the eight MUSE gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback) — mirrors `GateSummary` | W2 | MED |
 | P-02 | Job detail screen | Doesn't exist | Carries diff, files-changed, validation summary, PR url, gate panel, decision ledger excerpt | W1 (skeleton) / W2 (gates) | MED |
 | P-03 | Evidence list per task | None | A per-task list of `EvidenceRef { kind: TEST_RUN \| DIFF \| LOG \| PR, url: String?, summary: String }`; persisted in `HermesTask` (see L-03) | W2 | LOW |
 | P-04 | Decision ledger reader | None | Read-only view of the gateway's ledger excerpt for a job; copy-as-markdown action | W2 | LOW |
@@ -119,7 +119,7 @@ questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 | I-03 | Home screen widget | None | NTH — *Pending approvals* count widget | NTH | LOW |
 | I-04 | Notification actions | *Stop* only | Per-job notification with *Open*, *Approve*, *Defer*; per-approval channel | W2 | MED |
 | I-05 | Notification updates | None | Foreground notification text changes with mode (Operator / Companion / Mobile Voice / Driving) | W3 | LOW |
-| I-06 | App icon | Caduceus | Jarvis Prime mark + monochrome adaptive icon | W0 | LOW |
+| I-06 | App icon | Caduceus | MUSE mark + monochrome adaptive icon | W0 | LOW |
 | I-07 | Badging | Off | Optional badge when pending approvals exist (still off by default) | W3 | LOW |
 
 ## Voice gaps (W4 — last wave, opt-in only)
@@ -141,7 +141,7 @@ questions in `jarvis-prime-app-deep-audit.md` §24. Each row carries:
 | O-01 | Settings screen | No mode picker | Six-radio picker: Companion / Strategy / Critic / Operator / Builder / Mobile Voice | W2 | LOW |
 | O-02 | Top bar | No mode indicator | Small chip showing the active mode; tap → mode settings | W2 | LOW |
 | O-03 | Persona prompt | Not surfaced | The Persona builder from `hermes_cli/jarvis_prime/persona.py` is unused; the cockpit must request mode-specific persona text from the gateway and pass it on dispatch | W2 | MED |
-| O-04 | Awareness snapshot | Not surfaced | A small "what Jarvis is currently watching" card on Orchestrator (gateway state, last job status, memory load) reading `AwarenessSnapshot` | W3 | LOW |
+| O-04 | Awareness snapshot | Not surfaced | A small "what MUSE is currently watching" card on Orchestrator (gateway state, last job status, memory load) reading `AwarenessSnapshot` | W3 | LOW |
 
 ## Permission gaps already prevented (must stay absent)
 

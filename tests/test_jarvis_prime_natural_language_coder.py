@@ -1,4 +1,4 @@
-"""Tests for the JARVIS Prime natural-language coder / packetizer.
+"""Tests for the MUSE natural-language coder / packetizer.
 
 Covers intent classification, owner-gate extraction, routing, branch
 safety, builder/reviewer separation, validation findings, markdown

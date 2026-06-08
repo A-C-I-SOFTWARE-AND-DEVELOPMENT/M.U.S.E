@@ -10,7 +10,7 @@ import com.aci.hermes.voice.VoicePhase
 import java.time.OffsetDateTime
 
 /**
- * Single source of truth for the Jarvis Prime home screen.
+ * Single source of truth for the MUSE home screen.
  *
  * The screen reads one [JarvisHomeState] and renders every component
  * (icon, header, ask bar, voice button, cards) directly from it. State

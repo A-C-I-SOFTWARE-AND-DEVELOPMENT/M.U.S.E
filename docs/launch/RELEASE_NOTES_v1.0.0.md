@@ -1,15 +1,15 @@
-# JARVIS Prime — Runtime v1.0.0 launch notes
+# MUSE — Runtime v1.0.0 launch notes
 
 > Companion to the package release tracked in `pyproject.toml`
 > (currently `0.14.1+aci.1`). The `1.0.0` here describes the
-> **runtime** semver for JARVIS Prime itself — the local-first AI
+> **runtime** semver for MUSE itself — the local-first AI
 > operating partner that ships inside `hermes_cli/jarvis_prime/`.
 > A separate package version bump to `1.0.0` will happen after the
 > CLI wiring + emergency-stop primitives have soaked in production.
 
 ## TL;DR
 
-JARVIS Prime is now invocable from the interactive `hermes` CLI
+MUSE is now invocable from the interactive `hermes` CLI
 via `/jarvis`, `/jp`, or `/jarvis-prime`, has a documented emergency
 stop, persists memory locally with hardened secret rejection and
 owner-only file perms, and gates 16 categories of risky action
@@ -22,7 +22,7 @@ behind the exact phrase **`Yes, with authorization.`**.
 - `persona.py` — six-mode persona prompts (Companion / Strategy /
   Critic / Operator / Builder / Mobile Voice).
 - `modes.py` + `router.py` — mode classifier + routing hierarchy
-  (Jeremiah → JARVIS → AOS council → specialists → skills → workers).
+  (Jeremiah → MUSE → AOS council → specialists → skills → workers).
 - `awareness.py` — six parallel awareness streams with 2 s timeouts.
 - `memory.py` — three-tier memory (working / session / durable),
   recollection, secret-pattern rejection, journal persistence at
@@ -69,7 +69,7 @@ python -m hermes_cli.jarvis_prime handle "any intent"
 
 ### Owner Authorization Contract
 
-JARVIS Prime defers these 16 action categories until the owner
+MUSE defers these 16 action categories until the owner
 replies with the exact phrase `Yes, with authorization.`:
 
 `spend_money`, `post_publicly`, `create_third_party_account`,
@@ -126,7 +126,7 @@ Quick-settings tile is deferred to v1.1.
 
 ## Migration
 
-No breaking changes. JARVIS Prime is dormant until:
+No breaking changes. MUSE is dormant until:
 
 1. You invoke `/jarvis`, `/jp`, or `/jarvis-prime` in the CLI, or
 2. You set `jarvis_prime.proactive_tick: enabled` in
@@ -141,14 +141,14 @@ If anything goes sideways:
 2. **Disable proactive tick**: ensure
    `jarvis_prime.proactive_tick: disabled` in
    `~/.hermes/config.yaml` (the default).
-3. **Avoid the slash commands**: nothing else activates JARVIS
+3. **Avoid the slash commands**: nothing else activates MUSE
    Prime.
 4. **Package downgrade (last resort)**:
    `pip install hermes-agent==0.14.0` — the previous release. The
    `jarvis_prime` package is additive; downgrading does not break
    any other Hermes feature.
 
-See also the new "Disabling / Rolling Back JARVIS Prime" section
+See also the new "Disabling / Rolling Back MUSE" section
 in `docs/jarvis-prime-operating-system.md`.
 
 ## Testing

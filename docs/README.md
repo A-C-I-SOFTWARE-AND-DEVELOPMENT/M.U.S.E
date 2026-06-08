@@ -75,10 +75,10 @@ typed in a terminal or spoke into a phone in the car.
 | Run your first orchestrated job | [orchestration/getting-started.md](orchestration/getting-started.md) |
 | See an end-to-end **Prompt to PR** walkthrough | [orchestration/prompt-to-pr-demo.md](orchestration/prompt-to-pr-demo.md) |
 | Drive Hermes from your phone | [mobile/mobile-app-guide.md](mobile/mobile-app-guide.md) |
-| Operate the native JARVIS phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
-| Understand JARVIS capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |
+| Operate the native MUSE phone app, end to end | [mobile/README.md](mobile/README.md) → [mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md](mobile/JARVIS_MOBILE_NATIVE_USER_GUIDE.md) |
+| Understand MUSE capabilities, permissions & emergency stop | [mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md](mobile/JARVIS_CAPABILITY_AND_PERMISSION_GUIDE.md) |
 | Write code from your phone (Codex / Claude Code lanes) | [mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md](mobile/JARVIS_CODING_FROM_PHONE_GUIDE.md) |
-| Understand JARVIS evidence / cited research | [jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md) |
+| Understand MUSE evidence / cited research | [jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md](jarvis/JARVIS_EVIDENCE_RAG_GUIDE.md) |
 | Use high-autonomy coding mode safely (scoped/logged/revocable) | [jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md](jarvis/JARVIS_HIGH_AUTONOMY_CODING_MODE.md) |
 | Ship the mobile cockpit (launch gate) | [launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md](launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md) |
 | Use Hermes hands-free (voice-first, driving mode) | [voice/voice-first-user-guide.md](voice/voice-first-user-guide.md) |
@@ -299,9 +299,9 @@ Read in this order:
 | Orchestration overview | [orchestration/README.md](orchestration/README.md) |
 | Decision ledger schema | [orchestration/decision-ledger.md](orchestration/decision-ledger.md) |
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
-| Open data sources for training JARVIS | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
-| JARVIS Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
-| Deconstruct "Mythos" → reconstruct into JARVIS | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
+| Open data sources for training MUSE | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
+| MUSE Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
+| Deconstruct "Mythos" → reconstruct into MUSE | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
 | Composable agent design patterns | [orchestration/agent-design-patterns.md](orchestration/agent-design-patterns.md) |
 | Repo viability audit (2026-06) | [audit/repo-audit-2026-06.md](audit/repo-audit-2026-06.md) |
 | Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |

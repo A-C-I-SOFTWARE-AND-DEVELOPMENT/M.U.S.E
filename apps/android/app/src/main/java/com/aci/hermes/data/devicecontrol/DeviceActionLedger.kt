@@ -13,7 +13,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
- * Append-only, local-only ledger of every device action JARVIS Prime
+ * Append-only, local-only ledger of every device action MUSE
  * took (or was refused). Survives process death so "what did Jarvis do
  * on my phone?" is always answerable.
  *

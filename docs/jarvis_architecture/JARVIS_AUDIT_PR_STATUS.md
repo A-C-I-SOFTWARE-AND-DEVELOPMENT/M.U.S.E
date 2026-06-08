@@ -1,4 +1,4 @@
-# JARVIS Audit PR Status
+# MUSE Audit PR Status
 
 This branch was opened from current `main` after owner approval.
 

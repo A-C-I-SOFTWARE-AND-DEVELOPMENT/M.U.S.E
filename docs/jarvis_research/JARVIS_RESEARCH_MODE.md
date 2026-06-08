@@ -1,10 +1,10 @@
-# JARVIS Research Mode (the Evidence Engine)
+# MUSE Research Mode (the Evidence Engine)
 
 Status: **shipped**. File: `hermes_cli/jarvis_prime/research_engine.py`.
 Tests: `tests/test_jarvis_prime_research_engine.py`,
 `tests/gateway/test_cockpit_research.py`.
 
-Research Mode lets JARVIS research facts, papers, docs, releases, repo
+Research Mode lets MUSE research facts, papers, docs, releases, repo
 issues, and technical decisions — from the desktop CLI **or** the Android
 cockpit — with Perplexity-style citations and stronger verification. It is a
 thin orchestrator that *composes* primitives that already exist; it does not
@@ -66,5 +66,5 @@ Reports persist to `${HERMES_HOME:-~/.hermes}/jarvis_prime/research_reports.json
 
 ## Related
 
-- [`JARVIS Research Vault`](../jarvis_architecture/JARVIS_RESEARCH_VAULT.md) —
+- [`MUSE Research Vault`](../jarvis_architecture/JARVIS_RESEARCH_VAULT.md) —
   the evidence store this engine writes into.

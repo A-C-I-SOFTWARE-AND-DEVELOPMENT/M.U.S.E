@@ -1,6 +1,6 @@
 """Tests for hermes_cli.jarvis_prime.persona.
 
-The persona is the seat of JARVIS Prime's identity/voice. These
+The persona is the seat of MUSE's identity/voice. These
 tests pin:
 
 - The mode → rules → format mapping per the spec.
@@ -35,7 +35,7 @@ def test_persona_build_includes_identity_and_mode_rules() -> None:
     persona = Persona()
     prompt = persona.build(Mode.OPERATOR)
     text = prompt.render()
-    assert "JARVIS Prime" in text
+    assert "MUSE" in text
     assert "loyal to" in text.lower()
     assert "Mode: Operator" in text
     assert prompt.mode_name == "operator"

@@ -1,8 +1,8 @@
-# Jarvis Prime Interactive Icon
+# MUSE Interactive Icon
 
 ## Mission
 
-Build Jarvis Prime's visible presence as an in-app icon that:
+Build MUSE's visible presence as an in-app icon that:
 
 - shows the assistant's current state at a glance
 - accepts a handful of common commands as gestures

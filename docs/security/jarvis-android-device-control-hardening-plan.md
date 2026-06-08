@@ -1,4 +1,4 @@
-# JARVIS Android device control — safety hardening plan (findings #4 & #5)
+# MUSE Android device control — safety hardening plan (findings #4 & #5)
 
 Diff-level implementation plan for the two **pre-Play** safety findings from
 [`jarvis-android-automation-privacy-review.md`](./jarvis-android-automation-privacy-review.md).

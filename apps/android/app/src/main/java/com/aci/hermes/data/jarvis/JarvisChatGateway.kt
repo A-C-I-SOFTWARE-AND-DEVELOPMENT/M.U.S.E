@@ -3,7 +3,7 @@ package com.aci.hermes.data.jarvis
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Pluggable backend for the Jarvis Prime chat surface.
+ * Pluggable backend for the MUSE chat surface.
  *
  * The chat screen never calls anything outside this interface. That's
  * how mock mode, eventual streaming HTTP, and unit tests stay

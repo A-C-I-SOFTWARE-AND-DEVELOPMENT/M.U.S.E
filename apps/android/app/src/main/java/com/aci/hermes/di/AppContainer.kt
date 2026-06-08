@@ -265,7 +265,7 @@ class AppContainer(private val application: Application) {
         paired = ::cockpitPaired,
     )
 
-    // Jarvis Prime chat.
+    // MUSE chat.
     //
     // [liveJarvisChatGateway] streams the real agent from the cockpit
     // gateway, attaching the paired bearer token. [MockJarvisChatGateway]

@@ -1,7 +1,7 @@
-"""JARVIS Prime — Open-Source Model Brain.
+"""MUSE — Open-Source Model Brain.
 
 Loads ``docs/ai-intelligence/oss-model-catalog.yaml`` (the canonical,
-cross-referenced catalog of open-weight models JARVIS Prime can learn
+cross-referenced catalog of open-weight models MUSE can learn
 from) into typed objects and answers the question:
 
     "What is the best open model for task X, given the providers I have

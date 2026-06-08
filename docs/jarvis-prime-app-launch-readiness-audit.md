@@ -1,8 +1,8 @@
-# JARVIS Prime — Android App Launch Readiness Audit
+# MUSE — Android App Launch Readiness Audit
 
 **Branch:** `feature/jarvis-prime-app-launch-readiness`
 **Audit scope:** `apps/android/` (the native Android app) reviewed against the
-JARVIS Prime operating-system specification at
+MUSE operating-system specification at
 `docs/jarvis-prime-operating-system.md` and the Phase-18 cockpit spec at
 `docs/android/`.
 **Reviewers simulated:** elite Android engineers, AI engineers, UX designers,
@@ -15,19 +15,19 @@ product leaders, security engineers, privacy reviewers, enterprise architects.
 ## TL;DR verdict — **RED: NOT READY**
 
 The shipped Android app (`com.aci.hermes`, label **"Hermes Agent"**, `versionName="0.1.0"`,
-`versionCode=1`) is a **manual prompt-handoff utility**, not the JARVIS Prime
+`versionCode=1`) is a **manual prompt-handoff utility**, not the MUSE
 cockpit. It builds prompts in Kotlin, writes them to the system clipboard, and
 optionally launches the ChatGPT/Claude apps. Nothing else from the
-JARVIS Prime spec — modes, voice, memory, gates, owner-auth, social
+MUSE spec — modes, voice, memory, gates, owner-auth, social
 research, approvals, Termux gateway control, events spine — exists in the
-APK. The 159-test JARVIS Prime runtime in `hermes_cli/jarvis_prime/` is
+APK. The 159-test MUSE runtime in `hermes_cli/jarvis_prime/` is
 Python-only and is **never reached** from this APK; there is no client,
 no transport, no IPC.
 
 The app is **demo-able as a "manual orchestrator"** if you re-scope launch
-to that. As "JARVIS Prime on Android" it is **not launchable** today —
+to that. As "MUSE on Android" it is **not launchable** today —
 the brand on the splash and label is wrong (still "Hermes Agent ☤"), no
-identifying JARVIS surface is present, and most of the categories below
+identifying MUSE surface is present, and most of the categories below
 score ≤ 3.
 
 A second, equally hard blocker: the in-tree docs (`apps/android/README.md`
@@ -38,7 +38,7 @@ the current source. Any reviewer reading the docs first will be misled.
 
 **Recommendation:** rebrand the current artifact honestly as "Hermes
 Local Orchestrator alpha v0.1" and ship that on a private track, OR
-delay the JARVIS Prime APK launch until at least the items in the top-10
+delay the MUSE APK launch until at least the items in the top-10
 blockers below are closed.
 
 ---
@@ -49,8 +49,8 @@ blockers below are closed.
 |---|---|
 | `cd apps/android && ./gradlew assembleDebug` (this sandbox) | **Fails — `SDK location not found`**. The remote-execution environment ships JDK 21 but no Android SDK; AGP 8.7.3 plugin resolves once the Gradle wrapper (8.11.1) downloads, but `:app:compileDebugJavaWithJavac` cannot proceed without `platforms;android-35` + `build-tools;35.0.0`. **Recorded as an environment limitation, not an app defect** — the same command runs in CI (`.github/workflows/android-build.yml`) on `android-actions/setup-android@v3`. |
 | Android app tests | **None exist.** `apps/android/app/src/` has only a `main/` source set; no `test/` (JVM) and no `androidTest/` (instrumented) directories. The `testInstrumentationRunner` is declared and `junit` + `androidx.test.junit` + `espresso-core` are on the classpath, but there are zero test files. |
-| Manifest permission review | Three permissions declared: `POST_NOTIFICATIONS` (Android 13+ runtime ask), `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (matches the `android:foregroundServiceType="dataSync"` on `HermesService`). No `INTERNET`, `RECORD_AUDIO`, `READ_EXTERNAL_STORAGE`, `WAKE_LOCK`, or `FOREGROUND_SERVICE_MICROPHONE`. **Coherent for what the app does today**, but is **inconsistent with both the JARVIS Prime spec and the in-tree README** which advertise voice capture, push from gateway, and Termux RUN_COMMAND. |
-| JARVIS Prime runtime tests | `pytest -p no:cacheprovider -o addopts= tests/test_jarvis_prime_*.py` → **159 passed in 2.90 s**. Runtime is healthy in Python; the gap is purely on the APK side. |
+| Manifest permission review | Three permissions declared: `POST_NOTIFICATIONS` (Android 13+ runtime ask), `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC` (matches the `android:foregroundServiceType="dataSync"` on `HermesService`). No `INTERNET`, `RECORD_AUDIO`, `READ_EXTERNAL_STORAGE`, `WAKE_LOCK`, or `FOREGROUND_SERVICE_MICROPHONE`. **Coherent for what the app does today**, but is **inconsistent with both the MUSE spec and the in-tree README** which advertise voice capture, push from gateway, and Termux RUN_COMMAND. |
+| MUSE runtime tests | `pytest -p no:cacheprovider -o addopts= tests/test_jarvis_prime_*.py` → **159 passed in 2.90 s**. Runtime is healthy in Python; the gap is purely on the APK side. |
 | `python3 scripts/jarvis_context_audit.py` | **PASS — failures=0 warnings=0.** Documents and skills exist and contain the required terms; the APK is not in scope of that audit. |
 
 ---
@@ -106,7 +106,7 @@ or `androidTest/`.
 
 ## Category scorecard
 
-Each category is scored 1–10 against the JARVIS Prime spec (where the spec
+Each category is scored 1–10 against the MUSE spec (where the spec
 applies) or against generic launch-quality expectations.
 
 ### 1. Product identity — **1 / 10**
@@ -114,19 +114,19 @@ applies) or against generic launch-quality expectations.
 - **Evidence.** App label `"Hermes Agent"` (`strings.xml:3`), package
   `com.aci.hermes`, namespace `com.aci.hermes`, splash text
   `"Hermes Agent"` with the caduceus glyph `☤` (`SplashScreen.kt:42-48`).
-  Zero occurrences of "JARVIS", "Jarvis Prime", or any of the six modes
-  (`grep -r "JARVIS\|jarvis-prime" apps/android/` returns nothing).
-- **Blocker.** **There is no JARVIS Prime identity in the app.** The brand,
+  Zero occurrences of "MUSE", "MUSE", or any of the six modes
+  (`grep -r "MUSE\|jarvis-prime" apps/android/` returns nothing).
+- **Blocker.** **There is no MUSE identity in the app.** The brand,
   splash, notification channel name (`"Hermes Orchestrator"`), and persistent
   notification text (`"Hermes is coordinating your local AI workflow."`) all
   belong to a different product.
-- **Risk.** Launching this APK as "JARVIS Prime" trains users to expect
-  Hermes, not JARVIS — a brand-confusion event on day one. The Play
+- **Risk.** Launching this APK as "MUSE" trains users to expect
+  Hermes, not MUSE — a brand-confusion event on day one. The Play
   listing, screenshots, and the running app would not match.
 - **Fix.** Pick one of: (a) ship as "Hermes Agent v0.1 alpha" honestly,
-  postpone JARVIS launch; (b) rename label/package/notification channel
-  and add a JARVIS identity surface (splash mark, mode indicator chip in
-  the top app bar, "JARVIS Prime is online" first-line in the persistent
+  postpone MUSE launch; (b) rename label/package/notification channel
+  and add a MUSE identity surface (splash mark, mode indicator chip in
+  the top app bar, "MUSE is online" first-line in the persistent
   notification). Track all strings in `strings.xml` so localisation
   stays clean.
 
@@ -164,10 +164,10 @@ applies) or against generic launch-quality expectations.
   `orchestrator → {settings, diagnostics}` (and `settings → diagnostics`).
   Deep argument parsing for `task_detail` (`Screen.kt:6-12`) is correct
   and uses safe `runCatching { TargetTool.valueOf(name) }`.
-- **Blocker.** **No JARVIS mode selector**, no bottom nav, no surfaces for
+- **Blocker.** **No MUSE mode selector**, no bottom nav, no surfaces for
   any of the eight verification gates, no home/mobile-voice/social/audit
   routes. A user who hands the phone to someone else cannot tell which
-  mode JARVIS is in because there is no mode at all.
+  mode MUSE is in because there is no mode at all.
 - **Risk.** `splash` pops itself off the back stack but `orchestrator`
   is the start destination, so back-press from the home screen exits
   the app — fine for today but will need to be revisited when a
@@ -185,14 +185,14 @@ applies) or against generic launch-quality expectations.
   README still describes a "Get started / Skip and use mock mode"
   flow that no longer exists in code.
 - **Blocker.** A first-run user is dropped into the orchestrator with
-  no explanation, no consent prompt, no permissions context, no JARVIS
+  no explanation, no consent prompt, no permissions context, no MUSE
   introduction, and no link to the docs.
 - **Risk.** Permission ask for `POST_NOTIFICATIONS` fires from
   `MainActivity.onCreate` (`MainActivity.kt:55-63`) with no rationale —
   Android UX guidelines (and Play policy) ask for a pre-prompt
   explaining why.
 - **Fix.** Add a 2- or 3-step Compose onboarding gate that (1)
-  introduces JARVIS Prime and its non-goals, (2) asks for the
+  introduces MUSE and its non-goals, (2) asks for the
   notification permission with a clear rationale, (3) writes
   `setOnboarded(true)`. Honour the existing `hasOnboarded` flag from
   `NavHost`'s start-destination selection.
@@ -206,19 +206,19 @@ applies) or against generic launch-quality expectations.
   values like `"Local Subscription Tools"` and `"Not used"` are passed
   as literal strings rather than `stringResource(...)`
   (`OrchestratorScreen.kt:192`), breaking translation.
-- **Blocker.** This is not a JARVIS home. No greeting personalised to
+- **Blocker.** This is not a MUSE home. No greeting personalised to
   the owner, no current-mode indicator, no last-asked summary, no
   "Today's brief", no link to the most recent decision or memory hit.
 - **Risk.** New users can mistake "Hermes Orchestrator" for a chat
   interface and tap "Open tool" expecting a connection — but the
   default `allowExternalAppOpening = false` hides the "Open tool"
   button entirely, leaving only the somewhat opaque "Prepare handoff"
-  action. The UX delta from "I just installed JARVIS" to "I see what
-  JARVIS does for me" is large.
+  action. The UX delta from "I just installed MUSE" to "I see what
+  MUSE does for me" is large.
 - **Fix.** Either move the orchestrator behind a Home route or relabel
   it as `"Manual handoff"`. Add a true Home screen that surfaces a
-  greeting, the active JARVIS mode, the most recent owner-gated
-  action, and a single "Ask JARVIS" CTA.
+  greeting, the active MUSE mode, the most recent owner-gated
+  action, and a single "Ask MUSE" CTA.
 
 ### 6. Chat — **0 / 10**
 
@@ -261,11 +261,11 @@ applies) or against generic launch-quality expectations.
 
 - **Evidence.** `CockpitApi.kt:244-261` defines `PendingApproval` and
   `DecideApprovalRequest` data classes, but **no screen, no ViewModel,
-  no transport** consumes them. JARVIS Prime's owner-gated actions
+  no transport** consumes them. MUSE's owner-gated actions
   (`docs/jarvis-prime-operating-system.md` — spend, deploy, publish,
   OAuth, main-branch merge, package publish, credential change,
   regulated claims) have no APK surface.
-- **Blocker.** The whole owner-auth + approval policy that JARVIS
+- **Blocker.** The whole owner-auth + approval policy that MUSE
   Prime depends on is invisible on the phone.
 - **Risk.** Without an approvals surface, the only safe mode for any
   destructive action is "always deny" — which is exactly what the
@@ -273,7 +273,7 @@ applies) or against generic launch-quality expectations.
   is safe but unusable.
 - **Fix.** Implement the Phase-18 "Approvals" screen that lists
   `PendingApproval`s, supports a typed `"Yes, with authorization."`
-  confirmation per the JARVIS Prime owner-auth contract, and posts
+  confirmation per the MUSE owner-auth contract, and posts
   `DecideApprovalRequest` via a (still-to-be-built) cockpit client.
 
 ### 9. Interactive icon — **2 / 10**
@@ -283,8 +283,8 @@ applies) or against generic launch-quality expectations.
   raster fallbacks in `mipmap-hdpi/...xxxhdpi/`; old launchers may
   render at the wrong density. No notification badge, no shortcuts,
   no app widgets, no tile service. The launcher mark is the
-  caduceus glyph, not a JARVIS mark.
-- **Blocker.** "Interactive icon" as a JARVIS surface (long-press
+  caduceus glyph, not a MUSE mark.
+- **Blocker.** "Interactive icon" as a MUSE surface (long-press
   shortcuts to Chat / Voice / Approvals, dynamic monochrome variant
   reflecting mode) does not exist.
 - **Risk.** On Android 13+ the monochrome layer reuses the foreground
@@ -293,7 +293,7 @@ applies) or against generic launch-quality expectations.
   point.
 - **Fix.** Add raster mipmaps for the four density buckets, a proper
   monochrome silhouette, App Shortcuts XML, and (later) a quick-tile
-  toggle that flips JARVIS into focus mode.
+  toggle that flips MUSE into focus mode.
 
 ### 10. Voice capture — **0 / 10**
 
@@ -301,11 +301,11 @@ applies) or against generic launch-quality expectations.
   no `MediaRecorder`, no STT/TTS dependency, no voice screen, no
   `FOREGROUND_SERVICE_MICROPHONE` foreground type. README explicitly
   says voice is "not wired up yet" (`apps/android/README.md:269-270`).
-  JARVIS Prime spec demands Mobile Voice as one of the six modes
+  MUSE spec demands Mobile Voice as one of the six modes
   (`docs/jarvis-prime-operating-system.md`).
-- **Blocker.** Voice capture, the central modality of JARVIS Prime
+- **Blocker.** Voice capture, the central modality of MUSE
   on mobile, is unimplemented.
-- **Risk.** Shipping JARVIS without voice would invalidate the
+- **Risk.** Shipping MUSE without voice would invalidate the
   primary use case described in `docs/voice/voice-first-user-guide.md`
   and `docs/mobile-voice-development-workflow.md`.
 - **Fix.** Build a voice capture service following
@@ -315,13 +315,13 @@ applies) or against generic launch-quality expectations.
 
 ### 11. Memory — **0 / 10**
 
-- **Evidence.** No client for the JARVIS Prime memory subsystem
+- **Evidence.** No client for the MUSE memory subsystem
   (`hermes_cli/jarvis_prime/memory.py`). The on-device DataStore stores
   preferences only (`SettingsRepository.kt:24-35`); no per-user
   memories, no facts, no goals, no decisions, no aspirations.
-- **Blocker.** Owner memory, the JARVIS feature that lets it remember
+- **Blocker.** Owner memory, the MUSE feature that lets it remember
   durable lessons across sessions, is absent on the phone.
-- **Risk.** Users on mobile-only flows will perceive JARVIS as
+- **Risk.** Users on mobile-only flows will perceive MUSE as
   amnesiac — every session will start cold.
 - **Fix.** Add a `MemoryClient` against the cockpit (or a future
   `/v1/jarvis/memory/*` surface), a Compose surface to view/edit
@@ -333,7 +333,7 @@ applies) or against generic launch-quality expectations.
 - **Evidence.** No surface for `social_research.py` or
   `docs/aos-jarvis-agent-routing.md`. No people/relationships/contexts
   graph in the UI.
-- **Blocker.** None of JARVIS Prime's social-intelligence layer
+- **Blocker.** None of MUSE's social-intelligence layer
   reaches the user on mobile.
 - **Risk.** A demo cannot show owner-context awareness ("you spoke
   with X about Y last week"), which is one of the marquee
@@ -347,13 +347,13 @@ applies) or against generic launch-quality expectations.
   buffer (`LogBuffer`, ring-capped at 200) and a one-line "last
   error" (`DiagnosticsScreen.kt:80-95`). Logs forward to Logcat
   (`LogBuffer.kt:52-58`). No persistent audit log, no signed events,
-  no decision ledger, no JARVIS gate transcript on device.
+  no decision ledger, no MUSE gate transcript on device.
 - **Blocker.** The Decision Ledger (`~/.hermes/jobs/<job-id>/ledger.jsonl`,
-  the canonical JARVIS proof artefact) has no APK surface and no APK
+  the canonical MUSE proof artefact) has no APK surface and no APK
   store. Reviewers expecting "every gate transition is auditable on
   the device" will not find it.
 - **Risk.** A reviewer who clears the log buffer (`DiagnosticsScreen.kt:61-64`)
-  destroys the only evidence of what JARVIS did this session.
+  destroys the only evidence of what MUSE did this session.
 - **Fix.** Persist diagnostics entries to a rotating file in `filesDir`,
   add an opt-in "export logs" button (already a `ContentCopy` for the
   in-memory buffer — extend to a `share-sheet` of the persisted file),
@@ -369,10 +369,10 @@ applies) or against generic launch-quality expectations.
   channel importance is `LOW` (`HermesService.kt:147-153`), so the
   panic Stop is not above-fold on a busy lock screen.
 - **Blocker.** Stop only stops the local foreground service — there
-  is no in-app "Stop everything JARVIS is doing remotely" panic
+  is no in-app "Stop everything MUSE is doing remotely" panic
   button, no panic gesture, no panic shortcut, and no read-receipt
   that downstream agents acknowledged the stop.
-- **Risk.** A user who taps Stop and assumes JARVIS is paused
+- **Risk.** A user who taps Stop and assumes MUSE is paused
   everywhere will be wrong on the day a cockpit lands. Today the
   surface area is small, so the false security gap is bounded.
 - **Fix.** Promote the notification channel to `DEFAULT` importance,
@@ -447,7 +447,7 @@ applies) or against generic launch-quality expectations.
   clear-logs work. Refresh button is intentionally a no-op
   (`DiagnosticsViewModel.kt:37-41`).
 - **Blocker.** No device info, no connectivity probe, no Gradle build
-  fingerprint, no JARVIS runtime version, no event spine status.
+  fingerprint, no MUSE runtime version, no event spine status.
   Logs do not persist across process death.
 - **Risk.** A crash that takes the process down also takes the
   diagnostic trail down with it. The single "Last error" line is the
@@ -651,18 +651,18 @@ applies) or against generic launch-quality expectations.
 - **Evidence.** The app launches in this sandbox via the in-tree
   build script (CI confirms it does in `android-build.yml`); the
   flows wire end-to-end for the local handoff path; the persistent
-  notification + Stop button works. **As a JARVIS Prime demo** the
+  notification + Stop button works. **As a MUSE demo** the
   app does not have a chat surface, voice button, mode picker,
-  memory peek, approvals list, or any other JARVIS-shaped surface
+  memory peek, approvals list, or any other MUSE-shaped surface
   to point at on stage.
-- **Blocker.** Most JARVIS demo beats have nothing on screen.
-- **Risk.** A reviewer asked to "show me JARVIS doing something"
+- **Blocker.** Most MUSE demo beats have nothing on screen.
+- **Risk.** A reviewer asked to "show me MUSE doing something"
   can only show "I generated a prompt, copied it to my clipboard,
   and pasted it into ChatGPT." That is a *manual* demo, not a
-  JARVIS demo.
+  MUSE demo.
 - **Fix.** Either reshape the launch narrative around "Hermes
-  manual handoff", or build at least one JARVIS-shaped surface
-  (suggested: a single "Ask JARVIS" entry that calls the cockpit
+  manual handoff", or build at least one MUSE-shaped surface
+  (suggested: a single "Ask MUSE" entry that calls the cockpit
   and renders one streaming reply) before launch.
 
 ---
@@ -680,8 +680,8 @@ applies) or against generic launch-quality expectations.
 
 The shipped APK is internally coherent for the small problem it solves
 (generate a prompt, copy to clipboard, optionally launch an external
-tool) but does not deliver against the JARVIS Prime spec. Calling this
-"JARVIS Prime on Android" would damage trust with the first wave of
+tool) but does not deliver against the MUSE spec. Calling this
+"MUSE on Android" would damage trust with the first wave of
 users.
 
 ---
@@ -689,20 +689,20 @@ users.
 ## Top 10 blockers (do these before launch)
 
 1. **Wrong identity.** App label, splash, notification channel, and
-   strings all say "Hermes Agent". Rebrand to "JARVIS Prime" (or
+   strings all say "Hermes Agent". Rebrand to "MUSE" (or
    relabel the launch as "Hermes alpha"). Source: every `strings.xml`
    entry, `SplashScreen.kt:42-48`, `HermesService.kt:124,143-155`.
 2. **No chat surface.** README advertises chat; the app has none. Build
    it from `docs/mobile/app-screens.md` or delete chat references from
    `apps/android/README.md` and `apps/android/docs/ARCHITECTURE.md`.
-3. **No voice capture.** Mobile Voice is one of JARVIS Prime's six
+3. **No voice capture.** Mobile Voice is one of MUSE's six
    modes (`docs/jarvis-prime-operating-system.md`). Build the voice
    service per `docs/mobile/app-voice-service.md`; declare
    `RECORD_AUDIO` and `FOREGROUND_SERVICE_MICROPHONE`.
 4. **No approvals surface.** Owner-auth ("Yes, with authorization.")
    has no APK screen even though wire types exist
    (`CockpitApi.kt:244-261`).
-5. **No memory surface.** JARVIS Prime memory subsystem is invisible
+5. **No memory surface.** MUSE memory subsystem is invisible
    on the phone; ship at least read-only of the canonical memory
    store.
 6. **No transport.** No HTTP/WS client wired; `CockpitApi.kt`'s 280+
@@ -716,7 +716,7 @@ users.
    but no `signingConfigs`. `./gradlew bundleRelease` cannot produce
    an uploadable AAB.
 9. **No onboarding.** Splash → Orchestrator with no consent, no
-   permission rationale, no JARVIS introduction. `SettingsRepository.hasOnboarded`
+   permission rationale, no MUSE introduction. `SettingsRepository.hasOnboarded`
    is read by nobody (`grep -n hasOnboarded` only matches the
    declaration).
 10. **Doc/code mismatch.** `apps/android/README.md` and
@@ -763,14 +763,14 @@ users.
 
 1. **Clipboard exfiltration.** `HandoffLauncher.copyPrompt` does not
    set `EXTRA_IS_SENSITIVE`; on Android 13+ the on-screen banner
-   reveals the first lines of every JARVIS prompt to anyone watching
+   reveals the first lines of every MUSE prompt to anyone watching
    the screen.
 2. **Stale "secure prefs" excludes.** `backup_rules.xml` /
    `data_extraction_rules.xml` reference a `hermes_secure_prefs.xml`
    store that does not exist — easy to miss when a real secure store
    is reintroduced and the file is named differently.
 3. **Decorative "Local-only mode" toggle.** Users believe they have
-   restricted JARVIS to on-device only when in fact nothing reads the
+   restricted MUSE to on-device only when in fact nothing reads the
    flag (`SettingsRepository.localOnlyMode` has no consumers).
 4. **Default-on `clipboardHandoffEnabled`.** No surface explains that
    the prompt is dropped on the system clipboard until the user
@@ -802,7 +802,7 @@ users.
 
 ## Go / no-go
 
-**No-go for JARVIS Prime launch.**
+**No-go for MUSE launch.**
 
 Re-evaluate when blockers 1, 2, 3, 4, 6, 7, 8, 9, 10 (in the top-10
 blockers list above) are closed. Blocker 5 (Memory) can ship as
@@ -827,10 +827,10 @@ artifact is demo-ready today after closing blockers 7 (tests), 8
 - Manifest permission check: `POST_NOTIFICATIONS`,
   `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`. No
   `INTERNET`, `RECORD_AUDIO`, `WAKE_LOCK`, `READ_EXTERNAL_STORAGE`.
-- JARVIS Prime runtime tests:
+- MUSE runtime tests:
   `pytest -p no:cacheprovider -o "addopts=" tests/test_jarvis_prime_*.py`
   → **159 passed** in 2.90 s.
-- JARVIS Prime context audit: `python3 scripts/jarvis_context_audit.py`
+- MUSE context audit: `python3 scripts/jarvis_context_audit.py`
   → **PASS** (failures=0 warnings=0).
 - File-by-file source review covered all 29 Kotlin files in
   `apps/android/app/src/main/java/com/aci/hermes/` and all 11

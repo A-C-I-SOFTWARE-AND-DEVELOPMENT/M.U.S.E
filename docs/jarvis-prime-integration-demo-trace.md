@@ -1,4 +1,4 @@
-# JARVIS Prime Integration — Demo Trace
+# MUSE Integration — Demo Trace
 
 > **Historical trace (2026-05-26), partially refreshed 2026-06-01.** This
 > document was written against the PR #131 / base `bc97e43` integration and
@@ -16,8 +16,8 @@
 **Log doc:** [`INTEGRATION_LOG.md`](../INTEGRATION_LOG.md)
 **Plan:** see attached integration plan
 
-This document is the end-to-end demo trace for the JARVIS Prime 53-PR
-integration. It walks the user-visible JARVIS flow through each integrated
+This document is the end-to-end demo trace for the MUSE 53-PR
+integration. It walks the user-visible MUSE flow through each integrated
 surface and pairs each surface with its Kotlin source for reviewer audit.
 
 ## 1. Environment
@@ -69,13 +69,13 @@ aapt dump badging app-debug.apk | head -20
   → package: name='com.aci.hermes' versionCode='1' versionName='0.1.0'
     sdkVersion:'26'
     targetSdkVersion:'35'
-    application-label:'Jarvis Prime'
+    application-label:'MUSE'
 ```
 
 (Package name `com.aci.hermes` is preserved for install/signing continuity
-per the design-system migration plan; every user-facing label is "Jarvis Prime".)
+per the design-system migration plan; every user-facing label is "MUSE".)
 
-## 4. Screen walk — the integrated JARVIS flow
+## 4. Screen walk — the integrated MUSE flow
 
 | # | Route | Composable | File |
 |---|-------|------------|------|
@@ -99,14 +99,14 @@ All routes register in `apps/android/app/src/main/java/com/aci/hermes/ui/navigat
 
 ### User-visible flow (golden path)
 
-1. **Cold start → SplashScreen.** Shows the JARVIS Prime caduceus icon + "Jarvis Prime" name (from `strings.xml`) + tagline ("Your command-center agent."). 600ms delay then routes.
+1. **Cold start → SplashScreen.** Shows the MUSE caduceus icon + "MUSE" name (from `strings.xml`) + tagline ("Your command-center agent."). 600ms delay then routes.
 2. **First-run → OnboardingScreen.** Mode selection, permission education, emergency-stop primer. Skipping still finishes onboarding.
 3. **Subsequent runs → HomeScreen.** Mission-control card, status, quick-links (Tasks, Chat, Approvals, Memory, Audit, Capability), tool launcher cards.
 3a. **User taps Chat tab.** `JarvisChatScreen` renders the live conversation surface (transcript, streaming "thinking" bubble, inline cards, stop/retry, copy, voice-capture entry). The `RoutingJarvisChatGateway` streams from the live `HttpJarvisChatGateway` (local Hermes gateway, default `http://127.0.0.1:8765`, JSONL wire format) once a token is paired, and falls back to `MockJarvisChatGateway` on a fresh/offline device — selection is re-checked per send.
 4. **User taps Approvals quick-link.** Bottom-nav stays visible; `ApprovalsScreen` renders any pending/historical approval cards. Approvals are read-only emit-from-app; the runtime decides whether to fulfill them.
 5. **User taps Memory quick-link.** `MemoryScreen` shows the mock-seeded local memory items, with filter chips and detail dialogs. PrivacyRedactor (from #114) ensures social patterns don't leak identifying info.
 6. **User taps Audit quick-link.** `AuditScreen` shows the redacted log of every approval/handoff/decision. Tapping a row pushes to `AuditDetailScreen` (full-screen).
-7. **User taps Capability quick-link.** `CapabilityScreen` shows which JARVIS skills/tools are enabled (mock catalog from #124).
+7. **User taps Capability quick-link.** `CapabilityScreen` shows which MUSE skills/tools are enabled (mock catalog from #124).
 8. **User taps Control bottom-nav.** Service start/stop + emergency-stop confirm dialog (with the "Halt everything?" copy from #113 design system).
 9. **Emergency Stop** (always reachable from `ShellHost`): tap → confirm dialog → `OrchestratorServiceController.emergencyStop()` halts the foreground service. Audit-event sink records `EmergencyStopAuditEvent` (#120). No UI bypasses the confirm.
 
@@ -234,7 +234,7 @@ They are CodeQL false positives or partial-coverage gaps in the taint model.
 
 | PR | Verdict | Reason |
 |----|---------|--------|
-| #4, #17, #32, #36, #38, #39, #41, #42, #43, #54, #55, #57, #58, #60, #61, #62, #63, #64, #67, #68, #69, #70, #72, #82, #84 | DEFER-LATER-PASS | Older Phase orchestration PRs. All orphan vs current main (775-1009 file diffs). Most predate Wave 1 JARVIS runtime + #92 decision-ledger fix. Re-evaluation deferred to a second integration pass. |
+| #4, #17, #32, #36, #38, #39, #41, #42, #43, #54, #55, #57, #58, #60, #61, #62, #63, #64, #67, #68, #69, #70, #72, #82, #84 | DEFER-LATER-PASS | Older Phase orchestration PRs. All orphan vs current main (775-1009 file diffs). Most predate Wave 1 MUSE runtime + #92 decision-ledger fix. Re-evaluation deferred to a second integration pass. |
 
 ## 7. What still requires owner action
 

@@ -1,6 +1,6 @@
-# JARVIS Prime — Free-First Launch
+# MUSE — Free-First Launch
 
-This is the one-command path from "nothing installed" to "JARVIS Prime
+This is the one-command path from "nothing installed" to "MUSE
 ready", with **free / open-source model routes first** and paid APIs
 **explicit opt-in only**. Claude Code and Codex are wired as official
 **worker lanes** — used through their own installed CLIs and your own
@@ -32,9 +32,9 @@ After launch:
 | Action | Command |
 |---|---|
 | Start Hermes | `hermes` |
-| Invoke JARVIS | `/jarvis` (aliases `/jp`, `/jarvis-prime`) |
+| Invoke MUSE | `/jarvis` (aliases `/jp`, `/jarvis-prime`) |
 | Run launch doctor | `hermes doctor --jarvis-launch` |
-| **Stop JARVIS immediately** | `/jarvis stop` or `python -m hermes_cli.jarvis_prime stop` |
+| **Stop MUSE immediately** | `/jarvis stop` or `python -m hermes_cli.jarvis_prime stop` |
 
 ---
 
@@ -42,7 +42,7 @@ After launch:
 
 `hermes jarvis launch` (and the installer's `--jarvis-launch`) runs, in order:
 
-1. **Runtime check** — JARVIS Prime imports and `handle()` works.
+1. **Runtime check** — MUSE imports and `handle()` works.
 2. **Model bootstrap** — detects what's runnable and writes a free-first
    routing policy (see below).
 3. **Memory init** — creates `${HERMES_HOME}/jarvis_prime/` with
@@ -83,7 +83,7 @@ the OSS model brain catalog (`docs/ai-intelligence/oss-model-catalog.yaml`)
 | Flag | Effect |
 |---|---|
 | `--free-first` | Order free/OSS routes before paid (default). |
-| `--jarvis` | Write the JARVIS model policy (default). |
+| `--jarvis` | Write the MUSE model policy (default). |
 | `--dry-run` | Plan only — write nothing, pull nothing. |
 | `--no-pull` | Never call the local model pull command. |
 | `--force` | Also pull larger default local models. |
@@ -110,7 +110,7 @@ you pull on demand.
 ### What happens if Ollama is missing?
 
 Nothing breaks. A missing local runtime is a **warning, not a failure**.
-JARVIS falls back to whatever hosted/worker routes you've configured. The
+MUSE falls back to whatever hosted/worker routes you've configured. The
 launch doctor still reports **LAUNCH READY** — local runtimes are an
 optional capability, not a launch blocker.
 
@@ -130,7 +130,7 @@ CLIs and your existing subscription/session:
 Rules enforced by `hermes_cli/jarvis_prime/worker_registry.py` +
 `worker_locks.py`:
 
-- **Detection only.** JARVIS checks whether the official CLI is on `PATH`.
+- **Detection only.** MUSE checks whether the official CLI is on `PATH`.
   It never scrapes credentials, reads session tokens, or asks for API keys.
 - **No subscription abuse.** Execution goes through the tool's own CLI /
   session. Hermes never bypasses subscription boundaries.
@@ -195,7 +195,7 @@ hermes doctor --jarvis-launch          # human-readable
 hermes doctor --jarvis-launch --json   # machine-readable
 ```
 
-It verifies: package + CLI import, JARVIS import, `python -m
+It verifies: package + CLI import, MUSE import, `python -m
 hermes_cli.jarvis_prime`, memory dir + permissions, owner-gate phrase,
 emergency stop, model brain, model policy, local runtime detection,
 Claude Code / Codex worker detection, the installer one-click path, the

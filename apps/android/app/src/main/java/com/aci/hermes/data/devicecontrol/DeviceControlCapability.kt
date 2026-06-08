@@ -4,7 +4,7 @@ import com.aci.hermes.data.automation.AutomationIntent
 
 /**
  * The discrete device capabilities the owner consents to (and the OS
- * grants) before JARVIS Prime can operate the phone. These map onto the
+ * grants) before MUSE can operate the phone. These map onto the
  * permissions the personal-tool fork already declares in the manifest —
  * this enum does not add new permissions, it makes consent for each one
  * explicit, explainable, and revocable from the cockpit.

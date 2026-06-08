@@ -1,4 +1,4 @@
-# JARVIS Prime — Mobile-Native Architecture (as-built)
+# MUSE — Mobile-Native Architecture (as-built)
 
 > **Status:** authoritative, as-built. This document describes what the
 > code in `apps/android/` and `gateway/` **actually does today**, with
@@ -19,7 +19,7 @@
 
 ## 1. Purpose and principles
 
-JARVIS Prime's mobile-native goal: **Android is the primary cockpit;
+MUSE's mobile-native goal: **Android is the primary cockpit;
 Hermes remains the canonical backend; no backend power is removed.**
 
 Non-negotiable principles this architecture upholds:

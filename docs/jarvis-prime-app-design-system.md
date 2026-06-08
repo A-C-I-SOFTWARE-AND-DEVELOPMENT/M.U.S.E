@@ -1,10 +1,10 @@
-# Jarvis Prime — App Design System
+# MUSE — App Design System
 
 This document is the canonical reference for the visual identity of the
-Android app that ships under the user-facing name **Jarvis Prime**. The
+Android app that ships under the user-facing name **MUSE**. The
 Android package, application ID, and signing identity all remain
 `com.aci.hermes` (and the foreground service is still backed by
-`HermesService`) — but everything the user sees says Jarvis Prime.
+`HermesService`) — but everything the user sees says MUSE.
 
 Read this alongside:
 
@@ -15,7 +15,7 @@ Read this alongside:
 
 ## 1. Identity principles
 
-Jarvis Prime is the **command center** for a personal AI agent. Three
+MUSE is the **command center** for a personal AI agent. Three
 principles drive every visual decision:
 
 1. **Authority, not theatre.** The agent is competent. The UI should
@@ -68,7 +68,7 @@ and `-Glow` (20% alpha for halos) variants.
 
 ### Light surface fallback
 
-Jarvis Prime is dark-first; the light scheme is a daylight courtesy.
+MUSE is dark-first; the light scheme is a daylight courtesy.
 
 | Token | Hex | Use |
 |---|---|---|
@@ -86,7 +86,7 @@ border, and confirmation flow. Defined in `CommandCard.kt` as `CardTier`.
 | Tier | Accent | When |
 |---|---|---|
 | `INFO` | none / edge | Calm informational card |
-| `ACTIVE` | Gold | "Jarvis is on this" |
+| `ACTIVE` | Gold | "MUSE is on this" |
 | `LISTENING` | Cyan | Live capture / scanning |
 | `APPROVAL` | Gold | User must approve before agent acts |
 | `SERIOUS` | Amber | Meaningful but reversible change |
@@ -201,7 +201,7 @@ and `Icons.AutoMirrored.Filled.*`).
 
 ## 10. What this design system intentionally rejects
 
-- **Cartoon mascot.** No anthropomorphic robot. Jarvis is an interface,
+- **Cartoon mascot.** No anthropomorphic robot. MUSE is an interface,
   not a character with a face.
 - **Marketing gradients.** No purple-to-pink hero gradients. No glassy
   liquid backgrounds. The product is a tool, not a launch page.

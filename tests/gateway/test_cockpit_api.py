@@ -323,7 +323,7 @@ def test_chat_streams_real_agent_turn(server) -> None:
     assert "body" in types and types[-1] == "done"
     # Real classification, not an echo of the prompt.
     body_text = next(c["text"] for c in lines if c["type"] == "body")
-    assert "JARVIS Prime" in body_text
+    assert "MUSE" in body_text
     assert "You said:" not in body_text
 
 

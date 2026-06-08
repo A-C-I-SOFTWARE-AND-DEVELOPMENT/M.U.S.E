@@ -1,7 +1,7 @@
 package com.aci.hermes.ui.jarvis
 
 /**
- * Visible presence and behavior modes for the Jarvis Prime in-app icon.
+ * Visible presence and behavior modes for the MUSE in-app icon.
  *
  * The icon is rendered inside the app (no system overlay permission is
  * requested in this wave — the floating-bubble surface ships later

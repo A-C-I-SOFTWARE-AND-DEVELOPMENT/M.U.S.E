@@ -1,4 +1,4 @@
-"""First-run onboarding for JARVIS Prime — device scan + profile builder.
+"""First-run onboarding for MUSE — device scan + profile builder.
 
 The user asked: "when jarvis is installed have it scan entire device
 from end to end collecting data and storing in long term memory on

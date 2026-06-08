@@ -78,7 +78,7 @@ import com.aci.hermes.ui.screens.voice.VoiceCaptureViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Single NavHost for the entire Jarvis Prime app. Owns:
+ * Single NavHost for the entire MUSE app. Owns:
  *  - The pre-shell flow: Splash → (Onboarding if first run) → Home
  *  - The seven shell destinations (Home, Tasks, Chat, Approvals, Memory,
  *    Audit, Control) rendered inside [JarvisShell] with shared bottom nav
@@ -87,7 +87,7 @@ import kotlinx.coroutines.launch
  *    their own top bar.
  *
  * The class is named HermesNavHost for compatibility with the existing
- * MainActivity entry point; everything user-visible is Jarvis Prime.
+ * MainActivity entry point; everything user-visible is MUSE.
  */
 @Composable
 fun HermesNavHost(

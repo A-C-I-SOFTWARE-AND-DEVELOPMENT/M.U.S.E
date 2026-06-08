@@ -2,7 +2,7 @@
 
 This is the no-gaps path to exercise the **paired (networked) cockpit** end to
 end on your own machine: start the real Hermes cockpit gateway, then point the
-JARVIS Prime Android app at it. Everything stays on your PC (loopback) unless
+MUSE Android app at it. Everything stays on your PC (loopback) unless
 you deliberately opt into the Wi-Fi path.
 
 > The app needs the `INTERNET` permission to reach the gateway — even over

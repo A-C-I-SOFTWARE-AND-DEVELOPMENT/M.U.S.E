@@ -1,6 +1,6 @@
-# Jarvis Prime — App Microcopy
+# MUSE — App Microcopy
 
-Every user-facing string in the Jarvis Prime Android app, with the
+Every user-facing string in the MUSE Android app, with the
 rationale for the wording. This is the editorial bible — if you are
 adding a new string, match the voice in this document or update the
 document.
@@ -13,9 +13,9 @@ the **why** behind those strings.
 
 ## 1. Voice rules
 
-1. **The agent is "Jarvis."** First-person from the agent is fine
-   ("I'm listening", "Jarvis is thinking"). Third-person is also fine
-   ("Jarvis remembered…").
+1. **The agent is "MUSE."** First-person from the agent is fine
+   ("I'm listening", "MUSE is thinking"). Third-person is also fine
+   ("MUSE remembered…").
 2. **Plain words, no jargon.** Say "bring online", not "instantiate."
    Say "halt", not "terminate process."
 3. **Consent before action.** Approval / serious / critical copy makes
@@ -34,23 +34,23 @@ the **why** behind those strings.
 
 | Key | Copy | Why |
 |---|---|---|
-| `app_name` | **Jarvis Prime** | The product name |
+| `app_name` | **MUSE** | The product name |
 | `app_tagline` | Your command-center agent. | Sets expectation: tool, not toy |
-| `welcome_title` | Welcome to Jarvis Prime | Plain greeting |
+| `welcome_title` | Welcome to MUSE | Plain greeting |
 | `welcome_subtitle` | An agent that asks permission, confirms intent, and shows the work. | Three trust signals in one line |
 | `welcome_continue` | Begin | Single, decisive verb |
 
 ---
 
-## 3. Ask Jarvis (text/voice input)
+## 3. Ask MUSE (text/voice input)
 
 | Key | Copy | Why |
 |---|---|---|
-| `ask_jarvis_hint` | Ask Jarvis… | Lower-effort than "Type a command" |
-| `ask_jarvis_voice_cd` | Tap to dictate to Jarvis | Spell out the gesture for screen readers |
-| `ask_jarvis_send_cd` | Send to Jarvis | Confirms destination |
+| `ask_jarvis_hint` | Ask MUSE… | Lower-effort than "Type a command" |
+| `ask_jarvis_voice_cd` | Tap to dictate to MUSE | Spell out the gesture for screen readers |
+| `ask_jarvis_send_cd` | Send to MUSE | Confirms destination |
 | `ask_jarvis_listening` | Listening… speak naturally | Reassurance that there's no command grammar |
-| `ask_jarvis_thinking` | Jarvis is thinking… | "Thinking" beats "Processing" — feels less robotic |
+| `ask_jarvis_thinking` | MUSE is thinking… | "Thinking" beats "Processing" — feels less robotic |
 
 ---
 
@@ -71,7 +71,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `approval_title` | Approval needed | Direct |
-| `approval_body` | Jarvis wants to proceed. Review and approve before anything runs. | Two clauses: *what's blocking*, *what to do* |
+| `approval_body` | MUSE wants to proceed. Review and approve before anything runs. | Two clauses: *what's blocking*, *what to do* |
 | `approval_approve` | Approve | One word |
 | `approval_deny` | Decline | "Decline" is gentler than "Deny" — same outcome |
 | `approval_details` | See details | Pull-detail, not push-detail |
@@ -83,7 +83,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `serious_title` | Serious action | Honest naming of the tier |
-| `serious_body` | This will make a meaningful change. Confirm intent before Jarvis proceeds. | Names the change as meaningful; names the user as the intent-holder |
+| `serious_body` | This will make a meaningful change. Confirm intent before MUSE proceeds. | Names the change as meaningful; names the user as the intent-holder |
 | `serious_confirm` | Confirm | |
 | `serious_review` | Review change | Verb-noun, matches "Confirm intent" |
 
@@ -94,7 +94,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `critical_title` | Critical action | One step up from "Serious" |
-| `critical_body` | This action is destructive or irreversible. Jarvis will not proceed without explicit go-ahead. | "Destructive or irreversible" is the legal-grade phrase. "Explicit go-ahead" tells the user *they* are the gate. |
+| `critical_body` | This action is destructive or irreversible. MUSE will not proceed without explicit go-ahead. | "Destructive or irreversible" is the legal-grade phrase. "Explicit go-ahead" tells the user *they* are the gate. |
 | `critical_confirm` | I understand — proceed | First-person acknowledgement; harder to fat-finger |
 | `critical_cancel` | Hold | Distinct from generic "Cancel"; sounds like a flight-deck call |
 
@@ -107,10 +107,10 @@ the **why** behind those strings.
 | `emergency_stop` | Emergency stop | Industry-standard phrase. Avoid cute. |
 | `emergency_stop_cd` | Halt every active task immediately | Screen-reader full intent |
 | `emergency_stop_confirm_title` | Halt everything? | Question form — forces a moment of thought |
-| `emergency_stop_confirm_body` | Jarvis will stop every running task and stand down. You can bring it back online at any time. | Names the consequence (stop + stand down) and names the recovery (bring back online) so the user is not afraid the button is final |
+| `emergency_stop_confirm_body` | MUSE will stop every running task and stand down. You can bring it back online at any time. | Names the consequence (stop + stand down) and names the recovery (bring back online) so the user is not afraid the button is final |
 | `emergency_stop_confirm_yes` | Halt now | Active verb; matches the title |
 | `emergency_stop_confirm_no` | Keep going | The "keep" verb makes the safer choice feel like the default |
-| `emergency_stop_engaged` | All tasks halted. Jarvis is standing by. | Closes the loop |
+| `emergency_stop_engaged` | All tasks halted. MUSE is standing by. | Closes the loop |
 
 ---
 
@@ -125,7 +125,7 @@ the **why** behind those strings.
 | `gateway_status_disconnected` | Disconnected | |
 | `gateway_status_mock` | Mock | |
 | `gateway_status_termux` | Termux | |
-| `gateway_disconnected_title` | Jarvis is offline | Subject + state; no panic |
+| `gateway_disconnected_title` | MUSE is offline | Subject + state; no panic |
 | `gateway_disconnected_body` | I can't reach the local gateway right now. Existing work is safe. I'll reconnect as soon as it's available. | Three beats: *what failed*, *what's safe*, *what's next* |
 | `gateway_disconnected_retry` | Try again | Plain |
 | `gateway_disconnected_diagnose` | Run diagnostics | Names the existing diagnostics screen |
@@ -137,7 +137,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `mock_mode_title` | Mock mode | |
-| `mock_mode_body` | Jarvis is running on simulated data. Nothing you do here touches your real accounts or files. | The user must know nothing real is happening |
+| `mock_mode_body` | MUSE is running on simulated data. Nothing you do here touches your real accounts or files. | The user must know nothing real is happening |
 
 ---
 
@@ -146,7 +146,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `termux_mode_title` | Termux gateway | "Termux" is named because the user explicitly opted into it |
-| `termux_mode_body` | Jarvis is talking to the Hermes runtime hosted in Termux on this device. Everything stays local. | Mentions Hermes-as-runtime — this is the one place the developer-facing name leaks into UI, deliberately, because the user installed Hermes |
+| `termux_mode_body` | MUSE is talking to the Hermes runtime hosted in Termux on this device. Everything stays local. | Mentions Hermes-as-runtime — this is the one place the developer-facing name leaks into UI, deliberately, because the user installed Hermes |
 
 ---
 
@@ -155,9 +155,9 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `memory_card_title` | Memory updated | |
-| `memory_card_body` | Jarvis remembered: %1$s | Subject-verb-object |
+| `memory_card_body` | MUSE remembered: %1$s | Subject-verb-object |
 | `memory_corrected_title` | Memory corrected | |
-| `memory_corrected_body` | Got it. Jarvis updated what it remembered about "%1$s". | Acknowledges the user's correction first |
+| `memory_corrected_body` | Got it. MUSE updated what it remembered about "%1$s". | Acknowledges the user's correction first |
 | `memory_view` | Review memory | |
 | `memory_forget` | Forget this | Match the agent verb "forget" used in the runtime |
 
@@ -168,7 +168,7 @@ the **why** behind those strings.
 | Key | Copy | Why |
 |---|---|---|
 | `audit_card_title` | Audit trail | |
-| `audit_card_subtitle` | Every action Jarvis takes is logged here. | Sets the trust promise |
+| `audit_card_subtitle` | Every action MUSE takes is logged here. | Sets the trust promise |
 | `audit_open` | Open audit log | |
 
 ---
@@ -183,10 +183,10 @@ the **why** behind those strings.
 | `task_status_complete` | Complete | "Complete" not "Done" — matches existing internal status `COMPLETE` |
 | `task_status_blocked` | Blocked | |
 | `task_complete_title` | Task complete | |
-| `task_complete_body` | Jarvis finished "%1$s". Tap to review what changed. | Names the task, invites review |
+| `task_complete_body` | MUSE finished "%1$s". Tap to review what changed. | Names the task, invites review |
 | `task_complete_view` | View result | |
 | `worker_failed_title` | Worker failed | "Worker" is the runtime term; users see it in logs |
-| `worker_failed_body` | Something went wrong while Jarvis was working on "%1$s". Nothing destructive happened — you can retry or open diagnostics. | Three beats: *what happened*, *what's safe*, *what to do* |
+| `worker_failed_body` | Something went wrong while MUSE was working on "%1$s". Nothing destructive happened — you can retry or open diagnostics. | Three beats: *what happened*, *what's safe*, *what to do* |
 | `worker_failed_retry` | Retry | |
 | `worker_failed_diagnose` | Diagnose | |
 
@@ -196,9 +196,9 @@ the **why** behind those strings.
 
 | Key | Copy | Why |
 |---|---|---|
-| `permission_education_title` | Why Jarvis needs this | Asks the user's *implicit* question |
-| `permission_education_microphone_body` | Jarvis listens only while you hold the dictate button. No background recording. No upload off-device unless you ask for it. | Three explicit guarantees, in order: scope, persistence, exfiltration |
-| `permission_education_notifications_body` | Notifications let Jarvis tell you when an approval is needed or a task finishes. You can turn them off anytime in Settings. | Use-case + reversibility |
+| `permission_education_title` | Why MUSE needs this | Asks the user's *implicit* question |
+| `permission_education_microphone_body` | MUSE listens only while you hold the dictate button. No background recording. No upload off-device unless you ask for it. | Three explicit guarantees, in order: scope, persistence, exfiltration |
+| `permission_education_notifications_body` | Notifications let MUSE tell you when an approval is needed or a task finishes. You can turn them off anytime in Settings. | Use-case + reversibility |
 | `permission_education_continue` | Continue | |
 | `permission_education_not_now` | Not now | Reversibility implied |
 
@@ -208,7 +208,7 @@ the **why** behind those strings.
 
 | Key | Copy | Why |
 |---|---|---|
-| `orchestrator_notification_title` | Jarvis Prime is on duty | "On duty" matches the command-center voice |
+| `orchestrator_notification_title` | MUSE is on duty | "On duty" matches the command-center voice |
 | `orchestrator_notification_text` | Coordinating local AI workflow on this device. | Lowercase, factual |
 | `orchestrator_notification_stop` | Stand down | Reused throughout the surface |
 
@@ -218,8 +218,8 @@ the **why** behind those strings.
 
 Things that **must not** appear in UI strings:
 
-- "Sorry," / "Oops," — Jarvis is competent, not apologetic
-- "AI" as a noun ("the AI thinks") — Jarvis is the agent
+- "Sorry," / "Oops," — MUSE is competent, not apologetic
+- "AI" as a noun ("the AI thinks") — MUSE is the agent
 - "Powered by …" / "Built with …"
 - Emoji in default copy
 - Exclamation marks except in clearly emotive places (none currently

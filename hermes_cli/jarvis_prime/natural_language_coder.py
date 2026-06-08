@@ -1,4 +1,4 @@
-"""Natural-language coder — bounded work-packet builder for JARVIS Prime.
+"""Natural-language coder — bounded work-packet builder for MUSE.
 
 Turns a plain-English request into a bounded, reviewable, gate-compatible
 work packet. It **never executes**; it only describes scope, risk,

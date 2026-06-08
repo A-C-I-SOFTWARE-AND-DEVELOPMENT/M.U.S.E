@@ -6,10 +6,10 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
- * One unit of work tracked by the Jarvis Prime cockpit.
+ * One unit of work tracked by the MUSE cockpit.
  *
  * The original Hermes handoff fields (title / status / target / notes) are
- * unchanged. The Jarvis Prime worker-card surface is layered on top as new,
+ * unchanged. The MUSE worker-card surface is layered on top as new,
  * fully-defaulted fields so older persisted tasks deserialize without
  * migration — every addition is optional and round-trips through the same
  * `Json { ignoreUnknownKeys = true; encodeDefaults = true }` config the
@@ -35,7 +35,7 @@ data class HermesTask(
     val reviewNotes: String? = null,
     val nextAction: String? = null,
 
-    // --- Jarvis Prime worker-card extensions (all optional / defaulted) ---
+    // --- MUSE worker-card extensions (all optional / defaulted) ---
     /** Blast-radius tier, on the same scale the Approvals flow gates on. */
     val riskTier: ApprovalRiskTier = ApprovalRiskTier.LOW,
     /** Which worker lane the task is currently routed through. */
@@ -72,7 +72,7 @@ enum class TaskStatus {
 enum class TargetTool { CODEX, CHATGPT, CLAUDE_CODE, CLAUDE, MANUAL }
 
 /**
- * Jarvis Prime worker lanes. The orchestrator routes a task through these in
+ * MUSE worker lanes. The orchestrator routes a task through these in
  * order; the card shows the current lane. Independent of [TaskStatus] so a
  * blocked task still remembers which lane it stalled in.
  */

@@ -10,7 +10,7 @@ import com.aci.hermes.data.model.TaskType
  *
  * The classifier never claims to be doing real NLU — it's a tight,
  * deterministic ruleset that maps a prompt to the response shape
- * Jarvis Prime should produce. Tuning happens here, in one place.
+ * MUSE should produce. Tuning happens here, in one place.
  */
 object JarvisIntentClassifier {
 

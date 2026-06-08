@@ -27,7 +27,7 @@ model is reachable. *(In-app "describe your character" field calls this endpoint
 
 ## 2. Model routing — which brain, when ✅ working + validated
 
-JARVIS classifies each turn and routes to the right brain (free-first), validated
+MUSE classifies each turn and routes to the right brain (free-first), validated
 this session (`tests/gateway/test_cockpit_routing.py`, `_brain_hint`):
 
 | Task kind (from the turn) | Brain | Why |
@@ -59,7 +59,7 @@ To pin exact versions per task, set them in `model_policy.json` /
 
 ## 3. Pipeline coherence ✅ validated
 
-`JARVIS → Navigator → Orchestrator → Worker → Ledger`, validated end-to-end this
+`MUSE → Navigator → Orchestrator → Worker → Ledger`, validated end-to-end this
 session: `submit_job → navigate_job (localizes @conf 1.0) → dispatch_job (5-step
 contract) → owner-gate (execute blocked without the exact-phrase approval) →
 replay`. The companion has full, owner-gated app access per the operating-system

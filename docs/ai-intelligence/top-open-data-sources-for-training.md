@@ -1,7 +1,7 @@
-# Top Open Data Sources for Training JARVIS
+# Top Open Data Sources for Training MUSE
 
 > A curated, ranked inventory of publicly available, license-aware datasets
-> Hermes can consume for JARVIS fine-tuning, preference training, retrieval,
+> Hermes can consume for MUSE fine-tuning, preference training, retrieval,
 > and evaluation. Companion to
 > [`jarvis-learning-dataset.md`](jarvis-learning-dataset.md) (the *owned-trace*
 > pipeline) and to [`open-data-sources.yaml`](open-data-sources.yaml) (the
@@ -13,11 +13,11 @@ As of 2026-06-04.
 
 ## Why this inventory exists
 
-JARVIS improves through two complementary data paths:
+MUSE improves through two complementary data paths:
 
 1. **Owned traces** — its own validated, source-backed work (coding tasks,
    research answers, evidence checks, reviews, even failures), captured by the
-   [JARVIS Learning Dataset Pipeline](jarvis-learning-dataset.md).
+   [MUSE Learning Dataset Pipeline](jarvis-learning-dataset.md).
 2. **External open data** — public, license-clear corpora and benchmarks. This
    document catalogs that second path.
 
@@ -111,7 +111,7 @@ flowchart LR
     D --> E[Task builders<br/>generation / edit / review / repair / testing]
     E --> F[Learning Dataset Pipeline<br/>learning_ingest.from_research_artifact]
     D --> G[Benchmark wall<br/>SWE-bench Verified / AACR-Bench / RepoBench / CrossCodeEval / BigCodeBench / EvalPlus]
-    F --> H[JARVIS SFT / preference tuning / retrieval index]
+    F --> H[MUSE SFT / preference tuning / retrieval index]
     G --> I[Continuous evaluation + release gates]
 ```
 
@@ -154,11 +154,11 @@ usual here.
 hourly); GitHub BigQuery-derived corpora weekly; The Stack v2 in sync with its
 ~quarterly removal/update cycle; Software Heritage on its yearly graph
 releases; and generate SWE-smith tasks on *your* target repos per-release —
-that is the best path to align JARVIS with the repos you actually care about.
+that is the best path to align MUSE with the repos you actually care about.
 
 ```mermaid
 gantt
-    title Suggested JARVIS ingestion timeline
+    title Suggested MUSE ingestion timeline
     dateFormat  YYYY-MM-DD
     axisFormat  %b %d
     section Foundation
@@ -175,7 +175,7 @@ gantt
     Edit / review / repair / summarize  :d1, 2026-07-18, 12d
     Retrieval index + benchmark wall    :d2, 2026-07-22, 10d
     section Model iteration
-    First JARVIS SFT cycle              :e1, 2026-08-01, 14d
+    First MUSE SFT cycle              :e1, 2026-08-01, 14d
     Eval + contamination audit          :e2, 2026-08-12, 7d
     Continuous refresh loop             :e3, 2026-08-20, 30d
 ```
@@ -202,7 +202,7 @@ the existing pipeline can mint source-backed traces via
 ## Stack Overflow / Stack Exchange caveat
 
 One source many teams instinctively reach for is **Stack Overflow / Stack
-Exchange**, but it is **not** recommended for JARVIS via the public dump path.
+Exchange**, but it is **not** recommended for MUSE via the public dump path.
 Stack's download terms now require users to affirm they will not use the dump
 for LLM training, and Stack offers a separate AI data-licensing route instead.
 For this use case that makes the public dump legally and operationally inferior

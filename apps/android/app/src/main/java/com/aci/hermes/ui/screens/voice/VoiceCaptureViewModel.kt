@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Hands-free capture surface for Jarvis Prime.
+ * Hands-free capture surface for MUSE.
  *
  * The screen drives the *system* speech recognizer (an Activity result
  * contract over [android.speech.RecognizerIntent]); this view model

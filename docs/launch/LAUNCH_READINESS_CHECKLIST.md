@@ -1,4 +1,4 @@
-# Launch Readiness Checklist — JARVIS Prime + Hermes runtime
+# Launch Readiness Checklist — MUSE + Hermes runtime
 
 > ⚠️ **SUPERSEDED (2026-06-01).** Written 2026-05-26 against PR #131 / base
 > `bc97e43`; `main` is now 211 commits ahead. The GREEN/YELLOW/RED grades
@@ -25,7 +25,7 @@ Legend: 🟢 GREEN ✅ verified; 🟡 YELLOW ⚠️ partial / pending evidence; 
 |---|-------|------|---------------|--------|
 | 1.1 | `./gradlew --no-daemon assembleDebug` exits 0 on CI | B | `android-build.yml` job log | 🔴 |
 | 1.2 | `app-debug.apk` produced under `apps/android/app/build/outputs/apk/debug/` | B | CI artifact | 🔴 |
-| 1.3 | `aapt dump badging app-debug.apk` reports `package=com.aci.hermes`, `versionCode=1`, `versionName=0.1.0`, `application-label='Jarvis Prime'` | B / H | demo trace §3 | 🟡 (pending CI green) |
+| 1.3 | `aapt dump badging app-debug.apk` reports `package=com.aci.hermes`, `versionCode=1`, `versionName=0.1.0`, `application-label='MUSE'` | B / H | demo trace §3 | 🟡 (pending CI green) |
 | 1.4 | `targetSdk=35`, `minSdk=26` unchanged | B | `apps/android/app/build.gradle.kts` | 🟢 |
 | 1.5 | No new gradle dependency added without owner sign-off | B / H | `git diff bc97e43 -- apps/android/gradle/libs.versions.toml` | 🟡 |
 | 1.6 | Chat composable compiles end-to-end | C | C lane CI | 🔴 (currently demoted) |
@@ -191,7 +191,7 @@ intervention.
 
 | # | Step | Lane(s) gating | Status |
 |---|------|----------------|--------|
-| 17.1 | Cold start → Splash with Jarvis Prime caduceus + tagline | B | 🟡 |
+| 17.1 | Cold start → Splash with MUSE caduceus + tagline | B | 🟡 |
 | 17.2 | Onboarding → mode selection → permission education → emergency-stop primer | B / E | 🟡 |
 | 17.3 | Home → mission-control card, status, quick-links visible | B / D / E | 🟡 |
 | 17.4 | Home presence indicator transitions to "thinking" on any orchestrator-busy state | D | 🔴 |

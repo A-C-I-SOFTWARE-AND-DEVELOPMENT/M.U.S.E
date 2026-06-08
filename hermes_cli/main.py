@@ -5866,7 +5866,7 @@ def cmd_doctor(args):
 
 
 def cmd_jarvis_launch_doctor(args):
-    """Run the free-first JARVIS Prime launch-readiness doctor."""
+    """Run the free-first MUSE launch-readiness doctor."""
     import json as _json
 
     from hermes_cli.jarvis_prime.launch_doctor import run_launch_doctor
@@ -5913,7 +5913,7 @@ def cmd_release_gate(args):
 
 
 def cmd_jarvis(args):
-    """JARVIS Prime launch + operations (free-first)."""
+    """MUSE launch + operations (free-first)."""
     import json as _json
 
     action = getattr(args, "jarvis_command", None)
@@ -5946,7 +5946,7 @@ def cmd_jarvis(args):
 
 
 def cmd_cockpit(args):
-    """Serve the loopback cockpit API for the Jarvis Prime Android app."""
+    """Serve the loopback cockpit API for the MUSE Android app."""
     action = getattr(args, "cockpit_command", None)
     if action == "token":
         from gateway.cockpit import auth as _auth
@@ -5971,7 +5971,7 @@ def cmd_cockpit(args):
         bound_host, bound_port = _addr[0], _addr[1]
         print(f"Hermes cockpit API listening on http://{bound_host}:{bound_port}")
         print(f"Pairing token: {token}")
-        print("Pair the Jarvis Prime Android app with this base URL + token.")
+        print("Pair the MUSE Android app with this base URL + token.")
         print("Press Ctrl-C to stop.")
         try:
             while True:
@@ -11687,7 +11687,7 @@ def main():
         "--jarvis-launch",
         action="store_true",
         help=(
-            "Run the free-first JARVIS Prime launch-readiness doctor instead "
+            "Run the free-first MUSE launch-readiness doctor instead "
             "of the general diagnostics. Verifies the one-command launch path "
             "(runtime, owner gate, emergency stop, model brain, model policy, "
             "local runtimes, Claude Code/Codex worker lanes, installer)."
@@ -11734,13 +11734,13 @@ def main():
     doctor_parser.set_defaults(func=cmd_doctor)
 
     # =========================================================================
-    # jarvis command — free-first JARVIS Prime launch + emergency stop
+    # jarvis command — free-first MUSE launch + emergency stop
     # =========================================================================
     jarvis_parser = subparsers.add_parser(
         "jarvis",
-        help="JARVIS Prime: free-first launch and emergency stop",
+        help="MUSE: free-first launch and emergency stop",
         description=(
-            "Launch and operate JARVIS Prime, the local-first AI operating "
+            "Launch and operate MUSE, the local-first AI operating "
             "partner. `jarvis launch` runs the free-first launch path "
             "(runtime check, model bootstrap, memory init, owner gate, "
             "emergency stop, worker detection, launch doctor)."
@@ -11748,7 +11748,7 @@ def main():
     )
     jarvis_subparsers = jarvis_parser.add_subparsers(dest="jarvis_command")
     jarvis_launch_parser = jarvis_subparsers.add_parser(
-        "launch", help="Run the free-first JARVIS Prime launch path"
+        "launch", help="Run the free-first MUSE launch path"
     )
     jarvis_launch_parser.add_argument(
         "--no-free-first", dest="free_first", action="store_false",
@@ -11788,14 +11788,14 @@ def main():
     _register_guardrails(subparsers)
 
     # =========================================================================
-    # cockpit command — loopback API for the Jarvis Prime Android app
+    # cockpit command — loopback API for the MUSE Android app
     # =========================================================================
     cockpit_parser = subparsers.add_parser(
         "cockpit",
-        help="Serve the loopback cockpit API for the Jarvis Prime Android app",
+        help="Serve the loopback cockpit API for the MUSE Android app",
         description=(
             "Run the bearer-token-authenticated, loopback-only HTTP API the "
-            "Jarvis Prime Android cockpit pairs with. Backed by the real "
+            "MUSE Android cockpit pairs with. Backed by the real "
             "Hermes/JARVIS subsystems (chat, runtime status, memory, "
             "diagnostics, models, jobs, audit). Never binds non-loopback "
             "without --allow-external."
@@ -11822,7 +11822,7 @@ def main():
         "models",
         help="Free-first model bootstrap (local OSS first, paid opt-in only)",
         description=(
-            "Bootstrap JARVIS Prime's model routing. Detects local runtimes "
+            "Bootstrap MUSE's model routing. Detects local runtimes "
             "(ollama/llama.cpp/vllm/lmstudio), already-configured hosted OSS "
             "providers, and the official Claude Code / Codex worker CLIs, then "
             "writes a free-first routing policy. Paid APIs are explicit opt-in "
@@ -11839,7 +11839,7 @@ def main():
     )
     models_bootstrap_parser.add_argument(
         "--jarvis", dest="jarvis", action="store_true", default=True,
-        help="Write the JARVIS Prime model policy (default).",
+        help="Write the MUSE model policy (default).",
     )
     models_bootstrap_parser.add_argument(
         "--dry-run", action="store_true", help="Plan only — write nothing, pull nothing."

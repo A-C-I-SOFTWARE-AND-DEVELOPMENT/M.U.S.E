@@ -1,4 +1,4 @@
-# Jarvis Prime — Android App Onboarding Specification
+# MUSE — Android App Onboarding Specification
 
 > **Status:** product spec, v1. Companion to
 > [`jarvis-prime-app-product-spec.md`](jarvis-prime-app-product-spec.md),
@@ -7,7 +7,7 @@
 > [`jarvis-prime-app-launch-standard.md`](jarvis-prime-app-launch-standard.md).
 >
 > Five-step onboarding pager that takes the owner from a fresh
-> install to a usable, trusted Jarvis Prime — Connect (real
+> install to a usable, trusted MUSE — Connect (real
 > gateway), Termux on this phone, or Mock. No required step blocks
 > entry into the app.
 
@@ -19,7 +19,7 @@
    if they have a gateway URL ready.
 2. **Get the owner to a usable Mock-mode Home screen in under
    30 seconds** if they don't.
-3. **Set up Jarvis Prime's identity** — the owner knows what
+3. **Set up MUSE's identity** — the owner knows what
    *talk · command · approve · monitor · remember · verify · stop*
    means, and which of those needs which permission.
 4. **No silent fallbacks.** Every choice the owner makes is
@@ -60,7 +60,7 @@ action in the bottom 25%.
 │ Mic · notif · fg     │  │ Quick tour ·         │
 │ · BT · widget        │  │ icon · approvals     │
 │ [Allow each]         │  │ · stop               │
-│ Skip →               │  │ [Open Jarvis]        │
+│ Skip →               │  │ [Open MUSE]        │
 └──────────────────────┘  └──────────────────────┘
 ```
 
@@ -77,7 +77,7 @@ owner feel like this is *their* operating partner, not a tour.
 
 **Components.**
 
-- **Brand mark.** *Jarvis Prime.* Centered.
+- **Brand mark.** *MUSE.* Centered.
 - **Tagline.** *"Talk. Command. Approve. Stop."*
 - **Body copy (3 short lines).**
   - *"A mobile-first AI operating partner."*
@@ -97,7 +97,7 @@ vertically, primary on top.
 
 **Accessibility.** Tagline and body copy are announced once on
 focus. Both actions have plain-language content descriptions
-(*"Continue to set up Jarvis"* / *"Open Jarvis in mock mode without
+(*"Continue to set up MUSE"* / *"Open MUSE in mock mode without
 connecting"*).
 
 **Offline.** Fully functional — no network needed.
@@ -106,7 +106,7 @@ connecting"*).
 
 ## Step 2 — Connect
 
-**Purpose.** Get a real connection to a Jarvis Prime gateway, or
+**Purpose.** Get a real connection to a MUSE gateway, or
 skip to mock.
 
 **Components.**
@@ -143,7 +143,7 @@ pill, mapped from the existing `Failed.kind`:
 
 | `kind` | Owner message | Suggested fix link |
 |---|---|---|
-| `UNREACHABLE` | *"I can't reach Jarvis Prime at this URL. Check the gateway is running, then tap Test connection."* | *Open setup help* (links to docs) |
+| `UNREACHABLE` | *"I can't reach MUSE at this URL. Check the gateway is running, then tap Test connection."* | *Open setup help* (links to docs) |
 | `WRONG_URL` | *"That URL only works inside the Android emulator. Enter your gateway's LAN or public address."* | *Open setup help* |
 | `TLS` | *"The gateway's certificate did not verify. Tap Details to see why."* | *Open setup help* |
 | `HTTP` (401) | *"The gateway rejected this token. Re-enter it or clear and continue without one."* | (inline) |
@@ -183,7 +183,7 @@ No mode is silently picked.
   radio behavior):
 
   **Live gateway** (default if step 2 connected successfully)
-  - Subtitle: *"Talk to Jarvis Prime running on a server or remote
+  - Subtitle: *"Talk to MUSE running on a server or remote
     machine."*
   - Body: *"All conversation, tasks, approvals, memory, and audit
     live on the gateway. Best for full-power use."*
@@ -191,7 +191,7 @@ No mode is silently picked.
 
   **Termux on this phone** (visible only if Termux is detected on
   the device)
-  - Subtitle: *"Run Jarvis Prime inside Termux on this phone."*
+  - Subtitle: *"Run MUSE inside Termux on this phone."*
   - Body: *"The gateway runs on your phone. Loopback only. No
     internet required."*
   - Status row: detected / not detected; *Start Termux gateway* if
@@ -225,7 +225,7 @@ sized (≥ 64 dp tall).
 
 **Safety.** Mock requires an extra acknowledgement — selecting
 Mock and tapping *Continue* shows an inline note: *"Mock mode is on
-— Jarvis will not connect to a real gateway. You can switch in
+— MUSE will not connect to a real gateway. You can switch in
 Settings or Control."*
 
 **Accessibility.** Each mode card has a content description that
@@ -241,7 +241,7 @@ will see the offline banner on Home.
 
 ## Step 4 — Voice & permissions
 
-**Purpose.** Ask, **with context**, for the permissions Jarvis
+**Purpose.** Ask, **with context**, for the permissions MUSE
 Prime can use, and let the owner decline each one without breaking
 the rest of the app.
 
@@ -265,7 +265,7 @@ the rest of the app.
   3. **Foreground service.**
      - *Why:* keeps the gateway connection alive in the background
        and queues voice while the screen is off.
-     - *If you decline:* Jarvis disconnects when the app is closed.
+     - *If you decline:* MUSE disconnects when the app is closed.
      - Action: *Allow background* / *Skip*.
 
   4. **Bluetooth (optional).**
@@ -274,7 +274,7 @@ the rest of the app.
      - Action: *Allow Bluetooth* / *Skip*.
 
   5. **Pin lock-screen widget (optional).**
-     - *Why:* glanceable Jarvis status without unlocking.
+     - *Why:* glanceable MUSE status without unlocking.
      - *If you decline:* you must open the app to see status.
      - Action: *Pin widget* / *Skip*.
 
@@ -332,18 +332,18 @@ Home.
      A small animation of the icon cycling through its six states.
 
   2. **Approvals stay with you.**
-     *"Jarvis will never spend, deploy, publish, merge to main,
+     *"MUSE will never spend, deploy, publish, merge to main,
      change a credential, or make a regulated claim without
      asking. Approvals live on the Approvals screen and the
      interactive icon turns bright when one is waiting."*
 
   3. **Stop is one gesture, anytime.**
-     *"From any screen, double-tap the icon to stop Jarvis.
-     Resume needs you to say or tap 'Resume Jarvis' — no
+     *"From any screen, double-tap the icon to stop MUSE.
+     Resume needs you to say or tap 'Resume MUSE' — no
      automatic resume."*
 
-- **Primary action.** *Open Jarvis* — writes the onboarding-complete
-  flag to DataStore and navigates to **Jarvis Home**.
+- **Primary action.** *Open MUSE* — writes the onboarding-complete
+  flag to DataStore and navigates to **MUSE Home**.
 
 **Empty / loading / error states.** Not applicable.
 
@@ -354,7 +354,7 @@ Primary action sits in the bottom 25%.
 flag.
 
 **Accessibility.** The icon animation has a `Role.Image` with a
-content description *"Jarvis icon cycling through its six states:
+content description *"MUSE icon cycling through its six states:
 ready, listening, thinking, waiting, paused, stopped."* Reduce
 motion shows a static glyph instead.
 
@@ -403,7 +403,7 @@ motion shows a static glyph instead.
 ┌─────────┐
 │ Step 5  │
 └───┬─────┘
-    │ Open Jarvis
+    │ Open MUSE
     ▼
 mark complete +
 mode written +
@@ -448,7 +448,7 @@ The pager enforces these rules before allowing advance:
 | 2 | *Save & continue* enabled only after a successful `/v1/health` in this session, **or** *Skip* tapped (which forces Mock for step 3). |
 | 3 | A mode is always selected (Live · Termux · Mock). *Continue* always enabled. |
 | 4 | Always advanceable. Declining permissions never blocks. |
-| 5 | *Open Jarvis* always enabled. |
+| 5 | *Open MUSE* always enabled. |
 
 ---
 
@@ -483,4 +483,4 @@ The pager enforces these rules before allowing advance:
   somewhere usable on a skip.
 - [`apps/android/README.md`](../apps/android/README.md)
   — the existing first-run section is superseded by this spec for
-  Jarvis Prime builds.
+  MUSE builds.

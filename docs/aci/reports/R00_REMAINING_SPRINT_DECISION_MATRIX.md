@@ -82,7 +82,7 @@ owner direction (full list mirrors `R00_CURRENT_LAUNCH_STACK_AUDIT.md
 §13`):
 
 - **`apps/android/**`** — owned by the launch chain. **Do not
-  create a duplicate Android module.** The product name is **Jarvis
+  create a duplicate Android module.** The product name is **MUSE
   Prime**; the canonical app is at `apps/android/`.
 - **`apps/android/app/src/main/AndroidManifest.xml`** — locked at
   3 permissions (`POST_NOTIFICATIONS`, `FOREGROUND_SERVICE`,
@@ -119,11 +119,11 @@ owner direction (full list mirrors `R00_CURRENT_LAUNCH_STACK_AUDIT.md
 
 ## E. Global product rules (binding for every sprint prompt)
 
-- **Product-facing name is Jarvis Prime.** Hermes can remain only
+- **Product-facing name is MUSE.** Hermes can remain only
   for backend/runtime/package compatibility.
-- **Android is the Jarvis Prime body/control surface**, not the
-  full AI brain. Backend/runtime/gateway/JARVIS remains in
-  Hermes/Jarvis backend code.
+- **Android is the MUSE body/control surface**, not the
+  full AI brain. Backend/runtime/gateway/MUSE remains in
+  Hermes/MUSE backend code.
 - **Do not embed Python runtime inside the APK.**
 - **Do not store gateway-side secrets in Android.**
 - **No SMS, Call Log, overlay, camera, location, media, or

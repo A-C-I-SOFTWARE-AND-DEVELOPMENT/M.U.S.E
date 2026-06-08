@@ -1,4 +1,4 @@
-"""AwarenessSnapshot — JARVIS Prime's six live sensor streams.
+"""AwarenessSnapshot — MUSE's six live sensor streams.
 
 This is the "hyper aware" layer. Iron Man Jarvis-style omnipresent
 context, mapped to existing Hermes subsystems:

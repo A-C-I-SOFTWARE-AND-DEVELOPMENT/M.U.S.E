@@ -1,4 +1,4 @@
-"""Gated automation-flow execution engine for JARVIS Prime (W8).
+"""Gated automation-flow execution engine for MUSE (W8).
 
 Executes an :class:`AutomationFlow` produced by the automation-flow IR
 compiler. The contract is deliberately conservative:

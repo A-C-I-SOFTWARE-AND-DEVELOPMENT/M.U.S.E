@@ -80,10 +80,10 @@ Avoid:
 When Jeremiah later says something like:
 
 ```text
-JARVIS focused: expand the low-clearance Hey Jay idea
+MUSE focused: expand the low-clearance Hey Jay idea
 ```
 
-JARVIS should expand the captured task into:
+MUSE should expand the captured task into:
 
 - mission
 - context
@@ -133,45 +133,45 @@ Use this packet when converting a voice dump into future work:
 Capture:
 
 ```text
-JARVIS capture: <raw idea>
+MUSE capture: <raw idea>
 ```
 
 Focused expansion:
 
 ```text
-JARVIS focused: <task title or captured idea>
+MUSE focused: <task title or captured idea>
 ```
 
 Build preparation:
 
 ```text
-JARVIS build: <repo and task>
+MUSE build: <repo and task>
 ```
 
 Critique:
 
 ```text
-JARVIS critic: <idea or plan>
+MUSE critic: <idea or plan>
 ```
 
 Strategy:
 
 ```text
-JARVIS strategy: <decision or product direction>
+MUSE strategy: <decision or product direction>
 ```
 
 Review:
 
 ```text
-JARVIS review: <PR, diff, plan, or file set>
+MUSE review: <PR, diff, plan, or file set>
 ```
 
 Memory:
 
 ```text
-JARVIS remember: <durable fact>
-JARVIS forget: <memory to remove>
-JARVIS correct: <old belief> -> <new belief>
+MUSE remember: <durable fact>
+MUSE forget: <memory to remove>
+MUSE correct: <old belief> -> <new belief>
 ```
 
 ## Termux Command Format
@@ -180,21 +180,21 @@ From Termux, keep commands short and explicit:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "JARVIS capture: <raw idea>"
+hermes "MUSE capture: <raw idea>"
 ```
 
 Focused follow-up:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "JARVIS focused: <task title>"
+hermes "MUSE focused: <task title>"
 ```
 
 Builder follow-up:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "JARVIS build: repo=<repo> task=<task title>"
+hermes "MUSE build: repo=<repo> task=<task title>"
 ```
 
 Do not paste secrets into Termux or Slack commands.
@@ -204,7 +204,7 @@ Do not paste secrets into Termux or Slack commands.
 Input:
 
 ```text
-JARVIS capture: Hey Jay needs to warn drivers before low bridges and give truck-safe alternatives, not just regular map reroutes.
+MUSE capture: Hey Jay needs to warn drivers before low bridges and give truck-safe alternatives, not just regular map reroutes.
 ```
 
 Response:
@@ -223,7 +223,7 @@ Next focused action: Expand into a route-warning MVP packet.
 Input:
 
 ```text
-JARVIS capture: I'm frustrated because this app idea keeps sprawling. I need it to become something shippable.
+MUSE capture: I'm frustrated because this app idea keeps sprawling. I need it to become something shippable.
 ```
 
 Response:

@@ -82,7 +82,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Navigation contract for everything the Jarvis Prime home screen can
+ * Navigation contract for everything the MUSE home screen can
  * launch. Kept as a value class so the screen never depends on
  * NavController directly — that keeps the screen previewable and
  * keeps test-only callers from needing a full nav graph.
@@ -347,7 +347,7 @@ fun JarvisPrimeHomeContent(
             onDismissRequest = { emergencyConfirmOpen = false },
             title = { Text("Engage emergency stop?") },
             text = {
-                Text("Halts Jarvis Prime immediately and blocks ask, voice, and worker actions until you deactivate.")
+                Text("Halts MUSE immediately and blocks ask, voice, and worker actions until you deactivate.")
             },
             confirmButton = {
                 Button(
@@ -376,7 +376,7 @@ fun JarvisPrimeIcon(
 ) {
     val tint = presence.tint()
     val haptics = rememberJarvisHaptics()
-    val label = "Jarvis Prime — ${presence.headline()}"
+    val label = "MUSE — ${presence.headline()}"
     Box(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ICON)
@@ -421,7 +421,7 @@ fun JarvisStatusHeader(
         JarvisPrimeIcon(presence = presence, onClick = onIconTap)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Jarvis Prime",
+                text = "MUSE",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold,

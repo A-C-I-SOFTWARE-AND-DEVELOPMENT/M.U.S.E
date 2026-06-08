@@ -1,6 +1,6 @@
-# Jarvis Prime — Memory Transparency
+# MUSE — Memory Transparency
 
-The Memory screen is the owner's window into everything Jarvis Prime
+The Memory screen is the owner's window into everything MUSE
 remembers. It exists so the owner can:
 
 - **See** what Jarvis thinks it knows, broken down by category.

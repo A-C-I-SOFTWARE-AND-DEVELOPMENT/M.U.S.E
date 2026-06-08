@@ -1,6 +1,6 @@
 # SIA Self-Improvement Integration
 
-How Hermes/JARVIS uses **Hexo Labs' SIA** (Self-Improving AI,
+How Hermes/MUSE uses **Hexo Labs' SIA** (Self-Improving AI,
 [github.com/hexo-ai/sia](https://github.com/hexo-ai/sia), MIT) to
 empirically improve its own skills, agents, and scaffolds — without
 ever letting an autonomous loop touch the live runtime.
@@ -13,7 +13,7 @@ ever letting an autonomous loop touch the live runtime.
 ## Why
 
 Hermes already has a self-improvement loop (`docs/orchestration/
-self-improvement-loop.md`) and JARVIS already has an owner-gated
+self-improvement-loop.md`) and MUSE already has an owner-gated
 proposal path (`hermes_cli/jarvis_prime/self_update.py`). What was
 missing is a *closed, benchmark-evaluated* improver. SIA supplies
 exactly that: a meta → target → feedback loop that rewrites a target

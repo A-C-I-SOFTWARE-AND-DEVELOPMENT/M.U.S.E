@@ -43,7 +43,7 @@ queued merge will not fire.
       to ship.
 - [ ] **Android `lintDebug`** passes
       (`.github/workflows/android-build.yml` → `lint` job).
-- [ ] **Python Jarvis tests** pass:
+- [ ] **Python MUSE tests** pass:
       `python -m pytest tests/test_jarvis_prime_*.py tests/test_orchestrator_*.py -q`.
 - [ ] **`ruff check`** passes
       (`.github/workflows/lint.yml` → `ruff enforcement (blocking)`).

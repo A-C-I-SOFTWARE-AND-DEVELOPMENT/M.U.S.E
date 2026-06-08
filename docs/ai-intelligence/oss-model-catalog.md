@@ -1,6 +1,6 @@
-# JARVIS Prime — Open-Source Model Brain
+# MUSE — Open-Source Model Brain
 
-> The open-weight models JARVIS Prime can **learn from** and **route work
+> The open-weight models MUSE can **learn from** and **route work
 > to**, cross-referenced against public benchmarks and kept refreshable.
 
 This is the narrative companion to
@@ -41,7 +41,7 @@ actually have installed.
 
 ---
 
-## How JARVIS Prime uses it
+## How MUSE uses it
 
 ```text
 # best open coders for general coding, on this host
