@@ -25,8 +25,16 @@ builder ≠ reviewer, validate before every PR, disjoint file ownership.
 | Grain | Scope | Owns | Branch | Status |
 |---|---|---|---|---|
 | **G0.1** | MUSE design system (tokens.json → tokens.css + Tokens.kt; component catalog) | `design-system/**`, append `docs/brand/muse-design-language.md` | `claude/muse-app-g01-design-system` | **merged** (#400 → `a7f2fc9f`) |
-| **G0.2** | Tauri v2 desktop scaffold + Singularity Vite/React client + PWA | `apps/desktop/**` | `claude/muse-app-g02-desktop-scaffold` | building |
-| **G0.3** | Android Compose design-system module (components + gallery + tests) | `apps/android/.../ui/designsystem/**`, `.../test/.../ui/designsystem/**` | `claude/muse-app-g03-android-ds` | building |
+| **G0.2** | Tauri v2 desktop scaffold + Singularity Vite/React client + PWA | `apps/desktop/**` | `claude/muse-app-g02-desktop-scaffold` | **merged** (#402 → `a1d8198e`; Rust `cargo check` + Vite build both green locally) |
+| **G0.3** | Android Compose design-system module (components + gallery + tests) | `apps/android/.../ui/designsystem/**`, `.../test/.../ui/designsystem/**` | `claude/muse-app-g03-android-ds` | **merged** (#401 → `d4c66c09`; needed a 1-line test-import fix; Lint/Unit tests/Build APK green) |
+
+**Wave 0 ✅ complete — design system + desktop scaffold + Android component lib all on `main`.**
+
+## Wave 0.5 — infra unblockers (additive; clear the path for Wave 2 CI)
+| Grain | Scope | Owns | Branch | Status |
+|---|---|---|---|---|
+| **G0.4** | Stabilize/quarantine the flaky `AvatarPickerViewModelTest` (reddens every Android PR; main-dispatcher coroutine flake) | `apps/android/.../ui/screens/avatar/AvatarPickerViewModelTest.kt` (+ a test util if needed) | `claude/muse-app-g04-android-flake` | planned |
+| **G0.5** | Rust+Node CI lane so `apps/desktop` is machine-built (npm build + `cargo check`) on every desktop PR | `.github/workflows/desktop.yml` (new) | `claude/muse-app-g05-desktop-ci` | planned |
 
 ## Wave 1 — proof slice (owner review gate; after Wave 0 merges)
 | Grain | Scope | Status |
@@ -54,3 +62,10 @@ builder ≠ reviewer, validate before every PR, disjoint file ownership.
   Wave 0 launched: G0.1, G0.2, G0.3 building in isolated worktrees.
 - `2026-06-08` — **G0.1 merged** (PR #400 → `main` `a7f2fc9f`): shared `design-system/` token
   source (validated, 35/35 assertions, committed `dist/` matches generator). G0.2/G0.3 still building.
+- `2026-06-08` — **G0.2 merged** (PR #402 → `a1d8198e`): Tauri v2 desktop scaffold + Singularity
+  Vite/React client + PWA. Validated locally — Vite build + `cargo check` (Tauri 2.11.2 tree) both green.
+- `2026-06-08` — **G0.3 merged** (PR #401 → `d4c66c09`): Android Compose component library. Orchestrator
+  caught + fixed a 1-line test-compile error (invalid `assertExists` import → `assertIsDisplayed`); Lint /
+  Unit tests / Build debug APK all green; the lone red was the unrelated flaky `AvatarPickerViewModelTest`.
+- `2026-06-08` — **Wave 0 ✅ complete.** Next: Wave 0.5 infra (G0.4 flaky-test quarantine, G0.5 desktop
+  CI lane), then Wave 1 proof slice (desktop hero + one Android group) → render screenshots for owner sign-off.
