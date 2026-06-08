@@ -10,7 +10,7 @@
   "distribution": {
     "uvx": {
       "package": "hermes-agent[acp]==0.14.1+aci.1",
-      "args": ["hermes-acp"]
+      "args": ["muse-acp"]
     }
   }
 }

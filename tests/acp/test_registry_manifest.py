@@ -48,7 +48,7 @@ def test_agent_json_uses_uvx_distribution_without_local_command_fields():
     assert set(uvx) <= {"package", "args", "env"}
     assert "package" in uvx
     assert uvx["package"] == f"hermes-agent[acp]=={data['version']}"
-    assert uvx["args"] == ["hermes-acp"]
+    assert uvx["args"] == ["muse-acp"]
     # Old command-shape fields must not leak back in.
     assert "type" not in data["distribution"]
     assert "command" not in data["distribution"]
