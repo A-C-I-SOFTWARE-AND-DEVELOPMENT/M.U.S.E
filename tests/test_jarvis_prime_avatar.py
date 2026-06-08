@@ -30,16 +30,19 @@ def test_default_identity() -> None:
     assert a.display == "M.U.S.E."
     assert a.short_name == "MUSE"
     assert a.tagline == "One mind, many pathways."
-    assert "watchful eye" in a.glyph
+    assert "spectral ring" in a.glyph
+    assert "core" in a.glyph
 
 
 def test_palette_matches_android_brand() -> None:
     p = av.DEFAULT_AVATAR.palette
-    # Lifted verbatim from apps/android/.../ui/theme/Color.kt.
-    assert p.gold == "#E6B341"
-    assert p.cyan == "#38C6E0"
-    assert p.ink == "#05070D"
-    assert p.signal == "#E7ECF7"
+    # Canonical "Singularity" palette from gateway/cockpit/static/tokens.css,
+    # mirrored into apps/android/.../ui/theme/Color.kt. Field names are kept
+    # for back-compat; gold == the white --core, cyan == the spectral --ring-1.
+    assert p.gold == "#FFFFFF"
+    assert p.cyan == "#7AE0FF"
+    assert p.ink == "#050507"
+    assert p.signal == "#E8ECF4"
 
 
 def test_is_multilingual() -> None:
@@ -138,7 +141,7 @@ def test_cli_avatar_json() -> None:
     payload = json.loads(buf.getvalue())
     assert payload["name"] == "MUSE"
     assert payload["full_name"] == "Multi-Use Synaptic Entity"
-    assert payload["palette"]["gold"] == "#E6B341"
+    assert payload["palette"]["gold"] == "#FFFFFF"
 
 
 def test_cli_avatar_locale_json_returns_one_profile() -> None:

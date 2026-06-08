@@ -3,61 +3,68 @@ package com.aci.hermes.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // ---------------------------------------------------------------------------
-// MUSE palette
+// MUSE palette — the canonical "Singularity" look
 //
 // Visual identity for the app surface. The package and namespace stay
 // com.aci.hermes for build / install compatibility, but the user-facing
 // product is "MUSE" — a command-center for an agent that asks
 // permission, confirms intent, and shows real work happening.
 //
-// Source of truth lives in docs/jarvis-prime-app-design-system.md.
+// Source of truth: gateway/cockpit/static/tokens.css (the browser cockpit's
+// Singularity tokens). One white core in the void, a single thin spectral
+// ring (cyan→violet). Token NAMES are kept so existing screens keep
+// compiling; the VALUES now carry Singularity semantics — JarvisGold is the
+// white --core (primary accent), JarvisCyan is the spectral --ring-1.
 // ---------------------------------------------------------------------------
 
-// Foundation — deep navy / near-black command-center base
-val JarvisInkAbyss   = Color(0xFF05070D) // app background, scrim
-val JarvisInkNight   = Color(0xFF0B1020) // canvas under cards
-val JarvisInkDeep    = Color(0xFF101630) // primary surface (cards)
-val JarvisInkRaised  = Color(0xFF161E3D) // raised surface (chips, headers)
-val JarvisInkEdge    = Color(0xFF1F2A4C) // borders, dividers, subtle frame
-val JarvisInkGlass   = Color(0x141B2A57) // 8% glass overlay for hover/press
+// Foundation — the void ladder (near-black command-center base)
+val JarvisInkAbyss   = Color(0xFF050507) // --void: app background, scrim
+val JarvisInkNight   = Color(0xFF0B0D12) // --void-2: canvas under cards
+val JarvisInkDeep    = Color(0xFF12151D) // --void-3: primary surface (cards)
+val JarvisInkRaised  = Color(0xFF161A24) // raised surface (chips, headers)
+val JarvisInkEdge    = Color(0xFF1C2030) // --edge: borders, dividers, frame
+val JarvisInkGlass   = Color(0x141C2030) // 8% glass overlay for hover/press
 
 // Foreground — luminous off-white reading surface
-val JarvisSignal     = Color(0xFFE7ECF7) // primary on-dark text
-val JarvisSignalDim  = Color(0xFFB7BFD4) // secondary on-dark text
-val JarvisSignalMute = Color(0xFF7C86A3) // tertiary / metadata
-val JarvisSignalGhost = Color(0xFF4A5374) // disabled / placeholder
+val JarvisSignal     = Color(0xFFE8ECF4) // --signal: primary on-dark text
+val JarvisSignalDim  = Color(0xFFAAB2C4) // --signal-dim: secondary on-dark
+val JarvisSignalMute = Color(0xFF6B7388) // --signal-mute: tertiary / metadata
+val JarvisSignalGhost = Color(0xFF454C60) // disabled / placeholder
 
-// Gold — approval, authority, identity accent
-val JarvisGold        = Color(0xFFE6B341) // primary accent (CTAs, brand)
-val JarvisGoldBright  = Color(0xFFF6CB5F) // pressed / focused
-val JarvisGoldDeep    = Color(0xFFB2802A) // shadow / pressed-down
-val JarvisGoldGlow    = Color(0x33E6B341) // 20% glow
+// Core — the single point of light: primary accent / brand / identity
+// (name kept as "Gold" for back-compat; value is the white --core)
+val JarvisGold        = Color(0xFFFFFFFF) // --core: primary accent (CTAs, brand)
+val JarvisGoldBright  = Color(0xFFFFFFFF) // pressed / focused
+val JarvisGoldDeep    = Color(0xFFC9CEDA) // shadow / pressed-down (dimmed core)
+val JarvisGoldGlow    = Color(0x33FFFFFF) // 20% glow
 
-// Cyan — listening, scanning, active agent activity
-val JarvisCyan        = Color(0xFF38C6E0)
-val JarvisCyanBright  = Color(0xFF6DDDF1)
-val JarvisCyanDeep    = Color(0xFF1D8AA1)
-val JarvisCyanGlow    = Color(0x3338C6E0)
+// Spectral ring (cyan end) — listening, scanning, active agent activity
+// (name kept as "Cyan" for back-compat; value is --ring-1)
+val JarvisCyan        = Color(0xFF7AE0FF) // --ring-1
+val JarvisCyanBright  = Color(0xFFA6ECFF)
+val JarvisCyanDeep    = Color(0xFF3F9FC4)
+val JarvisCyanGlow    = Color(0x337AE0FF)
 
-// Red — destructive, emergency stop, critical action
-val JarvisCrimson     = Color(0xFFE5484D)
-val JarvisCrimsonBright = Color(0xFFFF6B70)
-val JarvisCrimsonDeep   = Color(0xFFA31B20)
-val JarvisCrimsonGlow   = Color(0x33E5484D)
+// Danger — destructive, emergency stop, critical action
+val JarvisCrimson     = Color(0xFFFF5C63) // --danger
+val JarvisCrimsonBright = Color(0xFFFF888D)
+val JarvisCrimsonDeep   = Color(0xFFB23036)
+val JarvisCrimsonGlow   = Color(0x33FF5C63)
 
-// Green — task complete, healthy, all good
-val JarvisJade        = Color(0xFF3DD68C)
-val JarvisJadeBright  = Color(0xFF66E5A9)
-val JarvisJadeDeep    = Color(0xFF1F7F50)
-val JarvisJadeGlow    = Color(0x333DD68C)
+// Ok — task complete, healthy, all good
+val JarvisJade        = Color(0xFF5BE3A0) // --ok
+val JarvisJadeBright  = Color(0xFF85ECBA)
+val JarvisJadeDeep    = Color(0xFF2F9A6A)
+val JarvisJadeGlow    = Color(0x335BE3A0)
 
-// Amber — warning, attention required (lighter than gold so it doesn't clash)
-val JarvisAmber       = Color(0xFFF59E0B)
-val JarvisAmberGlow   = Color(0x33F59E0B)
+// Warn — warning, attention required
+val JarvisAmber       = Color(0xFFF5C451) // --warn
+val JarvisAmberGlow   = Color(0x33F5C451)
 
-// Violet — memory, recall, history (used in MemoryCard / AuditCard accents)
-val JarvisViolet      = Color(0xFF8A7CFF)
-val JarvisVioletGlow  = Color(0x338A7CFF)
+// Spectral ring (violet end) — memory, recall, history (MemoryCard / AuditCard)
+// (name kept as "Violet"; value is --ring-2)
+val JarvisViolet      = Color(0xFFB388FF) // --ring-2
+val JarvisVioletGlow  = Color(0x33B388FF)
 
 // ---------------------------------------------------------------------------
 // Light-surface fallbacks — kept restrained. MUSE is dark-first;
