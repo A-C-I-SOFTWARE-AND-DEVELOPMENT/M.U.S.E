@@ -20,7 +20,7 @@ object JarvisPalette {
     val GoldDeep = Color(0xFF7AE0FF)   // --ring-1: idle spectral ring (was deep gold)
     val Red = Color(0xFFE5484D)        // serious / critical ring
     val Green = Color(0xFF34D399)      // completion flash
-    val Violet = Color(0xFFB388FF)     // --ring-2: thinking (spectral ring, violet end)
+    val Violet = Color(0xFFB388FF)     // --ring-2: thinking + approval/serious attention (spectral ring, violet end)
     val Slate = Color(0xFF94A3B8)      // working
     val DimGray = Color(0xFF4B5563)    // offline
     val Amber = Color(0xFFF59E0B)      // warning
@@ -87,17 +87,24 @@ object JarvisIconColors {
             pulseAmplitude = 0.4f,
             dim = false,
         )
+        // Attention-escalation ramp (no gold at rest). IDLE is white core +
+        // cyan (--ring-1) ring. WAITING keeps the white core but switches the
+        // ring to violet (--ring-2) so it reads as "needs you" yet stays
+        // distinct from IDLE. SERIOUS escalates further by pulling the violet
+        // into the core as well (violet core + violet ring, stronger pulse +
+        // halo) — unambiguously heightened versus WAITING, and still clearly
+        // apart from the red CRITICAL state.
         IconState.WAITING_FOR_APPROVAL -> IconAppearance(
             coreColor = JarvisPalette.Core,
-            ringColor = JarvisPalette.Gold,
-            haloColor = JarvisPalette.Gold.copy(alpha = 0.30f),
+            ringColor = JarvisPalette.Violet,
+            haloColor = JarvisPalette.Violet.copy(alpha = 0.30f),
             pulseAmplitude = 0.55f,
             dim = false,
         )
         IconState.SERIOUS_ACTION_PENDING -> IconAppearance(
-            coreColor = JarvisPalette.Gold,
-            ringColor = JarvisPalette.Gold,
-            haloColor = JarvisPalette.Gold.copy(alpha = 0.45f),
+            coreColor = JarvisPalette.Violet,
+            ringColor = JarvisPalette.Violet,
+            haloColor = JarvisPalette.Violet.copy(alpha = 0.45f),
             pulseAmplitude = 0.9f,
             dim = false,
         )
