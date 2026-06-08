@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>M.U.S.E. — cockpit</title>
+<link rel="stylesheet" href="tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #0a0e1a 0%, var(--void) 60%);
+    color: var(--signal); font-family: var(--sans); font-size: 14px; line-height: 1.5;
+  }
+  a { color: var(--ring-1); }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 12px 18px;
+    border-bottom: 1px solid var(--edge); position: sticky; top: 0;
+    background: rgba(5,5,7,0.85); backdrop-filter: blur(8px);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .5px; }
+  .brand .full { color: var(--signal-mute); font-weight: 400; font-size: 12px; }
+  .spin { transform-origin: 24px 24px; animation: rot 9s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .grow { flex: 1; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--signal-mute); display: inline-block; }
+  .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+  .dot.off { background: var(--danger); }
+  .status { display: flex; align-items: center; gap: 7px; color: var(--signal-dim); font-size: 12px; }
+  button {
+    font: inherit; color: var(--signal); background: var(--void-3);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 7px 12px; cursor: pointer;
+  }
+  button:hover { border-color: var(--ring-1); }
+  button.primary { background: var(--core); color: #04060c; border-color: var(--core); font-weight: 600; }
+  button.danger { background: transparent; color: var(--danger); border-color: var(--danger); }
+  button.danger:hover { background: var(--danger); color: #fff; }
+  .tabs { display: flex; gap: 4px; padding: 10px 18px 0; border-bottom: 1px solid var(--edge); }
+  .tab { padding: 8px 14px; border: none; background: transparent; color: var(--signal-mute); border-bottom: 2px solid transparent; border-radius: 0; }
+  .tab.active { color: var(--signal); border-bottom-color: var(--ring-1); }
+  main { padding: 18px; max-width: 940px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--void-3); border: 1px solid var(--edge); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .muted { color: var(--signal-mute); }
+  .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--edge); color: var(--signal-dim); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  code, .mono { font-family: var(--mono); font-size: 12px; }
+  #chatlog { min-height: 220px; max-height: 46vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { padding: 10px 12px; border-radius: 10px; max-width: 85%; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--void-2); border: 1px solid var(--edge); }
+  .msg.asst { align-self: flex-start; background: #0a0f1c; border: 1px solid var(--edge); border-left: 2px solid; border-image: var(--ring-grad) 1; }
+  .composer { display: flex; gap: 8px; margin-top: 12px; }
+  textarea, input[type=password] {
+    flex: 1; font: inherit; color: var(--signal); background: var(--void-2);
+    border: 1px solid var(--edge); border-radius: 8px; padding: 10px; resize: vertical;
+  }
+  textarea:focus, input:focus { outline: none; border-color: var(--ring-1); }
+  .empty { color: var(--signal-mute); padding: 28px; text-align: center; }
+  .banner { background: #1a0e10; border: 1px solid var(--danger); color: #ffd7d9; padding: 10px 14px; border-radius: 10px; margin: 14px 18px 0; display: none; }
+  .banner.show { display: block; }
+  dialog { background: var(--void-3); color: var(--signal); border: 1px solid var(--edge); border-radius: var(--radius); max-width: 460px; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  .k { color: var(--signal-mute); }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">
+    <svg class="spin" viewBox="0 0 48 48" width="26" height="26" aria-hidden="true">
+      <defs><linearGradient id="r" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#7ae0ff"/><stop offset="1" stop-color="#b388ff"/>
+      </linearGradient></defs>
+      <circle cx="24" cy="24" r="15" fill="none" stroke="url(#r)" stroke-width="1.6"
+              stroke-dasharray="66 28" stroke-linecap="round"/>
+      <circle cx="24" cy="24" r="3.1" fill="#fff"/>
+    </svg>
+    M.U.S.E. <span class="full">Multi-Use Synaptic Entity</span>
+  </span>
+  <span class="grow"></span>
+  <span class="status"><span id="dot" class="dot"></span><span id="statustext">connecting…</span></span>
+  <button id="tokenbtn" title="Set the cockpit pairing token">Token</button>
+  <button id="estop" class="danger" title="Stop all jobs and latch read-only">■ Emergency stop</button>
+</header>
+
+<div id="offline" class="banner">Offline — can't reach the gateway. Is <code>hermes cockpit serve</code> running?</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="chat">Chat</button>
+  <button class="tab" data-tab="jobs">Jobs</button>
+  <button class="tab" data-tab="approvals">Approvals</button>
+  <button class="tab" data-tab="routes">Routes</button>
+</div>
+
+<main>
+  <section id="chat" class="panel active">
+    <div id="chatlog" class="card"><div class="empty">Ask MUSE anything. Responses stream live from the local agent.</div></div>
+    <div class="composer">
+      <textarea id="prompt" rows="2" placeholder="Message MUSE…  (Enter to send, Shift+Enter for newline)"></textarea>
+      <button id="send" class="primary">Send</button>
+    </div>
+  </section>
+
+  <section id="jobs" class="panel"><div id="joblist"><div class="empty">No jobs yet. Live updates stream here.</div></div></section>
+  <section id="approvals" class="panel"><div id="approvallist"><div class="empty muted">Loading approvals…</div></div></section>
+  <section id="routes" class="panel"><div id="routelist"><div class="empty muted">Loading routes…</div></div></section>
+</main>
+
+<dialog id="tokendlg">
+  <form method="dialog">
+    <h3 style="margin-top:0">Pair this browser</h3>
+    <p class="muted">Paste the token printed by <code>hermes cockpit serve</code>. It's stored only in this browser (localStorage).</p>
+    <input type="password" id="tokenin" placeholder="cockpit token" style="width:100%" autocomplete="off" />
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button value="cancel">Cancel</button>
+      <button value="save" class="primary" id="tokensave">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const TOKEN_KEY = "muse.cockpit.token";
+let token = localStorage.getItem(TOKEN_KEY) || "";
+
+function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  if (token) h["Authorization"] = "Bearer " + token;
+  return h;
+}
+async function api(path, opts) {
+  const o = Object.assign({}, opts || {});
+  o.headers = authHeaders(o.headers);
+  return fetch(path, o);
+}
+function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+// ---- connection / health -------------------------------------------------
+async function ping() {
+  try {
+    const r = await fetch("/v1/health");
+    const ok = r.ok;
+    $("#dot").className = "dot " + (ok ? "ok" : "off");
+    $("#statustext").textContent = ok ? "online" : "degraded";
+    $("#offline").classList.toggle("show", !ok);
+  } catch (e) {
+    $("#dot").className = "dot off";
+    $("#statustext").textContent = "offline";
+    $("#offline").classList.add("show");
+  }
+}
+setInterval(ping, 10000); ping();
+
+// ---- tabs ----------------------------------------------------------------
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => {
+  document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach((x) => x.classList.remove("active"));
+  t.classList.add("active");
+  $("#" + t.dataset.tab).classList.add("active");
+  if (t.dataset.tab === "approvals") loadApprovals();
+  if (t.dataset.tab === "routes") loadRoutes();
+}));
+
+// ---- token dialog --------------------------------------------------------
+$("#tokenbtn").addEventListener("click", () => { $("#tokenin").value = token; $("#tokendlg").showModal(); });
+$("#tokensave").addEventListener("click", () => {
+  token = $("#tokenin").value.trim();
+  localStorage.setItem(TOKEN_KEY, token);
+  $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
+});
+if (token) $("#tokenbtn").textContent = "Token ✓";
+
+// ---- chat (NDJSON stream) ------------------------------------------------
+function addMsg(role, text) {
+  const log = $("#chatlog");
+  if (log.querySelector(".empty")) log.innerHTML = "";
+  const el = document.createElement("div");
+  el.className = "msg " + (role === "user" ? "user" : "asst");
+  el.textContent = text;
+  log.appendChild(el); log.scrollTop = log.scrollHeight;
+  return el;
+}
+async function send() {
+  const p = $("#prompt").value.trim();
+  if (!p) return;
+  if (!token) { $("#tokendlg").showModal(); return; }
+  $("#prompt").value = "";
+  addMsg("user", p);
+  const out = addMsg("asst", "…");
+  let acc = "";
+  try {
+    const r = await api("/v1/jarvis/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: p, history: [] }),
+    });
+    if (!r.ok) { out.textContent = "error: " + r.status + (r.status === 401 ? " — set your token" : ""); return; }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+        if (!line) continue;
+        try {
+          const obj = JSON.parse(line);
+          if (obj.error) { acc += "\n[error] " + obj.error; }
+          else if (obj.role === "assistant" && obj.content != null) { acc += obj.content; }
+          else if (obj.content != null && obj.role !== "user" && obj.role !== "system") { acc += obj.content; }
+        } catch (e) { /* ignore partials */ }
+        out.textContent = acc || "…";
+        $("#chatlog").scrollTop = $("#chatlog").scrollHeight;
+      }
+    }
+    if (!acc) out.textContent = "(no response)";
+  } catch (e) { out.textContent = "error: " + e; }
+}
+$("#send").addEventListener("click", send);
+$("#prompt").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+// ---- jobs (SSE) ----------------------------------------------------------
+const jobs = new Map();
+function renderJobs() {
+  const el = $("#joblist");
+  if (jobs.size === 0) { el.innerHTML = '<div class="empty">No jobs yet. Live updates stream here.</div>'; return; }
+  el.innerHTML = [...jobs.values()].map((j) => `
+    <div class="card">
+      <div class="row"><b>${esc(j.title || j.id)}</b><span class="grow"></span>
+        <span class="pill">${esc(j.status || "")}</span></div>
+      <div class="muted mono">${esc(j.worker_id || "")} · ${esc(j.branch || "")}</div>
+    </div>`).join("");
+}
+function startJobStream() {
+  if (!token) return;
+  // EventSource can't send headers, so pass the token as a query param the
+  // server also accepts; fall back to a one-shot fetch list if unsupported.
+  fetch("/v1/cockpit/jobs", { headers: authHeaders() }).then(r => r.ok ? r.json() : null).then((d) => {
+    if (d && Array.isArray(d.jobs)) { jobs.clear(); d.jobs.forEach((j) => jobs.set(j.id, j)); renderJobs(); }
+  }).catch(() => {});
+}
+
+// ---- approvals -----------------------------------------------------------
+async function loadApprovals() {
+  const el = $("#approvallist");
+  try {
+    const r = await api("/v1/cockpit/approvals");
+    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Set your token to view approvals." : "error " + r.status}</div>`; return; }
+    const d = await r.json();
+    const items = d.approvals || d.items || [];
+    if (!items.length) { el.innerHTML = '<div class="empty muted">No pending approvals. 🟢</div>'; return; }
+    el.innerHTML = items.map((a) => `
+      <div class="card">
+        <div class="row"><b>${esc(a.kind || "approval")}</b><span class="grow"></span><span class="pill">${esc(a.job_id || "")}</span></div>
+        <div>${esc(a.summary || "")}</div>
+      </div>`).join("");
+  } catch (e) { el.innerHTML = '<div class="empty">offline</div>'; }
+}
+
+// ---- routes --------------------------------------------------------------
+async function loadRoutes() {
+  const el = $("#routelist");
+  try {
+    const r = await api("/v1/cockpit/model-routes");
+    if (!r.ok) { el.innerHTML = `<div class="empty">${r.status === 401 ? "Set your token to view routes." : "error " + r.status}</div>`; return; }
+    const d = await r.json();
+    const routes = d.routes || [];
+    if (!routes.length) { el.innerHTML = '<div class="empty muted">No routes reported.</div>'; return; }
+    el.innerHTML = routes.map((rt) => `
+      <div class="card">
+        <div class="row"><b>${esc(rt.task_class)}</b><span class="grow"></span>
+          <span class="pill">${esc(rt.route_tier || "")}</span></div>
+        <div class="mono">→ ${esc(rt.chosen || "—")}</div>
+        ${rt.why ? `<div class="muted" style="margin-top:6px">${esc(rt.why)}</div>` : ""}
+      </div>`).join("");
+  } catch (e) { el.innerHTML = '<div class="empty">offline</div>'; }
+}
+
+// ---- emergency stop ------------------------------------------------------
+$("#estop").addEventListener("click", async () => {
+  if (!token) { $("#tokendlg").showModal(); return; }
+  if (!confirm("Emergency stop: cancel all jobs and latch autonomy to read-only?")) return;
+  try {
+    const r = await api("/v1/cockpit/emergency-stop", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    alert(r.ok ? "Emergency stop engaged." : "Emergency stop failed: " + r.status);
+  } catch (e) { alert("Emergency stop failed: " + e); }
+});
+
+startJobStream();
+setInterval(() => { if ($("#jobs").classList.contains("active")) startJobStream(); }, 8000);
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+/* M.U.S.E. — "Singularity" design tokens.
+ *
+ * One white core in the void; a single thin spectral ring. This is the
+ * canonical token source for the browser cockpit and the reference palette
+ * for other surfaces (Android theme migration tracked separately).
+ */
+:root {
+  --void:        #050507; /* background — the dark */
+  --void-2:      #0b0d12; /* raised surface */
+  --void-3:      #12151d; /* cards */
+  --edge:        #1c2030; /* hairline borders */
+  --core:        #ffffff; /* the single point of light — primary accent */
+  --signal:      #e8ecf4; /* primary text */
+  --signal-dim:  #aab2c4; /* secondary text */
+  --signal-mute: #6b7388; /* tertiary / metadata */
+  --ring-1:      #7ae0ff; /* spectral ring — cyan end */
+  --ring-2:      #b388ff; /* spectral ring — violet end */
+  --ok:          #5be3a0; /* success / online */
+  --warn:        #f5c451; /* attention */
+  --danger:      #ff5c63; /* destructive / emergency stop */
+  --radius:      12px;
+  --ring-grad:   linear-gradient(90deg, var(--ring-1), var(--ring-2));
+  --mono:        ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans:        ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}

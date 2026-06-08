@@ -5970,8 +5970,9 @@ def cmd_cockpit(args):
         _addr = server.server_address
         bound_host, bound_port = _addr[0], _addr[1]
         print(f"Hermes cockpit API listening on http://{bound_host}:{bound_port}")
+        print(f"Open the browser cockpit: http://{bound_host}:{bound_port}/cockpit/")
         print(f"Pairing token: {token}")
-        print("Pair the MUSE Android app with this base URL + token.")
+        print("Pair the MUSE Android app (or the browser cockpit) with this base URL + token.")
         print("Press Ctrl-C to stop.")
         try:
             while True:
