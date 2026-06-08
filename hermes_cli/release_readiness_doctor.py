@@ -392,18 +392,37 @@ def _check_verdict_at_dispatch() -> ReadinessCheck:
 
 
 def _check_budget_enforced() -> ReadinessCheck:
-    # Budget is enforced if the orchestrator acts on should_stop / hard_exceeded,
-    # not merely surfaces it in a status projection.
-    enforced = any(
-        _contains_any(f"hermes_cli/{f}", "should_stop", "hard_exceeded")
-        for f in ("orchestrator.py", "orchestrator_parallel.py")
-    )
+    # Honest enforcement check: PASS only when BOTH orchestrator paths actually
+    # consult the budget policy and act on a hard stop — not merely when *either*
+    # file contains a ``should_stop`` token. The previous form false-PASSed
+    # purely because the parallel file matched, masking the single-job gap.
+    #
+    # A path "enforces" when it both (a) calls the policy kernel
+    # (``evaluate_budget``) and (b) acts on the hard-stop signal
+    # (``should_stop`` / ``hard_exceeded`` / a ``budget_exhausted`` stop).
+    def _path_enforces(rel: str) -> bool:
+        return _contains(rel, "evaluate_budget") and _contains_any(
+            rel, "should_stop", "hard_exceeded", "budget_exhausted"
+        )
+
+    single = _path_enforces("hermes_cli/orchestrator.py")
+    parallel = _path_enforces("hermes_cli/orchestrator_parallel.py")
+    enforced = single and parallel
+    if enforced:
+        detail = "both single-job and parallel orchestrator paths hard-stop on budget overrun"
+    elif parallel and not single:
+        detail = (
+            "parallel path enforces but the single-job dispatch path does not "
+            "consult the budget — no hard-stop on the single-job path"
+        )
+    elif single and not parallel:
+        detail = "single-job path enforces but the parallel path does not hard-stop on budget overrun"
+    else:
+        detail = "budget is computed + surfaced but not enforced as a hard stop on either path"
     return ReadinessCheck(
         "per-job budget hard-stop",
         PASS if enforced else WARN,
-        "orchestrator stops/asks on budget overrun"
-        if enforced
-        else "budget is computed + surfaced but not enforced as a hard stop",
+        detail,
         hard=False,
     )
 
