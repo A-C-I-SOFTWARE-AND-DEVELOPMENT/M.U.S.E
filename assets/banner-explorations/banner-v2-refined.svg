@@ -1,11 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
   <!--
-    M.U.S.E. "Singularity" banner — canonical source (the "Cinematic synthesis" look).
-    A white core that blazes as an incandescent source, a single matte spectral ring
-    (cyan to violet), a bespoke near-white geometric wordmark, and the tagline.
-    Design rules captured in docs/brand/muse-design-language.md; explorations preserved
-    in assets/banner-explorations/. Rasterized to assets/banner.png with cairosvg @4x
-    (4580x928). Palette: gateway/cockpit/static/tokens.css. Glyph: the cockpit core+ring.
+    M.U.S.E. banner — V2 "Cinematic synthesis", REFINED to production grade.
+    Refinements over the comp: (1) value ladder — wordmark near-white (#eef2f7) so
+    the white core owns the single luminous peak; (2) tight high-emissive core
+    "punch"; (3) optical micro-corrections — U-bowl overshoot + larger baseline
+    periods. Palette: gateway/cockpit/static/tokens.css. Glyph: the cockpit mark.
   -->
   <defs>
     <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">

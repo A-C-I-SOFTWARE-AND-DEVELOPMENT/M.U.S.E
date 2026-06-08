@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1145 232" width="1145" height="232" role="img" aria-label="M.U.S.E. — Multi-Use Synaptic Entity — One mind, many pathways.">
+  <!--
+    M.U.S.E. banner — COMP V3 "Max cinematic" (AAA/UE5/Lumen-led).
+    V2 plus: a 3D-lit core sphere (offset hotspot + specular dot), a stronger/wider
+    bloom, a full-field atmospheric wash, and a whisper of wordmark-edge glow.
+    Most dramatic — still no lens flare / chromatic aberration / dirt.
+  -->
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7ae0ff"/>
+      <stop offset="1" stop-color="#b388ff"/>
+    </linearGradient>
+    <!-- full-field atmospheric wash (broad, toward the wordmark) — subtle -->
+    <radialGradient id="wash" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#16294a" stop-opacity="0.3"/>
+      <stop offset="0.6" stop-color="#0a1322" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#050507" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="depth" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#15273f" stop-opacity="0.85"/>
+      <stop offset="0.55" stop-color="#0b1426" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#050507" stop-opacity="0"/>
+    </radialGradient>
+    <!-- volumetric bloom: 5 cool-white halos -->
+    <radialGradient id="halo5" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#aee2ff" stop-opacity="0.13"/>
+      <stop offset="1" stop-color="#7ae0ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo4" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#bfe9ff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#7ae0ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo3" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#d4f2ff" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#9fd8f5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo2" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#eafbff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#cdeeff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="0.55" stop-color="#e6f7ff" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="#e0f8ff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- lit sphere: highlight offset to upper-left, cooler/dimmer terminator -->
+    <radialGradient id="sphere" cx="0.38" cy="0.33" r="0.75">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="0.42" stop-color="#ecfbff"/>
+      <stop offset="0.78" stop-color="#bfe6ff"/>
+      <stop offset="1" stop-color="#7fbce6"/>
+    </radialGradient>
+    <radialGradient id="specdot" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <!-- whisper of wordmark-edge glow (feGaussianBlur) -->
+    <filter id="softGlow" x="-25%" y="-80%" width="150%" height="260%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="1145" height="232" fill="#050507"/>
+  <!-- full-field atmospheric wash, centered on the glyph, bleeding toward the wordmark -->
+  <ellipse cx="300" cy="98" rx="470" ry="195" fill="url(#wash)"/>
+
+  <g transform="translate(212,-5) scale(1.12)">
+    <!-- atmospheric depth pool -->
+    <circle cx="70" cy="90" r="98" fill="url(#depth)"/>
+
+    <!-- spectral ring: matte, saturated, no glow -->
+    <circle cx="70" cy="90" r="62" fill="none" stroke="url(#ring)" stroke-width="6.5"
+            stroke-dasharray="273 116" stroke-linecap="round"
+            transform="rotate(-32 70 90)"/>
+
+    <!-- volumetric core bloom: 5 stacked halos -->
+    <circle cx="70" cy="90" r="78" fill="url(#halo5)"/>
+    <circle cx="70" cy="90" r="58" fill="url(#halo4)"/>
+    <circle cx="70" cy="90" r="42" fill="url(#halo3)"/>
+    <circle cx="70" cy="90" r="28" fill="url(#halo2)"/>
+    <circle cx="70" cy="90" r="20" fill="url(#halo1)"/>
+
+    <!-- 3D-lit core sphere + tight specular hotspot -->
+    <circle cx="70" cy="90" r="13" fill="url(#sphere)"/>
+    <circle cx="63.5" cy="83.5" r="5.5" fill="url(#specdot)"/>
+
+    <!-- wordmark: faint blurred glow underlay, then crisp matte white -->
+    <g filter="url(#softGlow)" fill="none" stroke="#cfe9ff" stroke-opacity="0.14"
+       stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>
+      <path d="M 316,46 L 316,96 A 38,38 0 0 0 392,96 L 392,46"/>
+      <path d="M 496,68 C 496,49 436,49 436,76 C 436,99 496,85 496,110 C 496,137 436,137 436,114"/>
+      <path d="M 608,46 L 540,46 L 540,134 L 608,134"/>
+      <path d="M 540,90 L 600,90"/>
+    </g>
+    <g fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M 184,134 L 184,46 L 228,96 L 272,46 L 272,134"/>
+      <path d="M 316,46 L 316,96 A 38,38 0 0 0 392,96 L 392,46"/>
+      <path d="M 496,68 C 496,49 436,49 436,76 C 436,99 496,85 496,110 C 496,137 436,137 436,114"/>
+      <path d="M 608,46 L 540,46 L 540,134 L 608,134"/>
+      <path d="M 540,90 L 600,90"/>
+    </g>
+    <g fill="#ffffff">
+      <circle cx="292" cy="128" r="8"/>
+      <circle cx="412" cy="128" r="8"/>
+      <circle cx="520" cy="128" r="8"/>
+      <circle cx="628" cy="128" r="8"/>
+    </g>
+  </g>
+
+  <!-- tier 1: acronym expansion -->
+  <text x="572" y="180" text-anchor="middle"
+        font-family="Liberation Sans, DejaVu Sans, Helvetica, Arial, sans-serif"
+        font-size="18" font-weight="700" letter-spacing="7" fill="#aab2c4">MULTI-USE SYNAPTIC ENTITY</text>
+  <!-- tier 2: tagline / motto -->
+  <text x="572" y="208" text-anchor="middle"
+        font-family="Liberation Sans, DejaVu Sans, Helvetica, Arial, sans-serif"
+        font-size="15.5" font-weight="400" letter-spacing="3" fill="#8b93a6">One mind, many pathways.</text>
+</svg>
