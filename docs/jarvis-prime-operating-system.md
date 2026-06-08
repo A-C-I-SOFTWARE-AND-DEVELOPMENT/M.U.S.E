@@ -254,7 +254,7 @@ hermes doctor --jarvis-launch                   # verify launch readiness
 Or one-click from a fresh machine:
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/main/scripts/install.sh) --jarvis-launch
+bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh) --jarvis-launch
 ```
 
 The dependency-free equivalents (Termux / slim images) are
