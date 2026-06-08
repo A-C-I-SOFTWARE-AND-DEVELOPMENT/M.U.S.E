@@ -67,6 +67,55 @@ providers:
         params_b: 141
         context: 65536
         tags: [oss, general]
+      # Frontier OSS coding / reasoning / multimodal via OpenRouter (one key
+      # serves every vendor below). Model slugs mirror the OSS brain's verified
+      # ProviderRefs in docs/ai-intelligence/oss-model-catalog.yaml (the layer
+      # that actually drives routing); the current frontier *variant* per family
+      # (GLM-5.1, Kimi-K2.6, MiniMax-M3, …) is tracked there via current_variant.
+      # Rows tagged `candidate` are new picker entries — confirm availability
+      # against OpenRouter's live model list before relying on them for spend.
+      - id: deepseek-v4
+        model: deepseek/deepseek-v4
+        family: deepseek
+        params_b: 671
+        context: 1000000
+        tags: [oss, coding, reasoning, agentic, tools, candidate]
+      - id: glm-5
+        model: z-ai/glm-5
+        family: glm
+        params_b: 744
+        context: 200000
+        tags: [oss, coding, agentic, bug-fix, tools, candidate]
+      - id: kimi-k2
+        model: moonshotai/kimi-k2
+        family: kimi
+        params_b: 1000
+        context: 256000
+        tags: [oss, coding, agentic, reasoning, candidate]
+      - id: minimax-m2
+        model: minimax/minimax-m2
+        family: minimax
+        params_b: 230
+        context: 1000000
+        tags: [oss, coding, agentic, multimodal, candidate]
+      - id: qwen3-coder
+        model: qwen/qwen3-coder
+        family: qwen
+        params_b: 80
+        context: 256000
+        tags: [oss, coding, code-edit, tools, candidate]
+      - id: qwen3-235b
+        model: qwen/qwen3-235b-a22b
+        family: qwen
+        params_b: 235
+        context: 262000
+        tags: [oss, reasoning, math, candidate]
+      - id: qwen3-vl
+        model: qwen/qwen3-vl
+        family: qwen
+        params_b: 235
+        context: 256000
+        tags: [oss, multimodal, doc, vision, candidate]
 
   novita:
     requires_env: NOVITA_API_KEY
@@ -190,6 +239,33 @@ providers:
         params_b: 7
         context: 32768
         tags: [oss, local, offline]
+      # Local retrieval stack — embeddings + rerankers for Memory Tree,
+      # Research Vault, GraphRAG and code navigation. Not chat models; they
+      # power retrieval, not the /model picker's conversation default.
+      - id: qwen3-embedding
+        model: qwen3-embedding
+        family: qwen
+        params_b: 8
+        context: 32768
+        tags: [oss, local, offline, embedding, retrieval]
+      - id: bge-m3
+        model: bge-m3
+        family: bge
+        params_b: 0.6
+        context: 8192
+        tags: [oss, local, offline, embedding, retrieval, multilingual]
+      - id: qwen3-reranker
+        model: qwen3-reranker
+        family: qwen
+        params_b: 8
+        context: 32768
+        tags: [oss, local, offline, rerank, retrieval]
+      - id: bge-reranker
+        model: bge-reranker
+        family: bge
+        params_b: 0.6
+        context: 8192
+        tags: [oss, local, offline, rerank, retrieval]
 
   llamacpp-local:
     requires_env: null
@@ -422,6 +498,20 @@ open_weight_candidates:
     routing_lanes: [memory, retrieval]
     tiers: [laptop, desktop, workstation, server]
     verify: "MIT; checksum HF safetensors against the model card."
+  - name: qwen3-embedding-8b
+    source: ollama:qwen3-embedding
+    access: open-weight
+    license: Apache-2.0
+    runtime: ollama
+    kind: embedding
+    min_ram_gb: 8
+    min_vram_gb: 0
+    context: 32768
+    strengths: [top-mteb-v2, retrieval, code-navigation]
+    weaknesses: [8b-heavier-than-small-embedders]
+    routing_lanes: [memory, retrieval]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "Apache-2.0; confirm exact tag via `ollama show qwen3-embedding` or HF Qwen/Qwen3-Embedding-8B."
   # ---- Local reranker ----
   - name: bge-reranker-v2-m3
     source: huggingface:BAAI/bge-reranker-v2-m3
@@ -437,3 +527,17 @@ open_weight_candidates:
     routing_lanes: [retrieval]
     tiers: [laptop, desktop, workstation, server]
     verify: "Apache-2.0; checksum HF safetensors against the model card."
+  - name: qwen3-reranker-8b
+    source: huggingface:Qwen/Qwen3-Reranker-8B
+    access: open-weight
+    license: Apache-2.0
+    runtime: openai-compatible
+    kind: reranker
+    min_ram_gb: 8
+    min_vram_gb: 0
+    context: 32768
+    strengths: [cross-encoder, sharp-ordering, code-nav]
+    weaknesses: [needs-serving-shim]
+    routing_lanes: [retrieval]
+    tiers: [laptop, desktop, workstation, server]
+    verify: "Apache-2.0; confirm tag via HF Qwen/Qwen3-Reranker-8B."

@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 def _now_iso() -> str:
@@ -129,16 +129,16 @@ _RESEARCH_TIERS: tuple[str, ...] = (
 # only when the owner has opted in. ``local_purpose`` picks the Gemma variant by
 # job weight (fast→E2B, reasoning/coding→E4B).
 TASK_PROFILES: dict[TaskClass, TaskProfile] = {
-    TaskClass.MOBILE_CHAT: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
-    TaskClass.VOICE_REPLY: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
-    TaskClass.SUMMARIZATION: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
-    TaskClass.MEMORY_CURATOR: TaskProfile("RC1", "reasoning", True, False, local_purpose="local_fast"),
+    TaskClass.MOBILE_CHAT: TaskProfile("RC1", "mobile_chat", True, False, local_purpose="local_fast"),
+    TaskClass.VOICE_REPLY: TaskProfile("RC1", "voice_reply", True, False, local_purpose="local_fast"),
+    TaskClass.SUMMARIZATION: TaskProfile("RC1", "summarization", True, False, local_purpose="local_fast"),
+    TaskClass.MEMORY_CURATOR: TaskProfile("RC1", "memory_curator", True, False, local_purpose="local_fast"),
     TaskClass.RESEARCH: TaskProfile(
-        "RC2", "reasoning", False, True,
+        "RC2", "deep_research", False, True,
         preferred_tiers=_RESEARCH_TIERS, local_purpose="local_reasoning",
     ),
     TaskClass.CITATION_VERIFICATION: TaskProfile(
-        "RC2", "reasoning", False, True,
+        "RC2", "citation_verification", False, True,
         preferred_tiers=_RESEARCH_TIERS, local_purpose="local_reasoning",
     ),
     TaskClass.CODING_PLAN: TaskProfile(
@@ -156,7 +156,7 @@ TASK_PROFILES: dict[TaskClass, TaskProfile] = {
         local_purpose="local_coding",
     ),
     TaskClass.CODING_REVIEW: TaskProfile(
-        "RC2", "coding", False, True,
+        "RC2", "coding_review", False, True,
         preferred_tiers=("codex_worker", "claude_code_worker", "local_oss",
                          "hosted_free_or_user_configured_oss",
                          "paid_api_explicit_only"),
@@ -406,6 +406,77 @@ def _local_candidates(policy: dict[str, Any], profile: TaskProfile) -> list[str]
     return out
 
 
+# Hosted-tier task-class routing switch (default ON; owner-reversible at
+# runtime). When ON, the configured hosted providers are expanded into ordered
+# ``provider/model`` candidates drawn from the OSS catalog's per-task routing —
+# so a coding build leads with coding families and research with reasoning
+# families — without hardcoding model ids here. Set the env var to a falsey
+# value (0/false/no/off) to restore the legacy bare-provider-id behavior.
+_HOSTED_TASKCLASS_ENV = "HERMES_JARVIS_HOSTED_TASKCLASS"
+
+
+def _hosted_taskclass_enabled(env: Optional[dict[str, str]] = None) -> bool:
+    """True unless the owner explicitly disabled hosted task-class routing.
+
+    Default ON. Recognized *disable* values: ``0/false/no/off`` (case-
+    insensitive). This is a no-code rollback switch; the full revert is the
+    patch itself.
+    """
+    source = env if env is not None else dict(os.environ)
+    val = source.get(_HOSTED_TASKCLASS_ENV)
+    if val is None:
+        return True
+    return val.strip().lower() not in ("0", "false", "no", "off")
+
+
+def _hosted_candidates(route: dict[str, Any], profile: TaskProfile) -> list[str]:
+    """Hosted-tier candidates, task-class-ordered from the OSS catalog.
+
+    Default: expand each configured hosted provider into ordered
+    ``provider/model`` candidates for this lane's ``catalog_task`` (filtered to
+    the providers the owner actually configured). The order only feeds the
+    router's intra-tier ``seq`` tiebreaker — scorecards and owner overrides
+    still win, and no gate changes.
+
+    Safe by construction:
+      * Disabled (env switch) → the legacy bare provider-id list, unchanged.
+      * No catalog match / PyYAML missing / any error → the bare provider list
+        (``load_oss_catalog`` never raises; the ``except`` is a second belt).
+      * Never *shrinks* the set: a configured provider the catalog didn't map
+        for this lane is still appended as a tail fallback.
+    """
+    providers = list(route.get("providers") or [])
+    if not providers or not _hosted_taskclass_enabled():
+        return providers
+    try:
+        from hermes_cli.oss_model_brain import load_oss_catalog
+
+        catalog = load_oss_catalog()
+        hits = catalog.recommend(profile.catalog_task, available_providers=providers)
+    except Exception:  # pragma: no cover - defensive (no catalog / no PyYAML)
+        return providers
+
+    ordered: list[str] = []
+    for model in hits:
+        ref = model.resolve_provider(providers)
+        if ref is None:
+            continue
+        cand = f"{ref.provider}/{ref.model}"
+        if cand not in ordered:
+            ordered.append(cand)
+    # Never drop a configured provider the catalog didn't map for this lane.
+    # Compare provider prefixes case-insensitively: ``resolve_provider`` matches
+    # case-insensitively and returns the catalog's casing, so a policy provider
+    # like ``"OpenRouter"`` must not be re-appended as a duplicate of the
+    # expanded ``openrouter/...`` candidates.
+    ordered_prefixes = {c.split("/", 1)[0].casefold() for c in ordered}
+    for p in providers:
+        if p.casefold() not in ordered_prefixes:
+            ordered.append(p)
+            ordered_prefixes.add(p.casefold())
+    return ordered or providers
+
+
 def _tier_candidates(policy: dict[str, Any], tier: str, profile: TaskProfile) -> list[str]:
     routes = policy.get("routes", {})
     route = routes.get(tier, {})
@@ -414,7 +485,7 @@ def _tier_candidates(policy: dict[str, Any], tier: str, profile: TaskProfile) ->
     if tier == "local_oss":
         return _local_candidates(policy, profile)
     if tier == "hosted_free_or_user_configured_oss":
-        return list(route.get("providers") or [])
+        return _hosted_candidates(route, profile)
     if tier == "claude_code_worker":
         return ["claude"]
     if tier == "codex_worker":
@@ -518,6 +589,28 @@ def route_for_task(
         for model, score, n in book.recommend(tc.value, task_class=tc.value):
             measured[model] = (score, n)
 
+    # Family-level evidence index. An *expanded* hosted candidate
+    # ("openrouter/z-ai/glm-5") carries no exact scorecard key, but a scorecard
+    # recorded under the family/variant id ("glm-5") should still inform it.
+    # Exact match always wins; this is a fallback ONLY for provider/model hosted
+    # strings (those containing "/"), so local/worker variants keep exact-match
+    # semantics (no e2b/e4b conflation). Coarse-by-family on purpose, consistent
+    # with how promotion baselines compare families.
+    _family_fn: Optional[Callable[[str], str]] = None
+    measured_by_family: dict[str, tuple[float, int]] = {}
+    if measured:
+        try:
+            from hermes_cli.jarvis_prime.model_scorecard import model_family
+
+            _family_fn = model_family
+        except Exception:  # pragma: no cover - defensive (stripped install)
+            _family_fn = None
+        if _family_fn is not None:
+            for _m, _sn in measured.items():
+                _f = _family_fn(_m)
+                if _f and (_f not in measured_by_family or _sn[0] > measured_by_family[_f][0]):
+                    measured_by_family[_f] = _sn
+
     # Build candidates, honoring paid gating.
     candidates: list[Candidate] = []
     for rank, tier in enumerate(tier_order):
@@ -525,6 +618,8 @@ def route_for_task(
             continue
         for model in _tier_candidates(policy, tier, profile):
             score_n = measured.get(model)
+            if score_n is None and _family_fn is not None and "/" in model:
+                score_n = measured_by_family.get(_family_fn(model))
             candidates.append(
                 Candidate(
                     model=model,

@@ -210,3 +210,121 @@ def test_paid_toggle_requires_authorization(tmp_path):
         pass
     set_paid_enabled(True, authorized=True, path=path)
     assert load_overrides(path)["paid_enabled"] is True
+
+
+# ---------------------------------------------------------------------------
+# Hosted-tier task-class routing (default ON; OSS-catalog-ordered; reversible)
+# ---------------------------------------------------------------------------
+
+
+def test_hosted_taskclass_expands_for_coding(tmp_path):
+    """coding_build hosted candidates expand to coding families (GLM leads agentic)."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.route_tier == "hosted_free_or_user_configured_oss"
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")
+    assert "glm-5" in chosen  # agentic_coding lane leads with GLM
+
+
+def test_hosted_taskclass_research_leads_reasoning(tmp_path):
+    """research hosted candidates lead with a reasoning family, not a coder."""
+    d = route_for_task(
+        TaskClass.RESEARCH,
+        policy=_policy(local=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")
+    assert "deepseek-r1" in chosen
+
+
+def test_hosted_disable_flag_restores_bare_provider(tmp_path, monkeypatch):
+    """The owner escape hatch restores the legacy bare-provider-id candidate."""
+    monkeypatch.setenv("HERMES_JARVIS_HOSTED_TASKCLASS", "off")
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "openrouter"
+
+
+def test_hosted_expansion_falls_back_when_catalog_unavailable(tmp_path, monkeypatch):
+    """If the OSS catalog can't load, hosted stays the bare provider id."""
+    import hermes_cli.oss_model_brain as ob
+
+    def _boom(*a, **k):
+        raise RuntimeError("no catalog / no PyYAML")
+
+    monkeypatch.setattr(ob, "load_oss_catalog", _boom)
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert d.chosen == "openrouter"
+
+
+def test_owner_override_wins_over_hosted_expansion(tmp_path):
+    """An owner pin beats the (default-on) hosted task-class expansion."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {"coding_build": "pinned"}},
+    )
+    assert d.chosen == "pinned"
+    assert d.route_tier == "owner_override"
+
+
+def test_hosted_evidence_matches_expanded_candidate_by_family(tmp_path):
+    """A scorecard recorded under the family id ('qwen3-coder') still re-ranks
+    the expanded hosted candidate ('openrouter/qwen/qwen3-coder'), and the
+    rationale reflects measured evidence (no self-contradiction)."""
+    book = _empty_book(tmp_path)
+    for _ in range(3):
+        book.record(
+            ModelScorecard(
+                "qwen3-coder", "openrouter", "coding_build",
+                risk_class="RC3", tests_passed=20, tests_failed=0,
+                accepted_diff_rate=0.97, tool_reliability=0.99,
+            ),
+            persist=False,
+        )
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    # qwen3-coder is LAST in the agentic_coding ordering, but measured evidence
+    # (matched by family across the provider/model string) lifts it to the top.
+    assert d.chosen == "openrouter/qwen/qwen3-coder"
+    assert "measured evidence" in d.why
+    assert "no scorecards yet" not in d.why
+
+
+def test_hosted_expansion_dedups_provider_casing(tmp_path):
+    """A non-lowercase configured provider must not be re-appended as a bare
+    duplicate of the expanded candidates."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("OpenRouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert "OpenRouter" not in d.fallback_chain  # no bare duplicate leaks
+    assert all("/" in c for c in d.fallback_chain)  # every candidate expanded
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")

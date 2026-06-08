@@ -48,12 +48,19 @@
 # Unknown fields are ignored; add metadata without bumping version.
 
 version: 1
-updated_at: "2026-05-28"
+updated_at: "2026-06-07"
 notes: >
-  Snapshot validated 2026-05-28 against the SWE-bench Verified, LiveCodeBench,
-  HumanEval, AIME-2025 and MATH-500 results aggregated by the sources below.
-  Scores move; treat them as a snapshot, not a contract. Refresh with
-  `hermes_cli/ai_radar.py` findings + the documented promotion flow.
+  Snapshot refreshed 2026-06-07 against SWE-bench Verified / Pro, LiveCodeBench,
+  Terminal-Bench, HumanEval, AIME-2025, MATH-500, MTEB v2 and MMEB-V2 results
+  aggregated by the sources below. Scores move; treat them as a vendor/aggregator
+  snapshot, NOT a contract or a local measurement. The family-level lane ORDER is
+  the stable contract; ``current_variant`` tracks the latest frontier release per
+  family (e.g. GLM-4.7→5→5.1, Kimi K2→K2.5→K2.6, MiniMax M2→M3, DeepSeek V4→V4-Pro,
+  Qwen3-Coder→Qwen3-Coder-Next). PROVIDER MODEL IDS for just-released variants are
+  CANDIDATES pending verification against each provider's live model list — verify
+  before relying on them for paid routing. Only scorecards (not these numbers)
+  promote a model on any lane. Refresh with `hermes_cli/ai_radar.py` + the documented
+  promotion flow.
 
 sources:
   - "https://llm-stats.com/benchmarks/swe-bench-verified"
@@ -61,6 +68,12 @@ sources:
   - "https://www.clarifai.com/blog/top-10-open-source-reasoning-models-in-2026"
   - "https://huggingface.co/blog/daya-shankar/open-source-llms"
   - "https://benchlm.ai/benchmarks/sweVerified"
+  - "https://benchlm.ai/blog/posts/best-chinese-llm"
+  - "https://www.bentoml.com/blog/multimodal-ai-a-guide-to-open-source-vision-language-models"
+  - "https://github.com/qwenlm/qwen3-vl"
+  - "https://arxiv.org/abs/2511.21631"
+  - "https://awesomeagents.ai/leaderboards/embedding-model-leaderboard-mteb-march-2026/"
+  - "https://arxiv.org/pdf/2601.04720"
 
 families:
   # ───────────────────────── Frontier coding / agentic ─────────────────────
@@ -70,7 +83,7 @@ families:
     license_spdx: MIT
     open_weights: true
     tier: frontier
-    current_variant: deepseek-v4
+    current_variant: deepseek-v4-pro
     context_window: 1000000
     params: "~1.6T total / ~49B active (MoE)"
     local: false
@@ -94,7 +107,7 @@ families:
     license_spdx: MIT
     open_weights: true
     tier: frontier
-    current_variant: glm-5
+    current_variant: glm-5.1
     context_window: 200000
     params: "~744B total / ~40B active (MoE)"
     local: false
@@ -117,7 +130,7 @@ families:
     license_spdx: MIT
     open_weights: true
     tier: frontier
-    current_variant: kimi-k2
+    current_variant: kimi-k2.6-thinking
     context_window: 256000
     params: "~1T total / ~32B active (MoE)"
     local: false
@@ -141,13 +154,15 @@ families:
     license_spdx: Apache-2.0
     open_weights: true
     tier: strong
-    current_variant: minimax-m2
+    current_variant: minimax-m3
     context_window: 1000000
-    params: "~230B total / ~10B active (MoE)"
+    params: "~230B total / ~10B active (MoE); M3 adds native multimodality"
     local: false
     best_for: [agentic_coding, coding]
     benchmarks:
       swe_bench_verified: 80.2
+      swe_bench_pro: 59.0
+      terminal_bench: 66.0
     providers:
       - {provider: minimax, model: minimax-m2}
       - {provider: openrouter, model: minimax/minimax-m2}
@@ -161,7 +176,7 @@ families:
     license_spdx: Apache-2.0
     open_weights: true
     tier: strong
-    current_variant: qwen3-coder
+    current_variant: qwen3-coder-next
     context_window: 256000
     params: "MoE ~80B / ~3B active (also 480B variant)"
     local: true
@@ -363,6 +378,137 @@ families:
       - "https://ai.google.dev/gemma/docs/core/model_card_4"
       - "https://ai.google.dev/gemma/docs/integrations/ollama"
 
+  # ───────────────────────── Multimodal (vision / audio) ───────────────────
+  - id: qwen3-vl
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: frontier
+    current_variant: qwen3-vl
+    context_window: 256000
+    params: "dense 2B/4B/8B/32B + MoE 30B-A3B/235B-A22B"
+    local: true
+    local_runner: ollama
+    best_for: [multimodal, multimodal_doc]
+    # Vendor/aggregator snapshot — strong on MMMU / MathVista / MathVision.
+    # NOT locally measured; scorecards gate any promotion.
+    benchmarks: {}
+    providers:
+      - {provider: qwen-oauth, model: qwen3-vl}
+      - {provider: openrouter, model: qwen/qwen3-vl}
+      - {provider: novita, model: qwen/qwen3-vl}
+      - {provider: ollama, model: qwen3-vl}
+    why: "Most capable open vision-language model (256K interleaved text/image/video); dense 2B–32B variants run on a workstation. Leads open multimodal doc/image understanding."
+    sources:
+      - "https://github.com/qwenlm/qwen3-vl"
+      - "https://arxiv.org/abs/2511.21631"
+      - "https://ollama.com/library/qwen3-vl"
+
+  - id: qwen-omni
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: strong
+    current_variant: qwen3-omni
+    context_window: 131072
+    params: "any-to-any (text/audio/image/video); SigLIP2 vision encoder (~543M)"
+    local: false
+    best_for: [multimodal]
+    # Open-source SOTA on 32/36 audio + audio-visual benchmarks (vendor-reported).
+    benchmarks: {}
+    providers:
+      - {provider: qwen-oauth, model: qwen3-omni}
+      - {provider: openrouter, model: qwen/qwen3-omni}
+    why: "Open any-to-any (text/audio/image/video) at open-SOTA on most audio + AV benchmarks; powers voice + multimodal cockpit when hosted. Gemma 4 stays the local multimodal fallback."
+    sources:
+      - "https://arxiv.org/html/2509.17765v1"
+      - "https://www.bentoml.com/blog/multimodal-ai-a-guide-to-open-source-vision-language-models"
+
+  # ───────────────────────── Retrieval: embeddings / rerank ────────────────
+  - id: qwen3-embedding
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: local
+    current_variant: qwen3-embedding-8b
+    context_window: 32768
+    params: "0.6B / 4B / 8B dense"
+    local: true
+    local_runner: ollama
+    best_for: [embeddings]
+    benchmarks:
+      mteb_v2: 75.0
+    providers:
+      - {provider: ollama, model: qwen3-embedding}
+      - {provider: huggingface, model: Qwen/Qwen3-Embedding-8B}
+      - {provider: qwen-oauth, model: qwen3-embedding}
+    why: "Top open-weight retrieval embedding on MTEB v2; runs locally for Memory Tree, Research Vault, GraphRAG and code navigation."
+    sources:
+      - "https://awesomeagents.ai/leaderboards/embedding-model-leaderboard-mteb-march-2026/"
+
+  - id: bge-m3
+    vendor: BAAI
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: local
+    current_variant: bge-m3
+    context_window: 8192
+    params: "568M dense (multi-vector: dense + sparse + ColBERT)"
+    local: true
+    local_runner: ollama
+    best_for: [embeddings]
+    benchmarks: {}
+    providers:
+      - {provider: ollama, model: bge-m3}
+      - {provider: huggingface, model: BAAI/bge-m3}
+    why: "Most-downloaded multilingual embedding (dense+sparse+ColBERT, 100+ languages); robust local retrieval workhorse and offline fallback."
+    sources:
+      - "https://awesomeagents.ai/leaderboards/embedding-model-leaderboard-mteb-march-2026/"
+
+  - id: qwen3-reranker
+    vendor: Alibaba
+    license: Apache-2.0
+    license_spdx: Apache-2.0
+    open_weights: true
+    tier: local
+    current_variant: qwen3-reranker-8b
+    context_window: 32768
+    params: "0.6B / 4B / 8B cross-encoder"
+    local: true
+    local_runner: ollama
+    best_for: [rerank]
+    benchmarks: {}
+    providers:
+      - {provider: huggingface, model: Qwen/Qwen3-Reranker-8B}
+      - {provider: ollama, model: qwen3-reranker}
+    why: "Open cross-encoder reranker that sharpens retrieval / code-nav ordering after embedding recall; runs locally."
+    sources:
+      - "https://arxiv.org/pdf/2601.04720"
+
+  - id: bge-reranker
+    vendor: BAAI
+    license: MIT
+    license_spdx: MIT
+    open_weights: true
+    tier: local
+    current_variant: bge-reranker-v2-m3
+    context_window: 8192
+    params: "568M cross-encoder"
+    local: true
+    local_runner: ollama
+    best_for: [rerank]
+    benchmarks: {}
+    providers:
+      - {provider: huggingface, model: BAAI/bge-reranker-v2-m3}
+      - {provider: ollama, model: bge-reranker}
+    why: "Classic, lightweight local reranker (BGE v2-m3) for retrieval re-ranking and citation-candidate ordering; offline fallback."
+    sources:
+      - "https://www.baseten.co/blog/the-best-open-source-embedding-models/"
+
 # Task category -> ordered family ids (preference first, then fallbacks).
 # Tasks prefixed local_ bias toward families with local:true. Gemma 4 leads
 # the local/mobile/memory/voice/summary/multimodal lanes, trails on
@@ -387,6 +533,10 @@ routing:
   mobile_chat:     [gemma4, gpt-oss-20b, deepseek-r1-distill-8b]
   voice_reply:     [gemma4, gpt-oss-20b]
   summarization:   [gemma4, deepseek-r1-distill-8b, gpt-oss-20b, qwen3-235b]
-  multimodal_doc:  [gemma4]
+  multimodal_doc:  [qwen3-vl, gemma4]
+  multimodal:      [qwen3-vl, qwen-omni, gemma4]
+  embeddings:      [qwen3-embedding, bge-m3]
+  rerank:          [qwen3-reranker, bge-reranker]
   coding_review:   [glm-5, deepseek-v4, qwen3-coder, gemma4]
+  citation_verification: [deepseek-r1, qwen3-235b, glm-5, gemma4]
   deep_research:   [deepseek-r1, qwen3-235b, gemma4]

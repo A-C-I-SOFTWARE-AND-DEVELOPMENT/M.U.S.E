@@ -47,6 +47,11 @@ Subcommands:
 - ``memory-tree [--add NS::TITLE::TEXT ...] [--search Q | --outline]``
   — build an in-memory Memory Tree of source-backed notes and search it
   or print its outline. Stateless per invocation; no durable recall.
+- ``context "<request>" [--task-class coding_build] [--build] [--json]``
+  — build a local-first GraphRAG context handoff (architecture summary,
+  relevant files/tests, GraphRAG nodes, prior decisions, model-lane
+  recommendation, verification plan) instead of a whole-repo dump.
+  Network-free; degrades gracefully if the graph isn't built.
 """
 
 from __future__ import annotations
@@ -1830,6 +1835,30 @@ def _cmd_route(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_context(args: argparse.Namespace) -> int:
+    """Build a local-first GraphRAG context handoff for a request.
+
+    Architecture summary, relevant files/tests, GraphRAG nodes, prior
+    decisions, the recommended model lane, and a verification plan — instead of
+    a whole-repo dump. Network-free; degrades gracefully if the graph isn't
+    built (pass ``--build`` to index the repo first).
+    """
+    from hermes_cli.jarvis_prime.context_handoff import build_context_handoff
+
+    handoff = build_context_handoff(
+        args.request,
+        repo_root=args.repo_root,
+        task_class=args.task_class,
+        build_if_missing=args.build,
+        token_budget=args.token_budget,
+    )
+    if args.json:
+        _print_json(handoff.to_dict())
+    else:
+        print(handoff.render())
+    return 0
+
+
 def _cmd_owner_brief(args: argparse.Namespace) -> int:
     """Render a daily owner brief from a monitor context.
 
@@ -3099,6 +3128,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_route = sub.add_parser(
         "route",
         help="Explain the evidence-backed model route for a task class",
+        epilog=(
+            "Hosted task-class routing is ON by default; disable it (restore "
+            "bare provider ids) with HERMES_JARVIS_HOSTED_TASKCLASS=0."
+        ),
     )
     p_route.add_argument(
         "--task",
@@ -3106,6 +3139,37 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_route.add_argument("--json", action="store_true")
     p_route.set_defaults(func=_cmd_route)
+
+    # context — local-first GraphRAG context handoff for a coding request.
+    p_context = sub.add_parser(
+        "context",
+        help="Build a local-first GraphRAG context handoff for a request",
+        description=(
+            "Architecture summary, relevant files/tests, GraphRAG nodes, prior "
+            "decisions, the recommended model lane, and a verification plan — "
+            "instead of a whole-repo dump. Network-free; degrades gracefully if "
+            "the graph isn't built."
+        ),
+    )
+    p_context.add_argument("request", help="The request / task to build context for")
+    p_context.add_argument(
+        "--task-class",
+        "--task",
+        dest="task_class",
+        default="coding_build",
+        help="Task class for the lane recommendation (default: coding_build)",
+    )
+    p_context.add_argument("--repo-root", dest="repo_root", default=".")
+    p_context.add_argument(
+        "--build",
+        action="store_true",
+        help="Build the graph if missing (otherwise degrade to empty)",
+    )
+    p_context.add_argument(
+        "--token-budget", dest="token_budget", type=int, default=1024
+    )
+    p_context.add_argument("--json", action="store_true")
+    p_context.set_defaults(func=_cmd_context)
 
     # owner-brief — daily owner brief from a monitor context.
     p_brief = sub.add_parser(

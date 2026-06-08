@@ -101,3 +101,82 @@ def test_vendor_benchmarks_do_not_promote() -> None:
         ScorecardBook(scorecards=[]), task_class="memory_curator", candidate="gemma4-e4b"
     )
     assert not a.eligible
+
+
+def test_citation_lane_requires_citation_accuracy() -> None:
+    """On a citation lane, a candidate with no measured citation accuracy fails
+    the citation floor even when it clears the tool-reliability floor."""
+    book = ScorecardBook(scorecards=[])
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="deepseek-r1", provider="openrouter",
+                task_type="citation_verification",
+                accepted_diff_rate=0.7, tests_passed=7, tests_failed=3,
+                tool_reliability=0.99, citation_accuracy=0.95,
+            )
+        )
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="glm-5", provider="openrouter",
+                task_type="citation_verification",
+                accepted_diff_rate=0.95, tests_passed=10, tests_failed=0,
+                tool_reliability=0.99,  # clears the 0.98 tool floor
+                # citation_accuracy omitted → None → must fail the citation floor
+            )
+        )
+    a = promotion_eligible(book, task_class="citation_verification", candidate="glm-5")
+    assert not a.eligible
+    assert any("citation" in r for r in a.reasons)
+
+
+def test_memory_lane_requires_memory_usefulness() -> None:
+    """On the memory lane, a stronger-overall candidate with worse memory
+    usefulness than the baseline is rejected by the memory floor."""
+    book = ScorecardBook(scorecards=[])
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="gpt-oss-20b", provider="ollama", task_type="memory_curator",
+                accepted_diff_rate=0.5, tests_passed=5, tests_failed=5,
+                memory_usefulness=0.95,
+            )
+        )
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="gemma4-e4b", provider="ollama", task_type="memory_curator",
+                accepted_diff_rate=0.95, tests_passed=10, tests_failed=0,
+                memory_usefulness=0.5,  # worse than baseline on the memory floor
+            )
+        )
+    a = promotion_eligible(book, task_class="memory_curator", candidate="gemma4-e4b")
+    assert not a.eligible
+    assert any("memory usefulness" in r for r in a.reasons)
+
+
+def test_latency_budget_rejects_slow_candidate() -> None:
+    """On a latency-budgeted lane (voice_reply), a candidate over the budget is
+    rejected even if it is otherwise strong."""
+    book = ScorecardBook(scorecards=[])
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="gemma4-e2b", provider="ollama", task_type="voice_reply",
+                accepted_diff_rate=0.6, tests_passed=6, tests_failed=4,
+                latency_ms=1200.0, mobile_ux_suitability=0.7,
+            )
+        )
+    for _ in range(25):
+        book.scorecards.append(
+            ModelScorecard(
+                model="deepseek-r1", provider="openrouter", task_type="voice_reply",
+                accepted_diff_rate=0.95, tests_passed=10, tests_failed=0,
+                latency_ms=9000.0,  # far over the 4s voice budget
+                mobile_ux_suitability=0.9,
+            )
+        )
+    a = promotion_eligible(book, task_class="voice_reply", candidate="deepseek-r1")
+    assert not a.eligible
+    assert any("budget" in r for r in a.reasons)
