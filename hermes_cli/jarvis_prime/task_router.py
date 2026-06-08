@@ -236,8 +236,16 @@ def set_paid_enabled(
     """Flip the owner-gated paid-routing override.
 
     ``authorized`` MUST be True — flipping a money-spend gate is owner-gated.
-    The env opt-in (``HERMES_JARVIS_ENABLE_PAID``) remains a floor; this only
-    layers an explicit, audited owner decision on top.
+
+    Paid routing is a *double gate*: at decision time (``route_for_task``) it is
+    on when **either** this explicit, audited owner override says so **or**,
+    when no override is set, the env-written policy flag
+    (``HERMES_JARVIS_ENABLE_PAID`` → ``policy["paid"]["enabled"]``) is on. The
+    override, once written, takes precedence over the policy flag in either
+    direction (it can enable paid the policy left off, or disable paid the
+    policy turned on); it is not merely a floor on top of the env. Clearing the
+    override (``paid_enabled = None`` in the store) hands the decision back to
+    the policy flag, so this never permanently locks paid routing on or off.
     """
     if not authorized:
         raise PermissionError("enabling paid routing requires owner authorization")
@@ -438,6 +446,14 @@ def _hosted_candidates(route: dict[str, Any], profile: TaskProfile) -> list[str]
     router's intra-tier ``seq`` tiebreaker — scorecards and owner overrides
     still win, and no gate changes.
 
+    Honesty ordering ("no fake certainty"): within the catalog's per-task
+    order, families flagged ``candidate`` (just-released variant whose slugs +
+    benchmarks aren't yet verified against the provider's live model list) are
+    *sunk below* the verified families. This is a stable partition — relative
+    order inside each group is preserved — so a lane whose hits are all-verified
+    or all-candidate is byte-for-byte unchanged; only a mixed lane re-orders, and
+    no candidate is ever DROPPED (it just sorts after the verified ones).
+
     Safe by construction:
       * Disabled (env switch) → the legacy bare provider-id list, unchanged.
       * No catalog match / PyYAML missing / any error → the bare provider list
@@ -456,14 +472,19 @@ def _hosted_candidates(route: dict[str, Any], profile: TaskProfile) -> list[str]
     except Exception:  # pragma: no cover - defensive (no catalog / no PyYAML)
         return providers
 
-    ordered: list[str] = []
+    # Stable verified-first partition: keep the catalog's order within each
+    # group, but place verified families ahead of candidate-tagged ones.
+    verified: list[str] = []
+    candidate: list[str] = []
     for model in hits:
         ref = model.resolve_provider(providers)
         if ref is None:
             continue
         cand = f"{ref.provider}/{ref.model}"
-        if cand not in ordered:
-            ordered.append(cand)
+        bucket = candidate if getattr(model, "candidate", False) else verified
+        if cand not in verified and cand not in candidate:
+            bucket.append(cand)
+    ordered: list[str] = verified + candidate
     # Never drop a configured provider the catalog didn't map for this lane.
     # Compare provider prefixes case-insensitively: ``resolve_provider`` matches
     # case-insensitively and returns the catalog's casing, so a policy provider

@@ -96,6 +96,12 @@ class OssModel:
     providers: tuple[ProviderRef, ...] = ()
     why: str = ""
     sources: tuple[str, ...] = ()
+    # True when this family's provider model-ids are a just-released variant
+    # whose slugs + benchmark numbers are NOT yet verified against each
+    # provider's live model list. The "no fake certainty" flag: callers (the
+    # task router) order verified families ahead of candidates, never dropping
+    # one. Mirrors the per-row ``candidate`` tag in config/model-catalog.yaml.
+    candidate: bool = False
 
     @property
     def benchmarks_dict(self) -> dict[str, float]:
@@ -144,6 +150,7 @@ class OssModel:
             "providers": [p.to_dict() for p in self.providers],
             "why": self.why,
             "sources": list(self.sources),
+            "candidate": self.candidate,
         }
 
 
@@ -324,6 +331,7 @@ def _model_from_yaml(raw: dict[str, Any]) -> OssModel:
         providers=_provider_refs(raw.get("providers")),
         why=str(raw.get("why") or ""),
         sources=tuple(str(s) for s in (raw.get("sources") or [])),
+        candidate=bool(raw.get("candidate", False)),
     )
 
 
@@ -390,6 +398,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="MIT",
         tier="frontier",
         current_variant="deepseek-v4-pro",
+        candidate=True,  # just-released V4-Pro; slugs+benchmarks unverified
         context_window=1000000,
         params="~1.6T total / ~49B active (MoE)",
         local=False,
@@ -409,6 +418,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="MIT",
         tier="frontier",
         current_variant="glm-5.1",
+        candidate=True,  # just-released GLM-5.1; slugs+benchmarks unverified
         context_window=200000,
         params="~744B total / ~40B active (MoE)",
         local=False,
@@ -427,6 +437,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="MIT",
         tier="frontier",
         current_variant="kimi-k2.6-thinking",
+        candidate=True,  # just-released K2.6-thinking; slugs+benchmarks unverified
         context_window=256000,
         params="~1T total / ~32B active (MoE)",
         local=False,
@@ -449,6 +460,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="Apache-2.0",
         tier="strong",
         current_variant="minimax-m3",
+        candidate=True,  # just-released M3; slugs+benchmarks unverified
         context_window=1000000,
         params="~230B total / ~10B active (MoE)",
         local=False,
@@ -467,6 +479,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="Apache-2.0",
         tier="strong",
         current_variant="qwen3-coder-next",
+        candidate=True,  # just-released Coder-Next; slugs+benchmark unverified
         context_window=256000,
         params="MoE ~80B / ~3B active",
         local=True,
@@ -562,6 +575,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="Apache-2.0",
         tier="frontier",
         current_variant="qwen3-235b-a22b",
+        candidate=True,  # just-released variant; slugs+benchmarks unverified
         context_window=262000,
         params="235B total / ~22B active (MoE)",
         local=False,
@@ -653,6 +667,7 @@ _BUILTIN_FAMILIES: tuple[OssModel, ...] = (
         license_spdx="Apache-2.0",
         tier="frontier",
         current_variant="qwen3-vl",
+        candidate=True,  # just-released variant; slugs unverified
         context_window=256000,
         params="dense 2B/4B/8B/32B + MoE 30B-A3B/235B-A22B",
         local=True,
