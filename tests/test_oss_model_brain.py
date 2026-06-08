@@ -176,6 +176,170 @@ def test_yaml_and_builtin_cover_the_same_tasks() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Candidate (unverified-slug) tagging — the "no fake certainty" rule (FU-23)
+# ---------------------------------------------------------------------------
+
+# Families whose provider model-ids are a just-released variant whose slugs +
+# benchmark numbers aren't yet verified against each provider's live model list.
+# Mirrors the rows tagged ``candidate`` in config/model-catalog.yaml.
+_EXPECTED_CANDIDATES = {
+    "deepseek-v4",
+    "glm-5",
+    "kimi-k2",
+    "minimax-m2",
+    "qwen3-coder",
+    "qwen3-235b",
+    "qwen3-vl",
+}
+
+
+def test_candidate_defaults_false() -> None:
+    # The flag is opt-in: a bare model (and any model without the field) is
+    # verified by default, so older catalogs/tests keep their meaning.
+    assert ob.OssModel(id="x").candidate is False
+
+
+def test_unverified_slugs_carry_candidate_after_yaml_load() -> None:
+    ob.reset_cache()
+    cat = ob.load_oss_catalog()
+    assert cat.source == "yaml", "expected the shipped YAML, not the fallback"
+    flagged = {f.id for f in cat.families if f.candidate}
+    assert flagged == _EXPECTED_CANDIDATES, (
+        "candidate flags drifted from the unverified just-released variants"
+    )
+    # And the verified families must NOT be flagged (no false positives) —
+    # spot-check the stable, locally-grounded ones the disclaimer excludes.
+    for verified in ("deepseek-r1", "gpt-oss-20b", "gemma4", "bge-m3"):
+        fam = cat.by_id(verified)
+        assert fam is not None and fam.candidate is False, (
+            f"{verified} is verified and must not be candidate-tagged"
+        )
+    ob.reset_cache()
+
+
+def test_candidate_flag_survives_to_dict_roundtrip() -> None:
+    ob.reset_cache()
+    cat = ob.load_oss_catalog()
+    payload = cat.to_dict()
+    by_id = {f["id"]: f for f in payload["families"]}
+    assert by_id["glm-5"]["candidate"] is True
+    assert by_id["deepseek-r1"]["candidate"] is False
+    ob.reset_cache()
+
+
+def test_yaml_and_builtin_agree_on_candidate_set() -> None:
+    # Fourth sync point: the built-in fallback's candidate flags must match the
+    # shipped YAML exactly, the same way the routing/tasks parity test guards
+    # drift. A new candidate in one place must be mirrored in the other.
+    ob.reset_cache()
+    yaml_cat = ob.load_oss_catalog()
+    builtin = ob.builtin_catalog()
+    yaml_flagged = {f.id for f in yaml_cat.families if f.candidate}
+    builtin_flagged = {f.id for f in builtin.families if f.candidate}
+    assert yaml_flagged == builtin_flagged, (
+        "built-in candidate flags have drifted from the shipped YAML"
+    )
+    assert yaml_flagged == _EXPECTED_CANDIDATES
+    ob.reset_cache()
+
+
+# ---------------------------------------------------------------------------
+# task_router._hosted_candidates orders verified slugs before candidates
+# ---------------------------------------------------------------------------
+
+
+def test_hosted_candidates_orders_verified_before_candidate() -> None:
+    """A mixed lane sinks candidate-tagged slugs below verified ones, stably,
+    and never drops a candidate."""
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    ob.reset_cache()
+    # ``reasoning`` mixes verified (deepseek-r1, gpt-oss-120b) with candidates
+    # (qwen3-235b, glm-5, deepseek-v4). With every provider configured, the
+    # verified slugs must precede the candidate ones; deepseek-r1 (already first
+    # + verified) stays first, and gpt-oss-120b (verified) jumps ahead of the
+    # candidate qwen3-235b/glm-5 that the raw catalog order had before it.
+    providers = [
+        "openrouter", "novita", "nvidia", "deepseek", "zai",
+        "minimax", "kimi-coding", "qwen-oauth", "ollama-cloud", "huggingface",
+    ]
+    route = {"providers": providers}
+    # A lane that genuinely mixes verified + candidate families at the hosted tier.
+    reasoning_profile = tr.TaskProfile(
+        risk_class="RC2", catalog_task="reasoning", local_first=False,
+        paid_allowed=True,
+    )
+    out = tr._hosted_candidates(route, reasoning_profile)
+
+    cat = ob.load_oss_catalog()
+    # Map each emitted "provider/model" slug back to its family's candidate flag.
+    # Bare provider ids (no "/") are the pre-existing never-shrink tail fallback
+    # and are orthogonal to the verified/candidate partition, so the ordering
+    # contract is checked over the *mapped* slugs only.
+    def _flag(slug: str) -> bool:
+        prov, model = slug.split("/", 1)
+        for fam in cat.families:
+            for ref in fam.providers:
+                if ref.provider == prov and ref.model == model:
+                    return fam.candidate
+        return False  # unmatched expansion → treat as verified
+
+    mapped = [c for c in out if "/" in c]
+    flags = [_flag(c) for c in mapped]
+    # Among mapped slugs: every verified (False) precedes every candidate (True).
+    first_candidate = next((i for i, f in enumerate(flags) if f), len(flags))
+    assert not any(flags[:first_candidate]), "a candidate leaked ahead of verified"
+    assert all(flags[first_candidate:]), (
+        f"verified slug appears after a candidate: {list(zip(mapped, flags))}"
+    )
+    assert first_candidate > 0, "this lane should have at least one verified slug"
+    assert first_candidate < len(flags), "this lane should have at least one candidate"
+    # Concretely: the verified deepseek-r1 family (slug deepseek/deepseek-reasoner)
+    # leads, and the verified gpt-oss slug precedes the candidate qwen3-235b /
+    # glm-5 that the raw catalog order had ahead of it.
+    assert mapped[0] == "deepseek/deepseek-reasoner"
+    gpt_idx = next(i for i, c in enumerate(mapped) if "gpt-oss" in c)
+    glm_idx = next(i for i, c in enumerate(mapped) if "glm-5" in c)
+    q235_idx = next(i for i, c in enumerate(mapped) if "qwen3-235b" in c)
+    assert gpt_idx < glm_idx and gpt_idx < q235_idx
+    # No candidate was DROPPED: both candidate slugs survive in the output.
+    assert any("glm-5" in c for c in out) and any("qwen3-235b" in c for c in out)
+    ob.reset_cache()
+
+
+def test_hosted_candidates_all_candidate_lane_unchanged() -> None:
+    """An all-candidate lane (every coding family is a candidate) keeps the
+    catalog's order byte-for-byte — verified-first only re-orders *mixed* lanes."""
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    ob.reset_cache()
+    route = {"providers": ["openrouter"]}
+    profile = tr.TASK_PROFILES[tr.TaskClass.CODING_BUILD]  # agentic_coding
+    out = tr._hosted_candidates(route, profile)
+    # agentic_coding leads with GLM (all families candidate-tagged → no shuffle).
+    assert out and out[0] == "openrouter/z-ai/glm-5"
+    assert out == [
+        "openrouter/z-ai/glm-5",
+        "openrouter/deepseek/deepseek-v4",
+        "openrouter/moonshotai/kimi-k2",
+        "openrouter/minimax/minimax-m2",
+        "openrouter/qwen/qwen3-coder",
+    ]
+    ob.reset_cache()
+
+
+def test_hosted_candidates_disabled_flag_is_byte_for_byte_bare(monkeypatch) -> None:
+    """The owner escape hatch and the empty-provider path are untouched by the
+    verified-first partition (no candidate logic runs)."""
+    from hermes_cli.jarvis_prime import task_router as tr
+
+    monkeypatch.setenv("HERMES_JARVIS_HOSTED_TASKCLASS", "off")
+    profile = tr.TASK_PROFILES[tr.TaskClass.CODING_BUILD]
+    assert tr._hosted_candidates({"providers": ["openrouter"]}, profile) == ["openrouter"]
+    assert tr._hosted_candidates({"providers": []}, profile) == []
+
+
+# ---------------------------------------------------------------------------
 # MUSE bridge
 # ---------------------------------------------------------------------------
 

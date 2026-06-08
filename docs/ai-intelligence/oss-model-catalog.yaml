@@ -41,6 +41,16 @@
 #   families[].benchmarks       cross-referenced scores (percent unless noted)
 #   families[].providers        ordered [{provider, model}] — provider must
 #                               match a plugins/model-providers/<name> id
+#   families[].candidate        true when the provider model-ids are a
+#                               just-released variant whose slugs + benchmark
+#                               numbers are NOT yet verified against each
+#                               provider's live model list. Defaults to false.
+#                               This is the machine-readable form of the prose
+#                               "CANDIDATES pending verification" note below;
+#                               task_router orders verified families ahead of
+#                               candidate ones (it never DROPS a candidate).
+#                               Mirrors config/model-catalog.yaml's `candidate`
+#                               tag — same "no fake certainty" honesty rule.
 #   families[].why              one-line rationale
 #   families[].sources          validation URLs
 #   routing                     task category -> ordered family ids (pref+fallback)
@@ -84,6 +94,9 @@ families:
     open_weights: true
     tier: frontier
     current_variant: deepseek-v4-pro
+    # Just-released variant (V4 → V4-Pro): provider slugs + benchmarks below are
+    # CANDIDATES pending verification against each provider's live model list.
+    candidate: true
     context_window: 1000000
     params: "~1.6T total / ~49B active (MoE)"
     local: false
@@ -108,6 +121,9 @@ families:
     open_weights: true
     tier: frontier
     current_variant: glm-5.1
+    # Just-released variant (GLM-5 → 5.1): provider slugs + benchmarks below are
+    # CANDIDATES pending verification against each provider's live model list.
+    candidate: true
     context_window: 200000
     params: "~744B total / ~40B active (MoE)"
     local: false
@@ -131,6 +147,9 @@ families:
     open_weights: true
     tier: frontier
     current_variant: kimi-k2.6-thinking
+    # Just-released variant (K2 → K2.6-thinking): provider slugs + benchmarks
+    # below are CANDIDATES pending verification against each provider's live list.
+    candidate: true
     context_window: 256000
     params: "~1T total / ~32B active (MoE)"
     local: false
@@ -155,6 +174,9 @@ families:
     open_weights: true
     tier: strong
     current_variant: minimax-m3
+    # Just-released variant (M2 → M3): provider slugs + benchmarks below are
+    # CANDIDATES pending verification against each provider's live model list.
+    candidate: true
     context_window: 1000000
     params: "~230B total / ~10B active (MoE); M3 adds native multimodality"
     local: false
@@ -177,6 +199,9 @@ families:
     open_weights: true
     tier: strong
     current_variant: qwen3-coder-next
+    # Just-released variant (Qwen3-Coder → Coder-Next): provider slugs + the
+    # benchmark below are CANDIDATES pending verification against live lists.
+    candidate: true
     context_window: 256000
     params: "MoE ~80B / ~3B active (also 480B variant)"
     local: true
@@ -289,6 +314,9 @@ families:
     open_weights: true
     tier: frontier
     current_variant: qwen3-235b-a22b
+    # Just-released variant: provider slugs + benchmarks below are CANDIDATES
+    # pending verification against each provider's live model list.
+    candidate: true
     context_window: 262000
     params: "235B total / ~22B active (MoE)"
     local: false
@@ -386,6 +414,9 @@ families:
     open_weights: true
     tier: frontier
     current_variant: qwen3-vl
+    # Just-released variant: provider slugs below are CANDIDATES pending
+    # verification against each provider's live model list.
+    candidate: true
     context_window: 256000
     params: "dense 2B/4B/8B/32B + MoE 30B-A3B/235B-A22B"
     local: true
