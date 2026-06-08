@@ -15,9 +15,12 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
+from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 TOKEN = "test-cockpit-token-123"
+# Raising autonomy is owner-gated — the exact phrase travels in the POST body.
+PHRASE = AUTHORIZATION_PHRASE
 
 
 @pytest.fixture()
@@ -25,6 +28,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
     monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
+    monkeypatch.delenv("HERMES_COCKPIT_AUTONOMY_LOCKED", raising=False)
     return tmp_path
 
 
@@ -73,8 +77,12 @@ def test_autonomy_default_is_assisted(server) -> None:
 
 
 def test_set_high_autonomy_requires_workspace(server) -> None:
+    # Past the owner gate (phrase supplied), a high-autonomy raise still needs a
+    # workspace scope.
     status, payload = _post(
-        server, "/v1/cockpit/autonomy", {"level": "owner_high_autonomy_coding"}
+        server,
+        "/v1/cockpit/autonomy",
+        {"level": "owner_high_autonomy_coding", "authorization": PHRASE},
     )
     assert status == 400
     assert "workspace" in payload["error"]
@@ -85,7 +93,11 @@ def test_set_and_read_high_autonomy(server, tmp_path) -> None:
     status, payload = _post(
         server,
         "/v1/cockpit/autonomy",
-        {"level": "owner_high_autonomy_coding", "workspace_path": ws},
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": ws,
+            "authorization": PHRASE,
+        },
     )
     assert status == 200
     assert payload["level"] == "owner_high_autonomy_coding"
@@ -110,11 +122,83 @@ def test_revoke_returns_to_assisted(server, tmp_path) -> None:
     _post(
         server,
         "/v1/cockpit/autonomy",
-        {"level": "owner_high_autonomy_coding", "workspace_path": str(tmp_path)},
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": str(tmp_path),
+            "authorization": PHRASE,
+        },
     )
+    # Revoke (de-escalation) needs no phrase.
     status, payload = _post(server, "/v1/cockpit/autonomy", {"revoke": True})
     assert status == 200
     assert payload["level"] == "assisted"
+
+
+# ---------------------------------------------------------------------------
+# Owner gate on escalation (FU-12)
+# ---------------------------------------------------------------------------
+
+
+def test_raise_autonomy_requires_owner_phrase(server, tmp_path) -> None:
+    # Without the phrase, a bearer-token holder cannot escalate.
+    status, payload = _post(
+        server,
+        "/v1/cockpit/autonomy",
+        {"level": "owner_high_autonomy_coding", "workspace_path": str(tmp_path)},
+    )
+    assert status == 403
+    assert payload["authorization_required"] is True
+    # The floor is unchanged — the escalation did not take effect.
+    _, autonomy = _get(server, "/v1/cockpit/autonomy")
+    assert autonomy["level"] == "assisted"
+
+    # A wrong phrase is also refused (exact match required).
+    status, _ = _post(
+        server,
+        "/v1/cockpit/autonomy",
+        {"level": "yolo", "authorization": "yes with authorization"},
+    )
+    assert status == 403
+
+    # With the exact phrase it succeeds.
+    status, payload = _post(
+        server,
+        "/v1/cockpit/autonomy",
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": str(tmp_path),
+            "authorization": PHRASE,
+        },
+    )
+    assert status == 200
+    assert payload["level"] == "owner_high_autonomy_coding"
+
+
+def test_lower_autonomy_is_ungated(server) -> None:
+    # Dropping to a safe floor never needs the phrase (de-escalation is safe).
+    status, payload = _post(server, "/v1/cockpit/autonomy", {"level": "read_only"})
+    assert status == 200
+    assert payload["level"] == "read_only"
+
+
+def test_autonomy_raises_can_be_env_locked(server, tmp_path, monkeypatch) -> None:
+    # The deployment kill-switch refuses raises even with the correct phrase.
+    monkeypatch.setenv("HERMES_COCKPIT_AUTONOMY_LOCKED", "1")
+    status, payload = _post(
+        server,
+        "/v1/cockpit/autonomy",
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": str(tmp_path),
+            "authorization": PHRASE,
+        },
+    )
+    assert status == 403
+    assert "disabled" in payload["error"]
+    # Lowering still works while locked.
+    status, payload = _post(server, "/v1/cockpit/autonomy", {"level": "read_only"})
+    assert status == 200
+    assert payload["level"] == "read_only"
 
 
 # ---------------------------------------------------------------------------
@@ -126,7 +210,11 @@ def test_autonomy_change_is_audited(server, tmp_path) -> None:
     _post(
         server,
         "/v1/cockpit/autonomy",
-        {"level": "owner_high_autonomy_coding", "workspace_path": str(tmp_path)},
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": str(tmp_path),
+            "authorization": PHRASE,
+        },
     )
     status, payload = _get(server, "/v1/cockpit/autonomy/decisions")
     assert status == 200
@@ -146,7 +234,11 @@ def test_emergency_stop_cancels_jobs_and_drops_autonomy(server, tmp_path) -> Non
     _post(
         server,
         "/v1/cockpit/autonomy",
-        {"level": "owner_high_autonomy_coding", "workspace_path": str(tmp_path)},
+        {
+            "level": "owner_high_autonomy_coding",
+            "workspace_path": str(tmp_path),
+            "authorization": PHRASE,
+        },
     )
     status, job = _post(
         server,
