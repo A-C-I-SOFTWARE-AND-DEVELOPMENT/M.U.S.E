@@ -11,13 +11,15 @@ dataclasses, so the CLI, gateway, Termux runtime, and the Android cockpit
 at ``docs/jarvis-prime/avatar.json``; ``tests/test_jarvis_prime_avatar.py``
 asserts the Python defaults and that JSON stay in sync.
 
-The brand identity mirrors the Android app verbatim so there is **one**
-JARVIS, not two:
+The brand identity is the canonical "Singularity" look — one luminous
+white core in the void, circled by a single thin spectral ring (cyan →
+violet). The reference palette is the browser cockpit's
+``gateway/cockpit/static/tokens.css``; the Android theme and this module
+mirror it so there is **one** MUSE, not two:
 
-* palette ← ``apps/android/.../ui/theme/Color.kt``
-* glyph ← ``apps/android/.../ui/components/JarvisPrimeIcon.kt``
-  ("two concentric rings — gold + cyan — around a luminous gold prime dot,
-  the watchful eye")
+* palette ← ``gateway/cockpit/static/tokens.css`` (Singularity tokens),
+  mirrored into ``apps/android/.../ui/theme/Color.kt``
+* glyph ← the single white core + spectral ring (cyan→violet)
 * tagline / voice prompts ← ``apps/android/.../res/values/strings.xml``
 
 Locale-aware voice + multilingual replies are a concept inspired by
@@ -42,20 +44,25 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Brand palette — hex values lifted verbatim from the Android theme so the
-# CLI/avatar and the app render the same JARVIS.
+# Brand palette — the canonical "Singularity" palette, lifted from the
+# browser cockpit's tokens (gateway/cockpit/static/tokens.css) so the
+# CLI/avatar, the cockpit, and the Android app render the same MUSE.
+#
+# Field NAMES are kept for back-compat; their VALUES now carry Singularity
+# semantics: ``gold`` is the white core (primary accent), ``cyan`` is the
+# spectral ring, ``crimson``/``jade`` map to danger/ok.
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class BrandPalette:
-    ink: str = "#05070D"  # JarvisInkAbyss — background / scrim
-    surface: str = "#101630"  # JarvisInkDeep — cards
-    signal: str = "#E7ECF7"  # JarvisSignal — primary text
-    gold: str = "#E6B341"  # JarvisGold — primary accent / brand
-    cyan: str = "#38C6E0"  # JarvisCyan — secondary accent
-    crimson: str = "#E5484D"  # JarvisCrimson — stop / danger
-    jade: str = "#3DD68C"  # JarvisJade — success / online
+    ink: str = "#050507"  # --void — background / the dark
+    surface: str = "#12151D"  # --void-3 — cards
+    signal: str = "#E8ECF4"  # --signal — primary text
+    gold: str = "#FFFFFF"  # --core — the white core / primary accent
+    cyan: str = "#7AE0FF"  # --ring-1 — spectral ring (cyan end)
+    crimson: str = "#FF5C63"  # --danger — destructive / emergency stop
+    jade: str = "#5BE3A0"  # --ok — success / online
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -201,8 +208,8 @@ class JarvisAvatar:
     short_name: str = "MUSE"
     tagline: str = "One mind, many pathways."
     glyph: str = (
-        "Two concentric rings — gold outer, cyan inner — around a luminous "
-        "gold prime dot: the watchful eye."
+        "A single luminous white core in the void, circled by one thin "
+        "spectral ring (cyan→violet)."
     )
     palette: BrandPalette = field(default_factory=BrandPalette)
     default_locale: str = "en-US"

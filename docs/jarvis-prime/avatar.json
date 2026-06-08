@@ -4,15 +4,15 @@
   "display": "M.U.S.E.",
   "short_name": "MUSE",
   "tagline": "One mind, many pathways.",
-  "glyph": "Two concentric rings — gold outer, cyan inner — around a luminous gold prime dot: the watchful eye.",
+  "glyph": "A single luminous white core in the void, circled by one thin spectral ring (cyan→violet).",
   "palette": {
-    "ink": "#05070D",
-    "surface": "#101630",
-    "signal": "#E7ECF7",
-    "gold": "#E6B341",
-    "cyan": "#38C6E0",
-    "crimson": "#E5484D",
-    "jade": "#3DD68C"
+    "ink": "#050507",
+    "surface": "#12151D",
+    "signal": "#E8ECF4",
+    "gold": "#FFFFFF",
+    "cyan": "#7AE0FF",
+    "crimson": "#FF5C63",
+    "jade": "#5BE3A0"
   },
   "default_locale": "en-US",
   "voices": [
