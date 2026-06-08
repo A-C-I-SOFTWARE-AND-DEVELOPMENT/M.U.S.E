@@ -14,11 +14,13 @@ Start it with :func:`serve` (background thread) or from the CLI
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 import threading
 import time
 import warnings
+from collections.abc import Iterable as _Iterable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable, Optional
@@ -297,15 +299,25 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                 target.relative_to(root)  # reject ../ traversal
             except (ValueError, OSError):
                 return False
+            # Defense-in-depth: a request that names a concrete file suffix is
+            # only served when that suffix is in the static type allowlist; an
+            # unknown/disallowed suffix 404s (returns False) instead of leaking
+            # as application/octet-stream. A *route* (no recognized file suffix,
+            # e.g. "/cockpit/jobs") and a missing allowlisted file both fall back
+            # to index.html so the single-page app can route client-side
+            # (".html" is itself allowlisted).
+            suffix = target.suffix
+            if suffix and suffix not in self._STATIC_TYPES:
+                return False  # disallowed file type -> 404
             if not target.is_file():
-                target = root / "index.html"  # SPA fallback
+                target = root / "index.html"  # SPA fallback (route or missing)
                 if not target.is_file():
                     return False
+            ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
             try:
                 data = target.read_bytes()
             except OSError:
                 return False
-            ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
             self.close_connection = True
             self.send_response(200)
             self.send_header("Content-Type", ctype)
@@ -509,12 +521,45 @@ class _CockpitServer(ThreadingHTTPServer):
         super().shutdown()
 
 
+def _host_in_allowlist(host: str, allowlist: _Iterable[str]) -> bool:
+    """True if ``host`` matches any entry in ``allowlist`` (host or CIDR).
+
+    Each entry is matched two ways: as a literal string equality (covers
+    hostnames the resolver hasn't expanded) and, when both ``host`` and the
+    entry parse as IP addresses/networks, as IP membership — so a bare host
+    matches its own ``/32`` (``/128``) and a CIDR entry matches every address
+    it contains. Anything that fails to parse falls back to the literal
+    compare only. Never raises (fail-closed: an un-matchable entry simply does
+    not authorize the bind).
+    """
+    try:
+        addr = ipaddress.ip_address(host)
+    except ValueError:
+        addr = None
+    for raw in allowlist:
+        entry = (raw or "").strip()
+        if not entry:
+            continue
+        if entry == host:
+            return True
+        if addr is None:
+            continue
+        try:
+            net = ipaddress.ip_network(entry, strict=False)
+        except ValueError:
+            continue
+        if addr.version == net.version and addr in net:
+            return True
+    return False
+
+
 def serve(
     host: str = "127.0.0.1",
     port: int = 8765,
     *,
     token: Optional[str] = None,
     allow_external: bool = False,
+    allow_external_hosts: Optional[_Iterable[str]] = None,
     responder=None,
 ) -> ThreadingHTTPServer:
     """Start the cockpit API server in a background thread.
@@ -522,12 +567,33 @@ def serve(
     Loopback-only unless ``allow_external=True`` (which also warns). The
     bearer ``token`` defaults to the persisted cockpit token (created on
     first use). ``responder`` overrides the chat responder (tests).
+
+    When binding a **non-loopback** host, ``allow_external=True`` is no longer
+    sufficient on its own: the host must also appear in ``allow_external_hosts``
+    — a list of explicit host strings and/or CIDR ranges (e.g.
+    ``["10.0.0.5", "192.168.1.0/24"]``). A non-loopback host that is not in the
+    allowlist raises ``ValueError`` (fail-closed). This is defense-in-depth on
+    top of the per-request owner-phrase gate and the loopback-only execute
+    refusal (``allow_remote_execute``), neither of which is weakened here. The
+    default loopback bind never consults the allowlist and is unchanged.
     """
     if not _is_loopback_host(host) and not allow_external:
         raise ValueError(
             f"refusing to bind cockpit API to non-loopback host {host!r}; "
             "pass allow_external=True only if you understand the exposure risk"
         )
+    if not _is_loopback_host(host):
+        # Fail-closed allowlist: an explicit, opted-in host (allow_external=True)
+        # must STILL be named in allow_external_hosts (host or CIDR). This blocks
+        # accidentally exposing the wildcard "0.0.0.0"/"::" or an unintended NIC.
+        hosts = list(allow_external_hosts or ())
+        if not _host_in_allowlist(host, hosts):
+            raise ValueError(
+                f"refusing to bind cockpit API to non-loopback host {host!r}: "
+                "host is not in the allow_external_hosts allowlist. Pass "
+                "allow_external_hosts=[...] with the exact host or a CIDR that "
+                f"contains it (got {hosts!r})."
+            )
     if not _is_loopback_host(host):
         warnings.warn(
             f"cockpit API binding to non-loopback host {host!r} — exposes the "
