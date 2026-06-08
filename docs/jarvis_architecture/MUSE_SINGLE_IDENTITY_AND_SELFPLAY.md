@@ -1,6 +1,6 @@
-# JARVIS — One Mind, Many Pathways, Verifiable Arenas
+# MUSE — One Mind, Many Pathways, Verifiable Arenas
 
-> **What this is.** A theory of how JARVIS becomes durably more capable —
+> **What this is.** A theory of how **M.U.S.E. (Multi-Use Synaptic Entity)** becomes durably more capable —
 > framed as *one identity* learning through a *neural substrate*, improving by
 > *self-play inside verifiable arenas*. It is grounded in the 2024–2026
 > literature (cited) and then **advances original, falsifiable hypotheses**
@@ -10,22 +10,22 @@
 > or (b) explicitly labeled an **original hypothesis** with the **experiment
 > that would validate or refute it**. Nothing is asserted as "proven." This is
 > deliberate: a theory of *self-validation* must hold itself to the same bar it
-> demands of JARVIS. Hypotheses are written to be **runnable here** — the repo
+> demands of MUSE. Hypotheses are written to be **runnable here** — the repo
 > is the laboratory, not a thought experiment.
 
 ---
 
 ## Part I — One mind, many pathways
 
-The product is a single identity: **JARVIS**. There is no second brand.
-*JARVIS is the mind/consciousness; **Hermes is his nervous system** — the
+The product is a single identity: **MUSE**. There is no second brand.
+*MUSE is the mind/consciousness; **Hermes is his nervous system** — the
 gateway, the routing, and the model pathways that carry signal.* The `hermes_*`
 code names are the **substrate**, not a co-brand. This is the organizing
 metaphor, and it is load-bearing, not decorative:
 
-| Biology | JARVIS | Where it lives |
+| Biology | MUSE | Where it lives |
 |---|---|---|
-| Mind / locus of self | The single JARVIS identity + value function | `jarvis-constitution.md`, `owner_auth.py` |
+| Mind / locus of self | The single MUSE identity + value function | `jarvis-constitution.md`, `owner_auth.py` |
 | Long-term memory / identity continuity | Memory Tree, Research Vault | `memory_tree.py`, `JARVIS_RESEARCH_VAULT.md` |
 | Thalamus / relay & gating | Task-class **model router** | `task_router.py` |
 | Cortical pathways / specialists | The routed open + worker models | `oss_model_brain.py`, `worker_registry.py` |
@@ -44,7 +44,7 @@ any pathway** — which becomes a testable hypothesis (H3) rather than a posture
 
 The classical lineage (SOAR/ACT-R's observe–decide–act cycle [arXiv:2201.09305])
 matters because it warns what a single controller lacks by default —
-*commitment* and *continuity* — both of which JARVIS supplies from the cognition
+*commitment* and *continuity* — both of which MUSE supplies from the cognition
 plane (Memory Tree + Constitution), not from the model of the moment.
 
 ---
@@ -77,7 +77,7 @@ signal.
 
 ## Part III — The verifiable-arena theory (original)
 
-**Core thesis (original).** JARVIS becomes superintelligent *in niches* not by
+**Core thesis (original).** MUSE becomes superintelligent *in niches* not by
 scaling one model, but by **owning a self-curated portfolio of verifiable
 arenas** and learning through the substrate under a **single value function**.
 The game-playing breakthroughs (AlphaZero self-play; AlphaProof/AlphaGeometry's
@@ -99,7 +99,7 @@ that niche's *verifiability*, far more than by the base model.
 (unit-tested) went ~10%→~70% SWE-bench in ~a year; formal math (Lean-verified)
 reached silver-medal IMO; open-ended dialogue improved far slower
 [arXiv:2602.10975]. Games have a perfect verifier; chat does not.
-**Falsifiable prediction.** Across JARVIS's task classes, the *measured* gain from
+**Falsifiable prediction.** Across MUSE's task classes, the *measured* gain from
 self-generated practice will correlate with a per-class **verifier-soundness**
 score (execution/test ≫ source-check ≫ rubric/LLM-judge ≫ none). A weak-verifier
 niche will plateau or regress under the *same* practice budget that lifts a
@@ -112,7 +112,7 @@ self-generate practice in two high-verifiability lanes (`coding_build` w/ tests,
 low-verifiability lane improves as much as a high one.
 
 ### H2 · The Manufactured Verifier
-**Statement.** Where no natural oracle exists, JARVIS can *compose* a
+**Statement.** Where no natural oracle exists, MUSE can *compose* a
 "good-enough" verifier from signals it already has — and that composite has a
 measurable **agreement ceiling** beyond which more self-play *degrades* quality
 (reward hacking).
@@ -131,7 +131,7 @@ climbing. **Refuted if** quality rises monotonically with no hacking inflection
 (verifier is sounder than theorized) **or** never rises (verifier is unsound).
 
 ### H3 · Thalamic Routing / Identity Invariance
-**Statement.** JARVIS's *identity* is preserved iff the **value function and
+**Statement.** MUSE's *identity* is preserved iff the **value function and
 memory are centralized**, even as the **pathways (models) change arbitrarily**.
 **Why plausible.** Distributed-anchor identity work argues continuity survives
 component failure when reference points are centralized, not stored in any one
@@ -147,7 +147,7 @@ capability variance. **Refuted if** routing changes move the Constitution rubric
 as much as they move capability (identity leaks into the pathways).
 
 ### H4 · Niche Self-Curriculum (Challenge Ladders)
-**Statement.** Improvement is fastest when JARVIS generates tasks **just beyond
+**Statement.** Improvement is fastest when MUSE generates tasks **just beyond
 its current measured competence** per niche — not uniform or random self-play,
 which collapses.
 **Why plausible.** *Absolute Zero* maximizes *learnability* of self-proposed
