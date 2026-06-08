@@ -2299,7 +2299,9 @@ def test_resolve_hermes_argv_module_actually_runs():
         f"`{' '.join(argv)} --version` failed (rc={r.returncode}); "
         f"stderr={r.stderr[:200]!r}"
     )
-    assert "Hermes Agent" in r.stdout, f"unexpected output: {r.stdout[:200]!r}"
+    # The product brand is M.U.S.E. (the `--version` banner was rebranded from
+    # "Hermes Agent"); "Hermes" survives only as the internal substrate term.
+    assert "M.U.S.E." in r.stdout, f"unexpected output: {r.stdout[:200]!r}"
 
 
 # ---------------------------------------------------------------------------
