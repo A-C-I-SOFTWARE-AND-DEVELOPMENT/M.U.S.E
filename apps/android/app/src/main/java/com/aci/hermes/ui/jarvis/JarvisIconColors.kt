@@ -6,19 +6,27 @@ import androidx.compose.ui.graphics.Color
  * Canonical MUSE palette. Kept here (separate from
  * `ui/theme/Color.kt`) so the icon's visual contract is self-contained
  * and doesn't drift when the surrounding Material theme is retuned.
+ *
+ * Values carry the "Singularity" identity: one white core in the void
+ * and a single thin spectral ring (cyan→violet). They mirror the
+ * canonical tokens in `ui/theme/Color.kt` (and the cockpit's
+ * `gateway/cockpit/static/tokens.css`) but are restated here on purpose
+ * so retuning the Material theme can't silently drift the icon. No
+ * gold-era literals remain — the icon never renders gold at rest.
  */
 object JarvisPalette {
-    val Cyan = Color(0xFF00E5FF)       // listening glow
-    val Gold = Color(0xFFFFD700)       // approval ring
-    val GoldDeep = Color(0xFFB8860B)
+    val Cyan = Color(0xFF7AE0FF)       // --ring-1: listening glow (spectral ring, cyan end)
+    val Gold = Color(0xFFFFFFFF)       // --core: white point of light (was the gold approval ring)
+    val GoldDeep = Color(0xFF7AE0FF)   // --ring-1: idle spectral ring (was deep gold)
     val Red = Color(0xFFE5484D)        // serious / critical ring
     val Green = Color(0xFF34D399)      // completion flash
-    val Violet = Color(0xFF5865F2)     // thinking
+    val Violet = Color(0xFFB388FF)     // --ring-2: thinking (spectral ring, violet end)
     val Slate = Color(0xFF94A3B8)      // working
     val DimGray = Color(0xFF4B5563)    // offline
     val Amber = Color(0xFFF59E0B)      // warning
     val Charcoal = Color(0xFF1F2937)   // blocked
-    val Core = Color(0xFFE5E7EB)       // default core fill
+    val Core = Color(0xFFFFFFFF)       // --core: white default core fill
+    val Void = Color(0xFF050507)       // --void: near-black command-center base
 }
 
 /**
