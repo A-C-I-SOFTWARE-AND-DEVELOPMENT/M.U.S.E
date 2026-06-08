@@ -7,7 +7,7 @@ sidebar_position: 9
 
 # Credential Pools
 
-Credential pools let you register multiple API keys or OAuth tokens for the same provider. When one key hits a rate limit or billing quota, Hermes automatically rotates to the next healthy key — keeping your session alive without switching providers.
+Credential pools let you register multiple API keys or OAuth tokens for the same provider. When one key hits a rate limit or billing quota, M.U.S.E. automatically rotates to the next healthy key — keeping your session alive without switching providers.
 
 This is different from [fallback providers](./fallback-providers.md), which switch to a *different* provider entirely. Credential pools are same-provider rotation; fallback providers are cross-provider failover. Pools are tried first — if all pool keys are exhausted, *then* the fallback provider activates.
 
@@ -31,24 +31,24 @@ Your request
 
 ## Quick Start
 
-If you already have an API key set in `.env`, Hermes auto-discovers it as a 1-key pool. To benefit from pooling, add more keys:
+If you already have an API key set in `.env`, M.U.S.E. auto-discovers it as a 1-key pool. To benefit from pooling, add more keys:
 
 ```bash
 # Add a second OpenRouter key
-hermes auth add openrouter --api-key sk-or-v1-your-second-key
+muse auth add openrouter --api-key sk-or-v1-your-second-key
 
 # Add a second Anthropic key
-hermes auth add anthropic --type api-key --api-key sk-ant-api03-your-second-key
+muse auth add anthropic --type api-key --api-key sk-ant-api03-your-second-key
 
 # Add an Anthropic OAuth credential (requires Claude Max plan + extra usage credits)
-hermes auth add anthropic --type oauth
+muse auth add anthropic --type oauth
 # Opens browser for OAuth login
 ```
 
 Check your pools:
 
 ```bash
-hermes auth list
+muse auth list
 ```
 
 Output:
@@ -67,10 +67,10 @@ The `←` marks the currently selected credential.
 
 ## Interactive Management
 
-Run `hermes auth` with no subcommand for an interactive wizard:
+Run `muse auth` with no subcommand for an interactive wizard:
 
 ```bash
-hermes auth
+muse auth
 ```
 
 This shows your full pool status and offers a menu:
@@ -97,18 +97,18 @@ Type [1/2]:
 
 | Command | Description |
 |---------|-------------|
-| `hermes auth` | Interactive pool management wizard |
-| `hermes auth list` | Show all pools and credentials |
-| `hermes auth list <provider>` | Show a specific provider's pool |
-| `hermes auth add <provider>` | Add a credential (prompts for type and key) |
-| `hermes auth add <provider> --type api-key --api-key <key>` | Add an API key non-interactively |
-| `hermes auth add <provider> --type oauth` | Add an OAuth credential via browser login |
-| `hermes auth remove <provider> <index>` | Remove credential by 1-based index |
-| `hermes auth reset <provider>` | Clear all cooldowns/exhaustion status |
+| `muse auth` | Interactive pool management wizard |
+| `muse auth list` | Show all pools and credentials |
+| `muse auth list <provider>` | Show a specific provider's pool |
+| `muse auth add <provider>` | Add a credential (prompts for type and key) |
+| `muse auth add <provider> --type api-key --api-key <key>` | Add an API key non-interactively |
+| `muse auth add <provider> --type oauth` | Add an OAuth credential via browser login |
+| `muse auth remove <provider> <index>` | Remove credential by 1-based index |
+| `muse auth reset <provider>` | Clear all cooldowns/exhaustion status |
 
 ## Rotation Strategies
 
-Configure via `hermes auth` → "Set rotation strategy" or in `config.yaml`:
+Configure via `muse auth` → "Set rotation strategy" or in `config.yaml`:
 
 ```yaml
 credential_pool_strategies:
@@ -140,17 +140,17 @@ The `has_retried_429` flag resets on every successful API call, so a single tran
 
 Custom OpenAI-compatible endpoints (Together.ai, RunPod, local servers) get their own pools, keyed by the endpoint name from `custom_providers` in config.yaml.
 
-When you set up a custom endpoint via `hermes model`, it auto-generates a name like "Together.ai" or "Local (localhost:8080)". This name becomes the pool key.
+When you set up a custom endpoint via `muse model`, it auto-generates a name like "Together.ai" or "Local (localhost:8080)". This name becomes the pool key.
 
 ```bash
-# After setting up a custom endpoint via hermes model:
-hermes auth list
+# After setting up a custom endpoint via muse model:
+muse auth list
 # Shows:
 #   Together.ai (1 credential):
 #     #1  config key    api_key config:Together.ai ←
 
 # Add a second key for the same endpoint:
-hermes auth add Together.ai --api-key sk-together-second-key
+muse auth add Together.ai --api-key sk-together-second-key
 ```
 
 Custom endpoint pools are stored in `auth.json` under `credential_pool` with a `custom:` prefix:
@@ -166,18 +166,18 @@ Custom endpoint pools are stored in `auth.json` under `credential_pool` with a `
 
 ## Auto-Discovery
 
-Hermes automatically discovers credentials from multiple sources and seeds the pool on startup:
+M.U.S.E. automatically discovers credentials from multiple sources and seeds the pool on startup:
 
 | Source | Example | Auto-seeded? |
 |--------|---------|-------------|
 | Environment variables | `OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY` | Yes |
 | OAuth tokens (auth.json) | Codex device code, Nous device code | Yes |
 | Claude Code credentials | `~/.claude/.credentials.json` | Yes (Anthropic) |
-| Hermes PKCE OAuth | `~/.hermes/auth.json` | Yes (Anthropic) |
+| M.U.S.E. PKCE OAuth | `~/.hermes/auth.json` | Yes (Anthropic) |
 | Custom endpoint config | `model.api_key` in config.yaml | Yes (custom endpoints) |
-| Manual entries | Added via `hermes auth add` | Persisted in auth.json |
+| Manual entries | Added via `muse auth add` | Persisted in auth.json |
 
-Auto-seeded entries are updated on each pool load — if you remove an env var, its pool entry is automatically pruned. Manual entries (added via `hermes auth add`) are never auto-pruned.
+Auto-seeded entries are updated on each pool load — if you remove an env var, its pool entry is automatically pruned. Manual entries (added via `muse auth add`) are never auto-pruned.
 
 ## Delegation & Subagent Sharing
 

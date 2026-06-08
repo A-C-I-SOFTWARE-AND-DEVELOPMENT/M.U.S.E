@@ -14,7 +14,7 @@ Shop.app: product search, order tracking, returns, reorder.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/productivity/shop-app` |
+| Source | Optional — install with `muse skills install official/productivity/shop-app` |
 | Path | `optional-skills/productivity/shop-app` |
 | Version | `0.0.28` |
 | Author | community |
@@ -26,7 +26,7 @@ Shop.app: product search, order tracking, returns, reorder.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Shop.app — Personal Shopping Assistant
@@ -334,7 +334,7 @@ Lead with **products**, not narration.
 - Offer follow-ups: "Want tracking details?", "Want to re-order?"
 - Remember: coverage is all stores connected to Shop, not just Shopify.
 
-Hermes's gateway adapters (Telegram, Discord, Slack, iMessage, …) render markdown and image URLs automatically. Write normal markdown with image URLs on their own line — the adapter handles platform-specific layout. Do **not** invent a `message()` tool call (that belongs to Shop.app's own runtime, not Hermes).
+M.U.S.E.'s gateway adapters (Telegram, Discord, Slack, iMessage, …) render markdown and image URLs automatically. Write normal markdown with image URLs on their own line — the adapter handles platform-specific layout. Do **not** invent a `message()` tool call (that belongs to Shop.app's own runtime, not M.U.S.E.).
 
 ---
 

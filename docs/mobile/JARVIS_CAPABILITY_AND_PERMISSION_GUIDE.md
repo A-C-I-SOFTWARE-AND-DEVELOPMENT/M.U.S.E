@@ -107,7 +107,7 @@ Reachable from every screen (`EmergencyStopButton`), backed by
 - **Revoke:** switch Autonomy to Lockdown; engage Emergency Stop; revoke a
   capability in the Capabilities screen; revoke an OS permission in Android
   settings; **unpair** (clear the cockpit token) in Settings; rotate the
-  backend token with `hermes cockpit token --rotate`.
+  backend token with `muse cockpit token --rotate`.
 - **Recover:** **Settings → Reset all settings** wipes both stores
   (DataStore + encrypted token). Re-pair with a fresh token. Work happens
   on isolated feature branches on the backend, so reverting a branch /

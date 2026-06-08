@@ -39,7 +39,7 @@ asks for it.
 The cockpit serves on **loopback by default** — `127.0.0.1:8765` — and
 requires a bearer token on every route except `GET /v1/health`.
 
-1. Start it on the backend host: `hermes cockpit serve` (background
+1. Start it on the backend host: `muse cockpit serve` (background
    thread; loopback unless you pass `--allow-external`, which it warns
    about).
 2. In the app, open **Settings → Connection**, enter the gateway URL,
@@ -251,7 +251,7 @@ On success:
 | Guard | What it protects |
 |---|---|
 | **Loopback-only for sensitive routes** | `/jobs/{id}/tree`, `/file`, `/publish`, and `approve`/`run` are refused (`403`) when the gateway is bound beyond loopback (`--allow-external`). A network-reachable cockpit cannot browse a workspace or open a PR. |
-| **`~/.hermes` is off-limits** | The workspace readers refuse any path resolving into the Hermes state dir, so a job workspace can't be used to read the gateway's `.env`, bearer token, or memory. |
+| **`~/.hermes` is off-limits** | The workspace readers refuse any path resolving into the M.U.S.E. state dir, so a job workspace can't be used to read the gateway's `.env`, bearer token, or memory. |
 | **Owner phrase for publish** | Opening a PR needs exactly `Yes, with authorization.`. Anything short of that stages an `approval_required` and makes no GitHub call. |
 | **Secrets never leave the gateway** | The app holds only the bearer token. Provider keys and the GitHub PAT stay on the gateway; no route accepts them in a request body. |
 | **Read steps need no phrase** | Listing, diffs, file/tree browsing, and validation all act inside the already-approved local workspace and require only the bearer token. |

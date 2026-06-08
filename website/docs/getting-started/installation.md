@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Installation"
-description: "Install Hermes Agent on Linux, macOS, WSL2, native Windows (early beta), or Android via Termux"
+description: "Install M.U.S.E. on Linux, macOS, WSL2, native Windows (early beta), or Android via Termux"
 ---
 
 # Installation
 
-Get Hermes Agent up and running in under two minutes with the one-line installer.
+Get M.U.S.E. up and running in under two minutes with the one-line installer.
 
 ## Quick Install
 
@@ -30,23 +30,23 @@ Open PowerShell and run:
 iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
 ```
 
-The installer handles **everything**: `uv`, Python 3.11, Node.js 22, `ripgrep`, `ffmpeg`, **and a portable Git Bash** (PortableGit — a self-contained Git-for-Windows distribution that ships `bash.exe` and the full POSIX toolchain Hermes uses for shell commands; on 32-bit Windows the installer falls back to MinGit, which lacks bash and disables terminal-tool / agent-browser features).  It clones the repo under `%LOCALAPPDATA%\hermes\hermes-agent`, creates a virtualenv, and adds `hermes` to your **User PATH**.  Restart your terminal (or open a new PowerShell window) after the install so PATH picks up.
+The installer handles **everything**: `uv`, Python 3.11, Node.js 22, `ripgrep`, `ffmpeg`, **and a portable Git Bash** (PortableGit — a self-contained Git-for-Windows distribution that ships `bash.exe` and the full POSIX toolchain M.U.S.E. uses for shell commands; on 32-bit Windows the installer falls back to MinGit, which lacks bash and disables terminal-tool / agent-browser features).  It clones the repo under `%LOCALAPPDATA%\hermes\hermes-agent`, creates a virtualenv, and adds `muse` to your **User PATH**.  Restart your terminal (or open a new PowerShell window) after the install so PATH picks up.
 
 **How Git is handled:**
 1. If `git` is already on your PATH, the installer uses your existing install.
-2. Otherwise it downloads portable **PortableGit** (~50MB, from the official `git-for-windows` GitHub release) and unpacks it to `%LOCALAPPDATA%\hermes\git`.  No admin rights required.  Completely isolated — it won't interfere with any system Git install, broken or otherwise.  (On 32-bit Windows it falls back to MinGit because PortableGit ships only 64-bit and ARM64 assets; bash-dependent Hermes features won't work on 32-bit hosts.)
+2. Otherwise it downloads portable **PortableGit** (~50MB, from the official `git-for-windows` GitHub release) and unpacks it to `%LOCALAPPDATA%\hermes\git`.  No admin rights required.  Completely isolated — it won't interfere with any system Git install, broken or otherwise.  (On 32-bit Windows it falls back to MinGit because PortableGit ships only 64-bit and ARM64 assets; bash-dependent M.U.S.E. features won't work on 32-bit hosts.)
 
-**Why not use winget?**  Earlier designs auto-installed Git via `winget install Git.Git`, but winget fails badly when a system Git install is in a partial or broken state (exactly when users need the installer to just work).  The portable Git approach sidesteps winget, the Windows installer registry, and any existing system Git entirely.  If the Hermes Git install itself ever breaks, `Remove-Item %LOCALAPPDATA%\hermes\git` and re-run the installer — no system impact, no uninstall drama.
+**Why not use winget?**  Earlier designs auto-installed Git via `winget install Git.Git`, but winget fails badly when a system Git install is in a partial or broken state (exactly when users need the installer to just work).  The portable Git approach sidesteps winget, the Windows installer registry, and any existing system Git entirely.  If the M.U.S.E. Git install itself ever breaks, `Remove-Item %LOCALAPPDATA%\hermes\git` and re-run the installer — no system impact, no uninstall drama.
 
-The installer also sets `HERMES_GIT_BASH_PATH` to the located `bash.exe` so Hermes resolves it deterministically in fresh shells.
+The installer also sets `HERMES_GIT_BASH_PATH` to the located `bash.exe` so M.U.S.E. resolves it deterministically in fresh shells.
 
 If you prefer WSL2, the Linux installer above works inside it; both native and WSL installs can coexist without conflict (native data lives under `%LOCALAPPDATA%\hermes`, WSL data lives under `~/.hermes`).
 
-**Desktop installer (alternative):** A thin GUI installer is also available — download Hermes Desktop, run the `.exe`, and on first launch it calls `install.ps1` under the hood to provision Python (via `uv`), Node, PortableGit, and the rest of the dependencies. The desktop app and the PowerShell-installed CLI share the same install and data directories, so you can use either or both. See the [Windows (Native) guide](../user-guide/windows-native#desktop-installer-alternative) for details.
+**Desktop installer (alternative):** A thin GUI installer is also available — download M.U.S.E. Desktop, run the `.exe`, and on first launch it calls `install.ps1` under the hood to provision Python (via `uv`), Node, PortableGit, and the rest of the dependencies. The desktop app and the PowerShell-installed CLI share the same install and data directories, so you can use either or both. See the [Windows (Native) guide](../user-guide/windows-native#desktop-installer-alternative) for details.
 
 ### Android / Termux
 
-Hermes now ships a Termux-aware installer path too:
+M.U.S.E. now ships a Termux-aware installer path too:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
@@ -64,7 +64,7 @@ If you want the fully explicit path, follow the dedicated [Termux guide](./termu
 :::note Windows Feature Parity (Early Beta)
 
 Native Windows is in **early beta**. Everything except the browser-based dashboard chat terminal runs natively on Windows:
-- **CLI (`hermes chat`, `hermes setup`, `hermes gateway`, …)** — native, uses your default terminal
+- **CLI (`muse chat`, `muse setup`, `muse gateway`, …)** — native, uses your default terminal
 - **Gateway (Telegram, Discord, Slack, …)** — native, runs as a background PowerShell process
 - **Cron scheduler** — native
 - **Browser tool** — native (Chromium via Node.js)
@@ -76,19 +76,19 @@ Set `HERMES_DISABLE_WINDOWS_UTF8=1` in your environment if you hit an encoding-r
 
 ### What the Installer Does
 
-The installer handles everything automatically — all dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `hermes` command setup, and LLM provider configuration. By the end, you're ready to chat.
+The installer handles everything automatically — all dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `muse` command setup, and LLM provider configuration. By the end, you're ready to chat.
 
 #### Install Layout
 
 Where the installer puts things depends on whether you're installing as a normal user or as root:
 
-| Installer | Code lives at | `hermes` binary | Data directory |
+| Installer | Code lives at | `muse` binary | Data directory |
 |---|---|---|---|
-| pip install | Python site-packages | `~/.local/bin/hermes` (console_scripts) | `~/.hermes/` |
-| Per-user (git installer) | `~/.hermes/hermes-agent/` | `~/.local/bin/hermes` (symlink) | `~/.hermes/` |
-| Root-mode (`sudo curl … \| sudo bash`) | `/usr/local/lib/hermes-agent/` | `/usr/local/bin/hermes` | `/root/.hermes/` (or `$HERMES_HOME`) |
+| pip install | Python site-packages | `~/.local/bin/muse` (console_scripts) | `~/.hermes/` |
+| Per-user (git installer) | `~/.hermes/hermes-agent/` | `~/.local/bin/muse` (symlink) | `~/.hermes/` |
+| Root-mode (`sudo curl … \| sudo bash`) | `/usr/local/lib/hermes-agent/` | `/usr/local/bin/muse` | `/root/.hermes/` (or `$HERMES_HOME`) |
 
-The root-mode **FHS layout** (`/usr/local/lib/…`, `/usr/local/bin/hermes`) matches where other system-wide developer tools land on Linux. It's useful for shared-machine deployments where one system install should serve every user. Per-user config (auth, skills, sessions) still lives under each user's `~/.hermes/` or explicit `HERMES_HOME`.
+The root-mode **FHS layout** (`/usr/local/lib/…`, `/usr/local/bin/muse`) matches where other system-wide developer tools land on Linux. It's useful for shared-machine deployments where one system install should serve every user. Per-user config (auth, skills, sessions) still lives under each user's `~/.hermes/` or explicit `HERMES_HOME`.
 
 ### After Installation
 
@@ -96,17 +96,17 @@ Reload your shell and start chatting:
 
 ```bash
 source ~/.bashrc   # or: source ~/.zshrc
-hermes             # Start chatting!
+muse               # Start chatting!
 ```
 
 To reconfigure individual settings later, use the dedicated commands:
 
 ```bash
-hermes model          # Choose your LLM provider and model
-hermes tools          # Configure which tools are enabled
-hermes gateway setup  # Set up messaging platforms
-hermes config set     # Set individual config values
-hermes setup          # Or run the full setup wizard to configure everything at once
+muse model          # Choose your LLM provider and model
+muse tools          # Configure which tools are enabled
+muse gateway setup  # Set up messaging platforms
+muse config set     # Set individual config values
+muse setup          # Or run the full setup wizard to configure everything at once
 ```
 
 ---
@@ -141,7 +141,7 @@ If you want to clone the repo and install from source — for contributing, runn
 
 ## Non-Sudo / System Service User Installs
 
-Running Hermes as a dedicated unprivileged user (e.g. a `hermes` systemd service account, or any user without `sudo` access) is supported. The only thing on the install path that genuinely needs root is Playwright's `--with-deps` step, which `apt`-installs shared libraries (`libnss3`, `libxkbcommon`, etc.) used by Chromium. The installer detects whether sudo is available and gracefully degrades when it isn't — it will install the Chromium binary into the service user's own Playwright cache and print the exact command an administrator needs to run separately.
+Running M.U.S.E. as a dedicated unprivileged user (e.g. a `hermes` systemd service account, or any user without `sudo` access) is supported. The only thing on the install path that genuinely needs root is Playwright's `--with-deps` step, which `apt`-installs shared libraries (`libnss3`, `libxkbcommon`, etc.) used by Chromium. The installer detects whether sudo is available and gracefully degrades when it isn't — it will install the Chromium binary into the service user's own Playwright cache and print the exact command an administrator needs to run separately.
 
 **Recommended split (Debian/Ubuntu):**
 
@@ -161,16 +161,16 @@ Running Hermes as a dedicated unprivileged user (e.g. a `hermes` systemd service
    curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash -s -- --skip-browser
    ```
 
-3. **Make `hermes` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/hermes`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Either add it to the user's environment, or symlink the launcher into a system location:
+3. **Make `muse` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/muse`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Either add it to the user's environment, or symlink the launcher into a system location:
    ```bash
    # Option A — add to the service user's profile
    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
    # Option B — symlink system-wide (run as an admin)
-   sudo ln -s /home/hermes/.hermes/hermes-agent/venv/bin/hermes /usr/local/bin/hermes
+   sudo ln -s /home/hermes/.hermes/hermes-agent/venv/bin/muse /usr/local/bin/muse
    ```
 
-4. **Verify:** `hermes doctor` should now run cleanly. If you get `ModuleNotFoundError: No module named 'dotenv'`, you're invoking the repo source `hermes` file (`~/.hermes/hermes-agent/hermes`) with system Python instead of the venv launcher (`~/.hermes/hermes-agent/venv/bin/hermes`) — fix step 3.
+4. **Verify:** `muse doctor` should now run cleanly. If you get `ModuleNotFoundError: No module named 'dotenv'`, you're invoking the repo source `hermes` bootstrap file (`~/.hermes/hermes-agent/hermes`) with system Python instead of the venv launcher (`~/.hermes/hermes-agent/venv/bin/muse`) — fix step 3.
 
 The same pattern works on Arch (the installer uses pacman with the same sudo-detection logic), Fedora/RHEL, and openSUSE — those distros don't support `--with-deps` at all, so an administrator always installs the system libraries separately. The relevant `dnf`/`zypper` commands are printed by the installer.
 
@@ -180,12 +180,12 @@ The same pattern works on Arch (the installer uses pacman with the same sudo-det
 
 | Problem | Solution |
 |---------|----------|
-| `hermes: command not found` | Reload your shell (`source ~/.bashrc`) or check PATH |
-| `API key not set` | Run `hermes model` to configure your provider, or `hermes config set OPENROUTER_API_KEY your_key` |
-| Missing config after update | Run `hermes config check` then `hermes config migrate` |
+| `muse: command not found` | Reload your shell (`source ~/.bashrc`) or check PATH |
+| `API key not set` | Run `muse model` to configure your provider, or `muse config set OPENROUTER_API_KEY your_key` |
+| Missing config after update | Run `muse config check` then `muse config migrate` |
 
-For more diagnostics, run `hermes doctor` — it will tell you exactly what's missing and how to fix it.
+For more diagnostics, run `muse doctor` — it will tell you exactly what's missing and how to fix it.
 
 ## Install method auto-detection
 
-Hermes auto-detects whether it was installed via `pip`, the git installer, Homebrew, or NixOS, and `hermes update` prints the matching update command for that path. There's no env var to set — the detection is based on the install layout (Python site-packages, `~/.hermes/hermes-agent/`, Homebrew prefix, or Nix store path). `hermes doctor` also surfaces the detected method under its environment summary.
+M.U.S.E. auto-detects whether it was installed via `pip`, the git installer, Homebrew, or NixOS, and `muse update` prints the matching update command for that path. There's no env var to set — the detection is based on the install layout (Python site-packages, `~/.hermes/hermes-agent/`, Homebrew prefix, or Nix store path). `muse doctor` also surfaces the detected method under its environment summary.

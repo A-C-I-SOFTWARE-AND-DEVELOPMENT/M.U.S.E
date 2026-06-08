@@ -8,12 +8,12 @@
 
 ## 1. Goal
 
-Every external coding agent Hermes can hand off to — Claude Code,
-Codex, Aider, Goose, ChatGPT, plus Hermes' own local agent — needs
+Every external coding agent M.U.S.E. can hand off to — Claude Code,
+Codex, Aider, Goose, ChatGPT, plus M.U.S.E.' own local agent — needs
 to be reachable through a uniform Python interface so the Job
 Controller can pick between them without special-casing each one.
 
-A *worker adapter* is the bridge: it translates a Hermes `Job`
+A *worker adapter* is the bridge: it translates a M.U.S.E. `Job`
 (prompt + plan + context) into whatever the external tool wants,
 runs it, and returns a `WorkerRun` result that the controller can
 record in the decision ledger.
@@ -164,7 +164,7 @@ that as a no-op.
 
 | Module                                    | Worker name        | Status     | Notes                                                                                 |
 | ----------------------------------------- | ------------------ | ---------- | ------------------------------------------------------------------------------------- |
-| `hermes_cli/workers/hermes_local.py`      | `hermes_local`     | skeleton   | Drives Hermes' own one-shot pipeline (`hermes -z`).                                   |
+| `hermes_cli/workers/hermes_local.py`      | `hermes_local`     | skeleton   | Drives M.U.S.E.' own one-shot pipeline (`muse -z`).                                   |
 | `hermes_cli/workers/codex.py`             | `codex`            | skeleton   | Wraps `codex exec` (OpenAI Codex CLI).                                                |
 | `hermes_cli/workers/claude_code.py`       | `claude_code`      | skeleton   | Wraps `claude` (Claude Code CLI), respects PTY requirement.                           |
 | `hermes_cli/workers/aider.py`             | `aider`            | skeleton   | Wraps `aider` with `--yes` and a scoped file list.                                    |

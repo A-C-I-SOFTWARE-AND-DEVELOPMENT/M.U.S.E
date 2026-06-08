@@ -1,7 +1,7 @@
 ---
 sidebar_position: 8
 title: "MCP Config Reference"
-description: "Reference for Hermes Agent MCP configuration keys, filtering semantics, and utility-tool policy"
+description: "Reference for M.U.S.E. MCP configuration keys, filtering semantics, and utility-tool policy"
 ---
 
 # MCP Config Reference
@@ -98,7 +98,7 @@ Result:
 
 ## Utility-tool policy
 
-Hermes may register these utility wrappers per MCP server:
+M.U.S.E. may register these utility wrappers per MCP server:
 
 Resources:
 - `list_resources`
@@ -124,7 +124,7 @@ tools:
 
 ### Capability-aware registration
 
-Even when `resources: true` or `prompts: true`, Hermes only registers those utility tools if the MCP session actually exposes the corresponding capability.
+Even when `resources: true` or `prompts: true`, M.U.S.E. only registers those utility tools if the MCP session actually exposes the corresponding capability.
 
 So this is normal:
 - you enable prompts
@@ -148,7 +148,7 @@ Behavior:
 
 ## Empty result behavior
 
-If filtering removes all server-native tools and no utility tools are registered, Hermes does not create an empty MCP runtime toolset for that server.
+If filtering removes all server-native tools and no utility tools are registered, M.U.S.E. does not create an empty MCP runtime toolset for that server.
 
 ## Example configs
 
@@ -242,7 +242,7 @@ mcp_servers:
 ```
 
 Behavior:
-- Hermes uses the MCP SDK's OAuth 2.1 PKCE flow (metadata discovery, dynamic client registration, token exchange, and refresh)
+- M.U.S.E. uses the MCP SDK's OAuth 2.1 PKCE flow (metadata discovery, dynamic client registration, token exchange, and refresh)
 - On first connect, a browser window opens for authorization
 - Tokens are persisted to `~/.hermes/mcp-tokens/<server>.json` and reused across sessions
 - Token refresh is automatic; re-authorization only happens when refresh fails

@@ -17,14 +17,14 @@ Inspired by RAPTOR's 1800+ line OSS Forensics system.
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/security/oss-forensics` |
+| Source | Optional — install with `muse skills install official/security/oss-forensics` |
 | Path | `optional-skills/security/oss-forensics` |
 | Platforms | linux, macos, windows |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # OSS Security Forensics Skill

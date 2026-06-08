@@ -1,6 +1,6 @@
 # `update` — consolidating upstream + your branch into main
 
-On a **fork**, `hermes update` (and telling MUSE to "update", "sync my
+On a **fork**, `muse update` (and telling MUSE to "update", "sync my
 fork", or "merge upstream") does more than pull the latest release: it
 **autonomously consolidates** the original code and your in-flight work into
 your fork's `main` — no prompts — and pushes the result back to your fork.
@@ -58,12 +58,12 @@ Without these set, conflicts trigger the safe-stop path described above.
 
 ## Flags and scope
 
-- `hermes update --interactive` — forks only: require a review-and-confirm
+- `muse update --interactive` — forks only: require a review-and-confirm
   before the consolidated result is merged into `main` (off by default —
   consolidation is autonomous).
-- `hermes update --no-push` — forks only: consolidate into local `main` but
+- `muse update --no-push` — forks only: consolidate into local `main` but
   don't push it back to `origin`.
-- `hermes update --no-consolidate` — forks only: skip consolidation and use
+- `muse update --no-consolidate` — forks only: skip consolidation and use
   the legacy behavior (fast-forward `main` from `origin`).
 - **Non-fork installs** (a direct clone of the official repo) are unchanged:
   there is no separate "your main vs upstream", so consolidation is skipped

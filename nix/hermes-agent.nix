@@ -160,9 +160,9 @@ stdenv.mkDerivation {
           ${lib.optionalString (extraPythonPackages != [ ]) ''--suffix PYTHONPATH : "${pythonPath}"''}
       '')
       [
-        "hermes"
-        "hermes-agent"
-        "hermes-acp"
+        "muse"
+        "muse-agent"
+        "muse-acp"
       ]
     }
 
@@ -204,7 +204,7 @@ stdenv.mkDerivation {
   meta = with lib; {
     description = "AI agent with advanced tool-calling capabilities";
     homepage = "https://github.com/NousResearch/hermes-agent";
-    mainProgram = "hermes";
+    mainProgram = "muse";
     license = licenses.mit;
     platforms = platforms.unix;
   };

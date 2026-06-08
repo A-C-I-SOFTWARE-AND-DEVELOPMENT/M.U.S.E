@@ -180,21 +180,21 @@ From Termux, keep commands short and explicit:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "MUSE capture: <raw idea>"
+muse "MUSE capture: <raw idea>"
 ```
 
 Focused follow-up:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "MUSE focused: <task title>"
+muse "MUSE focused: <task title>"
 ```
 
 Builder follow-up:
 
 ```bash
 cd /data/data/com.termux/files/home/hermes-agent
-hermes "MUSE build: repo=<repo> task=<task title>"
+muse "MUSE build: repo=<repo> task=<task title>"
 ```
 
 Do not paste secrets into Termux or Slack commands.

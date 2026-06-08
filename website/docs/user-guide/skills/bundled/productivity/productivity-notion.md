@@ -25,7 +25,7 @@ Notion API + ntn CLI: pages, databases, markdown, Workers.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Notion
@@ -297,7 +297,7 @@ curl -s -X PATCH "https://api.notion.com/v1/blocks/{page_id}/children" \
   -H "Content-Type: application/json" \
   -d '{
     "children": [
-      {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "Hello from Hermes!"}}]}}
+      {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": "Hello from M.U.S.E.!"}}]}}
     ]
   }'
 ```
@@ -460,4 +460,4 @@ Headings 5/6 collapse to H4. Multiple `>` lines render as separate quote blocks 
 - Use `"is_inline": true` when creating data sources to embed them in a page.
 - Always pass `-s` to curl to suppress progress bars (cleaner agent output).
 - Pipe JSON through `jq` when reading: `... | jq '.results[0].properties'`.
-- Notion also ships an MCP server now (`Notion MCP`, ~91% more token-efficient on DB ops than the previous version) — wire it via Hermes' MCP support if you want streaming Notion access from inside a session, but the paths above are enough for most one-shot tasks.
+- Notion also ships an MCP server now (`Notion MCP`, ~91% more token-efficient on DB ops than the previous version) — wire it via M.U.S.E.' MCP support if you want streaming Notion access from inside a session, but the paths above are enough for most one-shot tasks.

@@ -1,6 +1,6 @@
 # Private / local-only mode
 
-A Hermes Orchestration install that:
+A M.U.S.E. Orchestration install that:
 
 - never sends data to a cloud provider,
 - never opens an outbound connection beyond loopback (optional —
@@ -79,16 +79,16 @@ python -m vllm.entrypoints.openai.api_server \
 The orchestrator doesn't care which — they all speak the OpenAI
 chat-completions wire format.
 
-### 2. Point Hermes at the local server
+### 2. Point M.U.S.E. at the local server
 
 ```bash
-hermes model add local-coder \
+muse model add local-coder \
   --base-url http://127.0.0.1:8081/v1 \
   --api-key sk-local-no-auth \
   --model-id qwen2.5-coder-32b
 
-hermes model set-default local-coder
-hermes model         # confirm
+muse model set-default local-coder
+muse model         # confirm
 ```
 
 ### 3. Lock down providers and plugins
@@ -177,7 +177,7 @@ sudo nft add rule inet hermes-private output oif lo accept
 sudo nft add rule inet hermes-private output meta skuid != $(id -u) accept
 ```
 
-This blocks outbound from the user that runs Hermes, except over
+This blocks outbound from the user that runs M.U.S.E., except over
 loopback. Adjust for your local model server's port if needed.
 
 On macOS, `pf` is the equivalent; on Termux, see the next section.
@@ -186,7 +186,7 @@ On macOS, `pf` is the equivalent; on Termux, see the next section.
 
 ```bash
 # 1. The model resolves locally.
-hermes model       # → local-coder (default)
+muse model       # → local-coder (default)
 
 # 2. A trivial orchestrated job runs without touching the network.
 sudo tcpdump -i any -n 'not host 127.0.0.1' &
@@ -208,7 +208,7 @@ Same shape, slightly different ingredients:
 ```bash
 # in Termux
 pkg install -y python rust git openssl
-# install Hermes (see android-termux-demo.md)
+# install M.U.S.E. (see android-termux-demo.md)
 
 # llama.cpp builds inside Termux:
 pkg install -y cmake make clang
@@ -220,8 +220,8 @@ cd ~/llama.cpp && make -j
   --host 127.0.0.1 --port 8081 -c 8192 -t 4
 ```
 
-Then point Hermes at `http://127.0.0.1:8081/v1` the same way. The
-Android cockpit talks to Termux's `hermes gateway` over loopback,
+Then point M.U.S.E. at `http://127.0.0.1:8081/v1` the same way. The
+Android cockpit talks to Termux's `muse gateway` over loopback,
 which talks to llama.cpp over loopback. Nothing leaves the device.
 
 Battery life is the real limit on Termux. A 7B Q4 model at modest

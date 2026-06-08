@@ -43,7 +43,7 @@ even picks a coder vs reasoning **local** model when several are installed.
 
 ### Version awareness
 Specific model **versions** are resolved by the free-first **model policy**
-(`hermes models bootstrap` → `model_policy.json`) and the router
+(`muse models bootstrap` → `model_policy.json`) and the router
 (`hermes_cli/model_router.py`), not hard-coded in the app:
 - **Anthropic**: Claude Code worker uses your subscription's current model
   (e.g. Opus 4.8 / 4.7) via the CLI — no version pinned in-app.

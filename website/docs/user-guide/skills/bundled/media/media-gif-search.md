@@ -17,7 +17,7 @@ Search/download GIFs from Tenor via curl + jq.
 | Source | Bundled (installed by default) |
 | Path | `skills/media/gif-search` |
 | Version | `1.1.0` |
-| Author | Hermes Agent |
+| Author | M.U.S.E. |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `GIF`, `Media`, `Search`, `Tenor`, `API` |
@@ -25,7 +25,7 @@ Search/download GIFs from Tenor via curl + jq.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GIF Search (Tenor API)

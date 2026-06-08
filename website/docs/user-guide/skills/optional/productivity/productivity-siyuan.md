@@ -14,7 +14,7 @@ SiYuan Note API for searching, reading, creating, and managing blocks and docume
 
 | | |
 |---|---|
-| Source | Optional — install with `hermes skills install official/productivity/siyuan` |
+| Source | Optional — install with `muse skills install official/productivity/siyuan` |
 | Path | `optional-skills/productivity/siyuan` |
 | Version | `1.0.0` |
 | Author | FEUAZUR |
@@ -26,7 +26,7 @@ SiYuan Note API for searching, reading, creating, and managing blocks and docume
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that Hermes loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that M.U.S.E. loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # SiYuan Note API

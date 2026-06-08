@@ -11,7 +11,7 @@
 
 **One mind, many pathways.** MUSE is a self-improving, local-first AI operating partner: a single identity — the *mind* — running over a **synaptic substrate** (its gateway, routing, and model pathways). It creates skills from experience, improves them during use, remembers across sessions, builds a deepening model of who you are, and defers owner-gated actions until you authorize them. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle — and talk to it from Telegram while it works on a cloud VM.
 
-Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `hermes model` — no code changes, no lock-in.
+Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, or your own endpoint. Switch with `muse model` — no code changes, no lock-in.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
@@ -25,7 +25,7 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>Goal-to-PR orchestration</b></td><td>Decomposes one goal into a validated task graph — Job → specialist Worker → per-task Model routing → Validation gate → tamper-evident Decision ledger. Drive it with <code>/orchestrate</code> from the TUI, a gateway DM, or the Android cockpit.</td></tr>
 <tr><td><b>An inspectable knowledge graph</b></td><td>GraphRAG unifies repo code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (~28k nodes over the repo) with local, global, and coding query modes — so work reuses what already exists instead of rebuilding it.</td></tr>
 <tr><td><b>An autonomous-enterprise council</b></td><td>The AOS Enterprise Council — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files) spanning architecture, security, compliance, QA, release, product, psychology, HazMat Command, and more — convened for audits, launch readiness, and multi-perspective review.</td></tr>
-<tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the Hermes gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
+<tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the M.U.S.E. gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
 </table>
 
 ---
@@ -50,9 +50,9 @@ MUSE is a governed, local-first AI operating partner: **one mind over a synaptic
 
 ## MUSE Operating Layer
 
-> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `hermes` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
+> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
 
-MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (Hermes: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
+MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (M.U.S.E.: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
 The operating model is intentionally small and reviewable:
 
@@ -124,9 +124,9 @@ bash <(curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPME
 Already installed? Bring MUSE up (or re-verify) with:
 
 ```bash
-hermes jarvis launch                            # full free-first launch path
-hermes models bootstrap --free-first --jarvis   # (re)configure model routing only
-hermes doctor --jarvis-launch                   # verify launch readiness
+muse jarvis launch                            # full free-first launch path
+muse models bootstrap --free-first --jarvis   # (re)configure model routing only
+muse doctor --jarvis-launch                   # verify launch readiness
 ```
 
 Then invoke MUSE with `/jarvis` (aliases `/jp`, `/jarvis-prime`) and stop
@@ -151,19 +151,19 @@ For the one-click MUSE launch on Windows, download and run with the
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1))) -JarvisLaunch
 ```
 
-The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  Hermes uses this bundled Git Bash to run shell commands.
+The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\hermes\git` — no admin required, completely isolated from any system Git install).  M.U.S.E. uses this bundled Git Bash to run shell commands.
 
 If you already have Git installed, the installer detects it and uses that instead.  Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, Hermes installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
+> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, M.U.S.E. installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
 >
-> **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only Hermes feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
+> **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only M.U.S.E. feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
 
 After installation:
 
 ```bash
 source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-hermes              # start chatting!
+muse                # start chatting!
 ```
 
 ---
@@ -171,20 +171,20 @@ hermes              # start chatting!
 ## Getting Started
 
 ```bash
-hermes              # Interactive CLI — start a conversation
-hermes model        # Choose your LLM provider and model
-hermes tools        # Configure which tools are enabled
-hermes config set   # Set individual config values
-hermes gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-hermes setup        # Run the full setup wizard (configures everything at once)
-hermes claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-hermes update       # Update to the latest version (on a fork: autonomously consolidates upstream/main + your branch into main and pushes)
-hermes doctor       # Diagnose any issues
+muse                # Interactive CLI — start a conversation
+muse model          # Choose your LLM provider and model
+muse tools          # Configure which tools are enabled
+muse config set     # Set individual config values
+muse gateway        # Start the messaging gateway (Telegram, Discord, etc.)
+muse setup          # Run the full setup wizard (configures everything at once)
+muse claw migrate   # Migrate from OpenClaw (if coming from OpenClaw)
+muse update         # Update to the latest version (on a fork: autonomously consolidates upstream/main + your branch into main and pushes)
+muse doctor         # Diagnose any issues
 ```
 
 📖 **[Full documentation →](https://hermes-agent.nousresearch.com/docs/)**
 
-## Hermes Orchestration
+## M.U.S.E. Orchestration
 
 Turn a sentence into a graph of validated, auditable jobs run by
 specialist workers. The orchestrator decomposes the goal, the kanban
@@ -195,7 +195,7 @@ cockpit).
 
 ```bash
 bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
-hermes                                                    # interactive
+muse                                                      # interactive
 /reload-skills                                            # after editing skills
 /orchestrate Build this repo into production quality      # from inside a session
 /orchestrator status                                      # see what's running
@@ -212,7 +212,7 @@ demo, worker adapters, private-local mode, troubleshooting, FAQ.
 ## Plain-English operating manual
 
 The [`docs/`](docs/) folder is the human-readable manual that
-explains every Hermes surface in plain English. Start with
+explains every M.U.S.E. surface in plain English. Start with
 [`docs/README.md`](docs/README.md) — it's a single-page map that
 points to one guide per topic:
 
@@ -220,7 +220,7 @@ points to one guide per topic:
 |---|---|
 | Run your first job | [docs/orchestration/getting-started.md](docs/orchestration/getting-started.md) |
 | See end-to-end Prompt to PR | [docs/orchestration/prompt-to-pr-demo.md](docs/orchestration/prompt-to-pr-demo.md) |
-| Drive Hermes from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
+| Drive M.U.S.E. from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
 | Use voice-first (driving mode) | [docs/voice/voice-first-user-guide.md](docs/voice/voice-first-user-guide.md) |
 | Bridge to Claude Code Windows | [docs/remote/windows-claude-code-bridge-guide.md](docs/remote/windows-claude-code-bridge-guide.md) |
 | Profile your GitHub history | [docs/profile/github-history-profile-guide.md](docs/profile/github-history-profile-guide.md) |
@@ -230,11 +230,11 @@ points to one guide per topic:
 
 ## CLI vs Messaging Quick Reference
 
-Hermes has two entry points: start the terminal UI with `hermes`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+M.U.S.E. has two entry points: start the terminal UI with `muse`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
 | Action | CLI | Messaging platforms |
 |---------|-----|---------------------|
-| Start chatting | `hermes` | Run `hermes gateway setup` + `hermes gateway start`, then send the bot a message |
+| Start chatting | `muse` | Run `muse gateway setup` + `muse gateway start`, then send the bot a message |
 | Start fresh conversation | `/new` or `/reset` | `/new` or `/reset` |
 | Change model | `/model [provider:model]` | `/model [provider:model]` |
 | Set a personality | `/personality [name]` | `/personality [name]` |
@@ -274,12 +274,12 @@ All documentation lives at **[hermes-agent.nousresearch.com/docs](https://hermes
 
 ## Android Native App
 
-A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running Hermes backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
+A native Android companion app lives at [`apps/android`](apps/android/) — Kotlin + Jetpack Compose, Material 3, MVVM. It is a **thin client** over a running M.U.S.E. backend (CLI/gateway), not a wrapped webview and not a port of the desktop terminal UX.
 
 **Three runtime modes:**
 
-1. **Remote gateway** — point the app at a Hermes install on your VPS / home server. Recommended.
-2. **Local Termux gateway** — `hermes gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
+1. **Remote gateway** — point the app at a M.U.S.E. install on your VPS / home server. Recommended.
+2. **Local Termux gateway** — `muse gateway start` inside Termux on the same device, app points at `http://127.0.0.1:8080`.
 3. **Mock mode** — UI sandbox with canned responses, no backend required (great for trying the UI before committing to a setup).
 
 **Build the debug APK:**
@@ -297,10 +297,10 @@ Architecture, wire format, and the deliberate "no embedded Python" decision are 
 
 ---
 
-## Hermes Orchestration Pipeline
+## M.U.S.E. Orchestration Pipeline
 
-Hermes can be used as a private local-first developer command center. The
-Hermes backend is the engine; the Android APK is the cockpit. Everything
+M.U.S.E. can be used as a private local-first developer command center. The
+M.U.S.E. backend is the engine; the Android APK is the cockpit. Everything
 runs on devices you own — VPS, home server, laptop, or Termux on
 phone — and the Android cockpit talks to it over a gateway you control.
 
@@ -312,10 +312,10 @@ The pipeline ties together:
 - **Model router** — picks the right model for the job (planner,
   builder, reviewer, summarizer) from the model registry.
 - **AI improvement radar** — a continuous scan of new AI capabilities,
-  models, and tools that Hermes should adopt.
+  models, and tools that M.U.S.E. should adopt.
 - **Competitive feature harvester** — tracks shipping features from
   comparable tools and feeds them into the improvement radar.
-- **Self-improvement loop** — Hermes proposes patches to its own
+- **Self-improvement loop** — M.U.S.E. proposes patches to its own
   skills, ledger, and routing policy, gated by the decision quality gate.
 - **GitHub publisher** — turns approved changes into branches, PRs,
   and releases without leaving the cockpit.
@@ -342,17 +342,17 @@ for the Android cockpit contract.
 
 ## Migrating from OpenClaw
 
-If you're coming from OpenClaw, Hermes can automatically import your settings, memories, skills, and API keys.
+If you're coming from OpenClaw, M.U.S.E. can automatically import your settings, memories, skills, and API keys.
 
-**During first-time setup:** The setup wizard (`hermes setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+**During first-time setup:** The setup wizard (`muse setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
 **Anytime after install:**
 
 ```bash
-hermes claw migrate              # Interactive migration (full preset)
-hermes claw migrate --dry-run    # Preview what would be migrated
-hermes claw migrate --preset user-data   # Migrate without secrets
-hermes claw migrate --overwrite  # Overwrite existing conflicts
+muse claw migrate              # Interactive migration (full preset)
+muse claw migrate --dry-run    # Preview what would be migrated
+muse claw migrate --preset user-data   # Migrate without secrets
+muse claw migrate --overwrite  # Overwrite existing conflicts
 ```
 
 What gets imported:
@@ -365,7 +365,7 @@ What gets imported:
 - **TTS assets** — workspace audio files
 - **Workspace instructions** — AGENTS.md (with `--workspace-target`)
 
-See `hermes claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+See `muse claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
 
 ---
 
@@ -378,7 +378,7 @@ Quick start for contributors — clone and go with `setup-hermes.sh`:
 ```bash
 git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
 cd M.U.S.E
-./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/hermes
+./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/muse
 ./hermes              # auto-detects the venv, no need to `source` first
 ```
 
@@ -399,8 +399,8 @@ scripts/run_tests.sh
 - 💬 [Discord](https://discord.gg/NousResearch)
 - 📚 [Skills Hub](https://agentskills.io)
 - 🐛 [Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
-- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for Hermes and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
-- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run Hermes Agent and OpenClaw on the same WeChat account.
+- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for M.U.S.E. and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
+- 🔌 [HermesClaw](https://github.com/AaronWong1999/hermesclaw) — Community WeChat bridge: Run M.U.S.E. and OpenClaw on the same WeChat account.
 
 ---
 

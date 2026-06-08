@@ -9,9 +9,9 @@ Branch convention: `claude/hermes-router-ledger-radar-wire-<suffix>`.
 ---
 
 ```text id="next-phase-router-ledger-radar-wire"
-You are Claude Code working inside the Hermes repo.
+You are Claude Code working inside the M.U.S.E. repo.
 
-GOAL: make the existing `hermes orchestrate` / `/model-router explain`
+GOAL: make the existing `muse orchestrate` / `/model-router explain`
 / `/decision-ledger show` / `/ai-radar update` surface honest by
 wiring the runtime to the documents it already ships alongside. Stay
 inside the listed scope. Do not also build end-to-end worker

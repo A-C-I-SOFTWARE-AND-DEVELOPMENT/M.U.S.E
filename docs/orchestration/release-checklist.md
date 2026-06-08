@@ -1,4 +1,4 @@
-# Hermes orchestration — release checklist
+# M.U.S.E. orchestration — release checklist
 
 Run this checklist for every Phase 24+ tagged release. Every item is
 either a command you can paste and check the output of, or a single

@@ -7,9 +7,9 @@ failure, read [troubleshooting.md](troubleshooting.md) instead.
 
 ### Is this just another agent framework?
 
-No. Hermes Orchestration is the **runtime** that turns a goal into
-a graph of validated tasks. The "agent" is whatever Hermes profile
-you point at each card — and a Hermes profile is just a model +
+No. M.U.S.E. Orchestration is the **runtime** that turns a goal into
+a graph of validated tasks. The "agent" is whatever M.U.S.E. profile
+you point at each card — and a M.U.S.E. profile is just a model +
 tools + skills + environment combination.
 
 Concretely: there is no `Agent` class to subclass, no decorator API
@@ -18,7 +18,7 @@ profile in YAML.
 
 ### How is this different from Claude Code Routines / GitHub Actions / etc.?
 
-| | Claude Code Routines | GitHub Actions | Hermes Orchestration |
+| | Claude Code Routines | GitHub Actions | M.U.S.E. Orchestration |
 |---|---|---|---|
 | Triggers | Cron, GH events, API | Cron, GH events, API | All of the above + slash commands + gateway DM + Android cockpit + scripts |
 | Decomposition | Single prompt → single agent run | Pre-defined workflow YAML | Orchestrator decomposes prompt into task graph at runtime |
@@ -110,7 +110,7 @@ Or use the routing rules to A/B by tag.
 
 ### Self-improvement
 
-Hermes has a built-in learning loop (the "skill system"). When the
+M.U.S.E. has a built-in learning loop (the "skill system"). When the
 orchestrator completes a complex job, it can propose a new skill
 that codifies what worked. The `enterprise/monitor.py` curator
 reviews these proposals and either accepts (writes to
@@ -120,10 +120,10 @@ You see this in action by running a few orchestrated jobs and then
 checking:
 
 ```bash
-hermes skills list --user-created
+muse skills list --user-created
 ```
 
-Skills authored by Hermes itself show up with a `[auto]` tag. You
+Skills authored by M.U.S.E. itself show up with a `[auto]` tag. You
 edit them like any other skill and `/reload-skills` picks up the
 change.
 
@@ -138,13 +138,13 @@ self_improvement:
 
 ### AI radar
 
-Hermes ships an "AI radar" — a scheduled scan that watches a small
+M.U.S.E. ships an "AI radar" — a scheduled scan that watches a small
 set of authoritative sources (GitHub releases of major model
 providers, arXiv categories, well-known blogs) and surfaces
 relevant changes. It's a cron job under the hood:
 
 ```bash
-hermes cron list | grep ai-radar
+muse cron list | grep ai-radar
 ```
 
 The default radar pings your gateway DM when something material
@@ -178,7 +178,7 @@ Copy `skills/devops/kanban-orchestrator/SKILL.md` to
 
 The contract a skill must satisfy:
 
-- Run `hermes profile list` (or accept it from context) before
+- Run `muse profile list` (or accept it from context) before
   decomposing.
 - Emit a plan as either:
   - A series of `kanban_create` tool calls, or
@@ -247,13 +247,13 @@ human reviews before merging.
 GitHub issues on the main repo. Attach:
 
 - The job folder (tar / zip the directory).
-- `hermes doctor` output.
-- `hermes profile list` and the relevant section of
+- `muse doctor` output.
+- `muse profile list` and the relevant section of
   `~/.hermes/config.yaml` (redact keys).
 
 ### Where does the name come from?
 
-Hermes. Messenger of the gods, escorted things between worlds,
+M.U.S.E.. Messenger of the gods, escorted things between worlds,
 sometimes a trickster. We thought it fit.
 
 ## See also

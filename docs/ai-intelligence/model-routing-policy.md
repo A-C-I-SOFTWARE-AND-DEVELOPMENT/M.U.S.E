@@ -64,7 +64,7 @@ If a request mixes types, split it into sub-tasks before routing.
 ## 3. Detection
 
 The detection step is run once per session and cached. Reset by
-`/route detect` or `hermes doctor`.
+`/route detect` or `muse doctor`.
 
 For each non-internal entry in `model-registry.yaml`:
 

@@ -23,7 +23,7 @@ Everything here is **stdlib-only**. No new required dependency is introduced.
 | `hermes_cli/jarvis_prime/guardrail_collectors.py` | Collectors that observe reality (git diff, test runs, secret scan, review, rollback). |
 | `hermes_cli/jarvis_prime/gates.py` | Strict, evidence-bound gate evaluation (`run_strict_gate_summary`). |
 | `hermes_cli/jarvis_prime/owner_auth.py` | Nonce-bound owner challenge/response. |
-| `hermes_cli/guardrails_cli.py` | The `hermes guardrails` command group (top-level so `--help` never eagerly imports `jarvis_prime`). |
+| `hermes_cli/guardrails_cli.py` | The `muse guardrails` command group (top-level so `--help` never eagerly imports `jarvis_prime`). |
 | `hermes_cli/jarvis_prime/launch_doctor.py` | Proves the guardrails are *operational*, not just importable. |
 
 ## What is cryptographically verifiable
@@ -108,15 +108,15 @@ evidence. Required evidence scales with risk class
 ## CLI
 
 ```text
-hermes guardrails status                       # ledger head, chain validity, leases, proposed-memory count
-hermes guardrails doctor [--json]              # operational proof suite (exit 1 on any failure)
-hermes guardrails verify-ledger [--json]       # validate the hash chain
-hermes guardrails collect --packet p.json [--run-tests]
-hermes guardrails authorize <action> --subject <s>
-hermes guardrails authorize-response <challenge-id> "Yes, with authorization. Code: NNNNNN"
+muse guardrails status                       # ledger head, chain validity, leases, proposed-memory count
+muse guardrails doctor [--json]              # operational proof suite (exit 1 on any failure)
+muse guardrails verify-ledger [--json]       # validate the hash chain
+muse guardrails collect --packet p.json [--run-tests]
+muse guardrails authorize <action> --subject <s>
+muse guardrails authorize-response <challenge-id> "Yes, with authorization. Code: NNNNNN"
 ```
 
-`hermes guardrails doctor` proves the guardrails actually work: the ledger
+`muse guardrails doctor` proves the guardrails actually work: the ledger
 writes and verifies, strict gates reject a self-attested packet then accept real
 synthetic evidence, the owner challenge rejects a wrong/bare phrase and accepts
 the correct nonce, the secret scanner catches and redacts a synthetic token, and
@@ -133,7 +133,7 @@ All commands run with **no network and no credentials**.
 - `JarvisPrime.stop(...)` appends a tamper-evident `emergency_stop` record (in
   addition to session memory); a ledger failure surfaces as a `ledger_warning`
   in the result rather than crashing the stop.
-- `hermes doctor --jarvis-launch` (the launch doctor) gains hard checks:
+- `muse doctor --jarvis-launch` (the launch doctor) gains hard checks:
   `guardrail_ledger_writable`, `guardrail_ledger_verifies`,
   `strict_gate_rejects_self_attestation`, `owner_challenge_nonce_enforced`,
   `secret_scan_operational`, `emergency_stop_journaled`, `packet_id_stable`.

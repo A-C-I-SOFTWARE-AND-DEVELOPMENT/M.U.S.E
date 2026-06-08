@@ -1,4 +1,4 @@
-# Hermes / MUSE Android — Standalone Local v1.5 Plan
+# M.U.S.E. / MUSE Android — Standalone Local v1.5 Plan
 
 > **Status:** living plan for the v1.5 *Standalone Local Coding Cockpit*.
 > v1.5 is **local-first**, has **no central cloud proxy**, ships **no bundled
@@ -11,7 +11,7 @@ A real, daily-usable, standalone-local coding control plane on Android:
 
 - create coding tasks, inspect repo/CI/PR/release state (when configured),
 - generate bounded **work packets**, route coding work to local / Gemma /
-  Hermes / Claude / Codex handoffs,
+  M.U.S.E. / Claude / Codex handoffs,
 - view model status + scorecards, approve memory, check guardrails,
 - operate offline (local notes, drafts, queues, last-known snapshots),
 - never proxy provider traffic through a company backend, never exfiltrate.
@@ -19,8 +19,8 @@ A real, daily-usable, standalone-local coding control plane on Android:
 ### Connection modes
 - **A — Mock/Demo.** No backend, no network, no keys. Demonstrates the full
   flow with clearly-labelled demo data (`SavedCodingTask.demo = true`).
-- **B — Local device.** Termux Hermes / `localhost` cockpit on the same phone.
-- **C — Owner backend.** Owner-controlled LAN/VPS Hermes gateway (base URL +
+- **B — Local device.** Termux M.U.S.E. / `localhost` cockpit on the same phone.
+- **C — Owner backend.** Owner-controlled LAN/VPS M.U.S.E. gateway (base URL +
   bearer token in Android Keystore).
 - **D — BYO cloud/provider.** Opt-in only, no bundled keys, secrets in the
   secure store. Kept behind a documented future flag where not yet safe.

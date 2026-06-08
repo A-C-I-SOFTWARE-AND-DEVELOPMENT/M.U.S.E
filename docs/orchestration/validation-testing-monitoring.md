@@ -137,7 +137,7 @@ python -m hermes_cli.validation --workspace . --skip remote
 ## Monitoring hub
 
 `MonitoringHub` is a small read-only aggregator. Its only job is to
-take what the rest of Hermes has written to disk and produce one
+take what the rest of M.U.S.E. has written to disk and produce one
 human-readable snapshot plus an append-only event log.
 
 ### Sources

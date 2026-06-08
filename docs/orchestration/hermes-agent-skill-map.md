@@ -1,23 +1,23 @@
-# Hermes Agent Skill Map — AoS Council
+# M.U.S.E. Skill Map — AoS Council
 
 This doc maps every AoS (Architecture of Solutions) council role to its
-Hermes skill on disk, its slash command, and its purpose. It is the
+M.U.S.E. skill on disk, its slash command, and its purpose. It is the
 canonical index for the Phase 03 conversion that brought the council
-into Hermes as native skills (no `.claude/agents/` dependency).
+into M.U.S.E. as native skills (no `.claude/agents/` dependency).
 
-Hermes scans skills under `~/.hermes/skills/` (seeded from
+M.U.S.E. scans skills under `~/.hermes/skills/` (seeded from
 `skills/` at install time). Slash commands are derived from each skill's
 `name:` field via `agent/skill_commands.py` — `name: foo` becomes `/foo`.
 
 ## Master orchestrator
 
-| Claude agent (upstream) | Hermes skill path | Slash command | Purpose |
+| Claude agent (upstream) | M.U.S.E. skill path | Slash command | Purpose |
 |---|---|---|---|
 | `aos-full-agent-team` | `skills/aos-full-agent-team/SKILL.md` | `/aos-full-agent-team` | Spin up the full 16-specialist council end-to-end against one goal. Wraps `aos-council-director` with the canonical sequence and the audit-trail root. |
 
 ## Council specialists (16)
 
-| Claude agent (upstream) | Hermes skill path | Slash command | Purpose |
+| Claude agent (upstream) | M.U.S.E. skill path | Slash command | Purpose |
 |---|---|---|---|
 | `aos-council-director` | `skills/aos-council-director/SKILL.md` | `/aos-council-director` | Decomposes the goal, dispatches specialists, integrates findings, produces the decision-of-record. |
 | `evidence-architect` | `skills/evidence-architect/SKILL.md` | `/evidence-architect` | Builds the evidence base — structured claims with file / session / external provenance. |
@@ -28,7 +28,7 @@ Hermes scans skills under `~/.hermes/skills/` (seeded from
 | `delivery-scope-controller` | `skills/delivery-scope-controller/SKILL.md` | `/delivery-scope-controller` | Owns delivery shape: in/out of scope, slices, dependencies, critical path, slip signals. |
 | `contrarian-reviewer` | `skills/contrarian-reviewer/SKILL.md` | `/contrarian-reviewer` | Devil's advocate; produces red-flag report with falsifiers. Always runs before the quality gate. |
 | `contrarian-red-flag-analyst` *(alias)* | `skills/contrarian-red-flag-analyst/SKILL.md` | `/contrarian-red-flag-analyst` | Legacy alias that resolves to `contrarian-reviewer`. Same playbook, single canonical memory key. |
-| `codex-dispatch-governor` | `skills/codex-dispatch-governor/SKILL.md` | `/codex-dispatch-governor` | Builds handoff packets for in-Hermes subagents, external coding agents (Codex/Claude Code/Cursor), or the Android manual workflow. |
+| `codex-dispatch-governor` | `skills/codex-dispatch-governor/SKILL.md` | `/codex-dispatch-governor` | Builds handoff packets for in-M.U.S.E. subagents, external coding agents (Codex/Claude Code/Cursor), or the Android manual workflow. |
 | `model-router` | `skills/model-router/SKILL.md` | `/model-router` | Picks the inference model per task: primary, fallback chain, cost band, latency band, do-not-use list. |
 | `github-publisher` | `skills/github-publisher/SKILL.md` | `/github-publisher` | Publishes the decision-of-record to GitHub: PRs, issues, review comments. Uses `plugins/github/` first; falls back to `gh`; finally to draft-only. |
 | `developer-ux-command-center` | `skills/developer-ux-command-center/SKILL.md` | `/developer-ux-command-center` | Owns developer ergonomics: CLI / TUI / gateway / slash / docs / error messages / discoverability. |
@@ -68,14 +68,14 @@ pass if the required keys under `aos/council/<slug>/` are missing.
 
 ## Hermes-native tools the council uses
 
-The council only references tools that Hermes ships natively. No
+The council only references tools that M.U.S.E. ships natively. No
 Claude-Code-only assumptions remain.
 
 | Tool | Used by | What for |
 |---|---|---|
 | `read_file` | Every specialist | Load brief, evidence, prior findings, source files |
 | `search_files` | Every specialist | Locate files referenced obliquely in briefs |
-| `terminal` | Architect / risk / publisher / DX | Read-only inspection (`git log`, `gh`, `hermes --help`) |
+| `terminal` | Architect / risk / publisher / DX | Read-only inspection (`git log`, `gh`, `muse --help`) |
 | `process` | Architect | Inspect running processes (read-only) |
 | `patch` | Director only (writing the final decision-of-record file when the user asks) | Surgical file edits |
 | `write_file` | Director, publisher | Write decision-of-record or PR-body files when asked |
@@ -89,7 +89,7 @@ Claude-Code-only assumptions remain.
 
 - Upstream documents (any `.claude/agents/` source you may merge in
   later) referred to the contrarian role as
-  `contrarian-red-flag-analyst`. The canonical Hermes name is
+  `contrarian-red-flag-analyst`. The canonical M.U.S.E. name is
   `contrarian-reviewer`. The alias skill
   `skills/contrarian-red-flag-analyst/SKILL.md` exists purely to keep
   references resolvable; it persists no findings of its own and points

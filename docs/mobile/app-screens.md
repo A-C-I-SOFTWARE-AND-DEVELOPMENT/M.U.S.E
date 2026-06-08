@@ -247,7 +247,7 @@ See [`app-voice-service.md`](app-voice-service.md) for the pipeline.
     `vercel.token`). Each row is a glyph + ID + last-rotated date.
     The cockpit cannot edit them; tapping a row shows
     *"This secret lives on the gateway. Edit it on the host running
-    `hermes`."*
+    `muse`."*
   - **Integrations** — per-integration ping (GitHub, Supabase, Vercel,
     OpenAI/Anthropic provider, Termux). Each row is a status dot.
   - **Voice** — toggle TTS confirmations, push-to-talk button (system

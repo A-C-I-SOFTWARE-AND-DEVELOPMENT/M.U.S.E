@@ -6,7 +6,7 @@
 > exists so reviewers can agree on the names, arguments, and
 > behavior before any of them ship.
 
-The Hermes CLI already exposes a handful of slash commands (e.g.
+The M.U.S.E. CLI already exposes a handful of slash commands (e.g.
 `/help`, `/model`) and the kanban surface adds more. Phase 7 adds a
 small, focused set scoped to the Job Controller and its supporting
 machinery.
@@ -165,4 +165,4 @@ land in follow-up PRs once we have early users on the basic path.
 - Cron-driven orchestrate jobs.
 - Web/UI surfacing in the kanban dashboard.
 - Cross-job memory or learning (beyond the AI Radar cache).
-- Telemetry / analytics. Hermes does not collect any.
+- Telemetry / analytics. M.U.S.E. does not collect any.

@@ -54,7 +54,7 @@ execute lanes run only over a **loopback** cockpit (see
   leaks credentials.
 
 You can inspect all of these from the phone (Audit / Approvals / Memory
-screens) or on the backend (`hermes orchestrator status`,
+screens) or on the backend (`muse orchestrator status`,
 `~/.hermes/jobs/<job-id>/ledger.jsonl`).
 
 ## Revocable (instant brakes)
@@ -67,7 +67,7 @@ Any of these immediately narrows or removes autonomy:
 - On the backend: `python -m hermes_cli.jarvis_prime stop` clears pending
   owner gates and disables proactive ticks.
 - **Unpair** (clear the cockpit token) or rotate it with
-  `hermes cockpit token --rotate`.
+  `muse cockpit token --rotate`.
 
 ## Rollback (reversible by construction)
 

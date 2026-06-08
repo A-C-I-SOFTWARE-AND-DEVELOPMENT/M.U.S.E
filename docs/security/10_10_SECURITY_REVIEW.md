@@ -2,7 +2,7 @@
 
 > **Owner:** Sprint 14 (Security hardening). **Reviewed against:** current `main`.
 > **Method:** static review (read + grep) of the safety-critical surfaces, with
-> file evidence. Pairs with the runnable gate `hermes doctor --10-10` (which
+> file evidence. Pairs with the runnable gate `muse doctor --10-10` (which
 > re-checks the load-bearing controls) and
 > [`PROTECTED_PATHS_10_10.md`](../launch/PROTECTED_PATHS_10_10.md).
 
@@ -37,7 +37,7 @@ loopback/dry-run alpha.
    misconfiguration pointing at an unexpected repo is not blocked until the owner
    reviews). *Recommendation:* add an explicit repo allowlist checked before
    `approve=True` allows a push. Tracked in the release checklist punch list and
-   surfaced by `hermes doctor --10-10`.
+   surfaced by `muse doctor --10-10`.
 
 2. **Cockpit token on shared filesystems (MEDIUM, operational).** The cockpit
    bearer token is stored `0600` under `~/.hermes/cockpit/`. Safe on a

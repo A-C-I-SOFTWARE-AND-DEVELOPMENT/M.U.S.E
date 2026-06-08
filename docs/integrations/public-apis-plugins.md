@@ -1,6 +1,6 @@
 # Free public-API plugins (weather, finance, news, timeutil)
 
-Four native Hermes plugins wire a handful of **free public APIs** into the
+Four native M.U.S.E. plugins wire a handful of **free public APIs** into the
 agent so MUSE can answer everyday questions — what's the weather,
 what's BTC at, what's in the news, what time is it for my team in Tokyo —
 without you standing up any infrastructure. Three of the four need **no API
@@ -45,10 +45,10 @@ timeutil:
   enabled: true
 ```
 
-Then make Hermes load them (same as any bundled standalone plugin):
+Then make M.U.S.E. load them (same as any bundled standalone plugin):
 
 ```bash
-hermes plugins enable weather finance news timeutil
+muse plugins enable weather finance news timeutil
 # or, inside an interactive session, after editing config:
 /reload-skills        # picks up newly-enabled plugins
 ```

@@ -978,7 +978,7 @@ When the app detects Termux:
 - Control exposes *Start Termux gateway* and *Stop Termux gateway*
   buttons.
 - *Start* sends an Intent (see `TermuxIntentBridge`) that runs the
-  `hermes gateway start` command in Termux's sandbox.
+  `muse gateway start` command in Termux's sandbox.
 - Boot status is shown live with the in-process log buffer feeding
   the Control screen's *Termux log* affordance.
 - The app considers the Termux gateway "ready" only after a

@@ -1,6 +1,6 @@
 # Computer Use (macOS)
 
-Hermes Agent can drive your Mac's desktop — clicking, typing, scrolling,
+M.U.S.E. can drive your Mac's desktop — clicking, typing, scrolling,
 dragging — in the **background**. Your cursor doesn't move, keyboard focus
 doesn't change, and macOS doesn't switch Spaces on you. You and the agent
 co-work on the same machine.
@@ -32,23 +32,23 @@ Pick whichever path is most convenient — both run the same upstream installer:
 **Option 1: dedicated CLI command (most direct).**
 
 ```
-hermes computer-use install
+muse computer-use install
 ```
 
 This fetches and runs the upstream cua-driver installer:
 `curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/cua-driver/scripts/install.sh`.
-Use `hermes computer-use status` to verify the install.
+Use `muse computer-use status` to verify the install.
 
 **Option 2: enable the toolset interactively.**
 
-1. Run `hermes tools`, pick `🖱️ Computer Use (macOS)` → `cua-driver (background)`.
+1. Run `muse tools`, pick `🖱️ Computer Use (macOS)` → `cua-driver (background)`.
 2. The setup runs the upstream installer (same as Option 1).
 
 After installing, regardless of which path you took:
 
 3. Grant macOS permissions when prompted:
    - **System Settings → Privacy & Security → Accessibility** → allow the
-     terminal (or Hermes app).
+     terminal (or M.U.S.E. app).
    - **System Settings → Privacy & Security → Screen Recording** → allow
      the same.
 4. Start a session with the toolset enabled:
@@ -60,18 +60,18 @@ After installing, regardless of which path you took:
 ## Keeping cua-driver up to date
 
 The cua-driver project ships fixes regularly (e.g. v0.1.6 fixed a Safari
-window-focus bug for UTM workflows). Hermes refreshes the binary in two
+window-focus bug for UTM workflows). M.U.S.E. refreshes the binary in two
 places so you don't get stuck on a stale release:
 
-- **`hermes update`** — when you update Hermes itself, if `cua-driver` is
+- **`muse update`** — when you update M.U.S.E. itself, if `cua-driver` is
   on PATH the upstream installer re-runs at the end of the update.
   No-op for non-macOS users and for users without cua-driver installed.
-- **`hermes computer-use install --upgrade`** — manual force-refresh.
+- **`muse computer-use install --upgrade`** — manual force-refresh.
   Re-runs the upstream installer regardless of whether cua-driver is
   already installed. Use this when you want the latest fix without
   waiting for the next agent update.
 
-`hermes computer-use status` shows the installed version next to the
+`muse computer-use status` shows the installed version next to the
 binary path.
 
 ## Quick example
@@ -109,7 +109,7 @@ image blocks.
 
 ## Safety
 
-Hermes applies multi-layer guardrails:
+M.U.S.E. applies multi-layer guardrails:
 
 - Destructive actions (click, type, drag, scroll, key, focus_app) require
   approval — either interactively via the CLI dialog or via the
@@ -126,7 +126,7 @@ Pair with `approvals.mode: manual` in `~/.hermes/config.yaml` if you want every 
 
 ## Token efficiency
 
-Screenshots are expensive. Hermes applies four layers of optimisation:
+Screenshots are expensive. M.U.S.E. applies four layers of optimisation:
 
 - **Screenshot eviction** — the Anthropic adapter keeps only the 3 most
   recent screenshots in context; older ones become `[screenshot removed
@@ -175,8 +175,8 @@ HERMES_COMPUTER_USE_BACKEND=noop   # records calls, no side effects
 ## Troubleshooting
 
 **`computer_use backend unavailable: cua-driver is not installed`** — Run
-`hermes computer-use install` to fetch the cua-driver binary, or run
-`hermes tools` and enable the Computer Use toolset.
+`muse computer-use install` to fetch the cua-driver binary, or run
+`muse tools` and enable the Computer Use toolset.
 
 **Clicks seem to have no effect** — Capture and verify. A modal you
 didn't see may be blocking input. Dismiss it with `escape` or the close

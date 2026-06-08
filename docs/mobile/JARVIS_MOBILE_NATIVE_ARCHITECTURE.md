@@ -6,7 +6,7 @@
 > intended design that was never implemented (notably SSE streaming),
 > that claim is flagged here as **superseded**.
 >
-> **Scope:** the native Android cockpit (`apps/android/`) and the Hermes
+> **Scope:** the native Android cockpit (`apps/android/`) and the M.U.S.E.
 > backend surfaces it speaks to. The Python runtime — agent loop, skills,
 > memory, tools, scheduling, orchestration ledger — is **unchanged** and
 > remains the canonical backend. The phone is the **primary control
@@ -20,12 +20,12 @@
 ## 1. Purpose and principles
 
 MUSE's mobile-native goal: **Android is the primary cockpit;
-Hermes remains the canonical backend; no backend power is removed.**
+M.U.S.E. remains the canonical backend; no backend power is removed.**
 
 Non-negotiable principles this architecture upholds:
 
 1. **Mobile-first is not mobile-only.** The native cockpit exposes the
-   backend's power, but the CLI (`hermes`), the gateway, the worker
+   backend's power, but the CLI (`muse`), the gateway, the worker
    engine, the orchestration stack, and the backend APIs all continue to
    work independently of the phone.
 2. **The backend is the source of truth.** The app holds UI state and a
@@ -67,7 +67,7 @@ Each layer talks only to the one below it. The transport layer is the
                                        │
                                        ▼
                     ┌─────────────────────────────────────────────┐
-                    │  Hermes backend (Python, off-phone or Termux) │
+                    │  M.U.S.E. backend (Python, off-phone or Termux) │
                     │   • Cockpit REST   gateway/cockpit/server.py  │
                     │   • Chat (JSONL)   gateway/jarvis_local_http.py│
                     └─────────────────────────────────────────────┘
@@ -95,7 +95,7 @@ The cockpit speaks to **two** loopback HTTP servers. Both default to
 
 | Server | File | Auth | What it serves |
 |---|---|---|---|
-| **Cockpit REST** | `gateway/cockpit/server.py` (`hermes cockpit serve`) | Bearer token (`gateway/cockpit/auth.py`); all `/v1/cockpit/*` routes require it; `/v1/health` does not | ~28 routes: runtime status/workers, diagnostics, models, memory, events, audit + proof, jobs, approvals, proposals, skills, navigation, sessions, avatar persona/room. Routing table: `gateway/cockpit/server.py:46-73`; handlers: `gateway/cockpit/handlers.py`; wire contract: `gateway/cockpit/contract.py` |
+| **Cockpit REST** | `gateway/cockpit/server.py` (`muse cockpit serve`) | Bearer token (`gateway/cockpit/auth.py`); all `/v1/cockpit/*` routes require it; `/v1/health` does not | ~28 routes: runtime status/workers, diagnostics, models, memory, events, audit + proof, jobs, approvals, proposals, skills, navigation, sessions, avatar persona/room. Routing table: `gateway/cockpit/server.py:46-73`; handlers: `gateway/cockpit/handlers.py`; wire contract: `gateway/cockpit/contract.py` |
 | **Chat (JSONL)** | `gateway/jarvis_local_http.py` | loopback host check; bearer optional | One route `POST /v1/jarvis/chat` (`CHAT_PATH`, `gateway/jarvis_local_http.py:32`) streaming newline-delimited JSON chunks (`thinking`/`working`/`tone`/`body`/`detail`/`done`/`error`) |
 
 **Pairing:** the app stores the bearer token in EncryptedSharedPreferences

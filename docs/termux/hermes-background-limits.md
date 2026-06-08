@@ -1,10 +1,10 @@
-# Android background limits and Hermes
+# Android background limits and M.U.S.E.
 
 Android is not a general-purpose Linux. A process living inside
 Termux is still bound by the platform's background-execution rules,
 its battery optimizer, the OOM killer, and the foreground-service
 contract. This document is the field guide for those constraints
-as they apply to the Hermes phone-first runtime.
+as they apply to the M.U.S.E. phone-first runtime.
 
 Companion docs:
 
@@ -26,12 +26,12 @@ Android tracks every app as one of:
 Termux runs as a normal Android app. The Termux notification you
 see when you launch the terminal is **the** foreground service —
 it is what keeps the Linux runtime alive on the platform's terms.
-Hermes inherits Termux's foreground status; it does not run its
+M.U.S.E. inherits Termux's foreground status; it does not run its
 own foreground service.
 
 ## The three things that must be true overnight
 
-For the Hermes runtime to survive a screen-off period longer than
+For the M.U.S.E. runtime to survive a screen-off period longer than
 a few minutes, all three of these must hold simultaneously:
 
 1. **The Termux notification is showing.** Swiping it away revokes
@@ -44,7 +44,7 @@ a few minutes, all three of these must hold simultaneously:
    unresponsive. The service script handles this for you — see
    [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md).
 3. **The Termux app is not killed by the OOM killer or by the
-   vendor battery optimizer.** This is the one Hermes cannot
+   vendor battery optimizer.** This is the one M.U.S.E. cannot
    control from inside Termux; it is on you to configure the
    battery whitelist once per device.
 
@@ -66,7 +66,7 @@ based on how often you use it. Apps in lower buckets get
 progressively less background CPU. Termux that you only open once
 a week may end up in `rare` even with battery whitelisting.
 
-What this means for Hermes:
+What this means for M.U.S.E.:
 
 - A wake lock is necessary but **not sufficient**. Doze can still
   throttle network access during deep sleep.
@@ -75,7 +75,7 @@ What this means for Hermes:
 - Long-lived TCP connections (gateway WebSockets to Discord,
   Telegram, etc.) may be silently torn down during Doze
   maintenance windows. Gateways should reconnect on backoff; the
-  Hermes gateway does.
+  M.U.S.E. gateway does.
 
 ## Background execution limits since Oreo
 
@@ -84,11 +84,11 @@ background processes can do — short of running inside a foreground
 service or holding a wake lock, a process loses CPU within a few
 minutes of the screen turning off.
 
-The Hermes phone-first runtime stays alive because:
+The M.U.S.E. phone-first runtime stays alive because:
 
 - Termux's foreground service keeps the whole Termux app in the
   foreground bucket. The Linux processes spawned under it
-  (including `hermes serve`) inherit that classification.
+  (including `muse serve`) inherit that classification.
 - The wake lock acquired by `hermes-termux-service.sh start`
   prevents the CPU governor from idling the device while the API
   is doing work.
@@ -136,7 +136,7 @@ API — so it is on you to configure once per device.
 
 ## Foreground service notification
 
-Termux's foreground notification is what gives Hermes a stable
+Termux's foreground notification is what gives M.U.S.E. a stable
 home on Android. The Termux team strongly recommends leaving it
 visible, and so do we — there is no reliable way to keep a
 long-running Linux process alive on modern Android without it.
@@ -152,14 +152,14 @@ Two things to verify on the device:
   OS reclaim the foreground service almost immediately.
 
 The Termux notification also exposes two action buttons that are
-relevant to Hermes:
+relevant to M.U.S.E.:
 
 - **EXIT** — kills the entire Termux session. Use this only when
   you actually want to terminate everything; it is equivalent to
   force-stopping the app.
 - **Acquire Wakelock / Release Wakelock** — manually toggles the
   same wake lock the service script manipulates. Tapping
-  "Release Wakelock" while Hermes is running will leave the
+  "Release Wakelock" while M.U.S.E. is running will leave the
   runtime in the background-throttled state described above.
 
 ## The OOM killer
@@ -199,7 +199,7 @@ Background-execution rules also touch the network stack:
   silently.
 - Mobile networks (LTE/5G) often run behind carrier NAT — exposing
   the API to the public internet requires a tunnel (Tailscale,
-  Cloudflare Tunnel, etc.). Hermes does not require this and the
+  Cloudflare Tunnel, etc.). M.U.S.E. does not require this and the
   default install does not configure it.
 - During Doze maintenance windows, even foreground services with
   wake locks can see network requests batched. Your gateway will
@@ -218,7 +218,7 @@ Termux has two distinct filesystems, and the runtime uses both:
 | `/sdcard`, `/storage/...`   | Shared        | Requires storage permission                    |
 
 Run `termux-setup-storage` once after installing Termux to create
-the `~/storage` symlinks. Hermes itself does not require shared
+the `~/storage` symlinks. M.U.S.E. itself does not require shared
 storage — `$HERMES_HOME` defaults to `$HOME/.hermes`, which lives
 entirely inside the Termux-private sandbox. The doctor script
 warns if `~/storage` is missing but does not treat it as a
