@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 
 def _now_iso() -> str:
@@ -465,9 +465,15 @@ def _hosted_candidates(route: dict[str, Any], profile: TaskProfile) -> list[str]
         if cand not in ordered:
             ordered.append(cand)
     # Never drop a configured provider the catalog didn't map for this lane.
+    # Compare provider prefixes case-insensitively: ``resolve_provider`` matches
+    # case-insensitively and returns the catalog's casing, so a policy provider
+    # like ``"OpenRouter"`` must not be re-appended as a duplicate of the
+    # expanded ``openrouter/...`` candidates.
+    ordered_prefixes = {c.split("/", 1)[0].casefold() for c in ordered}
     for p in providers:
-        if not any(c.startswith(f"{p}/") for c in ordered):
+        if p.casefold() not in ordered_prefixes:
             ordered.append(p)
+            ordered_prefixes.add(p.casefold())
     return ordered or providers
 
 
@@ -583,6 +589,28 @@ def route_for_task(
         for model, score, n in book.recommend(tc.value, task_class=tc.value):
             measured[model] = (score, n)
 
+    # Family-level evidence index. An *expanded* hosted candidate
+    # ("openrouter/z-ai/glm-5") carries no exact scorecard key, but a scorecard
+    # recorded under the family/variant id ("glm-5") should still inform it.
+    # Exact match always wins; this is a fallback ONLY for provider/model hosted
+    # strings (those containing "/"), so local/worker variants keep exact-match
+    # semantics (no e2b/e4b conflation). Coarse-by-family on purpose, consistent
+    # with how promotion baselines compare families.
+    _family_fn: Optional[Callable[[str], str]] = None
+    measured_by_family: dict[str, tuple[float, int]] = {}
+    if measured:
+        try:
+            from hermes_cli.jarvis_prime.model_scorecard import model_family
+
+            _family_fn = model_family
+        except Exception:  # pragma: no cover - defensive (stripped install)
+            _family_fn = None
+        if _family_fn is not None:
+            for _m, _sn in measured.items():
+                _f = _family_fn(_m)
+                if _f and (_f not in measured_by_family or _sn[0] > measured_by_family[_f][0]):
+                    measured_by_family[_f] = _sn
+
     # Build candidates, honoring paid gating.
     candidates: list[Candidate] = []
     for rank, tier in enumerate(tier_order):
@@ -590,6 +618,8 @@ def route_for_task(
             continue
         for model in _tier_candidates(policy, tier, profile):
             score_n = measured.get(model)
+            if score_n is None and _family_fn is not None and "/" in model:
+                score_n = measured_by_family.get(_family_fn(model))
             candidates.append(
                 Candidate(
                     model=model,

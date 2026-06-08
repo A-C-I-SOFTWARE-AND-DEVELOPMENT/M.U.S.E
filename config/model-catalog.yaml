@@ -68,34 +68,36 @@ providers:
         context: 65536
         tags: [oss, general]
       # Frontier OSS coding / reasoning / multimodal via OpenRouter (one key
-      # serves every vendor below). Lane strategy + benchmarks live in
-      # docs/ai-intelligence/oss-model-catalog.yaml. Rows tagged `candidate`
-      # name a JUST-RELEASED variant whose exact OpenRouter slug is unverified —
-      # confirm against OpenRouter's live model list before relying on it.
+      # serves every vendor below). Model slugs mirror the OSS brain's verified
+      # ProviderRefs in docs/ai-intelligence/oss-model-catalog.yaml (the layer
+      # that actually drives routing); the current frontier *variant* per family
+      # (GLM-5.1, Kimi-K2.6, MiniMax-M3, …) is tracked there via current_variant.
+      # Rows tagged `candidate` are new picker entries — confirm availability
+      # against OpenRouter's live model list before relying on them for spend.
       - id: deepseek-v4
         model: deepseek/deepseek-v4
         family: deepseek
         params_b: 671
         context: 1000000
         tags: [oss, coding, reasoning, agentic, tools, candidate]
-      - id: glm-5.1
-        model: z-ai/glm-5.1
+      - id: glm-5
+        model: z-ai/glm-5
         family: glm
         params_b: 744
         context: 200000
-        tags: [oss, coding, agentic, bug-fix, tools, candidate, unverified]
-      - id: kimi-k2.6
-        model: moonshotai/kimi-k2.6
+        tags: [oss, coding, agentic, bug-fix, tools, candidate]
+      - id: kimi-k2
+        model: moonshotai/kimi-k2
         family: kimi
         params_b: 1000
         context: 256000
-        tags: [oss, coding, agentic, reasoning, candidate, unverified]
-      - id: minimax-m3
-        model: minimax/minimax-m3
+        tags: [oss, coding, agentic, reasoning, candidate]
+      - id: minimax-m2
+        model: minimax/minimax-m2
         family: minimax
         params_b: 230
         context: 1000000
-        tags: [oss, coding, agentic, multimodal, candidate, unverified]
+        tags: [oss, coding, agentic, multimodal, candidate]
       - id: qwen3-coder
         model: qwen/qwen3-coder
         family: qwen

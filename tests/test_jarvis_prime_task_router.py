@@ -285,3 +285,46 @@ def test_owner_override_wins_over_hosted_expansion(tmp_path):
     )
     assert d.chosen == "pinned"
     assert d.route_tier == "owner_override"
+
+
+def test_hosted_evidence_matches_expanded_candidate_by_family(tmp_path):
+    """A scorecard recorded under the family id ('qwen3-coder') still re-ranks
+    the expanded hosted candidate ('openrouter/qwen/qwen3-coder'), and the
+    rationale reflects measured evidence (no self-contradiction)."""
+    book = _empty_book(tmp_path)
+    for _ in range(3):
+        book.record(
+            ModelScorecard(
+                "qwen3-coder", "openrouter", "coding_build",
+                risk_class="RC3", tests_passed=20, tests_failed=0,
+                accepted_diff_rate=0.97, tool_reliability=0.99,
+            ),
+            persist=False,
+        )
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("openrouter",)),
+        book=book,
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    # qwen3-coder is LAST in the agentic_coding ordering, but measured evidence
+    # (matched by family across the provider/model string) lifts it to the top.
+    assert d.chosen == "openrouter/qwen/qwen3-coder"
+    assert "measured evidence" in d.why
+    assert "no scorecards yet" not in d.why
+
+
+def test_hosted_expansion_dedups_provider_casing(tmp_path):
+    """A non-lowercase configured provider must not be re-appended as a bare
+    duplicate of the expanded candidates."""
+    d = route_for_task(
+        TaskClass.CODING_BUILD,
+        policy=_policy(local=False, claude=False, codex=False, hosted=("OpenRouter",)),
+        book=_empty_book(tmp_path),
+        overrides={"paid_enabled": None, "task_overrides": {}},
+    )
+    assert "OpenRouter" not in d.fallback_chain  # no bare duplicate leaks
+    assert all("/" in c for c in d.fallback_chain)  # every candidate expanded
+    chosen = d.chosen
+    assert chosen is not None
+    assert chosen.startswith("openrouter/")

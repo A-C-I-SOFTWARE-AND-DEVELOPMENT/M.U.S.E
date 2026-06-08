@@ -120,3 +120,15 @@ def test_cli_context_json_returns_zero(tmp_path, monkeypatch):
     payload = json.loads(buf.getvalue())
     assert "model_lane" in payload and "verification_plan" in payload
     assert payload["graph_built"] is False  # no graph in a clean HERMES_HOME
+
+
+def test_is_test_path_aware_avoids_false_positives():
+    from hermes_cli.jarvis_prime.context_handoff import _is_test
+
+    assert _is_test("tests/test_x.py", "test_x")
+    assert _is_test("pkg/foo_test.py", "foo_test")
+    assert _is_test("conftest.py", "conftest")
+    # Path-aware: these contain the substring "test" but are not tests.
+    assert not _is_test("pkg/latest.py", "latest")
+    assert not _is_test("docs/attestation.md", "attestation")
+    assert not _is_test("pkg/contest.py", "contest")

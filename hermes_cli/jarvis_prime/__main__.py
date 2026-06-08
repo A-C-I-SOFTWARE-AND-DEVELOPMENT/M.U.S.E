@@ -3128,6 +3128,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_route = sub.add_parser(
         "route",
         help="Explain the evidence-backed model route for a task class",
+        epilog=(
+            "Hosted task-class routing is ON by default; disable it (restore "
+            "bare provider ids) with HERMES_JARVIS_HOSTED_TASKCLASS=0."
+        ),
     )
     p_route.add_argument(
         "--task",
@@ -3150,6 +3154,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_context.add_argument("request", help="The request / task to build context for")
     p_context.add_argument(
         "--task-class",
+        "--task",
         dest="task_class",
         default="coding_build",
         help="Task class for the lane recommendation (default: coding_build)",

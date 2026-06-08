@@ -18,11 +18,12 @@ Design contract:
 * **Never raises.** Every subsystem call is defensive; a failure becomes a
   note, not an exception.
 * **Bounded.** Lists are capped by ``limit`` and the rendered block is clamped
-  to roughly ``token_budget`` tokens — the whole point is to *avoid* whole-repo
-  context stuffing.
-* **Secret-screened.** The echoed request is passed through
-  ``secrets_policy.redact`` (best-effort) so a pasted key never lands in the
-  packet.
+  to ``max(256, token_budget*4)`` chars (~``token_budget`` tokens, with a small
+  floor) — the whole point is to *avoid* whole-repo context stuffing.
+* **Secret-screened (request).** The echoed *request* is passed through
+  ``secrets_policy.redact`` (best-effort), so a pasted key in the prompt never
+  lands in the packet. Graph-derived titles/citations come from already-indexed
+  repo/docs content and are not re-screened here.
 """
 
 from __future__ import annotations
@@ -49,8 +50,18 @@ def _redact(text: str) -> str:
 
 
 def _is_test(key: str, title: str) -> bool:
-    blob = f"{key} {title}".lower()
-    return "test" in blob
+    """Path-aware test detection (avoids false positives like ``latest.py``,
+    ``attestation``, ``contest``). Matches a ``tests/`` path segment or a
+    ``test_``/``_test`` filename boundary."""
+    k = (key or "").lower().replace("\\", "/")
+    base = k.rsplit("/", 1)[-1]
+    return (
+        "/tests/" in k
+        or k.startswith("tests/")
+        or base.startswith("test_")
+        or base.endswith("_test.py")
+        or base in ("conftest.py",)
+    )
 
 
 def _node_view(node: Any) -> dict[str, Any]:
