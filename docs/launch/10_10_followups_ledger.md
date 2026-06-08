@@ -356,3 +356,103 @@ pre-authorization:
   reviewed/merged all builder PRs); disjoint file ownership held conflict-free
   end-to-end. This tracking PR (#374) merges last.
 
+---
+
+# Swarm — finish-to-10/10 across surfaces (2026-06-08)
+
+**Single-writer (orchestrator).** Grainler parallel swarm continuing the program
+to a genuine 10/10 across every surface. Owner directive: **lift the GitHub
+repo-rename gate** (rename-prep is now in-scope, staged draft) and **continue all
+phases as a grainler parallel swarm**. **All other owner gates stay intact**
+(paid/spend, Android release signing, Play Store disclosure, prod deploy) and the
+two architectural god-file extractions stay owner-gated.
+
+**Base:** `main` @ `ba2c12df`. Conflict-free 9-grain partition (one read-only
+scope pass); every writable file has exactly one owning grain.
+
+## Grain ownership (disjoint; verified conflict-free)
+
+| Grain | Wave | Owned (writable) files | Risk | Gate | Status |
+|---|---|---|---|---|---|
+| **g-rename-prep** | 1 | `README.md` · `CONTRIBUTING.md` · `.github/**` (templates, dependabot, codeql-config, actions, workflows) · `packaging/homebrew/hermes-agent.rb`→`muse.rb` | outward (slug) | **repo-rename gate LIFTED → stage draft PR, do NOT merge** (merge only at the actual rename, else dead links) | planned |
+| **g-fu13-allowhost-cli** | 1 | `hermes_cli/main.py` (cockpit_serve parser + cmd_cockpit) · `tests/hermes_cli/test_cockpit_cli_allowhost.py` (new) | additive | merge-on-green | planned |
+| **g-navigator-perf** | 1 | `hermes_cli/jarvis_prime/navigation/repo_index.py` · `tests/jarvis_prime/navigation/test_repo_index_perf.py` (new) | additive (perf) | merge-on-green | planned |
+| **g-gateway-parity** | 1 | `gateway/platforms/sms.py` · `tests/gateway/platforms/test_sms_capabilities.py` (new) | additive | merge-on-green | planned |
+| **g-graphrag-parity** | 1 | `hermes_cli/jarvis_prime/graphrag/query.py` · `tests/jarvis_prime/graphrag/test_query_parity.py` (new) | additive | merge-on-green | planned |
+| **g-aos-router-proof** | 1 | `tests/test_aos_council_routing.py` (new, test-only) | additive | merge-on-green | planned |
+| **g-iconstate-docsweep** | 1 | `apps/android/.../ui/jarvis/IconState.kt` (comment-only) | cosmetic | merge-on-green (CI-only) | planned |
+| **g-handlers-extract** | 2 | `gateway/cockpit/handlers.py` + `handlers_<group>.py` (new) + test | architectural | **owner-gated**: draft PR + await `Yes, with authorization.` | deferred→wave-2 |
+| **g-jpmain-extract** | 2 | `hermes_cli/jarvis_prime/__main__.py` + `cli_<group>.py` (new) + test | architectural | **owner-gated**: draft PR + await authorization | deferred→wave-2 |
+
+## Sequencing & posture
+
+- **Wave-1:** 7 grains, truly parallel (disjoint), each `claude/<grain-id>` from
+  `main` in its own worktree. Six merge-on-green; **g-rename-prep stays a staged
+  draft** (the only thing the rename gate still governs is the *merge*, gated on
+  the actual GitHub rename, which is the owner's one-click — no rename-repo API
+  exists in the toolset).
+- **Wave-2:** `g-handlers-extract` + `g-jpmain-extract` run parallel **to each
+  other** (disjoint import-hub files) but **after** wave-1 merges; both
+  owner-gated (architectural) → draft PR + ledger summary + await authorization.
+- **Not swarmed (advance-as-far-as-safe, gated step NOT executed):** live
+  execute-lane→real-PR E2E (paid+network → harness/skip-mark only), Android real
+  signing (owner keystore), Play Store disclosure, paid-API enablement, the
+  GitHub rename click itself.
+- **Excluded (bounded):** voice arm (chose GraphRAG), extra gateway adapters
+  beyond the weakest (`sms`), full god-file rewrites, the 528 substrate
+  `hermes-agent` text hits (not outward slug).
+
+## Decision log
+
+- `2026-06-08` — Owner lifted the repo-rename gate + ordered "all phases" as a
+  grainler swarm. One read-only scope pass → conflict-free 9-grain / 3-wave
+  partition. Wave-1 (7 disjoint grains) fanned out; rename-prep staged-not-merged;
+  structural god-file grains held owner-gated for wave-2.
+- `2026-06-08` — **SWARM COMPLETE.** Wave-1 merge-on-green grains all merged:
+  g-iconstate (#383), g-graphrag (#384), g-fu13 (#385), g-aos-router (#386),
+  g-gateway (#387), g-navigator (#388, found+fixed the 306s walk → `.claude/worktrees`
+  157k-file descent). Wave-2 structural seams — **owner authorized** (`Yes, with
+  authorization.`) and merged: g-jpmain-extract (#390, `99e32216`; `route`→`cli_route.py`,
+  byte-identical CLI; review-flagged dead `_cmd_route` alias removed before merge) and
+  g-handlers-extract (#391, `70d954d4`; autonomy group→`handlers_autonomy.py`,
+  AST-identical, 5983 gateway tests green, re-export keeps `server._ROUTES` intact).
+  **8 grains merged.** Remaining: **g-rename-prep (#389) STAGED** — merges only when
+  the owner renames the GitHub repo (merging first = dead links); and a **rename-completion**
+  sweep (secondary docs + the `brew upgrade` CLI string) to run in lockstep with the
+  rename. All non-rename owner gates stayed intact throughout (paid/signing/Play/prod).
+
+## Repo rename — COMPLETE (2026-06-08)
+
+Owner lifted the repo-rename gate and renamed the GitHub repo
+`hermes-agent` → **`A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`** (Settings → Rename).
+The slug came back as **`M.U.S.E`** (dots/caps), not the lowercase `muse` the
+staged patch assumed — caught before merge (merging the `muse` patch would have
+created dead links, since GitHub redirects only the *old* name `hermes-agent`,
+not `muse`). Owner chose to keep `M.U.S.E`; the patch was reworked accordingly.
+
+- **#389** (`64bead62`) — reworked to the real slug + reduced to a **minimal-safe**
+  set: this repo's user-facing GitHub URLs (`README`, `CONTRIBUTING`, issue/PR
+  templates) → `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`. The `github.repository ==`
+  **publish/deploy guards**, Docker/PyPI/Cachix registry names, and the homebrew
+  formula were **reverted to status quo** (dormant on this repo; registry renames
+  are owner-coordinated; changing them risked dead refs or activating publishing).
+- **#392** (`d975651c`) — completion sweep: the **install one-liners**
+  (`scripts/install.{sh,ps1}` raw URLs, `docs/jarvis-prime-operating-system.md`,
+  `docs/jarvis-free-first-launch.md`) and `CANONICAL_REPO.md` → `…/M.U.S.E`.
+  These use `raw.githubusercontent.com`, which (unlike github.com) does **not**
+  reliably follow the rename redirect — so they were the must-fix.
+
+**Left intentionally:** ~1000 `hermes-agent` refs in historical/audit/launch docs
+(period-accurate records; GitHub's redirect covers their github.com URLs); the
+local install-dir `~/.hermes/hermes-agent` and `hermes_cli`/`hermes_agent`
+identifiers (substrate — renaming breaks existing installs).
+**Owner-coordinated remaining (separate platforms):** Docker Hub / PyPI / Cachix /
+homebrew namespace renames (+ the `brew upgrade` CLI string) — do at publish time.
+
+**Honest correction (doc-only, no code impact):** #389's `-s ours` merge — run
+against a momentarily-stale local `origin/main` during the rework — inadvertently
+reverted #382's *swarm-ledger section* from this file. Verified **all 8 swarm
+grains' code is intact** on `main` (`handlers_autonomy.py`, `cli_route.py`, the
+sms `capabilities()`, the new tests, 9 snapshots — all present); only this audit
+doc's section was affected, and it is **restored** in this commit.
+
