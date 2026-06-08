@@ -2159,148 +2159,17 @@ def job_publish(req: Request) -> JsonResponse:
 
 
 # ---------------------------------------------------------------------------
-# Autonomy (Owner High-Autonomy Coding mode) + emergency stop
+# Autonomy (Owner High-Autonomy Coding mode)
 # ---------------------------------------------------------------------------
-
-
-def autonomy_get(_req: Request) -> JsonResponse:
-    """Current autonomy level, workspace scope, and capability list.
-
-    The capability list is derived from ``hermes_cli.approval_policy`` so the
-    cockpit never hard-codes a list that could drift from the policy engine.
-    """
-    try:
-        from hermes_cli import approval_policy as ap
-
-        from . import contract
-
-        record = ap.load_record()
-        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
-    except Exception as exc:  # pragma: no cover - defensive
-        return JsonResponse(500, {"error": str(exc)})
-
-
-# Autonomy levels that grant more than the safe ASSISTED floor. Raising *to*
-# any of these auto-approves real actions, so escalation is an owner-gated
-# action (exact phrase required) — a bearer token alone must never escalate.
-# Lowering to READ_ONLY / ASSISTED and ``revoke`` stay ungated (de-escalation
-# is always safe).
-_PRIVILEGED_AUTONOMY_LEVELS: frozenset[str] = frozenset(
-    {"autonomous", "yolo", "owner_high_autonomy_coding"}
-)
-
-
-def _autonomy_raises_locked() -> bool:
-    """True iff cockpit autonomy *raises* are hard-disabled via env.
-
-    ``HERMES_COCKPIT_AUTONOMY_LOCKED`` is a deployment kill-switch / rollback:
-    when set, no autonomy raise is accepted from the cockpit even with the owner
-    phrase (lowering and ``revoke`` still work). It lets an operator lock down a
-    shared or remotely-reachable cockpit without a code change.
-    """
-    import os
-
-    return os.environ.get("HERMES_COCKPIT_AUTONOMY_LOCKED", "").strip().lower() in {
-        "1",
-        "true",
-        "yes",
-        "on",
-    }
-
-
-def autonomy_set(req: Request) -> JsonResponse:
-    """Set the autonomy level (owner action) or revoke back to ASSISTED.
-
-    Body: ``{"level": "owner_high_autonomy_coding", "workspace_path": "...",
-    "authorization": "Yes, with authorization."}`` or ``{"revoke": true}``.
-
-    **Owner gate:** raising autonomy to a privileged level (AUTONOMOUS / YOLO /
-    OWNER_HIGH_AUTONOMY_CODING) requires the exact owner authorization phrase —
-    the same gate that protects approvals, publish, and the paid-model flip. A
-    bearer token alone may read autonomy and *lower* it, but cannot escalate it;
-    de-escalation (READ_ONLY / ASSISTED) and ``revoke`` are never gated. The
-    change is recorded in the approval audit log either way.
-    """
-    body = req.body or {}
-    try:
-        from hermes_cli import approval_policy as ap
-        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-
-        from . import contract
-
-        if body.get("revoke"):
-            record = ap.revoke(set_by="cockpit")
-        else:
-            raw_level = str(body.get("level", "")).strip().lower()
-            try:
-                level = ap.AutonomyLevel(raw_level)
-            except ValueError:
-                return JsonResponse(
-                    400,
-                    {"error": f"unknown autonomy level: {raw_level!r}"},
-                )
-            # Owner gate on escalation only (lowering / revoke stay open).
-            if level.value in _PRIVILEGED_AUTONOMY_LEVELS:
-                if _autonomy_raises_locked():
-                    return JsonResponse(
-                        403,
-                        {
-                            "error": "autonomy raises are disabled",
-                            "hint": "HERMES_COCKPIT_AUTONOMY_LOCKED is set; this "
-                            "cockpit may only lower or revoke autonomy",
-                        },
-                    )
-                authorization = str(body.get("authorization", "")).strip()
-                if authorization != AUTHORIZATION_PHRASE:
-                    # Owner-gate contract: exact phrase required. Never bypass.
-                    return JsonResponse(
-                        403,
-                        {
-                            "error": "owner authorization required",
-                            "authorization_required": True,
-                            "hint": f"reply exactly: {AUTHORIZATION_PHRASE!r}",
-                        },
-                    )
-            workspace = str(body.get("workspace_path") or "")
-            if level is ap.AutonomyLevel.OWNER_HIGH_AUTONOMY_CODING and not workspace:
-                return JsonResponse(
-                    400,
-                    {"error": "owner_high_autonomy_coding requires a workspace_path scope"},
-                )
-            record = ap.save_level(level, workspace_root=workspace, set_by="cockpit")
-        # Audit the mode change itself.
-        try:
-            audit_req = ap.ApprovalRequest(
-                action=ap.Action.SAFE_READ,
-                summary=f"autonomy set to {record.level.value}",
-                target=record.workspace_root,
-                details={"event": "autonomy_change", "set_by": record.set_by},
-            )
-            ap.record_decision(
-                audit_req,
-                ap.ApprovalResult(ap.Decision.ALLOW, "owner set autonomy", False),
-                actor="cockpit",
-            )
-        except Exception:  # pragma: no cover - auditing is best-effort
-            pass
-        return JsonResponse(200, contract.autonomy_status(record, ap.capabilities(record.level)))
-    except Exception as exc:  # pragma: no cover - defensive
-        return JsonResponse(500, {"error": str(exc)})
-
-
-def autonomy_decisions(req: Request) -> JsonResponse:
-    """Recent (already-redacted) policy decisions for the audit trail."""
-    try:
-        from hermes_cli import approval_policy as ap
-
-        limit_raw = req.query.get("limit", "50")
-        try:
-            limit = max(1, min(500, int(limit_raw)))
-        except (TypeError, ValueError):
-            limit = 50
-        return JsonResponse(200, {"decisions": ap.read_decisions(limit=limit)})
-    except Exception as exc:  # pragma: no cover - defensive
-        return JsonResponse(500, {"error": str(exc)})
+#
+# The autonomy handler group (the FU-12 owner-gate cluster) lives in the
+# sibling module ``handlers_autonomy`` and is re-exported here so every
+# existing reference — notably ``server.py``'s route table calling
+# ``h.autonomy_get`` / ``h.autonomy_set`` / ``h.autonomy_decisions`` — keeps
+# resolving through ``handlers`` unchanged. Behaviour is identical; this is a
+# physical relocation, not a route or signature change. (The import sits at
+# the bottom of the module — see the re-export just before ``__all__`` — so
+# ``Request`` / ``JsonResponse`` are already defined when it runs.)
 
 
 # ---------------------------------------------------------------------------
@@ -3858,6 +3727,23 @@ def research_create_task(req: Request) -> JsonResponse:
         return JsonResponse(500, {"error": str(exc)})
     return jobs_dispatch(dispatch)
 
+
+# ---------------------------------------------------------------------------
+# Re-exports
+# ---------------------------------------------------------------------------
+#
+# The autonomy handler group was extracted to ``handlers_autonomy`` (a
+# behaviour-preserving move). Re-import the public handlers here at module
+# scope so callers that reach them via ``handlers.autonomy_*`` (e.g.
+# ``server.py``'s route table) keep resolving unchanged. This import sits at
+# the *bottom* of the module on purpose: ``Request`` / ``JsonResponse`` (which
+# ``handlers_autonomy`` imports back from here) are already defined by now, so
+# the two-way import resolves without a cycle.
+from .handlers_autonomy import (  # noqa: E402  (intentional bottom-of-module re-export)
+    autonomy_decisions,
+    autonomy_get,
+    autonomy_set,
+)
 
 __all__ = [
     "COCKPIT_API_VERSION",
