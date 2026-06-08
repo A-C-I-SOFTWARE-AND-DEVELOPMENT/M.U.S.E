@@ -23,10 +23,24 @@ import java.io.File
  * private filesDir. Chosen over Room to keep the build minimal — the
  * dataset is small, and `kotlinx.serialization.json` is already on the
  * classpath.
+ *
+ * [baseDir] is the directory the backing JSON file lives in. It defaults to
+ * `context.filesDir`, so production construction (`HermesTaskRepository(context)`)
+ * is byte-for-byte unchanged. The parameter exists purely as a test seam:
+ * under Robolectric the per-sandbox `filesDir` is recycled at test boundaries,
+ * and the disk load this repo kicks off in `init { scope.launch { loadFromDisk() } }`
+ * runs on `Dispatchers.IO`. A lagging actor reading a since-deleted `filesDir`
+ * is a classic TOCTOU and surfaces as a bare `FileNotFoundException`. Pointing
+ * [baseDir] at a JVM-stable temp dir (see `testutil.isolatedTaskRepository` in
+ * the test source set) outlives every sandbox, so the file is always present
+ * for both the test's own reads and any lagging actor.
  */
-class HermesTaskRepository(context: Context) {
+class HermesTaskRepository(
+    context: Context,
+    baseDir: File = context.filesDir,
+) {
 
-    private val file = File(context.filesDir, FILE_NAME)
+    private val file = File(baseDir, FILE_NAME)
     private val mutex = Mutex()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -76,8 +90,14 @@ class HermesTaskRepository(context: Context) {
     fun byId(id: String): HermesTask? = _tasks.value.firstOrNull { it.id == id }
 
     private suspend fun loadFromDisk() = withContext(Dispatchers.IO) {
-        if (!file.exists()) return@withContext
+        // The whole read — existence check, open, and decode — sits inside one
+        // runCatching so a concurrent delete between `exists()` and `readText()`
+        // (a TOCTOU; e.g. Robolectric recycling filesDir while this IO-dispatched
+        // load is still draining) is swallowed rather than escaping as a bare
+        // FileNotFoundException. A missing or unreadable file simply leaves the
+        // in-memory state empty, which is the correct first-run behavior.
         runCatching {
+            if (!file.exists()) return@runCatching
             val text = file.readText()
             if (text.isBlank()) return@runCatching
             val envelope = json.decodeFromString(Envelope.serializer(), text)

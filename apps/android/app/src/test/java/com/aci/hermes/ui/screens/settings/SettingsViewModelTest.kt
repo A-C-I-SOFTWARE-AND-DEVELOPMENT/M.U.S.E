@@ -3,7 +3,6 @@ package com.aci.hermes.ui.screens.settings
 import androidx.test.core.app.ApplicationProvider
 import com.aci.hermes.data.coding.CodingTaskStore
 import com.aci.hermes.data.coding.SavedCodingTask
-import com.aci.hermes.data.orchestrator.HermesTaskRepository
 import com.aci.hermes.data.preferences.PreferredBuilder
 import com.aci.hermes.data.preferences.SettingsRepository
 import com.aci.hermes.data.preferences.ThemeMode
@@ -11,6 +10,7 @@ import com.aci.hermes.testutil.MainDispatcherRule
 import com.aci.hermes.testutil.awaitUntil
 import com.aci.hermes.testutil.awaitValue
 import com.aci.hermes.testutil.isolatedSettings
+import com.aci.hermes.testutil.isolatedTaskRepository
 import com.aci.hermes.util.LogBuffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -46,7 +46,7 @@ class SettingsViewModelTest {
         )
         return mainDispatcherRule.register(SettingsViewModel(
             settings = settings,
-            tasks = HermesTaskRepository(ctx),
+            tasks = isolatedTaskRepository(ctx),
             logBuffer = LogBuffer(),
             codingTasks = codingStore,
         ))
