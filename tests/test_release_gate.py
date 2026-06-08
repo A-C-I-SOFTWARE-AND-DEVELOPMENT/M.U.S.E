@@ -95,18 +95,51 @@ def test_clean_ruff_keeps_healthy_tree_shippable(monkeypatch):
 # -- subprocess wrapper: failures surface as FAIL, never raise --------------
 
 
-def test_ruff_check_missing_tool_is_fail(monkeypatch):
-    # If neither uv nor ruff is on PATH, the subprocess wrapper reports 127 and
-    # the ruff gate becomes a FAIL rather than raising.
-    monkeypatch.setattr(rg, "_run_subprocess", lambda *a, **k: (127, "not found"))
+def test_ruff_check_missing_tool_is_soft_warn_not_fail(monkeypatch):
+    # FU-10: when NO reachable ruff exists, the argv selector flags it
+    # unavailable. That is "tooling absent", not a dirty tree, so the gate must
+    # emit a soft WARN (never a hard FAIL that false-REDs ship).
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], False))
     check = rg._ruff_check()
+    assert check.status == WARN
+    assert check.hard is False
+    assert "unavailable" in check.detail.lower()
+
+
+def test_test_slice_missing_tool_is_soft_warn_not_fail(monkeypatch):
+    # FU-10 core: no reachable interpreter has pytest -> the suite never ran.
+    # Must be a soft WARN ("tooling absent"), NOT a hard FAIL masquerading as a
+    # red slice.
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], False)
+    )
+    check = rg._fast_test_slice_check()
+    assert check.status == WARN
+    assert check.hard is False
+    assert "unavailable" in check.detail.lower()
+
+
+def test_test_slice_failure_is_fail(monkeypatch):
+    # A genuinely red slice (tool present, exit non-zero, no missing-tool text)
+    # is still a hard FAIL. Stub the argv selector to "available" so the probe
+    # is bypassed and the run result drives the verdict.
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], True)
+    )
+    monkeypatch.setattr(rg, "_run_subprocess", lambda *a, **k: (1, "1 failed"))
+    check = rg._fast_test_slice_check()
     assert check.status == FAIL
     assert check.hard is True
 
 
-def test_test_slice_failure_is_fail(monkeypatch):
-    monkeypatch.setattr(rg, "_run_subprocess", lambda *a, **k: (1, "1 failed"))
-    check = rg._fast_test_slice_check()
+def test_ruff_failure_is_fail(monkeypatch):
+    # A genuinely dirty tree (ruff present, exit non-zero, real lint text) stays
+    # a hard FAIL.
+    monkeypatch.setattr(rg, "_ruff_argv", lambda: (["ruff", "check", "."], True))
+    monkeypatch.setattr(
+        rg, "_run_subprocess", lambda *a, **k: (1, "E501 line too long")
+    )
+    check = rg._ruff_check()
     assert check.status == FAIL
     assert check.hard is True
 
@@ -116,6 +149,160 @@ def test_run_subprocess_never_raises_on_missing_executable():
     code, tail = rg._run_subprocess(["definitely-not-a-real-binary-xyz"], timeout=5)
     assert code == 127
     assert "not found" in tail
+
+
+# -- FU-10: pytest-less uv venv must not produce a false-RED ----------------
+#
+# These tests stub the subprocess seam to simulate the host where ``uv`` is on
+# PATH but its project venv lacks pytest (``uv run python -c "import pytest"``
+# exits non-zero), while the *system* interpreter has it. The selector must
+# fall back to ``sys.executable`` and the gate must never hard-FAIL.
+
+
+def _fake_subprocess(handlers):
+    """Build a _run_subprocess replacement dispatching on argv contents.
+
+    ``handlers`` is a list of ``(predicate, (code, tail))`` pairs; the first
+    predicate matching the argv wins. Unmatched argv default to ``(0, "")``.
+    """
+
+    def _runner(argv, *, timeout):  # signature mirrors _run_subprocess
+        for predicate, result in handlers:
+            if predicate(argv):
+                return result
+        return (0, "")
+
+    return _runner
+
+
+def test_pytest_argv_falls_back_to_sys_executable_when_uv_lacks_pytest(monkeypatch):
+    # uv is present, but `uv run python -c "import pytest"` fails (venv un-synced).
+    # The system interpreter import succeeds. Selector must drop uv and use
+    # sys.executable, and report the tool as available (not a WARN).
+    monkeypatch.setattr(rg.shutil, "which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr(
+        rg,
+        "_run_subprocess",
+        _fake_subprocess(
+            [
+                # uv's interpreter cannot import pytest -> non-zero.
+                (lambda a: a[:2] == ["uv", "run"], (1, "No module named pytest")),
+                # the system interpreter import probe succeeds.
+                (lambda a: a[0] == rg.sys.executable, (0, "")),
+            ]
+        ),
+    )
+    argv, available = rg._pytest_argv()
+    assert available is True
+    assert argv[:2] != ["uv", "run"]
+    assert argv[0] == rg.sys.executable
+    assert "pytest" in argv
+
+
+def test_pytest_argv_prefers_uv_when_its_venv_has_pytest(monkeypatch):
+    # Healthy default path: uv present AND its interpreter imports pytest ->
+    # selector keeps the uv run path (current behavior, unchanged).
+    monkeypatch.setattr(rg.shutil, "which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr(rg, "_run_subprocess", _fake_subprocess([]))  # all zero
+    argv, available = rg._pytest_argv()
+    assert available is True
+    assert argv[:3] == ["uv", "run", "python"]
+
+
+def test_pytest_argv_unavailable_when_no_interpreter_has_pytest(monkeypatch):
+    # Neither uv's venv nor the system interpreter has pytest -> available False
+    # so the caller emits a soft WARN, never a hard FAIL.
+    monkeypatch.setattr(rg.shutil, "which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr(
+        rg,
+        "_run_subprocess",
+        _fake_subprocess(
+            [(lambda a: True, (1, "No module named pytest"))]  # every import fails
+        ),
+    )
+    _argv, available = rg._pytest_argv()
+    assert available is False
+
+
+def test_pytest_slice_end_to_end_falls_back_not_false_red(monkeypatch):
+    # Full _fast_test_slice_check on the pytest-less-uv host: uv import probe
+    # fails, system import probe passes, and the actual slice run is GREEN under
+    # the system interpreter -> PASS (the false-RED is gone).
+    def _runner(argv, *, timeout):
+        if argv[:2] == ["uv", "run"]:
+            return (1, "No module named pytest")  # uv venv lacks pytest
+        if argv[0] == rg.sys.executable and argv[1:] == ["-c", "import pytest"]:
+            return (0, "")  # system interpreter has pytest
+        if argv[0] == rg.sys.executable and "pytest" in argv:
+            return (0, "")  # the real slice run is green
+        return (0, "")
+
+    monkeypatch.setattr(rg.shutil, "which", lambda name: "/usr/bin/uv")
+    monkeypatch.setattr(rg, "_run_subprocess", _runner)
+    check = rg._fast_test_slice_check()
+    assert check.status == PASS
+    assert check.hard is True
+
+
+def test_pytest_slice_defensive_downgrade_on_missing_module_text(monkeypatch):
+    # Defensive layer: even if the probe says "available", a run that still
+    # reports "No module named pytest" is downgraded from FAIL to WARN — a
+    # missing runner never masquerades as a red suite.
+    monkeypatch.setattr(
+        rg, "_pytest_argv", lambda: ([rg.sys.executable, "-m", "pytest"], True)
+    )
+    monkeypatch.setattr(
+        rg,
+        "_run_subprocess",
+        lambda *a, **k: (1, "No module named pytest"),
+    )
+    check = rg._fast_test_slice_check()
+    assert check.status == WARN
+    assert check.hard is False
+
+
+def test_tool_absent_warn_keeps_gate_shippable(monkeypatch):
+    # A soft WARN from a tool-absent slice must NOT flip the verdict to not-ok
+    # on an otherwise-healthy tree (no hard failures => still shippable).
+    monkeypatch.setattr(
+        rg, "_ruff_check", lambda: ReadinessCheck(RUFF_CHECK, PASS, "clean")
+    )
+    monkeypatch.setattr(
+        rg,
+        "_fast_test_slice_check",
+        lambda: ReadinessCheck(TEST_SLICE_CHECK, WARN, "pytest unavailable", hard=False),
+    )
+    report = run_release_gate(run_tests=True)
+    assert report.ok == (not run_10_10_doctor().hard_failures)
+    # The WARN is recorded (audit honesty), it just doesn't block.
+    assert any(
+        c.name == TEST_SLICE_CHECK and c.status == WARN for c in report.warnings
+    )
+
+
+def test_ruff_argv_falls_back_to_bare_ruff_when_uv_lacks_ruff(monkeypatch):
+    # uv present but `uv run ruff --version` fails; a bare ruff works. Selector
+    # must fall back to the bare ruff invocation and report it available.
+    monkeypatch.setattr(rg.shutil, "which", lambda name: f"/usr/bin/{name}")
+    monkeypatch.setattr(
+        rg,
+        "_run_subprocess",
+        _fake_subprocess(
+            [
+                (lambda a: a[:2] == ["uv", "run"], (1, "error: no ruff")),
+                (lambda a: a[0] == "ruff", (0, "ruff 0.x")),
+            ]
+        ),
+    )
+    argv, available = rg._ruff_argv()
+    assert available is True
+    assert argv[:2] != ["uv", "run"]
+    assert argv[0] == "ruff"
+
+
+def test_probe_ok_never_raises_on_bogus_argv():
+    # The probe wraps _run_subprocess, so a missing binary is False, not a raise.
+    assert rg._probe_ok(["definitely-not-a-real-binary-xyz"]) is False
 
 
 # -- JSON / dict render shape ----------------------------------------------
