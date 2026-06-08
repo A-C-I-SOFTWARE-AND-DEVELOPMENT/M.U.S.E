@@ -408,4 +408,16 @@ scope pass); every writable file has exactly one owning grain.
   grainler swarm. One read-only scope pass → conflict-free 9-grain / 3-wave
   partition. Wave-1 (7 disjoint grains) fanned out; rename-prep staged-not-merged;
   structural god-file grains held owner-gated for wave-2.
+- `2026-06-08` — **SWARM COMPLETE.** Wave-1 merge-on-green grains all merged:
+  g-iconstate (#383), g-graphrag (#384), g-fu13 (#385), g-aos-router (#386),
+  g-gateway (#387), g-navigator (#388, found+fixed the 306s walk → `.claude/worktrees`
+  157k-file descent). Wave-2 structural seams — **owner authorized** (`Yes, with
+  authorization.`) and merged: g-jpmain-extract (#390, `99e32216`; `route`→`cli_route.py`,
+  byte-identical CLI; review-flagged dead `_cmd_route` alias removed before merge) and
+  g-handlers-extract (#391, `70d954d4`; autonomy group→`handlers_autonomy.py`,
+  AST-identical, 5983 gateway tests green, re-export keeps `server._ROUTES` intact).
+  **8 grains merged.** Remaining: **g-rename-prep (#389) STAGED** — merges only when
+  the owner renames the GitHub repo (merging first = dead links); and a **rename-completion**
+  sweep (secondary docs + the `brew upgrade` CLI string) to run in lockstep with the
+  rename. All non-rename owner gates stayed intact throughout (paid/signing/Play/prod).
 
