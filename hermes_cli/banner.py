@@ -91,6 +91,47 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 [#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
 
 
+# -------------------------------------------------------------------------
+# M.U.S.E. "Singularity" art (default skin)
+# -------------------------------------------------------------------------
+# Design language: docs/brand/muse-design-language.md — a white core blazing
+# in the void, wrapped by one thin spectral ring with a single gap. White is
+# the hero; the ring is the only spectral accent (matte cyan→violet, never
+# glowed); the wordmark is near-white so the core owns the brightest pixel.
+#
+# MUSE_WORDMARK — crisp block-letter "M.U.S.E." in a single near-white fill
+# (#EEF2F7), the same full-block style as HERMES_AGENT_LOGO. The wordmark is
+# uniform; the value ladder lives across tiers (core → wordmark → tagline),
+# not within the letters.
+MUSE_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
+[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
+[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
+[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
+[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
+[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
+
+# MUSE_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
+# ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
+# left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
+# brand tiers: the acronym expansion (signal-dim) and the motto (dim).
+MUSE_GLYPH = """          [#90BEFF]╭[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╮[/]
+       [#89C8FF]╭[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╯[/]     [#9DAAFF]╰[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╮[/]
+     [#85CFFF]╭[/][#87CCFF]─[/][#89C8FF]╯[/]           [#A4A0FF]╰[/][#A69CFF]─[/][#A899FF]╮[/]
+    [#83D2FF]╭[/][#85CFFF]╯[/]               [#A899FF]╰[/][#AA96FF]╮[/]
+   [#81D6FF]╭[/][#83D2FF]╯[/]                 [#AA96FF]╰[/][#AC92FF]╮[/]
+   [#81D6FF]│[/]                   [#AC92FF]│[/]
+   [#81D6FF]│[/]         [bold #FFFFFF]◉[/]         [#AC92FF]│[/]
+   [#81D6FF]│[/]
+   [#81D6FF]╰[/][#83D2FF]╮[/]
+    [#83D2FF]╰[/][#85CFFF]╮[/]                [#AA96FF]╭[/]
+     [#85CFFF]╰[/][#87CCFF]─[/][#89C8FF]╮[/]           [#A4A0FF]╭[/][#A69CFF]─[/][#A899FF]╯[/]
+       [#89C8FF]╰[/][#8CC5FF]─[/][#8EC2FF]─[/][#90BEFF]╮[/]     [#9DAAFF]╭[/][#9FA6FF]─[/][#A1A3FF]─[/][#A4A0FF]╯[/]
+          [#90BEFF]╰[/][#92BBFF]─[/][#94B7FF]─[/][#96B4FF]─[/][#99B1FF]─[/][#9BADFF]─[/][#9DAAFF]╯[/]
+
+        [#AAB2C4]Multi-Use Synaptic Entity[/]
+         [dim #8B93A6]One mind, many pathways.[/]"""
+
+
 
 # =========================================================================
 # Skills scanning

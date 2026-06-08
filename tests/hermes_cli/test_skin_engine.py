@@ -112,6 +112,30 @@ class TestBuiltinSkins:
         assert skin.get_color("completion_menu_meta_current_bg") == "#5A260D"
         assert skin.get_color("selection_bg") == "#5A260D"
 
+    def test_singularity_skin_loads(self):
+        from hermes_cli.skin_engine import load_skin
+        skin = load_skin("singularity")
+        assert skin.name == "singularity"
+        assert skin.get_color("banner_title") == "#FFFFFF"   # the white core
+        assert skin.get_color("banner_border") == "#7AE0FF"  # ring cyan stop
+        assert skin.get_color("ui_label") == "#B388FF"       # ring violet stop
+        assert skin.get_branding("agent_name") == "M.U.S.E."
+        assert skin.get_branding("help_header") == "✦ M.U.S.E. Commands"
+        assert skin.get_branding("goodbye") == "Goodbye. ◯"
+        assert skin.get_branding("prompt_symbol") == "❯"
+        # The M.U.S.E. wordmark + glyph art ships with the skin.
+        assert "M.U.S.E." not in skin.banner_logo  # block art, not literal text
+        assert skin.banner_logo and "█" in skin.banner_logo
+        assert skin.banner_hero and "◉" in skin.banner_hero
+
+    def test_caduceus_skin_preserves_classic_gold(self):
+        from hermes_cli.skin_engine import load_skin
+        skin = load_skin("caduceus")
+        assert skin.name == "caduceus"
+        assert skin.get_color("banner_title") == "#FFD700"
+        assert skin.get_branding("agent_name") == "Hermes Agent"
+        assert skin.tool_prefix == "┊"
+
     def test_unknown_skin_falls_back_to_default(self):
         from hermes_cli.skin_engine import load_skin
         skin = load_skin("nonexistent_skin_xyz")
@@ -145,6 +169,8 @@ class TestSkinManagement:
         skins = list_skins()
         names = [s["name"] for s in skins]
         assert "default" in names
+        assert "singularity" in names
+        assert "caduceus" in names
         assert "ares" in names
         assert "mono" in names
         assert "slate" in names
@@ -160,27 +186,28 @@ class TestSkinManagement:
         assert get_active_skin_name() == "ares"
 
     def test_init_skin_from_empty_config(self):
+        # No configured skin → the M.U.S.E. "Singularity" default.
         from hermes_cli.skin_engine import init_skin_from_config, get_active_skin_name
         init_skin_from_config({})
-        assert get_active_skin_name() == "default"
+        assert get_active_skin_name() == "singularity"
 
     def test_init_skin_from_null_display(self):
-        """display: null should fall back to default, not crash."""
+        """display: null should fall back to the default skin, not crash."""
         from hermes_cli.skin_engine import init_skin_from_config, get_active_skin_name
         init_skin_from_config({"display": None})
-        assert get_active_skin_name() == "default"
+        assert get_active_skin_name() == "singularity"
 
     def test_init_skin_from_non_dict_display(self):
-        """display: <non-dict> should fall back to default."""
+        """display: <non-dict> should fall back to the default skin."""
         from hermes_cli.skin_engine import init_skin_from_config, get_active_skin_name
         init_skin_from_config({"display": "invalid"})
-        assert get_active_skin_name() == "default"
+        assert get_active_skin_name() == "singularity"
 
         init_skin_from_config({"display": 42})
-        assert get_active_skin_name() == "default"
+        assert get_active_skin_name() == "singularity"
 
         init_skin_from_config({"display": []})
-        assert get_active_skin_name() == "default"
+        assert get_active_skin_name() == "singularity"
 
 
 class TestUserSkins:
