@@ -27,7 +27,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -47,6 +46,11 @@ import com.aci.hermes.data.devicecontrol.DeviceControlCapability
 import com.aci.hermes.ui.components.CardTier
 import com.aci.hermes.ui.components.CommandCard
 import com.aci.hermes.ui.components.EmergencyStopButton
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseStatus
+import com.aci.hermes.ui.designsystem.MuseStatusDot
+import com.aci.hermes.ui.theme.JarvisTokens
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -133,9 +137,9 @@ fun DeviceControlScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
         ) {
             ActiveIndicator(activeNow = state.activeNow, halted = state.halted)
 
@@ -147,17 +151,21 @@ fun DeviceControlScreen(
                     tier = CardTier.APPROVAL,
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        androidx.compose.material3.Button(
+                        MuseButton(
                             onClick = { viewModel.approvePending(pending.id) },
+                            text = "Approve",
+                            variant = MuseButtonVariant.Approve,
                             modifier = Modifier.weight(1f),
-                        ) { Text("Approve") }
-                        OutlinedButton(
+                        )
+                        MuseButton(
                             onClick = { viewModel.dismissPending(pending.id) },
+                            text = "Dismiss",
+                            variant = MuseButtonVariant.Secondary,
                             modifier = Modifier.weight(1f),
-                        ) { Text("Dismiss") }
+                        )
                     }
                 }
             }
@@ -217,10 +225,12 @@ fun DeviceControlScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error,
                     )
-                    OutlinedButton(
+                    MuseButton(
                         onClick = viewModel::requestResume,
+                        text = "Request resume",
+                        variant = MuseButtonVariant.Secondary,
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Request resume") }
+                    )
                 } else {
                     EmergencyStopButton(onConfirmed = viewModel::engageEmergencyStop)
                 }
@@ -245,7 +255,7 @@ fun DeviceControlScreen(
                 }
             }
 
-            Spacer(Modifier.size(8.dp))
+            Spacer(Modifier.size(JarvisTokens.SpaceSm))
         }
     }
 
@@ -274,17 +284,19 @@ fun DeviceControlScreen(
 
 @Composable
 private fun ActiveIndicator(activeNow: Boolean, halted: Boolean) {
-    val (dotColor, label) = when {
-        halted -> MaterialTheme.colorScheme.error to "Halted — device control stopped"
-        activeNow -> MaterialTheme.colorScheme.primary to "Active — Jarvis can operate this phone"
-        else -> MaterialTheme.colorScheme.onSurfaceVariant to "Idle — device control not active"
+    // Active → live (Jarvis operating); halted or idle → off (inert). The label
+    // text below still carries the halted-vs-idle distinction in words.
+    val (dotStatus, label) = when {
+        halted -> MuseStatus.Off to "Halted — device control stopped"
+        activeNow -> MuseStatus.Live to "Active — Jarvis can operate this phone"
+        else -> MuseStatus.Off to "Idle — device control not active"
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Surface(shape = CircleShape, color = dotColor, modifier = Modifier.size(12.dp)) {}
+        MuseStatusDot(status = dotStatus, size = 12.dp)
         Text(label, style = MaterialTheme.typography.titleSmall)
     }
 }
@@ -324,7 +336,7 @@ private fun CapabilityRow(
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.weight(1f)) {
@@ -339,11 +351,12 @@ private fun CapabilityRow(
         }
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
+            val grantedStatus = if (granted) MuseStatus.Ok else MuseStatus.Off
             val statusColor =
                 if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            Surface(shape = CircleShape, color = statusColor, modifier = Modifier.size(8.dp)) {}
+            MuseStatusDot(status = grantedStatus, size = 8.dp)
             Text(
                 if (granted) "Granted by system" else "Not granted",
                 style = MaterialTheme.typography.labelMedium,
@@ -359,10 +372,13 @@ private fun CapabilityRow(
 @Composable
 private fun ActionLogRow(entry: DeviceActionLogEntry) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = JarvisTokens.SpaceXxs),
+        horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The outcome dot carries three distinct colours (ok / needs-confirm /
+        // error); kept as a tinted Surface so the blocked-vs-needs-confirmation
+        // signal survives — MuseStatusDot's vocabulary can't express all three.
         val color = when (entry.outcome) {
             DeviceActionLogEntry.Outcome.EXECUTED,
             DeviceActionLogEntry.Outcome.APPROVED -> MaterialTheme.colorScheme.primary

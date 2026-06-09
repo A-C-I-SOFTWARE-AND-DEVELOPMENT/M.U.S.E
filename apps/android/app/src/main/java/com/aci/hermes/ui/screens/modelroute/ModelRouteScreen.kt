@@ -1,6 +1,11 @@
 package com.aci.hermes.ui.screens.modelroute
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,16 +17,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -34,13 +34,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.ModelRouteDecision
 import com.aci.hermes.data.cockpit.ModelRoutesSync
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,8 +80,8 @@ fun ModelRouteScreen(viewModel: ModelRouteViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Text(
                 stringResource(R.string.model_route_subtitle),
@@ -89,11 +97,19 @@ fun ModelRouteScreen(viewModel: ModelRouteViewModel, onBack: () -> Unit) {
             }
 
             if (state.sync is ModelRoutesSync.NotPaired) {
-                Text(stringResource(R.string.model_route_not_paired))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    MuseEmptyState(
+                        title = "No gateway paired",
+                        body = stringResource(R.string.model_route_not_paired),
+                    )
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
                 ) {
                     items(state.routes, key = { it.taskClass }) { decision ->
                         RouteCard(
@@ -120,14 +136,14 @@ fun ModelRouteScreen(viewModel: ModelRouteViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun PaidRoutingCard(paidEnabled: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(JarvisTokens.SpaceLg),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
                 Text(stringResource(R.string.model_route_paid_title), style = MaterialTheme.typography.titleMedium)
                 Text(
                     stringResource(R.string.model_route_paid_subtitle),
@@ -148,53 +164,61 @@ private fun RouteCard(
     onClear: () -> Unit,
 ) {
     var pin by remember(decision.taskClass) { mutableStateOf(decision.ownerOverride ?: "") }
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+    // Subtle entrance: route rows fade + rise in on the standard curve.
+    val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = appear,
+        enter = fadeIn(MuseMotion.standard()) +
+            slideInVertically(MuseMotion.standard()) { it / 6 },
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(decision.taskClass, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                if (decision.localFirst) {
-                    AssistChip(
-                        onClick = {},
-                        enabled = false,
-                        label = { Text(stringResource(R.string.model_route_local_first)) },
-                        colors = AssistChipDefaults.assistChipColors(),
-                    )
-                }
-            }
-            LabeledValue(
-                stringResource(R.string.model_route_chosen),
-                decision.chosen?.let { "$it  [${decision.routeTier ?: "?"}]" }
-                    ?: stringResource(R.string.model_route_none),
-            )
-            HorizontalDivider()
-            LabeledValue(stringResource(R.string.model_route_why), decision.why)
-            if (decision.evidence.isNotEmpty()) {
-                LabeledValue(
-                    stringResource(R.string.model_route_evidence),
-                    decision.evidence.joinToString("\n") { e ->
-                        "• ${e.model}: score=${"%.2f".format(e.score)} (n=${e.samples})"
+        MuseCard(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseSectionHeader(
+                    title = decision.taskClass,
+                    trailing = if (decision.localFirst) {
+                        { MuseChip(label = stringResource(R.string.model_route_local_first)) }
+                    } else {
+                        null
                     },
                 )
-            }
-
-            // Owner override (a reversible preference; pinning is not paid-gated).
-            Text(stringResource(R.string.model_route_owner_override), style = MaterialTheme.typography.titleSmall)
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { pin = it },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text(stringResource(R.string.model_route_override_hint)) },
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { onPin(pin) }, enabled = pin.isNotBlank()) {
-                    Text(stringResource(R.string.model_route_override_save))
+                LabeledValue(
+                    stringResource(R.string.model_route_chosen),
+                    decision.chosen?.let { "$it  [${decision.routeTier ?: "?"}]" }
+                        ?: stringResource(R.string.model_route_none),
+                )
+                HorizontalDivider()
+                LabeledValue(stringResource(R.string.model_route_why), decision.why)
+                if (decision.evidence.isNotEmpty()) {
+                    LabeledValue(
+                        stringResource(R.string.model_route_evidence),
+                        decision.evidence.joinToString("\n") { e ->
+                            "• ${e.model}: score=${"%.2f".format(e.score)} (n=${e.samples})"
+                        },
+                    )
                 }
-                TextButton(onClick = { pin = ""; onClear() }, enabled = decision.isOverridden) {
-                    Text(stringResource(R.string.model_route_override_clear))
+
+                // Owner override (a reversible preference; pinning is not paid-gated).
+                MuseSectionHeader(title = stringResource(R.string.model_route_owner_override))
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { pin = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text(stringResource(R.string.model_route_override_hint)) },
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                    MuseButton(
+                        onClick = { onPin(pin) },
+                        text = stringResource(R.string.model_route_override_save),
+                        variant = MuseButtonVariant.Primary,
+                        enabled = pin.isNotBlank(),
+                    )
+                    MuseButton(
+                        onClick = { pin = ""; onClear() },
+                        text = stringResource(R.string.model_route_override_clear),
+                        variant = MuseButtonVariant.Secondary,
+                        enabled = decision.isOverridden,
+                    )
                 }
             }
         }
@@ -203,7 +227,7 @@ private fun RouteCard(
 
 @Composable
 private fun LabeledValue(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
     }
@@ -216,7 +240,7 @@ private fun AuthorizePaidDialog(onConfirm: (String) -> Unit, onDismiss: () -> Un
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.model_route_paid_confirm_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 Text(stringResource(R.string.model_route_paid_confirm_body))
                 Text(
                     "\"${ModelRouteViewModel.OWNER_AUTHORIZATION_PHRASE}\"",

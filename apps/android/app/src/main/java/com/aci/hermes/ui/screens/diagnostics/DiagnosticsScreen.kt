@@ -16,8 +16,6 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -40,7 +38,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
 import com.aci.hermes.ui.theme.JarvisJade
+import com.aci.hermes.ui.theme.JarvisTokens
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,8 +92,8 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             DiagInfoCard(state)
             BackendReadinessCard(state.backend)
@@ -104,16 +105,9 @@ fun DiagnosticsScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun BackendReadinessCard(sync: BackendDiagnosticsSync) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                stringResource(R.string.diagnostics_backend_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseSectionHeader(title = stringResource(R.string.diagnostics_backend_title))
             when (sync) {
                 is BackendDiagnosticsSync.NotPaired ->
                     Text(stringResource(R.string.diagnostics_backend_not_paired), style = MaterialTheme.typography.bodyMedium)
@@ -152,16 +146,9 @@ private fun RecentSessionsCard(sessions: List<com.aci.hermes.data.cockpit.Cockpi
     // Only render when the backend reported activity — keeps the screen clean
     // when unpaired/empty (no fabricated rows).
     if (sessions.isEmpty()) return
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                stringResource(R.string.diagnostics_sessions_title),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseSectionHeader(title = stringResource(R.string.diagnostics_sessions_title))
             sessions.take(10).forEach { s ->
                 DiagRow(s.id, stringResource(R.string.diagnostics_sessions_count, s.decisionCount))
             }
@@ -172,13 +159,8 @@ private fun RecentSessionsCard(sessions: List<com.aci.hermes.data.cockpit.Cockpi
 @Composable
 private fun DiagInfoCard(state: DiagnosticsUiState) {
     val hasError = state.lastError != null
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = if (hasError) MaterialTheme.colorScheme.errorContainer
-                             else MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             DiagRow(stringResource(R.string.diagnostics_app_version), state.appVersion)
             HorizontalDivider()
             DiagRow(stringResource(R.string.diagnostics_build_type), state.buildType)
@@ -188,7 +170,7 @@ private fun DiagInfoCard(state: DiagnosticsUiState) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
                 Icon(
                     imageVector = if (hasError) Icons.Filled.ErrorOutline else Icons.Filled.CheckCircle,
@@ -222,16 +204,11 @@ private fun DiagRow(label: String, value: String) {
 
 @Composable
 private fun LogsCard(state: DiagnosticsUiState) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                stringResource(R.string.diagnostics_logs),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp),
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceMd)) {
+            MuseSectionHeader(
+                title = stringResource(R.string.diagnostics_logs),
+                modifier = Modifier.padding(bottom = JarvisTokens.SpaceSm),
             )
             if (state.logs.isEmpty()) {
                 Text(stringResource(R.string.diagnostics_no_logs), style = MaterialTheme.typography.bodyMedium)
