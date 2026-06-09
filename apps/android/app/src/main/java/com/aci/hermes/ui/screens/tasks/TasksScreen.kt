@@ -6,25 +6,21 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -52,9 +48,18 @@ import com.aci.hermes.data.model.WorkerPhase
 import com.aci.hermes.data.model.linksApprovals
 import com.aci.hermes.data.model.linksAudit
 import com.aci.hermes.data.model.section
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
 import com.aci.hermes.ui.screens.jobs.CockpitJobsViewModel
 import com.aci.hermes.ui.screens.jobs.CockpitJobsUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.theme.JarvisCrimson
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Standalone Tasks tab. Owns task list + new-task FAB. Pulls state from the
@@ -102,9 +107,9 @@ fun TasksScreen(
     Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
         val grouped = remember(state.tasks) { state.tasks.groupBy { it.section() } }
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 96.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
+            contentPadding = PaddingValues(top = JarvisTokens.SpaceMd, bottom = 96.dp),
         ) {
             if (jobsState != null) {
                 backendJobsSection(
@@ -186,15 +191,16 @@ fun TasksScreen(
 /** A friendly empty state for the local handoff task list. */
 @Composable
 private fun LocalTasksEmpty() {
-    Column(modifier = Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = Modifier.padding(top = JarvisTokens.SpaceMd), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
         Text(
             text = stringResource(R.string.tasks_empty_title),
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
+            color = JarvisSignal,
         )
         Text(
             text = stringResource(R.string.tasks_empty_body),
             style = MaterialTheme.typography.bodyMedium,
+            color = JarvisSignalDim,
         )
     }
 }
@@ -214,14 +220,23 @@ private fun LazyListScope.backendJobsSection(
     onCancel: (CockpitJob) -> Unit,
 ) {
     item(key = "jobs_header") {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            SectionHeader(title = stringResource(R.string.jobs_section_title), count = jobsState.jobs.size)
-            OutlinedButton(onClick = onNew) { Text(stringResource(R.string.jobs_new)) }
-        }
+        MuseSectionHeader(
+            title = stringResource(R.string.jobs_section_title),
+            modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
+            trailing = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MuseChip(label = "${jobsState.jobs.size}")
+                    MuseButton(
+                        onClick = onNew,
+                        text = stringResource(R.string.jobs_new),
+                        variant = MuseButtonVariant.Secondary,
+                    )
+                }
+            },
+        )
     }
 
     when (val sync = jobsState.sync) {
@@ -246,39 +261,48 @@ private fun JobsNotice(text: String, emphasised: Boolean = false) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodyMedium,
-        color = if (emphasised) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(vertical = 4.dp),
+        color = if (emphasised) JarvisCrimson else JarvisSignalDim,
+        modifier = Modifier.padding(vertical = JarvisTokens.SpaceXs),
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun JobRow(job: CockpitJob, onRun: () -> Unit, onCancel: () -> Unit) {
     val terminal = job.status.uppercase() in TERMINAL_JOB_STATUSES
     // Only orchestrator jobs (orc- ids) are runnable by job_run; JobQueue
     // entries from other surfaces show Cancel only (Run would 404).
     val runnable = CockpitJobsViewModel.isRunnable(job)
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(job.title.ifBlank { job.id }, style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                AssistChip(onClick = {}, label = { Text(job.status.lowercase().replace('_', ' ')) })
+    MuseCard {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text(job.title.ifBlank { job.id }, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm), verticalAlignment = Alignment.CenterVertically) {
+                MuseChip(label = job.status.lowercase().replace('_', ' '))
                 if (job.workerId.isNotBlank()) {
-                    AssistChip(onClick = {}, label = { Text(job.workerId.lowercase().replace('_', ' ')) })
+                    MuseChip(label = job.workerId.lowercase().replace('_', ' '))
                 }
                 job.validationSummary?.let { v ->
-                    AssistChip(onClick = {}, label = { Text("✓${v.pass} ✗${v.fail} …${v.pending}") })
+                    MuseChip(label = "✓${v.pass} ✗${v.fail} …${v.pending}")
                 }
             }
             job.branch?.takeIf { it.isNotBlank() }?.let {
-                Text(text = it, style = MaterialTheme.typography.bodySmall)
+                Text(text = it, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
             }
             HorizontalDivider()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 if (runnable) {
-                    Button(onClick = onRun, enabled = !terminal) { Text(stringResource(R.string.jobs_run)) }
+                    MuseButton(
+                        onClick = onRun,
+                        text = stringResource(R.string.jobs_run),
+                        variant = MuseButtonVariant.Primary,
+                        enabled = !terminal,
+                    )
                 }
-                OutlinedButton(onClick = onCancel, enabled = !terminal) { Text(stringResource(R.string.jobs_cancel)) }
+                MuseButton(
+                    onClick = onCancel,
+                    text = stringResource(R.string.jobs_cancel),
+                    variant = MuseButtonVariant.Secondary,
+                    enabled = !terminal,
+                )
             }
         }
     }
@@ -389,15 +413,13 @@ private fun sectionTitleRes(section: TaskSection): Int = when (section) {
 
 @Composable
 private fun SectionHeader(title: String, count: Int) {
-    Text(
-        text = "$title · $count",
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp),
+    MuseSectionHeader(
+        title = title,
+        modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
+        trailing = { MuseChip(label = "$count") },
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskRow(
     task: HermesTask,
@@ -406,40 +428,41 @@ private fun TaskRow(
     onOpenApprovals: () -> Unit,
     onOpenAudit: () -> Unit,
 ) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onTap,
+    MuseCard(
+        modifier = Modifier.clickable(onClick = onTap),
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(
                 task.title.ifBlank { stringResource(R.string.orchestrator_untitled_task) },
                 style = MaterialTheme.typography.titleMedium,
+                color = JarvisSignal,
             )
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AssistChip(onClick = onTap, label = { Text(task.taskType.name.lowercase()) })
-                AssistChip(onClick = onTap, label = { Text(task.status.name.lowercase().replace('_', ' ')) })
-                AssistChip(onClick = onTap, label = { Text(task.targetTool.name.lowercase().replace('_', ' ')) })
+                MuseChip(label = task.taskType.name.lowercase(), onClick = onTap)
+                MuseChip(label = task.status.name.lowercase().replace('_', ' '), onClick = onTap)
+                MuseChip(label = task.targetTool.name.lowercase().replace('_', ' '), onClick = onTap)
             }
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AssistChip(
+                MuseChip(
+                    label = stringResource(R.string.task_card_risk_chip, task.riskTier.name.lowercase()),
                     onClick = onTap,
-                    label = { Text(stringResource(R.string.task_card_risk_chip, task.riskTier.name.lowercase())) },
                 )
-                AssistChip(
+                MuseChip(
+                    label = stringResource(R.string.task_card_phase_chip, workerPhaseLabel(task.workerPhase)),
                     onClick = onTap,
-                    label = { Text(stringResource(R.string.task_card_phase_chip, workerPhaseLabel(task.workerPhase))) },
                 )
             }
             if (task.description.isNotBlank()) {
                 Text(
                     text = task.description.take(140) + if (task.description.length > 140) "…" else "",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
             }
             task.evidenceSummary?.takeIf { it.isNotBlank() }?.let {
@@ -460,18 +483,22 @@ private fun TaskRow(
                 CardField(stringResource(R.string.task_card_next_action_label), it)
             }
             HorizontalDivider()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCopyPrompt) { Text(stringResource(R.string.orchestrator_copy_prompt)) }
-                OutlinedButton(onClick = onTap) { Text(stringResource(R.string.orchestrator_open_task)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseButton(onClick = onCopyPrompt, text = stringResource(R.string.orchestrator_copy_prompt), variant = MuseButtonVariant.Secondary)
+                MuseButton(onClick = onTap, text = stringResource(R.string.orchestrator_open_task), variant = MuseButtonVariant.Secondary)
                 if (task.linksApprovals()) {
-                    OutlinedButton(onClick = onOpenApprovals) {
-                        Text(stringResource(R.string.task_card_open_approvals))
-                    }
+                    MuseButton(
+                        onClick = onOpenApprovals,
+                        text = stringResource(R.string.task_card_open_approvals),
+                        variant = MuseButtonVariant.Secondary,
+                    )
                 }
                 if (task.linksAudit()) {
-                    OutlinedButton(onClick = onOpenAudit) {
-                        Text(stringResource(R.string.task_card_open_audit))
-                    }
+                    MuseButton(
+                        onClick = onOpenAudit,
+                        text = stringResource(R.string.task_card_open_audit),
+                        variant = MuseButtonVariant.Secondary,
+                    )
                 }
             }
         }
@@ -484,9 +511,9 @@ private fun CardField(label: String, body: String, emphasised: Boolean = false) 
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (emphasised) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+            color = if (emphasised) JarvisCrimson else JarvisSignal,
         )
-        Text(text = body, style = MaterialTheme.typography.bodySmall)
+        Text(text = body, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
     }
 }
 

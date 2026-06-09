@@ -19,9 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
-import com.aci.hermes.ui.components.JarvisPrimeIcon
+import com.aci.hermes.ui.designsystem.MuseGlyph
 import com.aci.hermes.ui.theme.JarvisCyan
 import com.aci.hermes.ui.theme.JarvisGold
+import com.aci.hermes.ui.theme.JarvisSignal
 import com.aci.hermes.ui.theme.JarvisTokens
 import kotlinx.coroutines.delay
 
@@ -43,11 +44,11 @@ fun SplashScreen(onReady: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXl),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            JarvisPrimeIcon(size = 84.dp)
+            MuseGlyph(size = 84.dp)
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = JarvisSignal
             )
             Text(
                 text = stringResource(R.string.app_tagline),

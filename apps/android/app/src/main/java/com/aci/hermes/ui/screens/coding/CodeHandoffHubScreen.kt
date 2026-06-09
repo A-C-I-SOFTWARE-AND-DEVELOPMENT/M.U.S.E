@@ -1,7 +1,10 @@
 package com.aci.hermes.ui.screens.coding
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,9 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -21,19 +21,27 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.coding.SavedCodingTask
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Code Handoff Hub — every saved coding task grouped by where it is in the
@@ -87,17 +95,17 @@ fun CodeHandoffHubScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = JarvisTokens.SpaceLg)
                 .testTag(CodingTestTags.HUB_LIST),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+            contentPadding = PaddingValues(vertical = JarvisTokens.SpaceLg),
         ) {
             state.groups.forEach { group ->
                 item(key = "h-${group.state.name}") {
-                    Text(
-                        "${group.state.label} · ${group.tasks.size}",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(top = 8.dp),
+                    MuseSectionHeader(
+                        title = group.state.label,
+                        modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
+                        trailing = { MuseChip(label = "${group.tasks.size}") },
                     )
                 }
                 items(group.tasks, key = { it.id }) { task ->
@@ -115,7 +123,6 @@ fun CodeHandoffHubScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HandoffCard(
     task: SavedCodingTask,
@@ -125,26 +132,26 @@ private fun HandoffCard(
     onRetry: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onOpen,
+    MuseCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(task.title, style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text(task.title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 task.packet?.riskClass?.takeIf { it.isNotBlank() }?.let {
-                    AssistChip(onClick = onOpen, label = { Text(it) })
+                    MuseChip(label = it, onClick = onOpen)
                 }
-                if (task.demo) AssistChip(onClick = onOpen, label = { Text("demo") })
+                if (task.demo) MuseChip(label = "demo", onClick = onOpen)
             }
             task.note?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onCopy) { Text("Copy prompt") }
-                TextButton(onClick = onRetry, enabled = !busy) { Text("Retry") }
-                TextButton(onClick = onDelete) { Text("Delete") }
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseButton(onClick = onCopy, text = "Copy prompt", variant = MuseButtonVariant.Secondary)
+                MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Secondary, enabled = !busy)
+                MuseButton(onClick = onDelete, text = "Delete", variant = MuseButtonVariant.Danger)
             }
         }
     }
@@ -152,19 +159,17 @@ private fun HandoffCard(
 
 @Composable
 private fun EmptyHub(modifier: Modifier, onNewTask: () -> Unit) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
     ) {
-        Text("No coding tasks yet", style = MaterialTheme.typography.titleMedium)
-        Text(
-            "Create a coding task to generate a bounded work packet, copy a Claude " +
+        MuseEmptyState(
+            title = "No coding tasks yet",
+            body = "Create a coding task to generate a bounded work packet, copy a Claude " +
                 "Code prompt, or dispatch a gated backend execute. Queued tasks show up " +
                 "here so you can pick them back up.",
-            style = MaterialTheme.typography.bodyMedium,
+            actionLabel = "New coding task",
+            onAction = onNewTask,
         )
-        TextButton(onClick = onNewTask) { Text("New coding task") }
     }
 }

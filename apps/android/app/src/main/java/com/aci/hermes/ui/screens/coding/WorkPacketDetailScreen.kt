@@ -11,15 +11,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -42,6 +38,14 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.cockpit.CodingPacket
 import com.aci.hermes.data.coding.SavedCodingTask
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.theme.JarvisCrimson
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * The bounded work packet, with the two handoff exits. Copy is always
@@ -90,12 +94,12 @@ fun WorkPacketDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             if (task == null) {
-                Text("Task not found.", style = MaterialTheme.typography.bodyMedium)
+                Text("Task not found.", style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
                 return@Column
             }
 
@@ -113,22 +117,26 @@ fun WorkPacketDetailScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
             ) {
-                OutlinedButton(
+                MuseButton(
                     onClick = viewModel::copyPrompt,
+                    text = "Copy Claude Code prompt",
+                    variant = MuseButtonVariant.Secondary,
                     modifier = Modifier
                         .weight(1f)
                         .testTag(CodingTestTags.PACKET_COPY),
-                ) { Text("Copy Claude Code prompt") }
+                )
 
-                Button(
+                MuseButton(
                     onClick = { viewModel.sendToBackend(null) },
+                    text = "Send to backend",
+                    variant = MuseButtonVariant.Primary,
                     enabled = !state.busy && task.packet != null,
                     modifier = Modifier
                         .weight(1f)
                         .testTag(CodingTestTags.PACKET_SEND),
-                ) { Text("Send to backend") }
+                )
             }
 
             Text(
@@ -136,7 +144,7 @@ fun WorkPacketDetailScreen(
                     "risky action without your authorization. Copy hands the packet to " +
                     "a desktop Claude Code session instead.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = JarvisSignalDim,
             )
         }
     }
@@ -155,18 +163,18 @@ fun WorkPacketDetailScreen(
 
 @Composable
 private fun HeaderCard(task: SavedCodingTask) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(task.title, style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text(task.state.label) })
+    MuseCard {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text(task.title, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseChip(label = task.state.label)
                 task.packet?.riskClass?.takeIf { it.isNotBlank() }?.let { rc ->
-                    AssistChip(onClick = {}, label = { Text(rc) })
+                    MuseChip(label = rc)
                 }
-                if (task.demo) AssistChip(onClick = {}, label = { Text("demo") })
+                if (task.demo) MuseChip(label = "demo")
             }
             task.note?.takeIf { it.isNotBlank() }?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisCrimson)
             }
         }
     }
@@ -174,16 +182,17 @@ private fun HeaderCard(task: SavedCodingTask) {
 
 @Composable
 private fun EmptyPacketCard(busy: Boolean, onRegenerate: () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("No packet yet", style = MaterialTheme.typography.titleSmall)
+    MuseCard {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text("No packet yet", style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             Text(
                 "This task is saved but hasn't been planned into a bounded packet — " +
                     "usually because no backend was reachable. You can still copy a " +
                     "prompt below, or retry planning once a gateway is paired.",
                 style = MaterialTheme.typography.bodySmall,
+                color = JarvisSignalDim,
             )
-            OutlinedButton(onClick = onRegenerate, enabled = !busy) { Text("Retry planning") }
+            MuseButton(onClick = onRegenerate, text = "Retry planning", variant = MuseButtonVariant.Secondary, enabled = !busy)
         }
     }
 }
@@ -210,10 +219,10 @@ private fun PacketBody(packet: CodingPacket) {
 @Composable
 private fun Section(label: String, body: String) {
     if (body.isBlank()) return
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-            Text(body, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+    MuseCard {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = JarvisSignal, fontFamily = FontFamily.Monospace)
         }
     }
 }
@@ -222,10 +231,10 @@ private fun Section(label: String, body: String) {
 private fun BulletSection(label: String, items: List<String>) {
     val clean = items.map { it.trim() }.filter { it.isNotEmpty() }
     if (clean.isEmpty()) return
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
-            clean.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium) }
+    MuseCard {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
+            clean.forEach { Text("• $it", style = MaterialTheme.typography.bodyMedium, color = JarvisSignal) }
         }
     }
 }
