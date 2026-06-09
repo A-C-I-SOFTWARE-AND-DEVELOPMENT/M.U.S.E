@@ -1,0 +1,259 @@
+name: MUSE desktop release
+
+# Build the M.U.S.E. desktop app (Tauri v2, apps/desktop) for macOS / Windows /
+# Linux and publish the installers as a downloadable GitHub Release.
+#
+# One-button release: Actions -> "MUSE desktop release" -> "Run workflow" (no
+# input) cuts a permanent versioned release whose version is auto-derived from
+# the repo's real history (0.1.<total commit count>) -- no tag to type. Pushing
+# an explicit `muse-desktop-v*` tag pins a hand-named version. Pushes to `main`
+# that touch apps/desktop refresh the rolling `muse-desktop-latest` download.
+#
+# Signing is entirely secret-driven; nothing sensitive lives in the repo. If the
+# signing secrets are absent the build still succeeds and publishes UNSIGNED
+# installers (clearly marked) instead of failing -- so forks/bring-up are never
+# blocked. See apps/desktop/RELEASE.md for the secrets and how to provision them.
+#
+# This is the release lane only; the cheap per-PR gate stays in muse-desktop.yml.
+
+on:
+  push:
+    tags:
+      - 'muse-desktop-v*'
+    branches:
+      - main
+    paths:
+      - 'apps/desktop/**'
+      - '.github/workflows/muse-desktop-release.yml'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional: hand-name the tag (muse-desktop-v1.2.3). Blank = auto 0.1.<commits> release.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write  # create/upload the GitHub Release
+
+defaults:
+  run:
+    shell: bash  # uniform shell across the macOS/Windows/Linux matrix
+
+jobs:
+  # ---- 1. Derive the version/tag/channel once (single source of truth) -------
+  meta:
+    name: Resolve version + channel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.ctx.outputs.version }}
+      tag: ${{ steps.ctx.outputs.tag }}
+      publish: ${{ steps.ctx.outputs.publish }}
+      prerelease: ${{ steps.ctx.outputs.prerelease }}
+      title: ${{ steps.ctx.outputs.title }}
+      channel: ${{ steps.ctx.outputs.channel }}
+      sha: ${{ steps.ctx.outputs.sha }}
+      repo_commits: ${{ steps.ctx.outputs.repo_commits }}
+      app_commits: ${{ steps.ctx.outputs.app_commits }}
+      date: ${{ steps.ctx.outputs.date }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so the version reflects real work done
+
+      - name: Determine release context + version
+        id: ctx
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          # Bundle version must be valid semver (deb/nsis/msi reject date.commits),
+          # so we use 0.1.<repo commit count> -- monotonic and reflects real work.
+          # The major.minor (0.1) is the bring-up line; bump it here when ready.
+          DATE="$(date -u +%Y-%m-%d)"
+          REPO_COMMITS="$(git rev-list --count HEAD)"
+          # Commits that actually touched the desktop app (surfaced in notes).
+          APP_COMMITS="$(git rev-list --count HEAD -- apps/desktop || echo 0)"
+          SHA="$(git rev-parse --short HEAD)"
+          AUTO_VERSION="0.1.${REPO_COMMITS}"
+
+          if [[ "$REF" == refs/tags/muse-desktop-v* ]]; then
+            VERSION="${REF_NAME#muse-desktop-v}"; TAG="$REF_NAME"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            TITLE="MUSE Desktop ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
+            VERSION="${INPUT_TAG#muse-desktop-v}"; TAG="$INPUT_TAG"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            TITLE="MUSE Desktop ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            # THE ONE BUTTON: no input -> permanent auto-versioned release.
+            VERSION="$AUTO_VERSION"; TAG="muse-desktop-v${VERSION}"
+            PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
+            TITLE="MUSE Desktop v${VERSION}"
+          elif [ "$EVENT" = "push" ] && [[ "$REF" == refs/heads/main ]]; then
+            # main push touching the app -> refresh the rolling 'latest' channel.
+            VERSION="$AUTO_VERSION"; TAG="muse-desktop-latest"
+            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
+            TITLE="MUSE Desktop — latest build"
+          else
+            VERSION="$AUTO_VERSION"; TAG=""; PUBLISH=false; CHANNEL=none
+            TITLE="MUSE Desktop v${VERSION}"
+          fi
+
+          {
+            echo "version=$VERSION"; echo "tag=$TAG"; echo "publish=$PUBLISH"
+            echo "prerelease=$PRERELEASE"; echo "channel=$CHANNEL"; echo "title=$TITLE"
+            echo "date=$DATE"; echo "repo_commits=$REPO_COMMITS"
+            echo "app_commits=$APP_COMMITS"; echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+          echo "Version $VERSION -> ${CHANNEL} release (tag: ${TAG:-none})"
+
+  # ---- 2. Create/refresh the (initially asset-less) Release once -------------
+  prepare:
+    name: Prepare GitHub Release
+    needs: meta
+    if: needs.meta.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create or update the release (notes, no assets yet)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          TITLE: ${{ needs.meta.outputs.title }}
+          PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          BUILD_DATE: ${{ needs.meta.outputs.date }}
+          REPO_COMMITS: ${{ needs.meta.outputs.repo_commits }}
+          APP_COMMITS: ${{ needs.meta.outputs.app_commits }}
+          SHA: ${{ needs.meta.outputs.sha }}
+        run: |
+          # printf keeps every Markdown line at column 0 regardless of YAML indent.
+          {
+            printf '%s\n' "**M.U.S.E. Desktop** — the local-first Singularity cockpit (Tauri v2). Version ${VERSION}."
+            printf '%s\n' ""
+            printf '%s\n' "_Auto-versioned from real history: built **${BUILD_DATE}** (UTC) from commit \`${SHA}\` — **${REPO_COMMITS}** commits total, **${APP_COMMITS}** touching the desktop app._"
+            printf '%s\n' ""
+            printf '%s\n' "> This is a native shell around the lean Singularity cockpit. It does **not** bundle or spawn the backend — it talks to **your own local MUSE gateway** (default \`127.0.0.1:8765\`) after you pair it with the owner phrase, and holds no API keys."
+            printf '%s\n' ""
+            printf '%s\n' "## Install"
+            printf '%s\n' "- **macOS:** download the \`.dmg\`, open it, drag M.U.S.E. to Applications."
+            printf '%s\n' "- **Windows:** download the \`-setup.exe\` and run it."
+            printf '%s\n' "- **Linux:** download the \`.AppImage\` (chmod +x and run) or the \`.deb\`."
+            printf '%s\n' ""
+            printf '%s\n' "Unsigned builds may warn about an unknown developer (Gatekeeper / SmartScreen) until signing certs are provisioned (see apps/desktop/RELEASE.md)."
+          } > release-notes.md
+          pre_flag=""; [ "$PRERELEASE" = "true" ] && pre_flag="--prerelease"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
+          fi
+
+  # ---- 3. Build per-OS and upload installers to the release ------------------
+  build:
+    name: Build & upload (${{ matrix.os }})
+    needs: [meta, prepare]
+    if: needs.meta.outputs.publish == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14,      rust_target: aarch64-apple-darwin, bundles: 'app,dmg' }
+          - { os: macos-13,      rust_target: x86_64-apple-darwin,  bundles: 'app,dmg' }
+          - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'appimage,deb' }
+          - { os: windows-latest, rust_target: '',                  bundles: 'nsis' }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: apps/desktop/ui/package-lock.json
+
+      - name: Install UI dependencies
+        run: npm ci
+        working-directory: apps/desktop/ui
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Install WebKitGTK system libraries (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            librsvg2-dev \
+            libayatana-appindicator3-dev \
+            pkg-config
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Install Tauri CLI (prebuilt)
+        run: npm install -g @tauri-apps/cli@^2
+
+      - name: Build installers
+        env:
+          # Tauri reads these for code-signing; ALL resolve to empty when the
+          # secret is unset -> the build produces UNSIGNED installers and still
+          # succeeds (the fork/bring-up fallback). See apps/desktop/RELEASE.md.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          VERSION: ${{ needs.meta.outputs.version }}
+          TARGET: ${{ matrix.rust_target }}
+          BUNDLES: ${{ matrix.bundles }}
+        run: |
+          # Stamp the CI-derived semver into the bundle via a --config merge so
+          # the installer carries the real version (tauri.conf stays at 0.1.0).
+          target_arg=""; [ -n "$TARGET" ] && target_arg="--target $TARGET"
+          ( cd apps/desktop && tauri build $target_arg --bundles "$BUNDLES" \
+              --config "{\"version\": \"${VERSION}\"}" )
+
+      - name: Collect + upload installers to the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.meta.outputs.tag }}
+          TARGET: ${{ matrix.rust_target }}
+        run: |
+          base="apps/desktop/src-tauri/target"
+          if [ -n "$TARGET" ]; then bdir="$base/$TARGET/release/bundle"; else bdir="$base/release/bundle"; fi
+          echo "Bundle dir: $bdir"
+          mapfile -t files < <(find "$bdir" -type f \
+            \( -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \
+               -o -name '*-setup.exe' -o -name '*.msi' \) 2>/dev/null)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::No installers found under $bdir"; find "$bdir" -maxdepth 2 -type f || true; exit 1
+          fi
+          printf 'Found installer: %s\n' "${files[@]}"
+          gh release upload "$TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          {
+            echo "### ${{ matrix.os }} installers"
+            printf '%s\n' '```'
+            for f in "${files[@]}"; do basename "$f"; done
+            printf '%s\n' '```'
+          } >> "$GITHUB_STEP_SUMMARY"
