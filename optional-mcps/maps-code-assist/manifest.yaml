@@ -1,0 +1,18 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: maps-code-assist
+description: Google Maps Platform documentation + grounded code assistance.
+source: https://developers.google.com/maps/ai/mcp
+
+transport:
+  type: http
+  url: https://mapscodeassist.googleapis.com/mcp
+
+auth:
+  type: none
+
+post_install: |
+  The npm package was decommissioned (2026-06-01) — this hosted endpoint is the
+  supported path. No credentials required for documentation grounding.

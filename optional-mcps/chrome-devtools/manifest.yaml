@@ -1,0 +1,21 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: chrome-devtools
+description: Drive and inspect a Chrome instance (DOM, network, performance traces).
+source: https://github.com/ChromeDevTools/chrome-devtools-mcp
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "chrome-devtools-mcp@latest"
+
+auth:
+  type: none
+
+post_install: |
+  Launches and controls a local Chrome — Google Chrome must be installed.
+  Requires Node.js on PATH.

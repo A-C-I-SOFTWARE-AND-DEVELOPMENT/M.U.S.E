@@ -52,6 +52,24 @@ List the files in /home/user/projects and summarize the repo structure.
 
 M.U.S.E. will discover the MCP server's tools and use them like any other tool.
 
+## Catalog & bulk install
+
+Rather than hand-writing `mcp_servers` blocks, you can install from the curated
+**MCP catalog** that ships with M.U.S.E.:
+
+```bash
+hermes mcp catalog          # browse curated entries + your configured servers
+hermes mcp install supabase # install one (writes config, prompts for creds)
+hermes mcp install --all    # register every catalog entry at once
+hermes mcp picker           # interactive install / enable / disable / configure
+```
+
+Catalog manifests live in `optional-mcps/` and reference credentials by
+environment-variable name only — secrets stay in `~/.hermes/.env`. The same
+servers are mirrored in the repo-root `.mcp.json` so they also load in Claude
+Code. See **[MCP catalog & bulk install](../mcp-catalog.md)** for the full list
+and the credential model.
+
 ## Two kinds of MCP servers
 
 ### Stdio servers

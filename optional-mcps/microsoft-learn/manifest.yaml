@@ -1,0 +1,17 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: microsoft-learn
+description: Search and fetch official Microsoft / Azure documentation.
+source: https://learn.microsoft.com/training/support/mcp
+
+transport:
+  type: http
+  url: https://learn.microsoft.com/api/mcp
+
+auth:
+  type: none
+
+post_install: |
+  Public documentation server — no credentials required.

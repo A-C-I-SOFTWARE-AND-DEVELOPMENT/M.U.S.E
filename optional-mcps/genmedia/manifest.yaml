@@ -1,0 +1,37 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: genmedia
+description: Google Vertex AI generative media — Imagen (images) and Veo (video).
+source: https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia
+
+# Advanced multi-binary server. This entry builds and runs the Imagen server;
+# the repo ships Veo/Chirp/Lyria binaries you can build the same way.
+transport:
+  type: stdio
+  command: "${INSTALL_DIR}/experiments/mcp-genmedia/mcp-imagen-go/mcp-imagen-go"
+
+install:
+  type: git
+  url: https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio.git
+  ref: main
+  bootstrap:
+    - "cd experiments/mcp-genmedia/mcp-imagen-go && go build -o mcp-imagen-go ."
+
+auth:
+  type: api_key
+  env:
+    - name: PROJECT_ID
+      prompt: "GCP project ID with Vertex AI enabled"
+      required: true
+      secret: false
+    - name: GENMEDIA_BUCKET
+      prompt: "GCS bucket for generated media (gs://..., optional)"
+      required: false
+      secret: false
+
+post_install: |
+  Requires the Go toolchain, Vertex AI enabled on the project, and Application
+  Default Credentials. This builds the Imagen server; build the Veo/Chirp/Lyria
+  binaries from the same repo and add them with `hermes mcp add` if needed.

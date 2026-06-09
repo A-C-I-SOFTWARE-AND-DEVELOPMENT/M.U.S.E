@@ -1,0 +1,21 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: gcs
+description: Browse and manage Google Cloud Storage buckets and objects.
+source: https://www.npmjs.com/package/@google-cloud/storage-mcp
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@google-cloud/storage-mcp"
+
+auth:
+  type: none
+
+post_install: |
+  Uses Application Default Credentials — run
+  `gcloud auth application-default login` first. Requires Node.js on PATH.

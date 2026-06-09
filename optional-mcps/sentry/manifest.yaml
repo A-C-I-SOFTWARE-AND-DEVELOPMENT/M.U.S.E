@@ -1,0 +1,17 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: sentry
+description: Inspect Sentry issues, events, releases, and Seer analysis.
+source: https://docs.sentry.io/product/sentry-mcp/
+
+transport:
+  type: http
+  url: https://mcp.sentry.dev/mcp
+
+auth:
+  type: oauth
+
+post_install: |
+  First connection opens a browser to authorize Sentry.

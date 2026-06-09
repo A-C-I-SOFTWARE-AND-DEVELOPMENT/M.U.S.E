@@ -1,0 +1,21 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: dart
+description: Dart & Flutter tooling — analyze, test, run, and manage pub packages.
+source: https://dart.dev/tools/mcp-server
+
+# The official Dart MCP server ships with the SDK and covers both Dart and
+# Flutter projects (the screenshot's "Flutter/Dart" entry).
+transport:
+  type: stdio
+  command: dart
+  args:
+    - "mcp-server"
+
+auth:
+  type: none
+
+post_install: |
+  Requires the Dart SDK >= 3.9 (bundled with Flutter) on PATH.

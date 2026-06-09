@@ -1,0 +1,18 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: figma
+description: Read Figma designs, variables, and components for design-to-code.
+source: https://developers.figma.com/docs/figma-mcp-server/
+
+transport:
+  type: http
+  url: https://mcp.figma.com/mcp
+
+auth:
+  type: oauth
+
+post_install: |
+  First connection opens a browser to authorize Figma. A Dev/Full seat on a
+  paid Figma plan is required for the remote server.

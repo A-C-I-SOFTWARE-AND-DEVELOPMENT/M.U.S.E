@@ -1,0 +1,24 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: gcloud
+description: Run Google Cloud (gcloud) operations across your GCP projects.
+source: https://github.com/googleapis/gcloud-mcp
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@google-cloud/gcloud-mcp"
+
+# Auth flows through your local gcloud session / Application Default
+# Credentials — there is no API key to store.
+auth:
+  type: none
+
+post_install: |
+  Authenticate first: `gcloud auth login` and
+  `gcloud auth application-default login`. Requires the gcloud CLI and Node.js
+  on PATH.

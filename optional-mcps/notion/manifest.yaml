@@ -1,0 +1,18 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: notion
+description: Notion workspace access via the hosted MCP server (OAuth).
+source: https://developers.notion.com/docs/mcp
+
+transport:
+  type: http
+  url: https://mcp.notion.com/mcp
+
+auth:
+  type: oauth
+
+post_install: |
+  On first connection Hermes opens a browser to authorize Notion. Restart your
+  session afterward to load the tools.
