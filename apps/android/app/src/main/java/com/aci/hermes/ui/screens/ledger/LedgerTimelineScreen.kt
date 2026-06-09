@@ -1,5 +1,10 @@
 package com.aci.hermes.ui.screens.ledger
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,11 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +30,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,6 +45,13 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.ledger.LedgerSync
 import com.aci.hermes.data.model.ledger.LedgerEvent
 import com.aci.hermes.data.model.ledger.LedgerFilters
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseEmptyState
+import com.aci.hermes.ui.designsystem.MuseMotion
+import com.aci.hermes.ui.theme.JarvisTokens
 import com.aci.hermes.ui.screens.audit.colorOn
 import com.aci.hermes.ui.screens.audit.displayLabel
 
@@ -112,7 +119,7 @@ fun LedgerTimelineScreen(
                     statusLine,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceXs),
                 )
             }
 
@@ -120,23 +127,22 @@ fun LedgerTimelineScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(24.dp)
                         .testTag(LedgerScreenTags.EMPTY),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        "No activity yet.",
-                        style = MaterialTheme.typography.bodyLarge,
+                    MuseEmptyState(
+                        title = "No activity yet",
+                        body = "Decisions, diffs, and rollbacks land here as Jarvis works.",
                     )
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = JarvisTokens.SpaceLg)
                         .testTag(LedgerScreenTags.LIST),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = JarvisTokens.SpaceMd),
                 ) {
                     items(events, key = LedgerEvent::id) { event ->
                         LedgerRow(event = event, onClick = { onOpenEvent(event.id) })
@@ -159,19 +165,19 @@ private fun LedgerFilterPanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = JarvisTokens.SpaceLg, vertical = JarvisTokens.SpaceSm)
             .testTag(LedgerScreenTags.FILTERS),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
     ) {
         Text("Risk", style = MaterialTheme.typography.labelMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             RISK_FILTER_OPTIONS.forEach { risk ->
-                FilterChip(
+                MuseChip(
+                    label = risk.lowercase().replaceFirstChar { it.uppercase() },
                     selected = draft.risk == risk,
                     onClick = {
                         draft = draft.copy(risk = if (draft.risk == risk) "" else risk)
                     },
-                    label = { Text(risk.lowercase().replaceFirstChar { it.uppercase() }) },
                 )
             }
         }
@@ -196,7 +202,7 @@ private fun LedgerFilterPanel(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd)) {
             OutlinedTextField(
                 value = draft.since,
                 onValueChange = { draft = draft.copy(since = it) },
@@ -212,12 +218,16 @@ private fun LedgerFilterPanel(
                 modifier = Modifier.weight(1f),
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { onApply(draft) }) { Text("Apply") }
-            TextButton(onClick = {
-                draft = LedgerFilters()
-                onClear()
-            }) { Text("Clear") }
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseButton(onClick = { onApply(draft) }, text = "Apply")
+            MuseButton(
+                onClick = {
+                    draft = LedgerFilters()
+                    onClear()
+                },
+                text = "Clear",
+                variant = MuseButtonVariant.Secondary,
+            )
         }
     }
 }
@@ -226,56 +236,63 @@ private fun LedgerFilterPanel(
 @Composable
 private fun LedgerRow(event: LedgerEvent, onClick: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
-    Card(
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = scheme.surfaceVariant),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(LedgerScreenTags.row(event.id)),
+    // Subtle entrance: rows fade + rise in on the standard curve.
+    val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+    AnimatedVisibility(
+        visibleState = appear,
+        enter = fadeIn(MuseMotion.standard()) +
+            slideInVertically(MuseMotion.standard()) { it / 6 },
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        MuseCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag(LedgerScreenTags.row(event.id))
+                .clickable(onClick = onClick),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier.padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = event.category.colorOn(scheme),
-                    modifier = Modifier.size(10.dp),
-                ) {}
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = event.category.colorOn(scheme),
+                        modifier = Modifier.size(10.dp),
+                    ) {}
+                    Text(
+                        text = formatLedgerTimestamp(event.timestamp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = event.category.displayLabel(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = event.category.colorOn(scheme),
+                        modifier = Modifier.padding(start = JarvisTokens.SpaceSm),
+                    )
+                    Text(
+                        text = event.riskTier.displayLabel(),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = event.riskTier.colorOn(scheme),
+                        modifier = Modifier.padding(start = JarvisTokens.SpaceSm),
+                    )
+                }
                 Text(
-                    text = formatLedgerTimestamp(event.timestamp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = scheme.onSurfaceVariant,
+                    text = event.summary.ifBlank { event.kind },
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = event.category.displayLabel(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = event.category.colorOn(scheme),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-                Text(
-                    text = event.riskTier.displayLabel(),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = event.riskTier.colorOn(scheme),
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            Text(
-                text = event.summary.ifBlank { event.kind },
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                event.worker?.let { AssistChip(onClick = onClick, label = { Text(it) }) }
-                if (event.hasDiff) AssistChip(onClick = onClick, label = { Text("Diff") })
-                if (event.hasEvidence) AssistChip(onClick = onClick, label = { Text("Evidence") })
-                if (event.hasRollback) AssistChip(onClick = onClick, label = { Text("Rollback") })
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                    event.worker?.let { MuseChip(label = it, onClick = onClick) }
+                    if (event.hasDiff) MuseChip(label = "Diff", onClick = onClick)
+                    if (event.hasEvidence) MuseChip(label = "Evidence", onClick = onClick)
+                    if (event.hasRollback) MuseChip(label = "Rollback", onClick = onClick)
+                }
             }
         }
     }
