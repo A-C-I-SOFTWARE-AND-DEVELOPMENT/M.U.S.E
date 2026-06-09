@@ -255,7 +255,7 @@ def recommended_update_command_for_method(method: str) -> str:
         if uv:
             return "uv pip install --upgrade hermes-agent"
         return "pip install --upgrade hermes-agent"
-    return "hermes update"
+    return "muse update"
 
 
 def recommended_update_command() -> str:
@@ -5145,9 +5145,9 @@ def show_config():
 
     print()
     print(color("─" * 60, Colors.DIM))
-    print(color("  hermes config edit     # Edit config file", Colors.DIM))
-    print(color("  hermes config set <key> <value>", Colors.DIM))
-    print(color("  hermes setup           # Run setup wizard", Colors.DIM))
+    print(color("  muse config edit       # Edit config file", Colors.DIM))
+    print(color("  muse config set <key> <value>", Colors.DIM))
+    print(color("  muse setup             # Run setup wizard", Colors.DIM))
     print()
 
 
@@ -5296,12 +5296,12 @@ def config_command(args):
         key = getattr(args, 'key', None)
         value = getattr(args, 'value', None)
         if not key or value is None:
-            print("Usage: hermes config set <key> <value>")
+            print("Usage: muse config set <key> <value>")
             print()
             print("Examples:")
-            print("  hermes config set model anthropic/claude-sonnet-4")
-            print("  hermes config set terminal.backend docker")
-            print("  hermes config set OPENROUTER_API_KEY sk-or-...")
+            print("  muse config set model anthropic/claude-sonnet-4")
+            print("  muse config set terminal.backend docker")
+            print("  muse config set OPENROUTER_API_KEY sk-or-...")
             sys.exit(1)
         set_config_value(key, value)
     
@@ -5409,13 +5409,13 @@ def config_command(args):
         print(f"Unknown config command: {subcmd}")
         print()
         print("Available commands:")
-        print("  hermes config           Show current configuration")
-        print("  hermes config edit      Open config in editor")
-        print("  hermes config set <key> <value>   Set a config value")
-        print("  hermes config check     Check for missing/outdated config")
-        print("  hermes config migrate   Update config with new options")
-        print("  hermes config path      Show config file path")
-        print("  hermes config env-path  Show .env file path")
+        print("  muse config             Show current configuration")
+        print("  muse config edit        Open config in editor")
+        print("  muse config set <key> <value>   Set a config value")
+        print("  muse config check       Check for missing/outdated config")
+        print("  muse config migrate     Update config with new options")
+        print("  muse config path        Show config file path")
+        print("  muse config env-path    Show .env file path")
         sys.exit(1)
 
 

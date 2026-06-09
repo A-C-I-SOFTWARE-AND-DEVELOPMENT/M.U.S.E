@@ -218,6 +218,9 @@ all = [
 
 [project.scripts]
 muse = "hermes_cli.main:main"
+# Backward-compatibility alias for the pre-rename `hermes` command. Both names
+# dispatch to the same CLI entry point; `muse` is canonical.
+hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 

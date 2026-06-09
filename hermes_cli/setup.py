@@ -640,17 +640,17 @@ def _print_setup_summary(config: dict, hermes_home):
     print()
     print(color("📝 To edit your configuration:", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('hermes setup', Colors.GREEN)}          Re-run the full wizard")
-    print(f"   {color('hermes setup model', Colors.GREEN)}    Change model/provider")
-    print(f"   {color('hermes setup terminal', Colors.GREEN)} Change terminal backend")
-    print(f"   {color('hermes setup gateway', Colors.GREEN)}  Configure messaging")
-    print(f"   {color('hermes setup tools', Colors.GREEN)}    Configure tool providers")
+    print(f"   {color('muse setup', Colors.GREEN)}            Re-run the full wizard")
+    print(f"   {color('muse setup model', Colors.GREEN)}      Change model/provider")
+    print(f"   {color('muse setup terminal', Colors.GREEN)}   Change terminal backend")
+    print(f"   {color('muse setup gateway', Colors.GREEN)}    Configure messaging")
+    print(f"   {color('muse setup tools', Colors.GREEN)}      Configure tool providers")
     print()
-    print(f"   {color('hermes config', Colors.GREEN)}         View current settings")
+    print(f"   {color('muse config', Colors.GREEN)}           View current settings")
     print(
-        f"   {color('hermes config edit', Colors.GREEN)}    Open config in your editor"
+        f"   {color('muse config edit', Colors.GREEN)}      Open config in your editor"
     )
-    print(f"   {color('hermes config set <key> <value>', Colors.GREEN)}")
+    print(f"   {color('muse config set <key> <value>', Colors.GREEN)}")
     print("                          Set a specific value")
     print()
     print("   Or edit the files directly:")
@@ -662,9 +662,9 @@ def _print_setup_summary(config: dict, hermes_home):
     print()
     print(color("🚀 Ready to go!", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('hermes', Colors.GREEN)}              Start chatting")
-    print(f"   {color('hermes gateway', Colors.GREEN)}      Start messaging gateway")
-    print(f"   {color('hermes doctor', Colors.GREEN)}       Check for issues")
+    print(f"   {color('muse', Colors.GREEN)}                Start chatting")
+    print(f"   {color('muse gateway', Colors.GREEN)}        Start messaging gateway")
+    print(f"   {color('muse doctor', Colors.GREEN)}         Check for issues")
     print()
 
 
@@ -2706,22 +2706,22 @@ def setup_gateway(config: dict):
                     print_error(f"  Install failed: {e}")
                     print_info("  You can try manually: hermes gateway install")
             else:
-                print_info("  You can install later: hermes gateway install")
+                print_info("  You can install later: muse gateway install")
                 if supports_systemd:
-                    print_info("  Or as a boot-time service: sudo hermes gateway install --system")
-                print_info("  Or run in foreground:  hermes gateway")
+                    print_info("  Or as a boot-time service: sudo muse gateway install --system")
+                print_info("  Or run in foreground:  muse gateway")
         else:
             from hermes_constants import is_container
             if is_container():
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   hermes gateway run          # Run as container main process")
+                print_info("   muse gateway run            # Run as container main process")
                 print_info("")
                 print_info("For automatic restarts, use a Docker restart policy:")
                 print_info("   docker run --restart unless-stopped ...")
                 print_info("   docker restart <container>  # Manual restart")
             else:
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   hermes gateway              # Run in foreground")
+                print_info("   muse gateway                # Run in foreground")
 
         print_info("━" * 50)
 

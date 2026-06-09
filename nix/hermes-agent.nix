@@ -203,7 +203,7 @@ stdenv.mkDerivation {
 
   meta = with lib; {
     description = "AI agent with advanced tool-calling capabilities";
-    homepage = "https://github.com/NousResearch/hermes-agent";
+    homepage = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E";
     mainProgram = "muse";
     license = licenses.mit;
     platforms = platforms.unix;
