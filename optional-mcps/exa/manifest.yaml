@@ -1,0 +1,24 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: exa
+description: Exa AI web search and full-content retrieval.
+source: https://docs.exa.ai/reference/exa-mcp
+
+transport:
+  type: http
+  url: https://mcp.exa.ai/mcp
+
+auth:
+  type: api_key
+  header: "x-api-key: ${EXA_API_KEY}"
+  env:
+    - name: EXA_API_KEY
+      prompt: "Exa API key (dashboard.exa.ai)"
+      required: true
+      secret: true
+
+post_install: |
+  Get an API key at https://dashboard.exa.ai/api-keys, add it to
+  ~/.hermes/.env, then `hermes mcp install exa`.

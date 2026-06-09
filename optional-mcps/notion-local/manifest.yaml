@@ -1,0 +1,27 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: notion-local
+description: Notion workspace access via the self-hosted stdio server (API key).
+source: https://github.com/makenotion/notion-mcp-server
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@notionhq/notion-mcp-server"
+
+auth:
+  type: api_key
+  env:
+    - name: NOTION_TOKEN
+      prompt: "Notion internal integration token (ntn_... / secret_...)"
+      required: true
+      secret: true
+
+post_install: |
+  Prefer the hosted `notion` entry (OAuth) unless you need a local process.
+  Create an integration at https://www.notion.so/my-integrations and share the
+  pages it should see. Requires Node.js on PATH.

@@ -1,0 +1,31 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: google-analytics
+description: Query Google Analytics 4 properties (reports, realtime, metadata).
+source: https://github.com/googleanalytics/google-analytics-mcp
+
+transport:
+  type: stdio
+  command: pipx
+  args:
+    - "run"
+    - "analytics-mcp"
+
+auth:
+  type: api_key
+  env:
+    - name: GOOGLE_APPLICATION_CREDENTIALS
+      prompt: "Path to a GA service-account JSON key file"
+      required: true
+      secret: false
+    - name: GA_PROPERTY_ID
+      prompt: "Default GA4 property ID (numeric, optional)"
+      required: false
+      secret: false
+
+post_install: |
+  Requires `pipx` on PATH. Point GOOGLE_APPLICATION_CREDENTIALS at a service
+  account JSON with Analytics read access (or use
+  `gcloud auth application-default login`).

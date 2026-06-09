@@ -1,0 +1,28 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: context7
+description: Up-to-date, version-aware library and framework documentation.
+source: https://github.com/upstash/context7
+
+transport:
+  type: http
+  url: https://mcp.context7.com/mcp
+
+# Header-authenticated remote: the API key is sent as a Bearer token. The
+# ${CONTEXT7_API_KEY} ref is resolved at connect time from ~/.hermes/.env and
+# is never written to config.yaml as a literal.
+auth:
+  type: api_key
+  header: "Authorization: Bearer ${CONTEXT7_API_KEY}"
+  env:
+    - name: CONTEXT7_API_KEY
+      prompt: "Context7 API key (context7.com/dashboard)"
+      required: true
+      secret: true
+
+post_install: |
+  Get a key at https://context7.com/dashboard (a key raises rate limits over
+  the anonymous tier), add it to ~/.hermes/.env, then
+  `hermes mcp install context7`.

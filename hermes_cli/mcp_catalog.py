@@ -69,6 +69,12 @@ class AuthSpec:
     provider: Optional[str] = None
     scopes: List[str] = field(default_factory=list)
     env_var: Optional[str] = None
+    # http + api_key remotes that authenticate via a request header rather than
+    # OAuth. Format: "<Header-Name>: <value-with-${VAR}-ref>", e.g.
+    # "Authorization: Bearer ${CONTEXT7_API_KEY}" or "x-api-key: ${EXA_API_KEY}".
+    # The ${VAR} ref is resolved at connect time from ~/.hermes/.env — never a
+    # literal secret in the manifest.
+    header: Optional[str] = None
 
 
 @dataclass
@@ -207,12 +213,16 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if not isinstance(env_list_raw, list):
         raise CatalogError(f"{path}: auth.env must be a list")
     env_list = [_parse_env_spec(e) for e in env_list_raw]
+    header_raw = auth_raw.get("header")
+    if header_raw is not None and not isinstance(header_raw, str):
+        raise CatalogError(f"{path}: auth.header must be a string")
     auth = AuthSpec(
         type=a_type,
         env=env_list,
         provider=auth_raw.get("provider"),
         scopes=list(auth_raw.get("scopes") or []),
         env_var=auth_raw.get("env_var"),
+        header=header_raw,
     )
 
     tools_raw = data.get("tools") or {}
@@ -750,6 +760,151 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
         for line in entry.post_install.strip().splitlines():
             print(color(f"  {line}", Colors.DIM))
     print()
+
+
+def _creds_ready(entry: CatalogEntry) -> bool:
+    """True when an entry needs no credentials, or all required api_key env
+    vars are already present in the environment / ~/.hermes/.env.
+
+    oauth and none auth never block on creds (oauth acquires tokens on first
+    connect; none needs nothing)."""
+    if entry.auth.type != "api_key":
+        return True
+    for spec in entry.auth.env:
+        if spec.required and not get_env_value(spec.name):
+            return False
+    return True
+
+
+def _build_server_config_with_auth_refs(
+    entry: CatalogEntry, install_dir: Optional[Path]
+) -> dict:
+    """Like :func:`_build_server_config`, but also encodes auth credentials as
+    ``${VAR}`` references so a bulk-registered entry is self-documenting and
+    connects the moment ~/.hermes/.env is populated — without ever writing a
+    literal secret.
+
+    - stdio + api_key  -> ``env: {VAR: "${VAR}"}`` for each declared env spec.
+    - http  + api_key  -> ``headers`` parsed from ``auth.header`` (or a default
+      ``Authorization: Bearer ${VAR}`` when a single env spec is declared).
+    - http  + oauth    -> ``auth: oauth`` (inherited from _build_server_config).
+
+    The ${VAR} literals survive save_config untouched (they never equal an
+    expanded value), so credentials are referenced, never persisted.
+    """
+    cfg = _build_server_config(entry, install_dir)
+    auth = entry.auth
+    if auth.type != "api_key":
+        return cfg
+
+    if entry.transport.type == "stdio":
+        env_block = {spec.name: "${" + spec.name + "}" for spec in auth.env}
+        if env_block:
+            cfg["env"] = env_block
+    elif entry.transport.type == "http":
+        header_line = auth.header
+        if not header_line and len(auth.env) == 1:
+            header_line = "Authorization: Bearer ${" + auth.env[0].name + "}"
+        if header_line and ":" in header_line:
+            key, _, value = header_line.partition(":")
+            key, value = key.strip(), value.strip()
+            if key and value:
+                cfg.setdefault("headers", {})[key] = value
+    return cfg
+
+
+def register_entry_noninteractive(
+    entry: CatalogEntry,
+    *,
+    enable_without_creds: bool = False,
+    run_bootstrap: bool = False,
+) -> dict:
+    """Register a single catalog entry WITHOUT prompting, probing, or launching.
+
+    Unlike :func:`install_entry` (the interactive single-server path used by the
+    picker), this never calls ``_prompt_env_vars`` or ``_apply_tool_selection``
+    — so it is safe to fan out across the whole catalog in one shot. Tool
+    filtering is seeded directly from the manifest's ``tools.default_enabled``.
+
+    Returns a status dict ``{"name", "status", "enabled", "detail"}`` where
+    ``status`` is one of:
+      - ``installed``   — written and (creds permitting) enabled.
+      - ``needs_creds`` — written but disabled: required api_key vars are unset
+        in ~/.hermes/.env (unless *enable_without_creds*).
+      - ``skipped``     — has an ``install:`` (git/binary) block and
+        *run_bootstrap* is False; nothing written.
+      - ``failed``      — bootstrap or config write raised (caught here).
+    """
+    name = entry.name
+
+    install_dir: Optional[Path] = None
+    if entry.install is not None:
+        if not run_bootstrap:
+            return {
+                "name": name,
+                "status": "skipped",
+                "enabled": False,
+                "detail": (
+                    f"needs bootstrap — run `hermes mcp install {name}` "
+                    "or re-run --all with --with-bootstrap"
+                ),
+            }
+        try:
+            install_dir = _do_git_install(entry)
+        except Exception as exc:  # noqa: BLE001 — never abort the batch
+            return {"name": name, "status": "failed", "enabled": False,
+                    "detail": str(exc)}
+
+    creds_ok = _creds_ready(entry)
+    enabled = creds_ok or enable_without_creds
+    status = "installed" if creds_ok else "needs_creds"
+
+    try:
+        server_cfg = _build_server_config_with_auth_refs(entry, install_dir)
+        server_cfg["enabled"] = enabled
+        if entry.tools.default_enabled is not None:
+            server_cfg.setdefault("tools", {})["include"] = list(
+                entry.tools.default_enabled
+            )
+        cfg = load_config()
+        cfg.setdefault("mcp_servers", {})[name] = server_cfg
+        save_config(cfg)
+    except Exception as exc:  # noqa: BLE001 — never abort the batch
+        return {"name": name, "status": "failed", "enabled": False,
+                "detail": str(exc)}
+
+    detail = ""
+    if status == "needs_creds":
+        missing = [s.name for s in entry.auth.env
+                   if s.required and not get_env_value(s.name)]
+        detail = "set " + ", ".join(missing) + " in ~/.hermes/.env"
+    return {"name": name, "status": status, "enabled": enabled, "detail": detail}
+
+
+def install_all_entries(
+    *, enable_without_creds: bool = False, run_bootstrap: bool = False
+) -> Dict[str, List[dict]]:
+    """Register every catalog entry non-interactively.
+
+    Each entry is wrapped so one failure never aborts the batch. Returns a
+    summary bucketed by status: ``{"installed": [...], "needs_creds": [...],
+    "skipped": [...], "failed": [...]}``.
+    """
+    summary: Dict[str, List[dict]] = {
+        "installed": [], "needs_creds": [], "skipped": [], "failed": [],
+    }
+    for entry in list_catalog():
+        try:
+            res = register_entry_noninteractive(
+                entry,
+                enable_without_creds=enable_without_creds,
+                run_bootstrap=run_bootstrap,
+            )
+        except Exception as exc:  # noqa: BLE001 — belt-and-suspenders
+            res = {"name": entry.name, "status": "failed", "enabled": False,
+                   "detail": str(exc)}
+        summary.setdefault(str(res["status"]), []).append(res)
+    return summary
 
 
 def uninstall_entry(name: str, *, purge_install_dir: bool = True) -> bool:

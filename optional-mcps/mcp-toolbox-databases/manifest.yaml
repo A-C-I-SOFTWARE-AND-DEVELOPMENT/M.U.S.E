@@ -1,0 +1,40 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: mcp-toolbox-databases
+description: Query BigQuery, Cloud SQL, AlloyDB, Spanner, and Firestore via Google's MCP Toolbox.
+source: https://github.com/googleapis/genai-toolbox
+
+# Built from source at install time (needs the Go toolchain). ${INSTALL_DIR} is
+# substituted with the clone path. The default uses the `bigquery` prebuilt
+# tool source so no tools.yaml is required to get started.
+transport:
+  type: stdio
+  command: "${INSTALL_DIR}/toolbox"
+  args:
+    - "--stdio"
+    - "--prebuilt"
+    - "bigquery"
+
+install:
+  type: git
+  url: https://github.com/googleapis/genai-toolbox.git
+  ref: main
+  bootstrap:
+    - "go build -o toolbox ."
+
+auth:
+  type: api_key
+  env:
+    - name: BIGQUERY_PROJECT
+      prompt: "Default GCP project ID for BigQuery"
+      required: true
+      secret: false
+
+post_install: |
+  Requires the Go toolchain (to build) and Application Default Credentials
+  (`gcloud auth application-default login`). Switch the data source by editing
+  --prebuilt (cloud-sql-postgres, alloydb-postgres, spanner, firestore, ...) or
+  supply --tools-file tools.yaml via `hermes mcp configure`. See the MCP Toolbox
+  docs for the full prebuilt source list.

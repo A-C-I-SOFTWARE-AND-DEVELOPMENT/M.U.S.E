@@ -1,0 +1,29 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: slack
+description: Read and post Slack messages, search channels, users, and threads.
+source: https://github.com/korotovsky/slack-mcp-server
+
+# The official @modelcontextprotocol/server-slack is archived/unmaintained;
+# this community server is the maintained path.
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "slack-mcp-server@latest"
+
+auth:
+  type: api_key
+  env:
+    - name: SLACK_MCP_XOXP_TOKEN
+      prompt: "Slack user OAuth token (xoxp-...)"
+      required: true
+      secret: true
+
+post_install: |
+  Create a Slack app and user token (xoxp-...) following the server README,
+  add it to ~/.hermes/.env, then `hermes mcp install slack`. Requires Node.js
+  on PATH.

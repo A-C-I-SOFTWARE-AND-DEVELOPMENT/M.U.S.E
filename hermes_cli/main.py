@@ -12844,6 +12844,46 @@ Examples:
     )
     mcp_login_p.add_argument("name", help="Server name to re-authenticate")
 
+    mcp_sub.add_parser(
+        "catalog",
+        aliases=["ls-catalog"],
+        help="List the curated MCP catalog plus your configured servers",
+    )
+
+    mcp_sub.add_parser(
+        "picker",
+        help="Interactive MCP catalog picker (install/enable/disable/configure)",
+    )
+
+    mcp_install_p = mcp_sub.add_parser(
+        "install",
+        help="Install a catalog MCP by name, or --all to register every entry",
+    )
+    mcp_install_p.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Catalog entry name (omit when using --all)",
+    )
+    mcp_install_p.add_argument(
+        "--all",
+        action="store_true",
+        dest="install_all",
+        help="Register every catalog entry non-interactively (no prompts)",
+    )
+    mcp_install_p.add_argument(
+        "--enable",
+        action="store_true",
+        default=False,
+        help="With --all: enable entries even when their credentials are absent",
+    )
+    mcp_install_p.add_argument(
+        "--with-bootstrap",
+        action="store_true",
+        default=False,
+        help="With --all: also clone/bootstrap git-installed servers (slow)",
+    )
+
     _add_accept_hooks_flag(mcp_parser)
 
     def cmd_mcp(args):

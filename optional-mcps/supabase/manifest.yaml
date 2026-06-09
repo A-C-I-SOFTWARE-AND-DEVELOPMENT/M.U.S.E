@@ -1,0 +1,29 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: supabase
+description: Query and manage Supabase projects (read-only by default).
+source: https://supabase.com/docs/guides/getting-started/mcp
+
+# --read-only keeps the default surface safe; drop it via `hermes mcp configure`
+# (or add a project ref) if you need writes.
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@supabase/mcp-server-supabase"
+    - "--read-only"
+
+auth:
+  type: api_key
+  env:
+    - name: SUPABASE_ACCESS_TOKEN
+      prompt: "Supabase personal access token"
+      required: true
+      secret: true
+
+post_install: |
+  Create a token at https://supabase.com/dashboard/account/tokens, add it to
+  ~/.hermes/.env, then `hermes mcp install supabase`. Requires Node.js on PATH.

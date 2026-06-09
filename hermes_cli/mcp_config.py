@@ -740,6 +740,71 @@ def cmd_mcp_configure(args):
 
 # ─── Dispatcher ───────────────────────────────────────────────────────────────
 
+def cmd_mcp_catalog(args=None):
+    """``hermes mcp catalog`` — list the curated catalog + configured servers."""
+    from hermes_cli.mcp_picker import show_catalog
+    show_catalog()
+
+
+def cmd_mcp_picker(args=None):
+    """``hermes mcp picker`` — interactive catalog selector (text dump if no TTY)."""
+    from hermes_cli.mcp_picker import run_picker
+    run_picker()
+
+
+def _print_install_all_summary(summary: Dict[str, List[dict]]):
+    """Render the bucketed result of ``install_all_entries``."""
+    installed = summary.get("installed", [])
+    needs_creds = summary.get("needs_creds", [])
+    skipped = summary.get("skipped", [])
+    failed = summary.get("failed", [])
+
+    print()
+    if installed:
+        _success(f"Installed ({len(installed)}): "
+                 + ", ".join(r["name"] for r in installed))
+    if needs_creds:
+        _warning(f"Needs credentials ({len(needs_creds)}): "
+                 + ", ".join(r["name"] for r in needs_creds))
+        _info("Add the keys to ~/.hermes/.env, then `hermes mcp install <name>`.")
+    if skipped:
+        _info(f"Skipped bootstrap ({len(skipped)}): "
+              + ", ".join(r["name"] for r in skipped))
+        _info("Re-run with --with-bootstrap, or `hermes mcp install <name>`.")
+    if failed:
+        for r in failed:
+            _error(f"{r['name']}: {r.get('detail', 'failed')}")
+    if not (installed or needs_creds or skipped or failed):
+        _warning("The catalog is empty — nothing to install.")
+        return
+    print()
+    _info("Start a new Hermes session to load the newly-enabled tools.")
+    print()
+
+
+def cmd_mcp_install(args):
+    """``hermes mcp install <name>`` or ``hermes mcp install --all``."""
+    if getattr(args, "install_all", False):
+        from hermes_cli.mcp_catalog import install_all_entries
+        summary = install_all_entries(
+            enable_without_creds=getattr(args, "enable", False),
+            run_bootstrap=getattr(args, "with_bootstrap", False),
+        )
+        _print_install_all_summary(summary)
+        return
+
+    name = getattr(args, "name", None)
+    if not name:
+        _error("Specify an entry name or use --all. See: hermes mcp catalog")
+        return
+
+    from hermes_cli.mcp_picker import install_by_name
+    rc = install_by_name(name)
+    if rc:
+        import sys
+        sys.exit(rc)
+
+
 def mcp_command(args):
     """Main dispatcher for ``hermes mcp`` subcommands."""
     action = getattr(args, "mcp_action", None)
@@ -759,6 +824,10 @@ def mcp_command(args):
         "configure": cmd_mcp_configure,
         "config": cmd_mcp_configure,
         "login": cmd_mcp_login,
+        "catalog": cmd_mcp_catalog,
+        "ls-catalog": cmd_mcp_catalog,
+        "picker": cmd_mcp_picker,
+        "install": cmd_mcp_install,
     }
 
     handler = handlers.get(action)
@@ -777,4 +846,8 @@ def mcp_command(args):
         _info("hermes mcp test <name>                        Test connection")
         _info("hermes mcp configure <name>                   Toggle tools")
         _info("hermes mcp login <name>                       Re-authenticate OAuth")
+        _info("hermes mcp catalog                            Browse the curated catalog")
+        _info("hermes mcp install <name>                     Install one catalog entry")
+        _info("hermes mcp install --all                      Register every catalog entry")
+        _info("hermes mcp picker                             Interactive catalog picker")
         print()

@@ -1,0 +1,19 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: github
+description: GitHub repos, issues, PRs, Actions, and code search (hosted, OAuth).
+source: https://github.com/github/github-mcp-server
+
+transport:
+  type: http
+  url: https://api.githubcopilot.com/mcp/
+
+auth:
+  type: oauth
+
+post_install: |
+  First connection opens a browser to authorize GitHub. For a local,
+  token-based alternative, run the github-mcp-server container with a PAT and
+  add it via `hermes mcp add`.
