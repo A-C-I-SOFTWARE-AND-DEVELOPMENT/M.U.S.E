@@ -7126,12 +7126,12 @@ def _restore_stashed_changes(
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/hermes-agent.git",
-    "git@github.com:NousResearch/hermes-agent.git",
-    "https://github.com/NousResearch/hermes-agent",
-    "git@github.com:NousResearch/hermes-agent",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
 }
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
+OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -8572,7 +8572,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 return
             print("✗ Not a git repository. Please reinstall:")
             print(
-                "  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash"
+                "  curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash"
             )
             sys.exit(1)
 

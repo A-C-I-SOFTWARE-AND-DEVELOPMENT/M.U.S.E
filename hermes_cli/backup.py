@@ -452,7 +452,7 @@ def run_import(args) -> None:
         print()
         if not (hermes_root / "hermes-agent").is_dir():
             print("Note: The hermes-agent codebase was not included in the backup.")
-            print("  If this is a fresh install, run: hermes update")
+            print("  If this is a fresh install, run: muse update")
 
         if restored_profiles:
             gw_profiles = [n for n, _ in restored_profiles]
