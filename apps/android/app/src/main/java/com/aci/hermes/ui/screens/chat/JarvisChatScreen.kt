@@ -41,15 +41,12 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WorkOutline
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -78,6 +75,9 @@ import com.aci.hermes.data.jarvis.JarvisToolCall
 import com.aci.hermes.data.jarvis.JarvisToolStatus
 import com.aci.hermes.data.jarvis.JarvisTone
 import com.aci.hermes.ui.components.AskJarvisBar
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseChip
 import com.aci.hermes.ui.theme.JarvisAmber
 import com.aci.hermes.ui.theme.JarvisCrimson
 import com.aci.hermes.ui.theme.JarvisCyan
@@ -646,14 +646,12 @@ private fun ErrorBubble(message: JarvisChatMessage.Error, onRetry: () -> Unit) {
                 message.retryHint?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = JarvisSignalMute)
                 }
-                Button(
+                MuseButton(
                     onClick = onRetry,
-                    colors = ButtonDefaults.buttonColors(containerColor = JarvisGold, contentColor = JarvisInkDeep),
-                ) {
-                    Icon(Icons.Filled.Refresh, contentDescription = null)
-                    Spacer(Modifier.size(JarvisTokens.SpaceXs))
-                    Text("Retry")
-                }
+                    text = "Retry",
+                    variant = MuseButtonVariant.Primary,
+                    leadingIcon = Icons.Filled.Refresh,
+                )
             }
         }
     }
@@ -725,16 +723,17 @@ private fun TaskCardView(
         Text(card.title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = JarvisSignal)
         Text(card.summary, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
         Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
-            AssistChip(onClick = {}, label = { Text(card.taskType.name.lowercase()) })
-            AssistChip(onClick = {}, label = { Text(card.targetTool.name.lowercase().replace('_', ' ')) })
+            MuseChip(label = card.taskType.name.lowercase())
+            MuseChip(label = card.targetTool.name.lowercase().replace('_', ' '))
         }
         if (promoted) {
             Text("Added to orchestrator", style = MaterialTheme.typography.labelSmall, color = JarvisJade)
         } else {
-            Button(
+            MuseButton(
                 onClick = { onPromote(card) },
-                colors = ButtonDefaults.buttonColors(containerColor = JarvisCyan, contentColor = JarvisInkDeep),
-            ) { Text("Add to orchestrator") }
+                text = "Add to orchestrator",
+                variant = MuseButtonVariant.Primary,
+            )
         }
     }
 }
@@ -756,11 +755,16 @@ private fun ApprovalCardView(
             approved -> Text("Approved — proceeding.", color = JarvisJade, style = MaterialTheme.typography.labelMedium)
             held -> Text("Held — nothing executed.", color = JarvisSignalMute, style = MaterialTheme.typography.labelMedium)
             else -> Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
-                Button(
+                MuseButton(
                     onClick = { onApprove(card) },
-                    colors = ButtonDefaults.buttonColors(containerColor = JarvisJade, contentColor = JarvisInkDeep),
-                ) { Text(card.approveLabel) }
-                OutlinedButton(onClick = { onHold(card) }) { Text(card.denyLabel) }
+                    text = card.approveLabel,
+                    variant = MuseButtonVariant.Approve,
+                )
+                MuseButton(
+                    onClick = { onHold(card) },
+                    text = card.denyLabel,
+                    variant = MuseButtonVariant.Secondary,
+                )
             }
         }
     }
@@ -803,11 +807,12 @@ private fun CriticalCardView(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Button(
+            MuseButton(
                 onClick = { onAck(card, typed) },
+                text = "Acknowledge",
+                variant = MuseButtonVariant.Danger,
                 enabled = typed.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = JarvisCrimson, contentColor = JarvisSignal),
-            ) { Text("Acknowledge") }
+            )
         }
     }
 }
@@ -838,11 +843,12 @@ private fun ChatInputArea(
                 )
                 Text("Jarvis is responding…", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
                 Spacer(Modifier.weight(1f))
-                OutlinedButton(onClick = onStop) {
-                    Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.size(JarvisTokens.SpaceXs))
-                    Text("Stop")
-                }
+                MuseButton(
+                    onClick = onStop,
+                    text = "Stop",
+                    variant = MuseButtonVariant.Danger,
+                    leadingIcon = Icons.Filled.Stop,
+                )
             }
         }
         AskJarvisBar(
