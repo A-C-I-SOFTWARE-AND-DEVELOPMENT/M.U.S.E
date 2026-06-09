@@ -45,6 +45,46 @@ def test_matrix_extra_not_in_all():
     )
 
 
+def test_dev_extra_not_in_all():
+    """The [dev] extra is development/test tooling (pytest, debugpy, ruff,
+    ty, pytest-*), not a runtime feature or a packager-shipped skill dep —
+    it never belonged in an end-user [all].
+
+    Concretely, `ruff` and `ty` are Rust tools with no Termux/Android
+    wheels, so `.[all]` on a phone built them from source. `ty`'s sdist
+    bundles the entire ruff monorepo (thousands of parser snapshots) and
+    exhausted device storage ("No space left on device", os error 28).
+
+    As of 2026-06-09 [dev] is excluded from [all]. Developers install
+    `.[all,dev]` (the documented + CI path: tests.yml installs `.[all,dev]`).
+    This test locks the contract so dev tooling can't silently re-enter [all].
+    """
+    optional_dependencies = _load_optional_dependencies()
+
+    # [dev] must still exist for explicit `.[all,dev]` / `pip install .[dev]`.
+    assert "dev" in optional_dependencies, "[dev] extra must still exist for `.[all,dev]`"
+
+    all_extra_specs = optional_dependencies["all"]
+
+    # No `hermes-agent[dev]` self-reference in [all], in any form.
+    dev_in_all = [spec for spec in all_extra_specs if "hermes-agent[dev]" in spec]
+    assert not dev_in_all, (
+        "[dev] must not appear in [all] — it's dev/test tooling, install via "
+        f"`.[all,dev]`. Found in [all]: {dev_in_all}"
+    )
+
+    # And specifically none of the Rust dev tools that have no Android wheels
+    # should be reachable directly from [all].
+    rust_tools_in_all = [
+        spec for spec in all_extra_specs
+        if spec.startswith(("ruff", "ty"))
+    ]
+    assert not rust_tools_in_all, (
+        "ruff/ty must not appear in [all] — they build from sdist on Termux "
+        f"and exhaust device storage. Found in [all]: {rust_tools_in_all}"
+    )
+
+
 def test_lazy_installable_extras_excluded_from_all():
     """Policy (2026-05-12): every extra that has a `LAZY_DEPS` entry
     in `tools/lazy_deps.py` must be excluded from [all].
