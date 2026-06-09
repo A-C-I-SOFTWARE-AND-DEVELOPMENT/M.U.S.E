@@ -77,7 +77,7 @@ fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Text(
-                "Pair this device with your Jarvis gateway. Request a code, then " +
+                "Pair this device with your Muse gateway. Request a code, then " +
                     "confirm it with the owner authorization phrase to receive a " +
                     "per-device token.",
                 style = MaterialTheme.typography.bodyMedium,
