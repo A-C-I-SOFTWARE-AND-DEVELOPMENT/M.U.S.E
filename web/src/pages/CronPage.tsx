@@ -13,6 +13,7 @@ import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Toast } from "@/components/Toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/i18n";
@@ -420,11 +421,7 @@ export default function CronPage() {
         </div>
 
         {jobs.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              {t.cron.noJobs}
-            </CardContent>
-          </Card>
+          <EmptyStateCard icon={Clock} title={t.cron.noJobs} />
         )}
 
         {jobs.map((job) => {

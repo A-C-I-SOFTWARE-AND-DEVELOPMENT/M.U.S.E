@@ -38,6 +38,40 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // Themes
 // ---------------------------------------------------------------------------
 
+/**
+ * MUSE "Singularity" — the brand-canonical theme. White core in the void,
+ * one thin spectral ring. Tokens come from `design-system/tokens.json`
+ * (FROZEN — consumed, never redefined here): void #050507 canvas, signal
+ * #e8ecf4 text/chrome, status warn/danger pinned to the brand values.
+ * Tonal elevation only — no shadows, no glow.
+ */
+export const museTheme: DashboardTheme = {
+  name: "muse",
+  label: "Singularity",
+  description: "White core in the void — one thin spectral ring",
+  palette: {
+    background: { hex: "#050507", alpha: 1 },
+    midground: { hex: "#e8ecf4", alpha: 1 },
+    foreground: { hex: "#ffffff", alpha: 0 },
+    // Cool spectral wash (ring-1 cyan) instead of the legacy warm amber.
+    warmGlow: "rgba(122, 224, 255, 0.18)",
+    noiseOpacity: 0.5,
+  },
+  typography: {
+    ...DEFAULT_TYPOGRAPHY,
+    letterSpacing: "-0.005em",
+  },
+  layout: {
+    ...DEFAULT_LAYOUT,
+    radius: "0.75rem",
+  },
+  colorOverrides: {
+    destructive: "#ff5c63",
+    warning: "#f5c451",
+    success: "#5be3a0",
+  },
+};
+
 export const defaultTheme: DashboardTheme = {
   name: "default",
   label: "Hermes Teal",
@@ -205,6 +239,7 @@ export const defaultLargeTheme: DashboardTheme = {
 };
 
 export const BUILTIN_THEMES: Record<string, DashboardTheme> = {
+  muse: museTheme,
   default: defaultTheme,
   "default-large": defaultLargeTheme,
   midnight: midnightTheme,
