@@ -223,10 +223,10 @@ If you're stuck, check in this order:
 
 1. [`docs/orchestration/troubleshooting.md`](docs/orchestration/troubleshooting.md)
    — for orchestration-specific failures.
-2. `hermes doctor` — for environment / install issues.
-3. `hermes orchestrator status` plus
+2. `muse doctor` — for environment / install issues.
+3. `muse orchestrator status` plus
    `~/.hermes/jobs/<job-id>/ledger.jsonl` — for runtime issues.
-4. GitHub issues with a tar of the job folder and `hermes doctor`
+4. GitHub issues with a tar of the job folder and `muse doctor`
    output attached.
 
 Welcome aboard.
