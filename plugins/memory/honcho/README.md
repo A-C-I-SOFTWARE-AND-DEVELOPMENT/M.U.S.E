@@ -12,13 +12,13 @@ AI-native cross-session user modeling with multi-pass dialectic reasoning, sessi
 ## Setup
 
 ```bash
-hermes honcho setup    # full interactive wizard (cloud or local)
-hermes memory setup    # generic picker, also works
+muse honcho setup    # full interactive wizard (cloud or local)
+muse memory setup    # generic picker, also works
 ```
 
 Or manually:
 ```bash
-hermes config set memory.provider honcho
+muse config set memory.provider honcho
 echo "HONCHO_API_KEY=***" >> ~/.hermes/.env
 ```
 
@@ -201,7 +201,7 @@ Multiple Hermes profiles can share one workspace while maintaining separate AI i
 
 Both profiles see the same user (`yourname`) in the same shared environment (`hermes`), but each AI peer builds its own observations, conclusions, and behavior patterns. The coder's memory stays code-oriented; the main agent's stays broad.
 
-Host key is derived from the active Hermes profile: `hermes` (default) or `hermes.<profile>` (e.g. `hermes -p coder` → host key `hermes.coder`).
+Host key is derived from the active Hermes profile: `hermes` (default) or `hermes.<profile>` (e.g. `muse -p coder` → host key `hermes.coder`).
 
 ### Dialectic & Reasoning
 
@@ -272,16 +272,16 @@ Presets:
 
 | Command | Description |
 |---------|-------------|
-| `hermes honcho setup` | Full interactive setup wizard |
-| `hermes honcho status` | Show resolved config for active profile |
-| `hermes honcho enable` / `disable` | Toggle Honcho for active profile |
-| `hermes honcho mode <mode>` | Change recall or observation mode |
-| `hermes honcho peer --user <name>` | Update user peer name |
-| `hermes honcho peer --ai <name>` | Update AI peer name |
-| `hermes honcho tokens --context <N>` | Set context token budget |
-| `hermes honcho tokens --dialectic <N>` | Set dialectic max chars |
-| `hermes honcho map <name>` | Map current directory to a session name |
-| `hermes honcho sync` | Create host blocks for all Hermes profiles |
+| `muse honcho setup` | Full interactive setup wizard |
+| `muse honcho status` | Show resolved config for active profile |
+| `muse honcho enable` / `disable` | Toggle Honcho for active profile |
+| `muse honcho mode <mode>` | Change recall or observation mode |
+| `muse honcho peer --user <name>` | Update user peer name |
+| `muse honcho peer --ai <name>` | Update AI peer name |
+| `muse honcho tokens --context <N>` | Set context token budget |
+| `muse honcho tokens --dialectic <N>` | Set dialectic max chars |
+| `muse honcho map <name>` | Map current directory to a session name |
+| `muse honcho sync` | Create host blocks for all Hermes profiles |
 
 ## Example Config
 
