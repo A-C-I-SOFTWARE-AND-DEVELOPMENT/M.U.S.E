@@ -563,15 +563,27 @@ worktree per grain, cut from post-Wave-0 `main`)
 
 | Grain | Branch | Owned files (summary — full set in snapshot) | Risk tier | Status |
 |---|---|---|---|---|
-| **G1 root-tidy** | `claude/fu-d1-root-tidy` | 13 `RELEASE_v*.md` → `docs/releases/`; 9 root `AOS_*.md` consolidated into `docs/aos-recovery/`; one-off reports → `docs/audits/`; inbound-link rewrites (`CLAUDE.md`, `AGENTS.md`, `SETUP.md`, …) | doc-only → auto-merge | planned |
-| **G2 launchgate-strict** | `claude/fu-d2-launchgate-strict` | `.github/workflows/launch-gate.yml` only | additive CI job → auto-merge | planned |
-| **G3 cockpit-contract-p0** | `claude/fu-d3-cockpit-contract-p0` | `scripts/generate_cockpit_contract.py` · `docs/contracts/cockpit-wire-contract.{json,md}` · `tests/gateway/test_cockpit_contract_freeze.py` (all new) | additive → auto-merge | planned |
-| **G4 android-polish** | `claude/fu-d4-android-polish` | `HermesNavGraph.kt` · `JarvisShell.kt` · `Theme.kt` · `Type.kt` · `EmptyState.kt` · `DesignSystemGallery.kt` | UI behavior change → pre-authorized | planned |
-| **G5 web-polish** | `claude/fu-d5-web-polish` | `web/src/themes/presets.ts` · `web/src/index.css` · `web/src/components/EmptyStateCard.tsx` (new) · bare-empty-state pages · `hermes_cli/web_server.py` + theme-list test | default-theme change → pre-authorized | planned |
-| **G6 tui-polish** | `claude/fu-d6-tui-polish` | `ui-tui/src/theme.ts` · `ui-tui/src/components/{helpHint,branding,thinking}.tsx` | UI (light theme) change → pre-authorized | planned |
-| **G7 desktop-polish** | `claude/fu-d7-desktop-polish` | `apps/desktop/src-tauri/{src/lib.rs,Cargo.toml,Cargo.lock,capabilities/default.json}` · `apps/desktop/ui/src/{App.tsx,styles/app.css}` — **not** `tauri.conf.json` (#423's) | shell behavior change → pre-authorized | planned (cut after #423 merges) |
-| **G8 ci-hygiene** | `claude/fu-d8-ci-hygiene` | 13 workflow files (not `launch-gate.yml`) · `scripts/scan_secrets.py` · its test | infra change → pre-authorized | planned |
-| **G9 dependabot-triage** | `claude/fu-d9-dependabot` | TBD by triage (lockfile/dependency bumps only) | security fix → pre-authorized | planned |
+| **G1 root-tidy** | `claude/fu-d1-root-tidy` | 13 `RELEASE_v*.md` → `docs/releases/`; 9 root `AOS_*.md` consolidated into `docs/aos-recovery/`; one-off reports → `docs/audits/`; inbound-link rewrites (`CLAUDE.md`, `AGENTS.md`, `SETUP.md`, …) | doc-only → auto-merge | **merged** — PR #438 (`f0e413241`) |
+| **G2 launchgate-strict** | `claude/fu-d2-launchgate-strict` | `.github/workflows/launch-gate.yml` only | additive CI job → auto-merge | **merged** — PR #435 (`a26eb80a3`) |
+| **G3 cockpit-contract-p0** | `claude/fu-d3-cockpit-contract-p0` | `scripts/generate_cockpit_contract.py` · `docs/contracts/cockpit-wire-contract.{json,md}` · `tests/gateway/test_cockpit_contract_freeze.py` (all new) | additive → auto-merge | **merged** — PR #436 (`30df5952b`) |
+| **G4 android-polish** | `claude/fu-d4-android-polish` | `HermesNavGraph.kt` · `JarvisShell.kt` · `Theme.kt` · `Type.kt` · `EmptyState.kt` · `DesignSystemGallery.kt` | UI behavior change → pre-authorized | **merged** — PR #437 (`165811996`) |
+| **G5 web-polish** | `claude/fu-d5-web-polish` | `web/src/themes/presets.ts` · `web/src/index.css` · `web/src/components/EmptyStateCard.tsx` (new) · bare-empty-state pages · `hermes_cli/web_server.py` + theme-list test | default-theme change → pre-authorized | **merged** — PR #439 (`07fe20269`) |
+| **G6 tui-polish** | `claude/fu-d6-tui-polish` | `ui-tui/src/theme.ts` · `ui-tui/src/components/{helpHint,branding,thinking}.tsx` | UI (light theme) change → pre-authorized | **merged** — PR #440 (`451f5612c`) |
+| **G7 desktop-polish** | `claude/fu-d7-desktop-polish` | `apps/desktop/src-tauri/{src/lib.rs,Cargo.toml,Cargo.lock,capabilities/default.json}` · `apps/desktop/ui/src/{App.tsx,styles/app.css}` — **not** `tauri.conf.json` (#423's) | shell behavior change → pre-authorized | **building** — relaunched post-#423; first run lost to session suspension; +glib triage from G9 |
+| **G8 ci-hygiene** | `claude/fu-d8-ci-hygiene` | 13 workflow files (not `launch-gate.yml`) · `scripts/scan_secrets.py` · its test | infra change → pre-authorized | **merged** — PR #441 (`57701fe8a`) |
+| **G9 dependabot-triage** | `claude/fu-d9-dependabot` | TBD by triage (lockfile/dependency bumps only) | security fix → pre-authorized | **merged** — PR #442 (`bb19e9c45`); glib alert deferred → G7 |
+
+## Wave-1 closeout (orchestrator, 2026-06-10)
+
+| Event | Record |
+|---|---|
+| Merge path | #423 → `7ba9f7bd` (orchestrator); #438 G1 → `f0e413241`, #435 G2 → `a26eb80a3` (orchestrator, on green CI); #436 G3, #437 G4, #439 G5, #440 G6, #441 G8, #442 G9 and ledger PR #434 merged directly by the owner (~04:30Z) |
+| G2 secret-scan fix | strict-gate job's blanked API-key env lines (`launch-gate.yml:190-192`) flagged as `env_name` FPs; orchestrator pushed pragma allowlist (`7d831153`) — empty strings cannot be values. G8's durable fix covers `${{ … }}` references; empty-value suppression not included (pragmas remain correct) |
+| Contract §7 collision (G1 × G8 on `scripts/scan_secrets.py` + test) | resolved by sequencing: G1 merged first (decode robustness, `errors="replace"`); G8's `_scan_line` change touched a different region and merged cleanly after |
+| Pre-existing corruption repaired | truncated UTF-8 em-dash in `docs/aos-recovery/AOS_FULL_SOURCE_INVENTORY.md` (the byte pair that crashed the scanner in G1's diff) repaired to a full `—`; file now decodes clean |
+| Housekeeping note | `claude/fu-d8-ci-hygiene` was re-pushed by the orchestrator after the owner's merge auto-deleted it (race during the merge train); the stray branch is inert — PR #441 is merged; owner may delete it |
+| Operator-gated follow-on (G2) | after a few green cycles, promote the "Release gate (strict tooling)" job into branch protection / the launch-gate REQUIRED rollup |
+| Dependabot | 4 alerts → 1 remaining (glib `GHSA-wrw7-89jp-8q8g`, moderate, alert #49) — bump attempt assigned to G7 |
 
 **Deferred (recorded, no grain):** yuanbao T06 live chat-info fetch;
 EPIC-COCKPIT-SEAM P1–P5; #408 advanced CodeQL (owner settings);
