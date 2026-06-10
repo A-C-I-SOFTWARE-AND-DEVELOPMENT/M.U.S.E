@@ -233,6 +233,14 @@ hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 
+[tool.uv]
+# Security override (GHSA-mrfv-m5wm-5w6w / CVE-2025-69277): pynacl < 1.6.2
+# bundles a libsodium with an incomplete disallowed-inputs list.
+# discord.py (all releases <= 2.7.1) pins "PyNaCl<1.6,>=1.5.0" for its
+# optional voice extra, so the patched 1.6.2 is unreachable without this
+# override. Remove once discord.py relaxes its upper bound.
+override-dependencies = ["pynacl>=1.6.2"]
+
 [tool.setuptools]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "utils"]
 
