@@ -3745,6 +3745,16 @@ from .handlers_autonomy import (  # noqa: E402  (intentional bottom-of-module re
     autonomy_set,
 )
 
+# The Neural Observatory handler group (SYNAPSE Phase 3) lives in
+# ``handlers_observatory`` — same bottom-of-module re-export contract as the
+# autonomy group above, so ``server.py``'s route table reaches them via
+# ``h.observatory_*`` like every other handler.
+from .handlers_observatory import (  # noqa: E402  (intentional bottom-of-module re-export)
+    observatory_layout,
+    observatory_metrics,
+    observatory_snapshot,
+)
+
 __all__ = [
     "COCKPIT_API_VERSION",
     "JsonResponse",
@@ -3795,6 +3805,9 @@ __all__ = [
     "memory_list",
     "models",
     "navigation_list",
+    "observatory_layout",
+    "observatory_metrics",
+    "observatory_snapshot",
     "pair_confirm",
     "pair_start",
     "proposals_list",

@@ -155,6 +155,13 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/avatar/room"), h.room_generate, True),
     ("DELETE", _compile("/v1/cockpit/avatar/room/{id}"), h.room_delete, True),
     ("POST", _compile("/v1/cockpit/avatar/room/{id}/place"), h.room_place, True),
+    # Neural Observatory (SYNAPSE Phase 3) — strictly additive, read-only,
+    # bearer-authed. Pure reads over the passive observatory_metrics collector
+    # plus the GraphRAG cache; honest unavailable/insufficient-evidence shapes
+    # when nothing has been recorded (docs/synapse/design/10-observatory-spec.md).
+    ("GET", _compile("/v1/observatory/snapshot"), h.observatory_snapshot, True),
+    ("GET", _compile("/v1/observatory/metrics"), h.observatory_metrics, True),
+    ("GET", _compile("/v1/observatory/layout"), h.observatory_layout, True),
 ]
 
 
@@ -181,6 +188,7 @@ _SSE_MAX_DURATION_S = 600.0  # backstop; the client reconnects with backoff
 _STREAM_ROUTES: list[tuple[re.Pattern[str], str]] = [
     (_compile("/v1/cockpit/jobs/stream"), "_stream_jobs"),
     (_compile("/v1/cockpit/events/stream"), "_stream_events"),
+    (_compile("/v1/observatory/stream"), "_stream_observatory"),
 ]
 
 
@@ -482,6 +490,57 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                     if now - started >= _SSE_MAX_DURATION_S:
                         break
                     self._sse_sleep(_SSE_POLL_S)
+                self._write_chunk(b"")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        def _stream_observatory(self) -> None:
+            """SSE stream of observatory events (job.stage / gate.verdict /
+            node.activate / route.decision) as the passive collector records
+            them. ``id:`` = the collector's monotonic sequence; honours
+            ``Last-Event-ID`` replay from the in-memory ring and signals
+            ``resync`` on a gap (spec §3.2). Read-only: opening the stream
+            records nothing.
+            """
+            try:
+                from gateway.cockpit import observatory_metrics as om
+
+                collector = om.get_collector()
+            except Exception:  # pragma: no cover - defensive
+                self._send_json(503, {"error": "collector_unavailable"})
+                return
+            # Last-Event-ID replay: resume after the client's last seen seq;
+            # a malformed/absent header starts from "now".
+            try:
+                seq = int(self.headers.get("Last-Event-ID", ""))
+            except (TypeError, ValueError):
+                seq = collector.latest_seq()
+            self._sse_headers()
+            last_beat = time.monotonic()
+            started = time.monotonic()
+            try:
+                self._write_chunk(b"retry: 5000\r\n\r\n")
+                events, seq, gap = collector.events_since(seq)
+                if gap:
+                    self._sse_send("resync", {"reason": "gap", "ts": h._now_iso()})
+                    events = []
+                while not stop_event.is_set():
+                    for event_seq, kind, payload in events:
+                        self._write_chunk(f"id: {event_seq}\r\n".encode("ascii"))
+                        self._sse_send(kind, payload)
+                    now = time.monotonic()
+                    if now - last_beat >= _SSE_HEARTBEAT_S:
+                        self._write_chunk(b": ping\r\n\r\n")
+                        last_beat = now
+                    if now - started >= _SSE_MAX_DURATION_S:
+                        break
+                    self._sse_sleep(_SSE_POLL_S)
+                    events, seq, gap = collector.events_since(seq)
+                    if gap:  # pragma: no cover - requires >ring events mid-stream
+                        self._sse_send("resync", {"reason": "gap", "ts": h._now_iso()})
+                        events = []
                 self._write_chunk(b"")
             except (BrokenPipeError, ConnectionResetError):
                 pass
