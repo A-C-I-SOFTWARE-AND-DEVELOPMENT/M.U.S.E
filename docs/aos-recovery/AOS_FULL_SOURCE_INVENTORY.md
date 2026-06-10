@@ -77,7 +77,7 @@
 | `skills/creative/songwriting-and-ai-music/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | songwriting-and-ai-music | Songwriting\ craft\ and\ Suno\ AI\ music\ prompts. |
 | `skills/creative/touchdesigner-mcp/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | touchdesigner-mcp | Control\ a\ running\ TouchDesigner\ instance\ via\ twozero\ MCP\ —\ create\ operators,\  |
 | `skills/data-science/jupyter-live-kernel/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | jupyter-live-kernel | Iterative\ Python\ via\ live\ Jupyter\ kernel\ (hamelnb). |
-| `skills/decision-quality-gate/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | decision-quality-gate | Force\ Hermes\ to\ produce\ a\ visible\ decision\ ledger\ before\ non-trivial\ actions\ � |
+| `skills/decision-quality-gate/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | decision-quality-gate | Force\ Hermes\ to\ produce\ a\ visible\ decision\ ledger\ before\ non-trivial\ actions\ — |
 | `skills/delivery-scope-controller/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | delivery-scope-controller | Owns\ scope,\ sequencing,\ dependencies,\ delivery\ shape. |
 | `skills/developer-ux-command-center/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | developer-ux-command-center | Developer-facing\ surface\ for\ the\ Hermes\ orchestration\ pipeline.\ Use\ to\ drive\ scr |
 | `skills/devops/kanban-orchestrator/SKILL.md` | hermes-agent | skills/ | SKILL | HIGH | kanban-orchestrator | Decomposition\ playbook\ +\ anti-temptation\ rules\ for\ an\ orchestrator\ profile\ routin |
