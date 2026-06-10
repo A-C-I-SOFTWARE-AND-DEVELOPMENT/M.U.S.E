@@ -8,13 +8,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/Hermes-Agent.git"
+    "url": "git+https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/NousResearch/Hermes-Agent/issues"
+    "url": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues"
   },
-  "homepage": "https://github.com/NousResearch/Hermes-Agent#readme",
+  "homepage": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E#readme",
   "dependencies": {
     "agent-browser": "^0.26.0"
   },
