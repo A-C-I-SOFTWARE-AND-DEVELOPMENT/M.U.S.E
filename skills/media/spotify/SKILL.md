@@ -112,7 +112,7 @@ spotify_devices({"action": "transfer", "device_id": "<id>", "play": true})
 
 **`429 Too Many Requests`** = rate limit. Wait and retry once. If it keeps happening, you're looping — stop.
 
-**`401 Unauthorized` after a retry** — refresh token revoked. Tell the user to run `hermes auth spotify` again.
+**`401 Unauthorized` after a retry** — refresh token revoked. Tell the user to run `muse auth spotify` again.
 
 ## URI and ID formats
 

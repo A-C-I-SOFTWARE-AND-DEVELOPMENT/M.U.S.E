@@ -157,7 +157,7 @@ if result.manual_review_required:
 From the CLI (once wired up by the orchestrator):
 
 ```bash
-hermes orchestrate merge ./run-123
+muse orchestrate merge ./run-123
 # → writes ./run-123/merge/{scorecard.json,council-review.md,...}
 ```
 
