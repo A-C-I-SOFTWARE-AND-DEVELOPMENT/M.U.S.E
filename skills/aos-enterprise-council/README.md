@@ -139,7 +139,7 @@ hermes
 #   /aos-enterprise-council audit this repo
 ```
 
-See `AOS_INSTALLATION_REPORT.md` at the repo root for verification commands.
+See `docs/aos-recovery/AOS_INSTALLATION_REPORT.md` for verification commands.
 
 ## How the council runs
 
@@ -168,5 +168,5 @@ See `AOS_INSTALLATION_REPORT.md` at the repo root for verification commands.
 | Prompts (5) | Newly authored for Hermes / Claude Code / Codex copy-paste use. |
 
 See `../../recovered-agent-sources/MANIFEST.md` for the full source
-inventory and `../../AOS_AGENT_RECOVERY_REPORT.md` for the narrative
+inventory and `../../docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` for the narrative
 recovery report.

@@ -264,7 +264,7 @@ codebase will eventually carry:
 - The ACI Orchestration Bridge (Codex, Claude Code, Termux, GitHub,
   MCP).
 
-See [`ACI_BASE44_IMPORT_HANDOFF.md`](ACI_BASE44_IMPORT_HANDOFF.md) for
+See [`ACI_BASE44_IMPORT_HANDOFF.md`](docs/audits/ACI_BASE44_IMPORT_HANDOFF.md) for
 the canonical scope description Base44 was given.
 
 Upstream Nous Research authorship and the MIT license are preserved

@@ -77,7 +77,7 @@ C, D, E touch disjoint screen subtrees and may run together.
 
 ## What must wait for owner approval
 
-Per [`INTEGRATION_AUDIT.md`](../../INTEGRATION_AUDIT.md) §"Owner-gated decisions":
+Per [`INTEGRATION_AUDIT.md`](../audits/INTEGRATION_AUDIT.md) §"Owner-gated decisions":
 
 - **Q4** — `#123` voice capture / `RECORD_AUDIO` disposition. Until decided, no lane may add a recording permission.
 - **Q5** — `#127` gateway event spine disposition. Until decided, chat lane C wires only `MockJarvisChatGateway`.

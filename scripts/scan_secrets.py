@@ -111,6 +111,12 @@ def _run_git(args: Sequence[str]) -> str:
             cwd=_REPO_ROOT,
             capture_output=True,
             text=True,
+            # Diffs can carry historical lines that are not valid UTF-8
+            # (e.g. a truncated multi-byte sequence in a deleted file).
+            # Replace undecodable bytes instead of crashing — replacement
+            # characters cannot form a credential, and removed lines are
+            # never scanned anyway.
+            errors="replace",
             check=True,
         )
     except FileNotFoundError:  # pragma: no cover - git always present in CI
