@@ -42,6 +42,7 @@ export interface ThemeBrand {
   goodbye: string
   tool: string
   helpHeader: string
+  tagline: string
 }
 
 export interface Theme {
@@ -243,32 +244,48 @@ const BRAND: ThemeBrand = {
   welcome: 'one mind, many pathways. Type your message or /help for commands.',
   goodbye: 'Goodbye. ◯',
   tool: '┊',
-  helpHeader: '✦ M.U.S.E. Commands'
+  helpHeader: '✦ M.U.S.E. Commands',
+  tagline: 'Multi-Use Synaptic Entity · One mind, many pathways.'
 }
 
 // M.U.S.E. "Singularity" banner art — Rich markup parsed per-character by
 // banner.ts parseRichMarkup, identical to the merged CLI skin
-// (hermes_cli/banner.py): a near-white block wordmark and a core+ring glyph
-// with a white core, a lower-right gap, and a matte cyan→violet ring.
-const MUSE_WORDMARK = `[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
-[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
-[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
-[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
-[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
-[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]`
+// (hermes_cli/banner.py): a block wordmark and a core+ring glyph with a
+// lower-right gap and a matte cyan→violet ring. The wordmark/core fill is
+// parameterized so the light theme can swap near-white for primary ink
+// (#12151D) while keeping the spectral ring stops — they read fine on white.
+const MUSE_WORDMARK_ART = [
+  '███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗',
+  '████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝',
+  '██╔████╔██║   ██║   ██║   ███████╗   █████╗',
+  '██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝',
+  '██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗',
+  '╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝'
+] as const
 
-const MUSE_GLYPH = `           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+const museWordmark = (fill: string) => MUSE_WORDMARK_ART.map(line => `[bold ${fill}]${line}[/]`).join('\n')
+
+const museGlyph = (core: string, expansion: string, tagline: string) => `           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
       [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
      [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
-     [#7AE0FF]│[/]        [bold #FFFFFF]◉[/]        [#B388FF]│[/]
+     [#7AE0FF]│[/]        [bold ${core}]◉[/]        [#B388FF]│[/]
      [#7AE0FF]╰[/][#7DDBFF]╮[/]               [#B08DFF]╭[/][#B388FF]╯[/]
       [#7DDBFF]╰[/][#80D6FF]─[/][#84D1FF]╮[/]           [#AA97FF]╭[/][#AD92FF]─[/][#B08DFF]╯[/]
         [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
            [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
 
-        [#AAB2C4]Multi-Use Synaptic Entity[/]
-         [dim #8B93A6]One mind, many pathways.[/]`
+        [${expansion}]Multi-Use Synaptic Entity[/]
+         [dim ${tagline}]One mind, many pathways.[/]`
+
+// Dark (canonical): near-white wordmark, white core, signal-dim/mute tiers.
+const MUSE_WORDMARK = museWordmark('#EEF2F7')
+const MUSE_GLYPH = museGlyph('#FFFFFF', '#AAB2C4', '#8B93A6')
+
+// Light: same lockup with primary-ink fill so the wordmark/core stay the
+// value hero on a white field; text tiers darken one step for contrast.
+const MUSE_WORDMARK_LIGHT = museWordmark('#12151D')
+const MUSE_GLYPH_LIGHT = museGlyph('#12151D', '#6B7388', '#8B93A6')
 
 const cleanPromptSymbol = (s: string | undefined, fallback: string) => {
   const cleaned = String(s ?? '')
@@ -323,9 +340,14 @@ export const DARK_THEME: Theme = {
   bannerHero: MUSE_GLYPH
 }
 
-// Light-terminal palette: darker golds/ambers that stay legible on white
-// backgrounds. Same shape as DARK_THEME so `fromSkin` still layers on top
-// cleanly (#11300).
+// Light-terminal palette: Singularity on a white field. Same value ladder as
+// DARK_THEME, inverted — primary ink (#12151D) is the hero, the deep cyan
+// (#2E7DA0, derived from ring-1 #7AE0FF) carries accent/label/prompt, and the
+// session chrome takes a deep violet (#6B4FA3, derived from ring-2 #B388FF,
+// ~6.4:1 on white). Selection backgrounds are neutral cool grays; statusWarn
+// is a readable amber (#946300, ~5.2:1 on white — deliberately amber, never
+// the retired gold-era olive tones). Same shape as DARK_THEME so `fromSkin`
+// still layers on top cleanly (#11300).
 export const LIGHT_THEME: Theme = {
   color: {
     primary: '#12151D',
@@ -334,23 +356,23 @@ export const LIGHT_THEME: Theme = {
     text: '#1C2030',
     muted: '#6B7388',
     completionBg: '#F5F5F5',
-    completionCurrentBg: mix('#F5F5F5', '#A0651C', 0.25),
+    completionCurrentBg: '#DCE3EE',
     completionMetaBg: '#F5F5F5',
-    completionMetaCurrentBg: mix('#F5F5F5', '#A0651C', 0.25),
+    completionMetaCurrentBg: '#DCE3EE',
 
-    label: '#7A5A0F',
+    label: '#2E7DA0',
     ok: '#2E7D32',
     error: '#C62828',
     warn: '#E65100',
 
-    prompt: '#2B2014',
-    sessionLabel: '#7A5A0F',
-    sessionBorder: '#7A5A0F',
+    prompt: '#2E7DA0',
+    sessionLabel: '#6B4FA3',
+    sessionBorder: '#6B4FA3',
 
     statusBg: '#F5F5F5',
     statusFg: '#333333',
     statusGood: '#2E7D32',
-    statusWarn: '#8B6914',
+    statusWarn: '#946300',
     statusBad: '#D84315',
     statusCritical: '#B71C1C',
     selectionBg: '#D4E4F7',
@@ -359,13 +381,13 @@ export const LIGHT_THEME: Theme = {
     diffRemoved: 'rgb(240,200,200)',
     diffAddedWord: 'rgb(27,94,32)',
     diffRemovedWord: 'rgb(183,28,28)',
-    shellDollar: '#1565C0'
+    shellDollar: '#2E7DA0'
   },
 
   brand: BRAND,
 
-  bannerLogo: '',
-  bannerHero: ''
+  bannerLogo: MUSE_WORDMARK_LIGHT,
+  bannerHero: MUSE_GLYPH_LIGHT
 }
 
 const TRUE_RE = /^(?:1|true|yes|on)$/
@@ -574,8 +596,10 @@ export function fromSkin(
       warn: c('ui_warn') ?? d.color.warn,
 
       prompt: c('prompt') ?? c('banner_text') ?? d.color.prompt,
-      sessionLabel: c('session_label') ?? muted,
-      sessionBorder: c('session_border') ?? muted,
+      // With skin colors present, session chrome coheres with the skin's
+      // muted tone; an empty skin must reproduce the default theme exactly.
+      sessionLabel: c('session_label') ?? (hasSkinColors ? muted : d.color.sessionLabel),
+      sessionBorder: c('session_border') ?? (hasSkinColors ? muted : d.color.sessionBorder),
 
       statusBg: d.color.statusBg,
       statusFg: d.color.statusFg,
@@ -599,7 +623,8 @@ export function fromSkin(
       welcome: branding.welcome ?? d.brand.welcome,
       goodbye: branding.goodbye ?? d.brand.goodbye,
       tool: toolPrefix || d.brand.tool,
-      helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
+      helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader),
+      tagline: branding.tagline ?? d.brand.tagline
     },
 
     bannerLogo,
