@@ -95,7 +95,7 @@ fun NewCodingTaskScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(CodingTestTags.NEW_PROMPT),
-                label = { Text("What should JARVIS build, fix, or review?") },
+                label = { Text("What should MUSE build, fix, or review?") },
                 placeholder = { Text("e.g. Add a retry with backoff to the upload client and cover it with a test") },
                 minLines = 3,
             )

@@ -101,7 +101,7 @@ fun AuditScreen(
             ) {
                 MuseEmptyState(
                     title = stringResource(R.string.audit_empty),
-                    body = "Decisions and approvals will appear here once Jarvis acts.",
+                    body = "Decisions and approvals will appear here once Muse acts.",
                 )
             }
         } else {

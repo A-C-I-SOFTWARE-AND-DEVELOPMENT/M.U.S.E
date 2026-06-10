@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  * interchangeable and the loop logic stays unit-testable.
  *
  * Default impls (wired in [com.aci.hermes.di.AppContainer]):
- *  - wake word  → Picovoice Porcupine ("Hey Jarvis")
+ *  - wake word  → Picovoice Porcupine ("Hey Muse")
  *  - STT        → Vosk on-device (streaming, offline); whisper.cpp /
  *                 cloud are drop-in alternatives
  *  - TTS        → Android TextToSpeech; cloud/Piper are alternatives

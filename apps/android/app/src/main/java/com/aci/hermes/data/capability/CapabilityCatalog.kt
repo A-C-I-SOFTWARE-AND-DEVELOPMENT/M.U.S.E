@@ -385,8 +385,8 @@ object CapabilityCatalog {
             id = "presence.voice",
             name = "Hands-free voice",
             category = CapabilityCategory.MOBILE,
-            summary = "Talk to Jarvis through your headset — say \"Hey Jarvis\" for any command.",
-            examplePrompt = "JARVIS, start voice mode.",
+            summary = "Talk to Muse through your headset — say \"Hey Muse\" for any command.",
+            examplePrompt = "MUSE, start voice mode.",
             route = CapabilityRoute(
                 surface = RouteSurface.LOCAL_HANDOFF,
                 lane = "voice: loop",

@@ -114,7 +114,7 @@ class AvatarPickerViewModel(
             val msg = when (val r = cockpitClient.personaSet(SetPersonaRequest(description = desc))) {
                 is CockpitResult.Success -> {
                     resolvedName = r.value.name
-                    if (desc.isBlank()) "Reset to default JARVIS." else "Now in character: ${r.value.name}"
+                    if (desc.isBlank()) "Reset to default MUSE." else "Now in character: ${r.value.name}"
                 }
                 is CockpitResult.Failure -> "Couldn't set persona (HTTP ${r.httpStatus})."
                 is CockpitResult.Unreachable -> "Not connected to the runtime — pair first."

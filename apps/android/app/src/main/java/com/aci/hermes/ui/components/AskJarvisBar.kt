@@ -37,7 +37,7 @@ import com.aci.hermes.ui.theme.JarvisSignalMute
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
- * The "Ask Jarvis" input bar.
+ * The "Ask Muse" input bar.
  *
  * One text input + a microphone toggle + a send button. The bar takes
  * its visual cues from the rest of the command center: deep navy fill,

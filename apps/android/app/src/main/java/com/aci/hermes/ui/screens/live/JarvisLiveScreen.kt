@@ -360,7 +360,7 @@ fun JarvisLiveScreen(
                 }
             }
 
-            // Toggle the floating JARVIS that lives over every app.
+            // Toggle the floating MUSE that lives over every app.
             IconButton(
                 onClick = onToggleOverlay,
                 modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
@@ -368,9 +368,9 @@ fun JarvisLiveScreen(
                 Icon(
                     Icons.Default.PictureInPictureAlt,
                     contentDescription = if (overlayOn) {
-                        "Stop floating JARVIS over other apps"
+                        "Stop floating MUSE over other apps"
                     } else {
-                        "Float JARVIS over other apps"
+                        "Float MUSE over other apps"
                     },
                     tint = if (overlayOn) HermesCyan else Color.White.copy(alpha = 0.6f),
                 )

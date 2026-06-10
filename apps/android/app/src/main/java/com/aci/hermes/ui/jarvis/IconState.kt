@@ -57,18 +57,18 @@ enum class IconState {
  * verbatim when the icon receives focus.
  */
 fun IconState.accessibilityLabel(): String = when (this) {
-    IconState.IDLE -> "Jarvis idle"
-    IconState.LISTENING -> "Jarvis listening"
-    IconState.THINKING -> "Jarvis thinking"
-    IconState.SPEAKING -> "Jarvis speaking"
-    IconState.WORKING -> "Jarvis working"
-    IconState.WAITING_FOR_APPROVAL -> "Jarvis waiting for your approval"
-    IconState.SERIOUS_ACTION_PENDING -> "Jarvis: serious action waiting for approval"
-    IconState.CRITICAL_ACTION_PENDING -> "Jarvis: critical action waiting for approval"
-    IconState.BLOCKED -> "Jarvis blocked"
-    IconState.WARNING -> "Jarvis warning"
-    IconState.COMPLETE -> "Jarvis complete"
-    IconState.OFFLINE -> "Jarvis offline"
+    IconState.IDLE -> "Muse idle"
+    IconState.LISTENING -> "Muse listening"
+    IconState.THINKING -> "Muse thinking"
+    IconState.SPEAKING -> "Muse speaking"
+    IconState.WORKING -> "Muse working"
+    IconState.WAITING_FOR_APPROVAL -> "Muse waiting for your approval"
+    IconState.SERIOUS_ACTION_PENDING -> "Muse: serious action waiting for approval"
+    IconState.CRITICAL_ACTION_PENDING -> "Muse: critical action waiting for approval"
+    IconState.BLOCKED -> "Muse blocked"
+    IconState.WARNING -> "Muse warning"
+    IconState.COMPLETE -> "Muse complete"
+    IconState.OFFLINE -> "Muse offline"
 }
 
 /**

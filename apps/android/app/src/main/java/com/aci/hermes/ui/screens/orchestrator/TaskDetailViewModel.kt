@@ -106,7 +106,7 @@ class TaskDetailViewModel(
     fun copyPrompt() {
         val ok = HandoffLauncher.copyPrompt(
             getApplication(),
-            label = "Hermes prompt",
+            label = "Muse prompt",
             text = _state.value.promptPreview,
         )
         _state.update { it.copy(snackbar = if (ok) "Prompt copied to clipboard" else "Failed to access clipboard") }

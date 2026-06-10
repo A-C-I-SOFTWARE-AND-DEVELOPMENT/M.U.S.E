@@ -841,7 +841,7 @@ private fun ChatInputArea(
                         .clip(CircleShape)
                         .background(JarvisCyan),
                 )
-                Text("Jarvis is responding…", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
+                Text("Muse is responding…", style = MaterialTheme.typography.labelSmall, color = JarvisSignalMute)
                 Spacer(Modifier.weight(1f))
                 MuseButton(
                     onClick = onStop,

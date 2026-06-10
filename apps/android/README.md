@@ -270,7 +270,7 @@ hands-free. See [`docs/avatar/sentient-avatar-architecture.md`](../../docs/avata
   app launches, node-tree targeting.
 - **Presence** (`service/JarvisOverlayService`): the floating overlay +
   the run/push/page-turn performance + the idle/sleep/wander life loop.
-- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey Jarvis" →
+- **Voice** (`service/VoiceLoopService` + `voice/`): "Hey Muse" →
   STT → agent → TTS over a Bluetooth headset.
 - **Create**: image/video generation and photo→avatar conversion are
   surfaced in the capability catalog (`create.*`).
