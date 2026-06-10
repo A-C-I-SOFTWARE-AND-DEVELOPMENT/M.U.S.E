@@ -1,0 +1,8 @@
+# Placeholder so the empty Content/ directory survives source control.
+#
+# POLICY: no binary asset (*.uasset, *.umap, textures, audio, …) ever lands
+# in this staging tree inside the M.U.S.E monorepo. The Phase 0 test map —
+# a Blueprint level whose BeginPlay prints /v1/health + capabilities via
+# UMuseGatewayClient — is created IN-EDITOR on the owner's machine, in the
+# standalone SYNAPSE repo (where .gitattributes routes it through Git LFS).
+# Exact build steps: docs/testmap-setup.md.

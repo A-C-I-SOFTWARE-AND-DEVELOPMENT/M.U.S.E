@@ -1,0 +1,67 @@
+# SYNAPSE CI — Win64 Development build + automation smoke.
+#
+# ============================ IMPORTANT ====================================
+# This workflow is INTENTIONALLY INERT where it currently sits
+# (apps/synapse-ue/.github/workflows/ inside the M.U.S.E monorepo): GitHub
+# only executes workflows from the repository ROOT's .github/workflows/.
+# It becomes live automatically when this tree is copied verbatim to the
+# root of the standalone SYNAPSE repo (see README.md §Migration).
+# ===========================================================================
+#
+# Runner requirements (self-hosted; no hosted runner ships UE):
+#   - Windows + Visual Studio 2022 (Game Dev with C++ workload)
+#   - Unreal Engine 5.6 installed at C:\Program Files\Epic Games\UE_5.6
+#     (pin the minor version for the project's life — master plan §5)
+#   - Runner labels: [self-hosted, Windows, UE5_6]
+#   - Git LFS installed (checkout pulls LFS objects)
+
+name: build-win64
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  UE_ROOT: 'C:\Program Files\Epic Games\UE_5.6'
+
+jobs:
+  build-development:
+    runs-on: [self-hosted, Windows, UE5_6]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Build SynapseEditor Win64 Development (UBT, warnings-as-errors)
+        shell: cmd
+        run: >
+          "%UE_ROOT%\Engine\Build\BatchFiles\Build.bat"
+          SynapseEditor Win64 Development
+          -Project="%GITHUB_WORKSPACE%\Synapse.uproject"
+          -WaitMutex
+
+      - name: Automation smoke (headless, null RHI)
+        shell: cmd
+        run: >
+          "%UE_ROOT%\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          "%GITHUB_WORKSPACE%\Synapse.uproject"
+          -ExecCmds="Automation RunTests Synapse.; Quit"
+          -TestExit="Automation Test Queue Empty"
+          -unattended -nopause -nullrhi -nosplash
+          -log -ReportOutputPath="%GITHUB_WORKSPACE%\Saved\Automation"
+
+      - name: Upload automation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: automation-report
+          path: Saved/Automation
+          if-no-files-found: ignore
+
+  # Phase 2+: add a Shipping BuildCookRun lane and the nightly cook + packaged
+  # smoke boot (TDD §7), plus the synapse/contract.lock wire-contract pin job
+  # that fails when the pinned M.U.S.E contract artifact's hash drifts.

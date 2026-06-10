@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 94,
+  "handler_count": 98,
   "owner_gated_count": 10,
-  "route_count": 96,
+  "route_count": 100,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -867,6 +867,42 @@
       "path": "/v1/jarvis/chat",
       "requires_auth": true,
       "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers_observatory.observatory_layout",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/layout",
+      "requires_auth": true,
+      "summary": "On-demand cluster expansion for the galaxy LOD (spec \u00a73.4)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_observatory.observatory_metrics",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/metrics",
+      "requires_auth": true,
+      "summary": "Measured rollups for heat / ladder brightness (spec \u00a73.3)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_observatory.observatory_snapshot",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/snapshot",
+      "requires_auth": true,
+      "summary": "One-call Observatory boot: graph clusters + stations + ladder + rollup."
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._stream_observatory",
+      "kind": "sse",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/stream",
+      "requires_auth": true,
+      "summary": "SSE stream of observatory events (job.stage / gate.verdict /"
     }
   ],
   "source": [

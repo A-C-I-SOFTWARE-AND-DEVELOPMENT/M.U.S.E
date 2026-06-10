@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.6",
+	"Category": "Game",
+	"Description": "SYNAPSE — A M.U.S.E. Game. Prompt 0 scaffold: SynapseCore + SynapseNet (MUSE gateway client over the frozen cockpit wire contract).",
+	"Modules": [
+		{
+			"Name": "SynapseCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "SynapseNet",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"HTTP",
+				"Json"
+			]
+		}
+	]
+}
