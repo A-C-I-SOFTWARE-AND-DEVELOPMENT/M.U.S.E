@@ -80,7 +80,7 @@ ls ~/.hermes/skills/aos-enterprise-council/registry/
 ls ~/.hermes/skills/aos-enterprise-council/rules/
 
 # Activation rehearsal — should print the routing decision + todo list
-echo "/aos-enterprise-council audit this repo" | hermes --once 2>&1 | head -40
+echo "/aos-enterprise-council audit this repo" | muse --once 2>&1 | head -40
 ```
 
 ## Manual review queue

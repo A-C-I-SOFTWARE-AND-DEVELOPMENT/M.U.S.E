@@ -75,7 +75,7 @@ Pick the host first. Options:
 Install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 source ~/.bashrc
 muse doctor              # confirm clean install
 ```
