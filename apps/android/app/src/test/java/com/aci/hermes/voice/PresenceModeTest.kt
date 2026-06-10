@@ -56,16 +56,16 @@ class PresenceModeTest {
 
     @Test
     fun `matches the keyword as a whole word ignoring case and punctuation`() {
-        assertTrue(WakeWordMatcher.matches("jarvis", "Hey, Jarvis!"))
-        assertTrue(WakeWordMatcher.matches("jarvis", "okay jarvis what's up"))
-        assertTrue(WakeWordMatcher.matches("Jarvis", "JARVIS"))
+        assertTrue(WakeWordMatcher.matches("muse", "Hey, Muse!"))
+        assertTrue(WakeWordMatcher.matches("muse", "okay muse what's up"))
+        assertTrue(WakeWordMatcher.matches("Muse", "MUSE"))
     }
 
     @Test
     fun `does not match a substring or empty inputs`() {
-        assertFalse(WakeWordMatcher.matches("jarvis", "jarvisify the report"))
-        assertFalse(WakeWordMatcher.matches("jarvis", "nothing relevant here"))
-        assertFalse(WakeWordMatcher.matches("jarvis", ""))
-        assertFalse(WakeWordMatcher.matches("", "jarvis"))
+        assertFalse(WakeWordMatcher.matches("muse", "visiting the museum"))
+        assertFalse(WakeWordMatcher.matches("muse", "nothing relevant here"))
+        assertFalse(WakeWordMatcher.matches("muse", ""))
+        assertFalse(WakeWordMatcher.matches("", "muse"))
     }
 }

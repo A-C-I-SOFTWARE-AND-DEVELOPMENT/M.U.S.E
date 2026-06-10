@@ -11,7 +11,7 @@ enum class VoicePhase {
     /** Loop off entirely. */
     DORMANT,
 
-    /** Mic open only for the wake word ("Hey Jarvis"). */
+    /** Mic open only for the wake word ("Hey Muse"). */
     WAITING_FOR_WAKE,
 
     /** Wake word heard; streaming the user's utterance to STT. */

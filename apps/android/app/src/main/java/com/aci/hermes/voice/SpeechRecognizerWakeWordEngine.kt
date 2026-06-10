@@ -41,12 +41,19 @@ class SpeechRecognizerWakeWordEngine(
     private val main = Handler(Looper.getMainLooper())
 
     // Accept the keyword plus its most common single-recognizer mishears so a
-    // slightly-off transcription ("hey jervis") still arms. Matching is
+    // slightly-off transcription ("hey mews") still arms. Matching is
     // substring + normalized, so this stays forgiving without being trigger-happy.
+    // Tradeoff: the bare "muse" / "a muse" needles mirror the previous
+    // bare-"jarvis" behavior, but "muse" is an ordinary English word and the
+    // match below is substring containment — so "museum" / "amused" also trip
+    // it. False-positive risk is therefore higher than it was for the rarer
+    // "jarvis"; if spurious wakes are reported, drop the bare needles so the
+    // "hey" prefix is required (or switch to whole-word matching à la
+    // WakeWordMatcher).
     private val needles: List<String> = buildList {
         add(keyword.normalizedKeyword())
         if (keyword.equals(DEFAULT_KEYWORD, ignoreCase = true)) {
-            addAll(listOf("hey jarvis", "hey jervis", "a jarvis", "jarvis"))
+            addAll(listOf("hey muse", "hey mews", "a muse", "muse"))
         }
     }.distinct()
 
@@ -130,7 +137,7 @@ class SpeechRecognizerWakeWordEngine(
         lowercase(Locale.getDefault()).trim().replace(Regex("[^a-z0-9 ]"), "")
 
     companion object {
-        const val DEFAULT_KEYWORD = "hey jarvis"
+        const val DEFAULT_KEYWORD = "hey muse"
         private const val REARM_DELAY_MS = 400L
     }
 }

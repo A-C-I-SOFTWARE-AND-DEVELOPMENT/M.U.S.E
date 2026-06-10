@@ -310,7 +310,7 @@ class AppContainer(private val application: Application) {
     // this only makes the engines available, it does not open the mic.
     init {
         com.aci.hermes.service.VoiceLoopService.Wiring.apply {
-            // Keyless on-device wake word ("jarvis") so hands-free Presence Mode
+            // Keyless on-device wake word ("muse") so hands-free Presence Mode
             // works without a cloud key; a dedicated spotter (Picovoice) is a
             // drop-in upgrade that would need an access key (not in source).
             wakeWordFactory = { ctx -> com.aci.hermes.voice.KeywordSpeechWakeWordEngine(ctx) }

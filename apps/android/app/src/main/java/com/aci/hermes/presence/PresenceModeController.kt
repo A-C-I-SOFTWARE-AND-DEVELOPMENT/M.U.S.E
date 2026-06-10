@@ -1,7 +1,7 @@
 package com.aci.hermes.presence
 
 /**
- * JARVIS Presence Mode — the trigger arbitration brain.
+ * MUSE Presence Mode — the trigger arbitration brain.
  *
  * When Presence Mode is enabled the avatar lives over the launcher and the
  * conversation is **hands-free by default**: the user does not press-and-hold
@@ -49,7 +49,7 @@ sealed interface PresenceEvent {
 
     /** The camera attention detector saw the user look at the device. */
     data object AttentionDetected : PresenceEvent
-    /** The on-device wake word fired ("Hey Jarvis"). */
+    /** The on-device wake word fired ("Hey Muse"). */
     data object WakeWordDetected : PresenceEvent
     /** The user tapped the explicit mic button (fallback path). */
     data object MicButtonTapped : PresenceEvent

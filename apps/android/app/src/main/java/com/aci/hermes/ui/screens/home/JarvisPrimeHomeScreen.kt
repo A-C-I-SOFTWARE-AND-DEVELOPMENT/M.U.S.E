@@ -936,7 +936,7 @@ fun VoiceStateCard(
     val label = when {
         !enabled -> "Voice blocked (emergency stop)"
         phase == VoicePhase.DORMANT -> "Voice idle"
-        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Jarvis”"
+        phase == VoicePhase.WAITING_FOR_WAKE -> "Listening for “Hey Muse”"
         phase == VoicePhase.LISTENING -> "Listening…"
         phase == VoicePhase.THINKING -> "Thinking…"
         else -> "Speaking…"

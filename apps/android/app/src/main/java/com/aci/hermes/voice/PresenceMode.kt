@@ -2,7 +2,7 @@ package com.aci.hermes.voice
 
 /**
  * Pure, Android-free logic for hands-free **Presence Mode** — the policy
- * that decides *how* JARVIS starts listening and *what* the presence
+ * that decides *how* MUSE starts listening and *what* the presence
  * surface should show. The Android glue ([PresenceModeController]) only
  * enacts these decisions, so the behavior stays unit-testable.
  */
@@ -34,7 +34,7 @@ enum class PresenceTrigger {
     /** Camera-based attention (opt-in, gated behind CAMERA — not yet shipped). */
     CAMERA_ATTENTION,
 
-    /** Always-listening wake word ("jarvis"). */
+    /** Always-listening wake word ("muse"). */
     WAKE_WORD,
 
     /** Manual: the mic button or a tap on the avatar (always available). */
@@ -75,7 +75,7 @@ object PresenceModePolicy {
  * testing, and the matching rules are pinned by unit tests.
  *
  * Matches on a whole-word, case/punctuation-insensitive basis so
- * "Hey, Jarvis!" trips "jarvis" but "jarvisify" does not.
+ * "Hey, Muse!" trips "muse" but "museum" does not.
  */
 object WakeWordMatcher {
     fun matches(keyword: String, transcript: String): Boolean {

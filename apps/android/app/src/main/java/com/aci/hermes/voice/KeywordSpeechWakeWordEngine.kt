@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.callbackFlow
 /**
  * A **keyless, on-device** wake-word engine built on Android
  * [SpeechRecognizer]. It continuously listens and emits once the spoken
- * text contains the keyword ("jarvis"), re-arming itself after every
+ * text contains the keyword ("muse"), re-arming itself after every
  * non-match so it keeps spotting until the collector cancels.
  *
  * This is the no-key fallback that makes hands-free Presence Mode work
@@ -31,7 +31,10 @@ import kotlinx.coroutines.flow.callbackFlow
  */
 class KeywordSpeechWakeWordEngine(
     context: Context,
-    override val keyword: String = "jarvis",
+    // Bare "muse" mirrors the previous bare-"jarvis" keyword, but "muse" is a
+    // common English word — higher false-positive risk; WakeWordMatcher's
+    // whole-word rule ("museum"/"amuse" never trip) is the only guard.
+    override val keyword: String = "muse",
 ) : WakeWordEngine {
 
     private val appContext = context.applicationContext
