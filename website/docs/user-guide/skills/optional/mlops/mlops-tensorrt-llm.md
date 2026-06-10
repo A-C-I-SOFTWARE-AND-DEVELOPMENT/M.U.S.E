@@ -195,9 +195,9 @@ outputs = llm.generate(
 
 ## References
 
-- **[Optimization Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/optimization.md)** - Quantization, batching, KV cache tuning
-- **[Multi-GPU Setup](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/multi-gpu.md)** - Tensor/pipeline parallelism, multi-node
-- **[Serving Guide](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/tensorrt-llm/references/serving.md)** - Production deployment, monitoring, autoscaling
+- **[Optimization Guide](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/tensorrt-llm/references/optimization.md)** - Quantization, batching, KV cache tuning
+- **[Multi-GPU Setup](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/tensorrt-llm/references/multi-gpu.md)** - Tensor/pipeline parallelism, multi-node
+- **[Serving Guide](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/tensorrt-llm/references/serving.md)** - Production deployment, monitoring, autoscaling
 
 ## Resources
 

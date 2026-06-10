@@ -556,8 +556,8 @@ python inference.py \
 
 ## References
 
-- **[Advanced Usage](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** - Multi-node training, API automation
-- **[Troubleshooting](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** - Common issues and solutions
+- **[Advanced Usage](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/lambda-labs/references/advanced-usage.md)** - Multi-node training, API automation
+- **[Troubleshooting](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/lambda-labs/references/troubleshooting.md)** - Common issues and solutions
 
 ## Resources
 
