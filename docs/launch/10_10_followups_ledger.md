@@ -485,10 +485,10 @@ not apply here because the branch is fixed by the session contract).
 
 | Task | Title | Owned files | Risk | Status |
 |---|---|---|---|---|
-| **WC-1** | First-run gate reads `model_policy.json` + detection-aware non-interactive guidance + happy-path "hermes"→"muse" sweep (collapsed single writer) | `hermes_cli/main.py` · `hermes_cli/setup.py` · `hermes_cli/_parser.py` · `tests/hermes_cli/test_api_key_providers.py` · `tests/hermes_cli/test_setup_noninteractive.py` | **behavior change → owner-gated** | building → in-review |
-| **WC-2** | Release gate hard `tooling_present` precondition (`HERMES_RELEASE_GATE_STRICT=1` opt-in; FU-10 default preserved) | `hermes_cli/release_gate.py` · `tests/test_release_gate.py` | **behavior change → owner-gated** | building → in-review |
-| **WC-3** | `tests/e2e/test_core_loop_live_smoke.py` (`@pytest.mark.live`, `--run-live`/`HERMES_E2E_LIVE=1` opt-in) + conftest hook + CI annotation | `tests/e2e/test_core_loop_live_smoke.py` (new) · `tests/conftest.py` · `.github/workflows/tests.yml` | additive (test) | building → in-review |
-| **WC-4** | Propagate FU-18 "routed catalog" qualifier to 4 stale `AOS_*.md` surfaces | `AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` · `docs/aos-recovery/AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_INSTALLATION_REPORT.md` | doc-only (RC0) | building → in-review |
+| **WC-1** | First-run gate reads `model_policy.json` + detection-aware non-interactive guidance + happy-path "hermes"→"muse" sweep (collapsed single writer) | `hermes_cli/main.py` · `hermes_cli/setup.py` · `hermes_cli/_parser.py` · `tests/hermes_cli/test_api_key_providers.py` · `tests/hermes_cli/test_setup_noninteractive.py` | **behavior change → owner-gated** | **merged → #414** (`4e84b28b1`) |
+| **WC-2** | Release gate hard `tooling_present` precondition (`HERMES_RELEASE_GATE_STRICT=1` opt-in; FU-10 default preserved) | `hermes_cli/release_gate.py` · `tests/test_release_gate.py` | **behavior change → owner-gated** | **merged → #414** (`4e84b28b1`) |
+| **WC-3** | `tests/e2e/test_core_loop_live_smoke.py` (`@pytest.mark.live`, `--run-live`/`HERMES_E2E_LIVE=1` opt-in) + conftest hook + CI annotation | `tests/e2e/test_core_loop_live_smoke.py` (new) · `tests/conftest.py` · `.github/workflows/tests.yml` | additive (test) | **merged → #414** (`4e84b28b1`) |
+| **WC-4** | Propagate FU-18 "routed catalog" qualifier to 4 stale `AOS_*.md` surfaces | `AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` · `docs/aos-recovery/AOS_AGENT_REGISTRY_COMPLETE.md` · `docs/aos-recovery/AOS_INSTALLATION_REPORT.md` | doc-only (RC0) | **merged → #414** (`4e84b28b1`) |
 
 Per-task snapshots: `docs/launch/followups/wc-1-firstrun-rebrand.md`,
 `wc-2-release-gate-tooling.md`, `wc-3-live-smoke.md`,
@@ -525,6 +525,58 @@ Per-task snapshots: `docs/launch/followups/wc-1-firstrun-rebrand.md`,
   edited lines; focused pytest selection 218 passed, 1 skipped — the
   WC-3 live smoke is correctly skipped by default). Single draft PR opens
   on push.
+- `2026-06-08` — **Wave C closed.** PR #414 merged to `main`
+  (`4e84b28b1`). Status rows above refreshed to `merged` during the
+  Wave-D ledger reconciliation (2026-06-10); the rows had been left at
+  `building → in-review` after the merge — ledger-only staleness, no
+  code drift.
+
+# Wave D — 10/10 readiness fix sweep (2026-06-10)
+
+**Trigger:** owner directive — "do a 10/10 readiness audit … extensive
+audit and fix sweep in grainler parallel … fix all PRs/drafts, organize
+and optimize entire repo/files … extensive ui/ux polish upgrading to
+apple quality keeping my brand and colors."
+
+**Owner authorizations on file (2026-06-10, via in-session decision
+prompts):** (1) fix **and merge** all open PRs; (2) UI/UX polish across
+**all surfaces equally** (Android / web cockpit / TUI / desktop);
+(3) EPIC-COCKPIT-SEAM **Phase 0 only** (wire-contract freeze, additive).
+`design-system/tokens.json` is **frozen** this wave — every UI grain
+consumes tokens, none edits them.
+
+## Wave-0 closeout actions (orchestrator, sequential — done first)
+
+| Action | Outcome |
+|---|---|
+| Merge #432 (small-fixes G6, additive tier, 30/30 green) | **merged** (`08e42502`) |
+| Un-draft + merge #433 ("Hey Muse" wake word, green, owner-authorized) | **merged** (`e283d39e`) |
+| Fix #423 red check (secret-scan: 4 `env_name` FPs on `${{ secrets.* }}` *references* in `muse-desktop-release.yml`) | pragma-allowlisted on the PR branch (`ebfdba215`); local scan exits 0; merge on green CI; durable scanner fix = grain G8 |
+| #408 (CodeQL advanced setup) | **closed: blocked-on-owner-settings** — repo runs CodeQL Default Setup, which rejects SARIF from advanced workflows; the failing matrix is unfixable from a PR. Owner options recorded on the PR: add Kotlin to Default Setup languages (recommended, one click) or disable Default Setup and revive #408. |
+| Ledger reconciliation | Wave C rows → `merged`; navigator-perf residual **closed** by #388 (306 s → 0.51 s, see `followups/g-navigator-perf.md`); `gateway/platforms/yuanbao.py:4678` TODO T06 **deferred** (needs live Yuanbao credentials — untestable free/local); EPIC P1–P5 remain owner-gated |
+
+**New finding (Wave-0):** GitHub reports 4 Dependabot alerts on `main`
+(1 critical, 3 moderate) — triage added to this wave as grain **G9**.
+
+## Wave-1 grain table (parallel; disjoint owned files; one branch +
+worktree per grain, cut from post-Wave-0 `main`)
+
+| Grain | Branch | Owned files (summary — full set in snapshot) | Risk tier | Status |
+|---|---|---|---|---|
+| **G1 root-tidy** | `claude/fu-d1-root-tidy` | 13 `RELEASE_v*.md` → `docs/releases/`; 9 root `AOS_*.md` consolidated into `docs/aos-recovery/`; one-off reports → `docs/audits/`; inbound-link rewrites (`CLAUDE.md`, `AGENTS.md`, `SETUP.md`, …) | doc-only → auto-merge | planned |
+| **G2 launchgate-strict** | `claude/fu-d2-launchgate-strict` | `.github/workflows/launch-gate.yml` only | additive CI job → auto-merge | planned |
+| **G3 cockpit-contract-p0** | `claude/fu-d3-cockpit-contract-p0` | `scripts/generate_cockpit_contract.py` · `docs/contracts/cockpit-wire-contract.{json,md}` · `tests/gateway/test_cockpit_contract_freeze.py` (all new) | additive → auto-merge | planned |
+| **G4 android-polish** | `claude/fu-d4-android-polish` | `HermesNavGraph.kt` · `JarvisShell.kt` · `Theme.kt` · `Type.kt` · `EmptyState.kt` · `DesignSystemGallery.kt` | UI behavior change → pre-authorized | planned |
+| **G5 web-polish** | `claude/fu-d5-web-polish` | `web/src/themes/presets.ts` · `web/src/index.css` · `web/src/components/EmptyStateCard.tsx` (new) · bare-empty-state pages · `hermes_cli/web_server.py` + theme-list test | default-theme change → pre-authorized | planned |
+| **G6 tui-polish** | `claude/fu-d6-tui-polish` | `ui-tui/src/theme.ts` · `ui-tui/src/components/{helpHint,branding,thinking}.tsx` | UI (light theme) change → pre-authorized | planned |
+| **G7 desktop-polish** | `claude/fu-d7-desktop-polish` | `apps/desktop/src-tauri/{src/lib.rs,Cargo.toml,Cargo.lock,capabilities/default.json}` · `apps/desktop/ui/src/{App.tsx,styles/app.css}` — **not** `tauri.conf.json` (#423's) | shell behavior change → pre-authorized | planned (cut after #423 merges) |
+| **G8 ci-hygiene** | `claude/fu-d8-ci-hygiene` | 13 workflow files (not `launch-gate.yml`) · `scripts/scan_secrets.py` · its test | infra change → pre-authorized | planned |
+| **G9 dependabot-triage** | `claude/fu-d9-dependabot` | TBD by triage (lockfile/dependency bumps only) | security fix → pre-authorized | planned |
+
+**Deferred (recorded, no grain):** yuanbao T06 live chat-info fetch;
+EPIC-COCKPIT-SEAM P1–P5; #408 advanced CodeQL (owner settings);
+registry/namespace renames (Docker Hub / PyPI / Cachix — publish-time,
+owner-coordinated).
 
 ## Out-of-scope (tracked separately)
 
