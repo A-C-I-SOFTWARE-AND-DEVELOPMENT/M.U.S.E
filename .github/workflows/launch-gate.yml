@@ -187,6 +187,6 @@ jobs:
         env:
           HERMES_RELEASE_GATE_STRICT: "1"
           # Ensure the gate's fast pytest slice can't call real APIs.
-          OPENROUTER_API_KEY: ""
-          OPENAI_API_KEY: ""
-          NOUS_API_KEY: ""
+          OPENROUTER_API_KEY: ""  # pragma: allowlist secret
+          OPENAI_API_KEY: ""  # pragma: allowlist secret
+          NOUS_API_KEY: ""  # pragma: allowlist secret
