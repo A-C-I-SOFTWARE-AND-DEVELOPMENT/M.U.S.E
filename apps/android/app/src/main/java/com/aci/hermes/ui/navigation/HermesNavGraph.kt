@@ -1,5 +1,11 @@
 package com.aci.hermes.ui.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
@@ -26,6 +32,7 @@ import com.aci.hermes.learning.state.LearningViewModel
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.di.AppContainer
 import com.aci.hermes.service.JobNotifier
+import com.aci.hermes.ui.designsystem.MuseMotion
 import com.aci.hermes.ui.screens.avatar.AvatarPickerScreen
 import com.aci.hermes.ui.screens.avatar.AvatarPickerViewModel
 import com.aci.hermes.ui.screens.audit.AuditDetailScreen
@@ -160,7 +167,34 @@ fun HermesNavHost(
         onDeepLinkHandled()
     }
 
-    NavHost(navController = nav, startDestination = Screen.Splash.route) {
+    NavHost(
+        navController = nav,
+        startDestination = Screen.Splash.route,
+        // MUSE motion (MuseMotion tweens only — no springs; the core blazes,
+        // it does not wobble):
+        //  * Top-level swaps (bottom tabs, pre-shell flow, the Den) fade
+        //    through — incoming on the standard curve, outgoing fast.
+        //  * Detail/push destinations (TaskDetail, JobDetail, ModelCenter, …)
+        //    arrive with intent — emphasized fade plus a short upward settle —
+        //    and pop with the exact mirror.
+        enterTransition = {
+            if (targetState.destination.route.isTopLevelRoute()) fadeThroughEnter() else pushEnter()
+        },
+        exitTransition = {
+            // The outgoing surface always cedes the frame quickly.
+            fadeOut(animationSpec = MuseMotion.fast())
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = MuseMotion.standard())
+        },
+        popExitTransition = {
+            if (initialState.destination.route.isTopLevelRoute()) {
+                fadeOut(animationSpec = MuseMotion.fast())
+            } else {
+                pushPopExit()
+            }
+        },
+    ) {
         composable(Screen.Splash.route) {
             SplashScreen(
                 onReady = {
@@ -696,6 +730,33 @@ private fun NavGraphBuilder.shellDestinations(
         }
     }
 }
+
+/**
+ * Routes that swap as peers — the shell destinations (bottom tabs +
+ * quick-link siblings), the pre-shell flow (Splash, Onboarding), and the
+ * Den ([Screen.JarvisLive], which acts as a home, not a detail push).
+ */
+private fun String?.isTopLevelRoute(): Boolean =
+    this != null && (
+        this in Screen.shellRoutes ||
+            this == Screen.Splash.route ||
+            this == Screen.Onboarding.route ||
+            this == Screen.JarvisLive.route
+        )
+
+/** Fade-through arrival for top-level swaps: incoming on the standard curve. */
+private fun fadeThroughEnter(): EnterTransition =
+    fadeIn(animationSpec = MuseMotion.standard())
+
+/** Detail/push arrival: emphasized fade + a short upward settle (1/24 height). */
+private fun pushEnter(): EnterTransition =
+    fadeIn(animationSpec = MuseMotion.emphasized()) +
+        slideInVertically(animationSpec = MuseMotion.emphasized()) { it / 24 }
+
+/** Exact mirror of [pushEnter], for popping a detail screen off the stack. */
+private fun pushPopExit(): ExitTransition =
+    fadeOut(animationSpec = MuseMotion.emphasized()) +
+        slideOutVertically(animationSpec = MuseMotion.emphasized()) { it / 24 }
 
 @Composable
 private fun ShellHost(

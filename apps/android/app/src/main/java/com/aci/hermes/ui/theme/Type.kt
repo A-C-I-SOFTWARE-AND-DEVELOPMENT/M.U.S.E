@@ -12,11 +12,12 @@ import androidx.compose.ui.unit.sp
 // (audit log, prompt preview, diagnostics).
 
 val JarvisTypography = Typography(
+    // Canonical tokens.json display scale: 40 / 600 / -0.5 / 48.
     displayLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 34.sp,
-        lineHeight = 42.sp,
+        fontSize = 40.sp,
+        lineHeight = 48.sp,
         letterSpacing = (-0.5).sp
     ),
     displayMedium = TextStyle(

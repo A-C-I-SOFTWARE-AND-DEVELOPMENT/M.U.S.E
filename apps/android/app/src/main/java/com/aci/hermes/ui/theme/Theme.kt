@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import com.aci.hermes.data.preferences.ThemeMode
 
 // MUSE is dark-first. The dark scheme is the canonical experience;
@@ -32,7 +33,10 @@ private val JarvisDarkColors = darkColorScheme(
     onSurface         = JarvisSignal,
     surfaceVariant    = JarvisInkRaised,
     onSurfaceVariant  = JarvisSignalDim,
-    surfaceTint       = JarvisGold,
+    // No M3 tonal-elevation overlay: a JarvisGold (pure white) tint washes
+    // elevated surfaces grey. Elevation is carried entirely by the explicit
+    // surfaceContainer* ink ladder below (brand rule: value, not effects).
+    surfaceTint       = Color.Transparent,
 
     // M3 surface hierarchy — mapped to the JARVIS ink ladder so elevation
     // reads as deeper-to-lighter navy rather than default grey tints.
@@ -80,7 +84,9 @@ private val JarvisLightColors = lightColorScheme(
     onSurface         = JarvisInkOnPaper,
     surfaceVariant    = JarvisPaper,
     onSurfaceVariant  = JarvisInkOnPaper,
-    surfaceTint       = JarvisGoldDeep,
+    // Same rule as dark: no tonal-elevation tint — the explicit paper ladder
+    // below carries elevation, so a tint would only stain raised surfaces.
+    surfaceTint       = Color.Transparent,
 
     // Light surface hierarchy — restrained paper ladder.
     surfaceDim              = JarvisPaperSoft,
