@@ -1,10 +1,13 @@
 package com.aci.hermes.ui.components
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -15,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.ui.theme.JarvisInkEdge
 import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
@@ -41,12 +45,21 @@ fun EmptyState(
         verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(48.dp),
-        )
+        // The icon sits inside a matte 64dp ring — a 1dp edge hairline, no
+        // glow, no shadow (the ring is matte; only the core ever blooms).
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .border(width = 1.dp, color = JarvisInkEdge, shape = CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(48.dp),
+            )
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,

@@ -31,9 +31,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.components.rememberJarvisHaptics
+import com.aci.hermes.ui.theme.JarvisInkAbyss
+import com.aci.hermes.ui.theme.JarvisInkNight
 import com.aci.hermes.ui.screens.live.AvatarInputs
 import com.aci.hermes.ui.screens.live.AvatarKind
 import com.aci.hermes.ui.screens.live.AvatarPose
@@ -65,15 +69,24 @@ fun JarvisShell(
     content: @Composable (PaddingValues) -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
+    val haptics = rememberJarvisHaptics()
+
+    // Pinned bar: it never collapses, but its container animates from the
+    // void (JarvisInkAbyss) to the first ink step (JarvisInkNight) once
+    // content scrolls beneath it — elevation by value, not shadow.
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(title) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = JarvisInkAbyss,
+                    scrolledContainerColor = JarvisInkNight,
                     titleContentColor = MaterialTheme.colorScheme.primary,
                 ),
+                scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     // A persistent, breathing JARVIS presence on every screen —
                     // the "always here" parent. Tap to open the full live avatar.
@@ -95,7 +108,12 @@ fun JarvisShell(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { confirmStop = true }) {
+                    IconButton(onClick = {
+                        // Light acknowledgement on opening the confirm dialog;
+                        // the destructive haptic belongs to the confirm itself.
+                        haptics.tick()
+                        confirmStop = true
+                    }) {
                         Icon(
                             imageVector = Icons.Filled.PowerSettingsNew,
                             contentDescription = stringResource(R.string.nav_emergency_stop),
@@ -118,12 +136,21 @@ fun JarvisShell(
             )
         },
         bottomBar = {
-            NavigationBar {
+            // Flat first ink step — no M3 tonal-elevation wash on the rail.
+            NavigationBar(
+                containerColor = JarvisInkNight,
+                tonalElevation = 0.dp,
+            ) {
                 Screen.bottomTabs.forEach { tab ->
                     val selected = tab.screen.route == currentRoute
                     NavigationBarItem(
                         selected = selected,
-                        onClick = { if (!selected) onNavigateTab(tab.screen) },
+                        onClick = {
+                            if (!selected) {
+                                haptics.tick()
+                                onNavigateTab(tab.screen)
+                            }
+                        },
                         icon = { Icon(tab.icon.toVector(), contentDescription = null) },
                         label = { Text(stringResource(tab.labelKey.toLabelRes())) },
                     )
