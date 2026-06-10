@@ -3,7 +3,7 @@
 - **Status:** in-review
 - **Risk class:** behavior-change (light-terminal visuals only; dark default byte-identical)
 - **Branch:** `claude/fu-d6-tui-polish` · **Base:** `main` @ `e283d39ea`
-- **PR:** #<n> (draft)
+- **PR:** #440 (draft)
 - **Owner-gate required to merge?** yes — changes default runtime visuals on light terminals; awaiting `Yes, with authorization.`
 
 ## Intent (one paragraph)
