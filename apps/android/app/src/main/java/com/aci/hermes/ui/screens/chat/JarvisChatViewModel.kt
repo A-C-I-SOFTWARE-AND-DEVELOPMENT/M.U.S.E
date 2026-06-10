@@ -288,7 +288,7 @@ class JarvisChatViewModel(
     private fun deriveJobTitle(body: String, prompt: String): String {
         val source = body.lineSequence().firstOrNull { it.isNotBlank() }?.trim()
             ?: prompt.lineSequence().firstOrNull()?.trim()
-            ?: "Jarvis job"
+            ?: "Muse job"
         return if (source.length <= 60) source else source.take(57).trimEnd() + "…"
     }
 

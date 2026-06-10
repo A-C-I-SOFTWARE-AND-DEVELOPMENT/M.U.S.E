@@ -130,7 +130,7 @@ class JarvisPrimeHomeViewModel(
             putExtra(HermesService.EXTRA_MODE, HermesService.DEFAULT_MODE)
         }
         ContextCompat.startForegroundService(ctx, intent)
-        logBuffer.info(HermesService.TAG, "Start requested from Jarvis home")
+        logBuffer.info(HermesService.TAG, "Start requested from Muse home")
         refreshServiceStatus()
     }
 

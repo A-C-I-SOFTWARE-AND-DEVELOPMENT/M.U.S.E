@@ -523,5 +523,5 @@ private fun workerPhaseLabel(phase: WorkerPhase): String = when (phase) {
     WorkerPhase.EDITOR -> "Editor"
     WorkerPhase.EXECUTOR -> "Executor"
     WorkerPhase.REVIEWER -> "Reviewer"
-    WorkerPhase.JARVIS_FINAL_SYNTHESIS -> "Jarvis Final Synthesis"
+    WorkerPhase.JARVIS_FINAL_SYNTHESIS -> "Muse Final Synthesis"
 }

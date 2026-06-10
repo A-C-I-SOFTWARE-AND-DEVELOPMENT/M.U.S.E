@@ -83,7 +83,7 @@ fun AvatarPickerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Jarvis avatar") },
+                title = { Text("Muse avatar") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

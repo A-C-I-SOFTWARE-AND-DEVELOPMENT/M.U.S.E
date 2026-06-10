@@ -446,7 +446,7 @@ fun AskJarvisBar(
     modifier: Modifier = Modifier,
 ) {
     var draft by remember { mutableStateOf("") }
-    val hint = if (enabled) "Ask Jarvis anything…" else "Emergency stop active"
+    val hint = if (enabled) "Ask Muse anything…" else "Emergency stop active"
     Surface(
         modifier = modifier
             .testTag(JarvisHomeTestTags.ASK_BAR)
@@ -483,7 +483,7 @@ fun AskJarvisBar(
                     onSubmit(payload)
                 },
             ) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send to Jarvis")
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send to Muse")
             }
         }
     }
@@ -666,7 +666,7 @@ fun MemoryPulseCard(
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("Memory pulse", style = MaterialTheme.typography.labelMedium, color = HermesViolet)
             if (pulse.isEmpty()) {
-                Text("Nothing recent. Memory will fill as Jarvis works.",
+                Text("Nothing recent. Memory will fill as Muse works.",
                     style = MaterialTheme.typography.bodySmall)
             } else {
                 pulse.forEach { entry ->
@@ -773,7 +773,7 @@ fun QuickActionsCard(
     val actions = listOf(
         QuickAction.NEW_CODING to "New coding task",
         QuickAction.CODE_HANDOFF to "Code handoff",
-        QuickAction.ASK to "Ask JARVIS",
+        QuickAction.ASK to "Ask MUSE",
         QuickAction.AUDIT_REPO to "Audit repo",
         QuickAction.RUN_TESTS to "Run tests",
         QuickAction.REVIEW_PATCH to "Review patch",
@@ -1006,7 +1006,7 @@ private fun JarvisPresence.headline(): String = when (this) {
     JarvisPresence.SERIOUS_ACTION_PENDING -> "Serious action pending."
     JarvisPresence.CRITICAL_ACTION_PENDING -> "Critical action pending."
     JarvisPresence.GATEWAY_DISCONNECTED -> "Gateway disconnected."
-    JarvisPresence.SERVICE_STOPPED -> "HermesService is stopped."
+    JarvisPresence.SERVICE_STOPPED -> "Muse service is stopped."
     JarvisPresence.EMERGENCY_STOP_ACTIVE -> "Emergency stop engaged."
     JarvisPresence.OFFLINE_MOCK -> "Offline / mock mode."
 }

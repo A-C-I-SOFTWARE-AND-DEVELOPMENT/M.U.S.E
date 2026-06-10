@@ -147,7 +147,7 @@ fun DeviceControlScreen(
             state.pending?.let { pending ->
                 CommandCard(
                     title = "Confirm action",
-                    subtitle = "Jarvis wants to: ${pending.previewLabel}",
+                    subtitle = "Muse wants to: ${pending.previewLabel}",
                     tier = CardTier.APPROVAL,
                 ) {
                     Row(
@@ -172,7 +172,7 @@ fun DeviceControlScreen(
 
             // Master switch + sensitive-action posture.
             CommandCard(
-                title = "Let Jarvis operate this phone",
+                title = "Let Muse operate this phone",
                 subtitle = "Master switch. While off, no device action runs — every request " +
                     "is logged and refused.",
                 tier = if (state.enabled) CardTier.ACTIVE else CardTier.INFO,
@@ -195,7 +195,7 @@ fun DeviceControlScreen(
             // The six capabilities.
             CommandCard(
                 title = "Capabilities",
-                subtitle = "Enable each capability you want Jarvis to use. You can revoke " +
+                subtitle = "Enable each capability you want Muse to use. You can revoke " +
                     "consent here instantly; the action layer honors it immediately.",
             ) {
                 state.capabilities.forEachIndexed { index, row ->
@@ -239,7 +239,7 @@ fun DeviceControlScreen(
             // Action log.
             CommandCard(
                 title = "Recent device actions",
-                subtitle = "Every action Jarvis took or was refused, newest first.",
+                subtitle = "Every action Muse took or was refused, newest first.",
                 tier = CardTier.MEMORY,
             ) {
                 if (state.recent.isEmpty()) {
@@ -265,7 +265,7 @@ fun DeviceControlScreen(
             title = { Text("Turn off confirmation?") },
             text = {
                 Text(
-                    "Jarvis will launch apps and tap targets immediately, without asking " +
+                    "Muse will launch apps and tap targets immediately, without asking " +
                         "first. Every action is still logged, and the emergency stop still " +
                         "halts everything. Only do this if you want hands-free high-power mode.",
                 )
@@ -284,11 +284,11 @@ fun DeviceControlScreen(
 
 @Composable
 private fun ActiveIndicator(activeNow: Boolean, halted: Boolean) {
-    // Active → live (Jarvis operating); halted or idle → off (inert). The label
+    // Active → live (Muse operating); halted or idle → off (inert). The label
     // text below still carries the halted-vs-idle distinction in words.
     val (dotStatus, label) = when {
         halted -> MuseStatus.Off to "Halted — device control stopped"
-        activeNow -> MuseStatus.Live to "Active — Jarvis can operate this phone"
+        activeNow -> MuseStatus.Live to "Active — Muse can operate this phone"
         else -> MuseStatus.Off to "Idle — device control not active"
     }
     Row(

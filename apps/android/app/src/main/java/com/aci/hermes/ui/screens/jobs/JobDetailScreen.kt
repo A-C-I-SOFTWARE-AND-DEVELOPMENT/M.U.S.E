@@ -195,7 +195,7 @@ private fun JobDetailBody(
             item { Box(Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() } }
         }
         navigation?.let { nav ->
-            sectionCard("Navigation — where Jarvis looked") {
+            sectionCard("Navigation — where Muse looked") {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (nav.objective.isNotBlank()) {
                         Text(nav.objective, style = MaterialTheme.typography.bodyMedium)

@@ -47,7 +47,7 @@ fun LearningQueueSection(viewModel: LearningViewModel) {
             Text(
                 text = when (state.sync) {
                     is LearningSync.NotPaired ->
-                        "Pair a Hermes gateway to review learning candidates."
+                        "Pair a Muse gateway to review learning candidates."
                     is LearningSync.Error ->
                         "Couldn't load the learning queue. Pull to retry."
                     else -> "No learning candidates awaiting approval."

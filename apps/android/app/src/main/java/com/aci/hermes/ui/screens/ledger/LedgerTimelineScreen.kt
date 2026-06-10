@@ -132,7 +132,7 @@ fun LedgerTimelineScreen(
                 ) {
                     MuseEmptyState(
                         title = "No activity yet",
-                        body = "Decisions, diffs, and rollbacks land here as Jarvis works.",
+                        body = "Decisions, diffs, and rollbacks land here as Muse works.",
                     )
                 }
             } else {
