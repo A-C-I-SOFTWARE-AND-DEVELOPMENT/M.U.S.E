@@ -1697,6 +1697,49 @@ class TestDiscoverUserThemes:
         assert len(results) == 1  # only the valid one
 
 
+class TestBuiltinDashboardThemes:
+    """The Singularity (`muse`) brand theme leads the built-in list and is
+    the default active theme when no explicit choice is configured.  The
+    list must stay in sync with `web/src/themes/presets.ts`."""
+
+    def test_muse_is_first_builtin(self):
+        from hermes_cli.web_server import _BUILTIN_DASHBOARD_THEMES
+        assert _BUILTIN_DASHBOARD_THEMES[0]["name"] == "muse"
+        assert _BUILTIN_DASHBOARD_THEMES[0]["label"] == "Singularity"
+
+    def test_legacy_hermes_teal_stays_selectable(self):
+        from hermes_cli.web_server import _BUILTIN_DASHBOARD_THEMES
+        names = [t["name"] for t in _BUILTIN_DASHBOARD_THEMES]
+        assert "default" in names
+        # No duplicate registrations.
+        assert len(names) == len(set(names))
+
+    def test_muse_is_default_active(self, tmp_path, monkeypatch):
+        """With no `dashboard.theme` configured, the endpoint reports muse."""
+        import asyncio
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        from hermes_cli import web_server
+
+        monkeypatch.setattr(web_server, "load_config", lambda: {})
+        resp = asyncio.run(web_server.get_dashboard_themes())
+        assert resp["active"] == "muse"
+        assert resp["themes"][0]["name"] == "muse"
+
+    def test_explicit_config_still_wins(self, tmp_path, monkeypatch):
+        """An owner-chosen theme (e.g. Hermes Teal) is never overridden."""
+        import asyncio
+
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path))
+        from hermes_cli import web_server
+
+        monkeypatch.setattr(
+            web_server, "load_config", lambda: {"dashboard": {"theme": "default"}}
+        )
+        resp = asyncio.run(web_server.get_dashboard_themes())
+        assert resp["active"] == "default"
+
+
 class TestNormaliseThemeExtensions:
     """Tests for the extended normaliser fields (assets, customCSS,
     componentStyles, layoutVariant) — the surfaces themes use to reskin

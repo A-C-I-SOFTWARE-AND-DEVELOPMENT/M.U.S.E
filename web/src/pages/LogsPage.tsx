@@ -13,6 +13,7 @@ import { FilterGroup, Segmented } from "@nous-research/ui/ui/components/segmente
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -219,9 +220,11 @@ export default function LogsPage() {
             className="max-w-full min-h-[400px] max-h-[calc(100vh-220px)] overflow-auto p-4 font-mono-ui text-xs leading-5 break-words"
           >
             {lines.length === 0 && !loading && (
-              <p className="text-muted-foreground text-center py-8">
-                {t.logs.noLogLines}
-              </p>
+              <EmptyStateCard
+                icon={FileText}
+                title={t.logs.noLogLines}
+                className="border-transparent bg-transparent"
+              />
             )}
             {lines.map((line, i) => {
               const cls = classifyLine(line);

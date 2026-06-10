@@ -40,6 +40,7 @@ import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyStateCard } from "@/components/EmptyStateCard";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useConfirmDelete } from "@/hooks/useConfirmDelete";
 import { Input } from "@/components/ui/input";
@@ -781,17 +782,11 @@ export default function SessionsPage() {
       )}
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <Clock className="h-8 w-8 mb-3 opacity-40" />
-          <p className="text-sm font-medium">
-            {search ? t.sessions.noMatch : t.sessions.noSessions}
-          </p>
-          {!search && (
-            <p className="text-xs mt-1 text-muted-foreground/60">
-              {t.sessions.startConversation}
-            </p>
-          )}
-        </div>
+        <EmptyStateCard
+          icon={Clock}
+          title={search ? t.sessions.noMatch : t.sessions.noSessions}
+          description={search ? undefined : t.sessions.startConversation}
+        />
       ) : (
         <>
           <div className="flex min-w-0 flex-col gap-1.5">

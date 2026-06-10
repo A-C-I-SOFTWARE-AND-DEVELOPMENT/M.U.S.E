@@ -76,6 +76,37 @@
   --theme-radius: 0.5rem;
   --theme-spacing-mul: 1;
   --theme-density: comfortable;
+
+  /* Motion tokens — mirror design-system/tokens.json `motion` (FROZEN).
+     Durations in ms; easing is the Material-3 "standard" curve. Use these
+     for every transition/animation instead of ad-hoc values. */
+  --dur-fast: 150ms;
+  --dur-std: 250ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Accessibility: never lose the focus ring. A theme-aware visible outline
+   on keyboard focus only (`:focus-visible`). Lives in the `base` layer so
+   components that draw their own ring (Tailwind `focus-visible:*` utilities,
+   which live in the higher-priority `utilities` layer) still win. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--midground-base) 80%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+/* Respect OS-level reduced-motion: collapse transitions/animations to
+   effectively zero while keeping end states (forwards fills still land). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Theme tokens cascade into the document root so every descendant inherits
@@ -214,6 +245,25 @@ code { font-size: 0.875rem; }
   pointer-events: none;
   background: repeating-conic-gradient(currentColor 0% 25%, #0000 0% 50%) 0 0 /
     2px 2px;
+}
+
+/* Sidebar nav micro-interaction (CSS-only). The sidebar renders as
+   `aside > nav > ul > li > a` (react-router NavLink — active links carry
+   `aria-current="page"`). Resting links ease their opacity/color on the
+   standard curve and nudge 2px right on hover; the active link stays
+   pinned. Reduced-motion users get instant states via the global guard. */
+aside nav ul li a {
+  transition:
+    opacity var(--dur-fast) var(--ease-standard),
+    color var(--dur-fast) var(--ease-standard),
+    transform var(--dur-std) var(--ease-standard);
+}
+aside nav ul li a:hover {
+  transform: translateX(2px);
+}
+aside nav ul li a[aria-current="page"],
+aside nav ul li a:active {
+  transform: none;
 }
 
 /* When a theme provides `assets.bg`, the backdrop's <div> renders it as
