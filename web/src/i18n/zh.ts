@@ -50,7 +50,7 @@ export const zh: Translations = {
 
   app: {
     brand: "MUSE",
-    brandShort: "HA",
+    brandShort: "MU",
     closeNavigation: "关闭导航",
     closeModelTools: "关闭模型与工具",
     footer: {
@@ -119,8 +119,8 @@ export const zh: Translations = {
     starting: "启动中",
     startedInBackground: "已在后台启动 — 请查看日志",
     stopped: "已停止",
-    updateHermes: "更新 Hermes",
-    updatingHermes: "正在更新 Hermes…",
+    updateHermes: "更新 MUSE",
+    updatingHermes: "正在更新 MUSE…",
     waitingForOutput: "等待输出…",
   },
 
@@ -262,7 +262,7 @@ export const zh: Translations = {
     enableAfterInstall: "安装后启用",
     enableRuntime: "启用",
     forceReinstall: "强制重装（先删除已有目录）",
-    headline: "发现、安装、启用和更新 Hermes 插件（对齐 `hermes plugins` CLI）。",
+    headline: "发现、安装、启用和更新 MUSE 插件（对齐 `hermes plugins` CLI）。",
     identifierLabel: "Git 地址或 owner/repo",
     inactive: "未启用",
     installBtn: "从 Git 安装",
@@ -425,11 +425,11 @@ export const zh: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Hermes Achievements",
+      title: "MUSE Achievements",
       subtitle:
-        "从真实会话历史中获得的 Hermes 可收集徽章。已知尚未达成的成就显示为「已发现」；秘密成就在首次出现匹配行为之前保持隐藏。",
+        "从真实会话历史中获得的 MUSE 可收集徽章。已知尚未达成的成就显示为「已发现」；秘密成就在首次出现匹配行为之前保持隐藏。",
       scan_subtitle:
-        "正在扫描 Hermes 会话历史。在历史记录较多时，首次扫描可能需要 5–10 秒。",
+        "正在扫描 MUSE 会话历史。在历史记录较多时，首次扫描可能需要 5–10 秒。",
     },
     actions: {
       rescan: "重新扫描",
@@ -444,7 +444,7 @@ export const zh: Translations = {
       highest_tier: "最高等级",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "最新",
-      latest_hint_empty: "多多运行 Hermes",
+      latest_hint_empty: "多多运行 MUSE",
       none_yet: "暂无",
     },
     state: {
@@ -475,10 +475,10 @@ export const zh: Translations = {
       tiers_header: "等级",
       secret_header: "秘密成就",
       secret_body:
-        "秘密成就会隐藏其确切触发条件。一旦 Hermes 检测到相关信号，卡片将变为「已发现」并显示其要求。",
+        "秘密成就会隐藏其确切触发条件。一旦 MUSE 检测到相关信号，卡片将变为「已发现」并显示其要求。",
       scan_status_header: "扫描状态",
       scan_status_body:
-        "Hermes 正在对本地历史进行一次扫描，之后卡片会自动出现。即使这需要几秒钟，也没有卡住。",
+        "MUSE 正在对本地历史进行一次扫描，之后卡片会自动出现。即使这需要几秒钟，也没有卡住。",
       what_scanned_header: "扫描内容",
       what_scanned_body:
         "会话、工具调用、模型元数据、错误、成就和本地解锁状态。",
@@ -525,7 +525,7 @@ export const zh: Translations = {
         "「在 X 上分享」会在新标签页中打开预填好的帖子。如果想附上 1200×630 的徽章，请先点击「复制图片」—— X 允许你直接粘贴到推文编辑器中。「下载 PNG」会将文件保存下来，可在任意位置使用。",
       clipboard_unsupported:
         "此浏览器不支持复制剪贴板图片 —— 请改用「下载」。",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in Hermes Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in MUSE ☤",
     },
   },
 
