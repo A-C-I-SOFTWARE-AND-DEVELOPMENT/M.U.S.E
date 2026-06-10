@@ -17,7 +17,7 @@ permissions:
 jobs:
   build-index:
     # Only run on the upstream repository, not on forks
-    if: github.repository == 'NousResearch/hermes-agent'
+    if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -50,8 +50,10 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
-    # Only deploy on schedule or manual trigger (not on every push to the script)
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # Only deploy on schedule or manual trigger (not on every push to the
+    # script), and only from the canonical repo — this job was previously
+    # unguarded by repository.
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
@@ -87,9 +89,14 @@ jobs:
       - name: Stage deployment
         run: |
           mkdir -p _site/docs
-          cp -r landingpage/* _site/
+          # The landingpage/ dir is not present in this repo (heritage of the
+          # ancestral deployment); copy it only if it exists.
+          if [ -d landingpage ]; then
+            cp -r landingpage/* _site/
+          fi
           cp -r website/build/* _site/docs/
-          echo "hermes-agent.nousresearch.com" > _site/CNAME
+          # No CNAME: publish to the repo's default GitHub Pages URL. Restore a
+          # CNAME line here once an A-C-I-owned custom domain exists.
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3
