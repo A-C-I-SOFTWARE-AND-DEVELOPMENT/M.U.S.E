@@ -1,0 +1,43 @@
+# Standard Unreal Engine project ignores — SYNAPSE.
+
+# Build products
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/Receipts/
+Build/*/PakBlacklist*.txt
+
+# Plugins build products (when plugins arrive)
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# IDE / toolchain
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.code-workspace
+*.xcodeproj
+*.xcworkspace
+.DS_Store
+
+# Generated project files
+Makefile
+CMakeLists.txt
+*.uplugin.bak
+
+# Crash dumps / logs
+*.log
+*.dmp
+*.mdmp
+
+# Local secrets — the pairing token file lives under Saved/ (already
+# ignored), but belt-and-braces: never commit token files.
+muse_token.txt
+muse_pairing.bin
