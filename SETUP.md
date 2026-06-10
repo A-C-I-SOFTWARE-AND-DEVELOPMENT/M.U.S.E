@@ -68,18 +68,18 @@ uv pip install -e ".[dev]"
 ```bash
 ruff check .                  # lint — should be clean on main
 scripts/run_tests.sh          # full test suite (hermetic env, 4 workers)
-hermes doctor                 # runtime / config / provider diagnostic
+muse doctor                 # runtime / config / provider diagnostic
 ```
 
-If `hermes doctor` complains about a missing provider key, see
+If `muse doctor` complains about a missing provider key, see
 §5 — keys live in `~/.hermes/.env`, never in the repo.
 
 ### 2c. First conversation
 
 ```bash
 hermes                        # interactive CLI
-hermes model                  # pick a model (OpenRouter / NovitaAI / NIM / local / …)
-hermes setup                  # full setup wizard
+muse model                  # pick a model (OpenRouter / NovitaAI / NIM / local / …)
+muse setup                  # full setup wizard
 ```
 
 ---
@@ -122,7 +122,7 @@ uv pip install -e ".[termux]"
 ```bash
 bash scripts/hermes-termux-doctor.sh                # read-only environment scan
 bash scripts/hermes-mobile-workspace-init.sh        # workspace + tooling probe
-hermes doctor
+muse doctor
 ```
 
 ### 3d. Run as a background service (optional)
@@ -241,11 +241,11 @@ Shell:
 
 ```bash
 hermes                       # interactive CLI
-hermes gateway               # start the messaging gateway
-hermes tools                 # configure enabled tools
-hermes config set            # set a single config value
-hermes doctor                # diagnose install / config
-hermes update                # update Hermes
+muse gateway               # start the messaging gateway
+muse tools                 # configure enabled tools
+muse config set            # set a single config value
+muse doctor                # diagnose install / config
+muse update                # update Hermes
 ```
 
 ---
@@ -277,14 +277,14 @@ the original authors.
 
 In order:
 
-1. `hermes doctor` — environment + config sanity check.
+1. `muse doctor` — environment + config sanity check.
 2. [`docs/orchestration/troubleshooting.md`](docs/orchestration/troubleshooting.md)
    — orchestration-specific failures.
 3. `~/.hermes/jobs/<job-id>/ledger.jsonl` — orchestrator decision log
    for a single job.
 4. `~/.hermes/logs/` — agent / gateway / Termux logs (depending on
    what's running).
-5. GitHub issue with `hermes doctor` output and a tar of the job
+5. GitHub issue with `muse doctor` output and a tar of the job
    folder attached (scrub anything that looks like a secret first).
 
 For native Android issues, also attach:
