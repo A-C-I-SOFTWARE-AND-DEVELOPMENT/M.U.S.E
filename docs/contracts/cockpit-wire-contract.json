@@ -1,0 +1,879 @@
+{
+  "contract": "cockpit-wire-contract",
+  "handler_count": 94,
+  "owner_gated_count": 10,
+  "route_count": 96,
+  "routes": [
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
+      "kind": "static",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/",
+      "requires_auth": false,
+      "summary": "Serve the bundled browser cockpit. Returns True if it handled the"
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
+      "kind": "static",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/cockpit",
+      "requires_auth": false,
+      "summary": "Serve the bundled browser cockpit. Returns True if it handled the"
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
+      "kind": "static",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/cockpit/{path}",
+      "requires_auth": false,
+      "summary": "Serve the bundled browser cockpit. Returns True if it handled the"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.approvals_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/approvals",
+      "requires_auth": true,
+      "summary": "The owner-approval queue as canonical ``ApprovalCard``s."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.approvals_decide",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/approvals/{id}",
+      "requires_auth": true,
+      "summary": "Approve/reject a proposal. Approve requires the exact owner phrase."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.audit_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/audit",
+      "requires_auth": true,
+      "summary": "Audit records (canonical ``AuditRecord``) from the decision ledger."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.audit_proof",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/audit/{id}/proof",
+      "requires_auth": true,
+      "summary": "Full proof bundle (canonical ``ProofRecord``) for one audit id."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_autonomy.autonomy_get",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/autonomy",
+      "requires_auth": true,
+      "summary": "Current autonomy level, workspace scope, and capability list."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_autonomy.autonomy_set",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/autonomy",
+      "requires_auth": true,
+      "summary": "Set the autonomy level (owner action) or revoke back to ASSISTED."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_autonomy.autonomy_decisions",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/autonomy/decisions",
+      "requires_auth": true,
+      "summary": "Recent (already-redacted) policy decisions for the audit trail."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.avatar_persona_get",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/persona",
+      "requires_auth": true,
+      "summary": "The companion's adopted persona (e.g. 'Goku'), or null if default."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.avatar_persona_set",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/persona",
+      "requires_auth": true,
+      "summary": "Adopt a persona from a description: the model researches the character"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.room_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/room",
+      "requires_auth": true,
+      "summary": "The companion's room items (AI-generated furniture), with images."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.room_generate",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/room",
+      "requires_auth": true,
+      "summary": "Generate a room item from a text prompt ('a Victorian desk') via the"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.room_delete",
+      "kind": "json",
+      "method": "DELETE",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/room/{id}",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.room_place",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/avatar/room/{id}/place",
+      "requires_auth": true,
+      "summary": "Persist a furniture item's normalized (x, y) placement in the room."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.capabilities",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/capabilities",
+      "requires_auth": true,
+      "summary": "Describe what *this backend* can do, for the app to negotiate against."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.coding_audit",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/coding/audit",
+      "requires_auth": true,
+      "summary": "Classify + route a plain-English coding request (read-only)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.coding_execute",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/coding/execute",
+      "requires_auth": true,
+      "summary": "Dispatch a coding job **only** through the existing gated orchestrator."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.coding_plan",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/coding/plan",
+      "requires_auth": true,
+      "summary": "Build + validate a bounded coding work packet (stage only, never runs)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.diagnostics",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/diagnostics",
+      "requires_auth": true,
+      "summary": "Launch-readiness diagnostics (reuses the JARVIS launch doctor)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.emergency_stop",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/emergency-stop",
+      "requires_auth": true,
+      "summary": "Owner panic button: a decisive backend halt."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.audit_events",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/events",
+      "requires_auth": true,
+      "summary": "Leveled cockpit events (contract \u00a79) from the structured event log."
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._stream_events",
+      "kind": "sse",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/events/stream",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/evidence",
+      "requires_auth": true,
+      "summary": "List/search evidence as canonical ``EvidenceItem`` objects (contract \u00a710d)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_search",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/evidence/search",
+      "requires_auth": true,
+      "summary": "Search the Research Vault for evidence artifacts (read-only)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_verify",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/evidence/verify",
+      "requires_auth": true,
+      "summary": "Verify claims against evidence: citations, uncertain, contradictions."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_demote",
+      "kind": "json",
+      "method": "DELETE",
+      "owner_gated": false,
+      "path": "/v1/cockpit/evidence/{id}",
+      "requires_auth": true,
+      "summary": "Remove an evidence artifact from the vault (demotion)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_detail",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/evidence/{id}",
+      "requires_auth": true,
+      "summary": "Return one evidence artifact by id."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.evidence_promote",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/evidence/{id}/promote",
+      "requires_auth": true,
+      "summary": "Promote an evidence artifact into durable Memory Tree."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.graph_build",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/graph/build",
+      "requires_auth": true,
+      "summary": "Rebuild + persist the knowledge-graph cache. Read-only over the repo and"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.graph_query",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/graph/query",
+      "requires_auth": true,
+      "summary": "Run a GraphRAG query (``mode`` = local | global | coding)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.graph_related",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/graph/related",
+      "requires_auth": true,
+      "summary": "Related files / sources / decisions for an entity. Accepts ``node`` (a"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.jobs_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs",
+      "requires_auth": true,
+      "summary": "List jobs as canonical cockpit ``CockpitJob`` objects (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.jobs_dispatch",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs",
+      "requires_auth": true,
+      "summary": "Dispatch (enqueue) a new job (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_lanes",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/lanes",
+      "requires_auth": true,
+      "summary": "The **runnable** worker lanes that ``job_run`` accepts (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._stream_jobs",
+      "kind": "sse",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/stream",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_get",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}",
+      "requires_auth": true,
+      "summary": "Return one canonical ``CockpitJob`` (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_approve",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/jobs/{id}/approve",
+      "requires_auth": true,
+      "summary": "Approve a gated job phase (contract \u00a74) \u2014 owner gate preserved."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_cancel",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/cancel",
+      "requires_auth": true,
+      "summary": "Cancel a job (contract \u00a74). 409 if already terminal."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_diff",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/diff",
+      "requires_auth": true,
+      "summary": "Read-only working-tree diff for a job's workspace (contract \u00a74/\u00a76)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_file",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/file",
+      "requires_auth": true,
+      "summary": "Single-file preview inside a job's workspace (contract \u00a76) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_files_changed",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/files-changed",
+      "requires_auth": true,
+      "summary": "Files changed in a job's workspace (contract \u00a76) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_ledger",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/ledger",
+      "requires_auth": true,
+      "summary": "Read-only job detail + decision-ledger timeline (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_override",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/override",
+      "requires_auth": true,
+      "summary": "Override non-critical failed validation gates with a note (contract \u00a77)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_pause",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/pause",
+      "requires_auth": true,
+      "summary": "Pause a running/queued job (contract \u00a74). Queue jobs only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_publish",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/jobs/{id}/publish",
+      "requires_auth": true,
+      "summary": "Open a GitHub PR for a job's branch (contract \u00a78) \u2014 owner-gated."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_publish_preview",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/publish/preview",
+      "requires_auth": true,
+      "summary": "Read-only preview of what publishing this job would open (contract \u00a78)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_rerun",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/rerun",
+      "requires_auth": true,
+      "summary": "Rerun a failed/disconnected step (contract \u00a74). Queue jobs only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_resume",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/resume",
+      "requires_auth": true,
+      "summary": "Resume a paused/blocked/disconnected/failed job (contract \u00a74)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_revalidate",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/revalidate",
+      "requires_auth": true,
+      "summary": "Re-run verification gates for a job (contract \u00a77)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_run",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/jobs/{id}/run",
+      "requires_auth": true,
+      "summary": "Run a job on a worker via the orchestrator's gated 5-step contract."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_tree",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/tree",
+      "requires_auth": true,
+      "summary": "One directory level inside a job's workspace (contract \u00a76) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_validate",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/validate",
+      "requires_auth": true,
+      "summary": "Run verification gates against a job's workspace (contract \u00a74/\u00a77)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.job_validation",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/jobs/{id}/validation",
+      "requires_auth": true,
+      "summary": "Latest verification-gate results for a job (contract \u00a77) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.learning_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/learning",
+      "requires_auth": true,
+      "summary": "The learning-dataset candidate queue as provenance-first cards."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.learning_export",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/learning/export",
+      "requires_auth": true,
+      "summary": "Report exportable counts per format (read-only; never streams secrets)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.learning_decide",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/learning/{id}",
+      "requires_auth": true,
+      "summary": "Approve/reject a learning candidate. Approve requires the owner phrase."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.ledger_timeline",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/ledger",
+      "requires_auth": true,
+      "summary": "Redacted, filterable timeline over the orchestrator event ledger."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.ledger_event_detail",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/ledger/{job}/{index}",
+      "requires_auth": true,
+      "summary": "Full redacted detail for one timeline event (``{job}/{index}``)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.ledger_rollback_request",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/ledger/{job}/{index}/rollback",
+      "requires_auth": true,
+      "summary": "Raise an **owner-gated** rollback request for a timeline event."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory",
+      "requires_auth": true,
+      "summary": "List memory as canonical cockpit ``MemoryItem`` objects (contract)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_create",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory",
+      "requires_auth": true,
+      "summary": "Create memory from a canonical ``MemoryItem`` body."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_contradictions",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/contradictions",
+      "requires_auth": true,
+      "summary": "Open (contested) contradiction reports awaiting resolution."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_contradiction_resolve",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/contradictions/{id}/resolve",
+      "requires_auth": true,
+      "summary": "Resolve a contradiction: the winner stays, the loser is superseded."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_freshness",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/freshness",
+      "requires_auth": true,
+      "summary": "Nodes overdue (or within ``within_days``) for a freshness review."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_tree_search",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/tree",
+      "requires_auth": true,
+      "summary": "Ranked Memory Tree search (contested excluded unless asked)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_tree_proposed",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/tree/proposed",
+      "requires_auth": true,
+      "summary": "The proposed-memory inbox: candidates awaiting an owner decision."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_tree_decision",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/tree/{id}/decision",
+      "requires_auth": true,
+      "summary": "Owner decision on a proposed node: approve | reject | supersede."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.memory_delete",
+      "kind": "json",
+      "method": "DELETE",
+      "owner_gated": false,
+      "path": "/v1/cockpit/memory/{id}",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.model_routes",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/model-routes",
+      "requires_auth": true,
+      "summary": "Evidence-backed per-task-class model routes (read-only)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.model_route_override",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/model-routes/override",
+      "requires_auth": true,
+      "summary": "Set/clear an owner model override, or flip paid routing (owner-gated)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.models",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/models",
+      "requires_auth": true,
+      "summary": "Read-only model policy (free-first routing). Never accepts API keys."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.models_local",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/models/local",
+      "requires_auth": true,
+      "summary": "Local model runtimes + installed variants + per-task promotion, with an"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.models_local_smoke",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/models/local/smoke",
+      "requires_auth": true,
+      "summary": "Explicit, owner-initiated tiny local generation \u2014 the **only** path that"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.navigation_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/navigation",
+      "requires_auth": true,
+      "summary": "Recent HyperAgent navigation decisions (the pre-dispatch \"where to look\"),"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.orchestrate_submit",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/orchestrate",
+      "requires_auth": true,
+      "summary": "Create a real **orchestrator** job from a prompt (the ``/orchestrate``"
+    },
+    {
+      "handler": "gateway.cockpit.handlers.pair_confirm",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": true,
+      "path": "/v1/cockpit/pair/confirm",
+      "requires_auth": false,
+      "summary": "Confirm a pairing code \u2014 returns a fresh per-device token ONCE."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.pair_start",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/pair/start",
+      "requires_auth": false,
+      "summary": "Begin pairing a new device \u2014 returns a short-lived pairing code."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.proposals_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/proposals",
+      "requires_auth": true,
+      "summary": "Self-update-native view of the proposal queue (proposal shape)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.research_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/research",
+      "requires_auth": true,
+      "summary": "List past research reports, newest first."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.research_run",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/research",
+      "requires_auth": true,
+      "summary": "Run the research pipeline for a query (contract \u00a7research)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.research_get",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/research/{id}",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.research_promote",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/research/{id}/promote",
+      "requires_auth": true,
+      "summary": "Promote one evidence card into the Memory Tree \u2014 through the gate."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.research_create_task",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/research/{id}/task",
+      "requires_auth": true,
+      "summary": "Create a coding task from a research report \u2014 via the job queue gate."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.runtime_status",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/runtime/status",
+      "requires_auth": true,
+      "summary": "Real runtime status: gateway, host, and live queue snapshot."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.runtime_workers",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/runtime/workers",
+      "requires_auth": true,
+      "summary": "Detected worker lanes (Claude Code / Codex) \u2014 detection only, no keys."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.sessions_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/sessions",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers.skills_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/skills",
+      "requires_auth": true,
+      "summary": "The gateway's real installed skills (read-only)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.templates_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/templates",
+      "requires_auth": true,
+      "summary": "Owner-defined prompt templates (contract \u00a73) \u2014 read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.voice_intake_create",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/voice/intake",
+      "requires_auth": true,
+      "summary": "Open a voice intake from a transcript and return the read-back."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.voice_responses",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/voice/responses",
+      "requires_auth": true,
+      "summary": "Synthesize spoken audio for a response string (returned as base64)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.voice_transcribe",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/voice/transcribe",
+      "requires_auth": true,
+      "summary": "Transcribe uploaded audio to redacted text (audio is NOT retained)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.voice_intake_decide",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/cockpit/voice/{id}/decide",
+      "requires_auth": true,
+      "summary": "Resolve a voice intake with an explicit spoken/typed phrase."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.health",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/health",
+      "requires_auth": false,
+      "summary": "Unauthenticated liveness + version probe (contract \u00a72)."
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._stream_chat",
+      "kind": "chat-ndjson",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/jarvis/chat",
+      "requires_auth": true,
+      "summary": null
+    }
+  ],
+  "source": [
+    "gateway/cockpit/server.py",
+    "gateway/cockpit/handlers.py",
+    "gateway/cockpit/handlers_autonomy.py"
+  ],
+  "unauthenticated_count": 6,
+  "version": 1
+}
