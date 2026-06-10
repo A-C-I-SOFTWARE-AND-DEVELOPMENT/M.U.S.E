@@ -3,7 +3,7 @@
 - **Status:** in-review (draft PR)
 - **Risk class:** behavior-change (UI polish; default visual/motion behavior changes, no logic/data changes) — owner-gated
 - **Branch:** `claude/fu-d4-android-polish` · **Base:** `main` @ `e283d39ea` (includes PR #433 persona sweep)
-- **PR:** TBD (draft; number recorded after open)
+- **PR:** #437 (draft)
 - **Owner-gate required to merge?** yes — changes default runtime UI behavior; awaiting `Yes, with authorization.`
 
 ## Intent (one paragraph)
