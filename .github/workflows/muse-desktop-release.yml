@@ -124,7 +124,7 @@ jobs:
 
       - name: Create or update the release (notes, no assets yet)
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # pragma: allowlist secret
           TAG: ${{ needs.meta.outputs.tag }}
           TITLE: ${{ needs.meta.outputs.title }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
@@ -222,10 +222,10 @@ jobs:
           # secret is unset -> the build produces UNSIGNED installers and still
           # succeeds (the fork/bring-up fallback). See apps/desktop/RELEASE.md.
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}  # pragma: allowlist secret
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
@@ -239,7 +239,7 @@ jobs:
 
       - name: Collect + upload installers to the release
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # pragma: allowlist secret
           TAG: ${{ needs.meta.outputs.tag }}
           TARGET: ${{ matrix.rust_target }}
         run: |
