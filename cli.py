@@ -7823,7 +7823,7 @@ class HermesCLI:
             print(output)
 
     def _handle_jarvis_prime_slash(self, cmd: str) -> None:
-        """Dispatch /jarvis, /jp, /jarvis-prime to the MUSE runtime.
+        """Dispatch /jarvis, /jp, /jarvis-prime, /muse, /m to the MUSE runtime.
 
         Imports lazily so the cost only lands when the user invokes the
         slash command. ``/<cmd> stop`` is a special form that maps to
@@ -7835,7 +7835,7 @@ class HermesCLI:
             rest = rest.lstrip("/")
         # Strip the canonical / alias from the front of the payload.
         first, _, after = rest.partition(" ")
-        if first.lower() in {"jarvis-prime", "jarvis", "jp"}:
+        if first.lower() in {"jarvis-prime", "jarvis", "jp", "muse", "m"}:
             rest = after.strip()
         intent = rest.strip()
 

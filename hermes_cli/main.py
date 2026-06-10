@@ -5971,7 +5971,7 @@ def cmd_jarvis(args):
         raise SystemExit(0)
     # No subcommand → show help.
     print("usage: hermes jarvis {launch|stop} [options]")
-    print("  hermes jarvis launch   Run the free-first JARVIS launch path")
+    print("  hermes jarvis launch   Run the free-first MUSE launch path")
     print("  hermes jarvis stop     Emergency stop (clear gates, leases, autonomy)")
     raise SystemExit(2)
 
@@ -11829,7 +11829,7 @@ def main():
         description=(
             "Run the bearer-token-authenticated, loopback-only HTTP API the "
             "MUSE Android cockpit pairs with. Backed by the real "
-            "Hermes/JARVIS subsystems (chat, runtime status, memory, "
+            "Hermes/MUSE subsystems (chat, runtime status, memory, "
             "diagnostics, models, jobs, audit). Never binds non-loopback "
             "without --allow-external."
         ),
