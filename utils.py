@@ -41,7 +41,7 @@ def _preserve_file_mode(path: Path) -> "int | None":
         return None
 
 
-def _restore_file_mode(path: Path, mode: "int | None") -> None:
+def _restore_file_mode(path: Union[str, Path], mode: "int | None") -> None:
     """Re-apply *mode* to *path* after an atomic replace.
 
     ``tempfile.mkstemp`` creates files with 0o600 (owner-only).  After
