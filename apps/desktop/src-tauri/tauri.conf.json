@@ -34,8 +34,17 @@
     "active": true,
     "targets": "all",
     "category": "Productivity",
+    "publisher": "A.C.I. Software and Development",
     "shortDescription": "Multi-Use Synaptic Entity — local-first AI operating partner.",
     "longDescription": "M.U.S.E. is a local-first AI operating partner. This desktop shell wraps the lean Singularity cockpit client and talks to your local MUSE gateway; it does not bundle or spawn the backend.",
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
