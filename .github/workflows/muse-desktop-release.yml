@@ -169,8 +169,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-14,      rust_target: aarch64-apple-darwin, bundles: 'app,dmg' }
-          - { os: macos-13,      rust_target: x86_64-apple-darwin,  bundles: 'app,dmg' }
+          - { os: macos-14,       rust_target: aarch64-apple-darwin, bundles: 'app,dmg' }
+          # Intel macOS: macos-13 was retired by GitHub; macos-15-intel is the
+          # supported x64 label. If this leg ever reports "runner not found",
+          # drop it (the arm64 leg still publishes) rather than blocking releases.
+          - { os: macos-15-intel, rust_target: x86_64-apple-darwin,  bundles: 'app,dmg' }
           - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'appimage,deb' }
           - { os: windows-latest, rust_target: '',                  bundles: 'nsis' }
     steps:
@@ -243,7 +246,12 @@ jobs:
           base="apps/desktop/src-tauri/target"
           if [ -n "$TARGET" ]; then bdir="$base/$TARGET/release/bundle"; else bdir="$base/release/bundle"; fi
           echo "Bundle dir: $bdir"
-          mapfile -t files < <(find "$bdir" -type f \
+          # Portable array fill (no mapfile): macOS runners resolve `shell: bash`
+          # to /bin/bash 3.2, which lacks mapfile.
+          files=()
+          while IFS= read -r f; do
+            [ -n "$f" ] && files+=("$f")
+          done < <(find "$bdir" -type f \
             \( -name '*.dmg' -o -name '*.AppImage' -o -name '*.deb' \
                -o -name '*-setup.exe' -o -name '*.msi' \) 2>/dev/null)
           if [ "${#files[@]}" -eq 0 ]; then
