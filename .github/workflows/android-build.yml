@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   assemble-debug:
     name: Build debug APK

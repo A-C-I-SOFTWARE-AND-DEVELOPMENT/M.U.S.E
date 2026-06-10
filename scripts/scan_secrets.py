@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -68,6 +69,18 @@ ADVISORY_KINDS: frozenset[str] = frozenset({"high_entropy"})
 
 # Inline escape hatch. A line carrying this marker is never reported.
 ALLOWLIST_PRAGMA = "pragma: allowlist secret"
+
+# A GitHub Actions expression as the *entire* assigned value — e.g.
+# ``APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}``.
+# That is a *reference* to a secret, never the secret value itself; workflow
+# files are full of these and they were the recurring ``env_name`` false
+# positives that turned PR checks red (muse-desktop-release.yml, PR #423).
+ACTIONS_EXPR_VALUE_PATTERN = re.compile(r"^\s*\$\{\{[^}]*\}\}\s*$")
+
+# Mirrors the env-style assignment shape that the canonical ``env_name``
+# detector in ``hermes_cli.secrets_policy.scan_text`` matches, so we can
+# re-extract the assigned value for the Actions-expression check above.
+_ENV_ASSIGNMENT_PATTERN = re.compile(r"\s*([A-Z][A-Z0-9_]*)\s*[:=]\s*(.+?)\s*$")
 
 # Built-in path allowlist: credential *names* / placeholders live here by
 # design, and lockfiles are machine-generated high-entropy noise.
@@ -159,12 +172,28 @@ def iter_added_lines(diff_text: str) -> Iterator[tuple[str, int, str]]:
             new_lineno += 1
 
 
+def _is_actions_expression_assignment(text: str) -> bool:
+    """True if ``text`` assigns a pure GitHub Actions expression to a name.
+
+    ``NAME: ${{ secrets.NAME }}`` / ``NAME=${{ env.NAME }}`` pass secrets
+    *by reference*; no credential material is on the line. Anything beyond
+    the lone expression (e.g. ``NAME: hunter2-${{ ... }}``) does not match
+    and still flags.
+    """
+    m = _ENV_ASSIGNMENT_PATTERN.match(text)
+    return bool(m and ACTIONS_EXPR_VALUE_PATTERN.match(m.group(2)))
+
+
 def _scan_line(path: str, lineno: int, text: str) -> list[Hit]:
     """Run the canonical detector on one line; suppress pragma lines."""
     if ALLOWLIST_PRAGMA in text:
         return []
     hits: list[Hit] = []
     for f in sp.scan_text(text, location=path):
+        if f.kind == "env_name" and _is_actions_expression_assignment(text):
+            # A workflow-expression reference, not a value — see
+            # ACTIONS_EXPR_VALUE_PATTERN above.
+            continue
         hits.append(Hit(path=path, line=lineno, kind=f.kind, excerpt=f.excerpt))
     return hits
 

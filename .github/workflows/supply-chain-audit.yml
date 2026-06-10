@@ -17,6 +17,11 @@ permissions:
   pull-requests: write
   contents: read
 
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: supply-chain-audit-${{ github.ref }}
+  cancel-in-progress: true
+
 # Narrow, high-signal scanner. Only fires on critical indicators of supply
 # chain attacks (e.g. the litellm-style payloads). Low-signal heuristics
 # (plain base64, plain exec/eval, dependency/Dockerfile/workflow edits,

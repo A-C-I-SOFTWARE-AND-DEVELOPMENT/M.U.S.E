@@ -139,6 +139,75 @@ class TestScanDiffText:
 
 
 # ---------------------------------------------------------------------------
+# GitHub Actions expression values — secret *references*, not secrets
+# ---------------------------------------------------------------------------
+
+
+class TestActionsExprSuppression:
+    """Regression for PR #423's red secret-scan check.
+
+    ``muse-desktop-release.yml`` passes signing secrets to steps as
+    ``NAME: ${{ secrets.NAME }}``. The assigned value is a GitHub Actions
+    *expression* — a reference resolved by the runner, never credential
+    material — so the ``env_name`` detector must not flag it. A real value
+    assigned to the same name must still flag.
+    """
+
+    # The four lines that falsely tripped the gate on PR #423 (verbatim,
+    # including the two GH_TOKEN occurrences from separate jobs).
+    PR_423_FALSE_POSITIVES = [
+        "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+        "          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}",
+        "          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}",
+        "          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+    ]
+
+    def test_pr_423_lines_do_not_flag(self):
+        diff = _diff(
+            ".github/workflows/muse-desktop-release.yml",
+            *self.PR_423_FALSE_POSITIVES,
+        )
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    @pytest.mark.parametrize("line", sorted(set(PR_423_FALSE_POSITIVES)))
+    def test_each_pr_423_line_alone(self, line):
+        diff = _diff(".github/workflows/muse-desktop-release.yml", line)
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    def test_shell_style_expression_assignment_does_not_flag(self):
+        # `NAME=${{ ... }}` (the `=` form of the same detector) is equally
+        # a reference.
+        diff = _diff("workflow.yml", "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}")
+        assert scan_secrets.scan_diff_text(diff, allow_globs=()) == []
+
+    def test_real_value_on_same_name_still_flags(self):
+        # Value assembled by concatenation so this file's source never
+        # carries a credential-shaped assignment.
+        line = "          APPLE_CERTIFICATE_PASSWORD: " + "hunter2" + "real"
+        diff = _diff(".github/workflows/muse-desktop-release.yml", line)
+        hits = scan_secrets.scan_diff_text(diff, allow_globs=())
+        assert any(h.kind == "env_name" for h in hits)
+        blocking, _ = scan_secrets.partition(hits, strict=False)
+        assert blocking
+
+    def test_expression_plus_extra_material_still_flags(self):
+        # Only a *pure* expression is a reference; an expression embedded in
+        # a longer value could smuggle real material around the gate.
+        line = "API_TOKEN: ${{ secrets.X }}" + "-hunter2" + "real"
+        diff = _diff("workflow.yml", line)
+        hits = scan_secrets.scan_diff_text(diff, allow_globs=())
+        assert any(h.kind == "env_name" for h in hits)
+
+    def test_is_actions_expression_assignment_helper(self):
+        good = "  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  "
+        assert scan_secrets._is_actions_expression_assignment(good)
+        assert not scan_secrets._is_actions_expression_assignment(
+            "GH_TOKEN: " + "notanexpression"
+        )
+        assert not scan_secrets._is_actions_expression_assignment("just text")
+
+
+# ---------------------------------------------------------------------------
 # partition — kind policy (blocking vs advisory)
 # ---------------------------------------------------------------------------
 

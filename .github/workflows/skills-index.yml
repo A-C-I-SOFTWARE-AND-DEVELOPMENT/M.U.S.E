@@ -14,6 +14,12 @@ on:
 permissions:
   contents: read
 
+# Queue (never cancel) runs: the deploy-with-index job publishes to GitHub
+# Pages, and cancelling mid-deploy could leave the site half-updated.
+concurrency:
+  group: skills-index-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-index:
     # Only run on the upstream repository, not on forks
