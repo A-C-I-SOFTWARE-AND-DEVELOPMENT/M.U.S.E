@@ -44,6 +44,13 @@ on:
 permissions:
   contents: write  # needed to create/upload the GitHub Release asset
 
+# Queue (never cancel) release runs: an in-flight run may be mid-publish of a
+# GitHub Release / `android-latest` asset, so cancelling could leave a
+# half-published release.
+concurrency:
+  group: android-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release-apk:
     name: Build & publish signed release APK

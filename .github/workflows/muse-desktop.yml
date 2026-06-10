@@ -19,6 +19,11 @@ on:
 permissions:
   contents: read
 
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: muse-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ui-build:
     name: UI build (Vite)

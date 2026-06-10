@@ -12,6 +12,11 @@ on:
 permissions:
   contents: read
 
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: contributor-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-attribution:
     runs-on: ubuntu-latest

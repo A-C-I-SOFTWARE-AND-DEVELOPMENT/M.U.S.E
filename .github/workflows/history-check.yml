@@ -20,6 +20,11 @@ on:
 permissions:
   contents: read
 
+# Cancel in-progress runs for the same PR/branch
+concurrency:
+  group: history-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-common-ancestor:
     runs-on: ubuntu-latest

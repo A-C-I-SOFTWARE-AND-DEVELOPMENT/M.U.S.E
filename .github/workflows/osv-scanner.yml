@@ -53,6 +53,12 @@ permissions:
   contents: read
   security-events: write
 
+# Cancel in-progress runs for the same PR/branch. Detection-only scan —
+# cancelling a superseded run loses nothing.
+concurrency:
+  group: osv-scanner-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scan:
     name: Scan lockfiles
