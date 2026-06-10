@@ -86,6 +86,12 @@ jobs:
           echo "Runtime owner-gate constants present."
 
       - name: Advisory rollup of required checks
+        # NOTE: `release-gate-strict` below is deliberately NOT in this
+        # REQUIRED list and not in this job's `needs`. It is a new adoption
+        # of WC-2's HERMES_RELEASE_GATE_STRICT mode (see
+        # docs/launch/followups/wc-2-release-gate-tooling.md) and runs as a
+        # standalone, non-required sibling check until the operator promotes
+        # it into branch protection.
         if: github.event_name == 'pull_request'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
@@ -138,3 +144,49 @@ jobs:
             core.summary.addRaw(body);
             await core.summary.write();
             core.info(body);
+
+  # WC-2 adoption (Wave D G2): run the unified release gate with
+  # HERMES_RELEASE_GATE_STRICT=1, so a runner where ruff/pytest are absent
+  # produces a hard FAIL instead of a soft WARN (no more "GREEN SHIP with
+  # zero tests executed" on a stripped host). Capability shipped in
+  # hermes_cli/release_gate.py (PR #414); this job adopts it in CI.
+  #
+  # Deliberately standalone: NOT in `aggregate`'s `needs` and not yet a
+  # branch-protection-required check, so it cannot block in-flight PRs
+  # until the operator promotes it. Setup mirrors tests.yml exactly
+  # (same pinned action SHAs, Python 3.11, editable [all,dev] install).
+  release-gate-strict:
+    name: Release gate (strict tooling)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86  # v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: |
+          uv venv .venv --python 3.11
+          source .venv/bin/activate
+          uv pip install -e ".[all,dev]"
+
+      - name: Run release gate (strict)
+        run: |
+          source .venv/bin/activate
+          muse doctor --release-gate
+        env:
+          HERMES_RELEASE_GATE_STRICT: "1"
+          # Ensure the gate's fast pytest slice can't call real APIs.
+          OPENROUTER_API_KEY: ""
+          OPENAI_API_KEY: ""
+          NOUS_API_KEY: ""
