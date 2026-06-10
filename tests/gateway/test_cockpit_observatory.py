@@ -12,20 +12,20 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
+from collections.abc import Iterator
 from pathlib import Path
 
-import pytest
+import pytest  # ty: ignore[unresolved-import]
 
 import gateway.cockpit.server as server_mod
 from gateway.cockpit import handlers as h
 from gateway.cockpit import observatory_metrics as om
-from gateway.cockpit.server import serve
 
 TOKEN = "test-cockpit-token-123"
 
 
 @pytest.fixture()
-def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[Path]:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setenv("HERMES_ORCHESTRATOR_HOME", str(tmp_path / "orchestrator"))
     om.reset_collector()
@@ -254,7 +254,7 @@ def test_cluster_heat_from_measured_activations_only(home: Path) -> None:
 
 @pytest.fixture()
 def server(home: Path):
-    srv = serve(host="127.0.0.1", port=0, token=TOKEN)
+    srv = server_mod.serve(host="127.0.0.1", port=0, token=TOKEN)
     yield srv
     srv.shutdown()
 

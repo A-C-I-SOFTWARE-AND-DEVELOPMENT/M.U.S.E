@@ -22,8 +22,8 @@ Token: read from the STUB_TOKEN environment variable. If unset, a default
 dev token is used and printed at startup (this is a local test stub — the
 real gateway issues per-device tokens via the pairing routes).
 
-Usage:
-  STUB_TOKEN=synapse-dev-token python tools/stub_gateway.py [--port 8787]
+Usage (set STUB_TOKEN in the environment first):
+  python tools/stub_gateway.py [--port 8787]
 
 Pair the UE client by writing the same token to
 <Project>/Saved/muse_token.txt (see MuseGatewaySettings.h).
@@ -41,7 +41,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 API_VERSION = "1.0.0"
 GATEWAY_VERSION = "stub-0.1.0"
 SERVICE_NAME = "synapse-stub-gateway"
-DEFAULT_TOKEN = "synapse-dev-token"
+DEFAULT_TOKEN = "synapse-dev-token"  # pragma: allowlist secret — local test stub only
 HEARTBEAT_SECONDS = 2.0
 
 TOKEN = os.environ.get("STUB_TOKEN") or DEFAULT_TOKEN
@@ -150,13 +150,13 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass  # Client went away — normal for a test stub.
 
-    def log_message(self, fmt: str, *args) -> None:
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A002 — signature matches BaseHTTPRequestHandler
         # Never echo headers (the bearer token) into logs.
-        print(f"[stub-gateway] {self.address_string()} {fmt % args}")
+        print(f"[stub-gateway] {self.address_string()} {format % args}")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8787)
     args = parser.parse_args()

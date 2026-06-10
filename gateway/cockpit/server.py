@@ -543,6 +543,8 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                         events = []
                 self._write_chunk(b"")
             except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected mid-stream — expected for SSE consumers
+                # (tab closed, reconnect with Last-Event-ID); nothing to clean up.
                 pass
             except Exception:  # pragma: no cover - defensive
                 pass
