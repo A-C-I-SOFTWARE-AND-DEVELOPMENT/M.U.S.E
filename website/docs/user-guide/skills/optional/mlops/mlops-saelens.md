@@ -369,9 +369,9 @@ For detailed API documentation, tutorials, and advanced usage, see the `referenc
 
 | File | Contents |
 |------|----------|
-| [references/README.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/README.md) | Overview and quick start guide |
-| [references/api.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/api.md) | Complete API reference for SAE, TrainingSAE, configurations |
-| [references/tutorials.md](https://github.com/NousResearch/hermes-agent/blob/main/optional-skills/mlops/saelens/references/tutorials.md) | Step-by-step tutorials for training, analysis, steering |
+| [references/README.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/saelens/references/README.md) | Overview and quick start guide |
+| [references/api.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/saelens/references/api.md) | Complete API reference for SAE, TrainingSAE, configurations |
+| [references/tutorials.md](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/optional-skills/mlops/saelens/references/tutorials.md) | Step-by-step tutorials for training, analysis, steering |
 
 ## External Resources
 

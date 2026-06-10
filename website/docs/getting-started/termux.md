@@ -46,7 +46,7 @@ That does not stop M.U.S.E. from working well as a phone-native CLI agent — it
 M.U.S.E. now ships a Termux-aware installer path:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 ```
 
 On Termux, the installer automatically:
@@ -80,7 +80,7 @@ Why these packages?
 ### 2. Clone M.U.S.E.
 
 ```bash
-git clone --recurse-submodules https://github.com/NousResearch/hermes-agent.git
+git clone --recurse-submodules https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
 cd hermes-agent
 ```
 

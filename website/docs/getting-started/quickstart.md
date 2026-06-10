@@ -61,7 +61,7 @@ PyPI releases track tagged versions (major/minor releases), not every commit on 
 
 ```bash
 # Linux / macOS / WSL2 / Android (Termux)
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 ```
 
 :::tip Android / Termux
