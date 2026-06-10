@@ -145,7 +145,7 @@ When adding a new tool / plugin / worker that wants new powers:
 ## Things this skill is not
 
 - A vulnerability scanner. For dependency / supply-chain alerts,
-  use `hermes doctor` and the
+  use `muse doctor` and the
   [`security_advisories`](../../hermes_cli/security_advisories.py)
   module.
 - A pen-test runbook. For offensive testing of *other* systems,

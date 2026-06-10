@@ -131,8 +131,8 @@ cp -r ~/hermes-agent/recovered-agent-sources \
       ~/.hermes/aos-recovered-sources
 
 # 5) Reload Hermes' skill index
-hermes skills list
-hermes doctor
+muse skills list
+muse doctor
 hermes
 # in the Hermes REPL:
 #   /reload-skills

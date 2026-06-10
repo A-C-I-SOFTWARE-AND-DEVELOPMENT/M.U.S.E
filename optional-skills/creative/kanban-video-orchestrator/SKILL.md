@@ -99,11 +99,11 @@ Generate a setup script (`setup.sh`) and run it. The script:
 
 1. Creates the project workspace (`~/projects/video-pipeline/<slug>/`)
 2. Copies any provided assets into `taste/`, `audio/`, `assets/`
-3. Creates each Hermes profile via `hermes profile create --clone`
+3. Creates each Hermes profile via `muse profile create --clone`
 4. Writes per-profile `SOUL.md` (personality + role definition)
 5. Configures profile YAML (toolsets, always_load skills, cwd)
 6. Writes `brief.md`, `TEAM.md`, and `taste/` content
-7. Fires the initial `hermes kanban create` task assigned to the director
+7. Fires the initial `muse kanban create` task assigned to the director
 
 Use `scripts/bootstrap_pipeline.py` to generate setup.sh from a brief +
 team-design JSON. See **[references/kanban-setup.md](references/kanban-setup.md)**
@@ -115,9 +115,9 @@ for the setup script structure, profile config patterns, and the critical
 Run `setup.sh`. Then provide the user with monitoring commands:
 
 ```bash
-hermes kanban watch --tenant <project-tenant>     # live events
-hermes kanban list  --tenant <project-tenant>     # board snapshot
-hermes dashboard                                   # visual board UI
+muse kanban watch --tenant <project-tenant>     # live events
+muse kanban list  --tenant <project-tenant>     # board snapshot
+muse dashboard                                   # visual board UI
 ```
 
 The director profile takes over from here, decomposing the work and routing
@@ -174,7 +174,7 @@ task graphs. See **[references/examples.md](references/examples.md)**.
 6. **The director never executes.** Even with the full `kanban + terminal +
    file` toolset, the director's `SOUL.md` rules forbid it from executing
    work itself. It decomposes and routes only — every concrete task becomes
-   a `hermes kanban create` call to a specialist profile. The
+   a `muse kanban create` call to a specialist profile. The
    `kanban-orchestrator` skill spells this out further.
 
 7. **Don't over-decompose.** A 30-second product video does NOT need 20 tasks.
