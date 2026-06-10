@@ -177,7 +177,7 @@ in [profile/github-history-profile-guide.md](profile/github-history-profile-guid
 
 ```bash
 # 1. Install
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash
 source ~/.bashrc
 
 # 2. Set a default model (any provider works)

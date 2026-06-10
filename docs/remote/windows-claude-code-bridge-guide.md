@@ -86,7 +86,7 @@ you have a reason to avoid Linux entirely on this machine.
 ### 1. Install M.U.S.E. on Windows
 
 ```powershell
-iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
 ```
 
 The installer pulls a portable MinGit (~45 MB) into
@@ -331,7 +331,7 @@ tick.
 
 ```powershell
 # On Windows
-iex (irm https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1)
+iex (irm https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.ps1)
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 Start-Service sshd
 # (install Claude Code separately, confirm `claude --version` works)

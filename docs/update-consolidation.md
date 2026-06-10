@@ -8,7 +8,7 @@ your fork's `main` — no prompts — and pushes the result back to your fork.
 It brings together:
 
 - **the original** — `upstream/main` (the official
-  `NousResearch/hermes-agent` repo your fork tracks), and
+  `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` repo your fork tracks), and
 - **your branch** — whatever branch is currently checked out,
 
 resolving any conflicts, merging into `main`, and pushing to `origin`
