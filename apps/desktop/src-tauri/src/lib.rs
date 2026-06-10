@@ -13,10 +13,12 @@
 mod brain;
 
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{TrayIconBuilder, TrayIconEvent},
     Manager, RunEvent, WindowEvent,
 };
+use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 /// Default gateway base URL. Mirrors the UI's `DEFAULT_GATEWAY_BASE`. The UI is
 /// the source of truth at runtime (it stores an override in localStorage); this
@@ -38,12 +40,27 @@ fn focus_main(app: &tauri::AppHandle) {
     }
 }
 
-/// Build the application menu: an app/file submenu (Quit), a standard Edit
-/// submenu (so copy/paste/select-all work in the webview), and a Help submenu
-/// that surfaces the configured gateway URL.
+/// Build the application menu: an app/file submenu (About + Quit), a standard
+/// Edit submenu (so copy/paste/select-all work in the webview), and a Help
+/// submenu with a "Copy Gateway URL" action.
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    let about = PredefinedMenuItem::about(
+        app,
+        Some("About M.U.S.E."),
+        Some(AboutMetadata {
+            name: Some("M.U.S.E.".into()),
+            version: Some(app.package_info().version.to_string()),
+            comments: Some("Multi-Use Synaptic Entity — One mind, many pathways.".into()),
+            ..Default::default()
+        }),
+    )?;
     let quit = PredefinedMenuItem::quit(app, Some("Quit M.U.S.E."))?;
-    let app_menu = Submenu::with_items(app, "M.U.S.E.", true, &[&quit])?;
+    let app_menu = Submenu::with_items(
+        app,
+        "M.U.S.E.",
+        true,
+        &[&about, &PredefinedMenuItem::separator(app)?, &quit],
+    )?;
 
     let edit_menu = Submenu::with_items(
         app,
@@ -60,13 +77,14 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         ],
     )?;
 
-    // A disabled, informational item showing where the UI will look for the
-    // gateway. `with_id` gives it a stable id; it's non-interactive.
+    // An actionable item that copies the configured gateway URL to the
+    // clipboard (handled in the builder's `on_menu_event`). `with_id` gives it
+    // a stable id the handler matches on.
     let gateway_item = MenuItem::with_id(
         app,
-        "gateway-url",
-        format!("Gateway: {}", gateway_url()),
-        false,
+        "copy-gateway-url",
+        format!("Copy Gateway URL ({})", gateway_url()),
+        true,
         None::<&str>,
     )?;
     let help_menu = Submenu::with_items(app, "Help", true, &[&gateway_item])?;
@@ -93,7 +111,12 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                     let _ = win.hide();
                 }
             }
-            "tray-quit" => app.exit(0),
+            "tray-quit" => {
+                // Persist window geometry before the explicit exit — with the
+                // hide-to-tray model this is the canonical shutdown path.
+                let _ = app.save_window_state(StateFlags::all());
+                app.exit(0);
+            }
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
@@ -122,6 +145,12 @@ pub fn run() {
         // Shell plugin: used Rust-side only (brain.rs spawns the gateway); no
         // shell:* capability is granted to the webview (capabilities/default.json).
         .plugin(tauri_plugin_shell::init())
+        // Persist window size/position across restarts. With the hide-to-tray
+        // close model the window is rarely destroyed, so the explicit save on
+        // tray Quit (below) is the main persistence point.
+        .plugin(tauri_plugin_window_state::Builder::default().build())
+        // Native clipboard access for the "Copy Gateway URL" menu item.
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(brain::BrainState::default())
         .invoke_handler(tauri::generate_handler![
             brain::gateway_status,
@@ -130,6 +159,12 @@ pub fn run() {
             brain::autostart_get,
             brain::autostart_set,
         ])
+        // Application menu actions (menu items declared in `build_menu`).
+        .on_menu_event(|app, event| {
+            if event.id().as_ref() == "copy-gateway-url" {
+                let _ = app.clipboard().write_text(gateway_url());
+            }
+        })
         .setup(|app| {
             // Clone the handle so the menu/tray builders own an `AppHandle`
             // independent of the `&mut App` borrow that `set_menu` needs.

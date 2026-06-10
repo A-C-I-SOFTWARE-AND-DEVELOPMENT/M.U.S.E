@@ -39,6 +39,9 @@ export function App() {
   }, []);
 
   // Health poll — drives the status dot. Mirrors the cockpit's 10s cadence.
+  // Bumping `healthNonce` (the offline banner's Retry) re-runs the ping
+  // immediately and restarts the interval.
+  const [healthNonce, setHealthNonce] = useState(0);
   useEffect(() => {
     let alive = true;
     const tick = async () => {
@@ -51,6 +54,28 @@ export function App() {
       alive = false;
       clearInterval(t);
     };
+  }, [healthNonce]);
+
+  const retryHealth = () => {
+    setHealth("connecting");
+    setHealthNonce((n) => n + 1);
+  };
+
+  // Keyboard nav — Cmd/Ctrl+1..n selects the nth registered route. The route
+  // registry is append-only, so digit → index is stable across releases.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      const n = Number(e.key);
+      if (!Number.isInteger(n) || n < 1) return;
+      const route = getRoutes()[n - 1];
+      if (!route) return;
+      e.preventDefault();
+      window.location.hash = "#/" + route.id;
+      setActiveId(route.id);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const active: RouteDef | undefined =
@@ -96,9 +121,14 @@ export function App() {
 
       {health === "offline" && (
         <div className="offline-banner" role="status">
-          Offline — can’t reach the gateway. Is{" "}
-          <span className="mono">hermes cockpit serve</span> running? Check the
-          gateway URL in Settings.
+          <span>
+            Offline — can’t reach the gateway. Is{" "}
+            <span className="mono">hermes cockpit serve</span> running? Check
+            the gateway URL in Settings.
+          </span>
+          <button className="retry" onClick={retryHealth}>
+            Retry
+          </button>
         </div>
       )}
 
