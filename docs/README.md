@@ -90,6 +90,7 @@ typed in a terminal or spoke into a phone in the car.
 | Developer + code-review tools (packages, OSV, deps.dev, sandbox) | [integrations/devtools-codeintel-plugins.md](integrations/devtools-codeintel-plugins.md) |
 | Diagnose a stuck job or a broken integration | [troubleshooting/hermes-orchestration-troubleshooting.md](troubleshooting/hermes-orchestration-troubleshooting.md) |
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
+| Understand the SYNAPSE game / Neural Observatory / Platform-v1.0 program | [plans/2026-06-10-project-synapse-master-plan.md](plans/2026-06-10-project-synapse-master-plan.md) |
 
 Other useful pages outside this manual:
 
