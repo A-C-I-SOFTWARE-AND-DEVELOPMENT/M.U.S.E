@@ -1364,9 +1364,9 @@ its activation phrases (see below) or explicitly via
 - `skills/aos-enterprise-council/registry/AOS_WORKFLOW_LIBRARY_COMPLETE.md`
 - `skills/aos-enterprise-council/registry/AOS_MEMORY_AND_CONTEXT_RECOVERY.md`
 
-**Recovery artifacts** at repo root: `AOS_FULL_SOURCE_INVENTORY.md`,
-`AOS_AGENT_RECOVERY_REPORT.md`, `AOS_INSTALLATION_REPORT.md`,
-`AOS_DUPLICATE_AND_CONFLICT_REPORT.md`.
+**Recovery artifacts** in `docs/aos-recovery/`:
+`AOS_FULL_SOURCE_INVENTORY.md`, `AOS_AGENT_RECOVERY_REPORT.md`,
+`AOS_INSTALLATION_REPORT.md`, `AOS_DUPLICATE_AND_CONFLICT_REPORT.md`.
 
 **Preserved sources** (never delete): `recovered-agent-sources/` — 166
 hazmat-command files + 20 hermes-agent AOS files snapshotted on

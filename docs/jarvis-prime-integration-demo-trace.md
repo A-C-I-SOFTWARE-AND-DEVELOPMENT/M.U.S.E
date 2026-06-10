@@ -12,8 +12,8 @@
 **Branch:** `claude/hopeful-bardeen-KBVqi`
 **Integration PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Base:** `origin/main` at `bc97e43` (2026-05-26 audit time)
-**Audit doc:** [`INTEGRATION_AUDIT.md`](../INTEGRATION_AUDIT.md)
-**Log doc:** [`INTEGRATION_LOG.md`](../INTEGRATION_LOG.md)
+**Audit doc:** [`INTEGRATION_AUDIT.md`](audits/INTEGRATION_AUDIT.md)
+**Log doc:** [`INTEGRATION_LOG.md`](audits/INTEGRATION_LOG.md)
 **Plan:** see attached integration plan
 
 This document is the end-to-end demo trace for the MUSE 53-PR

@@ -254,5 +254,6 @@ non-`hermes` category folders. The 5 registry files in
 `skills/aos-enterprise-council/registry/` are the source of truth —
 never improvise a council member that isn't in the registry.
 
-The full recovery narrative + Termux install commands live at the
-repo root: `AOS_AGENT_RECOVERY_REPORT.md` and `AOS_INSTALLATION_REPORT.md`.
+The full recovery narrative + Termux install commands live at
+`docs/aos-recovery/AOS_AGENT_RECOVERY_REPORT.md` and
+`docs/aos-recovery/AOS_INSTALLATION_REPORT.md`.

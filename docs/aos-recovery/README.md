@@ -1,15 +1,13 @@
 # AOS Recovery — `docs/aos-recovery/`
 
-Working copy of the 9 root-level AOS recovery registries / reports,
-mirrored here so the recovery surface is discoverable from the
-`docs/` tree as well as the repo root.
+**Canonical home** of the 9 AOS recovery registries / reports
+(formerly mirrored at the repo root; the root copies were removed in
+the Wave-D root tidy and this directory is now the source of truth).
 
-These files are **byte-identical** to the canonical copies at the
-repo root. If they diverge, the **repo-root copies are the source
-of truth** (the registries-inside-the-Hermes-pack at
-`skills/aos-enterprise-council/registry/` are the third mirror,
-intentionally kept so the pack is self-contained when installed
-into `~/.hermes/skills/`).
+The registries-inside-the-Hermes-pack at
+`skills/aos-enterprise-council/registry/` are a second, intentional
+mirror, kept so the pack is self-contained when installed into
+`~/.hermes/skills/`.
 
 ## Files in this directory
 
