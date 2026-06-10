@@ -37,14 +37,11 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -68,6 +65,9 @@ import com.aci.hermes.data.avatar.AvatarSource
 import com.aci.hermes.data.avatar.AvatarStyle
 import com.aci.hermes.data.avatar.JarvisBuiltin
 import com.aci.hermes.data.avatar.PixelSize
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,16 +147,16 @@ fun AvatarPickerScreen(
                 ActivityResultContracts.PickVisualMedia(),
             ) { uri -> viewModel.onPhotoPicked(uri) }
 
-            Button(
+            MuseButton(
                 onClick = {
                     photoLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                     )
                 },
+                text = "Choose photo",
+                variant = MuseButtonVariant.Primary,
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Choose photo")
-            }
+            )
 
             PixelSizeSelector(
                 current = currentPixelSize(state),
@@ -181,19 +181,19 @@ fun AvatarPickerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Button(
+                MuseButton(
                     onClick = viewModel::save,
+                    text = "Save",
+                    variant = MuseButtonVariant.Primary,
                     enabled = state is AvatarPickerState.PreviewReady,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text("Save")
-                }
-                OutlinedButton(
+                )
+                MuseButton(
                     onClick = viewModel::reset,
+                    text = "Delete / Reset",
+                    variant = MuseButtonVariant.Secondary,
                     modifier = Modifier.weight(1f),
-                ) {
-                    Text("Delete / Reset")
-                }
+                )
             }
 
             (state as? AvatarPickerState.Error)?.let {
@@ -230,10 +230,12 @@ private fun RoomEditor(
             singleLine = true,
             enabled = !room.busy,
         )
-        Button(
+        MuseButton(
             onClick = { onGenerate(text); text = "" },
+            text = if (room.busy) "Generating…" else "Generate",
+            variant = MuseButtonVariant.Primary,
             enabled = !room.busy && text.isNotBlank(),
-        ) { Text(if (room.busy) "Generating…" else "Generate") }
+        )
 
         if (room.items.isNotEmpty()) {
             Row(
@@ -296,14 +298,18 @@ private fun PersonaCreator(
             enabled = !persona.busy,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(
+            MuseButton(
                 onClick = { onBecome(text) },
+                text = if (persona.busy) "Working…" else "Become",
+                variant = MuseButtonVariant.Primary,
                 enabled = !persona.busy && text.isNotBlank(),
-            ) { Text(if (persona.busy) "Working…" else "Become") }
-            OutlinedButton(
+            )
+            MuseButton(
                 onClick = { onBecome(""); text = "" },
+                text = "Reset",
+                variant = MuseButtonVariant.Secondary,
                 enabled = !persona.busy,
-            ) { Text("Reset") }
+            )
         }
         if (persona.name.isNotBlank()) {
             Text("In character: ${persona.name}", style = MaterialTheme.typography.labelMedium)
@@ -395,10 +401,11 @@ private fun BuiltInCard(
 ) {
     val borderColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
     val borderWidth = if (selected) 2.dp else 1.dp
-    Card(
-        onClick = onClick,
-        border = BorderStroke(borderWidth, borderColor),
-        modifier = modifier.height(96.dp),
+    MuseCard(
+        modifier = modifier
+            .height(96.dp)
+            .border(BorderStroke(borderWidth, borderColor), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick),
     ) {
         Column(
             modifier = Modifier.fillMaxSize().padding(8.dp),

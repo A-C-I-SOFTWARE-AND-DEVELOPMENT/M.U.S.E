@@ -19,14 +19,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,6 +38,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object VoiceCaptureTestTags {
     const val MIC_BUTTON = "voice_mic_button"
@@ -171,17 +171,14 @@ fun VoiceCaptureScreen(
             }
 
             if (state.transcript.isNotBlank()) {
-                Card(
+                MuseCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    ),
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                            .padding(JarvisTokens.SpaceLg),
+                        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
                     ) {
                         Text(
                             text = state.transcript,
@@ -190,24 +187,24 @@ fun VoiceCaptureScreen(
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                         ) {
-                            Button(
+                            MuseButton(
                                 onClick = viewModel::saveAsTask,
+                                text = stringResource(R.string.voice_save_task),
+                                variant = MuseButtonVariant.Primary,
                                 enabled = !state.saving,
                                 modifier = Modifier
                                     .weight(1f)
                                     .testTag(VoiceCaptureTestTags.SAVE_TASK),
-                            ) {
-                                Text(stringResource(R.string.voice_save_task))
-                            }
-                            OutlinedButton(
+                            )
+                            MuseButton(
                                 onClick = viewModel::clearTranscript,
+                                text = stringResource(R.string.voice_clear),
+                                variant = MuseButtonVariant.Secondary,
                                 enabled = !state.saving,
                                 modifier = Modifier.weight(1f),
-                            ) {
-                                Text(stringResource(R.string.voice_clear))
-                            }
+                            )
                         }
                     }
                 }

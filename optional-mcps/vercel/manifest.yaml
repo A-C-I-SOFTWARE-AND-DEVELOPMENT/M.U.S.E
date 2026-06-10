@@ -1,0 +1,17 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: vercel
+description: Manage Vercel projects, deployments, logs, and domains.
+source: https://vercel.com/docs/mcp/vercel-mcp
+
+transport:
+  type: http
+  url: https://mcp.vercel.com
+
+auth:
+  type: oauth
+
+post_install: |
+  First connection opens a browser to authorize Vercel.

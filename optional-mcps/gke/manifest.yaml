@@ -1,0 +1,26 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: gke
+description: Inspect and operate Google Kubernetes Engine clusters and workloads.
+source: https://github.com/GoogleCloudPlatform/gke-mcp
+
+transport:
+  type: stdio
+  command: "${INSTALL_DIR}/gke-mcp"
+
+install:
+  type: git
+  url: https://github.com/GoogleCloudPlatform/gke-mcp.git
+  ref: main
+  bootstrap:
+    - "go build -o gke-mcp ."
+
+auth:
+  type: none
+
+post_install: |
+  Requires the Go toolchain (to build), the gcloud CLI, and Application Default
+  Credentials (`gcloud auth application-default login`). Your kubectl context is
+  used for cluster access.

@@ -5140,9 +5140,11 @@ def _resolve_hermes_argv() -> list[str]:
             return _hermes_path_argv(resolved_env_bin)
         return _module_hermes_argv()
 
-    hermes_bin = _safe_which_no_cwd("hermes") if _IS_WINDOWS else shutil.which("hermes")
-    if hermes_bin:
-        return _hermes_path_argv(hermes_bin)
+    # Prefer the canonical `muse` shim; fall back to the legacy `hermes` alias.
+    for _cmd in ("muse", "hermes"):
+        cmd_bin = _safe_which_no_cwd(_cmd) if _IS_WINDOWS else shutil.which(_cmd)
+        if cmd_bin:
+            return _hermes_path_argv(cmd_bin)
     return _module_hermes_argv()
 
 

@@ -10,13 +10,13 @@ Semantic long-term memory with profile recall, semantic search, explicit memory 
 ## Setup
 
 ```bash
-hermes memory setup    # select "supermemory"
+muse memory setup    # select "supermemory"
 ```
 
 Or manually:
 
 ```bash
-hermes config set memory.provider supermemory
+muse config set memory.provider supermemory
 echo 'SUPERMEMORY_API_KEY=***' >> ~/.hermes/.env
 ```
 

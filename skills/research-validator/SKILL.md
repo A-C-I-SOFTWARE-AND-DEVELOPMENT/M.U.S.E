@@ -125,14 +125,14 @@ because web sources are less stable.
 
 ### 4. Prior Hermes memory / session notes
 
-The persistent memory layer (`hermes memory status`) and the session
+The persistent memory layer (`muse memory status`) and the session
 store (`$HERMES_HOME/sessions/`) often hold the answer to "what did
 we decide last time?". For a re-engaged task, check this *first*, not
 last — it is faster than re-research.
 
 ```bash
-hermes sessions browse              # interactive picker
-hermes sessions export tmp.jsonl    # then grep for keywords
+muse sessions browse              # interactive picker
+muse sessions export tmp.jsonl    # then grep for keywords
 ```
 
 Past **decision ledgers** are the highest-signal slice of session

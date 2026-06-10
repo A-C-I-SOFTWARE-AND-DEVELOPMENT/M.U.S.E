@@ -1,0 +1,21 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: git
+description: Inspect and operate on local git repositories (status, diff, log, commit).
+source: https://github.com/modelcontextprotocol/servers/tree/main/src/git
+
+transport:
+  type: stdio
+  command: uvx
+  args:
+    - "mcp-server-git"
+
+auth:
+  type: none
+
+post_install: |
+  Requires `uv` / `uvx` on PATH. By default the server operates on the repo in
+  your working directory; pin a specific repo with --repository via
+  `hermes mcp configure git` after install.

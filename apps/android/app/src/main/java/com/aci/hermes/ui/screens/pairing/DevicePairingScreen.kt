@@ -10,18 +10,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,9 +28,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.cockpit.DevicePairingClient
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.theme.JarvisCrimson
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Owner-gated device-pairing flow: request a short-lived code from the gateway,
@@ -70,16 +72,16 @@ fun DevicePairingScreen(viewModel: DevicePairingViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Text(
-                "Pair this device with your Jarvis gateway. Request a code, then " +
+                "Pair this device with your Muse gateway. Request a code, then " +
                     "confirm it with the owner authorization phrase to receive a " +
                     "per-device token.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = JarvisSignalDim,
             )
 
             when (val current = state) {
@@ -121,7 +123,7 @@ private fun IdleCard(
     submitting: Boolean,
 ) {
     PairingCard {
-        Text("Request a pairing code", style = MaterialTheme.typography.titleMedium)
+        Text("Request a pairing code", style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
         OutlinedTextField(
             value = deviceName,
             onValueChange = onDeviceNameChange,
@@ -129,13 +131,13 @@ private fun IdleCard(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Device name (optional)") },
         )
-        OutlinedButton(
+        MuseButton(
             onClick = onRequestCode,
+            text = "Request code",
+            variant = MuseButtonVariant.Primary,
             enabled = !submitting,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Request code")
-        }
+        )
     }
 }
 
@@ -152,7 +154,7 @@ private fun CodeRequestedCard(
     var authorization by remember { mutableStateOf("") }
 
     PairingCard {
-        Text("Confirm pairing", style = MaterialTheme.typography.titleMedium)
+        Text("Confirm pairing", style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
         LabeledValue("Pairing code", state.start.pairingCode)
         if (state.start.expiresIn > 0) {
             LabeledValue("Expires in", "${state.start.expiresIn}s")
@@ -168,10 +170,12 @@ private fun CodeRequestedCard(
         Text(
             "Owner authorization phrase — type it exactly:",
             style = MaterialTheme.typography.titleSmall,
+            color = JarvisSignal,
         )
         Text(
             "\"${DevicePairingClient.OWNER_AUTHORIZATION_PHRASE}\"",
             style = MaterialTheme.typography.bodySmall,
+            color = JarvisSignalDim,
             fontFamily = FontFamily.Monospace,
         )
         OutlinedTextField(
@@ -181,18 +185,20 @@ private fun CodeRequestedCard(
             modifier = Modifier.fillMaxWidth(),
             label = { Text("Authorization phrase") },
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
+        Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            MuseButton(
                 onClick = { onConfirm(code, authorization) },
+                text = "Confirm",
+                variant = MuseButtonVariant.Approve,
                 enabled = !submitting &&
                     code.isNotBlank() &&
                     authorization == DevicePairingClient.OWNER_AUTHORIZATION_PHRASE,
-            ) {
-                Text("Confirm")
-            }
-            TextButton(onClick = onCancel) {
-                Text(stringResource(R.string.action_cancel))
-            }
+            )
+            MuseButton(
+                onClick = onCancel,
+                text = stringResource(R.string.action_cancel),
+                variant = MuseButtonVariant.Secondary,
+            )
         }
     }
 }
@@ -203,18 +209,21 @@ private fun PairedCard(state: DevicePairingState.Paired, onDone: () -> Unit) {
         Text(
             "Device paired",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = JarvisSignal,
         )
         LabeledValue("Device id", state.confirm.deviceId)
         LabeledValue("Token type", state.confirm.tokenType)
         Text(
             "The per-device token is stored securely on this device.",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = JarvisSignalDim,
         )
-        OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.action_ok))
-        }
+        MuseButton(
+            onClick = onDone,
+            text = stringResource(R.string.action_ok),
+            variant = MuseButtonVariant.Primary,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -224,21 +233,24 @@ private fun ErrorCard(state: DevicePairingState.Error, onRetry: () -> Unit) {
         Text(
             "Pairing failed",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.error,
+            color = JarvisCrimson,
         )
-        Text(state.message, style = MaterialTheme.typography.bodyMedium)
+        Text(state.message, style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
         if (state.retryable) {
-            OutlinedButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
-                Text("Try again")
-            }
+            MuseButton(
+                onClick = onRetry,
+                text = "Try again",
+                variant = MuseButtonVariant.Secondary,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }
 
 @Composable
 private fun PairingCard(content: @Composable () -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    MuseCard {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             content()
         }
     }
@@ -246,8 +258,8 @@ private fun PairingCard(content: @Composable () -> Unit) {
 
 @Composable
 private fun LabeledValue(label: String, value: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
+    Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXxs)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = JarvisSignal, fontFamily = FontFamily.Monospace)
     }
 }

@@ -88,13 +88,13 @@ def _add_accept_hooks_flag(parser) -> None:
 def _require_tty(command_name: str) -> None:
     """Exit with a clear error if stdin is not a terminal.
 
-    Interactive TUI commands (hermes tools, hermes setup, hermes model) use
+    Interactive TUI commands (muse tools, muse setup, muse model) use
     curses or input() prompts that spin at 100% CPU when stdin is a pipe.
     This guard prevents accidental non-interactive invocation.
     """
     if not sys.stdin.isatty():
         print(
-            f"Error: 'hermes {command_name}' requires an interactive terminal.\n"
+            f"Error: 'muse {command_name}' requires an interactive terminal.\n"
             f"It cannot be run through a pipe or non-interactive subprocess.\n"
             f"Run it directly in your terminal instead.",
             file=sys.stderr,
@@ -355,8 +355,6 @@ def _has_any_provider_configured() -> bool:
     auth_file = get_hermes_home() / "auth.json"
     if auth_file.exists():
         try:
-            import json
-
             auth = json.loads(auth_file.read_text())
             active = auth.get("active_provider")
             if active:
@@ -394,6 +392,39 @@ def _has_any_provider_configured() -> bool:
                 return True
         except Exception:
             pass
+
+    # WC-1: `muse models bootstrap` writes a model_policy.json that enables
+    # locally-executable routes (the `claude` worker, `codex` worker, or a
+    # local OSS runtime). The README's headless instruction tells users to run
+    # bootstrap, so the gate must read what bootstrap writes — otherwise the
+    # documented escape hatch is a dead end. This branch closes the
+    # bootstrap-writes-X / gate-reads-Y disconnect.
+    #
+    # Read the policy file via `get_hermes_home()` (which the rest of this
+    # function and the test suite patch via the config module) rather than
+    # importing `model_bootstrap.config_path()` directly — that keeps test
+    # isolation intact (tests patch `config.get_hermes_home`, not the env var
+    # `HERMES_HOME` that `model_bootstrap.config_path()` reads).
+    try:
+        policy_path = get_hermes_home() / "jarvis_prime" / "model_policy.json"
+        if policy_path.is_file():
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+            if isinstance(policy, dict):
+                routes = policy.get("routes") or {}
+                ccw = routes.get("claude_code_worker") or {}
+                if ccw.get("enabled") and shutil.which(ccw.get("tool") or "claude"):
+                    return True
+                cxw = routes.get("codex_worker") or {}
+                if cxw.get("enabled") and shutil.which(cxw.get("tool") or "codex"):
+                    return True
+                loc = routes.get("local_oss") or {}
+                if loc.get("enabled") and loc.get("runtimes"):
+                    return True
+                hosted = routes.get("hosted_free_or_user_configured_oss") or {}
+                if hosted.get("enabled") and hosted.get("providers"):
+                    return True
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
 
     return False
 
@@ -1388,10 +1419,10 @@ def cmd_chat(args):
     if not _has_any_provider_configured():
         print()
         print(
-            "It looks like Hermes isn't configured yet -- no API keys or providers found."
+            "It looks like M.U.S.E. isn't configured yet -- no API keys or providers found."
         )
         print()
-        print("  Run:  hermes setup")
+        print("  Run:  muse setup")
         print()
 
         from hermes_cli.setup import (
@@ -1413,7 +1444,7 @@ def cmd_chat(args):
             cmd_setup(args)
             return
         print()
-        print("You can run 'hermes setup' at any time to configure.")
+        print("You can run 'muse setup' at any time to configure.")
         sys.exit(1)
 
     # Start update check in background (runs while other init happens)
@@ -1760,7 +1791,7 @@ def cmd_postinstall(args):
 
     stamp_install_method("pip")
 
-    print("⚕ Hermes post-install bootstrap")
+    print("⚕ M.U.S.E. post-install bootstrap")
     print()
 
     for dep in ("node", "browser", "ripgrep", "ffmpeg"):
@@ -1989,8 +2020,8 @@ def select_provider_and_model(args=None):
             active = active_def.id
         else:
             warning = (
-                f"Unknown provider '{effective_provider}'. Check 'hermes model' for "
-                "available providers, or run 'hermes doctor' to diagnose config "
+                f"Unknown provider '{effective_provider}'. Check 'muse model' for "
+                "available providers, or run 'muse doctor' to diagnose config "
                 "issues."
             )
             print(f"Warning: {warning} Falling back to auto provider detection.")
@@ -7095,12 +7126,12 @@ def _restore_stashed_changes(
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/NousResearch/hermes-agent.git",
-    "git@github.com:NousResearch/hermes-agent.git",
-    "https://github.com/NousResearch/hermes-agent",
-    "git@github.com:NousResearch/hermes-agent",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git",
+    "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
+    "git@github.com:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
 }
-OFFICIAL_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
+OFFICIAL_REPO_URL = "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -8541,7 +8572,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 return
             print("✗ Not a git repository. Please reinstall:")
             print(
-                "  curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash"
+                "  curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/install.sh | bash"
             )
             sys.exit(1)
 
@@ -12812,6 +12843,46 @@ Examples:
         help="Force re-authentication for an OAuth-based MCP server",
     )
     mcp_login_p.add_argument("name", help="Server name to re-authenticate")
+
+    mcp_sub.add_parser(
+        "catalog",
+        aliases=["ls-catalog"],
+        help="List the curated MCP catalog plus your configured servers",
+    )
+
+    mcp_sub.add_parser(
+        "picker",
+        help="Interactive MCP catalog picker (install/enable/disable/configure)",
+    )
+
+    mcp_install_p = mcp_sub.add_parser(
+        "install",
+        help="Install a catalog MCP by name, or --all to register every entry",
+    )
+    mcp_install_p.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="Catalog entry name (omit when using --all)",
+    )
+    mcp_install_p.add_argument(
+        "--all",
+        action="store_true",
+        dest="install_all",
+        help="Register every catalog entry non-interactively (no prompts)",
+    )
+    mcp_install_p.add_argument(
+        "--enable",
+        action="store_true",
+        default=False,
+        help="With --all: enable entries even when their credentials are absent",
+    )
+    mcp_install_p.add_argument(
+        "--with-bootstrap",
+        action="store_true",
+        default=False,
+        help="With --all: also clone/bootstrap git-installed servers (slow)",
+    )
 
     _add_accept_hooks_flag(mcp_parser)
 

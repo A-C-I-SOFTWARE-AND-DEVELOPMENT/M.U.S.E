@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseGlyph
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Shell placeholder for MUSE sections whose full UI is still being
@@ -32,28 +35,30 @@ fun PlaceholderScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(JarvisTokens.SpaceXxl),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        MuseGlyph(size = 72.dp)
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
+            color = JarvisSignal,
         )
         Text(
             text = description,
             style = MaterialTheme.typography.bodyLarge,
+            color = JarvisSignalDim,
             textAlign = TextAlign.Center,
         )
-        Card(
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-            modifier = Modifier.padding(top = 16.dp),
+        MuseCard(
+            modifier = Modifier.padding(top = JarvisTokens.SpaceLg),
         ) {
             Text(
                 text = comingSoonNote,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(16.dp),
+                color = JarvisSignalDim,
+                modifier = Modifier.padding(JarvisTokens.SpaceLg),
                 textAlign = TextAlign.Center,
             )
         }

@@ -1,5 +1,6 @@
 package com.aci.hermes.ui.screens.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,10 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -24,16 +23,11 @@ import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Work
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,9 +44,20 @@ import com.aci.hermes.data.model.AiToolProfile
 import com.aci.hermes.data.model.TargetTool
 import com.aci.hermes.ui.components.BackendOfflineBanner
 import com.aci.hermes.ui.components.BackendStatusPill
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseGlyph
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.MuseStatus
+import com.aci.hermes.ui.designsystem.MuseStatusDot
 import com.aci.hermes.ui.navigation.Screen
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorUiState
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisSignalMute
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Primary landing surface for MUSE. Folds in the orchestrator status
@@ -85,9 +90,9 @@ fun HomeScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 12.dp),
+                .padding(horizontal = JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
+            contentPadding = PaddingValues(vertical = JarvisTokens.SpaceMd),
         ) {
             item { GreetingCard() }
             item {
@@ -111,10 +116,12 @@ fun HomeScreen(
                 )
             }
             item {
-                OutlinedButton(
+                MuseButton(
                     onClick = { onOpenTask(null) },
+                    text = stringResource(R.string.orchestrator_new_task),
+                    variant = MuseButtonVariant.Primary,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.orchestrator_new_task)) }
+                )
             }
             if (state.showSafetyWarnings) {
                 item { SafetyBanner() }
@@ -129,20 +136,25 @@ fun HomeScreen(
 
 @Composable
 private fun GreetingCard() {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.home_greeting_title),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = stringResource(R.string.home_greeting_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-            )
+            MuseGlyph(size = 48.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+                Text(
+                    text = stringResource(R.string.home_greeting_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = JarvisSignal,
+                )
+                Text(
+                    text = stringResource(R.string.home_greeting_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = JarvisSignalDim,
+                )
+            }
         }
     }
 }
@@ -153,25 +165,23 @@ private fun StatusCard(
     onStart: () -> Unit,
     onStop: () -> Unit,
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                Surface(
-                    shape = CircleShape,
-                    color = if (state.serviceRunning) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(12.dp),
-                ) {}
+                MuseStatusDot(
+                    status = if (state.serviceRunning) MuseStatus.Ok else MuseStatus.Off,
+                )
                 Text(
                     text = if (state.serviceRunning) stringResource(R.string.service_status_running)
                            else stringResource(R.string.service_status_stopped),
                     style = MaterialTheme.typography.titleMedium,
+                    color = JarvisSignal,
                     modifier = Modifier.weight(1f),
                 )
                 // Backend reachability is a separate signal from the local
@@ -182,11 +192,19 @@ private fun StatusCard(
             StatusRow(stringResource(R.string.orchestrator_status_mode_label), stringResource(R.string.home_status_mode_value))
             StatusRow(stringResource(R.string.orchestrator_status_billing_label), stringResource(R.string.orchestrator_status_billing_value))
             StatusRow(stringResource(R.string.orchestrator_status_export_label), stringResource(R.string.orchestrator_status_export_value))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 if (state.serviceRunning) {
-                    OutlinedButton(onClick = onStop) { Text(stringResource(R.string.orchestrator_stop_service)) }
+                    MuseButton(
+                        onClick = onStop,
+                        text = stringResource(R.string.orchestrator_stop_service),
+                        variant = MuseButtonVariant.Secondary,
+                    )
                 } else {
-                    Button(onClick = onStart) { Text(stringResource(R.string.orchestrator_start_service)) }
+                    MuseButton(
+                        onClick = onStart,
+                        text = stringResource(R.string.orchestrator_start_service),
+                        variant = MuseButtonVariant.Primary,
+                    )
                 }
             }
         }
@@ -196,18 +214,16 @@ private fun StatusCard(
 @Composable
 private fun StatusRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = JarvisSignal)
     }
 }
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp),
+    MuseSectionHeader(
+        title = text,
+        modifier = Modifier.padding(top = JarvisTokens.SpaceSm),
     )
 }
 
@@ -226,9 +242,9 @@ private fun QuickLinksGrid(onNavigate: (Screen) -> Unit, onOpenVoice: () -> Unit
             QuickLinkCell(screen.quickLinkLabelRes(), screen.quickLinkIcon()) { onNavigate(screen) }
         } + QuickLinkCell(R.string.nav_voice, Icons.Filled.Mic, onOpenVoice)
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
         cells.chunked(2).forEach { rowCells ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm), modifier = Modifier.fillMaxWidth()) {
                 rowCells.forEach { cell ->
                     QuickLinkCard(
                         modifier = Modifier.weight(1f),
@@ -283,47 +299,42 @@ private fun QuickLinkCard(
     icon: ImageVector,
     onClick: () -> Unit,
 ) {
-    Card(
-        modifier = modifier,
-        onClick = onClick,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
+    MuseCard(modifier = modifier.clickable(onClick = onClick)) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Text(title, style = MaterialTheme.typography.titleSmall)
+            Icon(icon, contentDescription = null, tint = JarvisSignal)
+            Text(title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
         }
     }
 }
 
 @Composable
 private fun JarvisLiveEntryCard(onClick: () -> Unit) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        onClick = onClick,
-    ) {
+    MuseCard(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(JarvisTokens.SpaceLg),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             Icon(
                 Icons.Filled.AutoAwesome,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = JarvisSignal,
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     stringResource(R.string.jarvis_live_entry_title),
                     style = MaterialTheme.typography.titleMedium,
+                    color = JarvisSignal,
                 )
                 Text(
                     stringResource(R.string.jarvis_live_entry_subtitle),
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
             }
         }
@@ -337,20 +348,24 @@ private fun ToolCard(
     onPrepareHandoff: () -> Unit,
     onOpenTool: () -> Unit,
 ) {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(profile.displayName, style = MaterialTheme.typography.titleMedium)
-            Text(profile.role, style = MaterialTheme.typography.bodyMedium)
-            Text(profile.notes, style = MaterialTheme.typography.bodySmall)
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+            Text(profile.displayName, style = MaterialTheme.typography.titleMedium, color = JarvisSignal)
+            Text(profile.role, style = MaterialTheme.typography.bodyMedium, color = JarvisSignalDim)
+            Text(profile.notes, style = MaterialTheme.typography.bodySmall, color = JarvisSignalMute)
             HorizontalDivider()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onPrepareHandoff) {
-                    Text(stringResource(R.string.orchestrator_prepare_handoff))
-                }
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseButton(
+                    onClick = onPrepareHandoff,
+                    text = stringResource(R.string.orchestrator_prepare_handoff),
+                    variant = MuseButtonVariant.Primary,
+                )
                 if (allowExternal) {
-                    OutlinedButton(onClick = onOpenTool) {
-                        Text(stringResource(R.string.orchestrator_open_tool))
-                    }
+                    MuseButton(
+                        onClick = onOpenTool,
+                        text = stringResource(R.string.orchestrator_open_tool),
+                        variant = MuseButtonVariant.Secondary,
+                    )
                 }
             }
         }
@@ -359,16 +374,17 @@ private fun ToolCard(
 
 @Composable
 private fun SafetyBanner() {
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(
                 stringResource(R.string.orchestrator_safety_title),
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = JarvisSignal,
             )
             Text(
                 stringResource(R.string.orchestrator_safety_body),
                 style = MaterialTheme.typography.bodySmall,
+                color = JarvisSignalDim,
             )
         }
     }

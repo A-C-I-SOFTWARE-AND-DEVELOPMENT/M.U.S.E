@@ -1,0 +1,33 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: filesystem
+description: Read, write, and search files under a sandboxed root directory.
+source: https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem
+
+# Reference MCP server. The final arg is the one directory the server is
+# allowed to touch. It is interpolated from ${MCP_FS_ROOT} at connect time.
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-filesystem"
+    - "${MCP_FS_ROOT}"
+
+# MCP_FS_ROOT is required (not a secret): the server must be told exactly which
+# directory it may access. Declaring it here gates bulk-install — the entry
+# stays disabled until you choose a root, so it can never accidentally run
+# scoped to a surprising path. (Same shape n8n uses for N8N_BASE_URL.)
+auth:
+  type: api_key
+  env:
+    - name: MCP_FS_ROOT
+      prompt: "Absolute path the filesystem server may read/write"
+      required: true
+      secret: false
+
+post_install: |
+  Pick the tightest directory you can — the server can read and write anything
+  under MCP_FS_ROOT. Requires Node.js (npx) on PATH.

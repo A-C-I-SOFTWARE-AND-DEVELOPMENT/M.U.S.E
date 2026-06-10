@@ -603,10 +603,10 @@ class S6ServiceManager:
         for k, v in sorted(extra_env.items()):
             lines.append(f"export {k}={shlex.quote(v)}")
         if profile == "default":
-            lines.append("exec s6-setuidgid hermes hermes gateway run")
+            lines.append("exec s6-setuidgid hermes muse gateway run")
         else:
             lines.append(
-                f"exec s6-setuidgid hermes hermes -p {shlex.quote(profile)} gateway run"
+                f"exec s6-setuidgid hermes muse -p {shlex.quote(profile)} gateway run"
             )
         return "\n".join(lines) + "\n"
 

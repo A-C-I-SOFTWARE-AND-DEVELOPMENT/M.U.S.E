@@ -1,6 +1,7 @@
 package com.aci.hermes.ui.screens.memory
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +20,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +47,9 @@ import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
 import com.aci.hermes.data.memory.MemoryCategory
 import com.aci.hermes.data.memory.MemoryItem
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.theme.JarvisTokens
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -111,8 +109,8 @@ fun MemoryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             MemoryTabs(
                 active = state.tab,
@@ -138,7 +136,7 @@ fun MemoryScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .testTag(MemoryScreenTags.LIST),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                         ) {
                             items(state.visibleItems, key = { it.id }) { item ->
                                 if (item.category == MemoryCategory.SOCIAL_SPEECH_PATTERN) {
@@ -227,26 +225,25 @@ fun MemorySearch(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemoryFilter(
     active: MemoryCategory?,
     onSelect: (MemoryCategory?) -> Unit,
 ) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
         item {
-            FilterChip(
+            MuseChip(
+                label = stringResource(R.string.memory_filter_all),
                 selected = active == null,
                 onClick = { onSelect(null) },
-                label = { Text(stringResource(R.string.memory_filter_all)) },
                 modifier = Modifier.testTag(MemoryScreenTags.filter("ALL")),
             )
         }
         items(MemoryCategory.values().toList()) { cat ->
-            FilterChip(
+            MuseChip(
+                label = cat.display,
                 selected = active == cat,
                 onClick = { onSelect(cat) },
-                label = { Text(cat.display) },
                 modifier = Modifier.testTag(MemoryScreenTags.filter(cat.name)),
             )
         }
@@ -280,7 +277,6 @@ private fun EmptyState() {
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MemoryCard(
     item: MemoryItem,
@@ -288,32 +284,31 @@ fun MemoryCard(
     onCorrect: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
-            .testTag(MemoryScreenTags.card(item.id)),
-        onClick = onOpen,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+            .testTag(MemoryScreenTags.card(item.id))
+            .clickable(onClick = onOpen),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CategoryPill(item.category)
                 if (item.redacted) {
                     Surface(
                         modifier = Modifier
-                            .padding(start = 8.dp)
+                            .padding(start = JarvisTokens.SpaceSm)
                             .clip(RoundedCornerShape(50)),
                         color = MaterialTheme.colorScheme.errorContainer,
                     ) {
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.padding(horizontal = JarvisTokens.SpaceSm, vertical = JarvisTokens.SpaceXxs),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs),
                         ) {
-                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = 2.dp))
+                            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.padding(end = JarvisTokens.SpaceXxs))
                             Text(stringResource(R.string.memory_redacted_badge), style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -328,19 +323,12 @@ fun MemoryCard(
                 text = item.content.take(180) + if (item.content.length > 180) "…" else "",
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AssistChip(
-                    onClick = onOpen,
-                    label = { Text(item.durability.display) },
-                    colors = AssistChipDefaults.assistChipColors(),
-                )
-                AssistChip(
-                    onClick = onOpen,
-                    label = { Text(item.confidence.display) },
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+                MuseChip(label = item.durability.display, onClick = onOpen)
+                MuseChip(label = item.confidence.display, onClick = onOpen)
             }
             HorizontalDivider()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
                 IconButton(onClick = onCorrect) {
                     Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.memory_correct_cd))
                 }
@@ -368,7 +356,7 @@ private fun CategoryPill(category: MemoryCategory) {
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .background(container)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(horizontal = 10.dp, vertical = JarvisTokens.SpaceXs),
     ) {
         Text(
             text = category.display,

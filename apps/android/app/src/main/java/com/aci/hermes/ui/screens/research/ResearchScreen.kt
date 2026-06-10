@@ -14,10 +14,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +43,11 @@ import com.aci.hermes.data.cockpit.ResearchCard
 import com.aci.hermes.data.cockpit.ResearchContradiction
 import com.aci.hermes.data.cockpit.ResearchReport
 import com.aci.hermes.data.research.ResearchSync
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.theme.JarvisTokens
 
 object ResearchTestTags {
     const val QUERY = "research_query"
@@ -101,9 +103,9 @@ fun ResearchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
         ) {
             val running = state.sync is ResearchSync.Loading
             OutlinedTextField(
@@ -176,29 +178,25 @@ private fun ReportBody(
 
     // Final answer + uncertainty.
     SectionTitle(stringResource(R.string.research_section_answer))
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
             Text(
                 report.finalAnswer,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.testTag(ResearchTestTags.ANSWER),
             )
             if (report.uncertainty.isNotBlank()) {
-                AssistChip(
-                    onClick = {},
-                    label = { Text("${stringResource(R.string.research_uncertainty)}: ${report.uncertainty}") },
-                )
+                MuseChip(label = "${stringResource(R.string.research_uncertainty)}: ${report.uncertainty}")
             }
         }
     }
 
-    Button(
+    MuseButton(
         onClick = onCreateTask,
+        text = stringResource(R.string.research_create_task),
         enabled = !creatingTask,
         modifier = Modifier.fillMaxWidth().testTag(ResearchTestTags.CREATE_TASK),
-    ) {
-        Text(stringResource(R.string.research_create_task))
-    }
+    )
 
     // Evidence cards (each promotable to memory).
     SectionTitle("${stringResource(R.string.research_section_evidence)} (${report.cards.size})")
@@ -225,17 +223,12 @@ private fun EvidenceCardView(
     promoted: Boolean,
     onPromote: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
             Text(card.title, style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text(card.evidenceStrength) })
-                AssistChip(onClick = {}, label = { Text(card.sourceType) })
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseChip(label = card.evidenceStrength)
+                MuseChip(label = card.sourceType)
             }
             if (card.excerpt.isNotBlank()) {
                 Text(card.excerpt, style = MaterialTheme.typography.bodyMedium, maxLines = 4)
@@ -267,14 +260,9 @@ private fun EvidenceCardView(
 
 @Composable
 private fun ContradictionView(c: ResearchContradiction) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer,
-        ),
-    ) {
-        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(c.subject, style = MaterialTheme.typography.titleSmall)
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+            Text(c.subject, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
             Text("• ${c.claimA}", style = MaterialTheme.typography.bodyMedium)
             Text("• ${c.claimB}", style = MaterialTheme.typography.bodyMedium)
             Text(c.reason, style = MaterialTheme.typography.labelSmall)
@@ -284,22 +272,17 @@ private fun ContradictionView(c: ResearchContradiction) {
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
+    MuseSectionHeader(title = text)
 }
 
 @Composable
 private fun HintCard(text: String, error: Boolean = false) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (error) MaterialTheme.colorScheme.errorContainer
-                             else MaterialTheme.colorScheme.surfaceVariant,
-        ),
-    ) {
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text,
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(JarvisTokens.SpaceLg),
             style = MaterialTheme.typography.bodyMedium,
+            color = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
         )
     }
 }

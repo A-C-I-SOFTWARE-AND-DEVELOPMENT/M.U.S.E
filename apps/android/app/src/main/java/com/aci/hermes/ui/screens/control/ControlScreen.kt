@@ -7,22 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,9 +26,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.R
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseSectionHeader
+import com.aci.hermes.ui.designsystem.MuseStatus
+import com.aci.hermes.ui.designsystem.MuseStatusDot
 import com.aci.hermes.ui.screens.orchestrator.OrchestratorViewModel
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Service control surface. Folds the orchestrator start/stop controls from
@@ -59,103 +59,86 @@ fun ControlScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(paddingValues)
-            .padding(16.dp)
+            .padding(JarvisTokens.SpaceLg)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceLg),
     ) {
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        MuseCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                Text(
-                    text = stringResource(R.string.control_service_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                MuseSectionHeader(title = stringResource(R.string.control_service_title))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = if (state.serviceRunning) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(12.dp),
-                    ) {}
+                    MuseStatusDot(
+                        status = if (state.serviceRunning) MuseStatus.Ok else MuseStatus.Off,
+                    )
                     Text(
                         text = if (state.serviceRunning) stringResource(R.string.orchestrator_status_running)
                                else stringResource(R.string.orchestrator_status_stopped),
                         style = MaterialTheme.typography.titleMedium,
+                        color = JarvisSignal,
                     )
                 }
                 HorizontalDivider()
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
+                Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                    MuseButton(
                         onClick = viewModel::startService,
+                        text = stringResource(R.string.orchestrator_start_service),
+                        variant = MuseButtonVariant.Primary,
                         enabled = !state.serviceRunning,
-                    ) { Text(stringResource(R.string.orchestrator_start_service)) }
-                    OutlinedButton(
+                    )
+                    MuseButton(
                         onClick = viewModel::stopService,
+                        text = stringResource(R.string.orchestrator_stop_service),
+                        variant = MuseButtonVariant.Secondary,
                         enabled = state.serviceRunning,
-                    ) { Text(stringResource(R.string.orchestrator_stop_service)) }
+                    )
                 }
             }
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+        MuseCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                Text(
-                    text = stringResource(R.string.device_control_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                MuseSectionHeader(title = stringResource(R.string.device_control_title))
                 Text(
                     text = stringResource(R.string.device_control_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = JarvisSignalDim,
                 )
-                Button(
+                MuseButton(
                     onClick = onOpenDeviceControl,
+                    text = stringResource(R.string.device_control_open),
+                    variant = MuseButtonVariant.Primary,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.device_control_open)) }
+                )
             }
         }
 
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer,
-            ),
-        ) {
+        MuseCard(modifier = Modifier.fillMaxWidth()) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(JarvisTokens.SpaceLg),
+                verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm),
             ) {
-                Text(
-                    text = stringResource(R.string.emergency_stop_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                MuseSectionHeader(title = stringResource(R.string.emergency_stop_title))
                 Text(
                     text = stringResource(R.string.emergency_stop_body),
                     style = MaterialTheme.typography.bodyMedium,
+                    color = JarvisSignalDim,
                 )
-                Button(
+                MuseButton(
                     onClick = { confirmStop = true },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError,
-                    ),
+                    text = stringResource(R.string.nav_emergency_stop),
+                    variant = MuseButtonVariant.Danger,
+                    leadingIcon = Icons.Filled.PowerSettingsNew,
                     modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Filled.PowerSettingsNew, contentDescription = null)
-                    Text(
-                        text = stringResource(R.string.nav_emergency_stop),
-                        modifier = Modifier.padding(start = 8.dp),
-                    )
-                }
+                )
             }
         }
 

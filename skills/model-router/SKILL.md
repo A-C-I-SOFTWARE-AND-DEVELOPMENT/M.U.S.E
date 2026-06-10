@@ -114,7 +114,7 @@ Common detectors:
 - `internal: true` — Hermes feature, always true.
 
 Cache detection per process. Re-run on `/reload` or when the user runs
-`hermes doctor`.
+`muse doctor`.
 
 ### Step 3 — Score candidates
 
@@ -237,7 +237,7 @@ The router is meant to be loaded as a skill on sessions that delegate
 work:
 
 ```
-hermes -s model-router chat -q "Add a /diagnose subcommand that
+muse -s model-router chat -q "Add a /diagnose subcommand that
 prints versions of every detected coding agent."
 ```
 

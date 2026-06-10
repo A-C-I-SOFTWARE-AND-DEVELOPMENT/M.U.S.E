@@ -246,7 +246,8 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print(f"  {_format_row(row)}")
     print()
     print(color(
-        "  Install: hermes mcp install <name>    Picker: hermes mcp",
+        "  Install: hermes mcp install <name>   All: hermes mcp install --all   "
+        "Picker: hermes mcp picker",
         Colors.DIM,
     ))
 

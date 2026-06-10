@@ -12,7 +12,7 @@ It exists so that skills created via the [self-improvement loop](/docs/user-guid
 
 The curator **never touches** bundled skills (shipped with the repo) or hub-installed skills (from [agentskills.io](https://agentskills.io)). It only reviews skills the agent itself authored. It also **never auto-deletes** — the worst outcome is archival into `~/.hermes/skills/.archive/`, which is recoverable.
 
-Tracks [issue #7816](https://github.com/NousResearch/hermes-agent/issues/7816).
+Tracks [issue #7816](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/7816).
 
 ## How it runs
 
@@ -245,4 +245,4 @@ The curator also refuses to run if `min_idle_hours` hasn't elapsed, so on an act
 - [Skills System](/docs/user-guide/features/skills) — how skills work in general and the self-improvement loop that creates them
 - [Memory](/docs/user-guide/features/memory) — a parallel background review that maintains long-term memory
 - [Bundled Skills Catalog](/docs/reference/skills-catalog)
-- [Issue #7816](https://github.com/NousResearch/hermes-agent/issues/7816) — original proposal and design discussion
+- [Issue #7816](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues/7816) — original proposal and design discussion

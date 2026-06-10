@@ -50,7 +50,7 @@ export const pt: Translations = {
   },
 
   app: {
-    brand: "Hermes Agent",
+    brand: "MUSE",
     brandShort: "HA",
     closeNavigation: "Fechar navegação",
     closeModelTools: "Fechar modelo e ferramentas",

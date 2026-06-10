@@ -35,11 +35,11 @@ No clone needed. Nix fetches, builds, and runs everything:
 
 ```bash
 # Run directly (builds on first use, cached after)
-nix run github:NousResearch/hermes-agent -- setup
-nix run github:NousResearch/hermes-agent -- chat
+nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E -- setup
+nix run github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E -- chat
 
 # Or install persistently
-nix profile install github:NousResearch/hermes-agent
+nix profile install github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E
 muse setup
 muse chat
 ```
@@ -50,7 +50,7 @@ After `nix profile install`, `hermes`, `hermes-agent`, and `hermes-acp` are on y
 <summary><strong>Building from a local clone</strong></summary>
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
 cd hermes-agent
 nix build
 ./result/bin/muse setup
@@ -75,7 +75,7 @@ This module requires NixOS. For non-NixOS systems (macOS, other Linux distros), 
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    hermes-agent.url = "github:NousResearch/hermes-agent";
+    hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E";
   };
 
   outputs = { nixpkgs, hermes-agent, ... }: {
@@ -685,7 +685,7 @@ External flakes can override the package directly:
 
 ```nix
 {
-  inputs.hermes-agent.url = "github:NousResearch/hermes-agent";
+  inputs.hermes-agent.url = "github:A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E";
   outputs = { hermes-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ hermes-agent.overlays.default ];
     # Then:

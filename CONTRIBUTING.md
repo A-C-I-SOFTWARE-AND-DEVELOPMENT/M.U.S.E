@@ -43,9 +43,9 @@ Bundled skills (in `skills/`) ship with every Hermes install. They should be **b
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `hermes skills browse` (labeled "official") and install it with `hermes skills install` (no third-party warning, builtin trust).
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `muse skills browse` (labeled "official") and install it with `muse skills install` (no third-party warning, builtin trust).
 
-If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [Nous Research Discord](https://discord.gg/NousResearch). Users can install it with `hermes skills install`.
+If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [Nous Research Discord](https://discord.gg/NousResearch). Users can install it with `muse skills install`.
 
 ---
 
@@ -57,7 +57,7 @@ Standalone memory plugins:
 
 - Implement the same `MemoryProvider` ABC (`agent/memory_provider.py`) — `sync_turn`, `prefetch`, `shutdown`, and optionally `post_setup(hermes_home, config)` for setup-wizard integration
 - Use the same discovery system — `discover_memory_providers()` picks them up from user/project plugin directories and pip entry points
-- Integrate with `hermes memory setup` via `post_setup()` — no need to touch core code
+- Integrate with `muse memory setup` via `post_setup()` — no need to touch core code
 - Can register their own CLI subcommands via `register_cli(subparser)` in a `cli.py` file
 - Get all the same lifecycle hooks and config plumbing as in-tree providers
 
@@ -114,8 +114,8 @@ mkdir -p ~/.local/bin
 ln -sf "$(pwd)/venv/bin/hermes" ~/.local/bin/hermes
 
 # Verify
-hermes doctor
-hermes chat -q "Hello"
+muse doctor
+muse chat -q "Hello"
 ```
 
 ### Run tests
@@ -463,7 +463,7 @@ prerequisites:
   commands: [curl, jq]            # Advisory CLI checks
 ```
 
-Gateway and messaging sessions never collect secrets in-band; they instruct the user to run `hermes setup` or update `~/.hermes/.env` locally.
+Gateway and messaging sessions never collect secrets in-band; they instruct the user to run `muse setup` or update `~/.hermes/.env` locally.
 
 **When to declare required environment variables:**
 - The skill uses an API key or token that should be collected securely at load time
@@ -532,7 +532,7 @@ Every new or modernized skill — bundled, optional, or contributed — must mee
 - **No external dependencies unless absolutely necessary.** Prefer stdlib Python, curl, and existing Hermes tools (`web_extract`, `terminal`, `read_file`).
 - **Progressive disclosure.** Put the most common workflow first. Edge cases and advanced usage go at the bottom.
 - **Include helper scripts** for XML/JSON parsing or complex logic — don't expect the LLM to write parsers inline every time.
-- **Test it.** Run `hermes --toolsets skills -q "Use the X skill to do Y"` and verify the agent follows the instructions correctly.
+- **Test it.** Run `muse --toolsets skills -q "Use the X skill to do Y"` and verify the agent follows the instructions correctly.
 
 ---
 
@@ -902,7 +902,7 @@ test(tools): add unit tests for file_operations
 ## Reporting Issues
 
 - Use [GitHub Issues](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/issues)
-- Include: OS, Python version, Hermes version (`hermes version`), full error traceback
+- Include: OS, Python version, Hermes version (`muse version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates
 - For security vulnerabilities, please report privately

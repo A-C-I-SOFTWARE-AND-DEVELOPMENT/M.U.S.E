@@ -10,14 +10,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -29,8 +25,14 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.aci.hermes.data.cockpit.ServerCapabilities
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.designsystem.MuseChip
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Release / Download Center — honest build, download, signing, and backend
@@ -61,9 +63,9 @@ fun ReleaseCenterScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             SectionCard("This build") {
                 Line("Version", viewModel.appVersion)
@@ -76,19 +78,24 @@ fun ReleaseCenterScreen(
                     "The latest APK is published as a rolling GitHub release, refreshed on " +
                         "every change under apps/android/.",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
                 Text(
                     viewModel.downloadUrl,
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                     fontFamily = FontFamily.Monospace,
                 )
-                OutlinedButton(onClick = { clipboard.setText(AnnotatedString(viewModel.downloadUrl)) }) {
-                    Text("Copy download link")
-                }
+                MuseButton(
+                    onClick = { clipboard.setText(AnnotatedString(viewModel.downloadUrl)) },
+                    text = "Copy download link",
+                    variant = MuseButtonVariant.Secondary,
+                )
                 Text(
                     "Install: open the link on your phone, download the .apk, tap it, allow " +
                         "installs from this source if prompted. Requires Android 8.0+ (API 26).",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
             }
 
@@ -98,15 +105,17 @@ fun ReleaseCenterScreen(
                         "published APK is properly release-signed; when unset, it falls back to " +
                         "debug signing (still installable; Android may warn \"unknown developer\").",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
-                Text("Required secret names (values never shown):", style = MaterialTheme.typography.labelSmall)
+                Text("Required secret names (values never shown):", style = MaterialTheme.typography.labelSmall, color = JarvisSignalDim)
                 viewModel.signingSecretNames.forEach {
-                    Text("• $it", style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                    Text("• $it", style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim, fontFamily = FontFamily.Monospace)
                 }
                 Text(
                     "The app can't read CI secret state, so it never claims \"signed\" — confirm " +
                         "in the release workflow / asset label.",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
             }
 
@@ -118,6 +127,7 @@ fun ReleaseCenterScreen(
                         "token, which this build does not wire up. Rather than show a fabricated " +
                         "status, the app links you to the workflow above. (Tracked as a follow-up.)",
                     style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
                 )
             }
         }
@@ -136,14 +146,15 @@ private fun BackendCard(
                 "Pair a gateway in Settings to see backend version and capabilities." +
                     (unavailable?.let { " ($it)" } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
+                color = JarvisSignalDim,
             )
-            OutlinedButton(onClick = onRetry) { Text("Retry") }
+            MuseButton(onClick = onRetry, text = "Retry", variant = MuseButtonVariant.Secondary)
         } else {
             Line("Gateway version", capabilities.gatewayVersion.ifBlank { "—" })
             Line("API version", capabilities.apiVersion.ifBlank { "—" })
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text(if (capabilities.executeAllowed) "execute allowed" else "execute blocked") })
-                AssistChip(onClick = {}, label = { Text(if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate") })
+            Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+                MuseChip(label = if (capabilities.executeAllowed) "execute allowed" else "execute blocked")
+                MuseChip(label = if (capabilities.ownerGateRequired) "owner-gated" else "no owner gate")
             }
             if (capabilities.detectedClis.isNotEmpty()) {
                 Line("Detected CLIs", capabilities.detectedClis.joinToString(", "))
@@ -154,12 +165,9 @@ private fun BackendCard(
 
 @Composable
 private fun SectionCard(title: String, content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+    MuseCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, color = JarvisSignal)
             content()
         }
     }
@@ -167,8 +175,8 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun Line(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("$label:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-        Text(value, style = MaterialTheme.typography.bodySmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+        Text("$label:", style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim, fontWeight = FontWeight.SemiBold)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = JarvisSignal)
     }
 }

@@ -116,8 +116,8 @@
 
 | Hazmat-canonical | Hermes-canonical | Overlap |
 | --- | --- | --- |
-| `chief-orchestrator` | `aos-council-director` | Both are executive routing/dispatching layer; hermes version is goal→specialist dispatcher, hazmat version is risk-class + maker-checker enforcer |
-| `engineering-architecture-factory` | `principal-systems-architect` | Engineering build authority; hazmat version is code factory, hermes version is architecture lens |
+| `chief-orchestrator` | `aos-council-director` | Both are executive routing/dispatching layer; muse version is goal→specialist dispatcher, hazmat version is risk-class + maker-checker enforcer |
+| `engineering-architecture-factory` | `principal-systems-architect` | Engineering build authority; hazmat version is code factory, muse version is architecture lens |
 | `assurance-security-compliance-office` | `assurance-risk-director` | Independent reviewer for security/compliance; hazmat is full Office (10-pt checklist), hermes is risk-director lens |
 | `principal-code-reviewer` (hazmat) | `decision-quality-gate` + `contrarian-reviewer` (hermes) | Independent code review; hazmat one agent, hermes two-phase (gate + contrarian) |
 | `commercial-strategy-growth-office` | `commercial-strategist` | Pricing/positioning/copy; hazmat is full Office, hermes is single strategist lens |

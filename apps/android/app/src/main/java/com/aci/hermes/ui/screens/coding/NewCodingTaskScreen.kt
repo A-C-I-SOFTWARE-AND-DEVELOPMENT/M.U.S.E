@@ -11,14 +11,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,6 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aci.hermes.ui.designsystem.MuseButton
+import com.aci.hermes.ui.designsystem.MuseButtonVariant
+import com.aci.hermes.ui.designsystem.MuseCard
+import com.aci.hermes.ui.theme.JarvisCrimson
+import com.aci.hermes.ui.theme.JarvisSignal
+import com.aci.hermes.ui.theme.JarvisSignalDim
+import com.aci.hermes.ui.theme.JarvisTokens
 
 /**
  * Capture a plain-English coding task, preview its classification, and build a
@@ -79,9 +83,9 @@ fun NewCodingTaskScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .padding(JarvisTokens.SpaceLg)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
         ) {
             ModeBanner(paired = state.paired, mock = state.mock)
 
@@ -109,13 +113,15 @@ fun NewCodingTaskScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceMd),
             ) {
-                OutlinedButton(
+                MuseButton(
                     onClick = viewModel::previewClassification,
+                    text = "Preview risk",
+                    variant = MuseButtonVariant.Secondary,
                     enabled = !state.busy,
                     modifier = Modifier.weight(1f),
-                ) { Text("Preview risk") }
+                )
 
                 Button(
                     onClick = viewModel::generatePacket,
@@ -126,7 +132,7 @@ fun NewCodingTaskScreen(
                 ) {
                     if (state.busy) {
                         CircularProgressIndicator(
-                            modifier = Modifier.padding(end = 8.dp),
+                            modifier = Modifier.padding(end = JarvisTokens.SpaceSm),
                             strokeWidth = 2.dp,
                         )
                     }
@@ -139,7 +145,7 @@ fun NewCodingTaskScreen(
                     "backend. With no backend, the task is saved and queued so you can " +
                     "copy a Claude Code prompt and sync later. Mock mode shows a demo packet.",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = JarvisSignalDim,
             )
         }
     }
@@ -152,37 +158,36 @@ private fun ModeBanner(paired: Boolean, mock: Boolean) {
         paired -> "Backend paired" to "Classification + packet come from your gateway."
         else -> "Offline" to "No backend paired. Tasks queue locally; copy a prompt to hand off."
     }
-    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-        Column(Modifier.padding(12.dp)) {
-            Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-            Text(detail, style = MaterialTheme.typography.bodySmall)
+    MuseCard {
+        Column(Modifier.padding(JarvisTokens.SpaceMd)) {
+            Text(label, style = MaterialTheme.typography.labelLarge, color = JarvisSignal, fontWeight = FontWeight.SemiBold)
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
         }
     }
 }
 
 @Composable
 private fun AuditPreviewCard(audit: com.aci.hermes.data.cockpit.CodingAuditResult) {
-    Card(
+    MuseCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(CodingTestTags.NEW_AUDIT_PREVIEW),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Classification", style = MaterialTheme.typography.labelMedium)
+        Column(Modifier.padding(JarvisTokens.SpaceLg), verticalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceXs)) {
+            Text("Classification", style = MaterialTheme.typography.labelMedium, color = JarvisSignalDim)
             LabeledLine("Risk", audit.riskClass.ifBlank { "—" })
             LabeledLine("Worker", audit.primaryWorker.ifBlank { "—" })
             if (audit.ownerGates.isNotEmpty()) {
                 LabeledLine("Owner gates", audit.ownerGates.joinToString(", "))
             }
             if (audit.rationale.isNotBlank()) {
-                Text(audit.rationale, style = MaterialTheme.typography.bodySmall)
+                Text(audit.rationale, style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim)
             }
             if (audit.blocked) {
                 Text(
                     "Blocked: this request needs owner authorization before it can proceed.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = JarvisCrimson,
                 )
             }
         }
@@ -191,9 +196,9 @@ private fun AuditPreviewCard(audit: com.aci.hermes.data.cockpit.CodingAuditResul
 
 @Composable
 private fun LabeledLine(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("$label:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-        Text(value, style = MaterialTheme.typography.bodySmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(JarvisTokens.SpaceSm)) {
+        Text("$label:", style = MaterialTheme.typography.bodySmall, color = JarvisSignalDim, fontWeight = FontWeight.SemiBold)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = JarvisSignal)
     }
 }
 

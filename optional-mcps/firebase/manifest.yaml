@@ -1,0 +1,22 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: firebase
+description: Manage Firebase projects (Firestore, Auth, Hosting, Functions, ...).
+source: https://firebase.google.com/docs/cli/mcp-server
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "firebase-tools@latest"
+    - "experimental:mcp"
+
+auth:
+  type: none
+
+post_install: |
+  Authenticate via the Firebase CLI (`npx firebase-tools login`) or
+  Application Default Credentials. Requires Node.js on PATH.

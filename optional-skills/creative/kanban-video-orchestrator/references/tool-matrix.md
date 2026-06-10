@@ -89,7 +89,7 @@ toolsets. Enable them per-profile by adding the toolset to the profile config.
 
 | Tool | Toolset | What it does | Profile that uses it |
 |------|---------|--------------|----------------------|
-| `video_analyze` | `video` (opt-in — `hermes tools enable video`) | Native video understanding — sends full clip to a multimodal LLM (Gemini via OpenRouter) for review without frame extraction. Supports mp4, webm, mov, avi, mkv. 50 MB cap. Model: `AUXILIARY_VIDEO_MODEL` env → `AUXILIARY_VISION_MODEL` fallback. | reviewer, cinematographer, editor |
+| `video_analyze` | `video` (opt-in — `muse tools enable video`) | Native video understanding — sends full clip to a multimodal LLM (Gemini via OpenRouter) for review without frame extraction. Supports mp4, webm, mov, avi, mkv. 50 MB cap. Model: `AUXILIARY_VIDEO_MODEL` env → `AUXILIARY_VISION_MODEL` fallback. | reviewer, cinematographer, editor |
 | `vision_analyze` | `vision` (core — enabled by default) | Image/frame analysis — review stills, thumbnails, exported frames. Already available to all profiles without opt-in. | reviewer, cinematographer, concept-artist |
 
 ## Standard toolset configurations per role

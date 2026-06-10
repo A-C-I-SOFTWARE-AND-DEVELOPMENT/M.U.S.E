@@ -203,9 +203,18 @@ all = [
   # [all], `uv sync --locked` on Windows tried to build it from sdist
   # and failed on `make`. Lazy-install routes that build to first use,
   # where the user is expected to have a toolchain available.
+  #
+  # Removed from [all] on 2026-06-09: the [dev] extra (pytest, debugpy,
+  # ruff, ty, pytest-*). It's development/test tooling, not a runtime
+  # feature or a skill dep packagers ship — it never belonged in an
+  # end-user [all]. Concretely, `ruff` and `ty` are Rust tools with no
+  # Termux/Android wheels, so an [all] install on a phone built them
+  # from source; `ty`'s sdist bundles the whole ruff monorepo
+  # (thousands of parser snapshots) and exhausted device storage
+  # ("No space left on device"). Developers install `.[all,dev]`
+  # (the documented + CI path); CI already does exactly that.
   "hermes-agent[cron]",
   "hermes-agent[cli]",
-  "hermes-agent[dev]",
   "hermes-agent[pty]",
   "hermes-agent[mcp]",
   "hermes-agent[homeassistant]",
@@ -218,6 +227,9 @@ all = [
 
 [project.scripts]
 muse = "hermes_cli.main:main"
+# Backward-compatibility alias for the pre-rename `hermes` command. Both names
+# dispatch to the same CLI entry point; `muse` is canonical.
+hermes = "hermes_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 

@@ -1,0 +1,19 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+manifest_version: 1
+
+name: cloudflare-docs
+description: Search Cloudflare's developer documentation.
+source: https://developers.cloudflare.com/agents/model-context-protocol/
+
+transport:
+  type: http
+  url: https://docs.mcp.cloudflare.com/mcp
+
+auth:
+  type: none
+
+post_install: |
+  Public documentation server — no credentials required. Cloudflare also ships
+  authenticated remote servers (Workers, R2, D1, ...) you can add with
+  `hermes mcp add`.

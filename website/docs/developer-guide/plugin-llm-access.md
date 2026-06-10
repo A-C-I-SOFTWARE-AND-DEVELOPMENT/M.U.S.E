@@ -456,8 +456,8 @@ own model call — for any reason, structured or not — `ctx.llm`.
 
 ## Reference
 
-* Implementation: [`agent/plugin_llm.py`](https://github.com/NousResearch/hermes-agent/blob/main/agent/plugin_llm.py)
-* Tests: [`tests/agent/test_plugin_llm.py`](https://github.com/NousResearch/hermes-agent/blob/main/tests/agent/test_plugin_llm.py)
+* Implementation: [`agent/plugin_llm.py`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/agent/plugin_llm.py)
+* Tests: [`tests/agent/test_plugin_llm.py`](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/tests/agent/test_plugin_llm.py)
 * Reference plugins (companion repo):
   * [`plugin-llm-example`](https://github.com/NousResearch/hermes-example-plugins/tree/main/plugin-llm-example) — sync structured extraction with image input
   * [`plugin-llm-async-example`](https://github.com/NousResearch/hermes-example-plugins/tree/main/plugin-llm-async-example) — async with `asyncio.gather()`

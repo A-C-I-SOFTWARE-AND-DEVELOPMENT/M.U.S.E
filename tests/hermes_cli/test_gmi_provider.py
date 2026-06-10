@@ -126,6 +126,18 @@ class TestGmiModelCatalog:
             },
         )
         monkeypatch.setattr("hermes_cli.models.fetch_api_models", lambda api_key, base_url: None)
+        # provider_model_ids("gmi") has two live-fetch layers: the explicit GMI
+        # branch (fetch_api_models, mocked above) and the generic profile block,
+        # which calls ProviderProfile.fetch_models — a real urllib GET to
+        # api.gmi-serving.com/v1/models. Left unmocked, that endpoint's response
+        # varies by runner/network (200 -> live list; 4xx/timeout -> fallback),
+        # which made this assertion flaky under xdist. Force the offline path so
+        # we exercise only the static fallback this test is named for (the
+        # profile's fallback_models equals _PROVIDER_MODELS["gmi"]).
+        monkeypatch.setattr(
+            "providers.base.ProviderProfile.fetch_models",
+            lambda self, **kwargs: None,
+        )
 
         assert provider_model_ids("gmi") == list(_PROVIDER_MODELS["gmi"])
 

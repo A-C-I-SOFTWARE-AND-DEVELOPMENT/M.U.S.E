@@ -16,6 +16,20 @@
 | **Files installed into Hermes pack** | restructured at `skills/aos-enterprise-council/` (run install commands below to copy to `~/.hermes/skills/`) |
 | **Files needing manual owner review** | 5 (see § Manual review queue) |
 
+> **What the agent counts mean (routed catalog, not file count)** (WC-4
+> honesty propagation, following FU-18). The 233 top-level + 108
+> sub-agent figures are **registry/routing tallies** — distinct
+> frontmatter `name:` entries recovered across both source repos (the
+> agent registry also records 248 total entries once duplicates are
+> counted). They are **not** 341 standalone agent definition files. On
+> disk, `skills/aos-enterprise-council/agents/` holds **261** `.md`
+> files, but **177 of those are `agents/hermes/`** — the general Hermes
+> skill library (`1password.md`, `arxiv.md`, …), not council agents —
+> leaving **~84** genuine council category agents across the 16
+> non-`hermes` category folders. The registries route to specs that may
+> be defined inline, reconstructed from context, or shared with the
+> general skill library; they are catalog entries, not a 1:1 file map.
+
 ## Termux installation commands
 
 Run these on the Termux device once the PR is reviewed (or now, against the branch directly):
@@ -66,7 +80,7 @@ ls ~/.hermes/skills/aos-enterprise-council/registry/
 ls ~/.hermes/skills/aos-enterprise-council/rules/
 
 # Activation rehearsal — should print the routing decision + todo list
-echo "/aos-enterprise-council audit this repo" | hermes --once 2>&1 | head -40
+echo "/aos-enterprise-council audit this repo" | muse --once 2>&1 | head -40
 ```
 
 ## Manual review queue
