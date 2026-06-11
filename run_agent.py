@@ -51,7 +51,7 @@ import threading
 from types import SimpleNamespace
 import urllib.request
 import uuid
-from typing import Callable, Collection, List, Dict, Any, Optional, Set
+from typing import Callable, Collection, List, Dict, Any, Optional, Set, Union
 from urllib.parse import urlparse, parse_qs, urlunparse
 # NOTE: `from openai import OpenAI` is deliberately NOT at module top — the
 # SDK pulls ~240 ms of imports. We expose `OpenAI` as a thin proxy object
@@ -379,6 +379,8 @@ class AIAgent:
     _active_children_lock: threading.Lock
     _anthropic_image_fallback_cache: Dict[str, Any]
     context_compressor: Any  # context engine / compressor plugin (may be absent; guarded by hasattr)
+    enabled_toolsets: Optional[Collection[str]]
+    disabled_toolsets: Optional[Collection[str]]
     logs_dir: Path
     thinking_callback: Optional[Callable]
     compression_enabled: bool
@@ -463,7 +465,7 @@ class AIAgent:
         session_db=None,
         parent_session_id: Optional[str] = None,
         iteration_budget: Optional["IterationBudget"] = None,
-        fallback_model: Optional[Dict[str, Any]] = None,
+        fallback_model: Union[Dict[str, Any], List[Dict[str, Any]], None] = None,
         credential_pool=None,
         checkpoints_enabled: bool = False,
         checkpoint_max_snapshots: int = 20,
@@ -3893,7 +3895,7 @@ class AIAgent:
         """
         return self.api_mode != "codex_responses"
 
-    def _compress_context(self, messages: list, system_message: str, *, approx_tokens: Optional[int] = None, task_id: str = "default", focus_topic: Optional[str] = None, force: bool = False) -> tuple:
+    def _compress_context(self, messages: list, system_message: Optional[str], *, approx_tokens: Optional[int] = None, task_id: str = "default", focus_topic: Optional[str] = None, force: bool = False) -> tuple:
         """Forwarder — see ``agent.conversation_compression.compress_context``.
 
         ``force=True`` is passed by the manual ``/compress`` slash command

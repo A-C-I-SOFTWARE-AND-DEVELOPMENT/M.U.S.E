@@ -4575,7 +4575,7 @@ class HermesCLI:
                 pass
         
         try:
-            runtime = runtime_override or {
+            runtime: Dict[str, Any] = runtime_override or {
                 "api_key": self.api_key,
                 "base_url": self.base_url,
                 "provider": self.provider,
@@ -7121,7 +7121,7 @@ class HermesCLI:
                     current_base_url=self.base_url or "",
                     current_api_key=self.api_key or "",
                     is_global=persist_global,
-                    explicit_provider=provider_data.get("slug"),
+                    explicit_provider=provider_data.get("slug") or "",
                     user_providers=state.get("user_provs"),
                     custom_providers=state.get("custom_provs"),
                 )
@@ -7510,7 +7510,7 @@ class HermesCLI:
             return normalized
 
         def _parse_flags(tokens):
-            opts = {
+            opts: Dict[str, Any] = {
                 "name": None,
                 "deliver": None,
                 "repeat": None,
@@ -7784,7 +7784,7 @@ class HermesCLI:
     def _handle_skills_command(self, cmd: str):
         """Handle /skills slash command — delegates to hermes_cli.skills_hub."""
         from hermes_cli.skills_hub import handle_skills_slash
-        handle_skills_slash(cmd, ChatConsole())
+        handle_skills_slash(cmd, ChatConsole())  # ty: ignore[invalid-argument-type]  # ChatConsole is a documented Console drop-in
 
     # ------------------------------------------------------------------ #
     # Orchestrator slash commands (Phase 16)
@@ -8031,7 +8031,7 @@ class HermesCLI:
                     if hasattr(self, 'agent') and self.agent and hasattr(self.agent, 'context_compressor'):
                         ctx_len = self.agent.context_compressor.context_length
                     build_welcome_banner(
-                        console=cc,
+                        console=cc,  # ty: ignore[invalid-argument-type]  # ChatConsole is a documented Console drop-in
                         model=self.model,
                         cwd=cwd,
                         tools=tools,
@@ -10146,7 +10146,7 @@ class HermesCLI:
     # Tool progress callback (audio cues for voice mode)
     # ====================================================================
 
-    def _on_tool_progress(self, event_type: str, function_name: str = None, preview: str = None, function_args: dict = None, **kwargs):
+    def _on_tool_progress(self, event_type: str, function_name: Optional[str] = None, preview: Optional[str] = None, function_args: Optional[dict] = None, **kwargs):
         """Called on tool lifecycle events (tool.started, tool.completed, reasoning.available, etc.).
 
         Updates the TUI spinner widget so the user can see what the agent
@@ -11094,10 +11094,11 @@ class HermesCLI:
 
     def _capture_modal_input_snapshot(self) -> None:
         """Temporarily clear the input buffer and save the user's in-progress draft."""
-        if self._modal_input_snapshot is not None or not getattr(self, "_app", None):
+        _app = getattr(self, "_app", None)
+        if self._modal_input_snapshot is not None or not _app:
             return
         try:
-            buf = self._app.current_buffer
+            buf = _app.current_buffer
             self._modal_input_snapshot = {
                 "text": buf.text,
                 "cursor_position": buf.cursor_position,
@@ -11110,10 +11111,11 @@ class HermesCLI:
         """Restore any draft text that was present before a modal prompt opened."""
         snapshot = self._modal_input_snapshot
         self._modal_input_snapshot: Optional[Dict[str, Any]] = None
-        if not snapshot or not getattr(self, "_app", None):
+        _app = getattr(self, "_app", None)
+        if not snapshot or not _app:
             return
         try:
-            buf = self._app.current_buffer
+            buf = _app.current_buffer
             buf.text = snapshot.get("text", "")
             buf.cursor_position = min(snapshot.get("cursor_position", 0), len(buf.text))
         except Exception:
@@ -11131,9 +11133,10 @@ class HermesCLI:
         self._submit_secret_response("")
 
     def _clear_secret_input_buffer(self) -> None:
-        if getattr(self, "_app", None):
+        _app = getattr(self, "_app", None)
+        if _app:
             try:
-                self._app.current_buffer.reset()
+                _app.current_buffer.reset()
             except Exception:
                 pass
 
@@ -11371,7 +11374,7 @@ class HermesCLI:
                     set_secret_capture_callback(self._secret_capture_callback)
                 except Exception:
                     pass
-                agent_message = _voice_prefix + message if _voice_prefix else message
+                agent_message = _voice_prefix + message if _voice_prefix else message  # ty: ignore[unsupported-operator]  # voice turns are always str
                 # Prepend pending model switch note so the model knows about the switch
                 _msn = getattr(self, '_pending_model_switch_note', None)
                 if _msn:
@@ -11385,12 +11388,13 @@ class HermesCLI:
                     agent_message = _srn + "\n\n" + agent_message
                     self._pending_skills_reload_note = None
                 try:
+                    assert self.agent is not None  # chat() inits the agent before run_agent() is scheduled
                     result = self.agent.run_conversation(
-                        user_message=agent_message,
+                        user_message=agent_message,  # ty: ignore[invalid-argument-type]  # str or multimodal content list (provider-normalized downstream)
                         conversation_history=self.conversation_history[:-1],  # Exclude the message we just added
                         stream_callback=stream_callback,
                         task_id=self.session_id,
-                        persist_user_message=message if _voice_prefix else None,
+                        persist_user_message=message if _voice_prefix else None,  # ty: ignore[invalid-argument-type]  # voice turns are always str
                     )
                 except Exception as exc:
                     logging.error("run_conversation raised: %s", exc, exc_info=True)
@@ -11444,6 +11448,7 @@ class HermesCLI:
                             # Signal TTS to stop on interrupt
                             if stop_event is not None:
                                 stop_event.set()
+                            assert self.agent is not None  # set before run_agent() started
                             self.agent.interrupt(interrupt_msg)
                             # Debug: log to file (stdout may be devnull from redirect_stdout)
                             try:
@@ -11562,7 +11567,7 @@ class HermesCLI:
                     maybe_auto_title(
                         self._session_db,
                         self.session_id,
-                        message,
+                        message,  # ty: ignore[invalid-argument-type]  # str or multimodal content list; titler str()s it
                         response,
                         self.conversation_history,
                         failure_callback=_title_failure_cb,
@@ -11923,9 +11928,10 @@ class HermesCLI:
 
     def _apply_tui_skin_style(self) -> bool:
         """Refresh prompt_toolkit styling for a running interactive TUI."""
-        if not getattr(self, "_app", None) or not getattr(self, "_tui_style_base", None):
+        _app = getattr(self, "_app", None)
+        if not _app or not getattr(self, "_tui_style_base", None):
             return False
-        self._app.style = PTStyle.from_dict(self._build_tui_style_dict())
+        _app.style = PTStyle.from_dict(self._build_tui_style_dict())
         self._invalidate(min_interval=0.0)
         return True
 
@@ -12648,8 +12654,7 @@ class HermesCLI:
                     _recorder_ref = cli_ref._voice_recorder
                     cli_ref._voice_recording = False
                     cli_ref._voice_continuous = False
-                    _should_cancel_voice = True
-            if _should_cancel_voice:
+            if _recorder_ref is not None:
                 _cprint(f"\n{_DIM}Recording cancelled.{_RST}")
                 threading.Thread(
                     target=_recorder_ref.cancel, daemon=True
@@ -12748,8 +12753,7 @@ class HermesCLI:
                     _recorder_ref = cli_ref._voice_recorder
                     cli_ref._voice_recording = False
                     cli_ref._voice_continuous = False
-                    _should_cancel_voice = True
-            if _should_cancel_voice:
+            if _recorder_ref is not None:
                 _cprint(f"\n{_DIM}Recording cancelled.{_RST}")
                 threading.Thread(
                     target=_recorder_ref.cancel, daemon=True
@@ -13191,7 +13195,9 @@ class HermesCLI:
         # --- Input processors for password masking and inline placeholder ---
 
         # Mask input with '*' when the sudo password prompt is active
-        input_area.control.input_processors.append(
+        _ip = input_area.control.input_processors
+        assert _ip is not None  # TextArea always builds its processor list
+        _ip.append(
             ConditionalProcessor(
                 PasswordProcessor(),
                 filter=Condition(
@@ -13205,7 +13211,8 @@ class HermesCLI:
             def __init__(self, get_text):
                 self._get_text = get_text
 
-            def apply_transformation(self, ti):
+            def apply_transformation(self, transformation_input):
+                ti = transformation_input
                 if not ti.document.text and ti.lineno == 0:
                     text = self._get_text()
                     if text:
@@ -13242,7 +13249,9 @@ class HermesCLI:
                 return f"type or {_label} to record"
             return ""
 
-        input_area.control.input_processors.append(_PlaceholderProcessor(_get_placeholder))
+        _ip2 = input_area.control.input_processors
+        assert _ip2 is not None  # TextArea always builds its processor list
+        _ip2.append(_PlaceholderProcessor(_get_placeholder))
 
         # Hint line above input: shown only for interactive prompts that need
         # extra instructions (sudo countdown, approval navigation, clarify).
@@ -14112,8 +14121,9 @@ class HermesCLI:
             except Exception:
                 pass  # never let logging raise from a signal handler (#13710 regression)
             try:
-                if getattr(self, "agent", None) and getattr(self, "_agent_running", False):
-                    self.agent.interrupt(f"received signal {signum}")
+                _sig_agent = getattr(self, "agent", None)
+                if _sig_agent and getattr(self, "_agent_running", False):
+                    _sig_agent.interrupt(f"received signal {signum}")
                     try:
                         _grace = float(os.getenv("HERMES_SIGTERM_GRACE", "1.5"))
                     except (TypeError, ValueError):
@@ -14608,6 +14618,7 @@ def main(
                     runtime_override=turn_route["runtime"],
                     request_overrides=turn_route.get("request_overrides"),
                 ):
+                    assert cli.agent is not None  # _init_agent(True) sets it
                     cli.agent.quiet_mode = True
                     cli.agent.suppress_status_output = True
                     # Suppress streaming display callbacks so stdout stays

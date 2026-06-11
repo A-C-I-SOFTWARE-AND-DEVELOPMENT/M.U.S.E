@@ -245,6 +245,11 @@ def play_beep(frequency: int = 880, duration: float = 0.12, count: int = 1) -> N
 # Termux Audio Recorder
 # ============================================================================
 class TermuxAudioRecorder:
+    # Declared for parity with AudioRecorder: the CLI tunes these on whichever
+    # recorder it gets; termux-microphone-record has no silence detection, so
+    # they are accepted and unused here.
+    _silence_threshold: float
+    _silence_duration: float
     """Recorder backend that uses Termux:API microphone capture commands."""
 
     supports_silence_autostop = False
@@ -406,7 +411,7 @@ class AudioRecorder:
         self._resume_start: float = 0.0  # Tracks sustained speech after silence starts
         self._resume_dip_start: float = 0.0  # Dip tolerance tracker for resume detection
         self._on_silence_stop = None
-        self._silence_threshold: int = SILENCE_RMS_THRESHOLD
+        self._silence_threshold: float = SILENCE_RMS_THRESHOLD
         self._silence_duration: float = SILENCE_DURATION_SECONDS
         self._max_wait: float = 15.0  # Max seconds to wait for speech before auto-stop
         # Peak RMS seen during recording (for speech presence check in stop())

@@ -28,7 +28,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Collection
+from typing import Any, Callable, Dict, List, Optional, Collection, Union
 from urllib.parse import urlparse, parse_qs, urlunparse
 
 from agent.context_compressor import ContextCompressor
@@ -130,7 +130,7 @@ def init_agent(
     session_db=None,
     parent_session_id: Optional[str] = None,
     iteration_budget: Optional["IterationBudget"] = None,
-    fallback_model: Optional[Dict[str, Any]] = None,
+    fallback_model: Union[Dict[str, Any], List[Dict[str, Any]], None] = None,
     credential_pool=None,
     checkpoints_enabled: bool = False,
     checkpoint_max_snapshots: int = 20,
