@@ -98,6 +98,13 @@ TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UMuseGatewayClient::MakeGetRequest
 	return Request;
 }
 
+TSharedRef<IHttpRequest, ESPMode::ThreadSafe> UMuseGatewayClient::CreateAuthorizedGetRequest(const FString& Path) const
+{
+	// Thin public wrapper over the private factory: one place builds
+	// authorized requests; consumers never touch the token file themselves.
+	return MakeGetRequest(Path, /*bWithAuth=*/true);
+}
+
 void UMuseGatewayClient::CheckHealth()
 {
 	// Contract route: GET /v1/health — open (no bearer), liveness + version.

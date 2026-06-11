@@ -553,3 +553,62 @@ textarea:focus-visible {
 .danger-card {
   border-color: var(--danger);
 }
+
+/* ---- observatory ----------------------------------------------------------
+   The embedded 3D cockpit wants the whole main area: drop the .view max-width
+   and stretch the frame to fill the column. */
+.view.observatory {
+  max-width: none;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.observatory-frame {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  background: var(--void);
+}
+
+/* Fallback / loading panels take the same full-bleed slot as the frame. */
+.observatory-fill {
+  flex: 1;
+  min-height: 220px;
+}
+
+/* ---- loading shimmer (tonal sweep — no neon, per the design language) ----- */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(122, 224, 255, 0.07) 50%,
+    transparent 70%
+  );
+  animation: shimmer-slide 1.6s var(--ease-emphasized) infinite;
+}
+
+@keyframes shimmer-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after {
+    animation: none;
+  }
+}

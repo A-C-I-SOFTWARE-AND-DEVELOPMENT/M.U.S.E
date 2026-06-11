@@ -1,16 +1,21 @@
 //! M.U.S.E. desktop shell (Tauri v2).
 //!
 //! This is a thin native shell around the bundled Singularity UI (../ui/dist).
-//! It does **not** bundle or spawn the Python backend — the web UI talks to a
+//! It does **not** bundle the Python backend — the web UI talks to a
 //! locally-running MUSE gateway over HTTP (default http://127.0.0.1:8765,
 //! configurable in-app and via the `MUSE_GATEWAY_URL` build/runtime env). The
-//! shell's only jobs are: load the UI, provide a native window + menu + system
-//! tray, and enforce a single running instance.
+//! shell's jobs are: load the UI, provide a native window + menu + system
+//! tray, enforce a single running instance, and (the one-installable story)
+//! keep the gateway alive — if `/v1/health` is down and autostart is enabled,
+//! it spawns an installed `muse cockpit serve` as a managed child (src/brain.rs)
+//! and kills it only on real exit, never on hide-to-tray.
+
+mod brain;
 
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{TrayIconBuilder, TrayIconEvent},
-    Manager, WindowEvent,
+    Manager, RunEvent, WindowEvent,
 };
 
 /// Default gateway base URL. Mirrors the UI's `DEFAULT_GATEWAY_BASE`. The UI is
@@ -20,7 +25,7 @@ use tauri::{
 const DEFAULT_GATEWAY_URL: &str = "http://127.0.0.1:8765";
 
 /// Resolve the configured gateway URL for display. Honors `MUSE_GATEWAY_URL`.
-fn gateway_url() -> String {
+pub(crate) fn gateway_url() -> String {
     std::env::var("MUSE_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
 }
 
@@ -105,12 +110,26 @@ fn build_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
 /// call this so the setup lives in one place.
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let context = tauri::generate_context!();
+
+    #[allow(unused_mut)]
+    let mut builder = tauri::Builder::default()
         // Enforce a single instance: a second launch focuses the existing
         // window instead of opening another.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             focus_main(app);
         }))
+        // Shell plugin: used Rust-side only (brain.rs spawns the gateway); no
+        // shell:* capability is granted to the webview (capabilities/default.json).
+        .plugin(tauri_plugin_shell::init())
+        .manage(brain::BrainState::default())
+        .invoke_handler(tauri::generate_handler![
+            brain::gateway_status,
+            brain::gateway_start,
+            brain::gateway_stop,
+            brain::autostart_get,
+            brain::autostart_set,
+        ])
         .setup(|app| {
             // Clone the handle so the menu/tray builders own an `AppHandle`
             // independent of the `&mut App` borrow that `set_menu` needs.
@@ -118,6 +137,9 @@ pub fn run() {
             let menu = build_menu(&handle)?;
             app.set_menu(menu)?;
             build_tray(&handle)?;
+            // One-installable: if the gateway is down and autostart is enabled,
+            // spawn `muse cockpit serve` as a managed child (best-effort).
+            brain::autostart_on_boot(handle);
             Ok(())
         })
         // Hide-to-tray on window close rather than quitting outright; the tray
@@ -128,7 +150,36 @@ pub fn run() {
                 let _ = window.hide();
                 api.prevent_close();
             }
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running M.U.S.E. desktop");
+        });
+
+    // Auto-update scaffold: register tauri-plugin-updater ONLY when a pubkey is
+    // actually configured (plugins.updater.pubkey in tauri.conf.json). With the
+    // placeholder empty pubkey the plugin is never initialized, so the app can
+    // never error on the unsigned/inert configuration. Provisioning the keypair
+    // is owner-gated — see RELEASE.md.
+    #[cfg(desktop)]
+    {
+        let updater_configured = context
+            .config()
+            .plugins
+            .0
+            .get("updater")
+            .and_then(|cfg| cfg.get("pubkey"))
+            .and_then(|v| v.as_str())
+            .is_some_and(|s| !s.trim().is_empty());
+        if updater_configured {
+            builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+        }
+    }
+
+    builder
+        .build(context)
+        .expect("error while building M.U.S.E. desktop")
+        .run(|app, event| {
+            // Real exit (tray Quit / app menu Quit) — window close only hides.
+            // This is the one place the managed gateway child is reaped.
+            if let RunEvent::Exit = event {
+                brain::shutdown(app);
+            }
+        });
 }

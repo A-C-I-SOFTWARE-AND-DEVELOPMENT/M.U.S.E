@@ -132,6 +132,61 @@ def set_position(item_id: str, x: float, y: float) -> bool:
     return found
 
 
+# SYNAPSE Den buff fields (additive — docs/synapse/design/08-avatar-den-
+# onboarding.md §6.4 + 07-progression-neural-network.md §7.1). Items only
+# ever gain these keys via set_den_fields below, so existing manifests stay
+# byte-for-byte unchanged until a caller opts in.
+DEN_STAGES = (1, 2, 3)
+DEN_BUFF_PCT_CAP = 5.0  # design doc 08 §6.4: max +5% to any single stat
+
+
+def set_den_fields(item_id: str, *, den_stage=None, buff=None) -> bool:
+    """Set optional SYNAPSE Den fields on a room item (additive).
+
+    ``den_stage`` ∈ {1, 2, 3} (Socket / Annex / Commons, design doc 08 §7);
+    ``buff`` = ``{"stat": <non-empty str>, "pct": <0 < pct <= 5>}`` per the
+    +5% single-stat cap (08 §6.4, 07 §7.1 — those numbers are the law).
+    Only the fields provided are written; raises ValueError on a constraint
+    violation (nothing written); returns False for an unknown item id.
+    """
+    if den_stage is None and buff is None:
+        raise ValueError("provide den_stage and/or buff")
+    if den_stage is not None and den_stage not in DEN_STAGES:
+        raise ValueError(
+            f"den_stage: must be 1, 2 or 3 (design doc 08 §7; got {den_stage!r})"
+        )
+    if buff is not None:
+        if not isinstance(buff, dict):
+            raise ValueError("buff: must be an object {stat, pct}")
+        stat = buff.get("stat")
+        if not isinstance(stat, str) or not stat.strip():
+            raise ValueError("buff.stat: must be a non-empty string")
+        pct = buff.get("pct")
+        if (
+            not isinstance(pct, (int, float))
+            or isinstance(pct, bool)
+            or not 0 < pct <= DEN_BUFF_PCT_CAP
+        ):
+            raise ValueError(
+                f"buff.pct: must be a number in (0, {DEN_BUFF_PCT_CAP:g}] — the "
+                f"Den buff cap is +{DEN_BUFF_PCT_CAP:g}% (design doc 08 §6.4; "
+                f"got {pct!r})"
+            )
+        buff = {"stat": stat, "pct": float(pct)}
+    items = _load_manifest()
+    found = False
+    for it in items:
+        if it.get("id") == item_id:
+            if den_stage is not None:
+                it["den_stage"] = int(den_stage)
+            if buff is not None:
+                it["buff"] = buff
+            found = True
+    if found:
+        _save_manifest(items)
+    return found
+
+
 def _with_image(item: dict) -> dict:
     """Attach base64 PNG so the JSON API can ship the image to the app."""
     try:
@@ -161,10 +216,13 @@ def delete_item(item_id: str) -> bool:
 
 
 __all__ = [
+    "DEN_BUFF_PCT_CAP",
+    "DEN_STAGES",
     "delete_item",
     "generate_item",
     "image_generation_available",
     "list_items",
     "room_dir",
+    "set_den_fields",
     "set_position",
 ]

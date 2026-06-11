@@ -126,6 +126,29 @@ def _edges_among(graph: KnowledgeGraph, node_ids: set[str]) -> list[Edge]:
     ]
 
 
+def _record_observatory_hits(answer: GraphAnswer) -> None:
+    """Opt-in Neural Observatory seam: record query hits as activations.
+
+    Lazy import keeps graphrag free of any hard gateway dependency — where
+    the gateway package is absent this is a silent no-op, exactly as it is
+    whenever ``observatory_metrics.enabled()`` is False (the default). The
+    helper coalesces to ≤ 10 events/s, so only the top hits are reported.
+    Never raises into a query.
+    """
+    try:
+        from gateway.cockpit import observatory_metrics as om
+
+        if answer.nodes and om.enabled():
+            # Community labels are node ids (KnowledgeGraph.communities), so
+            # passing the hit's node id keeps the derived cluster ids in the
+            # same id space as the Observatory snapshot's clusters.
+            om.record_query_activations(
+                (n.id, n.key) for n in answer.nodes[:10]
+            )
+    except Exception:  # the seam must never break a query
+        pass
+
+
 def seed_nodes(
     graph: KnowledgeGraph,
     question: str,
@@ -161,13 +184,15 @@ def local_query(graph: KnowledgeGraph, question: str, *, limit: int = 8) -> Grap
     terms = _terms(question)
     nodes.sort(key=lambda n: (-_score_node(n, terms), n.id))
     edges = _edges_among(graph, keep)
-    return GraphAnswer(
+    answer = GraphAnswer(
         mode="local",
         question=question,
         nodes=nodes[: limit * 3],
         edges=edges,
         citations=_collect_citations(nodes[: limit * 3], edges),
     )
+    _record_observatory_hits(answer)
+    return answer
 
 
 def global_query(
@@ -216,7 +241,7 @@ def global_query(
     # surface; this only fixes their final, cross-cluster order.
     shown_nodes.sort(key=lambda n: (-_score_node(n, terms), n.id))
     edges = _edges_among(graph, {n.id for n in shown_nodes})
-    return GraphAnswer(
+    answer = GraphAnswer(
         mode="global",
         question=question,
         nodes=shown_nodes,
@@ -224,6 +249,8 @@ def global_query(
         citations=_collect_citations(shown_nodes, edges),
         communities=summaries,
     )
+    _record_observatory_hits(answer)
+    return answer
 
 
 def coding_query(graph: KnowledgeGraph, question: str, *, limit: int = 6) -> GraphAnswer:
@@ -264,13 +291,15 @@ def coding_query(graph: KnowledgeGraph, question: str, *, limit: int = 6) -> Gra
 
     nodes.sort(key=_rank)
     edges = _edges_among(graph, keep)
-    return GraphAnswer(
+    answer = GraphAnswer(
         mode="coding",
         question=question,
         nodes=nodes[: limit * 4],
         edges=edges,
         citations=_collect_citations(nodes[: limit * 4], edges),
     )
+    _record_observatory_hits(answer)
+    return answer
 
 
 # ---------------------------------------------------------------------------

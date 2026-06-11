@@ -9,7 +9,7 @@
  * the scaffold's built-in Home route (order 0).
  *
  * Nav order: Home (0, scaffold) · Chat (10) · Jobs (20) · Approvals (30) ·
- * Autonomy (40) · Settings (90, last).
+ * Autonomy (40) · Observatory (50) · Settings (90, last).
  */
 import { createElement } from "react";
 import { registerRoute } from "../routes";
@@ -17,6 +17,7 @@ import { Chat } from "./Chat";
 import { Jobs } from "./Jobs";
 import { Approvals } from "./Approvals";
 import { Autonomy } from "./Autonomy";
+import { Observatory } from "./Observatory";
 import { Settings } from "./Settings";
 
 registerRoute({ id: "chat", label: "Chat", order: 10, render: () => createElement(Chat) });
@@ -32,6 +33,12 @@ registerRoute({
   label: "Autonomy",
   order: 40,
   render: () => createElement(Autonomy),
+});
+registerRoute({
+  id: "observatory",
+  label: "Observatory",
+  order: 50,
+  render: () => createElement(Observatory),
 });
 registerRoute({
   id: "settings",

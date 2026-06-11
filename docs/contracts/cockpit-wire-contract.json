@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 98,
+  "handler_count": 110,
   "owner_gated_count": 10,
-  "route_count": 100,
+  "route_count": 112,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -851,6 +851,96 @@
       "summary": "Resolve a voice intake with an explicit spoken/typed phrase."
     },
     {
+      "handler": "gateway.cockpit.handlers_game.foundry_candidates_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/foundry/candidates",
+      "requires_auth": true,
+      "summary": "List candidates, optionally filtered by ``?status=`` (pending /"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.foundry_candidate_create",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/foundry/candidates",
+      "requires_auth": true,
+      "summary": "Create a candidate from an allowlist-validated spec. Status starts"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.foundry_candidate_ship",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/foundry/candidates/{id}/ship",
+      "requires_auth": true,
+      "summary": "Flip ``shipped=true``. 409 unless validation.status == 'validated'"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.foundry_candidate_validation",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/foundry/candidates/{id}/validation",
+      "requires_auth": true,
+      "summary": "Record a validation result measured by the external battle-sim"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.foundry_observe",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/foundry/observe",
+      "requires_auth": true,
+      "summary": "Append one struggle-pattern observation (opt-in is the game client's"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.game_design",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/game/design",
+      "requires_auth": true,
+      "summary": "Static, source-cited design constants (lattice, costs, domains,"
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.game_saves_list",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/game/saves",
+      "requires_auth": true,
+      "summary": "Slot summaries for the save-select screen."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.game_save_delete",
+      "kind": "json",
+      "method": "DELETE",
+      "owner_gated": false,
+      "path": "/v1/game/saves/{slot}",
+      "requires_auth": true,
+      "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.game_save_get",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/game/saves/{slot}",
+      "requires_auth": true,
+      "summary": "Full save document. 400 for a bad slot number, 404 for an empty slot."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_game.game_save_write",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/game/saves/{slot}",
+      "requires_auth": true,
+      "summary": "Section-level merge write (semantics in the module docstring)."
+    },
+    {
       "handler": "gateway.cockpit.handlers.health",
       "kind": "json",
       "method": "GET",
@@ -885,6 +975,24 @@
       "path": "/v1/observatory/metrics",
       "requires_auth": true,
       "summary": "Measured rollups for heat / ladder brightness (spec \u00a73.3)."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_observatory_recs.observatory_recommendations",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/recommendations",
+      "requires_auth": true,
+      "summary": "Recommendation verdict cards (spec \u00a76) \u2014 bearer-authed, read-only."
+    },
+    {
+      "handler": "gateway.cockpit.handlers_observatory_recs.observatory_recommendation_stage",
+      "kind": "json",
+      "method": "POST",
+      "owner_gated": false,
+      "path": "/v1/observatory/recommendations/{id}/stage",
+      "requires_auth": true,
+      "summary": "Stage one card into the existing owner-gated proposals queue."
     },
     {
       "handler": "gateway.cockpit.handlers_observatory.observatory_snapshot",
