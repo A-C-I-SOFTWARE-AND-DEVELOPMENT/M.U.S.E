@@ -88,6 +88,51 @@ de-duplicated source citations. `render()` produces an inspectable summary.
 
 ## Scale
 
-A full build over the Hermes repo (~5k files) takes ~30s and produces ~28.6k
-nodes / ~51.6k edges across all node/edge types. The build is on-demand and
-cached; queries read the cache.
+A full build over the Hermes repo takes well under a minute and produces
+~33.5k nodes / ~63.3k edges across all node/edge types (measured 2026-06-10;
+see the attestation below for the exact counts and command). The build is
+on-demand and cached; queries read the cache. Earlier revisions of this doc
+and the README quoted ~28.6k nodes / ~51.6k edges from a prior tree state;
+those figures are superseded by the attestation.
+
+## Attestation (2026-06-10)
+
+Reproducible graph-size measurement against the current tree (ticket
+**P1-02**, `docs/synapse/phase0/P1_CLAIMS_AUDIT.md` claim C12).
+
+- **Commit:** `10b144c3cc32346c94f52ac24d2f1e41b851db3b` (`git rev-parse HEAD`)
+- **Environment:** system Python 3.11.15, Linux; `HERMES_HOME` pointed at a
+  fresh temp dir so the build wrote nowhere near `~/.hermes` and the
+  evidence/memory/ledger indexers saw empty local stores — i.e. the counts
+  below are the **repo-only** (code + docs) graph, which is exactly what the
+  "over the repo" claim covers.
+- **Command:**
+
+  ```bash
+  HERMES_HOME=$(mktemp -d) python -m hermes_cli.jarvis_prime graph build \
+      --repo-root . --json
+  ```
+
+- **Result (run 1, wall time 42.8s):**
+
+  ```json
+  {
+    "nodes": 33483,
+    "edges": 63304,
+    "by_node_type": {
+      "api": 1, "class": 5920, "document": 2052, "file": 6024,
+      "function": 19182, "module": 176, "route": 93, "screen": 35
+    },
+    "by_edge_type": {
+      "calls": 5000, "cites": 3778, "depends_on": 10803, "imports": 10803,
+      "owns": 27599, "routes_to": 93, "tests": 5228
+    }
+  }
+  ```
+
+- **Result (run 2, wall time 38.1s):** 33,483 nodes / 63,307 edges — node
+  count and every edge type identical except `cites` (3,781 vs 3,778), a
+  ±3-edge nondeterminism in citation extraction.
+- **Measured figures:** **33,483 nodes / ~63.3k edges** (63,304–63,307
+  across two runs). No LLM, embedding, or network calls were required; the
+  build is pure-local and completed in under a minute both times.

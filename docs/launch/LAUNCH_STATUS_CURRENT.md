@@ -67,3 +67,51 @@ _Run in progress — result appended on completion._
 
 The gate code (`OWNER_GATED_ACTIONS`, `AUTHORIZATION_PHRASE`, `OwnerAuth`,
 emergency-stop) is **not** modified.
+
+## Update — 2026-06-10 (SYNAPSE P1 lane: P1-04 / P1-05 docs closure)
+
+**Source:** [`../synapse/phase0/P1_CLAIMS_AUDIT.md`](../synapse/phase0/P1_CLAIMS_AUDIT.md)
+(§3 chain audit, §5 tickets P1-04/P1-05).
+
+### Launch-chain closure (P1-04)
+
+The held PR chain **#131 → #142 → #143 → #147 → #149 → #150** (plus security
+follow-up **#153**) is formally recorded as **RESOLVED — LANDED on `main`**.
+Because local git history is truncated to 87 visible commits (oldest
+`ba2c12d`), the per-PR merge commits are unobservable; the artifact→PR
+evidence map is frozen in the dated **RESOLUTION ADDENDUM — 2026-06-10** at
+the bottom of
+[`../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md`](../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md),
+which also marks that matrix's HOLD instructions superseded. This document
+and that addendum cross-reference each other; treat the addendum as the
+canonical chain-closure record.
+
+### Full-suite evidence (C5 / P1-03 — in flight)
+
+The full-suite result placeholder above (`FULL_SUITE_RESULT`) will be
+satisfied by the evidence note at
+[`../synapse/phase0/FULL_SUITE_EVIDENCE.md`](../synapse/phase0/FULL_SUITE_EVIDENCE.md)
+(produced by the P1-03 lane; referenced here, not duplicated). Until that
+note records a green full-suite run + commit SHA, C5 stays 🟡. Already
+evidenced by the 2026-06-10 audit: collection clean (29,115 tests, zero
+errors) and `tests/gateway/` green (5986 passed, 74 skipped, 0 failed).
+
+### Open owner-decision items (P1-05 — B6 recommended follow-ups)
+
+The three recommended-but-not-gating B6 follow-ups remain **OPEN** pending
+an owner decision (implement vs. explicit deferral on record):
+
+| # | Item | Status | Ticket |
+|---|---|---|---|
+| O1 | Runtime consent surface (mic/overlay/accessibility prompts at point of use) | 🟡 OPEN — owner decision | P1-05 |
+| O2 | Play data-safety declarations matching the shipped manifest | 🟡 OPEN — owner decision | P1-05 |
+| O3 | Privacy disclosure for the expanded permission surface | 🟡 OPEN — owner decision | P1-05 |
+
+### Status after this update
+
+The verdict above is **unchanged** (🟢/🟡 as stated): the 🟡 YELLOW is
+explicitly defined by the CI-only Android checks (P1–P3, P5) and the full
+suite (C5), and nothing in this docs-only update satisfies those criteria.
+Still gating the flip to full 🟢: (a) a recorded green `android-build.yml`
+run (assembleDebug, testDebugUnitTest, lint) + `launch-gate.yml` aggregate,
+and (b) the full-suite green evidence note above.
