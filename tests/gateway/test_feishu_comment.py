@@ -4,7 +4,7 @@ import asyncio
 import json
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import ANY, AsyncMock, Mock, patch
 
 from gateway.platforms.feishu_comment import (
     parse_drive_comment_event,
@@ -250,7 +250,7 @@ class TestWikiReverseLookup(unittest.TestCase):
         except Exception:
             pass
 
-        mock_lookup.assert_called_once_with(unittest.mock.ANY, "docx", "docx_token")
+        mock_lookup.assert_called_once_with(ANY, "docx", "docx_token")
         self.assertEqual(mock_resolve.call_count, 2)
         # Second call should include wiki_token
         second_call_kwargs = mock_resolve.call_args_list[1]

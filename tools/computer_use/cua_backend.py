@@ -267,6 +267,8 @@ class _CuaDriverSession:
                 self._started = False
 
     async def _call_tool_async(self, name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+        # call_tool() runs _require_started() first, so the session exists here.
+        assert self._session is not None
         result = await self._session.call_tool(name, args)
         return _extract_tool_result(result)
 
@@ -356,7 +358,7 @@ class CuaDriverBackend(ComputerUseBackend):
         sc = lw_out.get("structuredContent") or {}
         raw_windows = sc.get("windows") if sc else None
         if raw_windows:
-            windows = [
+            windows: List[Dict[str, Any]] = [
                 {
                     "app_name": w.get("app_name", ""),
                     "pid": int(w["pid"]),
@@ -610,7 +612,7 @@ class CuaDriverBackend(ComputerUseBackend):
         sc = lw_out.get("structuredContent") or {}
         raw_windows = sc.get("windows") if sc else None
         if raw_windows:
-            windows = [
+            windows: List[Dict[str, Any]] = [
                 {
                     "app_name": w.get("app_name", ""),
                     "pid": int(w["pid"]),
@@ -666,7 +668,7 @@ def _parse_element(d: Dict[str, Any]) -> UIElement:
             int(bounds.get("h", bounds.get("height", 0))),
         )
     elif isinstance(bounds, (list, tuple)) and len(bounds) == 4:
-        bounds = tuple(int(v) for v in bounds)
+        bounds = (int(bounds[0]), int(bounds[1]), int(bounds[2]), int(bounds[3]))
     else:
         bounds = (0, 0, 0, 0)
     return UIElement(

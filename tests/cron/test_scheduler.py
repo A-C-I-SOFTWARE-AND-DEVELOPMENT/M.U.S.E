@@ -1869,7 +1869,9 @@ class TestBuildJobPromptSilentHint:
         """System guidance appears before the user's prompt text."""
         job = {"prompt": "My custom prompt"}
         result = _build_job_prompt(job)
+        assert result is not None
         system_pos = result.index("do NOT use send_message")
+        assert result is not None
         prompt_pos = result.index("My custom prompt")
         assert system_pos < prompt_pos
 
@@ -2090,6 +2092,7 @@ class TestBuildJobPromptMissingSkill:
         with patch("tools.skills_tool.skill_view", side_effect=self._missing_skill_view):
             result = _build_job_prompt({"skills": ["ghost-skill"], "prompt": "do something"})
         assert "ghost-skill" in result
+        assert result is not None
         assert "not found" in result.lower() or "skipped" in result.lower()
 
     def test_missing_skill_logs_warning(self, caplog):

@@ -150,6 +150,7 @@ class TestComputeNextRun:
     def test_interval_first_run(self):
         schedule = {"kind": "interval", "minutes": 60}
         result = compute_next_run(schedule)
+        assert result is not None
         next_dt = datetime.fromisoformat(result)
         # Should be ~60 minutes from now
         assert next_dt > datetime.now().astimezone() + timedelta(minutes=59)
@@ -158,6 +159,7 @@ class TestComputeNextRun:
         schedule = {"kind": "interval", "minutes": 30}
         last = datetime.now().astimezone().isoformat()
         result = compute_next_run(schedule, last_run_at=last)
+        assert result is not None
         next_dt = datetime.fromisoformat(result)
         # Should be ~30 minutes from last run
         assert next_dt > datetime.now().astimezone() + timedelta(minutes=29)

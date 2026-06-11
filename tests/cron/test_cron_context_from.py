@@ -136,7 +136,9 @@ class TestBuildJobPromptContextFrom:
         # job_a never ran — output dir does not exist
         # expect silent skip: no placeholder injected, base prompt intact
         prompt = _build_job_prompt(job_b)
+        assert prompt is not None
         assert "no output" not in prompt.lower()
+        assert prompt is not None
         assert "not found" not in prompt.lower()
         assert "Summarize" in prompt
 
@@ -177,7 +179,9 @@ class TestBuildJobPromptContextFrom:
             context_from=job_a["id"],
         )
         prompt = _build_job_prompt(job_b)
+        assert prompt is not None
         context_pos = prompt.find("Context data")
+        assert prompt is not None
         prompt_pos = prompt.find("Process the data above")
         assert context_pos < prompt_pos
 

@@ -12,6 +12,7 @@ These tests confirm that:
   3. Mixed media lists (voice + audio) split correctly.
 """
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -20,8 +21,11 @@ from gateway.config import GatewayConfig, Platform
 from gateway.platforms.base import MessageEvent, MessageType
 from gateway.session import SessionSource
 
+if TYPE_CHECKING:
+    from gateway.run import GatewayRunner
 
-def _make_runner(stt_enabled: bool = True) -> "GatewayRunner":  # type: ignore[name-defined]
+
+def _make_runner(stt_enabled: bool = True) -> "GatewayRunner":
     from gateway.run import GatewayRunner
 
     runner = GatewayRunner.__new__(GatewayRunner)

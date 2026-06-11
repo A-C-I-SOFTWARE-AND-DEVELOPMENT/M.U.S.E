@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from _common import (
+from _common import (  # ty: ignore[unresolved-import]
     DEFAULT_LOCAL_HOST,
     EMBEDDING_REGEX,
     FOLDER_ALIASES,
@@ -383,7 +383,7 @@ class TestRedirectHeaderStripping:
     """
 
     def _build_session(self):
-        from _common import _StripSensitiveOnRedirectSession, HAS_REQUESTS
+        from _common import _StripSensitiveOnRedirectSession, HAS_REQUESTS  # ty: ignore[unresolved-import]
         if not HAS_REQUESTS:
             import pytest
             pytest.skip("requests not installed")
@@ -400,6 +400,7 @@ class TestRedirectHeaderStripping:
         orig.prepare(method="GET", url="https://cloud.comfy.org/api/view", headers={})
         resp.request = orig
         s.rebuild_auth(prep, resp)
+        assert prep.headers is not None  # prepare() always sets headers
         assert "X-API-Key" not in prep.headers
         assert "Authorization" not in prep.headers
 
@@ -414,6 +415,7 @@ class TestRedirectHeaderStripping:
         orig.prepare(method="GET", url="https://cloud.comfy.org/bar", headers={})
         resp.request = orig
         s.rebuild_auth(prep, resp)
+        assert prep.headers is not None  # prepare() always sets headers
         assert prep.headers.get("X-API-Key") == "keep"
 
     def test_strips_cookie_cross_host(self):

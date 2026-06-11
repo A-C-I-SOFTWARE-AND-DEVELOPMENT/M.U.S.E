@@ -391,7 +391,9 @@ def _dispatch(backend: ComputerUseBackend, action: str, args: Dict[str, Any]) ->
         value = args.get("value")
         if value is None:
             return json.dumps({"error": "set_value requires `value`"})
-        res = backend.set_value(value=str(value), element=args.get("element"))
+        # set_value exists on the cua backend; the ComputerUseBackend ABC
+        # (tools/computer_use/backend.py, owned elsewhere) doesn't declare it.
+        res = backend.set_value(value=str(value), element=args.get("element"))  # ty: ignore[unresolved-attribute]
         return _maybe_follow_capture(backend, res, capture_after)
 
     return json.dumps({"error": f"unknown action {action!r}"})

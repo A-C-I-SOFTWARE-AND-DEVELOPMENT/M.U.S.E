@@ -939,6 +939,10 @@ _STATIC_CORE_SCHEMA = _build_schema(
 _STATIC_ADMIN_SCHEMA = _build_schema(
     list(_ADMIN_ACTIONS.keys()), caps={"detected": False}, tool_name="discord_admin",
 )
+# _build_schema only returns None for an empty action list; both static
+# action tables are non-empty, so the schemas are always built.
+assert _STATIC_CORE_SCHEMA is not None
+assert _STATIC_ADMIN_SCHEMA is not None
 
 registry.register(
     name="discord",

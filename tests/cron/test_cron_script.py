@@ -205,6 +205,7 @@ class TestBuildJobPromptWithScript:
         }
         prompt = _build_job_prompt(job)
         assert "## Script Error" in prompt
+        assert prompt is not None
         assert "not found" in prompt.lower()
         assert "Report status." in prompt
 

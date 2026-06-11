@@ -1496,6 +1496,7 @@ def test_scratch_workspace_created_under_hermes_home(kanban_home):
     with kb.connect() as conn:
         t = kb.create_task(conn, title="x")
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     assert ws.exists()
     assert ws.is_dir()
@@ -1509,6 +1510,7 @@ def test_dir_workspace_honors_given_path(kanban_home, tmp_path):
             conn, title="biz", workspace_kind="dir", workspace_path=str(target)
         )
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     assert ws == target
     assert ws.exists()
@@ -1521,6 +1523,7 @@ def test_worktree_workspace_returns_intended_path(kanban_home, tmp_path):
             conn, title="ship", workspace_kind="worktree", workspace_path=target
         )
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     # We do NOT auto-create worktrees; the worker's skill handles that.
     assert str(ws) == target
@@ -1588,6 +1591,7 @@ def test_tenant_propagates_to_events(kanban_home):
         events = kb.list_events(conn, t)
     # The "created" event should have tenant in its payload.
     created = [e for e in events if e.kind == "created"]
+    assert created[0] is not None
     assert created and created[0].payload.get("tenant") == "biz-a"
 
 
@@ -2517,6 +2521,7 @@ def test_task_dict_survives_corrupt_created_at(tmp_path, monkeypatch):
         task = kb.get_task(conn, good_id)
     finally:
         conn.close()
+    assert task is not None
     age = kb.task_age(task)
     assert age["created_age_seconds"] is None
 

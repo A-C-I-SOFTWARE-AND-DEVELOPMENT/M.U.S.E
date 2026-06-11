@@ -160,7 +160,7 @@ def adapter(tmp_path):
     """
     from plugins.platforms.google_chat.adapter import _ThreadCountStore
     a = GoogleChatAdapter(_base_config())
-    a._loop = asyncio.get_event_loop_policy().new_event_loop()
+    a._loop = asyncio.new_event_loop()
     a._chat_api = MagicMock()
     a._subscriber = MagicMock()
     a._credentials = MagicMock()

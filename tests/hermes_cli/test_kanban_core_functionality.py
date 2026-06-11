@@ -255,7 +255,9 @@ def test_per_task_max_retries_overrides_dispatcher_limit(kanban_home, all_assign
         events = kb.list_events(conn, tid)
         gave_up = [e for e in events if e.kind == "gave_up"]
         assert gave_up, f"expected gave_up event, got {[e.kind for e in events]}"
+        assert gave_up[-1] is not None
         assert gave_up[-1].payload.get("limit_source") == "task"
+        assert gave_up[-1] is not None
         assert gave_up[-1].payload.get("effective_limit") == 1
     finally:
         conn.close()
@@ -346,7 +348,9 @@ def test_max_retries_none_falls_through_to_dispatcher_limit(kanban_home, all_ass
 
         events = kb.list_events(conn, tid)
         gave_up = [e for e in events if e.kind == "gave_up"]
+        assert gave_up[-1] is not None
         assert gave_up[-1].payload.get("limit_source") == "dispatcher"
+        assert gave_up[-1] is not None
         assert gave_up[-1].payload.get("effective_limit") == 4
     finally:
         conn.close()
@@ -528,6 +532,7 @@ def test_task_age_helper(kanban_home):
     try:
         tid = kb.create_task(conn, title="x")
         task = kb.get_task(conn, tid)
+        assert task is not None
         age = kb.task_age(task)
         assert age["created_age_seconds"] is not None
         assert age["started_age_seconds"] is None
@@ -2683,6 +2688,7 @@ def test_resolve_workspace_accepts_absolute_dir_path(kanban_home, tmp_path):
             workspace_path=abs_path,
         )
         task = kb.get_task(conn, tid)
+        assert task is not None
         resolved = kb.resolve_workspace(task)
         assert str(resolved) == abs_path
         assert resolved.exists()
@@ -2700,6 +2706,7 @@ def test_resolve_workspace_rejects_relative_worktree_path(kanban_home):
             workspace_path="../escape",
         )
         with pytest.raises(ValueError, match=r"non-absolute"):
+            assert kb is not None
             kb.resolve_workspace(kb.get_task(conn, tid))
     finally:
         conn.close()
@@ -2854,7 +2861,9 @@ def test_default_spawn_auto_loads_kanban_worker_skill(kanban_home, monkeypatch):
         tid = kb.create_task(conn, title="skill-loading test",
                              assignee="some-profile")
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         pid = kb._default_spawn(task, str(workspace))
         assert pid == 99999
     finally:
@@ -2906,7 +2915,9 @@ def test_default_spawn_raises_terminal_timeout_to_task_runtime(kanban_home, monk
             max_runtime_seconds=3600,
         )
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()
@@ -2940,7 +2951,9 @@ def test_default_spawn_preserves_longer_terminal_timeout(kanban_home, monkeypatc
             max_runtime_seconds=3600,
         )
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()
@@ -2968,7 +2981,9 @@ def test_default_spawn_leaves_terminal_timeout_without_runtime_cap(kanban_home, 
     try:
         tid = kb.create_task(conn, title="uncapped", assignee="ops")
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()
@@ -3128,7 +3143,9 @@ def test_default_spawn_appends_per_task_skills(kanban_home, monkeypatch):
             skills=["translation", "github-code-review"],
         )
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()
@@ -3175,7 +3192,9 @@ def test_default_spawn_dedupes_kanban_worker_from_task_skills(kanban_home, monke
             skills=["kanban-worker", "translation"],
         )
         task = kb.get_task(conn, tid)
+        assert task is not None
         workspace = kb.resolve_workspace(task)
+        assert task is not None
         kb._default_spawn(task, str(workspace))
     finally:
         conn.close()

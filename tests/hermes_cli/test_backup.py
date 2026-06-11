@@ -1153,6 +1153,7 @@ class TestQuickSnapshot:
         (hermes_home / "config.yaml").write_text("model:\n  provider: anthropic\n")
         assert "anthropic" in (hermes_home / "config.yaml").read_text()
 
+        assert snap_id is not None
         result = restore_quick_snapshot(snap_id, hermes_home=hermes_home)
         assert result is True
         assert "openrouter" in (hermes_home / "config.yaml").read_text()
@@ -1166,6 +1167,7 @@ class TestQuickSnapshot:
         conn.commit()
         conn.close()
 
+        assert snap_id is not None
         restore_quick_snapshot(snap_id, hermes_home=hermes_home)
 
         conn = sqlite3.connect(str(hermes_home / "state.db"))
@@ -1349,9 +1351,12 @@ class TestPreUpdateBackup:
         )
         assert len(remaining) == 3
         # Oldest two should have been pruned
+        assert created[0] is not None
         assert created[0].name not in remaining
+        assert created[1] is not None
         assert created[1].name not in remaining
         # Newest three should remain
+        assert created[4] is not None
         assert created[4].name in remaining
 
     def test_rotation_preserves_manual_files(self, hermes_home):

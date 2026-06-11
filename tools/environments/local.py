@@ -188,7 +188,7 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     try:
         from tools.env_passthrough import is_env_passthrough as _is_passthrough
     except Exception:
-        _is_passthrough = lambda _: False  # noqa: E731
+        _is_passthrough = lambda var_name: False  # noqa: E731
 
     sanitized: dict[str, str] = {}
 
@@ -285,7 +285,7 @@ def _make_run_env(env: dict) -> dict:
     try:
         from tools.env_passthrough import is_env_passthrough as _is_passthrough
     except Exception:
-        _is_passthrough = lambda _: False  # noqa: E731
+        _is_passthrough = lambda var_name: False  # noqa: E731
 
     merged = dict(os.environ | env)
     run_env = {}
@@ -422,7 +422,7 @@ class LocalEnvironment(BaseEnvironment):
     CWD persists via file-based read after each command.
     """
 
-    def __init__(self, cwd: str = "", timeout: int = 60, env: dict = None):
+    def __init__(self, cwd: str = "", timeout: int = 60, env: dict | None = None):
         if cwd:
             cwd = os.path.expanduser(cwd)
         super().__init__(cwd=cwd or os.getcwd(), timeout=timeout, env=env)
@@ -537,7 +537,7 @@ class LocalEnvironment(BaseEnvironment):
         )
         if not _IS_WINDOWS:
             try:
-                proc._hermes_pgid = os.getpgid(proc.pid)
+                proc._hermes_pgid = os.getpgid(proc.pid)  # ty: ignore[unresolved-attribute]
             except ProcessLookupError:
                 pass
 

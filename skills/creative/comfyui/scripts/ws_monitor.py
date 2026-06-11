@@ -123,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     try:
-        import websocket  # type: ignore[import-not-found]
+        import websocket  # type: ignore[import-not-found]  # ty: ignore[unresolved-import]
     except ImportError:
         print(json.dumps({
             "error": "websocket-client not installed",

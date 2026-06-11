@@ -92,6 +92,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
                 immediate_result=self._error_result(f"Managed Modal exec failed: {exc}")
             )
 
+        assert response.status_code is not None  # always set on a completed request
         if response.status_code >= 400:
             return ModalExecStart(
                 immediate_result=self._error_result(
@@ -128,6 +129,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
         except Exception as exc:
             return self._error_result(f"Managed Modal exec poll failed: {exc}")
 
+        assert status_response.status_code is not None  # always set on a completed request
         if status_response.status_code == 404:
             return self._error_result("Managed Modal exec not found")
 
@@ -202,6 +204,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
                 "x-idempotency-key": self._create_idempotency_key,
             },
         )
+        assert response.status_code is not None  # always set on a completed request
         if response.status_code >= 400:
             raise RuntimeError(self._format_error("Managed Modal create failed", response))
 
@@ -228,7 +231,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
 
     def _request(self, method: str, path: str, *,
                  json: Dict[str, Any] | None = None,
-                 timeout: int = 30,
+                 timeout: float | tuple[float, float] = 30,
                  extra_headers: Dict[str, str] | None = None) -> requests.Response:
         headers = {
             "Authorization": f"Bearer {self._nous_user_token}",
@@ -256,7 +259,7 @@ class ManagedModalEnvironment(BaseModalExecutionEnvironment):
             logger.warning("Managed Modal exec cancel failed: %s", exc)
 
     @staticmethod
-    def _coerce_number(value: Any, default: float) -> float:
+    def _coerce_number(value: Any, default: float | None) -> float | None:
         try:
             if value is None:
                 return default
