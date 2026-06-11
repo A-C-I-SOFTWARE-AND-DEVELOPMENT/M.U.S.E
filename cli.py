@@ -71,6 +71,11 @@ try:
 except (ImportError, AttributeError):
     _STEADY_CURSOR = None
 
+
+def _steady_cursor_kwargs() -> Dict[str, Any]:
+    """Application(**extra) kwargs for the non-blinking cursor, when supported."""
+    return {'cursor': _STEADY_CURSOR} if _STEADY_CURSOR is not None else {}
+
 try:
     from hermes_cli.pt_input_extras import install_shift_enter_alias, install_ctrl_enter_alias
     install_shift_enter_alias()
@@ -705,7 +710,7 @@ try:
                 except Exception:
                     pass
 
-            spec.loader.exec_module = _patched_exec  # type: ignore[method-assign]
+            spec.loader.exec_module = _patched_exec  # type: ignore[method-assign]  # ty: ignore[invalid-assignment]
             return spec
 
     _httpx_neuter_sys.meta_path.insert(0, _AsyncHttpxDelNeuter())
@@ -863,7 +868,7 @@ def _path_is_within_root(path: Path, root: Path) -> bool:
         return False
 
 
-def _setup_worktree(repo_root: str = None) -> Optional[Dict[str, str]]:
+def _setup_worktree(repo_root: Optional[str] = None) -> Optional[Dict[str, str]]:
     """Create an isolated git worktree for this CLI session.
 
     Returns a dict with worktree metadata on success, None on failure.
@@ -1022,7 +1027,7 @@ def _worktree_has_unpushed_commits(worktree_path: str, timeout: int = 10) -> boo
         return True
 
 
-def _cleanup_worktree(info: Dict[str, str] = None) -> None:
+def _cleanup_worktree(info: Optional[Dict[str, str]] = None) -> None:
     """Remove a worktree and its branch on exit.
 
     Preserves the worktree only if it has unpushed commits (real work
@@ -1549,8 +1554,8 @@ def _install_skin_light_mode_hook() -> None:
         except Exception:
             return value
 
-    SkinConfig.get_color = _wrapped_get_color  # type: ignore[method-assign]
-    SkinConfig._hermes_light_mode_hook_installed = True  # type: ignore[attr-defined]
+    SkinConfig.get_color = _wrapped_get_color  # type: ignore[method-assign]  # ty: ignore[invalid-assignment]
+    SkinConfig._hermes_light_mode_hook_installed = True  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
 
 _install_skin_light_mode_hook()
@@ -2553,7 +2558,7 @@ def _parse_skills_argument(skills: str | list[str] | tuple[str, ...] | None) -> 
     return parsed
 
 
-def save_config_value(key_path: str, value: any) -> bool:
+def save_config_value(key_path: str, value: Any) -> bool:
     """
     Save a value to the active config file at the specified key path.
     
@@ -2610,15 +2615,15 @@ class HermesCLI:
     
     def __init__(
         self,
-        model: str = None,
-        toolsets: List[str] = None,
-        provider: str = None,
-        api_key: str = None,
-        base_url: str = None,
-        max_turns: int = None,
+        model: Optional[str] = None,
+        toolsets: Optional[List[str]] = None,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
+        max_turns: Optional[int] = None,
         verbose: bool = False,
         compact: bool = False,
-        resume: str = None,
+        resume: Optional[str] = None,
         checkpoints: bool = False,
         pass_session_id: bool = False,
         ignore_rules: bool = False,
@@ -2844,7 +2849,7 @@ class HermesCLI:
         _or_cfg = CLI_CONFIG.get("openrouter", {}) or {}
         _raw_score = _or_cfg.get("min_coding_score")
         self._openrouter_min_coding_score: Optional[float] = None
-        if _raw_score not in {None, ""}:
+        if _raw_score is not None and _raw_score != "":
             try:
                 _f = float(_raw_score)
                 if 0.0 <= _f <= 1.0:
@@ -2867,6 +2872,9 @@ class HermesCLI:
 
         # Agent will be initialized on first use
         self.agent: Optional[AIAgent] = None
+        # One-shot notes prepended to the next user turn (cleared after use).
+        self._pending_model_switch_note: Optional[str] = None
+        self._pending_skills_reload_note: Optional[str] = None
         self._app = None  # prompt_toolkit Application (set in run())
         
         # Conversation state
@@ -2935,20 +2943,20 @@ class HermesCLI:
         # _handle_update_command() so the relaunch happens on the main thread,
         # not the background process_loop thread.
         self._pending_relaunch: list[str] | None = None
-        self._last_ctrl_c_time = 0
-        self._clarify_state = None
+        self._last_ctrl_c_time: float = 0
+        self._clarify_state: Optional[Dict[str, Any]] = None
         self._clarify_freetext = False
         self._clarify_deadline = 0
-        self._sudo_state = None
+        self._sudo_state: Optional[Dict[str, Any]] = None
         self._sudo_deadline = 0
-        self._modal_input_snapshot = None
-        self._approval_state = None
+        self._modal_input_snapshot: Optional[Dict[str, Any]] = None
+        self._approval_state: Optional[Dict[str, Any]] = None
         self._approval_deadline = 0
         self._approval_lock = threading.Lock()
-        self._slash_confirm_state = None
+        self._slash_confirm_state: Optional[Dict[str, Any]] = None
         self._slash_confirm_deadline = 0
-        self._model_picker_state = None
-        self._secret_state = None
+        self._model_picker_state: Optional[Dict[str, Any]] = None
+        self._secret_state: Optional[Dict[str, Any]] = None
         self._secret_deadline = 0
         self._spinner_text: str = ""  # thinking spinner text for TUI
         self._tool_start_time: float = 0.0  # monotonic timestamp when current tool started (for live elapsed)
@@ -3279,7 +3287,7 @@ class HermesCLI:
         try:
             from prompt_toolkit.utils import get_cwidth
         except Exception:
-            get_cwidth = None
+            get_cwidth = None  # ty: ignore[invalid-assignment]
 
         if cls._status_bar_display_width(text) <= max_width:
             return text
@@ -4489,7 +4497,7 @@ class HermesCLI:
         route["request_overrides"] = overrides
         return route
 
-    def _init_agent(self, *, model_override: str = None, runtime_override: dict = None, request_overrides: dict | None = None) -> bool:
+    def _init_agent(self, *, model_override: Optional[str] = None, runtime_override: Optional[dict] = None, request_overrides: dict | None = None) -> bool:
         """
         Initialize the agent on first use.
         When resuming a session, restores conversation history from SQLite.
@@ -6809,7 +6817,7 @@ class HermesCLI:
         if not state:
             return
         state["response_queue"].put(value)
-        self._slash_confirm_state = None
+        self._slash_confirm_state: Optional[Dict[str, Any]] = None
         self._slash_confirm_deadline = 0
         self._invalidate()
 
@@ -6943,7 +6951,7 @@ class HermesCLI:
         self._invalidate(min_interval=0.0)
 
     def _close_model_picker(self) -> None:
-        self._model_picker_state = None
+        self._model_picker_state: Optional[Dict[str, Any]] = None
         self._restore_modal_input_snapshot()
         self._invalidate(min_interval=0.0)
 
@@ -7991,7 +7999,9 @@ class HermesCLI:
                 "This clears the screen and starts a new session.\n"
                 "The current conversation history will be discarded.",
             ) is None:
-                return
+                # Cancelled: keep the session running (None would read as
+                # False = "exit hermes" to process_loop).
+                return True
             self.new_session(silent=True)
             _clear_output_history()
             # Clear terminal screen.  Inside the TUI, Rich's console.clear()
@@ -8121,7 +8131,7 @@ class HermesCLI:
                 "This starts a fresh session.\n"
                 "The current conversation history will be discarded.",
             ) is None:
-                return
+                return True  # cancelled; do not exit hermes
             self.new_session(title=title)
         elif canonical == "resume":
             self._handle_resume_command(cmd_original)
@@ -8147,7 +8157,7 @@ class HermesCLI:
                 "undo",
                 "This removes the last user/assistant exchange from history.",
             ) is None:
-                return
+                return True  # cancelled; do not exit hermes
             self.undo_last()
         elif canonical == "branch":
             self._handle_branch_command(cmd_original)
@@ -10750,7 +10760,7 @@ class HermesCLI:
                     self._invalidate()
 
         # Timed out — tear down the UI and let the agent decide
-        self._clarify_state = None
+        self._clarify_state: Optional[Dict[str, Any]] = None
         self._clarify_freetext = False
         self._clarify_deadline = 0
         self._invalidate()
@@ -10799,7 +10809,7 @@ class HermesCLI:
                     break
                 self._invalidate()
 
-        self._sudo_state = None
+        self._sudo_state: Optional[Dict[str, Any]] = None
         self._sudo_deadline = 0
         self._restore_modal_input_snapshot()
         self._invalidate()
@@ -10912,7 +10922,7 @@ class HermesCLI:
             return
 
         state["response_queue"].put(chosen)
-        self._approval_state = None
+        self._approval_state: Optional[Dict[str, Any]] = None
         self._invalidate()
 
     def _get_approval_display_fragments(self):
@@ -11099,7 +11109,7 @@ class HermesCLI:
     def _restore_modal_input_snapshot(self) -> None:
         """Restore any draft text that was present before a modal prompt opened."""
         snapshot = self._modal_input_snapshot
-        self._modal_input_snapshot = None
+        self._modal_input_snapshot: Optional[Dict[str, Any]] = None
         if not snapshot or not getattr(self, "_app", None):
             return
         try:
@@ -11113,7 +11123,7 @@ class HermesCLI:
         if not self._secret_state:
             return
         self._secret_state["response_queue"].put(value)
-        self._secret_state = None
+        self._secret_state: Optional[Dict[str, Any]] = None
         self._secret_deadline = 0
         self._invalidate()
 
@@ -11127,7 +11137,7 @@ class HermesCLI:
             except Exception:
                 pass
 
-    def chat(self, message, images: list = None) -> Optional[str]:
+    def chat(self, message, images: Optional[list] = None) -> Optional[str]:
         """
         Send a message to the agent and get a response.
         
@@ -12131,17 +12141,17 @@ class HermesCLI:
         # Clarify tool state: interactive question/answer with the user.
         # When the agent calls the clarify tool, _clarify_state is set and
         # the prompt_toolkit UI switches to a selection mode.
-        self._clarify_state = None      # dict with question, choices, selected, response_queue
+        self._clarify_state: Optional[Dict[str, Any]] = None      # dict with question, choices, selected, response_queue
         self._clarify_freetext = False  # True when user chose "Other" and is typing
         self._clarify_deadline = 0      # monotonic timestamp when the clarify times out
 
         # Sudo password prompt state (similar mechanism to clarify)
-        self._sudo_state = None         # dict with response_queue when active
+        self._sudo_state: Optional[Dict[str, Any]] = None         # dict with response_queue when active
         self._sudo_deadline = 0
-        self._modal_input_snapshot = None
+        self._modal_input_snapshot: Optional[Dict[str, Any]] = None
 
         # Dangerous command approval state (similar mechanism to clarify)
-        self._approval_state = None     # dict with command, description, choices, selected, response_queue
+        self._approval_state: Optional[Dict[str, Any]] = None     # dict with command, description, choices, selected, response_queue
         self._approval_deadline = 0
         self._approval_lock = threading.Lock()  # serialize concurrent approval prompts (delegation race fix)
 
@@ -12149,7 +12159,7 @@ class HermesCLI:
         # These prompts are answered through the prompt_toolkit composer, not
         # raw input(), so the option labels stay visible and Enter does not EOF
         # the whole app.
-        self._slash_confirm_state = None
+        self._slash_confirm_state: Optional[Dict[str, Any]] = None
         self._slash_confirm_deadline = 0
 
         # Slash command loading state
@@ -12157,7 +12167,7 @@ class HermesCLI:
         self._command_status = ""
 
         # Secure secret capture state for skill setup
-        self._secret_state = None       # dict with var_name, prompt, metadata, response_queue
+        self._secret_state: Optional[Dict[str, Any]] = None       # dict with var_name, prompt, metadata, response_queue
         self._secret_deadline = 0
 
         # Clipboard image attachments (paste images into the CLI)
@@ -13832,7 +13842,7 @@ class HermesCLI:
             style=style,
             full_screen=False,
             mouse_support=False,
-            **({'cursor': _STEADY_CURSOR} if _STEADY_CURSOR is not None else {}),
+            **_steady_cursor_kwargs(),
         )
         _disable_prompt_toolkit_cpr_warning(app)
         self._app = app  # Store reference for clarify_callback
@@ -13897,8 +13907,8 @@ class HermesCLI:
                         size, previous_width,
                     )
 
-                _pt_renderer._output_screen_diff = _patched_output_screen_diff
-                _pt_renderer._hermes_osd_patched = True
+                _pt_renderer._output_screen_diff = _patched_output_screen_diff  # ty: ignore[invalid-assignment]
+                _pt_renderer._hermes_osd_patched = True  # ty: ignore[unresolved-attribute]
         except Exception:
             pass
 
@@ -13907,7 +13917,7 @@ class HermesCLI:
         def _resize_clear_ghosts():
             self._schedule_resize_recovery(app, _original_on_resize)
 
-        app._on_resize = _resize_clear_ghosts
+        app._on_resize = _resize_clear_ghosts  # ty: ignore[invalid-assignment]
 
         def spinner_loop():
             while not self._should_exit:
@@ -14343,9 +14353,10 @@ class HermesCLI:
         # terminal modes — rather than from the background process_loop
         # thread (which would skip terminal cleanup on POSIX and only exit
         # the worker thread on Windows).
-        if getattr(self, '_pending_relaunch', None):
+        _pr = getattr(self, '_pending_relaunch', None)
+        if _pr:
             from hermes_cli.relaunch import relaunch
-            relaunch(self._pending_relaunch, preserve_inherited=False)
+            relaunch(_pr, preserve_inherited=False)
 
 
 # ============================================================================
@@ -14353,23 +14364,23 @@ class HermesCLI:
 # ============================================================================
 
 def main(
-    query: str = None,
-    q: str = None,
-    image: str = None,
-    toolsets: str = None,
-    skills: str | list[str] | tuple[str, ...] = None,
-    model: str = None,
-    provider: str = None,
-    api_key: str = None,
-    base_url: str = None,
-    max_turns: int = None,
+    query: Optional[str] = None,
+    q: Optional[str] = None,
+    image: Optional[str] = None,
+    toolsets: Optional[str] = None,
+    skills: str | list[str] | tuple[str, ...] | None = None,
+    model: Optional[str] = None,
+    provider: Optional[str] = None,
+    api_key: Optional[str] = None,
+    base_url: Optional[str] = None,
+    max_turns: Optional[int] = None,
     verbose: bool = False,
     quiet: bool = False,
     compact: bool = False,
     list_tools: bool = False,
     list_toolsets: bool = False,
     gateway: bool = False,
-    resume: str = None,
+    resume: Optional[str] = None,
     worktree: bool = False,
     w: bool = False,
     checkpoints: bool = False,

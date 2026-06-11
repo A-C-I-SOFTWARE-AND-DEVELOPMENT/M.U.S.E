@@ -1780,7 +1780,7 @@ def _validate_proxy_env_urls() -> None:
             ) from exc
 
 
-def _validate_base_url(base_url: str) -> None:
+def _validate_base_url(base_url: Optional[str]) -> None:
     """Reject obviously broken custom endpoint URLs before they reach httpx."""
     from urllib.parse import urlparse
 

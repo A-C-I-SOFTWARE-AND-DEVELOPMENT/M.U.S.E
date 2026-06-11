@@ -463,7 +463,7 @@ class MemoryStore:
 
 
 def memory_tool(
-    action: str,
+    action: Optional[str],
     target: str = "memory",
     content: Optional[str] = None,
     old_text: Optional[str] = None,

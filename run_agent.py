@@ -51,7 +51,7 @@ import threading
 from types import SimpleNamespace
 import urllib.request
 import uuid
-from typing import Callable, List, Dict, Any, Optional
+from typing import Callable, Collection, List, Dict, Any, Optional, Set
 from urllib.parse import urlparse, parse_qs, urlunparse
 # NOTE: `from openai import OpenAI` is deliberately NOT at module top — the
 # SDK pulls ~240 ms of imports. We expose `OpenAI` as a thin proxy object
@@ -379,6 +379,20 @@ class AIAgent:
     _active_children_lock: threading.Lock
     _anthropic_image_fallback_cache: Dict[str, Any]
     context_compressor: Any  # context engine / compressor plugin (may be absent; guarded by hasattr)
+    logs_dir: Path
+    thinking_callback: Optional[Callable]
+    compression_enabled: bool
+    suppress_status_output: bool
+    valid_tool_names: Set[str]
+    _checkpoint_mgr: Any  # tools.checkpoint_manager.CheckpointManager (set in agent_init)
+    _tool_guardrail_halt_decision: Optional[Any]  # guardrails halt decision (set when a guardrail trips)
+    _memory_write_origin: str
+    _memory_write_context: str
+    _memory_store: Any
+    _memory_enabled: bool
+    _user_profile_enabled: bool
+    _memory_nudge_interval: int
+    _skill_nudge_interval: int
 
     @property
     def base_url(self) -> str:
@@ -403,8 +417,8 @@ class AIAgent:
         model: str = "",
         max_iterations: int = 90,  # Default tool-calling iterations (shared with subagents)
         tool_delay: float = 1.0,
-        enabled_toolsets: Optional[List[str]] = None,
-        disabled_toolsets: Optional[List[str]] = None,
+        enabled_toolsets: Optional[Collection[str]] = None,
+        disabled_toolsets: Optional[Collection[str]] = None,
         save_trajectories: bool = False,
         verbose_logging: bool = False,
         quiet_mode: bool = False,

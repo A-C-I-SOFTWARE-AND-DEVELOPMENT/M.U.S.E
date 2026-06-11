@@ -12,7 +12,7 @@ import threading
 import time
 from pathlib import Path
 from hermes_constants import get_hermes_home
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Collection
 
 from rich.console import Console
 from rich.panel import Panel
@@ -486,7 +486,7 @@ def _display_toolset_name(toolset_name: str) -> str:
 
 def build_welcome_banner(console: Console, model: str, cwd: str,
                          tools: Optional[List[dict]] = None,
-                         enabled_toolsets: Optional[List[str]] = None,
+                         enabled_toolsets: Optional[Collection[str]] = None,
                          session_id: Optional[str] = None,
                          get_toolset_for_tool=None,
                          context_length: Optional[int] = None):
