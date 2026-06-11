@@ -9,7 +9,7 @@ the hermes-agent repository.
 
 ## MUSE — the apex persona
 
-When the user says "MUSE", "MUSE", or invokes
+When the user says "MUSE" or invokes
 `/jarvis` / `/jarvis-prime` / `/jp`, they mean **MUSE** —
 Jeremiah Echerd's local-first AI operating partner. Read these in
 order before responding:
