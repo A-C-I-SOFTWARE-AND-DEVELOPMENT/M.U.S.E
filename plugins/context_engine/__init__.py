@@ -67,7 +67,7 @@ def discover_context_engines() -> List[Tuple[str, str, bool]]:
             if engine is None:
                 available = False
             elif hasattr(engine, "is_available"):
-                available = engine.is_available()
+                available = engine.is_available()  # ty: ignore[call-non-callable]  # hasattr-guarded duck-typed engine
         except Exception:
             available = False
 

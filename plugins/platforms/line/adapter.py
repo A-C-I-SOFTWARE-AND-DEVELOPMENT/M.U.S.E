@@ -1308,6 +1308,7 @@ class LineAdapter(BasePlatformAdapter):
         chat_id: str,
         image_path: str,
         caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
@@ -1338,8 +1339,11 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        duration_ms: int = 1000,
+        caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        *,
+        duration_ms: int = 1000,
         **kwargs,
     ) -> SendResult:
         path = Path(audio_path)
@@ -1363,8 +1367,11 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        preview_path: Optional[str] = None,
+        caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        *,
+        preview_path: Optional[str] = None,
         **kwargs,
     ) -> SendResult:
         path = Path(video_path)
