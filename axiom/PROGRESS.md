@@ -34,10 +34,15 @@ output.
       smoke.py output unchanged from Phase 0
 
 ## Phase 2 — Memory plane live
-- [ ] 2.1 Mind facade: observe / recall / on_verification
-- [ ] 2.2 Contradiction → OwnerRequired + contradiction_report ledger event
-- [ ] 2.3 Disk persistence; restart preserves tiers/beliefs/retrievability
-- [ ] EXIT GATE: simulated mid-session kill, reopen, nothing lost, chain valid
+- [x] 2.1 Mind facade (`axiom/memory/mind.py`): observe / believe / recall /
+      on_verification, wiring MemoryStore + BeliefBase + routed retrieval
+- [x] 2.2 Contradiction → contradiction_report ledgered, then OwnerRequired
+      raised; entrenched belief untouched; weak beliefs revised with lineage
+- [x] 2.3 Disk persistence (data dir per Mind); restart preserves tier,
+      content, beliefs, and FSRS retrievability to 1e-9
+- [x] EXIT GATE: simulated mid-session kill (drop all objects, reopen) —
+      nothing lost, chain valid. `pytest tests/` → **33 passed in 0.63s**;
+      smoke unchanged
 
 ## Phase 3 — Forge engine
 - [ ] 3.1 Persist ratings + archive to SQLite; RD inflates for idle candidates
