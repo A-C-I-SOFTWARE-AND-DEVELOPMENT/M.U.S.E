@@ -16,6 +16,8 @@ is genuine agent behaviour, not a canned echo.
 
 from __future__ import annotations
 
+import time
+import uuid
 from typing import Callable, Iterator, Optional
 
 from gateway.jarvis_local_http import (
@@ -127,6 +129,8 @@ def jarvis_responder(
 
     if generate is not None:
         hint = _brain_hint(turn, mode)
+        served = "generator"
+        gen_started = time.monotonic()
         try:
             # Prefer the routing-aware 3-arg form; fall back for plain generators.
             try:
@@ -134,7 +138,10 @@ def jarvis_responder(
             except TypeError:
                 text = generate(prompt, persona_prompt).strip()
         except Exception as exc:  # pragma: no cover - defensive
+            served = "turn_summary_fallback"
             text = f"(model generation unavailable: {exc}) " + _turn_summary(turn, mode)
+        # Opt-in Observatory seam — guarded inside, can never raise into chat.
+        _record_route_decision(hint, served, int((time.monotonic() - gen_started) * 1000))
     else:
         text = _turn_summary(turn, mode)
 
@@ -366,6 +373,40 @@ def _brain_hint(turn, mode: str) -> dict:
         "mode": mode,
         "task_class": _task_class_for(turn, mode, target),
     }
+
+
+def _record_route_decision(hint: dict, served: str, latency_ms: int) -> None:
+    """Opt-in Neural Observatory seam: record this turn's routing decision.
+
+    No-op (zero filesystem access) unless ``observatory_metrics.enabled()``;
+    guarded end-to-end so a collector failure can never raise into the chat
+    path. The pluggable generator does not report which model actually
+    answered or its token counts, so those are omitted — never guessed.
+    """
+    try:
+        from gateway.cockpit import observatory_metrics as om
+
+        if not om.enabled():
+            return
+        # Tier (spec enum local|hosted|paired): a fallback reply was served
+        # in-process; otherwise the hint's escalation picks the preferred
+        # tier, mirroring default_prose_generator's free-first tier order.
+        if served != "generator":
+            tier = "local"
+        else:
+            tier = "hosted" if hint.get("escalate") else "local"
+        om.record_route_decision(
+            uuid.uuid4().hex[:12],
+            tier,
+            "",
+            reason=(
+                f"kind={hint.get('kind')} target={hint.get('target') or '-'} "
+                f"served={served}"
+            ),
+            latency_ms=latency_ms,
+        )
+    except Exception:  # pragma: no cover - seams must never break chat
+        pass
 
 
 # Map a JARVIS turn to one of the evidence-backed routing task classes, reusing
