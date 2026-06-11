@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **100 routes** across **98 distinct handlers**
+- **102 routes** across **100 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -119,5 +119,7 @@ helper it calls) compares the request against
 | POST | `/v1/jarvis/chat` | `gateway.cockpit.server._make_handler.<locals>.Handler._stream_chat` | bearer | — | chat-ndjson |  |
 | GET | `/v1/observatory/layout` | `gateway.cockpit.handlers_observatory.observatory_layout` | bearer | — | json | On-demand cluster expansion for the galaxy LOD (spec §3.4). |
 | GET | `/v1/observatory/metrics` | `gateway.cockpit.handlers_observatory.observatory_metrics` | bearer | — | json | Measured rollups for heat / ladder brightness (spec §3.3). |
+| GET | `/v1/observatory/recommendations` | `gateway.cockpit.handlers_observatory_recs.observatory_recommendations` | bearer | — | json | Recommendation verdict cards (spec §6) — bearer-authed, read-only. |
+| POST | `/v1/observatory/recommendations/{id}/stage` | `gateway.cockpit.handlers_observatory_recs.observatory_recommendation_stage` | bearer | — | json | Stage one card into the existing owner-gated proposals queue. |
 | GET | `/v1/observatory/snapshot` | `gateway.cockpit.handlers_observatory.observatory_snapshot` | bearer | — | json | One-call Observatory boot: graph clusters + stations + ladder + rollup. |
 | GET | `/v1/observatory/stream` | `gateway.cockpit.server._make_handler.<locals>.Handler._stream_observatory` | bearer | — | sse | SSE stream of observatory events (job.stage / gate.verdict / |
