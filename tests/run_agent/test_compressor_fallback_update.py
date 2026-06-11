@@ -37,7 +37,7 @@ def _make_agent_with_compressor() -> AIAgent:
         provider="openrouter",
         quiet_mode=True,
     )
-    agent.context_compressor = compressor
+    agent.context_compressor = compressor  # ty: ignore[unresolved-attribute]
 
     return agent
 
@@ -48,22 +48,22 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
     """After fallback activation, the compressor must reflect the fallback model."""
     agent = _make_agent_with_compressor()
 
-    assert agent.context_compressor.model == "primary-model"
+    assert agent.context_compressor.model == "primary-model"  # ty: ignore[unresolved-attribute]
 
     fb_client = MagicMock()
     fb_client.base_url = "https://api.openai.com/v1"
     fb_client.api_key = "sk-fallback"
     mock_resolve.return_value = (fb_client, None)
 
-    agent._is_direct_openai_url = lambda url: "api.openai.com" in url
-    agent._emit_status = lambda msg: None
+    agent._is_direct_openai_url = lambda url: "api.openai.com" in url  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
 
     result = agent._try_activate_fallback()
 
     assert result is True
-    assert agent._fallback_activated is True
+    assert agent._fallback_activated is True  # ty: ignore[unresolved-attribute]
 
-    c = agent.context_compressor
+    c = agent.context_compressor  # ty: ignore[unresolved-attribute]
     assert c.model == "gpt-4o"
     assert c.base_url == "https://api.openai.com/v1"
     assert c.api_key == "sk-fallback"
@@ -77,15 +77,15 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
 def test_compressor_not_present_does_not_crash(mock_ctx_len, mock_resolve):
     """If the agent has no compressor, fallback should still succeed."""
     agent = _make_agent_with_compressor()
-    agent.context_compressor = None
+    agent.context_compressor = None  # ty: ignore[unresolved-attribute]
 
     fb_client = MagicMock()
     fb_client.base_url = "https://api.openai.com/v1"
     fb_client.api_key = "sk-fallback"
     mock_resolve.return_value = (fb_client, None)
 
-    agent._is_direct_openai_url = lambda url: "api.openai.com" in url
-    agent._emit_status = lambda msg: None
+    agent._is_direct_openai_url = lambda url: "api.openai.com" in url  # ty: ignore[invalid-assignment]
+    agent._emit_status = lambda msg: None  # ty: ignore[invalid-assignment]
 
     result = agent._try_activate_fallback()
     assert result is True

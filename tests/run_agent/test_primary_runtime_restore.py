@@ -46,7 +46,7 @@ def _make_agent(fallback_model=None, provider="custom", base_url="https://my-llm
             quiet_mode=True,
             skip_context_files=True,
             skip_memory=True,
-            fallback_model=fallback_model,
+            fallback_model=fallback_model,  # ty: ignore[invalid-argument-type]
         )
         agent.client = MagicMock()
         return agent
@@ -102,6 +102,7 @@ class TestPrimaryRuntimeSnapshot:
                 skip_context_files=True,
                 skip_memory=True,
             )
+        assert hasattr(agent, "_primary_runtime")
         rt = agent._primary_runtime
         assert "anthropic_api_key" in rt
         assert "anthropic_base_url" in rt

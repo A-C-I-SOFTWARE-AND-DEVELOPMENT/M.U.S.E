@@ -747,6 +747,7 @@ class TestResolveSessionNameLengthLimit:
         config = HonchoClientConfig()
         result = config.resolve_session_name(gateway_session_key=key)
         assert result == key
+        assert result is not None
         assert len(result) == self.HONCHO_MAX
 
     def test_long_gateway_key_truncated_to_limit(self):
@@ -783,7 +784,9 @@ class TestResolveSessionNameLengthLimit:
         result_a = config.resolve_session_name(gateway_session_key=key_a)
         result_b = config.resolve_session_name(gateway_session_key=key_b)
         assert result_a != result_b
+        assert result_a is not None
         assert len(result_a) == self.HONCHO_MAX
+        assert result_b is not None
         assert len(result_b) == self.HONCHO_MAX
 
     def test_truncated_result_has_hash_suffix(self):
@@ -793,6 +796,7 @@ class TestResolveSessionNameLengthLimit:
         config = HonchoClientConfig()
         result = config.resolve_session_name(gateway_session_key=key)
         # Last 9 chars: '-' + 8 hex chars.
+        assert result is not None
         assert re.search(r"-[0-9a-f]{8}$", result)
 
 

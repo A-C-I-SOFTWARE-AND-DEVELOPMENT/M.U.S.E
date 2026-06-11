@@ -27,6 +27,7 @@ import os
 import datetime
 import hashlib
 import sys
+from typing import Any
 
 EVIDENCE_TYPES = [
     "git",           # Local git repository data (commits, reflog, fsck)
@@ -59,7 +60,7 @@ def _sha256(content: str) -> str:
 class EvidenceStore:
     def __init__(self, filepath: str):
         self.filepath = filepath
-        self.data = {
+        self.data: dict[str, Any] = {
             "metadata": {
                 "version": "2.0",
                 "created_at": _now_iso(),
@@ -92,12 +93,12 @@ class EvidenceStore:
         source: str,
         content: str,
         evidence_type: str,
-        actor: str = None,
-        url: str = None,
-        timestamp: str = None,
-        ioc_type: str = None,
+        actor: str | None = None,
+        url: str | None = None,
+        timestamp: str | None = None,
+        ioc_type: str | None = None,
         verification: str = "unverified",
-        notes: str = None,
+        notes: str | None = None,
     ) -> str:
         evidence_id = self._next_id()
         entry = {
@@ -124,7 +125,7 @@ class EvidenceStore:
         self._save()
         return evidence_id
 
-    def list_evidence(self, filter_type: str = None, filter_actor: str = None):
+    def list_evidence(self, filter_type: str | None = None, filter_actor: str | None = None):
         results = self.data["evidence"]
         if filter_type:
             results = [e for e in results if e.get("type") == filter_type]

@@ -64,7 +64,7 @@ def _fake_transport_factory(calls, behavior):
         instances.append(t)
         return t
 
-    factory.instances = instances
+    factory.instances = instances  # ty: ignore[unresolved-attribute]
     return factory
 
 

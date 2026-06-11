@@ -512,7 +512,7 @@ async def test_status_command_bypasses_active_session_guard():
 
         async def connect(self): pass
         async def disconnect(self): pass
-        async def send(self, chat_id, content, **kwargs): pass
+        async def send(self, chat_id, content, **kwargs): pass  # ty: ignore[invalid-method-override]
         async def get_chat_info(self, chat_id): return {}
 
     platform_config = PlatformConfig(enabled=True, token="***")
@@ -524,7 +524,7 @@ async def test_status_command_bypasses_active_session_guard():
     async def fake_send_with_retry(chat_id, content, reply_to=None, metadata=None):
         sent.append(content)
 
-    adapter._send_with_retry = fake_send_with_retry
+    adapter._send_with_retry = fake_send_with_retry  # ty: ignore[invalid-assignment]
 
     # Simulate an active session
     interrupt_event = asyncio.Event()
@@ -593,7 +593,7 @@ async def test_post_delivery_callback_generation_snapshot_happens_after_bind():
 
         async def connect(self): pass
         async def disconnect(self): pass
-        async def send(self, chat_id, content, **kwargs): pass
+        async def send(self, chat_id, content, **kwargs): pass  # ty: ignore[invalid-method-override]
         async def get_chat_info(self, chat_id): return {}
 
     adapter = _ConcreteAdapter(

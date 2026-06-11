@@ -42,7 +42,7 @@ msvcrt = None
 try:
     import fcntl
 except ImportError:  # pragma: no cover - platform-specific fallback
-    fcntl = None
+    fcntl = None  # ty: ignore[invalid-assignment]
     try:
         import msvcrt
     except ImportError:

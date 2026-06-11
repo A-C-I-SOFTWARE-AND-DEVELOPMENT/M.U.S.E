@@ -110,16 +110,12 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"confidence": 0.8},
         )
         kb.recompute_ready(conn)
-        assert kb is not None
         assert _task(conn, created.verifier_id).status == "todo"
-        assert kb is not None
         assert _task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(conn, created.worker_ids[1], summary="B done")
         kb.recompute_ready(conn)
-        assert kb is not None
         assert _task(conn, created.verifier_id).status == "ready"
-        assert kb is not None
         assert _task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(
@@ -129,7 +125,6 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"gate": "pass"},
         )
         kb.recompute_ready(conn)
-        assert kb is not None
         assert _task(conn, created.synthesizer_id).status == "ready"
     finally:
         conn.close()

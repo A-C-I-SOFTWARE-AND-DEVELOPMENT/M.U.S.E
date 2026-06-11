@@ -20,7 +20,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 from agent.memory_provider import MemoryProvider
 from tools.registry import tool_error
@@ -284,7 +284,7 @@ class HolographicMemoryProvider(MemoryProvider):
             return
         self._auto_extract_facts(messages)
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:
+    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
         """Mirror built-in memory writes as facts."""
         if action == "add" and self._store and content:
             try:
@@ -302,8 +302,10 @@ class HolographicMemoryProvider(MemoryProvider):
     def _handle_fact_store(self, args: dict) -> str:
         try:
             action = args["action"]
-            store = self._store
-            retriever = self._retriever
+            # None before initialize(); an attribute access on None raises
+            # AttributeError, which the except below maps to tool_error.
+            store = cast(MemoryStore, self._store)
+            retriever = cast(FactRetriever, self._retriever)
 
             if action == "add":
                 fact_id = store.add_fact(
@@ -390,7 +392,7 @@ class HolographicMemoryProvider(MemoryProvider):
         try:
             fact_id = int(args["fact_id"])
             helpful = args["action"] == "helpful"
-            result = self._store.record_feedback(fact_id, helpful=helpful)
+            result = self._store.record_feedback(fact_id, helpful=helpful)  # ty: ignore[unresolved-attribute]  # None access raises into the except below
             return json.dumps(result)
         except KeyError as exc:
             return tool_error(f"Missing required argument: {exc}")
@@ -421,7 +423,7 @@ class HolographicMemoryProvider(MemoryProvider):
             for pattern in _PREF_PATTERNS:
                 if pattern.search(content):
                     try:
-                        self._store.add_fact(content[:400], category="user_pref")
+                        self._store.add_fact(content[:400], category="user_pref")  # ty: ignore[unresolved-attribute]  # caller on_session_end guards _store
                         extracted += 1
                     except Exception:
                         pass
@@ -430,7 +432,7 @@ class HolographicMemoryProvider(MemoryProvider):
             for pattern in _DECISION_PATTERNS:
                 if pattern.search(content):
                     try:
-                        self._store.add_fact(content[:400], category="project")
+                        self._store.add_fact(content[:400], category="project")  # ty: ignore[unresolved-attribute]  # caller on_session_end guards _store
                         extracted += 1
                     except Exception:
                         pass

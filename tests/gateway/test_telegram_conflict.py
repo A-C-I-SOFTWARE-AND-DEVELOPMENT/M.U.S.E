@@ -61,6 +61,7 @@ async def test_connect_rejects_same_host_token_lock(monkeypatch):
     assert ok is False
     assert adapter.fatal_error_code == "telegram-bot-token_lock"
     assert adapter.has_fatal_error is True
+    assert adapter.fatal_error_message is not None
     assert "already in use" in adapter.fatal_error_message
 
 
@@ -239,6 +240,7 @@ async def test_connect_marks_retryable_fatal_error_for_startup_network_failure(m
     assert ok is False
     assert adapter.fatal_error_code == "telegram_connect_error"
     assert adapter.fatal_error_retryable is True
+    assert adapter.fatal_error_message is not None
     assert "Temporary failure in name resolution" in adapter.fatal_error_message
 
 

@@ -374,7 +374,10 @@ class TestPatchSchemaShape:
         desc = PATCH_SCHEMA["description"]
         assert "REQUIRED PARAMETERS: mode, path, old_string, new_string" in desc
         assert "REQUIRED PARAMETERS: mode, patch" in desc
-        props = PATCH_SCHEMA["parameters"]["properties"]
+        params = PATCH_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         for name in ("path", "old_string", "new_string"):
             assert "REQUIRED when mode='replace'" in props[name]["description"]
         assert "REQUIRED when mode='patch'" in props["patch"]["description"]
@@ -384,5 +387,6 @@ class TestPatchSchemaShape:
         # Moonshot/Kimi schema sanitizer — description-level guidance is the
         # only provider-safe signalling mechanism.
         params = PATCH_SCHEMA["parameters"]
+        assert isinstance(params, dict)
         assert params["required"] == ["mode"]
         assert "anyOf" not in params and "oneOf" not in params

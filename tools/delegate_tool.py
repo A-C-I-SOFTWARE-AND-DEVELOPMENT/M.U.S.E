@@ -1117,8 +1117,8 @@ def _build_child_agent(
         api_key=effective_api_key,
         model=effective_model,
         provider=effective_provider,
-        api_mode=effective_api_mode,
-        acp_command=effective_acp_command,
+        api_mode=cast(Any, effective_api_mode),
+        acp_command=cast(Any, effective_acp_command),
         acp_args=effective_acp_args,
         max_iterations=max_iterations,
         max_tokens=cast(Any, getattr(parent_agent, "max_tokens", None)),
@@ -1136,10 +1136,10 @@ def _build_child_agent(
         thinking_callback=child_thinking_cb,
         session_db=getattr(parent_agent, "_session_db", None),
         parent_session_id=cast(Any, getattr(parent_agent, "session_id", None)),
-        providers_allowed=child_providers_allowed,
-        providers_ignored=child_providers_ignored,
-        providers_order=child_providers_order,
-        provider_sort=child_provider_sort,
+        providers_allowed=cast(Any, child_providers_allowed),
+        providers_ignored=cast(Any, child_providers_ignored),
+        providers_order=cast(Any, child_providers_order),
+        provider_sort=cast(Any, child_provider_sort),
         openrouter_min_coding_score=child_openrouter_min_coding_score,
         tool_progress_callback=child_progress_cb,
         iteration_budget=cast(Any, None),  # fresh budget per subagent
@@ -1875,7 +1875,7 @@ def _run_single_child(
 
         saved_tool_names = getattr(child, "_delegate_saved_tool_names", None)
         if isinstance(saved_tool_names, list):
-            model_tools._last_resolved_tool_names = list(saved_tool_names)
+            model_tools._last_resolved_tool_names = cast(List[str], list(saved_tool_names))
 
         # Remove child from active tracking
 
@@ -2025,9 +2025,10 @@ def delegate_task(
             )
         task_list: List[Dict[str, Any]] = tasks
     elif goal and isinstance(goal, str) and goal.strip():
-        task_list = [
-            {"goal": goal, "context": context, "toolsets": toolsets, "role": top_role}
-        ]
+        task_list = cast(
+            List[Dict[str, Any]],
+            [{"goal": goal, "context": context, "toolsets": toolsets, "role": top_role}],
+        )
     else:
         return tool_error("Provide either 'goal' (single task) or 'tasks' (batch).")
 
@@ -2177,7 +2178,7 @@ def delegate_task(
                         entry = future.result()
                     except Exception as exc:
                         idx = futures[future]
-                        entry = {
+                        entry = cast(Dict[str, Any], {
                             "task_index": idx,
                             "status": "error",
                             "summary": None,
@@ -2187,7 +2188,7 @@ def delegate_task(
                             "_child_role": getattr(
                                 _child_by_index.get(idx), "_delegate_role", None
                             ),
-                        }
+                        })
                     results.append(entry)
                     completed_count += 1
 

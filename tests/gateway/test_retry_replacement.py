@@ -34,7 +34,7 @@ async def test_gateway_retry_replaces_last_user_turn_in_transcript(tmp_path):
 
     session_entry = MagicMock(session_id=session_id)
     session_entry.last_prompt_tokens = 111
-    gw.session_store.get_or_create_session = MagicMock(return_value=session_entry)
+    gw.session_store.get_or_create_session = MagicMock(return_value=session_entry)  # ty: ignore[invalid-assignment]
 
     async def fake_handle_message(event):
         assert event.text == "retry me"

@@ -188,7 +188,8 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     try:
         from tools.env_passthrough import is_env_passthrough as _is_passthrough
     except Exception:
-        _is_passthrough = lambda var_name: False  # noqa: E731
+        def _is_passthrough(var_name: str) -> bool:
+            return False
 
     sanitized: dict[str, str] = {}
 
@@ -285,7 +286,8 @@ def _make_run_env(env: dict) -> dict:
     try:
         from tools.env_passthrough import is_env_passthrough as _is_passthrough
     except Exception:
-        _is_passthrough = lambda var_name: False  # noqa: E731
+        def _is_passthrough(var_name: str) -> bool:
+            return False
 
     merged = dict(os.environ | env)
     run_env = {}
@@ -520,7 +522,7 @@ class LocalEnvironment(BaseEnvironment):
 
         _popen_cwd = self.cwd
 
-        _popen_kwargs = {"creationflags": windows_hide_flags()} if _IS_WINDOWS else {}
+        _popen_kwargs: dict = {"creationflags": windows_hide_flags()} if _IS_WINDOWS else {}
 
         proc = subprocess.Popen(
             args,

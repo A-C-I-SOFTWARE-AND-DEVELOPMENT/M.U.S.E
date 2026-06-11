@@ -39,7 +39,7 @@ class ProgressCaptureAdapter(BasePlatformAdapter):
         self.sent.append({"chat_id": chat_id, "content": content})
         return SendResult(success=True, message_id="progress-1")
 
-    async def edit_message(self, chat_id, message_id, content) -> SendResult:
+    async def edit_message(self, chat_id, message_id, content) -> SendResult:  # ty: ignore[invalid-method-override]
         self.edits.append({"message_id": message_id, "content": content})
         return SendResult(success=True, message_id=message_id)
 
@@ -71,6 +71,7 @@ class PreInterruptAgent:
         return self._interrupt_requested
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
+        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "web_search", "first search", {})
         time.sleep(0.35)  # let the drain loop process
         return {"final_response": "done", "messages": [], "api_calls": 1}
@@ -98,6 +99,7 @@ class InterruptedAgent:
     def run_conversation(self, message, conversation_history=None, task_id=None):
         # Parallel tool batch — in production these come from one LLM
         # response with 5 tool_calls.  All are post-interrupt.
+        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "web_search", "cognee hermes", {})
         self.tool_progress_callback("tool.started", "web_search", "McBee deer hunting", {})
         self.tool_progress_callback("tool.started", "web_search", "kuzu graph db", {})
@@ -135,11 +137,11 @@ async def _run_once(monkeypatch, tmp_path, agent_cls, session_id):
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = agent_cls
+    fake_run_agent.AIAgent = agent_cls  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter()

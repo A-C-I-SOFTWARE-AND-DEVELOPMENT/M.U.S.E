@@ -36,11 +36,11 @@ def _patch_daytona_imports(monkeypatch):
         ERROR = "error"
 
     daytona_mod = _types.ModuleType("daytona")
-    daytona_mod.Daytona = MagicMock
-    daytona_mod.CreateSandboxFromImageParams = MagicMock
-    daytona_mod.DaytonaError = type("DaytonaError", (Exception,), {})
-    daytona_mod.Resources = MagicMock(name="Resources")
-    daytona_mod.SandboxState = _SandboxState
+    daytona_mod.Daytona = MagicMock  # ty: ignore[unresolved-attribute]
+    daytona_mod.CreateSandboxFromImageParams = MagicMock  # ty: ignore[unresolved-attribute]
+    daytona_mod.DaytonaError = type("DaytonaError", (Exception,), {})  # ty: ignore[unresolved-attribute]
+    daytona_mod.Resources = MagicMock(name="Resources")  # ty: ignore[unresolved-attribute]
+    daytona_mod.SandboxState = _SandboxState  # ty: ignore[unresolved-attribute]
 
     monkeypatch.setitem(__import__("sys").modules, "daytona", daytona_mod)
     return daytona_mod
@@ -103,7 +103,7 @@ def make_env(daytona_sdk, monkeypatch):
             persistent_filesystem=persistent,
             **kwargs,
         )
-        env._mock_client = mock_client  # expose for assertions
+        env._mock_client = mock_client  # expose for assertions  # ty: ignore[unresolved-attribute]
         return env
 
     return _factory

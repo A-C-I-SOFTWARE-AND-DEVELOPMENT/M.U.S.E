@@ -518,8 +518,11 @@ def _resolve_bank_id_template(template: str, fallback: str, **placeholders: str)
 class HindsightMemoryProvider(MemoryProvider):
     """Hindsight long-term memory with knowledge graph and multi-strategy retrieval."""
 
+    # Populated by initialize() via _load_config(); None only before initialization.
+    _config: Dict[str, Any]
+
     def __init__(self):
-        self._config = None
+        self._config = None  # ty: ignore[invalid-assignment]
         self._api_key = None
         self._api_url = _DEFAULT_API_URL
         self._bank_id = "hermes"
@@ -542,7 +545,7 @@ class HindsightMemoryProvider(MemoryProvider):
         self._agent_identity = ""
         self._agent_workspace = ""
         self._turn_index = 0
-        self._client = None
+        self._client: Any = None
         self._timeout = _DEFAULT_TIMEOUT
         self._idle_timeout = _DEFAULT_IDLE_TIMEOUT
         self._prefetch_result = ""
@@ -885,14 +888,14 @@ class HindsightMemoryProvider(MemoryProvider):
                     pass
                 except Exception as _e:
                     raise ImportError(str(_e))
-                from hindsight import HindsightEmbedded
+                from hindsight import HindsightEmbedded  # ty: ignore[unresolved-import]
                 HindsightEmbedded.__del__ = lambda self: None
                 llm_provider = self._config.get("llm_provider", "")
                 if llm_provider in {"openai_compatible", "openrouter"}:
                     llm_provider = "openai"
                 logger.debug("Creating HindsightEmbedded client (profile=%s, provider=%s)",
                              self._config.get("profile", "hermes"), llm_provider)
-                kwargs = dict(
+                kwargs: Dict[str, Any] = dict(
                     profile=self._config.get("profile", "hermes"),
                     llm_provider=llm_provider,
                     llm_api_key=self._config.get("llmApiKey") or self._config.get("llm_api_key") or os.environ.get("HINDSIGHT_LLM_API_KEY", ""),
@@ -912,7 +915,7 @@ class HindsightMemoryProvider(MemoryProvider):
             else:
                 from hindsight_client import Hindsight
                 timeout = self._timeout or _DEFAULT_TIMEOUT
-                kwargs = {"base_url": self._api_url, "timeout": float(timeout)}
+                kwargs: Dict[str, Any] = {"base_url": self._api_url, "timeout": float(timeout)}
                 if self._api_key:
                     kwargs["api_key"] = self._api_key
                 logger.debug("Creating Hindsight cloud client (url=%s, has_key=%s, timeout=%s)",
@@ -1223,7 +1226,7 @@ class HindsightMemoryProvider(MemoryProvider):
                     # Redirect the daemon manager's Rich console to our log file
                     # instead of stderr. This avoids global fd redirects that
                     # would capture output from other threads.
-                    import hindsight_embed.daemon_embed_manager as dem
+                    import hindsight_embed.daemon_embed_manager as dem  # ty: ignore[unresolved-import]
                     from rich.console import Console
                     dem.console = Console(file=open(log_path, "a", encoding="utf-8"), force_terminal=False)
 

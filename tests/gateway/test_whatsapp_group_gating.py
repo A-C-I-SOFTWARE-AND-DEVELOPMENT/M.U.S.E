@@ -370,4 +370,4 @@ def test_is_broadcast_chat_helper_recognizes_common_jids():
     assert WhatsAppAdapter._is_broadcast_chat("34612345678@s.whatsapp.net") is False
     assert WhatsAppAdapter._is_broadcast_chat("120363001234567890@g.us") is False
     assert WhatsAppAdapter._is_broadcast_chat("") is False
-    assert WhatsAppAdapter._is_broadcast_chat(None) is False  # type: ignore[arg-type]
+    assert WhatsAppAdapter._is_broadcast_chat(None) is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]

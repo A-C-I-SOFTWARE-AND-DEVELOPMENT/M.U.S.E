@@ -160,7 +160,7 @@ def test_ship_before_validation_409(home: Path) -> None:
     assert res.payload["error"] == "ship_refused"
     assert "pending" in res.payload["detail"]
     # Still not shipped.
-    assert fs.get_candidate(cand["id"])["shipped"] is False
+    assert fs.get_candidate(cand["id"])["shipped"] is False  # ty: ignore[not-subscriptable]
 
 
 def test_ship_with_non_improving_numbers_409(home: Path) -> None:
@@ -192,7 +192,7 @@ def test_receipt_only_present_when_result_recorded(home: Path) -> None:
     assert pending["validation"]["candidate_survival"] is None
     # After a real result is recorded, the receipt is exactly what was given.
     _validate(cand["id"], _real_result())
-    after = fs.get_candidate(cand["id"])["validation"]
+    after = fs.get_candidate(cand["id"])["validation"]  # ty: ignore[not-subscriptable]
     assert after["receipt_text"].startswith("In 400 simulations")
 
 
@@ -256,7 +256,7 @@ def test_validation_result_rejections(home: Path, result: dict, needle: str) -> 
     assert res.status == 400
     assert needle in res.payload["detail"]
     # The candidate stays honestly pending.
-    assert fs.get_candidate(cand["id"])["validation"]["status"] == "pending"
+    assert fs.get_candidate(cand["id"])["validation"]["status"] == "pending"  # ty: ignore[not-subscriptable]
 
 
 def test_unknown_candidate_404(home: Path) -> None:

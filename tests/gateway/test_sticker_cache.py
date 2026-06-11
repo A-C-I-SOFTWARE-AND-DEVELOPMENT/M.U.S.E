@@ -67,6 +67,7 @@ class TestCacheSticker:
             cache_sticker_description("uid_1", "New description")
             result = get_cached_description("uid_1")
 
+        assert result is not None
         assert result["description"] == "New description"
 
     def test_multiple_stickers(self, tmp_path):
@@ -77,7 +78,9 @@ class TestCacheSticker:
             r1 = get_cached_description("uid_1")
             r2 = get_cached_description("uid_2")
 
+        assert r1 is not None
         assert r1["description"] == "Cat"
+        assert r2 is not None
         assert r2["description"] == "Dog"
 
 

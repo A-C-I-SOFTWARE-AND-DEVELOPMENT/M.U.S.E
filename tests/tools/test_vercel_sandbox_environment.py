@@ -82,7 +82,7 @@ class _FakeSandbox:
             if isinstance(effect, Exception):
                 raise effect
             if callable(effect):
-                effect(status, timeout, poll_interval)
+                effect(status, timeout, poll_interval)  # ty: ignore[call-top-callable]
                 return
         self.status = _FakeSandboxStatus(status)
 
@@ -94,7 +94,7 @@ class _FakeSandbox:
             if isinstance(effect, Exception):
                 raise effect
             if callable(effect):
-                return effect(cmd, args, kwargs)
+                return effect(cmd, args, kwargs)  # ty: ignore[call-top-callable]
             return effect
         script = args[1] if len(args) > 1 else ""
         if 'printf %s "$HOME"' in script:
@@ -108,7 +108,7 @@ class _FakeSandbox:
             if isinstance(effect, Exception):
                 raise effect
             if callable(effect):
-                effect(files)
+                effect(files)  # ty: ignore[call-top-callable]
 
     def download_file(self, remote_path: str, local_path) -> str:
         destination = Path(local_path)
@@ -118,7 +118,7 @@ class _FakeSandbox:
             if isinstance(effect, Exception):
                 raise effect
             if callable(effect):
-                return effect(remote_path, destination)
+                return effect(remote_path, destination)  # ty: ignore[call-top-callable, invalid-return-type]
         destination.write_bytes(self.download_file_content)
         return str(destination.resolve())
 
@@ -132,7 +132,7 @@ class _FakeSandbox:
             if isinstance(effect, Exception):
                 raise effect
             if callable(effect):
-                return effect(*args, **kwargs)
+                return effect(*args, **kwargs)  # ty: ignore[call-top-callable]
             if isinstance(effect, str):
                 return _FakeSnapshot(effect)
             return effect
@@ -200,13 +200,13 @@ def _tar_bytes(entries: dict[str, bytes]) -> bytes:
 def vercel_sdk(monkeypatch):
     fake_sdk = _FakeSDK()
     sandbox_mod = types.ModuleType("vercel.sandbox")
-    sandbox_mod.Sandbox = types.SimpleNamespace(create=fake_sdk.create)
-    sandbox_mod.Resources = _FakeResources
-    sandbox_mod.WriteFile = _FakeWriteFile
-    sandbox_mod.SandboxStatus = _FakeSandboxStatus
+    sandbox_mod.Sandbox = types.SimpleNamespace(create=fake_sdk.create)  # ty: ignore[unresolved-attribute]
+    sandbox_mod.Resources = _FakeResources  # ty: ignore[unresolved-attribute]
+    sandbox_mod.WriteFile = _FakeWriteFile  # ty: ignore[unresolved-attribute]
+    sandbox_mod.SandboxStatus = _FakeSandboxStatus  # ty: ignore[unresolved-attribute]
 
     vercel_mod = types.ModuleType("vercel")
-    vercel_mod.sandbox = sandbox_mod
+    vercel_mod.sandbox = sandbox_mod  # ty: ignore[unresolved-attribute]
 
     monkeypatch.setitem(sys.modules, "vercel", vercel_mod)
     monkeypatch.setitem(sys.modules, "vercel.sandbox", sandbox_mod)

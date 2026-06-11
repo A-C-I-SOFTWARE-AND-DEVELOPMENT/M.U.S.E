@@ -36,7 +36,7 @@ def _ledger(**kw) -> DecisionLedger:
         slug="add-oauth",
     )
     base.update(kw)
-    return DecisionLedger(**base)
+    return DecisionLedger(**base)  # ty: ignore[invalid-argument-type]
 
 
 def test_confidence_to_enum_buckets() -> None:

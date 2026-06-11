@@ -385,7 +385,7 @@ class TestSegmentBreakOnToolBoundary:
         # Phase 1: intermediate text before tool calls
         consumer.on_delta("Let me search for that...")
         # Tool boundary — model is about to call tools
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         # Phase 2: final response text after tools finished
         consumer.on_delta("Here are the results.")
         consumer.finish()
@@ -413,7 +413,7 @@ class TestSegmentBreakOnToolBoundary:
         consumer = GatewayStreamConsumer(adapter, "chat_123", config)
 
         # No text before the boundary — model went straight to tool calls
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Final answer.")
         consumer.finish()
 
@@ -437,7 +437,7 @@ class TestSegmentBreakOnToolBoundary:
         consumer = GatewayStreamConsumer(adapter, "chat_123", config)
 
         consumer.on_delta("Thinking...")
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Done.")
         consumer.finish()
 
@@ -476,9 +476,9 @@ class TestSegmentBreakOnToolBoundary:
         consumer = GatewayStreamConsumer(adapter, "chat_123", config)
 
         consumer.on_delta("Phase 1")
-        consumer.on_delta(None)  # tool boundary
+        consumer.on_delta(None)  # tool boundary  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Phase 2")
-        consumer.on_delta(None)  # another tool boundary
+        consumer.on_delta(None)  # another tool boundary  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Phase 3")
         consumer.finish()
 
@@ -500,7 +500,7 @@ class TestSegmentBreakOnToolBoundary:
         consumer = GatewayStreamConsumer(adapter, "chat_123", config)
 
         consumer.on_delta("Text")
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.finish()
 
         await consumer.run()
@@ -559,7 +559,7 @@ class TestSegmentBreakOnToolBoundary:
         await asyncio.sleep(0.08)
         consumer.on_delta(" world")
         await asyncio.sleep(0.08)
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Next segment")
         consumer.finish()
         await task
@@ -606,7 +606,7 @@ class TestSegmentBreakOnToolBoundary:
         await asyncio.sleep(0.08)
         consumer.on_delta(" more")
         await asyncio.sleep(0.08)
-        consumer.on_delta(None)  # tool boundary
+        consumer.on_delta(None)  # tool boundary  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Here is the tool result.")
         consumer.finish()
         await task
@@ -694,9 +694,9 @@ class TestSegmentBreakOnToolBoundary:
 
         # Simulate: text → tool boundary → text → tool boundary → text (3 segments)
         consumer.on_delta("Phase 1 text")
-        consumer.on_delta(None)   # tool call boundary
+        consumer.on_delta(None)   # tool call boundary  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Phase 2 text")
-        consumer.on_delta(None)   # another tool call boundary
+        consumer.on_delta(None)   # another tool call boundary  # ty: ignore[invalid-argument-type]
         consumer.on_delta("Phase 3 text")
         consumer.finish()
 
@@ -1390,7 +1390,7 @@ class TestBufferOnlyMode:
         consumer = GatewayStreamConsumer(adapter, "!room:server", config=cfg)
 
         consumer.on_delta("Before tool call")
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("After tool call")
         consumer.finish()
 
@@ -1590,9 +1590,9 @@ class TestOnNewMessageCallback:
         )
 
         consumer.on_delta("A")
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("B")
-        consumer.on_delta(None)
+        consumer.on_delta(None)  # ty: ignore[invalid-argument-type]
         consumer.on_delta("C")
         consumer.finish()
         await consumer.run()

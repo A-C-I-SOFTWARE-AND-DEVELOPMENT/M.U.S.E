@@ -365,11 +365,11 @@ class TestWeixinSendMessageIntegration:
 class TestWeixinChunkDelivery:
     def _connected_adapter(self) -> WeixinAdapter:
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
         adapter._base_url = "https://weixin.example.com"
-        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"
+        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"  # ty: ignore[invalid-assignment]
         return adapter
 
     @patch("gateway.platforms.weixin.asyncio.sleep", new_callable=AsyncMock)
@@ -416,7 +416,7 @@ class TestWeixinOutboundMedia:
     def test_send_image_file_accepts_keyword_image_path(self):
         adapter = _make_adapter()
         expected = SendResult(success=True, message_id="msg-1")
-        adapter.send_document = AsyncMock(return_value=expected)
+        adapter.send_document = AsyncMock(return_value=expected)  # ty: ignore[invalid-assignment]
 
         result = asyncio.run(
             adapter.send_image_file(
@@ -429,7 +429,7 @@ class TestWeixinOutboundMedia:
         )
 
         assert result == expected
-        adapter.send_document.assert_awaited_once_with(
+        adapter.send_document.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
             chat_id="wxid_test123",
             file_path="/tmp/demo.png",
             caption="截图说明",
@@ -438,10 +438,10 @@ class TestWeixinOutboundMedia:
 
     def test_send_document_accepts_keyword_file_path(self):
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
-        adapter._send_file = AsyncMock(return_value="msg-2")
+        adapter._send_file = AsyncMock(return_value="msg-2")  # ty: ignore[invalid-assignment]
 
         result = asyncio.run(
             adapter.send_document(
@@ -456,7 +456,7 @@ class TestWeixinOutboundMedia:
 
         assert result.success is True
         assert result.message_id == "msg-2"
-        adapter._send_file.assert_awaited_once_with("wxid_test123", "/tmp/report.pdf", "报告请看")
+        adapter._send_file.assert_awaited_once_with("wxid_test123", "/tmp/report.pdf", "报告请看")  # ty: ignore[unresolved-attribute]
 
     def test_send_file_uses_post_for_upload_full_url_and_hex_encoded_aes_key(self, tmp_path):
         class _UploadResponse:
@@ -492,12 +492,12 @@ class TestWeixinOutboundMedia:
 
         adapter = _make_adapter()
         session = _RecordingSession()
-        adapter._session = session
-        adapter._send_session = session
+        adapter._session = session  # ty: ignore[unresolved-attribute]
+        adapter._send_session = session  # ty: ignore[invalid-assignment]
         adapter._token = "test-token"
         adapter._base_url = "https://weixin.example.com"
         adapter._cdn_base_url = "https://cdn.example.com/c2c"
-        adapter._token_store.get = lambda account_id, chat_id: None
+        adapter._token_store.get = lambda account_id, chat_id: None  # ty: ignore[invalid-assignment]
 
         aes_key = bytes(range(16))
         expected_aes_key = base64.b64encode(aes_key.hex().encode("ascii")).decode("ascii")
@@ -517,7 +517,7 @@ class TestWeixinOutboundMedia:
         # Timeout is now enforced externally via asyncio.wait_for() rather than
         # aiohttp.ClientTimeout, so it no longer appears as a post() kwarg.
         assert "timeout" not in upload_kwargs
-        payload = api_post_mock.await_args.kwargs["payload"]
+        payload = api_post_mock.await_args.kwargs["payload"]  # ty: ignore[unresolved-attribute]
         media = payload["msg"]["item_list"][0]["image_item"]["media"]
         assert media["encrypt_query_param"] == "enc-param"
         assert media["aes_key"] == expected_aes_key
@@ -586,11 +586,11 @@ class TestWeixinBlankMessagePrevention:
     @patch("gateway.platforms.weixin._send_message", new_callable=AsyncMock)
     def test_send_empty_content_does_not_call_send_message(self, send_message_mock):
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
         adapter._base_url = "https://weixin.example.com"
-        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"
+        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"  # ty: ignore[invalid-assignment]
 
         result = asyncio.run(adapter.send("wxid_test123", ""))
         # Empty content → no chunks → no _send_message calls
@@ -692,8 +692,8 @@ class TestWeixinSendImageFileParameterName:
     def test_send_image_file_uses_image_path_parameter(self, send_document_mock):
         """Verify send_image_file accepts image_path and forwards to send_document."""
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
 
         send_document_mock.return_value = weixin.SendResult(success=True, message_id="test-id")
@@ -720,8 +720,8 @@ class TestWeixinSendImageFileParameterName:
     def test_send_image_file_works_without_optional_params(self, send_document_mock):
         """Verify send_image_file works with minimal required params."""
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
 
         send_document_mock.return_value = weixin.SendResult(success=True, message_id="test-id")
@@ -745,11 +745,11 @@ class TestWeixinSendImageFileParameterName:
 class TestWeixinVoiceSending:
     def _connected_adapter(self) -> WeixinAdapter:
         adapter = _make_adapter()
-        adapter._session = object()
-        adapter._send_session = adapter._session
+        adapter._session = object()  # ty: ignore[unresolved-attribute]
+        adapter._send_session = adapter._session  # ty: ignore[invalid-assignment, unresolved-attribute]
         adapter._token = "test-token"
         adapter._base_url = "https://weixin.example.com"
-        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"
+        adapter._token_store.get = lambda account_id, chat_id: "ctx-token"  # ty: ignore[invalid-assignment]
         return adapter
 
     @patch.object(WeixinAdapter, "_send_file", new_callable=AsyncMock)
@@ -852,8 +852,8 @@ class TestWeixinContentDedup:
 
     def test_duplicate_content_with_different_message_ids_is_dropped(self):
         adapter = _make_adapter()
-        adapter._poll_session = object()
-        adapter.handle_message = AsyncMock()
+        adapter._poll_session = object()  # ty: ignore[invalid-assignment]
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         base_msg = {
             "from_user_id": "wxid_user1",
@@ -863,15 +863,15 @@ class TestWeixinContentDedup:
         asyncio.run(adapter._process_message({**base_msg, "message_id": "msg-1"}))
         asyncio.run(adapter._process_message({**base_msg, "message_id": "msg-2"}))
 
-        assert adapter.handle_message.await_count == 1
-        event = adapter.handle_message.await_args[0][0]
+        assert adapter.handle_message.await_count == 1  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.await_args[0][0]  # ty: ignore[unresolved-attribute]
         assert event.text == "hello world"
 
     def test_content_dedup_not_called_for_messages_without_text(self):
         adapter = _make_adapter()
-        adapter._poll_session = object()
-        adapter.handle_message = AsyncMock()
-        adapter._dedup.is_duplicate = Mock(return_value=False)
+        adapter._poll_session = object()  # ty: ignore[invalid-assignment]
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._dedup.is_duplicate = Mock(return_value=False)  # ty: ignore[invalid-assignment]
 
         empty_msg = {
             "from_user_id": "wxid_user1",
@@ -880,6 +880,6 @@ class TestWeixinContentDedup:
         }
         asyncio.run(adapter._process_message(empty_msg))
 
-        assert adapter.handle_message.await_count == 0
+        assert adapter.handle_message.await_count == 0  # ty: ignore[unresolved-attribute]
         # is_duplicate should only be called for message_id, never for content
-        assert all("content:" not in str(call) for call in adapter._dedup.is_duplicate.call_args_list)
+        assert all("content:" not in str(call) for call in adapter._dedup.is_duplicate.call_args_list)  # ty: ignore[unresolved-attribute]

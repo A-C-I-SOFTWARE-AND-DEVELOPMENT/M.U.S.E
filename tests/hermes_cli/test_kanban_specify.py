@@ -181,7 +181,6 @@ def test_specify_task_no_aux_client_configured(kanban_home):
     assert "auxiliary client" in outcome.reason
     # Task must stay in triage — we never touched it.
     with kb.connect() as conn:
-        assert kb is not None
         assert _task(conn, tid).status == "triage"
 
 
@@ -200,7 +199,6 @@ def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
     assert outcome.ok is False
     assert "LLM error" in outcome.reason
     with kb.connect() as conn:
-        assert kb is not None
         assert _task(conn, tid).status == "triage"
 
 
@@ -214,7 +212,6 @@ def test_specify_task_empty_llm_response(kanban_home):
 
     assert outcome.ok is False
     with kb.connect() as conn:
-        assert kb is not None
         assert _task(conn, tid).status == "triage"
 
 
@@ -334,10 +331,8 @@ def test_cli_specify_tenant_filter(kanban_home, capsys):
 
     # The outside task stays in triage.
     with kb.connect() as conn:
-        assert kb is not None
         assert _task(conn, outside).status == "triage"
         # The inside task was promoted.
-        assert kb is not None
         assert _task(conn, inside).status in {"todo", "ready"}
 
 

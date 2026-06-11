@@ -133,12 +133,12 @@ def adapter():
     config = PlatformConfig(enabled=True, token="fake-token")
     a = TelegramAdapter(config)
     # Capture events instead of processing them
-    a.handle_message = AsyncMock()
+    a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     # After PR #28494 made the empty-allowlist callback auth fail-closed
     # (and #28492 wired _is_callback_user_authorized into _should_process_message),
     # document-routing tests need to bypass the new gate so messages from fake
     # senders reach handle_message.
-    a._is_callback_user_authorized = lambda user_id, **_kw: True
+    a._is_callback_user_authorized = lambda user_id, **_kw: True  # ty: ignore[invalid-assignment]
     return a
 
 
@@ -778,7 +778,7 @@ class TestTelegramPhotoBatching:
         adapter._pending_photo_batches[batch_key] = MessageEvent(
             text="",
             message_type=MessageType.PHOTO,
-            source=SimpleNamespace(channel_id="chat-1"),
+            source=SimpleNamespace(channel_id="chat-1"),  # ty: ignore[invalid-argument-type]
             media_urls=["/tmp/a.jpg"],
             media_types=["image/jpeg"],
         )
@@ -799,7 +799,7 @@ class TestTelegramPhotoBatching:
         adapter._pending_photo_batches["session:photo-burst"] = MessageEvent(
             text="",
             message_type=MessageType.PHOTO,
-            source=SimpleNamespace(channel_id="chat-1"),
+            source=SimpleNamespace(channel_id="chat-1"),  # ty: ignore[invalid-argument-type]
         )
         adapter._app = MagicMock()
         adapter._app.updater.stop = AsyncMock()

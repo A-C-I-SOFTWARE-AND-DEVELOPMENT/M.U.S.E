@@ -655,7 +655,7 @@ def test_cli_pin_refuses_bundled_skill(curator_env, capsys):
 def test_review_model_defaults_to_main_when_slot_is_auto(curator_env):
     """auxiliary.curator absent (or auto/empty) → use main model.provider/model."""
     curator = curator_env["curator"]
-    cfg = {
+    cfg: dict = {
         "model": {"provider": "openrouter", "default": "openai/gpt-5.5"},
     }
     assert curator._resolve_review_model(cfg) == ("openrouter", "openai/gpt-5.5")
@@ -852,12 +852,17 @@ def test_curator_slot_is_canonical_aux_task():
     from hermes_cli.web_server import _AUX_TASK_SLOTS
 
     # 1. DEFAULT_CONFIG.auxiliary — schema source
-    assert "curator" in DEFAULT_CONFIG["auxiliary"], \
+    aux_defaults = DEFAULT_CONFIG["auxiliary"]
+    assert isinstance(aux_defaults, dict)
+    assert "curator" in aux_defaults, \
         "curator missing from DEFAULT_CONFIG['auxiliary']"
-    slot = DEFAULT_CONFIG["auxiliary"]["curator"]
+    slot = aux_defaults["curator"]
+    assert isinstance(slot, dict)
     assert slot["provider"] == "auto"
     assert slot["model"] == ""
-    assert slot["timeout"] > 0, "curator timeout should be set (reviews run long)"
+    timeout = slot["timeout"]
+    assert isinstance(timeout, (int, float))
+    assert timeout > 0, "curator timeout should be set (reviews run long)"
 
     # 2. hermes_cli/main.py _AUX_TASKS — CLI picker
     aux_keys = {k for k, _name, _desc in _AUX_TASKS}

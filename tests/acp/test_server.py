@@ -279,8 +279,8 @@ class TestSessionOps:
 
         mock_conn.session_update.assert_awaited_once()
         call = mock_conn.session_update.await_args
-        assert call.kwargs["session_id"] == "session-123"
-        update = call.kwargs["update"]
+        assert call.kwargs["session_id"] == "session-123"  # ty: ignore[unresolved-attribute]
+        update = call.kwargs["update"]  # ty: ignore[unresolved-attribute]
         assert isinstance(update, AvailableCommandsUpdate)
         assert update.session_update == "available_commands_update"
         assert [cmd.name for cmd in update.available_commands] == [
@@ -334,8 +334,8 @@ class TestSessionOps:
 
         mock_conn.session_update.assert_awaited_once()
         call = mock_conn.session_update.await_args
-        assert call.kwargs["session_id"] == state.session_id
-        update = call.kwargs["update"]
+        assert call.kwargs["session_id"] == state.session_id  # ty: ignore[unresolved-attribute]
+        update = call.kwargs["update"]  # ty: ignore[unresolved-attribute]
         assert isinstance(update, UsageUpdate)
         assert update.size == 100_000
         assert update.used == 25_000

@@ -37,7 +37,7 @@ def _make_store(policy=None, tmp_path=None):
     config = GatewayConfig()
     if policy:
         config.default_reset_policy = policy
-    store = SessionStore(sessions_dir=tmp_path or "/tmp/test-sessions", config=config)
+    store = SessionStore(sessions_dir=tmp_path or "/tmp/test-sessions", config=config)  # ty: ignore[invalid-argument-type]
     return store
 
 

@@ -122,7 +122,7 @@ class TestMatrixSyncAuthRetry:
             def __init__(self, message):
                 self.message = message
 
-        nio_mock.SyncError = SyncError
+        nio_mock.SyncError = SyncError  # ty: ignore[unresolved-attribute]
 
         from gateway.platforms.matrix import MatrixAdapter
         adapter = MatrixAdapter.__new__(MatrixAdapter)
@@ -176,7 +176,7 @@ class TestMatrixSyncAuthRetry:
         async def run():
             import types
             nio_mock = types.ModuleType("nio")
-            nio_mock.SyncError = type("SyncError", (), {})
+            nio_mock.SyncError = type("SyncError", (), {})  # ty: ignore[unresolved-attribute]
 
             import sys
             sys.modules["nio"] = nio_mock
@@ -214,7 +214,7 @@ class TestMatrixSyncAuthRetry:
         async def run():
             import types
             nio_mock = types.ModuleType("nio")
-            nio_mock.SyncError = type("SyncError", (), {})
+            nio_mock.SyncError = type("SyncError", (), {})  # ty: ignore[unresolved-attribute]
 
             import sys
             sys.modules["nio"] = nio_mock

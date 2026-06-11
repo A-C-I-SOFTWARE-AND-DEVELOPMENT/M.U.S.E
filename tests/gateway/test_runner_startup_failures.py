@@ -89,9 +89,11 @@ async def test_runner_stays_alive_for_retryable_startup_errors(monkeypatch, tmp_
     assert ok is True
     assert runner.should_exit_cleanly is False
     state = read_runtime_status()
+    assert state is not None
     assert state["gateway_state"] in {"degraded", "running"}
     # Telegram was queued for retry, not given up on.
     assert Platform.TELEGRAM in runner._failed_platforms
+    assert state["platforms"]["telegram"] is not None
     assert state["platforms"]["telegram"]["state"] == "retrying"
     assert state["platforms"]["telegram"]["error_code"] == "telegram_connect_error"
 
@@ -113,6 +115,7 @@ async def test_runner_allows_cron_only_mode_when_no_platforms_are_enabled(monkey
     assert runner.should_exit_cleanly is False
     assert runner.adapters == {}
     state = read_runtime_status()
+    assert state is not None
     assert state["gateway_state"] == "running"
 
 
@@ -135,7 +138,9 @@ async def test_runner_records_connected_platform_state_on_success(monkeypatch, t
 
     assert ok is True
     state = read_runtime_status()
+    assert state is not None
     assert state["gateway_state"] == "running"
+    assert state["platforms"]["discord"] is not None
     assert state["platforms"]["discord"]["state"] == "connected"
     assert state["platforms"]["discord"]["error_code"] is None
     assert state["platforms"]["discord"]["error_message"] is None
@@ -381,6 +386,7 @@ async def test_runner_degrades_gracefully_when_all_adapters_missing(monkeypatch,
     assert runner.adapters == {}
     # Runtime state must remain "running", not "startup_failed".
     state = read_runtime_status()
+    assert state is not None
     assert state["gateway_state"] == "running"
     # A warning must be emitted explaining why no platforms connected.
     assert any(

@@ -1144,7 +1144,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             cpu=cpu, memory=memory, disk=disk,
             persistent_filesystem=persistent, task_id=task_id,
             volumes=volumes,
-            host_cwd=host_cwd,  # ty: ignore[invalid-argument-type]  # DockerEnvironment declares `host_cwd: str = None` in tools/environments/docker.py (unowned); None is handled there
+            host_cwd=host_cwd,
             auto_mount_cwd=cc.get("docker_mount_cwd_to_workspace", False),
             forward_env=docker_forward_env,
             env=docker_env,

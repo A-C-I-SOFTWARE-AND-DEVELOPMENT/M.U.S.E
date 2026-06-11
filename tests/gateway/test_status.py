@@ -284,6 +284,7 @@ class TestGatewayRuntimeStatus:
         status.write_runtime_status(gateway_state="running")
 
         payload = status.read_runtime_status()
+        assert payload is not None
         assert payload["pid"] == os.getpid(), "PID should be overwritten, not preserved via setdefault"
         assert payload["start_time"] != 1000.0, "start_time should be overwritten on restart"
 
@@ -307,6 +308,7 @@ class TestGatewayRuntimeStatus:
         status.write_runtime_status(gateway_state="running")
 
         payload = status.read_runtime_status()
+        assert payload is not None
         assert payload["argv"] == ["/new/path/hermes", "gateway", "run"]
         assert payload["pid"] == os.getpid()
         assert payload["start_time"] == 2000
@@ -324,8 +326,10 @@ class TestGatewayRuntimeStatus:
         )
 
         payload = status.read_runtime_status()
+        assert payload is not None
         assert payload["gateway_state"] == "startup_failed"
         assert payload["exit_reason"] == "telegram conflict"
+        assert payload["platforms"]["telegram"] is not None
         assert payload["platforms"]["telegram"]["state"] == "fatal"
         assert payload["platforms"]["telegram"]["error_code"] == "telegram_polling_conflict"
         assert payload["platforms"]["telegram"]["error_message"] == "another poller is active"
@@ -352,8 +356,10 @@ class TestGatewayRuntimeStatus:
         )
 
         payload = status.read_runtime_status()
+        assert payload is not None
         assert payload["gateway_state"] == "running"
         assert payload["exit_reason"] is None
+        assert payload["platforms"]["discord"] is not None
         assert payload["platforms"]["discord"]["state"] == "connected"
         assert payload["platforms"]["discord"]["error_code"] is None
         assert payload["platforms"]["discord"]["error_message"] is None
@@ -442,6 +448,7 @@ class TestScopedLocks:
         acquired, existing = status.acquire_scoped_lock("telegram-bot-token", "secret", metadata={"platform": "telegram"})
 
         assert acquired is False
+        assert existing is not None
         assert existing["pid"] == 99999
 
     def test_acquire_scoped_lock_replaces_pid_reused_by_unrelated_process(self, tmp_path, monkeypatch):
@@ -508,6 +515,7 @@ class TestScopedLocks:
         acquired, existing = status.acquire_scoped_lock("telegram-bot-token", "secret", metadata={"platform": "telegram"})
 
         assert acquired is False
+        assert existing is not None
         assert existing["pid"] == 99999
 
     def test_acquire_scoped_lock_keeps_lock_when_pid_reused_by_gateway(self, tmp_path, monkeypatch):
@@ -529,6 +537,7 @@ class TestScopedLocks:
         acquired, existing = status.acquire_scoped_lock("telegram-bot-token", "secret", metadata={"platform": "telegram"})
 
         assert acquired is False
+        assert existing is not None
         assert existing["pid"] == 99999
 
     def test_acquire_scoped_lock_replaces_stale_record(self, tmp_path, monkeypatch):
@@ -930,6 +939,7 @@ class TestReadProcessCmdlinePsFallback:
 
         monkeypatch.setattr(status.Path, "read_bytes", fake_read_bytes)
         result = status._read_process_cmdline(12345)
+        assert result is not None
         assert "hermes_cli/main.py" in result
         assert calls == ["proc"]
 
@@ -940,4 +950,5 @@ class TestReadProcessCmdlinePsFallback:
             lambda args, **kwargs: SimpleNamespace(returncode=0, stdout="python hermes_cli/main.py gateway run\n"),
         )
         result = status._read_process_cmdline(12345)
+        assert result is not None
         assert "hermes_cli/main.py" in result

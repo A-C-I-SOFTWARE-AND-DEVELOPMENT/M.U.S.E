@@ -42,7 +42,7 @@ from collections import OrderedDict
 from contextvars import copy_context
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, Optional, Any, List, Union
+from typing import Callable, Dict, Optional, Any, List, Union
 
 # account_usage imports the OpenAI SDK chain (~230 ms). Only needed by
 # /usage; we still import it at module top in the gateway because test
@@ -982,7 +982,7 @@ async def _probe_audio_duration(path: str) -> Optional[str]:
     if ext in (".ogg", ".opus", ".oga"):
         try:
             def _ogg_duration() -> float:
-                from mutagen.oggopus import OggOpus
+                from mutagen.oggopus import OggOpus  # ty: ignore[unresolved-import]
                 return float(OggOpus(path).info.length)
             secs = await asyncio.to_thread(_ogg_duration)
             return _format_duration(secs)
@@ -1296,7 +1296,9 @@ def _format_gateway_process_notification(evt: dict) -> "str | None":
 # Used by tools (e.g. send_message) that need to route through a live
 # adapter for plugin platforms.  Set in GatewayRunner.__init__().
 import weakref as _weakref
-_gateway_runner_ref: _weakref.ref = lambda: None
+# Holds either a real ``weakref.ref`` or the initial ``lambda: None``
+# placeholder — both are zero-arg callables returning the runner or None.
+_gateway_runner_ref: "Callable[[], Any]" = lambda: None
 
 
 def _normalize_empty_agent_response(
@@ -3300,7 +3302,7 @@ class GatewayRunner:
         # (they might become active again next restart)
 
         try:
-            atomic_json_write(path, new_counts, indent=None)
+            atomic_json_write(path, new_counts, indent=None)  # ty: ignore[invalid-argument-type] — indent is annotated int upstream but json.dump accepts None
         except Exception:
             pass
 
@@ -3368,7 +3370,7 @@ class GatewayRunner:
             if session_key in counts:
                 del counts[session_key]
                 if counts:
-                    atomic_json_write(path, counts, indent=None)
+                    atomic_json_write(path, counts, indent=None)  # ty: ignore[invalid-argument-type] — indent is annotated int upstream but json.dump accepts None
                 else:
                     path.unlink(missing_ok=True)
         except Exception:
@@ -3537,6 +3539,7 @@ class GatewayRunner:
                 continue
 
             source = entry.origin
+            assert source is not None  # candidates filtered on `entry.origin is not None`
             adapter = self.adapters.get(source.platform)
             if adapter is None:
                 logger.debug(
@@ -9770,7 +9773,7 @@ class GatewayRunner:
             atomic_json_write(
                 _hermes_home / ".restart_notify.json",
                 notify_data,
-                indent=None,
+                indent=None,  # ty: ignore[invalid-argument-type] — indent is annotated int upstream but json.dump accepts None
             )
         except Exception as e:
             logger.debug("Failed to write restart notify file: %s", e)
@@ -9790,7 +9793,7 @@ class GatewayRunner:
             atomic_json_write(
                 _hermes_home / ".restart_last_processed.json",
                 dedup_data,
-                indent=None,
+                indent=None,  # ty: ignore[invalid-argument-type] — indent is annotated int upstream but json.dump accepts None
             )
         except Exception as e:
             logger.debug("Failed to write restart dedup marker: %s", e)

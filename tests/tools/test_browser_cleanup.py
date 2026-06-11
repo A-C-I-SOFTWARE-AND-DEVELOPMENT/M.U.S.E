@@ -44,7 +44,7 @@ class TestBrowserCleanup:
 
     def test_cleanup_browser_clears_tracking_state(self):
         browser_tool = self.browser_tool
-        browser_tool._active_sessions["task-1"] = {
+        browser_tool._active_sessions["task-1"] = {  # ty: ignore[invalid-assignment]
             "session_name": "sess-1",
             "bb_session_id": None,
         }
@@ -68,7 +68,7 @@ class TestBrowserCleanup:
     def test_cleanup_camofox_managed_persistence_skips_close(self):
         """When camofox mode + managed persistence, soft_cleanup fires instead of close."""
         browser_tool = self.browser_tool
-        browser_tool._active_sessions["task-1"] = {
+        browser_tool._active_sessions["task-1"] = {  # ty: ignore[invalid-assignment]
             "session_name": "sess-1",
             "bb_session_id": None,
         }
@@ -96,7 +96,7 @@ class TestBrowserCleanup:
     def test_cleanup_camofox_no_persistence_calls_close(self):
         """When camofox mode but managed persistence is off, camofox_close fires."""
         browser_tool = self.browser_tool
-        browser_tool._active_sessions["task-1"] = {
+        browser_tool._active_sessions["task-1"] = {  # ty: ignore[invalid-assignment]
             "session_name": "sess-1",
             "bb_session_id": None,
         }

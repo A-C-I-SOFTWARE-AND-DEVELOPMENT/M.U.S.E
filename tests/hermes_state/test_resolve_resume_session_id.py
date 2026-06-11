@@ -25,6 +25,7 @@ def db(tmp_path):
 def _make_chain(db: SessionDB, ids_with_parent):
     """Create sessions in order, forcing started_at so ordering is deterministic."""
     base = int(time.time()) - 10_000
+    assert db._conn is not None
     for i, (sid, parent) in enumerate(ids_with_parent):
         db.create_session(sid, source="cli", parent_session_id=parent)
         db._conn.execute(

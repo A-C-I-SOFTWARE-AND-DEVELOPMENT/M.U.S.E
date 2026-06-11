@@ -107,7 +107,7 @@ class TestGitHubPRWebhook:
         async def _capture(event: MessageEvent):
             captured_events.append(event)
 
-        adapter.handle_message = _capture
+        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
 
         app = _create_app(adapter)
         body = json.dumps(GITHUB_PR_PAYLOAD).encode()
@@ -170,7 +170,7 @@ class TestSkillsInjection:
         async def _capture(event: MessageEvent):
             captured_events.append(event)
 
-        adapter.handle_message = _capture
+        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
 
         skill_content = (
             "You are a code reviewer. Review the following:\n"
@@ -225,7 +225,7 @@ class TestCrossPlatformDelivery:
             }
         }
         adapter = _make_adapter(routes)
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         # Set up a mock gateway runner with a mock Telegram adapter
         mock_tg_adapter = AsyncMock()
@@ -286,7 +286,7 @@ class TestGitHubCommentDelivery:
             }
         }
         adapter = _make_adapter(routes)
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         # POST a webhook to set up delivery info
         app = _create_app(adapter)

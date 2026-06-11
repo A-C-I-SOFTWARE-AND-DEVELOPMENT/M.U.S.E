@@ -5,6 +5,7 @@ return ``None`` instead of the default — calling ``.lower()`` on that raises
 ``AttributeError``.  These tests verify the ``or`` coalescing guards.
 """
 
+from typing import Any
 from unittest.mock import patch
 import pytest
 
@@ -65,17 +66,17 @@ class TestMCPAuthNullGuard:
     def test_explicit_null_auth_does_not_crash(self):
         """YAML ``auth: null`` in MCP server config should not raise."""
         # Test the expression directly — MCPServerTask.__init__ has many deps
-        config = {"auth": None, "timeout": 30}
+        config: dict[str, Any] = {"auth": None, "timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == ""
 
     def test_missing_auth_defaults_to_empty(self):
-        config = {"timeout": 30}
+        config: dict[str, Any] = {"timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == ""
 
     def test_valid_auth_passed_through(self):
-        config = {"auth": "OAUTH", "timeout": 30}
+        config: dict[str, Any] = {"auth": "OAUTH", "timeout": 30}
         auth_type = (config.get("auth") or "").lower().strip()
         assert auth_type == "oauth"
 
@@ -90,7 +91,7 @@ class TestTrajectoryCompressorNullGuard:
         from trajectory_compressor import CompressionConfig, TrajectoryCompressor
 
         config = CompressionConfig()
-        config.base_url = None
+        config.base_url = None  # ty: ignore[invalid-assignment]
 
         compressor = TrajectoryCompressor.__new__(TrajectoryCompressor)
         compressor.config = config

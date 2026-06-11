@@ -2325,6 +2325,7 @@ class TestSendMethod:
         adapter = APIServerAdapter(config)
         result = await adapter.send("chat1", "hello")
         assert result.success is False
+        assert result.error is not None
         assert "HTTP request/response" in result.error
 
 

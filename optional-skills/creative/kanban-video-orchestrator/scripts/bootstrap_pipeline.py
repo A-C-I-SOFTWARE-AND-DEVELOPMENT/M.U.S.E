@@ -63,6 +63,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import cast
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 
@@ -93,8 +94,7 @@ def validate_plan(plan: dict) -> list[str]:
             if "director" not in roles:
                 errors.append("team must include a director role")
             seen_profiles = set()
-            t: dict
-            for i, t in enumerate(plan["team"]):
+            for i, t in enumerate(cast(list, plan["team"])):
                 for k in ["profile", "role", "toolsets", "skills",
                           "responsibilities"]:
                     if k not in t:

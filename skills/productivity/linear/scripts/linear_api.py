@@ -71,7 +71,7 @@ def _get_key() -> str:
 def gql(query: str, variables: dict[str, Any] | None = None) -> dict[str, Any]:
     """Execute a GraphQL query against Linear. Raises on HTTP error or GraphQL errors."""
     key = _get_key()
-    payload = {"query": query}
+    payload: dict[str, Any] = {"query": query}
     if variables:
         payload["variables"] = variables
     data = json.dumps(payload).encode("utf-8")

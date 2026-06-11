@@ -578,7 +578,7 @@ def test_build_message_event_preserves_true_dm_topic_thread_id():
 # so `from telegram.constants import ChatType` in telegram.py resolves to
 # telegram_mod.ChatType — not telegram_mod.constants.ChatType.  We must use
 # the same ChatType object the production code sees so equality checks work.
-from telegram.constants import ChatType as _ChatType  # noqa: E402
+from telegram.constants import ChatType as _ChatType  # noqa: E402  # ty: ignore[unresolved-import]
 
 
 def test_group_topic_skill_binding():

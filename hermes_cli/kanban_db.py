@@ -4301,7 +4301,7 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
     # Keeps the public return type (``list[str]``) stable for direct callers
     # and tests that destructure the result; ``dispatch_once`` reads this
     # side-channel attribute to populate ``DispatchResult.auto_blocked``.
-    detect_crashed_workers._last_auto_blocked = auto_blocked  # type: ignore[attr-defined]
+    detect_crashed_workers._last_auto_blocked = auto_blocked  # ty: ignore[unresolved-attribute]
     return crashed
 
 
@@ -4790,7 +4790,7 @@ def dispatch_once(
         try:
             from hermes_cli.profiles import profile_exists  # local import: avoids cycle
         except Exception:
-            profile_exists = None  # type: ignore[assignment]
+            profile_exists = None  # ty: ignore[invalid-assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
             # Bucket separately from skipped_unassigned: the operator
             # cannot fix this by assigning a profile (the assignee IS the
@@ -4895,7 +4895,7 @@ def dispatch_once(
         try:
             from hermes_cli.profiles import profile_exists
         except Exception:
-            profile_exists = None  # type: ignore[assignment]
+            profile_exists = None  # ty: ignore[invalid-assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
             result.skipped_nonspawnable.append(row["id"])
             continue

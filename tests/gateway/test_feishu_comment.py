@@ -45,6 +45,7 @@ class TestParseEvent(unittest.TestCase):
         evt = _make_event()
         parsed = parse_drive_comment_event(evt)
         self.assertIsNotNone(parsed)
+        assert parsed is not None
         self.assertEqual(parsed["comment_id"], "c1")
         self.assertEqual(parsed["file_type"], "docx")
         self.assertEqual(parsed["from_open_id"], "ou_user")

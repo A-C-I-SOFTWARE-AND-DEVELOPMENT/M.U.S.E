@@ -6,7 +6,7 @@ import asyncio
 import logging
 from concurrent.futures import TimeoutError as FutureTimeout
 from itertools import count
-from typing import Callable
+from typing import Callable, Literal
 
 from acp.schema import (
     AllowedOutcome,
@@ -29,7 +29,9 @@ _OPTION_ID_TO_HERMES = {
 _PERMISSION_REQUEST_IDS = count(1)
 
 
-def _permission_option_supports_kind(kind: str) -> bool:
+def _permission_option_supports_kind(
+    kind: Literal["allow_once", "allow_always", "reject_once", "reject_always"],
+) -> bool:
     """Return whether the installed ACP SDK accepts a permission option kind."""
     try:
         PermissionOption(option_id="__probe__", kind=kind, name="probe")

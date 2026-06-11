@@ -760,7 +760,7 @@ class TestGpgAndGlobalConfigIsolation:
 # prune_checkpoints + maybe_auto_prune_checkpoints
 # =========================================================================
 
-def _seed_legacy_repo(base: Path, name: str, workdir: Path, mtime: float = None) -> Path:
+def _seed_legacy_repo(base: Path, name: str, workdir: Path, mtime: float | None = None) -> Path:
     """Create a minimal pre-v2 shadow repo directly under base."""
     shadow = base / name
     shadow.mkdir(parents=True)
@@ -775,7 +775,7 @@ def _seed_legacy_repo(base: Path, name: str, workdir: Path, mtime: float = None)
     return shadow
 
 
-def _seed_v2_project(base: Path, workdir: Path, last_touch: float = None) -> str:
+def _seed_v2_project(base: Path, workdir: Path, last_touch: float | None = None) -> str:
     """Register a v2 project in the shared store (no commits, just metadata)."""
     store = _store_path(base)
     _init_store(store, str(workdir if workdir.exists() else base))
@@ -943,7 +943,9 @@ class TestMaybeAutoPruneCheckpoints:
 
         out = maybe_auto_prune_checkpoints(checkpoint_base=base)
         assert out["skipped"] is False
-        assert out["result"]["deleted_orphan"] == 1
+        result = out["result"]
+        assert isinstance(result, dict)
+        assert result["deleted_orphan"] == 1
         assert (base / ".last_prune").exists()
 
     def test_second_call_within_interval_skips(self, tmp_path):
@@ -970,14 +972,18 @@ class TestMaybeAutoPruneCheckpoints:
 
         out = maybe_auto_prune_checkpoints(checkpoint_base=base)
         assert out["skipped"] is False
-        assert out["result"]["deleted_orphan"] == 1
+        result = out["result"]
+        assert isinstance(result, dict)
+        assert result["deleted_orphan"] == 1
 
     def test_missing_base_no_raise(self, tmp_path):
         out = maybe_auto_prune_checkpoints(
             checkpoint_base=tmp_path / "does-not-exist",
         )
         assert out["skipped"] is False
-        assert out["result"]["scanned"] == 0
+        result = out["result"]
+        assert isinstance(result, dict)
+        assert result["scanned"] == 0
 
 
 # =========================================================================

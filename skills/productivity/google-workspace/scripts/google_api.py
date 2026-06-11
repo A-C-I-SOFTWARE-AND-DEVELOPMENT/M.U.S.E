@@ -917,7 +917,7 @@ def sheets_append(args):
 
 def sheets_create(args):
     """Create a new spreadsheet. Returns the new spreadsheet ID and URL."""
-    body = {"properties": {"title": args.title}}
+    body: dict = {"properties": {"title": args.title}}
     if args.sheet_name:
         body["sheets"] = [{"properties": {"title": args.sheet_name}}]
 

@@ -52,7 +52,7 @@ def _build_runner(monkeypatch, tmp_path) -> GatewayRunner:
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock(), handle_message=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter
+    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
     return runner
 
 
@@ -93,8 +93,8 @@ async def test_notify_on_complete_sets_internal_flag(monkeypatch, tmp_path):
 
     await runner._run_process_watcher(_watcher_dict_with_notify())
 
-    assert adapter.handle_message.await_count == 1
-    event = adapter.handle_message.await_args.args[0]
+    assert adapter.handle_message.await_count == 1  # ty: ignore[unresolved-attribute]
+    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
     assert isinstance(event, MessageEvent)
     assert event.internal is True, "Synthetic completion event must be marked internal"
 
@@ -159,7 +159,7 @@ async def test_internal_event_does_not_trigger_pairing(monkeypatch, tmp_path):
     runner = GatewayRunner(GatewayConfig())
     # Add adapter so pairing would have somewhere to send
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter
+    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
 
     source = SessionSource(
         platform=Platform.DISCORD,
@@ -181,7 +181,7 @@ async def test_internal_event_does_not_trigger_pairing(monkeypatch, tmp_path):
         generate_called = True
         return original_generate(*args, **kwargs)
 
-    runner.pairing_store.generate_code = tracking_generate
+    runner.pairing_store.generate_code = tracking_generate  # ty: ignore[invalid-assignment]
 
     # Stop execution before the agent runner so the test doesn't block in
     # run_in_executor.  Pairing check happens before _handle_message_with_agent.
@@ -224,8 +224,8 @@ async def test_notify_on_complete_preserves_user_identity(monkeypatch, tmp_path)
 
     await runner._run_process_watcher(watcher)
 
-    assert adapter.handle_message.await_count == 1
-    event = adapter.handle_message.await_args.args[0]
+    assert adapter.handle_message.await_count == 1  # ty: ignore[unresolved-attribute]
+    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
     assert event.source.user_id == "user-42"
     assert event.source.user_name == "alice"
 
@@ -248,8 +248,8 @@ async def test_notify_on_complete_uses_session_store_origin_for_group_topic(monk
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock(), handle_message=AsyncMock())
-    runner.adapters[Platform.TELEGRAM] = adapter
-    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(
+    runner.adapters[Platform.TELEGRAM] = adapter  # ty: ignore[invalid-assignment]
+    runner.session_store._entries["agent:main:telegram:group:-100:42"] = SimpleNamespace(  # ty: ignore[invalid-assignment]
         origin=SessionSource(
             platform=Platform.TELEGRAM,
             chat_id="-100",
@@ -293,7 +293,7 @@ async def test_none_user_id_skips_pairing(monkeypatch, tmp_path):
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.TELEGRAM] = adapter
+    runner.adapters[Platform.TELEGRAM] = adapter  # ty: ignore[invalid-assignment]
 
     source = SessionSource(
         platform=Platform.TELEGRAM,
@@ -324,7 +324,7 @@ async def test_none_user_id_does_not_generate_pairing_code(monkeypatch, tmp_path
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter
+    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
 
     generate_called = False
     original_generate = runner.pairing_store.generate_code
@@ -334,7 +334,7 @@ async def test_none_user_id_does_not_generate_pairing_code(monkeypatch, tmp_path
         generate_called = True
         return original_generate(*args, **kwargs)
 
-    runner.pairing_store.generate_code = tracking_generate
+    runner.pairing_store.generate_code = tracking_generate  # ty: ignore[invalid-assignment]
 
     source = SessionSource(
         platform=Platform.DISCORD,
@@ -377,7 +377,7 @@ async def test_non_internal_event_without_user_triggers_pairing(monkeypatch, tmp
 
     runner = GatewayRunner(GatewayConfig())
     adapter = SimpleNamespace(send=AsyncMock())
-    runner.adapters[Platform.DISCORD] = adapter
+    runner.adapters[Platform.DISCORD] = adapter  # ty: ignore[invalid-assignment]
 
     source = SessionSource(
         platform=Platform.DISCORD,

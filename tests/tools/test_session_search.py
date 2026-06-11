@@ -64,7 +64,9 @@ def _seed_modpack_sessions(db):
 
 class TestSchema:
     def test_schema_has_required_params(self):
-        params = SESSION_SEARCH_SCHEMA["parameters"]["properties"]
+        parameters = SESSION_SEARCH_SCHEMA["parameters"]
+        assert isinstance(parameters, dict)
+        params = parameters["properties"]
         # Discovery shape
         assert "query" in params
         assert "limit" in params

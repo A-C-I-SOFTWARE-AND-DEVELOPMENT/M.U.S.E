@@ -456,12 +456,12 @@ class TestAgentCacheLifecycle:
         cb1 = lambda *a: None
         cb2 = lambda *a: None
         agent.tool_progress_callback = cb1
-        agent.step_callback = cb2
+        agent.step_callback = cb2  # ty: ignore[unresolved-attribute]
         agent.stream_delta_callback = None
         agent.status_callback = None
 
         assert agent.tool_progress_callback is cb1
-        assert agent.step_callback is cb2
+        assert agent.step_callback is cb2  # ty: ignore[unresolved-attribute]
 
         # Update for next message
         cb3 = lambda *a: None
@@ -1042,11 +1042,11 @@ class TestAgentCacheIdleResume:
         from tools import process_registry as _pr
         kill_all_calls: list = []
         original_kill_all = _pr.process_registry.kill_all
-        _pr.process_registry.kill_all = lambda **kw: kill_all_calls.append(kw)
+        _pr.process_registry.kill_all = lambda **kw: kill_all_calls.append(kw)  # ty: ignore[invalid-assignment]
         try:
             agent.release_clients()
         finally:
-            _pr.process_registry.kill_all = original_kill_all
+            _pr.process_registry.kill_all = original_kill_all  # ty: ignore[invalid-assignment]
             try:
                 agent.close()
             except Exception:
@@ -1075,8 +1075,8 @@ class TestAgentCacheIdleResume:
         browser_calls: list = []
         original_vm = _tt.cleanup_vm
         original_browser = _bt.cleanup_browser
-        _tt.cleanup_vm = lambda tid: vm_calls.append(tid)
-        _bt.cleanup_browser = lambda tid: browser_calls.append(tid)
+        _tt.cleanup_vm = lambda tid: vm_calls.append(tid)  # ty: ignore[invalid-assignment]
+        _bt.cleanup_browser = lambda tid: browser_calls.append(tid)  # ty: ignore[invalid-assignment]
         try:
             agent.release_clients()
         finally:
@@ -1146,7 +1146,7 @@ class TestAgentCacheIdleResume:
         # ``run_agent`` at import time, not ``tools.terminal_tool.cleanup_vm``
         # directly — so patch the ``run_agent`` reference.
         original_vm = _ra.cleanup_vm
-        _ra.cleanup_vm = lambda tid: vm_calls.append(tid)
+        _ra.cleanup_vm = lambda tid: vm_calls.append(tid)  # ty: ignore[invalid-assignment]
         try:
             agent_a.release_clients()   # cache eviction
             agent_b.close()              # session expiry

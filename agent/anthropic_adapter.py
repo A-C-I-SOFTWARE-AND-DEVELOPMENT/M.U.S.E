@@ -692,7 +692,7 @@ def build_anthropic_client(
 
     normalized_base_url = _normalize_base_url_text(base_url)
     _read_timeout = timeout if (isinstance(timeout, (int, float)) and timeout > 0) else 900.0
-    kwargs = {
+    kwargs: Dict[str, Any] = {
         "timeout": Timeout(timeout=float(_read_timeout), connect=10.0),
     }
     if normalized_base_url:
@@ -1713,7 +1713,7 @@ def convert_messages_to_anthropic(
             # either a list of OpenAI-style content parts, or a dict
             # marked `_multimodal` with an embedded `content` list. Convert
             # both into Anthropic `tool_result` inner blocks (text + image).
-            multimodal_blocks: Optional[List[Dict[str, Any]]] = None
+            multimodal_blocks: Optional[List[Any]] = None
             if isinstance(content, dict) and content.get("_multimodal"):
                 multimodal_blocks = _content_parts_to_anthropic_blocks(
                     content.get("content") or []
@@ -1820,7 +1820,7 @@ def convert_messages_to_anthropic(
                 m["content"] = [{"type": "text", "text": "(tool result removed)"}]
 
     # Enforce strict role alternation (Anthropic rejects consecutive same-role messages)
-    fixed = []
+    fixed: List[Dict[str, Any]] = []
     for m in result:
         if fixed and fixed[-1]["role"] == m["role"]:
             if m["role"] == "user":

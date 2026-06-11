@@ -29,12 +29,12 @@ import pytest
 # Minimal telegram stub so importing gateway.platforms.base does not pull
 # in the real python-telegram-bot dependency.
 _tg = sys.modules.get("telegram") or types.ModuleType("telegram")
-_tg.constants = sys.modules.get("telegram.constants") or types.ModuleType("telegram.constants")
+_tg.constants = sys.modules.get("telegram.constants") or types.ModuleType("telegram.constants")  # ty: ignore[unresolved-attribute]
 _ct = MagicMock()
 _ct.PRIVATE = "private"
 _ct.GROUP = "group"
 _ct.SUPERGROUP = "supergroup"
-_tg.constants.ChatType = _ct
+_tg.constants.ChatType = _ct  # ty: ignore[unresolved-attribute]
 sys.modules.setdefault("telegram", _tg)
 sys.modules.setdefault("telegram.constants", _tg.constants)
 sys.modules.setdefault("telegram.ext", types.ModuleType("telegram.ext"))

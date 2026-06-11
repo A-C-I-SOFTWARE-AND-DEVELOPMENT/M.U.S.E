@@ -50,6 +50,7 @@ def test_env_override_keepalive_expiry(monkeypatch):
     monkeypatch.setenv("HERMES_GATEWAY_HTTPX_KEEPALIVE_EXPIRY", "7.5")
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
+    assert limits is not None
     assert limits.keepalive_expiry == 7.5
 
 
@@ -57,6 +58,7 @@ def test_env_override_max_keepalive(monkeypatch):
     monkeypatch.setenv("HERMES_GATEWAY_HTTPX_MAX_KEEPALIVE", "25")
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
+    assert limits is not None
     assert limits.max_keepalive_connections == 25
 
 
@@ -67,6 +69,7 @@ def test_env_override_rejects_garbage(monkeypatch):
     from gateway.platforms._http_client_limits import platform_httpx_limits
     limits = platform_httpx_limits()
     # Non-positive / non-numeric → fell back to defaults (not the override values)
+    assert limits is not None
     assert limits.keepalive_expiry is not None and limits.keepalive_expiry > 0
     assert limits.max_keepalive_connections is not None
     assert limits.max_keepalive_connections > 0

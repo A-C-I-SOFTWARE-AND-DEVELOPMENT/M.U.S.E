@@ -423,7 +423,7 @@ class TestTruncateMessage:
             async def send(self, *a, **kw):
                 pass
 
-            async def get_chat_info(self, *a):
+            async def get_chat_info(self, *a):  # ty: ignore[invalid-method-override]
                 return {}
 
         from gateway.config import Platform, PlatformConfig

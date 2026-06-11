@@ -166,8 +166,8 @@ def adapter(tmp_path):
     a._credentials = MagicMock()
     a._project_id = "test-project"
     a._subscription_path = "projects/test-project/subscriptions/test-sub"
-    a._new_authed_http = MagicMock(return_value=MagicMock())
-    a.handle_message = AsyncMock()
+    a._new_authed_http = MagicMock(return_value=MagicMock())  # ty: ignore[invalid-assignment]
+    a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     # Replace the production store (which would write to ~/.hermes/...)
     # with a tmp-path one so tests can roundtrip without side effects.
     a._thread_count_store = _ThreadCountStore(
@@ -229,7 +229,7 @@ def _make_chat_envelope(text="hello", sender_email="u@example.com", sender_type=
 
 class TestPlatformRegistration:
     def test_enum_value(self):
-        assert Platform.GOOGLE_CHAT.value == "google_chat"
+        assert Platform.GOOGLE_CHAT.value == "google_chat"  # ty: ignore[unresolved-attribute]
 
     def test_requirements_check_returns_true_when_available(self):
         # The shim flag is True in this test module.
@@ -266,14 +266,14 @@ class TestEnvConfigLoading:
         monkeypatch.setenv("GOOGLE_CHAT_PROJECT_ID", "p")
         # No subscription.
         cfg = load_gateway_config()
-        assert Platform.GOOGLE_CHAT not in cfg.platforms
+        assert Platform.GOOGLE_CHAT not in cfg.platforms  # ty: ignore[unresolved-attribute]
 
     def test_missing_project_does_not_enable(self, monkeypatch):
         self._clean_env(monkeypatch)
         monkeypatch.setenv("GOOGLE_CHAT_SUBSCRIPTION_NAME",
                            "projects/p/subscriptions/s")
         cfg = load_gateway_config()
-        assert Platform.GOOGLE_CHAT not in cfg.platforms
+        assert Platform.GOOGLE_CHAT not in cfg.platforms  # ty: ignore[unresolved-attribute]
 
 
 
@@ -320,7 +320,7 @@ class TestRedactSensitive:
 
     def test_empty_text_passes_through(self):
         assert _redact_sensitive("") == ""
-        assert _redact_sensitive(None) is None
+        assert _redact_sensitive(None) is None  # ty: ignore[invalid-argument-type]
 
 
 class TestGoogleOwnedHost:
@@ -699,6 +699,7 @@ class TestExtractMessagePayload:
             "space_name": "spaces/RELAY",
             "message_name": "spaces/RELAY/messages/M.M",
         }
+        assert GoogleChatAdapter._extract_message_payload is not None
         msg, _space, _fmt = GoogleChatAdapter._extract_message_payload(envelope_lower)
         assert msg["sender"]["type"] == "BOT"
 
@@ -2009,8 +2010,8 @@ class TestThreadCountStore:
         fresh = GoogleChatAdapter(_base_config())
         fresh._chat_api = MagicMock()
         fresh._credentials = MagicMock()
-        fresh._new_authed_http = MagicMock(return_value=MagicMock())
-        fresh.handle_message = AsyncMock()
+        fresh._new_authed_http = MagicMock(return_value=MagicMock())  # ty: ignore[invalid-assignment]
+        fresh.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         fresh._thread_count_store = _ThreadCountStore(store_path)
         fresh._thread_count_store.load()
 
@@ -2020,6 +2021,7 @@ class TestThreadCountStore:
             env3["chat"]["messagePayload"]["message"], env3
         )
         # MUST be classified as side thread (isolated session).
+        assert event3.source is not None
         assert event3.source.thread_id == "spaces/S/threads/T_existing"
         # Outbound cache populated for in-thread reply.
         assert fresh._last_inbound_thread["spaces/S"] == "spaces/S/threads/T_existing"
@@ -2157,6 +2159,7 @@ class TestMediaDelegation:
                                         "error": None})()
         )
         await adapter.send_voice("spaces/S", str(f))
+        assert adapter._send_file.await_args is not None
         _, kwargs = adapter._send_file.await_args
         assert kwargs.get("mime_hint") == "audio/ogg"
 
@@ -2169,6 +2172,7 @@ class TestMediaDelegation:
                                         "error": None})()
         )
         await adapter.send_video("spaces/S", str(f))
+        assert adapter._send_file.await_args is not None
         _, kwargs = adapter._send_file.await_args
         assert kwargs.get("mime_hint") == "video/mp4"
 
@@ -2185,6 +2189,7 @@ class TestMediaDelegation:
             "spaces/S", "https://example.com/dance.gif", caption="hop"
         )
         adapter.send_image.assert_awaited_once()
+        assert adapter.send_image.await_args is not None
         args, kwargs = adapter.send_image.await_args
         assert args[1] == "https://example.com/dance.gif"
         assert kwargs.get("caption") == "hop"
@@ -2402,7 +2407,7 @@ class TestFormatMessage:
         input collapses to a single space; documented as expected.
         """
         assert GoogleChatAdapter.format_message("") == ""
-        assert GoogleChatAdapter.format_message(None) is None
+        assert GoogleChatAdapter.format_message(None) is None  # ty: ignore[invalid-argument-type]
         # Multi-space input collapses to single space (the cleanup step
         # runs unconditionally; cheap correctness over rare preservation).
         assert GoogleChatAdapter.format_message("   ") == " "
@@ -2583,7 +2588,7 @@ class TestAuthorizationEmailMatch:
         runner.pairing_store.is_approved = MagicMock(return_value=False)
 
         source = SessionSource(
-            platform=Platform.GOOGLE_CHAT,
+            platform=Platform.GOOGLE_CHAT,  # ty: ignore[unresolved-attribute]
             chat_id="spaces/S",
             chat_type="dm",
             user_id="alice@example.com",       # post-swap: email is canonical
@@ -2604,7 +2609,7 @@ class TestAuthorizationEmailMatch:
         runner.pairing_store.is_approved = MagicMock(return_value=False)
 
         source = SessionSource(
-            platform=Platform.GOOGLE_CHAT,
+            platform=Platform.GOOGLE_CHAT,  # ty: ignore[unresolved-attribute]
             chat_id="spaces/S",
             chat_type="dm",
             user_id="bob@example.com",
@@ -2630,7 +2635,7 @@ class TestAuthorizationEmailMatch:
         runner.pairing_store.is_approved = MagicMock(return_value=False)
 
         source = SessionSource(
-            platform=Platform.GOOGLE_CHAT,
+            platform=Platform.GOOGLE_CHAT,  # ty: ignore[unresolved-attribute]
             chat_id="spaces/S",
             chat_type="dm",
             user_id="users/77777",  # no email available — resource name wins

@@ -1049,7 +1049,7 @@ def _build_tool_complete_content(
     """Build structured ACP completion content, falling back to plain text."""
     display_result = result or ""
     if len(display_result) > 5000:
-        display_result = display_result[:4900] + f"\n... ({len(result)} chars total, truncated)"
+        display_result = display_result[:4900] + f"\n... ({len(display_result)} chars total, truncated)"
 
     if tool_name == "skill_manage":
         try:

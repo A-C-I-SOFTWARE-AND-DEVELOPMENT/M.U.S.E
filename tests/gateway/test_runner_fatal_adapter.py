@@ -62,6 +62,7 @@ async def test_runner_requests_clean_exit_for_nonretryable_startup_conflict(monk
 
     assert ok is True
     assert runner.should_exit_cleanly is True
+    assert runner.exit_reason is not None
     assert "already using this Telegram bot token" in runner.exit_reason
 
 
@@ -89,12 +90,12 @@ async def test_runner_queues_retryable_runtime_fatal_for_reconnection(monkeypatc
 
     runner.adapters = {Platform.WHATSAPP: adapter}
     runner.delivery_router.adapters = runner.adapters
-    runner.stop = AsyncMock()
+    runner.stop = AsyncMock()  # ty: ignore[invalid-assignment]
 
     await runner._handle_adapter_fatal_error(adapter)
 
     # Gateway stays alive — watcher will retry in background
-    runner.stop.assert_not_awaited()
+    runner.stop.assert_not_awaited()  # ty: ignore[unresolved-attribute]
     assert runner._exit_with_failure is False
     assert Platform.WHATSAPP in runner._failed_platforms
     assert runner._failed_platforms[Platform.WHATSAPP]["attempts"] == 0

@@ -113,8 +113,8 @@ class TestIsThinkingOnlyAssistant:
         )
 
     def test_non_dict_returns_false(self):
-        assert not AIAgent._is_thinking_only_assistant(None)
-        assert not AIAgent._is_thinking_only_assistant("hello")
+        assert not AIAgent._is_thinking_only_assistant(None)  # ty: ignore[invalid-argument-type]
+        assert not AIAgent._is_thinking_only_assistant("hello")  # ty: ignore[invalid-argument-type]
 
 
 # ---------------------------------------------------------------------------

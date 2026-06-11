@@ -407,7 +407,7 @@ class TestBaseAdapterClarifyFallback:
 
             async def connect(self): pass
             async def disconnect(self): pass
-            async def send(self, chat_id, content, **kw):
+            async def send(self, chat_id, content, **kw):  # ty: ignore[invalid-method-override]
                 self.sent.append({"chat_id": chat_id, "content": content})
                 return SendResult(success=True, message_id="1")
             async def edit(self, *a, **k): return SendResult(success=False)
@@ -440,7 +440,7 @@ class TestBaseAdapterClarifyFallback:
                 self.sent: list = []
             async def connect(self): pass
             async def disconnect(self): pass
-            async def send(self, chat_id, content, **kw):
+            async def send(self, chat_id, content, **kw):  # ty: ignore[invalid-method-override]
                 self.sent.append(content)
                 return SendResult(success=True, message_id="1")
             async def edit(self, *a, **k): return SendResult(success=False)

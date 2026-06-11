@@ -43,7 +43,6 @@ def _create_triage(conn, title="rough idea", body=None, assignee=None, tenant=No
 def test_decompose_creates_children_and_promotes_root(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="ship a feature")
-        assert kb is not None
         assert _task(conn, tid).status == "triage"
 
     children = [

@@ -101,7 +101,7 @@ def adapter(monkeypatch):
     config = PlatformConfig(enabled=True, token="fake-token")
     a = DiscordAdapter(config)
     a._client = SimpleNamespace(user=SimpleNamespace(id=999))
-    a.handle_message = AsyncMock()
+    a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     return a
 
 

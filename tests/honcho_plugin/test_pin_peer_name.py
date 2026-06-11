@@ -110,8 +110,8 @@ def _patch_manager_for_resolution_test(mgr: HonchoSessionManager) -> None:
     those calls happen.
     """
     fake_peer = MagicMock()
-    mgr._get_or_create_peer = MagicMock(return_value=fake_peer)
-    mgr._get_or_create_honcho_session = MagicMock(
+    mgr._get_or_create_peer = MagicMock(return_value=fake_peer)  # ty: ignore[invalid-assignment]
+    mgr._get_or_create_honcho_session = MagicMock(  # ty: ignore[invalid-assignment]
         return_value=(MagicMock(), [])
     )
 

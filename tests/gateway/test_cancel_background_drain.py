@@ -25,7 +25,7 @@ class _StubAdapter(BasePlatformAdapter):
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, text, **kwargs):
+    async def send(self, chat_id, text, **kwargs):  # ty: ignore[invalid-method-override]
         return None
 
     async def get_chat_info(self, chat_id):
@@ -34,7 +34,7 @@ class _StubAdapter(BasePlatformAdapter):
 
 def _make_adapter():
     adapter = _StubAdapter(PlatformConfig(enabled=True, token="t"), Platform.TELEGRAM)
-    adapter._send_with_retry = AsyncMock(return_value=None)
+    adapter._send_with_retry = AsyncMock(return_value=None)  # ty: ignore[invalid-assignment]
     return adapter
 
 

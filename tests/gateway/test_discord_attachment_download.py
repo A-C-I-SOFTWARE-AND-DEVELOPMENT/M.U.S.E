@@ -317,7 +317,7 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Image attachments with .read() never call cache_image_from_url."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         with patch(
             "gateway.platforms.discord.cache_image_from_bytes",
@@ -356,7 +356,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             await adapter._handle_message(msg)
 
         mock_url_download.assert_not_called()
-        event = adapter.handle_message.call_args[0][0]
+        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert event.media_urls == ["/tmp/img_from_read.png"]
         assert event.media_types == ["image/png"]
 
@@ -365,7 +365,7 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Discord native voice notes must enter the auto-STT voice path."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         with patch(
             "gateway.platforms.discord.cache_audio_from_bytes",
@@ -399,7 +399,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             )
             await adapter._handle_message(msg)
 
-        event = adapter.handle_message.call_args[0][0]
+        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert event.message_type == MessageType.VOICE
         assert event.media_urls == ["/tmp/voice_from_read.ogg"]
         assert event.media_types == ["audio/ogg"]
@@ -409,7 +409,7 @@ class TestHandleMessageUsesAuthenticatedRead:
         """Plain audio uploads should stay out of automatic voice-note STT."""
         adapter = _make_adapter()
         adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         with patch(
             "gateway.platforms.discord.cache_audio_from_bytes",
@@ -443,7 +443,7 @@ class TestHandleMessageUsesAuthenticatedRead:
             )
             await adapter._handle_message(msg)
 
-        event = adapter.handle_message.call_args[0][0]
+        event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert event.message_type == MessageType.AUDIO
         assert event.media_urls == ["/tmp/audio_from_read.ogg"]
         assert event.media_types == ["audio/ogg"]

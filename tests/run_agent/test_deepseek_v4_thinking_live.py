@@ -69,12 +69,14 @@ def _jsonable(value: Any) -> Any:
 
 
 def _print_trace(label: str, value: Any) -> None:
-    sys.__stdout__.write(f"\n--- {label} ---\n")
-    sys.__stdout__.write(
+    stdout = sys.__stdout__
+    assert stdout is not None
+    stdout.write(f"\n--- {label} ---\n")
+    stdout.write(
         json.dumps(_jsonable(value), ensure_ascii=False, indent=2, sort_keys=True)
     )
-    sys.__stdout__.write("\n")
-    sys.__stdout__.flush()
+    stdout.write("\n")
+    stdout.flush()
 
 
 def _message_snapshot(message) -> dict:

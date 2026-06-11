@@ -112,7 +112,7 @@ class TestWeComConnect:
         adapter = WeComAdapter(
             PlatformConfig(enabled=True, extra={"bot_id": "bot-1", "secret": "secret-1"})
         )
-        adapter._open_connection = AsyncMock(side_effect=RuntimeError("invalid secret (errcode=40013)"))
+        adapter._open_connection = AsyncMock(side_effect=RuntimeError("invalid secret (errcode=40013)"))  # ty: ignore[invalid-assignment]
 
         success = await adapter.connect()
 
@@ -171,15 +171,15 @@ class TestWeComReplyMode:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._reply_req_ids["msg-1"] = "req-1"
-        adapter._send_reply_request = AsyncMock(
+        adapter._send_reply_request = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"headers": {"req_id": "req-1"}, "errcode": 0}
         )
 
         result = await adapter.send("chat-123", "hello from reply", reply_to="msg-1")
 
         assert result.success is True
-        adapter._send_reply_request.assert_awaited_once()
-        args = adapter._send_reply_request.await_args.args
+        adapter._send_reply_request.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        args = adapter._send_reply_request.await_args.args  # ty: ignore[unresolved-attribute]
         assert args[0] == "req-1"
         # msgtype: stream triggers WeCom errcode 600039 on many mobile clients
         # (unsupported type). Markdown renders everywhere.
@@ -192,7 +192,7 @@ class TestWeComReplyMode:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._reply_req_ids["msg-1"] = "req-1"
-        adapter._prepare_outbound_media = AsyncMock(
+        adapter._prepare_outbound_media = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={
                 "data": b"image-bytes",
                 "content_type": "image/png",
@@ -205,16 +205,16 @@ class TestWeComReplyMode:
                 "downgrade_note": None,
             }
         )
-        adapter._upload_media_bytes = AsyncMock(return_value={"media_id": "media-1", "type": "image"})
-        adapter._send_reply_request = AsyncMock(
+        adapter._upload_media_bytes = AsyncMock(return_value={"media_id": "media-1", "type": "image"})  # ty: ignore[invalid-assignment]
+        adapter._send_reply_request = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"headers": {"req_id": "req-1"}, "errcode": 0}
         )
 
         result = await adapter.send_image_file("chat-123", "/tmp/demo.png", reply_to="msg-1")
 
         assert result.success is True
-        adapter._send_reply_request.assert_awaited_once()
-        args = adapter._send_reply_request.await_args.args
+        adapter._send_reply_request.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        args = adapter._send_reply_request.await_args.args  # ty: ignore[unresolved-attribute]
         assert args[0] == "req-1"
         assert args[1] == {"msgtype": "image", "image": {"media_id": "media-1"}}
 
@@ -267,11 +267,11 @@ class TestCallbackDispatch:
         from gateway.platforms.wecom import WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._on_message = AsyncMock()
+        adapter._on_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
         await adapter._dispatch_payload({"cmd": cmd, "headers": {"req_id": "req-1"}, "body": {}})
 
-        adapter._on_message.assert_awaited_once()
+        adapter._on_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
 
 
 class TestPolicyHelpers:
@@ -386,7 +386,7 @@ class TestMediaUpload:
             raise AssertionError(f"unexpected cmd {cmd}")
 
         monkeypatch.setattr(wecom_module, "UPLOAD_CHUNK_SIZE", 4)
-        adapter._send_request = fake_send_request
+        adapter._send_request = fake_send_request  # ty: ignore[invalid-assignment]
 
         result = await adapter._upload_media_bytes(b"abcdefghij", "file", "demo.bin")
 
@@ -427,7 +427,7 @@ class TestMediaUpload:
                 return FakeResponse()
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._http_client = FakeClient()
+        adapter._http_client = FakeClient()  # ty: ignore[invalid-assignment]
 
         with pytest.raises(ValueError, match="exceeds WeCom limit"):
             await adapter._download_remote_bytes("https://example.com/file.bin", max_bytes=4)
@@ -446,7 +446,7 @@ class TestMediaUpload:
 
         encryptor = Cipher(algorithms.AES(key), modes.CBC(key[:16])).encryptor()
         encrypted = encryptor.update(padded) + encryptor.finalize()
-        adapter._download_remote_bytes = AsyncMock(
+        adapter._download_remote_bytes = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value=(
                 encrypted,
                 {
@@ -476,12 +476,12 @@ class TestSend:
         from gateway.platforms.wecom import APP_CMD_SEND, WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._send_request = AsyncMock(return_value={"headers": {"req_id": "req-1"}, "errcode": 0})
+        adapter._send_request = AsyncMock(return_value={"headers": {"req_id": "req-1"}, "errcode": 0})  # ty: ignore[invalid-assignment]
 
         result = await adapter.send("chat-123", "Hello WeCom")
 
         assert result.success is True
-        adapter._send_request.assert_awaited_once_with(
+        adapter._send_request.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
             APP_CMD_SEND,
             {
                 "chatid": "chat-123",
@@ -495,7 +495,7 @@ class TestSend:
         from gateway.platforms.wecom import WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._send_request = AsyncMock(return_value={"errcode": 40001, "errmsg": "bad request"})
+        adapter._send_request = AsyncMock(return_value={"errcode": 40001, "errmsg": "bad request"})  # ty: ignore[invalid-assignment]
 
         result = await adapter.send("chat-123", "Hello WeCom")
 
@@ -507,20 +507,20 @@ class TestSend:
         from gateway.platforms.wecom import WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._send_media_source = AsyncMock(return_value=SendResult(success=False, error="upload failed"))
-        adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="msg-1"))
+        adapter._send_media_source = AsyncMock(return_value=SendResult(success=False, error="upload failed"))  # ty: ignore[invalid-assignment]
+        adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="msg-1"))  # ty: ignore[invalid-assignment]
 
         result = await adapter.send_image("chat-123", "https://example.com/demo.png", caption="demo")
 
         assert result.success is True
-        adapter.send.assert_awaited_once_with(chat_id="chat-123", content="demo\nhttps://example.com/demo.png", reply_to=None)
+        adapter.send.assert_awaited_once_with(chat_id="chat-123", content="demo\nhttps://example.com/demo.png", reply_to=None)  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_send_voice_sends_caption_and_downgrade_note(self):
         from gateway.platforms.wecom import WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._prepare_outbound_media = AsyncMock(
+        adapter._prepare_outbound_media = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={
                 "data": b"voice-bytes",
                 "content_type": "audio/mpeg",
@@ -533,17 +533,17 @@ class TestSend:
                 "downgrade_note": "语音格式 audio/mpeg 不支持，企微仅支持 AMR 格式，已转为文件格式发送",
             }
         )
-        adapter._upload_media_bytes = AsyncMock(return_value={"media_id": "media-1", "type": "file"})
-        adapter._send_media_message = AsyncMock(return_value={"headers": {"req_id": "req-media"}, "errcode": 0})
-        adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="msg-1"))
+        adapter._upload_media_bytes = AsyncMock(return_value={"media_id": "media-1", "type": "file"})  # ty: ignore[invalid-assignment]
+        adapter._send_media_message = AsyncMock(return_value={"headers": {"req_id": "req-media"}, "errcode": 0})  # ty: ignore[invalid-assignment]
+        adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="msg-1"))  # ty: ignore[invalid-assignment]
 
         result = await adapter.send_voice("chat-123", "/tmp/voice.mp3", caption="listen")
 
         assert result.success is True
-        adapter._send_media_message.assert_awaited_once_with("chat-123", "file", "media-1")
-        assert adapter.send.await_count == 2
-        adapter.send.assert_any_await(chat_id="chat-123", content="listen", reply_to=None)
-        adapter.send.assert_any_await(
+        adapter._send_media_message.assert_awaited_once_with("chat-123", "file", "media-1")  # ty: ignore[unresolved-attribute]
+        assert adapter.send.await_count == 2  # ty: ignore[unresolved-attribute]
+        adapter.send.assert_any_await(chat_id="chat-123", content="listen", reply_to=None)  # ty: ignore[unresolved-attribute]
+        adapter.send.assert_any_await(  # ty: ignore[unresolved-attribute]
             chat_id="chat-123",
             content="ℹ️ 语音格式 audio/mpeg 不支持，企微仅支持 AMR 格式，已转为文件格式发送",
             reply_to=None,
@@ -557,8 +557,8 @@ class TestInboundMessages:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._text_batch_delay_seconds = 0  # disable batching for tests
-        adapter.handle_message = AsyncMock()
-        adapter._extract_media = AsyncMock(return_value=(["/tmp/test.png"], ["image/png"]))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._extract_media = AsyncMock(return_value=(["/tmp/test.png"], ["image/png"]))  # ty: ignore[invalid-assignment]
 
         payload = {
             "cmd": "aibot_msg_callback",
@@ -575,8 +575,8 @@ class TestInboundMessages:
 
         await adapter._on_message(payload)
 
-        adapter.handle_message.assert_awaited_once()
-        event = adapter.handle_message.await_args.args[0]
+        adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
         assert event.text == "hello"
         assert event.source.chat_id == "group-1"
         assert event.source.user_id == "user-1"
@@ -589,8 +589,8 @@ class TestInboundMessages:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._text_batch_delay_seconds = 0  # disable batching for tests
-        adapter.handle_message = AsyncMock()
-        adapter._extract_media = AsyncMock(return_value=([], []))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._extract_media = AsyncMock(return_value=([], []))  # ty: ignore[invalid-assignment]
 
         payload = {
             "cmd": "aibot_msg_callback",
@@ -608,7 +608,7 @@ class TestInboundMessages:
 
         await adapter._on_message(payload)
 
-        event = adapter.handle_message.await_args.args[0]
+        event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
         assert event.reply_to_text == "quoted message"
         assert event.reply_to_message_id == "quote:msg-1"
 
@@ -622,8 +622,8 @@ class TestInboundMessages:
                 extra={"group_policy": "allowlist", "group_allow_from": ["group-allowed"]},
             )
         )
-        adapter.handle_message = AsyncMock()
-        adapter._extract_media = AsyncMock(return_value=([], []))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._extract_media = AsyncMock(return_value=([], []))  # ty: ignore[invalid-assignment]
 
         payload = {
             "cmd": "aibot_callback",
@@ -639,7 +639,7 @@ class TestInboundMessages:
         }
 
         await adapter._on_message(payload)
-        adapter.handle_message.assert_not_awaited()
+        adapter.handle_message.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 class TestWeComZombieSessionFix:
@@ -698,8 +698,8 @@ class TestWeComZombieSessionFix:
         async def _fake_handshake(req_id):
             return {"errcode": 0, "headers": {"req_id": req_id}}
 
-        adapter._cleanup_ws = _fake_cleanup
-        adapter._wait_for_handshake = _fake_handshake
+        adapter._cleanup_ws = _fake_cleanup  # ty: ignore[invalid-assignment]
+        adapter._wait_for_handshake = _fake_handshake  # ty: ignore[invalid-assignment]
 
         with patch("gateway.platforms.wecom.aiohttp.ClientSession", _FakeSession):
             await adapter._open_connection()
@@ -717,8 +717,8 @@ class TestWeComZombieSessionFix:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._text_batch_delay_seconds = 0
-        adapter.handle_message = AsyncMock()
-        adapter._extract_media = AsyncMock(return_value=([], []))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._extract_media = AsyncMock(return_value=([], []))  # ty: ignore[invalid-assignment]
 
         payload = {
             "cmd": "aibot_msg_callback",
@@ -747,8 +747,8 @@ class TestWeComZombieSessionFix:
                 extra={"group_policy": "allowlist", "group_allow_from": ["group-ok"]},
             )
         )
-        adapter.handle_message = AsyncMock()
-        adapter._extract_media = AsyncMock(return_value=([], []))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._extract_media = AsyncMock(return_value=([], []))  # ty: ignore[invalid-assignment]
 
         payload = {
             "cmd": "aibot_msg_callback",
@@ -764,7 +764,7 @@ class TestWeComZombieSessionFix:
         }
 
         await adapter._on_message(payload)
-        adapter.handle_message.assert_not_awaited()
+        adapter.handle_message.assert_not_awaited()  # ty: ignore[unresolved-attribute]
         assert "group-blocked" not in adapter._last_chat_req_ids
 
     def test_remember_chat_req_id_is_bounded(self):
@@ -796,10 +796,10 @@ class TestWeComZombieSessionFix:
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
         adapter._last_chat_req_ids["group-1"] = "inbound-req-42"
-        adapter._send_reply_request = AsyncMock(
+        adapter._send_reply_request = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"headers": {"req_id": "inbound-req-42"}, "errcode": 0}
         )
-        adapter._send_request = AsyncMock(
+        adapter._send_request = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"headers": {"req_id": "new"}, "errcode": 0}
         )
 
@@ -807,9 +807,9 @@ class TestWeComZombieSessionFix:
 
         assert result.success is True
         # Must route through reply (APP_CMD_RESPONSE), not proactive send.
-        adapter._send_reply_request.assert_awaited_once()
-        adapter._send_request.assert_not_awaited()
-        args = adapter._send_reply_request.await_args.args
+        adapter._send_reply_request.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        adapter._send_request.assert_not_awaited()  # ty: ignore[unresolved-attribute]
+        args = adapter._send_reply_request.await_args.args  # ty: ignore[unresolved-attribute]
         assert args[0] == "inbound-req-42"
         assert args[1]["msgtype"] == "markdown"
         assert args[1]["markdown"]["content"] == "ping"
@@ -820,14 +820,14 @@ class TestWeComZombieSessionFix:
         from gateway.platforms.wecom import APP_CMD_SEND, WeComAdapter
 
         adapter = WeComAdapter(PlatformConfig(enabled=True))
-        adapter._send_request = AsyncMock(
+        adapter._send_request = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"headers": {"req_id": "new"}, "errcode": 0}
         )
 
         result = await adapter.send("fresh-dm-chat", "ping", reply_to=None)
 
         assert result.success is True
-        adapter._send_request.assert_awaited_once()
-        cmd = adapter._send_request.await_args.args[0]
+        adapter._send_request.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        cmd = adapter._send_request.await_args.args[0]  # ty: ignore[unresolved-attribute]
         assert cmd == APP_CMD_SEND
 

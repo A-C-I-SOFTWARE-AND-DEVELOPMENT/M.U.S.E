@@ -144,6 +144,7 @@ def test_approve_promotes_to_durable(server, home) -> None:
     assert payload["node"]["approval_state"] == "owner_approved"
     # Persisted on disk for the live loop to recall.
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
+    assert reloaded is not None
     assert reloaded.get(node.id).layer is MemoryLayer.DURABLE
 
 
@@ -169,8 +170,10 @@ def test_approve_conflict_returns_contradiction_not_overwrite(server, home) -> N
     assert "contradiction" in payload
     # Both facts survive — no silent overwrite.
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
+    assert existing is not None
     assert reloaded.get(existing.id) is not None
     assert reloaded.get(candidate.id) is not None
+    assert reloaded is not None
     assert reloaded.get(existing.id).contested
 
 
@@ -184,6 +187,7 @@ def test_reject_excludes_from_recall(server, home) -> None:
     assert status == 200
     assert payload["node"]["approval_state"] == "rejected"
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
+    assert reloaded is not None
     assert reloaded.get(node.id).active is False
 
 
@@ -195,6 +199,7 @@ def test_supersede_marks_loser(server, home) -> None:
     ).node
     new = _proposed(store, "Use REST + SSE.", title="api-new", ns="jarvis/decisions").node
 
+    assert old is not None
     status, payload = _post(
         server,
         f"/v1/cockpit/memory/tree/{new.id}/decision",
@@ -203,6 +208,7 @@ def test_supersede_marks_loser(server, home) -> None:
     assert status == 200
     assert payload["superseded"]["superseded_by"] == new.id
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
+    assert reloaded is not None
     assert reloaded.get(old.id).active is False  # superseded, not deleted
     assert reloaded.get(old.id) is not None
 
@@ -253,6 +259,7 @@ def test_contradictions_list_and_resolve(server, home) -> None:
     assert len(payload["contradictions"]) == 1
     report_id = payload["contradictions"][0]["id"]
 
+    assert b.node is not None
     status, resolved = _post(
         server,
         f"/v1/cockpit/memory/contradictions/{report_id}/resolve",
@@ -261,6 +268,8 @@ def test_contradictions_list_and_resolve(server, home) -> None:
     assert status == 200
     assert resolved["resolved"]["status"] == "resolved"
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
+    assert reloaded is not None
+    assert a is not None
     assert reloaded.get(a.id).superseded_by == b.node.id
 
 

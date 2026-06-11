@@ -42,7 +42,6 @@ def _create_triage(conn, title="rough idea", body=None, assignee=None):
 def test_specify_promotes_triage_to_todo(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="rough idea")
-        assert kb is not None
         assert _task(conn, tid).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
@@ -73,7 +72,6 @@ def test_specify_with_open_parent_lands_in_todo_not_ready(kanban_home):
         kb.link_tasks(conn, parent, child)
         # After linking with an open parent, triage status should still be
         # 'triage' (linking doesn't touch triage tasks).
-        assert kb is not None
         assert _task(conn, child).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
@@ -93,14 +91,12 @@ def test_specify_with_open_parent_lands_in_todo_not_ready(kanban_home):
 def test_specify_refuses_non_triage_task(kanban_home):
     with kb.connect() as conn:
         tid = kb.create_task(conn, title="normal task")
-        assert kb is not None
         assert _task(conn, tid).status == "ready"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(conn, tid, body="won't apply")
     assert ok is False
     with kb.connect() as conn:
         # Status unchanged.
-        assert kb is not None
         assert _task(conn, tid).status == "ready"
 
 
@@ -173,7 +169,6 @@ def test_specify_skips_comment_when_nothing_changed(kanban_home):
     assert ok is True
     with kb.connect() as conn:
         # Promoted.
-        assert kb is not None
         assert _task(conn, tid).status in {"todo", "ready"}
         # No audit comment because neither field changed.
         assert kb.list_comments(conn, tid) == []

@@ -301,7 +301,7 @@ class TestTokenEstimation:
 @pytest.mark.asyncio
 async def test_session_hygiene_messages_stay_in_originating_topic(monkeypatch, tmp_path):
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     class FakeCompressAgent:
@@ -321,7 +321,7 @@ async def test_session_hygiene_messages_stay_in_originating_topic(monkeypatch, t
             return ([{"role": "assistant", "content": "compressed"}], None)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeCompressAgent
+    fake_run_agent.AIAgent = FakeCompressAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     gateway_run = importlib.import_module("gateway.run")
@@ -403,7 +403,7 @@ async def test_session_hygiene_warns_user_when_compression_aborts(monkeypatch, t
     user (including thread_id metadata so it lands in the originating
     topic/thread) saying the conversation is unchanged and how to retry."""
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     class FakeCompressAgentWithSummaryFailure:
@@ -430,7 +430,7 @@ async def test_session_hygiene_warns_user_when_compression_aborts(monkeypatch, t
             return (messages, None)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeCompressAgentWithSummaryFailure
+    fake_run_agent.AIAgent = FakeCompressAgentWithSummaryFailure  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     gateway_run = importlib.import_module("gateway.run")
@@ -511,6 +511,7 @@ async def test_session_hygiene_warns_user_when_compression_aborts(monkeypatch, t
     assert warn["chat_id"] == "-1001"
     assert warn["metadata"] == {"thread_id": "17585"}
 
+    assert FakeCompressAgentWithSummaryFailure.last_instance.close is not None
     FakeCompressAgentWithSummaryFailure.last_instance.close.assert_called_once()
 
 
@@ -522,7 +523,7 @@ async def test_session_hygiene_informs_user_when_aux_model_fails_but_recovers(mo
     user knows to fix ``auxiliary.compression.model`` — silent recovery
     hides a misconfig only they can resolve."""
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     class FakeCompressAgentWithAuxRecovery:
@@ -550,7 +551,7 @@ async def test_session_hygiene_informs_user_when_aux_model_fails_but_recovers(mo
             return ([{"role": "assistant", "content": "real summary"}], None)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeCompressAgentWithAuxRecovery
+    fake_run_agent.AIAgent = FakeCompressAgentWithAuxRecovery  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     gateway_run = importlib.import_module("gateway.run")
@@ -635,6 +636,7 @@ async def test_session_hygiene_informs_user_when_aux_model_fails_but_recovers(mo
     assert note["chat_id"] == "-1001"
     assert note["metadata"] == {"thread_id": "17585"}
 
+    assert FakeCompressAgentWithAuxRecovery.last_instance.close is not None
     FakeCompressAgentWithAuxRecovery.last_instance.close.assert_called_once()
 
 
@@ -650,7 +652,7 @@ async def test_session_hygiene_honors_configurable_hard_message_limit(
     config key is actually read and applied at the force-compress gate.
     """
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     class FakeCompressAgent:
@@ -669,7 +671,7 @@ async def test_session_hygiene_honors_configurable_hard_message_limit(
             return ([{"role": "assistant", "content": "compressed"}], None)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeCompressAgent
+    fake_run_agent.AIAgent = FakeCompressAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     # Write config.yaml with lowered hard-limit
@@ -764,7 +766,7 @@ async def test_session_hygiene_default_hard_message_limit_does_not_fire_at_12_me
     12 messages must NOT trigger the 400-message hard limit.  If this test
     passes without changes, the override test's finding is meaningful."""
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     class FakeCompressAgent:
@@ -781,7 +783,7 @@ async def test_session_hygiene_default_hard_message_limit_does_not_fire_at_12_me
             return ([{"role": "assistant", "content": "compressed"}], None)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeCompressAgent
+    fake_run_agent.AIAgent = FakeCompressAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     # No config.yaml — use defaults (hard_limit=400)

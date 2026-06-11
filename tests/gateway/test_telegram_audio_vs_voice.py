@@ -79,6 +79,7 @@ async def test_voice_message_still_transcribed():
         )
 
     mock_transcribe.assert_called_once_with("/tmp/voice.ogg")
+    assert result is not None
     assert "hello world" in result
     assert "voice message" in result.lower()
 
@@ -134,6 +135,7 @@ async def test_audio_attachment_context_note_format():
                 history=[],
             )
 
+    assert result is not None
     assert "my_song.mp3" in result
     assert "audio file attachment" in result.lower()
     # Should NOT contain the voice-message transcription wrapper text
@@ -166,6 +168,7 @@ async def test_audio_attachment_skips_stt_when_stt_disabled():
             )
 
     # Should NOT see the "transcription is disabled" note — that's only for VOICE
+    assert result is not None
     assert "transcription is disabled" not in result.lower()
     assert "audio file attachment" in result.lower()
     assert "/tmp/podcast.m4a" in result

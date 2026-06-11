@@ -199,6 +199,7 @@ class TestPlatformRegistry:
         )
         reg.register(entry1)
         reg.register(entry2)
+        assert reg is not None
         assert reg.get("dup").label == "Dup v2"
 
 
