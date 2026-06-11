@@ -55,6 +55,7 @@ class TestJobScriptField:
         assert job["script"] == "/path/to/monitor.py"
 
         loaded = get_job(job["id"])
+        assert loaded is not None
         assert loaded["script"] == "/path/to/monitor.py"
 
     def test_create_job_without_script(self, cron_env):
@@ -76,6 +77,7 @@ class TestJobScriptField:
         assert job.get("script") is None
 
         updated = update_job(job["id"], {"script": "/new/script.py"})
+        assert updated is not None
         assert updated["script"] == "/new/script.py"
 
     def test_update_job_clear_script(self, cron_env):
@@ -85,6 +87,7 @@ class TestJobScriptField:
         assert job["script"] == "/some/script.py"
 
         updated = update_job(job["id"], {"script": None})
+        assert updated is not None
         assert updated.get("script") is None
 
 

@@ -5327,7 +5327,7 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
         try:
             from agent.gemini_native_adapter import probe_gemini_tier
         except Exception:
-            probe_gemini_tier = None
+            probe_gemini_tier = None  # ty: ignore[invalid-assignment]
         if probe_gemini_tier is not None:
             print("  Checking Gemini API tier...")
             probe_base = (
@@ -7694,7 +7694,7 @@ def _schedule_replace_on_reboot(shim: Path, quarantine_target: Path) -> bool:
         MOVEFILE_REPLACE_EXISTING = 0x1
         MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
 
-        MoveFileExW = ctypes.windll.kernel32.MoveFileExW
+        MoveFileExW = ctypes.windll.kernel32.MoveFileExW  # ty: ignore[unresolved-attribute]  # win32-only
         MoveFileExW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.DWORD]
         MoveFileExW.restype = wintypes.BOOL
 

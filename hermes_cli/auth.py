@@ -56,11 +56,11 @@ logger = logging.getLogger(__name__)
 try:
     import fcntl
 except Exception:
-    fcntl = None
+    fcntl = None  # ty: ignore[invalid-assignment]
 try:
     import msvcrt
 except Exception:
-    msvcrt = None
+    msvcrt = None  # ty: ignore[invalid-assignment]
 
 # =============================================================================
 # Constants

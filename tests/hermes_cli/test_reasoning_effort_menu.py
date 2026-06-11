@@ -26,6 +26,7 @@ def test_reasoning_menu_orders_minimal_before_low(monkeypatch):
     )
 
     assert selected == "medium"
+    assert _FakeTerminalMenu.last_choices is not None
     assert _FakeTerminalMenu.last_choices[:4] == [
         "  minimal",
         "  low",

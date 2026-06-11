@@ -32,10 +32,10 @@ try:
     from prompt_toolkit.auto_suggest import AutoSuggest, Suggestion
     from prompt_toolkit.completion import Completer, Completion
 except ImportError:  # pragma: no cover
-    AutoSuggest = object  # type: ignore[assignment,misc]
-    Completer = object    # type: ignore[assignment,misc]
-    Suggestion = None     # type: ignore[assignment]
-    Completion = None     # type: ignore[assignment]
+    AutoSuggest = object  # ty: ignore[invalid-assignment]
+    Completer = object    # ty: ignore[invalid-assignment]
+    Suggestion = None     # ty: ignore[invalid-assignment]
+    Completion = None     # ty: ignore[invalid-assignment]
 
 
 # ---------------------------------------------------------------------------

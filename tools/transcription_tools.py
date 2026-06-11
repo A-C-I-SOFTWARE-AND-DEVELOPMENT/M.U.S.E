@@ -31,6 +31,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -67,7 +68,7 @@ def _safe_find_spec(module_name: str) -> bool:
     try:
         return _ilu.find_spec(module_name) is not None
     except (ImportError, ValueError):
-        return module_name in globals() or module_name in os.sys.modules
+        return module_name in globals() or module_name in sys.modules
 
 
 _HAS_FASTER_WHISPER = _safe_find_spec("faster_whisper")
@@ -101,7 +102,7 @@ OPENAI_MODELS = {"whisper-1", "gpt-4o-mini-transcribe", "gpt-4o-transcribe"}
 GROQ_MODELS = {"whisper-large-v3", "whisper-large-v3-turbo", "distil-whisper-large-v3-en"}
 
 # Singleton for the local model — loaded once, reused across calls
-_local_model: Optional[object] = None
+_local_model: Optional[Any] = None
 _local_model_name: Optional[str] = None
 
 # ---------------------------------------------------------------------------
@@ -384,7 +385,7 @@ def _load_local_whisper_model(model_name: str):
     We try ``auto`` first (fast CUDA path when it works), and on any CUDA
     library load failure fall back to CPU + int8.
     """
-    from faster_whisper import WhisperModel
+    from faster_whisper import WhisperModel  # ty: ignore[unresolved-import]  # optional dependency, guarded by _HAS_FASTER_WHISPER
     try:
         return WhisperModel(model_name, device="auto", compute_type="auto")
     except Exception as exc:
@@ -418,7 +419,7 @@ def _transcribe_local(file_path: str, model_name: str) -> Dict[str, Any]:
             or os.getenv(LOCAL_STT_LANGUAGE_ENV)
             or None
         )
-        transcribe_kwargs = {"beam_size": 5}
+        transcribe_kwargs: Dict[str, Any] = {"beam_size": 5}
         if _forced_lang:
             transcribe_kwargs["language"] = _forced_lang
 
@@ -440,7 +441,7 @@ def _transcribe_local(file_path: str, model_name: str) -> Dict[str, Any]:
             )
             _local_model = None
             _local_model_name = None
-            from faster_whisper import WhisperModel
+            from faster_whisper import WhisperModel  # ty: ignore[unresolved-import]  # optional dependency, guarded by _HAS_FASTER_WHISPER
             _local_model = WhisperModel(model_name, device="cpu", compute_type="int8")
             _local_model_name = model_name
             segments, info = _local_model.transcribe(file_path, **transcribe_kwargs)
@@ -505,6 +506,8 @@ def _transcribe_local_command(file_path: str, model_name: str) -> Dict[str, Any]
             prepared_input, prep_error = _prepare_local_audio(file_path, output_dir)
             if prep_error:
                 return {"success": False, "transcript": "", "error": prep_error}
+            # _prepare_local_audio returns (path, None) or (None, error); prep_error was handled above.
+            assert prepared_input is not None
 
             command = command_template.format(
                 input_path=shlex.quote(prepared_input),
@@ -676,7 +679,7 @@ def _transcribe_mistral(file_path: str, model_name: str) -> Dict[str, Any]:
         return {"success": False, "transcript": "", "error": "MISTRAL_API_KEY not set"}
 
     try:
-        from mistralai.client import Mistral
+        from mistralai.client import Mistral  # ty: ignore[unresolved-import]  # optional dependency, ImportError caught below
 
         with Mistral(api_key=api_key) as client:
             with open(file_path, "rb") as audio_file:

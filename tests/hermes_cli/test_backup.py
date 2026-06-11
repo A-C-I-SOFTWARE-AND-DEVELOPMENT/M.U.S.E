@@ -1415,7 +1415,10 @@ class TestPreUpdateBackup:
             p.name for p in (hermes_home / "backups").iterdir()
             if p.name.startswith("pre-update-")
         }
+        assert third is not None
         assert third.name in remaining, "Floor must preserve the new backup"
+        assert first is not None
+        assert second is not None
         assert first.name not in remaining and second.name not in remaining, (
             f"keep=0 floor of 1 should still prune older backups; "
             f"remaining={remaining}"

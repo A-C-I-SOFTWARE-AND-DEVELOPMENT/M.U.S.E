@@ -87,10 +87,12 @@ def test_update_job_roundtrips_no_agent_flag(hermes_env):
 
     update_job(job["id"], {"no_agent": False})
     reloaded = get_job(job["id"])
+    assert reloaded is not None
     assert reloaded["no_agent"] is False
 
     update_job(job["id"], {"no_agent": True})
     reloaded = get_job(job["id"])
+    assert reloaded is not None
     assert reloaded["no_agent"] is True
 
 

@@ -3179,7 +3179,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False):
         # handlers above.
         try:
             import ctypes
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # win32-only
             # BOOL SetConsoleCtrlHandler(NULL, Add)  —  Add=TRUE means
             # "install the NULL handler", which has the documented
             # effect of ignoring Ctrl+C. Called twice for defense in
@@ -4059,7 +4059,7 @@ def _setup_wecom():
             from gateway.platforms.wecom import qr_scan_for_bot_info
         except Exception as exc:
             print_error(f"  WeCom QR scan import failed: {exc}")
-            qr_scan_for_bot_info = None
+            qr_scan_for_bot_info = None  # ty: ignore[invalid-assignment]
 
         if qr_scan_for_bot_info is not None:
             try:
@@ -4375,7 +4375,7 @@ def _setup_feishu():
             from gateway.platforms.feishu import qr_register
         except Exception as exc:
             print_error(f"  Feishu / Lark onboard import failed: {exc}")
-            qr_register = None
+            qr_register = None  # ty: ignore[invalid-assignment]
 
         if qr_register is not None:
             try:

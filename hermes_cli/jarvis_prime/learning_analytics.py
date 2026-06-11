@@ -28,7 +28,7 @@ def _ensure_duckdb():
     from tools.lazy_deps import ensure
 
     ensure("analytics.duckdb", prompt=False)
-    import duckdb  # noqa: WPS433 (intentional lazy import)
+    import duckdb  # noqa: WPS433 (intentional lazy import)  # ty: ignore[unresolved-import]  # optional dep
 
     return duckdb
 

@@ -41,6 +41,7 @@ class TestJobContextFromField:
 
         assert job_b["context_from"] == [job_a["id"]]
         loaded = get_job(job_b["id"])
+        assert loaded is not None
         assert loaded["context_from"] == [job_a["id"]]
 
     def test_create_job_with_context_from_list(self, cron_env):
@@ -293,6 +294,7 @@ class TestUpdateContextFrom:
         assert result["success"] is True
 
         reloaded = get_job(job_b["id"])
+        assert reloaded is not None
         assert reloaded["context_from"] == [job_a["id"]]
 
     def test_update_changes_context_from_reference(self, cron_env):
@@ -386,5 +388,7 @@ class TestUpdateContextFrom:
         ))
         assert result["success"] is True
         reloaded = get_job(job_b["id"])
+        assert reloaded is not None
         assert reloaded["prompt"] == "Summarize v2"
+        assert reloaded is not None
         assert reloaded["context_from"] == [job_a["id"]]

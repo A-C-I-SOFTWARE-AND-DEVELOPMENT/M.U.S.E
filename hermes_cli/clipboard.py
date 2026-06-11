@@ -401,7 +401,7 @@ def _convert_to_png(path: Path) -> bool:
     """Convert an image file to PNG in-place (requires Pillow or ImageMagick)."""
     # Try Pillow first (likely installed in the venv)
     try:
-        from PIL import Image
+        from PIL import Image  # ty: ignore[unresolved-import]  # optional dep
         img = Image.open(path)
         img.save(path, "PNG")
         return True

@@ -1403,7 +1403,7 @@ def _estimate_tool_tokens() -> Dict[str, int]:
         return _tool_token_cache
 
     try:
-        import tiktoken
+        import tiktoken  # ty: ignore[unresolved-import]  # optional dep
         enc = tiktoken.get_encoding("cl100k_base")
     except Exception:
         logger.debug("tiktoken unavailable; skipping tool token estimation")

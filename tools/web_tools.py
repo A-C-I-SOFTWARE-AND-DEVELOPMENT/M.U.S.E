@@ -230,7 +230,7 @@ def _ddgs_package_importable() -> bool:
     (and tests can monkeypatch a single symbol).
     """
     try:
-        import ddgs  # noqa: F401
+        import ddgs  # noqa: F401  # ty: ignore[unresolved-import]
         return True
     except ImportError:
         return False
@@ -491,7 +491,7 @@ Create a markdown summary that captures all key information in a well-organized,
             if aux_client is None or not effective_model:
                 logger.warning("No auxiliary model available for web content processing")
                 return None
-            call_kwargs = {
+            call_kwargs: Dict[str, Any] = {
                 "task": "web_extract",
                 "model": effective_model,
                 "messages": [
@@ -642,7 +642,7 @@ Create a single, unified markdown summary."""
                 fallback = fallback[:max_output_size] + "\n\n[... truncated ...]"
             return fallback
 
-        call_kwargs = {
+        call_kwargs: Dict[str, Any] = {
             "task": "web_extract",
             "model": effective_model,
             "messages": [
@@ -773,7 +773,7 @@ def web_search_tool(query: str, limit: int = 5) -> str:
         limit = 5
     limit = min(max(limit, 1), 100)
 
-    debug_call_data = {
+    debug_call_data: Dict[str, Any] = {
         "parameters": {
             "query": query,
             "limit": limit
@@ -880,7 +880,7 @@ async def web_extract_tool(
                          "Secrets must not be sent in URLs.",
             })
 
-    debug_call_data = {
+    debug_call_data: Dict[str, Any] = {
         "parameters": {
             "urls": urls,
             "format": format,

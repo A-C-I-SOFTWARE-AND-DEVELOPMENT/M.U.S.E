@@ -137,7 +137,7 @@ def _is_running_as_admin() -> bool:
     """Return True when the current Windows process is elevated."""
     _assert_windows()
     try:
-        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())  # ty: ignore[unresolved-attribute]  # win32-only
     except Exception:
         return False
 
@@ -165,7 +165,7 @@ def _launch_elevated_gateway_command(command: str, extra_args: list[str] | None 
     cwd = str(Path(__file__).resolve().parent.parent)
     elevated_python = _derive_venv_pythonw(sys.executable)
     try:
-        result = ctypes.windll.shell32.ShellExecuteW(
+        result = ctypes.windll.shell32.ShellExecuteW(  # ty: ignore[unresolved-attribute]  # win32-only
             None,
             "runas",
             elevated_python,

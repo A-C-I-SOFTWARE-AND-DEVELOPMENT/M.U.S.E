@@ -42,6 +42,7 @@ class TestTranslateOneServer:
             "command": "/usr/bin/myserver",
             "cwd": "/var/lib/mcp",
         })
+        assert cfg is not None
         assert cfg["cwd"] == "/var/lib/mcp"
 
     def test_http_basic(self):
@@ -60,6 +61,7 @@ class TestTranslateOneServer:
             "url": "http://localhost:8000/sse",
             "transport": "sse",
         })
+        assert cfg is not None
         assert cfg["url"] == "http://localhost:8000/sse"
         assert any("sse" in s.lower() for s in skipped)
 
@@ -69,7 +71,9 @@ class TestTranslateOneServer:
             "timeout": 180,
             "connect_timeout": 30,
         })
+        assert cfg is not None
         assert cfg["tool_timeout_sec"] == 180.0
+        assert cfg is not None
         assert cfg["startup_timeout_sec"] == 30.0
 
     def test_non_numeric_timeout_skipped(self):
@@ -85,6 +89,7 @@ class TestTranslateOneServer:
             "command": "y",
             "enabled": False,
         })
+        assert cfg is not None
         assert cfg["enabled"] is False
 
     def test_enabled_true_omitted(self):

@@ -60,7 +60,7 @@ def _effective_temperature_for_model(
     result = _fixed_temperature_for_model(model, base_url)
     if result is OMIT_TEMPERATURE:
         return None  # caller must omit temperature
-    return result
+    return result  # ty: ignore[invalid-return-type]  # OMIT_TEMPERATURE sentinel excluded above; remaining value is float | None
 
 
 
@@ -167,8 +167,8 @@ class MiniSWERunner:
     def __init__(
         self,
         model: str = "anthropic/claude-sonnet-4.6",
-        base_url: str = None,
-        api_key: str = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         env_type: str = "local",
         image: str = "python:3.11-slim",
         cwd: str = "/tmp",
@@ -209,9 +209,10 @@ class MiniSWERunner:
         # Initialize LLM client via centralized provider router.
         # If explicit api_key/base_url are provided (e.g. from CLI args),
         # construct directly.  Otherwise use the router for OpenRouter.
+        self.client: Any  # OpenAI-compatible client; every branch below assigns one
         if api_key or base_url:
             from openai import OpenAI
-            client_kwargs = {
+            client_kwargs: Dict[str, Any] = {
                 "base_url": base_url or "https://openrouter.ai/api/v1",
                 "api_key": api_key or os.getenv(
                     "OPENROUTER_API_KEY",
@@ -235,7 +236,7 @@ class MiniSWERunner:
         self.env = None
         
         # Tool definition
-        self.tools = [TERMINAL_TOOL_DEFINITION]
+        self.tools: List[Dict[str, Any]] = [TERMINAL_TOOL_DEFINITION]
         
         print("🤖 Mini-SWE Runner initialized")
         print(f"   Model: {self.model}")
@@ -264,7 +265,7 @@ class MiniSWERunner:
                 self.env.stop()
             self.env = None
     
-    def _execute_command(self, command: str, timeout: int = None) -> Dict[str, Any]:
+    def _execute_command(self, command: str, timeout: Optional[int] = None) -> Dict[str, Any]:
         """
         Execute a command in the environment.
         
@@ -277,6 +278,7 @@ class MiniSWERunner:
         """
         if self.env is None:
             self._create_env()
+        assert self.env is not None  # _create_env() either sets self.env or raises
         
         try:
             result = self.env.execute(command, timeout=timeout or self.command_timeout)
@@ -433,7 +435,7 @@ class MiniSWERunner:
         self._create_env()
         
         # Message history
-        messages = [{"role": "user", "content": task}]
+        messages: List[Dict[str, Any]] = [{"role": "user", "content": task}]
         
         # System prompt for the LLM (ephemeral - not saved to trajectory)
         system_prompt = """You are an AI agent that can execute bash commands to complete tasks.
@@ -638,12 +640,12 @@ Complete the user's task step by step."""
 # ============================================================================
 
 def main(
-    task: str = None,
-    prompts_file: str = None,
+    task: Optional[str] = None,
+    prompts_file: Optional[str] = None,
     output_file: str = "swe-runner-test1.jsonl",
     model: str = "claude-sonnet-4-20250514",
-    base_url: str = None,
-    api_key: str = None,
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
     env: str = "local",
     image: str = "python:3.11-slim",
     cwd: str = "/tmp",

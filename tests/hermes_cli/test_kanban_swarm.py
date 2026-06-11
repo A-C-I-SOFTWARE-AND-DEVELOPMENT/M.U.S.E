@@ -30,11 +30,15 @@ def test_create_swarm_builds_parallel_workers_verifier_and_synthesizer(tmp_path)
         verifier = kb.get_task(conn, created.verifier_id)
         synthesizer = kb.get_task(conn, created.synthesizer_id)
 
+        assert root is not None
         assert root.status == "done"
+        assert root is not None
         assert root.assignee == "orchestrator"
         assert [task.status for task in workers] == ["ready", "ready"]
         assert [task.assignee for task in workers] == ["researcher-a", "researcher-b"]
+        assert verifier is not None
         assert verifier.status == "todo"
+        assert synthesizer is not None
         assert synthesizer.status == "todo"
         assert set(kb.parent_ids(conn, created.verifier_id)) == set(created.worker_ids)
         assert kb.parent_ids(conn, created.synthesizer_id) == [created.verifier_id]
@@ -98,12 +102,16 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"confidence": 0.8},
         )
         kb.recompute_ready(conn)
+        assert kb is not None
         assert kb.get_task(conn, created.verifier_id).status == "todo"
+        assert kb is not None
         assert kb.get_task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(conn, created.worker_ids[1], summary="B done")
         kb.recompute_ready(conn)
+        assert kb is not None
         assert kb.get_task(conn, created.verifier_id).status == "ready"
+        assert kb is not None
         assert kb.get_task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(
@@ -113,6 +121,7 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
             metadata={"gate": "pass"},
         )
         kb.recompute_ready(conn)
+        assert kb is not None
         assert kb.get_task(conn, created.synthesizer_id).status == "ready"
     finally:
         conn.close()

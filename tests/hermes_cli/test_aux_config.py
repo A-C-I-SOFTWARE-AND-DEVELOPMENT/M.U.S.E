@@ -36,9 +36,13 @@ def test_title_generation_present_in_default_config():
     """
     assert "title_generation" in DEFAULT_CONFIG["auxiliary"]
     tg = DEFAULT_CONFIG["auxiliary"]["title_generation"]
+    assert tg is not None
     assert tg["provider"] == "auto"
+    assert tg is not None
     assert tg["model"] == ""
+    assert tg is not None
     assert tg["timeout"] > 0
+    assert tg is not None
     assert tg["extra_body"] == {}
 
 

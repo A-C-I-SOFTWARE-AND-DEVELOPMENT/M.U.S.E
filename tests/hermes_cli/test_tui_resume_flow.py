@@ -498,6 +498,7 @@ def test_launch_tui_exports_model_provider_and_toolsets(monkeypatch, main_mod):
     def fake_call(argv, cwd=None, env=None):
         nonlocal active_path_during_call
         captured.update({"argv": argv, "cwd": cwd, "env": env})
+        assert env is not None
         active_path_during_call = Path(env["HERMES_TUI_ACTIVE_SESSION_FILE"])
         assert active_path_during_call.exists()
         return 1

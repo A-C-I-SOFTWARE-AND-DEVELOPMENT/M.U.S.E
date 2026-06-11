@@ -84,6 +84,7 @@ class TestCreateJobWorkdir:
             workdir=str(tmp_cron_dir),
         )
         stored = get_job(job["id"])
+        assert stored is not None
         assert stored["workdir"] == str(tmp_cron_dir.resolve())
 
     def test_workdir_none_preserves_old_behaviour(self, tmp_cron_dir):
@@ -92,6 +93,7 @@ class TestCreateJobWorkdir:
         stored = get_job(job["id"])
         # Field is present on the dict but None — downstream code checks
         # truthiness to decide whether the feature is active.
+        assert stored is not None
         assert stored.get("workdir") is None
 
     def test_create_rejects_invalid_workdir(self, tmp_cron_dir):

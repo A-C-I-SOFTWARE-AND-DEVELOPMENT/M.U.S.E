@@ -93,6 +93,7 @@ def validate_plan(plan: dict) -> list[str]:
             if "director" not in roles:
                 errors.append("team must include a director role")
             seen_profiles = set()
+            t: dict
             for i, t in enumerate(plan["team"]):
                 for k in ["profile", "role", "toolsets", "skills",
                           "responsibilities"]:

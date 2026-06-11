@@ -728,7 +728,7 @@ def _discover_all_plugins() -> list:
     try:
         import yaml
     except ImportError:
-        yaml = None
+        yaml = None  # ty: ignore[invalid-assignment]
 
     seen: dict = {}  # key -> (key, version, description, source, path)
 

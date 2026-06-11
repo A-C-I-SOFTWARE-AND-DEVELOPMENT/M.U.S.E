@@ -537,7 +537,7 @@ def run_doctor(args):
                 )
                 known_providers = set(PROVIDER_REGISTRY.keys()) | {"openrouter", "custom", "auto"}
             except Exception:
-                _resolve_auth_provider = None
+                _resolve_auth_provider = None  # ty: ignore[invalid-assignment]
                 pass
             try:
                 from hermes_cli.config import get_compatible_custom_providers as _compatible_custom_providers
@@ -546,9 +546,9 @@ def run_doctor(args):
                     resolve_provider_full as _resolve_provider_full,
                 )
             except Exception:
-                _compatible_custom_providers = None
-                _normalize_catalog_provider = None
-                _resolve_provider_full = None
+                _compatible_custom_providers = None  # ty: ignore[invalid-assignment]
+                _normalize_catalog_provider = None  # ty: ignore[invalid-assignment]
+                _resolve_provider_full = None  # ty: ignore[invalid-assignment]
 
             custom_providers = []
             if _compatible_custom_providers is not None:

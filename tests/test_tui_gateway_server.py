@@ -61,6 +61,7 @@ def test_write_json_returns_false_on_broken_pipe(monkeypatch):
 
 def test_dispatch_rejects_non_object_request():
     resp = server.dispatch([])
+    assert resp is not None
 
     assert resp == {
         "jsonrpc": "2.0",
@@ -71,6 +72,7 @@ def test_dispatch_rejects_non_object_request():
 
 def test_dispatch_rejects_non_object_params():
     resp = server.dispatch({"id": "1", "method": "session.create", "params": []})
+    assert resp is not None
 
     assert resp == {
         "jsonrpc": "2.0",
@@ -102,9 +104,11 @@ def test_voice_toggle_returns_configured_record_key(monkeypatch):
     on_resp = server.dispatch(
         {"id": "voice-on", "method": "voice.toggle", "params": {"action": "on"}}
     )
+    assert on_resp is not None
     status_resp = server.dispatch(
         {"id": "voice-status", "method": "voice.toggle", "params": {"action": "status"}}
     )
+    assert status_resp is not None
 
     assert on_resp["result"]["record_key"] == "ctrl+o"
     assert status_resp["result"]["record_key"] == "ctrl+o"
@@ -137,6 +141,7 @@ def test_voice_toggle_handles_non_dict_voice_cfg(monkeypatch):
                 "params": {"action": "status"},
             }
         )
+        assert status_resp is not None
 
         assert (
             status_resp["result"]["record_key"] == "ctrl+b"
@@ -156,6 +161,7 @@ def test_voice_toggle_handles_non_dict_voice_cfg(monkeypatch):
                 "params": {"action": "status"},
             }
         )
+        assert status_resp is not None
 
         assert (
             status_resp["result"]["record_key"] == "ctrl+b"
@@ -197,6 +203,7 @@ def test_voice_record_start_handles_non_dict_voice_cfg(monkeypatch):
                 "params": {"action": "start"},
             }
         )
+        assert resp is not None
 
         assert (
             "result" in resp
@@ -225,6 +232,7 @@ def test_voice_record_start_handles_non_dict_voice_cfg(monkeypatch):
                 "params": {"action": "start"},
             }
         )
+        assert resp is not None
 
         assert "result" in resp, f"voice.record raised for bool cfg={bad_bool_cfg!r}"
         assert (
@@ -258,6 +266,7 @@ def test_voice_record_stop_forces_transcription(monkeypatch):
             "params": {"action": "stop"},
         }
     )
+    assert resp is not None
 
     assert resp["result"]["status"] == "stopped"
     assert captured["force_transcribe"] is True
@@ -281,6 +290,7 @@ def test_voice_record_stop_updates_event_session_id(monkeypatch):
             "params": {"action": "stop", "session_id": "new-session"},
         }
     )
+    assert resp is not None
 
     assert resp["result"]["status"] == "stopped"
     assert server._voice_event_sid == "new-session"
@@ -305,6 +315,7 @@ def test_voice_record_start_reports_busy_when_stop_is_in_progress(monkeypatch):
             "params": {"action": "start"},
         }
     )
+    assert resp is not None
 
     assert resp["result"]["status"] == "busy"
 
@@ -336,6 +347,7 @@ def test_voice_toggle_tts_branch_also_carries_record_key(monkeypatch):
     tts_resp = server.dispatch(
         {"id": "voice-tts", "method": "voice.toggle", "params": {"action": "tts"}}
     )
+    assert tts_resp is not None
 
     assert tts_resp["result"]["record_key"] == "ctrl+space"
     assert tts_resp["result"]["tts"] is True

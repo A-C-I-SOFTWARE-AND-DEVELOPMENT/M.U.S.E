@@ -22,8 +22,8 @@ try:
     from aiohttp import web
     AIOHTTP_AVAILABLE = True
 except ImportError:
-    aiohttp = None  # type: ignore[assignment]
-    web = None  # type: ignore[assignment]
+    aiohttp = None  # ty: ignore[invalid-assignment]
+    web = None  # ty: ignore[invalid-assignment]
     AIOHTTP_AVAILABLE = False
 
 from hermes_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential

@@ -3278,7 +3278,7 @@ try:
     from hermes_cli.pty_bridge import PtyBridge, PtyUnavailableError
     _PTY_BRIDGE_AVAILABLE = True
 except ImportError as _pty_import_err:  # pragma: no cover - Windows-only path
-    PtyBridge = None  # type: ignore[assignment]
+    PtyBridge = None  # ty: ignore[invalid-assignment]
     _PTY_BRIDGE_AVAILABLE = False
 
     class PtyUnavailableError(RuntimeError):  # type: ignore[no-redef]

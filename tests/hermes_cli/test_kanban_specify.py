@@ -107,8 +107,11 @@ def test_specify_task_happy_path(kanban_home):
     with kb.connect() as conn:
         task = kb.get_task(conn, tid)
     # Parent-free → recompute_ready promotes to ready.
+    assert task is not None
     assert task.status == "ready"
+    assert task is not None
     assert task.title == "Refined rough"
+    assert task is not None
     assert "**Goal**" in (task.body or "")
 
 
@@ -126,8 +129,10 @@ def test_specify_task_falls_back_to_body_only_on_bad_json(kanban_home):
     with kb.connect() as conn:
         t = kb.get_task(conn, tid)
     # Title preserved (no JSON with a title key).
+    assert t is not None
     assert t.title == "keep title"
     # Body replaced with the raw response.
+    assert t is not None
     assert "Goal:" in (t.body or "")
 
 
@@ -168,6 +173,7 @@ def test_specify_task_no_aux_client_configured(kanban_home):
     assert "auxiliary client" in outcome.reason
     # Task must stay in triage — we never touched it.
     with kb.connect() as conn:
+        assert kb is not None
         assert kb.get_task(conn, tid).status == "triage"
 
 
@@ -186,6 +192,7 @@ def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
     assert outcome.ok is False
     assert "LLM error" in outcome.reason
     with kb.connect() as conn:
+        assert kb is not None
         assert kb.get_task(conn, tid).status == "triage"
 
 
@@ -199,6 +206,7 @@ def test_specify_task_empty_llm_response(kanban_home):
 
     assert outcome.ok is False
     with kb.connect() as conn:
+        assert kb is not None
         assert kb.get_task(conn, tid).status == "triage"
 
 
@@ -318,8 +326,10 @@ def test_cli_specify_tenant_filter(kanban_home, capsys):
 
     # The outside task stays in triage.
     with kb.connect() as conn:
+        assert kb is not None
         assert kb.get_task(conn, outside).status == "triage"
         # The inside task was promoted.
+        assert kb is not None
         assert kb.get_task(conn, inside).status in {"todo", "ready"}
 
 

@@ -269,6 +269,7 @@ class TestUpdateJob:
         assert updated["schedule"] == job["schedule"]
         # Verify persisted to disk
         fetched = get_job(job["id"])
+        assert fetched is not None
         assert fetched["name"] == "New Name"
 
     def test_update_schedule(self, tmp_cron_dir):
@@ -285,15 +286,19 @@ class TestUpdateJob:
         assert updated["next_run_at"] != old_next_run
         # Verify persisted to disk
         fetched = get_job(job["id"])
+        assert fetched is not None
         assert fetched["schedule"]["minutes"] == 120
+        assert fetched is not None
         assert fetched["schedule_display"] == "every 120m"
 
     def test_update_enable_disable(self, tmp_cron_dir):
         job = create_job(prompt="Toggle me", schedule="every 1h")
         assert job["enabled"] is True
         updated = update_job(job["id"], {"enabled": False})
+        assert updated is not None
         assert updated["enabled"] is False
         fetched = get_job(job["id"])
+        assert fetched is not None
         assert fetched["enabled"] is False
 
     def test_update_nonexistent_returns_none(self, tmp_cron_dir):
@@ -413,7 +418,9 @@ class TestMarkJobRun:
         job = create_job(prompt="Test", schedule="every 1h")
         mark_job_run(job["id"], success=True)
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["repeat"]["completed"] == 1
+        assert updated is not None
         assert updated["last_status"] == "ok"
 
     def test_repeat_limit_removes_job(self, tmp_cron_dir):
@@ -444,7 +451,9 @@ class TestMarkJobRun:
         job = create_job(prompt="Fail", schedule="every 1h")
         mark_job_run(job["id"], success=False, error="timeout")
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["last_status"] == "error"
+        assert updated is not None
         assert updated["last_error"] == "timeout"
 
     def test_delivery_error_tracked_separately(self, tmp_cron_dir):
@@ -452,8 +461,11 @@ class TestMarkJobRun:
         job = create_job(prompt="Report", schedule="every 1h")
         mark_job_run(job["id"], success=True, delivery_error="platform 'telegram' not configured")
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["last_status"] == "ok"
+        assert updated is not None
         assert updated["last_error"] is None
+        assert updated is not None
         assert updated["last_delivery_error"] == "platform 'telegram' not configured"
 
     def test_delivery_error_cleared_on_success(self, tmp_cron_dir):
@@ -461,10 +473,12 @@ class TestMarkJobRun:
         job = create_job(prompt="Report", schedule="every 1h")
         mark_job_run(job["id"], success=True, delivery_error="network timeout")
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["last_delivery_error"] == "network timeout"
         # Next run delivers successfully
         mark_job_run(job["id"], success=True, delivery_error=None)
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["last_delivery_error"] is None
 
     def test_both_agent_and_delivery_error(self, tmp_cron_dir):
@@ -473,8 +487,11 @@ class TestMarkJobRun:
         mark_job_run(job["id"], success=False, error="model timeout",
                      delivery_error="platform 'discord' not enabled")
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["last_status"] == "error"
+        assert updated is not None
         assert updated["last_error"] == "model timeout"
+        assert updated is not None
         assert updated["last_delivery_error"] == "platform 'discord' not enabled"
 
     def test_recurring_cron_not_disabled_when_croniter_missing(self, tmp_cron_dir, monkeypatch):
@@ -577,6 +594,7 @@ class TestAdvanceNextRun:
 
         updated = get_job(job["id"])
         from cron.jobs import _ensure_aware, _hermes_now
+        assert updated is not None
         new_next_dt = _ensure_aware(datetime.fromisoformat(updated["next_run_at"]))
         assert new_next_dt > _hermes_now(), "next_run_at should be in the future after advance"
 
@@ -595,6 +613,7 @@ class TestAdvanceNextRun:
 
         updated = get_job(job["id"])
         from cron.jobs import _ensure_aware, _hermes_now
+        assert updated is not None
         new_next_dt = _ensure_aware(datetime.fromisoformat(updated["next_run_at"]))
         assert new_next_dt > _hermes_now(), "next_run_at should be in the future after advance"
 
@@ -607,6 +626,7 @@ class TestAdvanceNextRun:
         assert result is False
 
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["next_run_at"] == original_next, "one-shot next_run_at should be unchanged"
 
     def test_nonexistent_job_returns_false(self, tmp_cron_dir):
@@ -621,6 +641,7 @@ class TestAdvanceNextRun:
         # Regardless of return value, the job should still be in the future
         updated = get_job(job["id"])
         from cron.jobs import _ensure_aware, _hermes_now
+        assert updated is not None
         new_next_dt = _ensure_aware(datetime.fromisoformat(updated["next_run_at"]))
         assert new_next_dt > _hermes_now(), "next_run_at should remain in the future"
 
@@ -676,6 +697,7 @@ class TestGetDueJobs:
         # next_run_at should be fast-forwarded to the future
         updated = get_job(job["id"])
         from cron.jobs import _ensure_aware, _hermes_now
+        assert updated is not None
         next_dt = _ensure_aware(datetime.fromisoformat(updated["next_run_at"]))
         assert next_dt > _hermes_now()
 
@@ -832,6 +854,7 @@ class TestEnabledToolsets:
     def test_enabled_toolsets_persisted(self, tmp_cron_dir):
         job = create_job(prompt="monitor", schedule="every 1h", enabled_toolsets=["web", "file"])
         fetched = get_job(job["id"])
+        assert fetched is not None
         assert fetched["enabled_toolsets"] == ["web", "file"]
 
     def test_enabled_toolsets_none_when_omitted(self, tmp_cron_dir):
@@ -850,6 +873,7 @@ class TestEnabledToolsets:
         job = create_job(prompt="monitor", schedule="every 1h")
         update_job(job["id"], {"enabled_toolsets": ["web", "delegation"]})
         fetched = get_job(job["id"])
+        assert fetched is not None
         assert fetched["enabled_toolsets"] == ["web", "delegation"]
 
 

@@ -1392,7 +1392,9 @@ class TestProbeGatewayHealth:
         monkeypatch.setattr(ws.urllib.request, "urlopen", lambda req, **kw: mock_resp)
         alive, body = ws._probe_gateway_health()
         assert alive is True
+        assert body is not None
         assert body["status"] == "ok"
+        assert body is not None
         assert body["pid"] == 42
 
     def test_detailed_fails_falls_back_to_simple_health(self, monkeypatch):
@@ -1417,6 +1419,7 @@ class TestProbeGatewayHealth:
         monkeypatch.setattr(ws.urllib.request, "urlopen", mock_urlopen)
         alive, body = ws._probe_gateway_health()
         assert alive is True
+        assert body is not None
         assert body["status"] == "ok"
         assert call_count[0] == 2
 
@@ -1558,14 +1561,19 @@ class TestNormaliseThemeDefinition:
                 "noiseOpacity": 0.5,
             },
         })
+        assert result is not None
         assert result["palette"]["background"]["hex"] == "#0a1628"
+        assert result is not None
         assert result["palette"]["midground"]["alpha"] == 0.9
+        assert result is not None
         assert result["palette"]["warmGlow"] == "rgba(255, 0, 0, 0.5)"
+        assert result is not None
         assert result["palette"]["noiseOpacity"] == 0.5
 
     def test_default_typography_applied_when_missing(self):
         from hermes_cli.web_server import _normalise_theme_definition
         result = _normalise_theme_definition({"name": "minimal"})
+        assert result is not None
         typo = result["typography"]
         assert "fontSans" in typo
         assert "fontMono" in typo
@@ -1582,15 +1590,20 @@ class TestNormaliseThemeDefinition:
                 "baseSize": "12px",
             },
         })
+        assert result is not None
         assert result["typography"]["fontSans"] == "MyFont, sans-serif"
+        assert result is not None
         assert result["typography"]["baseSize"] == "12px"
         # fontMono defaulted
+        assert result is not None
         assert "monospace" in result["typography"]["fontMono"]
 
     def test_layout_defaults(self):
         from hermes_cli.web_server import _normalise_theme_definition
         result = _normalise_theme_definition({"name": "minimal"})
+        assert result is not None
         assert result["layout"]["radius"] == "0.5rem"
+        assert result is not None
         assert result["layout"]["density"] == "comfortable"
 
     def test_invalid_density_falls_back(self):
@@ -1599,12 +1612,14 @@ class TestNormaliseThemeDefinition:
             "name": "bad",
             "layout": {"density": "ultra-spacious"},
         })
+        assert result is not None
         assert result["layout"]["density"] == "comfortable"
 
     def test_valid_densities_accepted(self):
         from hermes_cli.web_server import _normalise_theme_definition
         for d in ("compact", "comfortable", "spacious"):
             r = _normalise_theme_definition({"name": "x", "layout": {"density": d}})
+            assert r is not None
             assert r["layout"]["density"] == d
 
     def test_color_overrides_filter_unknown_keys(self):
@@ -1618,6 +1633,7 @@ class TestNormaliseThemeDefinition:
                 "destructive": "#ff0000",
             },
         })
+        assert result is not None
         assert result["colorOverrides"] == {
             "card": "#123456",
             "destructive": "#ff0000",
@@ -1634,11 +1650,13 @@ class TestNormaliseThemeDefinition:
             "name": "c",
             "palette": {"background": {"hex": "#000", "alpha": 99.5}},
         })
+        assert r is not None
         assert r["palette"]["background"]["alpha"] == 1.0
         r2 = _normalise_theme_definition({
             "name": "c",
             "palette": {"background": {"hex": "#000", "alpha": -5}},
         })
+        assert r2 is not None
         assert r2["palette"]["background"]["alpha"] == 0.0
 
     def test_invalid_alpha_uses_default(self):
@@ -1647,6 +1665,7 @@ class TestNormaliseThemeDefinition:
             "name": "c",
             "palette": {"background": {"hex": "#000", "alpha": "not a number"}},
         })
+        assert r is not None
         assert r["palette"]["background"]["alpha"] == 1.0
 
 
@@ -1748,19 +1767,23 @@ class TestNormaliseThemeExtensions:
     def test_layout_variant_defaults_to_standard(self):
         from hermes_cli.web_server import _normalise_theme_definition
         result = _normalise_theme_definition({"name": "t"})
+        assert result is not None
         assert result["layoutVariant"] == "standard"
 
     def test_layout_variant_accepts_known_values(self):
         from hermes_cli.web_server import _normalise_theme_definition
         for variant in ("standard", "cockpit", "tiled"):
             r = _normalise_theme_definition({"name": "t", "layoutVariant": variant})
+            assert r is not None
             assert r["layoutVariant"] == variant
 
     def test_layout_variant_rejects_unknown(self):
         from hermes_cli.web_server import _normalise_theme_definition
         r = _normalise_theme_definition({"name": "t", "layoutVariant": "warship"})
+        assert r is not None
         assert r["layoutVariant"] == "standard"
         r2 = _normalise_theme_definition({"name": "t", "layoutVariant": 12})
+        assert r2 is not None
         assert r2["layoutVariant"] == "standard"
 
     def test_assets_named_slots_passthrough(self):
@@ -1775,10 +1798,15 @@ class TestNormaliseThemeExtensions:
                 "notAKnownKey": "ignored",
             },
         })
+        assert r is not None
         assert r["assets"]["bg"] == "https://example.com/bg.jpg"
+        assert r is not None
         assert r["assets"]["hero"].startswith("linear-gradient")
+        assert r is not None
         assert r["assets"]["crest"] == "/ds-assets/crest.svg"
+        assert r is not None
         assert "logo" not in r["assets"]  # whitespace-only rejected
+        assert r is not None
         assert "notAKnownKey" not in r["assets"]  # unknown slot ignored
 
     def test_assets_custom_block(self):
@@ -1794,6 +1822,7 @@ class TestNormaliseThemeExtensions:
                 },
             },
         })
+        assert r is not None
         assert r["assets"]["custom"] == {
             "scan-lines": "/img/scan.png",
             "my_overlay": "/img/ov.png",
@@ -1811,11 +1840,13 @@ class TestNormaliseThemeExtensions:
             "name": "t",
             "customCSS": "body { color: red; }",
         })
+        assert r is not None
         assert r["customCSS"] == "body { color: red; }"
 
         # 40 KiB of CSS gets clipped to the 32 KiB cap.
         huge = "/* x */ " * (40 * 1024 // 8 + 10)
         r2 = _normalise_theme_definition({"name": "t", "customCSS": huge})
+        assert r2 is not None
         assert len(r2["customCSS"]) <= 32 * 1024
 
     def test_custom_css_empty_dropped(self):
@@ -1838,11 +1869,14 @@ class TestNormaliseThemeExtensions:
                 "rogueBucket": {"foo": "bar"},  # not a known bucket — rejected
             },
         })
+        assert r is not None
         assert r["componentStyles"]["card"] == {
             "clipPath": "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
             "boxShadow": "inset 0 0 0 1px red",
         }
+        assert r is not None
         assert r["componentStyles"]["header"]["background"].startswith("linear-gradient")
+        assert r is not None
         assert "rogueBucket" not in r["componentStyles"]
 
     def test_component_styles_empty_buckets_dropped(self):
@@ -1855,8 +1889,11 @@ class TestNormaliseThemeExtensions:
                 "footer": {"background": "black"},
             },
         })
+        assert r is not None
         assert "card" not in r.get("componentStyles", {})
+        assert r is not None
         assert "header" not in r.get("componentStyles", {})
+        assert r is not None
         assert r["componentStyles"]["footer"]["background"] == "black"
 
     def test_component_styles_accepts_numeric_values(self):
@@ -1866,6 +1903,7 @@ class TestNormaliseThemeExtensions:
             "name": "t",
             "componentStyles": {"card": {"opacity": 0.8, "zIndex": 5}},
         })
+        assert r is not None
         assert r["componentStyles"]["card"] == {"opacity": "0.8", "zIndex": "5"}
 
 
@@ -2147,7 +2185,9 @@ class TestPtyWebSocket:
 
         _argv, _cwd, env = self.ws_module._resolve_chat_argv()
 
+        assert env is not None
         assert env["HERMES_TUI_INLINE"] == "1"
+        assert env is not None
         assert env["HERMES_TUI_DISABLE_MOUSE"] == "1"
 
     def test_rejects_when_embedded_chat_disabled(self, monkeypatch):

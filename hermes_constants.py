@@ -447,8 +447,8 @@ def apply_ipv4_preference(force: bool = False) -> None:
                 return _original_getaddrinfo(host, port, family, type, proto, flags)
         return _original_getaddrinfo(host, port, family, type, proto, flags)
 
-    _ipv4_getaddrinfo._hermes_ipv4_patched = True  # type: ignore[attr-defined]
-    socket.getaddrinfo = _ipv4_getaddrinfo  # type: ignore[assignment]
+    _ipv4_getaddrinfo._hermes_ipv4_patched = True  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+    socket.getaddrinfo = _ipv4_getaddrinfo  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
 
 
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"

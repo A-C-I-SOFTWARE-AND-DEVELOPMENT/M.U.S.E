@@ -67,7 +67,7 @@ def get_bundled_plugins_dir() -> Path:
 try:
     import yaml
 except ImportError:  # pragma: no cover – yaml is optional at import time
-    yaml = None  # type: ignore[assignment]
+    yaml = None  # ty: ignore[invalid-assignment]
 
 logger = logging.getLogger(__name__)
 
