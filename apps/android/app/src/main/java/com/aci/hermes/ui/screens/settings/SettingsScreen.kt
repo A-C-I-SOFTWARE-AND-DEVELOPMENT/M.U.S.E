@@ -56,6 +56,7 @@ fun SettingsScreen(
     onOpenModelRoutes: () -> Unit,
     onOpenAvatarPicker: () -> Unit,
     onOpenKnowledge: () -> Unit = {},
+    onOpenObservatory: () -> Unit = {},
     onOpenModelCenter: () -> Unit = {},
     onOpenReleaseCenter: () -> Unit = {},
     onOpenPairing: () -> Unit = {},
@@ -213,6 +214,12 @@ fun SettingsScreen(
                 MuseButton(
                     onClick = onOpenKnowledge,
                     text = "Knowledge graph",
+                    variant = MuseButtonVariant.Secondary,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                MuseButton(
+                    onClick = onOpenObservatory,
+                    text = "Observatory",
                     variant = MuseButtonVariant.Secondary,
                     modifier = Modifier.fillMaxWidth(),
                 )

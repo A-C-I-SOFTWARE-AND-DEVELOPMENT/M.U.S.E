@@ -32,17 +32,24 @@ score.
 
 Wired vs pending seams
 ----------------------
-**Wired today: none.** There is no existing event/callback seam on the
-job-queue / orchestrator / chat paths that could be hooked without making
-the default (observatory-unused) gateway write new files on every job or
-chat turn — which would violate the byte-for-byte-unchanged constraint. The
-collector therefore ships as a public ``record_*`` API only; the
-``/v1/observatory/*`` routes read whatever has been recorded and answer
-honestly (empty / ``insufficient evidence``) when nothing has. Pending
-wirings for a later, owner-reviewed change: orchestrator ledger appends
-(``job.stage`` / ``gate.verdict``), JobQueue add/claim (``queue.depth``),
-``gateway.cockpit.agent._brain_hint`` (``route.decision``), and GraphRAG
-query paths (``node.activate``).
+**Wired today (opt-in, default OFF):** two seams record events, and only
+when :func:`enabled` returns True (env ``MUSE_OBSERVATORY`` set to ``1`` /
+``true`` / ``yes``, case-insensitive, or the marker file
+``${HERMES_HOME:-~/.hermes}/observatory/.enabled`` exists):
+
+* ``gateway.cockpit.agent`` — a ``route.decision`` around the chat reply
+  generator (tier preference from the brain hint + which generator actually
+  served, measured latency; the pluggable generator does not report a model
+  name or token counts, so those are omitted, never guessed).
+* ``hermes_cli.jarvis_prime.graphrag.query`` — ``node.activate`` for query
+  result hits, via :func:`record_query_activations` (lazily imported there,
+  so graphrag gains no hard gateway dependency).
+
+When the flag is off, both module-level seam helpers return before touching
+the collector — zero filesystem access — so the default gateway/graphrag
+paths behave byte-for-byte as before. Still pending for a later,
+owner-reviewed change: orchestrator ledger appends (``job.stage`` /
+``gate.verdict``) and JobQueue add/claim (``queue.depth``).
 
 Spec deviations (documented, not silent): writes are synchronous
 best-effort appends under a lock rather than the spec's background
@@ -53,13 +60,14 @@ simplifications for the current event volumes; ``emit`` still never raises.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import threading
 from collections import Counter, deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 # Windows accepted by /v1/observatory/metrics?window= (spec §3.3).
 WINDOWS: dict[str, int] = {"15m": 900, "1h": 3600, "24h": 86400, "7d": 604800}
@@ -83,6 +91,12 @@ _RING_DAYS = 7  # JSONL day-files kept on disk
 _MAX_EVENTS = 50_000  # in-memory rollup window (bounded)
 _STREAM_RING = 1_000  # Last-Event-ID replay ring (spec §3.2)
 
+# node.activate coalescing (spec §3.2: batched ≤ 10/s). Overflow within a
+# second is not dropped: its weight accumulates per (cluster, node, kind)
+# key — bounded — and flushes as coalesced events when the second rolls over.
+_ACTIVATE_MAX_PER_S = 10
+_ACTIVATE_PENDING_CAP = 256
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -95,6 +109,35 @@ def _iso(dt: datetime) -> str:
 def _default_root() -> Path:
     base = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
     return Path(base) / "observatory"
+
+
+def cluster_id(label: str) -> str:
+    """Cluster id for a community label (label = a graph node id).
+
+    Replicates ``handlers_observatory._cluster_id`` byte-for-byte — the seam
+    callers (graphrag) must hash into the same id space as the snapshot's
+    clusters, but importing the handlers module from here would be an import
+    cycle, so the one-line hash lives in both places. Keep them identical.
+    """
+    return "c-" + hashlib.sha1(label.encode("utf-8")).hexdigest()[:8]
+
+
+def enabled() -> bool:
+    """Whether the opt-in Observatory wiring seams are on (default OFF).
+
+    True iff env ``MUSE_OBSERVATORY`` is ``1`` / ``true`` / ``yes``
+    (case-insensitive) or the marker file
+    ``${HERMES_HOME:-~/.hermes}/observatory/.enabled`` exists. Cheap enough
+    to call per event: one env read plus one stat — the marker is re-statted
+    every call (never cached) so flipping it takes effect without a restart.
+    """
+    flag = (os.environ.get("MUSE_OBSERVATORY") or "").strip().lower()
+    if flag in ("1", "true", "yes"):
+        return True
+    try:
+        return (_default_root() / ".enabled").exists()
+    except OSError:  # pragma: no cover - defensive
+        return False
 
 
 def _percentile(values: list[float], pct: float) -> Optional[float]:
@@ -120,6 +163,10 @@ class ObservatoryCollector:
         self._stream: deque[tuple[int, str, dict[str, Any]]] = deque(maxlen=_STREAM_RING)
         self._seq = 0
         self.io_errors = 0
+        # node.activate coalescing state (spec §3.2: ≤ 10 emitted events/s).
+        self._activate_second = -1
+        self._activate_count = 0
+        self._activate_pending: dict[tuple[str, Optional[str], str], float] = {}
         self._load_recent()
 
     # -- recording ----------------------------------------------------------
@@ -222,11 +269,47 @@ class ObservatoryCollector:
         kind: str = "query",
         weight: float = 1.0,
     ) -> None:
+        # Coalesce to ≤ _ACTIVATE_MAX_PER_S emitted events per second (spec
+        # §3.2). Over-budget activations fold their weight into a pending
+        # accumulator per (cluster, node, kind) key; pending keys flush as
+        # coalesced events when the second rolls over. Bookkeeping happens
+        # under the lock, emits after release (the lock is not reentrant).
+        key = (str(cluster_id), node_id, str(kind))
+        flush: list[tuple[tuple[str, Optional[str], str], float]] = []
+        with self._lock:
+            now_s = int(_now().timestamp())
+            if now_s != self._activate_second:
+                self._activate_second = now_s
+                self._activate_count = 0
+                while (
+                    self._activate_pending
+                    and self._activate_count < _ACTIVATE_MAX_PER_S - 1
+                ):
+                    flush.append(self._activate_pending.popitem())
+                    self._activate_count += 1
+            if self._activate_count >= _ACTIVATE_MAX_PER_S:
+                if (
+                    key in self._activate_pending
+                    or len(self._activate_pending) < _ACTIVATE_PENDING_CAP
+                ):
+                    self._activate_pending[key] = (
+                        self._activate_pending.get(key, 0.0) + float(weight)
+                    )
+                return
+            self._activate_count += 1
+        for (cid, nid, knd), pending_weight in flush:
+            self.emit(
+                "node.activate",
+                cluster_id=cid,
+                node_id=nid,
+                activation=knd,
+                weight=pending_weight,
+            )
         self.emit(
             "node.activate",
-            cluster_id=cluster_id,
-            node_id=node_id,
-            activation=kind,
+            cluster_id=key[0],
+            node_id=key[1],
+            activation=key[2],
             weight=float(weight),
         )
 
@@ -614,12 +697,77 @@ def reset_collector() -> None:
         _COLLECTOR = None
 
 
+# ---------------------------------------------------------------------------
+# Opt-in seam helpers (module-level) — the only functions the wired seams
+# call. When :func:`enabled` is False they return before touching the
+# collector: no-ops with zero filesystem access, preserving the default
+# byte-for-byte-unchanged gateway behavior. When enabled they are
+# best-effort and never raise into their callers.
+# ---------------------------------------------------------------------------
+
+
+def record_route_decision(
+    turn_id: str,
+    tier: str,
+    model: str,
+    *,
+    reason: str = "",
+    latency_ms: int = 0,
+    tokens_in: int = 0,
+    tokens_out: int = 0,
+) -> None:
+    """Seam: record one per-turn brain-ladder routing decision iff enabled."""
+    if not enabled():
+        return
+    try:
+        get_collector().record_route_decision(
+            turn_id,
+            tier,
+            model,
+            reason=reason,
+            latency_ms=latency_ms,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+        )
+    except Exception:  # pragma: no cover - seams must never break callers
+        pass
+
+
+def record_query_activations(
+    hits: Iterable[tuple[str, str]], *, kind: str = "query", weight: float = 1.0
+) -> None:
+    """Seam: record GraphRAG query hits as ``node.activate`` iff enabled.
+
+    ``hits`` is an iterable of ``(community_label, node_key)`` pairs — the
+    label (a graph node id) is hashed via :func:`cluster_id` into the same
+    cluster-id space the snapshot handlers use; the key rides as ``node_id``.
+    Per-event coalescing (≤ 10/s) happens in ``record_node_activate``.
+    """
+    if not enabled():
+        return
+    try:
+        collector = get_collector()
+        for label, key in hits:
+            collector.record_node_activate(
+                cluster_id(str(label)),
+                node_id=str(key),
+                kind=kind,
+                weight=float(weight),
+            )
+    except Exception:  # pragma: no cover - seams must never break callers
+        pass
+
+
 __all__ = [
     "HEAT_WEIGHTS",
     "MIN_HEAT_N",
     "STREAM_KINDS",
     "WINDOWS",
     "ObservatoryCollector",
+    "cluster_id",
+    "enabled",
     "get_collector",
+    "record_query_activations",
+    "record_route_decision",
     "reset_collector",
 ]

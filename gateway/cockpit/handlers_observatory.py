@@ -9,10 +9,12 @@ owner-gated.
 Honesty rules (binding): every number returned is measured. When the graph
 cache has not been built the graph sections answer with the documented
 ``{"status": "unavailable", ...}`` shape; metrics keys below the confidence
-threshold report ``heat: null`` with their real ``n``; force-directed 3D
-layout positions are not computed by any existing runtime path yet, so
-``pos`` is honestly ``null`` and ``layout_status`` says so — no invented
-coordinates.
+threshold report ``heat: null`` with their real ``n``. Layout positions are
+**computed** by :mod:`gateway.cockpit.observatory_layout_engine` (3D
+force-directed for super-nodes, degree-ordered radial+refinement for member
+expansion), deterministically seeded from the graph version, memoized per
+graph-cache version, and labeled with the algorithm that actually ran
+(``layout_algo`` — show-your-work doctrine, spec §2.1/§6).
 
 Like ``handlers``, this module is stdlib-only at import time; the collector,
 GraphRAG store, and job stores are imported lazily inside each handler.
@@ -25,6 +27,8 @@ from __future__ import annotations
 
 import hashlib
 from typing import TYPE_CHECKING, Any, Optional
+
+from . import observatory_layout_engine as _layout_engine
 
 if TYPE_CHECKING:  # annotations only — runtime binding happens at module bottom
     from .handlers import JsonResponse, Request
@@ -67,7 +71,7 @@ def _node_view(graph: Any, node_id_: str) -> dict[str, Any]:
         "id": node_id_,
         "type": node.type.value,
         "label": node.title or node.key,
-        "pos": None,  # layout not computed yet — honest null, never invented
+        "pos": None,  # filled from the cached member layout by the handler
         "degree": degree,
         "heat": None,
         "source_ref": source_ref or node.key,
@@ -79,9 +83,9 @@ def _build_cluster_summary(graph: Any, graph_version: str) -> dict[str, Any]:
 
     Returns ``{clusters, cluster_edges, members}`` where ``members`` maps
     cluster id → sorted member node ids (used by the layout expansion).
-    Positions are ``None`` throughout: no existing runtime path computes a
-    force-directed layout today, and inventing coordinates would violate the
-    no-invented-numbers rule.
+    Super-node ``pos`` / ``radius`` are computed here via the layout engine
+    (deterministically seeded from ``graph_version``) so the layout is solved
+    exactly once per graph-cache version — never per request.
     """
     communities = graph.communities()
     ranked = sorted(communities.items(), key=lambda kv: (-len(kv[1]), kv[0]))
@@ -111,8 +115,8 @@ def _build_cluster_summary(graph: Any, graph_version: str) -> dict[str, Any]:
                     t: round(c / total, 3) for t, c in sorted(type_counts.items())
                 },
                 "members": total,
-                "pos": None,  # see docstring — no layout engine yet
-                "radius": None,
+                "pos": None,  # filled below from the computed super layout
+                "radius": _layout_engine.cluster_radius(total),
                 "heat": None,  # filled per-request from measured activations
             }
         )
@@ -128,6 +132,14 @@ def _build_cluster_summary(graph: Any, graph_version: str) -> dict[str, Any]:
         {"a": a, "b": b, "weight": round(w, 4), "heat": None}
         for (a, b), w in sorted(edge_weights.items())
     ]
+    # Real force-directed 3D layout over the super-node graph, seeded from
+    # the graph version (deterministic) — computed once per cache version.
+    positions = _layout_engine.super_layout(
+        clusters, cluster_edges, _layout_engine.seed_from(graph_version)
+    )
+    for cluster in clusters:
+        pos = positions.get(cluster["id"])
+        cluster["pos"] = list(pos) if pos is not None else None
     return {
         "graph_version": graph_version,
         "node_count": len(graph.nodes),
@@ -137,6 +149,7 @@ def _build_cluster_summary(graph: Any, graph_version: str) -> dict[str, Any]:
         "clusters_total": len(ranked),
         "clusters_truncated": len(ranked) > _MAX_CLUSTERS,
         "members": members,
+        "layout_algo": _layout_engine.layout_algo(),
     }
 
 
@@ -170,6 +183,53 @@ def _graph_summary() -> Optional[dict[str, Any]]:
     _CLUSTER_CACHE["key"] = cache_key
     _CLUSTER_CACHE["summary"] = summary
     return summary
+
+
+def _member_positions(
+    summary: dict[str, Any], cluster_id: str
+) -> dict[str, tuple[float, float, float]]:
+    """Member positions for one cluster, memoized per (graph_version, cluster).
+
+    Lives inside the ``_CLUSTER_CACHE``'d summary dict, so it shares the
+    cache's exact lifetime: a graph rebuild replaces the summary and thereby
+    invalidates every member layout with it. Computed over the cluster's
+    top-degree members up to the layout cap so every request ``limit`` slices
+    a prefix of the *same* deterministic layout (positions never jump between
+    requests with different limits).
+    """
+    cache: dict[str, dict[str, tuple[float, float, float]]] = summary.setdefault(
+        "_member_layouts", {}
+    )
+    cached = cache.get(cluster_id)
+    if cached is not None:
+        return cached
+    graph = summary["_graph"]
+    members = summary["members"][cluster_id]
+    nodes = sorted(
+        (
+            {
+                "id": nid,
+                "degree": len(graph.out_edges(nid)) + len(graph.in_edges(nid)),
+            }
+            for nid in members
+        ),
+        key=lambda nv: (-nv["degree"], nv["id"]),
+    )[:_LAYOUT_MAX_LIMIT]
+    kept = {nv["id"] for nv in nodes}
+    edges = [
+        {"a": e.src, "b": e.dst, "weight": float(e.weight)}
+        for e in graph.edges.values()
+        if e.src in kept and e.dst in kept
+    ]
+    positions = _layout_engine.member_layout(
+        nodes,
+        edges,
+        center=(0.0, 0.0, 0.0),  # spec §3.4: local space, relative to center
+        radius=_layout_engine.cluster_radius(len(members)),
+        seed=_layout_engine.seed_from(summary["graph_version"], cluster_id),
+    )
+    cache[cluster_id] = positions
+    return positions
 
 
 def _apply_measured_cluster_heat(
@@ -257,7 +317,8 @@ def observatory_snapshot(_req: Request) -> JsonResponse:
             "cluster_edges": summary["cluster_edges"],
             "clusters_total": summary["clusters_total"],
             "clusters_truncated": summary["clusters_truncated"],
-            "layout_status": "unavailable",  # no layout engine yet — honest
+            "layout_status": "computed",  # real positions from the engine
+            "layout_algo": summary["layout_algo"],  # which algorithm ran
         }
 
     active, queue_depth = _active_jobs()
@@ -311,7 +372,8 @@ def observatory_layout(req: Request) -> JsonResponse:
 
     Requires ``cluster``; optional ``limit`` (default 500, capped at 2000 —
     above the cap the top-degree members are returned with ``truncated``).
-    ``pos`` is ``null`` until a layout engine exists (no invented coordinates).
+    ``pos`` is the deterministic radial+refined member layout in local space
+    (relative to the cluster center), memoized per (graph_version, cluster).
     """
     cluster = (req.query.get("cluster") or "").strip()
     if not cluster:
@@ -344,6 +406,10 @@ def observatory_layout(req: Request) -> JsonResponse:
     )
     truncated = len(views) > limit
     views = views[:limit]
+    positions = _member_positions(summary, cluster)
+    for view in views:
+        pos = positions.get(view["id"])
+        view["pos"] = list(pos) if pos is not None else None
     kept = {nv["id"] for nv in views}
     edges = [
         {"a": e.src, "b": e.dst, "weight": round(float(e.weight), 4)}
@@ -357,7 +423,8 @@ def observatory_layout(req: Request) -> JsonResponse:
             "v": OBSERVATORY_VERSION,
             "cluster": cluster,
             "graph_version": summary["graph_version"],
-            "layout_status": "unavailable",  # honest: positions not computed yet
+            "layout_status": "computed",  # real positions from the engine
+            "layout_algo": _layout_engine.member_layout_algo(),
             "truncated": truncated,
             "nodes": views,
             "edges": edges,

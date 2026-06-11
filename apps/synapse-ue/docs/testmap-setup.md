@@ -51,5 +51,8 @@ written to `<Project>/Saved/muse_token.txt`.
 
 Optional SSE smoke: construct a `MuseSseClient` object (Construct Object
 from Class), bind *On Sse Event* to a Print String, call *Start* with
-`/v1/observatory/stream`, and watch `heartbeat` events print every ~2 s
-against the stub.
+`/v1/observatory/stream`, and watch the stub's scripted Observatory loop
+print (~1 event/s: `job.stage`, `node.activate`, `route.decision`,
+`gate.verdict`, a `heartbeat` each cycle, and a `resync` every 4th cycle).
+For the typed-delegate version of this smoke (the `ObservatorySubsystem`
+path), see `docs/observatory-module.md`.

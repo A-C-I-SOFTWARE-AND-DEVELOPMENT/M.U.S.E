@@ -76,6 +76,10 @@ sealed class Screen(val route: String) {
      *  Home + Settings, not a bottom-nav tab). */
     data object Knowledge : Screen("knowledge")
 
+    /** WebView host for the gateway's Neural Observatory page; full-screen
+     *  push (deep-linked from Settings beside Knowledge, not a shell tab). */
+    data object Observatory : Screen("observatory")
+
     data object JobDetail : Screen("job_detail/{jobId}") {
         const val ARG_JOB_ID = "jobId"
         fun forJob(id: String): String = "job_detail/$id"

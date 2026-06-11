@@ -68,6 +68,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "MUSE|Gateway")
 	void FetchCapabilities();
 
+	/** Build a bearer-authorized GET request for <GatewayBaseUrl><Path>,
+	 *  using the exact same config/token handling as the handshake calls
+	 *  (token read fresh from the token file at call time, never stored,
+	 *  never logged). Additive accessor for downstream consumers
+	 *  (SynapseObservatory's /v1/observatory/* fetches) so token handling
+	 *  stays in exactly one module (TDD §2.2/§8). The caller binds
+	 *  OnProcessRequestComplete (which fires on an HTTP WORKER thread —
+	 *  marshal to the game thread before broadcasting) and calls
+	 *  ProcessRequest(). C++-only; not a UFUNCTION. */
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> CreateAuthorizedGetRequest(const FString& Path) const;
+
 	/** Fired for health results (and capabilities failures). Game thread. */
 	UPROPERTY(BlueprintAssignable, Category = "MUSE|Gateway")
 	FOnGatewayHealth OnGatewayHealth;

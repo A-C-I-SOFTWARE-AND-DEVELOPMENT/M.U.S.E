@@ -204,10 +204,14 @@ def test_snapshot_and_layout_over_real_graph(home: Path) -> None:
     assert len(graph["clusters"]) == 2
     for cluster in graph["clusters"]:
         assert cluster["members"] == 2
-        assert cluster["pos"] is None  # layout honestly not computed
+        # Layout engine wired in: real computed positions, in-box, with radius.
+        assert isinstance(cluster["pos"], list) and len(cluster["pos"]) == 3
+        assert all(abs(c) <= 100.0 for c in cluster["pos"])
+        assert cluster["radius"] > 0
         assert cluster["heat"] is None  # no measured activations yet
         assert sum(cluster["type_mix"].values()) == pytest.approx(1.0)
-    assert graph["layout_status"] == "unavailable"
+    assert graph["layout_status"] == "computed"
+    assert graph["layout_algo"] in {"fr3d", "nx-spring"}
 
     cid = graph["clusters"][0]["id"]
     res = h.observatory_layout(
@@ -216,8 +220,13 @@ def test_snapshot_and_layout_over_real_graph(home: Path) -> None:
     assert res.status == 200
     assert res.payload["cluster"] == cid
     assert res.payload["truncated"] is False
+    assert res.payload["layout_status"] == "computed"
+    assert res.payload["layout_algo"] == "radial-refined"
     assert len(res.payload["nodes"]) == 2
-    assert all(n["pos"] is None for n in res.payload["nodes"])
+    assert all(
+        isinstance(n["pos"], list) and len(n["pos"]) == 3
+        for n in res.payload["nodes"]
+    )
     assert len(res.payload["edges"]) == 1
 
     # limit caps members (top-degree first) and reports truncation honestly.

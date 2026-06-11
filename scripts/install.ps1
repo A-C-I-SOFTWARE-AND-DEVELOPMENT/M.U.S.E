@@ -45,7 +45,25 @@ param(
     # Prime launch readiness. Missing local runtimes are warnings; a Hermes
     # that cannot launch is a hard failure. Parity with install.sh
     # --jarvis-launch.
-    [switch]$JarvisLaunch
+    [switch]$JarvisLaunch,
+
+    # --- First-run completion (additive, 2026-06; parity with install.sh) ---
+    # -BootstrapModels   run `muse models bootstrap --free-first --jarvis
+    #                    --no-pull` after install without prompting.
+    # -NoBootstrapModels never run/offer the model bootstrap.
+    #                    Default (neither): prompt when interactive, skip
+    #                    silently when -NonInteractive / -Json.
+    [switch]$BootstrapModels,
+    [switch]$NoBootstrapModels,
+    # Opt in to the local Observatory: creates
+    # $HermesHome\observatory\.enabled. It records routing decisions and
+    # knowledge-graph activations to local JSONL files only.
+    [switch]$EnableObservatory,
+    # Run the post-install smoke test (GET /v1/health,
+    # /v1/cockpit/capabilities, /v1/observatory/snapshot) and print the
+    # actual responses as evidence. -SmokeOnly runs ONLY the smoke test.
+    [switch]$Smoke,
+    [switch]$SmokeOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -2323,12 +2341,208 @@ function Invoke-JarvisLaunch {
     Write-Info "Stop JARVIS:    /jarvis stop   (or: python -m hermes_cli.jarvis_prime stop)"
 }
 
+# ============================================================================
+# First-run completion: model bootstrap, observatory opt-in, pairing hint,
+# and a smoke test that prints real responses (no-evidence-no-claim).
+# All additive, idempotent, and non-fatal. Parity with install.sh.
+# ============================================================================
+
+function Invoke-ModelsBootstrap {
+    if ($NoBootstrapModels) { return }
+    # --jarvis-launch already runs the same bootstrap command.
+    if ($JarvisLaunch) { return }
+
+    if (-not $BootstrapModels) {
+        # Default: prompt when interactive, skip silently otherwise.
+        if ($NonInteractive -or $Json) { return }
+        Write-Host ""
+        Write-Info "Optional: bootstrap free-first model routing now (local OSS first,"
+        Write-Info "paid providers stay opt-in). Runs: muse models bootstrap --free-first --jarvis --no-pull"
+        $response = Read-Host "Bootstrap model routing now? [y/N]"
+        if ($response -notmatch "^[Yy]") {
+            Write-Info "Skipped. Run later: muse models bootstrap --free-first --jarvis"
+            return
+        }
+    }
+
+    $hermesCmd = Resolve-HermesCmd
+    if ($hermesCmd -eq "") {
+        Write-Warn "muse command not found - skipping model bootstrap"
+        Write-Info "Run later: & '$InstallDir\venv\Scripts\muse.exe' models bootstrap --free-first --jarvis"
+        return
+    }
+
+    Write-Info "Bootstrapping free-first model routing (--no-pull: no multi-GB downloads)..."
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    & $hermesCmd models bootstrap --free-first --jarvis --no-pull
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = $prevEAP
+    if ($code -eq 0) {
+        Write-Success "Model routing bootstrapped"
+    } else {
+        Write-Warn "Model bootstrap reported issues (often just missing optional runtimes)"
+        Write-Info "Re-run later: $hermesCmd models bootstrap --free-first --jarvis"
+    }
+}
+
+function Enable-ObservatoryOptIn {
+    # The Observatory is OFF by default; opting in creates the marker file
+    # $HermesHome\observatory\.enabled. What it records, in one honest
+    # sentence: per-turn routing decisions and knowledge-graph query
+    # activations, appended to local JSONL files under
+    # $HermesHome\observatory\ (pruned to the newest 7 days) - nothing is
+    # sent off this machine.
+    $marker = Join-Path $HermesHome "observatory\.enabled"
+
+    if (-not $EnableObservatory) {
+        if ($NonInteractive -or $Json) { return }
+        if (Test-Path $marker) { return }  # already opted in - don't re-ask
+        Write-Host ""
+        Write-Info "Optional: enable the local Observatory (cockpit telemetry view)."
+        Write-Info "It records routing decisions and knowledge-graph activations to local"
+        Write-Info "JSONL files under $HermesHome\observatory\ (7-day window); nothing leaves this machine."
+        $response = Read-Host "Enable the Observatory? [y/N]"
+        if ($response -notmatch "^[Yy]") {
+            Write-Info "Skipped. Enable later: New-Item -ItemType File -Force '$marker'"
+            return
+        }
+    }
+
+    if (Test-Path $marker) {
+        Write-Success "Observatory already enabled ($marker)"
+        return
+    }
+    try {
+        New-Item -ItemType Directory -Force -Path (Split-Path $marker -Parent) | Out-Null
+        New-Item -ItemType File -Force -Path $marker | Out-Null
+        Write-Success "Observatory enabled (created $marker)"
+        Write-Info "Disable any time: Remove-Item '$marker'"
+    } catch {
+        Write-Warn "Could not create $marker - enable manually later"
+    }
+}
+
+function Write-FirstRunPairingHint {
+    Write-Host ""
+    Write-Host "* First run - start the cockpit & pair a device:" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "   muse cockpit serve   " -NoNewline -ForegroundColor Green
+    Write-Host "Start the loopback cockpit API (default 127.0.0.1:8765)."
+    Write-Host "                        It prints the pairing token and the browser cockpit URL"
+    Write-Host "                        (http://127.0.0.1:8765/cockpit/)."
+    Write-Host "   muse cockpit token   " -NoNewline -ForegroundColor Green
+    Write-Host "Print the pairing token again (--rotate to rotate it)."
+    Write-Host ""
+    Write-Host "   Pair the MUSE Android app (or the browser cockpit) with that base URL"
+    Write-Host "   + token. The app's pairing screen drives POST /v1/cockpit/pair/start"
+    Write-Host "   and /v1/cockpit/pair/confirm for you."
+    Write-Host ""
+}
+
+# One smoke-test GET. Prints the real HTTP status + response body
+# (truncated) - never a bare "OK" claim. Returns $true on HTTP 200.
+function Invoke-SmokeProbe {
+    param(
+        [string]$Url,
+        [string]$Label,
+        [string]$Token = ""
+    )
+    $headers = @{}
+    if ($Token) { $headers["Authorization"] = "Bearer $Token" }
+    $status = 0
+    $body = ""
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $resp = Invoke-WebRequest -Uri $Url -Headers $headers -UseBasicParsing -TimeoutSec 8
+        $status = [int]$resp.StatusCode
+        $body = $resp.Content
+    } catch {
+        # Non-2xx: recover the real status + body where the host exposes it
+        # (HttpWebResponse on PS 5.1; HttpResponseMessage on PS 7+).
+        $r = $_.Exception.Response
+        if ($r) {
+            try { $status = [int]$r.StatusCode } catch { }
+            try {
+                $reader = New-Object System.IO.StreamReader($r.GetResponseStream())
+                $body = $reader.ReadToEnd()
+            } catch { }
+        }
+    }
+    $ErrorActionPreference = $prevEAP
+    Write-Host ("  GET {0} -> HTTP {1}" -f $Label, $status)
+    if ($body) {
+        $snippet = if ($body.Length -gt 400) { $body.Substring(0, 400) + "..." } else { $body }
+        foreach ($line in $snippet -split "`n") { Write-Host "    $line" }
+    } else {
+        Write-Host "    (empty response body)"
+    }
+    return ($status -eq 200)
+}
+
+function Invoke-SmokeTest {
+    param([switch]$Force)
+    # Runs when -Smoke / -SmokeOnly was passed, or automatically when a
+    # cockpit/gateway is already reachable on the default port. Prints the
+    # actual /v1/health, /v1/cockpit/capabilities, and
+    # /v1/observatory/snapshot responses; degrades gracefully when nothing
+    # is listening by printing the exact command to start it.
+    $base = if ($env:HERMES_COCKPIT_URL) { $env:HERMES_COCKPIT_URL } else { "http://127.0.0.1:8765" }
+
+    $reachable = $false
+    try {
+        $null = Invoke-WebRequest -Uri "$base/v1/health" -UseBasicParsing -TimeoutSec 3
+        $reachable = $true
+    } catch { }
+    if (-not $reachable) {
+        if ($Force -or $Smoke) {
+            Write-Host ""
+            Write-Warn "Smoke test: no cockpit API reachable at $base"
+            Write-Info "Start it, then re-run the smoke test:"
+            Write-Info "  muse cockpit serve"
+            Write-Info "  .\install.ps1 -SmokeOnly"
+        }
+        return
+    }
+
+    Write-Host ""
+    Write-Info "Smoke test - live responses from $base (evidence, not claims):"
+
+    [void](Invoke-SmokeProbe -Url "$base/v1/health" -Label "/v1/health")
+
+    # Bearer-gated endpoints: use the cockpit token when it exists on disk.
+    $tokenPath = Join-Path $HermesHome "cockpit\token"
+    $token = ""
+    if (Test-Path $tokenPath) {
+        $raw = Get-Content $tokenPath -Raw -ErrorAction SilentlyContinue
+        if ($raw) { $token = $raw.Trim() }
+    }
+    if (-not $token) {
+        Write-Info "No cockpit token at $tokenPath yet - the two bearer-gated probes"
+        Write-Info "below are expected to return HTTP 401."
+        Write-Info "(Run 'muse cockpit token' to create/print the token.)"
+    }
+    [void](Invoke-SmokeProbe -Url "$base/v1/cockpit/capabilities" -Label "/v1/cockpit/capabilities" -Token $token)
+    [void](Invoke-SmokeProbe -Url "$base/v1/observatory/snapshot" -Label "/v1/observatory/snapshot" -Token $token)
+
+    if (-not (Test-Path (Join-Path $HermesHome "observatory\.enabled"))) {
+        Write-Info "Note: the Observatory is opt-in; /v1/observatory/snapshot reports an"
+        Write-Info "empty/disabled view until $HermesHome\observatory\.enabled exists."
+    }
+}
+
 function Main {
     Write-Banner
     Invoke-AllStages
     Invoke-JarvisLaunch
+    # First-run completion (all additive + non-fatal; see functions above).
+    Invoke-ModelsBootstrap
+    Enable-ObservatoryOptIn
     if (-not $Json) {
         Write-Completion
+        Write-FirstRunPairingHint
+        Invoke-SmokeTest
     } else {
         @{ ok = $true; protocol_version = $InstallStageProtocolVersion } | ConvertTo-Json -Compress | Write-Output
     }
@@ -2353,6 +2567,13 @@ try {
     }
     if ($PostInstall) {
         Invoke-PostInstallMode
+        exit 0
+    }
+
+    if ($SmokeOnly) {
+        # Smoke-only mode: probe the running cockpit API and print real
+        # responses. Never installs or updates anything.
+        Invoke-SmokeTest -Force
         exit 0
     }
 

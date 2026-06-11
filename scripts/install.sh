@@ -74,6 +74,13 @@ BRANCH="main"
 ENSURE_DEPS=""
 POSTINSTALL_MODE=false
 JARVIS_LAUNCH=false
+# First-run completion options (additive, 2026-06):
+#   BOOTSTRAP_MODELS: "" = prompt when a TTY is available, skip otherwise;
+#                     "true"/"false" when forced via flag.
+BOOTSTRAP_MODELS=""
+ENABLE_OBSERVATORY=false
+RUN_SMOKE=false
+SMOKE_ONLY=false
 
 # Detect non-interactive mode (e.g. curl | bash)
 # When stdin is not a terminal, read -p will fail with EOF,
@@ -124,6 +131,27 @@ while [[ $# -gt 0 ]]; do
             JARVIS_LAUNCH=true
             shift
             ;;
+        --bootstrap-models)
+            BOOTSTRAP_MODELS=true
+            shift
+            ;;
+        --no-bootstrap-models)
+            BOOTSTRAP_MODELS=false
+            shift
+            ;;
+        --enable-observatory)
+            ENABLE_OBSERVATORY=true
+            shift
+            ;;
+        --smoke)
+            RUN_SMOKE=true
+            shift
+            ;;
+        --smoke-only)
+            RUN_SMOKE=true
+            SMOKE_ONLY=true
+            shift
+            ;;
         -h|--help)
             echo "Hermes Agent Installer"
             echo ""
@@ -160,6 +188,19 @@ while [[ $# -gt 0 ]]; do
             echo "                   --free-first --jarvis; muse doctor"
             echo "                   --jarvis-launch). Missing local runtimes are"
             echo "                   warnings; a broken Hermes is a hard failure."
+            echo "  --bootstrap-models     Run 'muse models bootstrap --free-first"
+            echo "                   --jarvis --no-pull' after install (no prompt)."
+            echo "  --no-bootstrap-models  Never run/offer the model bootstrap."
+            echo "                   Default: prompt when a terminal is available,"
+            echo "                   skip silently when non-interactive."
+            echo "  --enable-observatory   Opt in to the local Observatory: creates"
+            echo "                   \$HERMES_HOME/observatory/.enabled. Records"
+            echo "                   routing/graph events to local JSONL only."
+            echo "  --smoke        Run the post-install smoke test against the"
+            echo "                   cockpit API (GET /v1/health, /v1/cockpit/"
+            echo "                   capabilities, /v1/observatory/snapshot) and"
+            echo "                   print the actual responses as evidence."
+            echo "  --smoke-only   Run ONLY the smoke test (no install/update)."
             exit 0
             ;;
         *)
@@ -2119,6 +2160,187 @@ run_jarvis_launch() {
 }
 
 # ============================================================================
+# First-run completion: model bootstrap, observatory opt-in, pairing hint,
+# and a smoke test that prints real responses (no-evidence-no-claim).
+# All additive, idempotent, and non-fatal — installs never fail here.
+# ============================================================================
+
+# True when we can actually ask the user a question (direct TTY, or a
+# readable /dev/tty under curl | bash).
+can_prompt_user() {
+    [ "$IS_INTERACTIVE" = true ] && return 0
+    (: </dev/tty) 2>/dev/null
+}
+
+# Optional free-first model bootstrap. Skipped when --jarvis-launch already
+# ran the same command, when forced off, or when non-interactive without
+# --bootstrap-models.
+maybe_bootstrap_models() {
+    [ "$BOOTSTRAP_MODELS" = false ] && return 0
+    if [ "$JARVIS_LAUNCH" = true ]; then
+        # run_jarvis_launch already executed `muse models bootstrap`.
+        return 0
+    fi
+
+    if [ "$BOOTSTRAP_MODELS" != true ]; then
+        # Default: prompt when a TTY is available, skip silently otherwise.
+        if ! can_prompt_user; then
+            return 0
+        fi
+        echo ""
+        log_info "Optional: bootstrap free-first model routing now (local OSS first,"
+        log_info "paid providers stay opt-in). Runs: muse models bootstrap --free-first --jarvis --no-pull"
+        if ! prompt_yes_no "Bootstrap model routing now?" "no"; then
+            log_info "Skipped. Run later: muse models bootstrap --free-first --jarvis"
+            return 0
+        fi
+    fi
+
+    local hermes_cmd
+    hermes_cmd="$(resolve_hermes_cmd)"
+    if [ -z "$hermes_cmd" ]; then
+        log_warn "muse command not found — skipping model bootstrap"
+        log_info "Run later: cd $INSTALL_DIR && ./venv/bin/muse models bootstrap --free-first --jarvis"
+        return 0
+    fi
+
+    log_info "Bootstrapping free-first model routing (--no-pull: no multi-GB downloads)..."
+    if "$hermes_cmd" models bootstrap --free-first --jarvis --no-pull; then
+        log_success "Model routing bootstrapped"
+    else
+        log_warn "Model bootstrap reported issues (often just missing optional runtimes)"
+        log_info "Re-run later: $hermes_cmd models bootstrap --free-first --jarvis"
+    fi
+}
+
+# Observatory opt-in. The Observatory is OFF by default; opting in creates
+# the marker file ${HERMES_HOME}/observatory/.enabled. What it records, in
+# one honest sentence: per-turn routing decisions and knowledge-graph query
+# activations, appended to local JSONL files under ~/.hermes/observatory/
+# (pruned to the newest 7 days) — nothing is sent off this machine.
+maybe_enable_observatory() {
+    local marker="$HERMES_HOME/observatory/.enabled"
+
+    if [ "$ENABLE_OBSERVATORY" != true ]; then
+        if ! can_prompt_user; then
+            return 0
+        fi
+        if [ -f "$marker" ]; then
+            return 0  # already opted in — don't re-ask
+        fi
+        echo ""
+        log_info "Optional: enable the local Observatory (cockpit telemetry view)."
+        log_info "It records routing decisions and knowledge-graph activations to local"
+        log_info "JSONL files under ~/.hermes/observatory/ (7-day window); nothing leaves this machine."
+        if ! prompt_yes_no "Enable the Observatory?" "no"; then
+            log_info "Skipped. Enable later: touch $marker"
+            return 0
+        fi
+    fi
+
+    if [ -f "$marker" ]; then
+        log_success "Observatory already enabled ($marker)"
+        return 0
+    fi
+    if mkdir -p "$HERMES_HOME/observatory" 2>/dev/null && touch "$marker" 2>/dev/null; then
+        log_success "Observatory enabled (created $marker)"
+        log_info "Disable any time: rm $marker"
+    else
+        log_warn "Could not create $marker — enable manually later"
+    fi
+}
+
+# First-run pairing hint: how to start the cockpit API and pair a device.
+print_first_run_pairing_hint() {
+    echo ""
+    echo -e "${CYAN}${BOLD}📱 First run — start the cockpit & pair a device:${NC}"
+    echo ""
+    echo -e "   ${GREEN}muse cockpit serve${NC}     Start the loopback cockpit API (default 127.0.0.1:8765)."
+    echo "                          It prints the pairing token and the browser cockpit URL"
+    echo "                          (http://127.0.0.1:8765/cockpit/)."
+    echo -e "   ${GREEN}muse cockpit token${NC}     Print the pairing token again (--rotate to rotate it)."
+    echo ""
+    echo "   Pair the MUSE Android app (or the browser cockpit) with that base URL"
+    echo "   + token. The app's pairing screen drives POST /v1/cockpit/pair/start"
+    echo "   and /v1/cockpit/pair/confirm for you."
+    echo ""
+}
+
+# One smoke-test GET. Prints the real HTTP status + response body (truncated)
+# — never a bare "OK" claim. $3 (optional) is a bearer token.
+_smoke_get() {
+    local url="$1" label="$2" token="${3:-}"
+    local body_file http_code
+    body_file="$(mktemp 2>/dev/null || echo "/tmp/hermes-smoke.$$")"
+    if [ -n "$token" ]; then
+        http_code="$(curl -sS -o "$body_file" -w '%{http_code}' --max-time 8 \
+            -H "Authorization: Bearer $token" "$url" 2>/dev/null)" || http_code="000"
+    else
+        http_code="$(curl -sS -o "$body_file" -w '%{http_code}' --max-time 8 \
+            "$url" 2>/dev/null)" || http_code="000"
+    fi
+    echo "  GET $label -> HTTP $http_code"
+    if [ -s "$body_file" ]; then
+        # Print the actual response (first 400 bytes) as evidence.
+        head -c 400 "$body_file" | sed 's/^/    /'
+        echo ""
+    else
+        echo "    (empty response body)"
+    fi
+    rm -f "$body_file"
+    [ "$http_code" = "200" ]
+}
+
+# Post-install smoke test. Runs when --smoke was passed, or automatically
+# when a cockpit/gateway is already reachable on the default port. Prints
+# the actual /v1/health, /v1/cockpit/capabilities, and
+# /v1/observatory/snapshot responses; degrades gracefully when nothing is
+# listening by printing the exact command to start it.
+run_smoke_test() {
+    local base="${HERMES_COCKPIT_URL:-http://127.0.0.1:8765}"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        [ "$RUN_SMOKE" = true ] && log_warn "curl not found — cannot run the smoke test"
+        return 0
+    fi
+
+    # Cheap reachability probe first (also the auto-run trigger).
+    if ! curl -fsS --max-time 3 "$base/v1/health" >/dev/null 2>&1; then
+        if [ "$RUN_SMOKE" = true ]; then
+            echo ""
+            log_warn "Smoke test: no cockpit API reachable at $base"
+            log_info "Start it, then re-run the smoke test:"
+            log_info "  muse cockpit serve"
+            log_info "  bash ${INSTALL_DIR:-\$HERMES_HOME/hermes-agent}/scripts/install.sh --smoke-only"
+        fi
+        return 0
+    fi
+
+    echo ""
+    log_info "Smoke test — live responses from $base (evidence, not claims):"
+
+    _smoke_get "$base/v1/health" "/v1/health" || true
+
+    # Bearer-gated endpoints: use the cockpit token when it exists on disk.
+    local token=""
+    if [ -f "$HERMES_HOME/cockpit/token" ]; then
+        token="$(cat "$HERMES_HOME/cockpit/token" 2>/dev/null || true)"
+    fi
+    if [ -z "$token" ]; then
+        log_info "No cockpit token at $HERMES_HOME/cockpit/token yet — the two"
+        log_info "bearer-gated probes below are expected to return HTTP 401."
+        log_info "(Run 'muse cockpit token' to create/print the token.)"
+    fi
+    _smoke_get "$base/v1/cockpit/capabilities" "/v1/cockpit/capabilities" "$token" || true
+    _smoke_get "$base/v1/observatory/snapshot" "/v1/observatory/snapshot" "$token" || true
+
+    if [ ! -f "$HERMES_HOME/observatory/.enabled" ]; then
+        log_info "Note: the Observatory is opt-in; /v1/observatory/snapshot reports"
+        log_info "an empty/disabled view until $HERMES_HOME/observatory/.enabled exists."
+    fi
+}
+
+# ============================================================================
 # Main
 # ============================================================================
 
@@ -2147,6 +2369,12 @@ main() {
 
     run_jarvis_launch
 
+    # First-run completion (all additive + non-fatal; see functions above).
+    maybe_bootstrap_models
+    maybe_enable_observatory
+    print_first_run_pairing_hint
+    run_smoke_test
+
     echo "git" > "$HERMES_HOME/.install_method"
 }
 
@@ -2154,6 +2382,10 @@ if [ -n "$ENSURE_DEPS" ]; then
     ensure_mode
 elif [ "$POSTINSTALL_MODE" = true ]; then
     postinstall_mode
+elif [ "$SMOKE_ONLY" = true ]; then
+    # Smoke-only mode: probe the running cockpit API and print real
+    # responses. Never installs or updates anything.
+    run_smoke_test
 else
     main
 fi

@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **100 routes** across **98 distinct handlers**
+- **112 routes** across **110 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -115,9 +115,21 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/voice/responses` | `gateway.cockpit.handlers.voice_responses` | bearer | — | json | Synthesize spoken audio for a response string (returned as base64). |
 | POST | `/v1/cockpit/voice/transcribe` | `gateway.cockpit.handlers.voice_transcribe` | bearer | — | json | Transcribe uploaded audio to redacted text (audio is NOT retained). |
 | POST | `/v1/cockpit/voice/{id}/decide` | `gateway.cockpit.handlers.voice_intake_decide` | bearer | — | json | Resolve a voice intake with an explicit spoken/typed phrase. |
+| GET | `/v1/foundry/candidates` | `gateway.cockpit.handlers_game.foundry_candidates_list` | bearer | — | json | List candidates, optionally filtered by ``?status=`` (pending / |
+| POST | `/v1/foundry/candidates` | `gateway.cockpit.handlers_game.foundry_candidate_create` | bearer | — | json | Create a candidate from an allowlist-validated spec. Status starts |
+| POST | `/v1/foundry/candidates/{id}/ship` | `gateway.cockpit.handlers_game.foundry_candidate_ship` | bearer | — | json | Flip ``shipped=true``. 409 unless validation.status == 'validated' |
+| POST | `/v1/foundry/candidates/{id}/validation` | `gateway.cockpit.handlers_game.foundry_candidate_validation` | bearer | — | json | Record a validation result measured by the external battle-sim |
+| POST | `/v1/foundry/observe` | `gateway.cockpit.handlers_game.foundry_observe` | bearer | — | json | Append one struggle-pattern observation (opt-in is the game client's |
+| GET | `/v1/game/design` | `gateway.cockpit.handlers_game.game_design` | bearer | — | json | Static, source-cited design constants (lattice, costs, domains, |
+| GET | `/v1/game/saves` | `gateway.cockpit.handlers_game.game_saves_list` | bearer | — | json | Slot summaries for the save-select screen. |
+| DELETE | `/v1/game/saves/{slot}` | `gateway.cockpit.handlers_game.game_save_delete` | bearer | — | json |  |
+| GET | `/v1/game/saves/{slot}` | `gateway.cockpit.handlers_game.game_save_get` | bearer | — | json | Full save document. 400 for a bad slot number, 404 for an empty slot. |
+| POST | `/v1/game/saves/{slot}` | `gateway.cockpit.handlers_game.game_save_write` | bearer | — | json | Section-level merge write (semantics in the module docstring). |
 | GET | `/v1/health` | `gateway.cockpit.handlers.health` | open | — | json | Unauthenticated liveness + version probe (contract §2). |
 | POST | `/v1/jarvis/chat` | `gateway.cockpit.server._make_handler.<locals>.Handler._stream_chat` | bearer | — | chat-ndjson |  |
 | GET | `/v1/observatory/layout` | `gateway.cockpit.handlers_observatory.observatory_layout` | bearer | — | json | On-demand cluster expansion for the galaxy LOD (spec §3.4). |
 | GET | `/v1/observatory/metrics` | `gateway.cockpit.handlers_observatory.observatory_metrics` | bearer | — | json | Measured rollups for heat / ladder brightness (spec §3.3). |
+| GET | `/v1/observatory/recommendations` | `gateway.cockpit.handlers_observatory_recs.observatory_recommendations` | bearer | — | json | Recommendation verdict cards (spec §6) — bearer-authed, read-only. |
+| POST | `/v1/observatory/recommendations/{id}/stage` | `gateway.cockpit.handlers_observatory_recs.observatory_recommendation_stage` | bearer | — | json | Stage one card into the existing owner-gated proposals queue. |
 | GET | `/v1/observatory/snapshot` | `gateway.cockpit.handlers_observatory.observatory_snapshot` | bearer | — | json | One-call Observatory boot: graph clusters + stations + ladder + rollup. |
 | GET | `/v1/observatory/stream` | `gateway.cockpit.server._make_handler.<locals>.Handler._stream_observatory` | bearer | — | sse | SSE stream of observatory events (job.stage / gate.verdict / |
