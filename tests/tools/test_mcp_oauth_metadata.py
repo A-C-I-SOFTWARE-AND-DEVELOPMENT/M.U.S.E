@@ -141,6 +141,7 @@ class TestManagerOAuthProviderMetadata:
 
         provider = _manager_provider_with_context(storage, oauth_metadata=in_memory)
 
+        assert _HERMES_PROVIDER_CLS is not None
         with patch.object(
             _HERMES_PROVIDER_CLS.__bases__[0], "_initialize", new=AsyncMock()
         ):
@@ -197,6 +198,7 @@ class TestManagerOAuthProviderMetadata:
         manager = MagicMock()
         manager.invalidate_if_disk_changed = AsyncMock(return_value=False)
 
+        assert _HERMES_PROVIDER_CLS is not None
         with patch.object(
             _HERMES_PROVIDER_CLS.__bases__[0],
             "async_auth_flow",

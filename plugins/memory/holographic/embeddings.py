@@ -25,6 +25,7 @@ import math
 import os
 import struct
 from abc import ABC, abstractmethod
+from typing import Any
 
 try:  # numpy is optional everywhere in this plugin
     import numpy as _np  # ty: ignore[unresolved-import]
@@ -114,7 +115,7 @@ class SentenceTransformerBackend(EmbeddingBackend):
 
     def __init__(self, model: str = "all-MiniLM-L6-v2") -> None:
         self.model_name = model
-        self._model = None
+        self._model: Any = None
         self.dim = 0
 
     def is_available(self) -> bool:

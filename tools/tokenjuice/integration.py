@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from .classify import classify
 from .config import CompactionConfig
@@ -42,7 +42,8 @@ def extract_command_argv(arguments: Any) -> tuple[Optional[str], Optional[list[s
 
     argv = arguments.get("argv")
     if isinstance(argv, list) and argv and all(isinstance(x, str) for x in argv):
-        return " ".join(argv), list(argv)
+        # The all(isinstance(x, str)) guard above guarantees list[str].
+        return " ".join(argv), cast("list[str]", list(argv))
 
     cmd = arguments.get("command")
     if not isinstance(cmd, str):

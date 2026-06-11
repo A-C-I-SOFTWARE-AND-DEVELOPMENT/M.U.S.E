@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
 
 from hermes_constants import is_wsl as _is_wsl
 

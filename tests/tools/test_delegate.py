@@ -246,7 +246,7 @@ class TestDelegateTask(unittest.TestCase):
             ]
         )
 
-        result = json.loads(delegate_task(tasks=tasks, parent_agent=parent))
+        result = json.loads(delegate_task(tasks=tasks, parent_agent=parent))  # ty: ignore[invalid-argument-type]
 
         self.assertIn("results", result)
         self.assertEqual(len(result["results"]), 2)
@@ -1933,6 +1933,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         self.assertIsNotNone(cb)
 
         cb("tool.started", tool_name="terminal", preview="ls")
@@ -1945,6 +1946,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
 
         cb("_thinking", tool_name=None, preview="pondering...")
         assert any("💭" in str(c) for c in parent._delegate_spinner.print_above.call_args_list)
@@ -1960,6 +1962,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("tool.completed", tool_name="terminal")
         parent._delegate_spinner.print_above.assert_not_called()
 
@@ -1969,6 +1972,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent._delegate_spinner = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         # Should not raise
         cb("some.unknown.event", tool_name="x")
         parent._delegate_spinner.print_above.assert_not_called()
@@ -1982,6 +1986,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb(DelegateEvent.TASK_THINKING, preview="pondering")
         # If the enum was accepted, the thinking emoji got printed.
         assert any(
@@ -1997,6 +2002,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent._delegate_spinner = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("delegate.task_thinking", preview="hmm")
         assert any(
             "💭" in str(c)
@@ -2020,6 +2026,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("subagent_progress", tool_name="🔀 [1] terminal, file")
 
         # Spinner gets a distinct 🔀-prefixed line, NOT a tool emoji
