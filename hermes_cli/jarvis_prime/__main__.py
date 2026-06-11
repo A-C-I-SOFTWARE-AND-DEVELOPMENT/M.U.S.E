@@ -2150,6 +2150,22 @@ def _cmd_research_fabric(args: argparse.Namespace) -> int:
     return _rf_cli(list(getattr(args, "rf_args", []) or []))
 
 
+def _cmd_federation(args: argparse.Namespace) -> int:
+    """Delegate to the standalone federation CLI (keeps its tree self-contained)."""
+
+    from hermes_cli.jarvis_prime.federation.main import cli_main as _fed_cli
+
+    return _fed_cli(list(getattr(args, "fed_args", []) or []))
+
+
+def _cmd_forge(args: argparse.Namespace) -> int:
+    """Delegate to the standalone Forge CLI (keeps its tree self-contained)."""
+
+    from hermes_cli.jarvis_prime.forge.main import cli_main as _forge_cli
+
+    return _forge_cli(list(getattr(args, "forge_args", []) or []))
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="python -m hermes_cli.jarvis_prime",
@@ -3325,6 +3341,48 @@ def main(argv: Optional[list[str]] = None) -> int:
         help="Arguments forwarded to the research_fabric CLI (e.g. 'report').",
     )
     p_rf.set_defaults(func=_cmd_research_fabric)
+
+    # federation — Vol VI sovereign-node federation, quorum governance, scaling
+    # & compliance. The full subcommand tree lives in federation.main; we
+    # delegate so it stays independently runnable and tested.
+    p_fed = sub.add_parser(
+        "federation",
+        help="Sovereign-node federation, quorum governance, scaling & compliance",
+        description=(
+            "Cross-attestation between sovereign MUSE nodes, M-of-N quorum "
+            "authorization, the constitution amendment asset-lock, contributor "
+            "trust ladder, scaling decision tree, sovereignty index, and "
+            "compliance evidence export. Subcommands: identity | attest | "
+            "import | peers | diverge | quorum | amend | trust | intake | "
+            "scale | sovereignty | compliance."
+        ),
+    )
+    p_fed.add_argument(
+        "fed_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to the federation CLI (e.g. 'sovereignty').",
+    )
+    p_fed.set_defaults(func=_cmd_federation)
+
+    # forge — Vol VI Expert Forge at scale: content-addressed candidate lookup,
+    # Glicko-2 tournaments, MAP-Elites, attested leaderboards, distillation.
+    p_forge = sub.add_parser(
+        "forge",
+        help="Expert Forge: verifier-judged tournaments + attested leaderboards",
+        description=(
+            "Content-addressed candidate registry (resolve-or-fail lookup), "
+            "Glicko-2 matchmaking, MAP-Elites diversity grid, Merkle-anchored "
+            "leaderboards, and winner distillation through the poison filter. "
+            "Subcommands: register | lookup | candidates | duel | tournament | "
+            "ratings | elites | leaderboard | anchor | verify-anchor | distill."
+        ),
+    )
+    p_forge.add_argument(
+        "forge_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments forwarded to the Forge CLI (e.g. 'leaderboard').",
+    )
+    p_forge.set_defaults(func=_cmd_forge)
 
     args = parser.parse_args(argv)
     return args.func(args)
