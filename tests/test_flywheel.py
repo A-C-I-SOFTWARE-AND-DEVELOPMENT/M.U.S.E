@@ -97,3 +97,40 @@ def test_cli(capsys: pytest.CaptureFixture) -> None:
     fw.record("agent.action", {"summary": "boom"}, outcome="failure")
     assert fw.main(["digest", "--hours", "1"]) == 0
     assert json.loads(capsys.readouterr().out)["pending_improvements"] == 1
+
+
+def test_file_pending_to_plans(tmp_path) -> None:
+    assert fw.file_pending_to_plans(str(tmp_path / "plans")) is None  # empty queue
+    fw.queue_improvement("fix the frobnicator")
+    path = fw.file_pending_to_plans(str(tmp_path / "plans"))
+    assert path is not None and path.is_file()
+    text = path.read_text(encoding="utf-8")
+    assert "fix the frobnicator" in text
+    # Filing copies, never drains: the entry is still pending.
+    assert len(fw.pending()) == 1
+
+
+def test_tool_dispatch_failure_lands_in_flywheel() -> None:
+    from model_tools import _flywheel_record_action
+
+    _flywheel_record_action("demo_tool", 12, failed=False)
+    _flywheel_record_action("demo_tool", None, failed=True, lesson="exploded")
+    d = fw.digest()
+    assert d["by_kind"].get("agent.action") == 2
+    assert d["by_outcome"].get("failure") == 1
+    assert fw.pending()  # the failure auto-queued
+
+
+def test_owner_brief_includes_flywheel_digest() -> None:
+    from hermes_cli.jarvis_prime.owner_brief import build_owner_brief
+
+    fw.record("owner.prompt", {"summary": "hi"})
+    fw.record("agent.action", {"summary": "boom"}, outcome="failure", lesson="l1")
+    brief = build_owner_brief([], flywheel_digest=fw.digest())
+    rendered = brief.render()
+    assert "Flywheel digest" in rendered
+    assert "failure in agent.action: l1" in rendered
+    assert brief.to_dict()["flywheel_digest"]
+
+    # No digest supplied -> section absent (module stays I/O-free).
+    assert "Flywheel digest" not in build_owner_brief([]).render()

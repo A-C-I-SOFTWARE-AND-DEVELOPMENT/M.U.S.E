@@ -6436,6 +6436,22 @@ class GatewayRunner:
         # are system-generated and must skip user authorization.
         is_internal = bool(getattr(event, "internal", False))
 
+        # Flywheel: every owner-originated message is recorded (locally,
+        # under HERMES_HOME) so digest()/pending() reflect real use.
+        if not is_internal:
+            try:
+                from hermes_cli.jarvis_prime import flywheel as _flywheel
+
+                _flywheel.record(
+                    "owner.prompt",
+                    {
+                        "platform": source.platform.value if source.platform else None,
+                        "summary": (event.text or "")[:200],
+                    },
+                )
+            except Exception:
+                pass
+
         # Fire pre_gateway_dispatch plugin hook for user-originated messages.
         # Plugins receive the MessageEvent and may return a dict influencing flow:
         #   {"action": "skip",    "reason": ...}    -> drop (no reply, plugin handled)
@@ -7190,6 +7206,9 @@ class GatewayRunner:
         if canonical == "agents":
             return await self._handle_agents_command(event)
 
+        if canonical == "flywheel":
+            return self._handle_flywheel_command(event)
+
         if canonical == "platform":
             return await self._handle_platform_command(event)
 
@@ -7460,6 +7479,16 @@ class GatewayRunner:
                     )
                     if msg:
                         event.text = msg
+                        try:
+                            from hermes_cli.jarvis_prime import flywheel as _flywheel
+
+                            _flywheel.record(
+                                "skill.used",
+                                {"skill": _skill_name or cmd_key},
+                                outcome="success",
+                            )
+                        except Exception:
+                            pass
                         # Fall through to normal message processing with skill content
                 else:
                     # Not an active skill — check if it's a known-but-disabled or
@@ -9506,6 +9535,44 @@ class GatewayRunner:
         except Exception as exc:  # pragma: no cover — defensive
             logger.debug("build_recap failed in /status: %s", exc)
 
+        return "\n".join(lines)
+
+    def _handle_flywheel_command(self, event: MessageEvent) -> str:
+        """Handle /flywheel [digest|pending] — surface the flywheel state."""
+        from hermes_cli.jarvis_prime import flywheel
+
+        sub = (event.get_command_args() or "").strip().lower() or "digest"
+        if sub == "pending":
+            entries = flywheel.pending()
+            if not entries:
+                return "Flywheel: no pending improvements. 🎡"
+            lines = [f"**Flywheel — {len(entries)} pending improvement(s)**"]
+            for e in entries[:20]:
+                lines.append(f"- `{e.get('id')}` [{e.get('kind')}] {e.get('summary')}")
+            if len(entries) > 20:
+                lines.append(f"…and {len(entries) - 20} more")
+            return "\n".join(lines)
+
+        digest = flywheel.digest()
+        by_kind = digest.get("by_kind") or {}
+        lines = [
+            f"**Flywheel digest — last {digest.get('window_hours', 24):g}h**",
+            f"Events: {digest.get('total', 0)}"
+            + (
+                " (" + ", ".join(f"{k} ×{v}" for k, v in sorted(by_kind.items())) + ")"
+                if by_kind
+                else ""
+            ),
+        ]
+        for f in (digest.get("recent_failures") or [])[-3:]:
+            lines.append(
+                f"- failure in {f.get('kind')}: {f.get('lesson') or f.get('summary') or '(no lesson)'}"
+            )
+        pending_count = digest.get("pending_improvements", 0)
+        lines.append(
+            f"Pending improvements: {pending_count}"
+            + (" — `/flywheel pending` to list" if pending_count else "")
+        )
         return "\n".join(lines)
 
     async def _handle_agents_command(self, event: MessageEvent) -> str:

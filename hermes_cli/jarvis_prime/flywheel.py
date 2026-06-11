@@ -182,6 +182,91 @@ def digest(hours: float = 24.0) -> dict:
         return empty
 
 
+def file_pending_to_plans(
+    directory: Optional[str] = None, top: int = 10
+) -> Optional[Path]:
+    """Write the top pending improvements to a dated plan file.
+
+    Queue entries are copied, not mutated — draining (marking done) is
+    the build loop's job, not the filer's. Returns the written path, or
+    None when there is nothing pending or on soft-fail.
+    """
+    try:
+        entries = pending()[: max(1, int(top))]
+        if not entries:
+            return None
+        target_dir = Path(directory) if directory else Path(".plans")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        stamp = time.strftime("%Y-%m-%d")
+        path = target_dir / f"{stamp}-flywheel-improvements.md"
+        lines = [
+            f"# Flywheel improvements — filed {stamp}",
+            "",
+            "Auto-filed from `improvement_queue.jsonl`; drain via the build loop.",
+            "",
+        ]
+        for e in entries:
+            lines.append(f"- [ ] `{e.get('id')}` [{e.get('kind')}] {e.get('summary')}")
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
+    except Exception:
+        return None
+
+
+def install_cron_jobs(repo_root: Optional[str] = None) -> Optional[dict]:
+    """Register the nightly digest+audit and weekly file-pending cron jobs.
+
+    Jobs are runtime data (``~/.hermes/cron/jobs.json``), so this is an
+    explicit installer, not an import side effect. Returns the two job
+    dicts, or None on soft-fail.
+    """
+    try:
+        from cron.jobs import create_job
+
+        workdir = repo_root or os.getcwd()
+        nightly = create_job(
+            prompt=None,
+            schedule="0 6 * * *",
+            name="Flywheel nightly digest + chain audit",
+            script=_install_script(
+                "flywheel-nightly.sh",
+                "#!/usr/bin/env bash\n"
+                "python -m hermes_cli.jarvis_prime.flywheel digest\n"
+                "python -m hermes_cli.jarvis_prime.axiom_bridge audit\n",
+            ),
+            no_agent=True,
+            deliver="local",
+            workdir=workdir,
+        )
+        weekly = create_job(
+            prompt=None,
+            schedule="0 7 * * 1",
+            name="Flywheel weekly: file pending improvements to .plans/",
+            script=_install_script(
+                "flywheel-weekly.sh",
+                "#!/usr/bin/env bash\n"
+                "python -m hermes_cli.jarvis_prime.flywheel file-pending --dir .plans\n",
+            ),
+            no_agent=True,
+            deliver="local",
+            workdir=workdir,
+        )
+        return {"nightly": nightly, "weekly": weekly}
+    except Exception:
+        return None
+
+
+def _install_script(name: str, body: str) -> str:
+    """Drop a helper script under ``$HERMES_HOME/scripts/`` (cron's search
+    path) and return its name."""
+    scripts_dir = _hermes_home() / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    path = scripts_dir / name
+    path.write_text(body, encoding="utf-8")
+    path.chmod(0o755)
+    return name
+
+
 # ------------------------------------------------------------------------ CLI
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(
@@ -192,12 +277,40 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     digest_p = sub.add_parser("digest", help="summary of recent events")
     digest_p.add_argument("--hours", type=float, default=24.0)
     sub.add_parser("pending", help="queued improvements awaiting drain")
+    file_p = sub.add_parser(
+        "file-pending", help="write top pending improvements to a plan file"
+    )
+    file_p.add_argument("--dir", default=".plans")
+    file_p.add_argument("--top", type=int, default=10)
+    cron_p = sub.add_parser(
+        "install-cron", help="register the nightly digest and weekly filing jobs"
+    )
+    cron_p.add_argument("--repo-root", default=None)
 
     args = parser.parse_args(argv)
     if args.command == "digest":
         print(json.dumps(digest(args.hours), indent=2))
     elif args.command == "pending":
         print(json.dumps(pending(), indent=2))
+    elif args.command == "file-pending":
+        path = file_pending_to_plans(args.dir, args.top)
+        print(json.dumps({"filed": str(path) if path else None}))
+    elif args.command == "install-cron":
+        jobs = install_cron_jobs(args.repo_root)
+        if jobs is None:
+            print(json.dumps({"installed": False}))
+            return 1
+        print(
+            json.dumps(
+                {
+                    "installed": True,
+                    "jobs": [
+                        {"id": j.get("id"), "name": j.get("name")}
+                        for j in jobs.values()
+                    ],
+                }
+            )
+        )
     return 0
 
 

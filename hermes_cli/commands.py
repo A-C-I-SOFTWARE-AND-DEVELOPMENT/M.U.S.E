@@ -107,6 +107,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("subgoal", "Add or manage extra criteria on the active goal", "Session",
                args_hint="[text | remove N | clear]"),
     CommandDef("status", "Show session info", "Session"),
+    CommandDef("flywheel", "Show the flywheel digest and pending improvements", "Info",
+               args_hint="[digest|pending]", subcommands=("digest", "pending")),
     CommandDef("whoami", "Show your slash command access (admin / user)", "Info"),
     CommandDef("profile",
                "Show active profile name / home, or refresh derived snapshots",

@@ -37,6 +37,7 @@ class OwnerBrief:
     blocked: list[str] = field(default_factory=list)
     learned: list[str] = field(default_factory=list)
     coverage: dict = field(default_factory=dict)
+    flywheel_digest: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -47,6 +48,7 @@ class OwnerBrief:
             "blocked": self.blocked,
             "learned": self.learned,
             "coverage": self.coverage,
+            "flywheel_digest": self.flywheel_digest,
         }
 
     def render(self) -> str:
@@ -71,6 +73,8 @@ class OwnerBrief:
         lines += section("Needs approval", self.needs_approval) + [""]
         lines += section("Blocked", self.blocked) + [""]
         lines += section("What JARVIS learned", self.learned) + [""]
+        if self.flywheel_digest:
+            lines += section("Flywheel digest", self.flywheel_digest) + [""]
         lines += ["## Monitor coverage attestation"] + cov_items
         return "\n".join(lines)
 
@@ -82,7 +86,11 @@ def build_owner_brief(
     learned: Sequence[str] = (),
     changed: Sequence[str] = (),
     blocked: Sequence[str] = (),
+    flywheel_digest: Optional[dict] = None,
 ) -> OwnerBrief:
+    """Build the brief. ``flywheel_digest`` takes the dict returned by
+    ``hermes_cli.jarvis_prime.flywheel.digest()`` — supplied by the
+    caller so this module stays I/O-free."""
     board = board or MonitorBoard.default()
     coverage = board.coverage(list(monitor_results))
 
@@ -107,4 +115,27 @@ def build_owner_brief(
         blocked=blocked_list,
         learned=list(learned),
         coverage=coverage,
+        flywheel_digest=_digest_lines(flywheel_digest),
     )
+
+
+def _digest_lines(digest: Optional[dict]) -> list[str]:
+    """Render a flywheel digest dict into brief-style bullet lines."""
+    if not digest:
+        return []
+    lines = [
+        f"{digest.get('total', 0)} events in the last "
+        f"{digest.get('window_hours', 24):g}h: "
+        + (
+            ", ".join(f"{k} ×{v}" for k, v in sorted(dict(digest.get("by_kind") or {}).items()))
+            or "none"
+        )
+    ]
+    failures = digest.get("recent_failures") or []
+    for f in failures[-3:]:
+        lesson = f.get("lesson") or f.get("summary") or "(no lesson)"
+        lines.append(f"failure in {f.get('kind')}: {lesson}")
+    pending = digest.get("pending_improvements", 0)
+    if pending:
+        lines.append(f"{pending} pending improvement(s) — drain with /flywheel pending")
+    return lines
