@@ -76,10 +76,19 @@ output.
       (iteration-5 anchor: smoke re-run, LAW re-read)
 
 ## Phase 5 — Orchestration with gates
-- [ ] 5.1 HTN-lite Task tree with verifier tasks; exactly-once leaves
-- [ ] 5.2 propose_change flow: blast-radius profile; HIGH needs owner callback
-- [ ] 5.3 Risk-tiered auth: silent / lightweight / ceremonial ("Yes, with authorization.")
-- [ ] EXIT GATE: HIGH change without the phrase provably never executes; denial ledgered
+- [x] 5.1 HTN-lite (`orchestrator/htn.py`): Task trees where every
+      decomposition node MUST carry a verifier task (rejected at
+      construction otherwise); leaves run through JobStore — replaying a
+      plan re-runs nothing (exactly-once proven)
+- [x] 5.2 propose_change flow (`orchestrator/proposals.py`): blast-radius
+      profile selects the gate set; every gate result ledgered, fail-fast;
+      OwnerApproval never defaults open
+- [x] 5.3 Risk-tiered auth: silent (LOW) / lightweight callback (MED) /
+      ceremonial exact-phrase "Yes, with authorization." (HIGH)
+- [x] EXIT GATE: HIGH change tried with None, True, "yes", and three
+      near-miss phrasings — plan body never ran, 6 change_denied events
+      ledgered, chain valid. `pytest tests/` → **55 passed in 4.46s**;
+      smoke unchanged
 
 ## Phase 6 — Trust scorecard and autonomy bands
 - [ ] 6.1 Per-capability stats: accuracy, promise-keeping, Brier calibration
