@@ -43,7 +43,7 @@ def _emit(obj, code: int = 0) -> int:
 
 def cmd_verify(args) -> int:
     _r, _l, verifier, _d = _host(args.data_dir)
-    form = json.loads(Path(args.unit).read_text())
+    form = json.loads(Path(args.unit).read_text(encoding="utf-8"))
     outcome = verifier.verify(Unit.from_form(form))
     if isinstance(outcome, Attestation):
         return _emit({"ok": True, "unit_hash": outcome.unit_hash,
@@ -78,7 +78,7 @@ def cmd_audit(args) -> int:
 
 def cmd_forge(args) -> int:
     _r, _l, verifier, d = _host(args.data_dir)
-    spec = json.loads(Path(args.spec).read_text())
+    spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
     engine = ForgeEngine(verifier, ratings_path=str(d / "ratings.db"),
                          data_dir=str(d))
     units = {cid: Unit.from_form(form) for cid, form in spec["units"].items()}

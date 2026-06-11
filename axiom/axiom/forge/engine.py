@@ -166,7 +166,8 @@ class ForgeEngine:
     def _export(self, units, gate_results, hashes, tournament) -> None:
         traj = self.data_dir / "trajectories.jsonl"
         negs = self.data_dir / "negatives.jsonl"
-        with traj.open("a") as tf, negs.open("a") as nf:
+        with traj.open("a", encoding="utf-8") as tf, \
+                negs.open("a", encoding="utf-8") as nf:
             for cid, unit in units.items():
                 rec = {
                     "cid": cid,
