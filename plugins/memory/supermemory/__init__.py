@@ -262,7 +262,7 @@ def _is_trivial_message(text: str) -> bool:
 
 class _SupermemoryClient:
     def __init__(self, api_key: str, timeout: float, container_tag: str, search_mode: str = "hybrid"):
-        from supermemory import Supermemory
+        from supermemory import Supermemory  # ty: ignore[unresolved-import]
 
         self._api_key = api_key
         self._container_tag = container_tag
@@ -582,7 +582,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
 
         def _run():
             try:
-                self._client.add_memory(content, metadata=metadata, entity_context=self._entity_context)
+                self._client.add_memory(content, metadata=metadata, entity_context=self._entity_context)  # ty: ignore[unresolved-attribute]  # caller guards _client before spawning
             except Exception:
                 logger.debug("Supermemory sync_turn failed", exc_info=True)
 
@@ -614,7 +614,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
         except Exception:
             logger.warning("Supermemory session ingest failed", exc_info=True)
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:
+    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
         if not self._active or not self._write_enabled or not self._client:
             return
         if action != "add" or not (content or "").strip():
@@ -622,7 +622,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
 
         def _run():
             try:
-                self._client.add_memory(
+                self._client.add_memory(  # ty: ignore[unresolved-attribute]  # guarded above before spawning
                     content.strip(),
                     metadata={"source": "hermes_memory", "target": target, "type": "explicit_memory"},
                     entity_context=self._entity_context,
