@@ -91,10 +91,19 @@ output.
       smoke unchanged
 
 ## Phase 6 — Trust scorecard and autonomy bands
-- [ ] 6.1 Per-capability stats: accuracy, promise-keeping, Brier calibration
-- [ ] 6.2 Bands B0–B3; one high-severity gate failure demotes immediately
-- [ ] 6.3 Sovereignty clauses: three anti-goal counters
-- [ ] EXIT GATE: seeded calibration regression auto-demotes a band
+- [x] 6.1 TrustScorecard (`governance/scorecard.py`): per-capability
+      prediction accuracy, promise-keeping, Brier calibration, rolling
+      windows; no evidence = worst-case Brier by design
+- [x] 6.2 BandManager (`governance/bands.py`): B0–B3; promotion needs a
+      full 20-sample window (acc ≥ .8, Brier ≤ .15, promises ≥ .9);
+      ONE high-severity gate failure demotes immediately; every
+      transition ledgered as band_transition
+- [x] 6.3 Sovereignty (`governance/sovereignty.py`): interruption stub,
+      why-attached-to-decisions, oracle check (confidence > 0.8 without
+      attestation ref = violation) — all with coverage counters
+- [x] EXIT GATE: seeded calibration regression (20× confident-and-wrong)
+      auto-demotes B1→B0, reason recorded, chain valid.
+      `pytest tests/` → **61 passed in 3.16s**; smoke unchanged
 
 ## Phase 7 — Ship it
 - [ ] 7.1 README.md: quickstart, ASCII architecture, the law
