@@ -236,6 +236,14 @@ def release_gate(packet: Mapping[str, Any]) -> GateResult:
             missing.append(label)
     if missing:
         return GateResult(name=name, outcome=GateOutcome.FAIL, reason="release packet incomplete", findings=tuple(missing))
+    chain_finding = _axiom_chain_finding()
+    if chain_finding:
+        return GateResult(
+            name=name,
+            outcome=GateOutcome.FAIL,
+            reason="axiom event chain failed verification",
+            findings=(chain_finding,),
+        )
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="release packet ready")
 
 
@@ -407,6 +415,9 @@ def strict_release_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBund
         return _strict_fail(name, "release packet present but no git_diff evidence")
     if not bundle.has(ARTIFACT_ROLLBACK):
         return _strict_fail(name, "release packet present but no rollback evidence")
+    chain_finding = _axiom_chain_finding()
+    if chain_finding:
+        return _strict_fail(name, "axiom event chain failed verification", (chain_finding,))
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="release packet backed by evidence bundle")
 
 
@@ -449,6 +460,54 @@ CAPABILITY_GATE_ENV = "HERMES_CAPABILITY_GATE"
 
 def _capability_gate_enabled() -> bool:
     return os.environ.get(CAPABILITY_GATE_ENV, "").lower() in {"1", "true", "yes", "on"}
+
+
+def _axiom_chain_finding() -> Optional[str]:
+    """Release objection when the axiom event chain fails verification.
+
+    None (no objection) when the bridge is inert, no chain exists yet,
+    or the bridge itself is unavailable — "ship" only means "history
+    verifies" once there is a history to verify. Never raises.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        if bridge.inert or not bridge.chain_exists():
+            return None
+        audit = bridge.audit()
+        if audit.get("chain_valid") is not True:
+            return (
+                f"chain invalid at {audit.get('chain_path')} "
+                f"(first_bad_seq={audit.get('first_bad_seq')})"
+            )
+    except Exception:
+        return None
+    return None
+
+
+def _chain_summary(packet: Mapping[str, Any], summary: "GateSummary") -> None:
+    """Soft hook: append the gate run to the axiom event chain.
+
+    Never raises into the host — a broken or absent bridge must not
+    change gate behavior.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        if bridge.inert:
+            return
+        bridge.record_event(
+            "gate.summary",
+            {
+                "packet_id": str(_get(packet, "packet_id") or ""),
+                "overall": summary.overall.value,
+                "results": [r.to_dict() for r in summary.results],
+            },
+        )
+    except Exception:
+        pass
 
 
 def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
@@ -563,17 +622,17 @@ def run_gate_summary(
     An explicit ``gates`` sequence always wins (used by focused gate tests).
     """
 
-    if gates is not None:
-        return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
-
-    if strict_evidence:
-        bundle = evidence_bundle or GuardrailEvidenceBundle(
-            packet_id=str(_get(packet, "packet_id") or "")
-        )
-        gates = _strict_gates(bundle)
-    else:
-        gates = GATES
-    return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+    if gates is None:
+        if strict_evidence:
+            bundle = evidence_bundle or GuardrailEvidenceBundle(
+                packet_id=str(_get(packet, "packet_id") or "")
+            )
+            gates = _strict_gates(bundle)
+        else:
+            gates = GATES
+    summary = GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+    _chain_summary(packet, summary)
+    return summary
 
 
 def run_strict_gate_summary(
