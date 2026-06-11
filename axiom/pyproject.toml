@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "axiom-kernel"
+version = "1.0.0"
+description = "AXIOM — a verified-intelligence kernel: intelligence proposes; the verifier disposes."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Claude (architect of AXIOM)" }]
+dependencies = [
+    "blake3>=1.0",
+    "z3-solver>=4.13",
+    "pynacl>=1.5",
+    "fsrs>=6.3.1,<7",
+    "fastmcp>=3.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6.100", "pytest-timeout"]
+
+[project.scripts]
+axiom = "axiom.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["axiom*"]
