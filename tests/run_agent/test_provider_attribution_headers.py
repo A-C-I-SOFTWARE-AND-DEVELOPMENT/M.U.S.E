@@ -23,7 +23,7 @@ def test_openrouter_base_url_applies_or_headers(mock_openai):
 
     agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
     assert headers["X-Title"] == "Hermes Agent"
 
@@ -42,7 +42,7 @@ def test_ai_gateway_base_url_applies_attribution_headers(mock_openai):
 
     agent._apply_client_headers_for_base_url("https://ai-gateway.vercel.sh/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
     assert headers["X-Title"] == "Hermes Agent"
     assert headers["User-Agent"].startswith("HermesAgent/")
@@ -62,7 +62,7 @@ def test_routermint_base_url_applies_user_agent_header(mock_openai):
 
     agent._apply_client_headers_for_base_url("https://api.routermint.com/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["User-Agent"].startswith("HermesAgent/")
 
 
@@ -79,11 +79,11 @@ def test_nvidia_cloud_base_url_applies_billing_origin_header(mock_openai):
         skip_memory=True,
     )
 
-    assert agent._client_kwargs["default_headers"]["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"
+    assert agent._client_kwargs["default_headers"]["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"  # ty: ignore[unresolved-attribute]
 
     agent._apply_client_headers_for_base_url("https://integrate.api.nvidia.com/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"
 
 
@@ -99,13 +99,13 @@ def test_nvidia_local_base_url_does_not_apply_billing_origin_header(mock_openai)
         skip_context_files=True,
         skip_memory=True,
     )
-    agent._client_kwargs["default_headers"] = {
+    agent._client_kwargs["default_headers"] = {  # ty: ignore[unresolved-attribute]
         "X-BILLING-INVOKE-ORIGIN": "HermesAgent",
     }
 
     agent._apply_client_headers_for_base_url("http://localhost:8000/v1")
 
-    assert "default_headers" not in agent._client_kwargs
+    assert "default_headers" not in agent._client_kwargs  # ty: ignore[unresolved-attribute]
 
 
 @patch("run_agent.OpenAI")
@@ -129,7 +129,7 @@ def test_routed_client_preserves_openai_sdk_custom_headers(mock_openai):
             skip_memory=True,
         )
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["X-BILLING-INVOKE-ORIGIN"] == "HermesAgent"
 
 
@@ -154,7 +154,7 @@ def test_gmi_base_url_picks_up_profile_user_agent(mock_openai):
 
     agent._apply_client_headers_for_base_url("https://api.gmi-serving.com/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["User-Agent"].startswith("HermesAgent/")
 
 
@@ -169,11 +169,11 @@ def test_unknown_base_url_clears_default_headers(mock_openai):
         skip_context_files=True,
         skip_memory=True,
     )
-    agent._client_kwargs["default_headers"] = {"X-Stale": "yes"}
+    agent._client_kwargs["default_headers"] = {"X-Stale": "yes"}  # ty: ignore[unresolved-attribute]
 
     agent._apply_client_headers_for_base_url("https://api.example.com/v1")
 
-    assert "default_headers" not in agent._client_kwargs
+    assert "default_headers" not in agent._client_kwargs  # ty: ignore[unresolved-attribute]
 
 
 @patch("run_agent.OpenAI")
@@ -194,7 +194,7 @@ def test_openrouter_headers_include_response_cache_when_enabled(mock_openai):
     }):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
     assert headers["X-OpenRouter-Cache"] == "true"
     assert headers["X-OpenRouter-Cache-TTL"] == "600"
@@ -218,7 +218,7 @@ def test_openrouter_headers_no_cache_when_disabled(mock_openai):
     }):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
-    headers = agent._client_kwargs["default_headers"]
+    headers = agent._client_kwargs["default_headers"]  # ty: ignore[unresolved-attribute]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
     assert "X-OpenRouter-Cache" not in headers
     assert "X-OpenRouter-Cache-TTL" not in headers

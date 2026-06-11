@@ -45,7 +45,7 @@ import time
 import uuid
 
 _IS_WINDOWS = platform.system() == "Windows"
-from typing import Any, Dict, List, Optional
+from typing import AbstractSet, Any, Dict, List, Optional
 
 # Availability gate.  On Windows we fall back to loopback TCP for the
 # sandbox RPC transport (AF_UNIX is unreliable on Windows Python) — see
@@ -1674,7 +1674,7 @@ _TOOL_DOC_LINES = [
 ]
 
 
-def build_execute_code_schema(enabled_sandbox_tools: Optional[set] = None,
+def build_execute_code_schema(enabled_sandbox_tools: Optional[AbstractSet[str]] = None,
                               mode: Optional[str] = None) -> dict:
     """Build the execute_code schema with description listing only enabled tools.
 

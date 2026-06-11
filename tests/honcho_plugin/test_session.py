@@ -371,6 +371,7 @@ class TestConcludeToolDispatch:
         """anyOf/oneOf/allOf breaks Anthropic and Fireworks APIs — schema must be plain object."""
         from plugins.memory.honcho import CONCLUDE_SCHEMA
         params = CONCLUDE_SCHEMA["parameters"]
+        assert isinstance(params, dict)
         assert params["type"] == "object"
         assert "conclusion" in params["properties"]
         assert "delete_id" in params["properties"]
@@ -531,7 +532,7 @@ class TestConcludeToolDispatch:
         provider._session_key = "telegram:123"
         provider._manager = MagicMock()
         provider._cron_skipped = False
-        provider._config = SimpleNamespace(message_max_chars=25000)
+        provider._config = SimpleNamespace(message_max_chars=25000)  # ty: ignore[invalid-assignment]  # stub config
 
         session = MagicMock()
         provider._manager.get_or_create.return_value = session
@@ -554,6 +555,7 @@ class TestConcludeToolDispatch:
                 "Visible answer"
             ),
         )
+        assert provider._sync_thread is not None
         provider._sync_thread.join(timeout=1.0)
 
         assert session.add_message.call_args_list[0].args == ("user", "hello")
@@ -837,7 +839,7 @@ class TestDialecticInputGuard:
         # Mock the peer to capture the query
         mock_peer = MagicMock()
         mock_peer.chat.return_value = "answer"
-        mgr._get_or_create_peer = MagicMock(return_value=mock_peer)
+        mgr._get_or_create_peer = MagicMock(return_value=mock_peer)  # ty: ignore[invalid-assignment]
 
         long_query = "word " * 100  # 500 chars, exceeds 100 limit
         mgr.dialectic_query("test", long_query)
@@ -1047,7 +1049,7 @@ class TestDialecticDepth:
         """Short responses are not sufficient signal."""
         assert not HonchoMemoryProvider._signal_sufficient("ok")
         assert not HonchoMemoryProvider._signal_sufficient("")
-        assert not HonchoMemoryProvider._signal_sufficient(None)
+        assert not HonchoMemoryProvider._signal_sufficient(None)  # ty: ignore[invalid-argument-type]  # intentional bad input
 
     def test_signal_sufficient_structured_response(self):
         """Structured responses with bullets/headers are sufficient."""

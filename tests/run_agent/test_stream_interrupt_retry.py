@@ -11,6 +11,7 @@ The fix adds an `_interrupt_requested` check at the top of the retry loop
 so the agent exits immediately instead of retrying.
 """
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,7 +21,7 @@ def _make_agent(**kwargs):
     """Create a minimal AIAgent for streaming tests."""
     from run_agent import AIAgent
 
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         api_key="test-key",
         base_url="https://example.com/v1",
         model="test/model",
@@ -30,7 +31,7 @@ def _make_agent(**kwargs):
     )
     defaults.update(kwargs)
     agent = AIAgent(**defaults)
-    agent.api_mode = "chat_completions"
+    agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
     return agent
 
 

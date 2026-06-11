@@ -1241,7 +1241,7 @@ class PluginManager:
         ``hermes_plugins.image_gen__openai`` without colliding with any
         future ``tts/openai``.
         """
-        plugin_dir = Path(manifest.path)  # type: ignore[arg-type]
+        plugin_dir = Path(manifest.path)  # ty: ignore[invalid-argument-type]  # path always set for loadable plugins
         init_file = plugin_dir / "__init__.py"
         if not init_file.exists():
             raise FileNotFoundError(f"No __init__.py in {plugin_dir}")

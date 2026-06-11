@@ -206,6 +206,7 @@ class SSHEnvironment(BaseEnvironment):
                 raise
 
             # Allow tar_proc to receive SIGPIPE if ssh_proc exits early
+            assert tar_proc.stdout is not None  # spawned with stdout=PIPE
             tar_proc.stdout.close()
 
             try:

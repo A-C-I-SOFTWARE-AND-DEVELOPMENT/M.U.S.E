@@ -429,6 +429,7 @@ class TestRedirectHeaderStripping:
         orig.prepare(method="GET", url="https://cloud.comfy.org/foo", headers={})
         resp.request = orig
         s.rebuild_auth(prep, resp)
+        assert prep.headers is not None  # prepare() always sets headers
         assert "Cookie" not in prep.headers
 
 

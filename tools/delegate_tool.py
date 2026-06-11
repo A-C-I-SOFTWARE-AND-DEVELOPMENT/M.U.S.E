@@ -2023,7 +2023,7 @@ def delegate_task(
                 f"delegate_task calls, or increase "
                 f"delegation.max_concurrent_children in config.yaml."
             )
-        task_list = tasks
+        task_list: List[Dict[str, Any]] = tasks
     elif goal and isinstance(goal, str) and goal.strip():
         task_list = [
             {"goal": goal, "context": context, "toolsets": toolsets, "role": top_role}
@@ -2044,7 +2044,7 @@ def delegate_task(
             return tool_error(f"Task {i} is missing a 'goal'.")
 
     overall_start = time.monotonic()
-    results = []
+    results: List[Dict[str, Any]] = []
 
     n_tasks = len(task_list)
     # Track goal labels for progress display (truncated for readability)
@@ -2138,7 +2138,7 @@ def delegate_task(
                         idx = futures[f]
                         if f.done():
                             try:
-                                entry = f.result()
+                                entry: Dict[str, Any] = f.result()
                             except Exception as exc:
                                 entry = {
                                     "task_index": idx,
@@ -2256,7 +2256,7 @@ def delegate_task(
     try:
         from hermes_cli.plugins import invoke_hook as _invoke_hook
     except Exception:
-        _invoke_hook = None
+        _invoke_hook = None  # ty: ignore[invalid-assignment]
     # Aggregate child spend here so the parent's footer/UI reflect the true
     # cost of a subagent-heavy turn.  Port of Kilo-Org/kilocode#9448.  Each
     # child's cost was captured in _run_single_child before its AIAgent was
@@ -2666,7 +2666,7 @@ def _build_dynamic_schema_overrides() -> dict:
     }
 
 
-DELEGATE_TASK_SCHEMA = {
+DELEGATE_TASK_SCHEMA: Dict[str, Any] = {
     "name": "delegate_task",
     # NOTE: description / tasks.description / role.description are placeholder
     # values. The real text is generated per get_definitions() call by

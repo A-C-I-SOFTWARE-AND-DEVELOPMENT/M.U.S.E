@@ -248,7 +248,7 @@ def _build_apikey_providers_list() -> list:
     Base list augmented with any ProviderProfile with auth_type="api_key" not
     already present — adding plugins/model-providers/<name>/ is sufficient to get into doctor.
     """
-    _static = [
+    _static: list[tuple] = [
         ("Z.AI / GLM",      ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"), "https://api.z.ai/api/paas/v4/models", "GLM_BASE_URL", True),
         ("Kimi / Moonshot",  ("KIMI_API_KEY",),                              "https://api.moonshot.ai/v1/models",   "KIMI_BASE_URL", True),
         ("StepFun Step Plan", ("STEPFUN_API_KEY",),                          "https://api.stepfun.ai/step_plan/v1/models", "STEPFUN_BASE_URL", True),

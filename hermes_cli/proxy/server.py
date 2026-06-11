@@ -15,7 +15,10 @@ import asyncio
 import json
 import logging
 import signal
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    import aiohttp.typedefs
 
 try:
     import aiohttp

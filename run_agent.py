@@ -51,7 +51,7 @@ import threading
 from types import SimpleNamespace
 import urllib.request
 import uuid
-from typing import List, Dict, Any, Optional
+from typing import Callable, List, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs, urlunparse
 # NOTE: `from openai import OpenAI` is deliberately NOT at module top — the
 # SDK pulls ~240 ms of imports. We expose `OpenAI` as a thin proxy object
@@ -336,6 +336,49 @@ class AIAgent:
         "have been dropped to keep the conversation alive. See issue #15236.]"
     )
 
+    # ── Attribute declarations ──
+    # All instance attributes are assigned by ``agent.agent_init.init_agent``
+    # (see ``__init__`` below, which forwards there).  These annotations only
+    # declare their types for static checkers; they create no class attributes
+    # and have zero runtime effect.
+    provider: str
+    model: str
+    api_mode: str
+    session_id: str
+    session_start: datetime
+    session_log_file: Path
+    platform: Optional[str]
+    quiet_mode: bool
+    verbose_logging: bool
+    save_trajectories: bool
+    log_prefix: str
+    max_iterations: int
+    iteration_budget: "IterationBudget"
+    reasoning_config: Optional[Dict[str, Any]]
+    tools: List[Dict[str, Any]]
+    tool_progress_callback: Optional[Callable]
+    tool_gen_callback: Optional[Callable]
+    reasoning_callback: Optional[Callable]
+    stream_delta_callback: Optional[Callable]
+    status_callback: Optional[Callable]
+    _client_kwargs: Dict[str, Any]
+    _memory_manager: Any
+    _credential_pool: Any
+    _tool_guardrails: Any
+    _todo_store: Any
+    _session_init_model_config: Dict[str, Any]
+    _parent_session_id: Optional[str]
+    _current_tool: Optional[str]
+    _cached_system_prompt: Optional[str]
+    _stream_callback: Optional[Callable]
+    _print_fn: Optional[Callable]
+    _execution_thread_id: Optional[int]
+    _api_call_count: int
+    _or_cache_hits: int
+    _active_children: List["AIAgent"]
+    _active_children_lock: threading.Lock
+    _anthropic_image_fallback_cache: Dict[str, Any]
+
     @property
     def base_url(self) -> str:
         return self._base_url
@@ -348,64 +391,64 @@ class AIAgent:
 
     def __init__(
         self,
-        base_url: str = None,
-        api_key: str = None,
-        provider: str = None,
-        api_mode: str = None,
-        acp_command: str = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_mode: Optional[str] = None,
+        acp_command: Optional[str] = None,
         acp_args: list[str] | None = None,
-        command: str = None,
+        command: Optional[str] = None,
         args: list[str] | None = None,
         model: str = "",
         max_iterations: int = 90,  # Default tool-calling iterations (shared with subagents)
         tool_delay: float = 1.0,
-        enabled_toolsets: List[str] = None,
-        disabled_toolsets: List[str] = None,
+        enabled_toolsets: Optional[List[str]] = None,
+        disabled_toolsets: Optional[List[str]] = None,
         save_trajectories: bool = False,
         verbose_logging: bool = False,
         quiet_mode: bool = False,
-        ephemeral_system_prompt: str = None,
+        ephemeral_system_prompt: Optional[str] = None,
         log_prefix_chars: int = 100,
         log_prefix: str = "",
-        providers_allowed: List[str] = None,
-        providers_ignored: List[str] = None,
-        providers_order: List[str] = None,
-        provider_sort: str = None,
+        providers_allowed: Optional[List[str]] = None,
+        providers_ignored: Optional[List[str]] = None,
+        providers_order: Optional[List[str]] = None,
+        provider_sort: Optional[str] = None,
         provider_require_parameters: bool = False,
-        provider_data_collection: str = None,
+        provider_data_collection: Optional[str] = None,
         openrouter_min_coding_score: Optional[float] = None,
-        session_id: str = None,
-        tool_progress_callback: callable = None,
-        tool_start_callback: callable = None,
-        tool_complete_callback: callable = None,
-        thinking_callback: callable = None,
-        reasoning_callback: callable = None,
-        clarify_callback: callable = None,
-        step_callback: callable = None,
-        stream_delta_callback: callable = None,
-        interim_assistant_callback: callable = None,
-        tool_gen_callback: callable = None,
-        status_callback: callable = None,
-        max_tokens: int = None,
-        reasoning_config: Dict[str, Any] = None,
-        service_tier: str = None,
-        request_overrides: Dict[str, Any] = None,
-        prefill_messages: List[Dict[str, Any]] = None,
-        platform: str = None,
-        user_id: str = None,
-        user_name: str = None,
-        chat_id: str = None,
-        chat_name: str = None,
-        chat_type: str = None,
-        thread_id: str = None,
-        gateway_session_key: str = None,
+        session_id: Optional[str] = None,
+        tool_progress_callback: Optional[Callable] = None,
+        tool_start_callback: Optional[Callable] = None,
+        tool_complete_callback: Optional[Callable] = None,
+        thinking_callback: Optional[Callable] = None,
+        reasoning_callback: Optional[Callable] = None,
+        clarify_callback: Optional[Callable] = None,
+        step_callback: Optional[Callable] = None,
+        stream_delta_callback: Optional[Callable] = None,
+        interim_assistant_callback: Optional[Callable] = None,
+        tool_gen_callback: Optional[Callable] = None,
+        status_callback: Optional[Callable] = None,
+        max_tokens: Optional[int] = None,
+        reasoning_config: Optional[Dict[str, Any]] = None,
+        service_tier: Optional[str] = None,
+        request_overrides: Optional[Dict[str, Any]] = None,
+        prefill_messages: Optional[List[Dict[str, Any]]] = None,
+        platform: Optional[str] = None,
+        user_id: Optional[str] = None,
+        user_name: Optional[str] = None,
+        chat_id: Optional[str] = None,
+        chat_name: Optional[str] = None,
+        chat_type: Optional[str] = None,
+        thread_id: Optional[str] = None,
+        gateway_session_key: Optional[str] = None,
         skip_context_files: bool = False,
         load_soul_identity: bool = False,
         skip_memory: bool = False,
         session_db=None,
-        parent_session_id: str = None,
-        iteration_budget: "IterationBudget" = None,
-        fallback_model: Dict[str, Any] = None,
+        parent_session_id: Optional[str] = None,
+        iteration_budget: Optional["IterationBudget"] = None,
+        fallback_model: Optional[Dict[str, Any]] = None,
         credential_pool=None,
         checkpoints_enabled: bool = False,
         checkpoint_max_snapshots: int = 20,
