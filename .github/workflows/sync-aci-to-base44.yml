@@ -64,25 +64,29 @@ jobs:
               "$SOURCE/$APP_FOLDER/" "$TARGET/"
           fi
 
+          # The heredoc body is indented to the YAML block-scalar base indent
+          # (YAML strips it, so the shell still sees every line at column 0).
+          # Unindented heredoc content terminates the `run: |` block and makes
+          # the whole workflow file unparseable.
           cat > BASE44_ACI_SOURCE_OF_TRUTH.md <<'EOF'
-# Base44 Hermes Connect Source of Truth
+          # Base44 Hermes Connect Source of Truth
 
-Canonical ACI repo:
+          Canonical ACI repo:
 
-A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
+          A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent
 
-Base44-connected repo:
+          Base44-connected repo:
 
-A-C-I-SOFTWARE-AND-DEVELOPMENT/Jarvis
+          A-C-I-SOFTWARE-AND-DEVELOPMENT/Jarvis
 
-ACI Hermes source is mirrored into:
+          ACI Hermes source is mirrored into:
 
-aci-hermes-agent-source/
+          aci-hermes-agent-source/
 
-Base44 app source is mirrored back into ACI under:
+          Base44 app source is mirrored back into ACI under:
 
-base44-hermes-connect-app/
-EOF
+          base44-hermes-connect-app/
+          EOF
 
           git add .
           if git diff --cached --quiet; then
