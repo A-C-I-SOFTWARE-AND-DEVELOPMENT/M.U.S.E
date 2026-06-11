@@ -44,7 +44,7 @@ class BeliefBase:
     """SQLite-backed AGM belief set with lineage."""
 
     def __init__(self, path: str = ":memory:"):
-        self._db = sqlite3.connect(path)
+        self._db = sqlite3.connect(path, check_same_thread=False)
         if path != ":memory:":
             self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute(

@@ -51,3 +51,10 @@ still checks linkage + signatures (skipping payload recomputation for
 compacted events) and Merkle inclusion proofs against the stored
 checkpoint root remain valid. Append-only is never violated — nothing
 is deleted, payloads are summarized in place and flagged.
+
+## D8 — SQLite cross-thread access for the MCP surface
+FastMCP executes tools on worker threads; all stores now open SQLite
+with check_same_thread=False. Safe for this kernel's single-process,
+commit-per-operation usage; revisit with a connection-per-thread pool
+if the surface ever goes multi-tenant (the documented upgrade path is
+per-tenant DBs anyway).

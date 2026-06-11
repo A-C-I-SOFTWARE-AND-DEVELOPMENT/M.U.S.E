@@ -33,7 +33,7 @@ class Ledger:
     """SQLite-backed (WAL) append-only event chain."""
 
     def __init__(self, path: str = ":memory:", signing_key: SigningKey | None = None):
-        self._db = sqlite3.connect(path)
+        self._db = sqlite3.connect(path, check_same_thread=False)
         if path != ":memory:":
             self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute(

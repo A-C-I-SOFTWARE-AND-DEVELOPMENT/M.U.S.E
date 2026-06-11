@@ -60,10 +60,20 @@ output.
       forge_duel). `pytest tests/` → **39 passed in 1.71s**; smoke unchanged
 
 ## Phase 4 — Agent surface
-- [ ] 4.1 MCP tools: memory_query, memory_observe, forge_run, ledger_history, unit_compose
-- [ ] 4.2 In-process fastmcp client test for every tool
-- [ ] 4.3 AGENT_GUIDE.md
-- [ ] EXIT GATE: scripted agent session end-to-end through MCP tools only
+- [x] 4.1 Nine MCP tools: registry_search, verify_and_register, run,
+      ledger_verify, memory_observe, memory_query, forge_run,
+      ledger_history, unit_compose (refs/EARS/contracts checked as you
+      compose) — all errors machine-readable (owner_required,
+      unresolved, postcondition, capability)
+- [x] 4.2 In-process fastmcp Client exercises every tool + asserts all
+      nine publish input schemas (no manual testing)
+- [x] 4.3 AGENT_GUIDE.md: search-before-invent, verify-before-claim,
+      the verify-rollback retry pattern with error→fix mapping
+- [x] EXIT GATE: scripted agent session (test_scripted_agent_session_end_to_end)
+      composes a NEW unit calling a registered unit, verifies, runs
+      (12.0 from quadruple(3)), audits chain — MCP tools only.
+      `pytest tests/` → **47 passed in 3.28s**; smoke unchanged
+      (iteration-5 anchor: smoke re-run, LAW re-read)
 
 ## Phase 5 — Orchestration with gates
 - [ ] 5.1 HTN-lite Task tree with verifier tasks; exactly-once leaves
