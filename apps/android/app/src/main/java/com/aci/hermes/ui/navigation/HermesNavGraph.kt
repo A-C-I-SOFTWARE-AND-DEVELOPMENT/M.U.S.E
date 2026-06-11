@@ -295,6 +295,7 @@ fun HermesNavHost(
                 onOpenModelRoutes = openModelRoutes,
                 onOpenAvatarPicker = { nav.navigate(Screen.AvatarPicker.route) },
                 onOpenKnowledge = { nav.navigate(Screen.Knowledge.route) },
+                onOpenObservatory = { nav.navigate(Screen.Observatory.route) },
                 onOpenModelCenter = openModelCenter,
                 onOpenReleaseCenter = openReleaseCenter,
                 onOpenPairing = { nav.navigate(Screen.Pairing.route) },
@@ -450,6 +451,19 @@ fun HermesNavHost(
             )
             com.aci.hermes.ui.screens.knowledge.KnowledgeGraphScreen(
                 viewModel = vm,
+                onBack = { nav.popBackStack() },
+            )
+        }
+
+        composable(Screen.Observatory.route) {
+            // WebView host for the gateway's Neural Observatory page. It is a
+            // thin frame around remote content, so it reads the connection
+            // facts straight from the same stores the cockpit client uses
+            // (gatewayEndpoint + encrypted cockpitToken) — no ViewModel, no
+            // parallel settings store.
+            com.aci.hermes.ui.screens.observatory.ObservatoryScreen(
+                settingsRepository = container.settingsRepository,
+                cockpitClient = container.cockpitClient,
                 onBack = { nav.popBackStack() },
             )
         }

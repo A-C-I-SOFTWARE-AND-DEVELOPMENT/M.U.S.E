@@ -174,6 +174,20 @@ class ScreenTest {
     }
 
     @Test
+    fun observatory_is_a_full_screen_push_with_a_unique_route() {
+        assertEquals("observatory", Screen.Observatory.route)
+        // Deep-linked from Settings (beside Knowledge); it hosts the gateway's
+        // Neural Observatory page in a WebView, so it owns its own top bar and
+        // is neither a shell destination nor a bottom-nav target.
+        assertTrue(Screen.Observatory.route !in Screen.shellRoutes)
+        assertTrue(Screen.bottomTabs.none { it.screen.route == Screen.Observatory.route })
+        assertTrue(
+            "Observatory must not collide with another route",
+            requiredScreens.none { it.route == Screen.Observatory.route },
+        )
+    }
+
+    @Test
     fun legacy_tasks_stays_reachable_as_a_shell_route() {
         // The Jobs cockpit takes the bottom tab; the legacy clipboard-handoff
         // Tasks list is preserved as a shell destination (reached from Home).
