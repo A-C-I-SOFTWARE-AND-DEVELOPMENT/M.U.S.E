@@ -29,6 +29,7 @@ from urllib.parse import parse_qs, urlsplit
 from gateway.cockpit import auth as cockpit_auth
 from gateway.cockpit import event_log
 from gateway.cockpit import handlers as h
+from gateway.cockpit import handlers_observatory_recs as h_recs
 from gateway.cockpit.agent import jarvis_responder
 from gateway.jarvis_local_http import (
     CHAT_PATH,
@@ -162,6 +163,11 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/observatory/snapshot"), h.observatory_snapshot, True),
     ("GET", _compile("/v1/observatory/metrics"), h.observatory_metrics, True),
     ("GET", _compile("/v1/observatory/layout"), h.observatory_layout, True),
+    # Recommendation engine (spec §6). Bearer-authed, NOT owner-gated:
+    # staging only feeds the existing owner-phrase approvals queue
+    # (POST /v1/cockpit/approvals/{id}), where Apply's owner gate lives.
+    ("GET", _compile("/v1/observatory/recommendations"), h_recs.observatory_recommendations, True),
+    ("POST", _compile("/v1/observatory/recommendations/{id}/stage"), h_recs.observatory_recommendation_stage, True),
 ]
 
 
