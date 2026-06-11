@@ -886,12 +886,39 @@ def handle_function_call(
         except Exception as _hook_err:
             logger.debug("transform_tool_result hook error: %s", _hook_err)
 
+        _flywheel_record_action(
+            function_name,
+            duration_ms,
+            failed=isinstance(result, str) and result.lstrip().startswith('{"error"'),
+        )
         return result
 
     except Exception as e:
         error_msg = f"Error executing {function_name}: {str(e)}"
         logger.exception(error_msg)
+        _flywheel_record_action(function_name, None, failed=True, lesson=str(e)[:200])
         return json.dumps({"error": _sanitize_tool_error(error_msg)}, ensure_ascii=False)
+
+
+def _flywheel_record_action(
+    tool_name: str,
+    duration_ms: Optional[int],
+    *,
+    failed: bool,
+    lesson: Optional[str] = None,
+) -> None:
+    """Flywheel hook for tool outcomes — soft, never raises into dispatch."""
+    try:
+        from hermes_cli.jarvis_prime import flywheel as _flywheel
+
+        _flywheel.record(
+            "agent.action",
+            {"tool": tool_name, "duration_ms": duration_ms, "summary": f"tool {tool_name}"},
+            outcome="failure" if failed else "success",
+            lesson=lesson,
+        )
+    except Exception:
+        pass
 
 
 # =============================================================================

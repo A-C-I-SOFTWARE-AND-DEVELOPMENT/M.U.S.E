@@ -55,6 +55,7 @@ class CommandDef:
     cli_only: bool = False             # only available in CLI
     gateway_only: bool = False         # only available in gateway/messaging
     gateway_config_gate: str | None = None  # config dotpath; when truthy, overrides cli_only for gateway
+    slack_slash: bool = True           # registered in the 50-cap Slack manifest (False: /hermes <name> only)
 
 
 # ---------------------------------------------------------------------------
@@ -292,6 +293,13 @@ COMMAND_REGISTRY: list[CommandDef] = [
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",
                cli_only=True, aliases=("exit",), args_hint="[--delete]"),
+
+    # slack_slash=False: the Slack manifest is hard-capped at 50 slashes
+    # and /flywheel must not evict an existing alias slot (e.g. /q).
+    # First-class everywhere else; on Slack: /hermes flywheel.
+    CommandDef("flywheel", "Show the flywheel digest and pending improvements", "Info",
+               args_hint="[digest|pending]", subcommands=("digest", "pending"),
+               slack_slash=False),
 ]
 
 
@@ -1081,13 +1089,13 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
 
     # First pass: canonical names (so they win slots if we hit the cap).
     for cmd in COMMAND_REGISTRY:
-        if not _is_gateway_available(cmd, overrides):
+        if not _is_gateway_available(cmd, overrides) or not cmd.slack_slash:
             continue
         _add(cmd.name, cmd.description, cmd.args_hint or "")
 
     # Second pass: aliases.
     for cmd in COMMAND_REGISTRY:
-        if not _is_gateway_available(cmd, overrides):
+        if not _is_gateway_available(cmd, overrides) or not cmd.slack_slash:
             continue
         for alias in cmd.aliases:
             # Skip aliases that only differ from canonical by case/punctuation

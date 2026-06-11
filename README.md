@@ -226,6 +226,7 @@ points to one guide per topic:
 | Profile your GitHub history | [docs/profile/github-history-profile-guide.md](docs/profile/github-history-profile-guide.md) |
 | Lock down private-local | [docs/security/private-local-security-guide.md](docs/security/private-local-security-guide.md) |
 | Wire GitHub / Supabase / Vercel | [docs/integrations/github-supabase-vercel-guide.md](docs/integrations/github-supabase-vercel-guide.md) |
+| Verify history with the AXIOM bridge | [docs/axiom-integration.md](docs/axiom-integration.md) |
 | Fix something broken | [docs/troubleshooting/hermes-orchestration-troubleshooting.md](docs/troubleshooting/hermes-orchestration-troubleshooting.md) |
 
 ## CLI vs Messaging Quick Reference
