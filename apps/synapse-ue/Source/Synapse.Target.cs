@@ -16,6 +16,7 @@ public class SynapseTarget : TargetRules
 		{
 			"SynapseCore",
 			"SynapseNet",
+			"SynapseObservatory",
 		});
 	}
 }
