@@ -43,7 +43,7 @@ class WsPublisherTransport:
     def __init__(self, url: str, *, connect_timeout: float = 2.0) -> None:
         self._url = url
         self._lock = threading.Lock()
-        self._ws: Optional[object] = None
+        self._ws: Optional[Any] = None
         self._dead = False
         self._q: queue.Queue[object] = queue.Queue(maxsize=_QUEUE_MAX)
         self._worker: Optional[threading.Thread] = None

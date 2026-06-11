@@ -12,6 +12,8 @@ here (they're stdin-driven curses prompts).
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from hermes_cli.config import DEFAULT_CONFIG, load_config

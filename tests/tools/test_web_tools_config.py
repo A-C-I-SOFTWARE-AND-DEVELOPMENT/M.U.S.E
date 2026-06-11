@@ -468,6 +468,7 @@ class TestWebSearchSchema:
         import tools.web_tools
 
         entry = tools.web_tools.registry.get_entry("web_search")
+        assert entry is not None
         with patch("tools.web_tools.web_search_tool", return_value='{"success": true}') as mock_search:
             result = entry.handler({"query": "site:example.com docs", "limit": 12})
 
@@ -478,6 +479,7 @@ class TestWebSearchSchema:
         import tools.web_tools
 
         entry = tools.web_tools.registry.get_entry("web_search")
+        assert entry is not None
         with patch("tools.web_tools.web_search_tool", return_value='{"success": true}') as mock_search:
             result = entry.handler({"query": "docs"})
 

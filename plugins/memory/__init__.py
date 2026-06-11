@@ -223,7 +223,7 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                         parent_mod = importlib.util.module_from_spec(spec)
                         sys.modules[parent] = parent_mod
                         try:
-                            spec.loader.exec_module(parent_mod)
+                            spec.loader.exec_module(parent_mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
                         except Exception:
                             pass
 
@@ -253,12 +253,12 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                     sub_mod = importlib.util.module_from_spec(sub_spec)
                     sys.modules[full_sub_name] = sub_mod
                     try:
-                        sub_spec.loader.exec_module(sub_mod)
+                        sub_spec.loader.exec_module(sub_mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
                     except Exception as e:
                         logger.debug("Failed to load submodule %s: %s", full_sub_name, e)
 
         try:
-            spec.loader.exec_module(mod)
+            spec.loader.exec_module(mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
         except Exception as e:
             logger.debug("Failed to exec_module %s: %s", module_name, e)
             sys.modules.pop(module_name, None)
