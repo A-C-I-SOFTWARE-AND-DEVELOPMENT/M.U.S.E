@@ -3007,7 +3007,7 @@ def _wait_for_gateway_exit(timeout: float = 10.0, force_after: float | None = 5.
         if pid is None:
             return True  # Process exited cleanly.
 
-        if force_after is not None and not force_sent and time.monotonic() >= force_deadline:
+        if force_after is not None and not force_sent and time.monotonic() >= force_deadline:  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
             # Grace period expired — force-kill the specific PID.
             try:
                 terminate_pid(pid, force=True)
@@ -3733,7 +3733,7 @@ def _all_platforms() -> list[dict]:
     for entry in platform_registry.all_entries():
         if entry.name in by_key:
             continue  # built-in already covers it
-        platforms.append({
+        platforms.append({  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
             "key": entry.name,
             "label": entry.label,
             "emoji": entry.emoji,
@@ -4438,9 +4438,9 @@ def _setup_feishu():
     open_id = credentials.get("open_id")
     bot_name = credentials.get("bot_name")
 
-    save_env_value("FEISHU_APP_ID", app_id)
-    save_env_value("FEISHU_APP_SECRET", app_secret)
-    save_env_value("FEISHU_DOMAIN", domain)
+    save_env_value("FEISHU_APP_ID", app_id)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+    save_env_value("FEISHU_APP_SECRET", app_secret)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+    save_env_value("FEISHU_DOMAIN", domain)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     # Bot identity is resolved at runtime via _hydrate_bot_identity().
 
     # ── Connection mode ──

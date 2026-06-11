@@ -68,9 +68,9 @@ def build_live_registry(
     """
     reg = default_registry()
     if email_sender is not None:
-        reg.register(reg.get("email"), transport=make_gateway_transport(email_sender))
+        reg.register(reg.get("email"), transport=make_gateway_transport(email_sender))  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     if sms_sender is not None:
-        reg.register(reg.get("sms"), transport=make_gateway_transport(sms_sender))
+        reg.register(reg.get("sms"), transport=make_gateway_transport(sms_sender))  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     if calendar_sender is not None:
-        reg.register(reg.get("calendar"), transport=make_gateway_transport(calendar_sender))
+        reg.register(reg.get("calendar"), transport=make_gateway_transport(calendar_sender))  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     return reg

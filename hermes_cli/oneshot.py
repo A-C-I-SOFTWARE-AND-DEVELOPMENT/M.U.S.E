@@ -91,7 +91,7 @@ def _validate_explicit_toolsets(toolsets: object = None) -> tuple[list[str] | No
 
             cfg = read_raw_config()
             mcp_servers = cfg.get("mcp_servers") if isinstance(cfg.get("mcp_servers"), dict) else {}
-            for name, server_cfg in mcp_servers.items():
+            for name, server_cfg in mcp_servers.items():  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 if not isinstance(server_cfg, dict):
                     continue
                 if _parse_enabled_flag(server_cfg.get("enabled", True), default=True):

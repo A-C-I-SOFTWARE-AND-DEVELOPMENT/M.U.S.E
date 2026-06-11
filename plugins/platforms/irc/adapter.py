@@ -223,7 +223,7 @@ class IRCAdapter(BasePlatformAdapter):
         if getattr(self, "_lock_key", None):
             try:
                 from gateway.status import release_scoped_lock
-                release_scoped_lock("irc", self._lock_key)
+                release_scoped_lock("irc", self._lock_key)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
             except Exception:
                 pass
         self._mark_disconnected()

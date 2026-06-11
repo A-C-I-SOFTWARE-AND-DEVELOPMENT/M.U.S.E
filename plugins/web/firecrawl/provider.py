@@ -237,13 +237,13 @@ def _get_firecrawl_client() -> Any:
             _raise_web_backend_configuration_error()
 
         kwargs = {
-            "api_key": managed_gateway.nous_user_token,
-            "api_url": managed_gateway.gateway_origin,
+            "api_key": managed_gateway.nous_user_token,  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+            "api_url": managed_gateway.gateway_origin,  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         }
         client_config = (
             "tool-gateway",
             kwargs["api_url"],
-            managed_gateway.nous_user_token,
+            managed_gateway.nous_user_token,  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         )
 
     cached = getattr(_wt, "_firecrawl_client", None)
@@ -667,7 +667,7 @@ class FirecrawlWebSearchProvider(WebSearchProvider):
                     content_html = getattr(item, "html", None)
                     metadata_obj = getattr(item, "metadata", {})
                     if hasattr(metadata_obj, "model_dump"):
-                        metadata = metadata_obj.model_dump()
+                        metadata = metadata_obj.model_dump()  # ty: ignore[call-non-callable]  # dynamic config/plugin path
                     elif hasattr(metadata_obj, "__dict__"):
                         metadata = metadata_obj.__dict__
                     elif isinstance(metadata_obj, dict):

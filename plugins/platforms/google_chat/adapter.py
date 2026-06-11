@@ -95,7 +95,7 @@ def _load_google_modules() -> bool:
     _google_modules_loaded = True
     try:
         import httplib2 as _httplib2
-        from google.cloud import pubsub_v1 as _pubsub_v1
+        from google.cloud import pubsub_v1 as _pubsub_v1  # ty: ignore[unresolved-import]  # dynamic config/plugin path
         from google.api_core import exceptions as _gax_exceptions
         from google.oauth2 import service_account as _service_account
         from google_auth_httplib2 import AuthorizedHttp as _AuthorizedHttp
@@ -596,7 +596,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         try:
             import google.auth as google_auth
         except ImportError:
-            google_auth = None  # type: ignore[assignment]
+            google_auth = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         if google_auth is None:
             raise ValueError(
                 "No Service Account credentials configured. Set "
@@ -733,7 +733,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         for space in candidate_spaces:
             try:
                 members = await asyncio.to_thread(
-                    lambda s=space: self._chat_api.spaces()
+                    lambda s=space: self._chat_api.spaces()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     .members()
                     .list(parent=s, pageSize=50)
                     .execute(http=self._new_authed_http())
@@ -860,7 +860,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         self._subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
         try:
             await asyncio.to_thread(
-                lambda: self._subscriber.get_subscription(
+                lambda: self._subscriber.get_subscription(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     request={"subscription": subscription_path}
                 )
             )
@@ -955,7 +955,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
                 max_bytes=self._max_bytes,
             )
             try:
-                future = self._subscriber.subscribe(
+                future = self._subscriber.subscribe(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     self._subscription_path,
                     callback=self._on_pubsub_message,
                     flow_control=flow,
@@ -1690,7 +1690,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # Path 1: media.download with attachmentDataRef.resourceName (bot-path).
         if resource_name:
             def _fetch_media() -> bytes:
-                req = self._chat_api.media().download_media(
+                req = self._chat_api.media().download_media(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     resourceName=resource_name,
                 )
                 from googleapiclient.http import MediaIoBaseDownload
@@ -1924,7 +1924,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
         def _do_delete() -> None:
             (
-                self._chat_api.spaces()
+                self._chat_api.spaces()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 .messages()
                 .delete(name=message_id)
                 .execute(http=self._new_authed_http())
@@ -1962,7 +1962,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
         def _do_patch() -> Dict[str, Any]:
             return (
-                self._chat_api.spaces()
+                self._chat_api.spaces()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 .messages()
                 .patch(name=message_name, updateMask=update_mask, body=patch_body)
                 .execute(http=self._new_authed_http())
@@ -2211,7 +2211,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
 
         def _do_create() -> Dict[str, Any]:
             return (
-                self._chat_api.spaces()
+                self._chat_api.spaces()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 .messages()
                 .create(**kwargs)
                 .execute(http=self._new_authed_http())
@@ -2502,6 +2502,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2517,6 +2518,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2532,6 +2534,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2546,6 +2549,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs: Any,
     ) -> SendResult:
         return await self._send_file(
@@ -2914,7 +2918,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         """Return {name, type, chat_id} for a space."""
         try:
             info = await asyncio.to_thread(
-                lambda: self._chat_api.spaces()
+                lambda: self._chat_api.spaces()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 .get(name=chat_id)
                 .execute(http=self._new_authed_http())
             )

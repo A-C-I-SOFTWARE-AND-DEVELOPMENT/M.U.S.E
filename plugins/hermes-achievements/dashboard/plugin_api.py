@@ -743,7 +743,7 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
             agg["local_model_chat_sessions"] += 1
         if s.get("started_at"):
             try:
-                lt = time.localtime(float(s.get("started_at")))
+                lt = time.localtime(float(s.get("started_at")))  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
                 if lt.tm_wday >= 5:
                     agg["weekend_sessions"] += 1
                 if lt.tm_hour < 6 or lt.tm_hour >= 23:

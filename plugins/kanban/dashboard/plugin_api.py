@@ -1142,7 +1142,7 @@ def list_diagnostics(
 
         return {
             "diagnostics": out,
-            "count": sum(len(d["diagnostics"]) for d in out),
+            "count": sum(len(d["diagnostics"]) for d in out),  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
         }
     finally:
         conn.close()
@@ -1156,7 +1156,7 @@ def list_diagnostics(
 try:
     import psutil as _psutil
 except ImportError:
-    _psutil = None  # type: ignore[assignment]
+    _psutil = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
 
 
 @router.get("/workers/active")

@@ -686,7 +686,6 @@ def _run_post_setup(post_setup_key: str):
         # Step 1: install the agent-browser npm package into node_modules/
         if not node_modules.exists() and npm_bin:
             _print_info("    Installing Node.js dependencies for browser tools...")
-            import subprocess
             # Use the resolved npm_bin absolute path so subprocess.Popen can
             # execute npm.cmd on Windows (CreateProcessW otherwise rejects
             # batch shims).  On POSIX npm_bin is the plain path — same
@@ -751,7 +750,6 @@ def _run_post_setup(post_setup_key: str):
             return
 
         _print_info("    Installing Chromium (~170MB one-time download)...")
-        import subprocess
         # Prefer the bundled agent-browser install subcommand so the
         # version of Chromium matches the CLI. Fall back to npx shim on
         # setups where the local bin stub isn't present.
@@ -795,7 +793,6 @@ def _run_post_setup(post_setup_key: str):
         if not camofox_dir.exists() and _npm_bin:
             _print_info("    Installing Camofox browser package...")
             _print_info("    First run downloads the Camoufox engine (~300MB) — this can take several minutes.")
-            import subprocess
             # Install @askjo/camofox-browser on-demand. It is NOT in
             # package.json so that `hermes update` does not silently pull
             # the ~300MB Camoufox Firefox-fork binary for every user.
@@ -2022,7 +2019,7 @@ def _configure_imagegen_model(backend_name: str, config: dict) -> None:
     if not backend:
         return
 
-    catalog, default_model = backend["catalog_fn"]()
+    catalog, default_model = backend["catalog_fn"]()  # ty: ignore[call-non-callable]  # dynamic config/plugin path
     if not catalog:
         return
 
@@ -2311,7 +2308,7 @@ def _configure_provider(provider: dict, config: dict):
         # User picked a non-gateway provider — find which category this
         # belongs to and clear use_gateway if it was previously set.
         for cat_key, cat in TOOL_CATEGORIES.items():
-            if provider in cat.get("providers", []):
+            if provider in cat.get("providers", []):  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
                 section = config.get(cat_key)
                 if isinstance(section, dict) and section.get("use_gateway"):
                     section["use_gateway"] = False
@@ -2595,7 +2592,7 @@ def _reconfigure_provider(provider: dict, config: dict):
         section["use_gateway"] = True
     elif not managed_feature:
         for cat_key, cat in TOOL_CATEGORIES.items():
-            if provider in cat.get("providers", []):
+            if provider in cat.get("providers", []):  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
                 section = config.get(cat_key)
                 if isinstance(section, dict) and section.get("use_gateway"):
                     section["use_gateway"] = False

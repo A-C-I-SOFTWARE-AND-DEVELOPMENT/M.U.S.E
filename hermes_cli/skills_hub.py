@@ -733,7 +733,7 @@ def inspect_skill(identifier: str) -> Optional[dict]:
     sources = create_source_router(auth)
     ident = identifier
     if "/" not in ident:
-        ident = _resolve_short_name(ident, sources, c)
+        ident = _resolve_short_name(ident, sources, c)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
         if not ident:
             return None
     meta, bundle, _ = _resolve_source_meta_and_bundle(ident, sources)

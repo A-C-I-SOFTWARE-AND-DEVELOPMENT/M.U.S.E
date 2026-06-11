@@ -187,7 +187,7 @@ class XAIWebSearchProvider(WebSearchProvider):
 
         cfg = _load_xai_web_config()
         model = cfg.get("model") if isinstance(cfg.get("model"), str) else DEFAULT_MODEL
-        model = model.strip() or DEFAULT_MODEL
+        model = model.strip() or DEFAULT_MODEL  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
 
         try:
             timeout = float(cfg.get("timeout", DEFAULT_TIMEOUT))
@@ -276,7 +276,7 @@ class XAIWebSearchProvider(WebSearchProvider):
                         "refresh and retrying once.",
                     )
                     try:
-                        refreshed = resolve_xai_http_credentials(force_refresh=True)
+                        refreshed = resolve_xai_http_credentials(force_refresh=True)  # ty: ignore[unknown-argument]  # dynamic config/plugin path
                         refreshed_key = str(refreshed.get("api_key") or "").strip()
                         if refreshed_key and refreshed_key != api_key:
                             api_key = refreshed_key

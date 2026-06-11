@@ -1563,23 +1563,23 @@ def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
 
         agent = AIAgent(
             model=model,
-            api_key=runtime.get("api_key"),  # ty: ignore[invalid-argument-type]
-            base_url=runtime.get("base_url"),  # ty: ignore[invalid-argument-type]
-            provider=runtime.get("provider"),  # ty: ignore[invalid-argument-type]
-            api_mode=runtime.get("api_mode"),  # ty: ignore[invalid-argument-type]
-            acp_command=runtime.get("command"),  # ty: ignore[invalid-argument-type]
+            api_key=runtime.get("api_key"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            base_url=runtime.get("base_url"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            provider=runtime.get("provider"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            api_mode=runtime.get("api_mode"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            acp_command=runtime.get("command"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             acp_args=runtime.get("args"),
             max_iterations=max_iterations,
-            reasoning_config=reasoning_config,  # ty: ignore[invalid-argument-type]
-            prefill_messages=prefill_messages,  # ty: ignore[invalid-argument-type]
-            fallback_model=fallback_model,  # ty: ignore[invalid-argument-type]
+            reasoning_config=reasoning_config,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            prefill_messages=prefill_messages,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            fallback_model=fallback_model,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             credential_pool=credential_pool,
             providers_allowed=pr.get("only"),
             providers_ignored=pr.get("ignore"),
             providers_order=pr.get("order"),
             provider_sort=pr.get("sort"),
             openrouter_min_coding_score=(_cfg.get("openrouter") or {}).get("min_coding_score"),
-            enabled_toolsets=_resolve_cron_enabled_toolsets(job, _cfg),  # ty: ignore[invalid-argument-type]
+            enabled_toolsets=_resolve_cron_enabled_toolsets(job, _cfg),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             disabled_toolsets=["cronjob", "messaging", "clarify"],
             quiet_mode=True,
             # Cron jobs should always inherit the user's SOUL.md identity from

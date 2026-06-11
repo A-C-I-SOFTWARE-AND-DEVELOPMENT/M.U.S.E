@@ -1701,7 +1701,7 @@ def _save_anthropic_oauth_creds(access_token: str, refresh_token: str, expires_a
         existing = [e for e in pool.entries() if getattr(e, "source", "").startswith(f"{SOURCE_MANUAL}:dashboard_pkce")]
         for e in existing:
             try:
-                pool.remove_entry(getattr(e, "id", ""))
+                pool.remove_entry(getattr(e, "id", ""))  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
             except Exception:
                 pass
         entry = PooledCredential(

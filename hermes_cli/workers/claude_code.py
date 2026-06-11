@@ -239,7 +239,7 @@ def _probe_version(
     """
     call = runner if runner is not None else subprocess.run
     try:
-        proc = call(
+        proc = call(  # ty: ignore[call-non-callable]  # dynamic config/plugin path
             [path, "--version"],
             capture_output=True,
             text=True,
@@ -642,7 +642,7 @@ def run_claude_cli(
     call = runner if runner is not None else subprocess.run
     process_env = dict(env) if env is not None else dict(os.environ)
     try:
-        proc = call(
+        proc = call(  # ty: ignore[call-non-callable]  # dynamic config/plugin path
             cmd,
             capture_output=True,
             text=True,

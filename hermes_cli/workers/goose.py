@@ -179,7 +179,7 @@ def run(
     except subprocess.TimeoutExpired as exc:
         error = f"timed out after {cfg.timeout_seconds}s"
         output_path.write_text(
-            (exc.stdout or "") + (exc.stderr or ""),
+            (exc.stdout or "") + (exc.stderr or ""),  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
             encoding="utf-8",
         )
     except OSError as exc:

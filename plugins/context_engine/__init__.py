@@ -76,6 +76,11 @@ def discover_context_engines() -> List[Tuple[str, str, bool]]:
     return results
 
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agent.context_engine import ContextEngine
+
 def load_context_engine(name: str) -> Optional["ContextEngine"]:
     """Load and return a ContextEngine instance by name.
 
@@ -132,7 +137,7 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
                         parent_mod = importlib.util.module_from_spec(spec)
                         sys.modules[parent] = parent_mod
                         try:
-                            spec.loader.exec_module(parent_mod)
+                            spec.loader.exec_module(parent_mod)  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                         except Exception:
                             pass
 
@@ -161,12 +166,12 @@ def _load_engine_from_dir(engine_dir: Path) -> Optional["ContextEngine"]:
                     sub_mod = importlib.util.module_from_spec(sub_spec)
                     sys.modules[full_sub_name] = sub_mod
                     try:
-                        sub_spec.loader.exec_module(sub_mod)
+                        sub_spec.loader.exec_module(sub_mod)  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     except Exception as e:
                         logger.debug("Failed to load submodule %s: %s", full_sub_name, e)
 
         try:
-            spec.loader.exec_module(mod)
+            spec.loader.exec_module(mod)  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         except Exception as e:
             logger.debug("Failed to exec_module %s: %s", module_name, e)
             sys.modules.pop(module_name, None)

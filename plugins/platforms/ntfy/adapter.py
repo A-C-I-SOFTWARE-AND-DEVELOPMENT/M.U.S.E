@@ -58,7 +58,7 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment]
+    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -238,7 +238,7 @@ class NtfyAdapter(BasePlatformAdapter):
         """Open an HTTP streaming connection and dispatch events."""
         # poll=false keeps a persistent streaming connection alive with keepalive events
         params = {"poll": "false"}
-        async with self._http_client.stream(
+        async with self._http_client.stream(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
             "GET",
             url,
             headers=headers,

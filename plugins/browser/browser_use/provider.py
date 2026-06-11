@@ -79,7 +79,7 @@ def _should_preserve_pending_create_key(response: requests.Response) -> bool:
     Drop the key on any other 4xx (auth failure, bad request, etc.) — those
     won't succeed by being retried.
     """
-    if response.status_code >= 500:
+    if response.status_code >= 500:  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
         return True
 
     if response.status_code != 409:

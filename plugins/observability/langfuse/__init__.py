@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 logger = logging.getLogger(__name__)
 
 try:
-    from langfuse import Langfuse, propagate_attributes
+    from langfuse import Langfuse, propagate_attributes  # ty: ignore[unresolved-import]  # dynamic config/plugin path
 except Exception:  # pragma: no cover - fail-open when optional dep is missing
     Langfuse = None
     propagate_attributes = None
@@ -541,7 +541,7 @@ def _usage_and_cost(response: Any, *, provider: str, api_mode: str, model: str, 
 
 def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform: str, provider: str, model: str,
                       api_mode: str, messages: Any, client: Langfuse) -> TraceState:
-    trace_id = client.create_trace_id(seed=f"{session_id or 'sessionless'}::{task_id or task_key}")
+    trace_id = client.create_trace_id(seed=f"{session_id or 'sessionless'}::{task_id or task_key}")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     trace_input = _extract_last_user_message(messages)
     metadata = {
         "source": "hermes",
@@ -564,7 +564,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
                 trace_name="Hermes turn",
                 tags=["hermes", "langfuse"],
             ):
-                root_ctx = client.start_as_current_observation(
+                root_ctx = client.start_as_current_observation(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                     trace_context=trace_ctx,
                     name="Hermes turn",
                     as_type="chain",
@@ -574,7 +574,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
                 )
                 root_span = root_ctx.__enter__()
         except Exception:
-            root_ctx = client.start_as_current_observation(
+            root_ctx = client.start_as_current_observation(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 trace_context=trace_ctx,
                 name="Hermes turn",
                 as_type="chain",
@@ -584,7 +584,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
             )
             root_span = root_ctx.__enter__()
     else:
-        root_ctx = client.start_as_current_observation(
+        root_ctx = client.start_as_current_observation(  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
             trace_context=trace_ctx,
             name="Hermes turn",
             as_type="chain",
@@ -835,7 +835,7 @@ def on_post_llm_call(*, task_id: str = "", session_id: str = "", provider: str =
         }
 
     if output.get("tool_calls"):
-        state.turn_tool_calls.extend(output["tool_calls"])
+        state.turn_tool_calls.extend(output["tool_calls"])  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
 
     # Extract usage: prefer response object, fall back to usage dict from post_api_request
     if response is not None:
@@ -898,7 +898,7 @@ def on_post_llm_call(*, task_id: str = "", session_id: str = "", provider: str =
     else:
         usage_details, cost_details = {}, {}
 
-    tool_count = len(output.get("tool_calls", [])) or assistant_tool_call_count
+    tool_count = len(output.get("tool_calls", [])) or assistant_tool_call_count  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     gen_metadata: Dict[str, Any] = {"tool_call_count": tool_count}
     if api_duration and api_duration > 0:
         gen_metadata["api_duration_s"] = round(api_duration, 3)
