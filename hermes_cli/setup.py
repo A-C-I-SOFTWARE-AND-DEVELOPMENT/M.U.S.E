@@ -223,7 +223,7 @@ def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     print()
 
 
-def prompt(question: str, default: str = None, password: bool = False) -> str:
+def prompt(question: str, default: Optional[str] = None, password: bool = False) -> str:
     """Prompt for input with optional default."""
     if default:
         display = f"{question} [{default}]: "

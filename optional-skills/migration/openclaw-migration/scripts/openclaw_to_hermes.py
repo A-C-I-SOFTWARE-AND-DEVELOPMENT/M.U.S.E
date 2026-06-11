@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 try:
     import yaml
 except Exception:  # pragma: no cover - handled at runtime
-    yaml = None
+    yaml = None  # ty: ignore[invalid-assignment]  # optional dependency sentinel
 
 
 ENTRY_DELIMITER = "\n§\n"
@@ -810,8 +810,8 @@ class Migrator:
     def record(
         self,
         kind: str,
-        source: Optional[Path],
-        destination: Optional[Path],
+        source: Path | str | None,
+        destination: Path | str | None,
         status: str,
         reason: str = "",
         **details: Any,

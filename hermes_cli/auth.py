@@ -3115,7 +3115,7 @@ def _read_codex_tokens(*, _lock: bool = True) -> Dict[str, Any]:
     }
 
 
-def _save_codex_tokens(tokens: Dict[str, str], last_refresh: str = None) -> None:
+def _save_codex_tokens(tokens: Dict[str, str], last_refresh: Optional[str] = None) -> None:
     """Save Codex OAuth tokens to Hermes auth store (~/.hermes/auth.json)."""
     if last_refresh is None:
         last_refresh = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

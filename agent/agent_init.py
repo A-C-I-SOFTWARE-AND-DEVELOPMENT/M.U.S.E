@@ -28,7 +28,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import urlparse, parse_qs, urlunparse
 
 from agent.context_compressor import ContextCompressor
@@ -100,17 +100,17 @@ def init_agent(
     provider_data_collection: Optional[str] = None,
     openrouter_min_coding_score: Optional[float] = None,
     session_id: Optional[str] = None,
-    tool_progress_callback: callable = None,
-    tool_start_callback: callable = None,
-    tool_complete_callback: callable = None,
-    thinking_callback: callable = None,
-    reasoning_callback: callable = None,
-    clarify_callback: callable = None,
-    step_callback: callable = None,
-    stream_delta_callback: callable = None,
-    interim_assistant_callback: callable = None,
-    tool_gen_callback: callable = None,
-    status_callback: callable = None,
+    tool_progress_callback: Optional[Callable] = None,
+    tool_start_callback: Optional[Callable] = None,
+    tool_complete_callback: Optional[Callable] = None,
+    thinking_callback: Optional[Callable] = None,
+    reasoning_callback: Optional[Callable] = None,
+    clarify_callback: Optional[Callable] = None,
+    step_callback: Optional[Callable] = None,
+    stream_delta_callback: Optional[Callable] = None,
+    interim_assistant_callback: Optional[Callable] = None,
+    tool_gen_callback: Optional[Callable] = None,
+    status_callback: Optional[Callable] = None,
     max_tokens: Optional[int] = None,
     reasoning_config: Optional[Dict[str, Any]] = None,
     service_tier: Optional[str] = None,
@@ -342,12 +342,12 @@ def init_agent(
     # even when stream consumers are registered (no tokens streaming then)
     agent._executing_tools = False
     agent._tool_guardrails = ToolCallGuardrailController()
-    agent._tool_guardrail_halt_decision: ToolGuardrailDecision | None = None
+    agent._tool_guardrail_halt_decision = None
 
     # Interrupt mechanism for breaking out of tool loops
     agent._interrupt_requested = False
     agent._interrupt_message = None  # Optional message that triggered interrupt
-    agent._execution_thread_id: int | None = None  # Set at run_conversation() start
+    agent._execution_thread_id = None  # Set at run_conversation() start
     agent._interrupt_thread_signal_pending = False
     agent._client_lock = threading.RLock()
 
@@ -358,7 +358,7 @@ def init_agent(
     # last tool result's content so the model sees it on its next
     # iteration. Message-role alternation is preserved (we modify an
     # existing tool message rather than inserting a new user turn).
-    agent._pending_steer: Optional[str] = None
+    agent._pending_steer = None
     agent._pending_steer_lock = threading.Lock()
 
     # Concurrent-tool worker thread tracking.  `_execute_tool_calls_concurrent`
@@ -368,7 +368,7 @@ def init_agent(
     # `is_interrupted()` inside the worker to return True.  Track the
     # workers here so `interrupt()` / `clear_interrupt()` can fan out to
     # their tids explicitly.
-    agent._tool_worker_threads: set[int] = set()
+    agent._tool_worker_threads = set()
     agent._tool_worker_threads_lock = threading.Lock()
     
     # Subagent delegation state
@@ -434,18 +434,18 @@ def init_agent(
     # stream chunk.  Used by the gateway timeout handler to report what the
     # agent was doing when it was killed, and by the "still working"
     # notifications to show progress.
-    agent._last_activity_ts: float = time.time()
-    agent._last_activity_desc: str = "initializing"
-    agent._current_tool: str | None = None
-    agent._api_call_count: int = 0
+    agent._last_activity_ts = time.time()
+    agent._last_activity_desc = "initializing"
+    agent._current_tool = None
+    agent._api_call_count = 0
 
     # Rate limit tracking — updated from x-ratelimit-* response headers
     # after each API call.  Accessed by /usage slash command.
-    agent._rate_limit_state: Optional["RateLimitState"] = None
+    agent._rate_limit_state = None
 
     # OpenRouter response cache hit counter — incremented when
     # X-OpenRouter-Cache-Status: HIT is seen in streaming response headers.
-    agent._or_cache_hits: int = 0
+    agent._or_cache_hits = 0
 
     # Centralized logging — agent.log (INFO+) and errors.log (WARNING+)
     # both live under ~/.hermes/logs/.  Idempotent, so gateway mode
@@ -501,7 +501,7 @@ def init_agent(
     # Cache anthropic image-to-text fallbacks per image payload/URL so a
     # single tool loop does not repeatedly re-run auxiliary vision on the
     # same image history.
-    agent._anthropic_image_fallback_cache: Dict[str, str] = {}
+    agent._anthropic_image_fallback_cache = {}
 
     # Initialize LLM client via centralized provider router.
     # The router handles auth resolution, base URL, headers, and
@@ -904,12 +904,12 @@ def init_agent(
     agent.session_log_file = agent.logs_dir / f"session_{agent.session_id}.json"
     
     # Track conversation messages for session logging
-    agent._session_messages: List[Dict[str, Any]] = []
+    agent._session_messages = []
     agent._memory_write_origin = "assistant_tool"
     agent._memory_write_context = "foreground"
     
     # Cached system prompt -- built once per session, only rebuilt on compression
-    agent._cached_system_prompt: Optional[str] = None
+    agent._cached_system_prompt = None
     
     # Filesystem checkpoint manager (transparent — not a tool)
     from tools.checkpoint_manager import CheckpointManager
@@ -1395,7 +1395,7 @@ def init_agent(
     # errors. Even with the cache fix, dedup is the right defense
     # against plugin paths that may register the same schemas via
     # ctx.register_tool(). Mirrors the memory tools dedup above.
-    agent._context_engine_tool_names: set = set()
+    agent._context_engine_tool_names = set()
     if hasattr(agent, "context_compressor") and agent.context_compressor and agent.tools is not None:
         _existing_tool_names = {
             t.get("function", {}).get("name")
@@ -1452,7 +1452,7 @@ def init_agent(
     # User override: set model.ollama_num_ctx in config.yaml to cap VRAM use.
     # If model.context_length is set, it caps num_ctx so the user's VRAM
     # budget is respected even when GGUF metadata advertises a larger window.
-    agent._ollama_num_ctx: int | None = None
+    agent._ollama_num_ctx = None
     _ollama_num_ctx_override = None
     if isinstance(_model_cfg, dict):
         _ollama_num_ctx_override = _model_cfg.get("ollama_num_ctx")

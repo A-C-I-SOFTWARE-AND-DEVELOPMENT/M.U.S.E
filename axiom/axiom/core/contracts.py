@@ -12,9 +12,11 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
-import z3
+import z3  # ty: ignore[unresolved-import]
 
 # ---------------------------------------------------------------------------
 # EARS — Easy Approach to Requirements Syntax (4 patterns)
@@ -51,13 +53,13 @@ def parse_ears(text: str) -> EarsClause:
 # Restricted-AST contract expressions -> Z3
 # ---------------------------------------------------------------------------
 
-_ALLOWED_BINOPS = {
+_ALLOWED_BINOPS: dict[type[ast.operator], Callable[[Any, Any], Any]] = {
     ast.Add: lambda a, b: a + b,
     ast.Sub: lambda a, b: a - b,
     ast.Mult: lambda a, b: a * b,
     ast.Div: lambda a, b: a / b,
 }
-_ALLOWED_CMPOPS = {
+_ALLOWED_CMPOPS: dict[type[ast.cmpop], Callable[[Any, Any], Any]] = {
     ast.Eq: lambda a, b: a == b,
     ast.NotEq: lambda a, b: a != b,
     ast.Lt: lambda a, b: a < b,

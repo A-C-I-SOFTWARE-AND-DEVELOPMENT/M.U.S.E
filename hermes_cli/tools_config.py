@@ -1337,7 +1337,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     save_config(config)
 
 
-def _toolset_has_keys(ts_key: str, config: dict = None) -> bool:
+def _toolset_has_keys(ts_key: str, config: Optional[dict] = None) -> bool:
     """Check if a toolset's required API keys are configured."""
     if config is None:
         config = load_config()

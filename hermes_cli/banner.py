@@ -485,11 +485,11 @@ def _display_toolset_name(toolset_name: str) -> str:
 
 
 def build_welcome_banner(console: Console, model: str, cwd: str,
-                         tools: List[dict] = None,
-                         enabled_toolsets: List[str] = None,
-                         session_id: str = None,
+                         tools: Optional[List[dict]] = None,
+                         enabled_toolsets: Optional[List[str]] = None,
+                         session_id: Optional[str] = None,
                          get_toolset_for_tool=None,
-                         context_length: int = None):
+                         context_length: Optional[int] = None):
     """Build and print a welcome banner with caduceus on left and info on right.
 
     Args:
