@@ -7,6 +7,7 @@ _sanitize_api_messages() and the CLI session-restore paths.
 
 import logging
 import types
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from run_agent import AIAgent
@@ -29,14 +30,14 @@ class TestSanitizeApiMessagesRoleFilter:
         assert all(m["role"] != "session_meta" for m in out)
 
     def test_preserves_valid_roles(self):
-        msgs = [
+        msgs: list[dict[str, Any]] = [
             {"role": "system", "content": "you are helpful"},
             {"role": "user", "content": "hello"},
             {"role": "assistant", "content": "hi"},
             {"role": "tool", "tool_call_id": "c1", "content": "ok"},
         ]
         # Need a matching assistant tool_call so the tool result isn't orphaned
-        msgs[2]["tool_calls"] = [{"id": "c1", "function": {"name": "t", "arguments": "{}"}}]  # ty: ignore[invalid-assignment]
+        msgs[2]["tool_calls"] = [{"id": "c1", "function": {"name": "t", "arguments": "{}"}}]
         out = AIAgent._sanitize_api_messages(msgs)
         roles = [m["role"] for m in out]
         assert "system" in roles

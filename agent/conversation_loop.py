@@ -3147,7 +3147,7 @@ def run_conversation(
                     or interim_has_codex_message_items
                 ):
                     _lm = messages[-1] if messages else None
-                    last_msg = _lm if isinstance(_lm, dict) else None
+                    last_msg: Optional[Dict[str, Any]] = _lm if isinstance(_lm, dict) else None
                     # Duplicate detection: two consecutive incomplete assistant
                     # messages with identical content AND reasoning are collapsed.
                     # For provider-state-only changes (encrypted reasoning

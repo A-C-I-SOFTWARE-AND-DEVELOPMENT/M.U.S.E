@@ -379,8 +379,12 @@ class TestPatchSchemaShape:
         props = params["properties"]
         assert isinstance(props, dict)
         for name in ("path", "old_string", "new_string"):
-            assert "REQUIRED when mode='replace'" in props[name]["description"]
-        assert "REQUIRED when mode='patch'" in props["patch"]["description"]
+            field_desc = props[name]["description"]
+            assert isinstance(field_desc, str)
+            assert "REQUIRED when mode='replace'" in field_desc
+        patch_desc = props["patch"]["description"]
+        assert isinstance(patch_desc, str)
+        assert "REQUIRED when mode='patch'" in patch_desc
 
     def test_no_anyof_required_stays_mode_only(self):
         # anyOf/oneOf at parameters level break Anthropic, Fireworks, and the

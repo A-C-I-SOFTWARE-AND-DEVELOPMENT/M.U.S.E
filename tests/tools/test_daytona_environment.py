@@ -87,11 +87,12 @@ def make_env(daytona_sdk, monkeypatch):
             # Default: no existing sandbox found via get()
             mock_client.get.side_effect = daytona_sdk.DaytonaError("not found")
 
-        # Default: no legacy sandbox found via list()
+        # Default: no legacy sandbox found via list().
+        # The SDK returns a PaginatedSandboxes model; sandboxes live in .items.
         if list_return is not None:
-            mock_client.list.return_value = list_return
+            mock_client.list.return_value = SimpleNamespace(items=list_return)
         else:
-            mock_client.list.return_value = iter([])
+            mock_client.list.return_value = SimpleNamespace(items=[])
 
         daytona_sdk.Daytona = MagicMock(return_value=mock_client)
 

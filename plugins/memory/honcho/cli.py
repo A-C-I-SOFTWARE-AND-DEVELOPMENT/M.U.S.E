@@ -1019,14 +1019,14 @@ def cmd_identity(args) -> None:
         client = get_honcho_client(hcfg)
         mgr = HonchoSessionManager(honcho=client, config=hcfg)
         session_key = hcfg.resolve_session_name()
-        mgr.get_or_create(session_key)
+        mgr.get_or_create(session_key)  # ty: ignore[invalid-argument-type]  # resolve_session_name() is non-None for CLI configs
     except Exception as e:
         print(f"  Honcho connection failed: {e}\n")
         return
 
     if show:
         # ── User peer ────────────────────────────────────────────────────────
-        user_card = mgr.get_peer_card(session_key)
+        user_card = mgr.get_peer_card(session_key)  # ty: ignore[invalid-argument-type]
         print(f"\nUser peer ({hcfg.peer_name or 'not set'})\n" + "─" * 40)
         if user_card:
             for fact in user_card:
@@ -1035,7 +1035,7 @@ def cmd_identity(args) -> None:
             print("  No user peer card yet. Send a few messages to build one.")
 
         # ── AI peer ──────────────────────────────────────────────────────────
-        ai_rep = mgr.get_ai_representation(session_key)
+        ai_rep = mgr.get_ai_representation(session_key)  # ty: ignore[invalid-argument-type]
         print(f"\nAI peer ({hcfg.ai_peer})\n" + "─" * 40)
         if ai_rep.get("representation"):
             print(ai_rep["representation"])
@@ -1068,7 +1068,7 @@ def cmd_identity(args) -> None:
         return
 
     source = p.name
-    ok = mgr.seed_ai_identity(session_key, content, source=source)
+    ok = mgr.seed_ai_identity(session_key, content, source=source)  # ty: ignore[invalid-argument-type]
     if ok:
         print(f"  Seeded AI peer identity from {p.name} into session '{session_key}'")
         print(f"  Honcho will incorporate this into {hcfg.ai_peer}'s representation over time.\n")

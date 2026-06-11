@@ -456,7 +456,9 @@ class TestWebSearchSchema:
 
         params = tools.web_tools.WEB_SEARCH_SCHEMA["parameters"]
         assert isinstance(params, dict)
-        limit_schema = params["properties"]["limit"]
+        props = params["properties"]
+        assert isinstance(props, dict)
+        limit_schema = props["limit"]
 
         assert limit_schema["type"] == "integer"
         assert limit_schema["minimum"] == 1

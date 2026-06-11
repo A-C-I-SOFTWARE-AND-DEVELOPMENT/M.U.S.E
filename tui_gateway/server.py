@@ -116,7 +116,7 @@ except Exception:
 from tui_gateway.render import make_stream_renderer, render_diff, render_message
 
 _sessions: dict[str, dict] = {}
-_methods: dict[str, callable] = {}
+_methods: dict[str, Callable] = {}
 _pending: dict[str, tuple[str, threading.Event]] = {}
 _answers: dict[str, str] = {}
 _db = None
@@ -232,8 +232,8 @@ class _SlashWorker:
         with self._lock:
             self._seq += 1
             rid = self._seq
-            self.proc.stdin.write(json.dumps({"id": rid, "command": command}) + "\n")
-            self.proc.stdin.flush()
+            self.proc.stdin.write(json.dumps({"id": rid, "command": command}) + "\n")  # ty: ignore[unresolved-attribute]
+            self.proc.stdin.flush()  # ty: ignore[unresolved-attribute]
 
             while True:
                 try:
@@ -383,7 +383,7 @@ def write_json(obj: dict) -> bool:
 
 
 def _emit(event: str, sid: str, payload: dict | None = None):
-    params = {"type": event, "session_id": sid}
+    params: dict[str, Any] = {"type": event, "session_id": sid}
     if payload is not None:
         params["payload"] = payload
     write_json({"jsonrpc": "2.0", "method": "event", "params": params})
@@ -412,9 +412,9 @@ def _estimate_image_tokens(width: int, height: int) -> int:
 
 
 def _image_meta(path: Path) -> dict:
-    meta = {"name": path.name}
+    meta: dict[str, Any] = {"name": path.name}
     try:
-        from PIL import Image
+        from PIL import Image  # ty: ignore[unresolved-import]
 
         with Image.open(path) as img:
             width, height = img.size
@@ -911,7 +911,7 @@ def _load_enabled_toolsets() -> list[str] | None:
     try:
         from toolsets import validate_toolset
     except Exception:
-        validate_toolset = None
+        validate_toolset = None  # ty: ignore[invalid-assignment]
 
     if explicit and validate_toolset is not None:
         built_in = [name for name in explicit if validate_toolset(name)]
@@ -951,11 +951,9 @@ def _load_enabled_toolsets() -> list[str] | None:
             from hermes_cli.tools_config import _parse_enabled_flag
 
             raw_cfg = read_raw_config()
-            mcp_servers = (
-                raw_cfg.get("mcp_servers")
-                if isinstance(raw_cfg.get("mcp_servers"), dict)
-                else {}
-            )
+            mcp_servers = raw_cfg.get("mcp_servers")
+            if not isinstance(mcp_servers, dict):
+                mcp_servers = {}
             for name, server_cfg in mcp_servers.items():
                 if not isinstance(server_cfg, dict):
                     continue
@@ -1532,7 +1530,7 @@ def _on_tool_start(sid: str, tool_call_id: str, name: str, args: dict):
 
 
 def _on_tool_complete(sid: str, tool_call_id: str, name: str, args: dict, result: str):
-    payload = {"tool_id": tool_call_id, "name": name}
+    payload: dict[str, Any] = {"tool_id": tool_call_id, "name": name}
     session = _sessions.get(sid)
     snapshot = None
     started_at = None
@@ -1587,7 +1585,7 @@ def _on_tool_progress(
         _emit("reasoning.available", sid, {"text": str(preview)})
         return
     if event_type.startswith("subagent."):
-        payload = {
+        payload: dict[str, Any] = {
             "goal": str(_kwargs.get("goal") or ""),
             "task_count": int(_kwargs.get("task_count") or 1),
             "task_index": int(_kwargs.get("task_index") or 0),
@@ -2870,12 +2868,12 @@ def _(rid, params: dict) -> dict:
     if not isinstance(subagents, list) or not subagents:
         return _err(rid, 4000, "subagents list required")
 
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     started_at = params.get("started_at")
     finished_at = params.get("finished_at") or time.time()
     label = str(params.get("label") or "")
-    ts = datetime.utcfromtimestamp(float(finished_at)).strftime("%Y%m%dT%H%M%S")
+    ts = datetime.fromtimestamp(float(finished_at), tz=timezone.utc).strftime("%Y%m%dT%H%M%S")
     fname = f"{ts}.json"
     d = _spawn_tree_session_dir(session_id or "default")
     path = d / fname
@@ -3859,6 +3857,9 @@ def _(rid, params: dict) -> dict:
             current_overrides.pop("service_tier", None)
             current_overrides.pop("speed", None)
             if nv == "fast":
+                # Guaranteed non-None: the nv == "fast" branch above returned
+                # an error when resolve_fast_mode_overrides() yielded None.
+                assert overrides is not None
                 current_overrides.update(overrides)
             agent.request_overrides = current_overrides
             _emit(
