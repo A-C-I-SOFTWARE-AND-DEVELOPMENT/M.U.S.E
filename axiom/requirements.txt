@@ -1,0 +1,7 @@
+blake3>=1.0
+z3-solver>=4.13
+pynacl>=1.5
+fsrs>=6.3.1,<7
+hypothesis>=6.100
+pytest>=8
+fastmcp>=3.0
