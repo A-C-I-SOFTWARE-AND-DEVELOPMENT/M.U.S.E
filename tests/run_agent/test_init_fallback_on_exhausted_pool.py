@@ -37,16 +37,16 @@ def test_init_tries_fallback_when_primary_returns_none():
         agent = AIAgent(
             provider="alibaba-coding-plan",
             model="qwen3.6-plus",
-            api_key=None,
-            base_url=None,
+            api_key=None,  # ty: ignore[invalid-argument-type]
+            base_url=None,  # ty: ignore[invalid-argument-type]
             quiet_mode=True,
             skip_context_files=True,
             skip_memory=True,
-            fallback_model=[{"provider": "tencent-token-plan", "model": "kimi2.5"}],
+            fallback_model=[{"provider": "tencent-token-plan", "model": "kimi2.5"}],  # ty: ignore[invalid-argument-type]
         )
-        assert agent.provider == "tencent-token-plan"
-        assert agent.model == "kimi2.5"
-        assert agent._fallback_activated is True
+        assert agent.provider == "tencent-token-plan"  # ty: ignore[unresolved-attribute]
+        assert agent.model == "kimi2.5"  # ty: ignore[unresolved-attribute]
+        assert agent._fallback_activated is True  # ty: ignore[unresolved-attribute]
 
 
 def test_init_raises_when_no_fallback_configured():
@@ -60,10 +60,10 @@ def test_init_raises_when_no_fallback_configured():
             AIAgent(
                 provider="alibaba-coding-plan",
                 model="qwen3.6-plus",
-                api_key=None,
-                base_url=None,
+                api_key=None,  # ty: ignore[invalid-argument-type]
+                base_url=None,  # ty: ignore[invalid-argument-type]
                 quiet_mode=True,
                 skip_context_files=True,
                 skip_memory=True,
-                fallback_model=None,
+                fallback_model=None,  # ty: ignore[invalid-argument-type]
             )

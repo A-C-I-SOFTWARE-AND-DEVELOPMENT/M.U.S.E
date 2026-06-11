@@ -40,7 +40,7 @@ msvcrt = None
 try:
     import fcntl
 except ImportError:
-    fcntl = None
+    fcntl = None  # ty: ignore[invalid-assignment]
     try:
         import msvcrt
     except ImportError:
@@ -373,7 +373,7 @@ class MemoryStore:
 
     # -- Internal helpers --
 
-    def _success_response(self, target: str, message: str = None) -> Dict[str, Any]:
+    def _success_response(self, target: str, message: Optional[str] = None) -> Dict[str, Any]:
         entries = self._entries_for(target)
         current = self._char_count(target)
         limit = self._char_limit(target)
@@ -465,8 +465,8 @@ class MemoryStore:
 def memory_tool(
     action: str,
     target: str = "memory",
-    content: str = None,
-    old_text: str = None,
+    content: Optional[str] = None,
+    old_text: Optional[str] = None,
     store: Optional[MemoryStore] = None,
 ) -> str:
     """

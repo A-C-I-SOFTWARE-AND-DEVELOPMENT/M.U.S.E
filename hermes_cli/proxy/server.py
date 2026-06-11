@@ -15,10 +15,7 @@ import asyncio
 import json
 import logging
 import signal
-from typing import TYPE_CHECKING, Optional
-
-if TYPE_CHECKING:
-    import aiohttp.typedefs
+from typing import Mapping, Optional
 
 try:
     import aiohttp
@@ -62,7 +59,7 @@ def _json_error(status: int, message: str, code: str = "proxy_error") -> "web.Re
     return web.json_response(body, status=status)
 
 
-def _filter_request_headers(headers: "aiohttp.typedefs.LooseHeaders") -> dict:
+def _filter_request_headers(headers: "Mapping[str, str]") -> dict:
     """Strip hop-by-hop + auth headers from the inbound request."""
     out = {}
     for key, value in headers.items():

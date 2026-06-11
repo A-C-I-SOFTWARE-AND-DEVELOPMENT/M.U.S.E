@@ -152,7 +152,10 @@ class TestBrowserVisionAnnotate:
         from tools.browser_tool import BROWSER_TOOL_SCHEMAS
 
         schema = next(s for s in BROWSER_TOOL_SCHEMAS if s["name"] == "browser_vision")
-        props = schema["parameters"]["properties"]
+        params = schema["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "annotate" in props
         assert props["annotate"]["type"] == "boolean"
 
