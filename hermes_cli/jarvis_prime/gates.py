@@ -281,6 +281,31 @@ def owner_approval_gate(packet: Mapping[str, Any]) -> GateResult:
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="owner authorization captured")
 
 
+def high_risk_owner_approval_gate(
+    packet: Mapping[str, Any],
+    base: Optional[Callable[[Mapping[str, Any]], GateResult]] = None,
+) -> GateResult:
+    """OwnerApproval when the *job itself* is the gated action.
+
+    Used for HIGH-classified jobs (see ``axiom_bridge.classify_change``):
+    regardless of declared action categories, a HIGH job waits for the
+    exact authorization phrase. Once the phrase is present, the *base*
+    evaluator (legacy or strict) still rules on declared actions.
+    """
+
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    name = "owner_approval"
+    phrase = (_get(packet, "owner_authorization_phrase") or "").strip()
+    if phrase != AUTHORIZATION_PHRASE:
+        return GateResult(
+            name=name,
+            outcome=GateOutcome.NEEDS_OWNER_APPROVAL,
+            reason=f"HIGH-risk job awaits exact phrase: {AUTHORIZATION_PHRASE!r}",
+        )
+    return (base or owner_approval_gate)(packet)
+
+
 def rollback_gate(packet: Mapping[str, Any]) -> GateResult:
     name = "rollback"
     missing: list[str] = []
@@ -540,6 +565,36 @@ def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
             Gate("capability", lambda packet: capability_gate(packet, bundle, enabled=True))
         )
     return tuple(gates)
+
+
+def gates_for_profile(
+    names: Sequence[str],
+    *,
+    evidence_bundle: Optional[GuardrailEvidenceBundle] = None,
+    strict_evidence: bool = False,
+    high_risk: bool = False,
+) -> tuple[Gate, ...]:
+    """Resolve a risk-profile gate-name list to runnable gates.
+
+    Names come from ``axiom_bridge.classify_change()["gates"]``. With
+    ``strict_evidence`` the evidence-bound evaluators are used (a missing
+    bundle is treated as empty, so self-attestation fails by design).
+    With ``high_risk`` the owner_approval member treats the job itself
+    as the gated action. Unknown names are ignored rather than invented.
+    """
+    if strict_evidence:
+        bundle = evidence_bundle or GuardrailEvidenceBundle(packet_id="")
+        pool = {g.name: g for g in _strict_gates(bundle)}
+    else:
+        pool = {g.name: g for g in GATES}
+    if high_risk and "owner_approval" in pool:
+        base = pool["owner_approval"].evaluator
+        pool["owner_approval"] = Gate(
+            "owner_approval",
+            lambda packet, _base=base: high_risk_owner_approval_gate(packet, _base),
+        )
+    wanted = [str(n).strip().lower() for n in names]
+    return tuple(pool[n] for n in wanted if n in pool)
 
 
 # ---------------------------------------------------------------------------

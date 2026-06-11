@@ -16,7 +16,10 @@ from hermes_cli.jarvis_prime.research_fabric import ue5, ue5_bridge
 
 
 @pytest.fixture(autouse=True)
-def _fresh_bridge():
+def _fresh_bridge(monkeypatch: pytest.MonkeyPatch):
+    # CI exports MUSE_AXIOM_GATES=0 for hermeticity; these tests assert
+    # chain events against the per-test HERMES_HOME, so re-enable it.
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
     reset_bridge()
     yield
     reset_bridge()

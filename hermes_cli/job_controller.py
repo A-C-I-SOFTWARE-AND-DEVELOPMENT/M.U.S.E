@@ -82,6 +82,78 @@ DEFAULT_TARGET_TOOL_BY_ROLE: dict[str, str] = {
 # chronologically on disk and are easy to scan in ``ls``.
 _JOB_ID_RE = re.compile(r"^[a-z0-9_\-]+$")
 
+# Modes whose workers write to the repo; they carry an effect surface in
+# the blast-radius estimate (write + the tools the workers spawn).
+_WRITE_MODES = frozenset({JobMode.BUILD, JobMode.DEBUG, JobMode.REFACTOR})
+
+
+def estimate_job_risk(
+    mode: str,
+    trusted_local: bool,
+    *,
+    prompt: str = "",
+    overrides: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Classify a job's blast radius at planning time.
+
+    Defaults are mode-derived: write modes (build/debug/refactor)
+    declare ``fs.write`` + ``process.spawn`` effects; a write job in an
+    *untrusted* repo additionally counts as changing default behavior,
+    which forces HIGH. Callers holding a task graph pass ``overrides``
+    (``loc``/``files``/``effects``/``changes_default_behavior``) for a
+    sharper estimate. Returns None when the bridge is unavailable —
+    classification is advisory, never a crash.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        mode_clean = (mode or "").strip().lower()
+        writes = mode_clean in _WRITE_MODES
+        params: dict[str, Any] = {
+            "description": f"orchestrator {mode_clean} job",
+            "loc": 0,
+            "files": 1,
+            "effects": ("fs.write", "process.spawn") if writes else (),
+            "changes_default_behavior": writes and not trusted_local,
+        }
+        params.update(overrides or {})
+        classification = get_bridge().classify_change(**params)
+        classification["strict_evidence"] = classification["risk"] in ("MED", "HIGH")
+        return classification
+    except Exception:
+        return None
+
+
+def run_job_gates(
+    job: Job,
+    packet: dict[str, Any],
+    *,
+    evidence_bundle: Any | None = None,
+) -> Any:
+    """Run exactly the job's risk-profiled gates against *packet*.
+
+    MED/HIGH jobs are evidence-strict by default (self-attested packets
+    cannot pass); HIGH jobs additionally treat the job itself as an
+    owner-gated action. Jobs without a stored classification fall back
+    to the full default gate run.
+    """
+    from hermes_cli.jarvis_prime.gates import gates_for_profile, run_gate_summary
+
+    risk = dict(job.metadata.get("risk") or {})
+    profile = risk.get("gates") or ()
+    strict = bool(risk.get("strict_evidence"))
+    if not profile:
+        return run_gate_summary(
+            packet, evidence_bundle=evidence_bundle, strict_evidence=strict
+        )
+    gates = gates_for_profile(
+        profile,
+        evidence_bundle=evidence_bundle,
+        strict_evidence=strict,
+        high_risk=risk.get("risk") == "HIGH",
+    )
+    return run_gate_summary(packet, gates=gates)
+
 
 class JobControllerError(RuntimeError):
     """Base error for the orchestrator controller."""
@@ -179,11 +251,19 @@ class JobController:
         *,
         workers: Iterable[WorkerSpec] | None = None,
         job_id: str | None = None,
+        risk_overrides: dict[str, Any] | None = None,
     ) -> Job:
         """Create a new job, persist ``job.json``, return the Job.
 
         Workers default to a sensible fan-out per mode (see
         ``DEFAULT_WORKERS_BY_MODE``) unless ``workers=`` is provided.
+
+        The job is risk-classified at creation (``metadata["risk"]``:
+        band, score, gate profile, strict-evidence flag — see
+        :func:`estimate_job_risk`); ``risk_overrides`` feeds task-graph
+        estimates (loc/files/effects/changes_default_behavior) into the
+        classifier. Gate runs should go through :func:`run_job_gates`
+        so exactly the classified profile executes.
         """
         if not (prompt or "").strip():
             raise JobControllerError("prompt is required")
@@ -230,6 +310,16 @@ class JobController:
                 seen.add(spec.worker_id)
 
         now = _now()
+        metadata: dict[str, Any] = {}
+        risk = estimate_job_risk(
+            mode_clean,
+            bool(trusted_local),
+            prompt=prompt,
+            overrides=risk_overrides,
+        )
+        if risk is not None:
+            metadata["risk"] = risk
+
         job = Job(
             job_id=jid,
             prompt=prompt,
@@ -248,9 +338,31 @@ class JobController:
                     note="job created",
                 )
             ],
+            metadata=metadata,
         )
         self._persist(job)
-        logger.info("orchestrator: created job %s (mode=%s)", jid, mode_clean)
+        if risk is not None:
+            try:
+                from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+                get_bridge().record_event(
+                    "job.classified",
+                    {
+                        "job_id": jid,
+                        "mode": mode_clean,
+                        "risk": risk.get("risk"),
+                        "score": risk.get("score"),
+                        "gates": risk.get("gates"),
+                    },
+                )
+            except Exception:
+                pass
+        logger.info(
+            "orchestrator: created job %s (mode=%s, risk=%s)",
+            jid,
+            mode_clean,
+            (risk or {}).get("risk", "unclassified"),
+        )
         return job
 
     def load_job(self, job_id: str) -> Job:

@@ -20,7 +20,10 @@ from hermes_cli.jarvis_prime.axiom_bridge import (
 
 
 @pytest.fixture(autouse=True)
-def _fresh_bridge():
+def _fresh_bridge(monkeypatch: pytest.MonkeyPatch):
+    # CI exports MUSE_AXIOM_GATES=0 for hermeticity; these tests exercise
+    # the live bridge against the per-test HERMES_HOME, so re-enable it.
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
     reset_bridge()
     yield
     reset_bridge()

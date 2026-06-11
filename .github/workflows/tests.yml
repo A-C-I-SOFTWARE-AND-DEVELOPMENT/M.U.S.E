@@ -66,6 +66,8 @@ jobs:
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""
+          # Keep axiom_bridge gate-chaining off the runner's home
+          MUSE_AXIOM_GATES: "0"
 
       - name: Upload pytest log on failure
         if: failure()
@@ -115,3 +117,4 @@ jobs:
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""
+          MUSE_AXIOM_GATES: "0"
