@@ -107,7 +107,7 @@ def _shape_message(m: Dict[str, Any], anchor_id: Optional[int] = None) -> Dict[s
     return {k: v for k, v in entry.items() if v is not None or k in ("content",)}
 
 
-def _list_recent_sessions(db, limit: int, current_session_id: str = None) -> str:
+def _list_recent_sessions(db, limit: int, current_session_id: Optional[str] = None) -> str:
     """Return metadata for the most recent sessions (no LLM calls, no FTS5)."""
     try:
         sessions = db.list_sessions_rich(
@@ -155,7 +155,7 @@ def _scroll(
     session_id: str,
     around_message_id: int,
     window: int = 5,
-    current_session_id: str = None,
+    current_session_id: Optional[str] = None,
 ) -> str:
     """Scroll shape: return a window of messages centered on an anchor.
 
@@ -280,7 +280,7 @@ def _discover(
     role_filter: Optional[List[str]],
     limit: int,
     sort: Optional[str],
-    current_session_id: str = None,
+    current_session_id: Optional[str] = None,
 ) -> str:
     """Discovery shape: FTS5 + anchored window + bookends per hit. Single call."""
     role_list = role_filter if role_filter else ["user", "assistant"]
@@ -377,16 +377,16 @@ def _discover(
 
 def session_search(
     query: str = "",
-    role_filter: str = None,
+    role_filter: Optional[str] = None,
     limit: int = 3,
     db=None,
-    current_session_id: str = None,
+    current_session_id: Optional[str] = None,
     # Scroll shape
-    session_id: str = None,
-    around_message_id: int = None,
+    session_id: Optional[str] = None,
+    around_message_id: Optional[int] = None,
     window: int = 5,
     # Discovery shape
-    sort: str = None,
+    sort: Optional[str] = None,
 ) -> str:
     """Single-shape tool. Mode inferred from which args are set.
 

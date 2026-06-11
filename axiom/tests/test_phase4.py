@@ -92,6 +92,7 @@ def test_memory_tools(host):
 
 
 def test_memory_observe_owner_required_is_machine_readable(host):
+    assert mcp_server._mind is not None  # the host fixture initialized it
     bid = mcp_server._mind.believe("never deploy fridays",
                                    entrenchment=ENTRENCH_OWNER)
     out = _call("memory_observe",

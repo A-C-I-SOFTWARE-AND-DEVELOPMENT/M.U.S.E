@@ -36,9 +36,12 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 from datetime import datetime
 from multiprocessing import Pool, Lock
+
+if TYPE_CHECKING:
+    from multiprocessing.synchronize import Lock as LockType
 import traceback
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn, MofNCompleteColumn
 from rich.console import Console
@@ -536,22 +539,22 @@ class BatchRunner:
         run_name: str,
         distribution: str = "default",
         max_iterations: int = 10,
-        base_url: str = None,
-        api_key: str = None,
+        base_url: Optional[str] = None,
+        api_key: Optional[str] = None,
         model: str = "claude-opus-4-20250514",
         num_workers: int = 4,
         verbose: bool = False,
-        ephemeral_system_prompt: str = None,
+        ephemeral_system_prompt: Optional[str] = None,
         log_prefix_chars: int = 100,
-        providers_allowed: List[str] = None,
-        providers_ignored: List[str] = None,
-        providers_order: List[str] = None,
-        provider_sort: str = None,
+        providers_allowed: Optional[List[str]] = None,
+        providers_ignored: Optional[List[str]] = None,
+        providers_order: Optional[List[str]] = None,
+        provider_sort: Optional[str] = None,
         openrouter_min_coding_score: Optional[float] = None,
-        max_tokens: int = None,
-        reasoning_config: Dict[str, Any] = None,
-        prefill_messages: List[Dict[str, Any]] = None,
-        max_samples: int = None,
+        max_tokens: Optional[int] = None,
+        reasoning_config: Optional[Dict[str, Any]] = None,
+        prefill_messages: Optional[List[Dict[str, Any]]] = None,
+        max_samples: Optional[int] = None,
     ):
         """
         Initialize the batch runner.
@@ -712,7 +715,7 @@ class BatchRunner:
                 "last_updated": None
             }
     
-    def _save_checkpoint(self, checkpoint_data: Dict[str, Any], lock: Optional[Lock] = None):
+    def _save_checkpoint(self, checkpoint_data: Dict[str, Any], lock: Optional["LockType"] = None):
         """
         Save checkpoint data.
         
@@ -773,7 +776,7 @@ class BatchRunner:
         
         return completed_prompts
     
-    def _filter_dataset_by_completed(self, completed_prompts: set) -> Tuple[List[Dict], List[int]]:
+    def _filter_dataset_by_completed(self, completed_prompts: set) -> Tuple[List[Tuple[int, Dict]], List[int]]:
         """
         Filter the dataset to exclude prompts that have already been completed.
         
@@ -905,7 +908,7 @@ class BatchRunner:
         completed_prompts_set = set(checkpoint_data.get("completed_prompts", []))
         
         # Aggregate statistics across all batches
-        total_tool_stats = {}
+        total_tool_stats: Dict[str, Dict[str, Any]] = {}
         
         start_time = time.time()
         
@@ -1145,29 +1148,29 @@ class BatchRunner:
 
 
 def main(
-    dataset_file: str = None,
-    batch_size: int = None,
-    run_name: str = None,
+    dataset_file: Optional[str] = None,
+    batch_size: Optional[int] = None,
+    run_name: Optional[str] = None,
     distribution: str = "default",
     model: str = "anthropic/claude-sonnet-4.6",
-    api_key: str = None,
+    api_key: Optional[str] = None,
     base_url: str = "https://openrouter.ai/api/v1",
     max_turns: int = 10,
     num_workers: int = 4,
     resume: bool = False,
     verbose: bool = False,
     list_distributions: bool = False,
-    ephemeral_system_prompt: str = None,
+    ephemeral_system_prompt: Optional[str] = None,
     log_prefix_chars: int = 100,
-    providers_allowed: str = None,
-    providers_ignored: str = None,
-    providers_order: str = None,
-    provider_sort: str = None,
-    max_tokens: int = None,
-    reasoning_effort: str = None,
+    providers_allowed: Optional[str] = None,
+    providers_ignored: Optional[str] = None,
+    providers_order: Optional[str] = None,
+    provider_sort: Optional[str] = None,
+    max_tokens: Optional[int] = None,
+    reasoning_effort: Optional[str] = None,
     reasoning_disabled: bool = False,
-    prefill_messages_file: str = None,
-    max_samples: int = None,
+    prefill_messages_file: Optional[str] = None,
+    max_samples: Optional[int] = None,
 ):
     """
     Run batch processing of agent prompts from a dataset.
@@ -1225,7 +1228,8 @@ def main(
         print("📊 Available Toolset Distributions")
         print("=" * 70)
 
-        all_dists = list_distributions()
+        from toolset_distributions import list_distributions as _list_distributions
+        all_dists = _list_distributions()
         for dist_name in sorted(all_dists.keys()):
             print_distribution_info(dist_name)
         

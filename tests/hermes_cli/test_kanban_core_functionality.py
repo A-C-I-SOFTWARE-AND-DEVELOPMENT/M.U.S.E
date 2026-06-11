@@ -23,6 +23,14 @@ from typing import Optional
 import pytest
 
 from hermes_cli import kanban_db as kb
+
+
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
 from hermes_cli.kanban import run_slash
 
 
@@ -768,7 +776,7 @@ def test_cli_complete_bulk(kanban_home):
     try:
         for tid in (a, b, c):
             assert kb is not None
-            assert kb.get_task(conn, tid).status == "done"
+            assert _task(conn, tid).status == "done"
     finally:
         conn.close()
 
@@ -785,9 +793,9 @@ def test_cli_archive_bulk(kanban_home):
     conn = kb.connect()
     try:
         assert kb is not None
-        assert kb.get_task(conn, a).status == "archived"
+        assert _task(conn, a).status == "archived"
         assert kb is not None
-        assert kb.get_task(conn, b).status == "archived"
+        assert _task(conn, b).status == "archived"
     finally:
         conn.close()
 
@@ -1437,7 +1445,7 @@ def test_run_created_on_claim(kanban_home):
     try:
         tid = kb.create_task(conn, title="x", assignee="worker")
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id is None
+        assert _task(conn, tid).current_run_id is None
 
         claimed = kb.claim_task(conn, tid)
         assert claimed is not None
@@ -1549,7 +1557,7 @@ def test_multiple_attempts_preserved_as_runs(kanban_home):
         assert [r.outcome for r in runs] == ["reclaimed", "crashed", "completed"]
         assert runs[-1].summary == "finally"
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id is None
+        assert _task(conn, tid).current_run_id is None
     finally:
         conn.close()
 
@@ -1640,7 +1648,7 @@ def test_stale_run_cannot_block_or_heartbeat_new_attempt(kanban_home, monkeypatc
         assert run2 is not None
         assert kb.block_task(conn, tid, reason="current block", expected_run_id=run2.id)
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "blocked"
+        assert _task(conn, tid).status == "blocked"
     finally:
         conn.close()
 
@@ -1660,7 +1668,7 @@ def test_run_on_block_with_reason(kanban_home):
         assert r is not None
         assert r.ended_at is not None
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id is None
+        assert _task(conn, tid).current_run_id is None
     finally:
         conn.close()
 
@@ -1784,7 +1792,7 @@ def test_migration_backfills_inflight_run_for_legacy_db(kanban_home):
         # Sanity: no runs, no pointer.
         assert kb.list_runs(conn, tid) == []
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id is None
+        assert _task(conn, tid).current_run_id is None
 
         # Re-run init_db — migration backfill should kick in.
         kb.init_db()
@@ -2069,9 +2077,9 @@ def test_cli_bulk_complete_with_summary_rejects(kanban_home):
     conn = kb.connect()
     try:
         assert kb is not None
-        assert kb.get_task(conn, a).status == "running"
+        assert _task(conn, a).status == "running"
         assert kb is not None
-        assert kb.get_task(conn, b).status == "running"
+        assert _task(conn, b).status == "running"
     finally:
         conn.close()
 
@@ -2153,7 +2161,7 @@ def test_complete_never_claimed_task_synthesizes_run(kanban_home):
         assert r.started_at == r.ended_at
         # Task pointer still NULL (we never claimed, never opened a run).
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id is None
+        assert _task(conn, tid).current_run_id is None
 
         # Event carries the synthetic run_id.
         evts = [e for e in kb.list_events(conn, tid) if e.kind == "completed"]
@@ -2333,7 +2341,7 @@ def test_connect_auto_inits_fresh_db(tmp_path, monkeypatch):
         tid = kb.create_task(conn, title="x")
         assert tid is not None
         assert kb is not None
-        assert kb.get_task(conn, tid).title == "x"
+        assert _task(conn, tid).title == "x"
     finally:
         conn.close()
 
@@ -2393,7 +2401,7 @@ def test_unblock_invariant_recovery(kanban_home):
         conn.commit()
         # current_run_id is still set; run is still open.
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id == leaked_run_id
+        assert _task(conn, tid).current_run_id == leaked_run_id
         assert kb is not None
         assert kb.get_run(conn, leaked_run_id).ended_at is None
 
@@ -2470,7 +2478,7 @@ def test_migration_backfill_idempotent_under_re_run(tmp_path, monkeypatch):
         assert len(runs) == 1, f"expected exactly 1 backfilled run, got {len(runs)}"
         # Pointer should be installed.
         assert kb is not None
-        assert kb.get_task(conn, tid).current_run_id == runs[0].id
+        assert _task(conn, tid).current_run_id == runs[0].id
     finally:
         conn.close()
 
@@ -3961,7 +3969,7 @@ def test_complete_can_retry_after_phantom_rejection(kanban_home):
                 created_cards=["t_phantomdeadbeef"],
             )
         assert kb is not None
-        assert kb.get_task(conn, parent_a).status == "running"
+        assert _task(conn, parent_a).status == "running"
 
         # Retry with [] (escape hatch): gate is skipped, completion lands.
         ok = kb.complete_task(
@@ -3971,7 +3979,7 @@ def test_complete_can_retry_after_phantom_rejection(kanban_home):
         )
         assert ok is True
         assert kb is not None
-        assert kb.get_task(conn, parent_a).status == "done"
+        assert _task(conn, parent_a).status == "done"
 
         # Same flow on parent_b, but recover via a corrected list rather
         # than the empty escape hatch.
@@ -3982,7 +3990,7 @@ def test_complete_can_retry_after_phantom_rejection(kanban_home):
                 created_cards=[real, "t_anotherphantom"],
             )
         assert kb is not None
-        assert kb.get_task(conn, parent_b).status == "running"
+        assert _task(conn, parent_b).status == "running"
 
         ok = kb.complete_task(
             conn, parent_b,
@@ -3991,7 +3999,7 @@ def test_complete_can_retry_after_phantom_rejection(kanban_home):
         )
         assert ok is True
         assert kb is not None
-        assert kb.get_task(conn, parent_b).status == "done"
+        assert _task(conn, parent_b).status == "done"
 
         # Both audit events landed; the eventual completion event is
         # also present on each task.
@@ -4531,7 +4539,7 @@ def test_dispatch_once_integrates_stale_detection(kanban_home, monkeypatch):
         )
         assert t in res.stale, "Stale task should appear in result.stale"
         assert kb is not None
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_dispatch_once_stale_disabled_when_timeout_zero(kanban_home, monkeypatch):
@@ -4564,4 +4572,4 @@ def test_dispatch_once_stale_disabled_when_timeout_zero(kanban_home, monkeypatch
         )
         assert res.stale == [], "stale_timeout_seconds=0 should disable detection"
         assert kb is not None
-        assert kb.get_task(conn, t).status == "running"
+        assert _task(conn, t).status == "running"

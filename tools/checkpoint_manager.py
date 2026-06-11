@@ -758,7 +758,7 @@ class CheckpointManager:
             "diff": diff_out if ok_diff else "",
         }
 
-    def restore(self, working_dir: str, commit_hash: str, file_path: str = None) -> Dict:
+    def restore(self, working_dir: str, commit_hash: str, file_path: Optional[str] = None) -> Dict:
         """Restore files to a checkpoint state."""
         hash_err = _validate_commit_hash(commit_hash)
         if hash_err:

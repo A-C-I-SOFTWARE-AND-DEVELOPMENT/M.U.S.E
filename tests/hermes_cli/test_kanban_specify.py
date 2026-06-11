@@ -16,6 +16,14 @@ import pytest
 
 from hermes_cli import kanban as kanban_cli
 from hermes_cli import kanban_db as kb
+
+
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
 from hermes_cli import kanban_specify as spec
 
 
@@ -174,7 +182,7 @@ def test_specify_task_no_aux_client_configured(kanban_home):
     # Task must stay in triage — we never touched it.
     with kb.connect() as conn:
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
 
 
 def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
@@ -193,7 +201,7 @@ def test_specify_task_llm_api_error_keeps_task_in_triage(kanban_home):
     assert "LLM error" in outcome.reason
     with kb.connect() as conn:
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
 
 
 def test_specify_task_empty_llm_response(kanban_home):
@@ -207,7 +215,7 @@ def test_specify_task_empty_llm_response(kanban_home):
     assert outcome.ok is False
     with kb.connect() as conn:
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
 
 
 def test_list_triage_ids(kanban_home):
@@ -327,10 +335,10 @@ def test_cli_specify_tenant_filter(kanban_home, capsys):
     # The outside task stays in triage.
     with kb.connect() as conn:
         assert kb is not None
-        assert kb.get_task(conn, outside).status == "triage"
+        assert _task(conn, outside).status == "triage"
         # The inside task was promoted.
         assert kb is not None
-        assert kb.get_task(conn, inside).status in {"todo", "ready"}
+        assert _task(conn, inside).status in {"todo", "ready"}
 
 
 def test_cli_specify_author_passed_through(kanban_home, capsys):

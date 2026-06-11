@@ -11,6 +11,14 @@ import pytest
 from hermes_cli import kanban_db as kb
 
 
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
+
+
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
     home = tmp_path / ".hermes"
@@ -36,7 +44,7 @@ def test_decompose_creates_children_and_promotes_root(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="ship a feature")
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
 
     children = [
         {"title": "research", "body": "look at prior art", "assignee": "researcher", "parents": []},

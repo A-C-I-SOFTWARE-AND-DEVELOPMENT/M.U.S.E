@@ -1,6 +1,14 @@
 import json
 
 from hermes_cli import kanban_db as kb
+
+
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
 from hermes_cli.kanban_swarm import (
     SwarmWorkerSpec,
     create_swarm,
@@ -103,16 +111,16 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
         )
         kb.recompute_ready(conn)
         assert kb is not None
-        assert kb.get_task(conn, created.verifier_id).status == "todo"
+        assert _task(conn, created.verifier_id).status == "todo"
         assert kb is not None
-        assert kb.get_task(conn, created.synthesizer_id).status == "todo"
+        assert _task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(conn, created.worker_ids[1], summary="B done")
         kb.recompute_ready(conn)
         assert kb is not None
-        assert kb.get_task(conn, created.verifier_id).status == "ready"
+        assert _task(conn, created.verifier_id).status == "ready"
         assert kb is not None
-        assert kb.get_task(conn, created.synthesizer_id).status == "todo"
+        assert _task(conn, created.synthesizer_id).status == "todo"
 
         kb.complete_task(
             conn,
@@ -122,6 +130,6 @@ def test_swarm_verifier_and_synthesis_are_dependency_gated(tmp_path):
         )
         kb.recompute_ready(conn)
         assert kb is not None
-        assert kb.get_task(conn, created.synthesizer_id).status == "ready"
+        assert _task(conn, created.synthesizer_id).status == "ready"
     finally:
         conn.close()

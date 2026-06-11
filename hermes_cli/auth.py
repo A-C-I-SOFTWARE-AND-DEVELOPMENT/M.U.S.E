@@ -1121,7 +1121,7 @@ def get_auth_provider_display_name(provider_id: str) -> str:
     return SERVICE_PROVIDER_NAMES.get(normalized, provider_id)
 
 
-def read_credential_pool(provider_id: Optional[str] = None) -> Dict[str, Any]:
+def read_credential_pool(provider_id: Optional[str] = None) -> Any:
     """Return the persisted credential pool, or one provider slice.
 
     In profile mode, the profile's credential pool is authoritative. If a
@@ -5152,7 +5152,7 @@ def resolve_nous_runtime_credentials(
                     )
                     mint_payload = _mint_agent_key(
                         client=client, portal_base_url=portal_base_url,
-                        access_token=access_token, min_ttl_seconds=min_key_ttl_seconds,
+                        access_token=access_token, min_ttl_seconds=min_key_ttl_seconds,  # ty: ignore[invalid-argument-type]  # access_token validated upstream
                     )
                 except AuthError as exc:
                     _oauth_trace(
@@ -5246,7 +5246,7 @@ def resolve_nous_runtime_credentials(
                         else:
                             mint_payload = _mint_agent_key(
                                 client=client, portal_base_url=portal_base_url,
-                                access_token=access_token, min_ttl_seconds=min_key_ttl_seconds,
+                                access_token=access_token, min_ttl_seconds=min_key_ttl_seconds,  # ty: ignore[invalid-argument-type]  # access_token validated upstream
                             )
                     else:
                         raise
@@ -6103,8 +6103,8 @@ def _prompt_model_selection(
         if idx is None:
             return None
         print()
-        if idx < len(ordered):
-            return ordered[idx]
+        if idx < len(ordered):  # ty: ignore[unsupported-operator]  # single-select menu -> int
+            return ordered[idx]  # ty: ignore[invalid-argument-type]  # single-select menu -> int
         elif idx == len(ordered):
             custom = input("Enter model name: ").strip()
             return custom if custom else None
@@ -7247,7 +7247,7 @@ def _nous_device_code_login(
         )
     except AuthError as exc:
         if exc.code == "subscription_required":
-            portal_url = auth_state.get(
+            portal_url = auth_state.get(  # ty: ignore[unresolved-attribute]  # portal_base_url is str
                 "portal_base_url", DEFAULT_NOUS_PORTAL_URL
             ).rstrip("/")
             print()

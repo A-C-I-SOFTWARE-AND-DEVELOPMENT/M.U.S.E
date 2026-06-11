@@ -1403,7 +1403,7 @@ def _estimate_tool_tokens() -> Dict[str, int]:
         return _tool_token_cache
 
     try:
-        import tiktoken  # ty: ignore[unresolved-import]  # optional dep
+        import tiktoken
         enc = tiktoken.get_encoding("cl100k_base")
     except Exception:
         logger.debug("tiktoken unavailable; skipping tool token estimation")
@@ -2693,7 +2693,7 @@ def _reconfigure_simple_requirements(ts_key: str):
 
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 
-def tools_command(args=None, first_install: bool = False, config: dict = None):
+def tools_command(args=None, first_install: bool = False, config: Optional[dict] = None):
     """Entry point for `hermes tools` and `hermes setup tools`.
 
     Args:

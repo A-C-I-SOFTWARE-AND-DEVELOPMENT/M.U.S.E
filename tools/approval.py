@@ -16,7 +16,7 @@ import sys
 import threading
 import time
 import unicodedata
-from typing import Optional
+from typing import Any, Optional
 from hermes_cli.config import cfg_get
 
 from utils import env_var_enabled, is_truthy_value
@@ -1108,7 +1108,7 @@ def check_all_command_guards(command: str, env_type: str,
 
     # Tirith check — wrapper guarantees no raise for expected failures.
     # Only catch ImportError (module not installed).
-    tirith_result = {"action": "allow", "findings": [], "summary": ""}
+    tirith_result: dict = {"action": "allow", "findings": [], "summary": ""}
     try:
         from tools.tirith_security import check_command_security
         tirith_result = check_command_security(command)
@@ -1184,7 +1184,7 @@ def check_all_command_guards(command: str, env_type: str,
     # input() flow.  The agent never sees "approval_required"; it either
     # gets the command output (approved) or a definitive "BLOCKED" message.
     if is_gateway or is_ask:
-        notify_cb = None
+        notify_cb: Any = None
         with _lock:
             notify_cb = _gateway_notify_cbs.get(session_key)
 
@@ -1250,7 +1250,7 @@ def check_all_command_guards(command: str, env_type: str,
             try:
                 from tools.environments.base import touch_activity_if_due
             except Exception:  # pragma: no cover
-                touch_activity_if_due = None
+                touch_activity_if_due = None  # ty: ignore[invalid-assignment]
 
             _now = time.monotonic()
             _deadline = _now + max(timeout, 0)

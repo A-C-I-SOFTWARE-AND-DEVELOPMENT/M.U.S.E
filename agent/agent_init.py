@@ -598,6 +598,7 @@ def init_agent(
             _gr_label = " + Guardrails" if agent._bedrock_guardrail_config else ""
             print(f"🤖 AI Agent initialized with model: {agent.model} (AWS Bedrock, {agent._bedrock_region}{_gr_label})")
     else:
+        client_kwargs: Dict[str, Any]  # declaration only — no runtime effect
         if api_key and base_url:
             # Explicit credentials from CLI/gateway — construct directly.
             # The runtime provider resolver already handled auth for us.

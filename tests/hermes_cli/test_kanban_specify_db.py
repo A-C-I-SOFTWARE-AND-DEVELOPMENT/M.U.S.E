@@ -10,6 +10,14 @@ import pytest
 from hermes_cli import kanban_db as kb
 
 
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
+
+
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
     """Isolated HERMES_HOME with an empty kanban DB."""
@@ -35,7 +43,7 @@ def test_specify_promotes_triage_to_todo(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="rough idea")
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
             conn,
@@ -66,7 +74,7 @@ def test_specify_with_open_parent_lands_in_todo_not_ready(kanban_home):
         # After linking with an open parent, triage status should still be
         # 'triage' (linking doesn't touch triage tasks).
         assert kb is not None
-        assert kb.get_task(conn, child).status == "triage"
+        assert _task(conn, child).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
             conn,
@@ -86,14 +94,14 @@ def test_specify_refuses_non_triage_task(kanban_home):
     with kb.connect() as conn:
         tid = kb.create_task(conn, title="normal task")
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "ready"
+        assert _task(conn, tid).status == "ready"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(conn, tid, body="won't apply")
     assert ok is False
     with kb.connect() as conn:
         # Status unchanged.
         assert kb is not None
-        assert kb.get_task(conn, tid).status == "ready"
+        assert _task(conn, tid).status == "ready"
 
 
 def test_specify_returns_false_for_unknown_id(kanban_home):
@@ -166,7 +174,7 @@ def test_specify_skips_comment_when_nothing_changed(kanban_home):
     with kb.connect() as conn:
         # Promoted.
         assert kb is not None
-        assert kb.get_task(conn, tid).status in {"todo", "ready"}
+        assert _task(conn, tid).status in {"todo", "ready"}
         # No audit comment because neither field changed.
         assert kb.list_comments(conn, tid) == []
 

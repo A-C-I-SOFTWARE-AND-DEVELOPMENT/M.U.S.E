@@ -42,7 +42,7 @@ except ImportError:
     # type checker accept attribute access behind the DISCORD_AVAILABLE guard.
     discord = cast(Any, None)
     DiscordMessage = Any
-    Intents: Any = Any  # declared Any so `Intents.default()` type-checks
+    Intents = Any
     commands = cast(Any, None)
 
 import sys
@@ -103,9 +103,9 @@ def check_discord_requirements() -> bool:
     except Exception:
         return False
     try:
-        import discord as _discord
-        from discord import Message as _DM, Intents as _Intents
-        from discord.ext import commands as _commands
+        import discord as _discord  # ty: ignore[unresolved-import]
+        from discord import Message as _DM, Intents as _Intents  # ty: ignore[unresolved-import]
+        from discord.ext import commands as _commands  # ty: ignore[unresolved-import]
     except ImportError:
         return False
     discord = _discord
@@ -166,7 +166,7 @@ class VoiceReceiver:
     SAMPLE_RATE = 48000        # Discord native rate
     CHANNELS = 2               # Discord sends stereo
 
-    def __init__(self, voice_client, allowed_user_ids: Optional[set] = None):
+    def __init__(self, voice_client, allowed_user_ids: set = None):
         self._vc = voice_client
         self._allowed_user_ids = allowed_user_ids or set()
         self._running = False
@@ -185,7 +185,7 @@ class VoiceReceiver:
         self._last_packet_time: Dict[int, float] = {}
 
         # Opus decoder per SSRC (each user needs own decoder state)
-        self._decoders: Dict[int, Any] = {}
+        self._decoders: Dict[int, object] = {}
 
         # Pause flag: don't capture while bot is playing TTS
         self._paused = False
@@ -263,7 +263,7 @@ class VoiceReceiver:
         conn.hook = wrapped_hook
         # Set on the current live websocket (for immediate effect)
         try:
-            from discord.utils import MISSING  # ty: ignore[unresolved-import]
+            from discord.utils import MISSING
             if hasattr(conn, 'ws') and conn.ws is not MISSING:
                 conn.ws._hook = wrapped_hook
                 logger.info("Speaking hook installed on live websocket")
@@ -339,7 +339,7 @@ class VoiceReceiver:
         encrypted = bytes(payload_with_nonce[:-4])
 
         try:
-            import nacl.secret  # noqa: E402 — delayed import, only in voice path  # ty: ignore[unresolved-import]
+            import nacl.secret  # noqa: E402 — delayed import, only in voice path
             box = nacl.secret.Aead(self._secret_key)
             decrypted = box.decrypt(encrypted, header, bytes(nonce))
         except Exception as e:
@@ -382,7 +382,7 @@ class VoiceReceiver:
                 user_id = self._ssrc_to_user.get(ssrc, 0)
             if user_id:
                 try:
-                    import davey  # ty: ignore[unresolved-import]
+                    import davey
                     decrypted = self._dave_session.decrypt(
                         user_id, davey.MediaType.audio, decrypted
                     )
@@ -555,9 +555,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
     def __init__(self, config: PlatformConfig):
         super().__init__(config, Platform.DISCORD)
-        # Optional[commands.Bot] at runtime; typed Any because discord.py is
-        # an optional dependency the checker cannot resolve.
-        self._client: Any = None
+        self._client: Optional[commands.Bot] = None
         self._ready_event = asyncio.Event()
         self._allowed_user_ids: set = set()  # For button approval authorization
         self._allowed_role_ids: set = set()  # For DISCORD_ALLOWED_ROLES filtering
@@ -927,7 +925,7 @@ class DiscordAdapter(BasePlatformAdapter):
         atomic_json_write(
             self._command_sync_state_path(),
             state,
-            indent=None,  # ty: ignore[invalid-argument-type] — utils.atomic_json_write annotates indent as int, but json.dump accepts None (compact output)
+            indent=None,
             separators=(",", ":"),
         )
 
@@ -961,9 +959,12 @@ class DiscordAdapter(BasePlatformAdapter):
 
     def _record_command_sync_attempt(self, app_id: Any, fingerprint: str) -> None:
         state = self._read_command_sync_state()
-        prior_entry = state.get(self._command_sync_state_key(app_id))
         state[self._command_sync_state_key(app_id)] = {
-            **(prior_entry if isinstance(prior_entry, dict) else {}),
+            **(
+                state.get(self._command_sync_state_key(app_id))
+                if isinstance(state.get(self._command_sync_state_key(app_id)), dict)
+                else {}
+            ),
             "fingerprint": fingerprint,
             "last_attempt_at": time.time(),
         }
@@ -972,9 +973,12 @@ class DiscordAdapter(BasePlatformAdapter):
     def _record_command_sync_rate_limit(self, app_id: Any, fingerprint: str, retry_after: float) -> None:
         retry_after = max(1.0, float(retry_after))
         state = self._read_command_sync_state()
-        prior_entry = state.get(self._command_sync_state_key(app_id))
         state[self._command_sync_state_key(app_id)] = {
-            **(prior_entry if isinstance(prior_entry, dict) else {}),
+            **(
+                state.get(self._command_sync_state_key(app_id))
+                if isinstance(state.get(self._command_sync_state_key(app_id)), dict)
+                else {}
+            ),
             "fingerprint": fingerprint,
             "last_attempt_at": time.time(),
             "retry_after_until": time.time() + retry_after,
@@ -1505,7 +1509,7 @@ class DiscordAdapter(BasePlatformAdapter):
             logger.error("[%s] Failed to create forum thread in %s: %s", self.name, forum_channel.id, e)
             return SendResult(success=False, error=f"Forum thread creation failed: {e}")
 
-        thread_channel: Any = thread if hasattr(thread, "send") else getattr(thread, "thread", None)
+        thread_channel = thread if hasattr(thread, "send") else getattr(thread, "thread", None)
         thread_id = str(getattr(thread_channel, "id", getattr(thread, "id", "")))
         starter_msg = getattr(thread, "message", None)
         message_id = str(getattr(starter_msg, "id", thread_id)) if starter_msg else thread_id
@@ -1581,7 +1585,7 @@ class DiscordAdapter(BasePlatformAdapter):
             )
             return SendResult(success=False, error=f"Forum thread creation failed: {e}")
 
-        thread_channel: Any = thread if hasattr(thread, "send") else getattr(thread, "thread", None)
+        thread_channel = thread if hasattr(thread, "send") else getattr(thread, "thread", None)
         thread_id = str(getattr(thread_channel, "id", getattr(thread, "id", "")))
         starter_msg = getattr(thread, "message", None)
         message_id = str(getattr(starter_msg, "id", thread_id)) if starter_msg else thread_id
@@ -1672,7 +1676,7 @@ class DiscordAdapter(BasePlatformAdapter):
             return
 
         try:
-            import discord as _discord_mod  # ty: ignore[unresolved-import]
+            import discord as _discord_mod
             import io as _io
             from urllib.parse import unquote as _unquote
         except Exception:  # pragma: no cover
@@ -1841,7 +1845,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
                 duration_secs = 5.0
                 try:
-                    from mutagen.oggopus import OggOpus  # ty: ignore[unresolved-import]
+                    from mutagen.oggopus import OggOpus
                     info = OggOpus(audio_path)
                     duration_secs = info.info.length
                 except Exception:
@@ -2506,7 +2510,6 @@ class DiscordAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs,
     ) -> SendResult:
         """Send a local image file natively as a Discord file attachment."""
         try:
@@ -2672,7 +2675,6 @@ class DiscordAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs,
     ) -> SendResult:
         """Send a local video file natively as a Discord attachment."""
         try:
@@ -2691,7 +2693,6 @@ class DiscordAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
-        **kwargs,
     ) -> SendResult:
         """Send an arbitrary file natively as a Discord attachment."""
         try:
@@ -4182,7 +4183,7 @@ class DiscordAdapter(BasePlatformAdapter):
         if not self._client or not DISCORD_AVAILABLE:
             return SendResult(success=False, error="Not connected")
         try:
-            target_id = (metadata or {}).get("thread_id") or chat_id
+            target_id = metadata.get("thread_id") if metadata and metadata.get("thread_id") else chat_id
             channel = self._client.get_channel(int(target_id))
             if not channel:
                 channel = await self._client.fetch_channel(int(target_id))
@@ -4518,7 +4519,6 @@ class DiscordAdapter(BasePlatformAdapter):
             # a thread.
             in_bot_thread = (
                 is_thread
-                and thread_id is not None  # always true when is_thread; narrows for the type checker
                 and thread_id in self._threads
                 and not self._discord_thread_require_mention()
             )
@@ -4845,12 +4845,12 @@ class DiscordAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute] — ad-hoc batching attr, not a MessageEvent dataclass field
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
             self._pending_text_batches[key] = event
         else:
             if event.text:
                 existing.text = f"{existing.text}\n{event.text}" if existing.text else event.text
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute] — ad-hoc batching attr, not a MessageEvent dataclass field
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
                 existing.media_types.extend(event.media_types)
@@ -4971,6 +4971,16 @@ def _component_check_auth(
             return True
 
     return False
+
+
+# Declared (never bound) at module scope: annotations alone do not create the
+# names at runtime, so behavior is unchanged. _define_discord_view_classes()
+# binds them via ``global`` once discord.py is available.
+ExecApprovalView: Any
+SlashConfirmView: Any
+UpdatePromptView: Any
+ModelPickerView: Any
+ClarifyChoiceView: Any
 
 
 def _define_discord_view_classes() -> None:

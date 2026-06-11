@@ -406,7 +406,7 @@ def _prompt_for_sudo_password(timeout_seconds: int = 45) -> str:
         except Exception:
             return ""
 
-    result = {"password": None, "done": False}
+    result: Dict[str, Any] = {"password": None, "done": False}
     
     def read_password_thread():
         """Read password with echo disabled. Uses msvcrt on Windows, /dev/tty on Unix."""
@@ -417,7 +417,7 @@ def _prompt_for_sudo_password(timeout_seconds: int = 45) -> str:
                 import msvcrt
                 chars = []
                 while True:
-                    c = msvcrt.getwch()
+                    c = msvcrt.getwch()  # ty: ignore[unresolved-attribute]  # Windows-only API, guarded by platform check
                     if c in {"\r", "\n"}:
                         break
                     if c == "\x03":
@@ -1104,10 +1104,10 @@ def _get_modal_backend_state(modal_mode: object | None) -> Dict[str, Any]:
 
 
 def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
-                        ssh_config: dict = None, container_config: dict = None,
-                        local_config: dict = None,
+                        ssh_config: Optional[dict] = None, container_config: Optional[dict] = None,
+                        local_config: Optional[dict] = None,
                         task_id: str = "default",
-                        host_cwd: str = None):
+                        host_cwd: Optional[str] = None):
     """
     Create an execution environment for sandboxed command execution.
     
@@ -1935,7 +1935,7 @@ def terminal_tool(
                         cwd=effective_cwd,
                         task_id=effective_task_id,
                         session_key=session_key,
-                        env_vars=env.env if hasattr(env, 'env') else None,
+                        env_vars=env.env if hasattr(env, 'env') else None,  # ty: ignore[invalid-argument-type]  # spawn_local's `env_vars: dict = None` default lives in tools/process_registry.py (unowned)
                         use_pty=effective_pty,
                     )
                 else:
@@ -1947,7 +1947,7 @@ def terminal_tool(
                         session_key=session_key,
                     )
 
-                result_data = {
+                result_data: Dict[str, Any] = {
                     "output": "Background process started",
                     "session_id": proc_session.id,
                     "pid": proc_session.pid,
@@ -2033,7 +2033,7 @@ def terminal_tool(
             # Run foreground command with retry logic
             max_retries = 3
             retry_count = 0
-            result = None
+            result: Any = None
             
             while retry_count <= max_retries:
                 try:

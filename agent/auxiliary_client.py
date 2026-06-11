@@ -97,7 +97,7 @@ class _OpenAIProxy:
         return "<lazy openai.OpenAI proxy>"
 
 
-OpenAI = _OpenAIProxy()  # module-level name, resolves lazily on call/isinstance
+OpenAI = _OpenAIProxy()  # ty: ignore[invalid-assignment]  # intentional lazy-proxy shadowing of the SDK class
 
 from agent.credential_pool import load_pool
 from hermes_cli.config import get_hermes_home
@@ -205,7 +205,7 @@ def _is_arcee_trinity_thinking(model: Optional[str]) -> bool:
 def _fixed_temperature_for_model(
     model: Optional[str],
     base_url: Optional[str] = None,
-) -> "Optional[float] | object":
+) -> Any:  # float | None | OMIT_TEMPERATURE sentinel
     """Return a temperature directive for models with strict contracts.
 
     Returns:
@@ -630,7 +630,7 @@ class _CodexCompletionsAdapter:
     """Drop-in shim that accepts chat.completions.create() kwargs and
     routes them through the Codex Responses streaming API."""
 
-    def __init__(self, real_client: OpenAI, model: str):
+    def __init__(self, real_client: OpenAI, model: Optional[str]):
         self._client = real_client
         self._model = model
 
@@ -747,7 +747,7 @@ class _CodexCompletionsAdapter:
         timeout_timer: Optional[threading.Timer] = None
 
         def _timeout_message() -> str:
-            return f"Codex auxiliary Responses stream exceeded {float(total_timeout):.1f}s total timeout"
+            return f"Codex auxiliary Responses stream exceeded {float(total_timeout):.1f}s total timeout"  # ty: ignore[invalid-argument-type]  # only called when the timeout timer is armed (total_timeout is not None)
 
         def _close_client_on_timeout() -> None:
             timed_out.set()
@@ -827,7 +827,7 @@ class _CodexCompletionsAdapter:
                     # a function_call response with incidental text should not
                     # be collapsed into a plain-text message.
                     assembled = "".join(collected_text_deltas)
-                    final.output = [SimpleNamespace(
+                    final.output = [SimpleNamespace(  # ty: ignore[invalid-assignment]  # duck-typed stand-in for SDK output items
                         type="message", role="assistant", status="completed",
                         content=[SimpleNamespace(type="output_text", text=assembled)],
                     )]
@@ -912,7 +912,7 @@ class CodexAuxiliaryClient:
     Also exposes .api_key and .base_url for introspection by async wrappers.
     """
 
-    def __init__(self, real_client: OpenAI, model: str):
+    def __init__(self, real_client: OpenAI, model: Optional[str]):
         self._real_client = real_client
         adapter = _CodexCompletionsAdapter(real_client, model)
         self.chat = _CodexChatShim(adapter)
@@ -965,7 +965,7 @@ class AsyncCodexAuxiliaryClient:
 class _AnthropicCompletionsAdapter:
     """OpenAI-client-compatible adapter for Anthropic Messages API."""
 
-    def __init__(self, real_client: Any, model: str, is_oauth: bool = False):
+    def __init__(self, real_client: Any, model: Optional[str], is_oauth: bool = False):
         self._client = real_client
         self._model = model
         self._is_oauth = is_oauth
@@ -1061,7 +1061,7 @@ class _AnthropicChatShim:
 class AnthropicAuxiliaryClient:
     """OpenAI-client-compatible wrapper over a native Anthropic client."""
 
-    def __init__(self, real_client: Any, model: str, api_key: str, base_url: str, is_oauth: bool = False):
+    def __init__(self, real_client: Any, model: Optional[str], api_key: str, base_url: str, is_oauth: bool = False):
         self._real_client = real_client
         adapter = _AnthropicCompletionsAdapter(real_client, model, is_oauth=is_oauth)
         self.chat = _AnthropicChatShim(adapter)
@@ -1130,7 +1130,7 @@ def _endpoint_speaks_anthropic_messages(base_url: str) -> bool:
 
 def _maybe_wrap_anthropic(
     client_obj: Any,
-    model: str,
+    model: Optional[str],
     api_key: str,
     base_url: str,
     api_mode: Optional[str] = None,
@@ -1391,7 +1391,7 @@ def _read_codex_access_token() -> Optional[str]:
         return None
 
 
-def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
+def _resolve_api_key_provider() -> Tuple[Optional[Any], Optional[str]]:
     """Try each API-key provider in PROVIDER_REGISTRY order.
 
     Returns (client, model) for the first provider with usable runtime
@@ -1435,7 +1435,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
 
                 if is_native_gemini_base_url(base_url):
                     return GeminiNativeClient(api_key=api_key, base_url=base_url), model
-            extra = {}
+            extra: Dict[str, Any] = {}
             if base_url_host_matches(base_url, "api.kimi.com"):
                 extra["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
             elif base_url_host_matches(base_url, "api.githubcopilot.com"):
@@ -1472,7 +1472,7 @@ def _resolve_api_key_provider() -> Tuple[Optional[OpenAI], Optional[str]]:
 
             if is_native_gemini_base_url(base_url):
                 return GeminiNativeClient(api_key=api_key, base_url=base_url), model
-        extra = {}
+        extra: Dict[str, Any] = {}
         if base_url_host_matches(base_url, "api.kimi.com"):
             extra["default_headers"] = {"User-Agent": "claude-code/0.1.0"}
         elif base_url_host_matches(base_url, "api.githubcopilot.com"):
@@ -1842,7 +1842,7 @@ def _try_custom_endpoint() -> Tuple[Optional[Any], Optional[str]]:
     return _fallback_client, model
 
 
-def _build_xai_oauth_aux_client(model: str) -> Tuple[Optional[Any], Optional[str]]:
+def _build_xai_oauth_aux_client(model: Optional[str]) -> Tuple[Optional[Any], Optional[str]]:
     """Build a CodexAuxiliaryClient for an xAI Grok OAuth-authenticated session.
 
     xAI's ``/v1/responses`` endpoint speaks the OpenAI Responses API, so we
@@ -2799,7 +2799,7 @@ def _try_main_agent_model_fallback(
 
 
 def _try_configured_fallback_chain(
-    task: str,
+    task: Optional[str],
     failed_provider: str,
     reason: str = "error",
 ) -> Tuple[Optional[Any], Optional[str], str]:
@@ -2871,8 +2871,8 @@ def _resolve_single_provider(
     client, resolved_model = resolve_provider_client(
         provider=provider,
         model=model,
-        base_url=base_url,
-        api_key=api_key,
+        explicit_base_url=base_url,
+        explicit_api_key=api_key,
     )
     return client
 
@@ -2991,7 +2991,7 @@ def _resolve_auto(main_runtime: Optional[Dict[str, Any]] = None) -> Tuple[Option
 # below — never look up auth env vars ad-hoc.
 
 
-def _to_async_client(sync_client, model: str, is_vision: bool = False):
+def _to_async_client(sync_client, model: Optional[str], is_vision: bool = False):
     """Convert a sync client to its async counterpart, preserving Codex routing.
 
     When ``is_vision=True`` and the underlying base URL is Copilot, the
@@ -3019,7 +3019,7 @@ def _to_async_client(sync_client, model: str, is_vision: bool = False):
     except ImportError:
         pass
 
-    async_kwargs = {
+    async_kwargs: Dict[str, Any] = {
         "api_key": sync_client.api_key,
         "base_url": str(sync_client.base_url),
     }
@@ -3116,7 +3116,7 @@ def resolve_provider_client(
     # Normalise aliases
     provider = _normalize_aux_provider(provider)
 
-    def _needs_codex_wrap(client_obj, base_url_str: str, model_str: str) -> bool:
+    def _needs_codex_wrap(client_obj, base_url_str: str, model_str: Optional[str]) -> bool:
         """Decide if a plain OpenAI client should be wrapped for Responses API.
 
         Returns True when api_mode is explicitly "codex_responses", or when
@@ -3138,7 +3138,7 @@ def resolve_provider_client(
                 return True
         return False
 
-    def _wrap_if_needed(client_obj, final_model_str: str, base_url_str: str = "",
+    def _wrap_if_needed(client_obj, final_model_str: Optional[str], base_url_str: str = "",
                         api_key_str: str = ""):
         """Wrap a plain OpenAI client in the correct transport adapter.
 
@@ -3286,7 +3286,7 @@ def resolve_provider_client(
                 model or (main_runtime.get("model") if main_runtime else None) or "gpt-4o-mini",
                 provider,
             )
-            extra = {}
+            extra: Dict[str, Any] = {}
             _clean_base, _dq = _extract_url_query_params(custom_base)
             if _dq:
                 extra["default_query"] = _dq
@@ -3533,7 +3533,7 @@ def resolve_provider_client(
                         else (client, final_model))
 
         # Provider-specific headers
-        headers = {}
+        headers: Dict[str, Any] = {}
         if base_url_host_matches(base_url, "api.kimi.com"):
             headers["User-Agent"] = "claude-code/0.1.0"
         elif base_url_host_matches(base_url, "api.githubcopilot.com"):
@@ -3556,8 +3556,8 @@ def resolve_provider_client(
                     headers.update(_ph_main.default_headers)
             except Exception:
                 pass
-        client = OpenAI(api_key=api_key, base_url=base_url,
-                        **({"default_headers": headers} if headers else {}))
+        _hdr_kwargs: Dict[str, Any] = {"default_headers": headers} if headers else {}
+        client = OpenAI(api_key=api_key, base_url=base_url, **_hdr_kwargs)
 
         # Copilot GPT-5+ models (except gpt-5-mini) require the Responses
         # API — they are not accessible via /chat/completions.  Wrap the
@@ -4089,7 +4089,7 @@ def neuter_async_httpx_del() -> None:
     """
     try:
         from openai._base_client import AsyncHttpxClientWrapper
-        AsyncHttpxClientWrapper.__del__ = lambda self: None  # type: ignore[assignment]
+        AsyncHttpxClientWrapper.__del__ = lambda self: None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
     except (ImportError, AttributeError):
         pass  # Graceful degradation if the SDK changes its internals
 
@@ -4343,7 +4343,7 @@ def _resolve_task_provider_model(
 _DEFAULT_AUX_TIMEOUT = 30.0
 
 
-def _get_auxiliary_task_config(task: str) -> Dict[str, Any]:
+def _get_auxiliary_task_config(task: Optional[str]) -> Dict[str, Any]:
     """Return the config dict for auxiliary.<task>, or {} when unavailable."""
     if not task:
         return {}
@@ -4357,7 +4357,7 @@ def _get_auxiliary_task_config(task: str) -> Dict[str, Any]:
     return task_config if isinstance(task_config, dict) else {}
 
 
-def _get_task_timeout(task: str, default: float = _DEFAULT_AUX_TIMEOUT) -> float:
+def _get_task_timeout(task: Optional[str], default: float = _DEFAULT_AUX_TIMEOUT) -> float:
     """Read timeout from auxiliary.{task}.timeout in config, falling back to *default*."""
     if not task:
         return default
@@ -4371,7 +4371,7 @@ def _get_task_timeout(task: str, default: float = _DEFAULT_AUX_TIMEOUT) -> float
     return default
 
 
-def _get_task_extra_body(task: str) -> Dict[str, Any]:
+def _get_task_extra_body(task: Optional[str]) -> Dict[str, Any]:
     """Read auxiliary.<task>.extra_body and return a shallow copy when valid."""
     task_config = _get_auxiliary_task_config(task)
     raw = task_config.get("extra_body")
@@ -4451,7 +4451,7 @@ def _convert_openai_images_to_anthropic(messages: list) -> list:
 
 def _build_call_kwargs(
     provider: str,
-    model: str,
+    model: Optional[str],
     messages: list,
     temperature: Optional[float] = None,
     max_tokens: Optional[int] = None,
@@ -4479,7 +4479,7 @@ def _build_call_kwargs(
     # the aux model is flipped to 4.7.
     if temperature is not None:
         from agent.anthropic_adapter import _forbids_sampling_params
-        if _forbids_sampling_params(model):
+        if _forbids_sampling_params(model or ""):
             temperature = None
 
     if temperature is not None:

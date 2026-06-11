@@ -1220,7 +1220,7 @@ class CDPSupervisor:
 
         # Record the frame with its OOPIF session id for interaction routing.
         if target_type == "iframe":
-            target_id = info.get("targetId")
+            target_id: Any = info.get("targetId")
             with self._state_lock:
                 existing = self._frames.get(target_id)
                 self._frames[target_id] = FrameInfo(

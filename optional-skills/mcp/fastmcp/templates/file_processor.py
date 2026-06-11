@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP  # ty: ignore[unresolved-import]
 
 
 mcp = FastMCP("__SERVER_NAME__")

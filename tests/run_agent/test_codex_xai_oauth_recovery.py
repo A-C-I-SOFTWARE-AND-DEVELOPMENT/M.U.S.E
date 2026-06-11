@@ -49,8 +49,8 @@ def _make_codex_agent():
         skip_context_files=True,
         skip_memory=True,
     )
-    agent.api_mode = "codex_responses"
-    agent.provider = "xai-oauth"
+    agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+    agent.provider = "xai-oauth"  # ty: ignore[unresolved-attribute]
     agent._interrupt_requested = False
     return agent
 

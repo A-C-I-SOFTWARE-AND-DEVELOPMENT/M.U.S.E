@@ -1121,8 +1121,8 @@ async def web_extract_tool(
 
 
 async def web_crawl_tool(
-    url: str, 
-    instructions: str = None, 
+    url: str,
+    instructions: Optional[str] = None,
     depth: str = "basic", 
     use_llm_processing: bool = True,
     model: Optional[str] = None,
@@ -1404,7 +1404,7 @@ if __name__ == "__main__":
         elif backend == "ddgs":
             print("   Using DuckDuckGo via ddgs package (search only)")
         elif firecrawl_url_available:
-            print(f"   Using self-hosted Firecrawl: {os.getenv('FIRECRAWL_API_URL').strip().rstrip('/')}")
+            print(f"   Using self-hosted Firecrawl: {os.getenv('FIRECRAWL_API_URL').strip().rstrip('/')}")  # ty: ignore[unresolved-attribute]
         elif firecrawl_key_available:
             print("   Using direct Firecrawl cloud API")
         elif tool_gateway_available:

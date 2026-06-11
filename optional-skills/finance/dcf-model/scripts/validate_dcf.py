@@ -15,7 +15,7 @@ class DCFModelValidator:
 
     def __init__(self, excel_path: str):
         try:
-            import openpyxl
+            import openpyxl  # ty: ignore[unresolved-import]
         except ImportError:
             raise ImportError("openpyxl not installed. Run: pip install openpyxl")
 

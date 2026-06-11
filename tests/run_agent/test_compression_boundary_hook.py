@@ -112,13 +112,13 @@ class TestCompressionBoundaryHook:
         compressor.last_prompt_tokens = 0
         compressor.last_completion_tokens = 0
         compressor._last_summary_error = None
-        agent.context_compressor = compressor
+        agent.context_compressor = compressor  # ty: ignore[unresolved-attribute]
 
-        original_sid = agent.session_id
+        original_sid = agent.session_id  # ty: ignore[unresolved-attribute]
         agent._compress_context([{"role": "user", "content": "m"}], "sys", approx_tokens=100)
 
         # No DB => no rotation => no compression-boundary hook
-        assert agent.session_id == original_sid
+        assert agent.session_id == original_sid  # ty: ignore[unresolved-attribute]
         comp_calls = [
             c for c in compressor.on_session_start.call_args_list
             if c.kwargs.get("boundary_reason") == "compression"
