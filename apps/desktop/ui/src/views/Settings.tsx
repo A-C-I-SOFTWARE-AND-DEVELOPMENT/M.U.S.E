@@ -1,18 +1,22 @@
 /**
- * Settings — gateway connection, device pairing, and the Emergency stop.
+ * Settings — gateway connection, the brain process, device pairing, and the
+ * Emergency stop.
  *
- * Three cards:
+ * Four cards:
  *   1. Gateway — view/change the gateway base URL (persisted in localStorage
  *      `muse.gateway.base`); a live health ping confirms reachability.
- *   2. Device pairing — the scaffold's owner-gated pairing flow (pair/start →
+ *   2. Brain (gateway process) — native-shell only: running/stopped status,
+ *      the detected `muse` binary, autostart toggle, and start/stop buttons
+ *      wired to the shell's brain commands (lib/brain → src-tauri/src/brain.rs).
+ *   3. Device pairing — the scaffold's owner-gated pairing flow (pair/start →
  *      pair/confirm), plus paste-a-token and clear-token. The bearer token lives
  *      only in localStorage `muse.cockpit.token`; the owner phrase is entered to
  *      confirm and never stored.
- *   3. Emergency stop — POST /v1/cockpit/emergency-stop (cancel all jobs, latch
+ *   4. Emergency stop — POST /v1/cockpit/emergency-stop (cancel all jobs, latch
  *      autonomy to read-only). Owner-gated and styled as a danger action; the
  *      owner phrase is prompted for at action time and a 403 re-prompts once.
  *
- * Reuses lib/gateway exclusively; no secrets in code.
+ * Reuses lib/gateway + lib/brain exclusively; no secrets in code.
  */
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -27,6 +31,14 @@ import {
   setGatewayBase,
   setToken,
 } from "../lib/gateway";
+import {
+  autostartSet,
+  brainAvailable,
+  brainStart,
+  brainStatus,
+  brainStop,
+  type BrainStatus,
+} from "../lib/brain";
 
 export function Settings() {
   return (
@@ -38,6 +50,7 @@ export function Settings() {
         </div>
       </div>
       <GatewayCard />
+      <BrainCard />
       <PairingCard />
       <EmergencyCard />
     </div>
@@ -94,6 +107,131 @@ function GatewayCard() {
         </button>
         {saved && <span className="muted">Saved.</span>}
       </div>
+    </div>
+  );
+}
+
+// ---- brain (gateway process) ------------------------------------------------
+
+/** GitHub README with the CLI install one-liner. */
+const INSTALL_DOCS_URL =
+  "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E#readme";
+
+function BrainCard() {
+  const native = brainAvailable();
+  const [status, setStatus] = useState<BrainStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const refresh = useCallback(async () => {
+    setStatus(await brainStatus());
+  }, []);
+
+  useEffect(() => {
+    if (!native) return;
+    void refresh();
+    const t = setInterval(() => void refresh(), 10000);
+    return () => clearInterval(t);
+  }, [native, refresh]);
+
+  const start = useCallback(async () => {
+    setBusy(true);
+    setMsg("Starting the brain…");
+    try {
+      setStatus(await brainStart());
+      setMsg("Start requested — the status flips to running once it answers health.");
+    } catch (e) {
+      setMsg(String(e));
+    }
+    setBusy(false);
+  }, []);
+
+  const stop = useCallback(async () => {
+    setBusy(true);
+    setMsg("Stopping…");
+    try {
+      setStatus(await brainStop());
+      setMsg("Stopped the managed gateway process.");
+    } catch (e) {
+      setMsg(String(e));
+    }
+    setBusy(false);
+  }, []);
+
+  const toggleAutostart = useCallback(
+    async (enabled: boolean) => {
+      await autostartSet(enabled);
+      void refresh();
+    },
+    [refresh],
+  );
+
+  return (
+    <div className="card">
+      <div className="row">
+        <b>Brain (gateway)</b>
+        <span className="grow" />
+        <span className={"streamdot " + (status?.reachable ? "live" : "")}>
+          <span className="dot-mini" />
+          {status == null ? (native ? "checking…" : "n/a") : status.reachable ? "running" : "stopped"}
+        </span>
+      </div>
+      {!native ? (
+        <p className="muted">
+          Available in the desktop app only — this browser build can’t manage the
+          gateway process. Start it from a terminal:{" "}
+          <span className="mono">muse cockpit serve</span>.
+        </p>
+      ) : (
+        <>
+          <p className="muted">
+            The local MUSE gateway process. With autostart on, the app starts it
+            for you at launch (when the <span className="mono">muse</span> CLI is
+            installed) and stops it when you quit — never on hide-to-tray.
+          </p>
+          <div className="row">
+            <span className="k">Binary</span>
+            {status?.binary ? (
+              <span className="mono">{status.binary}</span>
+            ) : (
+              <span className="muted">
+                not found — install the MUSE CLI via the one-liner (
+                <a href={INSTALL_DOCS_URL} target="_blank" rel="noreferrer">
+                  docs
+                </a>
+                )
+              </span>
+            )}
+            {status?.managed && <span className="pill">managed by this app</span>}
+          </div>
+          <div className="row gap-top">
+            <label className="row">
+              <input
+                type="checkbox"
+                checked={status?.autostart ?? false}
+                onChange={(e) => void toggleAutostart(e.target.checked)}
+              />
+              Start the brain automatically when the app opens
+            </label>
+          </div>
+          <div className="row gap-top">
+            <button
+              className="primary"
+              onClick={() => void start()}
+              disabled={busy || status?.reachable === true}
+            >
+              Start
+            </button>
+            <button onClick={() => void stop()} disabled={busy || !status?.managed}>
+              Stop
+            </button>
+            <button onClick={() => void refresh()} disabled={busy}>
+              Refresh
+            </button>
+          </div>
+          {msg && <div className="hint">{msg}</div>}
+        </>
+      )}
     </div>
   );
 }

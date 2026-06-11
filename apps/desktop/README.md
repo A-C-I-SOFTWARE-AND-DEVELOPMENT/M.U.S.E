@@ -3,7 +3,10 @@
 A native desktop shell for **M.U.S.E.** (Multi-Use Synaptic Entity), built with
 **Tauri v2** wrapping a lean **Singularity** client (Vite + React 19 +
 TypeScript). The shell loads the bundled UI and talks to a locally-running MUSE
-**gateway** over HTTP — it does **not** bundle or spawn the Python backend.
+**gateway** over HTTP. It does **not** bundle the Python backend — but it *can
+start it*: when the gateway is down and an installed `muse` CLI is found, the
+shell spawns `muse cockpit serve` as a managed child (see
+[One installable](#one-installable-the-app-starts-the-brain) below).
 
 > One white core that blazes in the void, wrapped by one thin spectral ring.
 > See [`docs/brand/muse-design-language.md`](../../docs/brand/muse-design-language.md).
@@ -17,14 +20,16 @@ apps/desktop/
 │   │   ├── App.tsx            # app shell: header lockup, nav, hash router
 │   │   ├── components/Glyph.tsx   # the animated incandescent mark (inline SVG)
 │   │   ├── lib/gateway.ts     # gateway client: health, pairing, SSE jobs, NDJSON chat
+│   │   ├── lib/brain.ts       # native bridge: gateway_start/stop/status, autostart
 │   │   ├── routes.ts          # APPEND-ONLY route registry (the extension seam)
 │   │   ├── routes.register.ts # registers the built-in Home route
-│   │   ├── views/Home.tsx     # the one placeholder route
+│   │   ├── views/             # Home, Chat, Jobs, Approvals, Autonomy, Observatory, Settings
 │   │   └── styles/tokens.css  # inlined Singularity tokens (TODO: @muse/design-system)
 │   ├── public/                # favicon.svg + derived PWA icons
 │   └── vite.config.ts         # Vite + vite-plugin-pwa (manifest + service worker)
 └── src-tauri/      # Tauri v2 Rust shell
     ├── src/lib.rs             # window + native menu + system tray + single-instance
+    ├── src/brain.rs           # gateway autostart: probe /v1/health, spawn `muse cockpit serve`
     ├── src/main.rs            # thin binary entry → lib::run()
     ├── tauri.conf.json        # dark window "M.U.S.E.", bundle id com.aci.muse
     ├── capabilities/default.json  # minimal window/tray/menu permissions
@@ -80,6 +85,52 @@ item reflects `MUSE_GATEWAY_URL` if set.
 The first launch is unpaired: use the **Pair this device** card to mint a
 per-device bearer token (owner-phrase gated), exactly like the browser cockpit.
 
+## One installable: the app starts the brain
+
+The desktop app is designed to be the only thing a user launches. On startup
+the shell probes `GET /v1/health`; if the gateway ("the brain") is down **and
+autostart is enabled** (persisted in `app_config_dir/brain.json`, default on),
+it locates an installed `muse` binary — `PATH`, then common install locations
+(`~/.local/bin`, `~/.cargo/bin`, `/usr/local/bin`, `/opt/homebrew/bin`,
+`%LOCALAPPDATA%\Programs\…` on Windows) — and spawns **`muse cockpit serve`**
+as a managed child (`src-tauri/src/brain.rs`, via `tauri-plugin-shell`,
+Rust-side only; the webview gets no shell permission).
+
+Semantics:
+
+- It **never** spawns over a running gateway (probe first, every time) and
+  never spawns twice (the child handle is tracked).
+- Closing the window hides to tray and **keeps the brain running**; the child
+  is killed only on real quit (tray/menu Quit).
+- **Stop** only kills the child the app spawned — a gateway you started in a
+  terminal is never touched.
+- Settings → **Brain (gateway)** shows running/stopped + the detected binary,
+  the autostart toggle, and Start/Stop buttons. The **Observatory** view's
+  offline fallback offers the same Start.
+
+If no `muse` binary is installed, the app still runs (views show the offline
+fallback) and Settings links to the CLI install docs.
+
+### Designed follow-up: bundling the runtime as a sidecar
+
+Today the brain comes from an installed `muse` CLI. The fully self-contained
+installer is a **documented follow-up**: package the gateway as a PyInstaller
+single binary per OS and ship it as a Tauri *sidecar*, e.g.
+
+```jsonc
+// tauri.conf.json (sketch — not active)
+"bundle": {
+  "externalBin": ["binaries/muse-gateway"]  // resolves muse-gateway-<target-triple>[.exe]
+}
+```
+
+with `pyinstaller --onefile` producing `muse-gateway-x86_64-unknown-linux-gnu`,
+`muse-gateway-aarch64-apple-darwin`, `muse-gateway-x86_64-pc-windows-msvc.exe`,
+etc., and `brain.rs` preferring the sidecar (`shell.sidecar("muse-gateway")`)
+over the PATH search. Per-OS PyInstaller builds need real OS runners (they
+cannot be cross-compiled or verified in a Linux container), so this lands via
+the CI matrix in `muse-desktop-release.yml` when activated.
+
 ## Build
 
 ```bash
@@ -93,6 +144,10 @@ cd apps/desktop/src-tauri && cargo tauri build
 Bundle identifier: `com.aci.muse`. Window: dark, titled **M.U.S.E.**, min
 880×600. Icons are derived from the brand glyph
 (`ui/public/favicon.svg`).
+
+Auto-update is scaffolded but **inert**: `plugins.updater` ships an empty
+`pubkey` placeholder and the plugin is only registered when a real public key
+is configured. Activation is owner-gated — see [`RELEASE.md`](RELEASE.md).
 
 ## PWA
 
