@@ -35,3 +35,19 @@ only safe default for the owner gate.
 `Registry.deprecate` was included in the Phase 0 reconstruction
 because the verifier's warning path needs the column; its behavior
 tests land in Phase 1.3 per the ladder.
+
+## D6 — Cycle guard tests simulate registry corruption
+Content addressing makes honest reference cycles unconstructible: a
+unit's hash depends on its refs, so A↔B would require a blake3 fixed
+point. The cycle guard therefore defends against a *corrupted*
+registry; the test forges a cycle by tampering the stored form
+directly. The guard is defense in depth for I1, not a reachable
+honest state.
+
+## D7 — Compaction preserves hashes, summarizes payloads
+Ledger compaction (1.4) replaces covered payload bodies with a summary
+marker but keeps every hash, link, and signature, so verify_chain()
+still checks linkage + signatures (skipping payload recomputation for
+compacted events) and Merkle inclusion proofs against the stored
+checkpoint root remain valid. Append-only is never violated — nothing
+is deleted, payloads are summarized in place and flagged.

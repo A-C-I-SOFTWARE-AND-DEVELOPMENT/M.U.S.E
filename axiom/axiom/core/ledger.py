@@ -45,7 +45,8 @@ class Ledger:
                 prev TEXT NOT NULL,
                 hash TEXT NOT NULL,
                 signature TEXT NOT NULL,
-                signer TEXT NOT NULL
+                signer TEXT NOT NULL,
+                compacted INTEGER NOT NULL DEFAULT 0
             )"""
         )
         self._db.commit()
@@ -75,7 +76,8 @@ class Ledger:
 
     # ------------------------------------------------------------------ read
     def events(self, kind: str | None = None) -> list[dict]:
-        q = "SELECT seq, ts, kind, payload, prev, hash, signature, signer FROM events"
+        q = ("SELECT seq, ts, kind, payload, prev, hash, signature, signer, "
+             "compacted FROM events")
         params: tuple = ()
         if kind is not None:
             q += " WHERE kind = ?"
@@ -86,8 +88,9 @@ class Ledger:
                 "seq": seq, "ts": ts, "kind": k,
                 "payload": json.loads(payload),
                 "prev": prev, "hash": h, "signature": sig, "signer": signer,
+                "compacted": bool(compacted),
             }
-            for seq, ts, k, payload, prev, h, sig, signer in
+            for seq, ts, k, payload, prev, h, sig, signer, compacted in
             self._db.execute(q, params).fetchall()
         ]
 
@@ -96,12 +99,22 @@ class Ledger:
 
     # ------------------------------------------------------------------ verify
     def verify_chain(self) -> bool:
-        """Recompute every hash, link, and signature. The court of record."""
+        """Recompute every hash, link, and signature. The court of record.
+
+        Compacted events keep their original hash and signature but a
+        summarized payload, so verification degrades gracefully: the
+        link and the signature over the hash are still checked.
+        """
         prev = GENESIS_PREV
         for ev in self.events():
-            recomputed = _event_hash(ev["kind"], ev["payload"], ev["prev"], ev["ts"])
-            if ev["prev"] != prev or ev["hash"] != recomputed:
+            if ev["prev"] != prev:
                 return False
+            if not ev["compacted"]:
+                recomputed = _event_hash(
+                    ev["kind"], ev["payload"], ev["prev"], ev["ts"]
+                )
+                if ev["hash"] != recomputed:
+                    return False
             try:
                 VerifyKey(bytes.fromhex(ev["signer"])).verify(
                     ev["hash"].encode("utf-8"), bytes.fromhex(ev["signature"])
@@ -133,6 +146,27 @@ class Ledger:
         payload = {"root": root, "n_leaves": len(leaves)}
         self.append("merkle_checkpoint", payload)
         return payload
+
+    def compact(self, checkpoint: dict) -> int:
+        """Summarize the payloads of events covered by *checkpoint*.
+
+        History stays append-only and tamper-evident: hashes, links,
+        and signatures are preserved (so inclusion proofs against the
+        stored root still verify); only the payload bodies of covered
+        non-checkpoint events are replaced by a summary marker.
+        Returns the number of events compacted.
+        """
+        covered = [
+            ev for ev in self.events()
+            if ev["kind"] != "merkle_checkpoint" and not ev["compacted"]
+        ][: checkpoint["n_leaves"]]
+        for ev in covered:
+            self._db.execute(
+                "UPDATE events SET payload = ?, compacted = 1 WHERE seq = ?",
+                (json.dumps({"compacted": True, "kind": ev["kind"]}), ev["seq"]),
+            )
+        self._db.commit()
+        return len(covered)
 
     def inclusion_proof(self, leaf_hash: str, checkpoint: dict) -> list[tuple[str, str]]:
         """Path of (side, sibling_hash) from *leaf_hash* to the checkpoint root.

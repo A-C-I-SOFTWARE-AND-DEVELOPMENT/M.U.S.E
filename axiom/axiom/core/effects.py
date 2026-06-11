@@ -32,6 +32,10 @@ _BIN_OPS = {
     "sub": lambda a, b: a - b,
     "mul": lambda a, b: a * b,
     "div": lambda a, b: a / b,
+    "min": min,
+    "max": max,
+    "eq": lambda a, b: a == b,
+    "lt": lambda a, b: a < b,
 }
 
 
@@ -133,6 +137,12 @@ class Interpreter:
                 scope[op["into"]] = _BIN_OPS[kind](a, b)
             elif kind == "neg":
                 scope[op["into"]] = -self._operand(op["in"][0], scope)
+            elif kind == "abs":
+                scope[op["into"]] = abs(self._operand(op["in"][0], scope))
+            elif kind == "if":
+                cond = self._operand(op["in"][0], scope)
+                branch = op["in"][1] if cond else op["in"][2]
+                scope[op["into"]] = self._operand(branch, scope)
             elif kind == "call":
                 callee = resolve_ref(op["ref"], unit, self.registry)
                 # Positional binding follows sorted param-name order: the

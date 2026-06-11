@@ -132,6 +132,16 @@ class Verifier:
             except EffectClosureError as e:
                 errors.append({"check": "effects:vocab", "error": str(e)})
 
+            # 6. Cycle guard. Content addressing makes honest cycles
+            # unconstructible (a unit's hash depends on its refs), so a
+            # cycle is proof of a corrupted registry — reject hard.
+            cycle = self._find_cycle(unit)
+            if cycle:
+                errors.append(
+                    {"check": "refs:resolve-or-fail", "error": "cycle",
+                     "cycle": cycle}
+                )
+
         if errors:
             return Rejection(errors=tuple(errors))
 
@@ -147,6 +157,37 @@ class Verifier:
             event_hash=event_hash,
             warnings=tuple(warnings),
         )
+
+    def _find_cycle(self, unit: Unit) -> list[str] | None:
+        """DFS over the resolved ref graph; returns the cycle path if any."""
+        visiting: list[str] = []
+        done: set[str] = set()
+
+        def visit(h: str) -> list[str] | None:
+            if h in visiting:
+                return visiting[visiting.index(h):] + [h]
+            if h in done:
+                return None
+            visiting.append(h)
+            try:
+                callee = self.registry.resolve(h)
+            except UnresolvedReferenceError:
+                visiting.pop()
+                done.add(h)
+                return None
+            for child in callee.refs.values():
+                found = visit(child)
+                if found:
+                    return found
+            visiting.pop()
+            done.add(h)
+            return None
+
+        for h in unit.refs.values():
+            found = visit(h)
+            if found:
+                return found
+        return None
 
     # ------------------------------------------------------------------- run
     def run(

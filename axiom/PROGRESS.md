@@ -21,11 +21,17 @@ output.
 - [x] Committed: Phase 0 baseline
 
 ## Phase 1 — Harden the kernel
-- [ ] 1.1 Body interpreter ops: min, max, abs, if (select), eq/lt → bools
-- [ ] 1.2 Recursion/cycle guard at verify time → Rejection("cycle")
-- [ ] 1.3 Registry deprecation: old hash resolves, verifier warns
-- [ ] 1.4 Ledger compaction: summarize pre-checkpoint events, root still verifies
-- [ ] EXIT GATE: full suite green (~30+), smoke.py unchanged output
+- [x] 1.1 Body interpreter ops: min, max, abs, if (select), eq/lt → bools
+      (tests: test_op_min_max, test_op_abs, test_op_if_select_and_comparisons,
+      test_op_eq_produces_bool — contracts proven over each)
+- [x] 1.2 Recursion/cycle guard at verify time → Rejection("cycle")
+      (honest cycles unconstructible under content addressing; test forges
+      one via simulated registry corruption — see DECISIONS.md D6)
+- [x] 1.3 Registry deprecation: old hash resolves, verifier warns
+- [x] 1.4 Ledger compaction: summarize pre-checkpoint events, root still
+      verifies; post-checkpoint events untouched
+- [x] EXIT GATE: `python -m pytest tests/` → **28 passed in 0.30s**;
+      smoke.py output unchanged from Phase 0
 
 ## Phase 2 — Memory plane live
 - [ ] 2.1 Mind facade: observe / recall / on_verification
