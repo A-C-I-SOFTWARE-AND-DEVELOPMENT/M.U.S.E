@@ -23,7 +23,7 @@ def _make_agent(fallback_model=None):
             quiet_mode=True,
             skip_context_files=True,
             skip_memory=True,
-            fallback_model=fallback_model,  # ty: ignore[invalid-argument-type]
+            fallback_model=fallback_model,
         )
         agent.client = MagicMock()
         return agent

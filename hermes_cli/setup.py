@@ -329,7 +329,7 @@ def prompt_yes_no(question: str, default: bool = True) -> bool:
         print_error("Please enter 'y' or 'n'")
 
 
-def prompt_checklist(title: str, items: list, pre_selected: list = None) -> list:
+def prompt_checklist(title: str, items: list, pre_selected: Optional[list] = None) -> list:
     """
     Display a multi-select checklist and return the indices of selected items.
 

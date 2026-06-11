@@ -57,7 +57,7 @@ def _make_agent(monkeypatch, api_mode, provider, response_fn):
         def run_conversation(self, msg, conversation_history=None, task_id=None):  # ty: ignore[invalid-method-override]
             self._interruptible_api_call = lambda kw: response_fn()  # ty: ignore[invalid-assignment]
             self._disable_streaming = True
-            return super().run_conversation(msg, conversation_history=conversation_history, task_id=task_id)  # ty: ignore[invalid-argument-type]
+            return super().run_conversation(msg, conversation_history=conversation_history, task_id=task_id)
 
     return _A(model="test-model", api_key="test-key", base_url="http://localhost:1234/v1", provider=provider, api_mode=api_mode)
 

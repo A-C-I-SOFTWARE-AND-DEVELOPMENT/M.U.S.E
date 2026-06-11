@@ -170,7 +170,7 @@ class TestProviderModelNormalization:
                 skip_memory=True,
             )
 
-        assert agent.model == "glm-5.1"  # ty: ignore[unresolved-attribute]
+        assert agent.model == "glm-5.1"
 
     def test_aiagent_keeps_aggregator_vendor_slug(self):
         with (
@@ -190,7 +190,7 @@ class TestProviderModelNormalization:
                 skip_memory=True,
             )
 
-        assert agent.model == "anthropic/claude-sonnet-4.6"  # ty: ignore[unresolved-attribute]
+        assert agent.model == "anthropic/claude-sonnet-4.6"
 
 
 # ---------------------------------------------------------------------------
@@ -650,7 +650,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert agent.api_mode == "anthropic_messages"  # ty: ignore[unresolved-attribute]
+            assert agent.api_mode == "anthropic_messages"
             mock_anthropic.Anthropic.assert_called_once()
 
     def test_prompt_caching_claude_openrouter(self):
@@ -718,7 +718,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a.api_mode == "anthropic_messages"  # ty: ignore[unresolved-attribute]
+            assert a.api_mode == "anthropic_messages"
             assert a._use_prompt_caching is True  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_cache_ttl_defaults_without_config(self):
@@ -863,8 +863,8 @@ class TestInit:
                 skip_memory=True,
             )
             # Format: YYYYMMDD_HHMMSS_<6 hex chars>
-            assert re.match(r"^\d{8}_\d{6}_[0-9a-f]{6}$", a.session_id), (  # ty: ignore[unresolved-attribute]
-                f"session_id doesn't match expected format: {a.session_id}"  # ty: ignore[unresolved-attribute]
+            assert re.match(r"^\d{8}_\d{6}_[0-9a-f]{6}$", a.session_id), (
+                f"session_id doesn't match expected format: {a.session_id}"
             )
 
 
@@ -4667,7 +4667,7 @@ class TestAnthropicCredentialRefresh:
         agent._anthropic_client = old_client
         agent._anthropic_api_key = "sk-ant-oat01-stale-token"
         agent._anthropic_base_url = "https://api.anthropic.com"
-        agent.provider = "anthropic"  # ty: ignore[unresolved-attribute]
+        agent.provider = "anthropic"
 
         with (
             patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="sk-ant-oat01-fresh-token"),

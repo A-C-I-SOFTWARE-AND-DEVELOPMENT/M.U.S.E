@@ -133,7 +133,7 @@ def apply(
         ok, ver = _check_binary_cached()
         msg = (
             f"openai_runtime: {current}\n"
-            f"codex CLI: {'OK ' + ver if ok else 'not available — ' + (ver or 'install with `npm i -g @openai/codex`')}"
+            f"codex CLI: {'OK ' + (ver or '') if ok else 'not available — ' + (ver or 'install with `npm i -g @openai/codex`')}"
         )
         return CodexRuntimeStatus(
             success=True,

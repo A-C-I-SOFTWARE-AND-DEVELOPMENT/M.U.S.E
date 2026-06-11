@@ -116,7 +116,7 @@ def _safe_copy_db(src: Path, dst: Path) -> bool:
 # Backup
 # ---------------------------------------------------------------------------
 
-def _format_size(nbytes: int) -> str:
+def _format_size(nbytes: float) -> str:
     """Human-readable file size."""
     for unit in ("B", "KB", "MB", "GB"):
         if nbytes < 1024:

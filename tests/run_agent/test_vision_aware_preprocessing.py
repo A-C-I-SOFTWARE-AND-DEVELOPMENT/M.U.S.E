@@ -92,16 +92,16 @@ class TestPrepareMessagesForNonVision:
     def test_vision_capable_passes_through(self):
         """For vision-capable models on chat.completions path, provider handles pixels."""
         agent = _make_agent()
-        agent.provider = "openrouter"  # ty: ignore[unresolved-attribute]
-        agent.model = "anthropic/claude-sonnet-4"  # ty: ignore[unresolved-attribute]
+        agent.provider = "openrouter"
+        agent.model = "anthropic/claude-sonnet-4"
         with patch.object(agent, "_model_supports_vision", return_value=True):
             out = agent._prepare_messages_for_non_vision_model([IMG_PARTS_USER_MSG])
         assert out[0]["content"][1]["type"] == "image_url"
 
     def test_non_vision_strips_images(self):
         agent = _make_agent()
-        agent.provider = "openrouter"  # ty: ignore[unresolved-attribute]
-        agent.model = "qwen/qwen3-235b-a22b"  # ty: ignore[unresolved-attribute]
+        agent.provider = "openrouter"
+        agent.model = "qwen/qwen3-235b-a22b"
         with patch.object(agent, "_model_supports_vision", return_value=False), \
              patch.object(
                  agent,
@@ -116,7 +116,7 @@ class TestPrepareMessagesForNonVision:
 
     def test_multiple_messages_with_mixed_content(self):
         agent = _make_agent()
-        agent.model = "qwen/qwen3-235b"  # ty: ignore[unresolved-attribute]
+        agent.model = "qwen/qwen3-235b"
         msgs = [
             {"role": "user", "content": "first turn"},
             {"role": "assistant", "content": "ack"},
@@ -142,11 +142,11 @@ class TestPrepareMessagesForNonVision:
 class TestModelSupportsVision:
     def test_missing_provider_or_model_returns_false(self):
         agent = _make_agent()
-        agent.provider = ""  # ty: ignore[unresolved-attribute]
-        agent.model = "claude-sonnet-4"  # ty: ignore[unresolved-attribute]
+        agent.provider = ""
+        agent.model = "claude-sonnet-4"
         assert agent._model_supports_vision() is False
-        agent.provider = "anthropic"  # ty: ignore[unresolved-attribute]
-        agent.model = ""  # ty: ignore[unresolved-attribute]
+        agent.provider = "anthropic"
+        agent.model = ""
         assert agent._model_supports_vision() is False
 
     def test_uses_get_model_capabilities(self):

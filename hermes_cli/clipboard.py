@@ -270,7 +270,7 @@ def _find_powershell() -> str | None:
 
 
 # Cache the resolved PowerShell executable (checked once per process)
-_ps_exe: str | None | bool = False  # False = not yet checked
+_ps_exe: "str | None | Literal[False]" = False  # False = not yet checked
 
 
 def _get_ps_exe() -> str | None:

@@ -1053,7 +1053,7 @@ FOCUS TOPIC: "{focus_topic}"
 The user has requested that this compaction PRIORITISE preserving all information related to the focus topic above. For content related to "{focus_topic}", include full detail — exact values, file paths, command outputs, error messages, and decisions. For content NOT related to the focus topic, summarise more aggressively (brief one-liners or omit if truly irrelevant). The focus topic sections should receive roughly 60-70% of the summary token budget. Even for the focus topic, NEVER preserve API keys, tokens, passwords, or credentials — use [REDACTED]."""
 
         try:
-            call_kwargs = {
+            call_kwargs: Dict[str, Any] = {
                 "task": "compression",
                 "main_runtime": {
                     "model": self.model,

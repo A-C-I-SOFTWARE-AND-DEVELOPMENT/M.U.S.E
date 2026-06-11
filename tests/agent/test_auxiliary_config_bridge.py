@@ -265,7 +265,10 @@ class TestDefaultConfigShape:
 
     def test_vision_task_structure(self):
         from hermes_cli.config import DEFAULT_CONFIG
-        vision = DEFAULT_CONFIG["auxiliary"]["vision"]
+        aux = DEFAULT_CONFIG["auxiliary"]
+        assert isinstance(aux, dict)
+        vision = aux["vision"]
+        assert isinstance(vision, dict)
         assert "provider" in vision
         assert "model" in vision
         assert vision["provider"] == "auto"
@@ -273,7 +276,10 @@ class TestDefaultConfigShape:
 
     def test_web_extract_task_structure(self):
         from hermes_cli.config import DEFAULT_CONFIG
-        web = DEFAULT_CONFIG["auxiliary"]["web_extract"]
+        aux = DEFAULT_CONFIG["auxiliary"]
+        assert isinstance(aux, dict)
+        web = aux["web_extract"]
+        assert isinstance(web, dict)
         assert "provider" in web
         assert "model" in web
         assert web["provider"] == "auto"

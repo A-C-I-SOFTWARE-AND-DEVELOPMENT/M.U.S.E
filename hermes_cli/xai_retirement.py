@@ -81,7 +81,7 @@ def find_retired_xai_refs(config: Dict[str, Any]) -> List[RetirementIssue]:
         issues.append(RetirementIssue(
             config_path=path,
             current_model=model,
-            replacement=entry["replacement"],
+            replacement=entry["replacement"],  # ty: ignore[invalid-argument-type]  # replacement is always set
             reasoning_effort=entry.get("reasoning_effort"),
             note=entry.get("note"),
         ))

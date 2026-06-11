@@ -2029,7 +2029,7 @@ class ClawHubSource(SkillSource):
         import io
         import zipfile
 
-        files: Dict[str, str] = {}
+        files: Dict[str, Union[str, bytes]] = {}
         max_retries = 3
         for attempt in range(max_retries):
             try:
