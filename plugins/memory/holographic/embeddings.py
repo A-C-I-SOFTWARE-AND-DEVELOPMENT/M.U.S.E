@@ -27,7 +27,7 @@ import struct
 from abc import ABC, abstractmethod
 
 try:  # numpy is optional everywhere in this plugin
-    import numpy as _np
+    import numpy as _np  # ty: ignore[unresolved-import]
 
     _HAS_NUMPY = True
 except ImportError:  # pragma: no cover - exercised in numpy-absent CI
@@ -131,7 +131,7 @@ class SentenceTransformerBackend(EmbeddingBackend):
         from tools.lazy_deps import ensure
 
         ensure("memory.embeddings_local", prompt=False)
-        from sentence_transformers import SentenceTransformer
+        from sentence_transformers import SentenceTransformer  # ty: ignore[unresolved-import]
 
         self._model = SentenceTransformer(self.model_name)
         self.dim = int(self._model.get_sentence_embedding_dimension())

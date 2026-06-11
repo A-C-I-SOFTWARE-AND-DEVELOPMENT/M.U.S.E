@@ -65,7 +65,10 @@ class TestDelegateRequirements(unittest.TestCase):
 
     def test_schema_valid(self):
         self.assertEqual(DELEGATE_TASK_SCHEMA["name"], "delegate_task")
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         self.assertIn("goal", props)
         self.assertIn("tasks", props)
         self.assertIn("context", props)
@@ -255,7 +258,7 @@ class TestDelegateTask(unittest.TestCase):
         parent = _make_mock_parent()
 
         result = json.loads(
-            delegate_task(tasks=["not a task object"], parent_agent=parent)
+            delegate_task(tasks=["not a task object"], parent_agent=parent)  # ty: ignore[invalid-argument-type]
         )
 
         self.assertIn("error", result)
@@ -267,7 +270,7 @@ class TestDelegateTask(unittest.TestCase):
         parent = _make_mock_parent()
 
         result = json.loads(
-            delegate_task(tasks='[{"goal": "bad}', parent_agent=parent)
+            delegate_task(tasks='[{"goal": "bad}', parent_agent=parent)  # ty: ignore[invalid-argument-type]
         )
 
         self.assertIn("error", result)

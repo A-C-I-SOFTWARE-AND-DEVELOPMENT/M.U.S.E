@@ -75,7 +75,7 @@ def _effective_temperature_for_model(
     if fixed_temperature is OMIT_TEMPERATURE:
         return None  # caller must omit temperature
     if fixed_temperature is not None:
-        return fixed_temperature  # ty: ignore[invalid-return-type]  # OMIT_TEMPERATURE sentinel excluded above; remaining value is float
+        return fixed_temperature
     return requested_temperature
 
 

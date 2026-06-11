@@ -404,7 +404,7 @@ def _compute_tool_definitions(
     if "execute_code" in available_tool_names:
         from tools.code_execution_tool import SANDBOX_ALLOWED_TOOLS, build_execute_code_schema, _get_execution_mode
         sandbox_enabled = SANDBOX_ALLOWED_TOOLS & available_tool_names
-        dynamic_schema = build_execute_code_schema(sandbox_enabled, mode=_get_execution_mode())  # ty: ignore[invalid-argument-type]  # callee annotates `set`; frozenset is read-only-compatible
+        dynamic_schema = build_execute_code_schema(sandbox_enabled, mode=_get_execution_mode())
         for i, td in enumerate(filtered_tools):
             if td.get("function", {}).get("name") == "execute_code":
                 filtered_tools[i] = {"type": "function", "function": dynamic_schema}

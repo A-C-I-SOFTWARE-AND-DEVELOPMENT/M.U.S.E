@@ -60,7 +60,7 @@ class TestSupportsMediaInToolResults:
 
     def test_empty_provider_no(self):
         assert _supports_media_in_tool_results("", "anything") is False
-        assert _supports_media_in_tool_results(None, "anything") is False  # type: ignore[arg-type]
+        assert _supports_media_in_tool_results(None, "anything") is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
 
 # ─── _build_native_vision_tool_result ────────────────────────────────────────
