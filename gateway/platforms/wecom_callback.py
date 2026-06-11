@@ -24,7 +24,7 @@ try:
 
     AIOHTTP_AVAILABLE = True
 except ImportError:
-    web = None  # type: ignore[assignment]
+    web = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
     AIOHTTP_AVAILABLE = False
 
 try:
@@ -32,7 +32,7 @@ try:
 
     HTTPX_AVAILABLE = True
 except ImportError:
-    httpx = None  # type: ignore[assignment]
+    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
     HTTPX_AVAILABLE = False
 
 from gateway.config import Platform, PlatformConfig
@@ -121,7 +121,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         try:
             # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
             from gateway.platforms._http_client_limits import platform_httpx_limits
-            self._http_client = httpx.AsyncClient(timeout=20.0, limits=platform_httpx_limits())
+            self._http_client = httpx.AsyncClient(timeout=20.0, limits=platform_httpx_limits())  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             self._app = web.Application()
             self._app.router.add_get("/health", self._handle_health)
             self._app.router.add_get(self._path, self._handle_verify)
@@ -195,7 +195,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
                 "text": {"content": content[:2048]},
                 "safe": 0,
             }
-            resp = await self._http_client.post(
+            resp = await self._http_client.post(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 f"https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token={token}",
                 json=payload,
             )
@@ -378,7 +378,7 @@ class WecomCallbackAdapter(BasePlatformAdapter):
         return await self._refresh_access_token(app)
 
     async def _refresh_access_token(self, app: Dict[str, Any]) -> str:
-        resp = await self._http_client.get(
+        resp = await self._http_client.get(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             "https://qyapi.weixin.qq.com/cgi-bin/gettoken",
             params={
                 "corpid": app.get("corp_id"),

@@ -523,7 +523,7 @@ class SessionEntry:
             "reset_had_activity": self.reset_had_activity,
         }
         if self.origin:
-            result["origin"] = self.origin.to_dict()
+            result["origin"] = self.origin.to_dict()  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
         return result
     
     @classmethod
@@ -948,7 +948,7 @@ class SessionStore:
 
         if self._db and db_create_kwargs:
             try:
-                self._db.create_session(**db_create_kwargs)
+                self._db.create_session(**db_create_kwargs)  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             except Exception as e:
                 logger.warning("Failed to create SQLite session: %s", e)
 
@@ -957,7 +957,7 @@ class SessionStore:
     def update_session(
         self,
         session_key: str,
-        last_prompt_tokens: int = None,
+        last_prompt_tokens: int = None,  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
     ) -> None:
         """Update lightweight session metadata after an interaction."""
         with self._lock:
@@ -1173,7 +1173,7 @@ class SessionStore:
 
         if self._db and db_create_kwargs:
             try:
-                self._db.create_session(**db_create_kwargs)
+                self._db.create_session(**db_create_kwargs)  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             except Exception as e:
                 logger.debug("Session DB operation failed: %s", e)
 

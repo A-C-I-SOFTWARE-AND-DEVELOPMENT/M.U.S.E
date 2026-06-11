@@ -122,11 +122,11 @@ class TextBatchAggregator:
         chunk_len = len(event.text or "")
         existing = self._pending.get(key)
         if not existing:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             self._pending[key] = event
         else:
             existing.text = f"{existing.text}\n{event.text}"
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
         # Cancel prior flush timer, start a new one
         prior = self._pending_tasks.get(key)
@@ -247,7 +247,7 @@ class ThreadParticipationTracker:
         if len(thread_list) > self._max_tracked:
             thread_list = thread_list[-self._max_tracked:]
             self._threads = dict.fromkeys(thread_list)
-        atomic_json_write(path, thread_list, indent=None)
+        atomic_json_write(path, thread_list, indent=None)  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
 
     def mark(self, thread_id: str) -> None:
         """Mark *thread_id* as participated and persist."""

@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
 try:
-    from mautrix.types import (
+    from mautrix.types import (  # ty: ignore[unresolved-import]  # optional platform SDK
         ContentURI,
         EventID,
         EventType,
@@ -197,7 +197,7 @@ def _create_matrix_session(proxy_url: str | None):
 
     if proxy_url.split("://")[0].lower().startswith("socks"):
         try:
-            from aiohttp_socks import ProxyConnector
+            from aiohttp_socks import ProxyConnector  # ty: ignore[unresolved-import]  # optional platform SDK
 
             return aiohttp.ClientSession(
                 connector=ProxyConnector.from_url(proxy_url, rdns=True),
@@ -216,7 +216,7 @@ def _create_matrix_session(proxy_url: str | None):
 def _check_e2ee_deps() -> bool:
     """Return True if mautrix E2EE dependencies (python-olm) are available."""
     try:
-        from mautrix.crypto import OlmMachine  # noqa: F401
+        from mautrix.crypto import OlmMachine  # noqa: F401  # ty: ignore[unresolved-import]  # optional platform SDK
 
         return True
     except (ImportError, AttributeError):
@@ -240,10 +240,10 @@ def check_matrix_requirements() -> bool:
         logger.warning("Matrix: MATRIX_HOMESERVER not set")
         return False
     try:
-        import mautrix  # noqa: F401
+        import mautrix  # noqa: F401  # ty: ignore[unresolved-import]  # optional platform SDK
     except ImportError:
         def _import():
-            from mautrix.types import (
+            from mautrix.types import (  # ty: ignore[unresolved-import]  # optional platform SDK
                 ContentURI, EventID, EventType, PaginationDirection,
                 PresenceState, RoomCreatePreset, RoomID, SyncToken,
                 TrustState, UserID,
@@ -606,9 +606,9 @@ class MatrixAdapter(BasePlatformAdapter):
 
     async def connect(self) -> bool:
         """Connect to the Matrix homeserver and start syncing."""
-        from mautrix.api import HTTPAPI
-        from mautrix.client import Client
-        from mautrix.client.state_store import MemoryStateStore, MemorySyncStore
+        from mautrix.api import HTTPAPI  # ty: ignore[unresolved-import]  # optional platform SDK
+        from mautrix.client import Client  # ty: ignore[unresolved-import]  # optional platform SDK
+        from mautrix.client.state_store import MemoryStateStore, MemorySyncStore  # ty: ignore[unresolved-import]  # optional platform SDK
 
         if not self._homeserver:
             logger.error("Matrix: homeserver URL not configured")
@@ -702,9 +702,9 @@ class MatrixAdapter(BasePlatformAdapter):
                 await api.session.close()
                 return False
             try:
-                from mautrix.crypto import OlmMachine
-                from mautrix.crypto.store.asyncpg import PgCryptoStore
-                from mautrix.util.async_db import Database
+                from mautrix.crypto import OlmMachine  # ty: ignore[unresolved-import]  # optional platform SDK
+                from mautrix.crypto.store.asyncpg import PgCryptoStore  # ty: ignore[unresolved-import]  # optional platform SDK
+                from mautrix.util.async_db import Database  # ty: ignore[unresolved-import]  # optional platform SDK
 
                 _STORE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -863,8 +863,8 @@ class MatrixAdapter(BasePlatformAdapter):
                 return False
 
         # Register event handlers.
-        from mautrix.client import InternalEventType as IntEvt
-        from mautrix.client.dispatcher import MembershipEventDispatcher
+        from mautrix.client import InternalEventType as IntEvt  # ty: ignore[unresolved-import]  # optional platform SDK
+        from mautrix.client.dispatcher import MembershipEventDispatcher  # ty: ignore[unresolved-import]  # optional platform SDK
 
         # Without this the INVITE handler below never fires.
         client.add_dispatcher(MembershipEventDispatcher)
@@ -1176,6 +1176,7 @@ class MatrixAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a local image file to Matrix."""
         return await self._send_local_file(
@@ -1190,6 +1191,7 @@ class MatrixAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a local file as a document."""
         return await self._send_local_file(
@@ -1203,6 +1205,7 @@ class MatrixAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload an audio file as a voice message (MSC3245 native voice)."""
         return await self._send_local_file(
@@ -1222,6 +1225,7 @@ class MatrixAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a video file."""
         return await self._send_local_file(
@@ -1313,7 +1317,7 @@ class MatrixAdapter(BasePlatformAdapter):
                     room_encrypted = False
                 if room_encrypted:
                     try:
-                        from mautrix.crypto.attachments import encrypt_attachment
+                        from mautrix.crypto.attachments import encrypt_attachment  # ty: ignore[unresolved-import]  # optional platform SDK
                         upload_data, encrypted_file = encrypt_attachment(data)
                     except Exception as exc:
                         logger.error("Matrix: attachment encryption failed: %s", exc)
@@ -1900,7 +1904,7 @@ class MatrixAdapter(BasePlatformAdapter):
                 file_bytes = await self._client.download_media(ContentURI(url))
                 if file_bytes is not None:
                     if is_encrypted_media:
-                        from mautrix.crypto.attachments import decrypt_attachment
+                        from mautrix.crypto.attachments import decrypt_attachment  # ty: ignore[unresolved-import]  # optional platform SDK
 
                         hashes_value = (
                             file_content.get("hashes")
@@ -2007,8 +2011,8 @@ class MatrixAdapter(BasePlatformAdapter):
             source=source,
             raw_message=source_content,
             message_id=event_id,
-            media_urls=media_urls,
-            media_types=media_types,
+            media_urls=media_urls,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
+            media_types=media_types,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         )
 
         await self.handle_message(msg_event)
@@ -2263,14 +2267,14 @@ class MatrixAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             self._pending_text_batches[key] = event
         else:
             if event.text:
                 existing.text = (
                     f"{existing.text}\n{event.text}" if existing.text else event.text
                 )
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
                 existing.media_types.extend(event.media_types)
@@ -2695,7 +2699,7 @@ class MatrixAdapter(BasePlatformAdapter):
         rules — everything the Matrix HTML spec allows.
         """
         try:
-            import markdown as _md
+            import markdown as _md  # ty: ignore[unresolved-import]  # optional platform SDK
 
             md = _md.Markdown(
                 extensions=["fenced_code", "tables", "nl2br", "sane_lists"],
@@ -2827,7 +2831,7 @@ class MatrixAdapter(BasePlatformAdapter):
             if ul_match:
                 items = []
                 while i < len(lines) and re.match(r"^[\s]*[-*+]\s+(.+)$", lines[i]):
-                    items.append(re.match(r"^[\s]*[-*+]\s+(.+)$", lines[i]).group(1))
+                    items.append(re.match(r"^[\s]*[-*+]\s+(.+)$", lines[i]).group(1))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     i += 1
                 li = "".join(f"<li>{item}</li>" for item in items)
                 out_lines.append(f"<ul>{li}</ul>")
@@ -2838,7 +2842,7 @@ class MatrixAdapter(BasePlatformAdapter):
             if ol_match:
                 items = []
                 while i < len(lines) and re.match(r"^[\s]*\d+[.)]\s+(.+)$", lines[i]):
-                    items.append(re.match(r"^[\s]*\d+[.)]\s+(.+)$", lines[i]).group(1))
+                    items.append(re.match(r"^[\s]*\d+[.)]\s+(.+)$", lines[i]).group(1))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     i += 1
                 li = "".join(f"<li>{item}</li>" for item in items)
                 out_lines.append(f"<ol>{li}</ol>")

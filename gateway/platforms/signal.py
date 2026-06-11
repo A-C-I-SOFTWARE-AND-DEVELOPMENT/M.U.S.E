@@ -267,7 +267,7 @@ class SignalAdapter(BasePlatformAdapter):
 
         # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
         from gateway.platforms._http_client_limits import platform_httpx_limits
-        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())
+        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         try:
             # Health check — verify signal-cli daemon is reachable
             try:
@@ -337,7 +337,7 @@ class SignalAdapter(BasePlatformAdapter):
         while self._running:
             try:
                 logger.debug("Signal SSE: connecting to %s", url)
-                async with self.client.stream(
+                async with self.client.stream(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     "GET", url,
                     headers={"Accept": "text/event-stream"},
                     timeout=None,
@@ -409,7 +409,7 @@ class SignalAdapter(BasePlatformAdapter):
             if elapsed > HEALTH_CHECK_STALE_THRESHOLD:
                 logger.warning("Signal: SSE idle for %.0fs, checking daemon health", elapsed)
                 try:
-                    resp = await self.client.get(
+                    resp = await self.client.get(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         f"{self.http_url}/api/v1/check", timeout=10.0
                     )
                     if resp.status_code == 200:
@@ -743,7 +743,7 @@ class SignalAdapter(BasePlatformAdapter):
         self,
         method: str,
         params: dict,
-        rpc_id: str = None,
+        rpc_id: str = None,  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         *,
         log_failures: bool = True,
         raise_on_rate_limit: bool = False,
@@ -1237,11 +1237,12 @@ class SignalAdapter(BasePlatformAdapter):
         except Exception as e:
             logger.warning("Signal: failed to send pacing notice: %s", e)
 
-    async def send_image(
+    async def send_image(  # ty: ignore[invalid-method-override]  # duck-typed platform/adapter path
         self,
         chat_id: str,
         image_url: str,
         caption: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send an image. Supports http(s):// and file:// URLs."""
@@ -1322,12 +1323,13 @@ class SignalAdapter(BasePlatformAdapter):
             return SendResult(success=True)
         return SendResult(success=False, error=f"RPC send {media_label.lower()} failed")
 
-    async def send_document(
+    async def send_document(  # ty: ignore[invalid-method-override]  # duck-typed platform/adapter path
         self,
         chat_id: str,
         file_path: str,
         caption: Optional[str] = None,
         filename: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a document/file attachment."""
@@ -1339,6 +1341,7 @@ class SignalAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a local image file as a native Signal attachment.
@@ -1354,6 +1357,7 @@ class SignalAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send an audio file as a Signal attachment.
@@ -1369,6 +1373,7 @@ class SignalAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a video file as a Signal attachment."""
@@ -1476,7 +1481,7 @@ class SignalAdapter(BasePlatformAdapter):
             return None
         return (author, ts)
 
-    def _reactions_enabled(self, event: "MessageEvent" = None) -> bool:
+    def _reactions_enabled(self, event: "MessageEvent" = None) -> bool:  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         """Check if message reactions are enabled for this event.
 
         Two gates:

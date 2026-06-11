@@ -15,7 +15,7 @@ import os
 import re
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 from urllib.parse import quote
 
 import httpx
@@ -164,7 +164,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
 
         # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
         from gateway.platforms._http_client_limits import platform_httpx_limits
-        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())
+        self.client = httpx.AsyncClient(timeout=30.0, limits=platform_httpx_limits())  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         try:
             await self._api_get("/api/v1/ping")
             info = await self._api_get("/api/v1/server/info")
@@ -187,7 +187,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
             return False
 
         app = web.Application()
-        app.router.add_get("/health", lambda _: web.Response(text="ok"))
+        app.router.add_get("/health", lambda _: web.Response(text="ok"))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         app.router.add_post(self.webhook_path, self._handle_webhook)
         self._runner = web.AppRunner(app)
         await self._runner.setup()
@@ -380,7 +380,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         payload = {
             "addresses": [address],
             "message": message,
-            "tempGuid": f"temp-{datetime.utcnow().timestamp()}",
+            "tempGuid": f"temp-{datetime.utcnow().timestamp()}",  # ty: ignore[deprecated]  # duck-typed platform/adapter path
         }
         try:
             res = await self._api_post("/api/v1/chat/new", payload)
@@ -395,10 +395,14 @@ class BlueBubblesAdapter(BasePlatformAdapter):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def truncate_message(content: str, max_length: int = MAX_TEXT_LENGTH) -> List[str]:
+    def truncate_message(
+        content: str,
+        max_length: int = MAX_TEXT_LENGTH,
+        len_fn: Optional["Callable[[str], int]"] = None,
+    ) -> List[str]:
         # Use the base splitter but skip pagination indicators — iMessage
         # bubbles flow naturally without "(1/3)" suffixes.
-        chunks = BasePlatformAdapter.truncate_message(content, max_length)
+        chunks = BasePlatformAdapter.truncate_message(content, max_length, len_fn)
         return [re.sub(r"\s*\(\d+/\d+\)$", "", c) for c in chunks]
 
     async def send(
@@ -436,7 +440,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
                 )
             payload: Dict[str, Any] = {
                 "chatGuid": guid,
-                "tempGuid": f"temp-{datetime.utcnow().timestamp()}",
+                "tempGuid": f"temp-{datetime.utcnow().timestamp()}",  # ty: ignore[deprecated]  # duck-typed platform/adapter path
                 "message": chunk,
             }
             if reply_to and self._private_api_enabled and self._helper_connected:
@@ -534,6 +538,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(chat_id, image_path, caption=caption)
@@ -544,6 +549,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(
@@ -556,6 +562,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(chat_id, video_path, caption=caption)
@@ -567,6 +574,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self._send_attachment(
@@ -901,7 +909,7 @@ class BlueBubblesAdapter(BasePlatformAdapter):
         session_chat_id = chat_guid or chat_identifier
         is_group = bool(record.get("isGroup")) or (";+;" in (chat_guid or ""))
         source = self.build_source(
-            chat_id=session_chat_id,
+            chat_id=session_chat_id,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             chat_name=chat_identifier or sender,
             chat_type="group" if is_group else "dm",
             user_id=sender,

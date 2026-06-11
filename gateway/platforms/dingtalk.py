@@ -37,9 +37,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
 try:
-    import dingtalk_stream
-    from dingtalk_stream import ChatbotMessage
-    from dingtalk_stream.frames import CallbackMessage, AckMessage
+    import dingtalk_stream  # ty: ignore[unresolved-import]  # optional platform SDK
+    from dingtalk_stream import ChatbotMessage  # ty: ignore[unresolved-import]  # optional platform SDK
+    from dingtalk_stream.frames import CallbackMessage, AckMessage  # ty: ignore[unresolved-import]  # optional platform SDK
 
     DINGTALK_STREAM_AVAILABLE = True
 except ImportError:
@@ -62,20 +62,20 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment]
+    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 # Card SDK for AI Cards (following QwenPaw pattern)
 try:
-    from alibabacloud_dingtalk.card_1_0 import (
+    from alibabacloud_dingtalk.card_1_0 import (  # ty: ignore[unresolved-import]  # optional platform SDK
         client as dingtalk_card_client,
         models as dingtalk_card_models,
     )
-    from alibabacloud_dingtalk.robot_1_0 import (
+    from alibabacloud_dingtalk.robot_1_0 import (  # ty: ignore[unresolved-import]  # optional platform SDK
         client as dingtalk_robot_client,
         models as dingtalk_robot_models,
     )
-    from alibabacloud_tea_openapi import models as open_api_models
-    from alibabacloud_tea_util import models as tea_util_models
+    from alibabacloud_tea_openapi import models as open_api_models  # ty: ignore[unresolved-import]  # optional platform SDK
+    from alibabacloud_tea_util import models as tea_util_models  # ty: ignore[unresolved-import]  # optional platform SDK
 
     CARD_SDK_AVAILABLE = True
 except ImportError:
@@ -125,9 +125,9 @@ def check_dingtalk_requirements() -> bool:
         except Exception:
             return False
         try:
-            import dingtalk_stream as _ds
-            from dingtalk_stream import ChatbotMessage as _CM
-            from dingtalk_stream.frames import CallbackMessage as _CBM, AckMessage as _AM
+            import dingtalk_stream as _ds  # ty: ignore[unresolved-import]  # optional platform SDK
+            from dingtalk_stream import ChatbotMessage as _CM  # ty: ignore[unresolved-import]  # optional platform SDK
+            from dingtalk_stream.frames import CallbackMessage as _CBM, AckMessage as _AM  # ty: ignore[unresolved-import]  # optional platform SDK
             import httpx as _httpx
         except ImportError:
             return False
@@ -255,21 +255,21 @@ class DingTalkAdapter(BasePlatformAdapter):
             # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
             from gateway.platforms._http_client_limits import platform_httpx_limits
             self._http_client = httpx.AsyncClient(
-                timeout=30.0, limits=platform_httpx_limits(),
+                timeout=30.0, limits=platform_httpx_limits(),  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             )
 
-            credential = dingtalk_stream.Credential(
+            credential = dingtalk_stream.Credential(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 self._client_id, self._client_secret
             )
-            self._stream_client = dingtalk_stream.DingTalkStreamClient(credential)
+            self._stream_client = dingtalk_stream.DingTalkStreamClient(credential)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
             # Initialize card SDK if available and configured
             if CARD_SDK_AVAILABLE and self._card_template_id:
-                sdk_config = open_api_models.Config()
+                sdk_config = open_api_models.Config()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 sdk_config.protocol = "https"
                 sdk_config.region_id = "central"
-                self._card_sdk = dingtalk_card_client.Client(sdk_config)
-                self._robot_sdk = dingtalk_robot_client.Client(sdk_config)
+                self._card_sdk = dingtalk_card_client.Client(sdk_config)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+                self._robot_sdk = dingtalk_robot_client.Client(sdk_config)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 logger.info(
                     "[%s] Card SDK initialized with template: %s",
                     self.name,
@@ -277,17 +277,17 @@ class DingTalkAdapter(BasePlatformAdapter):
                 )
             elif CARD_SDK_AVAILABLE:
                 # Initialize robot SDK even without card template (for media download)
-                sdk_config = open_api_models.Config()
+                sdk_config = open_api_models.Config()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 sdk_config.protocol = "https"
                 sdk_config.region_id = "central"
-                self._robot_sdk = dingtalk_robot_client.Client(sdk_config)
+                self._robot_sdk = dingtalk_robot_client.Client(sdk_config)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 logger.info("[%s] Robot SDK initialized (media download)", self.name)
 
             # Capture the current event loop for cross-thread dispatch
             loop = asyncio.get_running_loop()
             handler = _IncomingHandler(self, loop)
             self._stream_client.register_callback_handler(
-                dingtalk_stream.ChatbotMessage.TOPIC, handler
+                dingtalk_stream.ChatbotMessage.TOPIC, handler  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             )
 
             self._stream_task = asyncio.create_task(self._run_stream())
@@ -872,7 +872,7 @@ class DingTalkAdapter(BasePlatformAdapter):
                     # first chunk): keep the card open and track it so the
                     # next send() auto-closes it as a sibling, or
                     # edit_message(finalize=True) closes it explicitly.
-                    self._streaming_cards.setdefault(chat_id, {})[
+                    self._streaming_cards.setdefault(chat_id, {})[  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
                         result.message_id
                     ] = content
                 return result
@@ -1029,45 +1029,45 @@ class DingTalkAdapter(BasePlatformAdapter):
             is_group = str(conversation_type) == "2"
             sender_staff_id = getattr(message, "sender_staff_id", "") or ""
 
-            runtime = tea_util_models.RuntimeOptions()
+            runtime = tea_util_models.RuntimeOptions()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
             # Step 1: Create card with STREAM callback type
-            create_request = dingtalk_card_models.CreateCardRequest(
+            create_request = dingtalk_card_models.CreateCardRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 card_template_id=self._card_template_id,
                 out_track_id=out_track_id,
-                card_data=dingtalk_card_models.CreateCardRequestCardData(
+                card_data=dingtalk_card_models.CreateCardRequestCardData(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     card_param_map={"content": ""},
                 ),
                 callback_type="STREAM",
                 im_group_open_space_model=(
-                    dingtalk_card_models.CreateCardRequestImGroupOpenSpaceModel(
+                    dingtalk_card_models.CreateCardRequestImGroupOpenSpaceModel(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         support_forward=True,
                     )
                 ),
                 im_robot_open_space_model=(
-                    dingtalk_card_models.CreateCardRequestImRobotOpenSpaceModel(
+                    dingtalk_card_models.CreateCardRequestImRobotOpenSpaceModel(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         support_forward=True,
                     )
                 ),
             )
 
-            create_headers = dingtalk_card_models.CreateCardHeaders(
+            create_headers = dingtalk_card_models.CreateCardHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 x_acs_dingtalk_access_token=token,
             )
 
-            await self._card_sdk.create_card_with_options_async(
+            await self._card_sdk.create_card_with_options_async(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 create_request, create_headers, runtime
             )
 
             # Step 2: Deliver card to the conversation
             if is_group:
                 open_space_id = f"dtv1.card//IM_GROUP.{conversation_id}"
-                deliver_request = dingtalk_card_models.DeliverCardRequest(
+                deliver_request = dingtalk_card_models.DeliverCardRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     out_track_id=out_track_id,
                     user_id_type=1,
                     open_space_id=open_space_id,
                     im_group_open_deliver_model=(
-                        dingtalk_card_models.DeliverCardRequestImGroupOpenDeliverModel(
+                        dingtalk_card_models.DeliverCardRequestImGroupOpenDeliverModel(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                             robot_code=self._robot_code,
                         )
                     ),
@@ -1080,22 +1080,22 @@ class DingTalkAdapter(BasePlatformAdapter):
                     )
                     return None
                 open_space_id = f"dtv1.card//IM_ROBOT.{sender_staff_id}"
-                deliver_request = dingtalk_card_models.DeliverCardRequest(
+                deliver_request = dingtalk_card_models.DeliverCardRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     out_track_id=out_track_id,
                     user_id_type=1,
                     open_space_id=open_space_id,
                     im_robot_open_deliver_model=(
-                        dingtalk_card_models.DeliverCardRequestImRobotOpenDeliverModel(
+                        dingtalk_card_models.DeliverCardRequestImRobotOpenDeliverModel(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                             space_type="IM_ROBOT",
                         )
                     ),
                 )
 
-            deliver_headers = dingtalk_card_models.DeliverCardHeaders(
+            deliver_headers = dingtalk_card_models.DeliverCardHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 x_acs_dingtalk_access_token=token,
             )
 
-            await self._card_sdk.deliver_card_with_options_async(
+            await self._card_sdk.deliver_card_with_options_async(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 deliver_request, deliver_headers, runtime
             )
 
@@ -1176,7 +1176,7 @@ class DingTalkAdapter(BasePlatformAdapter):
         finalize: bool = False,
     ) -> None:
         """Stream content to an existing AI Card."""
-        stream_request = dingtalk_card_models.StreamingUpdateRequest(
+        stream_request = dingtalk_card_models.StreamingUpdateRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             out_track_id=out_track_id,
             guid=str(uuid.uuid4()),
             key="content",
@@ -1186,12 +1186,12 @@ class DingTalkAdapter(BasePlatformAdapter):
             is_error=False,
         )
 
-        stream_headers = dingtalk_card_models.StreamingUpdateHeaders(
+        stream_headers = dingtalk_card_models.StreamingUpdateHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             x_acs_dingtalk_access_token=token,
         )
 
-        runtime = tea_util_models.RuntimeOptions()
-        await self._card_sdk.streaming_update_with_options_async(
+        runtime = tea_util_models.RuntimeOptions()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+        await self._card_sdk.streaming_update_with_options_async(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             stream_request, stream_headers, runtime
         )
 
@@ -1231,21 +1231,21 @@ class DingTalkAdapter(BasePlatformAdapter):
                 "emotion_type": 2,
                 "emotion_name": emoji_name,
             }
-            runtime = tea_util_models.RuntimeOptions()
+            runtime = tea_util_models.RuntimeOptions()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
             if recall:
                 emotion_kwargs["text_emotion"] = (
-                    dingtalk_robot_models.RobotRecallEmotionRequestTextEmotion(
+                    dingtalk_robot_models.RobotRecallEmotionRequestTextEmotion(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         emotion_id="2659900",
                         emotion_name=emoji_name,
                         text=emoji_name,
                         background_id="im_bg_1",
                     )
                 )
-                request = dingtalk_robot_models.RobotRecallEmotionRequest(
+                request = dingtalk_robot_models.RobotRecallEmotionRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     **emotion_kwargs,
                 )
-                sdk_headers = dingtalk_robot_models.RobotRecallEmotionHeaders(
+                sdk_headers = dingtalk_robot_models.RobotRecallEmotionHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     x_acs_dingtalk_access_token=token,
                 )
                 await self._robot_sdk.robot_recall_emotion_with_options_async(
@@ -1253,17 +1253,17 @@ class DingTalkAdapter(BasePlatformAdapter):
                 )
             else:
                 emotion_kwargs["text_emotion"] = (
-                    dingtalk_robot_models.RobotReplyEmotionRequestTextEmotion(
+                    dingtalk_robot_models.RobotReplyEmotionRequestTextEmotion(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         emotion_id="2659900",
                         emotion_name=emoji_name,
                         text=emoji_name,
                         background_id="im_bg_1",
                     )
                 )
-                request = dingtalk_robot_models.RobotReplyEmotionRequest(
+                request = dingtalk_robot_models.RobotReplyEmotionRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     **emotion_kwargs,
                 )
-                sdk_headers = dingtalk_robot_models.RobotReplyEmotionHeaders(
+                sdk_headers = dingtalk_robot_models.RobotReplyEmotionHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     x_acs_dingtalk_access_token=token,
                 )
                 await self._robot_sdk.robot_reply_emotion_with_options_async(
@@ -1328,14 +1328,14 @@ class DingTalkAdapter(BasePlatformAdapter):
             )
             return
         try:
-            request = dingtalk_robot_models.RobotMessageFileDownloadRequest(
+            request = dingtalk_robot_models.RobotMessageFileDownloadRequest(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 download_code=code,
                 robot_code=robot_code,
             )
-            headers = dingtalk_robot_models.RobotMessageFileDownloadHeaders(
+            headers = dingtalk_robot_models.RobotMessageFileDownloadHeaders(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 x_acs_dingtalk_access_token=token,
             )
-            runtime = tea_util_models.RuntimeOptions()
+            runtime = tea_util_models.RuntimeOptions()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             response = await self._robot_sdk.robot_message_file_download_with_options_async(
                 request, headers, runtime
             )
@@ -1387,7 +1387,7 @@ class DingTalkAdapter(BasePlatformAdapter):
 
 
 class _IncomingHandler(
-    dingtalk_stream.ChatbotHandler if DINGTALK_STREAM_AVAILABLE else object
+    dingtalk_stream.ChatbotHandler if DINGTALK_STREAM_AVAILABLE else object  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 ):
     """dingtalk-stream ChatbotHandler that forwards messages to the adapter.
 
@@ -1425,12 +1425,12 @@ class _IncomingHandler(
         """
         try:
             # CallbackMessage.data is a dict containing the raw DingTalk payload
-            data = message.data
+            data = message.data  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             if isinstance(data, str):
                 data = json.loads(data)
 
             # Parse dict into ChatbotMessage using SDK's from_dict
-            chatbot_msg = ChatbotMessage.from_dict(data)
+            chatbot_msg = ChatbotMessage.from_dict(data)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
             # Ensure session_webhook is populated even if the SDK's
             # from_dict() did not map it (field name mismatch across

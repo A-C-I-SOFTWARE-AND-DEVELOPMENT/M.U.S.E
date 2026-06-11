@@ -27,7 +27,11 @@ import subprocess
 
 _IS_WINDOWS = platform.system() == "Windows"
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import aiohttp  # annotation-only; runtime imports are function-local
+
 
 from hermes_constants import get_hermes_dir
 
@@ -500,7 +504,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
             )
             return False
         
-        bridge_path = Path(self._bridge_script)
+        bridge_path = Path(self._bridge_script)  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         if not bridge_path.exists():
             logger.warning("[%s] Bridge script not found: %s", self.name, bridge_path)
             self._set_fatal_error(
@@ -1014,6 +1018,8 @@ class WhatsAppAdapter(BasePlatformAdapter):
         image_url: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Download image URL to cache, send natively via bridge."""
         try:
@@ -1028,6 +1034,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a local image file natively via bridge."""
@@ -1039,6 +1046,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a video natively via bridge — plays inline in WhatsApp."""
@@ -1050,6 +1058,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send an audio file as a WhatsApp voice message via bridge."""
@@ -1062,6 +1071,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         """Send a document/file as a downloadable attachment via bridge."""

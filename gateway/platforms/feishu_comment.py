@@ -36,9 +36,9 @@ logger = logging.getLogger(__name__)
 
 def _build_request(method: str, uri: str, paths=None, queries=None, body=None):
     """Build a lark_oapi BaseRequest."""
-    from lark_oapi import AccessTokenType
-    from lark_oapi.core.enum import HttpMethod
-    from lark_oapi.core.model.base_request import BaseRequest
+    from lark_oapi import AccessTokenType  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.core.enum import HttpMethod  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.core.model.base_request import BaseRequest  # ty: ignore[unresolved-import]  # optional platform SDK
 
     http_method = HttpMethod.GET if method == "GET" else HttpMethod.POST
 
@@ -170,7 +170,7 @@ async def add_comment_reaction(
     Returns ``True`` on success, ``False`` on failure (errors are logged).
     """
     try:
-        from lark_oapi import AccessTokenType  # noqa: F401
+        from lark_oapi import AccessTokenType  # noqa: F401  # ty: ignore[unresolved-import]  # optional platform SDK
     except ImportError:
         logger.error("[Feishu-Comment] lark_oapi not available")
         return False

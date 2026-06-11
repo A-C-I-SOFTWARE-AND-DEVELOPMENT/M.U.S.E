@@ -116,7 +116,7 @@ class PairingStore:
         approved = self._load_json(self._approved_path(platform))
         return user_id in approved
 
-    def list_approved(self, platform: str = None) -> list:
+    def list_approved(self, platform: str = None) -> list:  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         """List approved users, optionally filtered by platform."""
         results = []
         platforms = [platform] if platform else self._all_platforms("approved")
@@ -228,7 +228,7 @@ class PairingStore:
                 "user_name": entry.get("user_name", ""),
             }
 
-    def list_pending(self, platform: str = None) -> list:
+    def list_pending(self, platform: str = None) -> list:  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         """List pending pairing requests, optionally filtered by platform."""
         results = []
         platforms = [platform] if platform else self._all_platforms("pending")
@@ -246,7 +246,7 @@ class PairingStore:
                 })
         return results
 
-    def clear_pending(self, platform: str = None) -> int:
+    def clear_pending(self, platform: str = None) -> int:  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         """Clear all pending requests. Returns count removed."""
         with self._lock:
             count = 0

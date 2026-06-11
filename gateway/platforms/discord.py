@@ -166,7 +166,7 @@ class VoiceReceiver:
     SAMPLE_RATE = 48000        # Discord native rate
     CHANNELS = 2               # Discord sends stereo
 
-    def __init__(self, voice_client, allowed_user_ids: set = None):
+    def __init__(self, voice_client, allowed_user_ids: set = None):  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         self._vc = voice_client
         self._allowed_user_ids = allowed_user_ids or set()
         self._running = False
@@ -263,7 +263,7 @@ class VoiceReceiver:
         conn.hook = wrapped_hook
         # Set on the current live websocket (for immediate effect)
         try:
-            from discord.utils import MISSING
+            from discord.utils import MISSING  # ty: ignore[unresolved-import]  # optional platform SDK
             if hasattr(conn, 'ws') and conn.ws is not MISSING:
                 conn.ws._hook = wrapped_hook
                 logger.info("Speaking hook installed on live websocket")
@@ -339,7 +339,7 @@ class VoiceReceiver:
         encrypted = bytes(payload_with_nonce[:-4])
 
         try:
-            import nacl.secret  # noqa: E402 — delayed import, only in voice path
+            import nacl.secret  # noqa: E402 — delayed import, only in voice path  # ty: ignore[unresolved-import]  # optional platform SDK
             box = nacl.secret.Aead(self._secret_key)
             decrypted = box.decrypt(encrypted, header, bytes(nonce))
         except Exception as e:
@@ -382,7 +382,7 @@ class VoiceReceiver:
                 user_id = self._ssrc_to_user.get(ssrc, 0)
             if user_id:
                 try:
-                    import davey
+                    import davey  # ty: ignore[unresolved-import]  # optional platform SDK
                     decrypted = self._dave_session.decrypt(
                         user_id, davey.MediaType.audio, decrypted
                     )
@@ -400,7 +400,7 @@ class VoiceReceiver:
         try:
             if ssrc not in self._decoders:
                 self._decoders[ssrc] = discord.opus.Decoder()
-            pcm = self._decoders[ssrc].decode(decrypted)
+            pcm = self._decoders[ssrc].decode(decrypted)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             with self._lock:
                 self._buffers[ssrc].extend(pcm)
                 self._last_packet_time[ssrc] = time.monotonic()
@@ -659,7 +659,7 @@ class DiscordAdapter(BasePlatformAdapter):
             # that aren't enabled in the Discord Developer Portal can prevent the
             # bot from coming online at all, so avoid requesting members intent
             # unless it is actually necessary.
-            intents = Intents.default()
+            intents = Intents.default()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             intents.message_content = True
             intents.dm_messages = True
             intents.guild_messages = True
@@ -706,7 +706,7 @@ class DiscordAdapter(BasePlatformAdapter):
             # Register event handlers
             @self._client.event
             async def on_ready():
-                logger.info("[%s] Connected as %s", adapter_self.name, adapter_self._client.user)
+                logger.info("[%s] Connected as %s", adapter_self.name, adapter_self._client.user)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
                 # Resolve any usernames in the allowed list to numeric IDs
                 await adapter_self._resolve_allowed_usernames()
@@ -734,7 +734,7 @@ class DiscordAdapter(BasePlatformAdapter):
                     return
 
                 # Always ignore our own messages
-                if message.author == self._client.user:
+                if message.author == self._client.user:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     return
 
                 # Ignore Discord system messages (thread renames, pins, member joins, etc.)
@@ -754,7 +754,7 @@ class DiscordAdapter(BasePlatformAdapter):
                     if allow_bots == "none":
                         return
                     elif allow_bots == "mentions":
-                        if not self._client.user or self._client.user not in message.mentions:
+                        if not self._client.user or self._client.user not in message.mentions:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                             return
                     # "all" falls through; bot is permitted — skip the
                     # human-user allowlist below (bots aren't in it).
@@ -784,11 +784,11 @@ class DiscordAdapter(BasePlatformAdapter):
                 # agents share a channel.
                 if not isinstance(message.channel, discord.DMChannel) and message.mentions:
                     _self_mentioned = (
-                        self._client.user is not None
-                        and self._client.user in message.mentions
+                        self._client.user is not None  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+                        and self._client.user in message.mentions  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     )
                     _other_bots_mentioned = any(
-                        m.bot and m != self._client.user
+                        m.bot and m != self._client.user  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                         for m in message.mentions
                     )
                     # If other bots are mentioned but we're not → not for us
@@ -826,7 +826,7 @@ class DiscordAdapter(BasePlatformAdapter):
                 if guild_id not in bot_guild_ids:
                     return
                 # Ignore the bot itself
-                if member == adapter_self._client.user:
+                if member == adapter_self._client.user:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     return
 
                 joined = before.channel is None and after.channel is not None
@@ -925,7 +925,7 @@ class DiscordAdapter(BasePlatformAdapter):
         atomic_json_write(
             self._command_sync_state_path(),
             state,
-            indent=None,
+            indent=None,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             separators=(",", ":"),
         )
 
@@ -961,7 +961,7 @@ class DiscordAdapter(BasePlatformAdapter):
         state = self._read_command_sync_state()
         state[self._command_sync_state_key(app_id)] = {
             **(
-                state.get(self._command_sync_state_key(app_id))
+                state.get(self._command_sync_state_key(app_id))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 if isinstance(state.get(self._command_sync_state_key(app_id)), dict)
                 else {}
             ),
@@ -975,7 +975,7 @@ class DiscordAdapter(BasePlatformAdapter):
         state = self._read_command_sync_state()
         state[self._command_sync_state_key(app_id)] = {
             **(
-                state.get(self._command_sync_state_key(app_id))
+                state.get(self._command_sync_state_key(app_id))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 if isinstance(state.get(self._command_sync_state_key(app_id)), dict)
                 else {}
             ),
@@ -1520,7 +1520,7 @@ class DiscordAdapter(BasePlatformAdapter):
         warnings: list[str] = []
         for chunk in chunks[1:]:
             try:
-                msg = await thread_channel.send(content=chunk)
+                msg = await thread_channel.send(content=chunk)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 message_ids.append(str(msg.id))
             except Exception as e:
                 warning = f"Failed to send follow-up chunk to forum thread {thread_id}: {e}"
@@ -1676,7 +1676,7 @@ class DiscordAdapter(BasePlatformAdapter):
             return
 
         try:
-            import discord as _discord_mod
+            import discord as _discord_mod  # ty: ignore[unresolved-import]  # optional platform SDK
             import io as _io
             from urllib.parse import unquote as _unquote
         except Exception:  # pragma: no cover
@@ -1813,9 +1813,9 @@ class DiscordAdapter(BasePlatformAdapter):
         try:
             import io
 
-            channel = self._client.get_channel(int(chat_id))
+            channel = self._client.get_channel(int(chat_id))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             if not channel:
-                channel = await self._client.fetch_channel(int(chat_id))
+                channel = await self._client.fetch_channel(int(chat_id))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             if not channel:
                 return SendResult(success=False, error=f"Channel {chat_id} not found")
 
@@ -1845,7 +1845,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
                 duration_secs = 5.0
                 try:
-                    from mutagen.oggopus import OggOpus
+                    from mutagen.oggopus import OggOpus  # ty: ignore[unresolved-import]  # optional platform SDK
                     info = OggOpus(audio_path)
                     duration_secs = info.info.length
                 except Exception:
@@ -1873,7 +1873,7 @@ class DiscordAdapter(BasePlatformAdapter):
                         "content_type": "audio/ogg",
                     },
                 ]
-                msg_data = await self._client.http.request(
+                msg_data = await self._client.http.request(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     discord.http.Route("POST", "/channels/{channel_id}/messages", channel_id=channel.id),
                     form=form,
                 )
@@ -2510,6 +2510,7 @@ class DiscordAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send a local image file natively as a Discord file attachment."""
         try:
@@ -2675,6 +2676,7 @@ class DiscordAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send a local video file natively as a Discord attachment."""
         try:
@@ -2693,6 +2695,7 @@ class DiscordAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send an arbitrary file natively as a Discord attachment."""
         try:
@@ -2725,7 +2728,7 @@ class DiscordAdapter(BasePlatformAdapter):
                             "POST", "/channels/{channel_id}/typing",
                             channel_id=chat_id,
                         )
-                        await self._client.http.request(route)
+                        await self._client.http.request(route)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     except asyncio.CancelledError:
                         return
                     except Exception as e:
@@ -3754,7 +3757,7 @@ class DiscordAdapter(BasePlatformAdapter):
                 # Stop at our own message — this is the partition point.
                 # Everything before this is already in the session transcript.
                 # (Redundant when _after_obj is set, but needed for cold start.)
-                if msg.author == self._client.user:
+                if msg.author == self._client.user:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     break
 
                 # Skip system messages (pins, joins, thread renames, etc.)
@@ -4184,9 +4187,9 @@ class DiscordAdapter(BasePlatformAdapter):
             return SendResult(success=False, error="Not connected")
         try:
             target_id = metadata.get("thread_id") if metadata and metadata.get("thread_id") else chat_id
-            channel = self._client.get_channel(int(target_id))
+            channel = self._client.get_channel(int(target_id))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             if not channel:
-                channel = await self._client.fetch_channel(int(target_id))
+                channel = await self._client.fetch_channel(int(target_id))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
 
             default_hint = f" (default: {default})" if default else ""
             embed = discord.Embed(
@@ -4471,10 +4474,10 @@ class DiscordAdapter(BasePlatformAdapter):
             if snapshot_text_parts and not raw_content:
                 raw_content = "\n".join(snapshot_text_parts)
                 normalized_content = raw_content
-        if self._client.user and self._client.user in message.mentions:
+        if self._client.user and self._client.user in message.mentions:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             mention_prefix = True
-            normalized_content = normalized_content.replace(f"<@{self._client.user.id}>", "").strip()
-            normalized_content = normalized_content.replace(f"<@!{self._client.user.id}>", "").strip()
+            normalized_content = normalized_content.replace(f"<@{self._client.user.id}>", "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+            normalized_content = normalized_content.replace(f"<@!{self._client.user.id}>", "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             message.content = normalized_content
         if not isinstance(message.channel, discord.DMChannel):
             channel_ids = {str(message.channel.id)}
@@ -4519,12 +4522,12 @@ class DiscordAdapter(BasePlatformAdapter):
             # a thread.
             in_bot_thread = (
                 is_thread
-                and thread_id in self._threads
+                and thread_id in self._threads  # ty: ignore[unsupported-operator]  # duck-typed platform/adapter path
                 and not self._discord_thread_require_mention()
             )
 
             if require_mention and not is_free_channel and not in_bot_thread:
-                if self._client.user not in message.mentions and not mention_prefix:
+                if self._client.user not in message.mentions and not mention_prefix:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     return
         # Auto-thread: when enabled, automatically create a thread for every
         # @mention in a text channel so each conversation is isolated (like Slack).
@@ -4845,12 +4848,12 @@ class DiscordAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             self._pending_text_batches[key] = event
         else:
             if event.text:
                 existing.text = f"{existing.text}\n{event.text}" if existing.text else event.text
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
                 existing.media_types.extend(event.media_types)

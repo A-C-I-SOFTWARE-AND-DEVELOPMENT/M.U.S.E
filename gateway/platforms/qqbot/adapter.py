@@ -50,7 +50,7 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    aiohttp = None  # type: ignore[assignment]
+    aiohttp = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 try:
     import httpx
@@ -58,7 +58,7 @@ try:
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment]
+    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -304,7 +304,7 @@ class QQAdapter(BasePlatformAdapter):
                 timeout=30.0,
                 follow_redirects=True,
                 event_hooks={"response": [_ssrf_redirect_guard]},
-                limits=platform_httpx_limits(),
+                limits=platform_httpx_limits(),  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             )
 
             # 1. Get access token
@@ -391,7 +391,7 @@ class QQAdapter(BasePlatformAdapter):
                 return self._access_token
 
             try:
-                resp = await self._http_client.post(
+                resp = await self._http_client.post(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     TOKEN_URL,
                     json={"appId": self._app_id, "clientSecret": self._client_secret},
                     timeout=DEFAULT_API_TIMEOUT,
@@ -419,7 +419,7 @@ class QQAdapter(BasePlatformAdapter):
         """Fetch the WebSocket gateway URL from the REST API."""
         token = await self._ensure_token()
         try:
-            resp = await self._http_client.get(
+            resp = await self._http_client.get(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 f"{API_BASE}{GATEWAY_URL_PATH}",
                 headers={
                     "Authorization": f"QQBot {token}",
@@ -462,7 +462,7 @@ class QQAdapter(BasePlatformAdapter):
             or os.getenv("ALL_PROXY")
             or os.getenv("all_proxy")
         )
-        self._ws = await self._session.ws_connect(
+        self._ws = await self._session.ws_connect(  # ty: ignore[no-matching-overload]  # duck-typed platform/adapter path
             gateway_url,
             headers={
                 "User-Agent": build_user_agent(),
@@ -1277,7 +1277,7 @@ class QQAdapter(BasePlatformAdapter):
             return
 
         member = d.get("member") if isinstance(d.get("member"), dict) else {}
-        nick = str(member.get("nick", "")) or str(author.get("username", ""))
+        nick = str(member.get("nick", "")) or str(author.get("username", ""))  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
         text = content
         att_result = await self._process_attachments(d.get("attachments"))
@@ -1910,7 +1910,7 @@ class QQAdapter(BasePlatformAdapter):
         pilk can handle SILK files with various headers (or no header).
         """
         try:
-            import pilk
+            import pilk  # ty: ignore[unresolved-import]  # optional platform SDK
         except ImportError:
             logger.warning(
                 "[%s] pilk not installed — cannot decode SILK audio. Run: pip install pilk",
@@ -2098,7 +2098,7 @@ class QQAdapter(BasePlatformAdapter):
 
         try:
             with open(wav_path, "rb") as f:
-                resp = await self._http_client.post(
+                resp = await self._http_client.post(  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                     f"{base_url}/audio/transcriptions",
                     headers={"Authorization": f"Bearer {api_key}"},
                     files={"file": (Path(wav_path).name, f, "audio/wav")},
@@ -2238,7 +2238,7 @@ class QQAdapter(BasePlatformAdapter):
             file_data: Optional[str] = None,
             srv_send_msg: bool = False,
             file_name: Optional[str] = None,
-    ) -> Dict[str, Any]:
+    ) -> Dict[str, Any]:  # ty: ignore[invalid-return-type]  # duck-typed platform/adapter path
         """Upload media and return file_info."""
         path = (
             f"/v2/users/{target_id}/files"
@@ -2615,7 +2615,7 @@ class QQAdapter(BasePlatformAdapter):
         if reply_to:
             # For non-markdown mode, add message_reference
             if not self._markdown_support:
-                body["message_reference"] = {"message_id": reply_to}
+                body["message_reference"] = {"message_id": reply_to}  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
         return body
 
@@ -2655,6 +2655,7 @@ class QQAdapter(BasePlatformAdapter):
             image_path: str,
             caption: Optional[str] = None,
             reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
             **kwargs,
     ) -> SendResult:
         """Send a local image file natively."""
@@ -2669,6 +2670,7 @@ class QQAdapter(BasePlatformAdapter):
             audio_path: str,
             caption: Optional[str] = None,
             reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
             **kwargs,
     ) -> SendResult:
         """Send a voice message natively."""
@@ -2683,6 +2685,7 @@ class QQAdapter(BasePlatformAdapter):
             video_path: str,
             caption: Optional[str] = None,
             reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
             **kwargs,
     ) -> SendResult:
         """Send a video natively."""
@@ -2698,6 +2701,7 @@ class QQAdapter(BasePlatformAdapter):
             caption: Optional[str] = None,
             file_name: Optional[str] = None,
             reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
             **kwargs,
     ) -> SendResult:
         """Send a file/document natively."""

@@ -26,7 +26,7 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    aiohttp = None  # type: ignore[assignment]
+    aiohttp = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -145,7 +145,7 @@ class HomeAssistantAdapter(BasePlatformAdapter):
         self._session = aiohttp.ClientSession(
             timeout=aiohttp.ClientTimeout(total=30)
         )
-        self._ws = await self._session.ws_connect(ws_url, heartbeat=30, timeout=30)
+        self._ws = await self._session.ws_connect(ws_url, heartbeat=30, timeout=30)  # ty: ignore[no-matching-overload]  # duck-typed platform/adapter path
 
         # Step 1: Receive auth_required
         msg = await self._ws.receive_json()

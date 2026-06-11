@@ -40,7 +40,7 @@ try:
 
     AIOHTTP_AVAILABLE = True
 except ImportError:  # pragma: no cover - dependency gate
-    aiohttp = None  # type: ignore[assignment]
+    aiohttp = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
     AIOHTTP_AVAILABLE = False
 
 try:
@@ -49,10 +49,10 @@ try:
 
     CRYPTO_AVAILABLE = True
 except ImportError:  # pragma: no cover - dependency gate
-    default_backend = None  # type: ignore[assignment]
-    Cipher = None  # type: ignore[assignment]
-    algorithms = None  # type: ignore[assignment]
-    modes = None  # type: ignore[assignment]
+    default_backend = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
+    Cipher = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
+    algorithms = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
+    modes = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
     CRYPTO_AVAILABLE = False
 
 from gateway.config import Platform, PlatformConfig
@@ -1078,7 +1078,7 @@ async def qr_login(
         if qrcode_url:
             print(qrcode_url)
         try:
-            import qrcode
+            import qrcode  # ty: ignore[unresolved-import]  # optional platform SDK
 
             qr = qrcode.QRCode()
             qr.add_data(qr_scan_data)
@@ -1135,7 +1135,7 @@ async def qr_login(
                     if qrcode_url:
                         print(qrcode_url)
                     try:
-                        import qrcode as _qrcode
+                        import qrcode as _qrcode  # ty: ignore[unresolved-import]  # optional platform SDK
                         qr = _qrcode.QRCode()
                         qr.add_data(qr_scan_data)
                         qr.make(fit=True)
@@ -1477,7 +1477,7 @@ class WeixinAdapter(BasePlatformAdapter):
         media = _media_reference(item, "image_item")
         try:
             data = await _download_and_decrypt_media(
-                self._poll_session,
+                self._poll_session,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 cdn_base_url=self._cdn_base_url,
                 encrypted_query_param=media.get("encrypt_query_param"),
                 aes_key_b64=(item.get("image_item") or {}).get("aeskey")
@@ -1495,7 +1495,7 @@ class WeixinAdapter(BasePlatformAdapter):
         media = _media_reference(item, "video_item")
         try:
             data = await _download_and_decrypt_media(
-                self._poll_session,
+                self._poll_session,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 cdn_base_url=self._cdn_base_url,
                 encrypted_query_param=media.get("encrypt_query_param"),
                 aes_key_b64=media.get("aes_key"),
@@ -1514,7 +1514,7 @@ class WeixinAdapter(BasePlatformAdapter):
         mime = _mime_from_filename(filename)
         try:
             data = await _download_and_decrypt_media(
-                self._poll_session,
+                self._poll_session,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 cdn_base_url=self._cdn_base_url,
                 encrypted_query_param=media.get("encrypt_query_param"),
                 aes_key_b64=media.get("aes_key"),
@@ -1533,7 +1533,7 @@ class WeixinAdapter(BasePlatformAdapter):
             return None
         try:
             data = await _download_and_decrypt_media(
-                self._poll_session,
+                self._poll_session,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 cdn_base_url=self._cdn_base_url,
                 encrypted_query_param=media.get("encrypt_query_param"),
                 aes_key_b64=media.get("aes_key"),
@@ -1589,7 +1589,7 @@ class WeixinAdapter(BasePlatformAdapter):
         for attempt in range(self._send_chunk_retries + 1):
             try:
                 resp = await _send_message(
-                    self._send_session,
+                    self._send_session,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                     base_url=self._base_url,
                     token=self._token,
                     to=chat_id,
@@ -1766,13 +1766,14 @@ class WeixinAdapter(BasePlatformAdapter):
         except Exception as exc:
             logger.debug("[%s] typing stop failed for %s: %s", self.name, _safe_id(chat_id), exc)
 
-    async def send_image(
+    async def send_image(  # ty: ignore[invalid-method-override]  # duck-typed platform/adapter path
         self,
         chat_id: str,
         image_url: str,
         caption: str,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         if image_url.startswith(("http://", "https://")):
             file_path = await self._download_remote_media(image_url)
@@ -1835,6 +1836,7 @@ class WeixinAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         if not self._send_session or not self._token:
             return SendResult(success=False, error="Not connected")
@@ -1852,6 +1854,7 @@ class WeixinAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         if not self._send_session or not self._token:
             return SendResult(success=False, error="Not connected")
@@ -1882,7 +1885,7 @@ class WeixinAdapter(BasePlatformAdapter):
         # Use asyncio.wait_for() instead of aiohttp ClientTimeout to avoid
         # "Timeout context manager should be used inside a task" errors.
         async def _do_fetch():
-            async with self._send_session.get(url) as response:
+            async with self._send_session.get(url) as response:  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 response.raise_for_status()
                 return await response.read()
         data = await asyncio.wait_for(_do_fetch(), timeout=30)
@@ -2137,7 +2140,7 @@ async def send_weixin_direct(
             )
         )
         adapter._send_session = session
-        adapter._session = session
+        adapter._session = session  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         adapter._token = resolved_token
         adapter._account_id = account_id
         adapter._base_url = base_url

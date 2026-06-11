@@ -14,17 +14,20 @@ import os
 import tempfile
 import html as _html
 import re
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Set, cast
 
 logger = logging.getLogger(__name__)
 
+# python-telegram-bot is an optional platform SDK; every runtime use is gated
+# on TELEGRAM_AVAILABLE, and the fallbacks below are typed Any via cast() (the
+# cast is runtime-identity) so the checker doesn't flag the guarded call sites.
 try:
-    from telegram import Update, Bot, Message, InlineKeyboardButton, InlineKeyboardMarkup
+    from telegram import Update, Bot, Message, InlineKeyboardButton, InlineKeyboardMarkup  # ty: ignore[unresolved-import]
     try:
-        from telegram import LinkPreviewOptions
+        from telegram import LinkPreviewOptions  # ty: ignore[unresolved-import]
     except ImportError:
         LinkPreviewOptions = None
-    from telegram.ext import (
+    from telegram.ext import (  # ty: ignore[unresolved-import]
         Application,
         CommandHandler,
         CallbackQueryHandler,
@@ -32,25 +35,25 @@ try:
         ContextTypes,
         filters,
     )
-    from telegram.constants import ParseMode, ChatType
-    from telegram.request import HTTPXRequest
+    from telegram.constants import ParseMode, ChatType  # ty: ignore[unresolved-import]
+    from telegram.request import HTTPXRequest  # ty: ignore[unresolved-import]
     TELEGRAM_AVAILABLE = True
 except ImportError:
     TELEGRAM_AVAILABLE = False
-    Update = Any
-    Bot = Any
-    Message = Any
-    InlineKeyboardButton = Any
-    InlineKeyboardMarkup = Any
-    LinkPreviewOptions = None
-    Application = Any
-    CommandHandler = Any
-    CallbackQueryHandler = Any
-    TelegramMessageHandler = Any
-    HTTPXRequest = Any
-    filters = None
-    ParseMode = None
-    ChatType = None
+    Update = cast(Any, Any)
+    Bot = cast(Any, Any)
+    Message = cast(Any, Any)
+    InlineKeyboardButton = cast(Any, Any)
+    InlineKeyboardMarkup = cast(Any, Any)
+    LinkPreviewOptions = cast(Any, None)
+    Application = cast(Any, Any)
+    CommandHandler = cast(Any, Any)
+    CallbackQueryHandler = cast(Any, Any)
+    TelegramMessageHandler = cast(Any, Any)
+    HTTPXRequest = cast(Any, Any)
+    filters = cast(Any, None)
+    ParseMode = cast(Any, None)
+    ChatType = cast(Any, None)
 
     # Mock ContextTypes so type annotations using ContextTypes.DEFAULT_TYPE
     # don't crash during class definition when the library isn't installed.
@@ -126,20 +129,20 @@ def check_telegram_requirements() -> bool:
     except Exception:
         return False
     try:
-        from telegram import Update as _Update, Bot as _Bot, Message as _Message
-        from telegram import InlineKeyboardButton as _IKB, InlineKeyboardMarkup as _IKM
+        from telegram import Update as _Update, Bot as _Bot, Message as _Message  # ty: ignore[unresolved-import]
+        from telegram import InlineKeyboardButton as _IKB, InlineKeyboardMarkup as _IKM  # ty: ignore[unresolved-import]
         try:
-            from telegram import LinkPreviewOptions as _LPO
+            from telegram import LinkPreviewOptions as _LPO  # ty: ignore[unresolved-import]
         except ImportError:
             _LPO = None
-        from telegram.ext import (
+        from telegram.ext import (  # ty: ignore[unresolved-import]
             Application as _App, CommandHandler as _CH,
             CallbackQueryHandler as _CQH,
             MessageHandler as _MH,
             ContextTypes as _CT, filters as _filters,
         )
-        from telegram.constants import ParseMode as _PM, ChatType as _CtT
-        from telegram.request import HTTPXRequest as _HR
+        from telegram.constants import ParseMode as _PM, ChatType as _CtT  # ty: ignore[unresolved-import]
+        from telegram.request import HTTPXRequest as _HR  # ty: ignore[unresolved-import]
     except ImportError:
         return False
     Update = _Update
@@ -644,7 +647,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if name == "badrequest" or name.endswith("badrequest"):
             return True
         try:
-            from telegram.error import BadRequest
+            from telegram.error import BadRequest  # ty: ignore[unresolved-import]
             return isinstance(error, BadRequest)
         except ImportError:
             return False
@@ -750,7 +753,7 @@ class TelegramAdapter(BasePlatformAdapter):
         if name in {"networkerror", "timedout", "connectionerror"}:
             return True
         try:
-            from telegram.error import NetworkError, TimedOut
+            from telegram.error import NetworkError, TimedOut  # ty: ignore[unresolved-import]
             if isinstance(error, (NetworkError, TimedOut)):
                 return True
         except ImportError:
@@ -896,6 +899,7 @@ class TelegramAdapter(BasePlatformAdapter):
         await self._drain_polling_connections()
 
         try:
+            assert self._app is not None  # started before use
             await self._app.updater.start_polling(
                 allowed_updates=Update.ALL_TYPES,
                 drop_pending_updates=False,
@@ -1022,6 +1026,7 @@ class TelegramAdapter(BasePlatformAdapter):
             await self._drain_polling_connections()
 
             try:
+                assert self._app is not None  # started before use
                 await self._app.updater.start_polling(
                     allowed_updates=Update.ALL_TYPES,
                     drop_pending_updates=False,
@@ -1301,6 +1306,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     # Send a seed message so the topic is visible in Telegram's client.
                     # Empty topics are hidden by the client UI until they contain a message.
                     try:
+                        assert self._bot is not None  # connected before use
                         await self._bot.send_message(
                             chat_id=int(chat_id),
                             message_thread_id=thread_id,
@@ -1449,7 +1455,7 @@ class TelegramAdapter(BasePlatformAdapter):
             
             # Start polling — retry initialize() for transient TLS resets
             try:
-                from telegram.error import NetworkError, TimedOut
+                from telegram.error import NetworkError, TimedOut  # ty: ignore[unresolved-import]
             except ImportError:
                 NetworkError = TimedOut = OSError  # type: ignore[misc,assignment]
             _max_connect = 8
@@ -1550,7 +1556,7 @@ class TelegramAdapter(BasePlatformAdapter):
             # List is derived from the central COMMAND_REGISTRY — adding a new
             # gateway command there automatically adds it to the Telegram menu.
             try:
-                from telegram import (
+                from telegram import (  # ty: ignore[unresolved-import]
                     BotCommand,
                     BotCommandScopeAllPrivateChats,
                     BotCommandScopeAllGroupChats,
@@ -1703,17 +1709,17 @@ class TelegramAdapter(BasePlatformAdapter):
             used_thread_fallback = False
             
             try:
-                from telegram.error import NetworkError as _NetErr
+                from telegram.error import NetworkError as _NetErr  # ty: ignore[unresolved-import]
             except ImportError:
                 _NetErr = OSError  # type: ignore[misc,assignment]
 
             try:
-                from telegram.error import BadRequest as _BadReq
+                from telegram.error import BadRequest as _BadReq  # ty: ignore[unresolved-import]
             except ImportError:
                 _BadReq = None  # type: ignore[assignment,misc]
 
             try:
-                from telegram.error import TimedOut as _TimedOut
+                from telegram.error import TimedOut as _TimedOut  # ty: ignore[unresolved-import]
             except (ImportError, AttributeError):
                 _TimedOut = None  # type: ignore[assignment,misc]
 
@@ -1864,6 +1870,7 @@ class TelegramAdapter(BasePlatformAdapter):
                                 await asyncio.sleep(wait)
                                 continue
                         raise
+                assert msg is not None  # loop body always sends or raises before reaching here
                 message_ids.append(str(msg.message_id))
 
             # Re-trigger typing indicator after sending a message.
@@ -2080,6 +2087,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 # mirror edit_message's main happy-path.
                 formatted = self.format_message(first_chunk)
                 try:
+                    assert self._bot is not None  # connected before use
                     await self._bot.edit_message_text(
                         chat_id=int(chat_id),
                         message_id=int(message_id),
@@ -2088,12 +2096,14 @@ class TelegramAdapter(BasePlatformAdapter):
                     )
                 except Exception as fmt_err:
                     if "not modified" not in str(fmt_err).lower():
+                        assert self._bot is not None  # connected before use
                         await self._bot.edit_message_text(
                             chat_id=int(chat_id),
                             message_id=int(message_id),
                             text=first_chunk,
                         )
             else:
+                assert self._bot is not None  # connected before use
                 await self._bot.edit_message_text(
                     chat_id=int(chat_id),
                     message_id=int(message_id),
@@ -2133,6 +2143,7 @@ class TelegramAdapter(BasePlatformAdapter):
             for use_markdown in (True, False) if finalize else (False,):
                 try:
                     text = self.format_message(chunk) if use_markdown else chunk
+                    assert self._bot is not None  # connected before use
                     sent_msg = await self._bot.send_message(
                         chat_id=int(chat_id),
                         text=text,
@@ -2156,6 +2167,7 @@ class TelegramAdapter(BasePlatformAdapter):
                             )
                         )
                         try:
+                            assert self._bot is not None  # connected before use
                             sent_msg = await self._bot.send_message(
                                 chat_id=int(chat_id),
                                 text=chunk,
@@ -3483,7 +3495,7 @@ class TelegramAdapter(BasePlatformAdapter):
             return
 
         try:
-            from telegram import InputMediaPhoto
+            from telegram import InputMediaPhoto  # ty: ignore[unresolved-import]
         except Exception as exc:  # pragma: no cover - missing SDK
             logger.warning(
                 "[%s] InputMediaPhoto unavailable, falling back to per-image send: %s",
@@ -4559,10 +4571,11 @@ class TelegramAdapter(BasePlatformAdapter):
                 chat_id = int(chat.id)
                 if chat_id in self._forum_command_registered:
                     return
-                from telegram import BotCommand, BotCommandScopeChat
+                from telegram import BotCommand, BotCommandScopeChat  # ty: ignore[unresolved-import]
                 from hermes_cli.commands import telegram_menu_commands
                 menu_commands, _ = telegram_menu_commands(max_commands=MAX_COMMANDS_PER_SCOPE)
                 bot_commands = [BotCommand(name, desc) for name, desc in menu_commands]
+                assert self._bot is not None  # connected before use
                 await self._bot.set_my_commands(bot_commands, scope=BotCommandScopeChat(chat_id=chat_id))
                 self._forum_command_registered.add(chat_id)
                 logger.info("[%s] Lazy-registered %d commands for forum chat %s", self.name, len(bot_commands), chat_id)
@@ -4594,7 +4607,7 @@ class TelegramAdapter(BasePlatformAdapter):
         await self._ensure_forum_commands(update.message)
 
         event = self._build_message_event(msg, MessageType.TEXT, update_id=update.update_id)
-        event.text = self._clean_bot_trigger_text(event.text)
+        event.text = cast(str, self._clean_bot_trigger_text(event.text))  # str in -> str out
         self._enqueue_text_event(event)
 
     async def _handle_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -4671,13 +4684,13 @@ class TelegramAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr, telegram-only
             self._pending_text_batches[key] = event
         else:
             # Append text from the follow-up chunk
             if event.text:
                 existing.text = f"{existing.text}\n{event.text}" if existing.text else event.text
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr, telegram-only
             # Merge any media that might be attached
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
@@ -4812,7 +4825,7 @@ class TelegramAdapter(BasePlatformAdapter):
         
         # Add caption as text
         if msg.caption:
-            event.text = self._clean_bot_trigger_text(msg.caption)
+            event.text = cast(str, self._clean_bot_trigger_text(msg.caption))  # non-empty caption in -> str out
         
         # Handle stickers: describe via vision tool with caching
         if msg.sticker:

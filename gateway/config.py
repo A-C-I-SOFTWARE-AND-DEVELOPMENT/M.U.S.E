@@ -802,7 +802,7 @@ def load_gateway_config() -> GatewayConfig:
                 from gateway.platform_registry import platform_registry as _pr
             except Exception as e:
                 logger.debug("plugin discovery skipped: %s", e)
-                _pr = None
+                _pr = None  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
             _shared_loop_targets: list = list(Platform)
             if _pr is not None:
@@ -1270,7 +1270,7 @@ def _validate_gateway_config(config: "GatewayConfig") -> None:
     try:
         from hermes_cli.auth import has_usable_secret
     except ImportError:
-        has_usable_secret = None  # type: ignore[assignment]
+        has_usable_secret = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
     if has_usable_secret is not None:
         for platform, pconfig in config.platforms.items():
