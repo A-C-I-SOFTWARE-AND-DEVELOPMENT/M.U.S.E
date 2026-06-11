@@ -566,8 +566,8 @@ def _common_betas_for_base_url(
 
 def _build_anthropic_client_with_bearer_hook(
     token_provider,
-    base_url: str = None,
-    timeout: float = None,
+    base_url: Optional[str] = None,
+    timeout: Optional[float] = None,
     *,
     drop_context_1m_beta: bool = False,
 ):
@@ -639,8 +639,8 @@ def _build_anthropic_client_with_bearer_hook(
 
 def build_anthropic_client(
     api_key,
-    base_url: str = None,
-    timeout: float = None,
+    base_url: Optional[str] = None,
+    timeout: Optional[float] = None,
     *,
     drop_context_1m_beta: bool = False,
 ):

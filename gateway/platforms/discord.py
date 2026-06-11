@@ -20,7 +20,7 @@ import tempfile
 import threading
 import time
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Any, Tuple
+from typing import Callable, Dict, List, Optional, Any, Tuple, cast
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +32,18 @@ _DISCORD_COMMAND_SYNC_MUTATION_INTERVAL_SECONDS = 4.5
 _DISCORD_COMMAND_SYNC_MAX_RATE_LIMIT_SLEEP_SECONDS = 30.0
 
 try:
-    import discord
-    from discord import Message as DiscordMessage, Intents
-    from discord.ext import commands
+    import discord  # ty: ignore[unresolved-import]
+    from discord import Message as DiscordMessage, Intents  # ty: ignore[unresolved-import]
+    from discord.ext import commands  # ty: ignore[unresolved-import]
     DISCORD_AVAILABLE = True
 except ImportError:
     DISCORD_AVAILABLE = False
-    discord = None
+    # ``cast(Any, None)`` is ``None`` at runtime; the Any annotation lets the
+    # type checker accept attribute access behind the DISCORD_AVAILABLE guard.
+    discord = cast(Any, None)
     DiscordMessage = Any
     Intents = Any
-    commands = None
+    commands = cast(Any, None)
 
 import sys
 from pathlib import Path as _Path

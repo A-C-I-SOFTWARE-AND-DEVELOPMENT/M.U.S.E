@@ -56,7 +56,7 @@ class PostgresClient:
         if self._pool is not None:
             return self._pool
         try:
-            from psycopg2 import pool as pg_pool  # type: ignore import-not-found
+            from psycopg2 import pool as pg_pool  # ty: ignore[unresolved-import]
         except ImportError as exc:  # pragma: no cover - depends on environment
             raise RuntimeError(
                 "psycopg2 is required for Postgres access. Install with "
@@ -80,7 +80,7 @@ class PostgresClient:
         if conn in self._vector_registered:
             return
         try:
-            from pgvector.psycopg2 import register_vector  # type: ignore import-not-found
+            from pgvector.psycopg2 import register_vector  # ty: ignore[unresolved-import]
 
             register_vector(conn)
             self._vector_registered.add(conn)
@@ -125,7 +125,7 @@ class PostgresClient:
 
 def _json(value: Any) -> Any:
     """Wrap a dict for JSONB binding using psycopg2's Json adapter."""
-    from psycopg2.extras import Json  # type: ignore import-not-found
+    from psycopg2.extras import Json  # ty: ignore[unresolved-import]
 
     return Json(value)
 

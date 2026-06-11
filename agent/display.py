@@ -756,7 +756,7 @@ class KawaiiSpinner:
         blanks = ' ' * max(self.last_line_len + 5, 40)
         self._write(f"\r{blanks}\r  {text}", flush=True)
 
-    def stop(self, final_message: str = None):
+    def stop(self, final_message: str | None = None):
         self.running = False
         if self.thread:
             self.thread.join(timeout=0.5)

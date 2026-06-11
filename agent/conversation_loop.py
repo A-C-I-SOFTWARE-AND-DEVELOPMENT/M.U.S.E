@@ -270,9 +270,9 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
 def run_conversation(
     agent,
     user_message: str,
-    system_message: str = None,
-    conversation_history: List[Dict[str, Any]] = None,
-    task_id: str = None,
+    system_message: Optional[str] = None,
+    conversation_history: Optional[List[Dict[str, Any]]] = None,
+    task_id: Optional[str] = None,
     stream_callback: Optional[callable] = None,
     persist_user_message: Optional[str] = None,
 ) -> Dict[str, Any]:

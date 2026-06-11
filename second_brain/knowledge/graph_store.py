@@ -37,7 +37,7 @@ class GraphStore:
         if self._driver is not None:
             return self._driver
         try:
-            from neo4j import GraphDatabase  # type: ignore import-not-found
+            from neo4j import GraphDatabase  # ty: ignore[unresolved-import]
         except ImportError as exc:  # pragma: no cover - depends on environment
             raise RuntimeError(
                 "The neo4j driver is required for graph features. Install with "
