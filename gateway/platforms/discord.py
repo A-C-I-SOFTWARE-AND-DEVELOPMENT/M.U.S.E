@@ -5605,7 +5605,7 @@ def _define_discord_view_classes() -> None:
             # we round-trip the original value, not a button-label variant.
             resolved_text: Optional[str] = None
             try:
-                from tools.clarify_gateway import _entries as _clarify_entries  # type: ignore
+                from tools.clarify_gateway import _entries as _clarify_entries
                 entry = _clarify_entries.get(self.clarify_id)
                 if entry and entry.choices and 0 <= index < len(entry.choices):
                     resolved_text = entry.choices[index]

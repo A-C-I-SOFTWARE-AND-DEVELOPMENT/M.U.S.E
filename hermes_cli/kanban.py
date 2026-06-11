@@ -147,7 +147,7 @@ def _check_dispatcher_presence() -> tuple[bool, str]:
     false warnings (better to miss a warning than to cry wolf).
     """
     try:
-        from gateway.status import get_running_pid  # type: ignore
+        from gateway.status import get_running_pid
     except Exception:
         return (True, "")  # can't probe — silent
     try:

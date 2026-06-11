@@ -67,7 +67,7 @@ def _resolve_path(rel: str) -> Path:
 def _validate_schema(data: dict, errors: list[str]) -> None:
     """Best-effort schema check. Silent no-op if jsonschema isn't installed."""
     try:
-        import jsonschema  # type: ignore
+        import jsonschema
     except ImportError:
         return
     if not SCHEMA.exists():

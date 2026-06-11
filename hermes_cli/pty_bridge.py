@@ -40,7 +40,7 @@ import time
 from typing import Optional, Sequence
 
 try:
-    import ptyprocess  # type: ignore
+    import ptyprocess
     _PTY_AVAILABLE = not sys.platform.startswith("win")
 except ImportError:  # pragma: no cover - dev env without ptyprocess
     ptyprocess = None  # type: ignore

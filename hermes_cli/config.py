@@ -5495,7 +5495,7 @@ def _inject_platform_plugin_env_vars() -> None:
         return
     _platform_plugin_env_vars_injected = True
     try:
-        import yaml  # type: ignore
+        import yaml
 
         # Resolve the bundled plugins dir from this file's location so the
         # injector works regardless of CWD.

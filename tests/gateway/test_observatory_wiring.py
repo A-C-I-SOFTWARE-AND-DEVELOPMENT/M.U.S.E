@@ -14,7 +14,7 @@ from collections.abc import Iterator
 from datetime import timedelta
 from pathlib import Path
 
-import pytest  # ty: ignore[unresolved-import]
+import pytest
 
 from gateway.cockpit import observatory_metrics as om
 from gateway.cockpit.agent import _record_route_decision

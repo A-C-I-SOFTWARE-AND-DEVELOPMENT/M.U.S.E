@@ -678,7 +678,7 @@ def _probe_remote_backend(env_type: str) -> str | None:
     try:
         # Import locally: tools/ imports are heavy and only relevant when a
         # non-local backend is actually configured.
-        from tools.terminal_tool import _get_env_config  # type: ignore
+        from tools.terminal_tool import _get_env_config
         from tools.environments import get_environment  # type: ignore
     except Exception as e:
         logger.debug("Backend probe unavailable (import failed): %s", e)

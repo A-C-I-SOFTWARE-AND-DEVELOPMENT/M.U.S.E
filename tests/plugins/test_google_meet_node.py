@@ -472,7 +472,7 @@ def _install_fake_ws(monkeypatch, reply_builder):
         return ws
 
     # Patch the concrete import site inside client._rpc
-    import websockets.sync.client as wsc  # type: ignore
+    import websockets.sync.client as wsc
     monkeypatch.setattr(wsc, "connect", _connect)
     return fake_ws_holder
 

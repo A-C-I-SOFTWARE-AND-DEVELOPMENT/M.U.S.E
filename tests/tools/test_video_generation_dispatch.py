@@ -71,8 +71,8 @@ class TestUnifiedDispatch:
         try:
             raw = video_generation_tool._handle_video_generate(args)
         finally:
-            video_generation_tool._read_configured_video_provider = saved  # type: ignore
-            plugins_module._ensure_plugins_discovered = saved_discover  # type: ignore
+            video_generation_tool._read_configured_video_provider = saved
+            plugins_module._ensure_plugins_discovered = saved_discover
         return json.loads(raw)
 
     def test_no_provider_returns_clear_error(self):

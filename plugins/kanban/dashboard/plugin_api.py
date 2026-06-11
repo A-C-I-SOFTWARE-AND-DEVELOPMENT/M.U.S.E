@@ -1916,7 +1916,7 @@ def update_profile_description(profile_name: str, payload: DescribeBody):
         from hermes_cli import profiles as profiles_mod
         canon = profiles_mod.normalize_profile_name(profile_name)
         if canon == "default":
-            from hermes_constants import get_hermes_home  # type: ignore
+            from hermes_constants import get_hermes_home
             from pathlib import Path as _Path
             profile_dir = _Path(get_hermes_home())
         else:

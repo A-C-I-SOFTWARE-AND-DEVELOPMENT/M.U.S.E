@@ -144,7 +144,7 @@ def _get_parent_pid(pid: int) -> int | None:
     if pid <= 1:
         return None
     try:
-        import psutil  # type: ignore
+        import psutil
         return psutil.Process(pid).ppid() or None
     except ImportError:
         pass
@@ -486,7 +486,7 @@ def _filter_venv_launcher_stubs(pids: list[int]) -> list[int]:
     on Windows by the caller because the stub pattern is Windows-specific.
     """
     try:
-        import psutil  # type: ignore
+        import psutil
     except ImportError:
         return pids
 

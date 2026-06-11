@@ -61,14 +61,14 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 # rebound real ``googleapiclient.errors.HttpError`` is what actually
 # matches at runtime.
 GOOGLE_CHAT_AVAILABLE: bool = False
-httplib2: Any = None  # type: ignore
-pubsub_v1: Any = None  # type: ignore
-gax_exceptions: Any = None  # type: ignore
-service_account: Any = None  # type: ignore
-AuthorizedHttp: Any = None  # type: ignore
-build_service: Any = None  # type: ignore
-HttpError: Any = Exception  # type: ignore
-MediaFileUpload: Any = None  # type: ignore
+httplib2: Any = None
+pubsub_v1: Any = None
+gax_exceptions: Any = None
+service_account: Any = None
+AuthorizedHttp: Any = None
+build_service: Any = None
+HttpError: Any = Exception
+MediaFileUpload: Any = None
 
 _google_modules_loaded: bool = False
 

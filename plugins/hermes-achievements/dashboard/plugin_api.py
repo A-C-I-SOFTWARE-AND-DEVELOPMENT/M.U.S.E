@@ -23,7 +23,7 @@ except ImportError:
 try:
     from fastapi import APIRouter
 except Exception:  # Allows local unit tests without dashboard dependencies.
-    class APIRouter:  # type: ignore
+    class APIRouter:
         def get(self, *_args, **_kwargs):
             return lambda fn: fn
         def post(self, *_args, **_kwargs):

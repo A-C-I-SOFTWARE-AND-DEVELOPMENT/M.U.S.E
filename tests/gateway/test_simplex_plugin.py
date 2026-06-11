@@ -257,7 +257,7 @@ async def test_handle_event_filters_own_corr_id():
     # Pretend we sent a command with this corrId
     own = adapter._make_corr_id()
     handler_mock = AsyncMock()
-    adapter._handle_new_chat_item = handler_mock  # type: ignore
+    adapter._handle_new_chat_item = handler_mock
 
     await adapter._handle_event({"corrId": own, "type": "newChatItem"})
     handler_mock.assert_not_called()

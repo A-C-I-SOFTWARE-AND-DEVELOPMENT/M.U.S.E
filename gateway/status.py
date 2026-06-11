@@ -153,7 +153,7 @@ def _read_process_cmdline(pid: int) -> Optional[str]:
 
     # Windows fallback: psutil (already used by _pid_exists)
     try:
-        import psutil  # type: ignore
+        import psutil
         proc = psutil.Process(pid)
         cmdline_parts = proc.cmdline()
         if cmdline_parts:
@@ -355,7 +355,7 @@ def _pid_exists(pid: int) -> bool:
     scaffold phase before ``psutil`` is pip-installed.
     """
     try:
-        import psutil  # type: ignore
+        import psutil
         return bool(psutil.pid_exists(int(pid)))
     except ImportError:
         pass  # Fall through to stdlib fallback.

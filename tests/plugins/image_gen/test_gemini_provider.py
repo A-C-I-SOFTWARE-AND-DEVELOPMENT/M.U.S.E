@@ -8,7 +8,7 @@ import io
 import json
 from unittest.mock import MagicMock, patch
 
-import pytest  # ty: ignore[unresolved-import]
+import pytest
 
 # A 1x1 PNG.
 _PNG = base64.b64decode(

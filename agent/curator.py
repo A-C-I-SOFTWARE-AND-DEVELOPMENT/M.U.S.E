@@ -648,7 +648,7 @@ def _parse_structured_summary(
     # Prefer PyYAML when available — every hermes install already has it
     # (config.yaml loader). Fall back to a hand parser for paranoia.
     try:
-        import yaml  # type: ignore
+        import yaml
         data = yaml.safe_load(body)
     except Exception:
         return empty
