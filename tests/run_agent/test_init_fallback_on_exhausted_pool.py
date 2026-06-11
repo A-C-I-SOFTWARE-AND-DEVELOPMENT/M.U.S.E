@@ -42,7 +42,7 @@ def test_init_tries_fallback_when_primary_returns_none():
             quiet_mode=True,
             skip_context_files=True,
             skip_memory=True,
-            fallback_model=[{"provider": "tencent-token-plan", "model": "kimi2.5"}],  # ty: ignore[invalid-argument-type]
+            fallback_model=[{"provider": "tencent-token-plan", "model": "kimi2.5"}],  # ty: ignore[invalid-argument-type, unused-ignore-comment]
         )
         assert agent.provider == "tencent-token-plan"
         assert agent.model == "kimi2.5"

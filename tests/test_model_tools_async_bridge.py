@@ -240,11 +240,11 @@ class TestRunAsyncWithRunningLoop:
                 # Record which function got submitted -- should be the
                 # in-function worker wrapper, not bare asyncio.run, so we
                 # know _run_async is using a loop it owns and can cancel.
-                events["submitted_fn"] = getattr(fn, "__name__", repr(fn))
+                events["submitted_fn"] = getattr(fn, "__name__", repr(fn))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
                 return TimeoutFuture()
 
             def shutdown(self, wait=True, cancel_futures=False):
-                events["shutdown_calls"].append((wait, cancel_futures))
+                events["shutdown_calls"].append((wait, cancel_futures))  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         async def _never_finishes():
             await asyncio.sleep(999)

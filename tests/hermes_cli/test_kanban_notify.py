@@ -458,7 +458,7 @@ async def test_gateway_create_autosubscribes_on_explicit_board(kanban_home):
         source=source,
     )
 
-    out = await GatewayRunner._handle_kanban_command(runner, event)
+    out = await GatewayRunner._handle_kanban_command(runner, event)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     assert "subscribed" in out.lower()
 

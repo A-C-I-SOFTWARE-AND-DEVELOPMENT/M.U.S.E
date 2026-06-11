@@ -13,7 +13,7 @@ import pytest
 
 if "dotenv" not in sys.modules:
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     sys.modules["dotenv"] = fake_dotenv
 
 from hermes_cli.auth import resolve_provider

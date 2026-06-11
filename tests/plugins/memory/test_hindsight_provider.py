@@ -159,18 +159,18 @@ def test_normalize_retain_tags_accepts_json_array_string():
 class TestSchemas:
     def test_retain_schema_has_content(self):
         assert RETAIN_SCHEMA["name"] == "hindsight_retain"
-        assert "content" in RETAIN_SCHEMA["parameters"]["properties"]
-        assert "tags" in RETAIN_SCHEMA["parameters"]["properties"]
-        assert "content" in RETAIN_SCHEMA["parameters"]["required"]
+        assert "content" in RETAIN_SCHEMA["parameters"]["properties"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert "tags" in RETAIN_SCHEMA["parameters"]["properties"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert "content" in RETAIN_SCHEMA["parameters"]["required"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_recall_schema_has_query(self):
         assert RECALL_SCHEMA["name"] == "hindsight_recall"
-        assert "query" in RECALL_SCHEMA["parameters"]["properties"]
-        assert "query" in RECALL_SCHEMA["parameters"]["required"]
+        assert "query" in RECALL_SCHEMA["parameters"]["properties"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert "query" in RECALL_SCHEMA["parameters"]["required"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_reflect_schema_has_query(self):
         assert REFLECT_SCHEMA["name"] == "hindsight_reflect"
-        assert "query" in REFLECT_SCHEMA["parameters"]["properties"]
+        assert "query" in REFLECT_SCHEMA["parameters"]["properties"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_get_tool_schemas_returns_three(self, provider):
         schemas = provider.get_tool_schemas()
@@ -1242,7 +1242,7 @@ class TestBankIdTemplate:
 
     def test_sanitize_bank_segment_empty(self):
         assert _sanitize_bank_segment("") == ""
-        assert _sanitize_bank_segment(None) == ""
+        assert _sanitize_bank_segment(None) == ""  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_resolve_empty_template_uses_fallback(self):
         result = _resolve_bank_id_template(

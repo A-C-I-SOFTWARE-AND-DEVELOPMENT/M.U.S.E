@@ -195,7 +195,7 @@ class TestCmdUpdateBranchFallback:
             mock_input.assert_not_called()
             from hermes_cli.config import migrate_config
 
-            migrate_config.assert_called_once_with(interactive=False, quiet=False)
+            migrate_config.assert_called_once_with(interactive=False, quiet=False)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             captured = capsys.readouterr()
             assert "applying safe config migrations" in captured.out
             assert "API keys require manual entry" in captured.out

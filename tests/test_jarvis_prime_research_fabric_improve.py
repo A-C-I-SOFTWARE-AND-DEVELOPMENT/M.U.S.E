@@ -20,7 +20,7 @@ def test_reference_improvement_runs_and_improves(tmp_path) -> None:
     run = run_algorithms_improvement(ledger=ledger, archive=archive)
     assert run.used_llm is False
     assert run.result.improved is True
-    assert run.result.reduction > 0
+    assert run.result.reduction > 0  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
     # Lineage recorded.
     assert len(archive.members()) >= 2
     assert ledger.verify_chain().ok is True

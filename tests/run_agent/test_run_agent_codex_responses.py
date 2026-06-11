@@ -1589,7 +1589,7 @@ def test_dump_api_request_debug_uses_chat_completions_url(monkeypatch, tmp_path)
         skip_context_files=True,
         skip_memory=True,
     )
-    agent.logs_dir = tmp_path  # ty: ignore[unresolved-attribute]
+    agent.logs_dir = tmp_path  # ty: ignore[unresolved-attribute, unused-ignore-comment]
 
     dump_file = agent._dump_api_request_debug(
         {"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},

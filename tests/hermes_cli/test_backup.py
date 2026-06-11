@@ -900,7 +900,7 @@ class TestImportEdgeCases:
         for i in range(600):
             files[f"sessions/s{i:04d}.json"] = "{}"
 
-        self._make_backup_zip(zip_path, files)
+        self._make_backup_zip(zip_path, files)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
@@ -1096,7 +1096,7 @@ class TestQuickSnapshot:
     def test_label_in_id(self, hermes_home):
         from hermes_cli.backup import create_quick_snapshot
         snap_id = create_quick_snapshot(label="before-upgrade", hermes_home=hermes_home)
-        assert "before-upgrade" in snap_id
+        assert "before-upgrade" in snap_id  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_state_db_safely_copied(self, hermes_home):
         from hermes_cli.backup import create_quick_snapshot

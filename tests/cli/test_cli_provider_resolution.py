@@ -116,7 +116,7 @@ def _import_cli():
             sys.modules.pop(name, None)
 
     if "firecrawl" not in sys.modules:
-        sys.modules["firecrawl"] = types.SimpleNamespace(Firecrawl=object)
+        sys.modules["firecrawl"] = types.SimpleNamespace(Firecrawl=object)  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
     try:
         importlib.import_module("prompt_toolkit")

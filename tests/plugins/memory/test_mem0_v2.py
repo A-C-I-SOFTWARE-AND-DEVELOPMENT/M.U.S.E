@@ -192,7 +192,7 @@ class TestMem0ResponseUnwrapping:
         monkeypatch.setattr(provider, "_get_client", lambda: client)
 
         provider.queue_prefetch("preferences")
-        provider._prefetch_thread.join(timeout=2)
+        provider._prefetch_thread.join(timeout=2)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         result = provider.prefetch("preferences")
 
         assert "dark mode" in result

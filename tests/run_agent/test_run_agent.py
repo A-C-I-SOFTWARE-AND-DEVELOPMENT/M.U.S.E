@@ -846,7 +846,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a.valid_tool_names == {"web_search", "terminal"}  # ty: ignore[unresolved-attribute]
+            assert a.valid_tool_names == {"web_search", "terminal"}  # ty: ignore[unresolved-attribute, unused-ignore-comment]
 
     def test_session_id_auto_generated(self):
         """Session ID should be auto-generated in YYYYMMDD_HHMMSS_<hex6> format."""

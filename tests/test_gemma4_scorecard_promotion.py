@@ -31,7 +31,7 @@ def _book(task: str, baseline_n: int, gemma_n: int, **gemma_kw) -> ScorecardBook
     defaults.update(gemma_kw)
     for _ in range(gemma_n):
         book.scorecards.append(
-            ModelScorecard(model="gemma4-e4b", provider="ollama", task_type=task, **defaults)
+            ModelScorecard(model="gemma4-e4b", provider="ollama", task_type=task, **defaults)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
     return book
 

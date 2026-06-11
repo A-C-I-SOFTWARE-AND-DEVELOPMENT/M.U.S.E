@@ -26,7 +26,7 @@ def _boundary(**overrides) -> GoalBoundary:
         rollback_plan="git revert HEAD",
     )
     base.update(overrides)
-    return GoalBoundary.create(**base)
+    return GoalBoundary.create(**base)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_refuses_loop_without_brakes():

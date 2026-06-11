@@ -930,7 +930,7 @@ class TestRunJobSessionPersistence:
 
         assert success is False
         assert final_response == ""
-        assert "RuntimeError: boom" in error
+        assert "RuntimeError: boom" in error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         mock_agent.close.assert_called_once()
 
     def test_run_job_reaps_stale_auxiliary_clients_per_tick(self, tmp_path):
@@ -1845,25 +1845,25 @@ class TestBuildJobPromptSilentHint:
     def test_hint_always_present(self):
         job = {"prompt": "Check for updates"}
         result = _build_job_prompt(job)
-        assert "[SILENT]" in result
-        assert "Check for updates" in result
+        assert "[SILENT]" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Check for updates" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_hint_present_even_without_prompt(self):
         job = {"prompt": ""}
         result = _build_job_prompt(job)
-        assert "[SILENT]" in result
+        assert "[SILENT]" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_hint_present_when_legacy_prompt_is_null(self):
         job = {"id": "abc123deadbe", "name": None, "prompt": None}
         result = _build_job_prompt(job)
-        assert "[SILENT]" in result
+        assert "[SILENT]" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_delivery_guidance_present(self):
         """Cron hint tells agents their final response is auto-delivered."""
         job = {"prompt": "Generate a report"}
         result = _build_job_prompt(job)
-        assert "do NOT use send_message" in result
-        assert "automatically delivered" in result
+        assert "do NOT use send_message" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "automatically delivered" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_delivery_guidance_precedes_user_prompt(self):
         """System guidance appears before the user's prompt text."""
@@ -1882,7 +1882,7 @@ class TestParseWakeGate:
     def test_empty_output_wakes(self):
         from cron.scheduler import _parse_wake_gate
         assert _parse_wake_gate("") is True
-        assert _parse_wake_gate(None) is True
+        assert _parse_wake_gate(None) is True  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_whitespace_only_wakes(self):
         from cron.scheduler import _parse_wake_gate
@@ -2085,13 +2085,13 @@ class TestBuildJobPromptMissingSkill:
         with patch("tools.skills_tool.skill_view", side_effect=self._missing_skill_view):
             result = _build_job_prompt({"skills": ["ghost-skill"], "prompt": "do something"})
         # prompt is preserved even though skill was skipped
-        assert "do something" in result
+        assert "do something" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_missing_skill_injects_user_notice_into_prompt(self):
         """A system notice about the missing skill is injected into the prompt."""
         with patch("tools.skills_tool.skill_view", side_effect=self._missing_skill_view):
             result = _build_job_prompt({"skills": ["ghost-skill"], "prompt": "do something"})
-        assert "ghost-skill" in result
+        assert "ghost-skill" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert result is not None
         assert "not found" in result.lower() or "skipped" in result.lower()
 
@@ -2130,8 +2130,8 @@ class TestBuildJobPromptMissingSkill:
 
         with patch("tools.skills_tool.skill_view", side_effect=_mixed_skill_view):
             result = _build_job_prompt({"skills": ["ghost-skill", "real-skill"], "prompt": "go"})
-        assert "Real skill content." in result
-        assert "go" in result
+        assert "Real skill content." in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "go" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 class TestBuildJobPromptBumpUse:
@@ -2176,8 +2176,8 @@ class TestBuildJobPromptBumpUse:
             result = _build_job_prompt({"skills": ["good-skill"], "prompt": "go"})
 
         # Prompt should still contain the skill content and original instruction
-        assert "Works." in result
-        assert "go" in result
+        assert "Works." in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "go" in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         # The error should be logged at DEBUG level, not crash
         assert any("failed to bump" in r.message for r in caplog.records)
 
@@ -2385,8 +2385,8 @@ class TestDeliverResultTimeoutCancelsFuture:
             cancel_calls.append(True)
             return original_cancel()
 
-        captured_future.cancel = tracking_cancel
-        captured_future.result = MagicMock(side_effect=TimeoutError("timed out"))
+        captured_future.cancel = tracking_cancel  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        captured_future.result = MagicMock(side_effect=TimeoutError("timed out"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
         def fake_run_coro(coro, _loop):
             coro.close()
@@ -2502,8 +2502,8 @@ class TestSendMediaTimeoutCancelsFuture:
             timeout_cancel_calls.append(True)
             return original_cancel()
 
-        timeout_future.cancel = tracking_cancel
-        timeout_future.result = MagicMock(side_effect=TimeoutError("timed out"))
+        timeout_future.cancel = tracking_cancel  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        timeout_future.result = MagicMock(side_effect=TimeoutError("timed out"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
         ok_future = Future()
         ok_future.set_result(MagicMock(success=True))

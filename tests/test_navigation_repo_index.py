@@ -77,7 +77,7 @@ def test_symbol_graph_and_imports(sample_repo: Path):
     assert "pkg/helpers.py" in graph.symbols.get("clamp", set())
 
     # calculator imports helpers -> helpers is imported by calculator.
-    importers = graph.importers_of(index.get("pkg/helpers.py"))
+    importers = graph.importers_of(index.get("pkg/helpers.py"))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     assert "pkg/calculator.py" in importers
 
 
@@ -105,4 +105,4 @@ def test_blast_radius_lists_dependents(sample_repo: Path):
     graph = SymbolGraph.build(index)
     tracer = DependencyTracer(index=index, graph=graph)
     radius = tracer.blast_radius("pkg/helpers.py")
-    assert "pkg/calculator.py" in radius["dependents"]
+    assert "pkg/calculator.py" in radius["dependents"]  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture

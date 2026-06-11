@@ -49,7 +49,7 @@ def profile_env(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:
+def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
     """Build a local distribution staging directory (what a git clone would
     contain after .git is removed).
 
@@ -517,7 +517,7 @@ class TestInstalledAtStamp:
         staged = _make_staging_dir(profile_env, "src")
         install_distribution(str(staged), name="demo")
         from hermes_cli.profiles import get_profile_dir
-        first = read_manifest(get_profile_dir("demo")).installed_at
+        first = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         # Freeze `datetime.now()` to a fixed future time so we can observe that
         # update writes a NEW stamp (installs within the same second otherwise
@@ -533,7 +533,7 @@ class TestInstalledAtStamp:
 
         from hermes_cli.profile_distribution import update_distribution
         update_distribution("demo")
-        refreshed = read_manifest(get_profile_dir("demo")).installed_at
+        refreshed = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         assert refreshed != first, "installed_at should change on update"
         assert refreshed.startswith("2099-01-01"), refreshed
 

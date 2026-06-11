@@ -31,7 +31,7 @@ from hermes_cli.main import (
 def _as_dict(value: object) -> dict[str, Any]:
     """Narrow a config value that must be a dict (fails the test otherwise)."""
     assert isinstance(value, dict)
-    return value
+    return value  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
 
 
 def test_title_generation_present_in_default_config():

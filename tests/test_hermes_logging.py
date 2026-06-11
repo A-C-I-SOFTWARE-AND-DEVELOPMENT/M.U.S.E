@@ -461,13 +461,13 @@ class TestRecordFactory:
         hermes_logging.clear_session_context()
         factory = logging.getLogRecordFactory()
         record = factory("test", logging.INFO, "", 0, "msg", (), None)
-        assert record.session_tag == ""
+        assert record.session_tag == ""  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     def test_tag_with_context(self):
         hermes_logging.set_session_context("sess_42")
         factory = logging.getLogRecordFactory()
         record = factory("test", logging.INFO, "", 0, "msg", (), None)
-        assert record.session_tag == " [sess_42]"
+        assert record.session_tag == " [sess_42]"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     def test_idempotent_install(self):
         """Calling _install_session_record_factory() twice doesn't double-wrap."""

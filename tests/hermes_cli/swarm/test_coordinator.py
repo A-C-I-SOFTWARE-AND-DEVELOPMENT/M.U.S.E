@@ -124,11 +124,11 @@ def test_self_update_auto_applies_reversible(tmp_path, hermes_home):
         )
         applied, queued = [], []
         if promotion_decision(p) == "apply":
-            applied.append({"decision": "apply", "applied": apply_fn(p)})
+            applied.append({"decision": "apply", "applied": apply_fn(p)})  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
         return applied, queued
 
     monkey = patched
-    coord._emit_self_update = monkey
+    coord._emit_self_update = monkey  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
     try:
         result = run_swarm(
             "do a thing",

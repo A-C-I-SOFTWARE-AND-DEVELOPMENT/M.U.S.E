@@ -25,7 +25,7 @@ from typing import Any
 def _as_dict(value: object) -> "dict[str, Any]":
     """Narrow a config value that must be a dict (fails the test otherwise)."""
     assert isinstance(value, dict)
-    return value
+    return value  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
 
 def test_agent_disabled_toolsets_suppresses_across_platforms():
     """agent.disabled_toolsets in config.yaml should remove those toolsets
@@ -589,11 +589,11 @@ def test_local_browser_provider_is_saved_explicitly(monkeypatch):
     local_provider = next(
         provider
         for provider in TOOL_CATEGORIES["browser"]["providers"]
-        if provider.get("browser_provider") == "local"
+        if provider.get("browser_provider") == "local"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     )
     monkeypatch.setattr("hermes_cli.tools_config._run_post_setup", lambda key: None)
 
-    _configure_provider(local_provider, config)
+    _configure_provider(local_provider, config)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     assert config["browser"]["cloud_provider"] == "local"
 
@@ -768,7 +768,7 @@ class TestImagegenBackendRegistry:
     def test_fal_catalog_loads_lazily(self):
         """catalog_fn should defer import to avoid import cycles."""
         from hermes_cli.tools_config import IMAGEGEN_BACKENDS
-        catalog, default = IMAGEGEN_BACKENDS["fal"]["catalog_fn"]()
+        catalog, default = IMAGEGEN_BACKENDS["fal"]["catalog_fn"]()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
         assert default == "fal-ai/flux-2/klein/9b"
         assert "fal-ai/flux-2/klein/9b" in catalog
         assert "fal-ai/flux-2-pro" in catalog
@@ -779,7 +779,7 @@ class TestImagegenBackendRegistry:
         from hermes_cli.tools_config import TOOL_CATEGORIES
         providers = TOOL_CATEGORIES["image_gen"]["providers"]
         for p in providers:
-            assert p.get("imagegen_backend") == "fal", (
+            assert p.get("imagegen_backend") == "fal", (  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
                 f"{_as_dict(p)['name']} missing imagegen_backend tag"
             )
 
@@ -805,7 +805,7 @@ class TestImagegenModelPicker:
             _configure_imagegen_model,
             IMAGEGEN_BACKENDS,
         )
-        catalog, default_model = IMAGEGEN_BACKENDS["fal"]["catalog_fn"]()
+        catalog, default_model = IMAGEGEN_BACKENDS["fal"]["catalog_fn"]()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
         model_ids = list(catalog.keys())
         ordered = [default_model] + [m for m in model_ids if m != default_model]
         gpt_idx = ordered.index("fal-ai/gpt-image-1.5")
@@ -1072,6 +1072,6 @@ def test_reconfigure_provider_runs_post_setup_for_env_var_providers(
         for p in TOOL_CATEGORIES["browser"]["providers"]
         if _as_dict(p)["name"] == provider_name
     )
-    _reconfigure_provider(provider, {})
+    _reconfigure_provider(provider, {})  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     assert called == [post_setup_key]

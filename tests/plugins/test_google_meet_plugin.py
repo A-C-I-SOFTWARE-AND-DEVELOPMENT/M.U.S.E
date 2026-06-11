@@ -58,8 +58,8 @@ def test_is_safe_meet_url_rejects_non_meet_urls():
     assert not _is_safe_meet_url("https://notmeet.google.com/abc-defg-hij")
     # empty / wrong type
     assert not _is_safe_meet_url("")
-    assert not _is_safe_meet_url(None)  # type: ignore[arg-type]
-    assert not _is_safe_meet_url(123)  # type: ignore[arg-type]
+    assert not _is_safe_meet_url(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    assert not _is_safe_meet_url(123)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_meeting_id_extraction():
@@ -432,7 +432,7 @@ def test_start_passes_mode_into_active_record():
         )
     assert res["ok"] is True
     assert res["mode"] == "realtime"
-    assert pm._read_active()["mode"] == "realtime"
+    assert pm._read_active()["mode"] == "realtime"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
 
 def test_start_realtime_env_vars_threaded_through():

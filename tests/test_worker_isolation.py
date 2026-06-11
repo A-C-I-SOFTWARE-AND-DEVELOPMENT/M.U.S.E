@@ -271,8 +271,8 @@ def test_prepare_workspace_per_instance_branch_isolation(repo):
         use_worktree=True,
     )
     # Two instances of the same worker on the same job get distinct branches.
-    assert ws1.worktree.branch != ws2.worktree.branch
-    assert ws1.worktree.path != ws2.worktree.path
+    assert ws1.worktree.branch != ws2.worktree.branch  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    assert ws1.worktree.path != ws2.worktree.path  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_prepare_workspace_worktree_refuses_non_git(tmp_path):
@@ -358,7 +358,7 @@ def test_append_log_stderr(tmp_path):
 def test_append_log_rejects_unknown_kind(tmp_path):
     ws = iso.prepare_workspace(tmp_path, job_id="job", worker_id="fake")
     with pytest.raises(IsolationError, match="unknown log kind"):
-        iso.append_log(ws, "trace", "nope")  # type: ignore[arg-type]
+        iso.append_log(ws, "trace", "nope")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 # ── metadata round-trip ──────────────────────────────────────────────
@@ -392,8 +392,8 @@ def test_read_metadata_round_trip_with_worktree(repo):
     )
     hydrated = iso.read_metadata(repo, "job-1", "fake", "i-1")
     assert hydrated.worktree is not None
-    assert hydrated.worktree.branch == ws.worktree.branch
-    assert hydrated.worktree.path == ws.worktree.path
+    assert hydrated.worktree.branch == ws.worktree.branch  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    assert hydrated.worktree.path == ws.worktree.path  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_read_metadata_missing_raises(tmp_path):
@@ -474,7 +474,7 @@ def test_cleanup_workspace_with_worktree(repo):
         instance_id="i1",
         use_worktree=True,
     )
-    wt_path = ws.worktree.path
+    wt_path = ws.worktree.path  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     assert iso.cleanup_workspace(
         ws, confirm=True, cleanup_worktree=True, repo=repo
     ) is True
@@ -489,7 +489,7 @@ def test_cleanup_workspace_with_worktree_can_drop_branch(repo):
         instance_id="i1",
         use_worktree=True,
     )
-    branch = ws.worktree.branch
+    branch = ws.worktree.branch  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     iso.cleanup_workspace(
         ws,
         confirm=True,
@@ -563,7 +563,7 @@ def test_spawner_spawn_with_prompt_override(tmp_path):
 def test_spawner_rejects_non_adapter(tmp_path):
     spawner = IsolatedSpawner(tmp_path, job_id="job-1")
     with pytest.raises(IsolationError, match="WorkerAdapter"):
-        spawner.spawn("not an adapter", job="x")  # type: ignore[arg-type]
+        spawner.spawn("not an adapter", job="x")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_spawner_validates_adapter_prompt_return(tmp_path):

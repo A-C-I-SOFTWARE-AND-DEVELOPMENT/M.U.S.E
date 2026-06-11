@@ -136,8 +136,8 @@ def test_expire_stale_flips_running_past_deadline(tmp_path: Path):
 
     flipped = store.expire_stale(now=200.0)
     assert {leas.lease_id for leas in flipped} == {"a"}
-    assert store.get("a").status is LeaseStatus.EXPIRED  # type: ignore[union-attr]
-    assert store.get("b").status is LeaseStatus.RUNNING  # type: ignore[union-attr]
+    assert store.get("a").status is LeaseStatus.EXPIRED  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    assert store.get("b").status is LeaseStatus.RUNNING  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     # Idempotent: nothing left stale to flip.
     assert store.expire_stale(now=200.0) == []
@@ -149,7 +149,7 @@ def test_expire_stale_persists(tmp_path: Path):
     store.expire_stale(now=999.0)
 
     reloaded = WorkerLeaseStore.load(tmp_path)
-    assert reloaded.get("a").status is LeaseStatus.EXPIRED  # type: ignore[union-attr]
+    assert reloaded.get("a").status is LeaseStatus.EXPIRED  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_tolerant_load_skips_corrupt_lines(tmp_path: Path):
@@ -259,7 +259,7 @@ def test_parallel_run_records_completed_lease(repo: Path, tmp_path: Path):
 
     # 3) Durable: a fresh store over the same dir sees the completed lease.
     reloaded = WorkerLeaseStore.load(tmp_path / "store")
-    assert reloaded.get(lease.lease_id).status is LeaseStatus.COMPLETED  # type: ignore[union-attr]
+    assert reloaded.get(lease.lease_id).status is LeaseStatus.COMPLETED  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_parallel_prompt_only_records_completed_lease(repo: Path, tmp_path: Path):
@@ -352,7 +352,7 @@ def test_broken_store_does_not_break_run(repo: Path):
         ],
     )
     runner = op.ParallelRunner(
-        repo, plan, poll_interval=0.05, lease_store=_BrokenStore()  # type: ignore[arg-type]
+        repo, plan, poll_interval=0.05, lease_store=_BrokenStore()  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     )
     statuses = runner.run()
     # Run still succeeds despite the store raising on every upsert.

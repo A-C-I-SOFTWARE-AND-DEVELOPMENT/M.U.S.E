@@ -18,7 +18,7 @@ def _cand(**over) -> Candidate:
         domain_scores={},
     )
     base.update(over)
-    return Candidate(**base)
+    return Candidate(**base)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_clean_candidate_has_no_signals() -> None:

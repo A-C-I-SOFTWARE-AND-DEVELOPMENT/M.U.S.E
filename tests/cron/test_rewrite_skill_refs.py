@@ -247,8 +247,8 @@ class TestRewriteSkillRefsMultipleJobs:
         assert report["rewrites"][0]["job_id"] == j1["id"]
 
         # Untouched jobs stay put
-        assert get_job(j2["id"])["skills"] == ["untouched"]
-        assert get_job(j3["id"])["skills"] == []
+        assert get_job(j2["id"])["skills"] == ["untouched"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert get_job(j3["id"])["skills"] == []  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_legacy_skill_field_also_rewritten(self, cron_env):
         """Old jobs may have the legacy single-skill ``skill`` field

@@ -35,8 +35,8 @@ def _mock_botocore_session(*, return_value=None):
     """Patch botocore.session even when botocore is not installed."""
     botocore_mod = ModuleType("botocore")
     session_mod = ModuleType("botocore.session")
-    session_mod.get_session = MagicMock(return_value=return_value)
-    botocore_mod.session = session_mod
+    session_mod.get_session = MagicMock(return_value=return_value)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    botocore_mod.session = session_mod  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     with patch.dict("sys.modules", {"botocore": botocore_mod, "botocore.session": session_mod}):
         yield session_mod.get_session
 

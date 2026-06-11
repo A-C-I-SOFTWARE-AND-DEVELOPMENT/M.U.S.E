@@ -137,7 +137,7 @@ class TestGetCustomProviderContextLength:
         ]
         assert (
             get_custom_provider_context_length(
-                "m", "https://example.invalid/v1", custom
+                "m", "https://example.invalid/v1", custom  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             )
             == 400_000
         )

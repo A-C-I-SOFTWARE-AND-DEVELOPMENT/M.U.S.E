@@ -16,7 +16,7 @@ def _fake_caller(result):
         calls["args"] = args
         return result
 
-    caller.calls = calls
+    caller.calls = calls  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     return caller
 
 

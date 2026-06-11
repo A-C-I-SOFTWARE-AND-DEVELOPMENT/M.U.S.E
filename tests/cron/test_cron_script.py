@@ -192,9 +192,9 @@ class TestBuildJobPromptWithScript:
             "script": str(script),
         }
         prompt = _build_job_prompt(job)
-        assert "## Script Output" in prompt
-        assert "new PR: #123 fix typo" in prompt
-        assert "Report any notable changes." in prompt
+        assert "## Script Output" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "new PR: #123 fix typo" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Report any notable changes." in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_script_error_injected(self, cron_env):
         from cron.scheduler import _build_job_prompt
@@ -204,7 +204,7 @@ class TestBuildJobPromptWithScript:
             "script": "nonexistent_monitor.py",
         }
         prompt = _build_job_prompt(job)
-        assert "## Script Error" in prompt
+        assert "## Script Error" in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert prompt is not None
         assert "not found" in prompt.lower()
         assert "Report status." in prompt
@@ -214,8 +214,8 @@ class TestBuildJobPromptWithScript:
 
         job = {"prompt": "Simple job."}
         prompt = _build_job_prompt(job)
-        assert "## Script Output" not in prompt
-        assert "Simple job." in prompt
+        assert "## Script Output" not in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "Simple job." in prompt  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 

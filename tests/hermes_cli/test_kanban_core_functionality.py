@@ -170,7 +170,7 @@ def test_successful_completion_resets_failure_counter(kanban_home, all_assignees
     try:
         tid = kb.create_task(conn, title="x", assignee="worker")
         # Simulate 2 prior failures on the record.
-        kb.write_txn_ctx = kb.write_txn
+        kb.write_txn_ctx = kb.write_txn  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         with kb.write_txn(conn):
             conn.execute(
                 "UPDATE tasks SET consecutive_failures = 2, "
@@ -979,7 +979,7 @@ def test_max_runtime_terminates_overrun_worker(kanban_home):
     # We bypass _pid_alive by stubbing it so the grace-poll exits fast.
     import hermes_cli.kanban_db as _kb
     original_alive = _kb._pid_alive
-    _kb._pid_alive = lambda pid: False  # pretend SIGTERM worked immediately
+    _kb._pid_alive = lambda pid: False  # pretend SIGTERM worked immediately  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
     try:
         conn = kb.connect()
@@ -1034,7 +1034,7 @@ def test_repeated_timeouts_auto_block_at_default_limit(kanban_home):
     """Two timed_out outcomes on the same task/profile trip the retry guard."""
     import hermes_cli.kanban_db as _kb
     original_alive = _kb._pid_alive
-    _kb._pid_alive = lambda pid: False
+    _kb._pid_alive = lambda pid: False  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
     def _age_active_run(conn, tid):
         old_started = int(time.time()) - 30
@@ -1548,7 +1548,7 @@ def test_multiple_attempts_preserved_as_runs(kanban_home):
         kb.claim_task(conn, tid)
         kb._set_worker_pid(conn, tid, 98765)
         original_alive = _kb._pid_alive
-        _kb._pid_alive = lambda pid: False
+        _kb._pid_alive = lambda pid: False  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         try:
             kb.detect_crashed_workers(conn)
         finally:
@@ -2213,7 +2213,7 @@ def test_event_dataclass_carries_run_id(kanban_home):
     try:
         tid = kb.create_task(conn, title="x", assignee="worker")
         kb.claim_task(conn, tid)
-        run_id = kb.latest_run(conn, tid).id
+        run_id = kb.latest_run(conn, tid).id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         kb.complete_task(conn, tid, summary="done")
 
         events = kb.list_events(conn, tid)
@@ -2240,7 +2240,7 @@ def test_unseen_events_for_sub_includes_run_id(kanban_home):
             chat_id="12345", thread_id="",
         )
         kb.claim_task(conn, tid)
-        run_id = kb.latest_run(conn, tid).id
+        run_id = kb.latest_run(conn, tid).id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         kb.complete_task(conn, tid, summary="notify-ready")
 
         cursor, events = kb.unseen_events_for_sub(
@@ -2264,7 +2264,7 @@ def test_claim_task_recovers_from_invariant_leak(kanban_home):
         # Manually engineer the invariant violation: create a run, then
         # flip status back to 'ready' without closing the run.
         kb.claim_task(conn, tid)
-        leaked_run_id = kb.latest_run(conn, tid).id
+        leaked_run_id = kb.latest_run(conn, tid).id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         conn.execute(
             "UPDATE tasks SET status = 'ready', claim_lock = NULL, "
             "claim_expires = NULL "
@@ -2272,7 +2272,7 @@ def test_claim_task_recovers_from_invariant_leak(kanban_home):
         )
         conn.commit()
         # The leaked run is still open.
-        assert kb.get_run(conn, leaked_run_id).ended_at is None
+        assert kb.get_run(conn, leaked_run_id).ended_at is None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         # Now re-claim — the defensive recovery must close the leak.
         claimed = kb.claim_task(conn, tid)
@@ -2388,7 +2388,7 @@ def test_unblock_invariant_recovery(kanban_home):
         # leave current_run_id pointing at the open run — simulate the
         # invariant violation erosika flagged.
         kb.claim_task(conn, tid)
-        leaked_run_id = kb.latest_run(conn, tid).id
+        leaked_run_id = kb.latest_run(conn, tid).id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         # Force the bad state.
         conn.execute(
             "UPDATE tasks SET status = 'blocked' WHERE id = ?", (tid,),
@@ -2396,7 +2396,7 @@ def test_unblock_invariant_recovery(kanban_home):
         conn.commit()
         # current_run_id is still set; run is still open.
         assert _task(conn, tid).current_run_id == leaked_run_id
-        assert kb.get_run(conn, leaked_run_id).ended_at is None
+        assert kb.get_run(conn, leaked_run_id).ended_at is None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         # Unblock — the defensive recovery must close the leaked run.
         assert kb.unblock_task(conn, tid) is True
@@ -2694,7 +2694,7 @@ def test_resolve_workspace_rejects_relative_worktree_path(kanban_home):
         )
         with pytest.raises(ValueError, match=r"non-absolute"):
             assert kb.get_task is not None
-            kb.resolve_workspace(kb.get_task(conn, tid))
+            kb.resolve_workspace(kb.get_task(conn, tid))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     finally:
         conn.close()
 
@@ -3039,7 +3039,7 @@ def test_create_task_skills_deduplicates_and_strips(kanban_home):
             conn,
             title="dedupe",
             assignee="x",
-            skills=["  translation  ", "translation", "", None, "review"],
+            skills=["  translation  ", "translation", "", None, "review"],  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
         task = kb.get_task(conn, tid)
         assert task is not None
@@ -4399,7 +4399,7 @@ def test_detect_crashed_workers_protocol_violation_auto_blocks(kanban_home):
         _kb._record_worker_exit(fake_pid, 0)
         # Force liveness check to say "dead" for the fake pid.
         original_alive = _kb._pid_alive
-        _kb._pid_alive = lambda p: False
+        _kb._pid_alive = lambda p: False  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         try:
             result_crashed = kb.detect_crashed_workers(conn)
         finally:
@@ -4450,7 +4450,7 @@ def test_detect_crashed_workers_nonzero_exit_uses_default_limit(kanban_home):
         # W_EXITCODE(1, 0) == 256 — WIFEXITED True, WEXITSTATUS == 1.
         _kb._record_worker_exit(fake_pid, 256)
         original_alive = _kb._pid_alive
-        _kb._pid_alive = lambda p: False
+        _kb._pid_alive = lambda p: False  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         try:
             kb.detect_crashed_workers(conn)
         finally:

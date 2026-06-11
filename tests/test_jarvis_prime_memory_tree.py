@@ -518,7 +518,7 @@ def test_promote_to_durable_lifts_layer_and_owner_approves(tmp_path) -> None:
     assert result.contradiction is None
     # Survives a reload (persisted).
     reloaded = MemoryTreeStore.load(path=tmp_path / "memtree.jsonl")
-    assert reloaded.get(node.id).layer is MemoryLayer.DURABLE
+    assert reloaded.get(node.id).layer is MemoryLayer.DURABLE  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_promote_to_durable_conflict_opens_contradiction_not_overwrite(

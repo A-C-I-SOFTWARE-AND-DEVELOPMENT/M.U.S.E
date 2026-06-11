@@ -335,20 +335,20 @@ class TestResolveJobRef:
         from cron.jobs import resolve_job_ref
 
         job = create_job(prompt="A", schedule="1h", name="alpha")
-        assert resolve_job_ref(job["id"])["id"] == job["id"]
+        assert resolve_job_ref(job["id"])["id"] == job["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_resolve_by_name(self, tmp_cron_dir):
         from cron.jobs import resolve_job_ref
 
         job = create_job(prompt="A", schedule="1h", name="alpha")
-        assert resolve_job_ref("alpha")["id"] == job["id"]
+        assert resolve_job_ref("alpha")["id"] == job["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_resolve_by_name_case_insensitive(self, tmp_cron_dir):
         from cron.jobs import resolve_job_ref
 
         job = create_job(prompt="A", schedule="1h", name="MyJob")
-        assert resolve_job_ref("myjob")["id"] == job["id"]
-        assert resolve_job_ref("MYJOB")["id"] == job["id"]
+        assert resolve_job_ref("myjob")["id"] == job["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert resolve_job_ref("MYJOB")["id"] == job["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_resolve_returns_none_when_not_found(self, tmp_cron_dir):
         from cron.jobs import resolve_job_ref
@@ -365,8 +365,8 @@ class TestResolveJobRef:
         # Create a second job whose name is j1's ID
         j2 = create_job(prompt="B", schedule="1h", name=j1["id"])
         # Looking up j1["id"] must return j1, not the colliding-name job j2
-        assert resolve_job_ref(j1["id"])["id"] == j1["id"]
-        assert resolve_job_ref(j1["id"])["id"] != j2["id"]
+        assert resolve_job_ref(j1["id"])["id"] == j1["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+        assert resolve_job_ref(j1["id"])["id"] != j2["id"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_resolve_ambiguous_name_raises(self, tmp_cron_dir):
         """Two jobs sharing a name → refuse to pick, surface both IDs."""
@@ -622,7 +622,7 @@ class TestAdvanceNextRun:
     def test_skips_oneshot_job(self, tmp_cron_dir):
         """One-shot jobs should NOT be advanced — they need to retry on restart."""
         job = create_job(prompt="Run once", schedule="30m")
-        original_next = get_job(job["id"])["next_run_at"]
+        original_next = get_job(job["id"])["next_run_at"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
         result = advance_next_run(job["id"])
         assert result is False
@@ -748,7 +748,7 @@ class TestGetDueJobs:
         due = get_due_jobs()
 
         assert [job["id"] for job in due] == ["oneshot-recover"]
-        assert get_job("oneshot-recover")["next_run_at"] == run_at
+        assert get_job("oneshot-recover")["next_run_at"] == run_at  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_broken_stale_one_shot_without_next_run_is_not_recovered(self, tmp_cron_dir, monkeypatch):
         now = datetime(2026, 3, 18, 4, 30, 0, tzinfo=timezone.utc)
@@ -777,7 +777,7 @@ class TestGetDueJobs:
         )
 
         assert get_due_jobs() == []
-        assert get_job("oneshot-stale")["next_run_at"] is None
+        assert get_job("oneshot-stale")["next_run_at"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_broken_cron_without_next_run_is_recovered(self, tmp_cron_dir, monkeypatch):
         now = datetime(2026, 3, 18, 10, 0, 0, tzinfo=timezone.utc)
@@ -806,7 +806,7 @@ class TestGetDueJobs:
         )
 
         assert get_due_jobs() == []
-        recovered = get_job("cron-recover")["next_run_at"]
+        recovered = get_job("cron-recover")["next_run_at"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
         assert recovered is not None
         recovered_dt = datetime.fromisoformat(recovered)
         if recovered_dt.tzinfo is None:
@@ -840,7 +840,7 @@ class TestGetDueJobs:
         )
 
         assert get_due_jobs() == []
-        recovered = get_job("interval-recover")["next_run_at"]
+        recovered = get_job("interval-recover")["next_run_at"]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
         assert recovered is not None
         recovered_dt = datetime.fromisoformat(recovered)
         if recovered_dt.tzinfo is None:

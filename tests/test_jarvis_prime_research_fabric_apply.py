@@ -104,7 +104,7 @@ def _candidate(**over):
         diff_text="# improved skill\nbetter content\n",
     )
     base.update(over)
-    return Candidate(**base)
+    return Candidate(**base)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def _eval(controller, cand):

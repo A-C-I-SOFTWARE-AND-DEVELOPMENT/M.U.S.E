@@ -171,7 +171,7 @@ class TestSystemdServiceRefresh:
         )
 
         def fake_run_systemctl(args, **kwargs):
-            raise subprocess.TimeoutExpired(args, kwargs.get("timeout"))
+            raise subprocess.TimeoutExpired(args, kwargs.get("timeout"))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
         monkeypatch.setattr(gateway_cli, "_run_systemctl", fake_run_systemctl)
 
@@ -211,7 +211,7 @@ class TestSystemdServiceRefresh:
             # reset-failed is a pre-step (check=False, 30s) — let it pass.
             if args and args[0] == "reset-failed":
                 return SimpleNamespace(returncode=0, stdout="", stderr="")
-            raise subprocess.TimeoutExpired(args, kwargs.get("timeout"))
+            raise subprocess.TimeoutExpired(args, kwargs.get("timeout"))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
         monkeypatch.setattr(gateway_cli, "_run_systemctl", fake_run_systemctl)
 

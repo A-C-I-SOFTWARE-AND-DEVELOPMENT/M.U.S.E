@@ -96,7 +96,7 @@ def agent():
         a._cached_system_prompt = "You are helpful."
         a._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
         a.tool_delay = 0  # ty: ignore[unresolved-attribute]
-        a.compression_enabled = False  # ty: ignore[unresolved-attribute]
+        a.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
         a.save_trajectories = False
         return a
 

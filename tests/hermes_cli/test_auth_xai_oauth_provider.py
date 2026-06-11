@@ -166,7 +166,7 @@ def test_xai_access_token_is_expiring_returns_false_for_non_jwt():
     assert _xai_access_token_is_expiring("not.a.jwt.but.has.dots", 0) is False
     assert _xai_access_token_is_expiring("opaque-token-no-dots", 0) is False
     assert _xai_access_token_is_expiring("", 0) is False
-    assert _xai_access_token_is_expiring(None, 0) is False  # type: ignore[arg-type]
+    assert _xai_access_token_is_expiring(None, 0) is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_xai_access_token_is_expiring_returns_false_for_jwt_without_exp():

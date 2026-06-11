@@ -33,7 +33,7 @@ class TestHandleFunctionCall:
 
     def test_exception_returns_json_error(self):
         # Even if something goes wrong, should return valid JSON
-        result = handle_function_call("web_search", None)  # None args may cause issues
+        result = handle_function_call("web_search", None)  # None args may cause issues  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         parsed = json.loads(result)
         assert isinstance(parsed, dict)
         assert "error" in parsed

@@ -22,7 +22,7 @@ from typing import Any
 def _as_dict(value: object) -> "dict[str, Any]":
     """Narrow a config value that must be a dict (fails the test otherwise)."""
     assert isinstance(value, dict)
-    return value
+    return value  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
 
 @pytest.fixture()
 def tmp_cron_dir(tmp_path, monkeypatch):
@@ -117,7 +117,7 @@ class TestUpdateJobWorkdir:
         from cron.jobs import create_job, get_job, update_job
         job = create_job(prompt="x", schedule="every 1h")
         update_job(job["id"], {"workdir": str(tmp_cron_dir)})
-        assert get_job(job["id"])["workdir"] == str(tmp_cron_dir.resolve())
+        assert get_job(job["id"])["workdir"] == str(tmp_cron_dir.resolve())  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_clear_workdir_with_none(self, tmp_cron_dir):
         from cron.jobs import create_job, get_job, update_job
@@ -125,7 +125,7 @@ class TestUpdateJobWorkdir:
             prompt="x", schedule="every 1h", workdir=str(tmp_cron_dir)
         )
         update_job(job["id"], {"workdir": None})
-        assert get_job(job["id"])["workdir"] is None
+        assert get_job(job["id"])["workdir"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_clear_workdir_with_empty_string(self, tmp_cron_dir):
         from cron.jobs import create_job, get_job, update_job
@@ -133,7 +133,7 @@ class TestUpdateJobWorkdir:
             prompt="x", schedule="every 1h", workdir=str(tmp_cron_dir)
         )
         update_job(job["id"], {"workdir": ""})
-        assert get_job(job["id"])["workdir"] is None
+        assert get_job(job["id"])["workdir"] is None  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
     def test_update_rejects_invalid_workdir(self, tmp_cron_dir):
         from cron.jobs import create_job, update_job
@@ -197,7 +197,7 @@ class TestCronjobToolWorkdir:
     def test_schema_advertises_workdir(self):
         from tools.cronjob_tools import CRONJOB_SCHEMA
         assert "workdir" in _as_dict(CRONJOB_SCHEMA["parameters"])["properties"]
-        desc = _as_dict(_as_dict(CRONJOB_SCHEMA["parameters"]["properties"])["workdir"])["description"]
+        desc = _as_dict(_as_dict(CRONJOB_SCHEMA["parameters"]["properties"])["workdir"])["description"]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         assert "absolute" in desc.lower()
 
 
@@ -229,7 +229,7 @@ class TestTickWorkdirPartition:
 
         def fake_run_job(job):
             # Return a minimal tuple matching run_job's signature.
-            calls.append((job["id"], threading.current_thread().name))
+            calls.append((job["id"], threading.current_thread().name))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             return True, "output", "response", None
 
         monkeypatch.setattr(sched, "run_job", fake_run_job)
@@ -288,7 +288,7 @@ class TestRunJobTerminalCwd:
                 return {"seconds_since_activity": 0.0}
 
         fake_mod = type(sys)("run_agent")
-        fake_mod.AIAgent = FakeAgent
+        fake_mod.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
 
         # Bypass the real provider resolver — it reads ~/.hermes and credentials.

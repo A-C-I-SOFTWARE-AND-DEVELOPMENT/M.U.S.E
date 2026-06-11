@@ -99,7 +99,7 @@ class TestDetectInterruptedPhase:
         )
         phase, cp = mgr.detect_interrupted_phase("j")
         assert phase == CheckpointPhase.PRE_VALIDATION
-        assert cp.checkpoint_id == latest.checkpoint_id
+        assert cp.checkpoint_id == latest.checkpoint_id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ class TestRecoverJob:
         )
         # And the worker is now persisted as blocked.
         e = queue.get_job("j")
-        assert e.worker("w1").status == WorkerStatus.BLOCKED
+        assert e.worker("w1").status == WorkerStatus.BLOCKED  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     def test_disconnected_worker_is_retained(
         self,
@@ -249,8 +249,8 @@ class TestRecoverJob:
         assert "disconnected_retained" in actions
         # Pending IO is still there for replay.
         e = queue.get_job("j")
-        assert e.worker("w1").pending_prompt == "finish step 3"
-        assert e.worker("w1").pending_output == "halfway done"
+        assert e.worker("w1").pending_prompt == "finish step 3"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert e.worker("w1").pending_output == "halfway done"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     def test_failed_job_not_silently_requeued(
         self, queue: JobQueue, mgr: RecoveryManager

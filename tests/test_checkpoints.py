@@ -152,7 +152,7 @@ class TestListAndLoad:
     def test_latest_returns_most_recent(self, store: CheckpointStore):
         store.create_checkpoint("j", CheckpointPhase.PRE_IMPLEMENTATION)
         b = store.create_checkpoint("j", CheckpointPhase.PRE_VALIDATION)
-        assert store.latest("j").checkpoint_id == b.checkpoint_id
+        assert store.latest("j").checkpoint_id == b.checkpoint_id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     def test_latest_none_for_unknown(self, store: CheckpointStore):
         assert store.latest("nope") is None
@@ -162,9 +162,9 @@ class TestListAndLoad:
         store.create_checkpoint("j", CheckpointPhase.PRE_PUBLISH)
         b = store.create_checkpoint("j", CheckpointPhase.PRE_VALIDATION)
         out = store.latest_for_phase("j", CheckpointPhase.PRE_VALIDATION)
-        assert out.checkpoint_id == b.checkpoint_id
+        assert out.checkpoint_id == b.checkpoint_id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         # 'a' was older — confirm we picked the newer.
-        assert out.created_at >= a.created_at
+        assert out.created_at >= a.created_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 # ──────────────────────────────────────────────────────────────────────

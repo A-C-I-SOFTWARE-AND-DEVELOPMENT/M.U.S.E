@@ -42,15 +42,15 @@ def test_create_swarm_builds_parallel_workers_verifier_and_synthesizer(tmp_path)
         assert root.status == "done"
         assert root is not None
         assert root.assignee == "orchestrator"
-        assert [task.status for task in workers] == ["ready", "ready"]
-        assert [task.assignee for task in workers] == ["researcher-a", "researcher-b"]
+        assert [task.status for task in workers] == ["ready", "ready"]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert [task.assignee for task in workers] == ["researcher-a", "researcher-b"]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         assert verifier is not None
         assert verifier.status == "todo"
         assert synthesizer is not None
         assert synthesizer.status == "todo"
         assert set(kb.parent_ids(conn, created.verifier_id)) == set(created.worker_ids)
         assert kb.parent_ids(conn, created.synthesizer_id) == [created.verifier_id]
-        assert all(created.root_id in (task.body or "") for task in workers)
+        assert all(created.root_id in (task.body or "") for task in workers)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
 

@@ -145,7 +145,7 @@ def test_non_numeric_string_cost_raises():
 def test_garbage_token_value_coerces_to_zero():
     # A worker payload with a junk token field must not crash aggregation.
     jc = JobCost()
-    jc.add_usage(_Usage(input_tokens="bad"), cost_usd=0.0)  # type: ignore[arg-type]
+    jc.add_usage(_Usage(input_tokens="bad"), cost_usd=0.0)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     assert jc.input_tokens == 0
 
 

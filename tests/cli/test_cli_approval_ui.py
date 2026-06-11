@@ -205,7 +205,7 @@ class TestCliApprovalUi:
         import shutil as _shutil
 
         with patch("cli.shutil.get_terminal_size",
-                   return_value=_shutil.os.terminal_size((100, 20))):
+                   return_value=_shutil.os.terminal_size((100, 20))):  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             fragments = cli._get_approval_display_fragments()
 
         rendered = "".join(text for _style, text in fragments)
@@ -244,7 +244,7 @@ class TestCliApprovalUi:
         import shutil as _shutil
 
         with patch("cli.shutil.get_terminal_size",
-                   return_value=_shutil.os.terminal_size((100, 12))):
+                   return_value=_shutil.os.terminal_size((100, 12))):  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             fragments = cli._get_approval_display_fragments()
 
         rendered = "".join(text for _style, text in fragments)
@@ -277,7 +277,7 @@ class TestCliApprovalUi:
         import shutil as _shutil
 
         with patch("cli.shutil.get_terminal_size",
-                   return_value=_shutil.os.terminal_size((100, 24))):
+                   return_value=_shutil.os.terminal_size((100, 24))):  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             fragments = cli._get_approval_display_fragments()
 
         rendered = "".join(text for _style, text in fragments)

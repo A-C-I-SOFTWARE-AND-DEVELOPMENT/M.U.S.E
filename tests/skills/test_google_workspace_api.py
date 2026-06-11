@@ -30,9 +30,9 @@ def bridge_module(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
     spec = importlib.util.spec_from_file_location("gws_bridge_test", BRIDGE_PATH)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
+    module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    assert spec.loader is not None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     return module
 
 
@@ -43,15 +43,15 @@ def api_module(monkeypatch, tmp_path):
     monkeypatch.setenv("HERMES_HOME", str(hermes_home))
 
     spec = importlib.util.spec_from_file_location("gws_api_test", API_PATH)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
+    module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    assert spec.loader is not None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # Ensure the gws CLI code path is taken even when the binary isn't
     # installed (CI).  Without this, calendar_list() falls through to the
     # Python SDK path which imports ``googleapiclient`` — not in deps.
-    module._gws_binary = lambda: "/usr/bin/gws"
+    module._gws_binary = lambda: "/usr/bin/gws"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # Bypass authentication check — no real token file in CI.
-    module._ensure_authenticated = lambda: None
+    module._ensure_authenticated = lambda: None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     return module
 
 
@@ -262,10 +262,10 @@ def test_api_get_credentials_refresh_persists_authorized_user_type(api_module, m
     google_module = types.ModuleType("google")
     oauth2_module = types.ModuleType("google.oauth2")
     credentials_module = types.ModuleType("google.oauth2.credentials")
-    credentials_module.Credentials = FakeCredentialsModule
+    credentials_module.Credentials = FakeCredentialsModule  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     transport_module = types.ModuleType("google.auth.transport")
     requests_module = types.ModuleType("google.auth.transport.requests")
-    requests_module.Request = lambda: object()
+    requests_module.Request = lambda: object()  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     monkeypatch.setitem(sys.modules, "google", google_module)
     monkeypatch.setitem(sys.modules, "google.oauth2", oauth2_module)

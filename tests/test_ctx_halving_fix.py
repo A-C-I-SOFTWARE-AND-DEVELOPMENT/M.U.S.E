@@ -305,7 +305,7 @@ class TestContextNotHalvedOnOutputCapError:
             "- input_tokens: 190000 = available_tokens: 10000"
         )
         available_out = parse_available_output_tokens_from_error(error_msg)
-        safe_out = max(1, available_out - 64)
+        safe_out = max(1, available_out - 64)  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert safe_out == 9_936
 
     def test_safety_margin_never_goes_below_one(self):
@@ -317,5 +317,5 @@ class TestContextNotHalvedOnOutputCapError:
             "- input_tokens: 199990 = available_tokens: 1"
         )
         available_out = parse_available_output_tokens_from_error(error_msg)
-        safe_out = max(1, available_out - 64)
+        safe_out = max(1, available_out - 64)  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert safe_out == 1

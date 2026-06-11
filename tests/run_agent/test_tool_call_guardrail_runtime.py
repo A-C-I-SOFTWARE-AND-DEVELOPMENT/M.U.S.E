@@ -55,7 +55,7 @@ def _make_agent(*tool_names: str, max_iterations: int = 10, config: dict | None 
     agent._cached_system_prompt = "You are helpful."
     agent._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
     agent.tool_delay = 0  # ty: ignore[unresolved-attribute]
-    agent.compression_enabled = False  # ty: ignore[unresolved-attribute]
+    agent.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
     agent.save_trajectories = False
     return agent
 

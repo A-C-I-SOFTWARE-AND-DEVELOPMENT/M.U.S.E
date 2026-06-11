@@ -1532,9 +1532,9 @@ class TestNormaliseThemeDefinition:
 
     def test_rejects_non_dict(self):
         from hermes_cli.web_server import _normalise_theme_definition
-        assert _normalise_theme_definition("string") is None
-        assert _normalise_theme_definition(None) is None
-        assert _normalise_theme_definition([1, 2, 3]) is None
+        assert _normalise_theme_definition("string") is None  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert _normalise_theme_definition(None) is None  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert _normalise_theme_definition([1, 2, 3]) is None  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_loose_colors_shorthand(self):
         """Bare hex strings under `colors` parse as {hex, alpha=1.0}."""
@@ -1642,7 +1642,7 @@ class TestNormaliseThemeDefinition:
     def test_color_overrides_omitted_when_empty(self):
         from hermes_cli.web_server import _normalise_theme_definition
         result = _normalise_theme_definition({"name": "x"})
-        assert "colorOverrides" not in result
+        assert "colorOverrides" not in result  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_alpha_clamped_to_unit_range(self):
         from hermes_cli.web_server import _normalise_theme_definition
@@ -1831,7 +1831,7 @@ class TestNormaliseThemeExtensions:
     def test_assets_absent_means_no_field(self):
         from hermes_cli.web_server import _normalise_theme_definition
         r = _normalise_theme_definition({"name": "t"})
-        assert "assets" not in r
+        assert "assets" not in r  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_custom_css_passthrough_and_capped(self):
         from hermes_cli.web_server import _normalise_theme_definition
@@ -1853,7 +1853,7 @@ class TestNormaliseThemeExtensions:
         from hermes_cli.web_server import _normalise_theme_definition
         for val in ("", "   \n\t", None):
             r = _normalise_theme_definition({"name": "t", "customCSS": val})
-            assert "customCSS" not in r
+            assert "customCSS" not in r  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_component_styles_per_bucket(self):
         from hermes_cli.web_server import _normalise_theme_definition

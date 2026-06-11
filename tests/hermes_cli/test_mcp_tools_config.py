@@ -15,7 +15,7 @@ _SAVE = "hermes_cli.tools_config.save_config"
 def _as_dict(value: object) -> "dict[str, Any]":
     """Narrow a config value that must be a dict (fails the test otherwise)."""
     assert isinstance(value, dict)
-    return value
+    return value  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
 
 def test_no_mcp_servers_prints_info(capsys):
     """Returns immediately when no MCP servers are configured."""
