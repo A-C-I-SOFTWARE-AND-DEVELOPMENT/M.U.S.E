@@ -42,7 +42,7 @@ _WS_WRITE_TIMEOUT_S = 10.0
 try:
     from starlette.websockets import WebSocketDisconnect as _WebSocketDisconnect
 except ImportError:  # pragma: no cover - starlette is a required install path
-    _WebSocketDisconnect = Exception  # type: ignore[assignment]
+    _WebSocketDisconnect = Exception  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
 
 
 class WSTransport:

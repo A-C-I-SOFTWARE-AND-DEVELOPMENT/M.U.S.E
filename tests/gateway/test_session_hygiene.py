@@ -513,7 +513,7 @@ async def test_session_hygiene_warns_user_when_compression_aborts(monkeypatch, t
 
     assert FakeCompressAgentWithSummaryFailure.last_instance is not None
     assert FakeCompressAgentWithSummaryFailure.last_instance.close is not None
-    FakeCompressAgentWithSummaryFailure.last_instance.close.assert_called_once()  # ty: ignore[unresolved-attribute]
+    FakeCompressAgentWithSummaryFailure.last_instance.close.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -639,7 +639,7 @@ async def test_session_hygiene_informs_user_when_aux_model_fails_but_recovers(mo
 
     assert FakeCompressAgentWithAuxRecovery.last_instance is not None
     assert FakeCompressAgentWithAuxRecovery.last_instance.close is not None
-    FakeCompressAgentWithAuxRecovery.last_instance.close.assert_called_once()  # ty: ignore[unresolved-attribute]
+    FakeCompressAgentWithAuxRecovery.last_instance.close.assert_called_once()
 
 
 @pytest.mark.asyncio

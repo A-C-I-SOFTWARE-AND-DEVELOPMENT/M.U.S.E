@@ -31,7 +31,7 @@ def _run(cli: HermesCLI, command: str) -> str:
 
     old = getattr(cli_mod, "_cprint", None)
     if old is not None:
-        cli_mod._cprint = lambda text: print(text)
+        cli_mod._cprint = lambda text: print(text)  # ty: ignore[invalid-assignment]
 
     try:
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
@@ -53,7 +53,7 @@ def main():
     os.environ["HERMES_INTERACTIVE"] = "1"
 
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        cli = HermesCLI(model=args.model or None, compact=True, resume=args.session_key, verbose=False)
+        cli = HermesCLI(model=args.model or None, compact=True, resume=args.session_key, verbose=False)  # ty: ignore[invalid-argument-type]
 
     for raw in sys.stdin:
         line = raw.strip()

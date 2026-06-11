@@ -2026,7 +2026,7 @@ class TestThreadCountStore:
         # MUST be classified as side thread (isolated session).
         assert event3 is not None
         assert event3.source is not None
-        assert event3.source.thread_id == "spaces/S/threads/T_existing"  # ty: ignore[unresolved-attribute]
+        assert event3.source.thread_id == "spaces/S/threads/T_existing"
         # Outbound cache populated for in-thread reply.
         assert fresh._last_inbound_thread["spaces/S"] == "spaces/S/threads/T_existing"
 

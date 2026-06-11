@@ -23,12 +23,12 @@ import json
 import logging
 import queue
 import threading
-from typing import Optional
+from typing import Any, Optional
 
 try:
     from websockets.sync.client import connect as ws_connect
 except ImportError:  # pragma: no cover - websockets is a required install path
-    ws_connect = None  # type: ignore[assignment]
+    ws_connect = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
 
 _log = logging.getLogger(__name__)
 

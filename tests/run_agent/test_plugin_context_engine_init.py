@@ -51,7 +51,7 @@ def test_plugin_engine_gets_context_length_on_init():
             skip_memory=True,
         )
 
-    assert agent.context_compressor is engine  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor is engine
     assert engine.context_length == 204_800
     assert engine.threshold_tokens == int(204_800 * engine.threshold_percent)
 
