@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from typing import List, NamedTuple, Optional, Sequence
+from typing import Any, List, NamedTuple, Optional, Sequence
 
 from hermes_cli.providers import (
     custom_provider_slug,
@@ -595,7 +595,7 @@ def resolve_display_context_length(
             model,
             base_url=base_url or "",
             api_key=api_key or "",
-            provider=provider or None,
+            provider=provider or None,  # ty: ignore[invalid-argument-type]  # resolver treats None like ""
             custom_providers=custom_providers,
             config_context_length=config_context_length,
         )
@@ -910,7 +910,7 @@ def switch_model(
 
     # --- Validate ---
     try:
-        validation = validate_requested_model(
+        validation: dict[str, Any] = validate_requested_model(
             new_model,
             target_provider,
             api_key=api_key,

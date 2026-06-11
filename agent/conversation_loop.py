@@ -3158,13 +3158,14 @@ def run_conversation(
                     interim_codex_items = interim_msg.get("codex_reasoning_items")
                     interim_codex_message_items = interim_msg.get("codex_message_items")
                     if last_msg is not None:
-                        last_codex_items = last_msg.get("codex_reasoning_items")
-                        last_codex_message_items = last_msg.get("codex_message_items")
+                        _lm_dict: Dict[str, Any] = last_msg
+                        last_codex_items = _lm_dict.get("codex_reasoning_items")
+                        last_codex_message_items = _lm_dict.get("codex_message_items")
                         duplicate_interim = (
-                            last_msg.get("role") == "assistant"
-                            and last_msg.get("finish_reason") == "incomplete"
-                            and (last_msg.get("content") or "") == (interim_msg.get("content") or "")
-                            and (last_msg.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
+                            _lm_dict.get("role") == "assistant"
+                            and _lm_dict.get("finish_reason") == "incomplete"
+                            and (_lm_dict.get("content") or "") == (interim_msg.get("content") or "")
+                            and (_lm_dict.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
                             and last_codex_items == interim_codex_items
                             and last_codex_message_items == interim_codex_message_items
                         )
