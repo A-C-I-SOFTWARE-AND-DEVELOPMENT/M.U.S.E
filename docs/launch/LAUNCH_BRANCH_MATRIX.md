@@ -4,6 +4,15 @@
 > executed; PR #131's lanes have landed on `main` (211 commits past the
 > `bc97e43` base). This matrix is historical. For current readiness see
 > [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md).
+>
+> **Supersession addendum (2026-06-10, SYNAPSE P1-05a):** every instruction
+> below — including "must not be merged" (Purpose section) — is historical.
+> The chain's closure record is two-way linked: current status lives in
+> [`LAUNCH_STATUS_CURRENT.md`](./LAUNCH_STATUS_CURRENT.md) (Update
+> 2026-06-10), and the frozen artifact→PR evidence map lives in the
+> **RESOLUTION ADDENDUM — 2026-06-10** at the bottom of
+> [`../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md`](../aci/reports/R00_REMAINING_SPRINT_DECISION_MATRIX.md);
+> both documents link back here. Nothing below this banner was edited.
 
 **Trunk PR:** [#131](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/pull/131)
 **Head branch:** `claude/hopeful-bardeen-KBVqi`

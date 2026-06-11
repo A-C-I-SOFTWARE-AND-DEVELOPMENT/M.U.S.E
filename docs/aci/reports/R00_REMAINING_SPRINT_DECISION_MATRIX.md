@@ -251,3 +251,71 @@ The remaining sprint is complete when:
 ---
 
 _End of R00 sprint decision matrix._
+
+---
+
+## RESOLUTION ADDENDUM — 2026-06-10
+
+> **Append-only.** Nothing above this line has been edited (no-silent-ledger-change
+> rule). Every **HOLD** instruction in §B and the Phase B plan in §F are
+> **SUPERSEDED BY THIS ADDENDUM** — the original lines stand verbatim as the
+> historical record of the 2026-05-26 decision state.
+
+**Authored by:** SYNAPSE P1 lane, ticket **P1-04**
+(`docs/synapse/phase0/P1_CLAIMS_AUDIT.md` §3 and §5).
+
+### 1. Outcome
+
+The held chain **#131 → #142 → #143 → #147 → #149 → #150** is **RESOLVED — LANDED
+on `main`**, together with the independent security follow-up **#153**. The §I
+acceptance criteria covering the chain (items 3, 4) are satisfied; #151/#152
+remain MERGED exactly as §A/§B already recorded.
+
+### 2. Evidence constraint — why merge commits are unobservable
+
+Git history on `main` is **truncated to 87 visible commits**; the oldest visible
+commit is `ba2c12d` ("Wave B — 10/10 program ledger (#374)"). A grep for
+`#131|#142|#143|#147|#149|#150` across all branches returns **zero merge
+commits** — the chain predates the visible (squashed/truncated) history. Landing
+is therefore proven by **artifacts on `main`** plus the in-repo launch-status
+record, not by merge commits. This addendum freezes that artifact→PR map so no
+future audit has to re-derive it.
+
+### 3. Artifact → PR evidence map (condensed from P1_CLAIMS_AUDIT.md §3)
+
+| PR | R00 role (§B above) | Status | Artifact evidence on `main` |
+|---|---|---|---|
+| **#131** | Mass integration trunk of 18 PRs; owner-gated | **LANDED** | Integrated Android module + `hermes_cli/jarvis_prime/` runtime present and iterated on by later visible merges (#404, #415, #423, #434–#444); `docs/launch/LAUNCH_STATUS_CURRENT.md` lists the #131 workstreams (worker engine, orchestrator replay, cockpit↔ledger bridge, Android rebrand, chat screen) as all landed |
+| **#142** | Audit model + SettingsRepository fields | **LANDED** | `apps/android/.../ui/screens/audit/AuditViewModel.kt`, `AuditDetailViewModel.kt` (wired in `di/AppContainer.kt:51-52`); extended `SettingsRepository.kt` (:409-441) |
+| **#143** | Eight launch lanes assembled onto #131 head | **LANDED** | Lane plan + completion record in `docs/launch/LAUNCH_BRANCH_MATRIX.md:4,21-22`; lane deliverables (chat screen, interactive icon, rebrand) on `main` per `LAUNCH_STATUS_CURRENT.md` |
+| **#147** | Living avatar + JarvisLive command screen | **LANDED** | `apps/android/.../ui/screens/live/JarvisLiveScreen.kt`, `JarvisPhotoAvatar.kt`, `JarvisRiveAvatar.kt` + 5 test classes; re-skin merged as visible commit `2d72616` (#415) |
+| **#149** | On-device avatar picker | **LANDED** | `apps/android/.../ui/screens/avatar/AvatarPickerScreen.kt`, `AvatarPickerViewModel.kt`, `data/avatar/` (4 test classes); maintained via visible commit `7985f3c` (#404) |
+| **#150** | LaunchGate policy + workflow | **LANDED** | `.github/workflows/launch-gate.yml`; `hermes_cli/jarvis_prime/router.py`; hardened by visible commit `4afc2fc` (HERMES_RELEASE_GATE_STRICT, merged via `a26eb80` #435) |
+| #151, #152 | Pre-merged baseline (§A.1-2) | MERGED | Per §B above (unchanged) |
+| **#153** | Independent security follow-up | **LANDED** | `agent/redact.py`, `agent/file_safety.py`, `tests/agent/test_redact.py`, `tests/agent/test_file_safety*.py` all on `main` |
+
+### 4. Owner decision trail
+
+- **Launch verdict:** `docs/launch/LAUNCH_STATUS_CURRENT.md` (2026-06-01, base
+  `084c132`) — **GREEN** on everything runnable in-repo; the prior "RED — 52%"
+  verdict declared obsolete; `docs/launch/LAUNCH_BRANCH_MATRIX.md:4` records lane
+  execution complete, 211 commits past the `bc97e43` baseline.
+- **B6 permission-surface accept (2026-06-01):** the "Sentient MUSE avatar"
+  feature (#170) expanded the Android permission surface beyond §D's
+  "locked at 3 permissions" rule. The owner reviewed this (audit §5 B6,
+  `LAUNCH_STATUS_CURRENT.md:13-16`) and **ACCEPTED ship-as-is**. §D's manifest
+  lock and §E's "no overlay/camera/always-listening" rules are therefore also
+  overtaken by that explicit owner decision — recorded here, not edited above.
+- **Open follow-ups (recommended, not gating):** runtime consent surface, Play
+  data-safety declarations, privacy disclosure — tracked as ticket **P1-05** and
+  listed as OPEN owner-decision items in `LAUNCH_STATUS_CURRENT.md`.
+
+### 5. Effect on this matrix
+
+This matrix is **historical** from this line down to readers of the future: do
+not execute §B HOLDs, §C's sprint envelope, or §F Phases A/B — they completed.
+Current readiness lives in `docs/launch/LAUNCH_STATUS_CURRENT.md`; the claims
+audit that produced this addendum lives at
+`docs/synapse/phase0/P1_CLAIMS_AUDIT.md`.
+
+_End of resolution addendum (2026-06-10)._

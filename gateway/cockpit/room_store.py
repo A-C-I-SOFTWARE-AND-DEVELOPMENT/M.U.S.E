@@ -1,11 +1,16 @@
 """AI-generated room items — "type *Victorian desk* → generate it".
 
-Backs the companion's room editor. Given a text prompt, ask **Gemini** (the
-owner's flagged image brain) to generate a small pixel-art asset, persist it,
-and serve it back so the Den can place it. Honest when no image key is set.
+Backs the companion's room editor. Given a text prompt, ask the platform's
+active image-gen provider (``agent.image_gen_registry`` — openai / xai / fal /
+gemini / …) to generate a small pixel-art asset, persist it, and serve it back
+so the Den can place it. When no provider is registered or usable, falls back
+to the original direct **Gemini** call (``GEMINI_API_KEY``/``GOOGLE_API_KEY``)
+so existing Gemini-key owners see zero behavior change. Honest when no image
+backend is usable at all.
 
-Stdlib-only (``urllib``) so it loads under Termux; the network call is guarded.
-Items live under ``${HERMES_HOME}/jarvis_prime/room/`` with a ``manifest.json``.
+Stdlib-only (``urllib``) so it loads under Termux; the network calls are
+guarded and the registry import is optional. Items live under
+``${HERMES_HOME}/jarvis_prime/room/`` with a ``manifest.json``.
 """
 
 from __future__ import annotations
@@ -48,8 +53,59 @@ def _image_key() -> Optional[str]:
     return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or None
 
 
+def _registry_provider():
+    """Return a usable provider from the platform image-gen registry, or None.
+
+    Fully guarded: the registry (and its config machinery) is optional here so
+    the cockpit keeps working in minimal installs where ``agent.*`` plugins
+    never load.
+    """
+    try:
+        from agent.image_gen_registry import get_active_provider
+
+        provider = get_active_provider()
+    except Exception:
+        return None
+    if provider is None:
+        return None
+    try:
+        if not provider.is_available():
+            return None
+    except Exception:
+        return None
+    return provider
+
+
 def image_generation_available() -> bool:
-    return _image_key() is not None
+    """True when *some* image backend is usable — a registered provider from
+    the platform registry, or the legacy direct-Gemini env keys."""
+    return _image_key() is not None or _registry_provider() is not None
+
+
+def _styled_prompt(prompt: str) -> str:
+    """The room editor's pixel-art style framing (identical for every backend)."""
+    return (
+        "Generate a single crisp pixel-art game asset (transparent or plain "
+        f"background, centered, no text): {prompt}"
+    )
+
+
+def _provider_image(prompt: str, *, provider) -> bytes:
+    """Generate one image via a registered ImageGenProvider; returns raw image
+    bytes. Raises RuntimeError on provider failure."""
+    result = provider.generate(_styled_prompt(prompt), aspect_ratio="square")
+    if not isinstance(result, dict) or not result.get("success") or not result.get("image"):
+        detail = ""
+        if isinstance(result, dict):
+            detail = str(result.get("error") or "no image returned by the provider")
+        raise RuntimeError(
+            f"image provider '{provider.name}' failed: {detail or 'no image returned'}"
+        )
+    ref = str(result["image"])
+    if ref.startswith(("http://", "https://")):
+        with urllib.request.urlopen(ref, timeout=60.0) as resp:  # noqa: S310
+            return resp.read()
+    return Path(ref).read_bytes()
 
 
 def _gemini_image(prompt: str, *, api_key: str, timeout: float = 60.0) -> bytes:
@@ -59,10 +115,7 @@ def _gemini_image(prompt: str, *, api_key: str, timeout: float = 60.0) -> bytes:
         "https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={api_key}"
     )
-    styled = (
-        "Generate a single crisp pixel-art game asset (transparent or plain "
-        f"background, centered, no text): {prompt}"
-    )
+    styled = _styled_prompt(prompt)
     payload = {
         "contents": [{"parts": [{"text": styled}]}],
         "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]},
@@ -92,12 +145,16 @@ def generate_item(prompt: str, *, generator=None) -> dict:
     if generator is not None:
         png = generator(text)
     else:
-        key = _image_key()
-        if not key:
-            raise RuntimeError(
-                "no image model configured — set GEMINI_API_KEY to generate room items"
-            )
-        png = _gemini_image(text, api_key=key)
+        provider = _registry_provider()
+        if provider is not None:
+            png = _provider_image(text, provider=provider)
+        else:
+            key = _image_key()
+            if not key:
+                raise RuntimeError(
+                    "no image model configured — set GEMINI_API_KEY to generate room items"
+                )
+            png = _gemini_image(text, api_key=key)
 
     item_id = "room_" + uuid.uuid4().hex[:8]
     file = room_dir() / f"{item_id}.png"
