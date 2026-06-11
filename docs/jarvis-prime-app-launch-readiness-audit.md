@@ -114,7 +114,7 @@ applies) or against generic launch-quality expectations.
 - **Evidence.** App label `"Hermes Agent"` (`strings.xml:3`), package
   `com.aci.hermes`, namespace `com.aci.hermes`, splash text
   `"Hermes Agent"` with the caduceus glyph `☤` (`SplashScreen.kt:42-48`).
-  Zero occurrences of "MUSE", "MUSE", or any of the six modes
+  Zero occurrences of "MUSE", "jarvis-prime", or any of the six modes
   (`grep -r "MUSE\|jarvis-prime" apps/android/` returns nothing).
 - **Blocker.** **There is no MUSE identity in the app.** The brand,
   splash, notification channel name (`"Hermes Orchestrator"`), and persistent

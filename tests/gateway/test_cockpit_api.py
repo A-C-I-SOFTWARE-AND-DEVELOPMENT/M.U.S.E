@@ -105,6 +105,40 @@ def test_runtime_status_has_live_queue_snapshot(server) -> None:
     assert all(isinstance(v, int) for v in queue.values())
 
 
+def test_axiom_panel_shows_live_chain_status(server, monkeypatch) -> None:
+    monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
+    from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
+
+    reset_bridge()
+    try:
+        # Empty home: no chain yet -> chain_valid is None.
+        _, payload = _get(server, "/v1/cockpit/axiom")
+        assert payload["audit"]["chain_valid"] is None
+        assert payload["pending_improvements"] == 0
+
+        # Record events -> the panel reflects a live, valid chain.
+        bridge = get_bridge()
+        bridge.record_event("gate.summary", {"packet_id": "pkt-1", "overall": "pass"})
+        _, payload = _get(server, "/v1/cockpit/axiom")
+        assert payload["audit"]["chain_valid"] is True
+        assert payload["audit"]["events"] == 1
+        assert [e["kind"] for e in payload["tail"]] == ["gate.summary"]
+
+        # Tamper -> the chip flips.
+        text = bridge.chain_path.read_text(encoding="utf-8")
+        bridge.chain_path.write_text(text.replace("pkt-1", "pkt-X"), encoding="utf-8")
+        _, payload = _get(server, "/v1/cockpit/axiom")
+        assert payload["audit"]["chain_valid"] is False
+
+        from hermes_cli.jarvis_prime import flywheel
+
+        flywheel.queue_improvement("polish the panel")
+        _, payload = _get(server, "/v1/cockpit/axiom")
+        assert payload["pending_improvements"] == 1
+    finally:
+        reset_bridge()
+
+
 def test_workers_detection_is_keyless(server) -> None:
     _, payload = _get(server, "/v1/cockpit/runtime/workers")
     assert "workers" in payload

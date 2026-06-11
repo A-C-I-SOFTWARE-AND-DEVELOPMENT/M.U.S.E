@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 110,
+  "handler_count": 111,
   "owner_gated_count": 10,
-  "route_count": 112,
+  "route_count": 113,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -147,6 +147,15 @@
       "path": "/v1/cockpit/avatar/room/{id}/place",
       "requires_auth": true,
       "summary": "Persist a furniture item's normalized (x, y) placement in the room."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.axiom_panel",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/axiom",
+      "requires_auth": true,
+      "summary": "Axiom panel: chain audit, recent events, pending improvements."
     },
     {
       "handler": "gateway.cockpit.handlers.capabilities",
