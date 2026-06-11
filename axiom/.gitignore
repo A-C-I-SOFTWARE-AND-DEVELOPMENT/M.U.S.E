@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.hypothesis/
+.pytest_cache/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.jsonl
+*.egg-info/
