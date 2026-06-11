@@ -1144,7 +1144,7 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             cpu=cpu, memory=memory, disk=disk,
             persistent_filesystem=persistent, task_id=task_id,
             volumes=volumes,
-            host_cwd=host_cwd,
+            host_cwd=host_cwd,  # ty: ignore[invalid-argument-type]  # DockerEnvironment declares `host_cwd: str = None` in tools/environments/docker.py (unowned); None is handled there
             auto_mount_cwd=cc.get("docker_mount_cwd_to_workspace", False),
             forward_env=docker_forward_env,
             env=docker_env,
@@ -1935,7 +1935,7 @@ def terminal_tool(
                         cwd=effective_cwd,
                         task_id=effective_task_id,
                         session_key=session_key,
-                        env_vars=env.env if hasattr(env, 'env') else None,  # ty: ignore[invalid-argument-type]  # spawn_local's `env_vars: dict = None` default lives in tools/process_registry.py (unowned)
+                        env_vars=env.env if hasattr(env, 'env') else None,
                         use_pty=effective_pty,
                     )
                 else:

@@ -703,10 +703,14 @@ class ProcessRegistry:
 
     def _reader_loop(self, session: ProcessSession):
         """Background thread: read stdout from a local Popen process."""
+        # spawn_local sets session.process (with stdout=PIPE) before starting
+        # this thread, so both are always present here.
+        proc = session.process
+        assert proc is not None and proc.stdout is not None
         first_chunk = True
         try:
             while True:
-                chunk = session.process.stdout.read(4096)
+                chunk = proc.stdout.read(4096)
                 if not chunk:
                     break
                 if first_chunk:
@@ -722,11 +726,11 @@ class ProcessRegistry:
         finally:
             # Always reap the child to prevent zombie processes.
             try:
-                session.process.wait(timeout=5)
+                proc.wait(timeout=5)
             except Exception as e:
                 logger.debug("Process wait timed out or failed: %s", e)
             session.exited = True
-            session.exit_code = session.process.returncode
+            session.exit_code = proc.returncode
             self._move_to_finished(session)
 
     def _env_poller_loop(
@@ -1005,7 +1009,7 @@ class ProcessRegistry:
             self._completion_consumed.add(session_id)
         return result
 
-    def wait(self, session_id: str, timeout: int = None) -> dict:
+    def wait(self, session_id: str, timeout: Optional[int] = None) -> dict:
         """
         Block until a process exits, timeout, or interrupt.
 
@@ -1206,7 +1210,7 @@ class ProcessRegistry:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def list_sessions(self, task_id: str = None) -> list:
+    def list_sessions(self, task_id: Optional[str] = None) -> list:
         """List all running and recently-finished processes."""
         with self._lock:
             all_sessions = list(self._running.values()) + list(self._finished.values())
@@ -1265,7 +1269,7 @@ class ProcessRegistry:
                 for s in self._running.values()
             )
 
-    def kill_all(self, task_id: str = None) -> int:
+    def kill_all(self, task_id: Optional[str] = None) -> int:
         """Kill all running processes, optionally filtered by task_id. Returns count killed."""
         with self._lock:
             targets = [

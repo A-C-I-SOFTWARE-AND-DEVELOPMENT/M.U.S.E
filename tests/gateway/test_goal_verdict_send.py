@@ -61,7 +61,7 @@ class _RecordingAdapter:
         return _R()
 
 
-def _make_runner_with_adapter(session_id: str = None):
+def _make_runner_with_adapter(session_id: str | None = None):
     from gateway.run import GatewayRunner
     import uuid
 

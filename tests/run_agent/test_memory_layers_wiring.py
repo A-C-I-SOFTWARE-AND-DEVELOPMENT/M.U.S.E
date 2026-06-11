@@ -42,7 +42,7 @@ def agent():
             skip_memory=True,
         )
         a.client = MagicMock()
-        a.session_id = "sess-mem1"
+        a.session_id = "sess-mem1"  # ty: ignore[unresolved-attribute]
         return a
 
 

@@ -172,8 +172,8 @@ def test_background_review_summary_is_attributed_to_self_improvement_loop(monkey
     monkeypatch.setattr(run_agent_module.threading, "Thread", ImmediateThread)
 
     agent = _bare_agent()
-    agent._safe_print = lambda *a, **kw: captured_prints.append(" ".join(str(x) for x in a))
-    agent.background_review_callback = lambda msg: captured_bg_callback.append(msg)
+    agent._safe_print = lambda *a, **kw: captured_prints.append(" ".join(str(x) for x in a))  # ty: ignore[invalid-assignment]
+    agent.background_review_callback = lambda msg: captured_bg_callback.append(msg)  # ty: ignore[unresolved-attribute]
 
     AIAgent._spawn_background_review(
         agent,

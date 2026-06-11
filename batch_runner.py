@@ -856,7 +856,7 @@ class BatchRunner:
             print("=" * 70 + "\n")
         
         # Load existing checkpoint (so resume doesn't clobber prior progress)
-        checkpoint_data = self._load_checkpoint()
+        checkpoint_data: Dict[str, Any] = self._load_checkpoint()
         if checkpoint_data.get("run_name") != self.run_name:
             checkpoint_data = {
                 "run_name": self.run_name,
