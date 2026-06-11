@@ -45,9 +45,14 @@ class Tournament:
         self.candidates[candidate.cid] = candidate
 
     # ------------------------------------------------------------- hard gate
-    def gate(self, verify: Callable[[Candidate], bool]) -> list[str]:
+    def gate(
+        self,
+        verify: Callable[[Candidate], bool],
+        reasons: dict[str, str] | None = None,
+    ) -> list[str]:
         """Run the symbolic gate. Failures get rating 0 — by law, not
-        by judgment. Returns the cids that failed."""
+        by judgment. Returns the cids that failed. *reasons* lets the
+        caller record exactly which theorem killed each candidate."""
         failed: list[str] = []
         for cand in self.candidates.values():
             cand.gate_passed = bool(verify(cand))
@@ -59,7 +64,9 @@ class Tournament:
                 failed.append(cand.cid)
                 self.ledger.append(
                     "forge_gate_fail",
-                    {"cid": cand.cid, "reason": "verifier gate failed"},
+                    {"cid": cand.cid,
+                     "reason": (reasons or {}).get(
+                         cand.cid, "verifier gate failed")},
                 )
         return failed
 

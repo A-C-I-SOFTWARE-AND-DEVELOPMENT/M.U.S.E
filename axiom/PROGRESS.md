@@ -45,11 +45,19 @@ output.
       smoke unchanged
 
 ## Phase 3 — Forge engine
-- [ ] 3.1 Persist ratings + archive to SQLite; RD inflates for idle candidates
-- [ ] 3.2 Tournament over 4 real unit variants; cheat dies at runtime gate
-- [ ] 3.3 Kill-switch anomaly test: halt + ledger alarm
-- [ ] 3.4 Trajectory export: trajectories.jsonl / negatives.jsonl
-- [ ] EXIT GATE: two consecutive runs share ratings; champion lineage from ledger
+- [x] 3.1 RatingStore (SQLite): ratings persist; idle candidates' RD
+      inflates per the empty-period rule, capped at the default 350
+- [x] 3.2 ForgeEngine tournament over 4 real unit variants of one spec;
+      hard gate = Verifier.verify + runtime probes; cheat (c+32, statically
+      clean) eliminated by the runtime postcondition, not judges; shortest
+      verified unit (v_short, 3 ops) is champion
+- [x] 3.3 Kill-switch: seeded 5000-rating anomaly → halt + forge_kill_switch
+      ledger alarm; ratings earned before the halt still persist
+- [x] 3.4 Trajectory export: verifier-passed → trajectories.jsonl,
+      failures → negatives.jsonl, every record anchored to a unit hash
+- [x] EXIT GATE: two consecutive runs share persistent ratings; champion
+      lineage reconstructed from ledger events alone (forge_champion +
+      forge_duel). `pytest tests/` → **39 passed in 1.71s**; smoke unchanged
 
 ## Phase 4 — Agent surface
 - [ ] 4.1 MCP tools: memory_query, memory_observe, forge_run, ledger_history, unit_compose
