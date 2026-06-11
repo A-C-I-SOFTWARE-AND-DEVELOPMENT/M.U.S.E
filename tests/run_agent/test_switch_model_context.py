@@ -45,8 +45,8 @@ def test_switch_model_clears_previous_config_context_length(mock_ctx_len):
     """Switching models must not reuse the previous model.context_length override."""
     agent = _make_agent_with_compressor(config_context_length=32_768)
 
-    assert agent.context_compressor.model == "primary-model"  # ty: ignore[unresolved-attribute]
-    assert agent.context_compressor.context_length == 32_768  # From config override  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor.model == "primary-model"
+    assert agent.context_compressor.context_length == 32_768  # From config override
 
     # Switch model
     agent.switch_model("new-model", "openrouter", api_key="sk-new", base_url="https://openrouter.ai/api/v1")
@@ -57,8 +57,8 @@ def test_switch_model_clears_previous_config_context_length(mock_ctx_len):
     assert call_kwargs.get("config_context_length") is None
 
     # Verify compressor was updated from the newly resolved model metadata.
-    assert agent.context_compressor.model == "new-model"  # ty: ignore[unresolved-attribute]
-    assert agent.context_compressor.context_length == 131_072  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor.model == "new-model"
+    assert agent.context_compressor.context_length == 131_072
 
 
 def test_switch_model_without_config_context_length():

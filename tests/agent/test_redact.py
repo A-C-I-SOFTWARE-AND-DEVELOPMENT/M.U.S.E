@@ -163,13 +163,13 @@ class TestPassthrough:
         assert redact_sensitive_text("") == ""
 
     def test_none_returns_none(self):
-        assert redact_sensitive_text(None) is None
+        assert redact_sensitive_text(None) is None  # ty: ignore[invalid-argument-type]
 
     def test_non_string_input_int_coerced(self):
-        assert redact_sensitive_text(12345) == "12345"
+        assert redact_sensitive_text(12345) == "12345"  # ty: ignore[invalid-argument-type]
 
     def test_non_string_input_dict_coerced_and_redacted(self):
-        result = redact_sensitive_text({"token": "sk-proj-abc123def456ghi789jkl012"})
+        result = redact_sensitive_text({"token": "sk-proj-abc123def456ghi789jkl012"})  # ty: ignore[invalid-argument-type]
         assert "abc123def456" not in result
 
     def test_normal_text_unchanged(self):

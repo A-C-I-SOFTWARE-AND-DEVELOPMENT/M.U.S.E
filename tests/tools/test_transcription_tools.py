@@ -5,6 +5,7 @@ model auto-correction, config loading, validation edge cases, and
 end-to-end dispatch.  All external dependencies are mocked.
 """
 
+import importlib.util
 import os
 import struct
 import subprocess
@@ -415,7 +416,7 @@ class TestTranscribeLocalCommand:
 # ============================================================================
 
 @pytest.mark.skipif(
-    not __import__("importlib").util.find_spec("faster_whisper"),
+    not importlib.util.find_spec("faster_whisper"),
     reason="faster_whisper not installed",
 )
 class TestTranscribeLocalExtended:

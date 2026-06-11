@@ -29,7 +29,7 @@ class TestBuildToolPreview:
 
     def test_none_args_returns_none(self):
         """PR #453: None args should not crash, should return None."""
-        assert build_tool_preview("terminal", None) is None
+        assert build_tool_preview("terminal", None) is None  # ty: ignore[invalid-argument-type]
 
     def test_empty_dict_returns_none(self):
         """Empty dict has no keys to preview."""
@@ -71,7 +71,7 @@ class TestBuildToolPreview:
 
     def test_process_tool_with_none_args(self):
         """Process tool special case should also handle None args."""
-        assert build_tool_preview("process", None) is None
+        assert build_tool_preview("process", None) is None  # ty: ignore[invalid-argument-type]
 
     def test_process_tool_normal(self):
         result = build_tool_preview("process", {"action": "poll", "session_id": "abc123"})
@@ -107,9 +107,9 @@ class TestBuildToolPreview:
 
     def test_false_like_args_zero(self):
         """Non-dict falsy values should return None, not crash."""
-        assert build_tool_preview("terminal", 0) is None
-        assert build_tool_preview("terminal", "") is None
-        assert build_tool_preview("terminal", []) is None
+        assert build_tool_preview("terminal", 0) is None  # ty: ignore[invalid-argument-type]
+        assert build_tool_preview("terminal", "") is None  # ty: ignore[invalid-argument-type]
+        assert build_tool_preview("terminal", []) is None  # ty: ignore[invalid-argument-type]
 
 
 class TestCuteToolMessagePreviewLength:

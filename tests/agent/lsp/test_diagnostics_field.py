@@ -122,6 +122,7 @@ def test_write_file_skips_lsp_when_syntax_failed(tmp_path):
         res = fops.write_file(str(target), "def x(:\n")  # syntax error
     assert mock_lsp.call_count == 0
     assert res.lsp_diagnostics is None
+    assert res.lint is not None
     assert res.lint["status"] == "error"
 
 

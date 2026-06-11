@@ -69,7 +69,7 @@ class TestResetSessionState:
         compressor.compression_count = 3
         compressor._context_probed = True
 
-        agent.context_compressor = compressor  # ty: ignore[unresolved-attribute]
+        agent.context_compressor = compressor
 
         agent.reset_session_state()
 
@@ -82,7 +82,7 @@ class TestResetSessionState:
         """Turn counter must reset to 0 on new session."""
         agent = _make_minimal_agent()
         agent._user_turn_count = 7  # simulates turns accumulated in previous session
-        agent.context_compressor = None  # ty: ignore[unresolved-attribute]
+        agent.context_compressor = None
 
         agent.reset_session_state()
 
@@ -102,7 +102,7 @@ class TestResetSessionState:
         compressor.last_total_tokens = 0
         compressor.compression_count = 0
         compressor._context_probed = False
-        agent.context_compressor = compressor  # ty: ignore[unresolved-attribute]
+        agent.context_compressor = compressor
 
         agent.reset_session_state()
 
@@ -113,7 +113,7 @@ class TestResetSessionState:
         """reset_session_state() must not raise when context_compressor is None."""
         agent = _make_minimal_agent()
         agent._user_turn_count = 2
-        agent.context_compressor = None  # ty: ignore[unresolved-attribute]
+        agent.context_compressor = None
 
         # Must not raise
         agent.reset_session_state()

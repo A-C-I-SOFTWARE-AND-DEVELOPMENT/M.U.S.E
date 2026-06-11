@@ -31,9 +31,9 @@ class CodeMap:
         lines: list[str] = []
         summary = self.index.summary()
         lines.append(f"# Repo map: {summary['root']}")
-        by_role = summary["by_role"]  # type: ignore[index]
+        by_role = summary["by_role"]
         lines.append(
-            "files: " + ", ".join(f"{role}={count}" for role, count in by_role.items())  # type: ignore[union-attr]
+            "files: " + ", ".join(f"{role}={count}" for role, count in by_role.items())  # ty: ignore[unresolved-attribute]  # by_role is a dict
         )
         lines.append("")
 

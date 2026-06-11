@@ -210,8 +210,8 @@ def test_api_mode_uses_explicit_provider_when_codex(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    assert agent.api_mode == "codex_responses"  # ty: ignore[unresolved-attribute]
-    assert agent.provider == "openai-codex"  # ty: ignore[unresolved-attribute]
+    assert agent.api_mode == "codex_responses"
+    assert agent.provider == "openai-codex"
 
 
 def test_api_mode_normalizes_provider_case(monkeypatch):
@@ -226,8 +226,8 @@ def test_api_mode_normalizes_provider_case(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    assert agent.provider == "openai-codex"  # ty: ignore[unresolved-attribute]
-    assert agent.api_mode == "codex_responses"  # ty: ignore[unresolved-attribute]
+    assert agent.provider == "openai-codex"
+    assert agent.api_mode == "codex_responses"
 
 
 def test_api_mode_respects_explicit_openrouter_provider_over_codex_url(monkeypatch):
@@ -248,8 +248,8 @@ def test_api_mode_respects_explicit_openrouter_provider_over_codex_url(monkeypat
         skip_context_files=True,
         skip_memory=True,
     )
-    assert agent.api_mode == "codex_responses"  # ty: ignore[unresolved-attribute]
-    assert agent.provider == "openrouter"  # ty: ignore[unresolved-attribute]
+    assert agent.api_mode == "codex_responses"
+    assert agent.provider == "openrouter"
 
 
 def test_copilot_acp_stays_on_chat_completions_for_gpt_5_models(monkeypatch):
@@ -264,8 +264,8 @@ def test_copilot_acp_stays_on_chat_completions_for_gpt_5_models(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    assert agent.provider == "copilot-acp"  # ty: ignore[unresolved-attribute]
-    assert agent.api_mode == "chat_completions"  # ty: ignore[unresolved-attribute]
+    assert agent.provider == "copilot-acp"
+    assert agent.api_mode == "chat_completions"
 
 
 def test_copilot_gpt_5_mini_stays_on_chat_completions(monkeypatch):
@@ -281,8 +281,8 @@ def test_copilot_gpt_5_mini_stays_on_chat_completions(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    assert agent.provider == "copilot"  # ty: ignore[unresolved-attribute]
-    assert agent.api_mode == "chat_completions"  # ty: ignore[unresolved-attribute]
+    assert agent.provider == "copilot"
+    assert agent.api_mode == "chat_completions"
 
 
 def test_build_api_kwargs_codex(monkeypatch):

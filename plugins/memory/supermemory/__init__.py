@@ -693,7 +693,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
         metadata.setdefault("type", _detect_category(content))
         metadata["source"] = "hermes_tool"
         try:
-            result = self._client.add_memory(content, metadata=metadata, entity_context=self._entity_context, container_tag=tag)
+            result = self._client.add_memory(content, metadata=metadata, entity_context=self._entity_context, container_tag=tag)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             preview = content[:80] + ("..." if len(content) > 80 else "")
             resp: dict[str, Any] = {"saved": True, "id": result.get("id", ""), "preview": preview}
             if tag:
@@ -715,7 +715,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
         except Exception:
             limit = 5
         try:
-            results = self._client.search_memories(query, limit=limit, container_tag=tag)
+            results = self._client.search_memories(query, limit=limit, container_tag=tag)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             formatted = []
             for item in results:
                 entry: dict[str, Any] = {"id": item.get("id", ""), "content": item.get("memory", "")}
@@ -743,9 +743,9 @@ class SupermemoryMemoryProvider(MemoryProvider):
             return tool_error(str(exc))
         try:
             if memory_id:
-                self._client.forget_memory(memory_id, container_tag=tag)
+                self._client.forget_memory(memory_id, container_tag=tag)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
                 return json.dumps({"forgotten": True, "id": memory_id})
-            return json.dumps(self._client.forget_by_query(query, container_tag=tag))
+            return json.dumps(self._client.forget_by_query(query, container_tag=tag))  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
         except Exception as exc:
             return tool_error(f"Forget failed: {exc}")
 
@@ -756,7 +756,7 @@ class SupermemoryMemoryProvider(MemoryProvider):
         except ValueError as exc:
             return tool_error(str(exc))
         try:
-            profile = self._client.get_profile(query=query, container_tag=tag)
+            profile = self._client.get_profile(query=query, container_tag=tag)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             sections = []
             if profile["static"]:
                 sections.append("## User Profile (Persistent)\n" + "\n".join(f"- {item}" for item in profile["static"]))

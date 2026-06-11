@@ -126,7 +126,7 @@ class TestCodexAppServerModule:
 
         assert parse_codex_version("nope") is None
         assert parse_codex_version("") is None
-        assert parse_codex_version(None) is None  # type: ignore[arg-type]
+        assert parse_codex_version(None) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
     def test_check_binary_handles_missing_executable(self) -> None:
         from agent.transports.codex_app_server import check_codex_binary

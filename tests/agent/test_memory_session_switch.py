@@ -130,7 +130,7 @@ def test_manager_ignores_empty_session_id():
     p = _RecordingProvider()
     mm.add_provider(p)
     mm.on_session_switch("")
-    mm.on_session_switch(None)  # type: ignore[arg-type]
+    mm.on_session_switch(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     assert p.switch_calls == []
 
 

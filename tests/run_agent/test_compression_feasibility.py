@@ -95,7 +95,7 @@ def test_auto_corrects_threshold_when_aux_context_below_threshold(mock_get_clien
     # Warning stored for gateway replay
     assert agent._compression_warning is not None  # ty: ignore[unresolved-attribute]
     # Threshold on the live compressor was actually lowered to aux_context.
-    assert agent.context_compressor.threshold_tokens == 80_000  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor.threshold_tokens == 80_000
 
 
 @patch("agent.model_metadata.get_model_context_length", return_value=32_768)
@@ -144,11 +144,11 @@ def test_no_warning_when_aux_context_sufficient(mock_get_client, mock_ctx_len):
 def test_feasibility_check_passes_live_main_runtime():
     """Compression feasibility should probe using the live session runtime."""
     agent = _make_agent(main_context=200_000, threshold_percent=0.50)
-    agent.model = "gpt-5.4"  # ty: ignore[unresolved-attribute]
-    agent.provider = "openai-codex"  # ty: ignore[unresolved-attribute]
+    agent.model = "gpt-5.4"
+    agent.provider = "openai-codex"
     agent.base_url = "https://chatgpt.com/backend-api/codex"
     agent.api_key = "codex-token"
-    agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+    agent.api_mode = "codex_responses"
 
     mock_client = MagicMock()
     mock_client.base_url = "https://chatgpt.com/backend-api/codex"
@@ -372,7 +372,7 @@ def test_just_below_threshold_auto_corrects(mock_get_client, mock_ctx_len):
     assert len(messages) == 1
     assert "small-model" in messages[0]
     assert "Auto-lowered" in messages[0]
-    assert agent.context_compressor.threshold_tokens == 99_999  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor.threshold_tokens == 99_999
 
 
 # ── Two-phase: __init__ + run_conversation replay ───────────────────
@@ -398,7 +398,7 @@ def test_warning_stored_for_gateway_replay(mock_get_client, mock_ctx_len):
 
     # Phase 2: gateway wires callback post-init, then run_conversation replays
     callback_events = []
-    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))  # ty: ignore[unresolved-attribute]
+    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))
     agent._replay_compression_warning()
 
     assert any(
@@ -423,7 +423,7 @@ def test_no_replay_when_no_warning(mock_get_client, mock_ctx_len):
     assert agent._compression_warning is None  # ty: ignore[unresolved-attribute]
 
     callback_events = []
-    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))  # ty: ignore[unresolved-attribute]
+    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))
     agent._replay_compression_warning()
 
     assert len(callback_events) == 0
@@ -433,7 +433,7 @@ def test_replay_without_callback_is_noop():
     """_replay_compression_warning doesn't crash when status_callback is None."""
     agent = _make_agent()
     agent._compression_warning = "some warning"  # ty: ignore[unresolved-attribute]
-    agent.status_callback = None  # ty: ignore[unresolved-attribute]
+    agent.status_callback = None
 
     # Should not raise
     agent._replay_compression_warning()
@@ -457,7 +457,7 @@ def test_run_conversation_clears_warning_after_replay(mock_get_client, mock_ctx_
 
     # Simulate what run_conversation does
     callback_events = []
-    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))  # ty: ignore[unresolved-attribute]
+    agent.status_callback = lambda ev, msg: callback_events.append((ev, msg))
     if agent._compression_warning:  # ty: ignore[unresolved-attribute]
         agent._replay_compression_warning()
         agent._compression_warning = None  # as in run_conversation  # ty: ignore[unresolved-attribute]

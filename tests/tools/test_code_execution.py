@@ -624,7 +624,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         self.assertEqual(sandbox_enabled, set(),
                          "Intersection should be empty when only execute_code is enabled")
 
-        schema = build_execute_code_schema(sandbox_enabled)  # ty: ignore[invalid-argument-type]
+        schema = build_execute_code_schema(sandbox_enabled)
         code_desc = schema["parameters"]["properties"]["code"]["description"]
         self.assertNotIn("import , ...", code_desc,
                          "Bug: broken import syntax sent to the model")
@@ -640,7 +640,7 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
 
         self.assertEqual(sandbox_enabled, set())
 
-        schema = build_execute_code_schema(sandbox_enabled)  # ty: ignore[invalid-argument-type]
+        schema = build_execute_code_schema(sandbox_enabled)
         code_desc = schema["parameters"]["properties"]["code"]["description"]
         self.assertNotIn("import , ...", code_desc)
 
@@ -659,8 +659,8 @@ class TestBuildExecuteCodeSchema(unittest.TestCase):
         self.assertIn("retry", desc)
 
     def test_none_defaults_to_all_tools(self):
-        schema_none = build_execute_code_schema(None)  # ty: ignore[invalid-argument-type]
-        schema_all = build_execute_code_schema(SANDBOX_ALLOWED_TOOLS)  # ty: ignore[invalid-argument-type]
+        schema_none = build_execute_code_schema(None)
+        schema_all = build_execute_code_schema(SANDBOX_ALLOWED_TOOLS)
         self.assertEqual(schema_none["description"], schema_all["description"])
 
 

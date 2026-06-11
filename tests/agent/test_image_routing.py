@@ -71,7 +71,7 @@ class TestExplicitAuxVisionOverride:
 
 class TestDecideImageInputMode:
     def test_explicit_native_overrides_everything(self):
-        cfg = {"agent": {"image_input_mode": "native"}}
+        cfg: dict = {"agent": {"image_input_mode": "native"}}
         # Non-vision model, aux-vision explicitly configured: native still wins.
         cfg["auxiliary"] = {"vision": {"provider": "openrouter", "model": "foo"}}
         with patch("agent.image_routing._lookup_supports_vision", return_value=False):

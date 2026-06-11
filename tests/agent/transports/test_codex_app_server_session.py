@@ -109,7 +109,7 @@ class FakeClient:
 def make_session(client: FakeClient, **kwargs) -> CodexAppServerSession:
     return CodexAppServerSession(
         cwd="/tmp",
-        client_factory=lambda **kw: client,
+        client_factory=lambda **kw: client,  # ty: ignore[invalid-argument-type]
         **kwargs,
     )
 
@@ -949,7 +949,7 @@ class TestHasTurnAbortedMarker:
             _has_turn_aborted_marker,
         )
         assert _has_turn_aborted_marker("") is False
-        assert _has_turn_aborted_marker(None) is False  # type: ignore[arg-type]
+        assert _has_turn_aborted_marker(None) is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
     def test_plain_text_no_marker(self):
         from agent.transports.codex_app_server_session import (
@@ -1010,7 +1010,7 @@ class TestClassifyOAuthFailure:
         )
         assert _classify_oauth_failure() is None
         assert _classify_oauth_failure("") is None
-        assert _classify_oauth_failure("", None) is None  # type: ignore[arg-type]
+        assert _classify_oauth_failure("", None) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
     def test_multi_string_search(self):
         """Hint can come from any of the provided strings."""

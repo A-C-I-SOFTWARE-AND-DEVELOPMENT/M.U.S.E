@@ -36,7 +36,7 @@ class TestSanitizeApiMessagesRoleFilter:
             {"role": "tool", "tool_call_id": "c1", "content": "ok"},
         ]
         # Need a matching assistant tool_call so the tool result isn't orphaned
-        msgs[2]["tool_calls"] = [{"id": "c1", "function": {"name": "t", "arguments": "{}"}}]
+        msgs[2]["tool_calls"] = [{"id": "c1", "function": {"name": "t", "arguments": "{}"}}]  # ty: ignore[invalid-assignment]
         out = AIAgent._sanitize_api_messages(msgs)
         roles = [m["role"] for m in out]
         assert "system" in roles

@@ -294,7 +294,7 @@ class TestSummaryFallbackToMainModel:
         mock_ok.choices[0].message.content = "summary via main model"
 
         err_404 = Exception("404 model_not_found: no such model")
-        err_404.status_code = 404
+        err_404.status_code = 404  # ty: ignore[unresolved-attribute]
 
         with patch("agent.context_compressor.get_model_context_length", return_value=100000):
             c = ContextCompressor(
@@ -334,7 +334,7 @@ class TestSummaryFallbackToMainModel:
         # A 400 from OpenRouter / Nous portal with an opaque message — does
         # NOT match _is_model_not_found, but still an unrecoverable misconfig.
         err_400 = Exception("400 Bad Request: provider rejected model")
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
 
         with patch("agent.context_compressor.get_model_context_length", return_value=100000):
             c = ContextCompressor(
@@ -655,7 +655,7 @@ class TestAuxModelFallbackSurfacedToCallers:
         mock_ok.choices = [MagicMock()]
         mock_ok.choices[0].message.content = "summary via main"
         err_400 = Exception("400 provider rejected configured model")
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
 
         with patch("agent.context_compressor.get_model_context_length", return_value=100000):
             c = ContextCompressor(
@@ -691,7 +691,7 @@ class TestAuxModelFallbackSurfacedToCallers:
         mock_ok.choices = [MagicMock()]
         mock_ok.choices[0].message.content = "summary via main"
         err_400 = Exception("400 aux model busted")
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
 
         with patch("agent.context_compressor.get_model_context_length", return_value=100000):
             c = ContextCompressor(

@@ -18,7 +18,7 @@ from agent.transports.codex_event_projector import (
 
 
 # --- Fixture: real `commandExecution` notification captured from codex 0.130.0
-COMMAND_EXEC_COMPLETED = {
+COMMAND_EXEC_COMPLETED: dict = {
     "method": "item/completed",
     "params": {
         "item": {

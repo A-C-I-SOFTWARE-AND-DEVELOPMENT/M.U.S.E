@@ -125,7 +125,9 @@ def test_goal_pause_after_set(server, session):
 
     from hermes_cli.goals import GoalManager
 
-    assert GoalManager(session_key).state.status == "paused"  # ty: ignore[unresolved-attribute]
+    goal_state = GoalManager(session_key).state
+    assert goal_state is not None
+    assert goal_state.status == "paused"
 
 
 def test_goal_resume_reactivates(server, session):
@@ -138,7 +140,9 @@ def test_goal_resume_reactivates(server, session):
 
     from hermes_cli.goals import GoalManager
 
-    assert GoalManager(session_key).state.status == "active"  # ty: ignore[unresolved-attribute]
+    goal_state = GoalManager(session_key).state
+    assert goal_state is not None
+    assert goal_state.status == "active"
 
 
 def test_goal_clear_removes_active_goal(server, session):

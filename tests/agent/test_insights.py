@@ -149,7 +149,7 @@ class TestHasKnownPricing:
         assert _has_known_pricing("my-custom-model") is False
         assert _has_known_pricing("glm-5") is False
         assert _has_known_pricing("") is False
-        assert _has_known_pricing(None) is False
+        assert _has_known_pricing(None) is False  # ty: ignore[invalid-argument-type]
 
     def test_heuristic_matched_models_are_not_considered_known(self):
         assert _has_known_pricing("some-opus-model") is False

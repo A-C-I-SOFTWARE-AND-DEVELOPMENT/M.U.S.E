@@ -153,5 +153,5 @@ class TestSafeScheduleThreadsafe:
         loop.close()
 
         # Pass a non-coroutine sentinel
-        result = safe_schedule_threadsafe("not-a-coroutine", loop)  # type: ignore[arg-type]
+        result = safe_schedule_threadsafe("not-a-coroutine", loop)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
         assert result is None

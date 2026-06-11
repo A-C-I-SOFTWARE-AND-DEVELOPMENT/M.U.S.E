@@ -28,6 +28,12 @@ from hermes_cli.main import (
 # ── Default config ──────────────────────────────────────────────────────────
 
 
+def _as_dict(value: object) -> dict[str, Any]:
+    """Narrow a config value that must be a dict (fails the test otherwise)."""
+    assert isinstance(value, dict)
+    return value
+
+
 def test_title_generation_present_in_default_config():
     """`title_generation` task must be defined in DEFAULT_CONFIG.
 
@@ -36,28 +42,25 @@ def test_title_generation_present_in_default_config():
     from DEFAULT_CONFIG["auxiliary"], so the config-backed timeout/provider
     overrides never worked for that task.
     """
-    assert "title_generation" in DEFAULT_CONFIG["auxiliary"]
-    tg = DEFAULT_CONFIG["auxiliary"]["title_generation"]
-    assert tg is not None
+    aux = _as_dict(DEFAULT_CONFIG["auxiliary"])
+    assert "title_generation" in aux
+    tg = _as_dict(aux["title_generation"])
     assert tg["provider"] == "auto"
-    assert tg is not None
     assert tg["model"] == ""
-    assert tg is not None
     assert tg["timeout"] > 0
-    assert tg is not None
     assert tg["extra_body"] == {}
 
 
 def test_session_search_no_longer_appears_in_auxiliary_model_config():
     """session_search is a direct DB-backed tool, not an auxiliary LLM task."""
-    assert "session_search" not in DEFAULT_CONFIG["auxiliary"]
+    assert "session_search" not in _as_dict(DEFAULT_CONFIG["auxiliary"])
     assert "session_search" not in {key for key, _name, _desc in _AUX_TASKS}
 
 
 def test_aux_tasks_keys_all_exist_in_default_config():
     """Every task the menu offers must be defined in DEFAULT_CONFIG."""
     aux_keys = {k for k, _name, _desc in _AUX_TASKS}
-    default_keys = set(DEFAULT_CONFIG["auxiliary"].keys())
+    default_keys = set(_as_dict(DEFAULT_CONFIG["auxiliary"]).keys())
     missing = aux_keys - default_keys
     assert not missing, (
         f"_AUX_TASKS references tasks not in DEFAULT_CONFIG.auxiliary: {missing}"
@@ -99,8 +102,9 @@ def test_format_aux_current(task_cfg, expected):
 
 
 def test_format_aux_current_handles_non_dict():
-    assert _format_aux_current(None) == "auto"
-    assert _format_aux_current("string") == "auto"
+    # Deliberately passes non-dict values: the helper must degrade to "auto".
+    assert _format_aux_current(None) == "auto"  # ty: ignore[invalid-argument-type]
+    assert _format_aux_current("string") == "auto"  # ty: ignore[invalid-argument-type]
 
 
 # ── _save_aux_choice ────────────────────────────────────────────────────────

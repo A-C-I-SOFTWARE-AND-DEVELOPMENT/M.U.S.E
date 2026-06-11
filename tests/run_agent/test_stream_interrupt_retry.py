@@ -31,7 +31,7 @@ def _make_agent(**kwargs):
     )
     defaults.update(kwargs)
     agent = AIAgent(**defaults)
-    agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+    agent.api_mode = "chat_completions"
     return agent
 
 

@@ -19,7 +19,13 @@ from hermes_cli.tools_config import (
     _visible_providers,
     tools_command,
 )
+from typing import Any
 
+
+def _as_dict(value: object) -> "dict[str, Any]":
+    """Narrow a config value that must be a dict (fails the test otherwise)."""
+    assert isinstance(value, dict)
+    return value
 
 def test_agent_disabled_toolsets_suppresses_across_platforms():
     """agent.disabled_toolsets in config.yaml should remove those toolsets
@@ -774,7 +780,7 @@ class TestImagegenBackendRegistry:
         providers = TOOL_CATEGORIES["image_gen"]["providers"]
         for p in providers:
             assert p.get("imagegen_backend") == "fal", (
-                f"{p['name']} missing imagegen_backend tag"
+                f"{_as_dict(p)['name']} missing imagegen_backend tag"
             )
 
 
@@ -1064,7 +1070,7 @@ def test_reconfigure_provider_runs_post_setup_for_env_var_providers(
     provider = next(
         p
         for p in TOOL_CATEGORIES["browser"]["providers"]
-        if p["name"] == provider_name
+        if _as_dict(p)["name"] == provider_name
     )
     _reconfigure_provider(provider, {})
 

@@ -58,7 +58,7 @@ def _flatten(store: DatasetStore, *, status: Optional[CandidateStatus] = None) -
                 "source_uri": p.get("source_uri"),
                 "job_id": p.get("job_id"),
                 "trust": p.get("trust"),
-                "citations": ",".join(p.get("citations") or []),
+                "citations": ",".join(p.get("citations") or []),  # ty: ignore[no-matching-overload]  # citations is list[str]
                 "tests_passed": bool(q.get("tests_passed")),
                 "citations_verified": bool(q.get("citations_verified")),
                 "owner_approved": bool(q.get("owner_approved")),
@@ -130,7 +130,7 @@ def export_parquet(
     return len(rows)
 
 
-def _sql_literal(path: str) -> str:
+def _sql_literal(path: "str | Path") -> str:
     """Escape a filesystem path for embedding as a single-quoted SQL literal.
 
     DuckDB rejects bound parameters inside DDL like ``CREATE VIEW ...

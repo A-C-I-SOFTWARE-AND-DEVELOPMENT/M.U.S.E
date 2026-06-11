@@ -13,7 +13,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from hermes_constants import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv

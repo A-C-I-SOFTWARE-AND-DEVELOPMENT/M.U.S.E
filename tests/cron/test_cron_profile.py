@@ -11,7 +11,13 @@ import os
 from pathlib import Path
 
 import pytest
+from typing import Any
 
+
+def _as_dict(value: object) -> "dict[str, Any]":
+    """Narrow a config value that must be a dict (fails the test otherwise)."""
+    assert isinstance(value, dict)
+    return value
 
 @pytest.fixture()
 def isolated_cron_profile_home(tmp_path, monkeypatch):
@@ -149,8 +155,8 @@ class TestCronjobToolProfile:
     def test_schema_advertises_profile(self):
         from tools.cronjob_tools import CRONJOB_SCHEMA
 
-        assert "profile" in CRONJOB_SCHEMA["parameters"]["properties"]
-        desc = CRONJOB_SCHEMA["parameters"]["properties"]["profile"]["description"]
+        assert "profile" in _as_dict(CRONJOB_SCHEMA["parameters"])["properties"]
+        desc = _as_dict(_as_dict(CRONJOB_SCHEMA["parameters"]["properties"])["profile"])["description"]
         desc_lower = desc.lower()
         assert "hermes profile" in desc_lower
         assert "context-local" in desc_lower

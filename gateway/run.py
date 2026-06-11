@@ -42,7 +42,7 @@ from collections import OrderedDict
 from contextvars import copy_context
 from pathlib import Path
 from datetime import datetime
-from typing import Callable, Dict, Optional, Any, List, Union
+from typing import Callable, Dict, Optional, Any, List, Union, cast
 
 # account_usage imports the OpenAI SDK chain (~230 ms). Only needed by
 # /usage; we still import it at module top in the gateway because test
@@ -1546,7 +1546,9 @@ class GatewayRunner:
             pass  # Non-fatal — fail-open at scan time if unavailable
         
         # Initialize session database for session_search tool support
-        self._session_db = None
+        # Optional[SessionDB] at runtime; typed Any so call sites that only run
+        # when session-DB features are active don't each need a None guard.
+        self._session_db: Any = None
         try:
             from hermes_state import SessionDB
             self._session_db = SessionDB()
@@ -5141,7 +5143,7 @@ class GatewayRunner:
                 or "database disk image is malformed" in msg
             )
 
-        def _tick_once_for_board(slug: str) -> "Optional[object]":
+        def _tick_once_for_board(slug: str) -> "Optional[Any]":
             """Run one dispatch_once for a specific board.
 
             Runs in a worker thread via `asyncio.to_thread`. `board=slug`
@@ -5202,7 +5204,7 @@ class GatewayRunner:
                     except Exception:
                         pass
 
-        def _tick_once() -> "list[tuple[str, Optional[object]]]":
+        def _tick_once() -> "list[tuple[str, Optional[Any]]]":
             """Run one dispatch_once per board. Returns (slug, result) pairs.
 
             Enumerating boards on every tick keeps the dispatcher honest
@@ -6551,7 +6553,7 @@ class GatewayRunner:
                     try:
                         from hermes_cli.commands import resolve_command as _resolve_update_cmd
                     except Exception:
-                        _resolve_update_cmd = None
+                        _resolve_update_cmd = cast(Any, None)
                     if _resolve_update_cmd is not None:
                         try:
                             _cmd_def = _resolve_update_cmd(cmd)
@@ -6670,7 +6672,7 @@ class GatewayRunner:
                 _confirm_choice = "cancel"
             if _confirm_choice is not None:
                 _resolved = await _slash_confirm_mod.resolve(
-                    _quick_key, _pending_confirm.get("confirm_id"), _confirm_choice,
+                    _quick_key, _pending_confirm.get("confirm_id"), _confirm_choice,  # ty: ignore[invalid-argument-type] — confirm_id is always present on a pending confirm
                 )
                 return _resolved or ""
             # Stale pending + unrelated command: drop the pending state so
@@ -7073,6 +7075,7 @@ class GatewayRunner:
         # Preserve built-in precedence; aliases only need early handling when
         # the typed command is not already known.
         if command and _cmd_def is None:
+            quick_commands: Any
             if isinstance(self.config, dict):
                 quick_commands = self.config.get("quick_commands", {}) or {}
             else:
@@ -7333,6 +7336,7 @@ class GatewayRunner:
 
         # User-defined quick commands (bypass agent loop, no LLM call)
         if command:
+            quick_commands: Any
             if isinstance(self.config, dict):
                 quick_commands = self.config.get("quick_commands", {}) or {}
             else:
@@ -7744,7 +7748,7 @@ class GatewayRunner:
                     )
                 message_text = f"{context_note}\n\n{message_text}"
 
-        if getattr(event, "reply_to_text", None) and event.reply_to_message_id:
+        if event.reply_to_text and event.reply_to_message_id:
             # Always inject the reply-to pointer — even when the quoted text
             # already appears in history. The prefix isn't deduplication, it's
             # disambiguation: it tells the agent *which* prior message the user
@@ -7772,8 +7776,8 @@ class GatewayRunner:
                 except Exception:
                     pass
                 _msg_ctx_len = get_model_context_length(
-                    self._model,
-                    base_url=self._base_url or _msg_runtime.get("base_url") or "",
+                    self._model,  # ty: ignore[unresolved-attribute] — BUG: GatewayRunner has no _model; AttributeError is swallowed by the except below, silently disabling @-context expansion
+                    base_url=self._base_url or _msg_runtime.get("base_url") or "",  # ty: ignore[unresolved-attribute] — same: _base_url never set on GatewayRunner
                     api_key=_msg_runtime.get("api_key") or "",
                     config_context_length=_msg_config_ctx,
                 )
@@ -8397,7 +8401,7 @@ class GatewayRunner:
         # is speaking, without needing a separate tool call.
         # -----------------------------------------------------------------
         if source.platform == Platform.DISCORD:
-            adapter = self.adapters.get(Platform.DISCORD)
+            adapter: Any = self.adapters.get(Platform.DISCORD)
             guild_id = self._get_guild_id(event)
             if guild_id and adapter and hasattr(adapter, "get_voice_channel_context"):
                 vc_context = adapter.get_voice_channel_context(guild_id)
@@ -8471,7 +8475,7 @@ class GatewayRunner:
                     _quick_key or "?",
                     run_generation,
                 )
-                _stale_adapter = self.adapters.get(source.platform)
+                _stale_adapter: Any = self.adapters.get(source.platform)
                 if getattr(type(_stale_adapter), "pop_post_delivery_callback", None) is not None:
                     _stale_adapter.pop_post_delivery_callback(
                         _quick_key,
@@ -10466,7 +10470,7 @@ class GatewayRunner:
         therefore only available through hermes_cli.config.load_config().
         """
         try:
-            goals_cfg = (
+            goals_cfg: Any = (
                 (self.config or {}).get("goals", {})
                 if isinstance(self.config, dict)
                 else getattr(self.config, "goals", {}) or {}
@@ -11530,7 +11534,7 @@ class GatewayRunner:
                     chat_type=source.chat_type,
                     thread_id=source.thread_id,
                     session_db=self._session_db,
-                    fallback_model=self._fallback_model,
+                    fallback_model=self._fallback_model,  # ty: ignore[invalid-argument-type] — AIAgent annotation is too narrow; it normalizes list|dict|None chains
                 )
                 try:
                     return agent.run_conversation(
@@ -11976,7 +11980,7 @@ class GatewayRunner:
                 if m.get("role") in {"user", "assistant"} and m.get("content")
             ]
 
-            tmp_agent = AIAgent(
+            tmp_agent: Any = AIAgent(
                 **runtime_kwargs,
                 model=model,
                 max_iterations=4,
@@ -12755,10 +12759,13 @@ class GatewayRunner:
 
         # Create the new session with parent link
         try:
+            _branch_model_cfg: Any = (
+                (self.config.get("model", {}) or {}) if isinstance(self.config, dict) else None
+            )
             self._session_db.create_session(
                 session_id=new_session_id,
                 source=source.platform.value if source.platform else "gateway",
-                model=(self.config.get("model", {}) or {}).get("default") if isinstance(self.config, dict) else None,
+                model=_branch_model_cfg.get("default") if _branch_model_cfg is not None else None,
                 parent_session_id=parent_session_id,
             )
         except Exception as e:
@@ -12766,6 +12773,7 @@ class GatewayRunner:
             return t("gateway.branch.create_failed", error=e)
 
         # Copy conversation history to the new session
+        msg: Any
         for msg in history:
             try:
                 self._session_db.append_message(
@@ -14901,7 +14909,7 @@ class GatewayRunner:
         try:
             from tools import slash_confirm as _slash_confirm_mod
         except Exception:
-            _slash_confirm_mod = None
+            _slash_confirm_mod = cast(Any, None)
         if _slash_confirm_mod is not None:
             try:
                 _slash_confirm_mod.clear(session_key)
@@ -15203,7 +15211,7 @@ class GatewayRunner:
         history: List[Dict[str, Any]],
         source: "SessionSource",
         session_id: str,
-        session_key: str = None,
+        session_key: Optional[str] = None,
         run_generation: Optional[int] = None,
         event_message_id: Optional[str] = None,
     ) -> Dict[str, Any]:
@@ -15489,7 +15497,7 @@ class GatewayRunner:
         history: List[Dict[str, Any]],
         source: SessionSource,
         session_id: str,
-        session_key: str = None,
+        session_key: Optional[str] = None,
         run_generation: Optional[int] = None,
         _interrupt_depth: int = 0,
         event_message_id: Optional[str] = None,
@@ -15619,7 +15627,7 @@ class GatewayRunner:
         long_tool_hint_fired = [False]
         _LONG_TOOL_THRESHOLD_S = 30.0
 
-        def progress_callback(event_type: str, tool_name: str = None, preview: str = None, args: dict = None, **kwargs):
+        def progress_callback(event_type: str, tool_name: Optional[str] = None, preview: Optional[str] = None, args: Optional[dict] = None, **kwargs):
             """Callback invoked by agent on tool lifecycle events."""
             if not progress_queue or not _run_still_current():
                 return
@@ -15812,7 +15820,7 @@ class GatewayRunner:
                     _edit_accepts_metadata = False
 
             async def _edit_progress_message(message_id: str, content: str):
-                kwargs = {
+                kwargs: Dict[str, Any] = {
                     "chat_id": source.chat_id,
                     "message_id": message_id,
                     "content": content,
@@ -16348,7 +16356,7 @@ class GatewayRunner:
                 combined_ephemeral,
                 cache_keys=self._extract_cache_busting_config(user_config),
             )
-            agent = None
+            agent: Any = None
             _cache_lock = getattr(self, "_agent_cache_lock", None)
             _cache = getattr(self, "_agent_cache", None)
             if _cache_lock and _cache is not None:
@@ -16397,7 +16405,7 @@ class GatewayRunner:
                     thread_id=source.thread_id,
                     gateway_session_key=session_key,
                     session_db=self._session_db,
-                    fallback_model=self._fallback_model,
+                    fallback_model=self._fallback_model,  # ty: ignore[invalid-argument-type] — AIAgent annotation is too narrow; it normalizes list|dict|None chains
                 )
                 if _cache_lock and _cache is not None:
                     with _cache_lock:

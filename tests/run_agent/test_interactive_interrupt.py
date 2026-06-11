@@ -86,7 +86,7 @@ def main() -> int:
     def logged_interrupt(self, message=None):
         log.info(f"🔴 parent.interrupt() called with: {message!r}")
         log.info(f"   _active_children count: {len(self._active_children)}")
-        _original_interrupt(self, message)
+        _original_interrupt(self, message)  # ty: ignore[invalid-argument-type]
         log.info(f"   After interrupt: _interrupt_requested={self._interrupt_requested}")
         for i, child in enumerate(self._active_children):
             log.info(f"   Child {i}._interrupt_requested={child._interrupt_requested}")

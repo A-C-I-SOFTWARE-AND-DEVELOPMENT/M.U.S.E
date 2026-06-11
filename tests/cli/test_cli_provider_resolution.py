@@ -3,6 +3,7 @@ import sys
 import types
 from contextlib import nullcontext
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -54,20 +55,21 @@ def _install_prompt_toolkit_stubs():
     class _ANSI(str):
         pass
 
-    root = types.ModuleType("prompt_toolkit")
-    history = types.ModuleType("prompt_toolkit.history")
-    styles = types.ModuleType("prompt_toolkit.styles")
-    patch_stdout = types.ModuleType("prompt_toolkit.patch_stdout")
-    application = types.ModuleType("prompt_toolkit.application")
-    layout = types.ModuleType("prompt_toolkit.layout")
-    processors = types.ModuleType("prompt_toolkit.layout.processors")
-    filters = types.ModuleType("prompt_toolkit.filters")
-    dimension = types.ModuleType("prompt_toolkit.layout.dimension")
-    menus = types.ModuleType("prompt_toolkit.layout.menus")
-    widgets = types.ModuleType("prompt_toolkit.widgets")
-    key_binding = types.ModuleType("prompt_toolkit.key_binding")
-    completion = types.ModuleType("prompt_toolkit.completion")
-    formatted_text = types.ModuleType("prompt_toolkit.formatted_text")
+    # Stub modules get arbitrary attributes assigned below; type as Any.
+    root: Any = types.ModuleType("prompt_toolkit")
+    history: Any = types.ModuleType("prompt_toolkit.history")
+    styles: Any = types.ModuleType("prompt_toolkit.styles")
+    patch_stdout: Any = types.ModuleType("prompt_toolkit.patch_stdout")
+    application: Any = types.ModuleType("prompt_toolkit.application")
+    layout: Any = types.ModuleType("prompt_toolkit.layout")
+    processors: Any = types.ModuleType("prompt_toolkit.layout.processors")
+    filters: Any = types.ModuleType("prompt_toolkit.filters")
+    dimension: Any = types.ModuleType("prompt_toolkit.layout.dimension")
+    menus: Any = types.ModuleType("prompt_toolkit.layout.menus")
+    widgets: Any = types.ModuleType("prompt_toolkit.widgets")
+    key_binding: Any = types.ModuleType("prompt_toolkit.key_binding")
+    completion: Any = types.ModuleType("prompt_toolkit.completion")
+    formatted_text: Any = types.ModuleType("prompt_toolkit.formatted_text")
 
     history.FileHistory = _Dummy
     styles.Style = _Dummy

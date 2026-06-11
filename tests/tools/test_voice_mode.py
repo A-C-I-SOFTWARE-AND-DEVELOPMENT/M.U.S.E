@@ -44,7 +44,7 @@ def mock_sd(monkeypatch):
     """Mock _import_audio to return (mock_sd, real_np) so lazy imports work."""
     mock = MagicMock()
     try:
-        import numpy as real_np
+        import numpy as real_np  # ty: ignore[unresolved-import]
     except ImportError:
         real_np = MagicMock()
 
@@ -1027,6 +1027,7 @@ class TestContinuousModeFlow:
             results.append(wav_path)
 
         assert all(r is not None for r in results)
+        assert results[-1] is not None
         assert os.path.isfile(results[-1])
 
 

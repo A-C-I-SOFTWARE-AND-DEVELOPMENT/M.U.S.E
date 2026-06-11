@@ -116,12 +116,15 @@ class TestVideoAnalyzeSchema:
 
     def test_schema_has_required_fields(self):
         params = VIDEO_ANALYZE_SCHEMA["parameters"]
+        assert isinstance(params, dict)
         assert "video_url" in params["properties"]
         assert "question" in params["properties"]
         assert params["required"] == ["video_url", "question"]
 
     def test_schema_description_mentions_video(self):
-        assert "video" in VIDEO_ANALYZE_SCHEMA["description"].lower()
+        desc = VIDEO_ANALYZE_SCHEMA["description"]
+        assert isinstance(desc, str)
+        assert "video" in desc.lower()
 
 
 # ---------------------------------------------------------------------------

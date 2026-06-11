@@ -25,7 +25,7 @@ import ssl
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from agent.anthropic_adapter import _is_oauth_token
 from agent.auxiliary_client import set_runtime_main
@@ -273,7 +273,7 @@ def run_conversation(
     system_message: Optional[str] = None,
     conversation_history: Optional[List[Dict[str, Any]]] = None,
     task_id: Optional[str] = None,
-    stream_callback: Optional[callable] = None,
+    stream_callback: Optional[Callable] = None,
     persist_user_message: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -629,7 +629,7 @@ def run_conversation(
     # entry (the model recovered).  At end-of-turn, any entries still
     # present are surfaced in an advisory footer so the model cannot
     # over-claim success while the file is actually unchanged on disk.
-    agent._turn_failed_file_mutations: Dict[str, Dict[str, Any]] = {}
+    agent._turn_failed_file_mutations = {}
     
     # Record the execution thread so interrupt()/clear_interrupt() can
     # scope the tool-level interrupt signal to THIS agent's thread only.
@@ -3146,7 +3146,8 @@ def run_conversation(
                     or interim_has_codex_reasoning
                     or interim_has_codex_message_items
                 ):
-                    last_msg = messages[-1] if messages else None
+                    _lm = messages[-1] if messages else None
+                    last_msg = _lm if isinstance(_lm, dict) else None
                     # Duplicate detection: two consecutive incomplete assistant
                     # messages with identical content AND reasoning are collapsed.
                     # For provider-state-only changes (encrypted reasoning
@@ -3154,12 +3155,12 @@ def run_conversation(
                     # while visible content/reasoning are unchanged), compare
                     # those opaque payloads too so we don't silently drop the
                     # newer continuation state.
-                    last_codex_items = last_msg.get("codex_reasoning_items") if isinstance(last_msg, dict) else None
+                    last_codex_items = last_msg.get("codex_reasoning_items") if last_msg is not None else None
                     interim_codex_items = interim_msg.get("codex_reasoning_items")
-                    last_codex_message_items = last_msg.get("codex_message_items") if isinstance(last_msg, dict) else None
+                    last_codex_message_items = last_msg.get("codex_message_items") if last_msg is not None else None
                     interim_codex_message_items = interim_msg.get("codex_message_items")
                     duplicate_interim = (
-                        isinstance(last_msg, dict)
+                        last_msg is not None
                         and last_msg.get("role") == "assistant"
                         and last_msg.get("finish_reason") == "incomplete"
                         and (last_msg.get("content") or "") == (interim_msg.get("content") or "")

@@ -5722,7 +5722,7 @@ def task_age(task: Task) -> dict:
     age_since_created = now - _c if _c is not None else None
     age_since_started = now - _s if _s is not None else None
     time_to_complete = (
-        _co - (_s or _c) if _co is not None else None
+        _co - (_s or _c) if _co is not None else None  # ty: ignore[unsupported-operator]  # created_at always set when completed
     )
     return {
         "created_age_seconds": age_since_created,

@@ -16,7 +16,13 @@ import json
 from pathlib import Path
 
 import pytest
+from typing import Any
 
+
+def _as_dict(value: object) -> "dict[str, Any]":
+    """Narrow a config value that must be a dict (fails the test otherwise)."""
+    assert isinstance(value, dict)
+    return value
 
 @pytest.fixture()
 def tmp_cron_dir(tmp_path, monkeypatch):
@@ -190,8 +196,8 @@ class TestCronjobToolWorkdir:
 
     def test_schema_advertises_workdir(self):
         from tools.cronjob_tools import CRONJOB_SCHEMA
-        assert "workdir" in CRONJOB_SCHEMA["parameters"]["properties"]
-        desc = CRONJOB_SCHEMA["parameters"]["properties"]["workdir"]["description"]
+        assert "workdir" in _as_dict(CRONJOB_SCHEMA["parameters"])["properties"]
+        desc = _as_dict(_as_dict(CRONJOB_SCHEMA["parameters"]["properties"])["workdir"])["description"]
         assert "absolute" in desc.lower()
 
 

@@ -4,12 +4,18 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from hermes_cli.tools_config import _configure_mcp_tools_interactive
+from typing import Any
 
 # Patch targets: imports happen inside the function body, so patch at source
 _PROBE = "tools.mcp_tool.probe_mcp_server_tools"
 _CHECKLIST = "hermes_cli.curses_ui.curses_checklist"
 _SAVE = "hermes_cli.tools_config.save_config"
 
+
+def _as_dict(value: object) -> "dict[str, Any]":
+    """Narrow a config value that must be a dict (fails the test otherwise)."""
+    assert isinstance(value, dict)
+    return value
 
 def test_no_mcp_servers_prints_info(capsys):
     """Returns immediately when no MCP servers are configured."""
@@ -89,7 +95,7 @@ def test_disabling_tool_writes_exclude_list(capsys):
 
     mock_save.assert_called_once()
     tools_cfg = config["mcp_servers"]["github"]["tools"]
-    assert tools_cfg["exclude"] == ["delete_repo"]
+    assert _as_dict(tools_cfg)["exclude"] == ["delete_repo"]
     assert "include" not in tools_cfg
 
 

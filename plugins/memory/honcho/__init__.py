@@ -580,7 +580,7 @@ class HonchoMemoryProvider(MemoryProvider):
             if self._base_context_cache is None:
                 # First call — synchronous fetch
                 try:
-                    ctx = self._manager.get_prefetch_context(self._session_key)
+                    ctx = self._manager.get_prefetch_context(self._session_key)  # ty: ignore[unresolved-attribute]  # set during initialize(); None access raises into the except below
                     self._base_context_cache = self._format_first_turn_context(ctx) if ctx else ""
                     self._last_context_turn = self._turn_count
                 except Exception as e:
@@ -1134,12 +1134,12 @@ class HonchoMemoryProvider(MemoryProvider):
 
         def _sync():
             try:
-                session = self._manager.get_or_create(self._session_key)
+                session = self._manager.get_or_create(self._session_key)  # ty: ignore[unresolved-attribute]  # set during initialize(); None access raises into the except below
                 for chunk in self._chunk_message(clean_user_content, msg_limit):
                     session.add_message("user", chunk)
                 for chunk in self._chunk_message(clean_assistant_content, msg_limit):
                     session.add_message("assistant", chunk)
-                self._manager._flush_session(session)
+                self._manager._flush_session(session)  # ty: ignore[unresolved-attribute]
             except Exception as e:
                 logger.debug("Honcho sync_turn failed: %s", e)
 
@@ -1173,7 +1173,7 @@ class HonchoMemoryProvider(MemoryProvider):
 
         def _write():
             try:
-                self._manager.create_conclusion(self._session_key, content)
+                self._manager.create_conclusion(self._session_key, content)  # ty: ignore[unresolved-attribute]  # guarded above before spawning the thread
             except Exception as e:
                 logger.debug("Honcho memory mirror failed: %s", e)
 

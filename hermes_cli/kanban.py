@@ -81,7 +81,7 @@ def _task_to_dict(t: kb.Task) -> dict[str, Any]:
     }
 
 
-def _run_state_kwargs(args: argparse.Namespace) -> Optional[dict[str, str]]:
+def _run_state_kwargs(args: argparse.Namespace) -> Optional[dict[str, Any]]:
     st = getattr(args, "state_type", None)
     sn = getattr(args, "state_name", None)
     if (st is None) != (sn is None):
@@ -1307,6 +1307,7 @@ def _cmd_create(args: argparse.Namespace) -> int:
             initial_status=getattr(args, "initial_status", "running"),
         )
         task = kb.get_task(conn, task_id)
+        assert task is not None  # just created above
     if getattr(args, "json", False):
         print(json.dumps(_task_to_dict(task), indent=2, ensure_ascii=False))
     else:
