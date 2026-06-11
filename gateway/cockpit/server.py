@@ -29,6 +29,7 @@ from urllib.parse import parse_qs, urlsplit
 from gateway.cockpit import auth as cockpit_auth
 from gateway.cockpit import event_log
 from gateway.cockpit import handlers as h
+from gateway.cockpit import handlers_game as h_game
 from gateway.cockpit import handlers_observatory_recs as h_recs
 from gateway.cockpit.agent import jarvis_responder
 from gateway.jarvis_local_http import (
@@ -168,6 +169,23 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     # (POST /v1/cockpit/approvals/{id}), where Apply's owner gate lives.
     ("GET", _compile("/v1/observatory/recommendations"), h_recs.observatory_recommendations, True),
     ("POST", _compile("/v1/observatory/recommendations/{id}/stage"), h_recs.observatory_recommendation_stage, True),
+    # SYNAPSE game substrate (master plan §4; additive per the §1 coupling
+    # rule). Bearer-authed CRUD over local save/Foundry state — no owner
+    # phrase: nothing here flips a real MUSE capability. Literal "/design"
+    # and "/saves" precede the "{slot}" capture (first-match dispatch).
+    ("GET", _compile("/v1/game/design"), h_game.game_design, True),
+    ("GET", _compile("/v1/game/saves"), h_game.game_saves_list, True),
+    ("GET", _compile("/v1/game/saves/{slot}"), h_game.game_save_get, True),
+    ("POST", _compile("/v1/game/saves/{slot}"), h_game.game_save_write, True),
+    ("DELETE", _compile("/v1/game/saves/{slot}"), h_game.game_save_delete, True),
+    # The Foundry loop spine (master plan §4.7, docs/synapse/design/09-
+    # foundry-spec.md): observe -> candidate -> recorded validation -> ship.
+    # The gateway stores honest results only; it never simulates.
+    ("POST", _compile("/v1/foundry/observe"), h_game.foundry_observe, True),
+    ("GET", _compile("/v1/foundry/candidates"), h_game.foundry_candidates_list, True),
+    ("POST", _compile("/v1/foundry/candidates"), h_game.foundry_candidate_create, True),
+    ("POST", _compile("/v1/foundry/candidates/{id}/validation"), h_game.foundry_candidate_validation, True),
+    ("POST", _compile("/v1/foundry/candidates/{id}/ship"), h_game.foundry_candidate_ship, True),
 ]
 
 
