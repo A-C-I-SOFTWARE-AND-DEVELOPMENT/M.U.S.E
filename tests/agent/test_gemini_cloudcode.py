@@ -283,7 +283,7 @@ class TestGetValidAccessToken:
     def _save(self, **over):
         from agent.google_oauth import GoogleCredentials, save_credentials
 
-        defaults = {
+        defaults: dict = {
             "access_token": "at",
             "refresh_token": "rt",
             "expires_ms": int((time.time() + 3600) * 1000),

@@ -1505,7 +1505,7 @@ class TestTokenBudgetTailProtection:
         NOT prevent compaction.  With message-count tail protection they would
         all be protected, leaving nothing to summarize."""
         c = budget_compressor
-        messages = [
+        messages: list[dict] = [
             {"role": "user", "content": "Start task"},
             {"role": "assistant", "content": "On it"},
         ]

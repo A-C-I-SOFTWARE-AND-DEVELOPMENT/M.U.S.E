@@ -1190,12 +1190,12 @@ def cmd_migrate(args) -> None:
                     client = get_honcho_client(hcfg)
                     mgr = HonchoSessionManager(honcho=client, config=hcfg)
                     session_key = hcfg.resolve_session_name()
-                    mgr.get_or_create(session_key)
+                    mgr.get_or_create(session_key)  # ty: ignore[invalid-argument-type]  # resolve_session_name() is non-None for CLI configs
                     # Upload from each directory that had user files
                     dirs_with_files = set(str(f.parent) for f in user_files)
                     any_uploaded = False
                     for d in dirs_with_files:
-                        if mgr.migrate_memory_files(session_key, d):
+                        if mgr.migrate_memory_files(session_key, d):  # ty: ignore[invalid-argument-type]
                             any_uploaded = True
                     if any_uploaded:
                         print(f"  Uploaded user memory files from: {', '.join(dirs_with_files)}")
@@ -1240,11 +1240,11 @@ def cmd_migrate(args) -> None:
                     client = get_honcho_client(hcfg)
                     mgr = HonchoSessionManager(honcho=client, config=hcfg)
                     session_key = hcfg.resolve_session_name()
-                    mgr.get_or_create(session_key)
+                    mgr.get_or_create(session_key)  # ty: ignore[invalid-argument-type]  # resolve_session_name() is non-None for CLI configs
                     for f in agent_files:
                         content = f.read_text(encoding="utf-8").strip()
                         if content:
-                            ok = mgr.seed_ai_identity(session_key, content, source=f.name)
+                            ok = mgr.seed_ai_identity(session_key, content, source=f.name)  # ty: ignore[invalid-argument-type]
                             status = "seeded" if ok else "failed"
                             print(f"    {f.name}: {status}")
                 except Exception as e:

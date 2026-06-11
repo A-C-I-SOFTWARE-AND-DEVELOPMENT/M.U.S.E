@@ -87,7 +87,7 @@ class TestStreamingAccumulator:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -129,7 +129,7 @@ class TestStreamingAccumulator:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -176,7 +176,7 @@ class TestStreamingAccumulator:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -224,7 +224,7 @@ class TestStreamingAccumulator:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -264,7 +264,7 @@ class TestStreamingAccumulator:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -307,7 +307,7 @@ class TestStreamingCallbacks:
             skip_memory=True,
             stream_delta_callback=lambda t: deltas.append(t),
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         agent._interruptible_streaming_api_call({})
@@ -340,7 +340,7 @@ class TestStreamingCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         agent._interruptible_streaming_api_call(
@@ -373,7 +373,7 @@ class TestStreamingCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         touch_calls = []
@@ -414,7 +414,7 @@ class TestStreamingCallbacks:
             skip_memory=True,
             stream_delta_callback=lambda t: deltas.append(t),
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         agent._interruptible_streaming_api_call({})
@@ -451,7 +451,7 @@ class TestStreamingCallbacks:
             skip_memory=True,
             stream_delta_callback=lambda t: deltas.append(t),
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -499,7 +499,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(Exception, match="Streaming is not supported"):
@@ -528,7 +528,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(Exception, match="Connection reset by peer"):
@@ -552,7 +552,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(Exception, match="stream broke"):
@@ -577,7 +577,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(httpx.ConnectError, match="socket closed"):
@@ -621,7 +621,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(OAIAPIError):
@@ -658,7 +658,7 @@ class TestStreamingFallback:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         with pytest.raises(OAIAPIError):
@@ -704,7 +704,7 @@ class TestReasoningStreaming:
             stream_delta_callback=lambda t: text_deltas.append(t),
             reasoning_callback=lambda t: reasoning_deltas.append(t),
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         response = agent._interruptible_streaming_api_call({})
@@ -756,7 +756,7 @@ class TestHasStreamConsumers:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent._stream_callback = lambda t: None  # ty: ignore[unresolved-attribute]
+        agent._stream_callback = lambda t: None
         assert agent._has_stream_consumers() is True
 
 
@@ -780,7 +780,7 @@ class TestCodexStreamCallbacks:
             skip_memory=True,
             stream_delta_callback=lambda t: deltas.append(t),
         )
-        agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "codex_responses"
         agent._interrupt_requested = False
 
         # Mock the stream context manager
@@ -822,7 +822,7 @@ class TestCodexStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "codex_responses"
         agent._interrupt_requested = False
 
         touch_calls = []
@@ -887,7 +887,7 @@ class TestCodexStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "codex_responses"
         agent._interrupt_requested = False
 
         with patch.object(agent, "_run_codex_create_stream_fallback", return_value=fallback_response) as mock_fallback:
@@ -907,7 +907,7 @@ class TestCodexStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "codex_responses"
 
         touch_calls = []
         agent._touch_activity = lambda desc: touch_calls.append(desc)  # ty: ignore[invalid-assignment]
@@ -960,7 +960,7 @@ class TestAnthropicStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "anthropic_messages"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "anthropic_messages"
         agent._interrupt_requested = False
 
         touch_calls = []
@@ -1015,7 +1015,7 @@ class TestAnthropicStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "anthropic_messages"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "anthropic_messages"
         agent._interrupt_requested = False
         monkeypatch.setenv("HERMES_STREAM_RETRIES", "1")
 
@@ -1066,7 +1066,7 @@ class TestAnthropicStreamCallbacks:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "anthropic_messages"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "anthropic_messages"
         agent._interrupt_requested = False
         monkeypatch.setenv("HERMES_STREAM_RETRIES", "1")
 
@@ -1131,7 +1131,7 @@ class TestPartialToolCallWarning:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         fired_deltas: list = []
@@ -1192,7 +1192,7 @@ class TestPartialToolCallWarning:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
         agent._current_streamed_assistant_text = "Here's my answer so far"
 
@@ -1278,7 +1278,7 @@ class TestSilentRetryMidToolCall:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         fired_deltas: list = []
@@ -1352,7 +1352,7 @@ class TestSilentRetryMidToolCall:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
 
         fired_deltas: list = []
@@ -1410,7 +1410,7 @@ class TestSilentRetryMidToolCall:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
         agent._interrupt_requested = False
         agent._current_streamed_assistant_text = "Here's my answer so far"
 
@@ -1474,7 +1474,7 @@ def _make_acp_agent(provider="copilot-acp", base_url="acp://copilot"):
         skip_memory=True,
         stream_delta_callback=lambda text: None,
     )
-    agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+    agent.api_mode = "chat_completions"
     agent._interrupt_requested = False
     return agent
 
@@ -1573,13 +1573,13 @@ class TestCopilotACPStreamingDecision:
             skip_memory=True,
             stream_delta_callback=lambda text: None,
         )
-        agent.api_mode = "chat_completions"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "chat_completions"
 
         _use_streaming = True
         if getattr(agent, "_disable_streaming", False):
             _use_streaming = False
         elif (
-            agent.provider == "copilot-acp"  # ty: ignore[unresolved-attribute]
+            agent.provider == "copilot-acp"
             or str(agent.base_url or "").lower().startswith("acp://copilot")
             or str(agent.base_url or "").lower().startswith("acp+tcp://")
         ):
@@ -1613,7 +1613,7 @@ class TestCodexFallbackErrorEvent:
             skip_context_files=True,
             skip_memory=True,
         )
-        agent.api_mode = "codex_responses"  # ty: ignore[unresolved-attribute]
+        agent.api_mode = "codex_responses"
         agent._touch_activity = lambda desc: None  # ty: ignore[invalid-assignment]
         return agent
 

@@ -845,7 +845,7 @@ def _coerce_statusbar(raw) -> str:
     return "top"
 
 
-def _display_mouse_tracking(display: dict) -> bool:
+def _display_mouse_tracking(display: dict | None) -> bool:
     """Return canonical display.mouse_tracking with legacy tui_mouse fallback."""
     if not isinstance(display, dict):
         return True
@@ -1745,7 +1745,7 @@ def _validate_personality(value: str, cfg: dict | None = None) -> tuple[str, str
 
 
 def _apply_personality_to_session(
-    sid: str, session: dict, new_prompt: str
+    sid: str, session: dict | None, new_prompt: str
 ) -> tuple[bool, dict | None]:
     """Apply a personality change to an existing session without resetting history.
 
@@ -3938,14 +3938,12 @@ def _(rid, params: dict) -> dict:
             arg = str(value or "").strip().lower()
             if arg in {"show", "on"}:
                 cfg = _load_cfg()
-                display = (
-                    cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-                )
-                sections = (
-                    display.get("sections")
-                    if isinstance(display.get("sections"), dict)
-                    else {}
-                )
+                display = cfg.get("display")
+                if not isinstance(display, dict):
+                    display = {}
+                sections = display.get("sections")
+                if not isinstance(sections, dict):
+                    sections = {}
                 display["show_reasoning"] = True
                 sections["thinking"] = "expanded"
                 display["sections"] = sections
@@ -3956,14 +3954,12 @@ def _(rid, params: dict) -> dict:
                 return _ok(rid, {"key": key, "value": "show"})
             if arg in {"hide", "off"}:
                 cfg = _load_cfg()
-                display = (
-                    cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-                )
-                sections = (
-                    display.get("sections")
-                    if isinstance(display.get("sections"), dict)
-                    else {}
-                )
+                display = cfg.get("display")
+                if not isinstance(display, dict):
+                    display = {}
+                sections = display.get("sections")
+                if not isinstance(sections, dict):
+                    sections = {}
                 display["show_reasoning"] = False
                 sections["thinking"] = "hidden"
                 display["sections"] = sections
@@ -3988,10 +3984,12 @@ def _(rid, params: dict) -> dict:
         if nv not in _DETAIL_MODES:
             return _err(rid, 4002, f"unknown details_mode: {value}")
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-        sections = (
-            display.get("sections") if isinstance(display.get("sections"), dict) else {}
-        )
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
+        sections = display.get("sections")
+        if not isinstance(sections, dict):
+            sections = {}
         display["details_mode"] = nv
         for section in _DETAIL_SECTION_NAMES:
             sections[section] = nv
@@ -4010,10 +4008,12 @@ def _(rid, params: dict) -> dict:
             return _err(rid, 4002, f"unknown section: {section}")
 
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-        sections_cfg = (
-            display.get("sections") if isinstance(display.get("sections"), dict) else {}
-        )
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
+        sections_cfg = display.get("sections")
+        if not isinstance(sections_cfg, dict):
+            sections_cfg = {}
 
         nv = str(value or "").strip().lower()
         if not nv:
@@ -4047,7 +4047,9 @@ def _(rid, params: dict) -> dict:
     if key == "compact":
         raw = str(value or "").strip().lower()
         cfg0 = _load_cfg()
-        d0 = cfg0.get("display") if isinstance(cfg0.get("display"), dict) else {}
+        d0 = cfg0.get("display")
+        if not isinstance(d0, dict):
+            d0 = {}
         cur_b = bool(d0.get("tui_compact", False))
         if raw in {"", "toggle"}:
             nv_b = not cur_b
@@ -4081,7 +4083,9 @@ def _(rid, params: dict) -> dict:
     if key == "mouse":
         raw = str(value or "").strip().lower()
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
         current = _display_mouse_tracking(display)
 
         if raw in {"", "toggle"}:
@@ -5587,7 +5591,7 @@ def _(rid, params: dict) -> dict:
             plugin_handler = get_plugin_command_handler(_cmd_base)
         except Exception:
             plugin_handler = None
-            resolve_plugin_command_result = None
+            resolve_plugin_command_result = None  # ty: ignore[invalid-assignment]
 
     if plugin_handler and resolve_plugin_command_result:
         try:

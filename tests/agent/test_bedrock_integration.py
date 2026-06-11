@@ -183,7 +183,7 @@ class TestRuntimeProvider:
              patch("hermes_cli.runtime_provider.resolve_requested_provider", return_value="auto"), \
              patch.dict("sys.modules", {"botocore": MagicMock(), "botocore.session": MagicMock()}):
             import botocore.session as _bs
-            _bs.get_session = MagicMock(return_value=mock_session)
+            _bs.get_session = MagicMock(return_value=mock_session)  # ty: ignore[invalid-assignment]
             with pytest.raises(AuthError, match="No AWS credentials"):
                 resolve_runtime_provider(requested="auto")
 
@@ -305,7 +305,7 @@ class TestBedrockPreserveDotsFlag:
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="bedrock", base_url="")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_bedrock_runtime_us_east_1_url_preserves_dots(self):
         """Defense-in-depth: even without an explicit ``provider="bedrock"``,
@@ -317,7 +317,7 @@ class TestBedrockPreserveDotsFlag:
             base_url="https://bedrock-runtime.us-east-1.amazonaws.com",
         )
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_bedrock_runtime_ap_northeast_2_url_preserves_dots(self):
         """Reporter-reported region (ap-northeast-2) exercises the same
@@ -328,7 +328,7 @@ class TestBedrockPreserveDotsFlag:
             base_url="https://bedrock-runtime.ap-northeast-2.amazonaws.com",
         )
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_non_bedrock_aws_url_does_not_preserve_dots(self):
         """Unrelated AWS endpoints (e.g. ``s3.us-east-1.amazonaws.com``)
@@ -341,7 +341,7 @@ class TestBedrockPreserveDotsFlag:
             base_url="https://s3.us-east-1.amazonaws.com",
         )
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is False
+        assert AIAgent._anthropic_preserve_dots(agent) is False  # ty: ignore[invalid-argument-type]
 
     def test_anthropic_native_still_does_not_preserve_dots(self):
         """Canary: adding Bedrock to the allowlist must not weaken the
@@ -350,7 +350,7 @@ class TestBedrockPreserveDotsFlag:
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="anthropic", base_url="https://api.anthropic.com")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is False
+        assert AIAgent._anthropic_preserve_dots(agent) is False  # ty: ignore[invalid-argument-type]
 
 
 class TestBedrockModelNameNormalization:
@@ -566,6 +566,7 @@ class TestAuxiliaryClientBedrockResolution:
                 "bedrock", "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
             )
 
+        assert model is not None
         assert "claude-sonnet" in model
 
     def test_bedrock_async_mode(self, monkeypatch):
@@ -591,4 +592,5 @@ class TestAuxiliaryClientBedrockResolution:
             from agent.auxiliary_client import resolve_provider_client
             _, model = resolve_provider_client("bedrock", None)
 
+        assert model is not None
         assert "haiku" in model.lower()

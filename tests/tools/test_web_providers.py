@@ -327,7 +327,7 @@ class TestUnconfiguredErrorEnvelopeParity:
         monkeypatch.setattr(web_tools, "_firecrawl_client_config", None, raising=False)
         monkeypatch.setattr(web_tools, "_load_web_config", lambda: {})
 
-        result = json.loads(asyncio.run(web_tools.web_crawl_tool("https://example.com", use_llm_processing=False)))  # ty: ignore[missing-argument]
+        result = json.loads(asyncio.run(web_tools.web_crawl_tool("https://example.com", use_llm_processing=False)))
         assert result.get("success") is False
         assert "error" in result, f"expected top-level 'error' key, got {result}"
         assert "web_crawl requires Firecrawl" in result["error"]

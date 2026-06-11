@@ -250,55 +250,55 @@ class TestMinimaxPreserveDots:
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="minimax", base_url="")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_minimax_cn_provider_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="minimax-cn", base_url="")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_minimax_url_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="custom", base_url="https://api.minimax.io/anthropic")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_minimax_cn_url_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="custom", base_url="https://api.minimaxi.com/anthropic")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_anthropic_does_not_preserve_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="anthropic", base_url="https://api.anthropic.com")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is False
+        assert AIAgent._anthropic_preserve_dots(agent) is False  # ty: ignore[invalid-argument-type]
 
     def test_opencode_zen_provider_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="opencode-zen", base_url="")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_opencode_zen_url_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="custom", base_url="https://opencode.ai/zen/v1")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_zai_provider_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="zai", base_url="")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_bigmodel_cn_url_preserves_dots(self):
         from types import SimpleNamespace
         agent = SimpleNamespace(provider="custom", base_url="https://open.bigmodel.cn/api/paas/v4")
         from run_agent import AIAgent
-        assert AIAgent._anthropic_preserve_dots(agent) is True
+        assert AIAgent._anthropic_preserve_dots(agent) is True  # ty: ignore[invalid-argument-type]
 
     def test_normalize_preserves_m25_free_dot(self):
         from agent.anthropic_adapter import normalize_model_name

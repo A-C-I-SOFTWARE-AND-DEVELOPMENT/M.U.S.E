@@ -34,7 +34,7 @@ class StubEngine(ContextEngine):
         tokens = prompt_tokens if prompt_tokens is not None else self.last_prompt_tokens
         return tokens >= self.threshold_tokens
 
-    def compress(self, messages: List[Dict[str, Any]], current_tokens: int | None = None) -> List[Dict[str, Any]]:
+    def compress(self, messages: List[Dict[str, Any]], current_tokens: int | None = None, focus_topic: str | None = None) -> List[Dict[str, Any]]:
         self._compress_called = True
         self.compression_count += 1
         # Trivial: just return as-is

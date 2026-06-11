@@ -3155,19 +3155,21 @@ def run_conversation(
                     # while visible content/reasoning are unchanged), compare
                     # those opaque payloads too so we don't silently drop the
                     # newer continuation state.
-                    last_codex_items = last_msg.get("codex_reasoning_items") if last_msg is not None else None
                     interim_codex_items = interim_msg.get("codex_reasoning_items")
-                    last_codex_message_items = last_msg.get("codex_message_items") if last_msg is not None else None
                     interim_codex_message_items = interim_msg.get("codex_message_items")
-                    duplicate_interim = (
-                        last_msg is not None
-                        and last_msg.get("role") == "assistant"
-                        and last_msg.get("finish_reason") == "incomplete"
-                        and (last_msg.get("content") or "") == (interim_msg.get("content") or "")
-                        and (last_msg.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
-                        and last_codex_items == interim_codex_items
-                        and last_codex_message_items == interim_codex_message_items
-                    )
+                    if last_msg is not None:
+                        last_codex_items = last_msg.get("codex_reasoning_items")
+                        last_codex_message_items = last_msg.get("codex_message_items")
+                        duplicate_interim = (
+                            last_msg.get("role") == "assistant"
+                            and last_msg.get("finish_reason") == "incomplete"
+                            and (last_msg.get("content") or "") == (interim_msg.get("content") or "")
+                            and (last_msg.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
+                            and last_codex_items == interim_codex_items
+                            and last_codex_message_items == interim_codex_message_items
+                        )
+                    else:
+                        duplicate_interim = False
                     if not duplicate_interim:
                         messages.append(interim_msg)
                         agent._emit_interim_assistant_message(interim_msg)
