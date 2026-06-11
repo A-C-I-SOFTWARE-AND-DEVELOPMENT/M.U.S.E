@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from nacl.signing import SigningKey
+from nacl.signing import SigningKey  # ty: ignore[unresolved-import]
 
 from axiom.core.canonical import Unit
 from axiom.core.contracts import PostconditionViolation, SpecError, parse_ears
@@ -81,7 +81,7 @@ def c2f_unit() -> Unit:
 
 def test_name_change_preserves_hash():
     a = c2f_unit()
-    b = Unit(**{**a.__dict__, "name": "renamed", "doc": "different doc"})
+    b = Unit(**{**a.__dict__, "name": "renamed", "doc": "different doc"})  # ty: ignore[invalid-argument-type]
     assert a.unit_hash() == b.unit_hash()
 
 
@@ -310,7 +310,8 @@ def test_map_elites_keeps_one_per_niche():
     assert archive.add("c", fitness=0.5, descriptor=(0.1, 0.1)) is False  # loses
     assert archive.add("d", fitness=0.1, descriptor=(0.9, 0.9)) is True  # new niche
     assert len(archive.elites()) == 2
-    assert archive.elite_at((0.1, 0.1)).candidate_id == "b"
+    elite = archive.elite_at((0.1, 0.1))
+    assert elite is not None and elite.candidate_id == "b"
     assert archive.coverage == pytest.approx(2 / 16)
 
 

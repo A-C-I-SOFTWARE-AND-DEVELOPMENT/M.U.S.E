@@ -807,7 +807,7 @@ def web_search_tool(query: str, limit: int = 5) -> str:
             provider = get_active_search_provider()
 
         if provider is None:
-            response_data = {
+            response_data: Dict[str, Any] = {
                 "success": False,
                 "error": (
                     "No web search provider configured. "
@@ -841,7 +841,7 @@ def web_search_tool(query: str, limit: int = 5) -> str:
 
 async def web_extract_tool(
     urls: List[str],
-    format: str = None,
+    format: Optional[str] = None,
     use_llm_processing: bool = True,
     model: Optional[str] = None,
     min_length: int = DEFAULT_MIN_LENGTH_FOR_SUMMARIZATION
@@ -1150,7 +1150,7 @@ async def web_crawl_tool(
     Raises:
         Exception: If crawling fails or API key is not set
     """
-    debug_call_data = {
+    debug_call_data: Dict[str, Any] = {
         "parameters": {
             "url": url,
             "instructions": instructions,

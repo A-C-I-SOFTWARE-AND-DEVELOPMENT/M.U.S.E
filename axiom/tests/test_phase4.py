@@ -10,7 +10,7 @@ import asyncio
 import json
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client  # ty: ignore[unresolved-import]
 
 from axiom.core.ledger import Ledger
 from axiom.core.registry import Registry

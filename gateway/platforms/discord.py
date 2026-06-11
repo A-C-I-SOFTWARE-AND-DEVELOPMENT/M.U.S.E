@@ -2691,6 +2691,7 @@ class DiscordAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send an arbitrary file natively as a Discord attachment."""
         try:
@@ -4181,7 +4182,7 @@ class DiscordAdapter(BasePlatformAdapter):
         if not self._client or not DISCORD_AVAILABLE:
             return SendResult(success=False, error="Not connected")
         try:
-            target_id = metadata.get("thread_id") if metadata and metadata.get("thread_id") else chat_id
+            target_id = (metadata or {}).get("thread_id") or chat_id
             channel = self._client.get_channel(int(target_id))
             if not channel:
                 channel = await self._client.fetch_channel(int(target_id))
@@ -4517,6 +4518,7 @@ class DiscordAdapter(BasePlatformAdapter):
             # a thread.
             in_bot_thread = (
                 is_thread
+                and thread_id is not None  # always true when is_thread; narrows for the type checker
                 and thread_id in self._threads
                 and not self._discord_thread_require_mention()
             )
@@ -4843,12 +4845,12 @@ class DiscordAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute] — ad-hoc batching attr, not a MessageEvent dataclass field
             self._pending_text_batches[key] = event
         else:
             if event.text:
                 existing.text = f"{existing.text}\n{event.text}" if existing.text else event.text
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute] — ad-hoc batching attr, not a MessageEvent dataclass field
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
                 existing.media_types.extend(event.media_types)
