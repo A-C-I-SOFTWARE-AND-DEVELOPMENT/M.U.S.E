@@ -127,9 +127,13 @@ class TestModalBulkUpload:
             assert "root/.hermes/skills/b.py" in names
 
             # Verify content
-            a_content = tar.extractfile("root/.hermes/credentials/a.json").read()
+            a_file = tar.extractfile("root/.hermes/credentials/a.json")
+            assert a_file is not None
+            a_content = a_file.read()
             assert a_content == b"cred_content"
-            b_content = tar.extractfile("root/.hermes/skills/b.py").read()
+            b_file = tar.extractfile("root/.hermes/skills/b.py")
+            assert b_file is not None
+            b_content = b_file.read()
             assert b_content == b"skill_content"
 
         # Verify stdin was closed

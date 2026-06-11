@@ -1709,8 +1709,10 @@ class TestMatrixReactions:
         mock_client.send_message_event.assert_called_once()
         call_args = mock_client.send_message_event.call_args
         content = call_args.args[2] if len(call_args.args) > 2 else call_args.kwargs.get("content")
+        assert content is not None
         assert content["m.relates_to"] is not None
-        assert content["m.relates_to"]["rel_type"] == "m.annotation"
+        assert content["m.relates_to"]["rel_type"] == "m.annotation"  # ty: ignore[not-subscriptable]
+        assert content["m.relates_to"] is not None
         assert content["m.relates_to"]["key"] == "\U0001f44d"
 
     @pytest.mark.asyncio

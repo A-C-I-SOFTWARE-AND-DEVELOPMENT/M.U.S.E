@@ -125,6 +125,8 @@ class _StubPiperVoice:
 
     loaded: list[str] = []
     calls: list[tuple] = []
+    model_path: str
+    use_cuda: bool
 
     @classmethod
     def load(cls, model_path, use_cuda=False):

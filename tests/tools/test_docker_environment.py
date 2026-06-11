@@ -42,7 +42,7 @@ def _make_dummy_env(**kwargs):
         task_id=kwargs.get("task_id", "test-task"),
         volumes=kwargs.get("volumes", []),
         network=kwargs.get("network", True),
-        host_cwd=kwargs.get("host_cwd"),
+        host_cwd=kwargs.get("host_cwd"),  # ty: ignore[invalid-argument-type]
         auto_mount_cwd=kwargs.get("auto_mount_cwd", False),
         env=kwargs.get("env"),
         run_as_host_user=kwargs.get("run_as_host_user", False),
@@ -370,9 +370,9 @@ def test_normalize_env_dict_coerces_scalars():
 
 def test_normalize_env_dict_rejects_non_dict():
     """_normalize_env_dict should return empty dict for non-dict input."""
-    assert docker_env._normalize_env_dict("not a dict") == {}
+    assert docker_env._normalize_env_dict("not a dict") == {}  # ty: ignore[invalid-argument-type]
     assert docker_env._normalize_env_dict(None) == {}
-    assert docker_env._normalize_env_dict([]) == {}
+    assert docker_env._normalize_env_dict([]) == {}  # ty: ignore[invalid-argument-type]
 
 
 def test_normalize_env_dict_rejects_complex_values():

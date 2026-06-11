@@ -199,7 +199,7 @@ def _translate_tools_to_gemini(tools: Any) -> List[Dict[str, Any]]:
         name = fn.get("name")
         if not name:
             continue
-        decl = {"name": str(name)}
+        decl: Dict[str, Any] = {"name": str(name)}
         if fn.get("description"):
             decl["description"] = str(fn["description"])
         params = fn.get("parameters")
@@ -326,7 +326,8 @@ def _translate_gemini_response(
     Code Assist wraps the actual Gemini response inside ``response``, so we
     unwrap it first if present.
     """
-    inner = resp.get("response") if isinstance(resp.get("response"), dict) else resp
+    _wrapped = resp.get("response")
+    inner = _wrapped if isinstance(_wrapped, dict) else resp
 
     candidates = inner.get("candidates") or []
     if not isinstance(candidates, list) or not candidates:
@@ -519,7 +520,8 @@ def _translate_stream_event(
     whenever the model issues parallel calls to the same tool (e.g. reading
     three files in one turn).
     """
-    inner = event.get("response") if isinstance(event.get("response"), dict) else event
+    _wrapped_event = event.get("response")
+    inner = _wrapped_event if isinstance(_wrapped_event, dict) else event
     candidates = inner.get("candidates") or []
     if not candidates:
         return []

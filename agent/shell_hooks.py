@@ -73,7 +73,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple
 try:
     import fcntl  # POSIX only; Windows falls back to best-effort without flock.
 except ImportError:  # pragma: no cover
-    fcntl = None  # type: ignore[assignment]
+    fcntl = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional stdlib module on non-POSIX
 
 from hermes_constants import get_hermes_home
 from utils import atomic_replace

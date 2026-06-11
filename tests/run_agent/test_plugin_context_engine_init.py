@@ -22,7 +22,7 @@ class _StubEngine(ContextEngine):
     def should_compress(self, prompt_tokens=None):
         return False
 
-    def compress(self, messages, current_tokens=None):
+    def compress(self, messages, current_tokens=None):  # ty: ignore[invalid-method-override]
         return messages
 
 
@@ -51,7 +51,7 @@ def test_plugin_engine_gets_context_length_on_init():
             skip_memory=True,
         )
 
-    assert agent.context_compressor is engine
+    assert agent.context_compressor is engine  # ty: ignore[unresolved-attribute]
     assert engine.context_length == 204_800
     assert engine.threshold_tokens == int(204_800 * engine.threshold_percent)
 
@@ -59,7 +59,7 @@ def test_plugin_engine_gets_context_length_on_init():
 def test_plugin_engine_update_model_args():
     """Verify update_model() receives model, context_length, base_url, api_key, provider."""
     engine = _StubEngine()
-    engine.update_model = MagicMock()
+    engine.update_model = MagicMock()  # ty: ignore[invalid-assignment]
 
     cfg = {"context": {"engine": "stub"}, "agent": {}}
 
@@ -82,8 +82,8 @@ def test_plugin_engine_update_model_args():
             skip_memory=True,
         )
 
-    engine.update_model.assert_called_once()
-    kw = engine.update_model.call_args.kwargs
+    engine.update_model.assert_called_once()  # ty: ignore[unresolved-attribute]
+    kw = engine.update_model.call_args.kwargs  # ty: ignore[unresolved-attribute]
     assert kw["context_length"] == 131_072
     assert "model" in kw
     assert "provider" in kw

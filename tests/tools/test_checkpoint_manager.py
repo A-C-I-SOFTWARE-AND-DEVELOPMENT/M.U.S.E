@@ -945,7 +945,7 @@ class TestMaybeAutoPruneCheckpoints:
         assert out["skipped"] is False
         result = out["result"]
         assert isinstance(result, dict)
-        assert result["deleted_orphan"] == 1
+        assert result["deleted_orphan"] == 1  # ty: ignore[invalid-argument-type]
         assert (base / ".last_prune").exists()
 
     def test_second_call_within_interval_skips(self, tmp_path):
@@ -974,7 +974,7 @@ class TestMaybeAutoPruneCheckpoints:
         assert out["skipped"] is False
         result = out["result"]
         assert isinstance(result, dict)
-        assert result["deleted_orphan"] == 1
+        assert result["deleted_orphan"] == 1  # ty: ignore[invalid-argument-type]
 
     def test_missing_base_no_raise(self, tmp_path):
         out = maybe_auto_prune_checkpoints(
@@ -983,7 +983,7 @@ class TestMaybeAutoPruneCheckpoints:
         assert out["skipped"] is False
         result = out["result"]
         assert isinstance(result, dict)
-        assert result["scanned"] == 0
+        assert result["scanned"] == 0  # ty: ignore[invalid-argument-type]
 
 
 # =========================================================================

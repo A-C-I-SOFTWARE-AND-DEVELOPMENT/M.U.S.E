@@ -699,8 +699,9 @@ class TestExtractMessagePayload:
             "space_name": "spaces/RELAY",
             "message_name": "spaces/RELAY/messages/M.M",
         }
-        assert GoogleChatAdapter._extract_message_payload is not None
-        msg, _space, _fmt = GoogleChatAdapter._extract_message_payload(envelope_lower)
+        extracted = GoogleChatAdapter._extract_message_payload(envelope_lower)
+        assert extracted is not None
+        msg, _space, _fmt = extracted
         assert msg["sender"]["type"] == "BOT"
 
         # Unknown value falls back to HUMAN, not the raw string.
@@ -712,7 +713,9 @@ class TestExtractMessagePayload:
             "space_name": "spaces/RELAY",
             "message_name": "spaces/RELAY/messages/M.M",
         }
-        msg, _space, _fmt = GoogleChatAdapter._extract_message_payload(envelope_bogus)
+        extracted = GoogleChatAdapter._extract_message_payload(envelope_bogus)
+        assert extracted is not None
+        msg, _space, _fmt = extracted
         assert msg["sender"]["type"] == "HUMAN"
 
     def test_unrecognized_envelope_returns_none(self):
@@ -2021,8 +2024,9 @@ class TestThreadCountStore:
             env3["chat"]["messagePayload"]["message"], env3
         )
         # MUST be classified as side thread (isolated session).
+        assert event3 is not None
         assert event3.source is not None
-        assert event3.source.thread_id == "spaces/S/threads/T_existing"
+        assert event3.source.thread_id == "spaces/S/threads/T_existing"  # ty: ignore[unresolved-attribute]
         # Outbound cache populated for in-thread reply.
         assert fresh._last_inbound_thread["spaces/S"] == "spaces/S/threads/T_existing"
 

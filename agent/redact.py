@@ -310,7 +310,7 @@ def safe_log_summary(value: object, *, max_preview: int = 0) -> str:
     # cleartext-logging taint, so this is safe even if `value` is
     # tainted upstream.
     try:
-        n = len(value)  # type: ignore[arg-type]
+        n = len(value)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # TypeError is caught below for unsized values
     except TypeError:
         n = len(str(value))
     if max_preview <= 0:

@@ -2149,7 +2149,7 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
             mock_child.session_completion_tokens = 0
             mock_child.model = "test"
             MockAgent.return_value = mock_child
-            kwargs = {"goal": "test", "parent_agent": parent}
+            kwargs: dict[str, Any] = {"goal": "test", "parent_agent": parent}
             if role_arg is not _SENTINEL:
                 kwargs["role"] = role_arg
             delegate_task(**kwargs)
@@ -2176,7 +2176,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
 
     def test_schema_has_role_top_level_and_per_task(self):
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
         self.assertIn("role", props)
         self.assertEqual(props["role"]["enum"], ["leaf", "orchestrator"])
         task_props = props["tasks"]["items"]["properties"]
@@ -2189,7 +2191,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
         # carry explicit "do not set unless told" guidance so the model doesn't
         # hallucinate ACP availability (#22013).
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
 
         top_acp_desc = props["acp_command"]["description"]
         self.assertIn("Do NOT set", top_acp_desc)
@@ -2204,7 +2208,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
         # that directly primes the model to attempt Claude ACP even when it is
         # not installed (#22013).
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
         top_acp_desc = props["acp_command"]["description"].lower()
         self.assertNotIn("e.g. 'claude'", top_acp_desc)
         self.assertNotIn("e.g. \"claude\"", top_acp_desc)

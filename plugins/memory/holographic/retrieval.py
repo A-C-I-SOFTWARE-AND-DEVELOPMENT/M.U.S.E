@@ -11,12 +11,14 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import numpy as np  # ty: ignore[unresolved-import]
+
     from .store import MemoryStore
 
 try:
     from . import holographic as hrr
 except ImportError:
-    import holographic as hrr  # type: ignore[no-redef]
+    import holographic as hrr  # type: ignore[no-redef]  # ty: ignore[unresolved-import]
 
 
 class FactRetriever:

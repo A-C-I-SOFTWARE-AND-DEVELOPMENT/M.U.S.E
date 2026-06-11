@@ -558,8 +558,7 @@ class TestBlockingApprovalE2E:
             t.join(timeout=5)
 
         assert all(r is not None for r in results)
-        assert r is not None
-        assert all(r["approved"] is True for r in results)
+        assert all(r["approved"] is True for r in results)  # ty: ignore[not-subscriptable]
         unregister_gateway_notify(session_key)
 
     def test_parallel_mixed_approve_deny(self):
@@ -616,9 +615,8 @@ class TestBlockingApprovalE2E:
             t.join(timeout=5)
 
         assert all(r is not None for r in results)
-        assert r is not None
-        assert sorted(r["approved"] for r in results) == [False, True]
-        assert sum("BLOCKED" in (r.get("message") or "") for r in results) == 1
+        assert sorted(r["approved"] for r in results) == [False, True]  # ty: ignore[not-subscriptable]
+        assert sum("BLOCKED" in (r.get("message") or "") for r in results) == 1  # ty: ignore[unresolved-attribute]
         unregister_gateway_notify(session_key)
 
 

@@ -369,6 +369,7 @@ class TestValidationPhase:
         result = apply_v4a_operations(ops, FakeFileOps())
         assert result.success is False
         assert written == {}, f"No files should have been written, got: {list(written.keys())}"
+        assert result.error is not None
         assert "validation failed" in result.error.lower()
 
     def test_all_valid_operations_applied(self):

@@ -496,8 +496,10 @@ class CopilotACPClient:
                 "method": method,
                 "params": params,
             }
-            proc.stdin.write(json.dumps(payload) + "\n")
-            proc.stdin.flush()
+            stdin = proc.stdin
+            assert stdin is not None  # Popen(stdin=PIPE) guarantees a pipe
+            stdin.write(json.dumps(payload) + "\n")
+            stdin.flush()
 
             deadline = time.monotonic() + timeout_seconds
             while time.monotonic() < deadline:

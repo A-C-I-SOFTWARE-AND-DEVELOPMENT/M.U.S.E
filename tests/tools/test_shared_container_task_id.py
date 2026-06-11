@@ -85,7 +85,7 @@ def test_get_active_env_reads_shared_container_from_subagent_id():
     terminal_tool._active_environments["default"] = sentinel
     try:
         assert terminal_tool.get_active_env("subagent-7-cafe") is sentinel
-        assert terminal_tool.get_active_env(None) is sentinel
+        assert terminal_tool.get_active_env(None) is sentinel  # ty: ignore[invalid-argument-type]
         assert terminal_tool.get_active_env("default") is sentinel
     finally:
         terminal_tool._active_environments.pop("default", None)

@@ -890,6 +890,7 @@ def test_format_completion_event():
         "output": "done",
     }
     result = format_process_notification(evt)
+    assert result is not None
     assert "[IMPORTANT: Background process proc_abc completed" in result
     assert "exit code 0" in result
     assert "Command: sleep 5" in result
@@ -906,6 +907,7 @@ def test_format_watch_match_event():
         "suppressed": 0,
     }
     result = format_process_notification(evt)
+    assert result is not None
     assert 'watch pattern "ERROR"' in result
     assert "Matched output:\nERROR: disk full" in result
 
@@ -920,6 +922,7 @@ def test_format_watch_match_with_suppressed():
         "suppressed": 3,
     }
     result = format_process_notification(evt)
+    assert result is not None
     assert "3 earlier matches were suppressed" in result
 
 
@@ -929,6 +932,7 @@ def test_format_watch_disabled_event():
         "message": "Watch disabled for proc_xyz: too many matches",
     }
     result = format_process_notification(evt)
+    assert result is not None
     assert "[IMPORTANT: Watch disabled for proc_xyz" in result
 
 

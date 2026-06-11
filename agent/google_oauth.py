@@ -184,7 +184,7 @@ def _credentials_lock(timeout_seconds: float = LOCK_TIMEOUT_SECONDS):
         try:
             import fcntl
         except ImportError:
-            fcntl = None
+            fcntl = None  # ty: ignore[invalid-assignment]  # optional stdlib module on non-POSIX
 
         if fcntl is not None:
             deadline = time.monotonic() + max(0.0, float(timeout_seconds))
@@ -232,7 +232,7 @@ def _credentials_lock(timeout_seconds: float = LOCK_TIMEOUT_SECONDS):
                         import msvcrt  # type: ignore[import-not-found]
 
                         try:
-                            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)  # ty: ignore[unresolved-attribute]  # Windows-only API, absent from POSIX stubs
                         except OSError:
                             pass
                     except ImportError:
@@ -780,8 +780,9 @@ class _OAuthCallbackHandler(http.server.BaseHTTPRequestHandler):
             type(self).captured_error = "no_code"
             self._respond_html(400, _ERROR_PAGE.format(message="Callback received no authorization code."))
 
-        if type(self).ready is not None:
-            type(self).ready.set()
+        _ready = type(self).ready
+        if _ready is not None:
+            _ready.set()
 
     def _respond_html(self, status: int, body: str) -> None:
         payload = body.encode("utf-8")

@@ -43,7 +43,7 @@ class TestSteerAcceptance:
 
     def test_rejects_none(self):
         agent = _bare_agent()
-        assert agent.steer(None) is False  # type: ignore[arg-type]
+        assert agent.steer(None) is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
         assert agent._pending_steer is None
 
     def test_strips_surrounding_whitespace(self):
@@ -190,8 +190,8 @@ class TestSteerClearedOnInterrupt:
         agent._interrupt_message = None
         agent._interrupt_thread_signal_pending = False
         agent._execution_thread_id = None
-        agent._tool_worker_threads = None
-        agent._tool_worker_threads_lock = None
+        agent._tool_worker_threads = None  # ty: ignore[unresolved-attribute]
+        agent._tool_worker_threads_lock = None  # ty: ignore[unresolved-attribute]
 
         agent.steer("will be dropped")
         assert agent._pending_steer == "will be dropped"
@@ -227,7 +227,7 @@ class TestPreApiCallSteerDrain:
         # Inject into last tool msg (mirrors the new code in run_conversation)
         for _si in range(len(messages) - 1, -1, -1):
             if messages[_si].get("role") == "tool":
-                messages[_si]["content"] += f"\n\nUser guidance: {_pre_api_steer}"
+                messages[_si]["content"] += f"\n\nUser guidance: {_pre_api_steer}"  # ty: ignore[unsupported-operator]
                 break
         assert "User guidance:" in messages[-1]["content"]
         assert "focus on error handling" in messages[-1]["content"]
@@ -271,7 +271,7 @@ class TestPreApiCallSteerDrain:
         assert _pre_api_steer is not None
         for _si in range(len(messages) - 1, -1, -1):
             if messages[_si].get("role") == "tool":
-                messages[_si]["content"] += f"\n\nUser guidance: {_pre_api_steer}"
+                messages[_si]["content"] += f"\n\nUser guidance: {_pre_api_steer}"  # ty: ignore[unsupported-operator]
                 break
         assert "change approach" in messages[2]["content"]
 

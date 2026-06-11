@@ -230,7 +230,7 @@ def _save_disk_cache(data: Dict[str, Any]) -> None:
     """Save models.dev data to disk cache atomically."""
     try:
         cache_path = _get_cache_path()
-        atomic_json_write(cache_path, data, indent=None, separators=(",", ":"))
+        atomic_json_write(cache_path, data, indent=None, separators=(",", ":"))  # ty: ignore[invalid-argument-type]  # indent=None is valid for json.dump; utils stub is stricter
     except Exception as e:
         logger.debug("Failed to save models.dev disk cache: %s", e)
 

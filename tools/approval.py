@@ -511,7 +511,7 @@ class _ApprovalEntry:
 
 
 _gateway_queues: dict[str, list] = {}        # session_key → [_ApprovalEntry, …]
-_gateway_notify_cbs: dict[str, object] = {}  # session_key → callable(approval_data)
+_gateway_notify_cbs: dict[str, Any] = {}  # session_key → callable(approval_data)
 
 
 def register_gateway_notify(session_key: str, cb) -> None:

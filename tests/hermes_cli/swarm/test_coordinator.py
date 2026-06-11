@@ -47,6 +47,7 @@ def test_run_swarm_two_disjoint_grains(tmp_path, hermes_home):
     )
     assert result.trivial is False
     assert ex is not None
+    assert ex.seen_specs is not None
     assert {g.grain_id for g in result.grains} == set(ex.seen_specs.keys())
     assert all(g.state == "completed" for g in result.grains)
     # Each grain got its own specialized spec with a dedicated memory namespace.

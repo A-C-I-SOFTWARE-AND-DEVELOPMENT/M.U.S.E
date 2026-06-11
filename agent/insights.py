@@ -484,7 +484,7 @@ class InsightsEngine:
 
     def _compute_model_breakdown(self, sessions: List[Dict]) -> List[Dict]:
         """Break down usage by model."""
-        model_data = defaultdict(lambda: {
+        model_data: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "sessions": 0, "input_tokens": 0, "output_tokens": 0,
             "cache_read_tokens": 0, "cache_write_tokens": 0,
             "total_tokens": 0, "tool_calls": 0, "cost": 0.0,

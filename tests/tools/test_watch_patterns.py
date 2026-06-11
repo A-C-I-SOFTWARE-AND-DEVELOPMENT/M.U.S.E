@@ -316,10 +316,15 @@ class TestCheckpointPersistence:
 class TestTerminalToolSchema:
     def test_schema_includes_watch_patterns(self):
         from tools.terminal_tool import TERMINAL_SCHEMA
-        props = TERMINAL_SCHEMA["parameters"]["properties"]
+        params = TERMINAL_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "watch_patterns" in props
-        assert props["watch_patterns"]["type"] == "array"
-        assert props["watch_patterns"]["items"] == {"type": "string"}
+        wp = props["watch_patterns"]
+        assert isinstance(wp, dict)
+        assert wp["type"] == "array"
+        assert wp["items"] == {"type": "string"}
 
     def test_handler_passes_watch_patterns(self):
         """_handle_terminal passes watch_patterns to terminal_tool."""

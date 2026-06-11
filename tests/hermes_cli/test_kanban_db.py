@@ -7,6 +7,7 @@ import os
 import sqlite3
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -187,6 +188,7 @@ def test_create_task_persists_worktree_branch_name(kanban_home, tmp_path):
     assert task is not None
     assert task.branch_name == "wt/t6-wire"
     assert events is not None
+    assert events[0].payload is not None
     assert events[0].payload["branch_name"] == "wt/t6-wire"
     assert "Branch:   wt/t6-wire" in context
 
@@ -579,7 +581,9 @@ def test_max_runtime_uses_current_run_start_after_retry(kanban_home, monkeypatch
         )
 
         kb.claim_task(conn, t, claimer=f"{host}:first")
-        first_run_id = kb.latest_run(conn, t).id
+        first_run = kb.latest_run(conn, t)
+        assert first_run is not None
+        first_run_id = first_run.id
         old_started = int(time.time()) - 20
         conn.execute(
             "UPDATE tasks SET started_at = ?, worker_pid = ? WHERE id = ?",
@@ -622,6 +626,7 @@ def test_heartbeat_extends_claim(kanban_home):
         ok = kb.heartbeat_claim(conn, t, claimer=claimer, ttl_seconds=3600)
         assert ok
         new = _task(conn, t).claim_expires
+        assert new is not None
         assert new > int(time.time()) + 3000
 
 
@@ -1541,6 +1546,7 @@ def test_tenant_propagates_to_events(kanban_home):
     # The "created" event should have tenant in its payload.
     created = [e for e in events if e.kind == "created"]
     assert created[0] is not None
+    assert created[0].payload is not None
     assert created and created[0].payload.get("tenant") == "biz-a"
 
 
@@ -2351,7 +2357,7 @@ def test_resolve_hermes_argv_module_actually_runs():
 
 def _make_task(**overrides) -> "kb.Task":
     """Minimal Task with all required fields filled in. Override anything."""
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         id="t_age",
         title="x",
         body=None,

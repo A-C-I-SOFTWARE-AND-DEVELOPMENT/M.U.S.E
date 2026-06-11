@@ -56,7 +56,7 @@ def _set_credential_pool_strategy(config: Dict[str, Any], provider: str, strateg
     config["credential_pool_strategies"] = strategies
 
 
-def _supports_same_provider_pool_setup(provider: str) -> bool:
+def _supports_same_provider_pool_setup(provider: Optional[str]) -> bool:
     if not provider or provider == "custom":
         return False
     if provider == "openrouter":
@@ -531,7 +531,6 @@ def _print_setup_summary(config: dict, hermes_home):
             tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'hermes setup tts'"))
     elif tts_provider == "kittentts":
         try:
-            import importlib.util
             kittentts_ok = importlib.util.find_spec("kittentts") is not None
         except Exception:
             kittentts_ok = False
@@ -865,6 +864,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
 
     # ── Same-provider fallback & rotation setup (full setup only) ──
     if not quick and _supports_same_provider_pool_setup(selected_provider):
+        assert selected_provider is not None  # _supports_same_provider_pool_setup rejects falsy
         try:
             from types import SimpleNamespace
             from agent.credential_pool import load_pool
@@ -1381,7 +1381,6 @@ def _setup_tts_provider(config: dict):
     elif selected == "kittentts":
         # Check if already installed
         try:
-            import importlib.util
             already_installed = importlib.util.find_spec("kittentts") is not None
         except Exception:
             already_installed = False
@@ -1460,6 +1459,7 @@ def setup_terminal_backend(config: dict):
     )
 
     selected_backend = idx_to_backend.get(terminal_idx)
+    assert selected_backend is not None  # prompt_choice returns an in-range index
 
     if terminal_idx == keep_current_idx:
         print_info(f"Keeping current backend: {current_backend}")

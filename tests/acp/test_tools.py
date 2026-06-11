@@ -288,9 +288,9 @@ class TestBuildToolStart:
         assert result.title == "skill patch: hermes-agent-operations/references/acp.md"
         assert result.content is not None
         assert isinstance(result.content[0], FileEditToolCallContent)
-        assert result.content[0].path == "skills/hermes-agent-operations/references/acp.md"  # ty: ignore[not-subscriptable]
-        assert result.content[0].old_text == "old advice"  # ty: ignore[not-subscriptable]
-        assert result.content[0].new_text == "new advice"  # ty: ignore[not-subscriptable]
+        assert result.content[0].path == "skills/hermes-agent-operations/references/acp.md"
+        assert result.content[0].old_text == "old advice"
+        assert result.content[0].new_text == "new advice"
         assert result.raw_input is None
 
     def test_build_tool_start_generic_fallback(self):

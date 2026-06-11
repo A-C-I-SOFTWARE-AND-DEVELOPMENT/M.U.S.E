@@ -145,7 +145,9 @@ def test_approve_promotes_to_durable(server, home) -> None:
     # Persisted on disk for the live loop to recall.
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
     assert reloaded is not None
-    assert reloaded.get(node.id).layer is MemoryLayer.DURABLE
+    reloaded_node = reloaded.get(node.id)
+    assert reloaded_node is not None
+    assert reloaded_node.layer is MemoryLayer.DURABLE
 
 
 def test_approve_conflict_returns_contradiction_not_overwrite(server, home) -> None:
@@ -174,7 +176,9 @@ def test_approve_conflict_returns_contradiction_not_overwrite(server, home) -> N
     assert reloaded.get(existing.id) is not None
     assert reloaded.get(candidate.id) is not None
     assert reloaded is not None
-    assert reloaded.get(existing.id).contested
+    reloaded_existing = reloaded.get(existing.id)
+    assert reloaded_existing is not None
+    assert reloaded_existing.contested
 
 
 def test_reject_excludes_from_recall(server, home) -> None:
@@ -188,7 +192,9 @@ def test_reject_excludes_from_recall(server, home) -> None:
     assert payload["node"]["approval_state"] == "rejected"
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
     assert reloaded is not None
-    assert reloaded.get(node.id).active is False
+    reloaded_node = reloaded.get(node.id)
+    assert reloaded_node is not None
+    assert reloaded_node.active is False
 
 
 def test_supersede_marks_loser(server, home) -> None:
@@ -209,8 +215,9 @@ def test_supersede_marks_loser(server, home) -> None:
     assert payload["superseded"]["superseded_by"] == new.id
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
     assert reloaded is not None
-    assert reloaded.get(old.id).active is False  # superseded, not deleted
-    assert reloaded.get(old.id) is not None
+    reloaded_old = reloaded.get(old.id)
+    assert reloaded_old is not None
+    assert reloaded_old.active is False  # superseded, not deleted
 
 
 def test_decision_unknown_node_404(server, home) -> None:
@@ -270,7 +277,9 @@ def test_contradictions_list_and_resolve(server, home) -> None:
     reloaded = MemoryTreeStore.load(path=_tree_path(home))
     assert reloaded is not None
     assert a is not None
-    assert reloaded.get(a.id).superseded_by == b.node.id
+    reloaded_a = reloaded.get(a.id)
+    assert reloaded_a is not None
+    assert reloaded_a.superseded_by == b.node.id
 
 
 def test_freshness_lists_overdue(server, home) -> None:

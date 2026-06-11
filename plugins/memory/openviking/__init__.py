@@ -162,7 +162,7 @@ class _VikingClient:
         )
         return self._parse_response(resp)
 
-    def post(self, path: str, payload: dict = None, **kwargs) -> dict:
+    def post(self, path: str, payload: dict | None = None, **kwargs) -> dict:
         resp = self._httpx.post(
             self._url(path), json=payload or {}, headers=self._headers(),
             timeout=_TIMEOUT, **kwargs
@@ -607,7 +607,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         except Exception as e:
             logger.warning("OpenViking session commit failed: %s", e)
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:
+    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
         """Mirror built-in memory writes to OpenViking as explicit memories."""
         if not self._client or action != "add" or not content:
             return
@@ -691,7 +691,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         treat None as "unknown" and fall back to the exception-based path.
         """
         try:
-            resp = self._client.get("/api/v1/fs/stat", params={"uri": uri})
+            resp = self._client.get("/api/v1/fs/stat", params={"uri": uri})  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
         except Exception:
             return None
         result = self._unwrap_result(resp)
@@ -720,7 +720,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         if args.get("limit"):
             payload["top_k"] = args["limit"]
 
-        resp = self._client.post("/api/v1/search/find", payload)
+        resp = self._client.post("/api/v1/search/find", payload)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
         result = resp.get("result", {})
 
         # Format results for the model — keep it concise
@@ -782,13 +782,13 @@ class OpenVikingMemoryProvider(MemoryProvider):
                 endpoint = "/api/v1/content/overview"
 
         try:
-            resp = self._client.get(endpoint, params={"uri": resolved_uri})
+            resp = self._client.get(endpoint, params={"uri": resolved_uri})  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
         except Exception:
             # OpenViking may return HTTP 500 for abstract/overview reads on normal
             # file URIs (mem_*.md). For those, gracefully fallback to full read.
             if not summary_level or resolved_uri != uri or used_fallback:
                 raise
-            resp = self._client.get("/api/v1/content/read", params={"uri": uri})
+            resp = self._client.get("/api/v1/content/read", params={"uri": uri})  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             used_fallback = True
 
         result = self._unwrap_result(resp)
@@ -828,7 +828,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         # Map action to the correct fs endpoint (all GET with uri= param)
         endpoint_map = {"tree": "/api/v1/fs/tree", "list": "/api/v1/fs/ls", "stat": "/api/v1/fs/stat"}
         endpoint = endpoint_map.get(action, "/api/v1/fs/ls")
-        resp = self._client.get(endpoint, params={"uri": path})
+        resp = self._client.get(endpoint, params={"uri": path})  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
         result = self._unwrap_result(resp)
 
         # Format list/tree results for readability
@@ -865,7 +865,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
         if category:
             text = f"[Remember — {category}] {content}"
 
-        self._client.post(f"/api/v1/sessions/{self._session_id}/messages", {
+        self._client.post(f"/api/v1/sessions/{self._session_id}/messages", {  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             "role": "user",
             "parts": [
                 {"type": "text", "text": text},
@@ -915,7 +915,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
                         upload_path = source_path
                     else:
                         return tool_error(f"Unsupported local resource path: {url}")
-                    payload["temp_file_id"] = self._client.upload_temp_file(upload_path)
+                    payload["temp_file_id"] = self._client.upload_temp_file(upload_path)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
                 elif _is_local_path_reference(url):
                     return tool_error(f"Local resource path does not exist: {url}")
                 else:
@@ -923,7 +923,7 @@ class OpenVikingMemoryProvider(MemoryProvider):
             else:
                 payload["path"] = url
 
-            resp = self._client.post("/api/v1/resources", payload)
+            resp = self._client.post("/api/v1/resources", payload)  # ty: ignore[unresolved-attribute]  # handle_tool_call guards _client
             result = resp.get("result", {})
         finally:
             if cleanup_path:

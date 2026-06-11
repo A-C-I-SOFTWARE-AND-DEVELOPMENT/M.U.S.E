@@ -231,7 +231,9 @@ class TestForegroundMaxTimeoutConstant:
         from tools.terminal_tool import TERMINAL_SCHEMA, FOREGROUND_MAX_TIMEOUT
         params = TERMINAL_SCHEMA["parameters"]
         assert isinstance(params, dict)
-        timeout_prop = params["properties"]["timeout"]
+        props = params["properties"]
+        assert isinstance(props, dict)
+        timeout_prop = props["timeout"]
         assert isinstance(timeout_prop, dict)
         timeout_desc = timeout_prop["description"]
         assert isinstance(timeout_desc, str)

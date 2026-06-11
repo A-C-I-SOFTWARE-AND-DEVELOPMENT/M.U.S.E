@@ -37,7 +37,7 @@ def _make_agent_with_compressor() -> AIAgent:
         provider="openrouter",
         quiet_mode=True,
     )
-    agent.context_compressor = compressor  # ty: ignore[unresolved-attribute]
+    agent.context_compressor = compressor
 
     return agent
 
@@ -48,7 +48,7 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
     """After fallback activation, the compressor must reflect the fallback model."""
     agent = _make_agent_with_compressor()
 
-    assert agent.context_compressor.model == "primary-model"  # ty: ignore[unresolved-attribute]
+    assert agent.context_compressor.model == "primary-model"
 
     fb_client = MagicMock()
     fb_client.base_url = "https://api.openai.com/v1"
@@ -63,7 +63,7 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
     assert result is True
     assert agent._fallback_activated is True  # ty: ignore[unresolved-attribute]
 
-    c = agent.context_compressor  # ty: ignore[unresolved-attribute]
+    c = agent.context_compressor
     assert c.model == "gpt-4o"
     assert c.base_url == "https://api.openai.com/v1"
     assert c.api_key == "sk-fallback"
@@ -77,7 +77,7 @@ def test_compressor_updated_on_fallback(mock_ctx_len, mock_resolve):
 def test_compressor_not_present_does_not_crash(mock_ctx_len, mock_resolve):
     """If the agent has no compressor, fallback should still succeed."""
     agent = _make_agent_with_compressor()
-    agent.context_compressor = None  # ty: ignore[unresolved-attribute]
+    agent.context_compressor = None
 
     fb_client = MagicMock()
     fb_client.base_url = "https://api.openai.com/v1"

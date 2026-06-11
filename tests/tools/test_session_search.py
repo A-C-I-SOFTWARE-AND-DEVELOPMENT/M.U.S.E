@@ -89,6 +89,7 @@ class TestSchema:
         parameters = SESSION_SEARCH_SCHEMA["parameters"]
         assert isinstance(parameters, dict)
         params = parameters["properties"]
+        assert isinstance(params, dict)
         assert params["sort"]["enum"] == ["newest", "oldest"]
 
     def test_schema_description_teaches_scroll(self):

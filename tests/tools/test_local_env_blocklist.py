@@ -45,7 +45,7 @@ def _run_with_env(extra_os_env=None, self_env=None):
     if extra_os_env:
         test_environ.update(extra_os_env)
 
-    env = LocalEnvironment(cwd="/tmp", timeout=10, env=self_env)  # ty: ignore[invalid-argument-type]
+    env = LocalEnvironment(cwd="/tmp", timeout=10, env=self_env)
 
     with patch("tools.environments.local._find_bash", return_value="/bin/bash"), \
          patch("subprocess.Popen", side_effect=_make_fake_popen(captured)), \

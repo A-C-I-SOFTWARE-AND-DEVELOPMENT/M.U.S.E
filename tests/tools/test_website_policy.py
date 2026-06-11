@@ -480,7 +480,7 @@ async def test_web_crawl_short_circuits_blocked_url(monkeypatch):
     )
     monkeypatch.setattr("tools.interrupt.is_interrupted", lambda: False)
 
-    result = json.loads(await web_tools.web_crawl_tool("https://blocked.test", use_llm_processing=False))  # ty: ignore[missing-argument]
+    result = json.loads(await web_tools.web_crawl_tool("https://blocked.test", use_llm_processing=False))
 
     assert result["results"][0]["url"] == "https://blocked.test"
     assert result["results"][0]["blocked_by_policy"]["rule"] == "blocked.test"
@@ -534,7 +534,7 @@ async def test_web_crawl_blocks_redirected_final_url(monkeypatch):
     monkeypatch.setattr(firecrawl_provider, "_get_firecrawl_client", lambda: FakeCrawlClient())
     monkeypatch.setattr("tools.interrupt.is_interrupted", lambda: False)
 
-    result = json.loads(await web_tools.web_crawl_tool("https://allowed.test", use_llm_processing=False))  # ty: ignore[missing-argument]
+    result = json.loads(await web_tools.web_crawl_tool("https://allowed.test", use_llm_processing=False))
 
     assert result["results"][0]["content"] == ""
     assert result["results"][0]["error"] == "Blocked by website policy"
