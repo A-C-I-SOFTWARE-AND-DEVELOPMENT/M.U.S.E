@@ -177,7 +177,7 @@ sys.stdout = sys.stderr
 # Module-level stdio transport — fallback sink when no transport is bound via
 # contextvar or session. Stream resolved through a lambda so runtime monkey-
 # patches of `_real_stdout` (used extensively in tests) still land correctly.
-_stdio_transport = StdioTransport(lambda: _real_stdout, _stdout_lock)
+_stdio_transport: Transport = StdioTransport(lambda: _real_stdout, _stdout_lock)
 
 
 class _SlashWorker:
