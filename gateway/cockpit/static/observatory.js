@@ -62,10 +62,32 @@ async function api(path, opts) {
   o.headers = authHeaders(o.headers);
   return fetch(apiBase + path, o);
 }
-function esc(s) {
-  const d = document.createElement("div");
-  d.textContent = s == null ? "" : String(s);
-  return d.innerHTML;
+// Safe DOM builders — the ONLY way dynamic strings reach the page. String
+// children become text nodes (never parsed as HTML); Node children are
+// appended as-is. `attrsOrClass` is either a class string or an attribute
+// map (null/false values are skipped, true renders a bare attribute).
+function el(tag, attrsOrClass, ...children) {
+  const node = document.createElement(tag);
+  if (typeof attrsOrClass === "string") {
+    if (attrsOrClass) node.className = attrsOrClass;
+  } else if (attrsOrClass) {
+    for (const [k, v] of Object.entries(attrsOrClass)) {
+      if (v == null || v === false) continue;
+      if (k === "class") node.className = String(v);
+      else node.setAttribute(k, v === true ? "" : String(v));
+    }
+  }
+  node.append(...children.flat(Infinity)
+    .filter((c) => c != null)
+    .map((c) => (c instanceof Node ? c : String(c))));
+  return node;
+}
+function frag(...children) {
+  const f = document.createDocumentFragment();
+  f.append(...children.flat(Infinity)
+    .filter((c) => c != null)
+    .map((c) => (c instanceof Node ? c : String(c))));
+  return f;
 }
 function fmtMs(ms) {
   if (ms == null) return "—";
@@ -1043,8 +1065,8 @@ function pick() {
 }
 
 const tooltip = $("#tooltip");
-function showTooltip(html) {
-  tooltip.innerHTML = html;
+function showTooltip(content) {
+  tooltip.replaceChildren(content);
   tooltip.hidden = false;
   const pad = 14;
   let x = lastClient.x + pad, y = lastClient.y + pad;
@@ -1057,8 +1079,9 @@ function showTooltip(html) {
 function hideTooltip() { tooltip.hidden = true; }
 
 function heatLine(heat) {
-  if (heat == null) return '<span class="heat-null">heat: no measured activations</span>';
-  return `<span class="${heat > HEAT_GLOW_THRESHOLD ? "heat-hot" : ""}">heat: ${heat.toFixed(2)} <span class="muted">(measured, 1h)</span></span>`;
+  if (heat == null) return el("span", "heat-null", "heat: no measured activations");
+  return el("span", heat > HEAT_GLOW_THRESHOLD ? "heat-hot" : "",
+    `heat: ${heat.toFixed(2)} `, el("span", "muted", "(measured, 1h)"));
 }
 
 setInterval(() => { // hover raycasts are throttled off the render loop
@@ -1071,30 +1094,36 @@ setInterval(() => { // hover raycasts are throttled off the render loop
     const c = hit.cluster;
     const mix = Object.entries(c.type_mix || {})
       .sort((a, b) => b[1] - a[1])
-      .map(([t, f]) => `${esc(t)} ${(f * 100).toFixed(0)}%`).join(" · ");
-    showTooltip(`<b>${esc(c.label)}</b>
-      <div class="muted">${esc(mix || "unknown mix")} · ${c.members} members</div>
-      <div>${heatLine(c.heat)}</div>
-      <div class="muted">click to ${galaxy.expanded.has(c.id) ? "collapse" : "expand"}</div>`);
+      .map(([t, f]) => `${t} ${(f * 100).toFixed(0)}%`).join(" · ");
+    showTooltip(frag(
+      el("b", "", c.label),
+      el("div", "muted", `${mix || "unknown mix"} · ${c.members} members`),
+      el("div", "", heatLine(c.heat)),
+      el("div", "muted", `click to ${galaxy.expanded.has(c.id) ? "collapse" : "expand"}`)));
   } else if (hit.kind === "member") {
     const nd = hit.node;
-    showTooltip(`<b>${esc(nd.label)}</b>
-      <div class="muted">${esc(nd.type)} · degree ${nd.degree}</div>
-      <div class="muted mono">${esc(nd.source_ref || "")}</div>`);
+    showTooltip(frag(
+      el("b", "", nd.label),
+      el("div", "muted", `${nd.type} · degree ${nd.degree}`),
+      el("div", "muted mono", nd.source_ref || "")));
   } else if (hit.kind === "packet") {
     const p = hit.packet;
-    showTooltip(`<b>job ${esc(hit.jobId)}</b>
-      <div class="muted">${esc(p.taskClass || "unknown class")} · stage: ${esc(p.stage || "?")}</div>
-      <div class="muted">click for the job record</div>`);
+    showTooltip(frag(
+      el("b", "", `job ${hit.jobId}`),
+      el("div", "muted", `${p.taskClass || "unknown class"} · stage: ${p.stage || "?"}`),
+      el("div", "muted", "click for the job record")));
   } else if (hit.kind === "station") {
-    showTooltip(`<b>station: ${esc(hit.station)}</b><div class="muted">click for measured stage metrics + heat evidence</div>`);
+    showTooltip(frag(
+      el("b", "", `station: ${hit.station}`),
+      el("div", "muted", "click for measured stage metrics + heat evidence")));
   } else if (hit.kind === "tier") {
     const info = ladder.rollup.get(hit.tier);
-    showTooltip(`<b>${esc(hit.tier)} tier</b>
-      <div class="muted">${info && info.share_1h != null
+    showTooltip(frag(
+      el("b", "", `${hit.tier} tier`),
+      el("div", "muted", info && info.share_1h != null
         ? `share ${(info.share_1h * 100).toFixed(0)}% · n=${info.n} · p50 ${fmtMs(info.p50_latency_ms)}`
-        : "no measured routing decisions in window"}</div>
-      <div class="muted">click for rollup + owner-gated edits</div>`);
+        : "no measured routing decisions in window"),
+      el("div", "muted", "click for rollup + owner-gated edits")));
   }
 }, 50);
 
@@ -1113,17 +1142,19 @@ function handleClick(hit) {
 
 const drawer = $("#drawer"), drawerBody = $("#drawerbody"), drawerTitle = $("#drawertitle");
 $("#drawerclose").addEventListener("click", () => drawer.classList.remove("open"));
-function openDrawer(title, html) {
+function openDrawer(title, content) {
   drawerTitle.textContent = title;
-  drawerBody.innerHTML = html;
+  drawerBody.replaceChildren(content);
   drawer.classList.add("open");
 }
 
 function kv(rows) {
-  return '<div class="kv">' + rows
-    .filter(([, v]) => v !== undefined)
-    .map(([k, v]) => `<span class="k">${esc(k)}</span><span class="v">${v == null ? "—" : v}</span>`)
-    .join("") + "</div>";
+  const wrap = el("div", "kv");
+  for (const [k, v] of rows) {
+    if (v === undefined) continue;
+    wrap.append(el("span", "k", k), el("span", "v", v == null ? "—" : v));
+  }
+  return wrap;
 }
 
 function evidenceButtons(container) {
@@ -1144,62 +1175,69 @@ function evidenceButtons(container) {
 }
 
 function showClusterDrawer(c) {
-  const mix = Object.entries(c.type_mix || {}).sort((a, b) => b[1] - a[1])
-    .map(([t, f]) => `${esc(t)}: ${(f * 100).toFixed(1)}%`).join("<br/>");
-  openDrawer("Cluster — " + (c.label || c.id), `
-    <div class="drawersec">${kv([
-      ["id", esc(c.id)], ["members", c.members],
+  const mixLines = Object.entries(c.type_mix || {}).sort((a, b) => b[1] - a[1])
+    .map(([t, f]) => `${t}: ${(f * 100).toFixed(1)}%`);
+  openDrawer("Cluster — " + (c.label || c.id), frag(
+    el("div", "drawersec", kv([
+      ["id", c.id], ["members", c.members],
       ["radius", (Number(c.radius) || 0).toFixed(2)],
-      ["heat", c.heat == null ? '<span class="heat-null">null — no measured activations</span>' : c.heat.toFixed(4) + " (measured share, 1h)"],
+      ["heat", c.heat == null
+        ? el("span", "heat-null", "null — no measured activations")
+        : c.heat.toFixed(4) + " (measured share, 1h)"],
       ["pos", (c.pos || []).map((v) => v.toFixed(1)).join(", ")],
-    ])}</div>
-    <div class="drawersec"><h4>Type mix</h4><div class="mono">${mix || "—"}</div></div>
-    <div class="drawersec"><h4>Graph</h4>${kv([
-      ["graph_version", esc(galaxy.graphVersion || "—")],
-      ["layout", esc((state.snapshot && state.snapshot.graph && state.snapshot.graph.layout_algo) || "—")],
-    ])}</div>
-    <p class="muted">Click the cluster again to collapse its member starfield.
-    Up to ${MAX_EXPANDED} clusters stay expanded; the oldest auto-collapses.</p>`);
+    ])),
+    el("div", "drawersec", el("h4", "", "Type mix"),
+      el("div", "mono", mixLines.length
+        ? mixLines.flatMap((line, i) => (i ? [el("br"), line] : [line]))
+        : "—")),
+    el("div", "drawersec", el("h4", "", "Graph"), kv([
+      ["graph_version", galaxy.graphVersion || "—"],
+      ["layout", (state.snapshot && state.snapshot.graph && state.snapshot.graph.layout_algo) || "—"],
+    ])),
+    el("p", "muted", `Click the cluster again to collapse its member starfield.
+    Up to ${MAX_EXPANDED} clusters stay expanded; the oldest auto-collapses.`)));
 }
 
 function showNodeDrawer(nd, cid) {
-  openDrawer("Node — " + (nd.label || nd.id), `
-    <div class="drawersec">${kv([
-      ["id", esc(nd.id)], ["type", esc(nd.type)],
+  openDrawer("Node — " + (nd.label || nd.id), frag(
+    el("div", "drawersec", kv([
+      ["id", nd.id], ["type", nd.type],
       ["degree", nd.degree],
-      ["heat", nd.heat == null ? '<span class="heat-null">null — unmeasured</span>' : nd.heat],
-      ["cluster", esc(cid)],
-      ["source", esc(nd.source_ref || "—")],
-    ])}</div>
-    <p class="muted">Every node is a real GraphRAG entry; <code>source</code> is
-    its provenance reference inside the repo / vault.</p>`);
+      ["heat", nd.heat == null ? el("span", "heat-null", "null — unmeasured") : nd.heat],
+      ["cluster", cid],
+      ["source", nd.source_ref || "—"],
+    ])),
+    el("p", "muted", "Every node is a real GraphRAG entry; ",
+      el("code", "", "source"),
+      " is its provenance reference inside the repo / vault.")));
 }
 
 async function showJobDrawer(jobId) {
-  openDrawer("Job — " + jobId, '<div class="empty">Loading the job record…</div>');
-  let html;
+  openDrawer("Job — " + jobId, el("div", "empty", "Loading the job record…"));
+  let content;
   try {
     const r = await api("/v1/cockpit/jobs/" + encodeURIComponent(jobId));
     const d = await r.json().catch(() => null);
     if (r.ok && d) {
       const job = d.job || d;
-      html = `
-        <div class="drawersec">${kv([
-          ["title", esc(job.title || "—")], ["status", esc(job.status || "—")],
-          ["worker", esc(job.worker_id || "—")], ["branch", esc(job.branch || "—")],
-          ["updated", esc(job.updated_at || job.created_at || "—")],
-        ])}</div>
-        <div class="drawersec"><h4>Raw record</h4>
-          <pre class="json">${esc(JSON.stringify(job, null, 2))}</pre></div>
-        <p><a href="index.html">Open in the cockpit →</a></p>`;
+      content = frag(
+        el("div", "drawersec", kv([
+          ["title", job.title || "—"], ["status", job.status || "—"],
+          ["worker", job.worker_id || "—"], ["branch", job.branch || "—"],
+          ["updated", job.updated_at || job.created_at || "—"],
+        ])),
+        el("div", "drawersec", el("h4", "", "Raw record"),
+          el("pre", "json", JSON.stringify(job, null, 2))),
+        el("p", "", el("a", { href: "index.html" }, "Open in the cockpit →")));
     } else {
-      html = `<p class="err">Could not load the job record (${r.status}${d && d.error ? " — " + esc(d.error) : ""}).</p>
-        <p><a href="index.html">Open the cockpit →</a></p>`;
+      content = frag(
+        el("p", "err", `Could not load the job record (${r.status}${d && d.error ? " — " + d.error : ""}).`),
+        el("p", "", el("a", { href: "index.html" }, "Open the cockpit →")));
     }
   } catch (e) {
-    html = `<p class="err">Request failed: ${esc(String(e))}</p>`;
+    content = el("p", "err", "Request failed: " + String(e));
   }
-  drawerBody.innerHTML = html;
+  drawerBody.replaceChildren(content);
 }
 
 function heatEntriesFor(prefix) {
@@ -1207,33 +1245,37 @@ function heatEntriesFor(prefix) {
   return heat.filter((h) => String(h.key || "").startsWith(prefix));
 }
 
-function heatEntryHtml(h) {
+function heatEntryNode(h) {
   const score = h.score == null
-    ? `<span class="heat-null">insufficient data (n=${h.n})</span>`
-    : `<span class="${h.score > HEAT_GLOW_THRESHOLD ? "heat-hot" : ""}">${h.score.toFixed(3)}</span> <span class="muted">(n=${h.n})</span>`;
-  return `<div class="evidence">${esc(h.key)} → ${score}
-    <button data-evidence="${esc(h.evidence_ref)}">evidence</button></div>`;
+    ? el("span", "heat-null", `insufficient data (n=${h.n})`)
+    : frag(
+        el("span", h.score > HEAT_GLOW_THRESHOLD ? "heat-hot" : "", h.score.toFixed(3)),
+        " ", el("span", "muted", `(n=${h.n})`));
+  return el("div", "evidence", `${h.key} → `, score, " ",
+    el("button", { "data-evidence": h.evidence_ref }, "evidence"));
 }
 
 function showStationDrawer(station) {
   const stages = ((state.metrics && state.metrics.stages) || [])
     .filter((s) => s.stage === station);
   const rows = stages.map((s) => kv([
-    ["task class", esc(s.task_class || "*")], ["count", s.count],
+    ["task class", s.task_class || "*"], ["count", s.count],
     ["p50", fmtMs(s.p50_ms)], ["p95", fmtMs(s.p95_ms)],
     ["queue wait p95", fmtMs(s.queue_wait_p95_ms)], ["retries", s.retries],
-  ])).join("");
-  const heatRows = heatEntriesFor("stage:" + station).map(heatEntryHtml).join("")
-    || '<div class="muted">no heat keys recorded for this station in the window</div>';
-  openDrawer("Station — " + station, `
-    <div class="drawersec"><h4>Measured stage metrics (${esc(state.window)})</h4>
-      ${rows || '<div class="muted">nothing recorded in this window</div>'}</div>
-    <div class="drawersec"><h4>Bottleneck heat</h4>${heatRows}
-      <pre class="json" hidden></pre></div>
-    <p class="muted">Heat is computed from real measurements only
-    (latency / queue / retries / cost); keys with n &lt; ${(state.metrics && state.metrics.min_n) || 5}
-    report <code>null</code>, never a guessed glow. Every entry links to the
-    exact ledger evidence behind it.</p>`);
+  ]));
+  const heatRows = heatEntriesFor("stage:" + station).map(heatEntryNode);
+  openDrawer("Station — " + station, frag(
+    el("div", "drawersec",
+      el("h4", "", `Measured stage metrics (${state.window})`),
+      rows.length ? rows : el("div", "muted", "nothing recorded in this window")),
+    el("div", "drawersec", el("h4", "", "Bottleneck heat"),
+      heatRows.length ? heatRows
+        : el("div", "muted", "no heat keys recorded for this station in the window"),
+      el("pre", { class: "json", hidden: true })),
+    el("p", "muted", `Heat is computed from real measurements only
+    (latency / queue / retries / cost); keys with n < ${(state.metrics && state.metrics.min_n) || 5}
+    report `, el("code", "", "null"), `, never a guessed glow. Every entry links to the
+    exact ledger evidence behind it.`)));
   evidenceButtons(drawerBody);
 }
 
@@ -1242,25 +1284,27 @@ function showTierDrawer(tier) {
   const models = ((state.metrics && state.metrics.models) || [])
     .filter((m) => m.tier === tier);
   const modelRows = models.map((m) => kv([
-    ["model", esc(m.model)], ["calls", m.calls],
+    ["model", m.model], ["calls", m.calls],
     ["p95 latency", fmtMs(m.p95_latency_ms)],
     ["tokens in/out", `${m.tokens_in} / ${m.tokens_out}`],
     ["est cost", "$" + (m.est_cost_usd ?? 0)],
-  ])).join("") || '<div class="muted">no measured calls in this window</div>';
-  openDrawer("Brain tier — " + tier, `
-    <div class="drawersec"><h4>Routing share (1h, measured)</h4>${info ? kv([
-      ["share", info.share_1h == null ? "—" : (info.share_1h * 100).toFixed(1) + "%"],
-      ["decisions", info.n], ["top model", esc(info.model || "—")],
-      ["p50 latency", fmtMs(info.p50_latency_ms)], ["p95 latency", fmtMs(info.p95_latency_ms)],
-    ]) : '<div class="muted">no route.decision events recorded yet</div>'}</div>
-    <div class="drawersec"><h4>Models (${esc(state.window)})</h4>${modelRows}</div>
-    <div class="drawersec"><h4>Owner-gated brain edits</h4>
-      <p class="muted">These fire <b>existing</b> cockpit routes — the diff
-      card shows the exact POST before anything happens. Nothing is cached.</p>
-      <button id="pinroutebtn">Pin a route</button>
-      <button id="autonomybtn">Adjust autonomy</button>
-      <div id="editcard"></div>
-    </div>`);
+  ]));
+  openDrawer("Brain tier — " + tier, frag(
+    el("div", "drawersec", el("h4", "", "Routing share (1h, measured)"),
+      info ? kv([
+        ["share", info.share_1h == null ? "—" : (info.share_1h * 100).toFixed(1) + "%"],
+        ["decisions", info.n], ["top model", info.model || "—"],
+        ["p50 latency", fmtMs(info.p50_latency_ms)], ["p95 latency", fmtMs(info.p95_latency_ms)],
+      ]) : el("div", "muted", "no route.decision events recorded yet")),
+    el("div", "drawersec", el("h4", "", `Models (${state.window})`),
+      modelRows.length ? modelRows : el("div", "muted", "no measured calls in this window")),
+    el("div", "drawersec", el("h4", "", "Owner-gated brain edits"),
+      el("p", "muted", "These fire ", el("b", "", "existing"),
+        ` cockpit routes — the diff
+      card shows the exact POST before anything happens. Nothing is cached.`),
+      el("button", { id: "pinroutebtn" }, "Pin a route"),
+      el("button", { id: "autonomybtn" }, "Adjust autonomy"),
+      el("div", { id: "editcard" }))));
   $("#pinroutebtn").addEventListener("click", () => renderPinRouteCard(tier, info));
   $("#autonomybtn").addEventListener("click", () => renderAutonomyCard());
 }
@@ -1275,22 +1319,24 @@ function knownTaskClasses() {
 }
 
 function renderPinRouteCard(tier, info) {
-  const datalist = knownTaskClasses().map((tc) => `<option value="${esc(tc)}">`).join("");
-  $("#editcard").innerHTML = `
-    <div class="diffcard">
-      <div class="target">POST /v1/cockpit/model-routes/override</div>
-      <p class="muted">Pin a task class to a model (empty model clears the
+  const modelInput = el("input", {
+    id: "pin-model", type: "text", placeholder: "model id (empty = clear override)",
+  });
+  modelInput.value = (info && info.model) || "";
+  $("#editcard").replaceChildren(el("div", "diffcard",
+    el("div", "target", "POST /v1/cockpit/model-routes/override"),
+    el("p", "muted", `Pin a task class to a model (empty model clears the
       override). Per the existing contract this is a reversible,
-      token-authenticated preference — <b>no owner phrase involved</b>; only
-      the paid-routing flip is phrase-gated and this card never touches it.</p>
-      <input id="pin-tc" type="text" placeholder="task_class (e.g. code)" list="tclist" />
-      <datalist id="tclist">${datalist}</datalist>
-      <input id="pin-model" type="text" placeholder="model id (empty = clear override)"
-             value="${esc((info && info.model) || "")}" />
-      <pre class="json" id="pin-preview"></pre>
-      <div class="row end"><button class="primary" id="pin-send">Send</button></div>
-      <div id="pin-result"></div>
-    </div>`;
+      token-authenticated preference — `, el("b", "", "no owner phrase involved"),
+      `; only
+      the paid-routing flip is phrase-gated and this card never touches it.`),
+    el("input", { id: "pin-tc", type: "text", placeholder: "task_class (e.g. code)", list: "tclist" }),
+    el("datalist", { id: "tclist" },
+      knownTaskClasses().map((tc) => el("option", { value: tc }))),
+    modelInput,
+    el("pre", { class: "json", id: "pin-preview" }),
+    el("div", "row end", el("button", { class: "primary", id: "pin-send" }, "Send")),
+    el("div", { id: "pin-result" })));
   const preview = () => {
     const body = { task_class: $("#pin-tc").value.trim(), model: $("#pin-model").value.trim() || null };
     $("#pin-preview").textContent = "body → " + JSON.stringify(body);
@@ -1301,7 +1347,7 @@ function renderPinRouteCard(tier, info) {
   $("#pin-send").addEventListener("click", async () => {
     const body = preview();
     const out = $("#pin-result");
-    if (!body.task_class) { out.innerHTML = '<span class="err">task_class is required</span>'; return; }
+    if (!body.task_class) { out.replaceChildren(el("span", "err", "task_class is required")); return; }
     try {
       const r = await api("/v1/cockpit/model-routes/override", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -1309,38 +1355,35 @@ function renderPinRouteCard(tier, info) {
       });
       const d = await r.json().catch(() => ({}));
       if (r.status === 401 || r.status === 403) {
-        out.innerHTML = `<span class="err">${r.status === 401
+        out.replaceChildren(el("span", "err", r.status === 401
           ? "Unauthorized — pair this browser (Token button) first."
-          : "Forbidden: " + esc(d.error || "owner authorization required")}</span>`;
+          : "Forbidden: " + (d.error || "owner authorization required")));
       } else if (!r.ok) {
-        out.innerHTML = `<span class="err">Failed (${r.status}): ${esc(d.error || "")}</span>`;
+        out.replaceChildren(el("span", "err", `Failed (${r.status}): ${d.error || ""}`));
       } else {
-        out.innerHTML = '<span class="ok">Route pinned. The change is audited in the override store.</span>';
+        out.replaceChildren(el("span", "ok", "Route pinned. The change is audited in the override store."));
       }
-    } catch (e) { out.innerHTML = `<span class="err">Request failed: ${esc(String(e))}</span>`; }
+    } catch (e) { out.replaceChildren(el("span", "err", "Request failed: " + String(e))); }
   });
 }
 
 function renderAutonomyCard() {
-  $("#editcard").innerHTML = `
-    <div class="diffcard">
-      <div class="target">POST /v1/cockpit/autonomy</div>
-      <p class="muted">Raising autonomy is owner-gated server-side: the exact
+  $("#editcard").replaceChildren(el("div", "diffcard",
+    el("div", "target", "POST /v1/cockpit/autonomy"),
+    el("p", "muted", `Raising autonomy is owner-gated server-side: the exact
       authorization phrase rides in this one request body and is discarded —
-      never stored, never echoed back.</p>
-      <select id="aut-level">
-        <option value="read_only">read_only</option>
-        <option value="assisted" selected>assisted</option>
-        <option value="autonomous">autonomous</option>
-        <option value="owner_high_autonomy_coding">owner_high_autonomy_coding</option>
-        <option value="yolo">yolo</option>
-      </select>
-      <input id="aut-ws" type="text" placeholder="workspace_path (required for owner_high_autonomy_coding)" />
-      <input id="aut-phrase" type="password" placeholder="owner authorization phrase (raises only)" autocomplete="off" />
-      <pre class="json" id="aut-preview"></pre>
-      <div class="row end"><button class="primary" id="aut-send">Send</button></div>
-      <div id="aut-result"></div>
-    </div>`;
+      never stored, never echoed back.`),
+    el("select", { id: "aut-level" },
+      el("option", { value: "read_only" }, "read_only"),
+      el("option", { value: "assisted", selected: true }, "assisted"),
+      el("option", { value: "autonomous" }, "autonomous"),
+      el("option", { value: "owner_high_autonomy_coding" }, "owner_high_autonomy_coding"),
+      el("option", { value: "yolo" }, "yolo")),
+    el("input", { id: "aut-ws", type: "text", placeholder: "workspace_path (required for owner_high_autonomy_coding)" }),
+    el("input", { id: "aut-phrase", type: "password", placeholder: "owner authorization phrase (raises only)", autocomplete: "off" }),
+    el("pre", { class: "json", id: "aut-preview" }),
+    el("div", "row end", el("button", { class: "primary", id: "aut-send" }, "Send")),
+    el("div", { id: "aut-result" })));
   const preview = () => {
     const body = { level: $("#aut-level").value };
     const ws = $("#aut-ws").value.trim();
@@ -1364,15 +1407,17 @@ function renderAutonomyCard() {
       });
       const d = await r.json().catch(() => ({}));
       if (r.status === 401) {
-        out.innerHTML = '<span class="err">Unauthorized — pair this browser (Token button) first.</span>';
+        out.replaceChildren(el("span", "err", "Unauthorized — pair this browser (Token button) first."));
       } else if (r.status === 403) {
-        out.innerHTML = `<span class="err">${esc(d.error || "owner authorization required")} — the exact phrase is required for raises.</span>`;
+        out.replaceChildren(el("span", "err",
+          `${d.error || "owner authorization required"} — the exact phrase is required for raises.`));
       } else if (!r.ok) {
-        out.innerHTML = `<span class="err">Failed (${r.status}): ${esc(d.error || "")}</span>`;
+        out.replaceChildren(el("span", "err", `Failed (${r.status}): ${d.error || ""}`));
       } else {
-        out.innerHTML = `<span class="ok">Autonomy is now <b>${esc(d.level || body.level)}</b>. Change audited.</span>`;
+        out.replaceChildren(el("span", "ok", "Autonomy is now ",
+          el("b", "", d.level || body.level), ". Change audited."));
       }
-    } catch (e) { out.innerHTML = `<span class="err">Request failed: ${esc(String(e))}</span>`; }
+    } catch (e) { out.replaceChildren(el("span", "err", "Request failed: " + String(e))); }
     $("#aut-phrase").value = ""; // never retained
     preview();
   });
@@ -1391,67 +1436,69 @@ $("#recsopen").addEventListener("click", () => {
   $("#recsopen").hidden = true;
 });
 
-function recCardHtml(card) {
+function recCardNode(card) {
   const v = card.validation || {};
-  const method = esc(v.method || "unvalidated");
+  const methodSpan = () => el("span", "method", `(${v.method || "unvalidated"})`);
   if (card.state === "insufficient_evidence") {
     // Hard rule (spec §6): no projected numbers below threshold — the note
     // carries the explicit "insufficient evidence (n=X) — collecting" text.
-    return `<div class="reccard insufficient" data-rec="${esc(card.id)}">
-      <h4>${esc(card.title)}</h4>
-      <div class="note">${esc(card.note || "collecting evidence…")}</div>
-    </div>`;
+    return el("div", { class: "reccard insufficient", "data-rec": card.id },
+      el("h4", "", card.title),
+      el("div", "note", card.note || "collecting evidence…"));
   }
   if (card.state === "validated") {
     const ci = Array.isArray(v.ci95) ? `${v.ci95[0]}% … ${v.ci95[1]}%` : "—";
-    return `<div class="reccard validated" data-rec="${esc(card.id)}">
-      <div class="row"><h4 style="margin:0">${esc(card.title)}</h4><span class="grow"></span><span class="badge validated">validated</span></div>
-      <div class="stat"><span class="k">median Δ ${esc(v.metric || "")}:</span> ${v.median_delta_pct == null ? "—" : v.median_delta_pct + "%"} <span class="method">(${method})</span></div>
-      <div class="stat"><span class="k">95% CI:</span> ${esc(ci)} <span class="method">(${method})</span></div>
-      <div class="stat"><span class="k">n:</span> ${v.n_baseline} baseline / ${v.n_candidate} candidate <span class="method">(${method})</span></div>
-      ${card.note ? `<div class="note">${esc(card.note)}</div>` : ""}
-      <div class="recactions">
-        <button class="primary" data-stage="${esc(card.id)}">Stage for approval</button>
-        <span class="recmsg muted"></span>
-      </div>
-    </div>`;
+    return el("div", { class: "reccard validated", "data-rec": card.id },
+      el("div", "row", el("h4", { style: "margin:0" }, card.title),
+        el("span", "grow"), el("span", "badge validated", "validated")),
+      el("div", "stat", el("span", "k", `median Δ ${v.metric || ""}:`),
+        ` ${v.median_delta_pct == null ? "—" : v.median_delta_pct + "%"} `, methodSpan()),
+      el("div", "stat", el("span", "k", "95% CI:"), ` ${ci} `, methodSpan()),
+      el("div", "stat", el("span", "k", "n:"),
+        ` ${v.n_baseline} baseline / ${v.n_candidate} candidate `, methodSpan()),
+      card.note ? el("div", "note", card.note) : null,
+      el("div", "recactions",
+        el("button", { class: "primary", "data-stage": card.id }, "Stage for approval"),
+        el("span", "recmsg muted")));
   }
   // staged
-  return `<div class="reccard staged" data-rec="${esc(card.id)}">
-    <div class="row"><h4 style="margin:0">${esc(card.title)}</h4><span class="grow"></span><span class="badge staged">staged</span></div>
-    ${card.note ? `<div class="note">${esc(card.note)}</div>` : ""}
-    <div class="recactions">
-      <a href="index.html#approvals">Review in cockpit Approvals →</a>
-    </div>
-    <div class="note">Apply stays owner-gated behind the existing approvals
-    queue — this page never asks for the phrase.</div>
-  </div>`;
+  return el("div", { class: "reccard staged", "data-rec": card.id },
+    el("div", "row", el("h4", { style: "margin:0" }, card.title),
+      el("span", "grow"), el("span", "badge staged", "staged")),
+    card.note ? el("div", "note", card.note) : null,
+    el("div", "recactions",
+      el("a", { href: "index.html#approvals" }, "Review in cockpit Approvals →")),
+    el("div", "note", `Apply stays owner-gated behind the existing approvals
+    queue — this page never asks for the phrase.`));
 }
 
 async function loadRecs() {
-  const el = $("#recslist");
-  if (!token) { el.innerHTML = '<div class="empty">Pair this browser (Token) to load recommendations.</div>'; return; }
+  const listEl = $("#recslist");
+  if (!token) {
+    listEl.replaceChildren(el("div", "empty", "Pair this browser (Token) to load recommendations."));
+    return;
+  }
   try {
     const r = await api(`/v1/observatory/recommendations?window=${encodeURIComponent(state.window)}`);
     if (!r.ok) {
-      el.innerHTML = `<div class="empty">${r.status === 401
-        ? "Unauthorized — set the cockpit token." : "error " + r.status}</div>`;
+      listEl.replaceChildren(el("div", "empty", r.status === 401
+        ? "Unauthorized — set the cockpit token." : "error " + r.status));
       return;
     }
     const d = await r.json();
     if (d.status === "dormant") {
-      el.innerHTML = `<div class="empty">Telemetry dormant — no measurements,
-        so no recommendations. Honest empty &gt; fake cards.</div>`;
+      listEl.replaceChildren(el("div", "empty", `Telemetry dormant — no measurements,
+        so no recommendations. Honest empty > fake cards.`));
       return;
     }
     const cards = d.cards || [];
-    el.innerHTML = cards.length
-      ? cards.map(recCardHtml).join("")
-      : '<div class="empty">No recommendations yet — the engine only speaks when it has measured evidence.</div>';
-    el.querySelectorAll("[data-stage]").forEach((b) =>
+    listEl.replaceChildren(cards.length
+      ? frag(cards.map(recCardNode))
+      : el("div", "empty", "No recommendations yet — the engine only speaks when it has measured evidence."));
+    listEl.querySelectorAll("[data-stage]").forEach((b) =>
       b.addEventListener("click", () => stageRec(b.getAttribute("data-stage"), b)));
   } catch (e) {
-    el.innerHTML = '<div class="empty">offline</div>';
+    listEl.replaceChildren(el("div", "empty", "offline"));
   }
 }
 
@@ -1471,14 +1518,14 @@ async function stageRec(id, btn) {
       loadRecs();
     } else if (!r.ok) {
       btn.disabled = false;
-      msg.innerHTML = `<span class="err">failed (${r.status}): ${esc(d.error || "")}</span>`;
+      msg.replaceChildren(el("span", "err", `failed (${r.status}): ${d.error || ""}`));
     } else {
       msg.textContent = "staged → approvals queue";
       loadRecs();
     }
   } catch (e) {
     btn.disabled = false;
-    msg.innerHTML = `<span class="err">request failed</span>`;
+    msg.replaceChildren(el("span", "err", "request failed"));
   }
 }
 
@@ -1489,7 +1536,7 @@ async function stageRec(id, btn) {
 const recentVerdicts = [];
 
 function renderDockStations() {
-  const el = $("#stations");
+  const wrap = $("#stations");
   const names = (state.snapshot && state.snapshot.stations && state.snapshot.stations.nodes)
     || ["job", "navigator", "worker", "gate", "ledger"];
   const counts = {};
@@ -1505,20 +1552,20 @@ function renderDockStations() {
   const hotStations = new Set(
     heatEntriesFor("stage:").filter((h) => h.score != null && h.score > HEAT_GLOW_THRESHOLD)
       .map((h) => String(h.key).split(":")[1]));
-  el.innerHTML = names.map((n, i) => `
-    <span class="station">
-      <span class="slot ${hotStations.has(n) ? "hot" : (counts[n] ? "busy" : "")}" title="${esc(n)}">
-        ${esc(n)}<b>${counts[n] || 0}${n === "job" && queueDepth ? " +" + queueDepth + "q" : ""}</b>
-      </span>${i < names.length - 1 ? '<span class="link"></span>' : ""}
-    </span>`).join("");
+  wrap.replaceChildren(...names.map((n, i) => el("span", "station",
+    el("span", {
+      class: "slot " + (hotStations.has(n) ? "hot" : (counts[n] ? "busy" : "")),
+      title: n,
+    }, n, el("b", "", `${counts[n] || 0}${n === "job" && queueDepth ? " +" + queueDepth + "q" : ""}`)),
+    i < names.length - 1 ? el("span", "link") : null)));
 }
 
 function pushVerdict(d) {
   recentVerdicts.unshift(d);
   if (recentVerdicts.length > 4) recentVerdicts.pop();
-  $("#dockevents").innerHTML = recentVerdicts.map((v) =>
-    `<span class="${v.verdict === "fail" ? "fail" : "pass"}">${esc(v.gate)}:${esc(v.verdict)} · ${esc(v.job_id)}</span>`
-  ).join("");
+  $("#dockevents").replaceChildren(...recentVerdicts.map((v) =>
+    el("span", v.verdict === "fail" ? "fail" : "pass",
+      `${v.gate}:${v.verdict} · ${v.job_id}`)));
 }
 
 function renderLayoutNote() {
@@ -1532,8 +1579,13 @@ function renderLayoutNote() {
     parts.push("graph cache not built — POST /v1/cockpit/graph/build");
   }
   parts.push(`window ${state.window}`);
-  parts.push('<span style="color:#7ae0ff">●</span> code <span style="color:#b388ff">●</span> docs <span style="color:#f5c451">●</span> memory <span style="color:#5be3a0">●</span> ledger');
-  $("#layoutnote").innerHTML = parts.join(" &nbsp;·&nbsp; ");
+  parts.push(frag(
+    el("span", { style: "color:#7ae0ff" }, "●"), " code ",
+    el("span", { style: "color:#b388ff" }, "●"), " docs ",
+    el("span", { style: "color:#f5c451" }, "●"), " memory ",
+    el("span", { style: "color:#5be3a0" }, "●"), " ledger"));
+  $("#layoutnote").replaceChildren(
+    ...parts.flatMap((p, i) => (i ? ["  ·  ", p] : [p])));
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1752,6 +1804,7 @@ refreshAll();
 startStream();
 if (!token) {
   setConn("off", "no token");
-  $("#recslist").innerHTML =
-    '<div class="empty">Pair this browser first — click <b>Token</b> and paste the cockpit token.</div>';
+  $("#recslist").replaceChildren(el("div", "empty",
+    "Pair this browser first — click ", el("b", "", "Token"),
+    " and paste the cockpit token."));
 }
