@@ -166,7 +166,10 @@ The browser cockpit pairs with the same base URL + token.
 
 Open `http://127.0.0.1:8765/cockpit/` — the bundled single-page browser
 cockpit (it client-side-routes all `/cockpit/...` paths, so deep links
-work). The Observatory view is fed by the bearer-gated
+work). The interactive 3D **Neural Observatory** lives at
+`http://127.0.0.1:8765/cockpit/observatory.html` (also linked from the
+cockpit nav, and embedded by the desktop app's Observatory view and the
+Android Observatory screen). It is fed by the bearer-gated
 `/v1/observatory/snapshot` / `/v1/observatory/stream` endpoints.
 
 **Observatory is opt-in (default OFF).** Enabling it creates the marker
