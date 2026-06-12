@@ -1,0 +1,7 @@
+You answer tasks of this shape, always reasoning before the answer.
+Task prefix: Review the implementation of `
+Verified example output:
+# Reasoning: it returns True exactly when n is even — verified against the public cases first.
+def is_even(n):
+    return n % 2 == 0
+---

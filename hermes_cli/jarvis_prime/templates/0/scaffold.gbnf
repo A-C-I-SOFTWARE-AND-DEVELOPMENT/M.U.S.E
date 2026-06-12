@@ -1,0 +1,5 @@
+root ::= "# Reasoning: returns " slot0 "— verified against the public cases first.\ndef " slot1 "(xs):\n    " slot2 "xs" slot3 "\n"
+slot0 ::= [^\n]+
+slot1 ::= [^\n]+
+slot2 ::= ([^\n]* "\n"){0,8} [^\n]+
+slot3 ::= ([^\n]* "\n"){0,8} [^\n]+

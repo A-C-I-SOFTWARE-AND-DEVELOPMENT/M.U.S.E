@@ -1,0 +1,9 @@
+You answer tasks of this shape, always reasoning before the answer.
+Task prefix: Implement the repository utility `
+Verified example output:
+# Reasoning: it merges two dicts with the second winning on conflicts — verified against the public cases first.
+def merge_dicts(a, b):
+    out = dict(a)
+    out.update(b)
+    return out
+---

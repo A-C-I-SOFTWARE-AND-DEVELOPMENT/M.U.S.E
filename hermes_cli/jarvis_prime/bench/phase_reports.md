@@ -121,3 +121,40 @@ train prompts mean 0.981 (min 0.880); unseen held-out prompts mean 0.846
 coherent clusters; ≥0.2 separation between in-domain and off-topic). 11 unit
 tests green. **Rollback:** delete `clusters.py` + `templates/model/` (nothing
 else imports them yet).
+
+## Phase 2 — Template mining
+
+**MEASURED (container):** mined from the 24 verifier-PASSED train records only
+(failed candidates are filtered before alignment; test
+`test_failed_outputs_never_reach_templates` proves a poisoned failed output
+cannot leak into any scaffold or source-hash list). All 5 clusters emitted
+versioned template pairs at `hermes_cli/jarvis_prime/templates/<cluster_id>/`:
+
+| cluster | domain(s) | mode | coverage | slots | support |
+|---|---|---|---|---|---|
+| 0 | code_generation | soft | 0.521 | 4 | 4 |
+| 1 | software_development | soft | 0.330 | 5 | 4 |
+| 2 | code_editing | soft | 0.421 | 4 | 4 |
+| 3 | safety + reasoning | soft | 0.394 | 5 | 8 |
+| 4 | code_review | **hard** | 0.589 | 4 | 4 |
+
+- **GBNF validation:** all 5 scaffolds compile under llama.cpp's grammar engine
+  and **all 24 source exemplars re-validate** through the real
+  `test-gbnf-validator` binary (24 valid / 0 invalid). Each grammar is also
+  self-checked in-process via a regex twin before emit.
+- **Mode rule:** `hard` requires coverage ≥ 0.5, ≤ 4 slots, AND every slot
+  single-line/number constrained (no free-text gaps) — reasoning is never
+  hard-forced. Cluster 4's scaffold pins the full function shape
+  (`# Reasoning: it returns <line>— …\ndef <line>(<line>):\n    return <line>`).
+- **Reasoning-first ordering:** every scaffold and prefix places the
+  `# Reasoning:` section before the answer code (test-enforced).
+- **Deviation (rule 7):** the spec's min_support=10 would skip every fixture
+  cluster (max support here is 8); the committed registry was mined with
+  `min_support=3`, recorded here and in each `meta.json`'s `support` field. The
+  module default remains `SPEC_MIN_SUPPORT = 10` for live mining.
+- LCS post-pass merges `slot " " slot` fragmentation into single typed slots
+  (raw LCS produced 9–17 word-sized slots per scaffold; merged: 4–5).
+
+**Done-when:** ≥1 structural cluster with a versioned, compiling template pair —
+met (cluster 4, hard mode, plus 4 soft templates). 9 unit tests green.
+**Rollback:** delete `templates/<cluster_id>/` dirs; mining is fully offline.

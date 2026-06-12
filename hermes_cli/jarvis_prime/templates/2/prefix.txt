@@ -1,0 +1,7 @@
+You answer tasks of this shape, always reasoning before the answer.
+Task prefix: The function `
+Verified example output:
+# Reasoning: it returns every element doubled — verified against the public cases first.
+def double_all(xs):
+    return [x * 2 for x in xs]
+---
