@@ -101,6 +101,44 @@ def runtime_status(_req: Request) -> JsonResponse:
     )
 
 
+def axiom_panel(_req: Request) -> JsonResponse:
+    """Axiom panel: chain audit, recent events, pending improvements.
+
+    One read-only snapshot for the cockpit's chain-status chip
+    (``audit.chain_valid`` ✔/✘/–), event tail, and the
+    pending-improvement count from the flywheel.
+    """
+    audit: dict[str, Any] = {}
+    status: dict[str, Any] = {}
+    tail: list[dict[str, Any]] = []
+    pending_count = 0
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        status = bridge.status()
+        audit = bridge.audit()
+        tail = bridge.tail(10)
+    except Exception as exc:
+        audit = {"chain_valid": None, "error": str(exc)}
+    try:
+        from hermes_cli.jarvis_prime import flywheel
+
+        pending_count = len(flywheel.pending())
+    except Exception:
+        pending_count = 0
+    return JsonResponse(
+        200,
+        {
+            "status": status,
+            "audit": audit,
+            "tail": tail,
+            "pending_improvements": pending_count,
+            "time": _now_iso(),
+        },
+    )
+
+
 def runtime_workers(_req: Request) -> JsonResponse:
     """Detected worker lanes (Claude Code / Codex) — detection only, no keys."""
     workers: list[dict[str, Any]] = []

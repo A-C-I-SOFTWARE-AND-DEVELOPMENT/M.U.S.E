@@ -1,3 +1,10 @@
+# Semantics (decided 2026-06-11): FULL MIRROR, two-way.
+# ACI source (aci-hermes-agent-source/) -> Base44 Jarvis repo on every push
+# to main, and the Base44 app folder (base44-hermes-connect-app/) mirrors
+# back. Commits tagged [base44-to-aci] skip the forward leg to prevent
+# loops. Switching to a *filtered* mirror (rsync excludes for docs/ tests/
+# etc.) changes downstream default behavior and is owner-gated — propose it
+# in the decision ledger first.
 name: Sync ACI Hermes to Base44
 
 on:

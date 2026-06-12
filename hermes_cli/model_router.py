@@ -728,6 +728,25 @@ def route(
         "created_at": created_at,
     }
 
+    # Flywheel: routing decisions are part of the daily digest. Soft —
+    # the router's contract (pure planning, no side effects that can
+    # fail the caller) is preserved.
+    try:
+        from hermes_cli.jarvis_prime import flywheel as _flywheel
+
+        _flywheel.record(
+            "model.routed",
+            {
+                "category": category,
+                "primary": primary_worker.id if primary_worker else "hermes-local",
+                "selected": [s.worker_id for s in selected],
+                "summary": summary,
+            },
+            outcome="success",
+        )
+    except Exception:
+        pass
+
     return RoutingDecision(
         task_id=task_id_value,
         task_category=category,

@@ -15,6 +15,7 @@ from typing import Any
 
 from .canonical import Unit
 from .contracts import (
+    Z3_AVAILABLE,
     ContractError,
     PostconditionViolation,
     SpecError,
@@ -111,19 +112,25 @@ class Verifier:
                     errors.append({"check": "refs:resolve-or-fail", "unresolved": ref})
 
         # 4. contracts:z3 — satisfiable + consistent + non-vacuous.
+        # Without z3 the check degrades to grammar validation and says so.
+        contracts_check = "contracts:z3" if Z3_AVAILABLE else "contracts:degraded"
         try:
             report = check_contracts(unit.contracts, unit.params)
+            if report.degraded:
+                warnings.append(
+                    "z3 unavailable — contracts checked syntactically, not proven"
+                )
             if not report.satisfiable:
                 errors.append(
-                    {"check": "contracts:z3", "error": "contracts unsatisfiable"}
+                    {"check": contracts_check, "error": "contracts unsatisfiable"}
                 )
             for clause in report.vacuous_clauses:
                 errors.append(
-                    {"check": "contracts:z3", "error": "vacuous clause",
+                    {"check": contracts_check, "error": "vacuous clause",
                      "clause": clause}
                 )
         except ContractError as e:
-            errors.append({"check": "contracts:z3", "error": str(e)})
+            errors.append({"check": contracts_check, "error": str(e)})
 
         # 5. callee effect closure (only meaningful if refs resolved).
         if not any(e.get("check") == "refs:resolve-or-fail" for e in errors):
@@ -145,15 +152,18 @@ class Verifier:
         if errors:
             return Rejection(errors=tuple(errors))
 
-        # All checks green: register + attest.
+        # All checks green: register + attest (degraded label stays honest).
+        checks = tuple(
+            contracts_check if c == "contracts:z3" else c for c in CHECKS
+        )
         unit_hash = self.registry.register(unit, self.ledger.signing_key)
         event_hash = self.ledger.append(
             "artifact_attestation",
-            {"unit_hash": unit_hash, "name": unit.name, "checks": list(CHECKS)},
+            {"unit_hash": unit_hash, "name": unit.name, "checks": list(checks)},
         )
         return Attestation(
             unit_hash=unit_hash,
-            checks=CHECKS,
+            checks=checks,
             event_hash=event_hash,
             warnings=tuple(warnings),
         )

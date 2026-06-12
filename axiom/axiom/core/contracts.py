@@ -6,6 +6,12 @@ expressions compiled to Z3; the conjunction must be satisfiable
 (consistent) and each clause must be non-vacuous (not a tautology).
 At runtime the same clauses are evaluated again on concrete values —
 a statically-clean unit that lies at runtime yields no result.
+
+Degraded mode: on platforms without z3 wheels (e.g. Termux/aarch64),
+clauses are still validated against the restricted grammar and still
+enforced concretely at runtime, but no SAT/consistency/vacuity claims
+are made — reports carry ``degraded=True`` and the verifier labels the
+check ``contracts:degraded`` instead of ``contracts:z3``.
 """
 
 from __future__ import annotations
@@ -16,7 +22,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-import z3  # ty: ignore[unresolved-import]
+try:
+    import z3
+except ImportError:  # no z3 wheels on this platform (e.g. aarch64)
+    z3 = None  # type: ignore[assignment]
+
+Z3_AVAILABLE = z3 is not None
 
 # ---------------------------------------------------------------------------
 # EARS — Easy Approach to Requirements Syntax (4 patterns)
@@ -124,8 +135,72 @@ def _compile(node: ast.AST, env: dict):
     raise ContractError(f"AST node {type(node).__name__} not allowed in contracts")
 
 
+def _validate(node: ast.AST, names: set[str]) -> None:
+    """Validate a restricted AST node without building solver terms.
+
+    Mirrors _compile's whitelist exactly — keep the two in parity.
+    """
+    if isinstance(node, ast.Expression):
+        _validate(node.body, names)
+        return
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (bool, int, float)):
+            return
+        raise ContractError(f"constant {node.value!r} not allowed")
+    if isinstance(node, ast.Name):
+        if node.id not in names:
+            raise ContractError(f"unknown name {node.id!r} in contract")
+        return
+    if isinstance(node, ast.BinOp) and type(node.op) in _ALLOWED_BINOPS:
+        _validate(node.left, names)
+        _validate(node.right, names)
+        return
+    if isinstance(node, ast.UnaryOp):
+        if isinstance(node.op, (ast.USub, ast.Not)):
+            _validate(node.operand, names)
+            return
+        raise ContractError("unary op not allowed")
+    if isinstance(node, ast.Compare):
+        if len(node.ops) != 1 or len(node.comparators) != 1:
+            raise ContractError("chained comparisons not allowed")
+        if type(node.ops[0]) not in _ALLOWED_CMPOPS:
+            raise ContractError("comparison op not allowed")
+        _validate(node.left, names)
+        _validate(node.comparators[0], names)
+        return
+    if isinstance(node, ast.BoolOp):
+        if not isinstance(node.op, (ast.And, ast.Or)):
+            raise ContractError("bool op not allowed")
+        for value in node.values:
+            _validate(value, names)
+        return
+    raise ContractError(f"AST node {type(node).__name__} not allowed in contracts")
+
+
+def validate_contract(
+    expr: str, params: dict[str, str], result_type: str = "float"
+) -> None:
+    """Check a contract against the restricted grammar, with no z3.
+
+    Raises ContractError on malformed clauses; proves nothing about
+    satisfiability or vacuity.
+    """
+    for name, kind in {**params, "result": result_type}.items():
+        if kind not in ("bool", "float"):
+            raise ContractError(f"unknown param type {kind!r} for {name!r}")
+    try:
+        tree = ast.parse(expr, filename="<contract>", mode="eval")
+    except SyntaxError as e:
+        raise ContractError(f"contract does not parse: {expr!r}: {e}") from e
+    _validate(tree, set(params) | {"result"})
+
+
 def compile_contract(expr: str, params: dict[str, str], result_type: str = "float"):
     """Compile a contract expression to a Z3 boolean over params + result."""
+    if z3 is None:
+        raise ContractError(
+            "z3 unavailable; cannot compile contract to solver terms"
+        )
     env = {name: _z3_var(name, kind) for name, kind in params.items()}
     env["result"] = _z3_var("result", result_type)
     try:
@@ -140,6 +215,7 @@ class ContractReport:
     satisfiable: bool
     consistent: bool
     vacuous_clauses: tuple[str, ...]
+    degraded: bool = False
 
     @property
     def ok(self) -> bool:
@@ -151,7 +227,18 @@ def check_contracts(
     params: dict[str, str],
     result_type: str = "float",
 ) -> ContractReport:
-    """Static contract check: SAT + consistency + per-clause vacuity."""
+    """Static contract check: SAT + consistency + per-clause vacuity.
+
+    Without z3 the clauses are grammar-validated only and the report
+    is marked degraded — honest about claiming no proof.
+    """
+    if z3 is None:
+        for c in contracts:
+            validate_contract(c, params, result_type)
+        return ContractReport(
+            satisfiable=True, consistent=True, vacuous_clauses=(), degraded=True
+        )
+
     compiled = [compile_contract(c, params, result_type) for c in contracts]
 
     # Satisfiability / consistency: the conjunction must be SAT.
@@ -194,9 +281,9 @@ def eval_concrete(expr: str, values: dict) -> bool:
     The expression has already passed the restricted-AST compile at
     verify time, so eval here sees only the whitelisted grammar.
     """
-    compile_contract(expr, {k: "bool" if isinstance(v, bool) else "float"
-                            for k, v in values.items() if k != "result"},
-                     "bool" if isinstance(values.get("result"), bool) else "float")
+    validate_contract(expr, {k: "bool" if isinstance(v, bool) else "float"
+                             for k, v in values.items() if k != "result"},
+                      "bool" if isinstance(values.get("result"), bool) else "float")
     return bool(eval(expr, {"__builtins__": {}}, dict(values)))  # noqa: S307
 
 

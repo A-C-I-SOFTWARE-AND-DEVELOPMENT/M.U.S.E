@@ -640,7 +640,35 @@ def write_ledger(
     ledger.path = target_path
 
     _atomic_write_text(target_path, ledger.to_markdown())
+    _chain_decision(ledger)
     return target_path
+
+
+def _chain_decision(ledger: "DecisionLedger") -> None:
+    """Soft hook: record the written decision on the axiom event chain.
+
+    Filesystem-only (keeps this module's no-network/no-subprocess
+    promise) and never raises into the host.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        if bridge.inert:
+            return
+        first_line = (ledger.decision or "").strip().splitlines()
+        bridge.record_event(
+            "decision.written",
+            {
+                "session_id": ledger.session_id,
+                "seq": ledger.seq,
+                "slug": ledger.slug,
+                "path": str(ledger.path) if ledger.path else None,
+                "decision": first_line[0] if first_line else "",
+            },
+        )
+    except Exception:
+        pass
 
 
 def read_ledger(path: Path | str) -> DecisionLedger:

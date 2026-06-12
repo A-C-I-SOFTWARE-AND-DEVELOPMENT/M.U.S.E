@@ -1869,12 +1869,20 @@ def _cmd_owner_brief(args: argparse.Namespace) -> int:
 
     board = MonitorBoard.default()
     results = board.run(context)
+    flywheel_digest = None
+    try:
+        from hermes_cli.jarvis_prime import flywheel as _flywheel
+
+        flywheel_digest = _flywheel.digest()
+    except Exception:
+        pass
     brief = build_owner_brief(
         results,
         board=board,
         changed=context.get("changed", []),
         learned=context.get("learned", []),
         blocked=context.get("blocked", []),
+        flywheel_digest=flywheel_digest,
     )
     if args.json:
         _print_json({

@@ -236,6 +236,14 @@ def release_gate(packet: Mapping[str, Any]) -> GateResult:
             missing.append(label)
     if missing:
         return GateResult(name=name, outcome=GateOutcome.FAIL, reason="release packet incomplete", findings=tuple(missing))
+    chain_finding = _axiom_chain_finding()
+    if chain_finding:
+        return GateResult(
+            name=name,
+            outcome=GateOutcome.FAIL,
+            reason="axiom event chain failed verification",
+            findings=(chain_finding,),
+        )
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="release packet ready")
 
 
@@ -271,6 +279,31 @@ def owner_approval_gate(packet: Mapping[str, Any]) -> GateResult:
         )
 
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="owner authorization captured")
+
+
+def high_risk_owner_approval_gate(
+    packet: Mapping[str, Any],
+    base: Optional[Callable[[Mapping[str, Any]], GateResult]] = None,
+) -> GateResult:
+    """OwnerApproval when the *job itself* is the gated action.
+
+    Used for HIGH-classified jobs (see ``axiom_bridge.classify_change``):
+    regardless of declared action categories, a HIGH job waits for the
+    exact authorization phrase. Once the phrase is present, the *base*
+    evaluator (legacy or strict) still rules on declared actions.
+    """
+
+    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+    name = "owner_approval"
+    phrase = (_get(packet, "owner_authorization_phrase") or "").strip()
+    if phrase != AUTHORIZATION_PHRASE:
+        return GateResult(
+            name=name,
+            outcome=GateOutcome.NEEDS_OWNER_APPROVAL,
+            reason=f"HIGH-risk job awaits exact phrase: {AUTHORIZATION_PHRASE!r}",
+        )
+    return (base or owner_approval_gate)(packet)
 
 
 def rollback_gate(packet: Mapping[str, Any]) -> GateResult:
@@ -407,6 +440,9 @@ def strict_release_gate(packet: Mapping[str, Any], bundle: GuardrailEvidenceBund
         return _strict_fail(name, "release packet present but no git_diff evidence")
     if not bundle.has(ARTIFACT_ROLLBACK):
         return _strict_fail(name, "release packet present but no rollback evidence")
+    chain_finding = _axiom_chain_finding()
+    if chain_finding:
+        return _strict_fail(name, "axiom event chain failed verification", (chain_finding,))
     return GateResult(name=name, outcome=GateOutcome.PASS, reason="release packet backed by evidence bundle")
 
 
@@ -451,6 +487,54 @@ def _capability_gate_enabled() -> bool:
     return os.environ.get(CAPABILITY_GATE_ENV, "").lower() in {"1", "true", "yes", "on"}
 
 
+def _axiom_chain_finding() -> Optional[str]:
+    """Release objection when the axiom event chain fails verification.
+
+    None (no objection) when the bridge is inert, no chain exists yet,
+    or the bridge itself is unavailable — "ship" only means "history
+    verifies" once there is a history to verify. Never raises.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        if bridge.inert or not bridge.chain_exists():
+            return None
+        audit = bridge.audit()
+        if audit.get("chain_valid") is not True:
+            return (
+                f"chain invalid at {audit.get('chain_path')} "
+                f"(first_bad_seq={audit.get('first_bad_seq')})"
+            )
+    except Exception:
+        return None
+    return None
+
+
+def _chain_summary(packet: Mapping[str, Any], summary: "GateSummary") -> None:
+    """Soft hook: append the gate run to the axiom event chain.
+
+    Never raises into the host — a broken or absent bridge must not
+    change gate behavior.
+    """
+    try:
+        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+
+        bridge = get_bridge()
+        if bridge.inert:
+            return
+        bridge.record_event(
+            "gate.summary",
+            {
+                "packet_id": str(_get(packet, "packet_id") or ""),
+                "overall": summary.overall.value,
+                "results": [r.to_dict() for r in summary.results],
+            },
+        )
+    except Exception:
+        pass
+
+
 def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
     """Build a gate list whose evidence-bound members close over ``bundle``.
 
@@ -481,6 +565,36 @@ def _strict_gates(bundle: GuardrailEvidenceBundle) -> tuple[Gate, ...]:
             Gate("capability", lambda packet: capability_gate(packet, bundle, enabled=True))
         )
     return tuple(gates)
+
+
+def gates_for_profile(
+    names: Sequence[str],
+    *,
+    evidence_bundle: Optional[GuardrailEvidenceBundle] = None,
+    strict_evidence: bool = False,
+    high_risk: bool = False,
+) -> tuple[Gate, ...]:
+    """Resolve a risk-profile gate-name list to runnable gates.
+
+    Names come from ``axiom_bridge.classify_change()["gates"]``. With
+    ``strict_evidence`` the evidence-bound evaluators are used (a missing
+    bundle is treated as empty, so self-attestation fails by design).
+    With ``high_risk`` the owner_approval member treats the job itself
+    as the gated action. Unknown names are ignored rather than invented.
+    """
+    if strict_evidence:
+        bundle = evidence_bundle or GuardrailEvidenceBundle(packet_id="")
+        pool = {g.name: g for g in _strict_gates(bundle)}
+    else:
+        pool = {g.name: g for g in GATES}
+    if high_risk and "owner_approval" in pool:
+        base = pool["owner_approval"].evaluator
+        pool["owner_approval"] = Gate(
+            "owner_approval",
+            lambda packet, _base=base: high_risk_owner_approval_gate(packet, _base),
+        )
+    wanted = [str(n).strip().lower() for n in names]
+    return tuple(pool[n] for n in wanted if n in pool)
 
 
 # ---------------------------------------------------------------------------
@@ -563,17 +677,17 @@ def run_gate_summary(
     An explicit ``gates`` sequence always wins (used by focused gate tests).
     """
 
-    if gates is not None:
-        return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
-
-    if strict_evidence:
-        bundle = evidence_bundle or GuardrailEvidenceBundle(
-            packet_id=str(_get(packet, "packet_id") or "")
-        )
-        gates = _strict_gates(bundle)
-    else:
-        gates = GATES
-    return GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+    if gates is None:
+        if strict_evidence:
+            bundle = evidence_bundle or GuardrailEvidenceBundle(
+                packet_id=str(_get(packet, "packet_id") or "")
+            )
+            gates = _strict_gates(bundle)
+        else:
+            gates = GATES
+    summary = GateSummary(results=tuple(g.evaluate(packet) for g in gates))
+    _chain_summary(packet, summary)
+    return summary
 
 
 def run_strict_gate_summary(

@@ -367,7 +367,14 @@ class TestSlackNativeSlashes:
         slack_norm = {_norm(n) for n in slack_names}
         tg_norm = {_norm(n) for n in tg_names}
         reserved_norm = {_norm(n) for n in _SLACK_RESERVED_COMMANDS}
-        missing = (tg_norm - slack_norm) - reserved_norm
+        # Commands explicitly curated out of the 50-cap Slack manifest
+        # (slack_slash=False) are reachable via /hermes <name> — that is
+        # the deliberate curation this test exists to force. Commands
+        # silently evicted by the clamp still fail here.
+        curated_norm = {
+            _norm(cmd.name) for cmd in COMMAND_REGISTRY if not cmd.slack_slash
+        }
+        missing = (tg_norm - slack_norm) - reserved_norm - curated_norm
         assert not missing, (
             f"commands on Telegram but missing from Slack native slashes: {sorted(missing)}"
         )

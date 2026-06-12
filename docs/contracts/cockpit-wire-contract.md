@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **112 routes** across **110 distinct handlers**
+- **113 routes** across **111 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -37,6 +37,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/avatar/room` | `gateway.cockpit.handlers.room_generate` | bearer | — | json | Generate a room item from a text prompt ('a Victorian desk') via the |
 | DELETE | `/v1/cockpit/avatar/room/{id}` | `gateway.cockpit.handlers.room_delete` | bearer | — | json |  |
 | POST | `/v1/cockpit/avatar/room/{id}/place` | `gateway.cockpit.handlers.room_place` | bearer | — | json | Persist a furniture item's normalized (x, y) placement in the room. |
+| GET | `/v1/cockpit/axiom` | `gateway.cockpit.handlers.axiom_panel` | bearer | — | json | Axiom panel: chain audit, recent events, pending improvements. |
 | GET | `/v1/cockpit/capabilities` | `gateway.cockpit.handlers.capabilities` | bearer | — | json | Describe what *this backend* can do, for the app to negotiate against. |
 | POST | `/v1/cockpit/coding/audit` | `gateway.cockpit.handlers.coding_audit` | bearer | — | json | Classify + route a plain-English coding request (read-only). |
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
