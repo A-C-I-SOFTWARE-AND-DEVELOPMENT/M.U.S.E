@@ -457,25 +457,27 @@ def _suggest_close_models(key: str, current_provider: str) -> list[str]:
     from difflib import get_close_matches
 
     candidates = set(MODEL_ALIASES)
+    # The handlers below log only exception class names and static text:
+    # provider names and error messages originate in config / HTTP layers
+    # that can carry credentials, and CodeQL treats them as tainted.
     try:
         _ensure_direct_aliases()
         candidates.update(DIRECT_ALIASES)
     except Exception as exc:
-        logger.debug("direct-alias pool unavailable for suggestions: %s", exc)
+        logger.debug(
+            "direct-alias pool unavailable for suggestions: %s", type(exc).__name__
+        )
     if current_provider:
         try:
             candidates.update(list_provider_models(current_provider) or [])
         except Exception as exc:
-            # Log the exception type only — provider/HTTP errors can embed
-            # credentials (auth headers, keyed URLs) in their messages.
             logger.debug(
-                "provider catalog unavailable for suggestions (%s): %s",
-                current_provider, type(exc).__name__,
+                "provider catalog unavailable for suggestions: %s", type(exc).__name__
             )
     try:
         return get_close_matches(key, sorted(candidates), n=3, cutoff=0.5)
     except Exception as exc:
-        logger.debug("close-match scoring failed for %r: %s", key, exc)
+        logger.debug("close-match scoring failed: %s", type(exc).__name__)
         return []
 
 
