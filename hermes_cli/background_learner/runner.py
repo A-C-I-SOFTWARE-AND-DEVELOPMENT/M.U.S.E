@@ -51,9 +51,11 @@ class BackgroundLearnerRunner:
         self,
         book: Optional[ProposalBook] = None,
         eval_fn: Optional[Callable[..., Any]] = None,
+        autoresearch_fn: Optional[Callable[..., Any]] = None,
     ):
         self.book = book or ProposalBook()
         self._eval_fn = eval_fn
+        self._autoresearch_fn = autoresearch_fn
 
     # ── dispatch ─────────────────────────────────────────────────────────
     def handle(self, job: Job) -> JobOutcome:
@@ -118,6 +120,98 @@ class BackgroundLearnerRunner:
             risk_class="RC3",  # RC3+ ⇒ NEEDS_OWNER_APPROVAL
         )
         return JobOutcome(job.id, job.kind, "proposed", f"proposal for {target}", proposal=p)
+
+    def _h_autoresearch_train(self, job: Job) -> JobOutcome:
+        """Nightly autoresearch runs — plan-only unless EVERY gate is open.
+
+        payload: {"tag": str (required), "objective": str, "lanes": int |
+        [{"device": str, "cost_per_hour_usd": float}], "max_experiments": int,
+        "max_wall_clock_seconds": float, "max_cost_usd": float,
+        "vram_budget_mb": float, "baseline_bpb": float, "min_bpb_delta": float}
+
+        dry_run (the default; non-dry_run already required an approval token
+        at enqueue) => a pure plan report, nothing spawned. A live run
+        additionally requires ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1``; when the
+        env gate is closed the job degrades to plan-only and says so.
+        """
+
+        import os
+
+        from hermes_cli.jarvis_prime.research_fabric.autoresearch.engine import (
+            ExperimentConfig,
+        )
+        from hermes_cli.jarvis_prime.research_fabric.autoresearch.swarm import (
+            LaneSpec,
+            plan_swarm,
+        )
+
+        payload = job.payload or {}
+        tag = str(payload.get("tag", "")).strip()
+        if not tag:
+            return JobOutcome(job.id, job.kind, "error", "payload.tag is required")
+
+        base_config = ExperimentConfig(
+            tag=tag,
+            objective=str(payload.get("objective", "minimize val_bpb")),
+            max_experiments=int(payload.get("max_experiments", 12)),
+            max_wall_clock_seconds=float(
+                payload.get("max_wall_clock_seconds", 4 * 3600.0)
+            ),
+            max_cost_usd=float(payload.get("max_cost_usd", 0.0)),
+            vram_budget_mb=float(payload.get("vram_budget_mb", 0.0)),
+        )
+        lanes_spec = payload.get("lanes", 1)
+        if isinstance(lanes_spec, list):
+            lanes: Any = [
+                LaneSpec(
+                    device=str(lane.get("device", "cuda:0")),
+                    cost_per_hour_usd=float(lane.get("cost_per_hour_usd", 0.0)),
+                )
+                for lane in lanes_spec
+            ]
+        else:
+            lanes = int(lanes_spec)
+        plan = plan_swarm(tag, lanes, base_config=base_config)
+
+        if job.dry_run:
+            return JobOutcome(
+                job.id, job.kind, "ran", f"plan-only (dry_run): {plan.summary()}"
+            )
+        if os.environ.get("MUSE_AUTORESEARCH_ALLOW_SPAWN", "").strip() != "1":
+            return JobOutcome(
+                job.id,
+                job.kind,
+                "ran",
+                "plan-only: live run blocked — MUSE_AUTORESEARCH_ALLOW_SPAWN "
+                f"is not set to 1. {plan.summary()}",
+            )
+        if self._autoresearch_fn is None:
+            return JobOutcome(
+                job.id,
+                job.kind,
+                "ran",
+                f"plan-only: no live autoresearch runner wired. {plan.summary()}",
+            )
+        outcome = self._autoresearch_fn(
+            plan,
+            book=self.book,
+            baseline_bpb=payload.get("baseline_bpb"),
+            min_bpb_delta=float(payload.get("min_bpb_delta", 0.0)),
+        )
+        proposal = getattr(
+            getattr(outcome, "proposal_outcome", None), "proposal", None
+        )
+        if proposal is not None:
+            return JobOutcome(
+                job.id,
+                job.kind,
+                "proposed",
+                f"swarm '{tag}' produced an owner-gated proposal",
+                proposal=proposal,
+            )
+        return JobOutcome(
+            job.id, job.kind, "ran", f"swarm '{tag}' completed without a promotable champion"
+        )
 
     def _h_propose_skill(self, job: Job) -> JobOutcome:
         target = str(job.payload.get("target_path", "skills/UNKNOWN/SKILL.md"))
