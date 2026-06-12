@@ -207,3 +207,46 @@ gate — DEFERRED to the owner script (no real model reachable here; spec rule 7
 deviation). 28 new unit tests green. **Rollback:** `MUSE_TEMPLATES=0`
 (instant) or revert the phase-3 commit (the only one touching an existing
 file: the flag guard at the tail of `build_gemma_runner`).
+
+## Phase 4 — Ratchet verification (the adoption gate)
+
+**Harness:** `bench/ratchet_run.py` — scores challenger (template-ON) vs
+champion (template-OFF) through the EXISTING machinery only:
+`research_fabric.benchmarks.run_suite` (executable verifiers; embedded fixture
+candidates stripped so the live runner is what's scored) →
+`validators.evaluate_ratchet` with catalog defaults untouched (0.80 floor,
+0.05 composite margin, 0.55 evaluator win-rate, held-out wall, safety
+non-regression). Per-task head-to-head win-rate (ties = 0.5) feeds the
+evaluator gate; latency is captured as a co-metric. PASS →
+`ChampionStore.freeze` (SnapshotStore row + GuardrailLedger record, git-sha
+rollback handle, asserted present). FAIL or `--mechanical-only` → exactly one
+structured `improvement_queue.jsonl` entry, then STOP.
+
+**Test evidence (container, 5 tests green):** pass-path freezes with the
+provided sha visible in BOTH stores; fail-path queues exactly one entry and
+freezes nothing; `mechanical_only` never freezes even on a passing verdict; an
+existing champion forces the composite margin (no free re-promotion).
+
+**MEASURED (container) — honest mechanical run:**
+`python -m hermes_cli.jarvis_prime.bench.ratchet_run --mechanical-only
+--rollback-handle 137bcae…` with the no-model stub runner produced verdict
+**REJECTED** (all domains 0.0 < 0.80 floor; win-rate 0.500 < 0.55 — exactly
+right for a stub) and queued improvement entry **`18ef2393911e`**
+(`kind=templates.ratchet`) to `$HERMES_HOME/flywheel/improvement_queue.jsonl`.
+No champion was frozen; `MUSE_TEMPLATES` remains off. The **live verdict** on
+real Gemma is produced by `scripts/templates_fastpath/phase4_ratchet.sh`.
+
+**Outcome (one of the two allowed):** clean rejection/deferral with a queued
+structured entry. No promotion was recorded — and none may be implied.
+
+### OWNER-GATED PROPOSAL (prepared, NOT applied)
+
+> **Proposal:** after `phase4_ratchet.sh` produces a PASS verdict and a frozen
+> champion on the owner's hardware, flip the default of `MUSE_TEMPLATES` from
+> `0` to `1` (templates on by default for the Gemma curator lane).
+> **This changes default runtime behavior and is therefore owner-gated.** It
+> will be applied only after the owner replies exactly:
+> `Yes, with authorization.`
+> Rollback if approved and later regretted: set `MUSE_TEMPLATES=0` (instant)
+> and/or `git revert` the flip commit; the frozen champion's
+> `rollback_handle` records the pre-promotion sha.
