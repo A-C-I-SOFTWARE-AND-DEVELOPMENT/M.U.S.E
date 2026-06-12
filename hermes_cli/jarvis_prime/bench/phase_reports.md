@@ -158,3 +158,52 @@ versioned template pairs at `hermes_cli/jarvis_prime/templates/<cluster_id>/`:
 **Done-when:** ≥1 structural cluster with a versioned, compiling template pair —
 met (cluster 4, hard mode, plus 4 soft templates). 9 unit tests green.
 **Rollback:** delete `templates/<cluster_id>/` dirs; mining is fully offline.
+
+## Phase 3 — Fast-path integration (flag-guarded)
+
+**Flag-off byte-identity (MEASURED, container):** with `MUSE_TEMPLATES`
+unset/`""`/`"0"`/`"false"`/`"off"`/`"no"`, `build_gemma_runner` returns the
+**same runner object** the invoke factory produced (object identity asserted),
+never imports `template_fastpath`, and a fixed prompt set produces identical
+output hashes. All 15 pre-existing gemma-runner tests pass unchanged.
+
+**Architecture (deviation noted in Phase 0):** the fast path wraps the Ollama
+runner and talks to llama-server's native `/completion` API via the new stdlib
+`llama_client.py` (`grammar` + `id_slot` + `cache_prompt`), activated only when
+`MUSE_TEMPLATES` is truthy AND `MUSE_TEMPLATES_SERVER` points at a healthy
+server AND the cluster-model/template artifacts load. Anything missing →
+the unchanged base runner. Confidence gate τ=0.75 (`MUSE_TEMPLATES_TAU`),
+stable slot mapping `cluster_id % n_slots`, hard = single constrained pass,
+soft = two-stage reason-then-format (reasoning never grammar-forced), all
+errors → flywheel-logged fallback (repeated errors → one improvement-queue
+entry). Speculative decoding is server-launch config
+(`SpecDecodeConfig.to_server_args()`, current `--spec-draft-*` spellings).
+
+**MEASURED (synthetic model, container) — mechanical fast-path probe** against
+a real llama-server (`--parallel 4 --slot-save-path --cache-reuse 256`),
+committed cluster model + an ASCII-slot probe scaffold:
+
+| check | result |
+|---|---|
+| `build_fastpath` against live server | OK (health, model, templates loaded) |
+| plan: cluster 4 (code_review prompt), mode hard, conf 1.0, slot 0 | OK |
+| prompt-cache: `tokens_cached` on templated runs | **1023** (prefix reuse working) |
+| grammar conformance: output starts with forced literal | **True** |
+| error path: server 500 → silent fallback to base runner | OK (verified earlier probe) |
+
+**Synthetic-model artifacts (do not extrapolate):** the random byte-vocab
+model can emit invalid UTF-8, which this llama.cpp build's grammar engine /
+response encoder rejects with HTTP 500 on free-text slots (`[^\n]+`) and free
+generation. Real BPE Gemma cannot produce invalid UTF-8 — the committed
+scaffolds were validated separately via `test-gbnf-validator` (24/24
+exemplars). Latency speedup and parse-rate vs baseline are therefore
+**DEFERRED** → `scripts/templates_fastpath/phase3_bench.sh` (laptop, real
+Gemma; gate: ≥20% latency win on ≥1 templated cluster AND parse rate ≥
+baseline).
+
+**Done-when (adapted):** flag-off byte-identical — MET (test-enforced);
+mechanical fast path proven against stub + real server — MET; ≥20% latency
+gate — DEFERRED to the owner script (no real model reachable here; spec rule 7
+deviation). 28 new unit tests green. **Rollback:** `MUSE_TEMPLATES=0`
+(instant) or revert the phase-3 commit (the only one touching an existing
+file: the flag guard at the tail of `build_gemma_runner`).
