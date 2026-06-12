@@ -460,16 +460,20 @@ def _suggest_close_models(key: str, current_provider: str) -> list[str]:
     try:
         _ensure_direct_aliases()
         candidates.update(DIRECT_ALIASES)
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("direct-alias pool unavailable for suggestions: %s", exc)
     if current_provider:
         try:
             candidates.update(list_provider_models(current_provider) or [])
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug(
+                "provider catalog unavailable for suggestions (%s): %s",
+                current_provider, exc,
+            )
     try:
         return get_close_matches(key, sorted(candidates), n=3, cutoff=0.5)
-    except Exception:
+    except Exception as exc:
+        logger.debug("close-match scoring failed for %r: %s", key, exc)
         return []
 
 
