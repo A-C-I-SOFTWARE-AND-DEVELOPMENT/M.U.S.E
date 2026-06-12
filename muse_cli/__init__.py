@@ -1,5 +1,5 @@
 """
-Hermes CLI - Unified command-line interface for Hermes Agent.
+MUSE CLI - Unified command-line interface for MUSE (formerly Hermes Agent).
 
 Provides subcommands for:
 - hermes chat          - Interactive chat (same as ./hermes)

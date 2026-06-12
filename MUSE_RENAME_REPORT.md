@@ -70,3 +70,11 @@ Scope and method: see `MUSE_RENAME_INVENTORY.md` and the approved plan.
 - Existing installs: `_ensure_default_soul_md()` upgrades a **never-edited** legacy default SOUL.md (strip-equal to `_LEGACY_DEFAULT_SOUL_MD`) to the MUSE text at startup; an edited SOUL.md is never touched.
 - Tests: new `tests/test_muse_identity.py` (9 tests: constant equality, MUSE-not-Hermes, empty-home seeding, `/personality none` → MUSE invariant, legacy upgrade, edited-SOUL-untouched). `tests/cli/test_personality_none.py` kept in full (clear-to-empty overlay semantics preserved). One existing assertion updated (`test_prompt_builder` seeded-soul content). Fixture strings like "You are Hermes." in codex-responses/restore tests left as inert test data (byte-restore invariants).
 - Gates (measured): compileall clean; collect-only **29,355 green**; full pytest **58 failed / 29,091 passed / 210 skipped in 11:19** — only diff vs baseline was one telegram-topic xdist flake (passes in isolation and with its file).
+- Rollback handle: `6f2c006f1`.
+
+## Phase 6 — user-facing strings (Bucket A)
+
+- Default banner art is now the M.U.S.E. brand: the no-skin fallbacks in `muse_cli/banner.py` switched `HERMES_AGENT_LOGO`/`HERMES_CADUCEUS` → the already-present `MUSE_WORDMARK`/`MUSE_GLYPH` (Hermes art constants retained as skin assets; render smoke-tested).
+- Docstrings/usage: `cli.py` ("MUSE — Interactive Terminal Interface" / "MUSE — Interactive AI Assistant"), `muse_cli/__init__.py`, `cli-config.yaml.example` header, the root `hermes` launcher docstring, `muse_cli/doctor.py` SOUL.md template + hint (now MUSE).
+- Bucket C untouched: model names (`NousResearch/Hermes-*` LLMs), service unit names, process patterns, env names, banner "Nous Research" credit. `HERMES_AGENT_HELP_GUIDANCE` (skill name + docs URL = external facts) left for the owner-gated list. The openclaw-migration `rebrand_text` (OpenClaw→Hermes) deliberately left: its replacement string is reused for filesystem paths (`~/.openclaw` → `~/.hermes`, which still resolves via the Phase 4 symlink) — rebranding it to MUSE is logged as a follow-up.
+- Gates (measured): compileall clean; cli tests 759 passed; full pytest **58 failed / 29,091 passed / 210 skipped in 11:22** — **0 new failures vs baseline**.
