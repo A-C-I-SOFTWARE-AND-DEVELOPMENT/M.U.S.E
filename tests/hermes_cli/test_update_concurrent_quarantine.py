@@ -130,7 +130,7 @@ def test_format_message_mentions_pids_and_remediation(tmp_path):
     assert "1234" in msg
     assert "5678" in msg
     assert "hermes.exe" in msg
-    assert "Hermes Desktop" in msg
+    assert "MUSE desktop" in msg
     assert "--force" in msg
     # Mentions the file that would have been overwritten
     assert str(tmp_path / "hermes.exe") in msg

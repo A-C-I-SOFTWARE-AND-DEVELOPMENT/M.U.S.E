@@ -1,12 +1,12 @@
-# ACI Hermes — Setup Guide
+# ACI M.U.S.E. — Setup Guide
 
-> **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent`
+> **Repo:** `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E`
 > **Owner:** ACI Software & Development
 >   ( **A**ccountability · **C**ommunication · **I**nformation · Software & Development )
 > **Upstream:** Hermes Agent by [Nous Research](https://nousresearch.com)
 > (MIT-licensed — upstream attribution is preserved everywhere it was authored)
 
-This guide is the **fastest honest path** to a working ACI Hermes
+This guide is the **fastest honest path** to a working ACI M.U.S.E.
 development environment. It covers the two runtimes that ship in this
 repo and how they relate.
 
@@ -23,7 +23,7 @@ For deep-dive material:
 
 ## 1. What's actually in this repo
 
-ACI Hermes is **two runtimes plus a bridge**:
+ACI M.U.S.E. is **two runtimes plus a bridge**:
 
 | # | Runtime | Status today | Where it lives |
 |---|---|---|---|
@@ -35,7 +35,7 @@ The Android app is a **thin native client**, not a CPython-in-APK
 embedding. The intended on-device topology is:
 
 ```
-Android app  ──(localhost HTTP)──►  Hermes gateway (running under Termux)  ──►  LLM provider
+Android app  ──(localhost HTTP)──►  MUSE gateway (running under Termux)  ──►  LLM provider
 ```
 
 …with the gateway also reachable from a server / VPS if you don't want
@@ -51,8 +51,8 @@ one-liner, see [`README.md`](README.md#quick-install).
 ### 2a. Manual checkout (recommended for contributors)
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
-cd hermes-agent
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+cd M.U.S.E
 
 # uv handles Python version + venv creation in one step.
 # If you don't have uv: curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -77,7 +77,7 @@ If `muse doctor` complains about a missing provider key, see
 ### 2c. First conversation
 
 ```bash
-hermes                        # interactive CLI
+muse                          # interactive CLI
 muse model                  # pick a model (OpenRouter / NovitaAI / NIM / local / …)
 muse setup                  # full setup wizard
 ```
@@ -100,13 +100,13 @@ termux-setup-storage          # one-time: grants ~/storage symlink
 ```
 
 `rust` + `clang` + `openssl` + `libffi` are needed because several of
-Hermes's transitive deps build from source on Android.
+MUSE's transitive deps build from source on Android.
 
 ### 3b. Clone and install with the Termux extra
 
 ```bash
-git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent.git
-cd hermes-agent
+git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
+cd M.U.S.E
 
 uv venv .venv --python 3.11
 source .venv/bin/activate
@@ -217,7 +217,7 @@ for the full table and example commands.
 5. `[`SECURITY.md`](SECURITY.md)` covers vulnerability reporting and
    the supply-chain hardening (exact-pinned deps, OSV scanner, etc.).
 
-`.env.example` lists every variable Hermes recognizes, all commented
+`.env.example` lists every variable MUSE recognizes, all commented
 out. Copy it to `~/.hermes/.env` and uncomment what you need.
 
 ---
@@ -240,12 +240,12 @@ Inside the interactive CLI or any gateway DM:
 Shell:
 
 ```bash
-hermes                       # interactive CLI
+muse                         # interactive CLI
 muse gateway               # start the messaging gateway
 muse tools                 # configure enabled tools
 muse config set            # set a single config value
 muse doctor                # diagnose install / config
-muse update                # update Hermes
+muse update                # update MUSE
 ```
 
 ---
@@ -253,7 +253,7 @@ muse update                # update Hermes
 ## 7. ACI ownership context
 
 This repository is owned and operated by **ACI Software & Development**.
-Hermes is being adapted into ACI's orchestration foundation — the same
+MUSE is being adapted into ACI's orchestration foundation — the same
 codebase will eventually carry:
 
 - The ACI Agent Suite (structured agents with role + duty + validation).

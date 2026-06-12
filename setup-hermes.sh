@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Hermes Agent Setup Script
+# M.U.S.E. Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
@@ -56,7 +56,7 @@ get_command_link_display_dir() {
 }
 
 echo ""
-echo -e "${CYAN}⚕ Hermes Agent Setup${NC}"
+echo -e "${CYAN}◉ M.U.S.E. Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -336,17 +336,24 @@ else
 fi
 
 # ============================================================================
-# PATH setup — symlink hermes into a user-facing bin dir
+# PATH setup — symlink muse (and the legacy hermes alias) into a user-facing bin dir
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up hermes command..."
+echo -e "${CYAN}→${NC} Setting up muse command..."
 
+MUSE_BIN="$SCRIPT_DIR/venv/bin/muse"
 HERMES_BIN="$SCRIPT_DIR/venv/bin/hermes"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
+# `muse` is the canonical command; older venvs may only have the `hermes` shim.
+if [ -f "$MUSE_BIN" ]; then
+    ln -sf "$MUSE_BIN" "$COMMAND_LINK_DIR/muse"
+else
+    ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/muse"
+fi
 ln -sf "$HERMES_BIN" "$COMMAND_LINK_DIR/hermes"
-echo -e "${GREEN}✓${NC} Symlinked hermes → $COMMAND_LINK_DISPLAY_DIR/hermes"
+echo -e "${GREEN}✓${NC} Symlinked muse → $COMMAND_LINK_DISPLAY_DIR/muse (legacy alias: hermes)"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"
@@ -377,7 +384,7 @@ else
         if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
             if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Hermes Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# MUSE — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
                 echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
             else
@@ -419,31 +426,31 @@ echo "Next steps:"
 echo ""
 if is_termux; then
     echo "  1. Run the setup wizard to configure API keys:"
-    echo "     hermes setup"
+    echo "     muse setup"
     echo ""
     echo "  2. Start chatting:"
-    echo "     hermes"
+    echo "     muse"
     echo ""
 else
     echo "  1. Reload your shell:"
     echo "     source $SHELL_CONFIG"
     echo ""
     echo "  2. Run the setup wizard to configure API keys:"
-    echo "     hermes setup"
+    echo "     muse setup"
     echo ""
     echo "  3. Start chatting:"
-    echo "     hermes"
+    echo "     muse"
     echo ""
 fi
 echo "Other commands:"
-echo "  hermes status        # Check configuration"
+echo "  muse status          # Check configuration"
 if is_termux; then
-    echo "  hermes gateway       # Run gateway in foreground"
+    echo "  muse gateway         # Run gateway in foreground"
 else
-    echo "  hermes gateway install # Install gateway service (messaging + cron)"
+    echo "  muse gateway install # Install gateway service (messaging + cron)"
 fi
-echo "  hermes cron list     # View scheduled jobs"
-echo "  hermes doctor        # Diagnose issues"
+echo "  muse cron list       # View scheduled jobs"
+echo "  muse doctor          # Diagnose issues"
 echo ""
 
 # Ask if they want to run setup wizard now

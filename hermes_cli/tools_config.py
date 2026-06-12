@@ -3164,8 +3164,13 @@ def tools_disable_enable_command(args):
     valid_toolsets = {ts_key for ts_key, _, _ in CONFIGURABLE_TOOLSETS} | _get_plugin_toolset_keys()
     unknown_toolsets = [t for t in toolset_targets if t not in valid_toolsets]
     if unknown_toolsets:
+        from difflib import get_close_matches
+
         for name in unknown_toolsets:
             _print_error(f"Unknown toolset '{name}'")
+            close = get_close_matches(name, sorted(valid_toolsets), n=3, cutoff=0.6)
+            if close:
+                print(f"  Did you mean: {', '.join(close)}?")
         toolset_targets = [t for t in toolset_targets if t in valid_toolsets]
 
     # Reject platform-scoped toolsets on platforms that don't allow them.
