@@ -199,6 +199,10 @@ the thread always shows live state.
 - [`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)
   — the owner-gated SIA (Hexo Labs) self-improvement worker: SIA
   iterates in a sandbox, MUSE promotes the winner only by proposal.
+- [`docs/integrations/autoresearch.md`](docs/integrations/autoresearch.md)
+  — the owner-gated autoresearch training engine (Karpathy, vendored):
+  autonomous 5-minute pretraining experiments in disposable workspaces,
+  cost-ceilinged and VRAM-gated; winners surface only as RC4 proposals.
 - [`docs/ai-intelligence/jarvis-learning-dataset.md`](docs/ai-intelligence/jarvis-learning-dataset.md)
   — the MUSE learning dataset pipeline: validated, source-backed,
   owner-approved traces for fine-tuning / preference / eval, with no

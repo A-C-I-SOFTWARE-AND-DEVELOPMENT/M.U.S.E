@@ -98,6 +98,23 @@ axiom = [
   "fastmcp>=3.0",
   "z3-solver>=4.13; platform_machine != 'aarch64'",
 ]
+# Karpathy autoresearch engine (vendored byte-identical at
+# hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor/, MIT).
+# CONVENIENCE-ONLY: optional-dependencies cannot express index pins, so this
+# resolves default-index torch (CPU on most hosts). The canonical execution
+# path is `uv run train.py` inside a seeded $HERMES_HOME workspace against the
+# VENDORED pyproject, which carries the pytorch-cu128 index. Pins mirror the
+# engine's own pyproject; matplotlib/pandas (analysis-only) are excluded; GPU
+# deps lack Termux wheels and are marker-guarded.
+autoresearch = [
+  "torch==2.9.1; platform_machine != 'aarch64'",
+  "kernels>=0.11.7; platform_machine != 'aarch64'",
+  "rustbpe>=0.1.0; platform_machine != 'aarch64'",
+  "pyarrow>=21.0.0; platform_machine != 'aarch64'",
+  "tiktoken>=0.11.0",
+  "requests>=2.32.0",
+  "numpy>=2.2.6",
+]
 dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "pytest-xdist==3.8.0", "pytest-split==0.11.0", "pytest-timeout==2.4.0", "mcp==1.26.0", "ty==0.0.48", "ruff==0.15.10", "psutil==7.2.2; sys_platform != \"android\""]
 messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py[voice]==2.7.1", "aiohttp==3.14.0", "brotlicffi==1.2.0.1", "slack-bolt==1.27.0", "slack-sdk==3.40.1", "qrcode==7.4.2"]
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
