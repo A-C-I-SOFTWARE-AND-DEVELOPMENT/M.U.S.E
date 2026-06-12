@@ -289,12 +289,19 @@ addopts = "-m 'not integration' -n auto --timeout=30 --timeout-method=signal"
 [tool.ty.environment]
 python-version = "3.13"
 
+[tool.ty.src]
+# Vendored byte-identical upstream payloads are data, not first-party code.
+exclude = ["hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor"]
+
 [tool.ty.rules]
 unknown-argument = "warn"
 redundant-cast = "ignore"
 
 [tool.ruff]
 preview = true  # required for PLW1514 (unspecified-encoding) — preview rule
+# Vendored byte-identical upstream payloads are never linted (do-not-edit rule;
+# see hermes_cli/jarvis_prime/research_fabric/autoresearch/VENDOR.md).
+extend-exclude = ["hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor"]
 
 [tool.ruff.lint]
 # All other lints are intentionally disabled (see comment history on this
