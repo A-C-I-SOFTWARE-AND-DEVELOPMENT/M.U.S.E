@@ -91,6 +91,30 @@ def _default_native_home() -> Path:
 _legacy_home_migrated: bool = False
 
 
+def ensure_legacy_home_symlink() -> None:
+    """Backfill the ``~/.hermes`` → ``~/.muse`` compat symlink when missing.
+
+    Fresh installs create only ``~/.muse``; a long tail of standalone
+    scripts, plugins and external tooling still reads ``~/.hermes``
+    directly. Keeping a symlink there means every such reader resolves to
+    the same state dir forever. No-op when env-configured, when ``~/.muse``
+    doesn't exist, or when anything already occupies ``~/.hermes``.
+    """
+    if get_hermes_home_override() or env_first("MUSE_HOME", "HERMES_HOME"):
+        return
+    home = Path.home()
+    new_home = home / ".muse"
+    old_home = home / ".hermes"
+    if not new_home.is_dir():
+        return
+    if old_home.exists() or old_home.is_symlink():
+        return
+    try:
+        os.symlink(new_home, old_home, target_is_directory=True)
+    except OSError:
+        pass
+
+
 def migrate_legacy_home_once() -> Path | None:
     """One-shot, idempotent ``~/.hermes`` → ``~/.muse`` state-dir migration.
 
@@ -121,7 +145,10 @@ def migrate_legacy_home_once() -> Path | None:
     new_home = home / ".muse"
     old_home = home / ".hermes"
     if new_home.exists() or new_home.is_symlink():
-        return None  # never clobber
+        # Never clobber; but backfill the legacy compat symlink when nothing
+        # occupies ~/.hermes (fresh installs that never had a Hermes home).
+        ensure_legacy_home_symlink()
+        return None
     if old_home.is_symlink() or not old_home.is_dir():
         return None  # nothing to migrate (or already a compat symlink)
     if (old_home / ".managed").exists():

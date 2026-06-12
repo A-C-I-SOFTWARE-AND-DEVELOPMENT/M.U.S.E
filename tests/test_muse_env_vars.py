@@ -99,6 +99,27 @@ class TestCanonicalAliases:
 
         assert load_muse_dotenv is load_hermes_dotenv
 
+    def test_dotenv_defaults_to_resolved_native_home(self, monkeypatch, tmp_path):
+        """With no env config at all, the dotenv loader follows the resolved
+        native home (~/.muse on fresh post-rename installs), not a hardcoded
+        ~/.hermes."""
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.delenv("MUSE_HOME", raising=False)
+        monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.delenv("MUSE_ENV_PROBE2", raising=False)
+        muse_home = tmp_path / ".muse"
+        muse_home.mkdir()
+        (muse_home / ".env").write_text(
+            "MUSE_ENV_PROBE2=from-native-muse\n", encoding="utf-8"
+        )
+        from muse_cli.env_loader import load_muse_dotenv
+
+        loaded = load_muse_dotenv()
+        import os
+
+        assert muse_home / ".env" in loaded
+        assert os.environ.get("MUSE_ENV_PROBE2") == "from-native-muse"
+
     def test_dotenv_reads_muse_home(self, monkeypatch, tmp_path):
         home = tmp_path / "musehome"
         home.mkdir()

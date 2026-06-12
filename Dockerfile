@@ -113,8 +113,10 @@ RUN uv pip install --no-cache-dir --no-deps -e "."
 
 # ---------- Runtime ----------
 ENV HERMES_WEB_DIST=/opt/hermes/muse_cli/web_dist
-# MUSE_HOME is canonical; HERMES_HOME is the permanent legacy alias.
-ENV MUSE_HOME=/opt/data
+# Only the legacy name is baked into the image: the entrypoint derives the
+# canonical MUSE_HOME from whichever of -e MUSE_HOME / -e HERMES_HOME the
+# user sets (MUSE_HOME wins, matching get_hermes_home()). Baking
+# MUSE_HOME here would override a user's `-e HERMES_HOME=...`.
 ENV HERMES_HOME=/opt/data
 ENV PATH="/opt/data/.local/bin:${PATH}"
 RUN mkdir -p /opt/data

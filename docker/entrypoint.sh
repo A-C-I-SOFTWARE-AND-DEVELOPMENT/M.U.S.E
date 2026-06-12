@@ -2,8 +2,17 @@
 # Docker/Podman entrypoint: bootstrap config files into the mounted volume, then run hermes.
 set -e
 
-HERMES_HOME="${HERMES_HOME:-${MUSE_HOME:-/opt/data}}"
-MUSE_HOME="${MUSE_HOME:-$HERMES_HOME}"
+# Resolve the app home with the same precedence as muse_constants
+# .get_hermes_home(): an explicit MUSE_HOME wins; otherwise the legacy
+# HERMES_HOME (baked to /opt/data in the image) is used and mirrored.
+# Both names are then exported pointing at the SAME directory so the
+# bootstrap below and the Python app never disagree about the volume.
+if [ -n "${MUSE_HOME:-}" ]; then
+    HERMES_HOME="$MUSE_HOME"
+else
+    HERMES_HOME="${HERMES_HOME:-/opt/data}"
+    MUSE_HOME="$HERMES_HOME"
+fi
 export MUSE_HOME HERMES_HOME
 INSTALL_DIR="/opt/hermes"
 

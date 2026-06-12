@@ -153,12 +153,15 @@ def load_hermes_dotenv(
     """
     loaded: list[Path] = []
 
-    home_path = Path(
-        hermes_home
-        or os.getenv("MUSE_HOME")
-        or os.getenv("HERMES_HOME")
-        or Path.home() / ".hermes"
-    )
+    if hermes_home:
+        home_path = Path(hermes_home)
+    else:
+        # Full resolution (override -> MUSE_HOME -> HERMES_HOME -> existing
+        # ~/.muse | ~/.hermes -> ~/.muse) so fresh post-rename installs read
+        # ~/.muse/.env instead of a hardcoded ~/.hermes.
+        from muse_constants import get_hermes_home
+
+        home_path = get_hermes_home()
     user_env = home_path / ".env"
     project_env_path = Path(project_env) if project_env else None
 

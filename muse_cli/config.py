@@ -500,6 +500,13 @@ def ensure_hermes_home():
             _secure_dir(d)
         _ensure_default_soul_md(home)
 
+    # Fresh installs create only ~/.muse; backfill the permanent ~/.hermes
+    # compat symlink so legacy direct readers keep resolving (no-op when
+    # env-configured or anything already occupies ~/.hermes).
+    from muse_constants import ensure_legacy_home_symlink
+
+    ensure_legacy_home_symlink()
+
 
 def _ensure_hermes_home_managed(home: Path):
     """Managed-mode variant: verify dirs exist (activation creates them), seed SOUL.md."""

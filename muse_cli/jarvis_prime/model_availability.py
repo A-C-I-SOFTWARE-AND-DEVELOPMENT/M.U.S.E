@@ -54,15 +54,12 @@ def load_hermes_dotenv(home: Optional[Path] = None) -> dict:
     API keys — into a dict. Returns ``{}`` when absent/unreadable. stdlib
     ``KEY=VALUE`` parse (``#`` comments and surrounding quotes handled)."""
 
-    base = (
-        Path(home)
-        if home
-        else Path(
-            os.environ.get("MUSE_HOME")
-            or os.environ.get("HERMES_HOME")
-            or os.path.expanduser("~/.hermes")
-        )
-    )
+    if home:
+        base = Path(home)
+    else:
+        from muse_constants import get_hermes_home
+
+        base = get_hermes_home()
     env_file = base / ".env"
     if not env_file.exists():
         return {}

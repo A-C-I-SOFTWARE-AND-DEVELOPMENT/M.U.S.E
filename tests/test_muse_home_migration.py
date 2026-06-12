@@ -111,6 +111,41 @@ class TestMigration:
         assert not (fresh_home / ".hermes").exists()
 
 
+class TestLegacySymlinkBackfill:
+    """Fresh installs (only ~/.muse) get the ~/.hermes compat symlink so the
+    long tail of direct ~/.hermes readers keeps resolving."""
+
+    def test_backfills_symlink_for_fresh_muse_home(self, fresh_home):
+        (fresh_home / ".muse").mkdir()
+        muse_constants.ensure_legacy_home_symlink()
+        old = fresh_home / ".hermes"
+        assert old.is_symlink()
+        assert old.resolve() == (fresh_home / ".muse").resolve()
+
+    def test_migrate_path_also_backfills(self, fresh_home):
+        (fresh_home / ".muse").mkdir()
+        assert migrate_legacy_home_once() is None
+        assert (fresh_home / ".hermes").is_symlink()
+
+    def test_never_touches_an_occupied_hermes_path(self, fresh_home):
+        (fresh_home / ".muse").mkdir()
+        (fresh_home / ".hermes").mkdir()
+        (fresh_home / ".hermes" / "keep.txt").write_text("x", encoding="utf-8")
+        muse_constants.ensure_legacy_home_symlink()
+        assert not (fresh_home / ".hermes").is_symlink()
+        assert (fresh_home / ".hermes" / "keep.txt").exists()
+
+    def test_noop_when_env_configured(self, fresh_home, monkeypatch):
+        (fresh_home / ".muse").mkdir()
+        monkeypatch.setenv("MUSE_HOME", str(fresh_home / "custom"))
+        muse_constants.ensure_legacy_home_symlink()
+        assert not (fresh_home / ".hermes").exists()
+
+    def test_noop_when_no_muse_home(self, fresh_home):
+        muse_constants.ensure_legacy_home_symlink()
+        assert not (fresh_home / ".hermes").exists()
+
+
 class TestDefaultResolution:
     """get_hermes_home() default branch: ~/.muse wins, ~/.hermes legacy."""
 
