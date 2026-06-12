@@ -3,6 +3,13 @@
 
 name: "Hermes Agent CodeQL Config"
 
+# Vendored byte-identical upstream payloads are DATA, not first-party code —
+# they are sha256-pinned (do-not-edit; CI-enforced by
+# tests/jarvis_prime/test_autoresearch_vendor_integrity.py) and any "fix"
+# applied to them breaks vendor integrity. Keep CodeQL out of them.
+paths-ignore:
+  - hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor
+
 # Query filters to exclude known false positives
 query-filters:
   # The 'hermes skills view' and 'hermes skills export' CLI commands intentionally
