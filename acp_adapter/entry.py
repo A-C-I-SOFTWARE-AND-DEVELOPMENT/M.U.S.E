@@ -211,6 +211,14 @@ def _run_setup_browser(assume_yes: bool = False) -> int:
 
 def main(argv: list[str] | None = None) -> None:
     """Entry point: load env, configure logging, run the ACP agent."""
+    # One-shot ~/.hermes -> ~/.muse state-dir migration (idempotent no-op).
+    try:
+        from muse_constants import migrate_legacy_home_once
+
+        migrate_legacy_home_once()
+    except Exception:
+        pass
+
     args = _parse_args(argv)
     if args.version:
         _print_version()

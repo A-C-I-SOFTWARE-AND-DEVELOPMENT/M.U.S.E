@@ -4113,6 +4113,14 @@ def main(
     Toolset Examples:
         - "research": Web search, extract, crawl + vision tools
     """
+    # One-shot ~/.hermes -> ~/.muse state-dir migration (idempotent no-op).
+    try:
+        from muse_constants import migrate_legacy_home_once
+
+        migrate_legacy_home_once()
+    except Exception:
+        pass
+
     print("🤖 AI Agent with Tool Calling")
     print("=" * 50)
     

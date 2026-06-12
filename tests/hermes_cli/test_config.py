@@ -24,11 +24,16 @@ from muse_cli.config import (
 
 
 class TestGetHermesHome:
-    def test_default_path(self):
+    def test_default_path(self, tmp_path, monkeypatch):
+        # Fresh default (nothing on disk, no env) is the canonical ~/.muse;
+        # a pre-existing legacy ~/.hermes keeps winning until migrated.
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("HERMES_HOME", None)
-            home = get_hermes_home()
-            assert home == Path.home() / ".hermes"
+            os.environ.pop("MUSE_HOME", None)
+            assert get_hermes_home() == tmp_path / ".muse"
+            (tmp_path / ".hermes").mkdir()
+            assert get_hermes_home() == tmp_path / ".hermes"
 
     def test_env_override(self):
         with patch.dict(os.environ, {"HERMES_HOME": "/custom/path"}):

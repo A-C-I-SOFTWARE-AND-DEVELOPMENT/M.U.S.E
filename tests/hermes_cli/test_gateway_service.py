@@ -1201,10 +1201,13 @@ class TestDetectVenvDir:
 class TestSystemUnitHermesHome:
     """HERMES_HOME in system units must reference the target user, not root."""
 
-    def test_system_unit_uses_target_user_home_not_calling_user(self, monkeypatch):
-        # Simulate sudo: Path.home() returns /root, target user is alice
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
+    def test_system_unit_uses_target_user_home_not_calling_user(self, monkeypatch, tmp_path):
+        # Simulate sudo: Path.home() returns the calling user's home (a tmp
+        # dir — NOT /root, whose real ~/.hermes->~/.muse symlink would leak
+        # in via resolve()), target user is alice.
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
         monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.delenv("MUSE_HOME", raising=False)
         monkeypatch.setattr(
             gateway_cli, "_system_service_identity",
             lambda run_as_user=None: ("alice", "alice", "/home/alice"),
@@ -1216,13 +1219,18 @@ class TestSystemUnitHermesHome:
 
         unit = gateway_cli.generate_systemd_unit(system=True, run_as_user="alice")
 
-        assert 'HERMES_HOME=/home/alice/.hermes' in unit
-        assert '/root/.hermes' not in unit
+        # Fresh default is the canonical ~/.muse post-rename; the unit
+        # pins both env names.
+        assert 'MUSE_HOME=/home/alice/.muse' in unit
+        assert 'HERMES_HOME=/home/alice/.muse' in unit
+        assert str(tmp_path / '.muse') not in unit
+        assert str(tmp_path / '.hermes') not in unit
 
-    def test_system_unit_remaps_profile_to_target_user(self, monkeypatch):
-        # Simulate sudo with a profile: HERMES_HOME was resolved under root
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("HERMES_HOME", "/root/.hermes/profiles/coder")
+    def test_system_unit_remaps_profile_to_target_user(self, monkeypatch, tmp_path):
+        # Simulate sudo with a profile: HERMES_HOME was resolved under the
+        # calling user's home (tmp dir; see note above re /root symlink).
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes" / "profiles" / "coder"))
         monkeypatch.setattr(
             gateway_cli, "_system_service_identity",
             lambda run_as_user=None: ("alice", "alice", "/home/alice"),
@@ -1235,7 +1243,7 @@ class TestSystemUnitHermesHome:
         unit = gateway_cli.generate_systemd_unit(system=True, run_as_user="alice")
 
         assert 'HERMES_HOME=/home/alice/.hermes/profiles/coder' in unit
-        assert '/root/' not in unit
+        assert str(tmp_path) not in unit
 
     def test_system_unit_preserves_custom_hermes_home(self, monkeypatch):
         # Custom HERMES_HOME not under any user's home — keep as-is
@@ -1263,35 +1271,60 @@ class TestSystemUnitHermesHome:
 
 
 class TestHermesHomeForTargetUser:
-    """Unit tests for _hermes_home_for_target_user()."""
+    """Unit tests for _hermes_home_for_target_user().
 
-    def test_remaps_default_home(self, monkeypatch):
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
+    Uses a tmp_path fake home (not /root) so the host's real ~/.hermes or
+    ~/.muse — including the post-migration ~/.hermes -> ~/.muse symlink —
+    can never leak in via Path.resolve().
+    """
+
+    def test_remaps_default_home(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
         monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.delenv("MUSE_HOME", raising=False)
+
+        result = gateway_cli._hermes_home_for_target_user("/home/alice")
+        # Fresh default is the canonical ~/.muse post-rename.
+        assert result == "/home/alice/.muse"
+
+    def test_remaps_legacy_default_home(self, monkeypatch, tmp_path):
+        (tmp_path / ".hermes").mkdir()
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+        monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.delenv("MUSE_HOME", raising=False)
 
         result = gateway_cli._hermes_home_for_target_user("/home/alice")
         assert result == "/home/alice/.hermes"
 
-    def test_remaps_profile_path(self, monkeypatch):
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("HERMES_HOME", "/root/.hermes/profiles/coder")
+    def test_remaps_profile_path(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+        monkeypatch.setenv("HERMES_HOME", str(tmp_path / ".hermes" / "profiles" / "coder"))
 
         result = gateway_cli._hermes_home_for_target_user("/home/alice")
         assert result == "/home/alice/.hermes/profiles/coder"
 
-    def test_keeps_custom_path(self, monkeypatch):
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
+    def test_remaps_muse_profile_path(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+        monkeypatch.setenv("MUSE_HOME", str(tmp_path / ".muse" / "profiles" / "coder"))
+
+        result = gateway_cli._hermes_home_for_target_user("/home/alice")
+        assert result == "/home/alice/.muse/profiles/coder"
+
+    def test_keeps_custom_path(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
         monkeypatch.setenv("HERMES_HOME", "/opt/hermes")
 
         result = gateway_cli._hermes_home_for_target_user("/home/alice")
         assert result == "/opt/hermes"
 
-    def test_noop_when_same_user(self, monkeypatch):
-        monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/home/alice")))
+    def test_noop_when_same_user(self, monkeypatch, tmp_path):
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
         monkeypatch.delenv("HERMES_HOME", raising=False)
+        monkeypatch.delenv("MUSE_HOME", raising=False)
 
-        result = gateway_cli._hermes_home_for_target_user("/home/alice")
-        assert result == "/home/alice/.hermes"
+        result = gateway_cli._hermes_home_for_target_user(str(tmp_path))
+        # Fresh default is the canonical ~/.muse post-rename.
+        assert result == str(tmp_path / ".muse")
 
 
 class TestGeneratedUnitUsesDetectedVenv:

@@ -462,6 +462,11 @@ def ensure_hermes_home():
     setgid + group-writable (2770). We skip mkdir and set umask(0o007) so
     any files created (e.g. SOUL.md) are group-writable (0660).
     """
+    # One-shot ~/.hermes -> ~/.muse migration (no-op when env-configured,
+    # managed, already migrated, or nothing to migrate).
+    from muse_constants import migrate_legacy_home_once
+
+    migrate_legacy_home_once()
     home = get_hermes_home()
     if is_managed():
         old_umask = os.umask(0o007)

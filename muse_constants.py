@@ -70,6 +70,87 @@ def _sync_legacy_env_aliases() -> None:
 _sync_legacy_env_aliases()
 
 
+def _default_native_home() -> Path:
+    """Default state dir: ``~/.muse`` (canonical), ``~/.hermes`` (legacy).
+
+    Resolution: an existing ``~/.muse`` wins; otherwise an existing legacy
+    ``~/.hermes`` is used (pre-migration installs); fresh installs get
+    ``~/.muse``. Deterministic whether or not the one-shot migration has
+    run in this process.
+    """
+    home = Path.home()
+    muse = home / ".muse"
+    if muse.exists():
+        return muse
+    hermes = home / ".hermes"
+    if hermes.exists():
+        return hermes
+    return muse
+
+
+_legacy_home_migrated: bool = False
+
+
+def migrate_legacy_home_once() -> Path | None:
+    """One-shot, idempotent ``~/.hermes`` → ``~/.muse`` state-dir migration.
+
+    Called from process entry points (CLI main, agent runner, ACP entry, MCP
+    server) and from ``ensure_hermes_home()``. Strategy: atomic ``os.rename``
+    of the real directory to ``~/.muse``, write a ``.migrated_from_hermes``
+    breadcrumb, then leave a compat symlink at ``~/.hermes`` so legacy
+    scripts, docs and container mounts keep resolving. Never copies, never
+    clobbers an existing ``~/.muse``, and never runs when an explicit
+    MUSE_HOME/HERMES_HOME (or context override) is in effect or the install
+    is package-managed. Concurrency-safe: ``os.rename`` is atomic and the
+    loser of a race finds ``~/.muse`` already present.
+
+    Returns the new path when a migration actually happened, else ``None``.
+    """
+    global _legacy_home_migrated
+    if _legacy_home_migrated:
+        return None
+    _legacy_home_migrated = True
+
+    # Explicit configuration opts out — the configured dir is authoritative.
+    if get_hermes_home_override() or env_first("MUSE_HOME", "HERMES_HOME"):
+        return None
+    if env_first("MUSE_MANAGED", "HERMES_MANAGED"):
+        return None
+
+    home = Path.home()
+    new_home = home / ".muse"
+    old_home = home / ".hermes"
+    if new_home.exists() or new_home.is_symlink():
+        return None  # never clobber
+    if old_home.is_symlink() or not old_home.is_dir():
+        return None  # nothing to migrate (or already a compat symlink)
+    if (old_home / ".managed").exists():
+        return None  # package-manager-owned layout (NixOS/Homebrew)
+
+    try:
+        os.rename(old_home, new_home)
+    except OSError:
+        return None  # permissions / concurrent migration — keep using ~/.hermes
+
+    try:
+        from datetime import datetime, timezone
+
+        (new_home / ".migrated_from_hermes").write_text(
+            "migrated from ~/.hermes at "
+            f"{datetime.now(timezone.utc).isoformat()}\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+
+    try:
+        os.symlink(new_home, old_home, target_is_directory=True)
+    except OSError:
+        pass  # legacy path stays absent; _default_native_home finds ~/.muse
+
+    return new_home
+
+
 def set_hermes_home_override(path: str | Path | None) -> Token:
     """Set a context-local Hermes home override and return its reset token.
 
@@ -132,7 +213,7 @@ def get_hermes_home() -> Path:
             # Inline the default-root resolution from get_default_hermes_root()
             # to stay import-safe (this function is called from module scope
             # in 30+ files; we cannot afford to trigger logging setup here).
-            active_path = (Path.home() / ".hermes" / "active_profile")
+            active_path = _default_native_home() / "active_profile"
             active = active_path.read_text().strip() if active_path.exists() else ""
         except (UnicodeDecodeError, OSError):
             active = ""
@@ -158,7 +239,7 @@ def get_hermes_home() -> Path:
             except Exception:
                 pass
 
-    return Path.home() / ".hermes"
+    return _default_native_home()
 
 
 def get_default_hermes_root() -> Path:
@@ -177,7 +258,7 @@ def get_default_hermes_root() -> Path:
 
     Import-safe — no dependencies beyond stdlib.
     """
-    native_home = Path.home() / ".hermes"
+    native_home = _default_native_home()
     env_home = env_first("MUSE_HOME", "HERMES_HOME") or ""
     if not env_home:
         return native_home

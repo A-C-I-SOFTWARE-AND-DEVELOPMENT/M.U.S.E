@@ -1093,17 +1093,18 @@ class TestHermesHomeIsolation:
         assert hermes_home is not None, "HERMES_HOME should be set by conftest"
         assert "hermes_test" in hermes_home, "Should point to test temp dir"
 
-    def test_get_hermes_home_fallback(self):
+    def test_get_hermes_home_fallback(self, tmp_path):
         """Without HERMES_HOME set, falls back to the active OS home."""
+        from pathlib import Path as _Path
+
         from tools.tirith_security import _get_hermes_home
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove HERMES_HOME entirely. With HOME also absent, expanduser
-            # falls back to the account database; compute expected under the
-            # same environment instead of after patch.dict restores HOME.
-            os.environ.pop("HERMES_HOME", None)
-            expected = os.path.join(os.path.expanduser("~"), ".hermes")
+        with patch.dict(os.environ, {}, clear=True), patch.object(
+            _Path, "home", lambda: _Path(str(tmp_path))
+        ):
+            # No env config and nothing on disk -> the canonical fresh
+            # default ~/.muse (post-rename invariant).
             result = _get_hermes_home()
-        assert result == expected
+        assert result == str(tmp_path / ".muse")
 
 
 # ---------------------------------------------------------------------------

@@ -10754,6 +10754,15 @@ def main():
     except Exception:
         pass
 
+    # One-shot ~/.hermes -> ~/.muse state-dir migration (idempotent no-op
+    # when env-configured, managed, or already migrated).
+    try:
+        from muse_constants import migrate_legacy_home_once
+
+        migrate_legacy_home_once()
+    except Exception:
+        pass
+
     # Sweep stale ``hermes.exe.old.*`` quarantine files left by previous
     # ``hermes update`` runs on Windows. Silent no-op on non-Windows or when
     # there's nothing to clean. See ``_quarantine_running_hermes_exe``.

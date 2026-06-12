@@ -865,6 +865,14 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
 
 def run_mcp_server(verbose: bool = False) -> None:
     """Start the Hermes MCP server on stdio."""
+    # One-shot ~/.hermes -> ~/.muse state-dir migration (idempotent no-op).
+    try:
+        from muse_constants import migrate_legacy_home_once
+
+        migrate_legacy_home_once()
+    except Exception:
+        pass
+
     if not _MCP_SERVER_AVAILABLE:
         print(
             "Error: MCP server requires the 'mcp' package.\n"
