@@ -229,9 +229,9 @@ existing champion forces the composite margin (no free re-promotion).
 
 **MEASURED (container) — honest mechanical run:**
 `python -m hermes_cli.jarvis_prime.bench.ratchet_run --mechanical-only
---rollback-handle 137bcae…` with the no-model stub runner produced verdict
+--rollback-handle b8273aa (phase-4 commit)` with the no-model stub runner produced verdict
 **REJECTED** (all domains 0.0 < 0.80 floor; win-rate 0.500 < 0.55 — exactly
-right for a stub) and queued improvement entry **`18ef2393911e`**
+right for a stub) and queued improvement entry **`a6b08522b47e`**
 (`kind=templates.ratchet`) to `$HERMES_HOME/flywheel/improvement_queue.jsonl`.
 No champion was frozen; `MUSE_TEMPLATES` remains off. The **live verdict** on
 real Gemma is produced by `scripts/templates_fastpath/phase4_ratchet.sh`.
