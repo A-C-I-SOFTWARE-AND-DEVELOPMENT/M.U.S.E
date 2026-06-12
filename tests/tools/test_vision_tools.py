@@ -77,10 +77,10 @@ class TestValidateImageUrl:
         assert _validate_image_url("") is False
 
     def test_rejects_none(self):
-        assert _validate_image_url(None) is False
+        assert _validate_image_url(None) is False  # ty: ignore[invalid-argument-type]
 
     def test_rejects_non_string(self):
-        assert _validate_image_url(12345) is False
+        assert _validate_image_url(12345) is False  # ty: ignore[invalid-argument-type]
 
     def test_rejects_ftp_scheme(self):
         assert _validate_image_url("ftp://files.example.com/image.jpg") is False
@@ -111,10 +111,10 @@ class TestValidateImageUrl:
         assert _validate_image_url("   ") is False
 
     def test_rejects_boolean(self):
-        assert _validate_image_url(True) is False
+        assert _validate_image_url(True) is False  # ty: ignore[invalid-argument-type]
 
     def test_rejects_list(self):
-        assert _validate_image_url(["https://example.com"]) is False
+        assert _validate_image_url(["https://example.com"]) is False  # ty: ignore[invalid-argument-type]
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +188,7 @@ class TestHandleVisionAnalyze:
             # It should be an Awaitable (coroutine)
             assert isinstance(result, Awaitable)
             # Clean up the coroutine to avoid RuntimeWarning
-            result.close()
+            result.close()  # ty: ignore[unresolved-attribute]
 
     def test_prompt_contains_question(self):
         """The full prompt should incorporate the user's question."""
@@ -203,7 +203,7 @@ class TestHandleVisionAnalyze:
                 }
             )
             # Clean up coroutine
-            coro.close()
+            coro.close()  # ty: ignore[unresolved-attribute]
             call_args = mock_tool.call_args
             full_prompt = call_args[0][1]  # second positional arg
             assert "Describe the cat" in full_prompt
@@ -221,7 +221,7 @@ class TestHandleVisionAnalyze:
             coro = _handle_vision_analyze(
                 {"image_url": "https://example.com/img.png", "question": "test"}
             )
-            coro.close()
+            coro.close()  # ty: ignore[unresolved-attribute]
             call_args = mock_tool.call_args
             model = call_args[0][2]  # third positional arg
             assert model == "custom/model-v1"
@@ -240,7 +240,7 @@ class TestHandleVisionAnalyze:
             coro = _handle_vision_analyze(
                 {"image_url": "https://example.com/img.png", "question": "test"}
             )
-            coro.close()
+            coro.close()  # ty: ignore[unresolved-attribute]
             call_args = mock_tool.call_args
             model = call_args[0][2]
             # With no AUXILIARY_VISION_MODEL set, model should be None
@@ -255,7 +255,7 @@ class TestHandleVisionAnalyze:
             mock_tool.return_value = json.dumps({"result": "ok"})
             result = _handle_vision_analyze({})
             assert isinstance(result, Awaitable)
-            result.close()
+            result.close()  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +394,7 @@ class TestVisionConfig:
             result = json.loads(await vision_analyze_tool(str(img), "describe this", "test/model"))
 
         assert result["success"] is True
+        assert mock_llm.await_args is not None
         assert mock_llm.await_args.kwargs["temperature"] == 1.0
         assert mock_llm.await_args.kwargs["timeout"] == 77.0
 
@@ -422,6 +423,7 @@ class TestVisionConfig:
             result = json.loads(await vision_analyze_tool(str(img), "describe this", "test/model"))
 
         assert result["success"] is True
+        assert mock_llm.await_args is not None
         assert mock_llm.await_args.kwargs["temperature"] == 0.1
         assert mock_llm.await_args.kwargs["timeout"] == 120.0
 
@@ -729,6 +731,7 @@ class TestVisionRegistration:
         from tools.registry import registry
 
         entry = registry._tools.get("vision_analyze")
+        assert entry is not None
         schema = entry.schema
         assert schema["name"] == "vision_analyze"
         params = schema.get("parameters", {})
@@ -740,6 +743,7 @@ class TestVisionRegistration:
         from tools.registry import registry
 
         entry = registry._tools.get("vision_analyze")
+        assert entry is not None
         assert callable(entry.handler)
 
 
@@ -755,7 +759,7 @@ class TestResizeImageForVision:
         """Images under the limit should be returned unchanged."""
         # Create a small 10x10 red PNG
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         img = Image.new("RGB", (10, 10), (255, 0, 0))
@@ -769,7 +773,7 @@ class TestResizeImageForVision:
     def test_large_image_is_resized(self, tmp_path):
         """Images over the default target should be auto-resized to fit."""
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         # Create a large image that will exceed 5 MB in base64
@@ -786,7 +790,7 @@ class TestResizeImageForVision:
     def test_custom_max_bytes(self, tmp_path):
         """The max_base64_bytes parameter should be respected."""
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         img = Image.new("RGB", (200, 200), (0, 128, 255))
@@ -801,7 +805,7 @@ class TestResizeImageForVision:
     def test_jpeg_output_for_non_png(self, tmp_path):
         """Non-PNG images should be resized as JPEG."""
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         img = Image.new("RGB", (2000, 2000), (255, 128, 0))
@@ -821,7 +825,7 @@ class TestResizeImageForVision:
     def test_extreme_aspect_ratio_preserved(self, tmp_path):
         """Extreme aspect ratios should be preserved during resize."""
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         # Very wide panorama: 8000x200
@@ -851,7 +855,7 @@ class TestResizeImageForVision:
     def test_tall_narrow_image_preserved(self, tmp_path):
         """Tall narrow images should also preserve aspect ratio."""
         try:
-            from PIL import Image
+            from PIL import Image  # ty: ignore[unresolved-import]
         except ImportError:
             pytest.skip("Pillow not installed")
         # Very tall: 200x6000

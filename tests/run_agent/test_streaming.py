@@ -377,7 +377,7 @@ class TestStreamingCallbacks:
         agent._interrupt_requested = False
 
         touch_calls = []
-        agent._touch_activity = lambda desc: touch_calls.append(desc)
+        agent._touch_activity = lambda desc: touch_calls.append(desc)  # ty: ignore[invalid-assignment]
 
         agent._interruptible_streaming_api_call({})
 
@@ -506,7 +506,7 @@ class TestStreamingFallback:
             agent._interruptible_streaming_api_call({})
 
         # The flag should be set so the main retry loop switches to non-streaming
-        assert agent._disable_streaming is True
+        assert agent._disable_streaming is True  # ty: ignore[unresolved-attribute]
 
     @patch("run_agent.AIAgent._create_request_openai_client")
     @patch("run_agent.AIAgent._close_request_openai_client")
@@ -826,7 +826,7 @@ class TestCodexStreamCallbacks:
         agent._interrupt_requested = False
 
         touch_calls = []
-        agent._touch_activity = lambda desc: touch_calls.append(desc)
+        agent._touch_activity = lambda desc: touch_calls.append(desc)  # ty: ignore[invalid-assignment]
 
         mock_event_text_1 = SimpleNamespace(
             type="response.output_text.delta",
@@ -910,7 +910,7 @@ class TestCodexStreamCallbacks:
         agent.api_mode = "codex_responses"
 
         touch_calls = []
-        agent._touch_activity = lambda desc: touch_calls.append(desc)
+        agent._touch_activity = lambda desc: touch_calls.append(desc)  # ty: ignore[invalid-assignment]
 
         events = [
             SimpleNamespace(type="response.output_text.delta", delta="Hello"),
@@ -964,7 +964,7 @@ class TestAnthropicStreamCallbacks:
         agent._interrupt_requested = False
 
         touch_calls = []
-        agent._touch_activity = lambda desc: touch_calls.append(desc)
+        agent._touch_activity = lambda desc: touch_calls.append(desc)  # ty: ignore[invalid-assignment]
 
         events = [
             SimpleNamespace(
@@ -1135,7 +1135,7 @@ class TestPartialToolCallWarning:
         agent._interrupt_requested = False
 
         fired_deltas: list = []
-        agent._fire_stream_delta = lambda text: fired_deltas.append(text)
+        agent._fire_stream_delta = lambda text: fired_deltas.append(text)  # ty: ignore[invalid-assignment]
         agent._current_streamed_assistant_text = "Let me write the audit: "
 
         import os as _os
@@ -1282,7 +1282,7 @@ class TestSilentRetryMidToolCall:
         agent._interrupt_requested = False
 
         fired_deltas: list = []
-        agent._fire_stream_delta = lambda text: fired_deltas.append(text)
+        agent._fire_stream_delta = lambda text: fired_deltas.append(text)  # ty: ignore[invalid-assignment]
 
         import os as _os
         _prev = _os.environ.get("HERMES_STREAM_RETRIES")
@@ -1356,7 +1356,7 @@ class TestSilentRetryMidToolCall:
         agent._interrupt_requested = False
 
         fired_deltas: list = []
-        agent._fire_stream_delta = lambda text: fired_deltas.append(text)
+        agent._fire_stream_delta = lambda text: fired_deltas.append(text)  # ty: ignore[invalid-assignment]
 
         import os as _os
         _prev = _os.environ.get("HERMES_STREAM_RETRIES")
@@ -1614,7 +1614,7 @@ class TestCodexFallbackErrorEvent:
             skip_memory=True,
         )
         agent.api_mode = "codex_responses"
-        agent._touch_activity = lambda desc: None
+        agent._touch_activity = lambda desc: None  # ty: ignore[invalid-assignment]
         return agent
 
     def test_fallback_raises_synthesized_error_with_xai_subscription_message(self):

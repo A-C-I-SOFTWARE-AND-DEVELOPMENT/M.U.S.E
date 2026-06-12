@@ -90,7 +90,7 @@ def interruptible_api_call(agent, api_kwargs: dict):
     the main retry loop can try again with backoff / credential rotation /
     provider fallback.
     """
-    result = {"response": None, "error": None}
+    result: Dict[str, Any] = {"response": None, "error": None}
     request_client_holder = {"client": None}
 
     def _call():
@@ -957,7 +957,7 @@ def handle_max_iterations(agent, messages: list, api_call_count: int) -> str:
         try:
             from agent.auxiliary_client import _fixed_temperature_for_model, OMIT_TEMPERATURE as _OMIT_TEMP
         except Exception:
-            _fixed_temperature_for_model = None
+            _fixed_temperature_for_model = None  # ty: ignore[invalid-assignment]  # optional-import fallback
             _OMIT_TEMP = None
         _raw_summary_temp = (
             _fixed_temperature_for_model(agent.model, agent.base_url)
@@ -1190,7 +1190,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
     # Bedrock Converse uses boto3's converse_stream() with real-time delta
     # callbacks — same UX as Anthropic and chat_completions streaming.
     if agent.api_mode == "bedrock_converse":
-        result = {"response": None, "error": None}
+        result: Dict[str, Any] = {"response": None, "error": None}
         first_delta_fired = {"done": False}
         deltas_were_sent = {"yes": False}
 
@@ -1255,7 +1255,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
             raise result["error"]
         return result["response"]
 
-    result = {"response": None, "error": None, "partial_tool_names": []}
+    result: Dict[str, Any] = {"response": None, "error": None, "partial_tool_names": []}
     request_client_holder = {"client": None, "diag": None}
     first_delta_fired = {"done": False}
     deltas_were_sent = {"yes": False}  # Track if any deltas were fired (for fallback)

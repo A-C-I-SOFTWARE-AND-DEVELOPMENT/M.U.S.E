@@ -264,6 +264,7 @@ class VercelSandboxEnvironment(BaseEnvironment):
 
         self._sandbox = self._create_sandbox()
         self._configure_attached_sandbox(requested_cwd=requested_cwd)
+        assert self._sync_manager is not None  # set by _configure_attached_sandbox
         self._sync_manager.sync(force=True)
         self.init_session()
 
@@ -308,7 +309,9 @@ class VercelSandboxEnvironment(BaseEnvironment):
                         timeout=self._create_params.timeout,
                         runtime=self._create_params.runtime,
                         resources=self._create_params.resources,
-                        source={"type": "snapshot", "snapshot_id": snapshot_id},
+                        # The SDK coerces mapping sources via parse_source();
+                        # its annotation is just narrower than what it accepts.
+                        source={"type": "snapshot", "snapshot_id": snapshot_id},  # ty: ignore[invalid-argument-type]
                     ),
                     attempts=_CREATE_RETRY_ATTEMPTS,
                 )

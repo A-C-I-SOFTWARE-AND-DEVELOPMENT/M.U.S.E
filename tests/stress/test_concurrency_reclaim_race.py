@@ -73,7 +73,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                 continue
             run = kb.latest_run(conn, tid)
             events.append({"kind": "claimed", "task": tid, "worker": worker_id,
-                           "run_id": run.id})
+                           "run_id": run.id})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
             # Sleep longer than TTL so reclaimer has a chance to intervene
             time.sleep(WORK_DURATION_S + random.uniform(-0.3, 0.3))
@@ -85,7 +85,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                     summary=f"worker-{worker_id} finished",
                 )
                 events.append({"kind": "complete_ok" if ok else "complete_refused",
-                               "task": tid, "worker": worker_id, "run_id": run.id})
+                               "task": tid, "worker": worker_id, "run_id": run.id})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             except sqlite3.OperationalError as e:
                 events.append({"kind": "sqlite_err", "op": "complete", "err": str(e)[:100]})
         finally:

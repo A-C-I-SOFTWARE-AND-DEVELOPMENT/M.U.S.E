@@ -1142,7 +1142,7 @@ def list_diagnostics(
 
         return {
             "diagnostics": out,
-            "count": sum(len(d["diagnostics"]) for d in out),
+            "count": sum(len(d["diagnostics"]) for d in out),  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
         }
     finally:
         conn.close()
@@ -1156,7 +1156,7 @@ def list_diagnostics(
 try:
     import psutil as _psutil
 except ImportError:
-    _psutil = None  # type: ignore[assignment]
+    _psutil = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
 
 
 @router.get("/workers/active")
@@ -1916,7 +1916,7 @@ def update_profile_description(profile_name: str, payload: DescribeBody):
         from hermes_cli import profiles as profiles_mod
         canon = profiles_mod.normalize_profile_name(profile_name)
         if canon == "default":
-            from hermes_constants import get_hermes_home  # type: ignore
+            from hermes_constants import get_hermes_home
             from pathlib import Path as _Path
             profile_dir = _Path(get_hermes_home())
         else:

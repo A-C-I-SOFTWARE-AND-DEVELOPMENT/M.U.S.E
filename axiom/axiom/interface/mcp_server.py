@@ -12,7 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP  # ty: ignore[unresolved-import]
 
 from ..core.canonical import Unit
 from ..core.contracts import (
@@ -58,7 +58,8 @@ def configure(
 def _host() -> tuple[Registry, Ledger, Verifier, Mind, ForgeEngine]:
     if _verifier is None:
         configure(Registry("data/registry.db"), Ledger("data/ledger.db"))
-    return _registry, _ledger, _verifier, _mind, _forge
+    # configure() always populates all five globals together.
+    return _registry, _ledger, _verifier, _mind, _forge  # ty: ignore[invalid-return-type]
 
 
 # ------------------------------------------------------------------ registry

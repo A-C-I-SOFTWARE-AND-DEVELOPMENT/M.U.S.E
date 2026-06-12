@@ -161,7 +161,7 @@ async def test_on_processing_start_handles_missing_ids(monkeypatch):
     event = MessageEvent(
         text="hello",
         message_type=MessageType.TEXT,
-        source=SimpleNamespace(chat_id=None),
+        source=SimpleNamespace(chat_id=None),  # ty: ignore[invalid-argument-type]
         message_id=None,
     )
 

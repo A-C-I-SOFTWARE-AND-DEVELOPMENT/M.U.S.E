@@ -199,7 +199,9 @@ class TestPlatformRegistry:
         )
         reg.register(entry1)
         reg.register(entry2)
-        assert reg.get("dup").label == "Dup v2"
+        dup_entry = reg.get("dup")
+        assert dup_entry is not None
+        assert dup_entry.label == "Dup v2"
 
 
 # ── GatewayConfig integration ────────────────────────────────────────────

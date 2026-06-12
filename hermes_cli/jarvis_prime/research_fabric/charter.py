@@ -260,7 +260,7 @@ class CharterBook:
         for i, c in enumerate(self.charters):
             if c.charter_id == charter_id and c.revoked_at is None:
                 self.charters[i] = AutonomyCharter(
-                    **{**c.to_dict(), "revoked_at": now}  # type: ignore[arg-type]
+                    **{**c.to_dict(), "revoked_at": now}  # ty: ignore[invalid-argument-type]  # round-trip of to_dict
                 )
                 changed = True
         if changed and persist:

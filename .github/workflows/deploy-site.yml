@@ -27,10 +27,19 @@ jobs:
     steps:
       # Skips cleanly when no deploy hook is configured for this repo —
       # previously this job ran unguarded on every release and curl'd an
-      # empty URL when the secret was absent.
+      # empty URL when the secret was absent. The check lives in the shell
+      # (not a step `if:`) because the `secrets` context is not available in
+      # `if:` expressions — referencing it there invalidates the whole
+      # workflow file ("Unrecognized named-value: 'secrets'").
       - name: Trigger Vercel Deploy
-        if: ${{ secrets.VERCEL_DEPLOY_HOOK != '' }}
-        run: curl -X POST "${{ secrets.VERCEL_DEPLOY_HOOK }}"
+        env:
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "No VERCEL_DEPLOY_HOOK secret configured; skipping."
+            exit 0
+          fi
+          curl -X POST "$VERCEL_DEPLOY_HOOK"
 
   deploy-docs:
     if: github.repository == 'A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E'

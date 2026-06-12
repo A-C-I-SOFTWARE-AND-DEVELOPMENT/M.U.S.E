@@ -457,6 +457,7 @@ class TestBlockingApprovalE2E:
         resolve_gateway_approval(session_key, "deny")
         t.join(timeout=5)
 
+        assert result_holder[0] is not None
         assert result_holder[0]["approved"] is False
         assert "BLOCKED" in result_holder[0]["message"]
         unregister_gateway_notify(session_key)
@@ -496,6 +497,7 @@ class TestBlockingApprovalE2E:
         t.start()
         t.join(timeout=10)
 
+        assert result_holder[0] is not None
         assert result_holder[0]["approved"] is False
         assert "timed out" in result_holder[0]["message"]
         unregister_gateway_notify(session_key)
@@ -556,7 +558,7 @@ class TestBlockingApprovalE2E:
             t.join(timeout=5)
 
         assert all(r is not None for r in results)
-        assert all(r["approved"] is True for r in results)
+        assert all(r["approved"] is True for r in results)  # ty: ignore[not-subscriptable]
         unregister_gateway_notify(session_key)
 
     def test_parallel_mixed_approve_deny(self):
@@ -613,8 +615,8 @@ class TestBlockingApprovalE2E:
             t.join(timeout=5)
 
         assert all(r is not None for r in results)
-        assert sorted(r["approved"] for r in results) == [False, True]
-        assert sum("BLOCKED" in (r.get("message") or "") for r in results) == 1
+        assert sorted(r["approved"] for r in results) == [False, True]  # ty: ignore[not-subscriptable]
+        assert sum("BLOCKED" in (r.get("message") or "") for r in results) == 1  # ty: ignore[unresolved-attribute]
         unregister_gateway_notify(session_key)
 
 

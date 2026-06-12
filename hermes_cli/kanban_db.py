@@ -4301,7 +4301,7 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
     # Keeps the public return type (``list[str]``) stable for direct callers
     # and tests that destructure the result; ``dispatch_once`` reads this
     # side-channel attribute to populate ``DispatchResult.auto_blocked``.
-    detect_crashed_workers._last_auto_blocked = auto_blocked  # type: ignore[attr-defined]
+    detect_crashed_workers._last_auto_blocked = auto_blocked  # ty: ignore[unresolved-attribute]
     return crashed
 
 
@@ -4311,7 +4311,7 @@ def _record_task_failure(
     error: str,
     *,
     outcome: str,
-    failure_limit: int = None,
+    failure_limit: Optional[int] = None,
     release_claim: bool = False,
     end_run: bool = False,
     event_payload_extra: Optional[dict] = None,
@@ -4466,7 +4466,7 @@ def _record_spawn_failure(
     task_id: str,
     error: str,
     *,
-    failure_limit: int = None,
+    failure_limit: Optional[int] = None,
 ) -> bool:
     return _record_task_failure(
         conn, task_id, error,
@@ -4790,7 +4790,7 @@ def dispatch_once(
         try:
             from hermes_cli.profiles import profile_exists  # local import: avoids cycle
         except Exception:
-            profile_exists = None  # type: ignore[assignment]
+            profile_exists = None  # ty: ignore[invalid-assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
             # Bucket separately from skipped_unassigned: the operator
             # cannot fix this by assigning a profile (the assignee IS the
@@ -4895,7 +4895,7 @@ def dispatch_once(
         try:
             from hermes_cli.profiles import profile_exists
         except Exception:
-            profile_exists = None  # type: ignore[assignment]
+            profile_exists = None  # ty: ignore[invalid-assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
             result.skipped_nonspawnable.append(row["id"])
             continue
@@ -5722,7 +5722,7 @@ def task_age(task: Task) -> dict:
     age_since_created = now - _c if _c is not None else None
     age_since_started = now - _s if _s is not None else None
     time_to_complete = (
-        _co - (_s or _c) if _co is not None else None
+        _co - (_s or _c) if _co is not None else None  # ty: ignore[unsupported-operator]  # created_at always set when completed
     )
     return {
         "created_age_seconds": age_since_created,

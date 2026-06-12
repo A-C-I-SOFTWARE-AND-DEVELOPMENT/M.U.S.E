@@ -99,7 +99,7 @@ def _connect_patches(mock_proc, mock_fh, mock_client_cls=None):
         patch("gateway.platforms.whatsapp.asyncio.create_task"),
     ]
     if mock_client_cls is not None:
-        base.append(patch("aiohttp.ClientSession", mock_client_cls))
+        base.append(patch("aiohttp.ClientSession", mock_client_cls))  # ty: ignore[invalid-argument-type]
     return base
 
 

@@ -76,7 +76,7 @@ def _resolve_brv_path() -> Optional[str]:
 
 
 def _run_brv(args: List[str], timeout: int = _QUERY_TIMEOUT,
-             cwd: str = None) -> dict:
+             cwd: Optional[str] = None) -> dict:
     """Run a brv CLI command. Returns {success, output, error}."""
     brv_path = _resolve_brv_path()
     if not brv_path:
@@ -261,7 +261,7 @@ class ByteRoverMemoryProvider(MemoryProvider):
         )
         self._sync_thread.start()
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:
+    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
         """Mirror built-in memory writes to ByteRover."""
         if action not in {"add", "replace"} or not content:
             return

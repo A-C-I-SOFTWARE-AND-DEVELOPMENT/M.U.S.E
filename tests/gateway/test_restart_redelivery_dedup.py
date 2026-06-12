@@ -34,7 +34,7 @@ async def test_restart_handler_writes_dedup_marker_with_update_id(tmp_path, monk
     monkeypatch.delenv("INVOCATION_ID", raising=False)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=12345)
     result = await runner._handle_restart_command(event)
@@ -63,13 +63,13 @@ async def test_redelivered_restart_with_same_update_id_is_ignored(tmp_path, monk
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock()
+    runner.request_restart = MagicMock()  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=12345)  # same update_id → redelivery
     result = await runner._handle_restart_command(event)
 
     assert result == ""  # silently ignored
-    runner.request_restart.assert_not_called()
+    runner.request_restart.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -86,7 +86,7 @@ async def test_redelivered_restart_with_older_update_id_is_ignored(tmp_path, mon
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock()
+    runner.request_restart = MagicMock()  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=12344)  # older update — shouldn't happen,
                                                   # but if Telegram does re-deliver
@@ -94,7 +94,7 @@ async def test_redelivered_restart_with_older_update_id_is_ignored(tmp_path, mon
     result = await runner._handle_restart_command(event)
 
     assert result == ""
-    runner.request_restart.assert_not_called()
+    runner.request_restart.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -112,13 +112,13 @@ async def test_fresh_restart_with_higher_update_id_is_processed(tmp_path, monkey
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=12346)  # strictly higher → fresh
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]
 
     # Marker is overwritten with the new update_id
     data = json.loads(marker.read_text())
@@ -139,14 +139,14 @@ async def test_stale_marker_older_than_5min_does_not_block(tmp_path, monkeypatch
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     # Same update_id as the stale marker, but the marker is too old to trust
     event = _make_restart_event(update_id=12345)
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -156,13 +156,13 @@ async def test_no_marker_file_allows_restart(tmp_path, monkeypatch):
     monkeypatch.delenv("INVOCATION_ID", raising=False)
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=100)
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -175,13 +175,13 @@ async def test_corrupt_marker_file_is_treated_as_absent(tmp_path, monkeypatch):
     marker.write_text("not-json{")
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     event = _make_restart_event(update_id=100)
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -198,14 +198,14 @@ async def test_event_without_update_id_bypasses_dedup(tmp_path, monkeypatch):
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     # No update_id — the dedup check should NOT kick in
     event = _make_restart_event(update_id=None)
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -225,7 +225,7 @@ async def test_different_platform_bypasses_dedup(tmp_path, monkeypatch):
     }))
 
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
 
     # /restart from Discord — not a redelivery candidate
     discord_source = SessionSource(
@@ -244,4 +244,4 @@ async def test_different_platform_bypasses_dedup(tmp_path, monkeypatch):
     result = await runner._handle_restart_command(event)
 
     assert "Restarting gateway" in result
-    runner.request_restart.assert_called_once()
+    runner.request_restart.assert_called_once()  # ty: ignore[unresolved-attribute]

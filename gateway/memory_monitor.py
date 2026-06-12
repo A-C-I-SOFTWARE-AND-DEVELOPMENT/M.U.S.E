@@ -72,7 +72,7 @@ def _get_rss_mb() -> Optional[int]:
 
     # Fallback: psutil (Windows, or unusual unix without resource).
     try:
-        import psutil  # type: ignore
+        import psutil
 
         rss = psutil.Process(os.getpid()).memory_info().rss
         return int(rss / _BYTES_TO_MB)

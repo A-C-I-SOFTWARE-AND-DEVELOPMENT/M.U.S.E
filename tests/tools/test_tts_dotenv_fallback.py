@@ -191,7 +191,7 @@ class TestRegressionGuard:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(config_mod, "get_env_value", lambda name: "")
-            tts_tool = importlib.reload(tts_tool)
+            tts_tool = importlib.reload(tts_tool)  # ty: ignore[invalid-assignment]
 
         try:
             captured: dict = {}

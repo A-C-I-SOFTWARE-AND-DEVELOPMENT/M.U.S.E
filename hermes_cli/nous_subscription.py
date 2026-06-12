@@ -83,7 +83,7 @@ class NousSubscriptionFeatures:
 def _model_config_dict(config: Dict[str, object]) -> Dict[str, object]:
     model_cfg = config.get("model")
     if isinstance(model_cfg, dict):
-        return dict(model_cfg)
+        return dict(model_cfg)  # ty: ignore[no-matching-overload]  # dynamic config/plugin path
     if isinstance(model_cfg, str) and model_cfg.strip():
         return {"default": model_cfg.strip()}
     return {}
@@ -254,21 +254,21 @@ def get_nous_subscription_features(
     browser_cfg = config.get("browser") if isinstance(config.get("browser"), dict) else {}
     terminal_cfg = config.get("terminal") if isinstance(config.get("terminal"), dict) else {}
 
-    web_backend = str(web_cfg.get("backend") or "").strip().lower()
+    web_backend = str(web_cfg.get("backend") or "").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     # Per-capability overrides: if set, they determine which backend is active for
     # search/extract independently of web.backend.
-    web_search_backend = str(web_cfg.get("search_backend") or "").strip().lower()
-    web_extract_backend = str(web_cfg.get("extract_backend") or "").strip().lower()
-    tts_provider = str(tts_cfg.get("provider") or "edge").strip().lower()
-    browser_provider_explicit = "cloud_provider" in browser_cfg
+    web_search_backend = str(web_cfg.get("search_backend") or "").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+    web_extract_backend = str(web_cfg.get("extract_backend") or "").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+    tts_provider = str(tts_cfg.get("provider") or "edge").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
+    browser_provider_explicit = "cloud_provider" in browser_cfg  # ty: ignore[unsupported-operator]  # dynamic config/plugin path
     browser_provider = normalize_browser_cloud_provider(
-        browser_cfg.get("cloud_provider") if browser_provider_explicit else None
+        browser_cfg.get("cloud_provider") if browser_provider_explicit else None  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     )
     terminal_backend = (
-        str(terminal_cfg.get("backend") or "local").strip().lower()
+        str(terminal_cfg.get("backend") or "local").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     )
     modal_mode = normalize_modal_mode(
-        terminal_cfg.get("modal_mode")
+        terminal_cfg.get("modal_mode")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     )
 
     # use_gateway flags — when True, the user explicitly opted into the
@@ -525,21 +525,21 @@ def apply_nous_managed_defaults(
         or get_env_value("FIRECRAWL_API_KEY")
         or get_env_value("FIRECRAWL_API_URL")
     ):
-        web_cfg["backend"] = "firecrawl"
+        web_cfg["backend"] = "firecrawl"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("web")
 
     if "tts" in selected_toolsets and not features.tts.explicit_configured and not (
         resolve_openai_audio_api_key()
         or get_env_value("ELEVENLABS_API_KEY")
     ):
-        tts_cfg["provider"] = "openai"
+        tts_cfg["provider"] = "openai"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("tts")
 
     if "browser" in selected_toolsets and not features.browser.explicit_configured and not (
         get_env_value("BROWSER_USE_API_KEY")
         or get_env_value("BROWSERBASE_API_KEY")
     ):
-        browser_cfg["cloud_provider"] = "browser-use"
+        browser_cfg["cloud_provider"] = "browser-use"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("browser")
 
     if "image_gen" in selected_toolsets and not fal_key_is_configured():
@@ -670,18 +670,18 @@ def apply_gateway_defaults(
         config["browser"] = browser_cfg
 
     if "web" in tool_keys:
-        web_cfg["backend"] = "firecrawl"
-        web_cfg["use_gateway"] = True
+        web_cfg["backend"] = "firecrawl"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
+        web_cfg["use_gateway"] = True  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("web")
 
     if "tts" in tool_keys:
-        tts_cfg["provider"] = "openai"
-        tts_cfg["use_gateway"] = True
+        tts_cfg["provider"] = "openai"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
+        tts_cfg["use_gateway"] = True  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("tts")
 
     if "browser" in tool_keys:
-        browser_cfg["cloud_provider"] = "browser-use"
-        browser_cfg["use_gateway"] = True
+        browser_cfg["cloud_provider"] = "browser-use"  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
+        browser_cfg["use_gateway"] = True  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("browser")
 
     if "image_gen" in tool_keys:
@@ -689,7 +689,7 @@ def apply_gateway_defaults(
         if not isinstance(image_cfg, dict):
             image_cfg = {}
             config["image_gen"] = image_cfg
-        image_cfg["use_gateway"] = True
+        image_cfg["use_gateway"] = True  # ty: ignore[invalid-assignment]  # dynamic config/plugin path
         changed.add("image_gen")
 
     return changed

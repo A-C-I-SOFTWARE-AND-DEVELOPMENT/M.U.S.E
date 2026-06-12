@@ -113,7 +113,10 @@ class TestBrowserConsoleSchema:
         from tools.browser_tool import BROWSER_TOOL_SCHEMAS
 
         schema = next(s for s in BROWSER_TOOL_SCHEMAS if s["name"] == "browser_console")
-        props = schema["parameters"]["properties"]
+        params = schema["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "clear" in props
         assert props["clear"]["type"] == "boolean"
 
@@ -149,7 +152,10 @@ class TestBrowserVisionAnnotate:
         from tools.browser_tool import BROWSER_TOOL_SCHEMAS
 
         schema = next(s for s in BROWSER_TOOL_SCHEMAS if s["name"] == "browser_vision")
-        props = schema["parameters"]["properties"]
+        params = schema["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "annotate" in props
         assert props["annotate"]["type"] == "boolean"
 
@@ -262,6 +268,7 @@ class TestRecordSessionsConfig:
         from hermes_cli.config import DEFAULT_CONFIG
 
         browser_cfg = DEFAULT_CONFIG.get("browser", {})
+        assert isinstance(browser_cfg, dict)
         assert "record_sessions" in browser_cfg
         assert browser_cfg["record_sessions"] is False
 

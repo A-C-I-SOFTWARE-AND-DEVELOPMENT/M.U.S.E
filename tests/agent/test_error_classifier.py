@@ -1234,7 +1234,7 @@ class TestRateLimitErrorWithoutStatusCode:
         an optionally missing status_code, mirroring the OpenAI SDK shape."""
         cls = type("RateLimitError", (Exception,), {})
         e = cls("You have exceeded your rate limit.")
-        e.status_code = status_code  # None simulates the Copilot case
+        e.status_code = status_code  # None simulates the Copilot case  # ty: ignore[unresolved-attribute]
         return e
 
     def test_rate_limit_error_without_status_code_classified_as_rate_limit(self):
@@ -1253,6 +1253,6 @@ class TestRateLimitErrorWithoutStatusCode:
         """A non-RateLimitError with missing status_code must NOT be forced to 429."""
         cls = type("APIError", (Exception,), {})
         e = cls("something went wrong")
-        e.status_code = None
+        e.status_code = None  # ty: ignore[unresolved-attribute]
         result = classify_api_error(e, provider="copilot", model="gpt-4o")
         assert result.reason != FailoverReason.rate_limit

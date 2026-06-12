@@ -23,7 +23,7 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 # Weights for the composite. Quality signals are rewarded; latency/cost/
 # interruptions are penalised. Tunable, but constant so ranking is reproducible.
@@ -67,7 +67,7 @@ class ScorecardSample:
         }
 
     @classmethod
-    def from_dict(cls, d: dict[str, object]) -> "ScorecardSample":
+    def from_dict(cls, d: "dict[str, Any]") -> "ScorecardSample":
         return cls(
             model=str(d["model"]),
             coding_success=bool(d.get("coding_success")),
@@ -118,7 +118,7 @@ class Scorecard:
         return round(score, 6)
 
     def to_dict(self) -> dict[str, object]:
-        d = {
+        d: dict[str, object] = {
             "model": self.model,
             "samples": self.samples,
             "coding_success_rate": round(self.coding_success_rate, 4),

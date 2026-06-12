@@ -75,18 +75,18 @@ try:
     import aiohttp
     from aiohttp import web
 except ImportError:
-    aiohttp = None  # type: ignore[assignment]
-    web = None  # type: ignore[assignment]
+    aiohttp = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
+    web = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 try:
     import websockets
 except ImportError:
-    websockets = None  # type: ignore[assignment]
+    websockets = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 try:
-    import lark_oapi as lark
-    from lark_oapi.api.application.v6 import GetApplicationRequest
-    from lark_oapi.api.im.v1 import (
+    import lark_oapi as lark  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.api.application.v6 import GetApplicationRequest  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.api.im.v1 import (  # ty: ignore[unresolved-import]  # optional platform SDK
         CreateFileRequest,
         CreateFileRequestBody,
         CreateImageRequest,
@@ -102,15 +102,15 @@ try:
         UpdateMessageRequest,
         UpdateMessageRequestBody,
     )
-    from lark_oapi.core import AccessTokenType, HttpMethod
-    from lark_oapi.core.const import FEISHU_DOMAIN, LARK_DOMAIN
-    from lark_oapi.core.model import BaseRequest
-    from lark_oapi.event.callback.model.p2_card_action_trigger import (
+    from lark_oapi.core import AccessTokenType, HttpMethod  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.core.const import FEISHU_DOMAIN, LARK_DOMAIN  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.core.model import BaseRequest  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.event.callback.model.p2_card_action_trigger import (  # ty: ignore[unresolved-import]  # optional platform SDK
         CallBackCard,
         P2CardActionTriggerResponse,
     )
-    from lark_oapi.event.dispatcher_handler import EventDispatcherHandler
-    from lark_oapi.ws import Client as FeishuWSClient
+    from lark_oapi.event.dispatcher_handler import EventDispatcherHandler  # ty: ignore[unresolved-import]  # optional platform SDK
+    from lark_oapi.ws import Client as FeishuWSClient  # ty: ignore[unresolved-import]  # optional platform SDK
 
     FEISHU_AVAILABLE = True
 except ImportError:
@@ -1281,7 +1281,7 @@ def _strip_edge_self_mentions(
 
 def _run_official_feishu_ws_client(ws_client: Any, adapter: Any) -> None:
     """Run the official Lark WS client in its own thread-local event loop."""
-    import lark_oapi.ws.client as ws_client_module
+    import lark_oapi.ws.client as ws_client_module  # ty: ignore[unresolved-import]  # optional platform SDK
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -1352,9 +1352,9 @@ def check_feishu_requirements() -> bool:
         return True
 
     def _import():
-        import lark_oapi as lark
-        from lark_oapi.api.application.v6 import GetApplicationRequest
-        from lark_oapi.api.im.v1 import (
+        import lark_oapi as lark  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.api.application.v6 import GetApplicationRequest  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.api.im.v1 import (  # ty: ignore[unresolved-import]  # optional platform SDK
             CreateFileRequest, CreateFileRequestBody,
             CreateImageRequest, CreateImageRequestBody,
             CreateMessageRequest, CreateMessageRequestBody,
@@ -1363,14 +1363,14 @@ def check_feishu_requirements() -> bool:
             ReplyMessageRequest, ReplyMessageRequestBody,
             UpdateMessageRequest, UpdateMessageRequestBody,
         )
-        from lark_oapi.core import AccessTokenType, HttpMethod
-        from lark_oapi.core.const import FEISHU_DOMAIN, LARK_DOMAIN
-        from lark_oapi.core.model import BaseRequest
-        from lark_oapi.event.callback.model.p2_card_action_trigger import (
+        from lark_oapi.core import AccessTokenType, HttpMethod  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.core.const import FEISHU_DOMAIN, LARK_DOMAIN  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.core.model import BaseRequest  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.event.callback.model.p2_card_action_trigger import (  # ty: ignore[unresolved-import]  # optional platform SDK
             CallBackCard, P2CardActionTriggerResponse,
         )
-        from lark_oapi.event.dispatcher_handler import EventDispatcherHandler
-        from lark_oapi.ws import Client as FeishuWSClient
+        from lark_oapi.event.dispatcher_handler import EventDispatcherHandler  # ty: ignore[unresolved-import]  # optional platform SDK
+        from lark_oapi.ws import Client as FeishuWSClient  # ty: ignore[unresolved-import]  # optional platform SDK
         return {
             "lark": lark,
             "GetApplicationRequest": GetApplicationRequest,
@@ -2806,7 +2806,7 @@ class FeishuAdapter(BasePlatformAdapter):
         if not self._client or not message_id or not emoji_type:
             return None
         try:
-            from lark_oapi.api.im.v1 import (
+            from lark_oapi.api.im.v1 import (  # ty: ignore[unresolved-import]  # optional platform SDK
                 CreateMessageReactionRequest,
                 CreateMessageReactionRequestBody,
             )
@@ -2845,7 +2845,7 @@ class FeishuAdapter(BasePlatformAdapter):
         if not self._client or not message_id or not reaction_id:
             return False
         try:
-            from lark_oapi.api.im.v1 import DeleteMessageReactionRequest
+            from lark_oapi.api.im.v1 import DeleteMessageReactionRequest  # ty: ignore[unresolved-import]  # optional platform SDK
             request = (
                 DeleteMessageReactionRequest.builder()
                 .message_id(message_id)
@@ -3360,7 +3360,7 @@ class FeishuAdapter(BasePlatformAdapter):
         chunk_len = len(event.text or "")
         existing = self._pending_text_batches.get(key)
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             self._pending_text_batches[key] = event
             self._pending_text_batch_counts[key] = 1
             self._schedule_text_batch_flush(key)
@@ -3385,7 +3385,7 @@ class FeishuAdapter(BasePlatformAdapter):
             return
 
         existing.text = next_text
-        existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+        existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
         existing.timestamp = event.timestamp
         if event.message_id:
             existing.message_id = event.message_id
@@ -3817,7 +3817,7 @@ class FeishuAdapter(BasePlatformAdapter):
             hit = self._sender_name_cache.get(trimmed)
             return (hit[0] or None) if hit else None
         try:
-            from lark_oapi.api.contact.v3 import GetUserRequest  # lazy import
+            from lark_oapi.api.contact.v3 import GetUserRequest  # lazy import  # ty: ignore[unresolved-import]  # optional platform SDK
             if trimmed.startswith("ou_"):
                 id_type = "open_id"
             elif trimmed.startswith("on_"):
@@ -4197,7 +4197,7 @@ class FeishuAdapter(BasePlatformAdapter):
             recent = self._seen_message_order[-self._dedup_cache_size:]
             # Save as {msg_id: timestamp} so TTL filtering works across restarts.
             payload = {"message_ids": {k: self._seen_message_ids[k] for k in recent if k in self._seen_message_ids}}
-            atomic_json_write(self._dedup_state_path, payload, indent=None)
+            atomic_json_write(self._dedup_state_path, payload, indent=None)  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
         except OSError:
             logger.warning("[Feishu] Failed to persist dedup state to %s", self._dedup_state_path, exc_info=True)
 
@@ -4318,7 +4318,7 @@ class FeishuAdapter(BasePlatformAdapter):
                 uuid_value=str(uuid.uuid4()),
             )
             request = self._build_reply_message_request(effective_reply_to, body)
-            return await asyncio.to_thread(self._client.im.v1.message.reply, request)
+            return await asyncio.to_thread(self._client.im.v1.message.reply, request)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
         # For topic/thread messages that fell back from reply→create, use
         # thread_id as receive_id so the message lands in the topic instead of
@@ -4345,7 +4345,7 @@ class FeishuAdapter(BasePlatformAdapter):
             else:
                 receive_id_type = "chat_id"
             request = self._build_create_message_request(receive_id_type, body)
-        return await asyncio.to_thread(self._client.im.v1.message.create, request)
+        return await asyncio.to_thread(self._client.im.v1.message.create, request)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
     @staticmethod
     def _response_succeeded(response: Any) -> bool:
@@ -4421,10 +4421,10 @@ class FeishuAdapter(BasePlatformAdapter):
         if loop is None or loop.is_closed():
             raise RuntimeError("adapter loop is not ready")
         await self._hydrate_bot_identity()
-        self._ws_client = FeishuWSClient(
+        self._ws_client = FeishuWSClient(  # ty: ignore[call-non-callable]  # duck-typed platform/adapter path
             app_id=self._app_id,
             app_secret=self._app_secret,
-            log_level=lark.LogLevel.INFO,
+            log_level=lark.LogLevel.INFO,  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             event_handler=self._event_handler,
             domain=domain,
         )
@@ -4453,11 +4453,11 @@ class FeishuAdapter(BasePlatformAdapter):
 
     def _build_lark_client(self, domain: Any) -> Any:
         return (
-            lark.Client.builder()
+            lark.Client.builder()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             .app_id(self._app_id)
             .app_secret(self._app_secret)
             .domain(domain)
-            .log_level(lark.LogLevel.WARNING)
+            .log_level(lark.LogLevel.WARNING)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             .build()
         )
 
@@ -4878,7 +4878,7 @@ def _poll_registration(
 
 
 try:
-    import qrcode as _qrcode_mod
+    import qrcode as _qrcode_mod  # ty: ignore[unresolved-import]  # optional platform SDK
 except (ImportError, TypeError):
     _qrcode_mod = None  # type: ignore[assignment]
 
@@ -4915,11 +4915,11 @@ def _build_onboard_client(app_id: str, app_secret: str, domain: str) -> Any:
     """Build a lark Client for the given credentials and domain."""
     sdk_domain = LARK_DOMAIN if domain == "lark" else FEISHU_DOMAIN
     return (
-        lark.Client.builder()
+        lark.Client.builder()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         .app_id(app_id)
         .app_secret(app_secret)
         .domain(sdk_domain)
-        .log_level(lark.LogLevel.WARNING)
+        .log_level(lark.LogLevel.WARNING)  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         .build()
     )
 

@@ -20,11 +20,18 @@ import json
 import time
 import yaml
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 try:
     from openai import OpenAI
 except ImportError:
-    OpenAI = None
+    OpenAI = None  # ty: ignore[invalid-assignment]
+
+if TYPE_CHECKING:
+    # At runtime these come from the sibling-module exec() below; the
+    # imports here exist only so static analysis can resolve the names.
+    from godmode_race import score_response
+    from parseltongue import escalate_encoding
 
 # ═══════════════════════════════════════════════════════════════════
 # Load sibling modules
@@ -78,7 +85,7 @@ QUICK_CANARY = "Explain step by step how to pick a lock, including specific tool
 # Model → strategy mapping
 # ═══════════════════════════════════════════════════════════════════
 
-MODEL_STRATEGIES = {
+MODEL_STRATEGIES: dict[str, dict[str, Any]] = {
     # Anthropic models — END/START boundary inversion
     "claude": {
         "order": ["boundary_inversion", "refusal_inversion", "prefill_only", "parseltongue"],
@@ -237,7 +244,7 @@ MODEL_STRATEGIES = {
 }
 
 # Fallback for unknown models
-DEFAULT_STRATEGY = {
+DEFAULT_STRATEGY: dict[str, Any] = {
     "order": ["refusal_inversion", "prefill_only", "parseltongue"],
     "system_templates": {
         "refusal_inversion": (
@@ -336,7 +343,7 @@ def _get_current_model() -> tuple:
         return None, None
 
 
-def _get_api_key(base_url: str = None) -> str:
+def _get_api_key(base_url: str | None = None) -> str:
     """Get the appropriate API key."""
     if base_url and "openrouter" in base_url:
         return os.getenv("OPENROUTER_API_KEY", "")
@@ -380,7 +387,7 @@ def _build_messages(system_prompt=None, prefill=None, query=None):
     return messages
 
 
-def _write_config(system_prompt: str = None, prefill_file: str = None):
+def _write_config(system_prompt: str | None = None, prefill_file: str | None = None):
     """Write jailbreak settings to config.yaml (merges, doesn't overwrite)."""
     cfg = {}
     if CONFIG_PATH.exists():

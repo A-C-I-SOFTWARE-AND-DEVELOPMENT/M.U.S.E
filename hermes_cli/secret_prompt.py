@@ -97,9 +97,9 @@ def _masked_secret_prompt_windows(prompt: str, *, mask: str) -> str:
     import msvcrt
 
     def read_char() -> str:
-        ch = msvcrt.getwch()
+        ch = msvcrt.getwch()  # ty: ignore[unresolved-attribute]  # win32-only
         if ch in {"\x00", "\xe0"}:
-            msvcrt.getwch()
+            msvcrt.getwch()  # ty: ignore[unresolved-attribute]  # win32-only
             return "\x1b"
         return ch
 

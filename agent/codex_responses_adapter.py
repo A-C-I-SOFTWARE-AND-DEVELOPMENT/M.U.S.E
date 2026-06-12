@@ -558,7 +558,7 @@ def _preflight_codex_input_items(raw_items: Any) -> List[Dict[str, Any]]:
                     if item_id in seen_ids:
                         continue
                     seen_ids.add(item_id)
-                reasoning_item = {"type": "reasoning", "encrypted_content": encrypted}
+                reasoning_item: Dict[str, Any] = {"type": "reasoning", "encrypted_content": encrypted}
                 # Do NOT include the "id" in the outgoing item — with
                 # store=False (our default) the API tries to resolve the
                 # id server-side and returns 404.  The id is still used
@@ -959,7 +959,7 @@ def _normalize_codex_response(response: Any) -> tuple[Any, str]:
             # subsequent turns to maintain coherent reasoning chains.
             encrypted = getattr(item, "encrypted_content", None)
             if isinstance(encrypted, str) and encrypted:
-                raw_item = {"type": "reasoning", "encrypted_content": encrypted}
+                raw_item: Dict[str, Any] = {"type": "reasoning", "encrypted_content": encrypted}
                 item_id = getattr(item, "id", None)
                 if isinstance(item_id, str) and item_id:
                     raw_item["id"] = item_id

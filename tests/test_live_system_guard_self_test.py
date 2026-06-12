@@ -133,12 +133,12 @@ def test_subprocess_getstatusoutput_systemctl_blocked():
 
 def test_os_system_systemctl_blocked():
     with pytest.raises(RuntimeError, match="live-system guard"):
-        os.system("systemctl --user restart hermes-gateway")
+        os.system("systemctl --user restart hermes-gateway")  # ty: ignore[deprecated]  # mock/duck-typed test fixture
 
 
 def test_os_popen_systemctl_blocked():
     with pytest.raises(RuntimeError, match="live-system guard"):
-        os.popen("systemctl --user restart hermes-gateway")
+        os.popen("systemctl --user restart hermes-gateway")  # ty: ignore[deprecated]  # mock/duck-typed test fixture
 
 
 # ──────────────────── pty.spawn ────────────────────────────────

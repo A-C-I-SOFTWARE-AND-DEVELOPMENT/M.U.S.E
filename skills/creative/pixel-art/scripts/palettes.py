@@ -149,7 +149,7 @@ PALETTES = {
 
 def build_palette_image(palette_name):
     """Build a 1x1 PIL 'P'-mode image with the named palette for Image.quantize(palette=...)."""
-    from PIL import Image
+    from PIL import Image  # ty: ignore[unresolved-import]
 
     if palette_name not in PALETTES:
         raise ValueError(

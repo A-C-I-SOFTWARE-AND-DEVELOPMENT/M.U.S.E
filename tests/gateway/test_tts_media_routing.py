@@ -28,7 +28,7 @@ class _MediaRoutingAdapter(BasePlatformAdapter):
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, content=None, **kwargs):
+    async def send(self, chat_id, content=None, **kwargs):  # ty: ignore[invalid-method-override]
         return SendResult(success=True, message_id="text")
 
     async def get_chat_info(self, chat_id):
@@ -55,17 +55,17 @@ async def test_base_adapter_routes_telegram_flac_media_tag_to_document_sender():
     adapter = _MediaRoutingAdapter()
     event = _event()
     adapter._message_handler = AsyncMock(return_value="MEDIA:/tmp/speech.flac")
-    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))
-    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))
+    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))  # ty: ignore[invalid-assignment]
+    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))  # ty: ignore[invalid-assignment]
 
     await adapter._process_message_background(event, build_session_key(event.source))
 
-    adapter.send_document.assert_awaited_once_with(
+    adapter.send_document.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
         chat_id="chat-1",
         file_path="/tmp/speech.flac",
         metadata=None,
     )
-    adapter.send_voice.assert_not_awaited()
+    adapter.send_voice.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -73,17 +73,17 @@ async def test_base_adapter_routes_non_voice_telegram_ogg_media_tag_to_document_
     adapter = _MediaRoutingAdapter()
     event = _event()
     adapter._message_handler = AsyncMock(return_value="MEDIA:/tmp/speech.ogg")
-    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))
-    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))
+    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))  # ty: ignore[invalid-assignment]
+    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))  # ty: ignore[invalid-assignment]
 
     await adapter._process_message_background(event, build_session_key(event.source))
 
-    adapter.send_document.assert_awaited_once_with(
+    adapter.send_document.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
         chat_id="chat-1",
         file_path="/tmp/speech.ogg",
         metadata=None,
     )
-    adapter.send_voice.assert_not_awaited()
+    adapter.send_voice.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -93,17 +93,17 @@ async def test_base_adapter_routes_voice_tagged_telegram_ogg_media_tag_to_voice_
     adapter._message_handler = AsyncMock(
         return_value="[[audio_as_voice]]\nMEDIA:/tmp/speech.ogg"
     )
-    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))
-    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))
+    adapter.send_voice = AsyncMock(return_value=SendResult(success=True, message_id="voice"))  # ty: ignore[invalid-assignment]
+    adapter.send_document = AsyncMock(return_value=SendResult(success=True, message_id="doc"))  # ty: ignore[invalid-assignment]
 
     await adapter._process_message_background(event, build_session_key(event.source))
 
-    adapter.send_voice.assert_awaited_once_with(
+    adapter.send_voice.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
         chat_id="chat-1",
         audio_path="/tmp/speech.ogg",
         metadata=None,
     )
-    adapter.send_document.assert_not_awaited()
+    adapter.send_document.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 def _fake_runner(thread_meta):

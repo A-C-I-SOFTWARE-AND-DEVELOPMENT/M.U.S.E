@@ -88,7 +88,7 @@ def test_run_agent_prefers_session_override_over_global_runtime(monkeypatch):
     monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = _CapturingAgent
+    fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     _CapturingAgent.last_init = None
@@ -132,7 +132,7 @@ async def test_background_task_prefers_session_override_over_global_runtime(monk
     monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", _explode_runtime_resolution)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = _CapturingAgent
+    fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     _CapturingAgent.last_init = None

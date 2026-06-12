@@ -62,9 +62,9 @@ def _make_event(text: str = "", message_type=MessageType.TEXT, chat_id="123") ->
     source = SessionSource(
         chat_id=chat_id,
         user_id="user1",
-        platform=MagicMock(),
+        platform=MagicMock(),  # ty: ignore[invalid-argument-type]
     )
-    source.platform.value = "telegram"
+    source.platform.value = "telegram"  # ty: ignore[invalid-assignment]
     source.thread_id = None
     event = MessageEvent(text=text, message_type=message_type, source=source)
     event.message_id = "msg42"
@@ -254,7 +254,7 @@ class TestHandleVoiceCommand:
         """Same chat_id on different platforms must not collide (#12542)."""
         telegram_event = _make_event("/voice on", chat_id="999")
         slack_event = _make_event("/voice off", chat_id="999")
-        slack_event.source.platform.value = "slack"
+        slack_event.source.platform.value = "slack"  # ty: ignore[invalid-assignment]
 
         await runner._handle_voice_command(telegram_event)
         await runner._handle_voice_command(slack_event)
@@ -756,9 +756,9 @@ class TestVoiceChannelCommands:
         source = SessionSource(
             chat_id=chat_id,
             user_id=user_id,
-            platform=MagicMock(),
+            platform=MagicMock(),  # ty: ignore[invalid-argument-type]
         )
-        source.platform.value = "discord"
+        source.platform.value = "discord"  # ty: ignore[invalid-assignment]
         source.thread_id = None
         event = MessageEvent(text=text, message_type=MessageType.TEXT, source=source)
         event.message_id = "msg42"
@@ -1994,7 +1994,7 @@ class TestPlaybackTimeout:
 
         # Use a tiny timeout for test speed
         original_timeout = DiscordAdapter.PLAYBACK_TIMEOUT
-        DiscordAdapter.PLAYBACK_TIMEOUT = 0.1
+        DiscordAdapter.PLAYBACK_TIMEOUT = 0.1  # ty: ignore[invalid-assignment]
         try:
             with patch("discord.FFmpegPCMAudio"), \
                  patch("discord.PCMVolumeTransformer", side_effect=lambda s, **kw: s):
@@ -2021,7 +2021,7 @@ class TestPlaybackTimeout:
         adapter._voice_timeout_tasks[111] = MagicMock()
 
         original_timeout = DiscordAdapter.PLAYBACK_TIMEOUT
-        DiscordAdapter.PLAYBACK_TIMEOUT = 0.2
+        DiscordAdapter.PLAYBACK_TIMEOUT = 0.2  # ty: ignore[invalid-assignment]
         try:
             with patch("discord.FFmpegPCMAudio"), \
                  patch("discord.PCMVolumeTransformer", side_effect=lambda s, **kw: s):
@@ -2278,7 +2278,7 @@ class TestVoiceReception:
         vc.user = SimpleNamespace(id=bot_id)
         vc.channel = MagicMock()
         vc.channel.members = members or []
-        receiver = VoiceReceiver(vc, allowed_user_ids=allowed_ids)
+        receiver = VoiceReceiver(vc, allowed_user_ids=allowed_ids)  # ty: ignore[invalid-argument-type]
         return receiver
 
     @staticmethod
@@ -2809,7 +2809,7 @@ class TestUDPKeepalive:
 
         # Set keepalive interval very short for test
         original_interval = DiscordAdapter._KEEPALIVE_INTERVAL
-        DiscordAdapter._KEEPALIVE_INTERVAL = 0.1
+        DiscordAdapter._KEEPALIVE_INTERVAL = 0.1  # ty: ignore[invalid-assignment]
 
         try:
             # Run listen loop briefly

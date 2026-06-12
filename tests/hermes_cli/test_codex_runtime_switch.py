@@ -55,8 +55,8 @@ class TestGetCurrentRuntime:
         ) == "codex_app_server"
 
     def test_handles_non_dict_config(self):
-        assert crs.get_current_runtime(None) == "auto"  # type: ignore[arg-type]
-        assert crs.get_current_runtime("notadict") == "auto"  # type: ignore[arg-type]
+        assert crs.get_current_runtime(None) == "auto"  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert crs.get_current_runtime("notadict") == "auto"  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         assert crs.get_current_runtime({"model": "notadict"}) == "auto"
 
 

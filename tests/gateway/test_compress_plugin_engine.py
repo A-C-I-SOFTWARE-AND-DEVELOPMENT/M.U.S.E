@@ -15,7 +15,7 @@ The fix promotes the preflight into an optional ABC method
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -41,14 +41,14 @@ class _FakePluginEngine(ContextEngine):
     def update_from_response(self, usage: Dict[str, Any]) -> None:
         return None
 
-    def should_compress(self, prompt_tokens: int = None) -> bool:
+    def should_compress(self, prompt_tokens: Optional[int] = None) -> bool:
         return False
 
     def compress(
         self,
         messages: List[Dict[str, Any]],
-        current_tokens: int = None,
-        focus_topic: str = None,
+        current_tokens: Optional[int] = None,
+        focus_topic: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         # Pretend we dropped a middle turn.
         self.compression_count += 1

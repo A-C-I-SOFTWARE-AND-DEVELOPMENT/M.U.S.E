@@ -249,7 +249,7 @@ class TestScoreStub:
         worker.run(_task(), ws)
         (ws / worker.RESPONSE_FILENAME).write_text("x\n")
         artifacts = worker.collect_artifacts(ws)
-        bad: dict[str, float] = {"strategy": "n/a"}  # type: ignore[dict-item]
+        bad: dict[str, float] = {"strategy": "n/a"}  # type: ignore[dict-item]  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         score = worker.score(artifacts, components=bad)
         assert score.components["strategy"] == 0.0
 

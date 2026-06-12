@@ -108,7 +108,7 @@ def test_confidence_above_one_is_clamped() -> None:
 
 
 def test_confidence_non_numeric_is_handled_safely() -> None:
-    assert WorkPacket(confidence="not-a-number").confidence == 0.0  # type: ignore[arg-type]
+    assert WorkPacket(confidence="not-a-number").confidence == 0.0  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_invalid_risk_class_is_reported() -> None:
@@ -131,7 +131,7 @@ def test_owner_gated_actions_are_retained_but_not_executed() -> None:
     # The whole point of the packet's owner_gated_actions field is to
     # preserve intent without acting on it. Verify retention.
     actions = ["main_branch_merge", "package_publish", "dns_change"]
-    packet = WorkPacket(**{**_complete_packet_kwargs(), "owner_gated_actions": actions})
+    packet = WorkPacket(**{**_complete_packet_kwargs(), "owner_gated_actions": actions})  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     assert packet.owner_gated_actions == actions
     assert packet.owner_authorization_phrase == AUTHORIZATION_PHRASE
@@ -149,7 +149,7 @@ def test_owner_gated_actions_without_auth_phrase_is_flagged() -> None:
 
 def test_from_dict_rejects_non_dict_input() -> None:
     with pytest.raises(TypeError):
-        WorkPacket.from_dict("not a dict")  # type: ignore[arg-type]
+        WorkPacket.from_dict("not a dict")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_package_reexports_work_packet_symbols() -> None:

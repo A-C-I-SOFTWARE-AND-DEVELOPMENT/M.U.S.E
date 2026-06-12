@@ -403,7 +403,7 @@ class TestToolListSanitizer:
 
     def test_empty_list_is_passthrough(self):
         assert sanitize_moonshot_tools([]) == []
-        assert sanitize_moonshot_tools(None) is None
+        assert sanitize_moonshot_tools(None) is None  # ty: ignore[invalid-argument-type]
 
     def test_skips_malformed_entries(self):
         """Entries without a function dict are passed through untouched."""

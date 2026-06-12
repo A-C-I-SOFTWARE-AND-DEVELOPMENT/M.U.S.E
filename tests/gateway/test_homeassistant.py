@@ -253,7 +253,7 @@ class TestAdapterInit:
 def _make_adapter(**extra) -> HomeAssistantAdapter:
     config = PlatformConfig(enabled=True, token="tok", extra=extra)
     adapter = HomeAssistantAdapter(config)
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     return adapter
 
 
@@ -272,13 +272,13 @@ class TestEventFilteringPipeline:
     async def test_ignored_entity_not_forwarded(self):
         adapter = _make_adapter(watch_all=True, ignore_entities=["sensor.uptime"])
         await adapter._handle_ha_event(_make_event("sensor.uptime", "100", "101"))
-        adapter.handle_message.assert_not_called()
+        adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_unwatched_domain_not_forwarded(self):
         adapter = _make_adapter(watch_domains=["climate"])
         await adapter._handle_ha_event(_make_event("light.bedroom", "off", "on"))
-        adapter.handle_message.assert_not_called()
+        adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_watched_domain_forwarded(self):
@@ -287,10 +287,10 @@ class TestEventFilteringPipeline:
             _make_event("climate.thermostat", "off", "heat",
                         new_attrs={"friendly_name": "Thermostat", "current_temperature": 20, "temperature": 22})
         )
-        adapter.handle_message.assert_called_once()
+        adapter.handle_message.assert_called_once()  # ty: ignore[unresolved-attribute]
 
         # Verify the actual MessageEvent text content
-        msg_event = adapter.handle_message.call_args[0][0]
+        msg_event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert "Thermostat" in msg_event.text
         assert "heat" in msg_event.text
         assert msg_event.source.platform == Platform.HOMEASSISTANT
@@ -303,8 +303,8 @@ class TestEventFilteringPipeline:
             _make_event("sensor.important", "10", "20",
                         new_attrs={"friendly_name": "Important Sensor", "unit_of_measurement": "W"})
         )
-        adapter.handle_message.assert_called_once()
-        msg_event = adapter.handle_message.call_args[0][0]
+        adapter.handle_message.assert_called_once()  # ty: ignore[unresolved-attribute]
+        msg_event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert "10W" in msg_event.text and "20W" in msg_event.text
 
     @pytest.mark.asyncio
@@ -312,26 +312,26 @@ class TestEventFilteringPipeline:
         """Without watch_domains, watch_entities, or watch_all, events are dropped."""
         adapter = _make_adapter(cooldown_seconds=0)
         await adapter._handle_ha_event(_make_event("cover.blinds", "closed", "open"))
-        adapter.handle_message.assert_not_called()
+        adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_watch_all_passes_everything(self):
         """With watch_all=True and no specific filters, all events pass through."""
         adapter = _make_adapter(watch_all=True, cooldown_seconds=0)
         await adapter._handle_ha_event(_make_event("cover.blinds", "closed", "open"))
-        adapter.handle_message.assert_called_once()
+        adapter.handle_message.assert_called_once()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_same_state_not_forwarded(self):
         adapter = _make_adapter(watch_all=True, cooldown_seconds=0)
         await adapter._handle_ha_event(_make_event("light.x", "on", "on"))
-        adapter.handle_message.assert_not_called()
+        adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_empty_entity_id_skipped(self):
         adapter = _make_adapter(watch_all=True)
         await adapter._handle_ha_event({"data": {"entity_id": ""}})
-        adapter.handle_message.assert_not_called()
+        adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_message_event_has_correct_source(self):
@@ -340,7 +340,7 @@ class TestEventFilteringPipeline:
             _make_event("light.test", "off", "on",
                         new_attrs={"friendly_name": "Test Light"})
         )
-        msg_event = adapter.handle_message.call_args[0][0]
+        msg_event = adapter.handle_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert msg_event.source.user_name == "Home Assistant"
         assert msg_event.source.chat_type == "channel"
         assert msg_event.message_id.startswith("ha_light.test_")
@@ -359,13 +359,13 @@ class TestCooldown:
         event = _make_event("sensor.temp", "20", "21",
                             new_attrs={"friendly_name": "Temp"})
         await adapter._handle_ha_event(event)
-        assert adapter.handle_message.call_count == 1
+        assert adapter.handle_message.call_count == 1  # ty: ignore[unresolved-attribute]
 
         # Second event immediately after should be blocked
         event2 = _make_event("sensor.temp", "21", "22",
                              new_attrs={"friendly_name": "Temp"})
         await adapter._handle_ha_event(event2)
-        assert adapter.handle_message.call_count == 1  # Still 1
+        assert adapter.handle_message.call_count == 1  # Still 1  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_cooldown_expires(self):
@@ -374,7 +374,7 @@ class TestCooldown:
         event = _make_event("sensor.temp", "20", "21",
                             new_attrs={"friendly_name": "Temp"})
         await adapter._handle_ha_event(event)
-        assert adapter.handle_message.call_count == 1
+        assert adapter.handle_message.call_count == 1  # ty: ignore[unresolved-attribute]
 
         # Simulate time passing beyond cooldown
         adapter._last_event_time["sensor.temp"] = time.time() - 2
@@ -382,7 +382,7 @@ class TestCooldown:
         event2 = _make_event("sensor.temp", "21", "22",
                              new_attrs={"friendly_name": "Temp"})
         await adapter._handle_ha_event(event2)
-        assert adapter.handle_message.call_count == 2
+        assert adapter.handle_message.call_count == 2  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_different_entities_independent_cooldowns(self):
@@ -395,13 +395,13 @@ class TestCooldown:
             _make_event("sensor.b", "3", "4", new_attrs={"friendly_name": "B"})
         )
         # Both should pass - different entities
-        assert adapter.handle_message.call_count == 2
+        assert adapter.handle_message.call_count == 2  # ty: ignore[unresolved-attribute]
 
         # Same entity again - should be blocked
         await adapter._handle_ha_event(
             _make_event("sensor.a", "2", "3", new_attrs={"friendly_name": "A"})
         )
-        assert adapter.handle_message.call_count == 2  # Still 2
+        assert adapter.handle_message.call_count == 2  # Still 2  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.asyncio
     async def test_zero_cooldown_passes_all(self):
@@ -412,7 +412,7 @@ class TestCooldown:
                 _make_event("sensor.temp", str(i), str(i + 1),
                             new_attrs={"friendly_name": "Temp"})
             )
-        assert adapter.handle_message.call_count == 5
+        assert adapter.handle_message.call_count == 5  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------
@@ -530,6 +530,7 @@ class TestSendViaRestApi:
             result = await adapter.send("ha_events", "Test")
 
         assert result.success is False
+        assert result.error is not None
         assert "401" in result.error
 
     @pytest.mark.asyncio

@@ -74,7 +74,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Mapping, Optional, Sequence
+from typing import Iterable, Mapping, Optional, Sequence, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ class SecretSource:
     name: str
     priority: int
     description: str
-    available: callable = field(default=lambda: True)
+    available: Callable = field(default=lambda: True)
 
 
 @dataclass(frozen=True)

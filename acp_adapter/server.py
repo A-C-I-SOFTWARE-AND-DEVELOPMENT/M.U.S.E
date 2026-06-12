@@ -79,7 +79,7 @@ logger = logging.getLogger(__name__)
 try:
     from hermes_cli import __version__ as HERMES_VERSION
 except Exception:
-    HERMES_VERSION = "0.0.0"
+    HERMES_VERSION = "0.0.0"  # ty: ignore[invalid-assignment]
 
 # Thread pool for running AIAgent (synchronous) in parallel.
 _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="acp-agent")
@@ -953,7 +953,9 @@ class HermesACPAgent(acp.Agent):
     @staticmethod
     def _history_tool_call_name_args(tool_call: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         """Extract function name/arguments from an OpenAI-style tool_call."""
-        function = tool_call.get("function") if isinstance(tool_call.get("function"), dict) else {}
+        function = tool_call.get("function")
+        if not isinstance(function, dict):
+            function = {}
         name = str(function.get("name") or tool_call.get("name") or "unknown_tool")
         raw_args = function.get("arguments") or tool_call.get("arguments") or tool_call.get("args") or {}
         if isinstance(raw_args, str):
@@ -996,7 +998,7 @@ class HermesACPAgent(acp.Agent):
 
         async def _send(update: Any) -> bool:
             try:
-                await self._conn.session_update(session_id=state.session_id, update=update)
+                await self._conn.session_update(session_id=state.session_id, update=update)  # ty: ignore[unresolved-attribute]
                 return True
             except Exception:
                 logger.warning(
@@ -1250,6 +1252,7 @@ class HermesACPAgent(acp.Agent):
             | EmbeddedResourceContentBlock
         ],
         session_id: str,
+        message_id: str | None = None,
         **kwargs: Any,
     ) -> PromptResponse:
         """Run Hermes on the user's prompt and stream events back to the editor."""
@@ -1425,7 +1428,7 @@ class HermesACPAgent(acp.Agent):
                 session_tokens = set_session_vars(session_key=session_id)
             except Exception:
                 session_tokens = None
-                clear_session_vars = None  # type: ignore[assignment]
+                clear_session_vars = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
                 logger.debug("Could not set ACP session context", exc_info=True)
             if approval_cb:
                 try:
@@ -1586,7 +1589,9 @@ class HermesACPAgent(acp.Agent):
                 AvailableCommand(
                     name=spec["name"],
                     description=spec["description"],
-                    input=UnstructuredCommandInput(hint=input_hint)
+                    # pydantic coerces the inner model into the
+                    # AvailableCommandInput RootModel at validation time.
+                    input=UnstructuredCommandInput(hint=input_hint)  # ty: ignore[invalid-argument-type]
                     if input_hint
                     else None,
                 )
@@ -1926,7 +1931,7 @@ class HermesACPAgent(acp.Agent):
         return SetSessionModeResponse()
 
     async def set_config_option(
-        self, config_id: str, session_id: str, value: str, **kwargs: Any
+        self, config_id: str, session_id: str, value: str | bool, **kwargs: Any
     ) -> SetSessionConfigOptionResponse | None:
         """Accept ACP config option updates even when Hermes has no typed ACP config surface yet."""
         state = self.session_manager.get_session(session_id)

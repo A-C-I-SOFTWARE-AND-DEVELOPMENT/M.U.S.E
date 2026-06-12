@@ -766,7 +766,7 @@ async def test_drain_timeout_marks_resume_pending():
     active session as resume_pending BEFORE the interrupt fires, so the
     next startup's suspend_recently_active() does not destroy them."""
     runner, adapter = make_restart_runner()
-    adapter.disconnect = AsyncMock()
+    adapter.disconnect = AsyncMock()  # ty: ignore[invalid-assignment]
     runner._restart_drain_timeout = 0.05
 
     running_agent = MagicMock()
@@ -798,7 +798,7 @@ async def test_drain_timeout_marks_resume_pending():
 @pytest.mark.asyncio
 async def test_drain_timeout_uses_restart_reason_when_restarting():
     runner, adapter = make_restart_runner()
-    adapter.disconnect = AsyncMock()
+    adapter.disconnect = AsyncMock()  # ty: ignore[invalid-assignment]
     runner._restart_drain_timeout = 0.05
     runner._restart_requested = True
 
@@ -830,7 +830,7 @@ async def test_drain_timeout_skips_pending_sentinel_sessions():
     from gateway.run import _AGENT_PENDING_SENTINEL
 
     runner, adapter = make_restart_runner()
-    adapter.disconnect = AsyncMock()
+    adapter.disconnect = AsyncMock()  # ty: ignore[invalid-assignment]
     runner._restart_drain_timeout = 0.05
 
     session_key_real = "agent:main:telegram:dm:A"
@@ -881,14 +881,14 @@ async def test_startup_auto_resume_schedules_fresh_pending_sessions():
         last_resume_marked_at=datetime.now(),
     )
     runner.session_store._entries = {pending_entry.session_key: pending_entry}
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
     await asyncio.sleep(0)
 
     assert scheduled == 1
-    adapter.handle_message.assert_awaited_once()
-    event = adapter.handle_message.await_args.args[0]
+    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+    event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
     assert isinstance(event, MessageEvent)
     assert event.internal is True
     assert event.message_type == MessageType.TEXT
@@ -923,13 +923,13 @@ async def test_startup_auto_resume_includes_crash_recovery():
         last_resume_marked_at=datetime.now(),
     )
     runner.session_store._entries = {pending_entry.session_key: pending_entry}
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
     await asyncio.sleep(0)
 
     assert scheduled == 1
-    adapter.handle_message.assert_awaited_once()
+    adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -953,12 +953,12 @@ async def test_startup_auto_resume_skips_stale_entries():
         last_resume_marked_at=stale_marker,
     )
     runner.session_store._entries = {stale_entry.session_key: stale_entry}
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
 
     assert scheduled == 0
-    adapter.handle_message.assert_not_called()
+    adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -995,12 +995,12 @@ async def test_startup_auto_resume_skips_suspended_and_originless():
         suspended_entry.session_key: suspended_entry,
         originless.session_key: originless,
     }
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
 
     assert scheduled == 0
-    adapter.handle_message.assert_not_called()
+    adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -1026,12 +1026,12 @@ async def test_startup_auto_resume_skips_disallowed_reasons():
         last_resume_marked_at=datetime.now(),
     )
     runner.session_store._entries = {other_entry.session_key: other_entry}
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
 
     assert scheduled == 0
-    adapter.handle_message.assert_not_called()
+    adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -1052,12 +1052,12 @@ async def test_startup_auto_resume_skips_when_adapter_unavailable():
     )
     runner.session_store._entries = {pending_entry.session_key: pending_entry}
     runner.adapters = {}
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
 
     scheduled = runner._schedule_resume_pending_sessions()
 
     assert scheduled == 0
-    adapter.handle_message.assert_not_called()
+    adapter.handle_message.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------
@@ -1076,8 +1076,8 @@ async def test_restart_banner_uses_try_to_resume_wording():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 1
-    msg = adapter.sent[0]
+    assert len(adapter.sent) == 1  # ty: ignore[unresolved-attribute]
+    msg = adapter.sent[0]  # ty: ignore[unresolved-attribute]
     assert "restarting" in msg
     assert "try to resume" in msg
 
@@ -1094,7 +1094,7 @@ async def test_restart_notifies_home_channel_even_without_active_sessions():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert adapter.sent == [
+    assert adapter.sent == [  # ty: ignore[unresolved-attribute]
         "⚠️ Gateway restarting — Your current task will be interrupted. "
         "Send any message after restart and I'll try to resume where you left off."
     ]
@@ -1113,7 +1113,7 @@ async def test_restart_home_channel_notification_dedupes_active_chat():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 1
+    assert len(adapter.sent) == 1  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -1139,9 +1139,9 @@ async def test_restart_home_channel_notification_not_deduped_across_threads():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 2
-    assert adapter.sent_calls[0][2] == {"thread_id": "topic-7"}
-    assert adapter.sent_calls[1][2] is None
+    assert len(adapter.sent) == 2  # ty: ignore[unresolved-attribute]
+    assert adapter.sent_calls[0][2] == {"thread_id": "topic-7"}  # ty: ignore[unresolved-attribute]
+    assert adapter.sent_calls[1][2] is None  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -1153,11 +1153,11 @@ async def test_restart_home_channel_notification_ignores_false_send_result():
         chat_id="home-42",
         name="Ops Home",
     )
-    adapter.send = AsyncMock(return_value=SendResult(success=False, error="network down"))
+    adapter.send = AsyncMock(return_value=SendResult(success=False, error="network down"))  # ty: ignore[invalid-assignment]
 
     await runner._notify_active_sessions_of_shutdown()
 
-    adapter.send.assert_called_once()
+    adapter.send.assert_called_once()  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------

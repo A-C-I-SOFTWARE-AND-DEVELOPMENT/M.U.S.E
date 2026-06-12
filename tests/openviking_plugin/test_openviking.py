@@ -29,7 +29,7 @@ class TestOpenVikingSummaryUriNormalization:
 class TestOpenVikingRead:
     def test_overview_read_normalizes_uri_and_unwraps_result(self):
         provider = OpenVikingMemoryProvider()
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/content/overview",
@@ -44,14 +44,14 @@ class TestOpenVikingRead:
         assert result["resolved_uri"] == "viking://user/hermes"
         assert result["level"] == "overview"
         assert result["content"] == "overview text"
-        assert provider._client.calls == [(
+        assert provider._client.calls == [(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             "/api/v1/content/overview",
             {"uri": "viking://user/hermes"},
         )]
 
     def test_full_read_keeps_original_uri(self):
         provider = OpenVikingMemoryProvider()
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/content/read",
@@ -66,7 +66,7 @@ class TestOpenVikingRead:
         assert result["resolved_uri"] == "viking://user/hermes/memories/profile.md"
         assert result["level"] == "full"
         assert result["content"] == "full text"
-        assert provider._client.calls == [(
+        assert provider._client.calls == [(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             "/api/v1/content/read",
             {"uri": "viking://user/hermes/memories/profile.md"},
         )]
@@ -75,7 +75,7 @@ class TestOpenVikingRead:
         """Pre-check via fs/stat: file URIs skip the directory-only endpoint entirely."""
         provider = OpenVikingMemoryProvider()
         file_uri = "viking://user/hermes/memories/entities/mem_abc.md"
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/fs/stat",
@@ -95,7 +95,7 @@ class TestOpenVikingRead:
         assert result["level"] == "overview"
         assert result["fallback"] == "content/read"
         assert result["content"] == "full content"
-        assert provider._client.calls == [
+        assert provider._client.calls == [  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             ("/api/v1/fs/stat", {"uri": file_uri}),
             ("/api/v1/content/read", {"uri": file_uri}),
         ]
@@ -103,7 +103,7 @@ class TestOpenVikingRead:
     def test_overview_dir_uri_skips_stat_when_pseudo_summary(self):
         """Pseudo-URI path already resolves to dir, so no stat probe needed."""
         provider = OpenVikingMemoryProvider()
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/content/overview",
@@ -116,7 +116,7 @@ class TestOpenVikingRead:
 
         assert result["content"] == "overview"
         # No fs/stat call — normalization already determined it's a directory.
-        assert provider._client.calls == [
+        assert provider._client.calls == [  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             ("/api/v1/content/overview", {"uri": "viking://user/hermes"}),
         ]
 
@@ -124,7 +124,7 @@ class TestOpenVikingRead:
         """Non-pseudo directory URI: stat → isDir=True → summary endpoint."""
         provider = OpenVikingMemoryProvider()
         dir_uri = "viking://user/hermes/memories"
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/fs/stat",
@@ -141,7 +141,7 @@ class TestOpenVikingRead:
 
         assert result["content"] == "dir overview"
         assert "fallback" not in result
-        assert provider._client.calls == [
+        assert provider._client.calls == [  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             ("/api/v1/fs/stat", {"uri": dir_uri}),
             ("/api/v1/content/overview", {"uri": dir_uri}),
         ]
@@ -150,7 +150,7 @@ class TestOpenVikingRead:
         """If fs/stat raises or returns unknown shape, legacy exception fallback still kicks in."""
         provider = OpenVikingMemoryProvider()
         file_uri = "viking://user/hermes/memories/entities/mem_abc.md"
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/fs/stat",
@@ -173,7 +173,7 @@ class TestOpenVikingRead:
         assert result["level"] == "overview"
         assert result["fallback"] == "content/read"
         assert result["content"] == "fallback full content"
-        assert provider._client.calls == [
+        assert provider._client.calls == [  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             ("/api/v1/fs/stat", {"uri": file_uri}),
             ("/api/v1/content/overview", {"uri": file_uri}),
             ("/api/v1/content/read", {"uri": file_uri}),
@@ -181,7 +181,7 @@ class TestOpenVikingRead:
 
     def test_summary_uri_error_does_not_fallback_and_raises(self):
         provider = OpenVikingMemoryProvider()
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/content/overview",
@@ -196,7 +196,7 @@ class TestOpenVikingRead:
         except RuntimeError:
             pass
 
-        assert provider._client.calls == [
+        assert provider._client.calls == [  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             ("/api/v1/content/overview", {"uri": "viking://user/hermes"}),
         ]
 
@@ -204,7 +204,7 @@ class TestOpenVikingRead:
 class TestOpenVikingBrowse:
     def test_list_browse_unwraps_and_normalizes_entry_shapes(self):
         provider = OpenVikingMemoryProvider()
-        provider._client = FakeVikingClient(
+        provider._client = FakeVikingClient(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             {
                 (
                     "/api/v1/fs/ls",
@@ -227,7 +227,7 @@ class TestOpenVikingBrowse:
             {"name": "memories", "uri": "viking://user/hermes/memories", "type": "dir", "abstract": ""},
             {"name": "profile.md", "uri": "viking://user/hermes/memories/profile.md", "type": "file", "abstract": "Profile"},
         ]
-        assert provider._client.calls == [(
+        assert provider._client.calls == [(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             "/api/v1/fs/ls",
             {"uri": "viking://user/hermes"},
         )]

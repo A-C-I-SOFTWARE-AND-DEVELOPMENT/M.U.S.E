@@ -143,7 +143,7 @@ def test_recollect_is_legacy_only_when_layers_disabled(tmp_path: Path) -> None:
     )
     jp = JarvisPrime(config=config)
     assert jp.memory_tree() is None
-    jp.config.memory_tree.write(
+    jp.config.memory_tree.write(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         "Hermes is the canonical backend.",
         namespace="jarvis/architecture",
         title="backend",
@@ -162,7 +162,7 @@ def test_observe_turn_captures_proposed_candidates(jp: JarvisPrime) -> None:
     assert summary["captured"] >= 1
     assert summary["durable_worthy"] >= 1
     tree = jp.memory_tree()
-    proposed = tree.proposed()
+    proposed = tree.proposed()  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     assert proposed, "captured candidate should land in the proposed inbox"
     assert all(n.approval_state is ApprovalState.PROPOSED for n in proposed)
     assert all(n.layer is MemoryLayer.SESSION for n in proposed)
@@ -198,7 +198,7 @@ def test_observe_turn_rejects_secret_and_never_raises(jp: JarvisPrime) -> None:
     )
     assert summary["captured"] == 0
     assert summary["rejected"] >= 1
-    assert jp.memory_tree().proposed() == []
+    assert jp.memory_tree().proposed() == []  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_observe_turn_noop_when_layers_disabled(tmp_path: Path) -> None:

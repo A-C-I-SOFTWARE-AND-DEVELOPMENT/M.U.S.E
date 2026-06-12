@@ -19,7 +19,7 @@ class TestRepairToolCallArguments:
 
     def test_none_type_returns_empty_object(self):
         """Non-string input (e.g. None from a broken model response)."""
-        assert _repair_tool_call_arguments(None, "t") == "{}"
+        assert _repair_tool_call_arguments(None, "t") == "{}"  # ty: ignore[invalid-argument-type]
 
     # -- Stage 2: Python None literal --
 

@@ -10,6 +10,14 @@ import pytest
 from hermes_cli import kanban_db as kb
 
 
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
+
+
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
     """Isolated HERMES_HOME with an empty kanban DB."""
@@ -34,7 +42,7 @@ def _create_triage(conn, title="rough idea", body=None, assignee=None):
 def test_specify_promotes_triage_to_todo(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="rough idea")
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
             conn,
@@ -47,8 +55,11 @@ def test_specify_promotes_triage_to_todo(kanban_home):
     with kb.connect() as conn:
         task = kb.get_task(conn, tid)
     # No parents → recompute_ready should have flipped it past todo to ready.
+    assert task is not None
     assert task.status == "ready"
+    assert task is not None
     assert task.title == "Refined: rough idea"
+    assert task is not None
     assert "**Goal**" in (task.body or "")
 
 
@@ -61,7 +72,7 @@ def test_specify_with_open_parent_lands_in_todo_not_ready(kanban_home):
         kb.link_tasks(conn, parent, child)
         # After linking with an open parent, triage status should still be
         # 'triage' (linking doesn't touch triage tasks).
-        assert kb.get_task(conn, child).status == "triage"
+        assert _task(conn, child).status == "triage"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(
             conn,
@@ -73,19 +84,20 @@ def test_specify_with_open_parent_lands_in_todo_not_ready(kanban_home):
     with kb.connect() as conn:
         t = kb.get_task(conn, child)
     # Parent still open → specified child sits in 'todo', not 'ready'.
+    assert t is not None
     assert t.status == "todo"
 
 
 def test_specify_refuses_non_triage_task(kanban_home):
     with kb.connect() as conn:
         tid = kb.create_task(conn, title="normal task")
-        assert kb.get_task(conn, tid).status == "ready"
+        assert _task(conn, tid).status == "ready"
     with kb.connect() as conn:
         ok = kb.specify_triage_task(conn, tid, body="won't apply")
     assert ok is False
     with kb.connect() as conn:
         # Status unchanged.
-        assert kb.get_task(conn, tid).status == "ready"
+        assert _task(conn, tid).status == "ready"
 
 
 def test_specify_returns_false_for_unknown_id(kanban_home):
@@ -157,7 +169,7 @@ def test_specify_skips_comment_when_nothing_changed(kanban_home):
     assert ok is True
     with kb.connect() as conn:
         # Promoted.
-        assert kb.get_task(conn, tid).status in {"todo", "ready"}
+        assert _task(conn, tid).status in {"todo", "ready"}
         # No audit comment because neither field changed.
         assert kb.list_comments(conn, tid) == []
 
@@ -169,7 +181,9 @@ def test_specify_with_only_body_preserves_title(kanban_home):
         kb.specify_triage_task(conn, tid, body="new body only")
     with kb.connect() as conn:
         t = kb.get_task(conn, tid)
+    assert t is not None
     assert t.title == "keep this title"
+    assert t is not None
     assert t.body == "new body only"
 
 

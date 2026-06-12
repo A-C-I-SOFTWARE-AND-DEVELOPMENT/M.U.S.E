@@ -42,7 +42,7 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    web = None  # type: ignore[assignment]
+    web = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (

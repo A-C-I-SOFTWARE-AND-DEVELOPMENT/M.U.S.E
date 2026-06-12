@@ -35,7 +35,7 @@ _QUEUE_FILE = "improvement_queue.jsonl"
 
 def _hermes_home() -> Path:
     try:
-        from hermes_constants import get_hermes_home  # type: ignore
+        from hermes_constants import get_hermes_home
 
         return Path(get_hermes_home())
     except Exception:

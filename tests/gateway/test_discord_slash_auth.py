@@ -106,7 +106,7 @@ def _stub_discord_permissions(monkeypatch):
     """Pin discord.Permissions to a plain stand-in so tests can assert the
     bitfield value regardless of whether real discord.py or a sibling test
     module's MagicMock is loaded."""
-    import discord
+    import discord  # ty: ignore[unresolved-import]
 
     class _Perm:
         def __init__(self, value=0, **_):
@@ -136,7 +136,7 @@ def _make_interaction(
     payload missing a resolvable channel id (fail-closed exercise).
     Pass ``user=None`` to simulate a payload missing the user object.
     """
-    import discord
+    import discord  # ty: ignore[unresolved-import]
 
     response = SimpleNamespace(send_message=AsyncMock(), defer=AsyncMock())
 
@@ -572,7 +572,7 @@ def _capture_skill_registration(adapter, monkeypatch, entries):
     a no-op stub in this test file's discord mock, so capturing the
     callback through it is the direct route in tests.
     """
-    import discord
+    import discord  # ty: ignore[unresolved-import]
 
     captured: dict = {}
 

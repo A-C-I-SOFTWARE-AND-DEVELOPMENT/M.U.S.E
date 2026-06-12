@@ -261,7 +261,7 @@ def test_handle_skills_slash_search_accepts_chatconsole_without_status_errors():
     with patch("tools.skills_hub.unified_search", return_value=results), \
          patch("tools.skills_hub.create_source_router", return_value={}), \
          patch("tools.skills_hub.GitHubAuth"):
-        handle_skills_slash("/skills search kubernetes", console=ChatConsole())
+        handle_skills_slash("/skills search kubernetes", console=ChatConsole())  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_do_install_scans_with_resolved_identifier(monkeypatch, tmp_path, hub_env):

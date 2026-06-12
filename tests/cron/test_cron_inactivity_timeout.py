@@ -287,7 +287,7 @@ class TestInactivityTimeout:
             _idle_secs = 0.0
             if hasattr(agent, "get_activity_summary"):
                 try:
-                    _act = agent.get_activity_summary()
+                    _act = agent.get_activity_summary()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
                     _idle_secs = _act.get("seconds_since_activity", 0.0)
                 except Exception:
                     pass

@@ -548,7 +548,7 @@ class TestLinuxSave:
 
     def setup_method(self):
         import hermes_cli.clipboard as cb
-        cb._wsl_detected = None
+        cb._wsl_detected = None  # ty: ignore[unresolved-attribute]
 
     def test_wsl_tried_first(self, tmp_path):
         dest = tmp_path / "out.png"
@@ -824,7 +824,7 @@ class TestConvertToPng:
 class TestHasClipboardImage:
     def setup_method(self):
         import hermes_cli.clipboard as cb
-        cb._wsl_detected = None
+        cb._wsl_detected = None  # ty: ignore[unresolved-attribute]
 
     def test_macos_dispatch(self):
         with patch("hermes_cli.clipboard.sys") as mock_sys:

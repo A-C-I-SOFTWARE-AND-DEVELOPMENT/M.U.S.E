@@ -13,7 +13,7 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-import blake3
+import blake3  # ty: ignore[unresolved-import]
 
 # The closed effect vocabulary. Anything outside this set must use the
 # explicit "regulated:" namespace so it is visibly exceptional.

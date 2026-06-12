@@ -46,7 +46,7 @@ def load_dataset_from_hf(dataset_name: str) -> List[Dict[str, Any]]:
     Returns:
         List of trajectory entries
     """
-    from datasets import load_dataset
+    from datasets import load_dataset  # ty: ignore[unresolved-import]
     
     print(f"   Loading {dataset_name}...")
     
@@ -75,13 +75,13 @@ def load_dataset_from_hf(dataset_name: str) -> List[Dict[str, Any]]:
 
 
 # Global tokenizer for multiprocessing (set in worker init)
-_TOKENIZER = None
+_TOKENIZER: Any = None
 
 
 def _init_tokenizer_worker(tokenizer_name: str):
     """Initialize tokenizer in worker process."""
     global _TOKENIZER
-    from transformers import AutoTokenizer
+    from transformers import AutoTokenizer  # ty: ignore[unresolved-import]
     _TOKENIZER = AutoTokenizer.from_pretrained(tokenizer_name, trust_remote_code=True)
 
 
@@ -316,7 +316,7 @@ def merge_output_to_single_jsonl(input_dir: Path, output_file: Path):
 def main(
     total_samples: int = 2500,
     output_name: str = "compressed_agentic",
-    datasets: str = None,
+    datasets: str | None = None,
     config: str = "configs/trajectory_compression.yaml",
     seed: int = 42,
     batch_size: int = 100,

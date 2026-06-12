@@ -23,11 +23,11 @@ from contextlib import contextmanager
 try:
     import fcntl
 except ImportError:
-    fcntl = None
+    fcntl = None  # ty: ignore[invalid-assignment]
     try:
         import msvcrt
     except ImportError:
-        msvcrt = None
+        msvcrt = None  # ty: ignore[invalid-assignment]
 from pathlib import Path
 from typing import List, Optional
 
@@ -747,8 +747,8 @@ def _deliver_result(job: dict, content: str, adapters=None, loop=None) -> Option
                 delivery_errors.append(msg)
                 continue
 
-            if result and result.get("error"):
-                msg = f"delivery error: {result['error']}"
+            if result and result.get("error"):  # ty: ignore[unresolved-attribute]
+                msg = f"delivery error: {result['error']}"  # ty: ignore[not-subscriptable]
                 logger.error("Job '%s': %s", job["id"], msg)
                 delivery_errors.append(msg)
                 continue
@@ -951,7 +951,7 @@ def _parse_wake_gate(script_output: str) -> bool:
     return gate.get("wakeAgent", True) is not False
 
 
-def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> str:
+def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> Optional[str]:
     """Build the effective prompt for a cron job, optionally loading one or more skills first.
 
     Args:
@@ -1563,23 +1563,23 @@ def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
 
         agent = AIAgent(
             model=model,
-            api_key=runtime.get("api_key"),
-            base_url=runtime.get("base_url"),
-            provider=runtime.get("provider"),
-            api_mode=runtime.get("api_mode"),
-            acp_command=runtime.get("command"),
+            api_key=runtime.get("api_key"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            base_url=runtime.get("base_url"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            provider=runtime.get("provider"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            api_mode=runtime.get("api_mode"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            acp_command=runtime.get("command"),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             acp_args=runtime.get("args"),
             max_iterations=max_iterations,
-            reasoning_config=reasoning_config,
-            prefill_messages=prefill_messages,
-            fallback_model=fallback_model,
+            reasoning_config=reasoning_config,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            prefill_messages=prefill_messages,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
+            fallback_model=fallback_model,  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             credential_pool=credential_pool,
             providers_allowed=pr.get("only"),
             providers_ignored=pr.get("ignore"),
             providers_order=pr.get("order"),
             provider_sort=pr.get("sort"),
             openrouter_min_coding_score=(_cfg.get("openrouter") or {}).get("min_coding_score"),
-            enabled_toolsets=_resolve_cron_enabled_toolsets(job, _cfg),
+            enabled_toolsets=_resolve_cron_enabled_toolsets(job, _cfg),  # ty: ignore[invalid-argument-type, unused-ignore-comment]
             disabled_toolsets=["cronjob", "messaging", "clarify"],
             quiet_mode=True,
             # Cron jobs should always inherit the user's SOUL.md identity from
@@ -1678,7 +1678,7 @@ def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
                 agent.interrupt("Cron job timed out (inactivity)")
             raise TimeoutError(
                 f"Cron job '{job_name}' idle for "
-                f"{int(_secs_ago)}s (limit {int(_cron_inactivity_limit)}s) "
+                f"{int(_secs_ago)}s (limit {int(_cron_inactivity_limit)}s) "  # ty: ignore[invalid-argument-type]
                 f"— last activity: {_last_desc}"
             )
 
@@ -1698,12 +1698,12 @@ def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
         if result.get("failed") is True or result.get("completed") is False:
             _err_text = (
                 result.get("error")
-                or (result.get("final_response") or "").strip()
+                or (result.get("final_response") or "").strip()  # ty: ignore[unresolved-attribute]
                 or "agent reported failure"
             )
             raise RuntimeError(_err_text)
 
-        final_response = result.get("final_response", "") or ""
+        final_response: str = result.get("final_response", "") or ""  # ty: ignore[invalid-assignment]
         # Strip leaked placeholder text that upstream may inject on empty completions.
         if final_response.strip() == "(No response generated)":
             final_response = ""

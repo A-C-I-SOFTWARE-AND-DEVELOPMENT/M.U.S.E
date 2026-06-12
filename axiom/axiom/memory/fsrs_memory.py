@@ -16,7 +16,7 @@ import sqlite3
 import time
 from datetime import datetime, timezone
 
-from fsrs import Card, Rating, Scheduler
+from fsrs import Card, Rating, Scheduler  # ty: ignore[unresolved-import]
 
 TIER_WORKING = "working"
 TIER_SESSION = "session"
@@ -58,7 +58,8 @@ class MemoryStore:
              json.dumps(card.to_dict()), time.time()),
         )
         self._db.commit()
-        return cur.lastrowid
+        # lastrowid is always set after a successful INSERT.
+        return cur.lastrowid  # ty: ignore[invalid-return-type]
 
     def on_verification(
         self,

@@ -164,7 +164,7 @@ async def test_send_does_not_retry_on_unrelated_errors():
 # Forum channel tests
 # ---------------------------------------------------------------------------
 
-import discord as _discord_mod  # noqa: E402 — imported after _ensure_discord_mock
+import discord as _discord_mod  # noqa: E402 — imported after _ensure_discord_mock  # ty: ignore[unresolved-import]
 
 
 class TestIsForumParent:
@@ -276,6 +276,7 @@ async def test_send_to_forum_create_thread_failure():
     result = await adapter.send("999", "Hello forum!")
 
     assert result.success is False
+    assert result.error is not None
     assert "rate limited" in result.error
 
 
@@ -343,6 +344,7 @@ async def test_forum_post_file_creates_thread_with_attachment():
     assert result.success is True
     assert result.message_id == "800"
     forum_channel.create_thread.assert_awaited_once()
+    assert forum_channel.create_thread.await_args is not None
     call_kwargs = forum_channel.create_thread.await_args.kwargs
     assert call_kwargs["file"] is fake_file
     assert call_kwargs["content"] == "here is a photo"
@@ -365,6 +367,7 @@ async def test_forum_post_file_uses_filename_when_no_content():
     result = await adapter._forum_post_file(forum_channel, content="", file=fake_file)
 
     assert result.success is True
+    assert forum_channel.create_thread.await_args is not None
     call_kwargs = forum_channel.create_thread.await_args.kwargs
     # Content was empty → thread name derived from filename
     assert call_kwargs["name"] == "voice-message.ogg"

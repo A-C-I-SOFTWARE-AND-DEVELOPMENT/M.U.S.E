@@ -70,7 +70,7 @@ class TestKeepTypingTimeoutPerTick:
 
         monkeypatch.setattr(adapter, "send_typing", slow_send_typing)
         # Avoid stop_typing side-effects in the finally block.
-        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))
+        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))  # ty: ignore[invalid-assignment]
 
         stop_event = asyncio.Event()
         # Start the typing loop, let it run ~3s (should fire 2 ticks) then stop.
@@ -115,7 +115,7 @@ class TestKeepTypingTimeoutPerTick:
             completed.append(chat_id)
 
         monkeypatch.setattr(adapter, "send_typing", fast_send_typing)
-        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))
+        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))  # ty: ignore[invalid-assignment]
 
         stop_event = asyncio.Event()
         task = asyncio.create_task(
@@ -149,7 +149,7 @@ class TestKeepTypingTimeoutPerTick:
             # Subsequent calls succeed.
 
         monkeypatch.setattr(adapter, "send_typing", flaky_send_typing)
-        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))
+        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))  # ty: ignore[invalid-assignment]
 
         stop_event = asyncio.Event()
         task = asyncio.create_task(
@@ -180,7 +180,7 @@ class TestKeepTypingTimeoutPerTick:
             calls.append(chat_id)
 
         monkeypatch.setattr(adapter, "send_typing", recording_send_typing)
-        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))
+        adapter.stop_typing = MagicMock(return_value=asyncio.sleep(0))  # ty: ignore[invalid-assignment]
         adapter._typing_paused.add("paused-chat")
 
         stop_event = asyncio.Event()

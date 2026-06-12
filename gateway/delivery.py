@@ -114,7 +114,7 @@ class DeliveryRouter:
     messages to the right platform adapters.
     """
     
-    def __init__(self, config: GatewayConfig, adapters: Dict[Platform, Any] = None):
+    def __init__(self, config: GatewayConfig, adapters: Dict[Platform, Any] = None):  # ty: ignore[invalid-parameter-default]  # duck-typed platform/adapter path
         """
         Initialize the delivery router.
         

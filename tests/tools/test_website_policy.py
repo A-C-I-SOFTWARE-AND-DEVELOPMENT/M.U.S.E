@@ -88,7 +88,10 @@ def test_check_website_access_supports_wildcard_subdomains_only(tmp_path):
 def test_default_config_exposes_website_blocklist_shape():
     from hermes_cli.config import DEFAULT_CONFIG
 
-    website_blocklist = DEFAULT_CONFIG["security"]["website_blocklist"]
+    security = DEFAULT_CONFIG["security"]
+    assert isinstance(security, dict)
+    website_blocklist = security["website_blocklist"]
+    assert isinstance(website_blocklist, dict)
     assert website_blocklist["enabled"] is False
     assert website_blocklist["domains"] == []
     assert website_blocklist["shared_files"] == []

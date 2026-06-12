@@ -248,7 +248,7 @@ class TestTirithImportError:
         import sys
         # Temporarily remove the module and replace with something that raises
         original = sys.modules.get("tools.tirith_security")
-        sys.modules["tools.tirith_security"] = None  # causes ImportError on from-import
+        sys.modules["tools.tirith_security"] = None  # causes ImportError on from-import  # ty: ignore[invalid-assignment]
         try:
             result = check_all_command_guards("echo hello", "local")
             assert result["approved"] is True

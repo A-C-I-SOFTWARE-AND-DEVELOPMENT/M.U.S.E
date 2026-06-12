@@ -117,7 +117,7 @@ class GatewayStreamConsumer:
         chat_id: str,
         config: Optional[StreamConsumerConfig] = None,
         metadata: Optional[dict] = None,
-        on_new_message: Optional[callable] = None,
+        on_new_message: Optional[Callable] = None,
         initial_reply_to_id: Optional[str] = None,
     ):
         self.adapter = adapter
@@ -213,7 +213,7 @@ class GatewayStreamConsumer:
         }
         # Keep the long-standing stream-consumer contract: concrete adapters
         # must accept finalize= even when it is False (guarded by tests).
-        kwargs["finalize"] = finalize
+        kwargs["finalize"] = finalize  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
         if self.metadata:
             try:
@@ -222,7 +222,7 @@ class GatewayStreamConsumer:
                     param.kind is inspect.Parameter.VAR_KEYWORD
                     for param in params.values()
                 ):
-                    kwargs["metadata"] = self.metadata
+                    kwargs["metadata"] = self.metadata  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
             except (TypeError, ValueError):
                 pass
         return await self.adapter.edit_message(**kwargs)

@@ -307,7 +307,7 @@ def test_search_mode_config_passed_to_client(monkeypatch, tmp_path):
     p = SupermemoryMemoryProvider()
     p.initialize("s1", hermes_home=str(tmp_path), platform="cli")
     assert p._search_mode == "memories"
-    assert p._client.search_mode == "memories"
+    assert p._client.search_mode == "memories"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_invalid_search_mode_falls_back_to_default(monkeypatch, tmp_path):
@@ -364,7 +364,7 @@ def test_multi_container_tool_store_with_custom_tag(monkeypatch, tmp_path):
     }))
     assert result["saved"] is True
     assert result["container_tag"] == "project_alpha"
-    assert p._client.add_calls[-1]["container_tag"] == "project_alpha"
+    assert p._client.add_calls[-1]["container_tag"] == "project_alpha"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_multi_container_rejects_unlisted_tag(monkeypatch, tmp_path):

@@ -21,7 +21,7 @@ def test_generate_persists_and_directive(home, monkeypatch) -> None:
     data = ps.generate_persona("Goku from Dragon Ball", name="Goku")
     assert data["name"] == "Goku"
     assert "Goku" in data["description"]
-    assert ps.load_persona()["name"] == "Goku"
+    assert ps.load_persona()["name"] == "Goku"  # ty: ignore[not-subscriptable]
     directive = ps.persona_directive()
     assert directive.startswith("Adopted persona — speak and behave as Goku")
     assert "Goku" in directive
@@ -41,7 +41,7 @@ def test_generate_uses_model_when_available(home, monkeypatch) -> None:
     class _Resp:
         choices = [type("C", (), {"message": _Msg()})()]
 
-    fake.call_llm = lambda **kw: _Resp()
+    fake.call_llm = lambda **kw: _Resp()  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "agent.auxiliary_client", fake)
 
     data = ps.generate_persona("Goku", name="Goku")

@@ -77,6 +77,7 @@ class TestConfigYamlBridging:
                 config = load_gateway_config()
 
         wa_config = config.platforms.get(Platform.WHATSAPP)
+        assert wa_config is not None
         assert "reply_prefix" not in wa_config.extra
 
 

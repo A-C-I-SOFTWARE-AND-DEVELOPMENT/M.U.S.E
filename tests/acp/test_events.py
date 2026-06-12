@@ -171,7 +171,7 @@ class TestStepCallback:
         tool_call_ids = {"terminal": "tc-abc123"}
         loop = event_loop_fixture
 
-        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})
+        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})  # ty: ignore[invalid-argument-type]
 
         with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts:
             future = MagicMock(spec=Future)
@@ -201,7 +201,7 @@ class TestStepCallback:
         tool_call_ids = {"read_file": "tc-def456"}
         loop = event_loop_fixture
 
-        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})
+        cb = make_step_cb(mock_conn, "session-1", loop, tool_call_ids, {})  # ty: ignore[invalid-argument-type]
 
         with patch("acp_adapter.events.asyncio.run_coroutine_threadsafe") as mock_rcts:
             future = MagicMock(spec=Future)

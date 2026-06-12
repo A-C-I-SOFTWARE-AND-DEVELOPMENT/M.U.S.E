@@ -427,7 +427,7 @@ def classify_api_error(
     model_lower = (model or "").strip().lower()
 
     def _result(reason: FailoverReason, **overrides) -> ClassifiedError:
-        defaults = {
+        defaults: Dict[str, Any] = {
             "reason": reason,
             "status_code": status_code,
             "provider": provider,

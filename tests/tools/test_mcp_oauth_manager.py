@@ -137,5 +137,6 @@ def test_manager_builds_hermes_provider_subclass(tmp_path, monkeypatch):
 
     assert _HERMES_PROVIDER_CLS is not None
     assert isinstance(provider, _HERMES_PROVIDER_CLS)
+    assert provider is not None
     assert provider._hermes_server_name == "srv"
 

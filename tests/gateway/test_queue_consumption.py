@@ -272,6 +272,7 @@ class TestQueueConsumptionAfterCompletion:
 
         # Drain consumes Q1.
         pending_event = _dequeue_pending_event(adapter, session_key)
+        assert pending_event is not None
         assert pending_event.text == "Q1"
 
         # Someone else (interrupt path) re-populates the slot.

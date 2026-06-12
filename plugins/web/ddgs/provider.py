@@ -44,7 +44,7 @@ class DDGSWebSearchProvider(WebSearchProvider):
         ``hermes tools`` paint.
         """
         try:
-            import ddgs  # noqa: F401
+            import ddgs  # noqa: F401  # ty: ignore[unresolved-import]  # dynamic config/plugin path
 
             return True
         except ImportError:

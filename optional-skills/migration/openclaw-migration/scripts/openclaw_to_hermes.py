@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 try:
     import yaml
 except Exception:  # pragma: no cover - handled at runtime
-    yaml = None
+    yaml = None  # ty: ignore[invalid-assignment]  # optional dependency sentinel
 
 
 ENTRY_DELIMITER = "\n§\n"
@@ -810,8 +810,8 @@ class Migrator:
     def record(
         self,
         kind: str,
-        source: Optional[Path],
-        destination: Optional[Path],
+        source: Path | str | None,
+        destination: Path | str | None,
         status: str,
         reason: str = "",
         **details: Any,
@@ -1166,7 +1166,7 @@ class Migrator:
 
         existing = parse_existing_memory_entries(destination)
         merged, stats, overflowed = merge_entries(existing, incoming, limit)
-        details = {
+        details: Dict[str, Any] = {
             "existing_entries": stats["existing"],
             "added_entries": stats["added"],
             "duplicate_entries": stats["duplicates"],
@@ -1911,7 +1911,7 @@ class Migrator:
 
         existing = parse_existing_memory_entries(destination)
         merged, stats, overflowed = merge_entries(existing, all_incoming, self.memory_limit)
-        details = {
+        details: Dict[str, Any] = {
             "source_files": len(md_files),
             "existing_entries": stats["existing"],
             "added_entries": stats["added"],
@@ -2561,7 +2561,7 @@ class Migrator:
             return
 
         # Extended channel token/allowlist mapping
-        CHANNEL_ENV_MAP = {
+        CHANNEL_ENV_MAP: Dict[str, Dict[str, Any]] = {
             "matrix": {"token": "MATRIX...OKEN", "tokenField": "accessToken", "allowFrom": "MATRIX_ALLOWED_USERS",
                         "extras": {"homeserverUrl": "MATRIX_HOMESERVER_URL", "userId": "MATRIX_USER_ID"}},
             "mattermost": {"token": "MATTERMOST_BOT_TOKEN", "allowFrom": "MATTERMOST_ALLOWED_USERS",

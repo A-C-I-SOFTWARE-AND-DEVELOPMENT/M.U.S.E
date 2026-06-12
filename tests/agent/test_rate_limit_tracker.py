@@ -152,6 +152,7 @@ class TestFormatting:
 
     def test_format_display_with_data(self):
         state = parse_rate_limit_headers(NOUS_HEADERS, provider="nous")
+        assert state is not None
         result = format_rate_limit_display(state)
         assert "Nous" in result
         assert "Requests/min" in result
@@ -166,11 +167,13 @@ class TestFormatting:
             "x-ratelimit-remaining-requests": "50",  # 750/800 used = 93.75%
         }
         state = parse_rate_limit_headers(headers)
+        assert state is not None
         result = format_rate_limit_display(state)
         assert "⚠" in result
 
     def test_format_compact(self):
         state = parse_rate_limit_headers(NOUS_HEADERS, provider="nous")
+        assert state is not None
         result = format_rate_limit_compact(state)
         assert "RPM:" in result
         assert "RPH:" in result

@@ -12,8 +12,8 @@ import json
 import sqlite3
 import time
 
-import blake3
-from nacl.signing import SigningKey, VerifyKey
+import blake3  # ty: ignore[unresolved-import]
+from nacl.signing import SigningKey, VerifyKey  # ty: ignore[unresolved-import]
 
 from .canonical import canonical_json
 

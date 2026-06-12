@@ -114,6 +114,7 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = None
         
         cb = _build_child_progress_callback(0, "test goal", parent)
+        assert cb is not None
         cb("_thinking", "I'll search for papers first")
         
         output = buf.getvalue()
@@ -129,6 +130,7 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
+        assert cb is not None
 
         # Each tool.started relays a subagent.tool event immediately (per-tool relay).
         for i in range(4):
@@ -154,6 +156,7 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
+        assert cb is not None
         cb("_thinking", "some reasoning text")
 
         parent_cb.assert_called_once()
@@ -168,7 +171,9 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = parent_cb
 
         cb0 = _build_child_progress_callback(0, "goal a", parent)
+        assert cb0 is not None
         cb1 = _build_child_progress_callback(1, "goal b", parent)
+        assert cb1 is not None
 
         # 3 tool.started per child = 6 per-tool relays; neither should hit
         # the batch-size summary (batch size = 5, counted per-child).
@@ -193,6 +198,7 @@ class TestBuildChildProgressCallback:
         
         # task_index=0 in a batch of 3 → prefix "[1]"
         cb0 = _build_child_progress_callback(0, "test goal", parent, task_count=3)
+        assert cb0 is not None
         cb0("tool.started", "web_search", "test", {})
         output = buf.getvalue()
         assert "[1]" in output
@@ -201,6 +207,7 @@ class TestBuildChildProgressCallback:
         buf.truncate(0)
         buf.seek(0)
         cb2 = _build_child_progress_callback(2, "test goal", parent, task_count=3)
+        assert cb2 is not None
         cb2("tool.started", "web_search", "test", {})
         output = buf.getvalue()
         assert "[3]" in output
@@ -217,6 +224,7 @@ class TestBuildChildProgressCallback:
         parent.tool_progress_callback = None
         
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("tool.started", "web_search", "test", {})
         
         output = buf.getvalue()
@@ -339,6 +347,7 @@ class TestBatchFlush:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
+        assert cb is not None
 
         # Send 3 tools (below batch size of 5) — each relays subagent.tool
         cb("tool.started", "web_search", "query1", {})
@@ -349,7 +358,7 @@ class TestBatchFlush:
         assert "subagent.progress" not in events  # no batch-size summary yet
 
         # Flush should send the remaining 3 as a summary
-        cb._flush()
+        cb._flush()  # ty: ignore[unresolved-attribute]
         events = [c.args[0] for c in parent_cb.call_args_list]
         assert events[-1] == "subagent.progress"
         summary_call = parent_cb.call_args_list[-1]
@@ -365,7 +374,8 @@ class TestBatchFlush:
         parent.tool_progress_callback = parent_cb
 
         cb = _build_child_progress_callback(0, "test goal", parent)
-        cb._flush()
+        assert cb is not None
+        cb._flush()  # ty: ignore[unresolved-attribute]
         parent_cb.assert_not_called()
 
     def test_flush_noop_when_no_parent_callback(self):
@@ -380,8 +390,9 @@ class TestBatchFlush:
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent)
+        assert cb is not None
         cb("tool.started", "web_search", "test", {})
-        cb._flush()  # Should not crash
+        cb._flush()  # Should not crash  # ty: ignore[unresolved-attribute]
 
 
 if __name__ == "__main__":

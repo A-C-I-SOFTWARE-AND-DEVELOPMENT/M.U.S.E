@@ -220,7 +220,7 @@ def test_native_http_error_keeps_status_and_retry_after():
         },
     )
 
-    err = gemini_http_error(response)
+    err = gemini_http_error(response)  # ty: ignore[invalid-argument-type]
     assert getattr(err, "status_code", None) == 429
     assert getattr(err, "retry_after", None) == 17.0
     assert "quota exhausted" in str(err)
@@ -230,7 +230,7 @@ def test_native_client_accepts_injected_http_client():
     from agent.gemini_native_adapter import GeminiNativeClient
 
     injected = SimpleNamespace(close=lambda: None)
-    client = GeminiNativeClient(api_key="AIza-test", http_client=injected)
+    client = GeminiNativeClient(api_key="AIza-test", http_client=injected)  # ty: ignore[invalid-argument-type]
     assert client._http is injected
 
 
@@ -241,7 +241,7 @@ def test_native_client_rejects_empty_api_key_with_actionable_message():
 
     for bad in ("", "   ", None):
         with pytest.raises(RuntimeError) as excinfo:
-            GeminiNativeClient(api_key=bad)  # type: ignore[arg-type]
+            GeminiNativeClient(api_key=bad)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
         msg = str(excinfo.value)
         assert "GOOGLE_API_KEY" in msg and "GEMINI_API_KEY" in msg
         assert "aistudio.google.com" in msg
@@ -268,7 +268,7 @@ async def test_async_native_client_streams_without_requiring_async_iterator_from
         close=lambda: None,
     )
 
-    async_client = AsyncGeminiNativeClient(sync_client)
+    async_client = AsyncGeminiNativeClient(sync_client)  # ty: ignore[invalid-argument-type]
     stream = await async_client.chat.completions.create(stream=True)
     collected = []
     async for item in stream:

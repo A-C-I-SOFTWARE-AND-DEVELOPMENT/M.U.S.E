@@ -76,7 +76,7 @@ def test_handler_exception_is_contained():
     def boom(self, job):
         raise RuntimeError("kaboom")
 
-    rn.BackgroundLearnerRunner._h_scan_outdated_deps = boom
+    rn.BackgroundLearnerRunner._h_scan_outdated_deps = boom  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
     try:
         out = r.handle(_job("scan_outdated_deps"))
         assert out.status == "error"

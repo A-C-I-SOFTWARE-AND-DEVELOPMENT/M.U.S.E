@@ -601,7 +601,7 @@ class ParallelRunner:
             lease = wl.acquire(lease, now=now, ttl=ttl)
             with self._lease_lock:
                 self._leases[worker.worker_id] = lease
-            self._lease_store.upsert(lease)  # type: ignore[union-attr]
+            self._lease_store.upsert(lease)  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         except Exception:
             pass
 

@@ -265,12 +265,14 @@ class TestRunAgentViaProxy:
         assert session.captured_url == "http://host:8642/v1/chat/completions"
 
         # Verify auth header
+        assert session.captured_headers is not None
         assert session.captured_headers["Authorization"] == "Bearer test-key-123"
 
         # Verify session ID header
         assert session.captured_headers["X-Hermes-Session-Id"] == "session-abc"
 
         # Verify messages include system, history, and current message
+        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         assert messages[0] == {"role": "system", "content": "You are helpful."}
         assert messages[1] == {"role": "user", "content": "Hello"}
@@ -369,6 +371,7 @@ class TestRunAgentViaProxy:
                     )
 
         # Only user and assistant with content should be forwarded
+        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         roles = [m["role"] for m in messages]
         assert "tool" not in roles
@@ -468,7 +471,7 @@ class TestRunAgentViaProxy:
                         session_id="test",
                     )
 
-        assert "Authorization" not in session.captured_headers
+        assert "Authorization" not in session.captured_headers  # ty: ignore[unsupported-operator]
 
     @pytest.mark.asyncio
     async def test_no_system_message_when_context_empty(self, monkeypatch):
@@ -495,6 +498,7 @@ class TestRunAgentViaProxy:
                     )
 
         # No system message should appear when context_prompt is empty
+        assert session.captured_json is not None
         messages = session.captured_json["messages"]
         assert len(messages) == 1
         assert messages[0]["role"] == "user"

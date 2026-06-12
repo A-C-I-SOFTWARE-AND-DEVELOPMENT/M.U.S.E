@@ -28,7 +28,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     TimeoutError as FuturesTimeoutError,
 )
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from toolsets import TOOLSETS
 
@@ -691,7 +691,7 @@ def _build_child_progress_callback(
     depth: Optional[int] = None,
     model: Optional[str] = None,
     toolsets: Optional[List[str]] = None,
-) -> Optional[callable]:
+) -> Optional[Callable]:
     """Build a callback that relays child agent tool calls to the parent display.
 
     Two display paths:
@@ -742,7 +742,11 @@ def _build_child_progress_callback(
         return kw
 
     def _relay(
-        event_type: str, tool_name: str = None, preview: str = None, args=None, **kwargs
+        event_type: str,
+        tool_name: Optional[str] = None,
+        preview: Optional[str] = None,
+        args=None,
+        **kwargs,
     ):
         if not parent_cb:
             return
@@ -754,7 +758,11 @@ def _build_child_progress_callback(
             logger.debug("Parent callback failed: %s", e)
 
     def _callback(
-        event_type, tool_name: str = None, preview: str = None, args=None, **kwargs
+        event_type,
+        tool_name: Optional[str] = None,
+        preview: Optional[str] = None,
+        args=None,
+        **kwargs,
     ):
         # Lifecycle events emitted by the orchestrator itself — handled
         # before enum normalisation since they are not part of DelegateEvent.
@@ -863,7 +871,7 @@ def _build_child_progress_callback(
             _relay("subagent.progress", preview=f"🔀 {prefix}{summary}")
             _batch.clear()
 
-    _callback._flush = _flush
+    _callback._flush = _flush  # ty: ignore[unresolved-attribute]
     return _callback
 
 
@@ -977,7 +985,7 @@ def _build_child_agent(
         child_depth=child_depth,
     )
     # Extract parent's API key so subagents inherit auth (e.g. Nous Portal).
-    parent_api_key = getattr(parent_agent, "api_key", None)
+    parent_api_key: Any = getattr(parent_agent, "api_key", None)
     if (not parent_api_key) and hasattr(parent_agent, "_client_kwargs"):
         parent_api_key = parent_agent._client_kwargs.get("api_key")
 
@@ -1019,7 +1027,7 @@ def _build_child_agent(
 
     # Resolve effective credentials: config override > parent inherit
     effective_model = model or parent_agent.model
-    effective_provider = override_provider or getattr(parent_agent, "provider", None)
+    effective_provider: Any = override_provider or getattr(parent_agent, "provider", None)
     effective_base_url = override_base_url or parent_agent.base_url
     effective_api_key = override_api_key or parent_api_key
     # Bug #20558 / PR #20563: api_mode must NOT be inherited when the child uses a
@@ -1028,13 +1036,14 @@ def _build_child_agent(
     # Inheriting the parent's mode causes 404 errors when the child routes to the
     # wrong endpoint.  Derive the mode from the target provider when it differs.
     _parent_provider = getattr(parent_agent, "provider", None) or ""
+    effective_api_mode: Any
     if override_api_mode is not None:
         effective_api_mode = override_api_mode
     elif effective_provider != _parent_provider:
         effective_api_mode = None  # force re-derivation from provider's defaults
     else:
         effective_api_mode = getattr(parent_agent, "api_mode", None)
-    effective_acp_command = override_acp_command or getattr(
+    effective_acp_command: Any = override_acp_command or getattr(
         parent_agent, "acp_command", None
     )
     effective_acp_args = list(
@@ -1058,7 +1067,7 @@ def _build_child_agent(
         effective_api_mode = "chat_completions"
 
     # Resolve reasoning config: delegation override > parent inherit
-    parent_reasoning = getattr(parent_agent, "reasoning_config", None)
+    parent_reasoning: Any = getattr(parent_agent, "reasoning_config", None)
     child_reasoning = parent_reasoning
     try:
         delegation_effort = str(delegation_cfg.get("reasoning_effort") or "").strip()
@@ -1080,7 +1089,7 @@ def _build_child_agent(
     # from rate-limits and credential exhaustion exactly like the top-level
     # agent does.  _fallback_chain is a list accepted by AIAgent's
     # fallback_model parameter (which handles both list and dict forms).
-    parent_fallback = getattr(parent_agent, "_fallback_chain", None) or None
+    parent_fallback: Any = getattr(parent_agent, "_fallback_chain", None) or None
 
     # Inherit the parent's OpenRouter provider-preference filters by default
     # (so subagents routed to the same provider honour the same routing
@@ -1089,10 +1098,10 @@ def _build_child_agent(
     # parent-level OpenRouter filters (e.g. `only=["Anthropic"]`) would
     # silently force the child back onto the parent's provider. Clear the
     # filters in that case so the delegated provider is honoured.
-    child_providers_allowed = getattr(parent_agent, "providers_allowed", None)
-    child_providers_ignored = getattr(parent_agent, "providers_ignored", None)
-    child_providers_order = getattr(parent_agent, "providers_order", None)
-    child_provider_sort = getattr(parent_agent, "provider_sort", None)
+    child_providers_allowed: Any = getattr(parent_agent, "providers_allowed", None)
+    child_providers_ignored: Any = getattr(parent_agent, "providers_ignored", None)
+    child_providers_order: Any = getattr(parent_agent, "providers_order", None)
+    child_provider_sort: Any = getattr(parent_agent, "provider_sort", None)
     child_openrouter_min_coding_score = getattr(parent_agent, "openrouter_min_coding_score", None)
     if override_provider:
         child_providers_allowed = None
@@ -1103,18 +1112,18 @@ def _build_child_agent(
         # openrouter/pareto-code), so we keep it inherited even when the
         # provider is overridden — it's a no-op on any other model.
 
-    child = AIAgent(
+    child: Any = AIAgent(
         base_url=effective_base_url,
         api_key=effective_api_key,
         model=effective_model,
         provider=effective_provider,
-        api_mode=effective_api_mode,
-        acp_command=effective_acp_command,
+        api_mode=cast(Any, effective_api_mode),
+        acp_command=cast(Any, effective_acp_command),
         acp_args=effective_acp_args,
         max_iterations=max_iterations,
-        max_tokens=getattr(parent_agent, "max_tokens", None),
+        max_tokens=cast(Any, getattr(parent_agent, "max_tokens", None)),
         reasoning_config=child_reasoning,
-        prefill_messages=getattr(parent_agent, "prefill_messages", None),
+        prefill_messages=cast(Any, getattr(parent_agent, "prefill_messages", None)),
         fallback_model=parent_fallback,
         enabled_toolsets=child_toolsets,
         quiet_mode=True,
@@ -1126,14 +1135,14 @@ def _build_child_agent(
         clarify_callback=None,
         thinking_callback=child_thinking_cb,
         session_db=getattr(parent_agent, "_session_db", None),
-        parent_session_id=getattr(parent_agent, "session_id", None),
-        providers_allowed=child_providers_allowed,
-        providers_ignored=child_providers_ignored,
-        providers_order=child_providers_order,
-        provider_sort=child_provider_sort,
+        parent_session_id=cast(Any, getattr(parent_agent, "session_id", None)),
+        providers_allowed=cast(Any, child_providers_allowed),
+        providers_ignored=cast(Any, child_providers_ignored),
+        providers_order=cast(Any, child_providers_order),
+        provider_sort=cast(Any, child_provider_sort),
         openrouter_min_coding_score=child_openrouter_min_coding_score,
         tool_progress_callback=child_progress_cb,
-        iteration_budget=None,  # fresh budget per subagent
+        iteration_budget=cast(Any, None),  # fresh budget per subagent
     )
     child._print_fn = getattr(parent_agent, "_print_fn", None)
     # Set delegation depth so children can't spawn grandchildren
@@ -1321,7 +1330,7 @@ def _dump_subagent_timeout_diagnostic(
 def _run_single_child(
     task_index: int,
     goal: str,
-    child=None,
+    child: Any = None,
     parent_agent=None,
     **_kwargs,
 ) -> Dict[str, Any]:
@@ -1866,7 +1875,7 @@ def _run_single_child(
 
         saved_tool_names = getattr(child, "_delegate_saved_tool_names", None)
         if isinstance(saved_tool_names, list):
-            model_tools._last_resolved_tool_names = list(saved_tool_names)
+            model_tools._last_resolved_tool_names = cast(List[str], list(saved_tool_names))
 
         # Remove child from active tracking
 
@@ -2014,11 +2023,12 @@ def delegate_task(
                 f"delegate_task calls, or increase "
                 f"delegation.max_concurrent_children in config.yaml."
             )
-        task_list = tasks
+        task_list: List[Dict[str, Any]] = tasks
     elif goal and isinstance(goal, str) and goal.strip():
-        task_list = [
-            {"goal": goal, "context": context, "toolsets": toolsets, "role": top_role}
-        ]
+        task_list = cast(
+            List[Dict[str, Any]],
+            [{"goal": goal, "context": context, "toolsets": toolsets, "role": top_role}],
+        )
     else:
         return tool_error("Provide either 'goal' (single task) or 'tasks' (batch).")
 
@@ -2035,7 +2045,7 @@ def delegate_task(
             return tool_error(f"Task {i} is missing a 'goal'.")
 
     overall_start = time.monotonic()
-    results = []
+    results: List[Dict[str, Any]] = []
 
     n_tasks = len(task_list)
     # Track goal labels for progress display (truncated for readability)
@@ -2129,7 +2139,7 @@ def delegate_task(
                         idx = futures[f]
                         if f.done():
                             try:
-                                entry = f.result()
+                                entry: Dict[str, Any] = f.result()
                             except Exception as exc:
                                 entry = {
                                     "task_index": idx,
@@ -2168,7 +2178,7 @@ def delegate_task(
                         entry = future.result()
                     except Exception as exc:
                         idx = futures[future]
-                        entry = {
+                        entry = cast(Dict[str, Any], {
                             "task_index": idx,
                             "status": "error",
                             "summary": None,
@@ -2178,7 +2188,7 @@ def delegate_task(
                             "_child_role": getattr(
                                 _child_by_index.get(idx), "_delegate_role", None
                             ),
-                        }
+                        })
                     results.append(entry)
                     completed_count += 1
 
@@ -2247,7 +2257,7 @@ def delegate_task(
     try:
         from hermes_cli.plugins import invoke_hook as _invoke_hook
     except Exception:
-        _invoke_hook = None
+        _invoke_hook = None  # ty: ignore[invalid-assignment]
     # Aggregate child spend here so the parent's footer/UI reflect the true
     # cost of a subagent-heavy turn.  Port of Kilo-Org/kilocode#9448.  Each
     # child's cost was captured in _run_single_child before its AIAgent was
@@ -2657,7 +2667,7 @@ def _build_dynamic_schema_overrides() -> dict:
     }
 
 
-DELEGATE_TASK_SCHEMA = {
+DELEGATE_TASK_SCHEMA: Dict[str, Any] = {
     "name": "delegate_task",
     # NOTE: description / tasks.description / role.description are placeholder
     # values. The real text is generated per get_definitions() call by

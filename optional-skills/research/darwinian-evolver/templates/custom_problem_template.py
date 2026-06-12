@@ -24,14 +24,14 @@ from openai import OpenAI
 
 # Upstream types (AGPL — invoked via subprocess in production; importing here
 # is fine for skill-side driver scripts the user owns).
-from darwinian_evolver.cli_common import (
+from darwinian_evolver.cli_common import (  # ty: ignore[unresolved-import]
     build_hyperparameter_config_from_args,
     parse_learning_log_view_type,
     register_hyperparameter_args,
 )
-from darwinian_evolver.evolve_problem_loop import EvolveProblemLoop
-from darwinian_evolver.learning_log import LearningLogEntry
-from darwinian_evolver.problem import (
+from darwinian_evolver.evolve_problem_loop import EvolveProblemLoop  # ty: ignore[unresolved-import]
+from darwinian_evolver.learning_log import LearningLogEntry  # ty: ignore[unresolved-import]
+from darwinian_evolver.problem import (  # ty: ignore[unresolved-import]
     EvaluationFailureCase,
     EvaluationResult,
     Evaluator,

@@ -46,9 +46,9 @@ def test_navigate_produces_worker_packet(repo: Path):
     result = nav.navigate("retry_upload should back off")
     packet = result.worker_packet()
     assert packet["candidate_files"]
-    assert packet["candidate_files"][0] == "svc/uploader.py"
-    assert "tests/test_uploader.py" in packet["verify_with"]
-    assert "no LLM" in packet["navigation_method"]
+    assert packet["candidate_files"][0] == "svc/uploader.py"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+    assert "tests/test_uploader.py" in packet["verify_with"]  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+    assert "no LLM" in packet["navigation_method"]  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 def test_ledger_record_is_auditable(repo: Path):
@@ -58,7 +58,7 @@ def test_ledger_record_is_auditable(repo: Path):
     assert rec["kind"] == "navigation_decision"
     assert rec["job_id"] == "job-xyz"
     assert rec["ranked_files"]
-    first = rec["ranked_files"][0]
+    first = rec["ranked_files"][0]  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
     assert first["path"] == "svc/uploader.py"
     assert "signals" in first and "rationale" in first
 

@@ -25,9 +25,9 @@ from pathlib import Path
 try:
     import requests as _requests
 except ImportError:
-    _requests = None
+    _requests = None  # ty: ignore[invalid-assignment]
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont  # ty: ignore[unresolved-import]
 
 SCRIPT_DIR = Path(__file__).parent
 TEMPLATES_FILE = SCRIPT_DIR / "templates.json"
@@ -110,7 +110,7 @@ def _slugify(name: str) -> str:
     return name.lower().replace(" ", "-").replace("'", "").replace("\"", "")
 
 
-def resolve_template(identifier: str) -> dict:
+def resolve_template(identifier: str) -> dict | None:
     """Resolve a template by curated ID, imgflip name, or imgflip ID.
 
     Returns dict with: name, url, fields, source.

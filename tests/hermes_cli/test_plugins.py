@@ -167,7 +167,7 @@ class TestPluginDiscovery:
         monkeypatch.setenv("HERMES_HOME", str(tmp_path / "hermes_test"))
 
         fake_module = types.ModuleType("fake_ep_plugin")
-        fake_module.register = lambda ctx: None  # type: ignore[attr-defined]
+        fake_module.register = lambda ctx: None  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         fake_ep = MagicMock()
         fake_ep.name = "ep_plugin"
@@ -235,7 +235,7 @@ class TestPluginLoading:
 
         assert "no_reg" in mgr._plugins
         assert not mgr._plugins["no_reg"].enabled
-        assert "no register()" in mgr._plugins["no_reg"].error
+        assert "no register()" in mgr._plugins["no_reg"].error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_load_registers_namespace_module(self, tmp_path, monkeypatch):
         """Directory plugins are importable under hermes_plugins.<name>."""

@@ -85,7 +85,9 @@ class TestCloudProviderRuntimeFallback:
 
         session = browser_tool._get_session_info("task-4")
 
-        assert session["features"]["local"] is True
+        features = session["features"]
+        assert isinstance(features, dict)
+        assert features["local"] is True
         assert "fallback_from_cloud" not in session
 
     def test_cdp_override_bypasses_provider(self, monkeypatch):

@@ -349,6 +349,7 @@ class TestSendTelegramMediaDelivery:
         assert result["message_id"] == "2"
         bot.send_message.assert_awaited_once()
         bot.send_photo.assert_awaited_once()
+        assert bot.send_message.await_args is not None
         sent_text = bot.send_message.await_args.kwargs["text"]
         assert "MEDIA:" not in sent_text
         assert sent_text == "Hello there"
@@ -495,6 +496,7 @@ class TestSendToPlatformChunking:
                 )
             )
         assert result["success"] is True
+        assert send.await_args is not None
         sent_text = send.await_args.args[2]
         assert "*_important_*" in sent_text
 
@@ -515,6 +517,7 @@ class TestSendToPlatformChunking:
                 )
             )
         assert result["success"] is True
+        assert send.await_args is not None
         sent_text = send.await_args.args[2]
         assert sent_text.startswith("> important quote")
         assert "&amp;" in sent_text  # & is escaped
@@ -536,6 +539,7 @@ class TestSendToPlatformChunking:
                 )
             )
         assert result["success"] is True
+        assert send.await_args is not None
         sent_text = send.await_args.args[2]
         assert "&amp;amp;" not in sent_text
         assert "&amp;lt;" not in sent_text
@@ -557,6 +561,7 @@ class TestSendToPlatformChunking:
                 )
             )
         assert result["success"] is True
+        assert send.await_args is not None
         sent_text = send.await_args.args[2]
         assert "<https://en.wikipedia.org/wiki/Foo_(bar)|Foo>" in sent_text
 
@@ -602,6 +607,7 @@ class TestSendToPlatformChunking:
             assert result["success"] is True
             helper.assert_awaited_once()
             call = helper.await_args
+            assert call is not None
             assert call.args[1] == "!room:example.com"
             assert call.args[2] == "here you go"
             assert call.kwargs["media_files"] == [(str(doc_path), False)]
@@ -1183,6 +1189,7 @@ class TestSendToPlatformDiscordThread:
 
         assert result["success"] is True
         send_mock.assert_awaited_once()
+        assert send_mock.await_args is not None
         _, call_kwargs = send_mock.await_args
         assert call_kwargs["thread_id"] == "17585"
 
@@ -1201,6 +1208,7 @@ class TestSendToPlatformDiscordThread:
             )
 
         send_mock.assert_awaited_once()
+        assert send_mock.await_args is not None
         _, call_kwargs = send_mock.await_args
         assert call_kwargs["thread_id"] is None
 
@@ -1387,6 +1395,7 @@ class TestSendToPlatformDiscordMedia:
 
         assert result["success"] is True
         send_mock.assert_awaited_once()
+        assert send_mock.await_args is not None
         call_kwargs = send_mock.await_args.kwargs
         assert call_kwargs["media_files"] == [("/fake/img.png", False)]
 
@@ -1643,6 +1652,7 @@ class TestSendToPlatformDiscordForum:
             )
 
         assert result["success"] is True
+        assert send_mock.await_args is not None
         _, call_kwargs = send_mock.await_args
         assert call_kwargs["thread_id"] == "17585"
 

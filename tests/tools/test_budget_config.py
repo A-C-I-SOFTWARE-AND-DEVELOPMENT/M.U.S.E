@@ -90,22 +90,22 @@ class TestBudgetConfigFrozen:
     def test_cannot_set_default_result_size(self):
         cfg = BudgetConfig()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            cfg.default_result_size = 999
+            cfg.default_result_size = 999  # ty: ignore[invalid-assignment]
 
     def test_cannot_set_turn_budget(self):
         cfg = BudgetConfig()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            cfg.turn_budget = 999
+            cfg.turn_budget = 999  # ty: ignore[invalid-assignment]
 
     def test_cannot_set_preview_size(self):
         cfg = BudgetConfig()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            cfg.preview_size = 999
+            cfg.preview_size = 999  # ty: ignore[invalid-assignment]
 
     def test_cannot_set_tool_overrides(self):
         cfg = BudgetConfig()
         with pytest.raises(dataclasses.FrozenInstanceError):
-            cfg.tool_overrides = {"foo": 1}
+            cfg.tool_overrides = {"foo": 1}  # ty: ignore[invalid-assignment]
 
 
 # ---------------------------------------------------------------------------

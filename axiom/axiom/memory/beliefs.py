@@ -68,7 +68,8 @@ class BeliefBase:
             (statement, entrenchment, ACTIVE, time.time()),
         )
         self._db.commit()
-        return cur.lastrowid
+        # lastrowid is always set after a successful INSERT.
+        return cur.lastrowid  # ty: ignore[invalid-return-type]
 
     def get(self, belief_id: int) -> dict:
         row = self._db.execute(

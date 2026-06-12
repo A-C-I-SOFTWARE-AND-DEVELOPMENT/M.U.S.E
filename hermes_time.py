@@ -25,7 +25,7 @@ try:
     from zoneinfo import ZoneInfo
 except ImportError:
     # Python 3.8 fallback (shouldn't be needed — Hermes requires 3.9+)
-    from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef]
+    from backports.zoneinfo import ZoneInfo  # type: ignore[no-redef]  # ty: ignore[unresolved-import]
 
 # Cached state — resolved once, reused on every call.
 # Call reset_cache() to force re-resolution (e.g. after config changes).

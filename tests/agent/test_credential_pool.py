@@ -66,7 +66,9 @@ def test_fill_first_selection_skips_recently_exhausted_entry(tmp_path, monkeypat
 
     assert entry is not None
     assert entry.id == "cred-2"
-    assert pool.current().id == "cred-2"
+    current = pool.current()
+    assert current is not None
+    assert current.id == "cred-2"
 
 
 def test_select_clears_expired_exhaustion(tmp_path, monkeypatch):
@@ -366,7 +368,9 @@ def test_mark_exhausted_and_rotate_persists_status(tmp_path, monkeypatch):
     from agent.credential_pool import load_pool
 
     pool = load_pool("anthropic")
-    assert pool.select().id == "cred-1"
+    selected = pool.select()
+    assert selected is not None
+    assert selected.id == "cred-1"
 
     next_entry = pool.mark_exhausted_and_rotate(status_code=402)
 

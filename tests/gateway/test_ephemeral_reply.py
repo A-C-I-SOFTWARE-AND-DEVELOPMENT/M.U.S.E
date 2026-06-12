@@ -45,7 +45,7 @@ class _NoDeleteAdapter(BasePlatformAdapter):
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, content="", **kwargs):
+    async def send(self, chat_id, content="", **kwargs):  # ty: ignore[invalid-method-override]
         return SendResult(success=True, message_id="m-1")
 
     async def get_chat_info(self, chat_id):
@@ -65,7 +65,7 @@ class _DeleteCapableAdapter(BasePlatformAdapter):
     async def disconnect(self):
         pass
 
-    async def send(self, chat_id, content="", **kwargs):
+    async def send(self, chat_id, content="", **kwargs):  # ty: ignore[invalid-method-override]
         return SendResult(success=True, message_id="m-2")
 
     async def get_chat_info(self, chat_id):

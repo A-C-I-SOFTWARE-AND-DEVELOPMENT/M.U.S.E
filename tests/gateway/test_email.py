@@ -55,6 +55,7 @@ class TestConfigEnvOverrides(unittest.TestCase):
         _apply_env_overrides(config)
         home = config.platforms[Platform.EMAIL].home_channel
         self.assertIsNotNone(home)
+        assert home is not None
         self.assertEqual(home.chat_id, "user@test.com")
 
     @patch.dict(os.environ, {}, clear=True)

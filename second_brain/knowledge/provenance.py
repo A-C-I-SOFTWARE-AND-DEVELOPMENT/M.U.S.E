@@ -20,7 +20,7 @@ __all__ = ["ProvenanceTracker"]
 
 
 def _json(value: Any) -> Any:
-    from psycopg2.extras import Json  # type: ignore import-not-found
+    from psycopg2.extras import Json  # ty: ignore[unresolved-import]
 
     return Json(value)
 

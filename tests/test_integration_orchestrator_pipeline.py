@@ -136,7 +136,7 @@ def test_pipeline_is_resumable_from_disk(
     fresh = JobController(root=controller.root)
     reloaded = fresh.load_job(job.job_id)
     assert reloaded.state == JobState.WORKERS_RUNNING
-    assert reloaded.worker(wid).prompt_written is True  # type: ignore[union-attr]
+    assert reloaded.worker(wid).prompt_written is True  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # New controller can drive the next transition.
     fresh.update_status(job.job_id, JobState.WORKERS_COMPLETE)
     assert fresh.load_job(job.job_id).state == JobState.WORKERS_COMPLETE

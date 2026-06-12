@@ -105,15 +105,15 @@ def setup_module(monkeypatch, tmp_path):
 
     google_auth_module = types.ModuleType("google_auth_oauthlib")
     flow_module = types.ModuleType("google_auth_oauthlib.flow")
-    flow_module.Flow = FakeFlow
-    google_auth_module.flow = flow_module
+    flow_module.Flow = FakeFlow  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    google_auth_module.flow = flow_module  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     monkeypatch.setitem(sys.modules, "google_auth_oauthlib", google_auth_module)
     monkeypatch.setitem(sys.modules, "google_auth_oauthlib.flow", flow_module)
 
     spec = importlib.util.spec_from_file_location("google_workspace_setup_test", SCRIPT_PATH)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
+    module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+    assert spec.loader is not None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
     monkeypatch.setattr(module, "_ensure_deps", lambda: None)
     monkeypatch.setattr(module, "CLIENT_SECRET_PATH", tmp_path / "google_client_secret.json")
@@ -270,9 +270,9 @@ class TestHermesConstantsFallback:
         """Load _hermes_home.py with hermes_constants blocked."""
         monkeypatch.setitem(sys.modules, "hermes_constants", None)
         spec = importlib.util.spec_from_file_location("_hermes_home_test", self.HELPER_PATH)
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
+        module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert spec.loader is not None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         return module
 
     def test_fallback_uses_hermes_home_env_var(self, monkeypatch, tmp_path):
@@ -316,9 +316,9 @@ class TestHermesConstantsFallback:
         spec = importlib.util.spec_from_file_location(
             "_hermes_home_happy", self.HELPER_PATH
         )
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
+        module = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
+        assert spec.loader is not None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        spec.loader.exec_module(module)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         import hermes_constants
         assert module.get_hermes_home is hermes_constants.get_hermes_home
         assert module.display_hermes_home is hermes_constants.display_hermes_home

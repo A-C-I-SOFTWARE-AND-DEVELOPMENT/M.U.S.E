@@ -322,7 +322,7 @@ def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
 
     # Attempt auto-resize with Pillow (soft dependency)
     try:
-        from PIL import Image
+        from PIL import Image  # ty: ignore[unresolved-import]
         import io as _io
     except ImportError:
         logger.info("Pillow not installed — cannot auto-resize oversized image")
@@ -381,7 +381,7 @@ def _resize_image_for_vision(image_path: Path, mime_type: Optional[str] = None,
 
         for q in quality_steps:
             buf = _io.BytesIO()
-            save_kwargs = {"format": pil_format}
+            save_kwargs: Dict[str, Any] = {"format": pil_format}
             if q is not None:
                 save_kwargs["quality"] = q
             img.save(buf, **save_kwargs)
@@ -633,7 +633,7 @@ async def _vision_analyze_native(
 async def vision_analyze_tool(
     image_url: str,
     user_prompt: str,
-    model: str = None,
+    model: Optional[str] = None,
 ) -> str:
     """
     Analyze an image from a URL or local file path using vision AI.
@@ -796,7 +796,7 @@ async def vision_analyze_tool(
                 vision_temperature = float(_vtemp)
         except Exception:
             pass
-        call_kwargs = {
+        call_kwargs: Dict[str, Any] = {
             "task": "vision",
             "messages": messages,
             "temperature": vision_temperature,
@@ -1168,7 +1168,7 @@ async def _download_video(video_url: str, destination: Path, max_retries: int = 
 async def video_analyze_tool(
     video_url: str,
     user_prompt: str,
-    model: str = None,
+    model: Optional[str] = None,
 ) -> str:
     """Analyze a video via multimodal LLM. Returns JSON {success, analysis}."""
     if not isinstance(user_prompt, str):
@@ -1279,7 +1279,7 @@ async def video_analyze_tool(
         except Exception:
             pass
 
-        call_kwargs = {
+        call_kwargs: Dict[str, Any] = {
             "task": "vision",
             "messages": messages,
             "temperature": vision_temperature,

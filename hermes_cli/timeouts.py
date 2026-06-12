@@ -3,7 +3,7 @@ from __future__ import annotations
 
 def _coerce_timeout(raw: object) -> float | None:
     try:
-        timeout = float(raw)
+        timeout = float(raw)  # ty: ignore[invalid-argument-type]  # TypeError handled below
     except (TypeError, ValueError):
         return None
     if timeout <= 0:
@@ -78,5 +78,5 @@ def _get_model_config(
     models = provider_config.get("models", {})
     model_config = models.get(model, {}) if isinstance(models, dict) else {}
     if isinstance(model_config, dict):
-        return model_config
+        return model_config  # ty: ignore[invalid-return-type]  # isinstance-narrowed dict
     return None

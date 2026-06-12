@@ -83,7 +83,7 @@ def _filled_ledger(**overrides: str) -> dl.DecisionLedger:
         ),
     }
     defaults.update(overrides)
-    return dl.DecisionLedger(**defaults)
+    return dl.DecisionLedger(**defaults)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 # ---------------------------------------------------------------------------

@@ -828,7 +828,7 @@ async def test_operator_declared_topic_is_not_auto_renamed(tmp_path):
             return None
 
     fake = _FakeAdapter()
-    fake.rename_dm_topic = AsyncMock()
+    fake.rename_dm_topic = AsyncMock()  # ty: ignore[invalid-assignment]
     runner.adapters[Platform.TELEGRAM] = fake
 
     await runner._rename_telegram_topic_for_session_title(
@@ -837,7 +837,7 @@ async def test_operator_declared_topic_is_not_auto_renamed(tmp_path):
         "Auto-generated title",
     )
 
-    fake.rename_dm_topic.assert_not_called()
+    fake.rename_dm_topic.assert_not_called()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -978,6 +978,7 @@ def test_binding_survives_session_deletion_via_cascade(tmp_path):
 
     # Delete the session. Without ON DELETE CASCADE this would raise
     # sqlite3.IntegrityError: FOREIGN KEY constraint failed.
+    assert db._conn is not None
     db._conn.execute("DELETE FROM sessions WHERE id = ?", ("sess-to-delete",))
     db._conn.commit()
 
@@ -996,6 +997,7 @@ def test_migration_rebuilds_v1_binding_table_with_cascade_fk(tmp_path):
     db.apply_telegram_topic_migration()  # Creates v2 (our new shape)
     # Drop the v2 bindings table and recreate it in the old v1 shape.
     with db._lock:
+        assert db._conn is not None
         db._conn.execute("DROP TABLE telegram_dm_topic_bindings")
         db._conn.execute(
             """
@@ -1050,6 +1052,7 @@ async def test_topic_help_subcommand_returns_usage(tmp_path):
     assert "/topic off" in result
     assert "/topic <id>" in result
     # No side effects — topic mode tables should not even exist yet.
+    assert db._conn is not None
     tables = {
         row[0]
         for row in db._conn.execute(
@@ -1120,6 +1123,7 @@ async def test_topic_refuses_unauthorized_user(tmp_path, monkeypatch):
 
     assert "not authorized" in result.lower()
     # Tables must not be created for an unauthorized caller.
+    assert db._conn is not None
     tables = {
         row[0]
         for row in db._conn.execute(
@@ -1220,6 +1224,7 @@ def test_list_telegram_topic_bindings_for_chat_no_table(tmp_path):
     # Missing topic-mode tables → [] without auto-migrating.
     db = SessionDB(db_path=tmp_path / "state.db")
     assert db.list_telegram_topic_bindings_for_chat(chat_id="208214988") == []
+    assert db._conn is not None
     tables = {
         row[0]
         for row in db._conn.execute(

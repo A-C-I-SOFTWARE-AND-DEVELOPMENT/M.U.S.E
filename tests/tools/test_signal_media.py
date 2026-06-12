@@ -36,9 +36,9 @@ def _make_httpx_mock():
             return MockResp()
 
     httpx_mock = ModuleType("httpx")
-    httpx_mock.AsyncClient = lambda timeout=None: MockClient()
-    httpx_mock.AsyncBaseTransport = AsyncBaseTransport  # Needed by Telegram adapter
-    httpx_mock.Proxy = Proxy  # Needed by telegram-bot library
+    httpx_mock.AsyncClient = lambda timeout=None: MockClient()  # ty: ignore[unresolved-attribute]
+    httpx_mock.AsyncBaseTransport = AsyncBaseTransport  # Needed by Telegram adapter  # ty: ignore[unresolved-attribute]
+    httpx_mock.Proxy = Proxy  # Needed by telegram-bot library  # ty: ignore[unresolved-attribute]
     return httpx_mock
 
 

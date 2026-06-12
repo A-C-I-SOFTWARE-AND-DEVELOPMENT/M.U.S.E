@@ -66,7 +66,7 @@ async def test_gateway_stop_interrupts_running_agents_and_cancels_adapter_tasks(
     await asyncio.sleep(0)
 
     disconnect_mock = AsyncMock()
-    adapter.disconnect = disconnect_mock
+    adapter.disconnect = disconnect_mock  # ty: ignore[invalid-assignment]
 
     session_key = build_session_key(event.source)
     running_agent = MagicMock()
@@ -93,7 +93,7 @@ async def test_gateway_stop_interrupts_running_agents_and_cancels_adapter_tasks(
 async def test_gateway_stop_drains_running_agents_before_disconnect():
     runner, adapter = make_restart_runner()
     disconnect_mock = AsyncMock()
-    adapter.disconnect = disconnect_mock
+    adapter.disconnect = disconnect_mock  # ty: ignore[invalid-assignment]
 
     running_agent = MagicMock()
     runner._running_agents = {"session": running_agent}
@@ -118,7 +118,7 @@ async def test_gateway_stop_interrupts_after_drain_timeout():
     runner._restart_drain_timeout = 0.05
 
     disconnect_mock = AsyncMock()
-    adapter.disconnect = disconnect_mock
+    adapter.disconnect = disconnect_mock  # ty: ignore[invalid-assignment]
 
     running_agent = MagicMock()
     runner._running_agents = {"session": running_agent}
@@ -134,7 +134,7 @@ async def test_gateway_stop_interrupts_after_drain_timeout():
 @pytest.mark.asyncio
 async def test_gateway_stop_service_restart_sets_named_exit_code():
     runner, adapter = make_restart_runner()
-    adapter.disconnect = AsyncMock()
+    adapter.disconnect = AsyncMock()  # ty: ignore[invalid-assignment]
 
     with patch("gateway.status.remove_pid_file"), patch("gateway.status.write_runtime_status"):
         await runner.stop(restart=True, service_restart=True)
@@ -145,7 +145,7 @@ async def test_gateway_stop_service_restart_sets_named_exit_code():
 @pytest.mark.asyncio
 async def test_drain_active_agents_throttles_status_updates():
     runner, _adapter = make_restart_runner()
-    runner._update_runtime_status = MagicMock()
+    runner._update_runtime_status = MagicMock()  # ty: ignore[invalid-assignment]
 
     runner._running_agents = {"a": MagicMock(), "b": MagicMock()}
 
@@ -161,7 +161,7 @@ async def test_drain_active_agents_throttles_status_updates():
 
     # Start, one count-change update, and final update. Allow one extra update
     # if the loop observes the zero-agent state before exiting.
-    assert 3 <= runner._update_runtime_status.call_count <= 4
+    assert 3 <= runner._update_runtime_status.call_count <= 4  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -195,7 +195,7 @@ async def test_gateway_stop_kills_tool_subprocesses_before_adapter_disconnect_on
     monkeypatch.setattr(_tt, "cleanup_all_environments", _fake_cleanup_envs)
     monkeypatch.setattr(_bt, "cleanup_all_browsers", _fake_cleanup_browsers)
 
-    adapter.disconnect = _disconnect
+    adapter.disconnect = _disconnect  # ty: ignore[invalid-assignment]
 
     runner._running_agents = {"session": MagicMock()}
 
@@ -223,7 +223,7 @@ async def test_gateway_stop_kills_tool_subprocesses_on_graceful_path(monkeypatch
     exactly once via the final catch-all — regression guard against
     accidentally removing that call when refactoring."""
     runner, adapter = make_restart_runner()
-    adapter.disconnect = AsyncMock()
+    adapter.disconnect = AsyncMock()  # ty: ignore[invalid-assignment]
 
     kill_count = 0
 

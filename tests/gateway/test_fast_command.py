@@ -40,7 +40,7 @@ class _CapturingAgent:
 
 def _install_fake_agent(monkeypatch):
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = _CapturingAgent
+    fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
 
@@ -174,5 +174,6 @@ async def test_run_agent_passes_priority_processing_to_gateway_agent(monkeypatch
     )
 
     assert result["final_response"] == "ok"
+    assert _CapturingAgent.last_init is not None
     assert _CapturingAgent.last_init["service_tier"] == "priority"
     assert _CapturingAgent.last_init["request_overrides"] == {"service_tier": "priority"}

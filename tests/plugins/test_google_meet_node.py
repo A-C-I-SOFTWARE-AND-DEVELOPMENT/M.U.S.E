@@ -59,7 +59,7 @@ def test_protocol_make_request_rejects_bad_input():
     with pytest.raises(ValueError):
         protocol.make_request("unknown_type", "tok", {})
     with pytest.raises(ValueError):
-        protocol.make_request("ping", "tok", "not a dict")  # type: ignore[arg-type]
+        protocol.make_request("ping", "tok", "not a dict")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_protocol_decode_raises_on_malformed():
@@ -472,7 +472,7 @@ def _install_fake_ws(monkeypatch, reply_builder):
         return ws
 
     # Patch the concrete import site inside client._rpc
-    import websockets.sync.client as wsc  # type: ignore
+    import websockets.sync.client as wsc
     monkeypatch.setattr(wsc, "connect", _connect)
     return fake_ws_holder
 

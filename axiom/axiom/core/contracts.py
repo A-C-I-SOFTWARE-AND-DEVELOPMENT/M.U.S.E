@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, cast
 
 try:
-    import z3
+    import z3  # ty: ignore[unresolved-import]  # optional dep (axiom extra; no aarch64 wheels)
 except ImportError:  # no z3 wheels on this platform (e.g. aarch64)
-    z3 = None  # type: ignore[assignment]
+    z3 = cast("Any", None)  # typed Any so Z3_AVAILABLE-guarded uses don't flag; still None at runtime
 
 Z3_AVAILABLE = z3 is not None
 
@@ -62,13 +64,13 @@ def parse_ears(text: str) -> EarsClause:
 # Restricted-AST contract expressions -> Z3
 # ---------------------------------------------------------------------------
 
-_ALLOWED_BINOPS = {
+_ALLOWED_BINOPS: dict[type[ast.operator], Callable[[Any, Any], Any]] = {
     ast.Add: lambda a, b: a + b,
     ast.Sub: lambda a, b: a - b,
     ast.Mult: lambda a, b: a * b,
     ast.Div: lambda a, b: a / b,
 }
-_ALLOWED_CMPOPS = {
+_ALLOWED_CMPOPS: dict[type[ast.cmpop], Callable[[Any, Any], Any]] = {
     ast.Eq: lambda a, b: a == b,
     ast.NotEq: lambda a, b: a != b,
     ast.Lt: lambda a, b: a < b,

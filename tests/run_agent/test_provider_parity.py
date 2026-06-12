@@ -9,14 +9,15 @@ import os
 import sys
 import types
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 import pytest
 from agent.codex_responses_adapter import _chat_content_to_responses_parts, _chat_messages_to_responses_input, _normalize_codex_response, _preflight_codex_input_items
 
-sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))
-sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))
-sys.modules.setdefault("fal_client", types.SimpleNamespace())
+sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))  # ty: ignore[no-matching-overload]
+sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))  # ty: ignore[no-matching-overload]
+sys.modules.setdefault("fal_client", types.SimpleNamespace())  # ty: ignore[no-matching-overload]
 
 from run_agent import AIAgent
 
@@ -49,7 +50,7 @@ def _make_agent(monkeypatch, provider, api_mode="chat_completions", base_url="ht
     monkeypatch.setattr("run_agent.get_tool_definitions", lambda **kw: _tool_defs("web_search", "terminal"))
     monkeypatch.setattr("run_agent.check_toolset_requirements", lambda: {})
     monkeypatch.setattr("run_agent.OpenAI", _FakeOpenAI)
-    kwargs = dict(
+    kwargs: dict[str, Any] = dict(
         api_key="test-key",
         base_url=base_url,
         provider=provider,

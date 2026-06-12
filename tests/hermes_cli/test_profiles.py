@@ -409,6 +409,7 @@ class TestNoSkillsOptOut:
             ))[1],
         )
         r1 = seed_profile_skills(profile_dir, quiet=True)
+        assert r1 is not None
         assert r1.get("skipped_opt_out") is True
         assert called == []
 

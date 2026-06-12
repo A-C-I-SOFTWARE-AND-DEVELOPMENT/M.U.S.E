@@ -385,7 +385,7 @@ class TeamsMeetingPipeline:
             else:
                 job = self._persist_job(job, selected_artifact_strategy="transcript_first")
 
-            call_record_id = notification.get("callRecordId") or (meeting_ref.metadata or {}).get("call_record_id")
+            call_record_id = notification.get("callRecordId") or (meeting_ref.metadata or {}).get("call_record_id")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
             call_record = await enrich_meeting_with_call_record(
                 self.graph_client,
                 resolved_meeting,
@@ -576,7 +576,7 @@ class TeamsMeetingPipeline:
             sink_key = f"teams:{payload.meeting_ref.meeting_id}"
             existing = self.store.get_sink_record(sink_key)
             if hasattr(self.teams_sender, "write_summary"):
-                result = await self.teams_sender.write_summary(payload, self.config.teams_delivery, existing)
+                result = await self.teams_sender.write_summary(payload, self.config.teams_delivery, existing)  # ty: ignore[call-non-callable]  # dynamic config/plugin path
             else:
                 result = await self.teams_sender(payload, self.config.teams_delivery, existing)
             self.store.upsert_sink_record(sink_key, result)

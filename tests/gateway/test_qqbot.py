@@ -182,7 +182,7 @@ class TestVoiceAttachmentSSRFProtection:
         client = mock.AsyncMock()
         with mock.patch("gateway.platforms.qqbot.adapter.httpx.AsyncClient", return_value=client) as async_client_cls:
             adapter = QQAdapter(_make_config(app_id="a", client_secret="b"))
-            adapter._ensure_token = mock.AsyncMock(side_effect=RuntimeError("stop after client creation"))
+            adapter._ensure_token = mock.AsyncMock(side_effect=RuntimeError("stop after client creation"))  # ty: ignore[invalid-assignment]
 
             connected = asyncio.run(adapter.connect())
 
@@ -788,6 +788,7 @@ class TestChunkedUploaderFlow:
             text = ""
 
         async def fake_put(url, data=None, headers=None):
+            assert data is not None
             put_calls.append((url, len(data), headers))
             return _FakeResp()
 
@@ -1009,7 +1010,7 @@ class TestApprovalButtonData:
     def test_parse_empty_returns_none(self):
         from gateway.platforms.qqbot.keyboards import parse_approval_button_data
         assert parse_approval_button_data("") is None
-        assert parse_approval_button_data(None) is None  # type: ignore[arg-type]
+        assert parse_approval_button_data(None) is None  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
 
 class TestUpdatePromptButtonData:
@@ -1563,7 +1564,7 @@ class TestDefaultInteractionDispatch:
         # imports lazily.
         import tools.approval
         orig = tools.approval.resolve_gateway_approval
-        tools.approval.resolve_gateway_approval = fake_resolve
+        tools.approval.resolve_gateway_approval = fake_resolve  # ty: ignore[invalid-assignment]
         try:
             from gateway.platforms.qqbot.keyboards import parse_interaction_event
             event = parse_interaction_event({
@@ -1589,7 +1590,7 @@ class TestDefaultInteractionDispatch:
 
         import tools.approval
         orig = tools.approval.resolve_gateway_approval
-        tools.approval.resolve_gateway_approval = fake_resolve
+        tools.approval.resolve_gateway_approval = fake_resolve  # ty: ignore[invalid-assignment]
         try:
             from gateway.platforms.qqbot.keyboards import parse_interaction_event
             event = parse_interaction_event({
@@ -1613,7 +1614,7 @@ class TestDefaultInteractionDispatch:
 
         import tools.approval
         orig = tools.approval.resolve_gateway_approval
-        tools.approval.resolve_gateway_approval = fake_resolve
+        tools.approval.resolve_gateway_approval = fake_resolve  # ty: ignore[invalid-assignment]
         try:
             from gateway.platforms.qqbot.keyboards import parse_interaction_event
             event = parse_interaction_event({
@@ -1695,7 +1696,7 @@ class TestDefaultInteractionDispatch:
 
         import tools.approval
         orig = tools.approval.resolve_gateway_approval
-        tools.approval.resolve_gateway_approval = bad_resolve
+        tools.approval.resolve_gateway_approval = bad_resolve  # ty: ignore[invalid-assignment]
         try:
             from gateway.platforms.qqbot.keyboards import parse_interaction_event
             event = parse_interaction_event({

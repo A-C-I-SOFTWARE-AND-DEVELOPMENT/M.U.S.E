@@ -261,6 +261,7 @@ class TestSend:
 
         result = await adapter.send("chat-123", "Hello!")
         assert result.success is False
+        assert result.error is not None
         assert "session_webhook" in result.error
 
     @pytest.mark.asyncio
@@ -296,6 +297,7 @@ class TestSend:
             metadata={"session_webhook": "https://example/webhook"}
         )
         assert result.success is False
+        assert result.error is not None
         assert "400" in result.error
 
     @pytest.mark.asyncio
@@ -397,7 +399,7 @@ class TestConnect:
     async def test_disconnect_cleans_up(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._session_webhooks["a"] = "http://x"
+        adapter._session_webhooks["a"] = "http://x"  # ty: ignore[invalid-assignment]
         adapter._dedup._seen["b"] = 1.0
         adapter._http_client = AsyncMock()
         adapter._stream_task = None
@@ -564,7 +566,7 @@ class TestExtractMedia:
             [{"type": "voice", "downloadCode": "dl_voice_abc"}]
         )
         msg_type, urls, mtypes = DingTalkAdapter._extract_media(
-            DingTalkAdapter, msg
+            DingTalkAdapter, msg  # ty: ignore[invalid-argument-type]
         )
         assert msg_type == MessageType.VOICE
         assert urls == ["dl_voice_abc"]
@@ -585,7 +587,7 @@ class TestExtractMedia:
                 [{"type": "audio", "downloadCode": "dl_audio_xyz"}]
             )
             msg_type, urls, mtypes = DingTalkAdapter._extract_media(
-                DingTalkAdapter, msg
+                DingTalkAdapter, msg  # ty: ignore[invalid-argument-type]
             )
             assert msg_type == MessageType.AUDIO
             assert urls == ["dl_audio_xyz"]
@@ -764,7 +766,7 @@ class TestIncomingHandlerProcess:
         from gateway.platforms.dingtalk import _IncomingHandler, DingTalkAdapter
 
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._on_message = AsyncMock()
+        adapter._on_message = AsyncMock()  # ty: ignore[invalid-assignment]
         handler = _IncomingHandler(adapter, asyncio.get_running_loop())
 
         callback = MagicMock()
@@ -785,8 +787,8 @@ class TestIncomingHandlerProcess:
         await asyncio.sleep(0.05)
 
         # _on_message should have been called with a ChatbotMessage
-        adapter._on_message.assert_called_once()
-        chatbot_msg = adapter._on_message.call_args[0][0]
+        adapter._on_message.assert_called_once()  # ty: ignore[unresolved-attribute]
+        chatbot_msg = adapter._on_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert chatbot_msg.session_webhook == "https://oapi.dingtalk.com/robot/sendBySession?session=abc"
 
     @pytest.mark.asyncio
@@ -797,7 +799,7 @@ class TestIncomingHandlerProcess:
         from gateway.platforms.dingtalk import _IncomingHandler, DingTalkAdapter
 
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._on_message = AsyncMock()
+        adapter._on_message = AsyncMock()  # ty: ignore[invalid-assignment]
         handler = _IncomingHandler(adapter, asyncio.get_running_loop())
 
         callback = MagicMock()
@@ -814,8 +816,8 @@ class TestIncomingHandlerProcess:
         await handler.process(callback)
         await asyncio.sleep(0.05)
 
-        adapter._on_message.assert_called_once()
-        chatbot_msg = adapter._on_message.call_args[0][0]
+        adapter._on_message.assert_called_once()  # ty: ignore[unresolved-attribute]
+        chatbot_msg = adapter._on_message.call_args[0][0]  # ty: ignore[unresolved-attribute]
         assert chatbot_msg.session_webhook == "https://oapi.dingtalk.com/robot/sendBySession?session=def"
 
     @pytest.mark.asyncio
@@ -832,7 +834,7 @@ class TestIncomingHandlerProcess:
             await processing_gate.wait()  # Block until we release
 
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._on_message = slow_on_message
+        adapter._on_message = slow_on_message  # ty: ignore[invalid-assignment]
         handler = _IncomingHandler(adapter, asyncio.get_running_loop())
 
         callback = MagicMock()
@@ -934,7 +936,7 @@ class TestCardLifecycle:
         a._card_sdk.deliver_card_with_options_async = AsyncMock()
         a._card_sdk.streaming_update_with_options_async = AsyncMock()
         a._http_client = AsyncMock()
-        a._get_access_token = AsyncMock(return_value="token")
+        a._get_access_token = AsyncMock(return_value="token")  # ty: ignore[invalid-assignment]
         # Minimal message context
         msg = MagicMock(
             conversation_id="chat-1",
@@ -1132,7 +1134,7 @@ class TestDingTalkAdapterAICards:
         adapter._card_sdk = mock_card_sdk
 
         # Mock access token
-        adapter._get_access_token = AsyncMock(return_value="test_token")
+        adapter._get_access_token = AsyncMock(return_value="test_token")  # ty: ignore[invalid-assignment]
 
         result = await adapter.send("test_conv_id", "Hello World")
 

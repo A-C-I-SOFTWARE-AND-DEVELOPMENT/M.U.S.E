@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import Literal
 
 from hermes_constants import is_wsl as _is_wsl
 
@@ -270,7 +271,7 @@ def _find_powershell() -> str | None:
 
 
 # Cache the resolved PowerShell executable (checked once per process)
-_ps_exe: str | None | bool = False  # False = not yet checked
+_ps_exe: "str | None | Literal[False]" = False  # False = not yet checked
 
 
 def _get_ps_exe() -> str | None:
@@ -401,7 +402,7 @@ def _convert_to_png(path: Path) -> bool:
     """Convert an image file to PNG in-place (requires Pillow or ImageMagick)."""
     # Try Pillow first (likely installed in the venv)
     try:
-        from PIL import Image
+        from PIL import Image  # ty: ignore[unresolved-import]  # optional dep
         img = Image.open(path)
         img.save(path, "PNG")
         return True

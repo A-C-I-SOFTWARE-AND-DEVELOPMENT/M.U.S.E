@@ -1917,7 +1917,7 @@ def _cmd_navigate(args: argparse.Namespace) -> int:
         print(f"  [{s.rank}] {s.path}  (confidence {s.confidence:.2f}) — {s.rationale}")
     verify = result.worker_packet().get("verify_with") or []
     if verify:
-        print("  verify with: " + ", ".join(str(v) for v in verify))
+        print("  verify with: " + ", ".join(str(v) for v in verify))  # ty: ignore[not-iterable]  # verify_with is a list
     return 0
 
 

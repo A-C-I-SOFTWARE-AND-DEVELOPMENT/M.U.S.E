@@ -51,4 +51,4 @@ def test_facebook_tap_animation_is_separated_from_real_action() -> None:
 def test_default_avatar_traits_are_customizable() -> None:
     traits = default_avatar_traits()
     assert traits["customizable"] is True
-    assert "mini" in traits["scale_modes"]
+    assert "mini" in traits["scale_modes"]  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture

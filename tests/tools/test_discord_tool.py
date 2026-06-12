@@ -135,7 +135,7 @@ class TestDiscordRequest:
             url="https://discord.com/api/v10/test",
             code=403,
             msg="Forbidden",
-            hdrs={},
+            hdrs={},  # ty: ignore[invalid-argument-type]
             fp=BytesIO(error_body),
         )
         mock_urlopen_fn.side_effect = http_error
@@ -903,6 +903,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": (1 << 14) | (1 << 18)}
         schema = get_dynamic_schema_core()
+        assert schema is not None
         actions = set(schema["parameters"]["properties"]["action"]["enum"])
         assert actions == set(_CORE_ACTIONS.keys())
         assert schema["name"] == "discord"
@@ -916,6 +917,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": (1 << 14) | (1 << 18)}
         schema = get_dynamic_schema_admin()
+        assert schema is not None
         actions = set(schema["parameters"]["properties"]["action"]["enum"])
         assert actions == set(_ADMIN_ACTIONS.keys())
         assert schema["name"] == "discord_admin"
@@ -935,6 +937,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": 1 << 18}  # only MESSAGE_CONTENT
         schema = get_dynamic_schema_admin()
+        assert schema is not None
         actions = schema["parameters"]["properties"]["action"]["enum"]
         assert "member_info" not in actions
         assert "member_info" not in schema["description"]
@@ -951,6 +954,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": 1 << 18}  # only MESSAGE_CONTENT
         schema = get_dynamic_schema_core()
+        assert schema is not None
         actions = schema["parameters"]["properties"]["action"]["enum"]
         assert "search_members" not in actions
 
@@ -963,6 +967,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": 1 << 14}  # only GUILD_MEMBERS
         schema = get_dynamic_schema_core()
+        assert schema is not None
         assert "MESSAGE_CONTENT" in schema["description"]
         # But fetch_messages is still available
         actions = schema["parameters"]["properties"]["action"]["enum"]
@@ -977,6 +982,7 @@ class TestDynamicSchema:
         )
         mock_req.return_value = {"flags": (1 << 14) | (1 << 18)}
         schema = get_dynamic_schema_admin()
+        assert schema is not None
         actions = schema["parameters"]["properties"]["action"]["enum"]
         assert actions == ["list_guilds", "list_channels"]
         assert "list_guilds()" in schema["description"]

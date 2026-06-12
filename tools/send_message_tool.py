@@ -811,8 +811,8 @@ async def _send_telegram(token, chat_id, message, media_files=None, thread_id=No
     instead, bypassing MarkdownV2 conversion.
     """
     try:
-        from telegram import Bot
-        from telegram.constants import ParseMode
+        from telegram import Bot  # ty: ignore[unresolved-import]
+        from telegram.constants import ParseMode  # ty: ignore[unresolved-import]
 
         # Auto-detect HTML tags — if present, skip MarkdownV2 and send as HTML.
         # Inspired by github.com/ashaney — PR #1568.
@@ -844,7 +844,7 @@ async def _send_telegram(token, chat_id, message, media_files=None, thread_id=No
             _tg_proxy = None
         if _tg_proxy:
             try:
-                from telegram.request import HTTPXRequest
+                from telegram.request import HTTPXRequest  # ty: ignore[unresolved-import]
                 logger.info("send_message: standalone Telegram send routed through proxy %s", _tg_proxy)
                 bot = Bot(
                     token=token,
@@ -1617,7 +1617,7 @@ async def _send_matrix(token, extra, chat_id, message):
         # Build message payload with optional HTML formatted_body.
         payload = {"msgtype": "m.text", "body": message}
         try:
-            import markdown as _md
+            import markdown as _md  # ty: ignore[unresolved-import]
             html = _md.markdown(message, extensions=["fenced_code", "tables"])
             # Convert h1-h6 to bold for Element X compatibility.
             html = re.sub(r"<h[1-6]>(.*?)</h[1-6]>", r"<strong>\1</strong>", html)

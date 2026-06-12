@@ -39,7 +39,7 @@ def test_succeeds_when_patch_fixes_tests():
     assert result.succeeded is True
     assert result.iterations == 2
     assert result.stop_reason == "tests green"
-    assert result.final_test.passed
+    assert result.final_test.passed  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_stops_at_max_iterations_when_never_fixed():

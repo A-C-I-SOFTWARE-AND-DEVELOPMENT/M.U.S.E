@@ -30,7 +30,7 @@ def _ensure_discord_mock():
     access regardless of which file loaded first.
     """
     if "discord" in sys.modules and hasattr(sys.modules["discord"], "__file__"):
-        sys.modules["discord"].AllowedMentions = _FakeAllowedMentions
+        sys.modules["discord"].AllowedMentions = _FakeAllowedMentions  # ty: ignore[unresolved-attribute]
         return
 
     if sys.modules.get("discord") is None:
@@ -62,7 +62,7 @@ def _ensure_discord_mock():
         sys.modules.setdefault("discord.ext", ext_mod)
         sys.modules.setdefault("discord.ext.commands", commands_mod)
 
-    sys.modules["discord"].AllowedMentions = _FakeAllowedMentions
+    sys.modules["discord"].AllowedMentions = _FakeAllowedMentions  # ty: ignore[invalid-assignment]
 
 
 _ensure_discord_mock()

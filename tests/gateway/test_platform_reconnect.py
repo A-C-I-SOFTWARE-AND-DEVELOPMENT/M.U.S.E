@@ -144,7 +144,7 @@ class TestStartupPlatformIsolation:
             await asyncio.sleep(60)
             return True
 
-        adapter.connect = hang
+        adapter.connect = hang  # ty: ignore[invalid-assignment]
         monkeypatch.setenv("HERMES_GATEWAY_PLATFORM_CONNECT_TIMEOUT", "0.001")
 
         with pytest.raises(TimeoutError, match="telegram connect timed out"):

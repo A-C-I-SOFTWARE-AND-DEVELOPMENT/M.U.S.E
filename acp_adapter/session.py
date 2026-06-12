@@ -593,7 +593,7 @@ class SessionManager:
             if not isinstance(cfg, dict) or cfg.get("enabled", True) is not False
         ]
 
-        kwargs = {
+        kwargs: Dict[str, Any] = {
             "platform": "acp",
             "enabled_toolsets": _expand_acp_enabled_toolsets(
                 ["hermes-acp"],

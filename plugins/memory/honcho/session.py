@@ -389,7 +389,7 @@ class HonchoSessionManager:
         """Background daemon thread: drains the async write queue."""
         while True:
             try:
-                item = self._async_queue.get(timeout=5)
+                item = self._async_queue.get(timeout=5)  # ty: ignore[unresolved-attribute]  # writer loop only starts when the queue exists
                 if item is _ASYNC_SHUTDOWN:
                     break
 

@@ -662,7 +662,7 @@ def _resolve_openrouter_runtime(
             cfg_api_key = v.strip()
             break
     requested_norm = (requested_provider or "").strip().lower()
-    cfg_provider = cfg_provider.strip().lower()
+    cfg_provider = cfg_provider.strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     # GitHub #27132: provider aliases that resolve to "custom" (ollama,
     # vllm, llamacpp, …) follow the same base_url trust + routing rules
     # as a bare `provider: custom`. Normalising here keeps every check
@@ -684,19 +684,19 @@ def _resolve_openrouter_runtime(
     # OPENAI_BASE_URL env var is no longer consulted — config.yaml is
     # the single source of truth for endpoint URLs.
     use_config_base_url = False
-    if cfg_base_url.strip() and not explicit_base_url:
+    if cfg_base_url.strip() and not explicit_base_url:  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         if requested_norm == "auto":
             if not cfg_provider or cfg_provider == "auto":
                 use_config_base_url = True
         elif requested_norm == "custom" and _config_base_url_trustworthy_for_bare_custom(
-            cfg_base_url, cfg_provider
+            cfg_base_url, cfg_provider  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
         ):
             use_config_base_url = True
 
     base_url = (
         (explicit_base_url or "").strip()
         or env_custom_base_url
-        or (cfg_base_url.strip() if use_config_base_url else "")
+        or (cfg_base_url.strip() if use_config_base_url else "")  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
         or env_openrouter_base_url
         or OPENROUTER_BASE_URL
     ).rstrip("/")

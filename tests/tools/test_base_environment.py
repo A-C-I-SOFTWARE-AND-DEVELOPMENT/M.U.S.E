@@ -159,7 +159,7 @@ class TestInitSessionFailure:
         def failing_run_bash(*args, **kwargs):
             raise RuntimeError("bash not found")
 
-        env._run_bash = failing_run_bash
+        env._run_bash = failing_run_bash  # ty: ignore[invalid-assignment]
         env.init_session()
 
         assert env._snapshot_ready is False
@@ -179,7 +179,7 @@ class TestInitSessionFailure:
             mock.stdout = iter([])
             return mock
 
-        env._run_bash = mock_run_bash
+        env._run_bash = mock_run_bash  # ty: ignore[invalid-assignment]
         env.execute("echo test")
 
         assert len(calls) == 1

@@ -9,7 +9,7 @@ from plugins.spotify import tools as spotify_tool
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int, payload: dict | None = None, *, text: str = "", headers: dict | None = None):
+    def __init__(self, status_code: int, payload: dict | list | None = None, *, text: str = "", headers: dict | None = None):
         self.status_code = status_code
         self._payload = payload
         self.text = text or (json.dumps(payload) if payload is not None else "")
@@ -50,6 +50,7 @@ def test_spotify_client_retries_once_after_401(monkeypatch: pytest.MonkeyPatch) 
     )
 
     def fake_request(method, url, headers=None, params=None, json=None, timeout=None):
+        assert headers is not None
         calls.append(headers["Authorization"])
         if len(calls) == 1:
             return _FakeResponse(401, {"error": {"message": "expired token"}})

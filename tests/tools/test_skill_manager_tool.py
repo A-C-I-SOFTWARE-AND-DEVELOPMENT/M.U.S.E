@@ -80,18 +80,23 @@ class TestValidateName:
 
     def test_uppercase_rejected(self):
         err = _validate_name("MySkill")
+        assert err is not None
         assert "Invalid skill name 'MySkill'" in err
 
     def test_starts_with_hyphen_rejected(self):
         err = _validate_name("-invalid")
+        assert err is not None
         assert "Invalid skill name '-invalid'" in err
 
     def test_special_chars_rejected(self):
         err = _validate_name("skill/name")
+        assert err is not None
         assert "Invalid skill name 'skill/name'" in err
         err = _validate_name("skill name")
+        assert err is not None
         assert "Invalid skill name 'skill name'" in err
         err = _validate_name("skill@name")
+        assert err is not None
         assert "Invalid skill name 'skill@name'" in err
 
 
@@ -104,10 +109,12 @@ class TestValidateCategory:
 
     def test_path_traversal_rejected(self):
         err = _validate_category("../escape")
+        assert err is not None
         assert "Invalid category '../escape'" in err
 
     def test_absolute_path_rejected(self):
         err = _validate_category("/tmp/escape")
+        assert err is not None
         assert "Invalid category '/tmp/escape'" in err
 
 
@@ -146,7 +153,9 @@ class TestValidateFrontmatter:
 
     def test_invalid_yaml(self):
         content = "---\n: invalid: yaml: {{{\n---\n\nBody.\n"
-        assert "YAML frontmatter parse error" in _validate_frontmatter(content)
+        err = _validate_frontmatter(content)
+        assert err is not None
+        assert "YAML frontmatter parse error" in err
 
 
 # ---------------------------------------------------------------------------
@@ -170,16 +179,19 @@ class TestValidateFilePath:
 
     def test_disallowed_subdirectory(self):
         err = _validate_file_path("secret/hidden.txt")
+        assert err is not None
         assert "File must be under one of:" in err
         assert "'secret/hidden.txt'" in err
 
     def test_directory_only_rejected(self):
         err = _validate_file_path("references")
+        assert err is not None
         assert "Provide a file path, not just a directory" in err
         assert "'references/myfile.md'" in err
 
     def test_root_level_file_rejected(self):
         err = _validate_file_path("malicious.py")
+        assert err is not None
         assert "File must be under one of:" in err
         assert "'malicious.py'" in err
 

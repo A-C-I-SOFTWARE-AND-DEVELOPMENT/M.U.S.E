@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 
-from setuptools import setup
+from setuptools import setup  # ty: ignore[unresolved-import]
 
 
 REPO_ROOT = Path(__file__).parent.resolve()

@@ -229,6 +229,13 @@ class TestForegroundMaxTimeoutConstant:
     def test_schema_mentions_max(self):
         """Tool schema description should mention the max timeout."""
         from tools.terminal_tool import TERMINAL_SCHEMA, FOREGROUND_MAX_TIMEOUT
-        timeout_desc = TERMINAL_SCHEMA["parameters"]["properties"]["timeout"]["description"]
+        params = TERMINAL_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
+        timeout_prop = props["timeout"]
+        assert isinstance(timeout_prop, dict)
+        timeout_desc = timeout_prop["description"]
+        assert isinstance(timeout_desc, str)
         assert str(FOREGROUND_MAX_TIMEOUT) in timeout_desc
         assert "background=true" in timeout_desc

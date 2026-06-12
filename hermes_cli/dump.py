@@ -208,8 +208,8 @@ def run_dump(args):
     try:
         from hermes_cli import __version__, __release_date__
     except ImportError:
-        __version__ = "(unknown)"
-        __release_date__ = ""
+        __version__ = "(unknown)"  # ty: ignore[invalid-assignment]
+        __release_date__ = ""  # ty: ignore[invalid-assignment]
 
     commit = _get_git_commit(project_root)
 

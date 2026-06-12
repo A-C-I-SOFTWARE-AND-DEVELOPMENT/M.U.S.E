@@ -866,7 +866,7 @@ def test_ws_events_swallows_cancellation_on_shutdown(tmp_path, monkeypatch):
 
     async def _run():
         ws = _FakeWS()
-        task = asyncio.create_task(pa.stream_events(ws))
+        task = asyncio.create_task(pa.stream_events(ws))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         # Give the handler a tick to accept + start polling.
         await asyncio.sleep(0.05)
         assert ws.accepted is True
@@ -933,10 +933,10 @@ def test_bulk_status_done_forwards_completion_summary(client):
         for tid in (a["id"], b["id"]):
             task = kb.get_task(conn, tid)
             run = kb.latest_run(conn, tid)
-            assert task.status == "done"
-            assert task.result == "DECIDED: ship it"
-            assert run.summary == "DECIDED: ship it"
-            assert run.metadata == {"source": "dashboard"}
+            assert task.status == "done"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert task.result == "DECIDED: ship it"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert run.summary == "DECIDED: ship it"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+            assert run.metadata == {"source": "dashboard"}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
 
@@ -1202,9 +1202,9 @@ def test_patch_status_done_with_summary_and_metadata(client):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, tid)
-        assert run.outcome == "completed"
-        assert run.summary == "shipped the thing"
-        assert run.metadata == {"changed_files": ["a.py", "b.py"], "tests_run": 7}
+        assert run.outcome == "completed"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert run.summary == "shipped the thing"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert run.metadata == {"changed_files": ["a.py", "b.py"], "tests_run": 7}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
 
@@ -1227,8 +1227,8 @@ def test_patch_status_done_without_summary_still_works(client):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, tid)
-        assert run.outcome == "completed"
-        assert run.summary == "legacy shape"  # falls back to result
+        assert run.outcome == "completed"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert run.summary == "legacy shape"  # falls back to result  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
 
@@ -1242,7 +1242,7 @@ def test_patch_status_archive_closes_running_run(client):
     try:
         kb.claim_task(conn, tid)
         open_run = kb.latest_run(conn, tid)
-        assert open_run.ended_at is None
+        assert open_run.ended_at is None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
     r = client.patch(
@@ -1253,9 +1253,9 @@ def test_patch_status_archive_closes_running_run(client):
     conn = kb.connect()
     try:
         task = kb.get_task(conn, tid)
-        assert task.status == "archived"
-        assert task.current_run_id is None
-        assert kb.latest_run(conn, tid).outcome == "reclaimed"
+        assert task.status == "archived"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert task.current_run_id is None  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        assert kb.latest_run(conn, tid).outcome == "reclaimed"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     finally:
         conn.close()
 
@@ -1268,7 +1268,7 @@ def test_event_dict_includes_run_id(client):
     conn = kb.connect()
     try:
         kb.claim_task(conn, tid)
-        run_id = kb.latest_run(conn, tid).id
+        run_id = kb.latest_run(conn, tid).id  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         kb.complete_task(conn, tid, summary="wss")
     finally:
         conn.close()

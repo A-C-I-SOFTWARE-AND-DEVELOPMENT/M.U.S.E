@@ -598,7 +598,7 @@ class TestConvertTools:
 
     def test_empty_tools(self):
         assert convert_tools_to_anthropic([]) == []
-        assert convert_tools_to_anthropic(None) == []
+        assert convert_tools_to_anthropic(None) == []  # ty: ignore[invalid-argument-type]
 
     def test_strips_nullable_union_from_input_schema(self):
         tools = [
@@ -1986,4 +1986,4 @@ class TestConvertToolsToAnthropicDedup:
         assert convert_tools_to_anthropic([]) == []
 
     def test_none_tools_returns_empty(self):
-        assert convert_tools_to_anthropic(None) == []
+        assert convert_tools_to_anthropic(None) == []  # ty: ignore[invalid-argument-type]

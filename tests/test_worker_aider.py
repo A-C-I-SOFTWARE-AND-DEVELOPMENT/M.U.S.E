@@ -79,11 +79,11 @@ class TestHandoffPath:
     def test_handoff_command_references_prompt_file(self, tmp_path):
         with mock.patch.object(aider_worker, "detect_command", return_value=True):
             result = aider_worker.run(_task(), tmp_path / "ws")
-        assert "--message-file" in result.handoff_command
-        assert "prompt.md" in result.handoff_command
+        assert "--message-file" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "prompt.md" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         # The safe flag set the orchestrator picks must be visible to the
         # user copying the command.
-        assert "--no-auto-commits" in result.handoff_command
+        assert "--no-auto-commits" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_status_json_is_machine_readable(self, tmp_path):
         with mock.patch.object(aider_worker, "detect_command", return_value=True):

@@ -742,14 +742,15 @@ class TestSessionStoreSwitchSession:
         target_session_id = "old_session_abc"
         db.create_session(target_session_id, source="feishu", user_id="user-1")
         db.end_session(target_session_id, end_reason="user_exit")
-        assert db.get_session(target_session_id)["ended_at"] is not None
+        assert db.get_session(target_session_id)["ended_at"] is not None  # ty: ignore[not-subscriptable]
 
         switched = store.switch_session(current_entry.session_key, target_session_id)
 
         assert switched is not None
         assert switched.session_id == target_session_id
-        assert db.get_session(current_session_id)["end_reason"] == "session_switch"
+        assert db.get_session(current_session_id)["end_reason"] == "session_switch"  # ty: ignore[not-subscriptable]
         resumed = db.get_session(target_session_id)
+        assert resumed is not None
         assert resumed["ended_at"] is None
         assert resumed["end_reason"] is None
         db.close()
@@ -1093,7 +1094,7 @@ class TestWhatsAppIdentifierPublicHelpers:
 
     def test_normalize_handles_empty_and_none(self):
         assert normalize_whatsapp_identifier("") == ""
-        assert normalize_whatsapp_identifier(None) == ""  # type: ignore[arg-type]
+        assert normalize_whatsapp_identifier(None) == ""  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
     def test_canonical_without_mapping_returns_normalized(self, tmp_path, monkeypatch):
         """With no bridge mapping files, the normalized input is returned."""
@@ -1235,7 +1236,7 @@ class TestLastPromptTokens:
             store = SessionStore(sessions_dir=tmp_path, config=config)
         store._loaded = True
         store._db = None
-        store._save = MagicMock()
+        store._save = MagicMock()  # ty: ignore[invalid-assignment]
 
         from gateway.session import SessionEntry
         from datetime import datetime
@@ -1257,7 +1258,7 @@ class TestLastPromptTokens:
             store = SessionStore(sessions_dir=tmp_path, config=config)
         store._loaded = True
         store._db = None
-        store._save = MagicMock()
+        store._save = MagicMock()  # ty: ignore[invalid-assignment]
 
         from gateway.session import SessionEntry
         from datetime import datetime
@@ -1280,7 +1281,7 @@ class TestLastPromptTokens:
             store = SessionStore(sessions_dir=tmp_path, config=config)
         store._loaded = True
         store._db = None
-        store._save = MagicMock()
+        store._save = MagicMock()  # ty: ignore[invalid-assignment]
 
         from gateway.session import SessionEntry
         from datetime import datetime

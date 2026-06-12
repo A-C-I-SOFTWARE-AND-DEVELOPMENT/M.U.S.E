@@ -1616,7 +1616,7 @@ _KNOWN_PROVIDER_NAMES: set[str] = (
 )
 
 
-def list_available_providers() -> list[dict[str, str]]:
+def list_available_providers() -> list[dict[str, Any]]:
     """Return info about all providers the user could use with ``provider:model``.
 
     Each dict has ``id``, ``label``, and ``aliases``.
@@ -3254,7 +3254,7 @@ def _save_ollama_cloud_cache(models: list[str]) -> None:
         from utils import atomic_json_write
         cache_path = _ollama_cloud_cache_path()
         cache_path.parent.mkdir(parents=True, exist_ok=True)
-        atomic_json_write(cache_path, {"models": models, "cached_at": time.time()}, indent=None)
+        atomic_json_write(cache_path, {"models": models, "cached_at": time.time()}, indent=None)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
     except Exception:
         pass
 

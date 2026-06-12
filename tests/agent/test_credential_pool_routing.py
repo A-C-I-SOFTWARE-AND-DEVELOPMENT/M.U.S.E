@@ -34,7 +34,7 @@ class TestCliTurnRoutePool:
 
         from cli import HermesCLI
         bound = HermesCLI._resolve_turn_agent_config.__get__(shell)
-        route = bound("test message")
+        route = bound("test message")  # ty: ignore[invalid-argument-type]
 
         assert route["runtime"]["credential_pool"] is fake_pool
 
@@ -61,7 +61,7 @@ class TestGatewayTurnRoutePool:
         }
 
         bound = GatewayRunner._resolve_turn_agent_config.__get__(runner)
-        route = bound("test message", "gpt-5.4", runtime_kwargs)
+        route = bound("test message", "gpt-5.4", runtime_kwargs)  # ty: ignore[invalid-argument-type]
 
         assert route["runtime"]["credential_pool"] is fake_pool
 
@@ -86,10 +86,10 @@ class TestEagerFallbackWithPool:
             pool.has_available.return_value = pool_has_creds
             agent._credential_pool = pool
 
-        agent._fallback_chain = [{"model": "fallback/model"}] if has_fallback else []
-        agent._fallback_index = 0
-        agent._try_activate_fallback = MagicMock(return_value=True)
-        agent._emit_status = MagicMock()
+        agent._fallback_chain = [{"model": "fallback/model"}] if has_fallback else []  # ty: ignore[unresolved-attribute]
+        agent._fallback_index = 0  # ty: ignore[unresolved-attribute]
+        agent._try_activate_fallback = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
+        agent._emit_status = MagicMock()  # ty: ignore[invalid-assignment]
 
         return agent
 
@@ -168,7 +168,7 @@ class TestPoolRotationCycle:
 
         pool.mark_exhausted_and_rotate = MagicMock(side_effect=rotate)
         agent._credential_pool = pool
-        agent._swap_credential = MagicMock()
+        agent._swap_credential = MagicMock()  # ty: ignore[invalid-assignment]
         agent.log_prefix = ""
 
         return agent, pool, entries

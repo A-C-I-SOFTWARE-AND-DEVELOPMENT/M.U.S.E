@@ -360,7 +360,7 @@ class TestCallbackHandlerIsolation:
         assert result["auth_code"] is None
 
         # Simulate a GET request
-        handler = HandlerClass.__new__(HandlerClass)
+        handler = HandlerClass.__new__(HandlerClass)  # ty: ignore[no-matching-overload]
         handler.path = "/callback?code=test123&state=mystate"
         handler.wfile = BytesIO()
         handler.send_response = MagicMock()
@@ -374,7 +374,7 @@ class TestCallbackHandlerIsolation:
     def test_handler_captures_error(self):
         HandlerClass, result = _make_callback_handler()
 
-        handler = HandlerClass.__new__(HandlerClass)
+        handler = HandlerClass.__new__(HandlerClass)  # ty: ignore[no-matching-overload]
         handler.path = "/callback?error=access_denied"
         handler.wfile = BytesIO()
         handler.send_response = MagicMock()

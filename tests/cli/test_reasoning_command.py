@@ -582,7 +582,7 @@ class TestEndToEndPipeline(unittest.TestCase):
             ],
         )
 
-        reasoning = AIAgent._extract_reasoning(None, api_message)
+        reasoning = AIAgent._extract_reasoning(None, api_message)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         self.assertIsNotNone(reasoning)
 
         messages = [
@@ -604,13 +604,13 @@ class TestEndToEndPipeline(unittest.TestCase):
         }
 
         self.assertIn("last_reasoning", result)
-        self.assertIn("Python list methods", result["last_reasoning"])
+        self.assertIn("Python list methods", result["last_reasoning"])  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_no_reasoning_model_pipeline(self):
         from run_agent import AIAgent
 
         api_message = SimpleNamespace(content="Paris.", tool_calls=None)
-        reasoning = AIAgent._extract_reasoning(None, api_message)
+        reasoning = AIAgent._extract_reasoning(None, api_message)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         self.assertIsNone(reasoning)
 
         result = {"final_response": api_message.content, "last_reasoning": reasoning}

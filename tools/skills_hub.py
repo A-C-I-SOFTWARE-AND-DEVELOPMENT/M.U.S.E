@@ -250,6 +250,7 @@ class GitHubAuth:
 
         if not all([app_id, key_path, installation_id]):
             return None
+        assert key_path is not None  # guaranteed by the all() check above
 
         try:
             import jwt  # PyJWT
@@ -560,7 +561,7 @@ class GitHubSource(SkillSource):
                     "Set GITHUB_TOKEN or install the gh CLI to raise the limit to 5,000/hr."
                 )
 
-    def _download_directory(self, repo: str, path: str) -> Dict[str, str]:
+    def _download_directory(self, repo: str, path: str) -> Dict[str, Union[str, bytes]]:
         """Recursively download all text files from a GitHub directory.
 
         Uses the Git Trees API first (single call for the entire tree) to
@@ -574,7 +575,7 @@ class GitHubSource(SkillSource):
         logger.debug("Tree API unavailable for %s/%s, falling back to Contents API", repo, path)
         return self._download_directory_recursive(repo, path)
 
-    def _download_directory_via_tree(self, repo: str, path: str) -> Optional[Dict[str, str]]:
+    def _download_directory_via_tree(self, repo: str, path: str) -> Optional[Dict[str, Union[str, bytes]]]:
         """Download an entire directory using the Git Trees API (single request).
 
         Returns:
@@ -601,7 +602,7 @@ class GitHubSource(SkillSource):
             return {}
 
         # Filter to blobs under our target path and fetch content
-        files: Dict[str, str] = {}
+        files: Dict[str, Union[str, bytes]] = {}
         for item in tree_entries:
             if item.get("type") != "blob":
                 continue
@@ -617,7 +618,7 @@ class GitHubSource(SkillSource):
 
         return files if files else None
 
-    def _download_directory_recursive(self, repo: str, path: str) -> Dict[str, str]:
+    def _download_directory_recursive(self, repo: str, path: str) -> Dict[str, Union[str, bytes]]:
         """Recursively download via Contents API (fallback)."""
         url = f"https://api.github.com/repos/{repo}/contents/{path.rstrip('/')}"
         try:
@@ -632,7 +633,7 @@ class GitHubSource(SkillSource):
         if not isinstance(entries, list):
             return {}
 
-        files: Dict[str, str] = {}
+        files: Dict[str, Union[str, bytes]] = {}
         for entry in entries:
             name = entry.get("name", "")
             entry_type = entry.get("type", "")
@@ -840,7 +841,7 @@ class WellKnownSkillSource(SkillSource):
         if not isinstance(files, list) or not files:
             files = ["SKILL.md"]
 
-        downloaded: Dict[str, str] = {}
+        downloaded: Dict[str, Union[str, bytes]] = {}
         for rel_path in files:
             if not isinstance(rel_path, str) or not rel_path:
                 continue
@@ -1992,8 +1993,8 @@ class ClawHubSource(SkillSource):
                     return version
         return None
 
-    def _extract_files(self, version_data: Dict[str, Any]) -> Dict[str, str]:
-        files: Dict[str, str] = {}
+    def _extract_files(self, version_data: Dict[str, Any]) -> Dict[str, Union[str, bytes]]:
+        files: Dict[str, Union[str, bytes]] = {}
         file_list = version_data.get("files")
 
         if isinstance(file_list, dict):
@@ -2023,12 +2024,12 @@ class ClawHubSource(SkillSource):
 
         return files
 
-    def _download_zip(self, slug: str, version: str) -> Dict[str, str]:
+    def _download_zip(self, slug: str, version: str) -> Dict[str, Union[str, bytes]]:
         """Download skill as a ZIP bundle from the /download endpoint and extract text files."""
         import io
         import zipfile
 
-        files: Dict[str, str] = {}
+        files: Dict[str, Union[str, bytes]] = {}
         max_retries = 3
         for attempt in range(max_retries):
             try:

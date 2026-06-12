@@ -17,7 +17,7 @@ import os
 import sys
 import time
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Callable
 
 import requests
 
@@ -107,7 +107,7 @@ def wait_for_registration_success(
     device_code: str,
     interval: int = 3,
     expires_in: int = 7200,
-    on_waiting: Optional[callable] = None,
+    on_waiting: Optional[Callable] = None,
 ) -> Tuple[str, str]:
     """Block until the registration succeeds or times out.
 
@@ -156,7 +156,7 @@ def wait_for_registration_success(
 def _ensure_qrcode_installed() -> bool:
     """Try to import qrcode; if missing, auto-install it via pip/uv."""
     try:
-        import qrcode  # noqa: F401
+        import qrcode  # noqa: F401  # ty: ignore[unresolved-import]  # optional dep
         return True
     except ImportError:
         pass
@@ -170,7 +170,7 @@ def _ensure_qrcode_installed() -> bool:
     ):
         try:
             subprocess.check_call(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            import qrcode  # noqa: F401,F811
+            import qrcode  # noqa: F401,F811  # ty: ignore[unresolved-import]  # optional dep
             return True
         except (subprocess.CalledProcessError, ImportError, FileNotFoundError):
             continue
@@ -183,7 +183,7 @@ def render_qr_to_terminal(url: str) -> bool:
     Returns True if the QR code was printed, False if the library is missing.
     """
     try:
-        import qrcode
+        import qrcode  # ty: ignore[unresolved-import]  # optional dep
     except ImportError:
         return False
 

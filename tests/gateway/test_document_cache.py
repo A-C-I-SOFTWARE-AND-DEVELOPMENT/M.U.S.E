@@ -95,7 +95,7 @@ class TestCacheDocumentFromBytes:
         assert "document" in basename
 
     def test_none_filename_uses_fallback(self):
-        path = cache_document_from_bytes(b"data", None)
+        path = cache_document_from_bytes(b"data", None)  # ty: ignore[invalid-argument-type]
         assert "document" in os.path.basename(path)
 
 

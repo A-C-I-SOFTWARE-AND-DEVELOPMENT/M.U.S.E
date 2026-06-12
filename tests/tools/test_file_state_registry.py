@@ -71,6 +71,7 @@ class FileStateRegistryUnitTests(unittest.TestCase):
         file_state.note_write("B", p)
         warn = file_state.check_stale("A", p)
         self.assertIsNotNone(warn)
+        assert warn is not None
         self.assertIn("B", warn)
         self.assertIn("sibling", warn.lower())
 
@@ -86,6 +87,7 @@ class FileStateRegistryUnitTests(unittest.TestCase):
         file_state.record_read("A", p, partial=True)
         warn = file_state.check_stale("A", p)
         self.assertIsNotNone(warn)
+        assert warn is not None
         self.assertIn("partial", warn.lower())
 
     def test_external_mtime_drift_flagged(self):
@@ -98,6 +100,7 @@ class FileStateRegistryUnitTests(unittest.TestCase):
             f.write("externally modified\n")
         warn = file_state.check_stale("A", p)
         self.assertIsNotNone(warn)
+        assert warn is not None
         self.assertIn("modified since you last read", warn)
 
     def test_own_write_updates_stamp_so_next_write_is_clean(self):

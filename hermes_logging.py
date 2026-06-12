@@ -110,7 +110,7 @@ def _install_session_record_factory() -> None:
         record.session_tag = f" [{sid}]" if sid else ""  # type: ignore[attr-defined]
         return record
 
-    _session_record_factory._hermes_session_injector = True  # type: ignore[attr-defined]
+    _session_record_factory._hermes_session_injector = True  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
     logging.setLogRecordFactory(_session_record_factory)
 
 
@@ -277,7 +277,7 @@ def setup_verbose_logging() -> None:
     handler = logging.StreamHandler()
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(RedactingFormatter(_LOG_FORMAT_VERBOSE, datefmt="%H:%M:%S"))
-    handler._hermes_verbose = True  # type: ignore[attr-defined]
+    handler._hermes_verbose = True  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
     root.addHandler(handler)
 
     # Lower root logger level so DEBUG records reach all handlers.

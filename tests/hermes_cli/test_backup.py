@@ -900,7 +900,7 @@ class TestImportEdgeCases:
         for i in range(600):
             files[f"sessions/s{i:04d}.json"] = "{}"
 
-        self._make_backup_zip(zip_path, files)
+        self._make_backup_zip(zip_path, files)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
         args = Namespace(zipfile=str(zip_path), force=True)
 
@@ -1096,7 +1096,7 @@ class TestQuickSnapshot:
     def test_label_in_id(self, hermes_home):
         from hermes_cli.backup import create_quick_snapshot
         snap_id = create_quick_snapshot(label="before-upgrade", hermes_home=hermes_home)
-        assert "before-upgrade" in snap_id
+        assert "before-upgrade" in snap_id  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_state_db_safely_copied(self, hermes_home):
         from hermes_cli.backup import create_quick_snapshot
@@ -1153,6 +1153,7 @@ class TestQuickSnapshot:
         (hermes_home / "config.yaml").write_text("model:\n  provider: anthropic\n")
         assert "anthropic" in (hermes_home / "config.yaml").read_text()
 
+        assert snap_id is not None
         result = restore_quick_snapshot(snap_id, hermes_home=hermes_home)
         assert result is True
         assert "openrouter" in (hermes_home / "config.yaml").read_text()
@@ -1166,6 +1167,7 @@ class TestQuickSnapshot:
         conn.commit()
         conn.close()
 
+        assert snap_id is not None
         restore_quick_snapshot(snap_id, hermes_home=hermes_home)
 
         conn = sqlite3.connect(str(hermes_home / "state.db"))
@@ -1349,9 +1351,12 @@ class TestPreUpdateBackup:
         )
         assert len(remaining) == 3
         # Oldest two should have been pruned
+        assert created[0] is not None
         assert created[0].name not in remaining
+        assert created[1] is not None
         assert created[1].name not in remaining
         # Newest three should remain
+        assert created[4] is not None
         assert created[4].name in remaining
 
     def test_rotation_preserves_manual_files(self, hermes_home):
@@ -1415,7 +1420,10 @@ class TestPreUpdateBackup:
             p.name for p in (hermes_home / "backups").iterdir()
             if p.name.startswith("pre-update-")
         }
+        assert third is not None
         assert third.name in remaining, "Floor must preserve the new backup"
+        assert first is not None
+        assert second is not None
         assert first.name not in remaining and second.name not in remaining, (
             f"keep=0 floor of 1 should still prune older backups; "
             f"remaining={remaining}"

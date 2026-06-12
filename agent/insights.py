@@ -33,7 +33,7 @@ from agent.usage_pricing import (
 _DEFAULT_PRICING = DEFAULT_PRICING
 
 
-def _has_known_pricing(model_name: str, provider: str = None, base_url: str = None) -> bool:
+def _has_known_pricing(model_name: str, provider: str | None = None, base_url: str | None = None) -> bool:
     """Check if a model has known pricing (vs unknown/custom endpoint)."""
     return has_known_pricing(model_name, provider=provider, base_url=base_url)
 
@@ -45,8 +45,8 @@ def _estimate_cost(
     *,
     cache_read_tokens: int = 0,
     cache_write_tokens: int = 0,
-    provider: str = None,
-    base_url: str = None,
+    provider: str | None = None,
+    base_url: str | None = None,
 ) -> tuple[float, str]:
     """Estimate the USD cost for a session row or a model/token tuple."""
     if isinstance(session_or_model, dict):
@@ -108,7 +108,7 @@ class InsightsEngine:
         self.db = db
         self._conn = db._conn
 
-    def generate(self, days: int = 30, source: str = None) -> Dict[str, Any]:
+    def generate(self, days: int = 30, source: str | None = None) -> Dict[str, Any]:
         """
         Generate a complete insights report.
 
@@ -196,7 +196,7 @@ class InsightsEngine:
         " ORDER BY started_at DESC"
     )
 
-    def _get_sessions(self, cutoff: float, source: str = None) -> List[Dict]:
+    def _get_sessions(self, cutoff: float, source: str | None = None) -> List[Dict]:
         """Fetch sessions within the time window."""
         if source:
             cursor = self._conn.execute(self._GET_SESSIONS_WITH_SOURCE, (cutoff, source))
@@ -204,7 +204,7 @@ class InsightsEngine:
             cursor = self._conn.execute(self._GET_SESSIONS_ALL, (cutoff,))
         return [dict(row) for row in cursor.fetchall()]
 
-    def _get_tool_usage(self, cutoff: float, source: str = None) -> List[Dict]:
+    def _get_tool_usage(self, cutoff: float, source: str | None = None) -> List[Dict]:
         """Get tool call counts from messages.
 
         Uses two sources:
@@ -296,7 +296,7 @@ class InsightsEngine:
             for name, count in tool_counts.most_common()
         ]
 
-    def _get_skill_usage(self, cutoff: float, source: str = None) -> List[Dict]:
+    def _get_skill_usage(self, cutoff: float, source: str | None = None) -> List[Dict]:
         """Extract per-skill usage from assistant tool calls."""
         skill_counts: Dict[str, Dict[str, Any]] = {}
 
@@ -372,7 +372,7 @@ class InsightsEngine:
 
         return list(skill_counts.values())
 
-    def _get_message_stats(self, cutoff: float, source: str = None) -> Dict:
+    def _get_message_stats(self, cutoff: float, source: str | None = None) -> Dict:
         """Get aggregate message statistics."""
         if source:
             cursor = self._conn.execute(
@@ -484,7 +484,7 @@ class InsightsEngine:
 
     def _compute_model_breakdown(self, sessions: List[Dict]) -> List[Dict]:
         """Break down usage by model."""
-        model_data = defaultdict(lambda: {
+        model_data: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "sessions": 0, "input_tokens": 0, "output_tokens": 0,
             "cache_read_tokens": 0, "cache_write_tokens": 0,
             "total_tokens": 0, "tool_calls": 0, "cost": 0.0,

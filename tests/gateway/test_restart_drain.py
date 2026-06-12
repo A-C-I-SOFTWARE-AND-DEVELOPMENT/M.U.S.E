@@ -20,7 +20,7 @@ async def test_restart_command_while_busy_requests_drain_without_interrupt(monke
     # which changes the restart call signature.
     monkeypatch.delenv("INVOCATION_ID", raising=False)
     runner, _adapter = make_restart_runner()
-    runner.request_restart = MagicMock(return_value=True)
+    runner.request_restart = MagicMock(return_value=True)  # ty: ignore[invalid-assignment]
     event = MessageEvent(
         text="/restart",
         message_type=MessageType.TEXT,
@@ -44,7 +44,7 @@ async def test_restart_command_while_busy_requests_drain_without_interrupt(monke
     assert expected != "gateway.draining"
     assert "Draining" in expected and "1" in expected
     running_agent.interrupt.assert_not_called()
-    runner.request_restart.assert_called_once_with(detached=True, via_service=False)
+    runner.request_restart.assert_called_once_with(detached=True, via_service=False)  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -68,7 +68,7 @@ async def test_drain_queue_mode_queues_follow_up_without_interrupt():
     assert session_key in adapter._pending_messages
     assert adapter._pending_messages[session_key].text == "follow up"
     assert not adapter._active_sessions[session_key].is_set()
-    assert any("queued for the next turn" in message for message in adapter.sent)
+    assert any("queued for the next turn" in message for message in adapter.sent)  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ def test_load_restart_drain_timeout_prefers_env_then_config_then_default(
 @pytest.mark.asyncio
 async def test_request_restart_is_idempotent():
     runner, _adapter = make_restart_runner()
-    runner.stop = AsyncMock()
+    runner.stop = AsyncMock()  # ty: ignore[invalid-assignment]
 
     assert runner.request_restart(detached=True, via_service=False) is True
     first_task = next(iter(runner._background_tasks))
@@ -154,7 +154,7 @@ async def test_request_restart_is_idempotent():
 
     await first_task
 
-    runner.stop.assert_awaited_once_with(
+    runner.stop.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
         restart=True, detached_restart=True, service_restart=False
     )
 
@@ -199,9 +199,9 @@ async def test_shutdown_notification_sent_to_active_sessions():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 1
-    assert "shutting down" in adapter.sent[0]
-    assert "interrupted" in adapter.sent[0]
+    assert len(adapter.sent) == 1  # ty: ignore[unresolved-attribute]
+    assert "shutting down" in adapter.sent[0]  # ty: ignore[unresolved-attribute]
+    assert "interrupted" in adapter.sent[0]  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -214,9 +214,9 @@ async def test_shutdown_notification_says_restarting_when_restart_requested():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 1
-    assert "restarting" in adapter.sent[0]
-    assert "resume" in adapter.sent[0]
+    assert len(adapter.sent) == 1  # ty: ignore[unresolved-attribute]
+    assert "restarting" in adapter.sent[0]  # ty: ignore[unresolved-attribute]
+    assert "resume" in adapter.sent[0]  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -229,7 +229,7 @@ async def test_shutdown_notification_deduplicates_per_chat():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 1
+    assert len(adapter.sent) == 1  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -239,7 +239,7 @@ async def test_shutdown_notification_skipped_when_no_active_agents():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 0
+    assert len(adapter.sent) == 0  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -252,14 +252,14 @@ async def test_shutdown_notification_ignores_pending_sentinels():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert len(adapter.sent) == 0
+    assert len(adapter.sent) == 0  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
 async def test_shutdown_notification_send_failure_does_not_block():
     """If sending a notification fails, the method still completes."""
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock(side_effect=Exception("network error"))
+    adapter.send = AsyncMock(side_effect=Exception("network error"))  # ty: ignore[invalid-assignment]
     session_key = "agent:main:telegram:dm:999"
     runner._running_agents[session_key] = MagicMock()
 
@@ -280,7 +280,7 @@ async def test_shutdown_notification_suppressed_when_flag_disabled():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert adapter.sent == []
+    assert adapter.sent == []  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -298,14 +298,14 @@ async def test_shutdown_notification_home_channel_suppressed_when_flag_disabled(
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert adapter.sent == []
+    assert adapter.sent == []  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
 async def test_shutdown_notification_uses_persisted_origin_for_colon_ids():
     """Shutdown notifications should route from persisted origin, not reparsed keys."""
     runner, adapter = make_restart_runner()
-    adapter.send = AsyncMock()
+    adapter.send = AsyncMock()  # ty: ignore[invalid-assignment]
     source = make_restart_source(chat_id="!room123:example.org", chat_type="group")
     source.platform = gateway_run.Platform.MATRIX
     session_key = build_session_key(source)
@@ -325,5 +325,5 @@ async def test_shutdown_notification_uses_persisted_origin_for_colon_ids():
 
     await runner._notify_active_sessions_of_shutdown()
 
-    assert adapter.send.await_count == 1
-    assert adapter.send.await_args.args[0] == "!room123:example.org"
+    assert adapter.send.await_count == 1  # ty: ignore[unresolved-attribute]
+    assert adapter.send.await_args.args[0] == "!room123:example.org"  # ty: ignore[unresolved-attribute]

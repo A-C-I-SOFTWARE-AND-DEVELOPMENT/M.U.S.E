@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import httpx
-from fastmcp import FastMCP
+from fastmcp import FastMCP  # ty: ignore[unresolved-import]
 
 
 mcp = FastMCP("__SERVER_NAME__")

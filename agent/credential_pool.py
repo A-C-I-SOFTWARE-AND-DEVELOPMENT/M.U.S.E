@@ -11,7 +11,7 @@ import uuid
 import re
 from dataclasses import dataclass, fields, replace
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
 from hermes_constants import OPENROUTER_BASE_URL
 from hermes_cli.config import get_env_value, load_env
@@ -114,7 +114,7 @@ class PooledCredential:
     agent_key: Optional[str] = None
     agent_key_expires_at: Optional[str] = None
     request_count: int = 0
-    extra: Dict[str, Any] = None  # type: ignore[assignment]
+    extra: Dict[str, Any] = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # __post_init__ normalizes None -> {}
 
     def __post_init__(self):
         if self.extra is None:
@@ -128,7 +128,7 @@ class PooledCredential:
     @classmethod
     def from_dict(cls, provider: str, payload: Dict[str, Any]) -> "PooledCredential":
         field_names = {f.name for f in fields(cls) if f.name != "provider"}
-        data = {k: payload.get(k) for k in field_names if k in payload}
+        data: Dict[str, Any] = {k: payload.get(k) for k in field_names if k in payload}
         # Rehydrated last_status_at may be an ISO string from to_dict() — normalize to float epoch
         if "last_status_at" in data and isinstance(data["last_status_at"], str):
             data["last_status_at"] = _parse_absolute_timestamp(data["last_status_at"])
@@ -806,7 +806,7 @@ class CredentialPool:
                     entry = synced
                 refreshed = auth_mod.refresh_codex_oauth_pure(
                     entry.access_token,
-                    entry.refresh_token,
+                    entry.refresh_token,  # ty: ignore[invalid-argument-type]  # guarded non-None at refresh() entry; sync preserves it
                 )
                 updated = replace(
                     entry,
@@ -825,7 +825,7 @@ class CredentialPool:
                     entry = synced
                 refreshed = auth_mod.refresh_xai_oauth_pure(
                     entry.access_token,
-                    entry.refresh_token,
+                    entry.refresh_token,  # ty: ignore[invalid-argument-type]  # guarded non-None at refresh() entry; sync preserves it
                 )
                 updated = replace(
                     entry,
@@ -860,7 +860,7 @@ class CredentialPool:
                     try:
                         from agent.anthropic_adapter import refresh_anthropic_oauth_pure
                         refreshed = refresh_anthropic_oauth_pure(
-                            synced.refresh_token,
+                            synced.refresh_token,  # ty: ignore[invalid-argument-type]  # != entry.refresh_token (non-None) check above implies present
                             use_json=synced.source.endswith("hermes_pkce"),
                         )
                         updated = replace(
@@ -1062,12 +1062,12 @@ class CredentialPool:
                             if not store_refresh or store_refresh == entry_refresh:
                                 auth_mod._quarantine_nous_oauth_state(
                                     state,
-                                    exc,
+                                    cast("auth_mod.AuthError", exc),  # _is_terminal_nous_refresh_error gate implies AuthError
                                     reason="credential_pool_refresh_failure",
                                 )
                                 auth_mod._quarantine_nous_pool_entries(
                                     auth_store,
-                                    exc,
+                                    cast("auth_mod.AuthError", exc),
                                     reason="credential_pool_refresh_failure",
                                 )
                                 _save_provider_state(auth_store, "nous", state)
@@ -1692,6 +1692,7 @@ def _seed_from_singletons(provider: str, entries: List[PooledCredential]) -> Tup
 
         state = _load_provider_state(auth_store, "openai-codex")
         tokens = state.get("tokens") if isinstance(state, dict) else None
+        state_last_refresh = state.get("last_refresh") if isinstance(state, dict) else None
         # Hermes owns its own Codex auth state — we do NOT auto-import from
         # ~/.codex/auth.json at pool-load time.  OAuth refresh tokens are
         # single-use, so sharing them with Codex CLI / VS Code causes
@@ -1710,7 +1711,7 @@ def _seed_from_singletons(provider: str, entries: List[PooledCredential]) -> Tup
                     "access_token": tokens.get("access_token", ""),
                     "refresh_token": tokens.get("refresh_token"),
                     "base_url": "https://chatgpt.com/backend-api/codex",
-                    "last_refresh": state.get("last_refresh"),
+                    "last_refresh": state_last_refresh,
                     "label": label_from_token(tokens.get("access_token", ""), "device_code"),
                 },
             )
@@ -1726,6 +1727,7 @@ def _seed_from_singletons(provider: str, entries: List[PooledCredential]) -> Tup
 
         state = _load_provider_state(auth_store, "xai-oauth")
         tokens = state.get("tokens") if isinstance(state, dict) else None
+        state_last_refresh = state.get("last_refresh") if isinstance(state, dict) else None
         if isinstance(tokens, dict) and tokens.get("access_token"):
             active_sources.add("loopback_pkce")
             from hermes_cli.auth import DEFAULT_XAI_OAUTH_BASE_URL
@@ -1741,7 +1743,7 @@ def _seed_from_singletons(provider: str, entries: List[PooledCredential]) -> Tup
                     "access_token": tokens.get("access_token", ""),
                     "refresh_token": tokens.get("refresh_token"),
                     "base_url": base_url,
-                    "last_refresh": state.get("last_refresh"),
+                    "last_refresh": state_last_refresh,
                     "label": label_from_token(tokens.get("access_token", ""), "loopback_pkce"),
                 },
             )

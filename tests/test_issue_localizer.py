@@ -67,7 +67,7 @@ def test_signals_are_explainable(repo: Path):
     top = results[0]
     assert top.path == "app/auth_login.py"
     d = top.to_dict()
-    assert set(d["signals"]) == {"lexical", "path", "symbol", "test", "git"}
+    assert set(d["signals"]) == {"lexical", "path", "symbol", "test", "git"}  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     assert d["matched_terms"]
 
 

@@ -13,7 +13,7 @@ import math
 from collections.abc import Iterator
 from pathlib import Path
 
-import pytest  # ty: ignore[unresolved-import]
+import pytest
 
 from gateway.cockpit import handlers as h
 from gateway.cockpit import handlers_observatory as ho

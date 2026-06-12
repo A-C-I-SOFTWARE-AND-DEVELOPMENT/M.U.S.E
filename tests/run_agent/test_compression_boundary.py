@@ -5,6 +5,7 @@ so that parallel tool calls are never split during compression.
 """
 
 import pytest
+from typing import Any
 from unittest.mock import patch, MagicMock
 
 from agent.context_compressor import ContextCompressor
@@ -30,7 +31,7 @@ def _assistant_with_tools(*call_ids: str) -> dict:
 
 
 def _make_compressor(**kwargs) -> ContextCompressor:
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         model="test-model",
         threshold_percent=0.75,
         protect_first_n=3,

@@ -179,15 +179,24 @@ class TestClarifySchema:
 
     def test_schema_question_required(self):
         """Question parameter should be required."""
-        assert "question" in CLARIFY_SCHEMA["parameters"]["required"]
+        params = CLARIFY_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        assert "question" in params["required"]
 
     def test_schema_choices_optional(self):
         """Choices parameter should be optional."""
-        assert "choices" not in CLARIFY_SCHEMA["parameters"]["required"]
+        params = CLARIFY_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        assert "choices" not in params["required"]
 
     def test_schema_choices_max_items(self):
         """Schema should specify max items for choices."""
-        choices_spec = CLARIFY_SCHEMA["parameters"]["properties"]["choices"]
+        params = CLARIFY_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
+        choices_spec = props["choices"]
+        assert isinstance(choices_spec, dict)
         assert choices_spec.get("maxItems") == MAX_CHOICES
 
     def test_max_choices_is_four(self):

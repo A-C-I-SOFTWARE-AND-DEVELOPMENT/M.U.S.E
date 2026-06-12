@@ -23,7 +23,7 @@ import shutil
 import subprocess
 import tempfile
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw  # ty: ignore[unresolved-import]
 
 
 # ── Pixel drawing helpers ──────────────────────────────────────────────

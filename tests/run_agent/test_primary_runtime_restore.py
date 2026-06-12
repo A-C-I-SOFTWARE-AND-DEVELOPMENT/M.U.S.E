@@ -102,7 +102,9 @@ class TestPrimaryRuntimeSnapshot:
                 skip_context_files=True,
                 skip_memory=True,
             )
+        assert hasattr(agent, "_primary_runtime")
         rt = agent._primary_runtime
+        assert isinstance(rt, dict)
         assert "anthropic_api_key" in rt
         assert "anthropic_base_url" in rt
         assert "is_anthropic_oauth" in rt

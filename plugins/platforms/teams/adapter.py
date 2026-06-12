@@ -27,7 +27,7 @@ import html
 import json
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, cast
 from urllib.parse import quote
 
 # httpx is imported lazily — only the ``_write_summary_via_incoming_webhook``
@@ -39,54 +39,57 @@ from urllib.parse import quote
 # runtime; nothing in the codebase calls ``typing.get_type_hints()`` on
 # this class so the annotation never has to resolve to a real symbol.
 
+if TYPE_CHECKING:
+    import httpx
+
 try:
     from aiohttp import web
 
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    web = None  # type: ignore[assignment]
+    web = cast(Any, None)
 
 try:
-    from microsoft_teams.apps import App, ActivityContext
-    from microsoft_teams.common.http.client import ClientOptions
-    from microsoft_teams.api import MessageActivity, ConversationReference
-    from microsoft_teams.api.activities.typing import TypingActivityInput
-    from microsoft_teams.api.activities.invoke.adaptive_card import AdaptiveCardInvokeActivity
-    from microsoft_teams.api.models.adaptive_card import (
+    from microsoft_teams.apps import App, ActivityContext  # ty: ignore[unresolved-import]
+    from microsoft_teams.common.http.client import ClientOptions  # ty: ignore[unresolved-import]
+    from microsoft_teams.api import MessageActivity, ConversationReference  # ty: ignore[unresolved-import]
+    from microsoft_teams.api.activities.typing import TypingActivityInput  # ty: ignore[unresolved-import]
+    from microsoft_teams.api.activities.invoke.adaptive_card import AdaptiveCardInvokeActivity  # ty: ignore[unresolved-import]
+    from microsoft_teams.api.models.adaptive_card import (  # ty: ignore[unresolved-import]
         AdaptiveCardActionCardResponse,
         AdaptiveCardActionMessageResponse,
     )
-    from microsoft_teams.api.models.invoke_response import InvokeResponse, AdaptiveCardInvokeResponse
-    from microsoft_teams.apps.http.adapter import (
+    from microsoft_teams.api.models.invoke_response import InvokeResponse, AdaptiveCardInvokeResponse  # ty: ignore[unresolved-import]
+    from microsoft_teams.apps.http.adapter import (  # ty: ignore[unresolved-import]
         HttpMethod,
         HttpRequest,
         HttpResponse,
         HttpRouteHandler,
     )
-    from microsoft_teams.cards import AdaptiveCard, ExecuteAction, TextBlock
+    from microsoft_teams.cards import AdaptiveCard, ExecuteAction, TextBlock  # ty: ignore[unresolved-import]
 
     TEAMS_SDK_AVAILABLE = True
 except ImportError:
     TEAMS_SDK_AVAILABLE = False
-    ClientOptions = None  # type: ignore[assignment,misc]
-    App = None  # type: ignore[assignment,misc]
-    ActivityContext = None  # type: ignore[assignment,misc]
-    MessageActivity = None  # type: ignore[assignment,misc]
-    ConversationReference = None  # type: ignore[assignment,misc]
-    TypingActivityInput = None  # type: ignore[assignment,misc]
-    AdaptiveCardInvokeActivity = None  # type: ignore[assignment,misc]
-    AdaptiveCardActionCardResponse = None  # type: ignore[assignment,misc]
-    AdaptiveCardActionMessageResponse = None  # type: ignore[assignment,misc]
-    AdaptiveCardInvokeResponse = None  # type: ignore[assignment,misc,union-attr]
-    InvokeResponse = None  # type: ignore[assignment,misc]
+    ClientOptions = cast(Any, None)
+    App = cast(Any, None)
+    ActivityContext = cast(Any, None)
+    MessageActivity = cast(Any, None)
+    ConversationReference = cast(Any, None)
+    TypingActivityInput = cast(Any, None)
+    AdaptiveCardInvokeActivity = cast(Any, None)
+    AdaptiveCardActionCardResponse = cast(Any, None)
+    AdaptiveCardActionMessageResponse = cast(Any, None)
+    AdaptiveCardInvokeResponse = cast(Any, None)
+    InvokeResponse = cast(Any, None)
     HttpMethod = str  # type: ignore[assignment,misc]
-    HttpRequest = None  # type: ignore[assignment,misc]
-    HttpResponse = None  # type: ignore[assignment,misc]
-    HttpRouteHandler = None  # type: ignore[assignment,misc]
-    AdaptiveCard = None  # type: ignore[assignment,misc]
-    ExecuteAction = None  # type: ignore[assignment,misc]
-    TextBlock = None  # type: ignore[assignment,misc]
+    HttpRequest = cast(Any, None)
+    HttpResponse = cast(Any, None)
+    HttpRouteHandler = cast(Any, None)
+    AdaptiveCard = cast(Any, None)
+    ExecuteAction = cast(Any, None)
+    TextBlock = cast(Any, None)
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.helpers import MessageDeduplicator
@@ -285,7 +288,7 @@ class TeamsSummaryWriter:
         access_token = str(config.get("access_token") or "").strip()
         if access_token:
             return MicrosoftGraphClient(
-                _StaticAccessTokenProvider(access_token),
+                _StaticAccessTokenProvider(access_token),  # ty: ignore[invalid-argument-type]  # duck-typed token provider shim
                 transport=self._transport,
             )
         return MicrosoftGraphClient(
@@ -668,7 +671,7 @@ class TeamsAdapter(BasePlatformAdapter):
         try:
             # Set up aiohttp app first — the bridge adapter wires SDK routes into it
             aiohttp_app = web.Application()
-            aiohttp_app.router.add_get("/health", lambda _: web.Response(text="ok"))
+            aiohttp_app.router.add_get("/health", lambda _: web.Response(text="ok"))  # ty: ignore[invalid-argument-type]  # aiohttp accepts sync handlers
 
             self._app = App(
                 client_id=self._client_id,
@@ -808,7 +811,7 @@ class TeamsAdapter(BasePlatformAdapter):
 
     async def _send_card(self, chat_id: str, card: "AdaptiveCard") -> "Any":
         """Send an AdaptiveCard, using a stored ConversationReference when available."""
-        from microsoft_teams.api import MessageActivityInput
+        from microsoft_teams.api import MessageActivityInput  # ty: ignore[unresolved-import]
 
         conv_ref = self._conv_refs.get(chat_id)
         if conv_ref and self._app:
@@ -1033,7 +1036,7 @@ class TeamsAdapter(BasePlatformAdapter):
         try:
             import base64
             import mimetypes
-            from microsoft_teams.api import Attachment, MessageActivityInput
+            from microsoft_teams.api import Attachment, MessageActivityInput  # ty: ignore[unresolved-import]
 
             if image_url.startswith("http://") or image_url.startswith("https://"):
                 content_url = image_url
@@ -1067,6 +1070,7 @@ class TeamsAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         return await self.send_image(

@@ -115,7 +115,7 @@ class TestTokenBudgetWithImages:
         # image-tokens fix, the compressor would think all 10 fit in 5K and
         # protect them all. With the fix, images alone cost 5 × 1600 = 8K,
         # so the tail should be trimmed.
-        messages = [{"role": "system", "content": "sys"}]
+        messages: list[dict] = [{"role": "system", "content": "sys"}]
         for i in range(5):
             messages.append({
                 "role": "user",

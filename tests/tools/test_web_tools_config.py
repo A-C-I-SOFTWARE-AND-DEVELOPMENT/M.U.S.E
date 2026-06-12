@@ -414,8 +414,8 @@ class TestParallelClientConfig:
             def __init__(self, api_key):
                 self.api_key = api_key
 
-        fake_parallel.Parallel = Parallel
-        fake_parallel.AsyncParallel = AsyncParallel
+        fake_parallel.Parallel = Parallel  # ty: ignore[unresolved-attribute]
+        fake_parallel.AsyncParallel = AsyncParallel  # ty: ignore[unresolved-attribute]
         sys.modules["parallel"] = fake_parallel
 
     def teardown_method(self):
@@ -454,18 +454,23 @@ class TestWebSearchSchema:
     def test_schema_exposes_optional_limit(self):
         import tools.web_tools
 
-        limit_schema = tools.web_tools.WEB_SEARCH_SCHEMA["parameters"]["properties"]["limit"]
+        params = tools.web_tools.WEB_SEARCH_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
+        limit_schema = props["limit"]
 
         assert limit_schema["type"] == "integer"
         assert limit_schema["minimum"] == 1
         assert limit_schema["maximum"] == 100
         assert limit_schema["default"] == 5
-        assert "limit" not in tools.web_tools.WEB_SEARCH_SCHEMA["parameters"]["required"]
+        assert "limit" not in params["required"]
 
     def test_registered_handler_passes_limit(self):
         import tools.web_tools
 
         entry = tools.web_tools.registry.get_entry("web_search")
+        assert entry is not None
         with patch("tools.web_tools.web_search_tool", return_value='{"success": true}') as mock_search:
             result = entry.handler({"query": "site:example.com docs", "limit": 12})
 
@@ -476,6 +481,7 @@ class TestWebSearchSchema:
         import tools.web_tools
 
         entry = tools.web_tools.registry.get_entry("web_search")
+        assert entry is not None
         with patch("tools.web_tools.web_search_tool", return_value='{"success": true}') as mock_search:
             result = entry.handler({"query": "docs"})
 

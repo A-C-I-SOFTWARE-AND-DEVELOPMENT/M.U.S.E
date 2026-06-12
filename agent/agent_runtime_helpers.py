@@ -229,7 +229,7 @@ def sanitize_tool_call_arguments(
     messages: list,
     *,
     logger=None,
-    session_id: str = None,
+    session_id: Optional[str] = None,
 ) -> int:
     """Repair corrupted assistant tool-call argument JSON in-place."""
     log = logger or logging.getLogger(__name__)
@@ -1485,7 +1485,7 @@ def switch_model(agent, new_model, new_provider, api_key='', base_url='', api_mo
 
 
 def invoke_tool(agent, function_name: str, function_args: dict, effective_task_id: str,
-                 tool_call_id: Optional[str] = None, messages: list = None,
+                 tool_call_id: Optional[str] = None, messages: Optional[list] = None,
                  pre_tool_block_checked: bool = False) -> str:
     """Invoke a single tool and return the result string. No display logic.
 

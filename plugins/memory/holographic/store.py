@@ -7,11 +7,12 @@ import re
 import sqlite3
 import threading
 from pathlib import Path
+from typing import Any
 
 try:
     from . import holographic as hrr
 except ImportError:
-    import holographic as hrr  # type: ignore[no-redef]
+    import holographic as hrr  # type: ignore[no-redef]  # ty: ignore[unresolved-import]
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS facts (
@@ -121,7 +122,7 @@ class MemoryStore:
         self._hrr_available = hrr._HAS_NUMPY
         # Optional dense-embedding backend. When None (default) or unavailable,
         # no embeddings are computed and recall is unchanged from before.
-        self._embedding_backend = embedding_backend
+        self._embedding_backend: Any = embedding_backend
         self._embeddings_enabled = bool(
             embedding_backend is not None and embedding_backend.is_available()
         )
@@ -209,7 +210,7 @@ class MemoryStore:
                     (content, category, tags, self.default_trust, imp),
                 )
                 self._conn.commit()
-                fact_id: int = cur.lastrowid  # type: ignore[assignment]
+                fact_id: int = cur.lastrowid  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
             except sqlite3.IntegrityError:
                 # Duplicate content — return existing id
                 row = self._conn.execute(
@@ -500,7 +501,7 @@ class MemoryStore:
             "INSERT INTO entities (name) VALUES (?)", (name,)
         )
         self._conn.commit()
-        return int(cur.lastrowid)  # type: ignore[return-value]
+        return int(cur.lastrowid)  # type: ignore[return-value]  # ty: ignore[invalid-argument-type]
 
     def _link_fact_entity(self, fact_id: int, entity_id: int) -> None:
         """Insert into fact_entities, silently ignore if the link already exists."""

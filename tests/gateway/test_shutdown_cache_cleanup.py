@@ -109,7 +109,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw._agent_cache["session-1"] = (agent, "sig-123")
 
         # Call the real stop() from GatewayRunner
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         agent.shutdown_memory_provider.assert_called_once()
 
@@ -120,7 +120,7 @@ class TestCachedAgentCleanupOnShutdown:
         agent = _make_mock_agent()
         gw._agent_cache["s1"] = (agent, "sig1")
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         assert len(gw._agent_cache) == 0
 
@@ -129,7 +129,7 @@ class TestCachedAgentCleanupOnShutdown:
         """stop() works fine when _agent_cache is empty."""
         gw = _FakeGateway()
 
-        await gw_mod.GatewayRunner.stop(gw)  # Should not raise
+        await gw_mod.GatewayRunner.stop(gw)  # Should not raise  # ty: ignore[invalid-argument-type]
 
         assert len(gw._agent_cache) == 0
 
@@ -143,7 +143,7 @@ class TestCachedAgentCleanupOnShutdown:
             agents.append(a)
             gw._agent_cache[f"s{i}"] = (a, f"sig{i}")
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         for a in agents:
             a.shutdown_memory_provider.assert_called_once()
@@ -162,7 +162,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw._agent_cache["bad"] = (bad, "sig-bad")
         gw._agent_cache["good"] = (good, "sig-good")
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         # The good agent should still be cleaned up
         good.shutdown_memory_provider.assert_called_once()
@@ -174,7 +174,7 @@ class TestCachedAgentCleanupOnShutdown:
         agent = _make_mock_agent()
         gw._agent_cache["s1"] = agent  # Not a tuple
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         agent.shutdown_memory_provider.assert_called_once()
         assert len(gw._agent_cache) == 0
@@ -185,7 +185,7 @@ class TestCachedAgentCleanupOnShutdown:
         gw = _FakeGateway()
         gw._agent_cache["s1"] = None
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         assert len(gw._agent_cache) == 0
 
@@ -203,7 +203,7 @@ class TestRunningAgentsNotDoubleCleaned:
         gw._running_agents["s1"] = shared
         gw._agent_cache["s1"] = (shared, "sig1")
 
-        await gw_mod.GatewayRunner.stop(gw)
+        await gw_mod.GatewayRunner.stop(gw)  # ty: ignore[invalid-argument-type]
 
         # Called at least once — either from _finalize_shutdown_agents
         # or from the cache sweep (or both)

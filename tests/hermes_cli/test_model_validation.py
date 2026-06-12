@@ -686,7 +686,7 @@ class TestValidateApiFallback:
             url="http://localhost:1234/api/v1/models",
             code=401,
             msg="Unauthorized",
-            hdrs=None,
+            hdrs=None,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             fp=None,
         )
 
@@ -714,7 +714,7 @@ class TestValidateApiFallback:
             url="http://localhost:1234/api/v1/models",
             code=401,
             msg="Unauthorized",
-            hdrs=None,
+            hdrs=None,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             fp=None,
         )
 

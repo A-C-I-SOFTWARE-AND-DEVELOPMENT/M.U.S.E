@@ -515,7 +515,7 @@ async def _start_runner(app: "web.Application"):
     await runner.setup()
     site = web.TCPSite(runner, host="127.0.0.1", port=0)
     await site.start()
-    sockets = list(site._server.sockets)  # type: ignore[union-attr]
+    sockets = list(site._server.sockets)  # type: ignore[union-attr]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     port = sockets[0].getsockname()[1]
     return runner, f"http://127.0.0.1:{port}"
 

@@ -21,7 +21,7 @@ def _book_with_active(tmp_path) -> CharterBook:
         per_window_budget=3,
         window_seconds=86400,
         ttl_seconds=3600,
-        grant=grant,
+        grant=grant,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         persist=False,
     )
     return book

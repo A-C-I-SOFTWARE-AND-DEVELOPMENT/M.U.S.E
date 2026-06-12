@@ -69,10 +69,10 @@ def test_capture_writes_session_proposed_nodes(tmp_path) -> None:
     results = capture_to_tree(store, cands)
     assert results and all(r.ok for r in results)
     node = results[0].node
-    assert node.layer is MemoryLayer.SESSION
-    assert node.approval_state is ApprovalState.PROPOSED
+    assert node.layer is MemoryLayer.SESSION  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    assert node.approval_state is ApprovalState.PROPOSED  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # Captured candidates are never durable until owner promotion.
-    assert node.layer is not MemoryLayer.DURABLE
+    assert node.layer is not MemoryLayer.DURABLE  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     assert node in store.proposed()
 
 

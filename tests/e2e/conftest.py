@@ -1,3 +1,4 @@
+from typing import TYPE_CHECKING, Optional
 """Shared fixtures for gateway e2e tests (Telegram, Discord).
 
 These tests exercise the full async message flow:
@@ -117,7 +118,7 @@ _ensure_telegram_mock()
 _ensure_discord_mock()
 _ensure_slack_mock()
 
-import discord  # noqa: E402 — mocked above
+import discord  # noqa: E402 — mocked above  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
 from gateway.platforms.telegram import TelegramAdapter  # noqa: E402
 from gateway.platforms.discord import DiscordAdapter  # noqa: E402
 
@@ -138,7 +139,7 @@ def make_source(platform: Platform, chat_id: str = "e2e-chat-1", user_id: str = 
     )
 
 
-def make_session_entry(platform: Platform, source: SessionSource = None) -> SessionEntry:
+def make_session_entry(platform: Platform, source: SessionSource = None) -> SessionEntry:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
     source = source or make_source(platform)
     return SessionEntry(
         session_key=build_session_key(source),
@@ -164,7 +165,11 @@ def make_event(
     )
 
 
-def make_runner(platform: Platform, session_entry: SessionEntry = None) -> "GatewayRunner":
+if TYPE_CHECKING:
+    from gateway.run import GatewayRunner
+
+
+def make_runner(platform: Platform, session_entry: Optional[SessionEntry] = None) -> "GatewayRunner":
     """Create a GatewayRunner with mocked internals for e2e testing.
 
     Skips __init__ to avoid filesystem/network side effects.
@@ -254,8 +259,8 @@ def make_adapter(platform: Platform, runner=None):
         adapter = TelegramAdapter(config)
         platform_key = Platform.TELEGRAM
 
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))
-    adapter.send_typing = AsyncMock()
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+    adapter.send_typing = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
     adapter.set_message_handler(runner._handle_message)
     runner.adapters[platform_key] = adapter
@@ -359,7 +364,7 @@ def make_fake_thread(thread_id: int = THREAD_ID, name: str = "test-thread", pare
 
 def make_discord_message(
     *, content: str = "hello", author=None, channel=None, mentions=None,
-    attachments=None, message_id: int = None,
+    attachments=None, message_id: int = None,  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
 ):
     if message_id is None:
         message_id = _next_message_id()
@@ -408,8 +413,8 @@ def _make_discord_adapter_wired(runner=None):
         fetch_channel=AsyncMock(),
     )
 
-    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))
-    adapter.send_typing = AsyncMock()
+    adapter.send = AsyncMock(return_value=SendResult(success=True, message_id="e2e-resp-1"))  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+    adapter.send_typing = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
     adapter.set_message_handler(runner._handle_message)
     runner.adapters[Platform.DISCORD] = adapter
 

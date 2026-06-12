@@ -37,8 +37,8 @@ try:
 
     _WS_AVAILABLE = True
 except ImportError:
-    websockets = None  # type: ignore[assignment]
-    WebSocketException = Exception  # type: ignore[assignment,misc]
+    websockets = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]
+    WebSocketException = Exception  # type: ignore[assignment,misc]  # ty: ignore[invalid-assignment]
     _WS_AVAILABLE = False
 
 

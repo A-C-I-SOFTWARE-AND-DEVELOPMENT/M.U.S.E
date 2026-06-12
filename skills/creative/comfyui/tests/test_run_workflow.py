@@ -7,8 +7,8 @@ import json
 
 import pytest
 
-from extract_schema import extract_schema
-from run_workflow import (
+from extract_schema import extract_schema  # ty: ignore[unresolved-import]
+from run_workflow import (  # ty: ignore[unresolved-import]
     ComfyRunner,
     download_outputs,
     inject_params,

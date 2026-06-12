@@ -119,7 +119,7 @@ class TestWecomCallbackRouting:
                 calls["json"] = json
                 return FakeResponse()
 
-        adapter._http_client = FakeClient()
+        adapter._http_client = FakeClient()  # ty: ignore[invalid-assignment]
         result = await adapter.send("corpB:alice", "hello")
 
         assert result.success is True
@@ -146,7 +146,7 @@ class TestWecomCallbackRouting:
                 calls["json"] = json
                 return FakeResponse()
 
-        adapter._http_client = FakeClient()
+        adapter._http_client = FakeClient()  # ty: ignore[invalid-assignment]
         result = await adapter.send("alice", "hello")
 
         assert result.success is True
@@ -177,7 +177,7 @@ class TestWecomCallbackPollLoop:
             """,
         )
         task = asyncio.create_task(adapter._poll_loop())
-        await adapter._message_queue.put(event)
+        await adapter._message_queue.put(event)  # ty: ignore[invalid-argument-type]
         await asyncio.sleep(0.05)
         task.cancel()
         with pytest.raises(asyncio.CancelledError):

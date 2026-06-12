@@ -31,7 +31,7 @@ def _run(cli: HermesCLI, command: str) -> str:
 
     old = getattr(cli_mod, "_cprint", None)
     if old is not None:
-        cli_mod._cprint = lambda text: print(text)
+        cli_mod._cprint = lambda text: print(text)  # ty: ignore[invalid-assignment]
 
     try:
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):

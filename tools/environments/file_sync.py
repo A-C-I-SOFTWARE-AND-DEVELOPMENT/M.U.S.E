@@ -20,7 +20,7 @@ import time
 try:
     import fcntl
 except ImportError:
-    fcntl = None  # Windows — file locking skipped
+    fcntl = None  # ty: ignore[invalid-assignment]  # Windows — file locking skipped
 from pathlib import Path
 from typing import Callable
 

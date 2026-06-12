@@ -63,7 +63,7 @@ import tempfile
 import threading
 import time
 import requests
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, cast
 from pathlib import Path
 from agent.auxiliary_client import call_llm
 from hermes_constants import get_hermes_home
@@ -73,7 +73,8 @@ from hermes_cli.config import cfg_get
 try:
     from tools.website_policy import check_website_access
 except Exception:
-    check_website_access = lambda url: None  # noqa: E731 — fail-open if policy module unavailable
+    def check_website_access(url: str, config_path: Optional[Path] = None) -> Optional[Dict[str, str]]:
+        return None  # fail-open if policy module unavailable
 
 try:
     from tools.url_safety import (
@@ -81,8 +82,11 @@ try:
         is_always_blocked_url as _is_always_blocked_url,
     )
 except Exception:
-    _is_safe_url = lambda url: False  # noqa: E731 — fail-closed: block all if safety module unavailable
-    _is_always_blocked_url = lambda url: True  # noqa: E731 — fail-closed on the floor too
+    def _is_safe_url(url: str) -> bool:
+        return False  # fail-closed: block all if safety module unavailable
+
+    def _is_always_blocked_url(url: str) -> bool:
+        return True  # fail-closed on the floor too
 # Browser-provider ABC + registry — PR #25214 moved the per-vendor providers
 # (Browserbase / Browser Use / Firecrawl) out of ``tools/browser_providers/``
 # and into ``plugins/browser/<vendor>/``. The dispatcher consults the
@@ -109,7 +113,8 @@ from tools.tool_backend_helpers import normalize_browser_cloud_provider
 try:
     from tools.browser_camofox import is_camofox_mode as _is_camofox_mode
 except ImportError:
-    _is_camofox_mode = lambda: False  # noqa: E731
+    def _is_camofox_mode() -> bool:
+        return False
 
 logger = logging.getLogger(__name__)
 
@@ -206,7 +211,7 @@ def _get_command_timeout() -> int:
     """
     global _cached_command_timeout, _command_timeout_resolved
     if _command_timeout_resolved:
-        return _cached_command_timeout  # type: ignore[return-value]
+        return cast(int, _cached_command_timeout)
 
     _command_timeout_resolved = True
     result = DEFAULT_COMMAND_TIMEOUT
@@ -650,7 +655,7 @@ def _get_browser_engine() -> str:
     """
     global _cached_browser_engine, _browser_engine_resolved
     if _browser_engine_resolved:
-        return _cached_browser_engine
+        return cast(str, _cached_browser_engine)
 
     _browser_engine_resolved = True
     _cached_browser_engine = "auto"  # safe default
@@ -1116,7 +1121,7 @@ def _allow_private_urls() -> bool:
     """
     global _cached_allow_private_urls, _allow_private_urls_resolved
     if _allow_private_urls_resolved:
-        return _cached_allow_private_urls
+        return cast(bool, _cached_allow_private_urls)
 
     _allow_private_urls_resolved = True
     _cached_allow_private_urls = False  # safe default
@@ -1159,7 +1164,7 @@ def _socket_safe_tmpdir() -> str:
 # cleanup_browser code paths — the key is opaque to those internals.
 #
 # Stores: session_name (always), bb_session_id + cdp_url (cloud mode only)
-_active_sessions: Dict[str, Dict[str, str]] = {}  # session_key -> {session_name, ...}
+_active_sessions: Dict[str, Dict[str, Any]] = {}  # session_key -> {session_name, ...}
 _recording_sessions: set = set()  # session_keys with active recordings
 
 # Tracks the most recent session_key used per task_id. Set by browser_navigate()
@@ -1466,7 +1471,7 @@ atexit.register(_stop_browser_cleanup_thread)
 # Tool Schemas
 # ============================================================================
 
-BROWSER_TOOL_SCHEMAS = [
+BROWSER_TOOL_SCHEMAS: List[Dict[str, Any]] = [
     {
         "name": "browser_navigate",
         "description": "Navigate to a URL in the browser. Initializes the session and loads the page. Must be called before other browser tools. For simple information retrieval, prefer web_search or web_extract (faster, cheaper). For plain-text endpoints — URLs ending in .md, .txt, .json, .yaml, .yml, .csv, .xml, raw.githubusercontent.com, or any documented API endpoint — prefer curl via the terminal tool or web_extract; the browser stack is overkill and much slower for these. Use browser tools when you need to interact with a page (click, fill forms, dynamic content). Returns a compact page snapshot with interactive elements and ref IDs — no need to call browser_snapshot separately after navigating.",
@@ -1620,7 +1625,7 @@ BROWSER_TOOL_SCHEMAS = [
 # Utility Functions
 # ============================================================================
 
-def _create_local_session(task_id: str) -> Dict[str, str]:
+def _create_local_session(task_id: str) -> Dict[str, Any]:
     import uuid
     session_name = f"h_{uuid.uuid4().hex[:10]}"
     logger.info("Created local browser session %s for task %s",
@@ -1633,7 +1638,7 @@ def _create_local_session(task_id: str) -> Dict[str, str]:
     }
 
 
-def _create_cdp_session(task_id: str, cdp_url: str) -> Dict[str, str]:
+def _create_cdp_session(task_id: str, cdp_url: str) -> Dict[str, Any]:
     """Create a session that connects to a user-supplied CDP endpoint."""
     import uuid
     session_name = f"cdp_{uuid.uuid4().hex[:10]}"
@@ -1647,7 +1652,7 @@ def _create_cdp_session(task_id: str, cdp_url: str) -> Dict[str, str]:
     }
 
 
-def _get_session_info(task_id: Optional[str] = None) -> Dict[str, str]:
+def _get_session_info(task_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Get or create session info for the given session key.
 
@@ -1874,7 +1879,7 @@ def _extract_screenshot_path_from_text(text: str) -> Optional[str]:
 def _run_browser_command(
     task_id: str,
     command: str,
-    args: List[str] = None,
+    args: Optional[List[str]] = None,
     timeout: Optional[int] = None,
     _engine_override: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -2233,7 +2238,7 @@ def _extract_relevant_content(
     extraction_prompt = redact_sensitive_text(extraction_prompt)
 
     try:
-        call_kwargs = {
+        call_kwargs: Dict[str, Any] = {
             "task": "web_extract",
             "messages": [{"role": "user", "content": extraction_prompt}],
             "max_tokens": 4000,
@@ -2661,7 +2666,7 @@ def browser_scroll(direction: str, task_id: Optional[str] = None) -> str:
         result = None
         for _ in range(_SCROLL_REPEATS):
             result = camofox_scroll(direction, task_id)
-        return result
+        return cast(str, result)
 
     effective_task_id = _last_session_key(task_id or "default")
 
@@ -3117,7 +3122,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         _cleanup_old_screenshots(screenshots_dir, max_age_hours=24)
 
         if _lp_prerouted and screenshot_path.exists():
-            result = {
+            result: Dict[str, Any] = {
                 "success": True,
                 "data": {
                     "path": str(screenshot_path),
@@ -3218,7 +3223,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         except Exception:
             pass
 
-        call_kwargs = {
+        call_kwargs: Dict[str, Any] = {
             "task": "vision",
             "messages": [
                 {
@@ -3261,7 +3266,7 @@ def browser_vision(question: str, annotate: bool = False, task_id: Optional[str]
         # Redact secrets the vision LLM may have read from the screenshot.
         from agent.redact import redact_sensitive_text
         analysis = redact_sensitive_text(analysis)
-        response_data = {
+        response_data: Dict[str, Any] = {
             "success": True,
             "analysis": analysis or "Vision analysis returned no content.",
             "screenshot_path": str(screenshot_path),

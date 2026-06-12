@@ -85,7 +85,7 @@ class TestHandleUpdateCommand:
             # Patch Path to control this.
             original_path = Path
 
-            class FakePath(type(Path())):
+            class FakePath(type(Path())):  # ty: ignore[unsupported-base]
                 pass
 
             # Actually, simplest: just patch the specific file attr

@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 # Try importing mautrix; skip entire file if not available.
 try:
-    import mautrix as _mautrix_probe
+    import mautrix as _mautrix_probe  # ty: ignore[unresolved-import]
     if not isinstance(_mautrix_probe, types.ModuleType) or not hasattr(_mautrix_probe, "__file__"):
         pytest.skip("mautrix in sys.modules is a mock, not the real package", allow_module_level=True)
 except ImportError:

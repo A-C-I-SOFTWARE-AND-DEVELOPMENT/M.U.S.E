@@ -19,7 +19,7 @@ from pathlib import Path
 
 import defusedxml.minidom
 
-from validators import DOCXSchemaValidator, PPTXSchemaValidator, RedliningValidator
+from validators import DOCXSchemaValidator, PPTXSchemaValidator, RedliningValidator  # ty: ignore[unresolved-import]
 
 def pack(
     input_directory: str,

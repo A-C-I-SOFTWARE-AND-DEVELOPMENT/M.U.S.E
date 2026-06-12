@@ -7,7 +7,7 @@ import pytest
 # tiktoken is not in core/[all] deps — skip estimation tests when unavailable
 _has_tiktoken = True
 try:
-    import tiktoken  # noqa: F401
+    import tiktoken  # noqa: F401  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
 except ImportError:
     _has_tiktoken = False
 

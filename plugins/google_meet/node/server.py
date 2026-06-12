@@ -175,7 +175,7 @@ class NodeServer:
         Blocks forever. Callers typically wrap this in ``asyncio.run``.
         """
         try:
-            import websockets  # type: ignore
+            import websockets
         except ImportError as exc:
             raise RuntimeError(
                 "NodeServer.serve requires the 'websockets' package. "

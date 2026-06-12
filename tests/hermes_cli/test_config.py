@@ -730,5 +730,7 @@ class TestDiscordChannelPromptsConfig:
 class TestUserMessagePreviewConfig:
     def test_default_config_preview_line_counts(self):
         preview = DEFAULT_CONFIG["display"]["user_message_preview"]
+        assert preview is not None
         assert preview["first_lines"] == 2
+        assert preview is not None
         assert preview["last_lines"] == 2

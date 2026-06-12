@@ -24,7 +24,7 @@ import tempfile
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, cast
 
 logger = logging.getLogger(__name__)
 
@@ -508,7 +508,7 @@ def _ensure_hermes_home_managed(home: Path):
 # Config loading/saving
 # =============================================================================
 
-DEFAULT_CONFIG = {
+DEFAULT_CONFIG: Dict[str, Any] = {
     "model": "",
     "providers": {},
     "fallback_providers": [],
@@ -1772,7 +1772,7 @@ ENV_VARS_BY_VERSION: Dict[int, List[str]] = {
 REQUIRED_ENV_VARS = {}
 
 # Optional environment variables that enhance functionality
-OPTIONAL_ENV_VARS = {
+OPTIONAL_ENV_VARS: Dict[str, Dict[str, Any]] = {
     # ── Provider (handled in provider selection, not shown in checklists) ──
     "NOUS_BASE_URL": {
         "description": "Nous Portal base URL override",
@@ -4587,8 +4587,7 @@ def load_env() -> Dict[str, str]:
         # On Windows, open() defaults to the system locale (cp1252) which can
         # fail on UTF-8 .env files. Always use explicit UTF-8; tolerate BOM
         # via utf-8-sig since users may edit .env in Notepad which adds one.
-        open_kw = {"encoding": "utf-8-sig", "errors": "replace"}
-        with open(env_path, **open_kw) as f:
+        with open(env_path, encoding="utf-8-sig", errors="replace") as f:
             raw_lines = f.readlines()
         # Sanitize before parsing: split concatenated lines & drop stale
         # placeholders so corrupted .env files don't produce invalid tokens.
@@ -4695,10 +4694,7 @@ def sanitize_env_file() -> int:
     if not env_path.exists():
         return 0
 
-    read_kw = {"encoding": "utf-8-sig", "errors": "replace"}
-    write_kw = {"encoding": "utf-8"}
-
-    with open(env_path, **read_kw) as f:
+    with open(env_path, encoding="utf-8-sig", errors="replace") as f:
         original_lines = f.readlines()
 
     sanitized = _sanitize_env_lines(original_lines)
@@ -4715,7 +4711,7 @@ def sanitize_env_file() -> int:
 
     fd, tmp_path = tempfile.mkstemp(dir=str(env_path.parent), suffix=".tmp", prefix=".env_")
     try:
-        with os.fdopen(fd, "w", **write_kw) as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.writelines(sanitized)
             f.flush()
             os.fsync(f.fileno())
@@ -4790,12 +4786,9 @@ def save_env_value(key: str, value: str):
 
     # On Windows, open() defaults to the system locale (cp1252) which can
     # cause OSError errno 22 on UTF-8 .env files.
-    read_kw = {"encoding": "utf-8-sig", "errors": "replace"}
-    write_kw = {"encoding": "utf-8"}
-
     lines = []
     if env_path.exists():
-        with open(env_path, **read_kw) as f:
+        with open(env_path, encoding="utf-8-sig", errors="replace") as f:
             lines = f.readlines()
         # Sanitize on every read: split concatenated keys, drop stale placeholders
         lines = _sanitize_env_lines(lines)
@@ -4823,7 +4816,7 @@ def save_env_value(key: str, value: str):
         except OSError:
             pass
     try:
-        with os.fdopen(fd, 'w', **write_kw) as f:
+        with os.fdopen(fd, 'w', encoding="utf-8") as f:
             f.writelines(lines)
             f.flush()
             os.fsync(f.fileno())
@@ -4861,10 +4854,7 @@ def remove_env_value(key: str) -> bool:
         os.environ.pop(key, None)
         return False
 
-    read_kw = {"encoding": "utf-8-sig", "errors": "replace"}
-    write_kw = {"encoding": "utf-8"}
-
-    with open(env_path, **read_kw) as f:
+    with open(env_path, encoding="utf-8-sig", errors="replace") as f:
         lines = f.readlines()
     lines = _sanitize_env_lines(lines)
 
@@ -4880,7 +4870,7 @@ def remove_env_value(key: str) -> bool:
         except OSError:
             pass
         try:
-            with os.fdopen(fd, 'w', **write_kw) as f:
+            with os.fdopen(fd, 'w', encoding="utf-8") as f:
                 f.writelines(new_lines)
                 f.flush()
                 os.fsync(f.fileno())
@@ -4971,14 +4961,14 @@ def get_env_value(key: str) -> Optional[str]:
 # Config display
 # =============================================================================
 
-def redact_key(key: str) -> str:
+def redact_key(key: Optional[str]) -> str:
     """Redact an API key for display.
 
     Thin wrapper over :func:`agent.redact.mask_secret` — preserves the
     "(not set)" placeholder in dim color for the empty case.
     """
     from agent.redact import mask_secret
-    return mask_secret(key, empty=color("(not set)", Colors.DIM))
+    return mask_secret(cast(str, key), empty=color("(not set)", Colors.DIM))
 
 
 def show_config():
@@ -5191,7 +5181,7 @@ def edit_config():
     subprocess.run([editor, str(config_path)])
 
 
-def set_config_value(key: str, value: str):
+def set_config_value(key: str, value: Any):
     """Set a configuration value."""
     if is_managed():
         managed_error("set configuration values")
@@ -5495,7 +5485,7 @@ def _inject_platform_plugin_env_vars() -> None:
         return
     _platform_plugin_env_vars_injected = True
     try:
-        import yaml  # type: ignore
+        import yaml
 
         # Resolve the bundled plugins dir from this file's location so the
         # injector works regardless of CWD.

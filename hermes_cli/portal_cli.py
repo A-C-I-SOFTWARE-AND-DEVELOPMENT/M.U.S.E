@@ -84,7 +84,7 @@ def _cmd_status(args) -> int:
 
     # Provider selection (independent of auth)
     model_cfg = config.get("model") if isinstance(config.get("model"), dict) else {}
-    provider = str(model_cfg.get("provider") or "").strip().lower()
+    provider = str(model_cfg.get("provider") or "").strip().lower()  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
     if provider == "nous":
         print(f"  Model:   {color('✓ using Nous as inference provider', Colors.GREEN)}")
     elif provider:

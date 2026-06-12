@@ -245,6 +245,7 @@ class TestCredentialIo:
         update_project_ids(project_id="new-proj", managed_project_id="mgr-xyz")
 
         loaded = load_credentials()
+        assert loaded is not None
         assert loaded.project_id == "new-proj"
         assert loaded.managed_project_id == "mgr-xyz"
 
@@ -282,7 +283,7 @@ class TestGetValidAccessToken:
     def _save(self, **over):
         from agent.google_oauth import GoogleCredentials, save_credentials
 
-        defaults = {
+        defaults: dict = {
             "access_token": "at",
             "refresh_token": "rt",
             "expires_ms": int((time.time() + 3600) * 1000),
@@ -333,7 +334,9 @@ class TestGetValidAccessToken:
             lambda *a, **kw: {"access_token": "new", "expires_in": 3600},
         )
         google_oauth.get_valid_access_token()
-        assert google_oauth.load_credentials().refresh_token == "original-rt"
+        reloaded = google_oauth.load_credentials()
+        assert reloaded is not None
+        assert reloaded.refresh_token == "original-rt"
 
 
 class TestProjectIdResolution:

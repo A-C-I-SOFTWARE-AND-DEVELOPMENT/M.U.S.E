@@ -157,7 +157,7 @@ class TestApprovalFlow:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1", "Alice")
-            result = store.approve_code("telegram", code)
+            result = store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
 
         assert isinstance(result, dict)
         assert "user_id" in result
@@ -169,7 +169,7 @@ class TestApprovalFlow:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1", "Alice")
-            store.approve_code("telegram", code)
+            store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
             assert store.is_approved("telegram", "user1") is True
 
     def test_unapproved_user_not_approved(self, tmp_path):
@@ -181,7 +181,7 @@ class TestApprovalFlow:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1")
-            store.approve_code("telegram", code)
+            store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
             pending = store.list_pending("telegram")
         assert len(pending) == 0
 
@@ -189,6 +189,7 @@ class TestApprovalFlow:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1", "Alice")
+            assert code is not None
             result = store.approve_code("telegram", code.lower())
         assert isinstance(result, dict)
         assert result["user_id"] == "user1"
@@ -319,7 +320,7 @@ class TestCodeExpiry:
             pending[code]["created_at"] = time.time() - CODE_TTL_SECONDS - 1
             store._save_json(store._pending_path("telegram"), pending)
 
-            result = store.approve_code("telegram", code)
+            result = store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
         assert result is None
 
 
@@ -333,7 +334,7 @@ class TestRevoke:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1", "Alice")
-            store.approve_code("telegram", code)
+            store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
             assert store.is_approved("telegram", "user1") is True
 
             revoked = store.revoke("telegram", "user1")
@@ -357,7 +358,7 @@ class TestListAndClear:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             code = store.generate_code("telegram", "user1", "Alice")
-            store.approve_code("telegram", code)
+            store.approve_code("telegram", code)  # ty: ignore[invalid-argument-type]
             approved = store.list_approved("telegram")
         assert len(approved) == 1
         assert approved[0]["user_id"] == "user1"
@@ -367,9 +368,9 @@ class TestListAndClear:
         with patch("gateway.pairing.PAIRING_DIR", tmp_path):
             store = PairingStore()
             c1 = store.generate_code("telegram", "user1")
-            store.approve_code("telegram", c1)
+            store.approve_code("telegram", c1)  # ty: ignore[invalid-argument-type]
             c2 = store.generate_code("discord", "user2")
-            store.approve_code("discord", c2)
+            store.approve_code("discord", c2)  # ty: ignore[invalid-argument-type]
             approved = store.list_approved()
         assert len(approved) == 2
 

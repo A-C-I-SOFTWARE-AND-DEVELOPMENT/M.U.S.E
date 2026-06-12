@@ -22,14 +22,17 @@ class TestCronCommandLifecycle:
 
         cron_command(Namespace(cron_command="pause", job_id=job["id"]))
         paused = get_job(job["id"])
+        assert paused is not None
         assert paused["state"] == "paused"
 
         cron_command(Namespace(cron_command="resume", job_id=job["id"]))
         resumed = get_job(job["id"])
+        assert resumed is not None
         assert resumed["state"] == "scheduled"
 
         cron_command(Namespace(cron_command="run", job_id=job["id"]))
         triggered = get_job(job["id"])
+        assert triggered is not None
         assert triggered["state"] == "scheduled"
 
         out = capsys.readouterr().out
@@ -60,10 +63,15 @@ class TestCronCommandLifecycle:
             )
         )
         updated = get_job(job["id"])
+        assert updated is not None
         assert updated["skills"] == ["maps", "blogwatcher"]
+        assert updated is not None
         assert updated["name"] == "Edited Job"
+        assert updated is not None
         assert updated["prompt"] == "Revised prompt"
+        assert updated is not None
         assert updated["schedule_display"] == "every 120m"
+        assert updated is not None
         assert updated["profile"] == "default"
 
         cron_command(
@@ -82,8 +90,11 @@ class TestCronCommandLifecycle:
             )
         )
         cleared = get_job(job["id"])
+        assert cleared is not None
         assert cleared["skills"] == []
+        assert cleared is not None
         assert cleared["skill"] is None
+        assert cleared is not None
         assert cleared["profile"] is None
 
         out = capsys.readouterr().out

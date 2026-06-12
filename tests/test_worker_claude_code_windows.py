@@ -84,7 +84,7 @@ def _task(**overrides) -> ccw.RemoteWorkerTask:
         "validation_command": "pytest tests/test_kanban_swarm.py -q",
     }
     base.update(overrides)
-    return ccw.RemoteWorkerTask(**base)
+    return ccw.RemoteWorkerTask(**base)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 # ── detection ─────────────────────────────────────────────────────────────

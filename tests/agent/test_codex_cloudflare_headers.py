@@ -95,7 +95,7 @@ class TestCodexCloudflareHeaders:
 
     def test_non_string_token_handled(self):
         from agent.auxiliary_client import _codex_cloudflare_headers
-        headers = _codex_cloudflare_headers(None)  # type: ignore[arg-type]
+        headers = _codex_cloudflare_headers(None)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
         assert headers["originator"] == "codex_cli_rs"
         assert "ChatGPT-Account-ID" not in headers
 

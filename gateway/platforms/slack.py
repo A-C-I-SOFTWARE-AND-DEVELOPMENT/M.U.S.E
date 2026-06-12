@@ -19,9 +19,9 @@ from dataclasses import dataclass, field
 from typing import Dict, Optional, Any, Tuple, List
 
 try:
-    from slack_bolt.async_app import AsyncApp
-    from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
-    from slack_sdk.web.async_client import AsyncWebClient
+    from slack_bolt.async_app import AsyncApp  # ty: ignore[unresolved-import]  # optional platform SDK
+    from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler  # ty: ignore[unresolved-import]  # optional platform SDK
+    from slack_sdk.web.async_client import AsyncWebClient  # ty: ignore[unresolved-import]  # optional platform SDK
     import aiohttp
     SLACK_AVAILABLE = True
 except ImportError:
@@ -82,9 +82,9 @@ def check_slack_requirements() -> bool:
         return True
 
     def _import():
-        from slack_bolt.async_app import AsyncApp
-        from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
-        from slack_sdk.web.async_client import AsyncWebClient
+        from slack_bolt.async_app import AsyncApp  # ty: ignore[unresolved-import]  # optional platform SDK
+        from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler  # ty: ignore[unresolved-import]  # optional platform SDK
+        from slack_sdk.web.async_client import AsyncWebClient  # ty: ignore[unresolved-import]  # optional platform SDK
         import aiohttp
         return {
             "AsyncApp": AsyncApp,
@@ -387,7 +387,7 @@ class SlackAdapter(BasePlatformAdapter):
         try:
             import httpx
         except Exception:  # pragma: no cover
-            httpx = None
+            httpx = None  # ty: ignore[invalid-assignment]  # optional-import fallback
 
         if httpx is not None and isinstance(exc, httpx.HTTPStatusError):
             status = exc.response.status_code
@@ -566,12 +566,12 @@ class SlackAdapter(BasePlatformAdapter):
 
             # First token is the primary — used for AsyncApp / Socket Mode
             primary_token = bot_tokens[0]
-            self._app = AsyncApp(token=primary_token)
+            self._app = AsyncApp(token=primary_token)  # ty: ignore[call-non-callable]  # duck-typed platform/adapter path
             _apply_slack_proxy(self._app.client, proxy_url)
 
             # Register each bot token and map team_id → client
             for token in bot_tokens:
-                client = AsyncWebClient(token=token)
+                client = AsyncWebClient(token=token)  # ty: ignore[call-non-callable]  # duck-typed platform/adapter path
                 _apply_slack_proxy(client, proxy_url)
                 auth_response = await client.auth_test()
                 team_id = auth_response.get("team_id", "")
@@ -682,7 +682,7 @@ class SlackAdapter(BasePlatformAdapter):
                 self._app.action(_action_id)(self._handle_slash_confirm_action)
 
             # Start Socket Mode handler in background
-            self._handler = AsyncSocketModeHandler(self._app, app_token, proxy=proxy_url)
+            self._handler = AsyncSocketModeHandler(self._app, app_token, proxy=proxy_url)  # ty: ignore[call-non-callable]  # duck-typed platform/adapter path
             _apply_slack_proxy(self._handler.client, proxy_url)
             self._socket_mode_task = asyncio.create_task(self._handler.start_async())
 
@@ -753,7 +753,7 @@ class SlackAdapter(BasePlatformAdapter):
         team_id = self._channel_team.get(chat_id)
         if team_id and team_id in self._team_clients:
             return self._team_clients[team_id]
-        return self._app.client  # fallback to primary
+        return self._app.client  # fallback to primary  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
     async def send(
         self,
@@ -835,7 +835,7 @@ class SlackAdapter(BasePlatformAdapter):
     async def send_private_notice(
         self,
         chat_id: str,
-        user_id: str,
+        user_id: Optional[str],
         content: str,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
@@ -1036,6 +1036,7 @@ class SlackAdapter(BasePlatformAdapter):
                 )
                 await asyncio.sleep(1.5 * (attempt + 1))
 
+        assert last_exc is not None  # loop returns or raises unless an exc was recorded
         raise last_exc
 
     async def send_multiple_images(
@@ -1390,6 +1391,7 @@ class SlackAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send a local image file to Slack by uploading it."""
         try:
@@ -1503,6 +1505,7 @@ class SlackAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send a video file to Slack."""
         if not self._app:
@@ -1537,6 +1540,7 @@ class SlackAdapter(BasePlatformAdapter):
                     )
                     await asyncio.sleep(1.5 * (attempt + 1))
 
+            assert last_exc is not None  # loop returns or raises unless an exc was recorded
             raise last_exc
 
         except Exception as e:  # pragma: no cover - defensive logging
@@ -1560,6 +1564,7 @@ class SlackAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Send a document/file attachment to Slack."""
         if not self._app:
@@ -1596,6 +1601,7 @@ class SlackAdapter(BasePlatformAdapter):
                     )
                     await asyncio.sleep(1.5 * (attempt + 1))
 
+            assert last_exc is not None  # loop returns or raises unless an exc was recorded
             raise last_exc
 
         except Exception as e:  # pragma: no cover - defensive logging
@@ -2887,7 +2893,7 @@ class SlackAdapter(BasePlatformAdapter):
         except Exception:
             return False
 
-    async def _download_slack_file(self, url: str, ext: str, audio: bool = False, team_id: str = "") -> str:
+    async def _download_slack_file(self, url: str, ext: str, audio: bool = False, team_id: str = "") -> str:  # ty: ignore[invalid-return-type]  # duck-typed platform/adapter path
         """Download a Slack file using the bot token for auth, with retry."""
         import httpx
 
@@ -2930,7 +2936,7 @@ class SlackAdapter(BasePlatformAdapter):
                         continue
                     raise
 
-    async def _download_slack_file_bytes(self, url: str, team_id: str = "") -> bytes:
+    async def _download_slack_file_bytes(self, url: str, team_id: str = "") -> bytes:  # ty: ignore[invalid-return-type]  # duck-typed platform/adapter path
         """Download a Slack file and return raw bytes, with retry."""
         import httpx
 

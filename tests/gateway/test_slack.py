@@ -80,7 +80,7 @@ def adapter():
     a._bot_user_id = "U_BOT"
     a._running = True
     # Capture events instead of processing them
-    a.handle_message = AsyncMock()
+    a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     return a
 
 
@@ -2000,7 +2000,7 @@ class TestThreadReplyHandling:
         a._bot_user_id = "U_BOT"
         a._team_bot_user_ids = {"T_TEAM": "U_BOT"}
         a._running = True
-        a.handle_message = AsyncMock()
+        a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         a.set_session_store(mock_session_store)
         return a
 
@@ -2140,7 +2140,7 @@ class TestAssistantThreadLifecycle:
         a._bot_user_id = "U_BOT"
         a._team_bot_user_ids = {"T_TEAM": "U_BOT"}
         a._running = True
-        a.handle_message = AsyncMock()
+        a.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         a.set_session_store(mock_session_store)
         return a
 

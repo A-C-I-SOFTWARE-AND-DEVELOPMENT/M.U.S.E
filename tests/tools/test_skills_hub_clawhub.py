@@ -185,6 +185,7 @@ class TestClawHubSource(unittest.TestCase):
         meta = self.src.inspect("caldav-calendar")
 
         self.assertIsNotNone(meta)
+        assert meta is not None
         self.assertEqual(meta.name, "CalDAV Calendar")
         self.assertEqual(meta.description, "Calendar integration")
         self.assertEqual(meta.identifier, "caldav-calendar")
@@ -207,6 +208,7 @@ class TestClawHubSource(unittest.TestCase):
         meta = self.src.inspect("self-improving-agent")
 
         self.assertIsNotNone(meta)
+        assert meta is not None
         self.assertEqual(meta.name, "self-improving-agent")
         self.assertIn("continuous improvement", meta.description)
         self.assertEqual(meta.identifier, "self-improving-agent")
@@ -242,6 +244,7 @@ class TestClawHubSource(unittest.TestCase):
         bundle = self.src.fetch("caldav-calendar")
 
         self.assertIsNotNone(bundle)
+        assert bundle is not None
         self.assertEqual(bundle.name, "caldav-calendar")
         self.assertIn("SKILL.md", bundle.files)
         self.assertEqual(bundle.files["SKILL.md"], "# Skill")
@@ -262,6 +265,7 @@ class TestClawHubSource(unittest.TestCase):
 
         bundle = self.src.fetch("caldav-calendar")
         self.assertIsNotNone(bundle)
+        assert bundle is not None
         self.assertEqual(bundle.files["SKILL.md"], "# Skill")
 
     @patch("tools.skills_hub.check_website_access", return_value=None)

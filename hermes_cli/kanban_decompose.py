@@ -298,7 +298,7 @@ def decompose_task(
     roster, valid_names = _build_roster()
 
     try:
-        from agent.auxiliary_client import (  # type: ignore
+        from agent.auxiliary_client import (
             get_auxiliary_extra_body,
             get_text_auxiliary_client,
         )

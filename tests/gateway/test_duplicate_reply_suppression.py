@@ -225,7 +225,7 @@ class TestOnlyFinalStreamDeliverySuppressesFinalSend:
             _streamed = bool(sc and getattr(sc, "final_response_sent", False))
             _previewed = bool(response.get("response_previewed"))
             if not _is_empty_sentinel and (_streamed or _previewed):
-                response["already_sent"] = True
+                response["already_sent"] = True  # ty: ignore[invalid-assignment]
 
         assert response.get("already_sent") is True
 

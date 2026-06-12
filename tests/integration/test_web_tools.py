@@ -239,7 +239,7 @@ class WebToolsTester:
         
         return extracted_urls
     
-    async def test_web_extract(self, urls: List[str] = None):
+    async def test_web_extract(self, urls: List[str] = None):  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
         """Test web content extraction"""
         print_section("Test 2: Web Extract (without LLM)")
         
@@ -344,7 +344,7 @@ class WebToolsTester:
                     import traceback
                     print(f"    Traceback: {traceback.format_exc()}")
     
-    async def test_web_extract_with_llm(self, urls: List[str] = None):
+    async def test_web_extract_with_llm(self, urls: List[str] = None):  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
         """Test web extraction with LLM processing"""
         print_section("Test 3: Web Extract (with Gemini LLM)")
         
@@ -527,11 +527,11 @@ class WebToolsTester:
         urls = self.test_web_search()
         
         # Test extraction
-        await self.test_web_extract(urls if urls else None)
+        await self.test_web_extract(urls if urls else None)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         
         # Test extraction with LLM
         if self.test_llm:
-            await self.test_web_extract_with_llm(urls if urls else None)
+            await self.test_web_extract_with_llm(urls if urls else None)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         
         # Test crawling
         await self.test_web_crawl()

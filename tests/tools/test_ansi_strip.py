@@ -150,7 +150,7 @@ class TestStripAnsiPassthrough:
         assert strip_ansi("") == ""
 
     def test_none(self):
-        assert strip_ansi(None) is None
+        assert strip_ansi(None) is None  # ty: ignore[invalid-argument-type]
 
     def test_whitespace_preserved(self):
         assert strip_ansi("line1\nline2\ttab") == "line1\nline2\ttab"

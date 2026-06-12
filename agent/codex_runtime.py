@@ -20,7 +20,7 @@ import json
 import logging
 import os
 from types import SimpleNamespace
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +175,7 @@ def run_codex_app_server_turn(
 
 
 
-def run_codex_stream(agent, api_kwargs: dict, client: Any = None, on_first_delta: callable = None):
+def run_codex_stream(agent, api_kwargs: dict, client: Any = None, on_first_delta: Optional[Callable] = None):
     """Execute one streaming Responses API request and return the final response."""
     import httpx as _httpx
 
@@ -186,7 +186,7 @@ def run_codex_stream(agent, api_kwargs: dict, client: Any = None, on_first_delta
     # Accumulate streamed text so we can recover if get_final_response()
     # returns empty output (e.g. chatgpt.com backend-api sends
     # response.incomplete instead of response.completed).
-    agent._codex_streamed_text_parts: list = []
+    agent._codex_streamed_text_parts = []
     for attempt in range(max_stream_retries + 1):
         if agent._interrupt_requested:
             raise InterruptedError("Agent interrupted before Codex stream retry")

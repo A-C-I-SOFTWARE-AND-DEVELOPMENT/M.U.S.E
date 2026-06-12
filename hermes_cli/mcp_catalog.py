@@ -500,7 +500,7 @@ def _read_prior_tool_selection(name: str) -> Optional[List[str]]:
         return None
     include = tools_cfg.get("include")
     if isinstance(include, list) and all(isinstance(t, str) for t in include):
-        return list(include)
+        return list(include)  # ty: ignore[invalid-return-type]  # elements isinstance-checked above
     return None
 
 

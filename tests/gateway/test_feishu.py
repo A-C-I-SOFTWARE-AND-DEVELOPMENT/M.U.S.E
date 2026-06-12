@@ -8,13 +8,16 @@ import time
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Dict
+from typing import TYPE_CHECKING, Dict
 from unittest.mock import AsyncMock, Mock, patch
+
+if TYPE_CHECKING:
+    from gateway.platforms.feishu import FeishuAdapter
 
 from gateway.platforms.base import ProcessingOutcome
 
 try:
-    import lark_oapi
+    import lark_oapi  # ty: ignore[unresolved-import]
     _HAS_LARK_OAPI = True
 except ImportError:
     _HAS_LARK_OAPI = False
@@ -63,6 +66,7 @@ class TestConfigEnvOverrides(unittest.TestCase):
 
         home = config.platforms[Platform.FEISHU].home_channel
         self.assertIsNotNone(home)
+        assert home is not None
         self.assertEqual(home.chat_id, "oc_xxx")
 
     @patch.dict(os.environ, {
@@ -273,7 +277,7 @@ class TestFeishuAdapterMessaging(unittest.TestCase):
         self.assertFalse(connected)
         self.assertEqual(adapter.fatal_error_code, "feishu_app_lock")
         self.assertFalse(adapter.fatal_error_retryable)
-        self.assertIn("PID 4321", adapter.fatal_error_message)
+        self.assertIn("PID 4321", adapter.fatal_error_message)  # ty: ignore[invalid-argument-type]
 
     @patch.dict(os.environ, {
         "FEISHU_APP_ID": "cli_app",
@@ -533,12 +537,12 @@ class TestAdapterModule(unittest.TestCase):
             _ws_ping_timeout=5,
         )
         fake_client_module = ModuleType("lark_oapi.ws.client")
-        fake_client_module.loop = None
-        fake_client_module.websockets = SimpleNamespace(connect=AsyncMock())
+        fake_client_module.loop = None  # ty: ignore[unresolved-attribute]
+        fake_client_module.websockets = SimpleNamespace(connect=AsyncMock())  # ty: ignore[unresolved-attribute]
         fake_ws_module = ModuleType("lark_oapi.ws")
-        fake_ws_module.client = fake_client_module
+        fake_ws_module.client = fake_client_module  # ty: ignore[unresolved-attribute]
         fake_root_module = ModuleType("lark_oapi")
-        fake_root_module.ws = fake_ws_module
+        fake_root_module.ws = fake_ws_module  # ty: ignore[unresolved-attribute]
 
         original_modules = sys.modules.copy()
         sys.modules["lark_oapi"] = fake_root_module
@@ -656,7 +660,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._loop = object()
+        adapter._loop = object()  # ty: ignore[invalid-assignment]
 
         for emoji in ("Typing", "CrossMark"):
             event = SimpleNamespace(
@@ -680,7 +684,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._loop = SimpleNamespace(is_closed=lambda: False)
+        adapter._loop = SimpleNamespace(is_closed=lambda: False)  # ty: ignore[invalid-assignment]
 
         event = SimpleNamespace(
             message_id="om_msg",
@@ -721,12 +725,12 @@ class TestAdapterBehavior(unittest.TestCase):
                 v1=SimpleNamespace(message=SimpleNamespace(get=Mock(return_value=response)))
             )
         )
-        adapter._build_get_message_request = Mock(return_value=object())
-        adapter._handle_message_with_guards = AsyncMock()
-        adapter._resolve_sender_profile = AsyncMock(
+        adapter._build_get_message_request = Mock(return_value=object())  # ty: ignore[invalid-assignment]
+        adapter._handle_message_with_guards = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter._resolve_sender_profile = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"user_id": "u_human", "user_name": "Human", "user_id_alt": None}
         )
-        adapter.get_chat_info = AsyncMock(return_value={"name": "Test Chat"})
+        adapter.get_chat_info = AsyncMock(return_value={"name": "Test Chat"})  # ty: ignore[invalid-assignment]
         return adapter
 
     @patch.dict(os.environ, {}, clear=True)
@@ -1179,8 +1183,8 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_image = AsyncMock(return_value=("/tmp/feishu-image.png", "image/png"))
-        adapter._download_feishu_message_resource = AsyncMock(return_value=("/tmp/spec.pdf", "application/pdf"))
+        adapter._download_feishu_image = AsyncMock(return_value=("/tmp/feishu-image.png", "image/png"))  # ty: ignore[invalid-assignment]
+        adapter._download_feishu_message_resource = AsyncMock(return_value=("/tmp/spec.pdf", "application/pdf"))  # ty: ignore[invalid-assignment]
         message = SimpleNamespace(
             message_type="post",
             content=(
@@ -1198,11 +1202,11 @@ class TestAdapterBehavior(unittest.TestCase):
         self.assertEqual(msg_type.value, "text")
         self.assertEqual(media_urls, ["/tmp/feishu-image.png", "/tmp/spec.pdf"])
         self.assertEqual(media_types, ["image/png", "application/pdf"])
-        adapter._download_feishu_image.assert_awaited_once_with(
+        adapter._download_feishu_image.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
             message_id="om_post_media",
             image_key="img_123",
         )
-        adapter._download_feishu_message_resource.assert_awaited_once_with(
+        adapter._download_feishu_message_resource.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
             message_id="om_post_media",
             file_key="file_123",
             resource_type="file",
@@ -1298,7 +1302,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_image = AsyncMock(return_value=("/tmp/feishu-image.png", "image/png"))
+        adapter._download_feishu_image = AsyncMock(return_value=("/tmp/feishu-image.png", "image/png"))  # ty: ignore[invalid-assignment]
         message = SimpleNamespace(
             message_type="image",
             content='{"image_key":"img_123"}',
@@ -1311,7 +1315,7 @@ class TestAdapterBehavior(unittest.TestCase):
         self.assertEqual(msg_type.value, "photo")
         self.assertEqual(media_urls, ["/tmp/feishu-image.png"])
         self.assertEqual(media_types, ["image/png"])
-        adapter._download_feishu_image.assert_awaited_once_with(
+        adapter._download_feishu_image.assert_awaited_once_with(  # ty: ignore[unresolved-attribute]
             message_id="om_image",
             image_key="img_123",
         )
@@ -1322,7 +1326,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_message_resource = AsyncMock(
+        adapter._download_feishu_message_resource = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value=("/tmp/feishu-audio.ogg", "audio/ogg")
         )
         message = SimpleNamespace(
@@ -1344,7 +1348,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_message_resource = AsyncMock(
+        adapter._download_feishu_message_resource = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value=("/tmp/doc_123_report.pdf", "application/pdf")
         )
         message = SimpleNamespace(
@@ -1366,7 +1370,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_message_resource = AsyncMock(
+        adapter._download_feishu_message_resource = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value=("/tmp/feishu-media.jpg", "image/jpeg")
         )
         message = SimpleNamespace(
@@ -1388,7 +1392,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._download_feishu_message_resource = AsyncMock(
+        adapter._download_feishu_message_resource = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value=("/tmp/feishu-video.mp4", "video/mp4")
         )
         message = SimpleNamespace(
@@ -1429,11 +1433,11 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._dispatch_inbound_event = AsyncMock()
-        adapter.get_chat_info = AsyncMock(
+        adapter._dispatch_inbound_event = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.get_chat_info = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"chat_id": "oc_chat", "name": "Feishu DM", "type": "dm"}
         )
-        adapter._resolve_sender_profile = AsyncMock(
+        adapter._resolve_sender_profile = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"user_id": "ou_user", "user_name": "张三", "user_id_alt": None}
         )
         message = SimpleNamespace(
@@ -1457,7 +1461,7 @@ class TestAdapterBehavior(unittest.TestCase):
             )
         )
 
-        event = adapter._dispatch_inbound_event.await_args.args[0]
+        event = adapter._dispatch_inbound_event.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.message_type.value, "command")
         self.assertEqual(event.text, "/help test")
 
@@ -1490,7 +1494,7 @@ class TestAdapterBehavior(unittest.TestCase):
             def is_closed(self):
                 return False
 
-        adapter._loop = _Loop()
+        adapter._loop = _Loop()  # ty: ignore[invalid-assignment]
 
         message = SimpleNamespace(
             message_id="om_text",
@@ -1520,7 +1524,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._on_message_event = Mock()
+        adapter._on_message_event = Mock()  # ty: ignore[invalid-assignment]
 
         body = json.dumps({
             "header": {"event_type": "im.message.receive_v1"},
@@ -1536,7 +1540,7 @@ class TestAdapterBehavior(unittest.TestCase):
         response = asyncio.run(adapter._handle_webhook_request(request))
 
         self.assertEqual(response.status, 200)
-        adapter._on_message_event.assert_called_once()
+        adapter._on_message_event.assert_called_once()  # ty: ignore[unresolved-attribute]
 
     @patch.dict(os.environ, {}, clear=True)
     def test_process_inbound_message_uses_event_sender_identity_only(self):
@@ -1545,10 +1549,10 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._dispatch_inbound_event = AsyncMock()
+        adapter._dispatch_inbound_event = AsyncMock()  # ty: ignore[invalid-assignment]
         # Sender name now comes from the contact API; mock it to return a known value.
-        adapter._resolve_sender_name_from_api = AsyncMock(return_value="张三")
-        adapter.get_chat_info = AsyncMock(
+        adapter._resolve_sender_name_from_api = AsyncMock(return_value="张三")  # ty: ignore[invalid-assignment]
+        adapter.get_chat_info = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"chat_id": "oc_chat", "name": "Feishu DM", "type": "dm"}
         )
         message = SimpleNamespace(
@@ -1576,8 +1580,8 @@ class TestAdapterBehavior(unittest.TestCase):
             )
         )
 
-        adapter._dispatch_inbound_event.assert_awaited_once()
-        event = adapter._dispatch_inbound_event.await_args.args[0]
+        adapter._dispatch_inbound_event.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        event = adapter._dispatch_inbound_event.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.message_type, MessageType.TEXT)
         self.assertEqual(event.source.user_id, "u_user")  # tenant-scoped user_id preferred over app-scoped open_id
         self.assertEqual(event.source.user_name, "张三")
@@ -1592,7 +1596,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.session import SessionSource
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         source = SessionSource(
             platform=adapter.platform,
             chat_id="oc_chat",
@@ -1619,8 +1623,8 @@ class TestAdapterBehavior(unittest.TestCase):
 
         asyncio.run(_run())
 
-        adapter.handle_message.assert_awaited_once()
-        event = adapter.handle_message.await_args.args[0]
+        adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.text, "A\nB")
         self.assertEqual(event.message_type, MessageType.TEXT)
 
@@ -1638,7 +1642,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.session import SessionSource
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         source = SessionSource(
             platform=adapter.platform,
             chat_id="oc_chat",
@@ -1668,9 +1672,9 @@ class TestAdapterBehavior(unittest.TestCase):
 
         asyncio.run(_run())
 
-        self.assertEqual(adapter.handle_message.await_count, 2)
-        first = adapter.handle_message.await_args_list[0].args[0]
-        second = adapter.handle_message.await_args_list[1].args[0]
+        self.assertEqual(adapter.handle_message.await_count, 2)  # ty: ignore[unresolved-attribute]
+        first = adapter.handle_message.await_args_list[0].args[0]  # ty: ignore[unresolved-attribute]
+        second = adapter.handle_message.await_args_list[1].args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(first.text, "A\nB")
         self.assertEqual(second.text, "C")
 
@@ -1682,7 +1686,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.session import SessionSource
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter.handle_message = AsyncMock()
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
         source = SessionSource(
             platform=adapter.platform,
             chat_id="oc_chat",
@@ -1723,8 +1727,8 @@ class TestAdapterBehavior(unittest.TestCase):
 
         asyncio.run(_run())
 
-        adapter.handle_message.assert_awaited_once()
-        event = adapter.handle_message.await_args.args[0]
+        adapter.handle_message.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        event = adapter.handle_message.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.media_urls, ["/tmp/a.png", "/tmp/b.png"])
         self.assertIn("第一张", event.text)
         self.assertIn("第二张", event.text)
@@ -1735,7 +1739,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter.send_image_file = AsyncMock(return_value=SimpleNamespace(success=True, message_id="om_img"))
+        adapter.send_image_file = AsyncMock(return_value=SimpleNamespace(success=True, message_id="om_img"))  # ty: ignore[invalid-assignment]
 
         async def _run():
             with patch("gateway.platforms.feishu.cache_image_from_url", new=AsyncMock(return_value="/tmp/cached.png")):
@@ -1744,8 +1748,8 @@ class TestAdapterBehavior(unittest.TestCase):
         result = asyncio.run(_run())
 
         self.assertTrue(result.success)
-        adapter.send_image_file.assert_awaited_once()
-        self.assertEqual(adapter.send_image_file.await_args.kwargs["image_path"], "/tmp/cached.png")
+        adapter.send_image_file.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        self.assertEqual(adapter.send_image_file.await_args.kwargs["image_path"], "/tmp/cached.png")  # ty: ignore[unresolved-attribute]
 
     @patch.dict(os.environ, {}, clear=True)
     def test_send_animation_degrades_to_document_send(self):
@@ -1753,7 +1757,7 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter.send_document = AsyncMock(return_value=SimpleNamespace(success=True, message_id="om_gif"))
+        adapter.send_document = AsyncMock(return_value=SimpleNamespace(success=True, message_id="om_gif"))  # ty: ignore[invalid-assignment]
 
         async def _run():
             with patch.object(
@@ -1766,8 +1770,8 @@ class TestAdapterBehavior(unittest.TestCase):
         result = asyncio.run(_run())
 
         self.assertTrue(result.success)
-        adapter.send_document.assert_awaited_once()
-        caption = adapter.send_document.await_args.kwargs["caption"]
+        adapter.send_document.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        caption = adapter.send_document.await_args.kwargs["caption"]  # ty: ignore[unresolved-attribute]
         self.assertIn("GIF downgraded to file", caption)
         self.assertIn("look", caption)
 
@@ -1851,11 +1855,11 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._dispatch_inbound_event = AsyncMock()
-        adapter.get_chat_info = AsyncMock(
+        adapter._dispatch_inbound_event = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.get_chat_info = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"chat_id": "oc_group", "name": "oc_group", "type": "dm"}
         )
-        adapter._resolve_sender_profile = AsyncMock(
+        adapter._resolve_sender_profile = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"user_id": "ou_user", "user_name": "张三", "user_id_alt": None}
         )
         message = SimpleNamespace(
@@ -1879,7 +1883,7 @@ class TestAdapterBehavior(unittest.TestCase):
             )
         )
 
-        event = adapter._dispatch_inbound_event.await_args.args[0]
+        event = adapter._dispatch_inbound_event.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.source.chat_type, "group")
 
     @patch.dict(os.environ, {}, clear=True)
@@ -1888,14 +1892,14 @@ class TestAdapterBehavior(unittest.TestCase):
         from gateway.platforms.feishu import FeishuAdapter
 
         adapter = FeishuAdapter(PlatformConfig())
-        adapter._dispatch_inbound_event = AsyncMock()
-        adapter.get_chat_info = AsyncMock(
+        adapter._dispatch_inbound_event = AsyncMock()  # ty: ignore[invalid-assignment]
+        adapter.get_chat_info = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"chat_id": "oc_chat", "name": "Feishu DM", "type": "dm"}
         )
-        adapter._resolve_sender_profile = AsyncMock(
+        adapter._resolve_sender_profile = AsyncMock(  # ty: ignore[invalid-assignment]
             return_value={"user_id": "ou_user", "user_name": "张三", "user_id_alt": None}
         )
-        adapter._fetch_message_text = AsyncMock(return_value="父消息内容")
+        adapter._fetch_message_text = AsyncMock(return_value="父消息内容")  # ty: ignore[invalid-assignment]
         message = SimpleNamespace(
             chat_id="oc_chat",
             thread_id=None,
@@ -1917,7 +1921,7 @@ class TestAdapterBehavior(unittest.TestCase):
             )
         )
 
-        event = adapter._dispatch_inbound_event.await_args.args[0]
+        event = adapter._dispatch_inbound_event.await_args.args[0]  # ty: ignore[unresolved-attribute]
         self.assertEqual(event.reply_to_message_id, "om_parent")
         self.assertEqual(event.reply_to_text, "父消息内容")
 
@@ -2987,7 +2991,7 @@ class TestPendingInboundQueue(unittest.TestCase):
 
         # Now the loop becomes ready; run the drainer inline (not as a thread)
         # to verify it replays the queue.
-        adapter._loop = _ReadyLoop()
+        adapter._loop = _ReadyLoop()  # ty: ignore[invalid-assignment]
 
         future = SimpleNamespace(add_done_callback=lambda *_a, **_kw: None)
         submitted: list = []
@@ -3061,7 +3065,7 @@ class TestPendingInboundQueue(unittest.TestCase):
             def is_closed(self):
                 return False
 
-        adapter._loop = _ReadyLoop()
+        adapter._loop = _ReadyLoop()  # ty: ignore[invalid-assignment]
 
         future = SimpleNamespace(add_done_callback=lambda *_a, **_kw: None)
 

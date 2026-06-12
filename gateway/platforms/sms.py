@@ -25,7 +25,12 @@ import hmac
 import logging
 import os
 import urllib.parse
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import aiohttp
+    import aiohttp.web  # annotation-only; runtime imports are function-local
+
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.base import (
@@ -120,7 +125,7 @@ class SmsAdapter(BasePlatformAdapter):
 
         app = web.Application()
         app.router.add_post("/webhooks/twilio", self._handle_webhook)
-        app.router.add_get("/health", lambda _: web.Response(text="ok"))
+        app.router.add_get("/health", lambda _: web.Response(text="ok"))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
 
         self._runner = web.AppRunner(app)
         await self._runner.setup()

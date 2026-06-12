@@ -359,7 +359,7 @@ class TestTeamsMeetingPipeline:
             },
             transcribe_fn=_transcribe,
             summarize_fn=_summarize,
-            notion_writer=FakeNotionWriter(),
+            notion_writer=FakeNotionWriter(),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             teams_sender=_teams_sender,
         )
 
@@ -395,7 +395,7 @@ class TestTeamsMeetingPipeline:
             graph_client=FakeGraphClient(),
             store=store,
             config={},
-            summarize_fn=lambda **kwargs: asyncio.sleep(0, result=None),
+            summarize_fn=lambda **kwargs: asyncio.sleep(0, result=None),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
 
         job = await pipeline.run_notification(

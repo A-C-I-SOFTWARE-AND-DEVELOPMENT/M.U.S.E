@@ -40,11 +40,11 @@ _PLUGIN_API = (
 
 def _load_router():
     spec = importlib.util.spec_from_file_location("_lq_plugin_api", _PLUGIN_API)
-    mod = importlib.util.module_from_spec(spec)
+    mod = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     # Register before exec so Pydantic can resolve the request models'
     # forward-ref annotations (the dashboard loader does the same).
-    sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
+    sys.modules[spec.name] = mod  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    spec.loader.exec_module(mod)  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     return mod.router
 
 

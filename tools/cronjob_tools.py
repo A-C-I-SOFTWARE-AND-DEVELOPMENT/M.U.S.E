@@ -140,7 +140,7 @@ def _scan_cron_prompt(prompt: str) -> str:
     return ""
 
 
-def _origin_from_env() -> Optional[Dict[str, str]]:
+def _origin_from_env() -> Optional[Dict[str, Optional[str]]]:
     from gateway.session_context import get_session_env
     origin_platform = get_session_env("HERMES_SESSION_PLATFORM")
     origin_chat_id = get_session_env("HERMES_SESSION_CHAT_ID")
@@ -351,7 +351,7 @@ def cronjob(
     workdir: Optional[str] = None,
     profile: Optional[str] = None,
     no_agent: Optional[bool] = None,
-    task_id: str = None,
+    task_id: Optional[str] = None,
 ) -> str:
     """Unified cron job management tool."""
     del task_id  # unused but kept for handler signature compatibility
@@ -488,16 +488,17 @@ def cronjob(
             )
 
         if normalized == "pause":
+            # Job existence was verified above; re-lookup by canonical ID cannot return None here.
             updated = pause_job(job_id, reason=reason)
-            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)
+            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)  # ty: ignore[invalid-argument-type]
 
         if normalized == "resume":
             updated = resume_job(job_id)
-            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)
+            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)  # ty: ignore[invalid-argument-type]
 
         if normalized in {"run", "run_now", "trigger"}:
             updated = trigger_job(job_id)
-            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)
+            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)  # ty: ignore[invalid-argument-type]
 
         if normalized == "update":
             updates: Dict[str, Any] = {}
@@ -584,8 +585,9 @@ def cronjob(
                     updates["enabled"] = True
             if not updates:
                 return tool_error("No updates provided.", success=False)
+            # Job existence was verified above; update by canonical ID cannot return None here.
             updated = update_job(job_id, updates)
-            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)
+            return json.dumps({"success": True, "job": _format_job(updated)}, indent=2)  # ty: ignore[invalid-argument-type]
 
         return tool_error(f"Unknown cron action '{action}'", success=False)
 

@@ -134,7 +134,7 @@ def _get_proxy_for_base_url(base_url: Optional[str]) -> Optional[str]:
         return proxy
 
     try:
-        if urllib.request.proxy_bypass_environment(host):
+        if urllib.request.proxy_bypass_environment(host):  # ty: ignore[unresolved-attribute]  # private helper, absent from typeshed
             return None
     except Exception:
         pass

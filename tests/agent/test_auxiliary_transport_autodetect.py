@@ -190,7 +190,7 @@ def test_maybe_wrap_anthropic_sdk_missing_falls_back():
         # module lookup itself.
         import sys as _sys
         saved = _sys.modules.get("agent.anthropic_adapter")
-        _sys.modules["agent.anthropic_adapter"] = None  # force ImportError
+        _sys.modules["agent.anthropic_adapter"] = None  # force ImportError  # ty: ignore[invalid-assignment]
         try:
             result = _maybe_wrap_anthropic(
                 plain_client, "kimi-for-coding", "sk-kimi-test",

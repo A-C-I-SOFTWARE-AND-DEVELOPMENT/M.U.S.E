@@ -17,13 +17,14 @@ import sys
 import urllib.request
 import urllib.parse
 import urllib.error
+from typing import Any
 
 GAMMA = "https://gamma-api.polymarket.com"
 CLOB = "https://clob.polymarket.com"
 DATA = "https://data-api.polymarket.com"
 
 
-def _get(url: str) -> dict | list:
+def _get(url: str) -> Any:
     """GET request, return parsed JSON."""
     req = urllib.request.Request(url, headers={"User-Agent": "hermes-agent/1.0"})
     try:
@@ -211,7 +212,7 @@ def cmd_history(condition_id: str, interval: str = "all", fidelity: int = 50):
         print(f"  {ts}  {price:>7}  {bar}")
 
 
-def cmd_trades(limit: int = 10, market: str = None):
+def cmd_trades(limit: int = 10, market: str | None = None):
     """Get recent trades."""
     url = f"{DATA}/trades?limit={limit}"
     if market:

@@ -15,6 +15,7 @@ import sys
 import threading
 import time
 import unittest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from tools.delegate_tool import (
@@ -64,7 +65,10 @@ class TestDelegateRequirements(unittest.TestCase):
 
     def test_schema_valid(self):
         self.assertEqual(DELEGATE_TASK_SCHEMA["name"], "delegate_task")
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         self.assertIn("goal", props)
         self.assertIn("tasks", props)
         self.assertIn("context", props)
@@ -242,7 +246,7 @@ class TestDelegateTask(unittest.TestCase):
             ]
         )
 
-        result = json.loads(delegate_task(tasks=tasks, parent_agent=parent))
+        result = json.loads(delegate_task(tasks=tasks, parent_agent=parent))  # ty: ignore[invalid-argument-type]
 
         self.assertIn("results", result)
         self.assertEqual(len(result["results"]), 2)
@@ -254,7 +258,7 @@ class TestDelegateTask(unittest.TestCase):
         parent = _make_mock_parent()
 
         result = json.loads(
-            delegate_task(tasks=["not a task object"], parent_agent=parent)
+            delegate_task(tasks=["not a task object"], parent_agent=parent)  # ty: ignore[invalid-argument-type]
         )
 
         self.assertIn("error", result)
@@ -266,7 +270,7 @@ class TestDelegateTask(unittest.TestCase):
         parent = _make_mock_parent()
 
         result = json.loads(
-            delegate_task(tasks='[{"goal": "bad}', parent_agent=parent)
+            delegate_task(tasks='[{"goal": "bad}', parent_agent=parent)  # ty: ignore[invalid-argument-type]
         )
 
         self.assertIn("error", result)
@@ -1929,6 +1933,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         self.assertIsNotNone(cb)
 
         cb("tool.started", tool_name="terminal", preview="ls")
@@ -1941,6 +1946,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
 
         cb("_thinking", tool_name=None, preview="pondering...")
         assert any("💭" in str(c) for c in parent._delegate_spinner.print_above.call_args_list)
@@ -1956,6 +1962,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("tool.completed", tool_name="terminal")
         parent._delegate_spinner.print_above.assert_not_called()
 
@@ -1965,6 +1972,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent._delegate_spinner = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         # Should not raise
         cb("some.unknown.event", tool_name="x")
         parent._delegate_spinner.print_above.assert_not_called()
@@ -1978,6 +1986,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = None
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb(DelegateEvent.TASK_THINKING, preview="pondering")
         # If the enum was accepted, the thinking emoji got printed.
         assert any(
@@ -1993,6 +2002,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent._delegate_spinner = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("delegate.task_thinking", preview="hmm")
         assert any(
             "💭" in str(c)
@@ -2016,6 +2026,7 @@ class TestDelegateEventEnum(unittest.TestCase):
         parent.tool_progress_callback = MagicMock()
 
         cb = _build_child_progress_callback(0, "test goal", parent, task_count=1)
+        assert cb is not None
         cb("subagent_progress", tool_name="🔀 [1] terminal, file")
 
         # Spinner gets a distinct 🔀-prefixed line, NOT a tool emoji
@@ -2138,7 +2149,7 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
             mock_child.session_completion_tokens = 0
             mock_child.model = "test"
             MockAgent.return_value = mock_child
-            kwargs = {"goal": "test", "parent_agent": parent}
+            kwargs: dict[str, Any] = {"goal": "test", "parent_agent": parent}
             if role_arg is not _SENTINEL:
                 kwargs["role"] = role_arg
             delegate_task(**kwargs)
@@ -2165,7 +2176,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
 
     def test_schema_has_role_top_level_and_per_task(self):
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
         self.assertIn("role", props)
         self.assertEqual(props["role"]["enum"], ["leaf", "orchestrator"])
         task_props = props["tasks"]["items"]["properties"]
@@ -2178,7 +2191,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
         # carry explicit "do not set unless told" guidance so the model doesn't
         # hallucinate ACP availability (#22013).
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
 
         top_acp_desc = props["acp_command"]["description"]
         self.assertIn("Do NOT set", top_acp_desc)
@@ -2193,7 +2208,9 @@ class TestOrchestratorRoleSchema(unittest.TestCase):
         # that directly primes the model to attempt Claude ACP even when it is
         # not installed (#22013).
         from tools.delegate_tool import DELEGATE_TASK_SCHEMA
-        props = DELEGATE_TASK_SCHEMA["parameters"]["properties"]
+        params = DELEGATE_TASK_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
         top_acp_desc = props["acp_command"]["description"].lower()
         self.assertNotIn("e.g. 'claude'", top_acp_desc)
         self.assertNotIn("e.g. \"claude\"", top_acp_desc)

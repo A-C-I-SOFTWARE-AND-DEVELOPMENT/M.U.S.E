@@ -74,7 +74,7 @@ class TestMSGraphValidationHandshake:
     async def test_validation_token_echo_on_get(self):
         adapter = _make_adapter()
         resp = await adapter._handle_validation(
-            _FakeRequest(query={"validationToken": "abc123"})
+            _FakeRequest(query={"validationToken": "abc123"})  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 200
         assert resp.text == "abc123"
@@ -84,7 +84,7 @@ class TestMSGraphValidationHandshake:
     async def test_bare_get_without_validation_token_rejected(self):
         """GET without validationToken is 400 so the endpoint can't be enumerated."""
         adapter = _make_adapter()
-        resp = await adapter._handle_validation(_FakeRequest())
+        resp = await adapter._handle_validation(_FakeRequest())  # ty: ignore[invalid-argument-type]
         assert resp.status == 400
 
     @pytest.mark.anyio
@@ -92,7 +92,7 @@ class TestMSGraphValidationHandshake:
         """Tolerate defensive clients that send validationToken on POST."""
         adapter = _make_adapter()
         resp = await adapter._handle_notification(
-            _FakeRequest(query={"validationToken": "abc123"})
+            _FakeRequest(query={"validationToken": "abc123"})  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 200
         assert resp.text == "abc123"
@@ -121,7 +121,7 @@ class TestMSGraphNotifications:
             ]
         }
 
-        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         # Success is 202 with empty body: internal counters must not leak to
         # the wire. Counters are still observable via /health.
         assert resp.status == 202
@@ -132,9 +132,9 @@ class TestMSGraphNotifications:
         assert len(scheduled) == 1
         notification, event = scheduled[0]
         assert notification["id"] == "notif-1"
-        assert event.source.platform == Platform.MSGRAPH_WEBHOOK
-        assert event.source.chat_type == "webhook"
-        assert event.message_id == "id:notif-1"
+        assert event.source.platform == Platform.MSGRAPH_WEBHOOK  # ty: ignore[unresolved-attribute]
+        assert event.source.chat_type == "webhook"  # ty: ignore[unresolved-attribute]
+        assert event.message_id == "id:notif-1"  # ty: ignore[unresolved-attribute]
 
     @pytest.mark.anyio
     async def test_bad_client_state_rejected_as_auth_failure(self):
@@ -158,7 +158,7 @@ class TestMSGraphNotifications:
             ]
         }
 
-        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         assert resp.status == 403
 
         await asyncio.sleep(0.05)
@@ -193,7 +193,7 @@ class TestMSGraphNotifications:
                 }
             ]
         }
-        await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
 
         assert calls, "hmac.compare_digest was never called; clientState check is not timing-safe"
         provided, expected = calls[0]
@@ -221,9 +221,9 @@ class TestMSGraphNotifications:
             ]
         }
 
-        first = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        first = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         assert first.status == 202
-        second = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        second = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         # Duplicate-only batch still returns 202 so Graph stops retrying.
         assert second.status == 202
         assert adapter._duplicate_count == 1
@@ -253,8 +253,8 @@ class TestMSGraphNotifications:
             ]
         }
 
-        first = await adapter._handle_notification(_FakeRequest(json_payload=payload))
-        second = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        first = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
+        second = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
 
         assert first.status == 202
         assert second.status == 202
@@ -278,7 +278,7 @@ class TestMSGraphNotifications:
             ]
         }
 
-        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         assert resp.status == 202
 
     @pytest.mark.anyio
@@ -294,14 +294,14 @@ class TestMSGraphNotifications:
                 }
             ]
         }
-        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))
+        resp = await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
         assert resp.status == 400
 
     @pytest.mark.anyio
     async def test_malformed_body_returns_400(self):
         adapter = _make_adapter()
         resp = await adapter._handle_notification(
-            _FakeRequest(json_payload=ValueError("bad json"))
+            _FakeRequest(json_payload=ValueError("bad json"))  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 400
 
@@ -309,7 +309,7 @@ class TestMSGraphNotifications:
     async def test_missing_value_array_returns_400(self):
         adapter = _make_adapter()
         resp = await adapter._handle_notification(
-            _FakeRequest(json_payload={"not_value": []})
+            _FakeRequest(json_payload={"not_value": []})  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 400
 
@@ -334,7 +334,7 @@ class TestMSGraphNotifications:
                     }
                 ]
             }
-            return await adapter._handle_notification(_FakeRequest(json_payload=payload))
+            return await adapter._handle_notification(_FakeRequest(json_payload=payload))  # ty: ignore[invalid-argument-type]
 
         first = await _post("notif-a")
         second = await _post("notif-b")
@@ -368,7 +368,7 @@ class TestMSGraphSourceIPAllowlist:
             ]
         }
         resp = await adapter._handle_notification(
-            _FakeRequest(json_payload=payload, remote="203.0.113.99")
+            _FakeRequest(json_payload=payload, remote="203.0.113.99")  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 202
 
@@ -385,7 +385,7 @@ class TestMSGraphSourceIPAllowlist:
             ]
         }
         resp = await adapter._handle_notification(
-            _FakeRequest(json_payload=payload, remote="203.0.113.99")
+            _FakeRequest(json_payload=payload, remote="203.0.113.99")  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 403
 
@@ -402,7 +402,7 @@ class TestMSGraphSourceIPAllowlist:
             ]
         }
         resp = await adapter._handle_notification(
-            _FakeRequest(json_payload=payload, remote="203.0.113.5")
+            _FakeRequest(json_payload=payload, remote="203.0.113.5")  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 202
 
@@ -411,7 +411,7 @@ class TestMSGraphSourceIPAllowlist:
         """A disallowed IP shouldn't be able to probe the handshake endpoint."""
         adapter = _make_adapter(allowed_source_cidrs=["10.0.0.0/8"])
         resp = await adapter._handle_validation(
-            _FakeRequest(query={"validationToken": "probe"}, remote="203.0.113.99")
+            _FakeRequest(query={"validationToken": "probe"}, remote="203.0.113.99")  # ty: ignore[invalid-argument-type]
         )
         assert resp.status == 403
 

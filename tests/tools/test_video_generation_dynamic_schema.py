@@ -114,7 +114,7 @@ class TestDynamicSchemaBuilder:
 
         import hermes_cli.plugins as plugins_module
         saved = plugins_module._ensure_plugins_discovered
-        plugins_module._ensure_plugins_discovered = lambda *a, **k: None
+        plugins_module._ensure_plugins_discovered = lambda *a, **k: None  # ty: ignore[invalid-assignment]
         try:
             desc = _build_dynamic_video_schema()["description"]
         finally:
@@ -134,7 +134,7 @@ class TestDynamicSchemaBuilder:
 
         import hermes_cli.plugins as plugins_module
         saved = plugins_module._ensure_plugins_discovered
-        plugins_module._ensure_plugins_discovered = lambda *a, **k: None
+        plugins_module._ensure_plugins_discovered = lambda *a, **k: None  # ty: ignore[invalid-assignment]
         try:
             desc = _build_dynamic_video_schema()["description"]
         finally:

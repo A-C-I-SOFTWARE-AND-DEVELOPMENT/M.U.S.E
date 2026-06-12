@@ -37,7 +37,7 @@ def _write_unit(tmp_path) -> str:
 
 
 def test_version_is_1_0_0():
-    assert axiom.__version__ == "1.0.0"
+    assert axiom.__version__ == "1.0.0"  # ty: ignore[unresolved-attribute]
 
 
 def test_cli_verify_then_run_then_audit(tmp_path, data_dir, capsys):
