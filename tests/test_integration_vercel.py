@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.integrations import vercel as vc
+from muse_cli.integrations import vercel as vc
 
 
 class TestDetect:

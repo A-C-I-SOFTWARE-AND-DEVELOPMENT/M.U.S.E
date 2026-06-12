@@ -3,7 +3,7 @@ store round-trip."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.graphrag.graph import (
+from muse_cli.jarvis_prime.graphrag.graph import (
     Edge,
     EdgeType,
     KnowledgeGraph,
@@ -11,7 +11,7 @@ from hermes_cli.jarvis_prime.graphrag.graph import (
     NodeType,
     node_id,
 )
-from hermes_cli.jarvis_prime.graphrag.store import GraphStore
+from muse_cli.jarvis_prime.graphrag.store import GraphStore
 
 
 def test_node_id_is_stable_and_typed():

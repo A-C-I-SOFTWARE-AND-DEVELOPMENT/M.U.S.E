@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import random
 
-from hermes_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore, new_member
-from hermes_cli.jarvis_prime.research_fabric.selfplay.evolve import evolve
-from hermes_cli.jarvis_prime.research_fabric.selfplay.tasks import (
+from muse_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore, new_member
+from muse_cli.jarvis_prime.research_fabric.selfplay.evolve import evolve
+from muse_cli.jarvis_prime.research_fabric.selfplay.tasks import (
     DEMO_BASELINE_CODE,
     DEMO_EVOLVE_TASK,
     demo_variant_proposer,

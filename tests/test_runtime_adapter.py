@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.runtime_adapter import (
+from muse_cli.runtime_adapter import (
     DockerRuntimeAdapter,
     LocalRuntimeAdapter,
     RuntimeAdapter,

@@ -11,10 +11,10 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
-from hermes_cli.jarvis_prime.gates import GateOutcome
-from hermes_cli.job_controller import JobController, estimate_job_risk, run_job_gates
-from hermes_cli.orchestrator_models import JobMode
+from muse_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
+from muse_cli.jarvis_prime.gates import GateOutcome
+from muse_cli.job_controller import JobController, estimate_job_risk, run_job_gates
+from muse_cli.orchestrator_models import JobMode
 
 
 @pytest.fixture(autouse=True)
@@ -146,7 +146,7 @@ def test_tampered_chain_fails_release(controller: JobController) -> None:
     bridge = get_bridge()
     bridge.record_event("gate.summary", {"packet_id": "pkt-1", "overall": "pass"})
 
-    from hermes_cli.jarvis_prime.gates import release_gate
+    from muse_cli.jarvis_prime.gates import release_gate
 
     packet = _complete_packet()
     assert release_gate(packet).outcome == GateOutcome.PASS

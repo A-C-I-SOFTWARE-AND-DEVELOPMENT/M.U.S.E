@@ -41,7 +41,7 @@ from enterprise.audit import AuditEvent, read_events
 
 def _drafts_dir() -> Path:
     try:
-        from hermes_cli.config import get_hermes_home
+        from muse_cli.config import get_hermes_home
 
         base = Path(get_hermes_home())
     except Exception:

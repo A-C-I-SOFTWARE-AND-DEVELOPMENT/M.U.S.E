@@ -56,7 +56,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 TOKEN = "test-core-loop-e2e-token"

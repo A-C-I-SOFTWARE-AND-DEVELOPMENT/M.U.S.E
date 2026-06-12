@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.validation`` — Phase 15 additions.
+"""Tests for ``muse_cli.validation`` — Phase 15 additions.
 
 The Phase 14 surface is covered in ``tests/test_validation_gates.py``;
 this file focuses on Phase 15 additions:
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.validation import (
+from muse_cli.validation import (
     CATEGORY_REMOTE,
     REMOTE_QUEUE_STALE_S,
     REMOTE_WORKER_STALE_S,

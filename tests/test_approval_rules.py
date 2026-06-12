@@ -6,7 +6,7 @@ One case per rule, plus precedence checks, against the pure
 
 from __future__ import annotations
 
-from hermes_cli.approval_rules import (
+from muse_cli.approval_rules import (
     ApprovalDecision,
     ApprovalRecord,
     ApprovalState,

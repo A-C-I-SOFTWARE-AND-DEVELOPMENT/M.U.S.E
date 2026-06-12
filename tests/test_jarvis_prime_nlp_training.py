@@ -12,15 +12,15 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import semantic_frontend as sf
-from hermes_cli.jarvis_prime.backend_selector import BackendContext, BackendTarget
-from hermes_cli.jarvis_prime.ir_compilers import get_compiler
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime import semantic_frontend as sf
+from muse_cli.jarvis_prime.backend_selector import BackendContext, BackendTarget
+from muse_cli.jarvis_prime.ir_compilers import get_compiler
+from muse_cli.jarvis_prime.learning_dataset import (
     CandidateStatus,
     DatasetStore,
     RejectedTrace,
 )
-from hermes_cli.jarvis_prime.nlp_training import (
+from muse_cli.jarvis_prime.nlp_training import (
     NL_COMPILE_LABEL,
     FinetuneJobSpec,
     export_compile_trace,

@@ -144,8 +144,8 @@ acp = ["agent-client-protocol==0.9.0"]
 #   2. Add back: mistral = ["mistralai==<verified-version>"]
 #   3. Re-enable Mistral in:
 #        - tools/lazy_deps.py (LAZY_DEPS["tts.mistral"], LAZY_DEPS["stt.mistral"])
-#        - hermes_cli/tools_config.py (un-hide from provider picker)
-#        - hermes_cli/web_server.py (re-add to dashboard STT options)
+#        - muse_cli/tools_config.py (un-hide from provider picker)
+#        - muse_cli/web_server.py (re-add to dashboard STT options)
 #        - tools/transcription_tools.py / tools/tts_tool.py (drop disabled stubs)
 #   4. Run `uv lock` to regenerate transitives.
 #   5. Optionally re-add to [all] only after a few days of clean operation.
@@ -237,10 +237,10 @@ all = [
 ]
 
 [project.scripts]
-muse = "hermes_cli.main:main"
+muse = "muse_cli.main:main"
 # Backward-compatibility alias for the pre-rename `hermes` command. Both names
-# dispatch to the same CLI entry point; `muse` is canonical.
-hermes = "hermes_cli.main:main"
+# dispatch to the same CLI entry point; `muse` is canonical. Permanent.
+hermes = "muse_cli.main:main"
 muse-agent = "run_agent:main"
 muse-acp = "acp_adapter.entry:main"
 
@@ -256,7 +256,7 @@ override-dependencies = ["pynacl>=1.6.2"]
 py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "utils"]
 
 [tool.setuptools.package-data]
-hermes_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
+muse_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
 gateway = ["assets/**/*"]
 "gateway.cockpit" = ["static/**/*"]
 plugins = [
@@ -266,7 +266,11 @@ plugins = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["agent", "agent.*", "tools", "tools.*", "hermes_cli", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
+# "muse_cli.*" (new) also fixes a latent packaging bug: the old include listed
+# only "hermes_cli" (no ".*"), so wheels silently dropped every subpackage
+# (jarvis_prime, swarm, workers, ...). "hermes_cli" is the permanent compat
+# shim package (a single __init__.py aliasing hermes_cli.* -> muse_cli.*).
+include = ["agent", "agent.*", "tools", "tools.*", "muse_cli", "muse_cli.*", "hermes_cli", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

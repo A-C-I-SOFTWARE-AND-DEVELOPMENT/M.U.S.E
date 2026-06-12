@@ -51,7 +51,7 @@ def _profile_has_kanban_toolset() -> bool:
     # negligible overhead. The check_fn results are further TTL-cached
     # (~30s) by the tool registry.
     try:
-        from hermes_cli.config import load_config
+        from muse_cli.config import load_config
         cfg = load_config()
         toolsets = cfg.get("toolsets", [])
         return "kanban" in toolsets
@@ -172,7 +172,7 @@ def _connect(board: Optional[str] = None):
     → ``default``). Per-tool ``board`` lets a Telegram-side agent override
     the env-pinned active board without restarting Hermes.
     """
-    from hermes_cli import kanban_db as kb
+    from muse_cli import kanban_db as kb
     return kb, kb.connect(board=board)
 
 

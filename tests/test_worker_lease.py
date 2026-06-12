@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.worker_lease import (
+from muse_cli.worker_lease import (
     LeaseStatus,
     WorkerLease,
     acquire,

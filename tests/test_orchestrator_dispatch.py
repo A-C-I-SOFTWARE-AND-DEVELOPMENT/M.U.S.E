@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.orchestrator_dispatch``.
+"""Tests for ``muse_cli.orchestrator_dispatch``.
 
 The dispatcher seam runs a :class:`ParallelRunner` plan and drains each
 worker's persisted usage into a :class:`JobStore`, mirroring the HTTP
@@ -21,10 +21,10 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import orchestrator_parallel as op
-from hermes_cli.orchestrator_api import JobStore
-from hermes_cli.orchestrator_dispatch import run_plan_into_store
-from hermes_cli.runtime_adapter import LocalRuntimeAdapter
+from muse_cli import orchestrator_parallel as op
+from muse_cli.orchestrator_api import JobStore
+from muse_cli.orchestrator_dispatch import run_plan_into_store
+from muse_cli.runtime_adapter import LocalRuntimeAdapter
 
 
 # ─── helpers ──────────────────────────────────────────────────────────

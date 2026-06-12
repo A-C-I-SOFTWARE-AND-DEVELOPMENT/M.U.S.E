@@ -1,4 +1,4 @@
-"""Tests for the SIA worker adapter (``hermes_cli/workers/sia.py``).
+"""Tests for the SIA worker adapter (``muse_cli/workers/sia.py``).
 
 SIA itself is never invoked — we inject a fake runner that simulates the
 ``runs/run_*/gen_*/`` artifacts SIA writes, so the tests are hermetic
@@ -14,8 +14,8 @@ import types
 from pathlib import Path
 from unittest import mock
 
-from hermes_cli.workers import registry
-from hermes_cli.workers.sia import SiaConfig, SiaWorker
+from muse_cli.workers import registry
+from muse_cli.workers.sia import SiaConfig, SiaWorker
 
 
 def _job(**overrides):
@@ -56,9 +56,9 @@ def _fake_runner_two_gens(scores=(0.4, 0.8)):
 def test_detect_unavailable_when_not_installed():
     worker = SiaWorker()
     with (
-        mock.patch("hermes_cli.workers.sia.detect_command", return_value=False),
+        mock.patch("muse_cli.workers.sia.detect_command", return_value=False),
         mock.patch(
-            "hermes_cli.workers.sia.importlib.util.find_spec", return_value=None
+            "muse_cli.workers.sia.importlib.util.find_spec", return_value=None
         ),
     ):
         det = worker.detect()
@@ -69,7 +69,7 @@ def test_detect_unavailable_when_not_installed():
 
 def test_detect_available_when_on_path():
     worker = SiaWorker()
-    with mock.patch("hermes_cli.workers.sia.detect_command", return_value=True):
+    with mock.patch("muse_cli.workers.sia.detect_command", return_value=True):
         det = worker.detect()
     assert det.available is True
 
@@ -173,7 +173,7 @@ def test_timeout_is_handled(tmp_path):
 
 
 def test_worker_is_registered():
-    from hermes_cli.workers import load_builtins
+    from muse_cli.workers import load_builtins
 
     load_builtins()
     assert "sia" in registry.default_registry

@@ -7,9 +7,9 @@ and the no-execution / no-IO guarantee.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import semantic_frontend as sf
-from hermes_cli.jarvis_prime.intent_graph import IntentNodeKind
-from hermes_cli.jarvis_prime.natural_language_coder import (
+from muse_cli.jarvis_prime import semantic_frontend as sf
+from muse_cli.jarvis_prime.intent_graph import IntentNodeKind
+from muse_cli.jarvis_prime.natural_language_coder import (
     OwnerGate,
     route_request,
 )

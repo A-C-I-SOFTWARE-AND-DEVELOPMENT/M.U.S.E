@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.swarm.blackboard import SwarmBlackboard
+from muse_cli.swarm.blackboard import SwarmBlackboard
 
 
 def test_post_and_read_in_process():

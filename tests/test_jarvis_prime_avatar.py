@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.avatar — the canonical MUSE
+"""Tests for muse_cli.jarvis_prime.avatar — the canonical MUSE
 avatar + locale-aware voice embodiment, and its CLI surface.
 
 Hermetic: stdlib only, no audio deps, no network.
@@ -11,7 +11,7 @@ import io
 import json
 from pathlib import Path
 
-from hermes_cli.jarvis_prime import avatar as av
+from muse_cli.jarvis_prime import avatar as av
 
 _CANONICAL_JSON = (
     Path(__file__).resolve().parent.parent / "docs" / "jarvis-prime" / "avatar.json"
@@ -101,7 +101,7 @@ def test_voice_for_raises_without_voices() -> None:
 
 def test_local_voice_stack_defaults() -> None:
     lv = av.DEFAULT_AVATAR.local_voice
-    assert lv.stt_engine == "faster-whisper"  # matches hermes_cli/voice.py
+    assert lv.stt_engine == "faster-whisper"  # matches muse_cli/voice.py
     assert lv.tts_engine == "piper"
     assert lv.offline_first is True
     assert lv.wake_phrase == "Muse"
@@ -132,7 +132,7 @@ def test_canonical_json_in_sync_with_python_defaults() -> None:
 
 
 def test_cli_avatar_json() -> None:
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -145,7 +145,7 @@ def test_cli_avatar_json() -> None:
 
 
 def test_cli_avatar_locale_json_returns_one_profile() -> None:
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -157,7 +157,7 @@ def test_cli_avatar_locale_json_returns_one_profile() -> None:
 
 
 def test_cli_avatar_human_readable() -> None:
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):

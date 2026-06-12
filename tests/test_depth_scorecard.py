@@ -12,7 +12,7 @@ import socket
 
 import pytest
 
-from hermes_cli.jarvis_prime.depth_scorecard import (
+from muse_cli.jarvis_prime.depth_scorecard import (
     BUILTIN_TASKS,
     SCORECARD_SCHEMA_VERSION,
     VERIFIER_MODEL,
@@ -21,8 +21,8 @@ from hermes_cli.jarvis_prime.depth_scorecard import (
     produce_scorecard,
     render_scorecard,
 )
-from hermes_cli.jarvis_prime.model_scorecard import ModelScorecard
-from hermes_cli.jarvis_prime.task_router import TaskClass
+from muse_cli.jarvis_prime.model_scorecard import ModelScorecard
+from muse_cli.jarvis_prime.task_router import TaskClass
 
 
 def test_builtin_tasks_use_known_task_classes() -> None:
@@ -128,7 +128,7 @@ def test_never_raises_on_internal_failure(monkeypatch) -> None:
 
     # Patch the symbol where it is looked up (lazy import target module).
     monkeypatch.setattr(
-        "hermes_cli.jarvis_prime.research_fabric.benchmarks.run_suite",
+        "muse_cli.jarvis_prime.research_fabric.benchmarks.run_suite",
         _boom,
     )
     sc = produce_scorecard()

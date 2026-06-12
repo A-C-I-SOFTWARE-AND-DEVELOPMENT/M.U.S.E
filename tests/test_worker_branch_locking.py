@@ -1,4 +1,4 @@
-"""Tests for worker branch leases (hermes_cli.jarvis_prime.worker_locks)
+"""Tests for worker branch leases (muse_cli.jarvis_prime.worker_locks)
 and the single-editor-per-branch policy enforced via worker_registry.
 
 The core invariant: Claude Code and Codex must never edit the same branch
@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import worker_locks as wl
-from hermes_cli.jarvis_prime import worker_registry as wr
+from muse_cli.jarvis_prime import worker_locks as wl
+from muse_cli.jarvis_prime import worker_registry as wr
 
 
 @pytest.fixture()

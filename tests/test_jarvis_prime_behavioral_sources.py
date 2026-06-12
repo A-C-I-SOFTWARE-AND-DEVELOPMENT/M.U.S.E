@@ -2,8 +2,8 @@
 
 import json
 
-from hermes_cli.jarvis_prime import behavioral_risk as br
-from hermes_cli.jarvis_prime.monitor_collectors import (
+from muse_cli.jarvis_prime import behavioral_risk as br
+from muse_cli.jarvis_prime.monitor_collectors import (
     collect_context,
     collect_worker_actions_from_decision_ledger,
     collect_worker_actions_from_trajectory,

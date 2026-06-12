@@ -8,7 +8,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'hermes_cli/**'
+      - 'muse_cli/**'
       - 'scripts/hermes-orchestrate.sh'
       - 'scripts/hermes-termux-service.sh'
       - 'scripts/hermes-termux-doctor.sh'
@@ -22,7 +22,7 @@ on:
       - '.github/workflows/orchestration-tests.yml'
   pull_request:
     paths:
-      - 'hermes_cli/**'
+      - 'muse_cli/**'
       - 'scripts/hermes-orchestrate.sh'
       - 'scripts/hermes-termux-service.sh'
       - 'scripts/hermes-termux-doctor.sh'
@@ -64,7 +64,7 @@ jobs:
 
       - name: Py-compile the orchestrator modules
         run: |
-          python -m py_compile hermes_cli/*.py hermes_cli/workers/*.py
+          python -m py_compile muse_cli/*.py muse_cli/workers/*.py
 
       - name: Bash syntax-check the orchestration scripts
         run: |

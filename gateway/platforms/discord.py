@@ -517,7 +517,7 @@ def _read_dm_role_auth_guild() -> Optional[int]:
     default (DM role-auth disabled).
     """
     try:
-        from hermes_cli.config import read_raw_config
+        from muse_cli.config import read_raw_config
         cfg = read_raw_config() or {}
         discord_cfg = cfg.get("discord", {}) or {}
         raw = discord_cfg.get("dm_role_auth_guild")
@@ -3065,7 +3065,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
         # ── Auto-register any gateway-available commands not yet on the tree ──
         # This ensures new commands added to COMMAND_REGISTRY in
-        # hermes_cli/commands.py automatically appear as Discord slash
+        # muse_cli/commands.py automatically appear as Discord slash
         # commands without needing a manual entry here.
         def _build_auto_slash_command(_name: str, _description: str, _args_hint: str = ""):
             """Build a discord.app_commands.Command that proxies to _run_simple_slash."""
@@ -3101,7 +3101,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
         already_registered: set[str] = set()
         try:
-            from hermes_cli.commands import COMMAND_REGISTRY, _is_gateway_available, _resolve_config_gates
+            from muse_cli.commands import COMMAND_REGISTRY, _is_gateway_available, _resolve_config_gates
 
             try:
                 already_registered = {cmd.name for cmd in tree.get_commands()}
@@ -3143,7 +3143,7 @@ class DiscordAdapter(BasePlatformAdapter):
         # autocomplete UX as for built-in commands. No per-platform plugin
         # API needed — plugin commands are platform-agnostic.
         try:
-            from hermes_cli.commands import _iter_plugin_command_entries
+            from muse_cli.commands import _iter_plugin_command_entries
 
             for plugin_name, plugin_desc, plugin_args_hint in _iter_plugin_command_entries():
                 discord_name = plugin_name.lower()[:32]
@@ -3365,7 +3365,7 @@ class DiscordAdapter(BasePlatformAdapter):
         and the handler both read from these instance attributes
         directly, so an in-place mutation is sufficient.
         """
-        from hermes_cli.commands import discord_skill_commands_by_category
+        from muse_cli.commands import discord_skill_commands_by_category
 
         reserved = getattr(self, "_skill_group_reserved_names", set())
         categories, uncategorized, hidden = discord_skill_commands_by_category(
@@ -4236,7 +4236,7 @@ class DiscordAdapter(BasePlatformAdapter):
                 channel = await self._client.fetch_channel(int(target_id))
 
             try:
-                from hermes_cli.providers import get_label
+                from muse_cli.providers import get_label
                 provider_label = get_label(current_provider)
             except Exception:
                 provider_label = current_provider
@@ -5478,7 +5478,7 @@ def _define_discord_view_classes() -> None:
             self._build_provider_select()
 
             try:
-                from hermes_cli.providers import get_label
+                from muse_cli.providers import get_label
                 provider_label = get_label(self.current_provider)
             except Exception:
                 provider_label = self.current_provider

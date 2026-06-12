@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.graphrag.builder import build_graph
-from hermes_cli.jarvis_prime.graphrag.graph import EdgeType, KnowledgeGraph, NodeType, node_id
-from hermes_cli.jarvis_prime.graphrag.indexers import (
+from muse_cli.jarvis_prime.graphrag.builder import build_graph
+from muse_cli.jarvis_prime.graphrag.graph import EdgeType, KnowledgeGraph, NodeType, node_id
+from muse_cli.jarvis_prime.graphrag.indexers import (
     index_code,
     index_docs,
     index_evidence,
@@ -94,7 +94,7 @@ def test_docs_indexer_cites_referenced_files(sample_repo: Path):
 
 
 def test_evidence_indexer_links_repo_files(sample_repo: Path, tmp_path: Path):
-    from hermes_cli.jarvis_prime.research_vault import (
+    from muse_cli.jarvis_prime.research_vault import (
         EvidenceStrength,
         ResearchVault,
         SourceType,
@@ -122,7 +122,7 @@ def test_evidence_indexer_links_repo_files(sample_repo: Path, tmp_path: Path):
 
 
 def test_memory_indexer_makes_decisions_and_contradictions(tmp_path: Path):
-    from hermes_cli.jarvis_prime.memory_tree import (
+    from muse_cli.jarvis_prime.memory_tree import (
         MemoryLayer,
         MemorySource,
         MemoryTreeStore,

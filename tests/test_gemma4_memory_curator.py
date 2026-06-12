@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.jarvis_prime.gemma_memory_curator import (
+from muse_cli.jarvis_prime.gemma_memory_curator import (
     GemmaCuratorProposal,
     capture_curator_proposals,
     curate,
     strip_gemma_thought_blocks,
 )
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory_tree import (
     ApprovalState,
     MemoryLayer,
     MemoryTreeStore,

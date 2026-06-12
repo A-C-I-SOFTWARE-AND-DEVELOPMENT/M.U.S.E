@@ -5,7 +5,7 @@ compaction (behavior from the public MIT upstream ``vincentkoc/tokenjuice``;
 rule JSON is the MIT-licensed vendored set — see ``THIRD_PARTY_NOTICES.md``).
 No GPL source is copied.
 
-This is distinct from ``hermes_cli.jarvis_prime.tokenjuice`` (a *context
+This is distinct from ``muse_cli.jarvis_prime.tokenjuice`` (a *context
 compiler*). This package compacts **tool output** before it enters the model
 context, and runs after credential scrubbing and before the existing
 size-threshold persistence/budget layers in ``tools/tool_result_storage.py``.

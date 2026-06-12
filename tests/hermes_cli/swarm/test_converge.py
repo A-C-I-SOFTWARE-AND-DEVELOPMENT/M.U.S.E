@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from hermes_cli.swarm.converge import (
+from muse_cli.swarm.converge import (
     converge_competitive,
     converge_cooperative,
     detect_runtime_conflicts,

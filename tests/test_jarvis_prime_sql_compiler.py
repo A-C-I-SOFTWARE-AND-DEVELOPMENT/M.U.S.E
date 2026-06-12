@@ -8,14 +8,14 @@ table and an empty column name; to_dict/from_dict preserves ``query_id``.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.intent_graph import (
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.intent_graph import (
     IntentGraph,
     IntentNode,
     IntentNodeKind,
     Slot,
 )
-from hermes_cli.jarvis_prime.ir_compilers.sql_query import (
+from muse_cli.jarvis_prime.ir_compilers.sql_query import (
     SqlColumn,
     SqlPredicate,
     SqlQueryCompiler,

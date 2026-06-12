@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime.guardrail_evidence import (
     EvidenceArtifact,
     GuardrailEvidenceBundle,
     GuardrailLedger,

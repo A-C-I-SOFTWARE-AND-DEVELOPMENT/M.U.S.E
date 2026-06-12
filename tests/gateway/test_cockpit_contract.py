@@ -12,9 +12,9 @@ from datetime import datetime, timezone
 import pytest
 
 from gateway.cockpit import contract
-from hermes_cli.decision_ledger import DecisionLedger
-from hermes_cli.jarvis_prime.memory import MemoryRecord
-from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry
+from muse_cli.decision_ledger import DecisionLedger
+from muse_cli.jarvis_prime.memory import MemoryRecord
+from muse_cli.job_queue import JobQueueEntry, WorkerQueueEntry
 
 
 def _ledger(**kw) -> DecisionLedger:
@@ -256,7 +256,7 @@ def test_cockpit_job_key_set_matches_contract() -> None:
 
 
 def test_orchestrator_job_projects_canonical_shape() -> None:
-    from hermes_cli.orchestrator import Job
+    from muse_cli.orchestrator import Job
 
     # created_at/updated_at are MICROSECOND epochs (orchestrator _now()).
     job = Job(
@@ -284,7 +284,7 @@ def test_orchestrator_job_projects_canonical_shape() -> None:
 
 
 def test_orchestrator_job_status_mapping_and_published() -> None:
-    from hermes_cli.orchestrator import Job
+    from muse_cli.orchestrator import Job
 
     assert contract.orchestrator_job(Job(id="o", prompt="p", status="blocked"))[
         "status"
@@ -309,7 +309,7 @@ def test_orchestrator_job_status_mapping_and_published() -> None:
 
 
 def test_orchestrator_job_detail_folds_ledger_into_workers_and_files() -> None:
-    from hermes_cli.orchestrator import Job
+    from muse_cli.orchestrator import Job
 
     job = Job(
         id="orc-detail",
@@ -351,7 +351,7 @@ def test_orchestrator_job_detail_folds_ledger_into_workers_and_files() -> None:
 
 
 def test_queue_job_detail_projects_workers_and_timeline() -> None:
-    from hermes_cli.job_queue import JobQueueEntry, WorkerQueueEntry, WorkerStatus
+    from muse_cli.job_queue import JobQueueEntry, WorkerQueueEntry, WorkerStatus
 
     entry = JobQueueEntry(
         job_id="job_q1",
@@ -379,7 +379,7 @@ def test_queue_job_detail_projects_workers_and_timeline() -> None:
     # canonical shape parity with the orchestrator detail projection
     assert set(out.keys()) == set(
         contract.orchestrator_job_detail(
-            __import__("hermes_cli.orchestrator", fromlist=["Job"]).Job(
+            __import__("muse_cli.orchestrator", fromlist=["Job"]).Job(
                 id="o", prompt="p"
             ),
             [],
@@ -579,7 +579,7 @@ def test_navigation_view_job_id_override() -> None:
 
 
 def test_coding_packet_projects_work_packet() -> None:
-    from hermes_cli.jarvis_prime import natural_language_coder as nlc
+    from muse_cli.jarvis_prime import natural_language_coder as nlc
 
     packet = nlc.build_work_packet("add a unit test for the parser")
     out = contract.coding_packet(packet)
@@ -591,7 +591,7 @@ def test_coding_packet_projects_work_packet() -> None:
 
 
 def test_evidence_artifact_projects_research_artifact() -> None:
-    from hermes_cli.jarvis_prime import research_vault as rv
+    from muse_cli.jarvis_prime import research_vault as rv
 
     art = rv.ResearchArtifact(
         id="abc123",
@@ -620,7 +620,7 @@ class _FakeReport:
 
 
 def _artifact(strength: str = "primary", freshness_due=None):
-    from hermes_cli.jarvis_prime import research_vault as rv
+    from muse_cli.jarvis_prime import research_vault as rv
 
     return rv.ResearchArtifact(
         id="x",

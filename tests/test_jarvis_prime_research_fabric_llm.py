@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_fabric.selfplay.llm import (
+from muse_cli.jarvis_prime.research_fabric.selfplay.llm import (
     LLMMutator,
     LLMSolver,
     extract_code,
 )
-from hermes_cli.jarvis_prime.research_fabric.selfplay.tasks import DEMO_EVOLVE_TASK
-from hermes_cli.jarvis_prime.research_fabric.verifier.algorithms import (
+from muse_cli.jarvis_prime.research_fabric.selfplay.tasks import DEMO_EVOLVE_TASK
+from muse_cli.jarvis_prime.research_fabric.verifier.algorithms import (
     score_algorithm_candidate,
 )
 

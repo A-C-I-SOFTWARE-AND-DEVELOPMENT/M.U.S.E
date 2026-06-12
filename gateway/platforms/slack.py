@@ -643,7 +643,7 @@ class SlackAdapter(BasePlatformAdapter):
             # routes the command event through the socket regardless of the
             # manifest's request URL, but it will not deliver an event for
             # a slash command the manifest doesn't declare.
-            from hermes_cli.commands import slack_native_slashes
+            from muse_cli.commands import slack_native_slashes
             import re as _re
 
             _slash_names = [name for name, _d, _h in slack_native_slashes()]
@@ -1814,7 +1814,7 @@ class SlackAdapter(BasePlatformAdapter):
         # so casual messages like "!nice work" pass through unchanged.
         if original_text.startswith("!"):
             try:
-                from hermes_cli.commands import is_gateway_known_command
+                from muse_cli.commands import is_gateway_known_command
                 first_token = original_text[1:].split(maxsplit=1)[0]
                 # Strip "@suffix" the same way get_command() does, so
                 # forms like ``!stop@hermes`` still resolve.
@@ -2788,7 +2788,7 @@ class SlackAdapter(BasePlatformAdapter):
             # Legacy /hermes <subcommand> [args] routing + free-form questions.
             # Empty slash_name falls into this branch for backward compat
             # with any caller that didn't populate command["command"].
-            from hermes_cli.commands import slack_subcommand_map
+            from muse_cli.commands import slack_subcommand_map
             subcommand_map = slack_subcommand_map()
             subcommand_map["compact"] = "/compress"
             # Guard against whitespace-only text where ``text`` is truthy but

@@ -7,7 +7,7 @@ Behaviour is unchanged — this is a physical relocation plus a re-export from
 calling ``h.autonomy_set``) keeps resolving exactly as before.
 
 Like ``handlers``, this module is stdlib-only at import time; the policy
-engine (``hermes_cli.approval_policy``) and the response ``contract`` are
+engine (``muse_cli.approval_policy``) and the response ``contract`` are
 imported lazily inside each handler so it loads under Termux / slim installs.
 
 ``Request`` / ``JsonResponse`` are imported from the sibling ``handlers``
@@ -36,11 +36,11 @@ if TYPE_CHECKING:  # annotations only — runtime binding happens at module bott
 def autonomy_get(_req: Request) -> JsonResponse:
     """Current autonomy level, workspace scope, and capability list.
 
-    The capability list is derived from ``hermes_cli.approval_policy`` so the
+    The capability list is derived from ``muse_cli.approval_policy`` so the
     cockpit never hard-codes a list that could drift from the policy engine.
     """
     try:
-        from hermes_cli import approval_policy as ap
+        from muse_cli import approval_policy as ap
 
         from . import contract
 
@@ -93,8 +93,8 @@ def autonomy_set(req: Request) -> JsonResponse:
     """
     body = req.body or {}
     try:
-        from hermes_cli import approval_policy as ap
-        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        from muse_cli import approval_policy as ap
+        from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
         from . import contract
 
@@ -161,7 +161,7 @@ def autonomy_set(req: Request) -> JsonResponse:
 def autonomy_decisions(req: Request) -> JsonResponse:
     """Recent (already-redacted) policy decisions for the audit trail."""
     try:
-        from hermes_cli import approval_policy as ap
+        from muse_cli import approval_policy as ap
 
         limit_raw = req.query.get("limit", "50")
         try:

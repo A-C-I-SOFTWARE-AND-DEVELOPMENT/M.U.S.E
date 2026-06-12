@@ -15,8 +15,8 @@ from typing import Any
 
 import pytest
 
-from hermes_cli.workers import WorkerStatus, WorkerTask
-from hermes_cli.workers import chatgpt_handoff as worker
+from muse_cli.workers import WorkerStatus, WorkerTask
+from muse_cli.workers import chatgpt_handoff as worker
 
 
 def _task(**overrides: Any) -> WorkerTask:
@@ -267,7 +267,7 @@ def test_no_execute_kwarg_exists():
 
 
 def test_module_is_importable():
-    import hermes_cli.workers.chatgpt_handoff as _  # noqa: F401
+    import muse_cli.workers.chatgpt_handoff as _  # noqa: F401
 
 
 @pytest.mark.parametrize(

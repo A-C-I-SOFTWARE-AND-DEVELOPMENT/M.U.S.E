@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.orchestrator_api — local-only orchestrator backend."""
+"""Tests for muse_cli.orchestrator_api — local-only orchestrator backend."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from hermes_cli import orchestrator_api  # noqa: E402
-from hermes_cli.orchestrator_api import (  # noqa: E402
+from muse_cli import orchestrator_api  # noqa: E402
+from muse_cli.orchestrator_api import (  # noqa: E402
     ALL_EVENTS,
     EVENT_EVIDENCE_UPDATED,
     EVENT_JOB_CREATED,
@@ -735,10 +735,10 @@ class TestWorkers:
 class TestWorkerUsageReporting:
     """A worker report carrying usage/cost folds into the job cost aggregate.
 
-    This is the producer seam documented in ``hermes_cli.job_cost``: the
+    This is the producer seam documented in ``muse_cli.job_cost``: the
     ``POST /jobs/{id}/workers/{worker}`` endpoint already accepts a free-form
     report body; when that body carries token usage / cost, it accumulates onto
-    the job's :class:`~hermes_cli.job_cost.JobCost`.
+    the job's :class:`~muse_cli.job_cost.JobCost`.
     """
 
     def test_extract_usage_report_none_for_plain_heartbeat(self):

@@ -7,17 +7,17 @@ validation flags a missing trigger and an ungated external alert; round-trips.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import semantic_frontend as sf
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
-from hermes_cli.jarvis_prime.ir_compilers import get_compiler
-from hermes_cli.jarvis_prime.ir_compilers.automation_flow import (
+from muse_cli.jarvis_prime import semantic_frontend as sf
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
+from muse_cli.jarvis_prime.ir_compilers import get_compiler
+from muse_cli.jarvis_prime.ir_compilers.automation_flow import (
     AutomationFlow,
     FlowOutput,
     FlowStep,
     FlowTrigger,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import (
+from muse_cli.jarvis_prime.natural_language_coder import (
     CodingWorkPacket,
     build_work_packet,
 )
@@ -56,7 +56,7 @@ def test_repo_compiler_emits_gate_compatible_packet() -> None:
 def test_repo_compiler_never_narrows_allowed_files() -> None:
     g = sf.parse("refactor gateway/retry.py and add tests").graph
     result = get_compiler(BackendTarget.REPO_WORK_PACKET).compile(g)
-    from hermes_cli.jarvis_prime.natural_language_coder import _allowed_files_for
+    from muse_cli.jarvis_prime.natural_language_coder import _allowed_files_for
     packet = result.artifact
     assert isinstance(packet, CodingWorkPacket)
     default = set(_allowed_files_for(g.intent))

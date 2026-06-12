@@ -88,7 +88,7 @@ def test_cockpit_journey_health_auth_and_streaming_chat(hermes_home):
 
 def test_shared_memory_is_one_brain_across_surfaces(hermes_home):
     """A durable fact written by one surface is recollected by another."""
-    from hermes_cli.jarvis_prime.runtime import JarvisPrime
+    from muse_cli.jarvis_prime.runtime import JarvisPrime
 
     # Surface A (e.g. the CLI) records a durable owner preference.
     surface_a = JarvisPrime()

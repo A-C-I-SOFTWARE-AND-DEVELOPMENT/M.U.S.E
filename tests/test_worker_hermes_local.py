@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.workers.hermes_local import (
+from muse_cli.workers.hermes_local import (
     HermesLocalWorker,
     TestCommand,
     WorkerStatus,
@@ -243,7 +243,7 @@ def test_git_state_with_dot_git_marker(tmp_path, monkeypatch):
     def _fake_git(root, args, *, timeout=5.0):
         return fake_outputs.get(tuple(args), "")
 
-    import hermes_cli.workers.hermes_local as mod
+    import muse_cli.workers.hermes_local as mod
     monkeypatch.setattr(mod, "_git", _fake_git)
     state = HermesLocalWorker(tmp_path).inspect_git_state()
     assert state["is_git_repo"] is True
@@ -256,7 +256,7 @@ def test_git_state_with_dot_git_marker(tmp_path, monkeypatch):
 
 def test_run_writes_all_six_artifacts(fake_python_repo, monkeypatch):
     """``run()`` writes the contracted artifact paths and returns ok=True."""
-    import hermes_cli.workers.hermes_local as mod
+    import muse_cli.workers.hermes_local as mod
 
     # Avoid relying on a real git binary; ``.git`` is absent here so the
     # helper short-circuits, but stub anyway to prove no shelling out.
@@ -310,7 +310,7 @@ def test_run_with_separate_output_base(tmp_path):
 
 def test_run_captures_unexpected_errors(fake_python_repo, monkeypatch):
     """If an internal step raises, status.json is still written with ok=False."""
-    import hermes_cli.workers.hermes_local as mod
+    import muse_cli.workers.hermes_local as mod
 
     def _boom(self):
         raise RuntimeError("synthetic failure")

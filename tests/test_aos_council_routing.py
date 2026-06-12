@@ -17,7 +17,7 @@ The test is hermetic and read-only:
   ``scripts/aos_registry_verify.py`` (a small local copy is kept here rather
   than importing a script module, so the test has no import-path coupling to
   ``scripts/``).
-* It then exercises the real :class:`hermes_cli.jarvis_prime.router.Router`
+* It then exercises the real :class:`muse_cli.jarvis_prime.router.Router`
   for every mode/intent that hands off to a *named council member* and asserts
   each emitted ``delegate_to`` resolves to a registered member — and that a
   fabricated name resolves to nothing (the membership set is exactly the
@@ -30,8 +30,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.modes import Mode
-from hermes_cli.jarvis_prime.router import RouteTarget, Router
+from muse_cli.jarvis_prime.modes import Mode
+from muse_cli.jarvis_prime.router import RouteTarget, Router
 
 # Repo root: tests/ lives directly under it.
 _REPO_ROOT = Path(__file__).resolve().parents[1]

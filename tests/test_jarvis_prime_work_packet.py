@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.work_packet — schema, validation, owner gates."""
+"""Tests for muse_cli.jarvis_prime.work_packet — schema, validation, owner gates."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import importlib
 
 import pytest
 
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-from hermes_cli.jarvis_prime.work_packet import (
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.work_packet import (
     REQUIRED_FIELDS,
     VALID_RISK_CLASSES,
     WorkPacket,
@@ -21,11 +21,11 @@ def _complete_packet_kwargs() -> dict:
         repo_root="/home/user/hermes-agent",
         branch="feature/jarvis-workpacket-foundation-current-main",
         risk_class="RC1",
-        allowed_files=["hermes_cli/jarvis_prime/work_packet.py"],
+        allowed_files=["muse_cli/jarvis_prime/work_packet.py"],
         protected_files=["main"],
         non_goals=["overwrite shipped runtime modules"],
         acceptance_criteria=["WorkPacket validates", "existing tests still pass"],
-        files_changed=["hermes_cli/jarvis_prime/work_packet.py"],
+        files_changed=["muse_cli/jarvis_prime/work_packet.py"],
         tests_run=["tests/test_jarvis_prime_work_packet.py"],
         tests_failed=[],
         verification_summary="pytest tests/test_jarvis_prime_work_packet.py passes",
@@ -63,7 +63,7 @@ def test_work_packet_to_dict_round_trips() -> None:
 
     assert payload["mission"] == "Port the WorkPacket model onto current main"
     assert payload["risk_class"] == "RC1"
-    assert payload["allowed_files"] == ["hermes_cli/jarvis_prime/work_packet.py"]
+    assert payload["allowed_files"] == ["muse_cli/jarvis_prime/work_packet.py"]
     assert payload["confidence"] == 0.8
     assert "created_at" in payload
 
@@ -153,9 +153,9 @@ def test_from_dict_rejects_non_dict_input() -> None:
 
 
 def test_package_reexports_work_packet_symbols() -> None:
-    # The minimal additive edit to hermes_cli.jarvis_prime.__init__
+    # The minimal additive edit to muse_cli.jarvis_prime.__init__
     # should expose WorkPacket alongside the shipped runtime exports.
-    module = importlib.import_module("hermes_cli.jarvis_prime")
+    module = importlib.import_module("muse_cli.jarvis_prime")
 
     assert hasattr(module, "WorkPacket")
     assert hasattr(module, "WorkPacketValidationFinding")

@@ -17,13 +17,13 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.job_controller import (
+from muse_cli.job_controller import (
     DECISION_LEDGER_FILE,
     GITHUB_DIRNAME,
     SCORECARD_FILE,
     JobController,
 )
-from hermes_cli.orchestrator_models import (
+from muse_cli.orchestrator_models import (
     JobMode,
     JobState,
     WorkerRole,

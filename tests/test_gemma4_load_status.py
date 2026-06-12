@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import gemma_load_status as gls
+from muse_cli.jarvis_prime import gemma_load_status as gls
 
 
 def test_canonical_variant_normalises_spellings() -> None:

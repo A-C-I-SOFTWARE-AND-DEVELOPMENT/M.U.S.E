@@ -6,13 +6,13 @@ grader override is honored, the audit_result artifact + ledger record verify,
 and the cited sources bridge into the Research Vault.
 """
 
-from hermes_cli.jarvis_prime import constitution
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime import constitution
+from muse_cli.jarvis_prime.guardrail_evidence import (
     ARTIFACT_AUDIT_RESULT,
     GuardrailLedger,
 )
-from hermes_cli.jarvis_prime.research_vault import EvidenceStrength, ResearchVault
-from hermes_cli.jarvis_prime.self_audit import (
+from muse_cli.jarvis_prime.research_vault import EvidenceStrength, ResearchVault
+from muse_cli.jarvis_prime.self_audit import (
     SEEDS,
     compliant_target,
     judge,
@@ -21,8 +21,8 @@ from hermes_cli.jarvis_prime.self_audit import (
     run_seed,
     select_seeds,
 )
-from hermes_cli.jarvis_prime.self_audit import sources as sa_sources
-from hermes_cli.jarvis_prime.self_audit.judge import ClauseFinding
+from muse_cli.jarvis_prime.self_audit import sources as sa_sources
+from muse_cli.jarvis_prime.self_audit.judge import ClauseFinding
 
 
 def test_seeds_reference_real_clauses_and_valid_pools():

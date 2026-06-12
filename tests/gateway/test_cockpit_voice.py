@@ -1,7 +1,7 @@
 """End-to-end tests for the cockpit voice endpoints.
 
 These exercise the additive routes that expose the canonical
-``hermes_cli.voice_intake`` pipeline — and the server-side audio duplex —
+``muse_cli.voice_intake`` pipeline — and the server-side audio duplex —
 to the Android cockpit:
 
 * ``POST /v1/cockpit/voice/intake``      — transcript -> read-back + draft

@@ -1,4 +1,4 @@
-"""Tests for :mod:`hermes_cli.workers.isolation`.
+"""Tests for :mod:`muse_cli.workers.isolation`.
 
 Each filesystem-touching test runs against an isolated ephemeral
 directory (``tmp_path``) and, when worktrees are involved, an
@@ -14,8 +14,8 @@ from typing import Any
 
 import pytest
 
-from hermes_cli import worktrees as wt
-from hermes_cli.workers import (
+from muse_cli import worktrees as wt
+from muse_cli.workers import (
     CollectedRun,
     IsolatedSpawner,
     IsolatedWorkspace,
@@ -28,7 +28,7 @@ from hermes_cli.workers import (
     WorkerRunResult,
     WorkerScore,
 )
-from hermes_cli.workers import isolation as iso
+from muse_cli.workers import isolation as iso
 
 
 # ── helpers / fixtures ────────────────────────────────────────────────
@@ -655,7 +655,7 @@ def test_spawner_repo_and_job_id_exposed(tmp_path):
 
 
 def test_public_api_exports_isolation_surface():
-    import hermes_cli.workers as pkg
+    import muse_cli.workers as pkg
 
     for name in (
         "IsolatedSpawner",

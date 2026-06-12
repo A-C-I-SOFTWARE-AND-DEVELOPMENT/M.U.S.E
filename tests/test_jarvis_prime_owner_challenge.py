@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from hermes_cli.jarvis_prime.owner_auth import (
+from muse_cli.jarvis_prime.owner_auth import (
     AUTHORIZATION_PHRASE,
     OwnerAuth,
     authorize_challenge,
     create_challenge,
 )
-from hermes_cli.jarvis_prime.guardrail_evidence import ARTIFACT_OWNER_GRANT
+from muse_cli.jarvis_prime.guardrail_evidence import ARTIFACT_OWNER_GRANT
 
 
 def test_wrong_nonce_rejected() -> None:

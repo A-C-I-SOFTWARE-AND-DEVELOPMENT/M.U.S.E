@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.swarm.grain import OverlapError
-from hermes_cli.swarm.grainler import partition, to_execution_plan
+from muse_cli.swarm.grain import OverlapError
+from muse_cli.swarm.grainler import partition, to_execution_plan
 
 
 def test_partition_explicit_grains_disjoint():

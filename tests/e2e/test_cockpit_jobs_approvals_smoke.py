@@ -30,7 +30,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 TOKEN = "test-cockpit-token-e2e"
@@ -94,7 +94,7 @@ def _seed_proposal(home: Path) -> str:
 
 def test_jobs_journey_dispatch_list_and_owner_gated_run(server) -> None:
     """The app dispatches a job, sees it queued, and is owner-gated on run."""
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     # Health is the app's first probe — no auth, reports the service.
     status, payload = _get(server, "/v1/health", token=None)

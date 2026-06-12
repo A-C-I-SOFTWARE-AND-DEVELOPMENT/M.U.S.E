@@ -11,7 +11,7 @@ Two layers are covered:
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory_tree import (
     ApprovalState,
     ContradictionStatus,
     MemoryLayer,
@@ -583,7 +583,7 @@ def test_due_for_review_returns_overdue_and_within_horizon(tmp_path) -> None:
 
 
 def test_default_path_honors_hermes_home(tmp_path, monkeypatch) -> None:
-    from hermes_cli.jarvis_prime.memory_tree import _default_tree_path
+    from muse_cli.jarvis_prime.memory_tree import _default_tree_path
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     expected = tmp_path / "jarvis_prime" / "memory_tree.jsonl"

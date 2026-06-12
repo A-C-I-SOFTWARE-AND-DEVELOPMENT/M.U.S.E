@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.monitoring``.
+"""Tests for ``muse_cli.monitoring``.
 
 The hub is read-mostly: it scans a workspace, builds a snapshot, and
 appends to a JSONL log. These tests pin each source scanner in
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.monitoring import (
+from muse_cli.monitoring import (
     EVENT_ALERT,
     EVENT_JOB_STATE,
     HEALTH_FILENAME,

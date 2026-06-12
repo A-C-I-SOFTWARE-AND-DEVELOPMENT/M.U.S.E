@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.recovery — disconnect/restart recovery.
+"""Tests for muse_cli.recovery — disconnect/restart recovery.
 
 Recovery glues the queue and checkpoint store together. These tests
 seed both stores with a known state, then run recovery and assert the
@@ -12,18 +12,18 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.checkpoints import (
+from muse_cli.checkpoints import (
     CheckpointPhase,
     CheckpointStore,
     WorkerCheckpointStatus,
 )
-from hermes_cli.job_queue import (
+from muse_cli.job_queue import (
     JobQueue,
     QueueState,
     WorkerQueueEntry,
     WorkerStatus,
 )
-from hermes_cli.recovery import (
+from muse_cli.recovery import (
     DEFAULT_STALE_WORKER_SECONDS,
     JobRecoveryReport,
     RecoveryManager,

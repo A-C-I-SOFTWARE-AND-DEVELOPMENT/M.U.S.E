@@ -14,10 +14,10 @@
 #   used to validate it. Refresh the variant/benchmarks; keep the routing.
 #
 # HOW JARVIS USES IT:
-#   hermes_cli/oss_model_brain.py loads this file into typed objects and
+#   muse_cli/oss_model_brain.py loads this file into typed objects and
 #   answers "best open model(s) for task X, given my installed providers
 #   and privacy constraints." The jarvis-prime CLI exposes it as
-#   ``python -m hermes_cli.jarvis_prime models <task>``.
+#   ``python -m muse_cli.jarvis_prime models <task>``.
 #
 # LICENSE PROVENANCE:
 #   This catalog and loader are original work, MIT-licensed with the rest
@@ -69,7 +69,7 @@ notes: >
   Qwen3-Coder→Qwen3-Coder-Next). PROVIDER MODEL IDS for just-released variants are
   CANDIDATES pending verification against each provider's live model list — verify
   before relying on them for paid routing. Only scorecards (not these numbers)
-  promote a model on any lane. Refresh with `hermes_cli/ai_radar.py` + the documented
+  promote a model on any lane. Refresh with `muse_cli/ai_radar.py` + the documented
   promotion flow.
 
 sources:

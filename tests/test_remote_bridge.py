@@ -23,7 +23,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from hermes_cli import remote_bridge as rb
+from muse_cli import remote_bridge as rb
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────

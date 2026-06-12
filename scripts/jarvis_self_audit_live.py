@@ -20,8 +20,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from hermes_cli.jarvis_prime import capability_wall as cw
-from hermes_cli.jarvis_prime.self_audit import (
+from muse_cli.jarvis_prime import capability_wall as cw
+from muse_cli.jarvis_prime.self_audit import (
     live,
     llm_judge,
     llm_target,

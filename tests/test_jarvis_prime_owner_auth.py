@@ -1,10 +1,10 @@
-"""Tests for hermes_cli.jarvis_prime.owner_auth — exact-phrase enforcement."""
+"""Tests for muse_cli.jarvis_prime.owner_auth — exact-phrase enforcement."""
 
 from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.owner_auth import (
+from muse_cli.jarvis_prime.owner_auth import (
     AUTHORIZATION_PHRASE,
     OWNER_GATED_ACTIONS,
     OwnerAuth,

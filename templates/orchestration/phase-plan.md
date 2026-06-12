@@ -6,7 +6,7 @@
 > This template is loaded by the
 > [`phase-gated-workflow`](../../skills/phase-gated-workflow/SKILL.md)
 > skill and consumed by `write_phase_report` in
-> [`hermes_cli/workflows.py`](../../hermes_cli/workflows.py). The
+> [`muse_cli/workflows.py`](../../muse_cli/workflows.py). The
 > `## Plain English` section below is **mandatory** — the engine
 > refuses bodies that omit it.
 

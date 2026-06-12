@@ -1,6 +1,6 @@
 """Restart-replay durability for the orchestrator JobStore (Sprint 14).
 
-These tests exercise the seam added in ``hermes_cli.job_event_store`` plus the
+These tests exercise the seam added in ``muse_cli.job_event_store`` plus the
 ``JobStore.restore_from_disk`` / ``create_app`` wiring: emitting events tees
 them to a durable per-job ``events.jsonl``, and a freshly built store folds
 those envelopes back into live ``Job`` state after a "restart".
@@ -28,9 +28,9 @@ import json
 
 import pytest
 
-from hermes_cli import job_event_store
-from hermes_cli.job_replay import JobSnapshot
-from hermes_cli.orchestrator_api import (
+from muse_cli import job_event_store
+from muse_cli.job_replay import JobSnapshot
+from muse_cli.orchestrator_api import (
     EVENT_APPROVAL_GRANTED,
     EVENT_APPROVAL_REJECTED,
     EVENT_APPROVAL_REQUESTED,
@@ -42,7 +42,7 @@ from hermes_cli.orchestrator_api import (
     EVENT_WORKER_STARTED,
     JobStore,
 )
-from hermes_cli.orchestrator_events import (
+from muse_cli.orchestrator_events import (
     PHASE_CANCELLED,
     PHASE_EXECUTING,
     PHASE_FAILED,
@@ -404,7 +404,7 @@ class TestCreateAppRestore:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
 
-        from hermes_cli.orchestrator_api import create_app
+        from muse_cli.orchestrator_api import create_app
 
         job_id = asyncio.run(_with_store(_seed_running_job))
 
@@ -421,7 +421,7 @@ class TestCreateAppRestore:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
 
-        from hermes_cli.orchestrator_api import create_app
+        from muse_cli.orchestrator_api import create_app
 
         job_id = asyncio.run(_with_store(_seed_running_job))
 
@@ -438,7 +438,7 @@ class TestCreateAppRestore:
         pytest.importorskip("fastapi")
         from fastapi.testclient import TestClient
 
-        from hermes_cli.orchestrator_api import create_app
+        from muse_cli.orchestrator_api import create_app
 
         # Seed disk while persistence is ON.
         job_id = asyncio.run(_with_store(_seed_running_job))

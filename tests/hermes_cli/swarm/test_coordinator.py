@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.swarm.coordinator import SwarmGrainResult, run_swarm
-from hermes_cli.swarm.grain import OverlapError
+from muse_cli.swarm.coordinator import SwarmGrainResult, run_swarm
+from muse_cli.swarm.grain import OverlapError
 
 
 class FakeExecutor:
@@ -102,11 +102,11 @@ def test_self_update_auto_applies_reversible(tmp_path, hermes_home):
 
     # Patch the proposal builder path to mark single-event findings confirmed so
     # promotion_decision returns "apply" (K=3 rule otherwise defers a 1-off).
-    import hermes_cli.swarm.coordinator as coord
+    import muse_cli.swarm.coordinator as coord
     orig = coord._emit_self_update
 
     def patched(plan, results, *, apply_fn=None):
-        from hermes_cli.self_improvement import Proposal, promotion_decision
+        from muse_cli.self_improvement import Proposal, promotion_decision
 
         p = Proposal(
             kind="routing_miss",

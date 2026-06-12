@@ -6,9 +6,9 @@ single-source-of-truth owner-gate reference, and sync with the spec doc.
 
 from pathlib import Path
 
-from hermes_cli.jarvis_prime import constitution
-from hermes_cli.jarvis_prime.constitution import Dimension, Severity
-from hermes_cli.jarvis_prime.owner_auth import OWNER_GATED_ACTIONS
+from muse_cli.jarvis_prime import constitution
+from muse_cli.jarvis_prime.constitution import Dimension, Severity
+from muse_cli.jarvis_prime.owner_auth import OWNER_GATED_ACTIONS
 
 _DOC = Path(__file__).resolve().parents[1] / "docs" / "jarvis-constitution.md"
 

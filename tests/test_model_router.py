@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.model_router and hermes_cli.model_registry.
+"""Tests for muse_cli.model_router and muse_cli.model_registry.
 
 The router is the seat of routing policy in Hermes — these tests
 exist to catch silent regressions in the rules the policy doc
@@ -30,8 +30,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import model_registry as mr
-from hermes_cli.model_router import (
+from muse_cli import model_registry as mr
+from muse_cli.model_router import (
     APPROVAL_GATED_CATEGORIES,
     BROWSER_REQUIRED_CATEGORIES,
     RouterContext,

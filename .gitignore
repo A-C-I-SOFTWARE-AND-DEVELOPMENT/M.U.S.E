@@ -62,7 +62,7 @@ ignored/
 environments/benchmarks/evals/
 
 # Web UI build output
-hermes_cli/web_dist/
+muse_cli/web_dist/
 
 # Web UI assets — synced from @nous-research/ui at build time via
 # `npm run sync-assets` (see web/package.json).
@@ -79,8 +79,8 @@ mini-swe-agent/
 result
 website/static/api/skills-index.json
 models-dev-upstream/
-hermes_cli/tui_dist/*
-hermes_cli/scripts/
+muse_cli/tui_dist/*
+muse_cli/scripts/
 docs/superpowers/*
 
 # Hermes orchestrator runtime state (per-run radar requests, etc.).

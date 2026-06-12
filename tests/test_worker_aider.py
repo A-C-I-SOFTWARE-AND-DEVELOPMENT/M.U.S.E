@@ -1,4 +1,4 @@
-"""Tests for the Aider worker adapter (``hermes_cli/workers/aider.py``)."""
+"""Tests for the Aider worker adapter (``muse_cli/workers/aider.py``)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import subprocess
 from typing import Any
 from unittest import mock
 
-from hermes_cli.workers import WorkerStatus, WorkerTask
-from hermes_cli.workers import aider as aider_worker
+from muse_cli.workers import WorkerStatus, WorkerTask
+from muse_cli.workers import aider as aider_worker
 
 
 def _task(**overrides: Any) -> WorkerTask:
@@ -129,7 +129,7 @@ class TestExecutionPath:
         with mock.patch.object(aider_worker, "detect_command", return_value=True), \
              mock.patch.object(subprocess, "run", return_value=completed) as run_mock, \
              mock.patch(
-                 "hermes_cli.workers.aider.collect_git_artifacts",
+                 "muse_cli.workers.aider.collect_git_artifacts",
                  return_value=(ws / "patch.diff", ws / "changed-files.txt"),
              ):
             (ws).mkdir(parents=True, exist_ok=True)
@@ -158,7 +158,7 @@ class TestExecutionPath:
                  side_effect=subprocess.TimeoutExpired(cmd="aider", timeout=1),
              ), \
              mock.patch(
-                 "hermes_cli.workers.aider.collect_git_artifacts",
+                 "muse_cli.workers.aider.collect_git_artifacts",
                  return_value=(None, None),
              ):
             result = aider_worker.run(
@@ -173,7 +173,7 @@ class TestExecutionPath:
         with mock.patch.object(aider_worker, "detect_command", return_value=True), \
              mock.patch.object(subprocess, "run", side_effect=OSError("no exec")), \
              mock.patch(
-                 "hermes_cli.workers.aider.collect_git_artifacts",
+                 "muse_cli.workers.aider.collect_git_artifacts",
                  return_value=(None, None),
              ):
             result = aider_worker.run(
@@ -203,4 +203,4 @@ class TestCommandConstruction:
 
 
 def test_module_is_importable():
-    import hermes_cli.workers.aider as _  # noqa: F401
+    import muse_cli.workers.aider as _  # noqa: F401

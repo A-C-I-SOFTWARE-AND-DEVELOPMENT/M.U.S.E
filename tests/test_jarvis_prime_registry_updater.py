@@ -7,7 +7,7 @@ end-to-end pass. No network: the live manifest is injected or monkeypatched.
 from typing import Any, cast
 from unittest.mock import patch
 
-from hermes_cli.jarvis_prime.registry_updater import (
+from muse_cli.jarvis_prime.registry_updater import (
     RegistryDelta,
     diff_provider_models,
     load_local_catalog,
@@ -15,7 +15,7 @@ from hermes_cli.jarvis_prime.registry_updater import (
     render_deltas,
     run_registry_update,
 )
-from hermes_cli.jarvis_prime.self_update import (
+from muse_cli.jarvis_prime.self_update import (
     ProposalBook,
     ProposalKind,
     ProposalStatus,
@@ -123,7 +123,7 @@ def test_empty_deltas_emit_no_proposals():
 
 def test_run_registry_update_no_op_when_offline():
     book = ProposalBook()
-    with patch("hermes_cli.model_catalog.get_catalog", return_value={}):
+    with patch("muse_cli.model_catalog.get_catalog", return_value={}):
         assert run_registry_update(book) == []
     assert not book.pending()
 
@@ -136,7 +136,7 @@ def test_run_registry_update_proposes_on_drift(tmp_path):
     )
     remote = _catalog({"openrouter": {"models": [{"id": "keep"}, {"id": "brand-new"}]}})
     book = ProposalBook()
-    with patch("hermes_cli.model_catalog.get_catalog", return_value=remote):
+    with patch("muse_cli.model_catalog.get_catalog", return_value=remote):
         proposals = run_registry_update(book, catalog_path=local_yaml)
     assert len(proposals) == 1
     assert "brand-new" in proposals[0].diff_intent
@@ -159,7 +159,7 @@ def test_render_deltas_readable():
 def test_cli_registry_update_persists_to_store(tmp_path, monkeypatch, capsys):
     import argparse
 
-    from hermes_cli.jarvis_prime.__main__ import (
+    from muse_cli.jarvis_prime.__main__ import (
         _cmd_registry_update,
         _load_proposals,
         _proposals_store_path,
@@ -169,10 +169,10 @@ def test_cli_registry_update_persists_to_store(tmp_path, monkeypatch, capsys):
     remote = _catalog({"openrouter": {"models": [{"id": "brand-new"}]}})
     # Repo catalog is loaded from the real config; force a known small one.
     monkeypatch.setattr(
-        "hermes_cli.jarvis_prime.registry_updater.load_local_catalog",
+        "muse_cli.jarvis_prime.registry_updater.load_local_catalog",
         lambda *a, **k: _catalog({"openrouter": {"models": [{"id": "old"}]}}),
     )
-    with patch("hermes_cli.model_catalog.get_catalog", return_value=remote):
+    with patch("muse_cli.model_catalog.get_catalog", return_value=remote):
         ns = argparse.Namespace(check=False, no_refresh=False, json=False)
         rc = _cmd_registry_update(ns)
     assert rc == 0
@@ -185,15 +185,15 @@ def test_cli_registry_update_persists_to_store(tmp_path, monkeypatch, capsys):
 def test_cli_registry_update_check_is_dry_run(tmp_path, monkeypatch, capsys):
     import argparse
 
-    from hermes_cli.jarvis_prime.__main__ import _cmd_registry_update, _proposals_store_path
+    from muse_cli.jarvis_prime.__main__ import _cmd_registry_update, _proposals_store_path
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     remote = _catalog({"openrouter": {"models": [{"id": "brand-new"}]}})
     monkeypatch.setattr(
-        "hermes_cli.jarvis_prime.registry_updater.load_local_catalog",
+        "muse_cli.jarvis_prime.registry_updater.load_local_catalog",
         lambda *a, **k: _catalog({"openrouter": {"models": [{"id": "old"}]}}),
     )
-    with patch("hermes_cli.model_catalog.get_catalog", return_value=remote):
+    with patch("muse_cli.model_catalog.get_catalog", return_value=remote):
         ns = argparse.Namespace(check=True, no_refresh=False, json=False)
         rc = _cmd_registry_update(ns)
     assert rc == 0

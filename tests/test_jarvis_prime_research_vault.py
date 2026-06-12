@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchVault,
     SourceType,
 )
-from hermes_cli.jarvis_prime.memory_tree import SourceTrust
+from muse_cli.jarvis_prime.memory_tree import SourceTrust
 
 
 def _vault(tmp_path):

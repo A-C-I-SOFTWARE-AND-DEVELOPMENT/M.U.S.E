@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchVault,
     SourceType,
@@ -126,7 +126,7 @@ def test_evidence_promote_requires_owner_for_low_confidence(server, home) -> Non
 
 
 def test_evidence_promote_owner_approved(server, seeded_vault) -> None:
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     art_id = next(iter(seeded_vault.artifacts))
     status, payload = _post(

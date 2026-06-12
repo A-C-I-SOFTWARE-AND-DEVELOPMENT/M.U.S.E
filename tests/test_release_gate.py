@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from hermes_cli import release_gate as rg
-from hermes_cli.release_gate import run_release_gate
-from hermes_cli.release_readiness_doctor import (
+from muse_cli import release_gate as rg
+from muse_cli.release_gate import run_release_gate
+from muse_cli.release_readiness_doctor import (
     FAIL,
     PASS,
     WARN,

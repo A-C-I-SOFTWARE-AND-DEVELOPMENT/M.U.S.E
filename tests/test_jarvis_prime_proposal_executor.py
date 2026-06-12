@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.proposal_executor import (
+from muse_cli.jarvis_prime.proposal_executor import (
     ProposalNotApproved,
     build_execution_plan,
     validate_execution_plan,
 )
-from hermes_cli.jarvis_prime.self_update import (
+from muse_cli.jarvis_prime.self_update import (
     Proposal,
     ProposalKind,
     ProposalStatus,
@@ -17,7 +17,7 @@ from hermes_cli.jarvis_prime.self_update import (
 def _approved_proposal(**kw) -> Proposal:
     p = Proposal(
         kind=kw.get("kind", ProposalKind.SELF_RUNTIME_UPDATE),
-        target_path=kw.get("target_path", "hermes_cli/jarvis_prime/router.py"),
+        target_path=kw.get("target_path", "muse_cli/jarvis_prime/router.py"),
         rationale="router missed a lane",
         diff_intent="add a fallback lane to the router",
         risk_class=kw.get("risk_class", "RC2"),
@@ -63,7 +63,7 @@ def test_plan_packet_validates() -> None:
 def test_high_risk_proposal_flags_owner_approval() -> None:
     plan = build_execution_plan(
         _approved_proposal(
-            target_path="hermes_cli/jarvis_prime/gates.py", risk_class="RC3"
+            target_path="muse_cli/jarvis_prime/gates.py", risk_class="RC3"
         )
     )
     assert "owner_approval_required" in plan.owner_gates

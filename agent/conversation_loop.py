@@ -241,7 +241,7 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
     # session is created (not on continuation).  Plugins can use this
     # to initialise session-scoped state (e.g. warm a memory cache).
     try:
-        from hermes_cli.plugins import invoke_hook as _invoke_hook
+        from muse_cli.plugins import invoke_hook as _invoke_hook
         _invoke_hook(
             "on_session_start",
             session_id=agent.session_id,
@@ -590,7 +590,7 @@ def run_conversation(
     # All injected context is ephemeral (not persisted to session DB).
     _plugin_user_context = ""
     try:
-        from hermes_cli.plugins import invoke_hook as _invoke_hook
+        from muse_cli.plugins import invoke_hook as _invoke_hook
         _pre_results = _invoke_hook(
             "pre_llm_call",
             session_id=agent.session_id,
@@ -1079,7 +1079,7 @@ def run_conversation(
                     api_kwargs = agent._get_transport().preflight_kwargs(api_kwargs, allow_stream=False)
 
                 try:
-                    from hermes_cli.plugins import invoke_hook as _invoke_hook
+                    from muse_cli.plugins import invoke_hook as _invoke_hook
                     request_messages = api_kwargs.get("messages")
                     if not isinstance(request_messages, list):
                         request_messages = api_kwargs.get("input")
@@ -3044,7 +3044,7 @@ def run_conversation(
                     assistant_message.content = str(raw)
 
             try:
-                from hermes_cli.plugins import invoke_hook as _invoke_hook
+                from muse_cli.plugins import invoke_hook as _invoke_hook
                 _assistant_tool_calls = getattr(assistant_message, "tool_calls", None) or []
                 _assistant_text = assistant_message.content or ""
                 _invoke_hook(
@@ -4042,7 +4042,7 @@ def run_conversation(
     # First hook to return a string wins; None/empty return leaves text unchanged.
     if final_response and not interrupted:
         try:
-            from hermes_cli.plugins import invoke_hook as _invoke_hook
+            from muse_cli.plugins import invoke_hook as _invoke_hook
             _transform_results = _invoke_hook(
                 "transform_llm_output",
                 response_text=final_response,
@@ -4063,7 +4063,7 @@ def run_conversation(
     # to an external memory system).
     if final_response and not interrupted:
         try:
-            from hermes_cli.plugins import invoke_hook as _invoke_hook
+            from muse_cli.plugins import invoke_hook as _invoke_hook
             _invoke_hook(
                 "post_llm_call",
                 session_id=agent.session_id,
@@ -4178,7 +4178,7 @@ def run_conversation(
     # Fired at the very end of every run_conversation call.
     # Plugins can use this for cleanup, flushing buffers, etc.
     try:
-        from hermes_cli.plugins import invoke_hook as _invoke_hook
+        from muse_cli.plugins import invoke_hook as _invoke_hook
         _invoke_hook(
             "on_session_end",
             session_id=agent.session_id,
@@ -4194,8 +4194,8 @@ def run_conversation(
 
 
 # Token bucket field names in the canonical (``CanonicalUsage`` /
-# ``hermes_cli.job_cost.UsageLike``) spelling. These are exactly the keys the
-# orchestrator's usage seam (``hermes_cli.orchestrator_api._extract_usage_report``)
+# ``muse_cli.job_cost.UsageLike``) spelling. These are exactly the keys the
+# orchestrator's usage seam (``muse_cli.orchestrator_api._extract_usage_report``)
 # reads back out of a worker report, so emitting them verbatim lets a worker's
 # usage fold straight into the per-job ``JobCost`` with no translation.
 _USAGE_TOKEN_FIELDS = (
@@ -4219,8 +4219,8 @@ def build_usage_record(
     ``estimated_cost_usd``, ``model``, and ``provider`` (and an ``AIAgent`` carries
     the same data on its ``session_*`` attributes). This helper distills either
     into the exact ``{usage, cost_usd, model, provider}`` shape the orchestrator
-    consumes — see ``hermes_cli.orchestrator_api._extract_usage_report`` and
-    ``hermes_cli.job_cost.JobCost.add_usage``::
+    consumes — see ``muse_cli.orchestrator_api._extract_usage_report`` and
+    ``muse_cli.job_cost.JobCost.add_usage``::
 
         {
           "usage": {                 # token buckets (omitted if all zero)
@@ -4237,7 +4237,7 @@ def build_usage_record(
     usage sidecar (``orchestrator_parallel.USAGE_FILENAME``) so the parallel
     runner can fold it back into ``status.json``; the supported way is to hand
     this helper's result to
-    :func:`hermes_cli.orchestrator_parallel.write_usage_sidecar`, which atomically
+    :func:`muse_cli.orchestrator_parallel.write_usage_sidecar`, which atomically
     writes it to the worker's ``usage_path`` (and no-ops on the ``None`` this
     returns for an empty turn). A worker that owns the agent in-process can
     instead report it on its heartbeat / completion payload directly.

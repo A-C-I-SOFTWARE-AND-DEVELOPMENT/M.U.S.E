@@ -5,7 +5,7 @@ subcommands (``perceive``, ``classify``, ``gate``, ``handle``, ``tick``)
 are owned by their respective subsystem lanes and are not retested here.
 
 Each test invokes the CLI through ``subprocess.run`` against
-``sys.executable -m hermes_cli.jarvis_prime`` so the full argparse +
+``sys.executable -m muse_cli.jarvis_prime`` so the full argparse +
 handler path is exercised end-to-end, including exit codes and stderr
 messages.
 """
@@ -22,7 +22,7 @@ import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CLI = [sys.executable, "-m", "hermes_cli.jarvis_prime"]
+CLI = [sys.executable, "-m", "muse_cli.jarvis_prime"]
 
 
 def _run(args: list[str], *, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
@@ -297,7 +297,7 @@ def test_approve_does_not_execute_anything_external(
     items = [
         _proposal_dict(
             kind="self_runtime_update",
-            target_path="hermes_cli/jarvis_prime/awareness.py",
+            target_path="muse_cli/jarvis_prime/awareness.py",
             risk_class="RC4",
         )
     ]
@@ -316,7 +316,7 @@ def test_approve_does_not_execute_anything_external(
     # Sentinel unchanged; no side effects on the repo tree.
     assert sentinel.read_text(encoding="utf-8") == "untouched"
     # The target_path of the proposal was NOT modified by approval.
-    target = REPO_ROOT / "hermes_cli/jarvis_prime/awareness.py"
+    target = REPO_ROOT / "muse_cli/jarvis_prime/awareness.py"
     before_mtime = target.stat().st_mtime
     # Approve again to be sure - it'll fail because the proposal is now
     # already approved but the underlying file must still not be touched.

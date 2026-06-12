@@ -4,8 +4,8 @@ from __future__ import annotations
 
 
 def test_hermes_client_tag_includes_current_version():
-    """The client tag must reflect hermes_cli.__version__ verbatim."""
-    from hermes_cli import __version__
+    """The client tag must reflect muse_cli.__version__ verbatim."""
+    from muse_cli import __version__
     from agent.portal_tags import hermes_client_tag
 
     assert hermes_client_tag() == f"client=hermes-client-v{__version__}"

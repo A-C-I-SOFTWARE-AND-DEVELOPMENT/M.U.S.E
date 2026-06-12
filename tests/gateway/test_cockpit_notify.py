@@ -27,7 +27,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit import event_log, notify
-from hermes_cli.notifications import (
+from muse_cli.notifications import (
     ApprovalNotification,
     NotificationProvider,
     PendingApprovalQueue,

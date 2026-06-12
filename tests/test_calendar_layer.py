@@ -155,7 +155,7 @@ def test_calendar_event_never_auto_promotes():
 def test_cli_calendar_lists_events(tmp_path, capsys):
     import argparse
 
-    from hermes_cli.jarvis_prime.__main__ import _cmd_calendar
+    from muse_cli.jarvis_prime.__main__ import _cmd_calendar
 
     ics = tmp_path / "cal.ics"
     ics.write_text(
@@ -171,7 +171,7 @@ def test_cli_calendar_lists_events(tmp_path, capsys):
 def test_cli_calendar_missing_file_is_graceful(tmp_path, capsys):
     import argparse
 
-    from hermes_cli.jarvis_prime.__main__ import _cmd_calendar
+    from muse_cli.jarvis_prime.__main__ import _cmd_calendar
 
     ns = argparse.Namespace(file=str(tmp_path / "nope.ics"), days=7, json=False)
     assert _cmd_calendar(ns) == 0

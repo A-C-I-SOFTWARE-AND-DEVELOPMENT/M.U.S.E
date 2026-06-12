@@ -1,6 +1,6 @@
 """Out-of-band executor for Supabase write actions.
 
-Invoked only by the owner-approval path via :mod:`hermes_cli.action_executors`,
+Invoked only by the owner-approval path via :mod:`muse_cli.action_executors`,
 never the model's tool loop. On owner approval, the proposed migration is
 authored as a timestamped file under ``supabase/migrations/``; applying it to a
 live database remains the operator's explicit step (``supabase db push``), so
@@ -43,7 +43,7 @@ def apply_migration(params: Dict[str, Any]) -> Dict[str, Any]:
 
 def register_executors() -> None:
     """Register the Supabase executors. Safe to call repeatedly (idempotent)."""
-    from hermes_cli.action_executors import register
+    from muse_cli.action_executors import register
 
     register("supabase.execute_sql", apply_migration)
     register("supabase.apply_migration", apply_migration)

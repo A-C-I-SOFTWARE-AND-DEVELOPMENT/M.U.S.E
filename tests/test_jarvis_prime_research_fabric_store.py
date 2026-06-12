@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_fabric.store import SnapshotStore
+from muse_cli.jarvis_prime.research_fabric.store import SnapshotStore
 
 
 def test_snapshot_chain_progresses_and_verifies(tmp_path) -> None:

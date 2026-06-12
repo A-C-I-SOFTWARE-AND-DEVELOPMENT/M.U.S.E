@@ -257,14 +257,14 @@ class TestVisionModelOverride:
 
 
 class TestDefaultConfigShape:
-    """Verify the DEFAULT_CONFIG in hermes_cli/config.py has correct auxiliary structure."""
+    """Verify the DEFAULT_CONFIG in muse_cli/config.py has correct auxiliary structure."""
 
     def test_auxiliary_section_exists(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from muse_cli.config import DEFAULT_CONFIG
         assert "auxiliary" in DEFAULT_CONFIG
 
     def test_vision_task_structure(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from muse_cli.config import DEFAULT_CONFIG
         aux = DEFAULT_CONFIG["auxiliary"]
         assert isinstance(aux, dict)
         vision = aux["vision"]
@@ -275,7 +275,7 @@ class TestDefaultConfigShape:
         assert vision["model"] == ""
 
     def test_web_extract_task_structure(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from muse_cli.config import DEFAULT_CONFIG
         aux = DEFAULT_CONFIG["auxiliary"]
         assert isinstance(aux, dict)
         web = aux["web_extract"]

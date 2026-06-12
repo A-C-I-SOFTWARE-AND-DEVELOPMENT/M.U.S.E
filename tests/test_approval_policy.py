@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.approval_policy``.
+"""Tests for ``muse_cli.approval_policy``.
 
 The policy is a small state machine — these tests cover the decision
 matrix one row at a time and verify the audit log records redacted
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import approval_policy as ap
+from muse_cli import approval_policy as ap
 
 
 # ---------------------------------------------------------------------------

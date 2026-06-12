@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.onboarding — first-run device scan."""
+"""Tests for muse_cli.jarvis_prime.onboarding — first-run device scan."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.memory import MemoryStore
-from hermes_cli.jarvis_prime.onboarding import (
+from muse_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.onboarding import (
     OnboardingPolicy,
     OnboardingRunner,
 )

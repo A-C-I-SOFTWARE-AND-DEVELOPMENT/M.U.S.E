@@ -4,7 +4,7 @@
 # Provisions the hermes-agent dev environment so `hermes`, `run_agent`, the
 # test suite, ruff, and `hermes doctor` work out of the box. Without this, a
 # fresh web container has no dependencies installed (python-dotenv missing ->
-# run_agent / hermes_cli.main fail to import, pytest hits collection errors).
+# run_agent / muse_cli.main fail to import, pytest hits collection errors).
 #
 # Synchronous, idempotent, non-interactive. Mirrors CI (.github/workflows/
 # tests.yml uses `uv pip install -e ".[all,dev]"`).

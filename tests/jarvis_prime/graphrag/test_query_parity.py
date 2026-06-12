@@ -18,12 +18,12 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.graphrag.graph import (
+from muse_cli.jarvis_prime.graphrag.graph import (
     EdgeType,
     KnowledgeGraph,
     NodeType,
 )
-from hermes_cli.jarvis_prime.graphrag.query import (
+from muse_cli.jarvis_prime.graphrag.query import (
     GraphAnswer,
     _collect_citations,
     _score_node,

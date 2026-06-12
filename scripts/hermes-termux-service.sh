@@ -162,7 +162,7 @@ start_api() {
     else
         local base
         base=$(hermes_cmd) || { err "could not locate hermes command or cli.py"; return 1; }
-        # `hermes serve` is the local-API entrypoint when the hermes_cli
+        # `hermes serve` is the local-API entrypoint when the muse_cli
         # is installed. We pass it through `nohup` so it survives the
         # parent shell exiting.
         cmd="$base serve --port $API_PORT"

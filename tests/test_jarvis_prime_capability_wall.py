@@ -5,14 +5,14 @@ withheld, RC4 is blocked, the wall runs on the held-out core pool, the card +
 attestation artifact verify, and the opt-in capability gate behaves correctly.
 """
 
-from hermes_cli.jarvis_prime import capability_wall as cw
-from hermes_cli.jarvis_prime.gates import GateOutcome
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime import capability_wall as cw
+from muse_cli.jarvis_prime.gates import GateOutcome
+from muse_cli.jarvis_prime.guardrail_evidence import (
     ARTIFACT_CAPABILITY_ATTESTATION,
     GuardrailEvidenceBundle,
     GuardrailLedger,
 )
-from hermes_cli.jarvis_prime.self_audit import (
+from muse_cli.jarvis_prime.self_audit import (
     compliant_target,
     noncompliant_target,
     select_seeds,

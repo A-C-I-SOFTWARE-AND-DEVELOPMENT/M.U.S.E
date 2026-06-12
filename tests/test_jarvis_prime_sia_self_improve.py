@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.sia_self_improve and the router branch.
+"""Tests for muse_cli.jarvis_prime.sia_self_improve and the router branch.
 
 A promotable candidate must become an owner-gated proposal and NEVER be
 applied or written to the live target. A non-improving candidate must
@@ -7,16 +7,16 @@ produce no proposal. SIA is faked — no binary, no network.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.gates import GateOutcome
-from hermes_cli.jarvis_prime.modes import Mode
-from hermes_cli.jarvis_prime.router import RouteTarget, Router
-from hermes_cli.jarvis_prime.self_update import (
+from muse_cli.jarvis_prime.gates import GateOutcome
+from muse_cli.jarvis_prime.modes import Mode
+from muse_cli.jarvis_prime.router import RouteTarget, Router
+from muse_cli.jarvis_prime.self_update import (
     ProposalBook,
     ProposalKind,
     ProposalStatus,
 )
-from hermes_cli.jarvis_prime.sia_self_improve import SiaJob, run_self_improvement
-from hermes_cli.workers.base import (
+from muse_cli.jarvis_prime.sia_self_improve import SiaJob, run_self_improvement
+from muse_cli.workers.base import (
     WorkerArtifacts,
     WorkerDetection,
     WorkerPrompt,
@@ -88,7 +88,7 @@ def test_runtime_target_uses_self_runtime_kind_and_rc4():
     book = ProposalBook()
     job = SiaJob(
         objective="improve",
-        target_path="hermes_cli/jarvis_prime/router.py",
+        target_path="muse_cli/jarvis_prime/router.py",
         task="route-bench",
     )
     out = run_self_improvement(

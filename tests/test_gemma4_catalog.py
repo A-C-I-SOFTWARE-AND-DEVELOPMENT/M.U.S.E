@@ -7,8 +7,8 @@ no Ollama, no downloads.
 from __future__ import annotations
 
 from hermes_model_catalog import load_catalog
-from hermes_cli.local_models.catalog import load_open_weight_catalog
-from hermes_cli import oss_model_brain as ob
+from muse_cli.local_models.catalog import load_open_weight_catalog
+from muse_cli import oss_model_brain as ob
 
 
 def test_provider_catalog_has_gemma_and_keeps_llama_fallback() -> None:

@@ -9,8 +9,8 @@ from __future__ import annotations
 import ast
 import json
 
-from hermes_cli.jarvis_prime import free_training as ft
-from hermes_cli.jarvis_prime.__main__ import main
+from muse_cli.jarvis_prime import free_training as ft
+from muse_cli.jarvis_prime.__main__ import main
 
 
 def _summary(**outcomes) -> dict:
@@ -82,7 +82,7 @@ def test_grpo_recipe_wires_the_gate_reward() -> None:
 
 
 def _gate_packet(prompt: str):
-    from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+    from muse_cli.jarvis_prime.natural_language_coder import build_work_packet
 
     return build_work_packet(prompt).to_gate_packet()
 
@@ -108,7 +108,7 @@ def test_reward_for_work_is_deterministic() -> None:
 
 
 def _make_store(tmp_path):
-    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+    from muse_cli.jarvis_prime.learning_dataset import DatasetStore
 
     return DatasetStore(path=tmp_path / "dataset.jsonl")
 
@@ -125,13 +125,13 @@ def test_free_loop_empty_store_not_ready_but_emits_recipes(tmp_path) -> None:
 
 def test_free_loop_harvests_owner_approved_trace(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli.jarvis_prime import semantic_frontend as sf
-    from hermes_cli.jarvis_prime.backend_selector import (
+    from muse_cli.jarvis_prime import semantic_frontend as sf
+    from muse_cli.jarvis_prime.backend_selector import (
         BackendContext,
         BackendTarget,
     )
-    from hermes_cli.jarvis_prime.ir_compilers import get_compiler
-    from hermes_cli.jarvis_prime.nlp_training import export_compile_trace
+    from muse_cli.jarvis_prime.ir_compilers import get_compiler
+    from muse_cli.jarvis_prime.nlp_training import export_compile_trace
 
     store = _make_store(tmp_path)
     parse = sf.parse("add a function to the gateway module")

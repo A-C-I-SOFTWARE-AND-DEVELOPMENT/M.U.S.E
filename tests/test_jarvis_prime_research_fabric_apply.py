@@ -7,26 +7,26 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.gates import GateOutcome, GateResult, GateSummary
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime.gates import GateOutcome, GateResult, GateSummary
+from muse_cli.jarvis_prime.guardrail_evidence import (
     GuardrailEvidenceBundle,
     GuardrailLedger,
 )
-from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
-from hermes_cli.jarvis_prime.self_update import ProposalBook, ProposalKind
-from hermes_cli.jarvis_prime.research_fabric.apply import (
+from muse_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
+from muse_cli.jarvis_prime.self_update import ProposalBook, ProposalKind
+from muse_cli.jarvis_prime.research_fabric.apply import (
     ApplyRefused,
     GitApplier,
     GitRollback,
     current_head,
 )
-from hermes_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
-from hermes_cli.jarvis_prime.research_fabric.champion import Champion, ChampionStore
-from hermes_cli.jarvis_prime.research_fabric.charter import CharterBook
-from hermes_cli.jarvis_prime.research_fabric.controller import AutonomyController
-from hermes_cli.jarvis_prime.research_fabric.monitor import AlignmentMonitor
-from hermes_cli.jarvis_prime.research_fabric.store import SnapshotStore
-from hermes_cli.jarvis_prime.research_fabric.verifier import Candidate
+from muse_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
+from muse_cli.jarvis_prime.research_fabric.champion import Champion, ChampionStore
+from muse_cli.jarvis_prime.research_fabric.charter import CharterBook
+from muse_cli.jarvis_prime.research_fabric.controller import AutonomyController
+from muse_cli.jarvis_prime.research_fabric.monitor import AlignmentMonitor
+from muse_cli.jarvis_prime.research_fabric.store import SnapshotStore
+from muse_cli.jarvis_prime.research_fabric.verifier import Candidate
 
 
 def _full(v: float) -> dict[str, float]:
@@ -151,7 +151,7 @@ def test_applier_refuses_protected_path(tmp_path) -> None:
     _init_repo(repo)
     applier = GitApplier(repo)
     cand = _candidate(
-        target_path="hermes_cli/jarvis_prime/gates.py", diff_text="x = 1\n"
+        target_path="muse_cli/jarvis_prime/gates.py", diff_text="x = 1\n"
     )
     with pytest.raises(ApplyRefused):
         applier(cand)

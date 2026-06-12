@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli import release_readiness_doctor as rrd
-from hermes_cli.release_readiness_doctor import (
+from muse_cli import release_readiness_doctor as rrd
+from muse_cli.release_readiness_doctor import (
     FAIL,
     PASS,
     WARN,
@@ -123,7 +123,7 @@ def test_hard_gates_inspect_real_signature_defaults():
     # The publisher/cockpit hard gates read the ACTUAL parameter default (AST),
     # not a file-wide substring a regression could fool.
     assert (
-        rrd._param_default("hermes_cli/github_publisher.py", "run", "approve") is False
+        rrd._param_default("muse_cli/github_publisher.py", "run", "approve") is False
     )
     assert (
         rrd._param_default("gateway/cockpit/server.py", "serve", "host") == "127.0.0.1"
@@ -134,10 +134,10 @@ def test_hard_gates_inspect_real_signature_defaults():
     )
     # absent function / parameter -> sentinel (gate would fail, not false-pass)
     assert (
-        rrd._param_default("hermes_cli/github_publisher.py", "nope", "x")
+        rrd._param_default("muse_cli/github_publisher.py", "nope", "x")
         is rrd._MISSING
     )
     assert (
-        rrd._param_default("hermes_cli/github_publisher.py", "run", "nope")
+        rrd._param_default("muse_cli/github_publisher.py", "run", "nope")
         is rrd._MISSING
     )

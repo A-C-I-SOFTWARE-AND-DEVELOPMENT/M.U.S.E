@@ -238,7 +238,7 @@ async def handle_toggle_skill(request: web.Request) -> web.Response:
 
         enabled = body.get("enabled", True)
 
-        from hermes_cli.config import load_config, save_config
+        from muse_cli.config import load_config, save_config
 
         config = load_config()
         skills_cfg = config.setdefault("skills", {})

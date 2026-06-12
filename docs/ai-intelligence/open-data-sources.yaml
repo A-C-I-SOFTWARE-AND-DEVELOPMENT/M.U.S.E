@@ -2,7 +2,7 @@
 #
 # This file is the machine-readable source of truth behind
 # docs/ai-intelligence/top-open-data-sources-for-training.md. It is loaded by
-# hermes_cli/jarvis_prime/open_data_sources.py and bridged into the Research
+# muse_cli/jarvis_prime/open_data_sources.py and bridged into the Research
 # Vault so the JARVIS learning pipeline can cite external open data.
 #
 # Field reference:

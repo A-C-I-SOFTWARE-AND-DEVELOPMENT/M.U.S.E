@@ -124,7 +124,7 @@ def load_config() -> SupabaseConfig:
     blocked, service-role off).
     """
     try:
-        from hermes_cli.config import load_config as _hermes_load_config  # heavy
+        from muse_cli.config import load_config as _hermes_load_config  # heavy
     except Exception:  # pragma: no cover — config import path varies in tests
         return SupabaseConfig()
     try:

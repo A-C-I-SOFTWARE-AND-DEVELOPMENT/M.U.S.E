@@ -189,7 +189,7 @@ def test_openrouter_headers_include_response_cache_when_enabled(mock_openai):
         skip_memory=True,
     )
 
-    with patch("hermes_cli.config.load_config", return_value={
+    with patch("muse_cli.config.load_config", return_value={
         "openrouter": {"response_cache": True, "response_cache_ttl": 600},
     }):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
@@ -213,7 +213,7 @@ def test_openrouter_headers_no_cache_when_disabled(mock_openai):
         skip_memory=True,
     )
 
-    with patch("hermes_cli.config.load_config", return_value={
+    with patch("muse_cli.config.load_config", return_value={
         "openrouter": {"response_cache": False},
     }):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")

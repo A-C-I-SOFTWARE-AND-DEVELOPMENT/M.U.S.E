@@ -14,13 +14,13 @@ import sys
 
 import pytest
 
-from hermes_cli import orchestrator_parallel as op
-from hermes_cli.worker_lease import (
+from muse_cli import orchestrator_parallel as op
+from muse_cli.worker_lease import (
     LeaseStatus,
     WorkerLease,
     acquire,
 )
-from hermes_cli.worker_lease_store import (
+from muse_cli.worker_lease_store import (
     DEFAULT_HOST_ID,
     HostRecord,
     WorkerLeaseStore,
@@ -84,7 +84,7 @@ def test_upsert_replaces_existing_lease(tmp_path: Path):
     store = WorkerLeaseStore.load(tmp_path)
     store.upsert(_running())
     # Same lease_id, advanced state.
-    from hermes_cli.worker_lease import complete
+    from muse_cli.worker_lease import complete
 
     done = complete(_running(), now=110.0)
     store.upsert(done)
@@ -107,7 +107,7 @@ def test_for_job_filters_by_job(tmp_path: Path):
 
 
 def test_active_returns_only_running(tmp_path: Path):
-    from hermes_cli.worker_lease import complete
+    from muse_cli.worker_lease import complete
 
     store = WorkerLeaseStore.load(tmp_path)
     store.upsert(_running("a"))

@@ -19,7 +19,7 @@ step() { printf '\n== %s ==\n' "$1"; }
 
 step "1/4 compileall"
 if python -m compileall -q \
-    hermes_cli gateway plugins tools agent cron acp_adapter axiom/axiom \
+    muse_cli gateway plugins tools agent cron acp_adapter axiom/axiom \
     scripts tests ./*.py; then
   echo "compileall: OK"
 else

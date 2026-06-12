@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.orchestrator_replay import JobReplay
+from muse_cli.orchestrator_replay import JobReplay
 
 
 def test_empty_ledger_replays_cleanly():

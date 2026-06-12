@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.cockpit_token import (
+from muse_cli.cockpit_token import (
     HASH_PREFIX,
     generate_token,
     hash_token,

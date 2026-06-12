@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli import profiles as profiles_mod
-from hermes_cli import profile_describer as describer
+from muse_cli import profiles as profiles_mod
+from muse_cli import profile_describer as describer
 
 
 @pytest.fixture

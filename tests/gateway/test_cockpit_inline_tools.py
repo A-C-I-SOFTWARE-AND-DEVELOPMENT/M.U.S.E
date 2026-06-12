@@ -101,7 +101,7 @@ def test_ledger_refs_point_at_newest_ledger(monkeypatch):
     Regression: selecting ledgers[0] pointed the evidence/ledger chips at
     the oldest decision instead of the one for the turn that just ran.
     """
-    from hermes_cli import decision_ledger as dl
+    from muse_cli import decision_ledger as dl
     from gateway.cockpit import contract
 
     paths = [Path("0001-old.md"), Path("0002-mid.md"), Path("0003-new.md")]

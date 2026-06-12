@@ -250,7 +250,7 @@ const BRAND: ThemeBrand = {
 
 // M.U.S.E. "Singularity" banner art — Rich markup parsed per-character by
 // banner.ts parseRichMarkup, identical to the merged CLI skin
-// (hermes_cli/banner.py): a block wordmark and a core+ring glyph with a
+// (muse_cli/banner.py): a block wordmark and a core+ring glyph with a
 // lower-right gap and a matte cyan→violet ring. The wordmark/core fill is
 // parameterized so the light theme can swap near-white for primary ink
 // (#12151D) while keeping the spectral ring stops — they read fine on white.

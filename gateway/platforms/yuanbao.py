@@ -98,7 +98,7 @@ logger = logging.getLogger(__name__)
 # Version / platform constants (used in AUTH_BIND and sign-token headers)
 # ---------------------------------------------------------------------------
 try:
-    from hermes_cli import __version__ as _HERMES_VERSION
+    from muse_cli import __version__ as _HERMES_VERSION
 except ImportError:
     _HERMES_VERSION = "0.0.0"  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 

@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 TOKEN = "test-cockpit-token-123"
 
@@ -61,7 +61,7 @@ def test_publish_unknown_job_is_404(server) -> None:
 
 
 def test_publish_no_workspace_is_409(server) -> None:
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     jid = orch.submit_job("Add a /healthz endpoint").id
     with pytest.raises(urllib.error.HTTPError) as exc:

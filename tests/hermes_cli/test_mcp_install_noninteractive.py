@@ -1,4 +1,4 @@
-"""Tests for the non-interactive bulk-install path in hermes_cli.mcp_catalog.
+"""Tests for the non-interactive bulk-install path in muse_cli.mcp_catalog.
 
 ``register_entry_noninteractive`` / ``install_all_entries`` must never prompt,
 probe, or launch a server, must never write a literal secret, and must isolate
@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.config import load_config
-from hermes_cli.mcp_catalog import (
+from muse_cli.config import load_config
+from muse_cli.mcp_catalog import (
     AuthSpec,
     CatalogEntry,
     EnvVarSpec,
@@ -25,12 +25,12 @@ from hermes_cli.mcp_catalog import (
 def _isolate_config(tmp_path, monkeypatch):
     """Redirect all config / .env I/O to a temp directory."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    monkeypatch.setattr("hermes_cli.config.get_hermes_home", lambda: tmp_path)
+    monkeypatch.setattr("muse_cli.config.get_hermes_home", lambda: tmp_path)
     monkeypatch.setattr(
-        "hermes_cli.config.get_config_path", lambda: tmp_path / "config.yaml"
+        "muse_cli.config.get_config_path", lambda: tmp_path / "config.yaml"
     )
     monkeypatch.setattr(
-        "hermes_cli.config.get_env_path", lambda: tmp_path / ".env"
+        "muse_cli.config.get_env_path", lambda: tmp_path / ".env"
     )
     return tmp_path
 
@@ -78,7 +78,7 @@ def _never_probe(monkeypatch):
     def boom(*a, **k):
         raise AssertionError("non-interactive register must not probe/launch")
     monkeypatch.setattr(
-        "hermes_cli.mcp_config._probe_single_server", boom, raising=False
+        "muse_cli.mcp_config._probe_single_server", boom, raising=False
     )
 
 
@@ -113,7 +113,7 @@ def test_apikey_missing_creds_disabled_with_ref(tmp_path):
 
 def test_apikey_present_creds_enabled(monkeypatch):
     monkeypatch.setattr(
-        "hermes_cli.mcp_catalog.get_env_value",
+        "muse_cli.mcp_catalog.get_env_value",
         lambda n: "xyz" if n == "PRESENT_TOKEN" else "",
     )
     res = register_entry_noninteractive(_stdio_apikey(var="PRESENT_TOKEN"))
@@ -136,7 +136,7 @@ def test_git_skipped_without_bootstrap(monkeypatch):
         called["clone"] = True
         return Path("/tmp/should-not-run")
 
-    monkeypatch.setattr("hermes_cli.mcp_catalog._do_git_install", fake_clone)
+    monkeypatch.setattr("muse_cli.mcp_catalog._do_git_install", fake_clone)
     res = register_entry_noninteractive(_git_entry(), run_bootstrap=False)
     assert res["status"] == "skipped"
     assert called["clone"] is False
@@ -147,7 +147,7 @@ def test_git_skipped_without_bootstrap(monkeypatch):
 
 def test_install_all_isolates_one_failure(monkeypatch):
     good, bad = _stdio_none(name="good"), _stdio_none(name="bad")
-    monkeypatch.setattr("hermes_cli.mcp_catalog.list_catalog", lambda: [good, bad])
+    monkeypatch.setattr("muse_cli.mcp_catalog.list_catalog", lambda: [good, bad])
 
     real = register_entry_noninteractive
 
@@ -157,7 +157,7 @@ def test_install_all_isolates_one_failure(monkeypatch):
         return real(entry, **kw)
 
     monkeypatch.setattr(
-        "hermes_cli.mcp_catalog.register_entry_noninteractive", maybe_raise
+        "muse_cli.mcp_catalog.register_entry_noninteractive", maybe_raise
     )
     summary = install_all_entries()
     assert [r["name"] for r in summary["installed"]] == ["good"]

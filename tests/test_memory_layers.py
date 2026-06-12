@@ -10,7 +10,7 @@ from agent.memory_layers import (
     record,
     should_auto_promote,
 )
-from hermes_cli.jarvis_prime.self_update import ProposalBook, ProposalStatus
+from muse_cli.jarvis_prime.self_update import ProposalBook, ProposalStatus
 
 
 def test_event_has_provenance_and_hash():

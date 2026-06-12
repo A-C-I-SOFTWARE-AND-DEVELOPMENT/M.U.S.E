@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.jarvis_prime.memory import MemoryStore
-from hermes_cli.jarvis_prime.memory_tree import ApprovalState, MemoryLayer, MemoryTreeStore
-from hermes_cli.jarvis_prime.model_scorecard import ScorecardBook
-from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
+from muse_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.memory_tree import ApprovalState, MemoryLayer, MemoryTreeStore
+from muse_cli.jarvis_prime.model_scorecard import ScorecardBook
+from muse_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 
 
 def _config(tmp_path: Path, **extra) -> JarvisConfig:

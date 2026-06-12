@@ -10,20 +10,20 @@ from __future__ import annotations
 
 import sys
 
-from hermes_cli.jarvis_prime.intent_graph import (
+from muse_cli.jarvis_prime.intent_graph import (
     IntentGraph,
     IntentNode,
     IntentNodeKind,
 )
-from hermes_cli.jarvis_prime.ir_compilers.repo_work_packet import (
+from muse_cli.jarvis_prime.ir_compilers.repo_work_packet import (
     RepoWorkPacketCompiler,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import (
+from muse_cli.jarvis_prime.natural_language_coder import (
     CodingIntent,
     CodingWorkPacket,
     _allowed_files_for,
 )
-from hermes_cli.jarvis_prime.nlp_retrieval import (
+from muse_cli.jarvis_prime.nlp_retrieval import (
     RetrievalGrounding,
     ground_objective,
 )
@@ -43,7 +43,7 @@ def test_ground_objective_returns_grounding_on_real_repo() -> None:
 def test_ground_objective_degrades_when_navigator_unavailable(monkeypatch) -> None:
     # Force the Navigator import inside ground_objective to fail.
     monkeypatch.setitem(
-        sys.modules, "hermes_cli.jarvis_prime.navigation.navigator", None
+        sys.modules, "muse_cli.jarvis_prime.navigation.navigator", None
     )
     g = ground_objective("retry logic in the gateway", ".")
     assert g.ok is False
@@ -94,7 +94,7 @@ def test_compiler_never_narrows_allowed_files() -> None:
 
 def test_compiler_enrichment_survives_navigator_failure(monkeypatch) -> None:
     monkeypatch.setitem(
-        sys.modules, "hermes_cli.jarvis_prime.navigation.navigator", None
+        sys.modules, "muse_cli.jarvis_prime.navigation.navigator", None
     )
     graph = _refactor_graph()
     # Must not raise even though grounding is unavailable.

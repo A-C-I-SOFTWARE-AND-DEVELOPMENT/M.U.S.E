@@ -130,7 +130,7 @@ def test_token_hashed_at_rest_never_raw(home: Path) -> None:
     assert confirm.token not in raw_store
     assert "sha256:" in raw_store
     # The stored hash matches the documented hashing of the raw token.
-    from hermes_cli import cockpit_token
+    from muse_cli import cockpit_token
 
     assert cockpit_token.hash_token(confirm.token) in raw_store
 

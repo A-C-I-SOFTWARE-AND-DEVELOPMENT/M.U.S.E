@@ -1,9 +1,9 @@
-"""Tests for hermes_cli.jarvis_prime.router — routing hierarchy."""
+"""Tests for muse_cli.jarvis_prime.router — routing hierarchy."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.modes import Mode
-from hermes_cli.jarvis_prime.router import RouteTarget, Router
+from muse_cli.jarvis_prime.modes import Mode
+from muse_cli.jarvis_prime.router import RouteTarget, Router
 
 
 def test_owner_pending_action_routes_to_owner_decision() -> None:

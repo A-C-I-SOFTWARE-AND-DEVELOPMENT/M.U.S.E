@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 
-from hermes_cli.jarvis_prime.__main__ import main
+from muse_cli.jarvis_prime.__main__ import main
 
 
 def test_compile_python_backend(capsys) -> None:

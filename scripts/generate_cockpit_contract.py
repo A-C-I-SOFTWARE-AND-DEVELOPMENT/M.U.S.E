@@ -42,7 +42,7 @@ CONTRACT_VERSION = 1
 
 # The owner-gate symbol used by gateway/cockpit/handlers*.py (verified by
 # grep): handlers import AUTHORIZATION_PHRASE from
-# hermes_cli.jarvis_prime.owner_auth and compare the request's
+# muse_cli.jarvis_prime.owner_auth and compare the request's
 # "authorization" field against it. There is no `require_owner` helper —
 # some handlers instead delegate to a same-module helper
 # (`_evaluate_execute_gate`) whose source references the phrase, which the

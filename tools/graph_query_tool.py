@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def check_graph_query_requirements() -> bool:
     """Available whenever the GraphRAG runtime imports (stdlib-only)."""
     try:
-        import hermes_cli.jarvis_prime.graphrag  # noqa: F401
+        import muse_cli.jarvis_prime.graphrag  # noqa: F401
 
         return True
     except Exception:
@@ -34,7 +34,7 @@ def graph_query(question: str = "", mode: str = "coding", limit: int = 8) -> str
     if not (question or "").strip():
         return "graph_query: provide a 'question'."
     try:
-        from hermes_cli.jarvis_prime.graphrag import (
+        from muse_cli.jarvis_prime.graphrag import (
             GraphStore,
             coding_query,
             global_query,

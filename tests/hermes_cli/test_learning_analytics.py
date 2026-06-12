@@ -6,8 +6,8 @@ import pytest
 
 pytest.importorskip("duckdb")  # optional extra; skip cleanly when absent
 
-from hermes_cli.jarvis_prime.learning_analytics import export_parquet, query_dataset
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime.learning_analytics import export_parquet, query_dataset
+from muse_cli.jarvis_prime.learning_dataset import (
     CandidateStatus,
     DatasetStore,
     Provenance,

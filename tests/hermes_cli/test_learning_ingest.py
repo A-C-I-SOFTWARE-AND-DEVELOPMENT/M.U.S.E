@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import json
 
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime.learning_dataset import (
     CandidateStatus,
     DatasetStore,
     QualityGates,
     TraceType,
 )
-from hermes_cli.jarvis_prime.learning_ingest import (
+from muse_cli.jarvis_prime.learning_ingest import (
     from_research_artifact,
     from_trajectory_file,
 )
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchArtifact,
     SourceType,
@@ -93,7 +93,7 @@ def test_default_path_is_profile_aware(tmp_path, monkeypatch):
     """The default store path honors HERMES_HOME (per AGENTS.md), never the
     raw process-user home."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli.jarvis_prime.learning_dataset import default_dataset_path
+    from muse_cli.jarvis_prime.learning_dataset import default_dataset_path
 
     assert default_dataset_path() == tmp_path / "jarvis_prime" / "learning_dataset.jsonl"
 

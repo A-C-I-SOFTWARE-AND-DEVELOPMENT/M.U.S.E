@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.checkpoints — the orchestration checkpoint store.
+"""Tests for muse_cli.checkpoints — the orchestration checkpoint store.
 
 The CLI half of the module (``register_cli`` and friends) is exercised
 elsewhere; these tests focus on the :class:`CheckpointStore` and the
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.checkpoints import (
+from muse_cli.checkpoints import (
     ApprovalState,
     Checkpoint,
     CHECKPOINT_SCHEMA_VERSION,

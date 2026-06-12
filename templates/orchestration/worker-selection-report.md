@@ -1,6 +1,6 @@
 # Worker selection — `<task_id>`
 
-> Rendered by `hermes_cli/model_router.py:render_report()`. This file is
+> Rendered by `muse_cli/model_router.py:render_report()`. This file is
 > the **template** the router renders into; do not edit a rendered
 > instance and expect it to round-trip. Edit this template if you want
 > to change the shape of every future report.

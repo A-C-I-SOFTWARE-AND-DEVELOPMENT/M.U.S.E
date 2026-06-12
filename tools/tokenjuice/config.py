@@ -2,7 +2,7 @@
 
 Defaults match the documented ``tool_output.compaction`` block in
 ``cli-config.yaml``. ``CompactionConfig.from_mapping`` builds a config from the
-parsed YAML/dict so the loader in ``hermes_cli/config.py`` can pass through a
+parsed YAML/dict so the loader in ``muse_cli/config.py`` can pass through a
 plain mapping without importing this package eagerly.
 """
 
@@ -91,7 +91,7 @@ def load_active_config(force_reload: bool = False) -> CompactionConfig:
     1. ``HERMES_TOKENJUICE=off|0|false|disabled`` env var → a hard kill switch
        (returns a disabled config regardless of file config).
     2. ``tool_output.compaction.*`` from the Hermes config file via
-       ``hermes_cli.config.load_config`` (lazy import; failures fall back).
+       ``muse_cli.config.load_config`` (lazy import; failures fall back).
     3. Built-in defaults.
 
     Kept self-contained so the tool loop doesn't need to thread config through
@@ -108,7 +108,7 @@ def load_active_config(force_reload: bool = False) -> CompactionConfig:
 
     data: Mapping[str, Any] | None = None
     try:
-        from hermes_cli.config import load_config  # lazy: avoid import cycles
+        from muse_cli.config import load_config  # lazy: avoid import cycles
 
         full = load_config()
         if isinstance(full, Mapping):

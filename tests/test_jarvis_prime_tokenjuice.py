@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory_tree import (
     MemoryLayer,
     MemorySource,
     MemoryTreeStore,
     SourceTrust,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
-from hermes_cli.jarvis_prime.research_vault import ResearchVault
-from hermes_cli.jarvis_prime.tokenjuice import TokenJuiceCompiler
+from muse_cli.jarvis_prime.natural_language_coder import build_work_packet
+from muse_cli.jarvis_prime.research_vault import ResearchVault
+from muse_cli.jarvis_prime.tokenjuice import TokenJuiceCompiler
 
 
 def test_compile_orders_mission_first_and_includes_packet() -> None:

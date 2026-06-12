@@ -142,7 +142,7 @@ def _utc_id(now: Optional[datetime] = None) -> str:
 
 def _load_config() -> Dict[str, Any]:
     try:
-        from hermes_cli.config import load_config
+        from muse_cli.config import load_config
         cfg = load_config()
     except Exception as e:
         logger.debug("Failed to load config for curator backup: %s", e)

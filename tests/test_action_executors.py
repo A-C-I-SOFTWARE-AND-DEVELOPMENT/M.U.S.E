@@ -13,7 +13,7 @@ from typing import Any, cast
 import httpx
 import pytest
 
-from hermes_cli import action_executors as ax
+from muse_cli import action_executors as ax
 
 PHRASE = "Yes, with authorization."
 

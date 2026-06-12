@@ -5,20 +5,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
-from hermes_cli.jarvis_prime.gates import GateOutcome, GateResult, GateSummary
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime.gates import GateOutcome, GateResult, GateSummary
+from muse_cli.jarvis_prime.guardrail_evidence import (
     GuardrailEvidenceBundle,
     GuardrailLedger,
 )
-from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
-from hermes_cli.jarvis_prime.self_update import ProposalBook, ProposalKind, ProposalStatus
-from hermes_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
-from hermes_cli.jarvis_prime.research_fabric.champion import Champion, ChampionStore
-from hermes_cli.jarvis_prime.research_fabric.charter import CharterBook
-from hermes_cli.jarvis_prime.research_fabric.controller import AutonomyController
-from hermes_cli.jarvis_prime.research_fabric.monitor import AlignmentMonitor
-from hermes_cli.jarvis_prime.research_fabric.store import SnapshotStore
-from hermes_cli.jarvis_prime.research_fabric.verifier import Candidate
+from muse_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
+from muse_cli.jarvis_prime.self_update import ProposalBook, ProposalKind, ProposalStatus
+from muse_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
+from muse_cli.jarvis_prime.research_fabric.champion import Champion, ChampionStore
+from muse_cli.jarvis_prime.research_fabric.charter import CharterBook
+from muse_cli.jarvis_prime.research_fabric.controller import AutonomyController
+from muse_cli.jarvis_prime.research_fabric.monitor import AlignmentMonitor
+from muse_cli.jarvis_prime.research_fabric.store import SnapshotStore
+from muse_cli.jarvis_prime.research_fabric.verifier import Candidate
 
 
 def _full(value: float) -> dict[str, float]:
@@ -161,7 +161,7 @@ def test_hard_wall_kind_never_auto_applies(tmp_path) -> None:
     rig = _make_rig(tmp_path, initial_champion=_champ85())
     out = _eval(
         rig,
-        _candidate(kind=ProposalKind.SELF_RUNTIME_UPDATE, target_path="hermes_cli/jarvis_prime/x.py"),
+        _candidate(kind=ProposalKind.SELF_RUNTIME_UPDATE, target_path="muse_cli/jarvis_prime/x.py"),
     )
     assert out.decision == "proposed"
     assert out.applied is False
@@ -171,7 +171,7 @@ def test_hard_wall_kind_never_auto_applies(tmp_path) -> None:
 
 def test_constitution_path_never_auto_applies(tmp_path) -> None:
     rig = _make_rig(tmp_path, initial_champion=_champ85())
-    out = _eval(rig, _candidate(target_path="hermes_cli/jarvis_prime/constitution.py"))
+    out = _eval(rig, _candidate(target_path="muse_cli/jarvis_prime/constitution.py"))
     assert out.decision == "proposed"
     assert out.applied is False
 

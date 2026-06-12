@@ -1,4 +1,4 @@
-"""Tests for hermes_cli/bundles.py — the `hermes bundles` CLI subcommand."""
+"""Tests for muse_cli/bundles.py — the `hermes bundles` CLI subcommand."""
 
 import argparse
 import sys
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.bundles import (
+from muse_cli.bundles import (
     bundles_command,
     register_cli,
 )

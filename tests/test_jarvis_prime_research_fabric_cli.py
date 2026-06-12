@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from hermes_cli.jarvis_prime.research_fabric.main import build_parser, cli_main
+from muse_cli.jarvis_prime.research_fabric.main import build_parser, cli_main
 
 
 @pytest.fixture(autouse=True)

@@ -86,7 +86,7 @@ def test_check_website_access_supports_wildcard_subdomains_only(tmp_path):
 
 
 def test_default_config_exposes_website_blocklist_shape():
-    from hermes_cli.config import DEFAULT_CONFIG
+    from muse_cli.config import DEFAULT_CONFIG
 
     security = DEFAULT_CONFIG["security"]
     assert isinstance(security, dict)

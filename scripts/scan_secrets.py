@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Repo secret-scan gate — wires ``hermes_cli.secrets_policy`` into CI / commits.
+"""Repo secret-scan gate — wires ``muse_cli.secrets_policy`` into CI / commits.
 
-``hermes_cli/secrets_policy.py`` is the repo's single source of truth for
+``muse_cli/secrets_policy.py`` is the repo's single source of truth for
 "what counts as a secret". It is already used at *publish* time
 (``release_readiness_doctor``, ``decision_engine``, the cockpit handlers),
 but nothing scanned commits or pull-request diffs. This script closes that
@@ -59,7 +59,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from hermes_cli import secrets_policy as sp  # noqa: E402
+from muse_cli import secrets_policy as sp  # noqa: E402
 
 
 # High-confidence detector kinds — these block by default. ``high_entropy``
@@ -78,7 +78,7 @@ ALLOWLIST_PRAGMA = "pragma: allowlist secret"
 ACTIONS_EXPR_VALUE_PATTERN = re.compile(r"^\s*\$\{\{[^}]*\}\}\s*$")
 
 # Mirrors the env-style assignment shape that the canonical ``env_name``
-# detector in ``hermes_cli.secrets_policy.scan_text`` matches, so we can
+# detector in ``muse_cli.secrets_policy.scan_text`` matches, so we can
 # re-extract the assigned value for the Actions-expression check above.
 _ENV_ASSIGNMENT_PATTERN = re.compile(r"\s*([A-Z][A-Z0-9_]*)\s*[:=]\s*(.+?)\s*$")
 
@@ -298,7 +298,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="scan_secrets.py",
         description=(
             "Block commits/PRs that add high-confidence secrets, reusing "
-            "hermes_cli.secrets_policy. Diff mode (default) scans only added "
+            "muse_cli.secrets_policy. Diff mode (default) scans only added "
             "lines; --tree scans every tracked file (advisory)."
         ),
     )

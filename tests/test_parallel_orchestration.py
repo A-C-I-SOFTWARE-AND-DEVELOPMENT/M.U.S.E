@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.orchestrator_parallel``.
+"""Tests for ``muse_cli.orchestrator_parallel``.
 
 These tests run against an isolated git repo in ``tmp_path``. The runner
 uses real subprocesses for ``local-run`` workers so we can verify
@@ -16,8 +16,8 @@ import time
 
 import pytest
 
-from hermes_cli import orchestrator_parallel as op
-from hermes_cli import worktrees as wt
+from muse_cli import orchestrator_parallel as op
+from muse_cli import worktrees as wt
 
 
 # ─── helpers ──────────────────────────────────────────────────────────
@@ -624,8 +624,8 @@ def test_iter_worker_usage_empty_for_unknown_job(repo: Path):
 def test_emitted_usage_round_trips_through_consumer_seam(repo: Path):
     # End-to-end proof: a worker's emitted block, once persisted, folds into a
     # JobCost via the exact consumer seam #301 shipped — with no translation.
-    from hermes_cli.job_cost import JobCost
-    from hermes_cli.orchestrator_api import _extract_usage_report
+    from muse_cli.job_cost import JobCost
+    from muse_cli.orchestrator_api import _extract_usage_report
 
     usage_file = op.usage_path(repo, "job-roundtrip", "w1")
     plan = op.ExecutionPlan(
@@ -720,8 +720,8 @@ def test_write_usage_sidecar_roundtrips_to_consumer(repo: Path):
 
 def test_write_usage_sidecar_feeds_cost_seam(repo: Path):
     # A written sidecar drains through the exact consumer seam into a JobCost.
-    from hermes_cli.job_cost import JobCost
-    from hermes_cli.orchestrator_api import _extract_usage_report
+    from muse_cli.job_cost import JobCost
+    from muse_cli.orchestrator_api import _extract_usage_report
 
     op.write_usage_sidecar(repo, "job-emit2", "w1", _usage_record())
     block = op._read_usage_sidecar(op.worker_dir(repo, "job-emit2", "w1"))
@@ -1027,7 +1027,7 @@ def _local_adapter_for_worker(repo: Path, job_id: str, worker_id: str):
     same place the inline path does.
     """
 
-    from hermes_cli.runtime_adapter import LocalRuntimeAdapter
+    from muse_cli.runtime_adapter import LocalRuntimeAdapter
 
     worker_root = op.worker_dir(repo, job_id, worker_id)
     worker_root.mkdir(parents=True, exist_ok=True)
@@ -1287,8 +1287,8 @@ def test_compute_reschedule_plan_proposes_for_expired_idempotent_lease(
     repo: Path, tmp_path: Path
 ):
     # An expired + idempotent lease in the store yields a reschedule proposal.
-    from hermes_cli import worker_lease as wl
-    from hermes_cli.worker_lease_store import WorkerLeaseStore
+    from muse_cli import worker_lease as wl
+    from muse_cli.worker_lease_store import WorkerLeaseStore
 
     store = WorkerLeaseStore.load(directory=tmp_path / "leasestore")
     store.register_host("host_a", kind="local")
@@ -1334,8 +1334,8 @@ def test_compute_reschedule_plan_expires_stale_running_lease(
 ):
     # A still-RUNNING-but-past-deadline lease is folded to EXPIRED by the
     # store's own kernel rule, then becomes reschedulable.
-    from hermes_cli import worker_lease as wl
-    from hermes_cli.worker_lease_store import WorkerLeaseStore
+    from muse_cli import worker_lease as wl
+    from muse_cli.worker_lease_store import WorkerLeaseStore
 
     store = WorkerLeaseStore.load(directory=tmp_path / "leasestore")
     store.register_host("host_a", kind="local")
@@ -1379,8 +1379,8 @@ def test_compute_reschedule_plan_empty_when_nothing_retryable(
     repo: Path, tmp_path: Path
 ):
     # A live RUNNING lease (within deadline) is not retryable → empty plan.
-    from hermes_cli import worker_lease as wl
-    from hermes_cli.worker_lease_store import WorkerLeaseStore
+    from muse_cli import worker_lease as wl
+    from muse_cli.worker_lease_store import WorkerLeaseStore
 
     store = WorkerLeaseStore.load(directory=tmp_path / "leasestore")
     store.register_host("host_a", kind="local")

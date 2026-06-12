@@ -7,9 +7,9 @@ import json
 import io
 import contextlib
 
-from hermes_cli.jarvis_prime import gemma_cli
-from hermes_cli.jarvis_prime.gemma_doctor import run_gemma_doctor
-from hermes_cli.jarvis_prime.launch_doctor import FAIL, PASS, WARN
+from muse_cli.jarvis_prime import gemma_cli
+from muse_cli.jarvis_prime.gemma_doctor import run_gemma_doctor
+from muse_cli.jarvis_prime.launch_doctor import FAIL, PASS, WARN
 
 
 def test_doctor_reports_wired_status_and_is_ok() -> None:
@@ -52,7 +52,7 @@ def test_smoke_requires_variant_and_is_opt_in() -> None:
 
 def test_smoke_uses_injected_runner_and_records_load_status(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli.jarvis_prime import gemma_load_status as gls
+    from muse_cli.jarvis_prime import gemma_load_status as gls
 
     args = argparse.Namespace(
         gemma_command="smoke", variant="gemma4-e4b", json=True,
@@ -88,7 +88,7 @@ def test_status_json_lists_configured_and_candidates() -> None:
 
 
 def test_promote_writes_owner_gated_proposal(tmp_path, monkeypatch) -> None:
-    from hermes_cli.jarvis_prime import model_scorecard as ms
+    from muse_cli.jarvis_prime import model_scorecard as ms
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setattr(ms, "DEFAULT_SCORECARD_PATH", tmp_path / "sc.jsonl")
@@ -135,7 +135,7 @@ def test_promote_writes_owner_gated_proposal(tmp_path, monkeypatch) -> None:
 
 
 def test_promote_dry_run_does_not_write(tmp_path, monkeypatch) -> None:
-    from hermes_cli.jarvis_prime import model_scorecard as ms
+    from muse_cli.jarvis_prime import model_scorecard as ms
 
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     monkeypatch.setattr(ms, "DEFAULT_SCORECARD_PATH", tmp_path / "sc.jsonl")

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.self_update import ProposalKind
-from hermes_cli.jarvis_prime.research_fabric.verifier import (
+from muse_cli.jarvis_prime.self_update import ProposalKind
+from muse_cli.jarvis_prime.research_fabric.verifier import (
     Candidate,
     screen_for_reward_hacking,
 )

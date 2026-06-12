@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.local_models.scorecards import (
+from muse_cli.local_models.scorecards import (
     ScorecardSample,
     ScorecardStore,
     select_model,

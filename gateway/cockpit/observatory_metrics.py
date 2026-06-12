@@ -41,7 +41,7 @@ when :func:`enabled` returns True (env ``MUSE_OBSERVATORY`` set to ``1`` /
   generator (tier preference from the brain hint + which generator actually
   served, measured latency; the pluggable generator does not report a model
   name or token counts, so those are omitted, never guessed).
-* ``hermes_cli.jarvis_prime.graphrag.query`` — ``node.activate`` for query
+* ``muse_cli.jarvis_prime.graphrag.query`` — ``node.activate`` for query
   result hits, via :func:`record_query_activations` (lazily imported there,
   so graphrag gains no hard gateway dependency).
 

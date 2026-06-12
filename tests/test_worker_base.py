@@ -1,4 +1,4 @@
-"""Tests for :mod:`hermes_cli.workers.base`.
+"""Tests for :mod:`muse_cli.workers.base`.
 
 Covers the five result records (``WorkerDetection``, ``WorkerPrompt``,
 ``WorkerRunResult``, ``WorkerArtifacts``, ``WorkerScore``), the
@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from hermes_cli.workers import (
+from muse_cli.workers import (
     WorkerAdapter,
     WorkerArtifacts,
     WorkerDetection,
@@ -31,8 +31,8 @@ from hermes_cli.workers import (
     WorkerStatus,
     WorkerTask,
 )
-from hermes_cli.workers import base as worker_base
-from hermes_cli.workers.base import (
+from muse_cli.workers import base as worker_base
+from muse_cli.workers.base import (
     collect_git_artifacts,
     detect_command,
     ensure_workspace,

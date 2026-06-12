@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.parallel_runner`` (Phase 13).
+"""Tests for ``muse_cli.parallel_runner`` (Phase 13).
 
 These run against an ephemeral git repo in ``tmp_path``. Subprocess
 based workers use ``sys.executable -c "..."`` so they are deterministic
@@ -16,8 +16,8 @@ import time
 
 import pytest
 
-from hermes_cli import parallel_runner as pr
-from hermes_cli import worktrees as wt
+from muse_cli import parallel_runner as pr
+from muse_cli import worktrees as wt
 
 
 # ─── fixtures / helpers ──────────────────────────────────────────────

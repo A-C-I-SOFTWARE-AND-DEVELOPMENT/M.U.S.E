@@ -6,9 +6,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
-from hermes_cli.jarvis_prime.self_update import ProposalKind
-from hermes_cli.jarvis_prime.research_fabric.charter import (
+from muse_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
+from muse_cli.jarvis_prime.self_update import ProposalKind
+from muse_cli.jarvis_prime.research_fabric.charter import (
     CharterBook,
     CharterRejected,
     HARD_WALL_KINDS,
@@ -145,7 +145,7 @@ def test_persistence_round_trips(tmp_path) -> None:
 
 def test_hard_wall_helpers() -> None:
     assert ProposalKind.SELF_RUNTIME_UPDATE in HARD_WALL_KINDS
-    walled, _ = is_hard_walled(ProposalKind.SKILL_UPDATE, "hermes_cli/jarvis_prime/gates.py")
+    walled, _ = is_hard_walled(ProposalKind.SKILL_UPDATE, "muse_cli/jarvis_prime/gates.py")
     assert walled is True  # protected path
     walled2, _ = is_hard_walled(ProposalKind.SKILL_UPDATE, "skills/foo/SKILL.md")
     assert walled2 is False

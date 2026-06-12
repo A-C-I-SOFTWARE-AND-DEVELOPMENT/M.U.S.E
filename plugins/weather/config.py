@@ -45,7 +45,7 @@ def from_mapping(raw: Mapping[str, Any] | None) -> WeatherConfig:
 def load_config() -> WeatherConfig:
     """Read ``weather:`` from the active Hermes config; defaults on miss."""
     try:
-        from hermes_cli.config import load_config as _hermes_load_config
+        from muse_cli.config import load_config as _hermes_load_config
     except Exception:  # pragma: no cover — config import path varies in tests
         return WeatherConfig()
     try:

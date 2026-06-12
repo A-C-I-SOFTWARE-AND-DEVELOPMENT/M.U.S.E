@@ -9,7 +9,7 @@ import json
 import urllib.request
 from pathlib import Path
 
-from hermes_cli.jarvis_prime.self_audit import live, model_bridge
+from muse_cli.jarvis_prime.self_audit import live, model_bridge
 
 
 def test_build_request_shape():

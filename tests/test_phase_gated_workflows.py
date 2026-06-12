@@ -13,8 +13,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import workflows
-from hermes_cli.workflow_models import (
+from muse_cli import workflows
+from muse_cli.workflow_models import (
     ALWAYS_APPROVAL_GATED,
     ALWAYS_APPROVED_ACTIONS,
     APPROVAL,
@@ -41,7 +41,7 @@ from hermes_cli.workflow_models import (
     Phase,
     WorkflowState,
 )
-from hermes_cli.workflows import (
+from muse_cli.workflows import (
     InvalidTransitionError,
     JobHandle,
     UnknownPhaseError,

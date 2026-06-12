@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.monitors import (
+from muse_cli.jarvis_prime.monitors import (
     MonitorBoard,
     Severity,
     failing_tests_checker,

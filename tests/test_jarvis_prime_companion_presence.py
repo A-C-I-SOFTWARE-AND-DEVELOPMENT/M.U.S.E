@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.companion_presence import (
+from muse_cli.jarvis_prime.companion_presence import (
     ActionRisk,
     CompanionPresencePolicy,
     PresenceSignals,

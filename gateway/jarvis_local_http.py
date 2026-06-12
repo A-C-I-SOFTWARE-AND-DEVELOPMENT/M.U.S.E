@@ -157,14 +157,14 @@ def ledger_ref(ledger_id: str, title: str) -> dict:
 def _scrub(text: str) -> str:
     """Best-effort secret redaction for anything tool-derived.
 
-    Reuses the canonical ``hermes_cli.secrets_policy.redact`` so the chat
+    Reuses the canonical ``muse_cli.secrets_policy.redact`` so the chat
     stream shares the same secret policy as the rest of Hermes. Degrades
     to the original text only if that module is unavailable (never raises).
     """
     if not text:
         return text
     try:
-        from hermes_cli.secrets_policy import redact
+        from muse_cli.secrets_policy import redact
 
         return redact(text)
     except Exception:  # pragma: no cover - redaction is best-effort

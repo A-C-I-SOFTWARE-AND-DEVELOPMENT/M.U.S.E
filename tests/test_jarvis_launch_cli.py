@@ -1,5 +1,5 @@
 """Tests for the JARVIS launch path: the launch() orchestrator and the
-stdlib-only ``python -m hermes_cli.jarvis_prime`` launch subcommands.
+stdlib-only ``python -m muse_cli.jarvis_prime`` launch subcommands.
 
 The subprocess tests mirror tests/test_jarvis_prime_cli.py — they run the
 real argparse + handler path end-to-end with a tmp HERMES_HOME, exercising
@@ -16,11 +16,11 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import launch as launch_mod
+from muse_cli.jarvis_prime import launch as launch_mod
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CLI = [sys.executable, "-m", "hermes_cli.jarvis_prime"]
+CLI = [sys.executable, "-m", "muse_cli.jarvis_prime"]
 
 
 def _run(args: list[str], home: Path) -> subprocess.CompletedProcess[str]:

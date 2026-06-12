@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.graphrag.builder import build_graph
-from hermes_cli.jarvis_prime.graphrag.graph import KnowledgeGraph, NodeType, node_id
-from hermes_cli.jarvis_prime.graphrag.indexers import index_code, index_docs
-from hermes_cli.jarvis_prime.graphrag.query import (
+from muse_cli.jarvis_prime.graphrag.builder import build_graph
+from muse_cli.jarvis_prime.graphrag.graph import KnowledgeGraph, NodeType, node_id
+from muse_cli.jarvis_prime.graphrag.indexers import index_code, index_docs
+from muse_cli.jarvis_prime.graphrag.query import (
     coding_query,
     find_entity_node,
     global_query,

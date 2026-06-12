@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 
-from hermes_cli.jarvis_prime.research_fabric.verifier.swe import (
+from muse_cli.jarvis_prime.research_fabric.verifier.swe import (
     SweTask,
     baseline_fails,
     score_swe_patch,

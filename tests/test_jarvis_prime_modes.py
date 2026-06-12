@@ -1,10 +1,10 @@
-"""Tests for hermes_cli.jarvis_prime.modes — classifier + Mode enum."""
+"""Tests for muse_cli.jarvis_prime.modes — classifier + Mode enum."""
 
 from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.modes import (
+from muse_cli.jarvis_prime.modes import (
     ClassifierContext,
     Mode,
     ModeClassifier,

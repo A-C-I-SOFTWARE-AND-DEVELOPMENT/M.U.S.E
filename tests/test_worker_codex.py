@@ -1,4 +1,4 @@
-"""Tests for the Codex worker adapter (hermes_cli/workers/codex.py).
+"""Tests for the Codex worker adapter (muse_cli/workers/codex.py).
 
 The adapter must:
 
@@ -19,8 +19,8 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli.workers import codex as codex_worker
-from hermes_cli.workers.codex import (
+from muse_cli.workers import codex as codex_worker
+from muse_cli.workers.codex import (
     MODE_EXECUTED,
     MODE_HANDOFF,
     CodexTask,
@@ -36,16 +36,16 @@ from hermes_cli.workers.codex import (
 def sample_task() -> CodexTask:
     return CodexTask(
         mission="Add a Codex worker adapter.",
-        task="Implement hermes_cli/workers/codex.py with handoff support.",
+        task="Implement muse_cli/workers/codex.py with handoff support.",
         repo_evidence="Phase 09 plan in the orchestrator brief.",
-        files_to_inspect=["hermes_cli/workers/codex.py"],
-        files_likely_to_edit=["hermes_cli/workers/codex.py"],
+        files_to_inspect=["muse_cli/workers/codex.py"],
+        files_likely_to_edit=["muse_cli/workers/codex.py"],
         acceptance_criteria=[
             "Default mode is handoff-required.",
             "Execution requires explicit opt-in.",
         ],
         validation_commands=[
-            "python -m py_compile hermes_cli/workers/codex.py",
+            "python -m py_compile muse_cli/workers/codex.py",
             "python -m pytest tests/test_worker_codex.py -q",
         ],
         do_not_change=["Hermes core orchestrator APIs."],
@@ -57,7 +57,7 @@ def sample_task() -> CodexTask:
 
 
 def test_detect_codex_returns_unavailable_when_command_absent():
-    with patch("hermes_cli.workers.codex.shutil.which", return_value=None):
+    with patch("muse_cli.workers.codex.shutil.which", return_value=None):
         detection = detect_codex()
     assert detection.available is False
     assert detection.path is None
@@ -73,8 +73,8 @@ def test_detect_codex_does_not_raise_on_version_probe_failure(tmp_path):
     def boom(*args, **kwargs):
         raise OSError("simulated failure")
 
-    with patch("hermes_cli.workers.codex.shutil.which", return_value=str(fake_codex)):
-        with patch("hermes_cli.workers.codex.subprocess.run", side_effect=boom):
+    with patch("muse_cli.workers.codex.shutil.which", return_value=str(fake_codex)):
+        with patch("muse_cli.workers.codex.subprocess.run", side_effect=boom):
             detection = detect_codex()
 
     assert detection.available is True
@@ -93,8 +93,8 @@ def test_detect_codex_captures_version_string(tmp_path):
         stdout = "codex 1.2.3\n"
         stderr = ""
 
-    with patch("hermes_cli.workers.codex.shutil.which", return_value=str(fake_codex)):
-        with patch("hermes_cli.workers.codex.subprocess.run", return_value=_Proc()):
+    with patch("muse_cli.workers.codex.shutil.which", return_value=str(fake_codex)):
+        with patch("muse_cli.workers.codex.subprocess.run", return_value=_Proc()):
             detection = detect_codex()
 
     assert detection.available is True
@@ -136,7 +136,7 @@ def test_build_prompt_handles_empty_lists():
 
 def test_write_prompt_and_status_creates_files(tmp_path, sample_task):
     with patch(
-        "hermes_cli.workers.codex.detect_codex",
+        "muse_cli.workers.codex.detect_codex",
         return_value=codex_worker.CodexDetection(available=False, error="missing"),
     ):
         prompt_path, status_path = write_prompt_and_status(sample_task, tmp_path)
@@ -162,7 +162,7 @@ def test_write_prompt_and_status_creates_files(tmp_path, sample_task):
 
 def test_run_worker_defaults_to_handoff_when_codex_missing(tmp_path, sample_task):
     with patch(
-        "hermes_cli.workers.codex.detect_codex",
+        "muse_cli.workers.codex.detect_codex",
         return_value=codex_worker.CodexDetection(available=False, error="missing"),
     ):
         result = run_worker(sample_task, tmp_path)
@@ -187,7 +187,7 @@ def test_run_worker_handoff_when_execute_requested_but_codex_missing(
     tmp_path, sample_task
 ):
     with patch(
-        "hermes_cli.workers.codex.detect_codex",
+        "muse_cli.workers.codex.detect_codex",
         return_value=codex_worker.CodexDetection(available=False, error="missing"),
     ):
         result = run_worker(sample_task, tmp_path, execute=True)
@@ -204,8 +204,8 @@ def test_run_worker_does_not_execute_without_opt_in(tmp_path, sample_task):
     detection = codex_worker.CodexDetection(
         available=True, path="/usr/local/bin/codex", version="codex 1.2.3"
     )
-    with patch("hermes_cli.workers.codex.detect_codex", return_value=detection):
-        with patch("hermes_cli.workers.codex.subprocess.run") as run_mock:
+    with patch("muse_cli.workers.codex.detect_codex", return_value=detection):
+        with patch("muse_cli.workers.codex.subprocess.run") as run_mock:
             result = run_worker(sample_task, tmp_path, execute=False)
 
     # Even though codex is available, we never shell out without opt-in.
@@ -226,9 +226,9 @@ def test_run_worker_env_var_enables_execution(tmp_path, sample_task, monkeypatch
         stderr = ""
 
     monkeypatch.setenv(codex_worker.EXECUTE_ENV_VAR, "1")
-    with patch("hermes_cli.workers.codex.detect_codex", return_value=detection):
+    with patch("muse_cli.workers.codex.detect_codex", return_value=detection):
         with patch(
-            "hermes_cli.workers.codex.subprocess.run", return_value=_Proc()
+            "muse_cli.workers.codex.subprocess.run", return_value=_Proc()
         ) as run_mock:
             result = run_worker(sample_task, tmp_path)
 

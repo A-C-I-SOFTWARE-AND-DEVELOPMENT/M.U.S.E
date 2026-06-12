@@ -6,8 +6,8 @@ only structural invariants, referential integrity, and a few flagship sources.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import open_data_sources as ods
-from hermes_cli.jarvis_prime.research_vault import ResearchVault
+from muse_cli.jarvis_prime import open_data_sources as ods
+from muse_cli.jarvis_prime.research_vault import ResearchVault
 
 
 def test_registry_and_clusters_load() -> None:

@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.axiom_bridge — the chained event bridge.
+"""Tests for muse_cli.jarvis_prime.axiom_bridge — the chained event bridge.
 
 HERMES_HOME is per-test (conftest invariant #2), so every test starts
 with a fresh, absent chain.
@@ -10,8 +10,8 @@ import json
 
 import pytest
 
-from hermes_cli.jarvis_prime import axiom_bridge
-from hermes_cli.jarvis_prime.axiom_bridge import (
+from muse_cli.jarvis_prime import axiom_bridge
+from muse_cli.jarvis_prime.axiom_bridge import (
     GENESIS_PREV,
     get_bridge,
     main,
@@ -112,7 +112,7 @@ def test_home_rebind(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
 
 
 def test_gates_hook_records() -> None:
-    from hermes_cli.jarvis_prime.gates import run_gate_summary
+    from muse_cli.jarvis_prime.gates import run_gate_summary
 
     summary = run_gate_summary({"packet_id": "pkt-1", "mission": "demo"})
     events = [e for e in get_bridge().tail(10) if e["kind"] == "gate.summary"]
@@ -122,7 +122,7 @@ def test_gates_hook_records() -> None:
 
 
 def test_release_gate_fails_on_bad_chain(monkeypatch: pytest.MonkeyPatch) -> None:
-    from hermes_cli.jarvis_prime.gates import GateOutcome, release_gate
+    from muse_cli.jarvis_prime.gates import GateOutcome, release_gate
 
     packet = {
         "files_changed": ["a.py"],
@@ -147,7 +147,7 @@ def test_release_gate_fails_on_bad_chain(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_decision_ledger_hook() -> None:
-    from hermes_cli import decision_ledger as dl
+    from muse_cli import decision_ledger as dl
 
     ledger = dl.DecisionLedger(decision="Use sqlite for the queue")
     dl.write_ledger(ledger, session_id="s1", validate=False)

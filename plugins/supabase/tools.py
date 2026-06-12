@@ -87,7 +87,7 @@ def _require_client() -> SupabaseClient:
 def _scan_secrets(text: str) -> list[Any]:
     """Return secret findings in ``text`` (empty list when the scanner is absent)."""
     try:
-        from hermes_cli import secrets_policy
+        from muse_cli import secrets_policy
 
         return list(secrets_policy.scan_text(text, location="migration_sql"))
     except Exception:  # pragma: no cover — secrets_policy import path varies in tests
@@ -111,7 +111,7 @@ def _propose_write(
     change is carried out by the out-of-band cockpit owner-approval path. A
     secret detected in the SQL forces a ``refuse``.
     """
-    from hermes_cli.decision_engine import (
+    from muse_cli.decision_engine import (
         merge_decision_inputs,
         owner_gate_input,
         secret_input,

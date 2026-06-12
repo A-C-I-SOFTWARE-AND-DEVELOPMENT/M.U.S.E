@@ -2,7 +2,7 @@
 
 These three clean-room modules (``companion_presence``, ``memory_tree``,
 ``natural_language_coder``) ship as policy/state layers; this exercises the
-``python -m hermes_cli.jarvis_prime`` subcommands that surface them, plus the
+``python -m muse_cli.jarvis_prime`` subcommands that surface them, plus the
 package-level exports that make them first-class API. Invocation is in-process
 through ``main()`` so the argparse + handler path runs without a subprocess.
 """
@@ -14,7 +14,7 @@ import json
 from contextlib import redirect_stdout
 from typing import Any
 
-from hermes_cli.jarvis_prime.__main__ import main as cli_main
+from muse_cli.jarvis_prime.__main__ import main as cli_main
 
 
 def _run(argv: list[str]) -> tuple[int, Any]:
@@ -171,7 +171,7 @@ def test_memory_tree_rejects_malformed_add() -> None:
 
 
 def test_audit_lane_types_are_exported_from_package() -> None:
-    import hermes_cli.jarvis_prime as jp
+    import muse_cli.jarvis_prime as jp
 
     for name in (
         "CompanionPresencePolicy",

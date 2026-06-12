@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import model_bootstrap as mb
-from hermes_cli.local_models.hardware_probe import HardwareProfile
+from muse_cli.jarvis_prime import model_bootstrap as mb
+from muse_cli.local_models.hardware_probe import HardwareProfile
 
 
 def test_compute_local_defaults_picks_gemma_for_reasoning() -> None:

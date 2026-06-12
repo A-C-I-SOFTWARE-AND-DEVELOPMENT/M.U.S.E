@@ -1563,7 +1563,7 @@ class TelegramAdapter(BasePlatformAdapter):
                     BotCommandScopeDefault,
                     BotCommandScopeChat,
                 )
-                from hermes_cli.commands import telegram_menu_commands
+                from muse_cli.commands import telegram_menu_commands
                 # Telegram allows up to 100 commands but has an undocumented
                 # payload size limit (~4KB total).  Limit to 30 core commands
                 # to stay well under the threshold while covering all categories.
@@ -2610,7 +2610,7 @@ class TelegramAdapter(BasePlatformAdapter):
             return SendResult(success=False, error="Not connected")
 
         try:
-            from hermes_cli.providers import get_label
+            from muse_cli.providers import get_label
         except ImportError:
             def get_label(slug):
                 return slug
@@ -2728,7 +2728,7 @@ class TelegramAdapter(BasePlatformAdapter):
             return
 
         try:
-            from hermes_cli.providers import get_label
+            from muse_cli.providers import get_label
         except ImportError:
             def get_label(slug):
                 return slug
@@ -4572,7 +4572,7 @@ class TelegramAdapter(BasePlatformAdapter):
                 if chat_id in self._forum_command_registered:
                     return
                 from telegram import BotCommand, BotCommandScopeChat  # ty: ignore[unresolved-import]
-                from hermes_cli.commands import telegram_menu_commands
+                from muse_cli.commands import telegram_menu_commands
                 menu_commands, _ = telegram_menu_commands(max_commands=MAX_COMMANDS_PER_SCOPE)
                 bot_commands = [BotCommand(name, desc) for name, desc in menu_commands]
                 assert self._bot is not None  # connected before use

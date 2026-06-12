@@ -32,7 +32,7 @@ step "hermes doctor --10-10 — release-readiness gates"
 # entry point being on PATH. Exits non-zero on a hard (safe-to-ship) gate.
 if python -c "
 import sys
-from hermes_cli.release_readiness_doctor import run_10_10_doctor
+from muse_cli.release_readiness_doctor import run_10_10_doctor
 report = run_10_10_doctor()
 print(report.render())
 sys.exit(0 if report.ok else 1)

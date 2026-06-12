@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.jarvis_prime import nl_compile
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.gates import run_gate_summary
-from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+from muse_cli.jarvis_prime import nl_compile
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.gates import run_gate_summary
+from muse_cli.jarvis_prime.natural_language_coder import build_work_packet
 
 INVOICE = (
     "when a new invoice email arrives, extract the total, save the PDF, "
@@ -49,7 +49,7 @@ def test_branch_prefix_propagates_to_work_packet() -> None:
     )
     assert res.compile_result is not None
     packet = res.compile_result.artifact
-    from hermes_cli.jarvis_prime.natural_language_coder import CodingWorkPacket
+    from muse_cli.jarvis_prime.natural_language_coder import CodingWorkPacket
     assert isinstance(packet, CodingWorkPacket)
     assert packet.branch.startswith("custom/")
 
@@ -80,7 +80,7 @@ def test_default_compile_has_no_side_effects(tmp_path, monkeypatch) -> None:
 
 def test_ledger_written_only_in_job_context(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli import orchestrator_ledger
+    from muse_cli import orchestrator_ledger
 
     nl_compile.compile_request(REPO, job_id="nl-compile-test")
     entries = orchestrator_ledger.read("nl-compile-test")
@@ -90,7 +90,7 @@ def test_ledger_written_only_in_job_context(tmp_path, monkeypatch) -> None:
 
 def test_learn_writes_proposed_session_memory(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli.jarvis_prime.memory_tree import (
+    from muse_cli.jarvis_prime.memory_tree import (
         ApprovalState,
         MemoryLayer,
         MemoryTreeStore,

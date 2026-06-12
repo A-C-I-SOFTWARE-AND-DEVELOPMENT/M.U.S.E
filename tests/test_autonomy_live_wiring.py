@@ -1,7 +1,7 @@
 """Tests for live/autonomous wiring: outbound-message policy, integration sends,
 background-learner live jobs, and the model-backed eval runner.
 
-The autonomy switch is the existing `hermes_cli/approval_policy.py`
+The autonomy switch is the existing `muse_cli/approval_policy.py`
 (`HERMES_AUTONOMY`). Default (ASSISTED) keeps sends/live-jobs gated; AUTONOMOUS
 auto-approves (audited). No real credentials are used — the model runner is
 exercised with an injected fake client.
@@ -9,8 +9,8 @@ exercised with an injected fake client.
 
 import pytest
 
-from hermes_cli import approval_policy as ap
-from hermes_cli.integrations import (
+from muse_cli import approval_policy as ap
+from muse_cli.integrations import (
     ActionRequest,
     build_live_registry,
     default_registry,
@@ -87,7 +87,7 @@ def test_unwired_send_under_autonomy_is_ok_noop(monkeypatch, tmp_path):
 
 def test_background_live_job_downgraded_by_default(monkeypatch):
     monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
-    from hermes_cli.background_learner import JobQueue
+    from muse_cli.background_learner import JobQueue
 
     q = JobQueue()
     job = q.enqueue("scan_outdated_deps", dry_run=False)
@@ -96,7 +96,7 @@ def test_background_live_job_downgraded_by_default(monkeypatch):
 
 def test_background_live_job_authorized_under_autonomous(monkeypatch):
     monkeypatch.setenv("HERMES_AUTONOMY", "autonomous")
-    from hermes_cli.background_learner import JobQueue
+    from muse_cli.background_learner import JobQueue
 
     q = JobQueue()
     job = q.enqueue("scan_outdated_deps", dry_run=False)
@@ -105,7 +105,7 @@ def test_background_live_job_authorized_under_autonomous(monkeypatch):
 
 def test_background_live_job_authorized_by_token(monkeypatch):
     monkeypatch.delenv("HERMES_AUTONOMY", raising=False)
-    from hermes_cli.background_learner import JobQueue
+    from muse_cli.background_learner import JobQueue
 
     q = JobQueue()
     job = q.enqueue("scan_outdated_deps", dry_run=False, approval_token="owner-ok")
@@ -160,7 +160,7 @@ class _FakeClient:
 
 
 def test_model_runner_parses_tool_call():
-    from hermes_cli.evals import build_model_runner
+    from muse_cli.evals import build_model_runner
 
     resp = _FakeResp(_FakeMessage("", [_FakeToolCall("echo", '{"text": "hi"}')]))
     runner = build_model_runner(client=_FakeClient(resp), model="fake")
@@ -170,7 +170,7 @@ def test_model_runner_parses_tool_call():
 
 
 def test_model_runner_plain_text():
-    from hermes_cli.evals import build_model_runner
+    from muse_cli.evals import build_model_runner
 
     resp = _FakeResp(_FakeMessage("just text"))
     runner = build_model_runner(client=_FakeClient(resp), model="fake")
@@ -180,7 +180,7 @@ def test_model_runner_plain_text():
 
 
 def test_model_runner_feeds_harness_tool_call_case():
-    from hermes_cli.evals import build_model_runner, run_suite
+    from muse_cli.evals import build_model_runner, run_suite
 
     resp = _FakeResp(_FakeMessage("", [_FakeToolCall("echo", '{"text": "hi"}')]))
     runner = build_model_runner(client=_FakeClient(resp), model="fake")
@@ -189,7 +189,7 @@ def test_model_runner_feeds_harness_tool_call_case():
 
 
 def test_model_runner_missing_key_errors_only_on_invoke(monkeypatch):
-    from hermes_cli.evals import build_model_runner
+    from muse_cli.evals import build_model_runner
 
     monkeypatch.delenv("HERMES_EVAL_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)

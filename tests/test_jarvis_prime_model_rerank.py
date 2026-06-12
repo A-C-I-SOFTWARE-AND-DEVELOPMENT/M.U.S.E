@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.model_rerank import (
+from muse_cli.jarvis_prime.model_rerank import (
     LaneRecommendation,
     recommend_model_lane,
     task_class_for,
 )
-from hermes_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
-from hermes_cli.jarvis_prime.natural_language_coder import CodingIntent
+from muse_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
+from muse_cli.jarvis_prime.natural_language_coder import CodingIntent
 
 
 @pytest.fixture(autouse=True)

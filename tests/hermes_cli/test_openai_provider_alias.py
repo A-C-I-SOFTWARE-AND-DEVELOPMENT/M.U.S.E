@@ -9,7 +9,7 @@ aggregator keeps working independently.
 
 from urllib.parse import urlparse
 
-from hermes_cli.providers import get_provider, normalize_provider
+from muse_cli.providers import get_provider, normalize_provider
 
 
 def test_openai_does_not_alias_to_openrouter():

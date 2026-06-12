@@ -25,4 +25,14 @@ Scope and method: see `MUSE_RENAME_INVENTORY.md` and the approved plan.
   - tests/hermes_cli/test_web_server.py (1)
 - Tooling: libcst 1.8.6 installable via `uv run --no-project --with libcst`; `rename.RenameCommand` present.
 - Deliverables: `MUSE_RENAME_INVENTORY.md` (counts, 120 paths, A/B/C triage), allowlist grep snapshot (9,905 lines) at `/tmp/phase0_hermes_cli_allowlist_input.txt`.
-- Rollback handle: this phase's commit (see git log: `refactor(muse): phase-0 baseline + inventory`).
+- Rollback handle: `6684b68` (`refactor(muse): phase-0 baseline + inventory + triage`).
+
+## Phase 1 — `hermes_cli` → `muse_cli` + permanent meta-path shim
+
+- `git mv hermes_cli muse_cli` (348 file renames). LibCST `rename.RenameCommand` over all 1,112 referencing .py files: **transformed 1,112, failed 0, warnings 0** (~3 min on 4 cores; `.libcst.codemod.yaml` committed with `formatter: ['cat']` — the default `black` formatter was rejected after a first run showed mass reformatting churn; that run was fully reverted).
+- Scoped token pass over `tests/` rewrote the ~1,240 string patch/setattr targets; hand-audited production string sites rewritten; **keep-both** legacy tokens restored at: `gateway/status.py` (2 pattern sets), `muse_cli/gateway.py` (process patterns + legacy systemd unit markers), `muse_cli/main.py` (dashboard patterns), `muse_cli/uninstall.py`, `muse_cli/jarvis_prime/sia_self_improve.py`, `muse_cli/user_profile_builder.py` (historical-commit classifiers), `hermes_logging.py` (logger prefixes), `tests/conftest.py` (live-gateway guard).
+- Permanent shim `hermes_cli/__init__.py` (meta-path finder; identity alias; runpy `get_code` + mirrored `origin`/`has_location` — the latter found by gate: `python -m hermes_cli.main` initially ran with `__file__=None`). New `tests/test_hermes_cli_shim.py`: **7 passed**.
+- pyproject: scripts → `muse_cli.main:main`; `packages.find` gains `"muse_cli", "muse_cli.*"` (fixes latent wheel bug: subpackages were silently dropped) + keeps `"hermes_cli"` for the shim.
+- Closing audit: `git grep '\bhermes_cli\b' -- '*.py'` = exactly the keep-both allowlist (8 files); one boundary-missed occurrence (`b"...\x00hermes_cli/main.py..."` in `tests/gateway/test_status.py` — `\b` fails after `\x00`'s `0`) found by the gate and fixed.
+- Gates (measured): editable reinstall OK; `import muse_cli` OK; `hermes_cli is muse_cli` identity OK; `python -m hermes_cli.main --version` / `muse --help` / `hermes --help` all exit 0; compileall **0 errors**; collect-only **29,317 green** (baseline + 7 shim tests); full pytest **57 failed / 29,054 passed / 210 skipped in 11:12** — normalized diff vs baseline: 0 new failures (the 1 initial new failure was the fixture above, fixed and re-run green; 4 baseline flakes passed this round).
+- Rollback handle: `00ca2da82`.

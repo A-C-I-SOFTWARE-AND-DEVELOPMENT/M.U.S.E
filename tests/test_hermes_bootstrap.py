@@ -241,7 +241,7 @@ class TestEntryPointsImportBootstrap:
     # Entry points that invoke Hermes as a process.  Each one must
     # import hermes_bootstrap before doing any file I/O or stdout writes.
     ENTRY_POINTS = [
-        "hermes_cli/main.py",   # muse CLI (console_script)
+        "muse_cli/main.py",   # muse CLI (console_script)
         "run_agent.py",          # muse-agent (console_script)
         "acp_adapter/entry.py",  # muse-acp (console_script)
         "gateway/run.py",        # gateway

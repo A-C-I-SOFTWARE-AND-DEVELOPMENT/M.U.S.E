@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.goal_boundary import GoalBoundary
-from hermes_cli.workers.repair_loop import (
+from muse_cli.jarvis_prime.goal_boundary import GoalBoundary
+from muse_cli.workers.repair_loop import (
     PatchOutcome,
     TestOutcome,
     run_repair_loop,

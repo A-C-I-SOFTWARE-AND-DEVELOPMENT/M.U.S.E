@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.branch_consolidation.
+"""Tests for muse_cli.branch_consolidation.
 
 These exercise the real git plumbing in throwaway repositories so the merge,
 conflict-resolution, review-gate, and safe-stop paths are covered end to end.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.branch_consolidation import (
+from muse_cli.branch_consolidation import (
     INTEGRATION_BRANCH,
     STATUS_DECLINED,
     STATUS_MERGED,
@@ -164,7 +164,7 @@ def test_push_failure_keeps_local_main(fork_setup, monkeypatch):
     _add_upstream_commit(fork_setup["upstream"], work, "upstream.txt", "upstream\n")
 
     monkeypatch.setattr(
-        "hermes_cli.branch_consolidation._push_main",
+        "muse_cli.branch_consolidation._push_main",
         lambda git_cmd, repo: (False, "  ℹ push rejected (non-ff)"),
     )
 

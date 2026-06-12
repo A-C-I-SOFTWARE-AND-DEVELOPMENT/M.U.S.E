@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import evidence_engine as ee
-from hermes_cli.jarvis_prime.memory_tree import MemoryLayer, MemoryTreeStore, SourceTrust
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime import evidence_engine as ee
+from muse_cli.jarvis_prime.memory_tree import MemoryLayer, MemoryTreeStore, SourceTrust
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchVault,
     SourceType,

@@ -1,25 +1,25 @@
 """Tests for the lease reschedule policy (Sprint 13, multi-host substrate).
 
 Pure + deterministic: no store, no clock, no I/O. We construct leases via the
-frozen kernel (:mod:`hermes_cli.worker_lease`) and host records, then assert the
+frozen kernel (:mod:`muse_cli.worker_lease`) and host records, then assert the
 policy's decisions.
 """
 
 from __future__ import annotations
 
-from hermes_cli.lease_scheduler import (
+from muse_cli.lease_scheduler import (
     Reschedule,
     host_load,
     pick_target_host,
     reschedule_plan,
 )
-from hermes_cli.worker_lease import (
+from muse_cli.worker_lease import (
     LeaseStatus,
     WorkerLease,
     acquire,
     expire_if_stale,
 )
-from hermes_cli.worker_lease_store import HostRecord
+from muse_cli.worker_lease_store import HostRecord
 
 
 # ─── helpers ──────────────────────────────────────────────────────────

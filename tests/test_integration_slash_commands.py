@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli import orchestrator as orch
+from muse_cli import orchestrator as orch
 
 
 def test_full_chat_flow() -> None:

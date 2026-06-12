@@ -6,10 +6,10 @@ finding records append to a verifiable ledger; and the async monitor reports
 BLIND / OK / CRITICAL appropriately.
 """
 
-from hermes_cli.jarvis_prime import behavioral_risk as br
-from hermes_cli.jarvis_prime.behavioral_risk import RiskCategory
-from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
-from hermes_cli.jarvis_prime.monitors import Severity, behavioral_drift_checker
+from muse_cli.jarvis_prime import behavioral_risk as br
+from muse_cli.jarvis_prime.behavioral_risk import RiskCategory
+from muse_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from muse_cli.jarvis_prime.monitors import Severity, behavioral_drift_checker
 
 
 def test_clean_actions_have_no_findings():
@@ -127,7 +127,7 @@ def test_behavioral_drift_monitor_severities():
 
 
 def test_collect_worker_actions_derives_signal_from_ledger(tmp_path):
-    from hermes_cli.jarvis_prime.monitor_collectors import collect_worker_actions
+    from muse_cli.jarvis_prime.monitor_collectors import collect_worker_actions
 
     ledger = GuardrailLedger(path=tmp_path / "ledger.jsonl")
     ledger.append(
@@ -158,7 +158,7 @@ def test_collect_worker_actions_derives_signal_from_ledger(tmp_path):
 
 
 def test_collect_worker_actions_empty_ledger_is_not_blind(tmp_path):
-    from hermes_cli.jarvis_prime.monitor_collectors import collect_worker_actions
+    from muse_cli.jarvis_prime.monitor_collectors import collect_worker_actions
 
     # A readable-but-empty ledger is observed (returns []), not BLIND.
     empty = collect_worker_actions(ledger=GuardrailLedger(path=tmp_path / "none.jsonl"))
@@ -166,7 +166,7 @@ def test_collect_worker_actions_empty_ledger_is_not_blind(tmp_path):
 
 
 def test_collect_context_includes_worker_actions(tmp_path):
-    from hermes_cli.jarvis_prime.monitor_collectors import collect_context
+    from muse_cli.jarvis_prime.monitor_collectors import collect_context
 
     GuardrailLedger(path=tmp_path / "l.jsonl").append(
         kind="git_diff",

@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 
-from hermes_cli.jarvis_prime.__main__ import main as cli_main
+from muse_cli.jarvis_prime.__main__ import main as cli_main
 
 
 def _run(argv: list[str]) -> tuple[int, Any]:

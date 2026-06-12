@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli/ai_radar.py``.
+"""Tests for ``muse_cli/ai_radar.py``.
 
 The radar is a documentation-and-evidence module; these tests pin the
 contracts that the skill (``skills/ai-improvement-radar/SKILL.md`` and
@@ -25,8 +25,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from hermes_cli import ai_radar
-from hermes_cli.ai_radar import (
+from muse_cli import ai_radar
+from muse_cli.ai_radar import (
     CONFIDENCE_LEVELS,
     RadarFinding,
     RadarReport,

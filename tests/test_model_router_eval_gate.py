@@ -7,8 +7,8 @@ un-evaluated workers for gated categories, keeps eval-passed workers, and that
 
 import pytest
 
-from hermes_cli.model_registry import Registry, WorkerEntry, _worker_from_yaml
-from hermes_cli.model_router import RouterContext, route
+from muse_cli.model_registry import Registry, WorkerEntry, _worker_from_yaml
+from muse_cli.model_router import RouterContext, route
 
 
 def _registry() -> Registry:

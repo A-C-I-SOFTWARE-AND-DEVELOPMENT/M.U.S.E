@@ -3,7 +3,7 @@
 Mounted at ``/api/plugins/learning-queue/`` by the dashboard plugin system.
 
 This layer is intentionally thin: every handler wraps
-``hermes_cli.jarvis_prime.learning_dataset.DatasetStore`` using the same code
+``muse_cli.jarvis_prime.learning_dataset.DatasetStore`` using the same code
 paths the ``jarvis_prime learning`` CLI and the cockpit
 (``gateway/cockpit/handlers.py``) use, so the web, CLI, cockpit, and Android
 surfaces cannot drift. In particular the **owner-approval gate is preserved**:
@@ -33,7 +33,7 @@ router = APIRouter()
 
 def _store():
     """Load the profile-aware learning dataset store."""
-    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+    from muse_cli.jarvis_prime.learning_dataset import DatasetStore
 
     return DatasetStore.load()
 
@@ -42,7 +42,7 @@ def _status_enum(value: Optional[str]):
     """Map a status query string to CandidateStatus, or None when absent/blank."""
     if not value:
         return None
-    from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
+    from muse_cli.jarvis_prime.learning_dataset import CandidateStatus
 
     try:
         return CandidateStatus(value)
@@ -105,7 +105,7 @@ def decide_candidate(candidate_id: str, payload: DecideBody):
     if decision not in ("approve", "reject"):
         raise HTTPException(status_code=400, detail="decision must be 'approve' or 'reject'")
 
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if decision == "approve":
         phrase = (payload.authorization or "").strip()
@@ -133,7 +133,7 @@ def decide_candidate(candidate_id: str, payload: DecideBody):
 
 @router.get("/stats")
 def get_stats():
-    from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
+    from muse_cli.jarvis_prime.learning_dataset import CandidateStatus
 
     store = _store()
     entries = store.entries()
@@ -178,7 +178,7 @@ def export(payload: ExportBody):
         elif fmt == "skill":
             n = store.export_skill_candidates(out)
         elif fmt == "parquet":
-            from hermes_cli.jarvis_prime.learning_analytics import export_parquet
+            from muse_cli.jarvis_prime.learning_analytics import export_parquet
 
             n = export_parquet(store, out)
         else:

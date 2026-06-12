@@ -6,7 +6,7 @@ all supplied, so nothing touches the real registry, network, or Ollama.
 
 import json
 
-from hermes_cli.jarvis_prime import model_availability as ma
+from muse_cli.jarvis_prime import model_availability as ma
 
 _SPECS = [
     ("anthropic", ("ANTHROPIC_API_KEY",), "https://api.anthropic.com"),

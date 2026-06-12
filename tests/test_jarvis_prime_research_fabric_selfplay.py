@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
-from hermes_cli.jarvis_prime.research_fabric.selfplay.loop import run_selfplay
-from hermes_cli.jarvis_prime.research_fabric.selfplay.tasks import (
+from muse_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from muse_cli.jarvis_prime.research_fabric.selfplay.loop import run_selfplay
+from muse_cli.jarvis_prime.research_fabric.selfplay.tasks import (
     SEED_TASKS,
     reference_solver,
 )
-from hermes_cli.jarvis_prime.research_fabric.verifier.algorithms import AlgorithmTask
+from muse_cli.jarvis_prime.research_fabric.verifier.algorithms import AlgorithmTask
 
 
 def test_reference_solver_passes_all_seed_tasks(tmp_path) -> None:

@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.research + .epistemics.
+"""Tests for muse_cli.jarvis_prime.research + .epistemics.
 
 The research module triggers a brief when JARVIS doesn't know
 enough. The epistemics module enforces no-hallucination on every
@@ -8,11 +8,11 @@ requirement.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.epistemics import (
+from muse_cli.jarvis_prime.epistemics import (
     AuditOutcome,
     audit_response,
 )
-from hermes_cli.jarvis_prime.research import (
+from muse_cli.jarvis_prime.research import (
     ResearchQuestion,
     ResearchScope,
     needs_research,
@@ -85,10 +85,10 @@ def test_audit_flags_uncited_url() -> None:
 
 
 def test_audit_passes_when_citation_provided() -> None:
-    response = "The function lives at hermes_cli/jarvis_prime/runtime.py and the doc URL is https://example.com."
+    response = "The function lives at muse_cli/jarvis_prime/runtime.py and the doc URL is https://example.com."
     report = audit_response(
         response,
-        provided_citations=["hermes_cli/jarvis_prime/runtime.py", "https://example.com"],
+        provided_citations=["muse_cli/jarvis_prime/runtime.py", "https://example.com"],
         confidence=0.9,
     )
     assert report.outcome in (AuditOutcome.PASS, AuditOutcome.NEEDS_CITATIONS)

@@ -9,7 +9,7 @@ without clobbering the top-level ``args.command`` dest.
 import argparse
 from unittest.mock import patch
 
-from hermes_cli.mcp_config import mcp_command
+from muse_cli.mcp_config import mcp_command
 
 
 def _args(**kw):
@@ -28,29 +28,29 @@ def _args(**kw):
 
 class TestDispatcherRouting:
     def test_catalog_routes_to_show_catalog(self):
-        with patch("hermes_cli.mcp_picker.show_catalog") as m:
+        with patch("muse_cli.mcp_picker.show_catalog") as m:
             mcp_command(_args(mcp_action="catalog"))
             m.assert_called_once()
 
     def test_ls_catalog_alias_routes_to_show_catalog(self):
-        with patch("hermes_cli.mcp_picker.show_catalog") as m:
+        with patch("muse_cli.mcp_picker.show_catalog") as m:
             mcp_command(_args(mcp_action="ls-catalog"))
             m.assert_called_once()
 
     def test_picker_routes_to_run_picker(self):
-        with patch("hermes_cli.mcp_picker.run_picker") as m:
+        with patch("muse_cli.mcp_picker.run_picker") as m:
             mcp_command(_args(mcp_action="picker"))
             m.assert_called_once()
 
     def test_install_name_routes_to_install_by_name(self):
-        with patch("hermes_cli.mcp_picker.install_by_name", return_value=0) as m:
+        with patch("muse_cli.mcp_picker.install_by_name", return_value=0) as m:
             mcp_command(_args(mcp_action="install", name="linear"))
             m.assert_called_once_with("linear")
 
     def test_install_all_routes_to_install_all_entries(self):
         empty = {"installed": [], "needs_creds": [], "skipped": [], "failed": []}
         with patch(
-            "hermes_cli.mcp_catalog.install_all_entries", return_value=empty
+            "muse_cli.mcp_catalog.install_all_entries", return_value=empty
         ) as m:
             mcp_command(_args(mcp_action="install", install_all=True))
             m.assert_called_once()
@@ -60,7 +60,7 @@ class TestDispatcherRouting:
     def test_install_all_forwards_flags(self):
         empty = {"installed": [], "needs_creds": [], "skipped": [], "failed": []}
         with patch(
-            "hermes_cli.mcp_catalog.install_all_entries", return_value=empty
+            "muse_cli.mcp_catalog.install_all_entries", return_value=empty
         ) as m:
             mcp_command(
                 _args(mcp_action="install", install_all=True,

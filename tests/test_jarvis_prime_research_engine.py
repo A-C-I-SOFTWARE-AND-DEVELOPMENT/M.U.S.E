@@ -11,14 +11,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.research_engine import (
+from muse_cli.jarvis_prime.research_engine import (
     EvidenceCard,
     RawSource,
     ResearchEngine,
     ResearchReport,
     classify_source,
 )
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchVault,
     SourceType,
@@ -130,7 +130,7 @@ def test_verify_citations_drops_orphans(tmp_path):
         excerpt="QUIC over UDP",
         claim="QUIC over UDP",
     )
-    from hermes_cli.jarvis_prime.research_engine import SynthesizedClaim
+    from muse_cli.jarvis_prime.research_engine import SynthesizedClaim
 
     supported = SynthesizedClaim(text="QUIC over UDP", supporting_card_ids=("c1",))
     orphan = SynthesizedClaim(

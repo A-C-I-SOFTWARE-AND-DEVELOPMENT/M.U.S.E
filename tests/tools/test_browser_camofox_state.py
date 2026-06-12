@@ -54,7 +54,7 @@ class TestCamofoxIdentity:
 
 class TestCamofoxConfigDefaults:
     def test_default_config_includes_camofox_controls(self):
-        from hermes_cli.config import DEFAULT_CONFIG
+        from muse_cli.config import DEFAULT_CONFIG
 
         browser_cfg = DEFAULT_CONFIG["browser"]
         assert isinstance(browser_cfg, dict)

@@ -79,9 +79,9 @@ jobs:
         run: |
           set -e
           # Audit hatch: if this PR drops AUTHORIZATION_PHRASE / OwnerAuth, fail loud.
-          grep -q "AUTHORIZATION_PHRASE" hermes_cli/jarvis_prime/owner_auth.py \
+          grep -q "AUTHORIZATION_PHRASE" muse_cli/jarvis_prime/owner_auth.py \
             || { echo "AUTHORIZATION_PHRASE was removed from owner_auth.py — runtime gate violated"; exit 1; }
-          grep -q "class OwnerAuth" hermes_cli/jarvis_prime/owner_auth.py \
+          grep -q "class OwnerAuth" muse_cli/jarvis_prime/owner_auth.py \
             || { echo "OwnerAuth class was removed from owner_auth.py — runtime gate violated"; exit 1; }
           echo "Runtime owner-gate constants present."
 
@@ -149,7 +149,7 @@ jobs:
   # HERMES_RELEASE_GATE_STRICT=1, so a runner where ruff/pytest are absent
   # produces a hard FAIL instead of a soft WARN (no more "GREEN SHIP with
   # zero tests executed" on a stripped host). Capability shipped in
-  # hermes_cli/release_gate.py (PR #414); this job adopts it in CI.
+  # muse_cli/release_gate.py (PR #414); this job adopts it in CI.
   #
   # Deliberately standalone: NOT in `aggregate`'s `needs` and not yet a
   # branch-protection-required check, so it cannot block in-flight PRs

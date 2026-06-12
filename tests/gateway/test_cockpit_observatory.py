@@ -167,8 +167,8 @@ def test_layout_unavailable_without_graph_cache(home: Path) -> None:
 
 
 def _seed_graph(home: Path) -> None:
-    from hermes_cli.jarvis_prime.graphrag import GraphStore
-    from hermes_cli.jarvis_prime.graphrag.graph import (
+    from muse_cli.jarvis_prime.graphrag import GraphStore
+    from muse_cli.jarvis_prime.graphrag.graph import (
         EdgeType,
         KnowledgeGraph,
         NodeType,

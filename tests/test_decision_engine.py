@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.decision_engine import (
+from muse_cli.decision_engine import (
     DecisionInput,
     DecisionTier,
     ReasonCode,

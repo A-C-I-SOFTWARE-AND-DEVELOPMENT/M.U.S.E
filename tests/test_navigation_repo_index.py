@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.navigation.code_map import CodeMap
-from hermes_cli.jarvis_prime.navigation.dependency_trace import DependencyTracer
-from hermes_cli.jarvis_prime.navigation.repo_index import (
+from muse_cli.jarvis_prime.navigation.code_map import CodeMap
+from muse_cli.jarvis_prime.navigation.dependency_trace import DependencyTracer
+from muse_cli.jarvis_prime.navigation.repo_index import (
     RepoIndex,
     classify_role,
     detect_language,
 )
-from hermes_cli.jarvis_prime.navigation.symbol_graph import SymbolGraph
+from muse_cli.jarvis_prime.navigation.symbol_graph import SymbolGraph
 
 
 @pytest.fixture()

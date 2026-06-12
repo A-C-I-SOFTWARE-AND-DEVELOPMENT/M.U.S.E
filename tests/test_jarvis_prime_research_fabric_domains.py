@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.research_fabric.domains import (
+from muse_cli.jarvis_prime.research_fabric.domains import (
     DomainNotAutonomous,
     admit_for_autonomy,
     domains,

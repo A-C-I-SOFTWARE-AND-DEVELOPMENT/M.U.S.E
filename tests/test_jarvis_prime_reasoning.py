@@ -1,8 +1,8 @@
-"""Tests for hermes_cli.jarvis_prime.reasoning — induce + deduce."""
+"""Tests for muse_cli.jarvis_prime.reasoning — induce + deduce."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.reasoning import (
+from muse_cli.jarvis_prime.reasoning import (
     Inference,
     Premise,
     Reasoner,

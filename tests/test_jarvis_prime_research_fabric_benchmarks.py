@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from hermes_cli.jarvis_prime.research_fabric.benchmarks import (
+from muse_cli.jarvis_prime.research_fabric.benchmarks import (
     BenchmarkTaskSpec,
     load_suite,
     run_suite,

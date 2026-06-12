@@ -6,7 +6,7 @@ building the uv (Rust) sdist for 30+ minutes ("Building wheel for uv ...").
 
 from __future__ import annotations
 
-import hermes_cli.main as main
+import muse_cli.main as main
 
 
 def test_non_termux_returns_existing_uv_without_install(monkeypatch):

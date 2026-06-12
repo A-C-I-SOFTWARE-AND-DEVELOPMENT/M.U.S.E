@@ -10,7 +10,7 @@ import re
 
 import pytest
 
-from hermes_cli.mcp_catalog import catalog_diagnostics, list_catalog
+from muse_cli.mcp_catalog import catalog_diagnostics, list_catalog
 
 _NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")

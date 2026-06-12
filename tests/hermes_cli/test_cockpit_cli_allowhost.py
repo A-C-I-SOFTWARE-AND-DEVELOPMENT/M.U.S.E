@@ -24,13 +24,13 @@ from unittest.mock import patch
 import pytest
 
 from gateway.cockpit import server as cockpit_server
-from hermes_cli.main import cmd_cockpit
+from muse_cli.main import cmd_cockpit
 
 
 def _build_cockpit_parser() -> argparse.ArgumentParser:
     """Replicate the real ``cockpit serve`` subparser registration.
 
-    Mirrors the block in ``hermes_cli.main.main()`` (around the
+    Mirrors the block in ``muse_cli.main.main()`` (around the
     ``cockpit_serve`` parser). ``main()`` is a large monolith that builds the
     whole CLI with side effects, so — following the repo convention in
     ``test_argparse_flag_propagation.py`` — we replicate just the relevant
@@ -127,7 +127,7 @@ class TestParser:
         ``cockpit serve`` (so the local replica above can't silently diverge
         from the shipped flag name)."""
         result = subprocess.run(
-            [sys.executable, "-m", "hermes_cli.main", "cockpit", "serve", "--help"],
+            [sys.executable, "-m", "muse_cli.main", "cockpit", "serve", "--help"],
             capture_output=True,
             text=True,
             timeout=30,

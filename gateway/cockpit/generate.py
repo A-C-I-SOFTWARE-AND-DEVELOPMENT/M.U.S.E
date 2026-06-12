@@ -133,7 +133,7 @@ def _route_preference(task_class: str) -> tuple[Optional[str], str]:
     """
     kind = _TASK_CLASS_KIND.get(task_class, "chat")
     try:
-        from hermes_cli.jarvis_prime import task_router as tr
+        from muse_cli.jarvis_prime import task_router as tr
 
         decision = tr.route_for_task(task_class)
         return decision.chosen, kind

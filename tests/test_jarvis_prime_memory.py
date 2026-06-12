@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.memory — STM/LTM + recollection."""
+"""Tests for muse_cli.jarvis_prime.memory — STM/LTM + recollection."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.memory import MemoryStore
 
 
 @pytest.fixture

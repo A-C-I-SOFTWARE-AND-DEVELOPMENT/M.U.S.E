@@ -1,11 +1,11 @@
 """Tests for the unified free-first model bootstrap
-(hermes_cli.jarvis_prime.model_bootstrap).
+(muse_cli.jarvis_prime.model_bootstrap).
 
 Hermetic: no network, no real ``shutil.which``, no model downloads, no
 real hardware probe. The runtime detector (``which``), environment,
 hardware profile, and download runner are all injected so the tests are
 deterministic on any host. The bootstrap unifies provider routing with
-the local model layer (``hermes_cli.local_models``).
+the local model layer (``muse_cli.local_models``).
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import model_bootstrap as mb
-from hermes_cli.local_models.hardware_probe import HardwareProfile
+from muse_cli.jarvis_prime import model_bootstrap as mb
+from muse_cli.local_models.hardware_probe import HardwareProfile
 
 
 @pytest.fixture()
@@ -322,7 +322,7 @@ def test_probe_hardware_accepts_injected_profile(fake_hw: HardwareProfile) -> No
 def test_bootstrap_records_launch_policy_memory(
     hermes_home: Path, fake_hw: HardwareProfile
 ) -> None:
-    from hermes_cli.jarvis_prime.memory import MemoryStore
+    from muse_cli.jarvis_prime.memory import MemoryStore
 
     mb.bootstrap(which=_which_none, env={}, hardware=fake_hw, record_memory=True)
     store = MemoryStore()

@@ -6,7 +6,7 @@ detection, and the feature_vector contract the backend selector reads.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.intent_graph import (
+from muse_cli.jarvis_prime.intent_graph import (
     IntentEdge,
     IntentEdgeKind,
     IntentGraph,
@@ -14,7 +14,7 @@ from hermes_cli.jarvis_prime.intent_graph import (
     IntentNodeKind,
     Slot,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import (
+from muse_cli.jarvis_prime.natural_language_coder import (
     CodingIntent,
     OwnerGate,
     RiskClass,

@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.secrets_policy``.
+"""Tests for ``muse_cli.secrets_policy``.
 
 These tests cover the public surface only: secret-name classification,
 the ``looks_like_secret`` heuristic, redaction (and its idempotence),
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import secrets_policy as sp
+from muse_cli import secrets_policy as sp
 
 
 # ---------------------------------------------------------------------------

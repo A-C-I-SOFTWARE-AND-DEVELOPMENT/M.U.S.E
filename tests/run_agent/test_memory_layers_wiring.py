@@ -70,7 +70,7 @@ def test_coerce_memory_text_empty_returns_blank(agent):
 def test_disabled_by_default_records_nothing(agent, tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     # No config flag set ⇒ default off.
-    with patch("hermes_cli.config.load_config", return_value={}):
+    with patch("muse_cli.config.load_config", return_value={}):
         agent._record_memory_layer_events(
             original_user_message="remember this", final_response="ok"
         )
@@ -82,7 +82,7 @@ def test_enabled_records_owner_and_assistant_events(agent, tmp_path, monkeypatch
     from agent.memory_layers import read_all
 
     with patch(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         return_value={"memory": {"layers": {"enabled": True}}},
     ):
         agent._record_memory_layer_events(
@@ -108,7 +108,7 @@ def test_flag_is_cached_after_first_read(agent, monkeypatch):
         calls["n"] += 1
         return {"memory": {"layers": {"enabled": True}}}
 
-    with patch("hermes_cli.config.load_config", side_effect=_fake_load):
+    with patch("muse_cli.config.load_config", side_effect=_fake_load):
         assert agent._memory_layers_enabled() is True
         assert agent._memory_layers_enabled() is True
     assert calls["n"] == 1  # read once, then cached
@@ -117,7 +117,7 @@ def test_flag_is_cached_after_first_read(agent, monkeypatch):
 def test_interrupted_turns_skip_capture(agent, tmp_path, monkeypatch):
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     with patch(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         return_value={"memory": {"layers": {"enabled": True}}},
     ):
         agent._sync_external_memory_for_turn(

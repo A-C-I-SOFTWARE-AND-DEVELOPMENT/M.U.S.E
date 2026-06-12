@@ -23,7 +23,7 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli.workers import claude_code as cc
+from muse_cli.workers import claude_code as cc
 
 
 # ── helpers ───────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ def _sample_task(**overrides: object) -> cc.WorkerTask:
     base: dict[str, object] = {
         "mission": "Audit the kanban swarm scheduler for safety regressions.",
         "repo_evidence": [
-            "hermes_cli/kanban_swarm.py:80-220",
+            "muse_cli/kanban_swarm.py:80-220",
             "tests/test_kanban_swarm.py",
         ],
         "decision_ledger": "docs/plans/2026-05-15-acp-zed-edit-approval-diffs.md",
@@ -88,7 +88,7 @@ def _sample_task(**overrides: object) -> cc.WorkerTask:
 
 
 def test_detect_absent_binary_does_not_raise():
-    with patch("hermes_cli.workers.claude_code.shutil.which", return_value=None):
+    with patch("muse_cli.workers.claude_code.shutil.which", return_value=None):
         det = cc.detect()
     assert det.available is False
     assert det.path is None
@@ -100,7 +100,7 @@ def test_detect_absent_binary_does_not_raise():
 def test_detect_present_parses_version():
     runner = _runner_returning(stdout="claude 1.2.3 (build abc123)\n")
     with patch(
-        "hermes_cli.workers.claude_code.shutil.which",
+        "muse_cli.workers.claude_code.shutil.which",
         return_value="/usr/local/bin/claude",
     ):
         det = cc.detect(runner=runner)
@@ -113,7 +113,7 @@ def test_detect_present_parses_version():
 def test_detect_version_probe_timeout_is_soft():
     runner = _runner_raising(subprocess.TimeoutExpired(cmd=["claude"], timeout=5.0))
     with patch(
-        "hermes_cli.workers.claude_code.shutil.which", return_value="/x/claude"
+        "muse_cli.workers.claude_code.shutil.which", return_value="/x/claude"
     ):
         det = cc.detect(runner=runner)
     assert det.available is True
@@ -125,7 +125,7 @@ def test_detect_version_probe_timeout_is_soft():
 def test_detect_version_probe_unparseable_output_is_soft():
     runner = _runner_returning(stdout="claude (no version reported)\n")
     with patch(
-        "hermes_cli.workers.claude_code.shutil.which", return_value="/x/claude"
+        "muse_cli.workers.claude_code.shutil.which", return_value="/x/claude"
     ):
         det = cc.detect(runner=runner)
     assert det.available is True
@@ -135,7 +135,7 @@ def test_detect_version_probe_unparseable_output_is_soft():
 
 def test_detect_skip_version_probe():
     with patch(
-        "hermes_cli.workers.claude_code.shutil.which", return_value="/x/claude"
+        "muse_cli.workers.claude_code.shutil.which", return_value="/x/claude"
     ):
         det = cc.detect(probe_version=False)
     assert det.available is True
@@ -147,7 +147,7 @@ def test_detect_skip_version_probe():
 def test_detect_oserror_does_not_propagate():
     runner = _runner_raising(OSError("permission denied"))
     with patch(
-        "hermes_cli.workers.claude_code.shutil.which", return_value="/x/claude"
+        "muse_cli.workers.claude_code.shutil.which", return_value="/x/claude"
     ):
         det = cc.detect(runner=runner)
     assert det.available is True
@@ -198,7 +198,7 @@ def test_prompt_includes_all_required_sections(tmp_path: Path):
     # The mission text round-trips verbatim
     assert task.mission in body
     # Repo evidence + checklist items appear
-    assert "hermes_cli/kanban_swarm.py:80-220" in body
+    assert "muse_cli/kanban_swarm.py:80-220" in body
     assert "Verifier waits on every worker." in body
     # Each scoring axis is listed with its weight
     for axis, weight in cc.SCORING_WEIGHTS.items():

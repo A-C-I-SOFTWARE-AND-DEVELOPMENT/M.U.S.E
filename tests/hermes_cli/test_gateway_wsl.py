@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock, mock_open
 
 import pytest
 
-import hermes_cli.gateway as gateway
+import muse_cli.gateway as gateway
 import hermes_constants
 
 

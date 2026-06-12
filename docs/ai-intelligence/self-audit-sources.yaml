@@ -3,7 +3,7 @@
 #
 # Each entry is a source-cited reference behind the JARVIS Self-Audit +
 # Constitution layer. Phase 2's self_audit loader bridges these into the
-# Research Vault (hermes_cli/jarvis_prime/research_vault.py) as
+# Research Vault (muse_cli/jarvis_prime/research_vault.py) as
 # ResearchArtifacts, so the layer's design is itself source-backed.
 #
 # `source_type` and `evidence_strength` values MUST match the enums in

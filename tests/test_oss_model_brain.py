@@ -1,5 +1,5 @@
-"""Tests for the OSS model brain — hermes_cli.oss_model_brain + the
-MUSE bridge in hermes_cli.jarvis_prime.model_brain.
+"""Tests for the OSS model brain — muse_cli.oss_model_brain + the
+MUSE bridge in muse_cli.jarvis_prime.model_brain.
 
 These are hermetic: they exercise the built-in fallback catalog and the
 shipped YAML on disk. No network, no provider credentials.
@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import io
 
-from hermes_cli import oss_model_brain as ob
+from muse_cli import oss_model_brain as ob
 
 
 # ---------------------------------------------------------------------------
@@ -251,7 +251,7 @@ def test_yaml_and_builtin_agree_on_candidate_set() -> None:
 def test_hosted_candidates_orders_verified_before_candidate() -> None:
     """A mixed lane sinks candidate-tagged slugs below verified ones, stably,
     and never drops a candidate."""
-    from hermes_cli.jarvis_prime import task_router as tr
+    from muse_cli.jarvis_prime import task_router as tr
 
     ob.reset_cache()
     # ``reasoning`` mixes verified (deepseek-r1, gpt-oss-120b) with candidates
@@ -310,7 +310,7 @@ def test_hosted_candidates_orders_verified_before_candidate() -> None:
 def test_hosted_candidates_all_candidate_lane_unchanged() -> None:
     """An all-candidate lane (every coding family is a candidate) keeps the
     catalog's order byte-for-byte — verified-first only re-orders *mixed* lanes."""
-    from hermes_cli.jarvis_prime import task_router as tr
+    from muse_cli.jarvis_prime import task_router as tr
 
     ob.reset_cache()
     route = {"providers": ["openrouter"]}
@@ -331,7 +331,7 @@ def test_hosted_candidates_all_candidate_lane_unchanged() -> None:
 def test_hosted_candidates_disabled_flag_is_byte_for_byte_bare(monkeypatch) -> None:
     """The owner escape hatch and the empty-provider path are untouched by the
     verified-first partition (no candidate logic runs)."""
-    from hermes_cli.jarvis_prime import task_router as tr
+    from muse_cli.jarvis_prime import task_router as tr
 
     monkeypatch.setenv("HERMES_JARVIS_HOSTED_TASKCLASS", "off")
     profile = tr.TASK_PROFILES[tr.TaskClass.CODING_BUILD]
@@ -345,7 +345,7 @@ def test_hosted_candidates_disabled_flag_is_byte_for_byte_bare(monkeypatch) -> N
 
 
 def test_bridge_recommend_and_known_tasks() -> None:
-    from hermes_cli.jarvis_prime import model_brain as mb
+    from muse_cli.jarvis_prime import model_brain as mb
 
     # only_installed=False so the test never depends on host providers.
     models = mb.recommend_models("coding", only_installed=False)
@@ -355,7 +355,7 @@ def test_bridge_recommend_and_known_tasks() -> None:
 
 
 def test_bridge_render_is_human_readable() -> None:
-    from hermes_cli.jarvis_prime import model_brain as mb
+    from muse_cli.jarvis_prime import model_brain as mb
 
     text = mb.render_recommendation("reasoning", only_installed=False, limit=3)
     assert "OSS model brain" in text
@@ -364,7 +364,7 @@ def test_bridge_render_is_human_readable() -> None:
 
 
 def test_bridge_render_empty_for_unknown_task() -> None:
-    from hermes_cli.jarvis_prime import model_brain as mb
+    from muse_cli.jarvis_prime import model_brain as mb
 
     text = mb.render_recommendation("interpretive_dance", only_installed=False)
     assert "no catalog match" in text
@@ -378,7 +378,7 @@ def test_bridge_render_empty_for_unknown_task() -> None:
 def test_cli_models_json_returns_zero_and_valid_payload() -> None:
     import json
 
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -391,7 +391,7 @@ def test_cli_models_json_returns_zero_and_valid_payload() -> None:
 
 
 def test_cli_models_tasks_lists_categories() -> None:
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
-from hermes_cli.jarvis_prime.task_router import (
+from muse_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
+from muse_cli.jarvis_prime.task_router import (
     TaskClass,
     all_routes,
     explain,
@@ -260,7 +260,7 @@ def test_hosted_disable_flag_restores_bare_provider(tmp_path, monkeypatch):
 
 def test_hosted_expansion_falls_back_when_catalog_unavailable(tmp_path, monkeypatch):
     """If the OSS catalog can't load, hosted stays the bare provider id."""
-    import hermes_cli.oss_model_brain as ob
+    import muse_cli.oss_model_brain as ob
 
     def _boom(*a, **k):
         raise RuntimeError("no catalog / no PyYAML")

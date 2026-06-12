@@ -22,7 +22,7 @@
 set -eu
 
 PYTHON="${PYTHON:-python3}"
-JP="$PYTHON -m hermes_cli.jarvis_prime"
+JP="$PYTHON -m muse_cli.jarvis_prime"
 
 say() { printf '\n\033[1m== %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m!! %s\033[0m\n' "$*" >&2; }
@@ -86,13 +86,13 @@ Done. The policy + load-gate now route by job weight automatically.
 Optional, owner-gated pins (only if you want a lane FIXED regardless of the
 load-gate — note this bypasses the "loads cleanly" fallback):
 
-  python -m hermes_cli.jarvis_prime -c ignored 2>/dev/null  # (pins via Python:)
+  python -m muse_cli.jarvis_prime -c ignored 2>/dev/null  # (pins via Python:)
   python - <<'PY'
-  from hermes_cli.jarvis_prime import task_router as tr
+  from muse_cli.jarvis_prime import task_router as tr
   tr.set_task_override("mobile_chat", "ollama-local/gemma4-e2b")
   # clear with: tr.set_task_override("mobile_chat", None)
   PY
 
-Re-run `python -m hermes_cli.jarvis_prime gemma smoke --variant gemma4-e4b`
+Re-run `python -m muse_cli.jarvis_prime gemma smoke --variant gemma4-e4b`
 any time you change hardware to refresh the load-gate.
 NOTE

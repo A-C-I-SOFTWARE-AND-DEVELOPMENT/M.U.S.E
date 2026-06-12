@@ -77,7 +77,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Set, Tuple
 
 from tools.registry import registry, tool_error
-from hermes_cli.config import cfg_get
+from muse_cli.config import cfg_get
 from utils import env_var_enabled
 
 logger = logging.getLogger(__name__)
@@ -537,7 +537,7 @@ def _is_skill_disabled(name: str, platform: Optional[str] = None) -> bool:
     3. ``HERMES_SESSION_PLATFORM`` from gateway session context
     """
     try:
-        from hermes_cli.config import load_config
+        from muse_cli.config import load_config
         config = load_config()
         skills_cfg = config.get("skills", {})
         resolved_platform = platform or os.getenv("HERMES_PLATFORM") or _get_session_platform()
@@ -755,7 +755,7 @@ def _serve_plugin_skill(
     session_id: str | None = None,
 ) -> str:
     """Read a plugin-provided skill, apply guards, return JSON."""
-    from hermes_cli.plugins import _get_disabled_plugins, get_plugin_manager
+    from muse_cli.plugins import _get_disabled_plugins, get_plugin_manager
 
     if namespace in _get_disabled_plugins():
         return json.dumps(
@@ -878,7 +878,7 @@ def skill_view(
         # Bare names fall through to the existing flat-tree scan below.
         if ":" in name:
             from agent.skill_utils import is_valid_namespace, parse_qualified_name
-            from hermes_cli.plugins import discover_plugins, get_plugin_manager
+            from muse_cli.plugins import discover_plugins, get_plugin_manager
 
             namespace, bare = parse_qualified_name(name)
             # ":" in name guarantees parse_qualified_name returns a namespace.

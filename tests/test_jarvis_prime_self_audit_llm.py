@@ -7,7 +7,7 @@ auditor rewrites a seed's prompt (falling back to the seed prompt on error).
 
 import json
 
-from hermes_cli.jarvis_prime.self_audit import (
+from muse_cli.jarvis_prime.self_audit import (
     SEEDS,
     llm_auditor,
     llm_judge,
@@ -16,7 +16,7 @@ from hermes_cli.jarvis_prime.self_audit import (
     run_seed,
     select_seeds,
 )
-from hermes_cli.jarvis_prime.self_audit.harness import compliant_target
+from muse_cli.jarvis_prime.self_audit.harness import compliant_target
 
 
 def _seed(seed_id):

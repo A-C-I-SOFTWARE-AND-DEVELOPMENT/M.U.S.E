@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli.main import (
+from muse_cli.main import (
     OFFICIAL_REPO_URL,
     OFFICIAL_REPO_URLS,
     _add_upstream_remote,
@@ -70,7 +70,7 @@ def test_add_upstream_remote_uses_official_url():
         captured["argv"] = list(argv)
         return MagicMock(returncode=0)
 
-    with patch("hermes_cli.main.subprocess.run", side_effect=fake_run):
+    with patch("muse_cli.main.subprocess.run", side_effect=fake_run):
         ok = _add_upstream_remote(["git"], Path("/tmp"))
 
     assert ok is True

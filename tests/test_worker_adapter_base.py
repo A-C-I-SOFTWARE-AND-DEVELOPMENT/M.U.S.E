@@ -1,4 +1,4 @@
-"""Contract tests for :mod:`hermes_cli.workers`.
+"""Contract tests for :mod:`muse_cli.workers`.
 
 Exercises the dataclass records and the abstract base / registry. A
 concrete ``_FakeAdapter`` stands in for the real workers (Codex, Claude
@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from hermes_cli.workers import (
+from muse_cli.workers import (
     WorkerAdapter,
     WorkerArtifacts,
     WorkerDetection,
@@ -23,8 +23,8 @@ from hermes_cli.workers import (
     WorkerScore,
     default_registry,
 )
-from hermes_cli.workers import base as worker_base
-from hermes_cli.workers import registry as worker_registry
+from muse_cli.workers import base as worker_base
+from muse_cli.workers import registry as worker_registry
 
 
 # ── Fixtures ────────────────────────────────────────────────────────────
@@ -373,7 +373,7 @@ def test_public_api_exports():
         "register",
         "unregister",
     }
-    import hermes_cli.workers as workers_pkg
+    import muse_cli.workers as workers_pkg
 
     assert expected.issubset(set(workers_pkg.__all__))
     for name in expected:

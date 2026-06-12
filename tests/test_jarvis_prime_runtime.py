@@ -1,4 +1,4 @@
-"""Integration tests for hermes_cli.jarvis_prime.runtime — JarvisPrime."""
+"""Integration tests for muse_cli.jarvis_prime.runtime — JarvisPrime."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.memory import MemoryStore
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.memory_tree import (
     ApprovalState,
     MemoryLayer,
     MemoryTreeStore,
 )
-from hermes_cli.jarvis_prime.modes import ClassifierContext, Mode
-from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
+from muse_cli.jarvis_prime.modes import ClassifierContext, Mode
+from muse_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 
 
 @pytest.fixture

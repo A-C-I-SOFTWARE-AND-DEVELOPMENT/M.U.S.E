@@ -86,7 +86,7 @@ def _scrub(text: str) -> str:
     if not text:
         return text
     try:
-        from hermes_cli.secrets_policy import redact
+        from muse_cli.secrets_policy import redact
 
         return redact(text)
     except Exception:  # pragma: no cover - redaction is best-effort

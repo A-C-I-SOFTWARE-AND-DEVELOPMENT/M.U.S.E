@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_fabric.verifier.algorithms import (
+from muse_cli.jarvis_prime.research_fabric.verifier.algorithms import (
     AlgorithmCase,
     AlgorithmTask,
     score_algorithm_candidate,

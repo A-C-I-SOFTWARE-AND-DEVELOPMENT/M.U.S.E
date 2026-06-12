@@ -31,7 +31,7 @@ def curator_env(tmp_path, monkeypatch, capsys):
     importlib.reload(hermes_constants)
     from agent import curator
     importlib.reload(curator)
-    from hermes_cli import main as hermes_main
+    from muse_cli import main as hermes_main
     importlib.reload(hermes_main)
 
     yield {

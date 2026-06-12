@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.goal_boundary import (
+from muse_cli.jarvis_prime.goal_boundary import (
     BoundaryError,
     Decision,
     GoalBoundary,
     LoopController,
     StopReason,
 )
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 def _boundary(**overrides) -> GoalBoundary:

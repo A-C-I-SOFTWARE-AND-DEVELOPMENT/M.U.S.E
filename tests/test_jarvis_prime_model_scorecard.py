@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.model_scorecard import (
+from muse_cli.jarvis_prime.model_scorecard import (
     ModelScorecard,
     ScorecardBook,
     local_endpoint_packet,

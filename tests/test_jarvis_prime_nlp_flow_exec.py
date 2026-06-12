@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.ir_compilers.automation_flow import (
+from muse_cli.jarvis_prime.ir_compilers.automation_flow import (
     AutomationFlow,
     FlowOutput,
     FlowStep,
     FlowTrigger,
 )
-from hermes_cli.jarvis_prime.nlp_flow_exec import (
+from muse_cli.jarvis_prime.nlp_flow_exec import (
     _EXTERNAL_OPS,
     _PURE_OPS,
     FlowExecutor,
     FlowRun,
     FlowStepResult,
 )
-from hermes_cli.jarvis_prime.owner_auth import (
+from muse_cli.jarvis_prime.owner_auth import (
     authorize_challenge,
     create_challenge,
 )

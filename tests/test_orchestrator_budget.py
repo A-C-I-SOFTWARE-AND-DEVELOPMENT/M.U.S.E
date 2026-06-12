@@ -26,10 +26,10 @@ from typing import Iterator
 
 import pytest
 
-from hermes_cli import orchestrator as orch
-from hermes_cli import release_readiness_doctor as rrd
-from hermes_cli.workers import registry as wr
-from hermes_cli.workers.base import (
+from muse_cli import orchestrator as orch
+from muse_cli import release_readiness_doctor as rrd
+from muse_cli.workers import registry as wr
+from muse_cli.workers.base import (
     WorkerAdapter,
     WorkerArtifacts,
     WorkerDetection,
@@ -205,7 +205,7 @@ def test_budget_subsystem_error_does_not_crash_dispatch(
     # If the budget *policy kernel* blows up, dispatch must not raise. The stop
     # is swallowed (no hard-stop can be proven), so the job keeps its honest
     # terminal status — here ``completed`` — rather than crashing the caller.
-    import hermes_cli.budget_policy as bp
+    import muse_cli.budget_policy as bp
 
     def _boom(*_args, **_kwargs):
         raise RuntimeError("budget kernel exploded")
@@ -272,8 +272,8 @@ def test_doctor_warns_when_only_parallel_enforces(
     check = _doctor_with_files(
         monkeypatch,
         {
-            "hermes_cli/orchestrator.py": _SINGLE_INERT,
-            "hermes_cli/orchestrator_parallel.py": _PARALLEL_ENFORCING,
+            "muse_cli/orchestrator.py": _SINGLE_INERT,
+            "muse_cli/orchestrator_parallel.py": _PARALLEL_ENFORCING,
         },
     )
     assert check.status == rrd.WARN
@@ -286,8 +286,8 @@ def test_doctor_passes_only_when_single_job_path_enforces(
     check = _doctor_with_files(
         monkeypatch,
         {
-            "hermes_cli/orchestrator.py": _SINGLE_ENFORCING,
-            "hermes_cli/orchestrator_parallel.py": _PARALLEL_ENFORCING,
+            "muse_cli/orchestrator.py": _SINGLE_ENFORCING,
+            "muse_cli/orchestrator_parallel.py": _PARALLEL_ENFORCING,
         },
     )
     assert check.status == rrd.PASS
@@ -300,8 +300,8 @@ def test_doctor_warns_when_neither_path_enforces(
     check = _doctor_with_files(
         monkeypatch,
         {
-            "hermes_cli/orchestrator.py": _SINGLE_INERT,
-            "hermes_cli/orchestrator_parallel.py": "no budget here\n",
+            "muse_cli/orchestrator.py": _SINGLE_INERT,
+            "muse_cli/orchestrator_parallel.py": "no budget here\n",
         },
     )
     assert check.status == rrd.WARN

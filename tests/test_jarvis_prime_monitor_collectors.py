@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from hermes_cli.jarvis_prime.memory_tree import MemoryLayer, MemoryTreeStore
-from hermes_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
-from hermes_cli.jarvis_prime.monitor_collectors import (
+from muse_cli.jarvis_prime.memory_tree import MemoryLayer, MemoryTreeStore
+from muse_cli.jarvis_prime.model_scorecard import ModelScorecard, ScorecardBook
+from muse_cli.jarvis_prime.monitor_collectors import (
     collect_context,
     collect_memory_contradictions,
     collect_model_failures,

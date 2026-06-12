@@ -113,13 +113,13 @@ def from_mapping(raw: Mapping[str, Any] | None) -> GithubConfig:
 def load_config() -> GithubConfig:
     """Read ``github:`` from the active Hermes config. Returns defaults on miss.
 
-    Hermes' own config loader (``hermes_cli.config.load_config``) handles
+    Hermes' own config loader (``muse_cli.config.load_config``) handles
     file lookup, env-var interpolation (``${VAR}``), and deep-merging
     user/project configs. We call it lazily so importing this plugin
     doesn't pull the whole config stack in for every tool call.
     """
     try:
-        from hermes_cli.config import load_config as _hermes_load_config  # heavy
+        from muse_cli.config import load_config as _hermes_load_config  # heavy
     except Exception:  # pragma: no cover — config import path varies in tests
         return GithubConfig()
     try:

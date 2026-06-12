@@ -1,8 +1,8 @@
-"""Tests for hermes_cli.jarvis_prime.communication_style — pacing + turn-taking."""
+"""Tests for muse_cli.jarvis_prime.communication_style — pacing + turn-taking."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.communication_style import (
+from muse_cli.jarvis_prime.communication_style import (
     Cadence,
     PacingContext,
     SpeakingPosture,

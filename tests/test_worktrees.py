@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.worktrees``.
+"""Tests for ``muse_cli.worktrees``.
 
 Each test runs against an isolated ephemeral git repository created in
 ``tmp_path`` so we never touch the host's working copy.
@@ -12,7 +12,7 @@ import subprocess
 
 import pytest
 
-from hermes_cli import worktrees as wt
+from muse_cli import worktrees as wt
 
 
 # ─── helpers ──────────────────────────────────────────────────────────

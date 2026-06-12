@@ -496,7 +496,7 @@ def _normalize_profile(profile: Optional[str]) -> Optional[str]:
     if not raw:
         return None
 
-    from hermes_cli.profiles import normalize_profile_name, resolve_profile_env
+    from muse_cli.profiles import normalize_profile_name, resolve_profile_env
 
     normalized = normalize_profile_name(raw)
     # resolve_profile_env validates the canonical name and checks that named

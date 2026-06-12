@@ -7,17 +7,17 @@ from pathlib import Path
 
 
 def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
-    """`./hermes` should use `hermes_cli.main`, not the legacy Fire wrapper."""
+    """`./hermes` should use `muse_cli.main`, not the legacy Fire wrapper."""
     launcher_path = Path(__file__).resolve().parents[2] / "hermes"
     called = []
 
-    fake_main_module = types.ModuleType("hermes_cli.main")
+    fake_main_module = types.ModuleType("muse_cli.main")
 
     def fake_main():
-        called.append("hermes_cli.main")
+        called.append("muse_cli.main")
 
     fake_main_module.main = fake_main  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
-    monkeypatch.setitem(sys.modules, "hermes_cli.main", fake_main_module)
+    monkeypatch.setitem(sys.modules, "muse_cli.main", fake_main_module)
 
     fake_cli_module = types.ModuleType("cli")
 
@@ -39,4 +39,4 @@ def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
 
     runpy.run_path(str(launcher_path), run_name="__main__")
 
-    assert called == ["hermes_cli.main"]
+    assert called == ["muse_cli.main"]

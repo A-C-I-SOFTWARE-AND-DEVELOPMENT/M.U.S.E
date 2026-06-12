@@ -6,8 +6,8 @@ from decimal import Decimal
 
 import pytest
 
-from hermes_cli.budget_policy import BudgetOutcome
-from hermes_cli.job_cost import JobCost
+from muse_cli.budget_policy import BudgetOutcome
+from muse_cli.job_cost import JobCost
 
 
 class _Usage:

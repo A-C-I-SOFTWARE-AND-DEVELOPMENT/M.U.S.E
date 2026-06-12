@@ -188,13 +188,13 @@ discover_builtin_tools()
 #
 # Each entry point now runs discovery explicitly at its own startup:
 #   - gateway/run.py            -> start_gateway() uses run_in_executor
-#   - cli.py, hermes_cli/*      -> inline on startup (no event loop)
+#   - cli.py, muse_cli/*      -> inline on startup (no event loop)
 #   - tui_gateway/server.py     -> inline on startup (no event loop)
 #   - acp_adapter/server.py     -> asyncio.to_thread on session init
 
 # Plugin tool discovery (user/project/pip plugins)
 try:
-    from hermes_cli.plugins import discover_plugins
+    from muse_cli.plugins import discover_plugins
     discover_plugins()
 except Exception as e:
     logger.debug("Plugin discovery failed: %s", e)
@@ -289,7 +289,7 @@ def get_tool_definitions(
     # invalidate hook on every config-writer.
     if quiet_mode:
         try:
-            from hermes_cli.config import get_config_path
+            from muse_cli.config import get_config_path
             cfg_path = get_config_path()
             cfg_stat = cfg_path.stat()
             cfg_fp = (cfg_stat.st_mtime_ns, cfg_stat.st_size)
@@ -784,7 +784,7 @@ def handle_function_call(
         if not skip_pre_tool_call_hook:
             block_message: Optional[str] = None
             try:
-                from hermes_cli.plugins import get_pre_tool_call_block_message
+                from muse_cli.plugins import get_pre_tool_call_block_message
                 block_message = get_pre_tool_call_block_message(
                     function_name,
                     function_args,
@@ -847,7 +847,7 @@ def handle_function_call(
         duration_ms = int((time.monotonic() - _dispatch_start) * 1000)
 
         try:
-            from hermes_cli.plugins import invoke_hook
+            from muse_cli.plugins import invoke_hook
             invoke_hook(
                 "post_tool_call",
                 tool_name=function_name,
@@ -868,7 +868,7 @@ def handle_function_call(
         # is appended back into conversation context. Fail-open; the first
         # valid string return wins; non-string returns are ignored.
         try:
-            from hermes_cli.plugins import invoke_hook
+            from muse_cli.plugins import invoke_hook
             hook_results = invoke_hook(
                 "transform_tool_result",
                 tool_name=function_name,
@@ -909,7 +909,7 @@ def _flywheel_record_action(
 ) -> None:
     """Flywheel hook for tool outcomes — soft, never raises into dispatch."""
     try:
-        from hermes_cli.jarvis_prime import flywheel as _flywheel
+        from muse_cli.jarvis_prime import flywheel as _flywheel
 
         _flywheel.record(
             "agent.action",

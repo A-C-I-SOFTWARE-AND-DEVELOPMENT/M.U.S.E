@@ -1,4 +1,4 @@
-"""Tests for :mod:`hermes_cli.decision_ledger`.
+"""Tests for :mod:`muse_cli.decision_ledger`.
 
 The module backs the Phase 05 explainability work: every important
 Hermes decision must produce a structured ledger that survives parse →
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import decision_ledger as dl
+from muse_cli import decision_ledger as dl
 
 
 # Most tests need a fully-populated ledger. Keeping the builder local

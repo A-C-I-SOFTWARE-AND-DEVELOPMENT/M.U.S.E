@@ -1,8 +1,8 @@
-"""Tests for hermes_cli.jarvis_prime.self_update — owner-gated proposal flow."""
+"""Tests for muse_cli.jarvis_prime.self_update — owner-gated proposal flow."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.self_update import (
+from muse_cli.jarvis_prime.self_update import (
     Proposal,
     ProposalBook,
     ProposalEvidence,

@@ -2,8 +2,8 @@
 
 import pytest
 
-from hermes_cli.background_learner import Job, JobQueue, JobRejected
-from hermes_cli.background_learner.queue import ALLOWED_KINDS, DISALLOWED_KINDS
+from muse_cli.background_learner import Job, JobQueue, JobRejected
+from muse_cli.background_learner.queue import ALLOWED_KINDS, DISALLOWED_KINDS
 
 
 def test_allowed_kind_enqueues():

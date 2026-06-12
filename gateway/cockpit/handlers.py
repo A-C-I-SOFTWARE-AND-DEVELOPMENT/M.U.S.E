@@ -113,7 +113,7 @@ def axiom_panel(_req: Request) -> JsonResponse:
     tail: list[dict[str, Any]] = []
     pending_count = 0
     try:
-        from hermes_cli.jarvis_prime.axiom_bridge import get_bridge
+        from muse_cli.jarvis_prime.axiom_bridge import get_bridge
 
         bridge = get_bridge()
         status = bridge.status()
@@ -122,7 +122,7 @@ def axiom_panel(_req: Request) -> JsonResponse:
     except Exception as exc:
         audit = {"chain_valid": None, "error": str(exc)}
     try:
-        from hermes_cli.jarvis_prime import flywheel
+        from muse_cli.jarvis_prime import flywheel
 
         pending_count = len(flywheel.pending())
     except Exception:
@@ -143,7 +143,7 @@ def runtime_workers(_req: Request) -> JsonResponse:
     """Detected worker lanes (Claude Code / Codex) — detection only, no keys."""
     workers: list[dict[str, Any]] = []
     try:
-        from hermes_cli.jarvis_prime import worker_registry as wr
+        from muse_cli.jarvis_prime import worker_registry as wr
 
         for status in wr.detect_lanes():
             workers.append({
@@ -168,7 +168,7 @@ def runtime_workers(_req: Request) -> JsonResponse:
 def diagnostics(_req: Request) -> JsonResponse:
     """Launch-readiness diagnostics (reuses the JARVIS launch doctor)."""
     try:
-        from hermes_cli.jarvis_prime.launch_doctor import run_launch_doctor
+        from muse_cli.jarvis_prime.launch_doctor import run_launch_doctor
 
         report = run_launch_doctor()
         payload = report.to_dict()
@@ -181,7 +181,7 @@ def diagnostics(_req: Request) -> JsonResponse:
 def models(_req: Request) -> JsonResponse:
     """Read-only model policy (free-first routing). Never accepts API keys."""
     try:
-        from hermes_cli.jarvis_prime import model_bootstrap as mb
+        from muse_cli.jarvis_prime import model_bootstrap as mb
 
         policy = mb.load_policy()
         if policy is None:
@@ -201,7 +201,7 @@ def model_routes(_req: Request) -> JsonResponse:
     owner overrides + paid state. Never accepts or returns API keys.
     """
     try:
-        from hermes_cli.jarvis_prime import task_router as tr
+        from muse_cli.jarvis_prime import task_router as tr
 
         overrides = tr.load_overrides()
         decisions = tr.all_routes(overrides=overrides)
@@ -232,7 +232,7 @@ def model_route_override(req: Request) -> JsonResponse:
         override store (``authorized_by`` + ``updated_at``).
     Never accepts API keys.
     """
-    from hermes_cli.jarvis_prime import task_router as tr
+    from muse_cli.jarvis_prime import task_router as tr
 
     body = req.body or {}
     changed: dict[str, Any] = {}
@@ -250,7 +250,7 @@ def model_route_override(req: Request) -> JsonResponse:
         )
 
     if want_paid:
-        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
         phrase = str(body.get("authorization", "")).strip()
         if phrase != AUTHORIZATION_PHRASE:
@@ -332,8 +332,8 @@ def models_local(_req: Request) -> JsonResponse:
     only ``smoke_tested`` after the explicit :func:`models_local_smoke` POST the
     owner triggers, so the cockpit never shows "ready" without evidence.
     """
-    from hermes_cli.jarvis_prime import model_bootstrap as mb
-    from hermes_cli.jarvis_prime import task_router as tr
+    from muse_cli.jarvis_prime import model_bootstrap as mb
+    from muse_cli.jarvis_prime import task_router as tr
 
     from . import generate
 
@@ -463,7 +463,7 @@ def memory_list(req: Request) -> JsonResponse:
     """List memory as canonical cockpit ``MemoryItem`` objects (contract)."""
     query = req.query.get("q") or req.query.get("query")
     try:
-        from hermes_cli.jarvis_prime.memory import MemoryStore
+        from muse_cli.jarvis_prime.memory import MemoryStore
 
         from . import contract
 
@@ -493,7 +493,7 @@ def memory_create(req: Request) -> JsonResponse:
     if not key or not value:
         return JsonResponse(400, {"error": "title/content (or key/value) are required"})
     try:
-        from hermes_cli.jarvis_prime.memory import MemoryStore
+        from muse_cli.jarvis_prime.memory import MemoryStore
 
         from . import contract
 
@@ -524,7 +524,7 @@ def memory_delete(req: Request) -> JsonResponse:
     if not key:
         return JsonResponse(400, {"error": "memory key required"})
     try:
-        from hermes_cli.jarvis_prime.memory import MemoryStore
+        from muse_cli.jarvis_prime.memory import MemoryStore
 
         removed = MemoryStore().forget(key)
     except Exception as exc:  # pragma: no cover - defensive
@@ -546,9 +546,9 @@ def evidence_list(req: Request) -> JsonResponse:
     """
     query = req.query.get("q") or req.query.get("query")
     try:
-        from hermes_cli.jarvis_prime import evidence_engine as ee
-        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime import evidence_engine as ee
+        from muse_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         from . import contract
 
@@ -571,7 +571,7 @@ def evidence_detail(req: Request) -> JsonResponse:
     if not art_id:
         return JsonResponse(400, {"error": "evidence id required"})
     try:
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         from . import contract
 
@@ -597,9 +597,9 @@ def evidence_verify(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "claims (non-empty list) required"})
     query = str(req.body.get("query") or " ".join(str(c) for c in claims))
     try:
-        from hermes_cli.jarvis_prime import evidence_engine as ee
-        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime import evidence_engine as ee
+        from muse_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         from . import contract
 
@@ -627,10 +627,10 @@ def evidence_promote(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "evidence id required"})
     authorization = str(req.body.get("authorization") or "")
     try:
-        from hermes_cli.jarvis_prime import evidence_engine as ee
-        from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
-        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime import evidence_engine as ee
+        from muse_cli.jarvis_prime.memory_tree import MemoryTreeStore
+        from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         vault = ResearchVault.load()
         art = vault.artifacts.get(art_id)
@@ -664,7 +664,7 @@ def evidence_demote(req: Request) -> JsonResponse:
     if not art_id:
         return JsonResponse(400, {"error": "evidence id required"})
     try:
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         vault = ResearchVault.load()
         removed = 1 if vault.artifacts.pop(art_id, None) is not None else 0
@@ -682,7 +682,7 @@ def evidence_demote(req: Request) -> JsonResponse:
 
 def _load_memory_tree():
     """Load the live Memory Tree from the HERMES_HOME-aware default path."""
-    from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
+    from muse_cli.jarvis_prime.memory_tree import MemoryTreeStore
 
     return MemoryTreeStore.load()
 
@@ -732,7 +732,7 @@ def memory_tree_decision(req: Request) -> JsonResponse:
             400, {"error": "decision must be approve, reject, or supersede"}
         )
     try:
-        from hermes_cli.jarvis_prime.memory_tree import ApprovalState
+        from muse_cli.jarvis_prime.memory_tree import ApprovalState
 
         from . import contract
 
@@ -868,7 +868,7 @@ def audit_list(req: Request) -> JsonResponse:
     limit = int(req.query.get("limit", "100"))
     records: list[dict[str, Any]] = []
     try:
-        from hermes_cli import decision_ledger as dl
+        from muse_cli import decision_ledger as dl
 
         from . import contract
 
@@ -887,7 +887,7 @@ def audit_proof(req: Request) -> JsonResponse:
     """Full proof bundle (canonical ``ProofRecord``) for one audit id."""
     proof_id = req.path_params.get("id", "")
     try:
-        from hermes_cli import decision_ledger as dl
+        from muse_cli import decision_ledger as dl
 
         from . import contract
 
@@ -915,14 +915,14 @@ def _collect_jobs() -> list[dict[str, Any]]:
 
     jobs: list[dict[str, Any]] = []
     try:
-        from hermes_cli.job_queue import JobQueue
+        from muse_cli.job_queue import JobQueue
 
         for entry in JobQueue().list_jobs():
             jobs.append(contract.cockpit_job(entry))
     except Exception:  # pragma: no cover - defensive
         pass
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         for job in _orch.list_jobs():
             jobs.append(contract.orchestrator_job(job))
@@ -936,7 +936,7 @@ def jobs_list(_req: Request) -> JsonResponse:
     """List jobs as canonical cockpit ``CockpitJob`` objects (contract §4)."""
     jobs: list[dict[str, Any]] = []
     try:
-        from hermes_cli.job_queue import JobQueue
+        from muse_cli.job_queue import JobQueue
 
         from . import contract
 
@@ -952,7 +952,7 @@ def jobs_list(_req: Request) -> JsonResponse:
     # queue entries. Best-effort: an orchestrator read failure must not blank
     # out the JobQueue jobs already collected.
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         for job in _orch.list_jobs():
             jobs.append(contract.orchestrator_job(job))
@@ -966,7 +966,7 @@ def job_get(req: Request) -> JsonResponse:
     """Return one canonical ``CockpitJob`` (contract §4)."""
     job_id = req.path_params.get("id", "")
     try:
-        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError
+        from muse_cli.job_queue import JobQueue, JobQueueNotFoundError
 
         from . import contract
 
@@ -975,7 +975,7 @@ def job_get(req: Request) -> JsonResponse:
         except JobQueueNotFoundError:
             # Fall back to the orchestrator store (/orchestrate jobs live there,
             # not in the JobQueue) before declaring the id unknown.
-            from hermes_cli import orchestrator as _orch
+            from muse_cli import orchestrator as _orch
 
             ojob = _orch.get_job(job_id)
             if ojob is not None:
@@ -1001,7 +1001,7 @@ def jobs_dispatch(req: Request) -> JsonResponse:
     try:
         import secrets as _secrets
 
-        from hermes_cli.job_queue import JobQueue, WorkerQueueEntry
+        from muse_cli.job_queue import JobQueue, WorkerQueueEntry
 
         from . import contract
 
@@ -1050,7 +1050,7 @@ def job_run(req: Request) -> JsonResponse:
     worker_id = str(req.body.get("worker_id", "")).strip() or "hermes-local-planner"
     authorization = str(req.body.get("authorization", "")).strip()
     try:
-        from hermes_cli import orchestrator as orch
+        from muse_cli import orchestrator as orch
 
         from . import contract
 
@@ -1090,7 +1090,7 @@ def job_run(req: Request) -> JsonResponse:
 def job_lanes(_req: Request) -> JsonResponse:
     """The **runnable** worker lanes that ``job_run`` accepts (contract §4).
 
-    These are the built-in worker adapters (``hermes_cli.workers``) — e.g.
+    These are the built-in worker adapters (``muse_cli.workers``) — e.g.
     ``codex-execute`` / ``claude-execute`` / ``hermes-local-planner`` — NOT the
     detection lanes from ``runtime_workers`` (a different registry used only to
     show which CLIs are installed). The cockpit dispatch/run picker must source
@@ -1099,7 +1099,7 @@ def job_lanes(_req: Request) -> JsonResponse:
     """
     lanes: list[dict[str, Any]] = []
     try:
-        from hermes_cli.workers import builtin_worker_classes
+        from muse_cli.workers import builtin_worker_classes
 
         for cls in builtin_worker_classes():
             lanes.append({
@@ -1118,7 +1118,7 @@ def orchestrate_submit(req: Request) -> JsonResponse:
 
     Unlike ``jobs_dispatch`` (which enqueues a ``JobQueue`` entry that ``job_run``
     cannot find), this records the job in the orchestrator store via
-    :func:`hermes_cli.orchestrator.submit_job`. It spawns nothing — running a
+    :func:`muse_cli.orchestrator.submit_job`. It spawns nothing — running a
     worker is a separate, owner-gated ``job_run`` call. Returns the canonical
     ``CockpitJob`` (orchestrator projection) so the new job appears in the list
     and is immediately runnable.
@@ -1127,7 +1127,7 @@ def orchestrate_submit(req: Request) -> JsonResponse:
     if not prompt:
         return JsonResponse(400, {"error": "prompt is required"})
     try:
-        from hermes_cli import orchestrator as orch
+        from muse_cli import orchestrator as orch
 
         from . import contract
 
@@ -1196,7 +1196,7 @@ def pair_confirm(req: Request) -> JsonResponse:
     bad/expired code (or a locked-out store) is a 401 — and counts toward the
     brute-force lockout. The raw token is never logged.
     """
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     from . import device_pairing as dp
 
@@ -1328,7 +1328,7 @@ def job_cancel(req: Request) -> JsonResponse:
 
     if kind == "queue":
         try:
-            from hermes_cli.job_queue import JobQueue, QueueState
+            from muse_cli.job_queue import JobQueue, QueueState
 
             if obj.state in QueueState.TERMINAL:
                 return JsonResponse(409, {"error": f"job already {obj.state}"})
@@ -1337,7 +1337,7 @@ def job_cancel(req: Request) -> JsonResponse:
             return JsonResponse(500, {"error": str(exc)})
         return JsonResponse(200, contract.cockpit_job(entry))
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         out = _orch.cancel_job(job_id)
     except Exception as exc:  # pragma: no cover - defensive
@@ -1360,7 +1360,7 @@ def job_cancel(req: Request) -> JsonResponse:
 def _resolve_job(job_id: str) -> tuple[Optional[str], Any]:
     """Return ``("queue"|"orchestrator", obj)`` or ``(None, None)`` if unknown."""
     try:
-        from hermes_cli.job_queue import JobQueue, JobQueueNotFoundError
+        from muse_cli.job_queue import JobQueue, JobQueueNotFoundError
 
         try:
             return "queue", JobQueue().get_job(job_id)
@@ -1369,7 +1369,7 @@ def _resolve_job(job_id: str) -> tuple[Optional[str], Any]:
     except Exception:  # pragma: no cover - defensive (queue import/load failure)
         pass
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         ojob = _orch.get_job(job_id)
         if ojob is not None:
@@ -1395,7 +1395,7 @@ def job_ledger(req: Request) -> JsonResponse:
     if kind == "queue":
         return JsonResponse(200, contract.queue_job_detail(obj))
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         entries = _orch.get_ledger(job_id).get(job_id, [])
     except Exception as exc:  # pragma: no cover - defensive
@@ -1421,7 +1421,7 @@ def job_pause(req: Request) -> JsonResponse:
              "withholding approval, not by a scheduler toggle"},
         )
     try:
-        from hermes_cli.job_queue import JobQueue, JobQueueError
+        from muse_cli.job_queue import JobQueue, JobQueueError
 
         from . import contract
 
@@ -1449,7 +1449,7 @@ def job_resume(req: Request) -> JsonResponse:
 
     if kind == "queue":
         try:
-            from hermes_cli.job_queue import JobQueue, JobQueueError
+            from muse_cli.job_queue import JobQueue, JobQueueError
 
             reason = req.body.get("reason")
             entry = JobQueue().resume_job(job_id, note=str(reason) if reason else None)
@@ -1459,7 +1459,7 @@ def job_resume(req: Request) -> JsonResponse:
             return JsonResponse(500, {"error": str(exc)})
         return JsonResponse(200, contract.cockpit_job(entry))
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         out = _orch.resume_job(job_id)
     except Exception as exc:  # pragma: no cover - defensive
@@ -1485,7 +1485,7 @@ def job_rerun(req: Request) -> JsonResponse:
             409, {"error": "rerun applies to queue jobs (per-worker retry)"}
         )
     try:
-        from hermes_cli.job_queue import (
+        from muse_cli.job_queue import (
             JobQueue,
             JobQueueError,
             WorkerNotFoundError,
@@ -1541,7 +1541,7 @@ def job_approve(req: Request) -> JsonResponse:
             {"error": "owner approvals are disabled on a non-loopback cockpit; "
              "run the runtime locally (loopback) to approve gated phases"},
         )
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if authorization != AUTHORIZATION_PHRASE:
         return JsonResponse(
@@ -1554,7 +1554,7 @@ def job_approve(req: Request) -> JsonResponse:
             409, {"error": "approve targets orchestrator job phases"}
         )
     try:
-        from hermes_cli import orchestrator as _orch
+        from muse_cli import orchestrator as _orch
 
         from . import contract
 
@@ -1607,7 +1607,7 @@ def job_validate(req: Request) -> JsonResponse:
             409, {"error": "job has no workspace to validate"}
         )
     try:
-        from hermes_cli.validation import ValidationRunner
+        from muse_cli.validation import ValidationRunner
 
         from . import contract
 
@@ -2095,7 +2095,7 @@ def _publish_repo_slug(workspace: str) -> tuple[Optional[str], Optional[str]]:
     try:
         from pathlib import Path
 
-        from hermes_cli import github_publisher as _gp
+        from muse_cli import github_publisher as _gp
 
         info = _gp.get_repo_info(Path(workspace))
         return info.owner, info.repo
@@ -2143,7 +2143,7 @@ def job_publish(req: Request) -> JsonResponse:
     The cockpit opens the PR for a branch already pushed to the remote (the
     worker/CI pushes; the cockpit publishes). It does **not** run ``git push``
     itself — the repo deliberately keeps the PAT out of ``git push`` (see
-    ``hermes_cli/github_publisher``).
+    ``muse_cli/github_publisher``).
     """
     job_id = req.path_params.get("id", "")
     authorization = str(req.body.get("authorization", "")).strip()
@@ -2161,7 +2161,7 @@ def job_publish(req: Request) -> JsonResponse:
         return JsonResponse(409, {"error": "job has no workspace to publish"})
 
     preview = _publish_preview_payload(kind, obj)
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if authorization != AUTHORIZATION_PHRASE:
         return JsonResponse(200, {
@@ -2324,7 +2324,7 @@ def navigation_list(req: Request) -> JsonResponse:
     job_filter = (req.query.get("job") or "").strip() or None
     items: list[dict[str, Any]] = []
     try:
-        from hermes_cli import orchestrator as orch
+        from muse_cli import orchestrator as orch
 
         from . import contract
 
@@ -2364,7 +2364,7 @@ def _load_graph():
     from the repo + local stores; building is read-only over those sources.
     """
 
-    from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+    from muse_cli.jarvis_prime.graphrag import GraphStore, build_and_save
 
     store = GraphStore()
     graph = store.load()
@@ -2380,7 +2380,7 @@ def graph_related(req: Request) -> JsonResponse:
     is not in the graph yet.
     """
     try:
-        from hermes_cli.jarvis_prime.graphrag import find_entity_node, related_items
+        from muse_cli.jarvis_prime.graphrag import find_entity_node, related_items
 
         from . import contract
 
@@ -2407,7 +2407,7 @@ def graph_related(req: Request) -> JsonResponse:
 def graph_query(req: Request) -> JsonResponse:
     """Run a GraphRAG query (``mode`` = local | global | coding)."""
     try:
-        from hermes_cli.jarvis_prime.graphrag import (
+        from muse_cli.jarvis_prime.graphrag import (
             coding_query,
             global_query,
             local_query,
@@ -2434,7 +2434,7 @@ def graph_build(_req: Request) -> JsonResponse:
     local stores (no repo edits, no network); not an owner-gated action.
     """
     try:
-        from hermes_cli.jarvis_prime.graphrag import GraphStore, build_and_save
+        from muse_cli.jarvis_prime.graphrag import GraphStore, build_and_save
 
         graph, path = build_and_save(_graph_repo_root(), store=GraphStore())
         return JsonResponse(200, {"saved": str(path), **graph.stats()})
@@ -2468,7 +2468,7 @@ def ledger_timeline(req: Request) -> JsonResponse:
 
     events: list[dict[str, Any]] = []
     try:
-        from hermes_cli import orchestrator_ledger as ol
+        from muse_cli import orchestrator_ledger as ol
 
         from . import contract
 
@@ -2510,7 +2510,7 @@ def ledger_event_detail(req: Request) -> JsonResponse:
     if not job_id or index < 0:
         return JsonResponse(400, {"error": "job and integer index are required"})
     try:
-        from hermes_cli import orchestrator_ledger as ol
+        from muse_cli import orchestrator_ledger as ol
 
         from . import contract
 
@@ -2539,7 +2539,7 @@ def ledger_rollback_request(req: Request) -> JsonResponse:
 
     # Confirm the event exists (and capture a short label) before queuing.
     try:
-        from hermes_cli import orchestrator_ledger as ol
+        from muse_cli import orchestrator_ledger as ol
 
         from . import contract
 
@@ -2575,7 +2575,7 @@ def ledger_rollback_request(req: Request) -> JsonResponse:
     try:
         import time as _time
 
-        from hermes_cli.notifications import ApprovalNotification
+        from muse_cli.notifications import ApprovalNotification
 
         from . import notify
 
@@ -2629,7 +2629,7 @@ def approvals_decide(req: Request) -> JsonResponse:
     if decision not in ("approve", "reject"):
         return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
 
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if decision == "approve":
         phrase = str(req.body.get("authorization", "")).strip()
@@ -2660,7 +2660,7 @@ def approvals_decide(req: Request) -> JsonResponse:
     # repeat decide is now idempotent rather than silently re-mutating.
     import time
 
-    from hermes_cli.approval_rules import (
+    from muse_cli.approval_rules import (
         ApprovalRecord,
         ApprovalState,
         DecisionResult,
@@ -2719,7 +2719,7 @@ def approvals_decide(req: Request) -> JsonResponse:
 def _learning_store():
     """Load the learning-dataset store (profile-aware via ``get_hermes_home``)."""
 
-    from hermes_cli.jarvis_prime.learning_dataset import DatasetStore
+    from muse_cli.jarvis_prime.learning_dataset import DatasetStore
 
     return DatasetStore.load()
 
@@ -2758,7 +2758,7 @@ def learning_decide(req: Request) -> JsonResponse:
     if decision not in ("approve", "reject"):
         return JsonResponse(400, {"error": "decision must be 'approve' or 'reject'"})
 
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if decision == "approve":
         phrase = str(req.body.get("authorization", "")).strip()
@@ -2787,7 +2787,7 @@ def learning_export(req: Request) -> JsonResponse:
     """Report exportable counts per format (read-only; never streams secrets)."""
 
     try:
-        from hermes_cli.jarvis_prime.learning_dataset import CandidateStatus
+        from muse_cli.jarvis_prime.learning_dataset import CandidateStatus
 
         store = _learning_store()
         approved = store.entries(status=CandidateStatus.APPROVED)
@@ -2807,7 +2807,7 @@ def learning_export(req: Request) -> JsonResponse:
 # ---------------------------------------------------------------------------
 #
 # These two handlers expose the *canonical* voice-intake pipeline
-# (``hermes_cli.voice_intake`` + ``voice_models``) to the cockpit so the
+# (``muse_cli.voice_intake`` + ``voice_models``) to the cockpit so the
 # Android app reuses one source of truth for read-back, intent
 # classification, secret redaction, and the driving-mode safety veto —
 # instead of reimplementing any of it client-side. Nothing here captures
@@ -2820,7 +2820,7 @@ def _voice_job_submitter(prompt: str) -> str:
     the existing ``JobQueue`` path with a voice provenance tag."""
     import secrets as _secrets
 
-    from hermes_cli.job_queue import JobQueue
+    from muse_cli.job_queue import JobQueue
 
     job_id = "job_" + _secrets.token_hex(8)
     JobQueue().add_job(
@@ -2845,8 +2845,8 @@ def voice_intake_create(req: Request) -> JsonResponse:
     if not text:
         return JsonResponse(400, {"error": "transcript is required"})
 
-    from hermes_cli import voice_intake as vi
-    from hermes_cli.voice_models import (
+    from muse_cli import voice_intake as vi
+    from muse_cli.voice_models import (
         VoiceDisabledError,
         VoiceIntakeConfig,
         VoiceTranscript,
@@ -2892,8 +2892,8 @@ def voice_intake_decide(req: Request) -> JsonResponse:
     """
     voice_id = req.path_params.get("id", "")
 
-    from hermes_cli import voice_intake as vi
-    from hermes_cli.voice_models import DrivingSafetyVeto, VoiceConfirmationRequired
+    from muse_cli import voice_intake as vi
+    from muse_cli.voice_models import DrivingSafetyVeto, VoiceConfirmationRequired
 
     intake = vi.load_intake(voice_id)
     if intake is None:
@@ -3138,7 +3138,7 @@ def voice_responses(req: Request) -> JsonResponse:
 def sessions_list(_req: Request) -> JsonResponse:
     sessions: list[dict[str, Any]] = []
     try:
-        from hermes_cli import decision_ledger as dl
+        from muse_cli import decision_ledger as dl
 
         d = dl.decisions_dir()
         if d.is_dir():
@@ -3188,7 +3188,7 @@ def _evaluate_execute_gate(worker_id: str, authorization: str) -> _ExecuteGate:
     loopback guard (``_ALLOW_REMOTE_EXECUTE``), and the exact owner phrase
     (``owner_auth.AUTHORIZATION_PHRASE``). Never bypasses a gate.
     """
-    from hermes_cli.workers import builtin_worker_classes, load_builtins
+    from muse_cli.workers import builtin_worker_classes, load_builtins
 
     load_builtins()
     classes = {c.id: c for c in builtin_worker_classes()}
@@ -3213,7 +3213,7 @@ def _evaluate_execute_gate(worker_id: str, authorization: str) -> _ExecuteGate:
                 },
             ),
         )
-    from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+    from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     return _ExecuteGate(
         requires_approval=requires_approval,
@@ -3258,7 +3258,7 @@ def emergency_stop(req: Request) -> JsonResponse:
     }
     # 1) Runtime halt: owner gates, proactive tick, worker branch leases.
     try:
-        from hermes_cli.jarvis_prime.runtime import JarvisPrime
+        from muse_cli.jarvis_prime.runtime import JarvisPrime
 
         stop_result = JarvisPrime().stop(reason=reason)
         result["cleared_actions"] = stop_result.get("cleared_actions", [])
@@ -3269,7 +3269,7 @@ def emergency_stop(req: Request) -> JsonResponse:
     # 2) Cancel every non-terminal queue entry so work stops advancing.
     cancelled: list[str] = []
     try:
-        from hermes_cli.job_queue import JobQueue, QueueState
+        from muse_cli.job_queue import JobQueue, QueueState
 
         queue = JobQueue()
         for entry in queue.list_jobs():
@@ -3286,7 +3286,7 @@ def emergency_stop(req: Request) -> JsonResponse:
     result["cancelled_count"] = len(cancelled)
     # 3) Latch autonomy to the safe floor (overrides HERMES_AUTONOMY).
     try:
-        from hermes_cli import approval_policy as ap
+        from muse_cli import approval_policy as ap
 
         record = ap.engage_emergency_stop(set_by="cockpit-emergency-stop")
         result["autonomy_level"] = getattr(
@@ -3314,8 +3314,8 @@ def coding_audit(req: Request) -> JsonResponse:
     if not prompt:
         return JsonResponse(400, {"error": "prompt is required"})
     try:
-        from hermes_cli.jarvis_prime import natural_language_coder as nlc
-        from hermes_cli.secrets_policy import redact
+        from muse_cli.jarvis_prime import natural_language_coder as nlc
+        from muse_cli.secrets_policy import redact
 
         route = nlc.route_request(prompt)
         payload = route.to_dict()
@@ -3339,7 +3339,7 @@ def coding_plan(req: Request) -> JsonResponse:
         return JsonResponse(400, {"error": "prompt is required"})
     repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
     try:
-        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+        from muse_cli.jarvis_prime import natural_language_coder as nlc
 
         from . import contract
 
@@ -3375,8 +3375,8 @@ def coding_execute(req: Request) -> JsonResponse:
     repo_root = str(req.body.get("repo_root") or req.body.get("workspace_path") or ".")
     authorization = str(req.body.get("authorization", "")).strip()
     try:
-        from hermes_cli import orchestrator as orch
-        from hermes_cli.jarvis_prime import natural_language_coder as nlc
+        from muse_cli import orchestrator as orch
+        from muse_cli.jarvis_prime import natural_language_coder as nlc
 
         from . import contract
 
@@ -3483,7 +3483,7 @@ def evidence_search(req: Request) -> JsonResponse:
     query = req.query.get("q") or req.query.get("query") or ""
     limit = int(req.query.get("limit", "10"))
     try:
-        from hermes_cli.jarvis_prime.research_vault import ResearchVault
+        from muse_cli.jarvis_prime.research_vault import ResearchVault
 
         from . import contract
 
@@ -3514,13 +3514,13 @@ def capabilities(_req: Request) -> JsonResponse:
     """
     subsystems: dict[str, bool] = {}
     for name, module in (
-        ("memory", "hermes_cli.jarvis_prime.memory"),
-        ("jobs", "hermes_cli.job_queue"),
-        ("orchestrator", "hermes_cli.orchestrator"),
-        ("coding", "hermes_cli.jarvis_prime.natural_language_coder"),
-        ("evidence", "hermes_cli.jarvis_prime.research_vault"),
-        ("ledger", "hermes_cli.decision_ledger"),
-        ("models", "hermes_cli.jarvis_prime.model_bootstrap"),
+        ("memory", "muse_cli.jarvis_prime.memory"),
+        ("jobs", "muse_cli.job_queue"),
+        ("orchestrator", "muse_cli.orchestrator"),
+        ("coding", "muse_cli.jarvis_prime.natural_language_coder"),
+        ("evidence", "muse_cli.jarvis_prime.research_vault"),
+        ("ledger", "muse_cli.decision_ledger"),
+        ("models", "muse_cli.jarvis_prime.model_bootstrap"),
     ):
         try:
             __import__(module)
@@ -3534,7 +3534,7 @@ def capabilities(_req: Request) -> JsonResponse:
     # dispatch it without hitting ``400 unknown worker``.
     workers: list[dict[str, Any]] = []
     try:
-        from hermes_cli.workers import builtin_worker_classes, load_builtins
+        from muse_cli.workers import builtin_worker_classes, load_builtins
 
         load_builtins()
         for cls in builtin_worker_classes():
@@ -3549,7 +3549,7 @@ def capabilities(_req: Request) -> JsonResponse:
     # are installed) — informational, not the set ``execute`` validates against.
     detected_clis: list[str] = []
     try:
-        from hermes_cli.jarvis_prime import worker_registry as wr
+        from muse_cli.jarvis_prime import worker_registry as wr
 
         detected_clis = [s.lane.id for s in wr.detect_lanes() if s.available]
     except Exception:  # pragma: no cover - defensive
@@ -3584,15 +3584,15 @@ def _safe(fn):
 
 def _gateway_version() -> str:
     try:
-        import hermes_cli
+        import muse_cli
 
-        v = getattr(hermes_cli, "__version__", None)
+        v = getattr(muse_cli, "__version__", None)
         if v:
             return str(v)
     except Exception:
         pass
     try:
-        import hermes_cli.jarvis_prime as jp
+        import muse_cli.jarvis_prime as jp
 
         return str(getattr(jp, "__version__", "unknown"))
     except Exception:
@@ -3609,7 +3609,7 @@ def _process_start_iso() -> str:
 def _queue_snapshot() -> dict[str, int]:
     snap = {"running": 0, "queued": 0, "waiting_approval": 0}
     try:
-        from hermes_cli.job_queue import JobQueue
+        from muse_cli.job_queue import JobQueue
 
         queue = JobQueue()
         for entry in queue.list_jobs():
@@ -3643,7 +3643,7 @@ def _ledger_summary(ledger: Any, path: Any) -> dict[str, Any]:
 
 def _research_engine():
     """Construct a ResearchEngine bound to the default local stores."""
-    from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+    from muse_cli.jarvis_prime.research_engine import ResearchEngine
 
     return ResearchEngine()
 
@@ -3711,8 +3711,8 @@ def research_promote(req: Request) -> JsonResponse:
     if not card_id:
         return JsonResponse(400, {"error": "card_id is required"})
     try:
-        from hermes_cli.jarvis_prime.memory import MemoryStore
-        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+        from muse_cli.jarvis_prime.memory import MemoryStore
+        from muse_cli.jarvis_prime.research_engine import ResearchEngine
 
         from . import contract
 
@@ -3743,7 +3743,7 @@ def research_create_task(req: Request) -> JsonResponse:
     report_id = req.path_params.get("id", "")
     body = req.body
     try:
-        from hermes_cli.jarvis_prime.research_engine import ResearchEngine
+        from muse_cli.jarvis_prime.research_engine import ResearchEngine
 
         engine = _research_engine()
         report = engine.get_report(report_id)

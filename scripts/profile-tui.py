@@ -9,7 +9,7 @@ Defaults: picks the session with the most messages, holds PageUp for 8s at
 
 The --tui build must exist (run `npm run build` in ui-tui first). This script
 launches `node dist/entry.js` directly with HERMES_TUI_RESUME set so it
-bypasses the hermes_cli wrapper — we want repeatable timing, not the CLI's
+bypasses the muse_cli wrapper — we want repeatable timing, not the CLI's
 session-picker flow.
 
 Environment overrides:

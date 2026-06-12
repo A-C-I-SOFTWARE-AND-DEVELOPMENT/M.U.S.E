@@ -41,7 +41,7 @@ elif command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="python3"
 fi
 
-exec "$PYTHON_BIN" -m hermes_cli.jarvis_prime tick \
+exec "$PYTHON_BIN" -m muse_cli.jarvis_prime tick \
     --notify-via "$NOTIFY_VIA" \
     --briefing-window "$BRIEFING_WINDOW" \
     $ENABLED_ARG

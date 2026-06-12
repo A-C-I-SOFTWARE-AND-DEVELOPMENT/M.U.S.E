@@ -7,8 +7,8 @@ from typing import Iterator
 
 import pytest
 
-from hermes_cli import orchestrator as orch
-from hermes_cli.orchestrator_replay import JobReplay
+from muse_cli import orchestrator as orch
+from muse_cli.orchestrator_replay import JobReplay
 
 
 @pytest.fixture()

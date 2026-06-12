@@ -78,5 +78,5 @@ categories**.
 - The user owns six months of muscle-memory in these repos; match
   their style, don't introduce a new one.
 - Don't silently collect more profile data. Re-run
-  `hermes_cli.user_profile_builder` with `--approve` only when the
+  `muse_cli.user_profile_builder` with `--approve` only when the
   user explicitly asks for an update.

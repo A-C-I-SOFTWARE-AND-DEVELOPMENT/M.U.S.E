@@ -155,7 +155,7 @@ def test_tree_rejects_path_traversal(server, home: Path) -> None:
 
 
 def test_tree_honest_empty_when_no_workspace(server) -> None:
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     jid = orch.submit_job("Add a /healthz endpoint").id
     status, body = _get(server, f"/v1/cockpit/jobs/{jid}/tree")
@@ -320,7 +320,7 @@ def test_publish_preview_honest_empty_without_git_workspace(server, home: Path) 
 
 
 def test_publish_preview_no_workspace_is_null(server) -> None:
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     jid = orch.submit_job("Add a /healthz endpoint").id
     status, body = _get(server, f"/v1/cockpit/jobs/{jid}/publish/preview")

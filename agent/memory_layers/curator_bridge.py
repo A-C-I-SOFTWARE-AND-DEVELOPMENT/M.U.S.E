@@ -4,7 +4,7 @@ Decides whether a raw `MemoryEvent` may become durable memory. The safety
 invariant: **untrusted / injected content is never auto-promoted.** Only
 owner-trusted, owner-approved content auto-promotes; everything else is routed
 to the EXISTING owner-approval gate as a `ProposalKind.MEMORY_PROMOTION`
-proposal (`hermes_cli/jarvis_prime/self_update.py::ProposalBook`).
+proposal (`muse_cli/jarvis_prime/self_update.py::ProposalBook`).
 
 This keeps prompt-injection in tool output from writing itself into long-term
 memory, while preserving an auditable path for legitimate promotions.
@@ -32,7 +32,7 @@ def propose_promotion(event: MemoryEvent, book) -> object:
     content is RC3 (always needs owner approval); trusted content is RC2.
     """
     # Lazy import keeps this module importable without the jarvis_prime runtime.
-    from hermes_cli.jarvis_prime.self_update import (
+    from muse_cli.jarvis_prime.self_update import (
         ProposalEvidence,
         ProposalKind,
     )

@@ -12,17 +12,17 @@ import io
 import json
 from pathlib import Path
 
-from hermes_cli.jarvis_prime.context_handoff import (
+from muse_cli.jarvis_prime.context_handoff import (
     ContextHandoff,
     build_context_handoff,
 )
-from hermes_cli.jarvis_prime.graphrag.graph import (
+from muse_cli.jarvis_prime.graphrag.graph import (
     EdgeType,
     KnowledgeGraph,
     NodeType,
 )
-from hermes_cli.jarvis_prime.graphrag.indexers import index_code, index_docs
-from hermes_cli.jarvis_prime.graphrag.store import GraphStore
+from muse_cli.jarvis_prime.graphrag.indexers import index_code, index_docs
+from muse_cli.jarvis_prime.graphrag.store import GraphStore
 
 # A secret-shaped token that ``secrets_policy.redact`` reliably replaces with a
 # ``<redacted:github_pat>`` sentinel (``ghp_`` + 36 chars). Used to prove that
@@ -120,7 +120,7 @@ def test_context_token_budget_clamps_render(tmp_path, monkeypatch):
 
 def test_cli_context_json_returns_zero(tmp_path, monkeypatch):
     _clean_home(tmp_path, monkeypatch)
-    from hermes_cli.jarvis_prime.__main__ import main
+    from muse_cli.jarvis_prime.__main__ import main
 
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
@@ -132,7 +132,7 @@ def test_cli_context_json_returns_zero(tmp_path, monkeypatch):
 
 
 def test_is_test_path_aware_avoids_false_positives():
-    from hermes_cli.jarvis_prime.context_handoff import _is_test
+    from muse_cli.jarvis_prime.context_handoff import _is_test
 
     assert _is_test("tests/test_x.py", "test_x")
     assert _is_test("pkg/foo_test.py", "foo_test")
@@ -244,7 +244,7 @@ def test_redaction_does_not_change_round_trip_for_clean_graph(tmp_path, monkeypa
 
 def test_node_view_never_raises_on_malformed_node():
     """``_node_view`` redacts but never raises, even on non-string title/key."""
-    from hermes_cli.jarvis_prime.context_handoff import _node_view
+    from muse_cli.jarvis_prime.context_handoff import _node_view
 
     class _FakeType:
         value = "file"
@@ -264,7 +264,7 @@ def test_node_view_never_raises_on_malformed_node():
 
 def test_redact_citation_never_raises_on_malformed_input():
     """``_redact_citation`` tolerates non-dict / non-string fields."""
-    from hermes_cli.jarvis_prime.context_handoff import _redact_citation
+    from muse_cli.jarvis_prime.context_handoff import _redact_citation
 
     # Non-dict input is returned unchanged.
     assert _redact_citation("not-a-dict") == "not-a-dict"
@@ -285,7 +285,7 @@ def test_build_context_handoff_never_raises_on_broken_graph(tmp_path, monkeypatc
     the failure is a note, not an exception (never-raises preserved)."""
     _clean_home(tmp_path, monkeypatch)
     store = _built_store(tmp_path)
-    import hermes_cli.jarvis_prime.graphrag as graphrag
+    import muse_cli.jarvis_prime.graphrag as graphrag
 
     def _boom(*_args, **_kwargs):
         raise RuntimeError("graph query exploded")

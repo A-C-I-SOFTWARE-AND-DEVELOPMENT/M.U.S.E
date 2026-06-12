@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.pr_body import PrBodyInputs, render_pr_body
+from muse_cli.pr_body import PrBodyInputs, render_pr_body
 
 _FAKE_PAT = "ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 

@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.orchestrator — the local job controller.
+"""Tests for muse_cli.orchestrator — the local job controller.
 
 The controller owns filesystem state only (no subprocesses, no network),
 so every test runs against a tmp_path root.
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.job_controller import (
+from muse_cli.job_controller import (
     GITHUB_DIRNAME,
     JOB_FILE,
     JobController,
@@ -19,7 +19,7 @@ from hermes_cli.job_controller import (
     JobNotFoundError,
     InvalidStateError,
 )
-from hermes_cli.orchestrator_models import (
+from muse_cli.orchestrator_models import (
     DEFAULT_WORKERS_BY_MODE,
     Job,
     JobMode,

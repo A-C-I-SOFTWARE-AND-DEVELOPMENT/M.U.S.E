@@ -63,7 +63,7 @@ def jarvis_responder(
     yield thinking()
     yield phase("RECEIVING")
 
-    from hermes_cli.jarvis_prime.runtime import JarvisPrime
+    from muse_cli.jarvis_prime.runtime import JarvisPrime
 
     jp = JarvisPrime()
     yield phase("THINKING")
@@ -112,7 +112,7 @@ def jarvis_responder(
         pass
     # Anti-hallucination: require citations/hedging in the reply (epistemic rule).
     try:
-        from hermes_cli.jarvis_prime.epistemics import CITATION_REQUIRED_INSTRUCTION
+        from muse_cli.jarvis_prime.epistemics import CITATION_REQUIRED_INSTRUCTION
 
         persona_prompt = f"{persona_prompt}\n\n{CITATION_REQUIRED_INSTRUCTION}"
     except Exception:
@@ -239,7 +239,7 @@ def _ledger_evidence_refs() -> Iterator[dict]:
     ``auditList`` / ``auditProof`` (gateway/cockpit/contract.py).
     """
     try:
-        from hermes_cli import decision_ledger as dl
+        from muse_cli import decision_ledger as dl
         from gateway.cockpit import contract
 
         ledgers = dl.list_ledgers()
@@ -284,7 +284,7 @@ def _pacing_directive(prompt: str) -> str:
     """Turn the owner's pacing engine into a per-turn 'speak like a person'
     directive (stop-go cadence, length, posture) appended to the persona."""
     try:
-        from hermes_cli.jarvis_prime import communication_style as cs
+        from muse_cli.jarvis_prime import communication_style as cs
 
         ctx = cs.PacingContext(
             user_text_length=len(prompt or ""),

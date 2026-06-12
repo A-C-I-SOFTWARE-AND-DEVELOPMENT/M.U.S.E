@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.navigation import Navigator
+from muse_cli.jarvis_prime.navigation import Navigator
 
 
 @pytest.fixture()

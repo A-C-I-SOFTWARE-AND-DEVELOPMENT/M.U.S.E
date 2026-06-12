@@ -1,8 +1,8 @@
 """Behavior-preserving extraction test for the ``route`` subcommand.
 
 Grain ``g-jpmain-extract`` physically relocated the ``route`` subcommand
-(parser setup + handler) out of ``hermes_cli/jarvis_prime/__main__.py`` into
-the sibling module ``hermes_cli/jarvis_prime/cli_route.py``. These tests pin
+(parser setup + handler) out of ``muse_cli/jarvis_prime/__main__.py`` into
+the sibling module ``muse_cli/jarvis_prime/cli_route.py``. These tests pin
 the seam: ``route`` still parses, dispatches, and exits exactly as before, and
 ``--help`` still advertises it. They drive the public CLI entry point
 (``main([...])``) so they exercise the real ``__main__`` → ``cli_route``
@@ -15,7 +15,7 @@ import json
 
 import pytest
 
-from hermes_cli.jarvis_prime.__main__ import main
+from muse_cli.jarvis_prime.__main__ import main
 
 
 def test_route_single_task_class_json_dispatches(capsys) -> None:

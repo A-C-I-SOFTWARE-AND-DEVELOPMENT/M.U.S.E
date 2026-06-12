@@ -1,4 +1,4 @@
-"""Unit tests for the scoring engine (`hermes_cli.scoring`).
+"""Unit tests for the scoring engine (`muse_cli.scoring`).
 
 Phase 14: the scoring engine now produces sixteen categories per
 worker. These tests deliberately exercise the layered behaviour:
@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.scoring import (
+from muse_cli.scoring import (
     SCORE_CATEGORIES,
     Scorecard,
     WorkerArtifact,
@@ -185,12 +185,12 @@ def test_worker_artifact_diff_line_count_ignores_headers():
 
 
 def test_touches_high_risk_detects_auth_and_billing_paths():
-    art = _artifact(changed_files=("hermes_cli/auth.py", "src/billing/charge.py"))
+    art = _artifact(changed_files=("muse_cli/auth.py", "src/billing/charge.py"))
     assert art.touches_high_risk is True
 
 
 def test_touches_high_risk_false_for_normal_paths():
-    art = _artifact(changed_files=("hermes_cli/scoring.py", "tests/test_scoring.py"))
+    art = _artifact(changed_files=("muse_cli/scoring.py", "tests/test_scoring.py"))
     assert art.touches_high_risk is False
 
 
@@ -210,7 +210,7 @@ def test_adds_tests_detects_pytest_layouts():
 
 
 def test_adds_tests_detects_nested_test_dirs():
-    art = _artifact(changed_files=("hermes_cli/foo.py", "hermes_cli/tests/test_foo.py"))
+    art = _artifact(changed_files=("muse_cli/foo.py", "muse_cli/tests/test_foo.py"))
     assert art.adds_tests is True
 
 
@@ -268,7 +268,7 @@ def test_high_risk_without_tests_craters_security_and_testability(tmp_path):
     d = _write_worker(
         tmp_path,
         "risky",
-        changed_files=["hermes_cli/auth.py"],
+        changed_files=["muse_cli/auth.py"],
         validation_output="",  # ambiguous - no validation evidence
     )
     card = score_artifact(load_artifact(d))
@@ -283,7 +283,7 @@ def test_high_risk_with_tests_recovers_security(tmp_path):
     d = _write_worker(
         tmp_path,
         "careful",
-        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        changed_files=["muse_cli/auth.py", "tests/test_auth.py"],
         validation_output="2 passed in 0.05s",
     )
     card = score_artifact(load_artifact(d))

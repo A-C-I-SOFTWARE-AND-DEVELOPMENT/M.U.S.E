@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.swarm.grain import FileDomain, Grain
-from hermes_cli.swarm.specialist import (
+from muse_cli.swarm.grain import FileDomain, Grain
+from muse_cli.swarm.specialist import (
     DomainClaimError,
     build_grain_agent_spec,
     claim_grain,

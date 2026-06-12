@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import kanban_db as kb
+from muse_cli import kanban_db as kb
 
 
 def _task(conn, task_id) -> kb.Task:

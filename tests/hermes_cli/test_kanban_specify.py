@@ -14,8 +14,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from hermes_cli import kanban as kanban_cli
-from hermes_cli import kanban_db as kb
+from muse_cli import kanban as kanban_cli
+from muse_cli import kanban_db as kb
 
 
 def _task(conn, task_id) -> kb.Task:
@@ -24,7 +24,7 @@ def _task(conn, task_id) -> kb.Task:
     assert task is not None
     return task
 
-from hermes_cli import kanban_specify as spec
+from muse_cli import kanban_specify as spec
 
 
 @pytest.fixture

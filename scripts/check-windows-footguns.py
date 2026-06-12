@@ -526,7 +526,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument(
         "--all",
         action="store_true",
-        help="Scan the full repository (hermes_cli/, gateway/, tools/, cron/, etc.).",
+        help="Scan the full repository (muse_cli/, gateway/, tools/, cron/, etc.).",
     )
     p.add_argument(
         "--diff",
@@ -568,7 +568,7 @@ def main(argv: list[str]) -> int:
     if args.all:
         # Scan main Python packages + scripts
         roots = [
-            REPO_ROOT / "hermes_cli",
+            REPO_ROOT / "muse_cli",
             REPO_ROOT / "gateway",
             REPO_ROOT / "tools",
             REPO_ROOT / "cron",

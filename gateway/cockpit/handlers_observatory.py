@@ -159,7 +159,7 @@ def _graph_summary() -> Optional[dict[str, Any]]:
     Read-only: never builds the graph. ``None`` when the cache is absent or
     empty — callers answer with the documented unavailable shape.
     """
-    from hermes_cli.jarvis_prime.graphrag import GraphStore
+    from muse_cli.jarvis_prime.graphrag import GraphStore
 
     store = GraphStore()
     if not store.exists():

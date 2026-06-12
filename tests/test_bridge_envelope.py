@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.bridge_envelope import (
+from muse_cli.bridge_envelope import (
     SIGNATURE_FIELD,
     VerifyResult,
     canonical_bytes,

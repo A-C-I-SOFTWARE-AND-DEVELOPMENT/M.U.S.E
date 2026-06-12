@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.github_publisher.
+"""Tests for muse_cli.github_publisher.
 
 The publisher runtime has three classes of behaviour we care about:
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import github_publisher as gp
+from muse_cli import github_publisher as gp
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────

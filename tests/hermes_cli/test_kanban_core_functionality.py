@@ -1,7 +1,7 @@
 """Core-functionality tests for the kanban kernel + CLI additions.
 
-Complements tests/hermes_cli/test_kanban_db.py (schema + CAS atomicity)
-and tests/hermes_cli/test_kanban_cli.py (end-to-end run_slash).  The
+Complements tests/muse_cli/test_kanban_db.py (schema + CAS atomicity)
+and tests/muse_cli/test_kanban_cli.py (end-to-end run_slash).  The
 tests here exercise the pieces added as part of the kanban hardening
 pass: circuit breaker, crash detection, daemon loop, idempotency,
 retention/gc, stats, notify subscriptions, worker log accessor, run_slash
@@ -22,7 +22,7 @@ from typing import Optional
 
 import pytest
 
-from hermes_cli import kanban_db as kb
+from muse_cli import kanban_db as kb
 
 
 def _task(conn, task_id) -> kb.Task:
@@ -31,7 +31,7 @@ def _task(conn, task_id) -> kb.Task:
     assert task is not None
     return task
 
-from hermes_cli.kanban import run_slash
+from muse_cli.kanban import run_slash
 
 
 # ---------------------------------------------------------------------------
@@ -977,7 +977,7 @@ def test_max_runtime_terminates_overrun_worker(kanban_home):
         killed.append((pid, sig))
 
     # We bypass _pid_alive by stubbing it so the grace-poll exits fast.
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     original_alive = _kb._pid_alive
     _kb._pid_alive = lambda pid: False  # pretend SIGTERM worked immediately  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
@@ -1032,7 +1032,7 @@ def test_max_runtime_terminates_overrun_worker(kanban_home):
 
 def test_repeated_timeouts_auto_block_at_default_limit(kanban_home):
     """Two timed_out outcomes on the same task/profile trip the retry guard."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     original_alive = _kb._pid_alive
     _kb._pid_alive = lambda pid: False  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
@@ -1114,7 +1114,7 @@ def test_enforce_max_runtime_integrates_with_dispatch(kanban_home, monkeypatch):
     """enforce_max_runtime + dispatch_once integrate cleanly — a timed-out
     task goes through ``timed_out`` → ``ready`` and dispatch_once can then
     re-spawn it without re-reporting the timeout."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     # Leave _pid_alive=True so the crash detector doesn't steal the task
     # before timeout enforcement runs. After SIGTERM in enforce_max_runtime,
     # pretend the worker died so the grace wait exits fast.
@@ -1403,7 +1403,7 @@ def test_cli_assignees_json(kanban_home):
 # ---------------------------------------------------------------------------
 
 def test_parse_duration_accepts_formats():
-    from hermes_cli.kanban import _parse_duration
+    from muse_cli.kanban import _parse_duration
     assert _parse_duration(None) is None
     assert _parse_duration("") is None
     assert _parse_duration("42") == 42
@@ -1415,7 +1415,7 @@ def test_parse_duration_accepts_formats():
 
 
 def test_parse_duration_rejects_garbage():
-    from hermes_cli.kanban import _parse_duration
+    from muse_cli.kanban import _parse_duration
     import pytest as _p
     with _p.raises(ValueError):
         _parse_duration("tenminutes")
@@ -1525,7 +1525,7 @@ def test_run_summary_falls_back_to_result(kanban_home):
 def test_multiple_attempts_preserved_as_runs(kanban_home):
     """Crash / retry / complete flow produces one run per attempt, all
     visible in list_runs in chronological order."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     conn = kb.connect()
     try:
         tid = kb.create_task(conn, title="x", assignee="worker")
@@ -1569,7 +1569,7 @@ def test_multiple_attempts_preserved_as_runs(kanban_home):
 
 def test_stale_run_cannot_complete_new_attempt(kanban_home, monkeypatch):
     """A worker from an earlier attempt cannot close a later retry."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
 
     conn = kb.connect()
     try:
@@ -1617,7 +1617,7 @@ def test_stale_run_cannot_complete_new_attempt(kanban_home, monkeypatch):
 
 def test_stale_run_cannot_block_or_heartbeat_new_attempt(kanban_home, monkeypatch):
     """Stale retry attempts cannot mutate the active run lifecycle."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
 
     conn = kb.connect()
     try:
@@ -2063,14 +2063,14 @@ def test_cli_bulk_complete_with_summary_rejects(kanban_home):
     finally:
         conn.close()
     # Bulk + summary is refused (stderr message, no mutation).
-    # Note: hermes_cli.main doesn't propagate sub-command exit codes
+    # Note: muse_cli.main doesn't propagate sub-command exit codes
     # (args.func(args) discards the return value), so we check the side
     # effects instead.
     from subprocess import run as _run
     import os, sys
     env = os.environ.copy()
     r = _run(
-        [sys.executable, "-m", "hermes_cli.main", "kanban",
+        [sys.executable, "-m", "muse_cli.main", "kanban",
          "complete", a, b, "--summary", "oops"],
         capture_output=True, text=True, env=env,
     )
@@ -2310,7 +2310,7 @@ def test_cli_create_on_fresh_home_auto_inits(tmp_path, monkeypatch):
     env = {**os.environ, "HERMES_HOME": str(home),
            "PYTHONPATH": str(worktree_root)}
     r = _sp.run(
-        [_sys.executable, "-m", "hermes_cli.main", "kanban",
+        [_sys.executable, "-m", "muse_cli.main", "kanban",
          "create", "smoke", "--assignee", "worker", "--json"],
         capture_output=True, text=True, env=env,
     )
@@ -3494,7 +3494,7 @@ def test_config_default_dispatch_in_gateway_is_true():
     """Default config must enable gateway-embedded dispatch out of the box.
     Flipping this default to false is a user-visible behaviour change and
     should require a conscious migration."""
-    from hermes_cli.config import DEFAULT_CONFIG
+    from muse_cli.config import DEFAULT_CONFIG
     kanban = DEFAULT_CONFIG.get("kanban", {})
     assert kanban.get("dispatch_in_gateway") is True, (
         "kanban.dispatch_in_gateway default should be True; got "
@@ -3507,10 +3507,10 @@ def test_config_default_dispatch_in_gateway_is_true():
 
 
 def test_check_dispatcher_presence_silent_when_gateway_running(monkeypatch):
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: 12345)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     running, msg = kb_cli._check_dispatcher_presence()
@@ -3520,10 +3520,10 @@ def test_check_dispatcher_presence_silent_when_gateway_running(monkeypatch):
 
 
 def test_check_dispatcher_presence_warns_when_no_gateway(monkeypatch):
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: None)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     running, msg = kb_cli._check_dispatcher_presence()
@@ -3533,10 +3533,10 @@ def test_check_dispatcher_presence_warns_when_no_gateway(monkeypatch):
 
 def test_check_dispatcher_presence_warns_when_flag_off(monkeypatch):
     """Gateway is up but dispatch_in_gateway=false -> warning."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: 999)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": False}},
     )
     running, msg = kb_cli._check_dispatcher_presence()
@@ -3546,7 +3546,7 @@ def test_check_dispatcher_presence_warns_when_flag_off(monkeypatch):
 
 def test_check_dispatcher_presence_silent_on_probe_error(monkeypatch):
     """If the probe itself errors, we stay silent."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     def _raise():
         raise RuntimeError("boom")
     monkeypatch.setattr("gateway.status.get_running_pid", _raise)
@@ -3571,10 +3571,10 @@ def _make_create_ns(**overrides):
 
 def test_cli_create_warns_when_no_gateway(kanban_home, monkeypatch, capsys):
     """ready+assigned task + no gateway -> warning on stderr."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: None)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     ns = _make_create_ns(title="warn-me", assignee="worker")
@@ -3586,10 +3586,10 @@ def test_cli_create_warns_when_no_gateway(kanban_home, monkeypatch, capsys):
 
 def test_cli_create_silent_when_gateway_up(kanban_home, monkeypatch, capsys):
     """gateway running + dispatch enabled -> no warning."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: 4242)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     ns = _make_create_ns(title="silent", assignee="worker")
@@ -3600,10 +3600,10 @@ def test_cli_create_silent_when_gateway_up(kanban_home, monkeypatch, capsys):
 
 def test_cli_create_no_warn_on_triage(kanban_home, monkeypatch, capsys):
     """Triage tasks can't be dispatched -> no warning."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: None)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     ns = _make_create_ns(title="triage-task", assignee=None, triage=True)
@@ -3614,10 +3614,10 @@ def test_cli_create_no_warn_on_triage(kanban_home, monkeypatch, capsys):
 
 def test_cli_create_no_warn_unassigned(kanban_home, monkeypatch, capsys):
     """Unassigned tasks can't be dispatched -> no warning."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: None)
     monkeypatch.setattr(
-        "hermes_cli.config.load_config",
+        "muse_cli.config.load_config",
         lambda: {"kanban": {"dispatch_in_gateway": True}},
     )
     ns = _make_create_ns(title="nobody", assignee=None)
@@ -3628,7 +3628,7 @@ def test_cli_create_no_warn_unassigned(kanban_home, monkeypatch, capsys):
 
 def test_cli_daemon_without_force_prints_deprecation_exits_2(kanban_home, capsys):
     """`hermes kanban daemon` (no --force) is a deprecation stub."""
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     ns = argparse.Namespace(
         force=False, interval=60.0, max=None, failure_limit=3,
         pidfile=None, verbose=False,
@@ -3644,7 +3644,7 @@ def test_cli_daemon_help_marks_deprecated():
     """The argparse help string on `daemon` mentions deprecation so users
     scanning `--help` see the migration before running the stub."""
     import argparse as _ap
-    from hermes_cli import kanban as kb_cli
+    from muse_cli import kanban as kb_cli
     root = _ap.ArgumentParser()
     subs = root.add_subparsers()
     kb_cli.build_parser(subs)
@@ -3682,7 +3682,7 @@ def test_gateway_dispatcher_watcher_respects_config_flag_off(monkeypatch):
     """dispatch_in_gateway=false -> watcher exits fast, no loop."""
     import asyncio
     from gateway.run import GatewayRunner
-    import hermes_cli.config as _cfg_mod
+    import muse_cli.config as _cfg_mod
 
     runner = object.__new__(GatewayRunner)
     runner._running = True
@@ -3721,7 +3721,7 @@ def test_gateway_dispatcher_watcher_env_truthy_uses_config(monkeypatch):
     defers to config.)"""
     import asyncio
     from gateway.run import GatewayRunner
-    import hermes_cli.config as _cfg_mod
+    import muse_cli.config as _cfg_mod
 
     monkeypatch.setenv("HERMES_KANBAN_DISPATCH_IN_GATEWAY", "yes")
     monkeypatch.setattr(
@@ -3750,8 +3750,8 @@ def test_gateway_dispatcher_disables_corrupt_board_without_traceback(
     import sqlite3
 
     from gateway.run import GatewayRunner
-    import hermes_cli.config as _cfg_mod
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.config as _cfg_mod
+    import muse_cli.kanban_db as _kb
 
     runner = object.__new__(GatewayRunner)
     runner._running = True
@@ -4079,7 +4079,7 @@ def test_reclaim_task_resets_running_to_ready(kanban_home, monkeypatch):
     import signal
     import time
     import secrets
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     conn = kb.connect()
     try:
         t = kb.create_task(conn, title="stuck", assignee="broken")
@@ -4220,7 +4220,7 @@ def test_reassign_task_with_reclaim_first_switches_profile(kanban_home):
 def test_enforce_max_runtime_increments_consecutive_failures(kanban_home, monkeypatch):
     """A single timeout increments consecutive_failures by 1 (was the
     infinite-respawn gap before unification)."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     state = {"sent_term": False}
     def _alive(pid):
         return not state["sent_term"]
@@ -4277,7 +4277,7 @@ def test_repeated_timeouts_trip_the_circuit_breaker(kanban_home, monkeypatch):
     hit the failure_limit threshold and auto-block the task. This closes
     the Forbidden-Seeds-reported gap where timeout loops never capped.
     """
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     state = {"sent_term": False}
     def _alive(pid):
         return not state["sent_term"]
@@ -4384,7 +4384,7 @@ def test_detect_crashed_workers_protocol_violation_auto_blocks(kanban_home):
     against small local models (gemma4-e2b q4) where the model writes
     the answer as plain text and the CLI exits rc=0 cleanly.
     """
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     conn = kb.connect()
     try:
         tid = kb.create_task(conn, title="quiet", assignee="worker")
@@ -4438,7 +4438,7 @@ def test_detect_crashed_workers_nonzero_exit_uses_default_limit(kanban_home):
     """A worker that exited non-zero (real error / crash) uses the
     normal counter path — one failure doesn't trip the breaker.
     """
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
     conn = kb.connect()
     try:
         tid = kb.create_task(conn, title="crashy", assignee="worker")
@@ -4514,7 +4514,7 @@ def test_reclaim_task_clears_failure_counter(kanban_home):
 
 def test_dispatch_once_integrates_stale_detection(kanban_home, monkeypatch):
     """dispatch_once with stale_timeout_seconds reclaims stale running tasks."""
-    import hermes_cli.kanban_db as _kb
+    import muse_cli.kanban_db as _kb
 
     monkeypatch.setattr(_kb, "_pid_alive", lambda _pid: False)
 

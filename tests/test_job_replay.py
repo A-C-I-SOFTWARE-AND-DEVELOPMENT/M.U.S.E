@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
-from hermes_cli.orchestrator_events import (
+from muse_cli.job_replay import JobSnapshot, rebuild_snapshot
+from muse_cli.orchestrator_events import (
     EVENT_APPROVAL_GRANTED,
     EVENT_APPROVAL_REJECTED,
     EVENT_APPROVAL_REQUESTED,

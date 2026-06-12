@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import hermes_cli.models as models
-from hermes_cli.models import _OLLAMA_CLOUD_CURATED, fetch_ollama_cloud_models
+import muse_cli.models as models
+from muse_cli.models import _OLLAMA_CLOUD_CURATED, fetch_ollama_cloud_models
 
 
 def test_gemma4_in_curated_list():

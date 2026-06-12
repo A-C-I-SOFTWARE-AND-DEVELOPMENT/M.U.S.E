@@ -1,6 +1,6 @@
 """Local (no-Google) approval notification provider + process queue.
 
-This wires the provider-agnostic kernel in :mod:`hermes_cli.notifications`
+This wires the provider-agnostic kernel in :mod:`muse_cli.notifications`
 (``ApprovalNotification`` / ``NotificationProvider`` / ``PendingApprovalQueue``)
 to the cockpit's existing append-only event log. A pending approval is
 delivered by emitting one bounded ``CockpitEvent`` — which the live
@@ -10,7 +10,7 @@ delivered by emitting one bounded ``CockpitEvent`` — which the live
 What this module adds:
 
 * :class:`LocalSseNotificationProvider` — a concrete
-  :class:`~hermes_cli.notifications.NotificationProvider` whose
+  :class:`~muse_cli.notifications.NotificationProvider` whose
   ``notify_approval`` calls ``event_log.emit(...)``. The payload carries only
   ``approval_id`` / ``risk_tier`` / ``summary`` (the summary is already bounded
   by the caller) — never a diff, body, or secret.
@@ -27,7 +27,7 @@ event stream — so ``subscribe`` exists only to satisfy the Protocol.
 
 from __future__ import annotations
 
-from hermes_cli.notifications import (
+from muse_cli.notifications import (
     ApprovalNotification,
     NotificationProvider,
     PendingApprovalQueue,
@@ -47,7 +47,7 @@ __all__ = [
 class LocalSseNotificationProvider:
     """Deliver approval alerts over the cockpit event log (local SSE / poll).
 
-    Implements the :class:`~hermes_cli.notifications.NotificationProvider`
+    Implements the :class:`~muse_cli.notifications.NotificationProvider`
     Protocol. No Google services: delivery is a single best-effort
     ``event_log.emit`` that the existing ``/v1/cockpit/events`` stream picks up.
     """
@@ -87,7 +87,7 @@ class LocalSseNotificationProvider:
 
 
 # Process-singleton queue + provider. The queue is in-memory by design (durable
-# persistence is a documented follow-up in hermes_cli.notifications); a single
+# persistence is a documented follow-up in muse_cli.notifications); a single
 # instance per process keeps enqueue idempotency meaningful across emitters.
 _QUEUE: PendingApprovalQueue = PendingApprovalQueue()
 _PROVIDER: LocalSseNotificationProvider = LocalSseNotificationProvider()

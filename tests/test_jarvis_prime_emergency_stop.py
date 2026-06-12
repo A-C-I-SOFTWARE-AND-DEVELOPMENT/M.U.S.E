@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.memory import MemoryStore
-from hermes_cli.jarvis_prime.owner_auth import OwnerAuth
-from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
+from muse_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.owner_auth import OwnerAuth
+from muse_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 
 
 @pytest.fixture

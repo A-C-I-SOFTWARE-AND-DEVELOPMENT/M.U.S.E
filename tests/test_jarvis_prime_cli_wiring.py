@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.commands import COMMAND_REGISTRY, resolve_command
+from muse_cli.commands import COMMAND_REGISTRY, resolve_command
 
 
 def test_jarvis_prime_command_registered() -> None:

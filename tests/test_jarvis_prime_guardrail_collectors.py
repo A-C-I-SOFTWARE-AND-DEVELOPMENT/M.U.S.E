@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import guardrail_collectors as gc
+from muse_cli.jarvis_prime import guardrail_collectors as gc
 
 
 def _git(repo: Path, *args: str) -> None:

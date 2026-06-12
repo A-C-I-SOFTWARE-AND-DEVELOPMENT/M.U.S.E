@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.research_fabric.ue5 — no network, no UE.
+"""Tests for muse_cli.jarvis_prime.research_fabric.ue5 — no network, no UE.
 
 All Remote Control traffic goes through the single ``_http`` seam,
 which these tests monkeypatch; spawning is proven gated by failing the
@@ -11,8 +11,8 @@ import json
 
 import pytest
 
-from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
-from hermes_cli.jarvis_prime.research_fabric import ue5, ue5_bridge
+from muse_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
+from muse_cli.jarvis_prime.research_fabric import ue5, ue5_bridge
 
 
 @pytest.fixture(autouse=True)

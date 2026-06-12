@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 TOKEN = "test-cockpit-token-123"
 
@@ -169,7 +169,7 @@ def test_validate_runs_gates_on_workspace(server, home: Path) -> None:
 
 
 def _orchestrator_job() -> str:
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     return orch.submit_job("Add a /healthz endpoint").id
 

@@ -1,6 +1,6 @@
 """Tests for the GitHub integration adapter.
 
-The adapter is a thin façade over `hermes_cli.github_publisher`, so
+The adapter is a thin façade over `muse_cli.github_publisher`, so
 these tests focus on the *adapter contract* — detect → plan → explain
 → execute — rather than re-testing publisher internals (those are
 covered by ``tests/test_github_publisher.py``).
@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.integrations import github as gh_int
+from muse_cli.integrations import github as gh_int
 
 
 _HAS_GIT = shutil.which("git") is not None
@@ -184,7 +184,7 @@ class TestExplain:
 
     def test_explain_warns_when_gh_missing(self, repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         # Force gh_available to return False even if gh is installed.
-        from hermes_cli import github_publisher
+        from muse_cli import github_publisher
 
         monkeypatch.setattr(github_publisher, "gh_available", lambda: False)
         plan = gh_int.plan(
@@ -235,7 +235,7 @@ class TestSecretBlocking:
     ) -> None:
         # We don't need a real repo for this — we test that scan_for_secrets
         # (imported via the integration) catches a .env filename.
-        from hermes_cli import github_publisher
+        from muse_cli import github_publisher
 
         findings = github_publisher.scan_for_secrets(
             [".env"], repo_root=tmp_path, scan_contents=False
@@ -246,7 +246,7 @@ class TestSecretBlocking:
 
 class TestIntegrationsRegistry:
     def test_available_integrations_lists_github(self) -> None:
-        from hermes_cli.integrations import available_integrations
+        from muse_cli.integrations import available_integrations
 
         avail = available_integrations()
         assert "github" in avail

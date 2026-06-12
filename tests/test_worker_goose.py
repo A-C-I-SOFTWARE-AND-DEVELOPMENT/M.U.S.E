@@ -1,4 +1,4 @@
-"""Tests for the Goose worker adapter (``hermes_cli/workers/goose.py``)."""
+"""Tests for the Goose worker adapter (``muse_cli/workers/goose.py``)."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import subprocess
 from typing import Any
 from unittest import mock
 
-from hermes_cli.workers import WorkerStatus, WorkerTask
-from hermes_cli.workers import goose as goose_worker
+from muse_cli.workers import WorkerStatus, WorkerTask
+from muse_cli.workers import goose as goose_worker
 
 
 def _task(**overrides: Any) -> WorkerTask:
@@ -134,7 +134,7 @@ class TestExecutionPath:
         with mock.patch.object(goose_worker, "detect_command", return_value=True), \
              mock.patch.object(subprocess, "run", return_value=completed) as run_mock, \
              mock.patch(
-                 "hermes_cli.workers.goose.collect_git_artifacts",
+                 "muse_cli.workers.goose.collect_git_artifacts",
                  return_value=(ws / "patch.diff", ws / "changed-files.txt"),
              ):
             ws.mkdir(parents=True, exist_ok=True)
@@ -163,7 +163,7 @@ class TestExecutionPath:
         with mock.patch.object(goose_worker, "detect_command", return_value=True), \
              mock.patch.object(subprocess, "run", return_value=completed) as run_mock, \
              mock.patch(
-                 "hermes_cli.workers.goose.collect_git_artifacts",
+                 "muse_cli.workers.goose.collect_git_artifacts",
                  return_value=(None, None),
              ):
             goose_worker.run(_task(), tmp_path / "ws", execute=True, config=cfg)
@@ -178,7 +178,7 @@ class TestExecutionPath:
                  side_effect=subprocess.TimeoutExpired(cmd="goose", timeout=1),
              ), \
              mock.patch(
-                 "hermes_cli.workers.goose.collect_git_artifacts",
+                 "muse_cli.workers.goose.collect_git_artifacts",
                  return_value=(None, None),
              ):
             result = goose_worker.run(
@@ -193,7 +193,7 @@ class TestExecutionPath:
         with mock.patch.object(goose_worker, "detect_command", return_value=True), \
              mock.patch.object(subprocess, "run", side_effect=OSError("no exec")), \
              mock.patch(
-                 "hermes_cli.workers.goose.collect_git_artifacts",
+                 "muse_cli.workers.goose.collect_git_artifacts",
                  return_value=(None, None),
              ):
             result = goose_worker.run(
@@ -204,4 +204,4 @@ class TestExecutionPath:
 
 
 def test_module_is_importable():
-    import hermes_cli.workers.goose as _  # noqa: F401
+    import muse_cli.workers.goose as _  # noqa: F401

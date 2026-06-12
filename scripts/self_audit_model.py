@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from hermes_cli.jarvis_prime.self_audit.model_bridge import main
+from muse_cli.jarvis_prime.self_audit.model_bridge import main
 
 if __name__ == "__main__":
     raise SystemExit(main())

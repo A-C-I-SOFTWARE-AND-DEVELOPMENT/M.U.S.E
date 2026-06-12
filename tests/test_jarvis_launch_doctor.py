@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import launch_doctor as ld
+from muse_cli.jarvis_prime import launch_doctor as ld
 
 
 @pytest.fixture()
@@ -59,7 +59,7 @@ def test_missing_runtime_is_warning_not_failure(
     hermes_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Force "no local runtime" by monkeypatching detection.
-    from hermes_cli.jarvis_prime import model_bootstrap as mb
+    from muse_cli.jarvis_prime import model_bootstrap as mb
 
     monkeypatch.setattr(
         mb, "detect_local_runtimes",

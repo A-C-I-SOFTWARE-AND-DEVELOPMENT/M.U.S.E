@@ -173,7 +173,7 @@ def memory_item(record: Any) -> dict[str, Any]:
 # Evidence — mirrors com.aci.hermes.data.evidence.EvidenceItem (Evidence Engine)
 # ---------------------------------------------------------------------------
 #
-# Source is the JARVIS Research Vault (hermes_cli.jarvis_prime.research_vault).
+# Source is the JARVIS Research Vault (muse_cli.jarvis_prime.research_vault).
 # Trust labels reuse the memory-tree SourceTrust vocabulary so the Android
 # Evidence screen renders the same owner/primary/official_doc/reputable/
 # community/unverified ladder used everywhere else.
@@ -753,7 +753,7 @@ def validation_snapshot(
 # Audit — mirrors com.aci.hermes.data.model.audit.AuditRecord / ProofRecord
 # ---------------------------------------------------------------------------
 #
-# Source is the JARVIS-Prime decision ledger (hermes_cli.decision_ledger).
+# Source is the JARVIS-Prime decision ledger (muse_cli.decision_ledger).
 # Its 15 prose sections map honestly onto the audit model; fields the ledger
 # genuinely doesn't carry (files changed, per-step durations, enumerated
 # tests) are emitted as empty/0 — never invented.
@@ -1364,7 +1364,7 @@ def learning_card(candidate: dict[str, Any], *, candidate_id: str) -> dict[str, 
 # ---------------------------------------------------------------------------
 #
 # Source is the orchestrator's per-job event ledger
-# (``hermes_cli.orchestrator_ledger`` → ``~/.hermes/jobs/<id>/ledger.jsonl``),
+# (``muse_cli.orchestrator_ledger`` → ``~/.hermes/jobs/<id>/ledger.jsonl``),
 # the canonical audit trail of *what a job actually did*. Each JSONL entry
 # carries a ``kind``; ``classify_kind`` maps it to one of the canonical
 # timeline categories the Android Activity screen renders. The summary reuses
@@ -1497,7 +1497,7 @@ def _ledger_files(entry: dict[str, Any]) -> list[str]:
 def _ledger_summary(kind: str, entry: dict[str, Any]) -> str:
     """Reuse the replay summarizer; degrade gracefully if unavailable."""
     try:
-        from hermes_cli import orchestrator_replay as _replay
+        from muse_cli import orchestrator_replay as _replay
 
         return _replay._summarize(kind, entry)
     except Exception:  # pragma: no cover - defensive

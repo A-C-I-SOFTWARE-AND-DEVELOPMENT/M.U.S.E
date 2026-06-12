@@ -115,7 +115,7 @@ def _propose_write(
     change must be carried out by the out-of-band owner-approval path (the
     cockpit), which is outside the model's control.
     """
-    from hermes_cli.decision_engine import merge_decision_inputs, owner_gate_input
+    from muse_cli.decision_engine import merge_decision_inputs, owner_gate_input
 
     verdict = merge_decision_inputs(
         action_type=action_type,

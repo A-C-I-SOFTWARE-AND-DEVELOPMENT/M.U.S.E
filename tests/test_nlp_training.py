@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.nlp_training — dataset validation + Together dispatch.
+"""Tests for muse_cli.nlp_training — dataset validation + Together dispatch.
 
 These tests never touch the network or require the ``together`` SDK: the SDK is
 lazily imported and the paid-job gate is enforced before any client call.
@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from hermes_cli import nlp_training as nt
+from muse_cli import nlp_training as nt
 
 
 def _write_jsonl(path, rows) -> str:

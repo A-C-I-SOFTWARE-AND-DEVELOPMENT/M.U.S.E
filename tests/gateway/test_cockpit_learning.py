@@ -7,15 +7,15 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit import handlers as h
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime.learning_dataset import (
     CandidateStatus,
     DatasetStore,
     Provenance,
     QualityGates,
     TraceType,
 )
-from hermes_cli.jarvis_prime.memory_tree import SourceTrust
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.memory_tree import SourceTrust
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 @pytest.fixture()

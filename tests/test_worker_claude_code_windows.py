@@ -24,9 +24,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import remote_bridge as rb
-from hermes_cli.workers import claude_code as cc
-from hermes_cli.workers import claude_code_windows as ccw
+from muse_cli import remote_bridge as rb
+from muse_cli.workers import claude_code as cc
+from muse_cli.workers import claude_code_windows as ccw
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ def _task(**overrides) -> ccw.RemoteWorkerTask:
     base = {
         "mission": "Audit the kanban swarm scheduler for safety regressions.",
         "repo_evidence": [
-            "hermes_cli/kanban_swarm.py:80-220",
+            "muse_cli/kanban_swarm.py:80-220",
             "tests/test_kanban_swarm.py",
         ],
         "decision_ledger": "docs/plans/2026-05-15-acp-zed-edit-approval-diffs.md",
@@ -390,7 +390,7 @@ class TestCollect:
         # Now corrupt the local copy that the collector will re-parse.
         (prepared.workdir / "status.json").write_text("not json {{{")
         # Reading from already-collected workdir: re-parse the bad copy.
-        from hermes_cli.workers import claude_code_windows as ccw_mod
+        from muse_cli.workers import claude_code_windows as ccw_mod
 
         # Simulate a fresh collection failure: artificially place a bad
         # status.json into the prepared workdir; the parser must

@@ -37,8 +37,8 @@ from typing import List, Optional
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from hermes_constants import get_hermes_home
-from hermes_cli._subprocess_compat import windows_hide_flags
-from hermes_cli.config import load_config, _expand_env_vars
+from muse_cli._subprocess_compat import windows_hide_flags
+from muse_cli.config import load_config, _expand_env_vars
 from hermes_time import now as _hermes_now
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,7 @@ def _resolve_cron_enabled_toolsets(job: dict, cfg: dict) -> list[str] | None:
     if per_job:
         return per_job
     try:
-        from hermes_cli.tools_config import _get_platform_tools  # lazy: avoid heavy import at cron module load
+        from muse_cli.tools_config import _get_platform_tools  # lazy: avoid heavy import at cron module load
         return sorted(_get_platform_tools(cfg or {}, "cron"))
     except Exception as exc:
         logger.warning(
@@ -172,7 +172,7 @@ def _job_profile_context(job_id: str, profile: Optional[str]):
     prior_override = _hermes_home
     env_snapshot = os.environ.copy()
 
-    from hermes_cli.profiles import normalize_profile_name, resolve_profile_env
+    from muse_cli.profiles import normalize_profile_name, resolve_profile_env
     from hermes_constants import reset_hermes_home_override, set_hermes_home_override
 
     normalized_profile = normalize_profile_name(raw_profile)
@@ -242,7 +242,7 @@ def _plugin_cron_env_var(platform_name: str) -> str:
     support without editing this module.
     """
     try:
-        from hermes_cli.plugins import discover_plugins
+        from muse_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         entry = platform_registry.get(platform_name.lower())
@@ -326,7 +326,7 @@ def _iter_home_target_platforms():
     for name in _HOME_TARGET_ENV_VARS:
         yield name
     try:
-        from hermes_cli.plugins import discover_plugins
+        from muse_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         for entry in platform_registry.plugin_entries():
@@ -1479,11 +1479,11 @@ def _run_job_impl(job: dict) -> tuple[bool, str, str, Optional[str]]:
         # Provider routing
         pr = _cfg.get("provider_routing", {})
 
-        from hermes_cli.runtime_provider import (
+        from muse_cli.runtime_provider import (
             resolve_runtime_provider,
             format_runtime_provider_error,
         )
-        from hermes_cli.auth import AuthError
+        from muse_cli.auth import AuthError
         try:
             # Do not inject HERMES_INFERENCE_PROVIDER here. resolve_runtime_provider()
             # already prefers persisted config over stale shell/env overrides when

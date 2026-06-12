@@ -295,7 +295,7 @@ class TestAdapterInit:
             staticmethod(lambda: {"enabled": True, "effort": "xhigh"}),
         )
         monkeypatch.setattr("gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None))
-        monkeypatch.setattr("hermes_cli.tools_config._get_platform_tools", lambda *_: set())
+        monkeypatch.setattr("muse_cli.tools_config._get_platform_tools", lambda *_: set())
 
         adapter = APIServerAdapter(PlatformConfig(enabled=True))
         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
@@ -571,12 +571,12 @@ class TestModelsEndpoint:
 
     def test_resolve_model_name_default_profile(self):
         """Default profile falls back to 'hermes-agent'."""
-        with patch("hermes_cli.profiles.get_active_profile_name", return_value="default"):
+        with patch("muse_cli.profiles.get_active_profile_name", return_value="default"):
             assert APIServerAdapter._resolve_model_name("") == "hermes-agent"
 
     def test_resolve_model_name_named_profile(self):
         """Named profile uses the profile name as model name."""
-        with patch("hermes_cli.profiles.get_active_profile_name", return_value="lucas"):
+        with patch("muse_cli.profiles.get_active_profile_name", return_value="lucas"):
             assert APIServerAdapter._resolve_model_name("") == "lucas"
 
     @pytest.mark.asyncio

@@ -20,7 +20,7 @@ on:
     branches: [main]
     paths:
       - 'apps/android/**'
-      - 'hermes_cli/**'
+      - 'muse_cli/**'
       - 'gateway/**'
       - 'tests/**'
       - '.github/workflows/jarvis-prime-unit.yml'
@@ -135,7 +135,7 @@ jobs:
             tests/gateway/test_cockpit_*.py \
             tests/gateway/test_pii_redaction.py \
             tests/agent/test_redact.py \
-            tests/hermes_cli/test_redact_config_bridge.py \
+            tests/muse_cli/test_redact_config_bridge.py \
             tests/test_orchestrator_ledger.py \
             tests/test_orchestrator_job_controller.py \
             tests/test_validation_gates.py \

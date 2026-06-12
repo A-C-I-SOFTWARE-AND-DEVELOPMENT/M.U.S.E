@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 /**
  * Kotlin mirror of the evidence-backed model-routing API
  * (`GET /v1/cockpit/model-routes` and `POST /v1/cockpit/model-routes/override`,
- * backed by `hermes_cli/jarvis_prime/task_router.py`).
+ * backed by `muse_cli/jarvis_prime/task_router.py`).
  *
  * One decision per mobile-first task class: the chosen model, its route tier,
  * the fallback chain, a human-readable `why`, and the scorecard evidence

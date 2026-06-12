@@ -144,7 +144,10 @@ COMPONENT_PREFIXES = {
     "gateway": ("gateway", "hermes_plugins"),
     "agent": ("agent", "run_agent", "model_tools", "batch_runner"),
     "tools": ("tools",),
-    "cli": ("hermes_cli", "cli"),
+    # "hermes_cli" kept: loggers created under the legacy alias name (or by
+    # third-party code using the old module path) still route to the cli
+    # component.
+    "cli": ("muse_cli", "hermes_cli", "cli"),
     "cron": ("cron",),
 }
 
@@ -306,7 +309,7 @@ class _ManagedRotatingFileHandler(RotatingFileHandler):
     """
 
     def __init__(self, *args, **kwargs):
-        from hermes_cli.config import is_managed
+        from muse_cli.config import is_managed
         self._managed = is_managed()
         super().__init__(*args, **kwargs)
 

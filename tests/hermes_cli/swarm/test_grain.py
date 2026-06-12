@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.swarm.grain import (
+from muse_cli.swarm.grain import (
     FileDomain,
     Grain,
     OverlapError,

@@ -38,7 +38,7 @@ def _observatory_files(home: Path) -> list[Path]:
 
 
 def _tiny_graph():
-    from hermes_cli.jarvis_prime.graphrag.graph import (
+    from muse_cli.jarvis_prime.graphrag.graph import (
         EdgeType,
         KnowledgeGraph,
         NodeType,
@@ -63,7 +63,7 @@ def test_disabled_seam_helpers_write_nothing(home: Path) -> None:
 
 
 def test_disabled_graphrag_query_seam_writes_nothing(home: Path) -> None:
-    from hermes_cli.jarvis_prime.graphrag import query as q
+    from muse_cli.jarvis_prime.graphrag import query as q
 
     graph = _tiny_graph()
     for answer in (
@@ -140,7 +140,7 @@ def test_query_activations_recorded_when_enabled_via_marker(home: Path) -> None:
     marker.parent.mkdir(parents=True)
     marker.write_text("", encoding="utf-8")
 
-    from hermes_cli.jarvis_prime.graphrag import query as q
+    from muse_cli.jarvis_prime.graphrag import query as q
 
     answer = q.local_query(_tiny_graph(), "handlers cockpit")
     assert answer.nodes
@@ -217,7 +217,7 @@ def test_seams_never_raise_when_collector_misconfigured(
     om.record_query_activations([("label", "key")])
     _record_route_decision(dict(HINT), "generator", 3)
 
-    from hermes_cli.jarvis_prime.graphrag import query as q
+    from muse_cli.jarvis_prime.graphrag import query as q
 
     answer = q.coding_query(_tiny_graph(), "handlers cockpit")
     assert answer.nodes  # the query itself is unharmed

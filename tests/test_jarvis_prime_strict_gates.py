@@ -13,17 +13,17 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime import guardrail_collectors as gc
-from hermes_cli.jarvis_prime.gates import (
+from muse_cli.jarvis_prime import guardrail_collectors as gc
+from muse_cli.jarvis_prime.gates import (
     GateOutcome,
     run_gate_summary,
     run_strict_gate_summary,
 )
-from hermes_cli.jarvis_prime.guardrail_evidence import (
+from muse_cli.jarvis_prime.guardrail_evidence import (
     EvidenceArtifact,
     GuardrailEvidenceBundle,
 )
-from hermes_cli.jarvis_prime.natural_language_coder import build_work_packet
+from muse_cli.jarvis_prime.natural_language_coder import build_work_packet
 
 
 def _git(repo: Path, *args: str) -> None:
@@ -134,7 +134,7 @@ def test_owner_gate_requires_grant_artifact(repo_with_change: Path) -> None:
     assert owner.outcome is GateOutcome.NEEDS_OWNER_APPROVAL
 
     # Add the matching grant artifact -> the owner gate clears.
-    from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
+    from muse_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
 
     ch = create_challenge(str(owner_actions[0]), subject=packet_id)
     grant = authorize_challenge(ch, ch.required_phrase)

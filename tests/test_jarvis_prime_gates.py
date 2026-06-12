@@ -1,8 +1,8 @@
-"""Tests for hermes_cli.jarvis_prime.gates — eight verification gates."""
+"""Tests for muse_cli.jarvis_prime.gates — eight verification gates."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.gates import (
+from muse_cli.jarvis_prime.gates import (
     GATES,
     GateOutcome,
     build_gate,
@@ -14,7 +14,7 @@ from hermes_cli.jarvis_prime.gates import (
     run_gate_summary,
     security_gate,
 )
-from hermes_cli.jarvis_prime.gates import test_gate as eval_test_gate  # rename to avoid pytest collection
+from muse_cli.jarvis_prime.gates import test_gate as eval_test_gate  # rename to avoid pytest collection
 
 
 def test_gates_module_exposes_eight_gates() -> None:

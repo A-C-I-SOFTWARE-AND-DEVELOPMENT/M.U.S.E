@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-from hermes_cli.jarvis_prime.nlp_grammar import (
+from muse_cli.jarvis_prime.nlp_grammar import (
     GRAMMARS,
     JSON_GRAMMAR,
     PYTHON_GRAMMAR,

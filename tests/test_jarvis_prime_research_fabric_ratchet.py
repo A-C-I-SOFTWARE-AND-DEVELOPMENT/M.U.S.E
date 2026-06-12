@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
-from hermes_cli.jarvis_prime.research_fabric.validators import evaluate_ratchet
+from muse_cli.jarvis_prime.research_fabric.catalog import REQUIRED_DOMAINS
+from muse_cli.jarvis_prime.research_fabric.validators import evaluate_ratchet
 
 
 def _full(value: float) -> dict[str, float]:

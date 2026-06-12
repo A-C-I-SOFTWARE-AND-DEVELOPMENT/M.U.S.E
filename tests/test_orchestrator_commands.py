@@ -2,8 +2,8 @@
 
 Covers:
 
-* The CommandDef entries in :mod:`hermes_cli.commands`.
-* The controller in :mod:`hermes_cli.orchestrator` (job CRUD, ledger,
+* The CommandDef entries in :mod:`muse_cli.commands`.
+* The controller in :mod:`muse_cli.orchestrator` (job CRUD, ledger,
   model router, AI radar, mission status).
 * The ``run_*`` entry points used by both the CLI and the gateway.
 
@@ -20,8 +20,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import orchestrator as orch
-from hermes_cli.commands import (
+from muse_cli import orchestrator as orch
+from muse_cli.commands import (
     COMMAND_REGISTRY,
     GATEWAY_KNOWN_COMMANDS,
     SUBCOMMANDS,

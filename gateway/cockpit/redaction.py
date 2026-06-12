@@ -11,7 +11,7 @@ Design choices:
 * **Detection mirrors the memory write-gate.** The standalone-token
   patterns (private-key blocks, AWS keys, ``sk-``/``gh*``/``xox*`` tokens,
   bearer headers) mirror
-  :data:`hermes_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`, so the
+  :data:`muse_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`, so the
   cockpit and the gate agree on what a secret looks like. The capture-group
   patterns here exist so the *replacement* can preserve the key name
   (``API_KEY=[REDACTED]`` reads better than ``[REDACTED]``) — the Android
@@ -56,7 +56,7 @@ _AUTH_HEADER_RE = re.compile(
 )
 
 # Standalone whole-match tokens — replaced wholesale. These mirror
-# ``hermes_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`` (the memory
+# ``muse_cli.jarvis_prime.memory_tree._SECRET_PATTERNS`` (the memory
 # write-gate) so the cockpit and the gate agree on what a secret looks like.
 # They are re-listed locally rather than imported-and-filtered: the gate's
 # tuple also carries the key=value and bearer shapes, which we handle above

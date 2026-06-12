@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
-from hermes_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
-from hermes_cli.jarvis_prime.research_fabric.charter import CharterBook
-from hermes_cli.jarvis_prime.research_fabric.monitor import (
+from muse_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from muse_cli.jarvis_prime.owner_auth import authorize_challenge, create_challenge
+from muse_cli.jarvis_prime.research_fabric.charter import CharterBook
+from muse_cli.jarvis_prime.research_fabric.monitor import (
     AlignmentMonitor,
     TripwireSignal,
 )

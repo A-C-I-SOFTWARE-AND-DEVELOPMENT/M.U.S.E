@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit.server import serve
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory_tree import (
     ApprovalState,
     MemoryLayer,
     MemoryTreeStore,

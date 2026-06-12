@@ -18,8 +18,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-import hermes_cli.jarvis_prime.navigation.repo_index as repo_index_mod
-from hermes_cli.jarvis_prime.navigation.repo_index import (
+import muse_cli.jarvis_prime.navigation.repo_index as repo_index_mod
+from muse_cli.jarvis_prime.navigation.repo_index import (
     DEFAULT_IGNORE_DIRS,
     RepoIndex,
 )

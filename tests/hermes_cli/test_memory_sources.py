@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from hermes_cli.jarvis_prime import memory_sources as ms
+from muse_cli.jarvis_prime import memory_sources as ms
 from plugins.memory.holographic.store import MemoryStore
 
 

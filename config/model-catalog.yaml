@@ -308,7 +308,7 @@ media:
 # ---------------------------------------------------------------------------
 # Open-weight candidates — models you can DOWNLOAD and run locally.
 #
-# This section is read by `hermes_cli/models/catalog.py` (NOT the provider
+# This section is read by `muse_cli/models/catalog.py` (NOT the provider
 # loader above). It powers `hermes models bootstrap`. Nothing here is fetched
 # on a normal install — bootstrap requires --accept-downloads.
 #

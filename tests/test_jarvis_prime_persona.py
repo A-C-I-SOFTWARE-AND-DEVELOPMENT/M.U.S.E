@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.persona.
+"""Tests for muse_cli.jarvis_prime.persona.
 
 The persona is the seat of MUSE's identity/voice. These
 tests pin:
@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime.awareness import AwarenessSnapshot, UserProfile
-from hermes_cli.jarvis_prime.modes import Mode
-from hermes_cli.jarvis_prime.persona import (
+from muse_cli.jarvis_prime.awareness import AwarenessSnapshot, UserProfile
+from muse_cli.jarvis_prime.modes import Mode
+from muse_cli.jarvis_prime.persona import (
     DEFAULT_FORMAT,
     MOBILE_VOICE_FORMAT,
     OPERATOR_FORMAT,
@@ -100,7 +100,7 @@ def test_persona_accepts_string_mode_name() -> None:
 def test_handoff_format_constant_has_expected_sections() -> None:
     # The constant is exercised by render_handoff in runtime; this is
     # a smoke check that the seven canonical lines exist.
-    from hermes_cli.jarvis_prime.persona import HANDOFF_FORMAT
+    from muse_cli.jarvis_prime.persona import HANDOFF_FORMAT
 
     for label in (
         "Mission:", "Route selected:", "Actions taken:", "Verification:",

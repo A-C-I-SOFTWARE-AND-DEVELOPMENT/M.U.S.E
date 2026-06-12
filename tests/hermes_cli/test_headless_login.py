@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-import hermes_cli.auth_commands as ac
+import muse_cli.auth_commands as ac
 
 
 def test_unified_flow_walks_providers_and_configures(monkeypatch):
@@ -51,13 +51,13 @@ def test_single_provider_delegates(monkeypatch):
 def test_configure_dual_entity_writes_config(monkeypatch):
     cfg = {}
     monkeypatch.setattr(ac, "auth_add_command", lambda args: None)
-    import hermes_cli.config as config_mod
+    import muse_cli.config as config_mod
 
     monkeypatch.setattr(config_mod, "load_config", lambda: cfg)
     saved = {}
     monkeypatch.setattr(config_mod, "save_config", lambda c: saved.update(c))
     # Avoid network in get_codex_model_ids.
-    monkeypatch.setattr("hermes_cli.codex_models.get_codex_model_ids", lambda *a, **k: ["gpt-5.5", "gpt-5.3-codex"])
+    monkeypatch.setattr("muse_cli.codex_models.get_codex_model_ids", lambda *a, **k: ["gpt-5.5", "gpt-5.3-codex"])
 
     ac._configure_openai_dual_entity_defaults()
 

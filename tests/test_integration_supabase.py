@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.integrations import supabase as sb
+from muse_cli.integrations import supabase as sb
 
 
 @pytest.fixture

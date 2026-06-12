@@ -6,7 +6,7 @@ real local model CLI, so the live lane is exercised end-to-end without a model.
 
 import json
 
-from hermes_cli.jarvis_prime.self_audit import (
+from muse_cli.jarvis_prime.self_audit import (
     live,
     llm_judge,
     llm_target,

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
-from hermes_cli.jarvis_prime.research_fabric.selfplay.evolve import evolve
-from hermes_cli.jarvis_prime.research_fabric.selfplay.tasks import (
+from muse_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from muse_cli.jarvis_prime.research_fabric.selfplay.evolve import evolve
+from muse_cli.jarvis_prime.research_fabric.selfplay.tasks import (
     DEMO_BASELINE_CODE,
     DEMO_EVOLVE_TASK,
     demo_variant_proposer,
 )
-from hermes_cli.jarvis_prime.research_fabric.verifier.algorithms import measure_opcount
+from muse_cli.jarvis_prime.research_fabric.verifier.algorithms import measure_opcount
 
 
 def test_opcount_is_deterministic_and_lower_for_builtin() -> None:

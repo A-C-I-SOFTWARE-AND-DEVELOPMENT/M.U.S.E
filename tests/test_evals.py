@@ -1,7 +1,7 @@
 """Tests for the EVAL-1 eval harness."""
 
-from hermes_cli.evals import EvalCase, EvalReport, run_suite
-from hermes_cli.model_registry import _worker_from_yaml
+from muse_cli.evals import EvalCase, EvalReport, run_suite
+from muse_cli.model_registry import _worker_from_yaml
 
 
 def test_model_independent_cases_run_without_runner():

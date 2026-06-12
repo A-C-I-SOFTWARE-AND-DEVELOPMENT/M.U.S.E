@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.jarvis_prime.flywheel — events, auto-queue, digest."""
+"""Tests for muse_cli.jarvis_prime.flywheel — events, auto-queue, digest."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from hermes_cli.jarvis_prime import flywheel as fw
+from muse_cli.jarvis_prime import flywheel as fw
 
 
 def test_record_success() -> None:
@@ -122,7 +122,7 @@ def test_tool_dispatch_failure_lands_in_flywheel() -> None:
 
 
 def test_owner_brief_includes_flywheel_digest() -> None:
-    from hermes_cli.jarvis_prime.owner_brief import build_owner_brief
+    from muse_cli.jarvis_prime.owner_brief import build_owner_brief
 
     fw.record("owner.prompt", {"summary": "hi"})
     fw.record("agent.action", {"summary": "boom"}, outcome="failure", lesson="l1")

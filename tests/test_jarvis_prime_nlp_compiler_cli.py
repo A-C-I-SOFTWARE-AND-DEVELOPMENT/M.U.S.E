@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from hermes_cli.jarvis_prime.__main__ import main
+from muse_cli.jarvis_prime.__main__ import main
 
 INVOICE = (
     "when a new invoice email arrives, extract the total, save the PDF, "

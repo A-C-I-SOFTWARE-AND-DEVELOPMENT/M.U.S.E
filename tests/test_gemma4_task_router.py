@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.jarvis_prime import task_router as tr
+from muse_cli.jarvis_prime import task_router as tr
 
 
 def _policy_with_gemma_local() -> dict:
@@ -120,7 +120,7 @@ def test_coding_lanes_prefer_e4b_locally(tc) -> None:
 def test_e4b_load_failure_demotes_coding_to_e2b(tmp_path, monkeypatch) -> None:
     """The load-gate: a recorded E4B smoke failure falls coding back to E2B."""
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-    from hermes_cli.jarvis_prime import gemma_load_status as gls
+    from muse_cli.jarvis_prime import gemma_load_status as gls
 
     pol = _policy_with_both_gemma_variants()
     pol["routes"]["claude_code_worker"]["enabled"] = False

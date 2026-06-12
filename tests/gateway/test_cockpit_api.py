@@ -107,7 +107,7 @@ def test_runtime_status_has_live_queue_snapshot(server) -> None:
 
 def test_axiom_panel_shows_live_chain_status(server, monkeypatch) -> None:
     monkeypatch.delenv("MUSE_AXIOM_GATES", raising=False)
-    from hermes_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
+    from muse_cli.jarvis_prime.axiom_bridge import get_bridge, reset_bridge
 
     reset_bridge()
     try:
@@ -130,7 +130,7 @@ def test_axiom_panel_shows_live_chain_status(server, monkeypatch) -> None:
         _, payload = _get(server, "/v1/cockpit/axiom")
         assert payload["audit"]["chain_valid"] is False
 
-        from hermes_cli.jarvis_prime import flywheel
+        from muse_cli.jarvis_prime import flywheel
 
         flywheel.queue_improvement("polish the panel")
         _, payload = _get(server, "/v1/cockpit/axiom")
@@ -300,7 +300,7 @@ def test_job_get_unknown_is_404(server) -> None:
 
 
 def test_audit_list_and_proof_from_real_ledger(server) -> None:
-    from hermes_cli.decision_ledger import DecisionLedger, write_ledger
+    from muse_cli.decision_ledger import DecisionLedger, write_ledger
 
     ledger = DecisionLedger(
         decision="Add OAuth callback",
@@ -529,7 +529,7 @@ def test_skills_list_requires_auth(server) -> None:
 
 
 def test_navigation_surface_from_orchestrator_ledger(server, home: Path) -> None:
-    from hermes_cli import orchestrator as orch
+    from muse_cli import orchestrator as orch
 
     repo = home / "repo"
     (repo / "svc").mkdir(parents=True)

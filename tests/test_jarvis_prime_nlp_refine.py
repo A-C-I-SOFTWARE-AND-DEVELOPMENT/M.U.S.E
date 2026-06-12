@@ -6,10 +6,10 @@ import os
 
 import pytest
 
-from hermes_cli.jarvis_prime import semantic_frontend as sf
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.ir_compilers import get_compiler
-from hermes_cli.jarvis_prime.nlp_refine import (
+from muse_cli.jarvis_prime import semantic_frontend as sf
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.ir_compilers import get_compiler
+from muse_cli.jarvis_prime.nlp_refine import (
     RefinementSignal,
     apply_clarifications,
     run_execution_refinement,
@@ -57,7 +57,7 @@ def test_apply_clarifications_is_deterministic_parse_result(isolated_home):
 
 
 def test_apply_clarifications_backend_choice_emits_hint(isolated_home):
-    from hermes_cli.jarvis_prime.intent_graph import IntentNodeKind
+    from muse_cli.jarvis_prime.intent_graph import IntentNodeKind
 
     pr = sf.parse("do the thing with the stuff")
     repaired = apply_clarifications(

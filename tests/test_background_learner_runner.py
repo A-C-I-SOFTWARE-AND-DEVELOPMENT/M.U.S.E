@@ -5,13 +5,13 @@ owner-approval Proposals, never applied. Disallowed kinds are still rejected at
 enqueue (covered in test_background_learner.py).
 """
 
-from hermes_cli.background_learner import (
+from muse_cli.background_learner import (
     BackgroundLearnerRunner,
     JobQueue,
     make_live_queue,
     run_idle_cycle,
 )
-from hermes_cli.jarvis_prime.self_update import ProposalBook, ProposalStatus
+from muse_cli.jarvis_prime.self_update import ProposalBook, ProposalStatus
 
 
 def _runner():
@@ -19,7 +19,7 @@ def _runner():
 
 
 def _job(kind, **payload):
-    from hermes_cli.background_learner.queue import Job
+    from muse_cli.background_learner.queue import Job
 
     return Job(kind=kind, payload=payload, id=1)
 
@@ -44,7 +44,7 @@ def test_evaluate_model_routing_uses_eval_harness():
 
 def test_propose_code_patch_creates_pending_owner_proposal():
     r = _runner()
-    out = r.handle(_job("propose_code_patch", target_path="hermes_cli/x.py", rationale="why", diff_intent="what"))
+    out = r.handle(_job("propose_code_patch", target_path="muse_cli/x.py", rationale="why", diff_intent="what"))
     assert out.status == "proposed"
     assert out.proposal is not None
     # RC3 ⇒ needs owner approval; it is NOT applied.
@@ -69,7 +69,7 @@ def test_handler_exception_is_contained():
     r = _runner()
     # summarize with a non-string payload that triggers the str() path safely;
     # force an error by monkeypatching the handler target.
-    import hermes_cli.background_learner.runner as rn
+    import muse_cli.background_learner.runner as rn
 
     orig = rn.BackgroundLearnerRunner._h_scan_outdated_deps
 

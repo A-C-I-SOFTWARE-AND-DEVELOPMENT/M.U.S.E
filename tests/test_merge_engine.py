@@ -1,4 +1,4 @@
-"""Unit tests for the merge engine (`hermes_cli.merge_engine`).
+"""Unit tests for the merge engine (`muse_cli.merge_engine`).
 
 Phase 14 coverage:
 
@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.merge_engine import (
+from muse_cli.merge_engine import (
     HIGH_RISK_TEST_REQUIRED,
     MANUAL_REVIEW_FLOOR,
     SCORE_FLOOR,
@@ -32,7 +32,7 @@ from hermes_cli.merge_engine import (
     run_merge,
     select_winner,
 )
-from hermes_cli.scoring import (
+from muse_cli.scoring import (
     SCORE_CATEGORIES,
     Scorecard,
     WorkerArtifact,
@@ -82,14 +82,14 @@ def test_high_risk_worker_without_tests_is_rejected(tmp_path):
     risky = _write_worker(
         tmp_path,
         "risky",
-        changed_files=["hermes_cli/auth.py"],
+        changed_files=["muse_cli/auth.py"],
         validation_output="",
         status={"success": True},
     )
     safe = _write_worker(
         tmp_path,
         "safe",
-        changed_files=["hermes_cli/scoring.py"],
+        changed_files=["muse_cli/scoring.py"],
         validation_output="1 passed in 0.01s",
     )
     arts, cards = _load_pair([risky, safe])
@@ -106,7 +106,7 @@ def test_high_risk_with_tests_is_eligible(tmp_path):
     careful = _write_worker(
         tmp_path,
         "careful",
-        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        changed_files=["muse_cli/auth.py", "tests/test_auth.py"],
         validation_output="2 passed in 0.05s",
     )
     arts, cards = _load_pair([careful])
@@ -285,7 +285,7 @@ def test_rejected_workers_do_not_create_conflicts(tmp_path):
     rejected = _write_worker(
         tmp_path,
         "rejected",
-        changed_files=["hermes_cli/auth.py", "foo.py"],
+        changed_files=["muse_cli/auth.py", "foo.py"],
         validation_output="",
     )
     survivor = _write_worker(tmp_path, "survivor", changed_files=["foo.py"])
@@ -381,7 +381,7 @@ def test_run_merge_council_review_lists_rejected_and_runners_up(tmp_path):
     _write_worker(
         workers_dir,
         "risky",
-        changed_files=["hermes_cli/auth.py"],
+        changed_files=["muse_cli/auth.py"],
         validation_output="",
     )
     out_dir = tmp_path / "merge"
@@ -571,7 +571,7 @@ def test_high_risk_winner_records_ask_protected_path_verdict(tmp_path):
     careful = _write_worker(
         tmp_path,
         "careful",
-        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        changed_files=["muse_cli/auth.py", "tests/test_auth.py"],
         validation_output="2 passed in 0.05s",
     )
     arts, cards = _load_pair([careful])
@@ -607,7 +607,7 @@ def test_verdict_is_recorded_only_winner_unchanged(tmp_path):
     careful = _write_worker(
         tmp_path,
         "careful",
-        changed_files=["hermes_cli/auth.py", "tests/test_auth.py"],
+        changed_files=["muse_cli/auth.py", "tests/test_auth.py"],
         validation_output="3 passed in 0.05s",
     )
     arts, cards = _load_pair([careful])

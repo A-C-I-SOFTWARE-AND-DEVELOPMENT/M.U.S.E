@@ -114,7 +114,7 @@ def load_config() -> VercelConfig:
     (disabled, writes blocked).
     """
     try:
-        from hermes_cli.config import load_config as _hermes_load_config  # heavy
+        from muse_cli.config import load_config as _hermes_load_config  # heavy
     except Exception:  # pragma: no cover — config import path varies in tests
         return VercelConfig()
     try:

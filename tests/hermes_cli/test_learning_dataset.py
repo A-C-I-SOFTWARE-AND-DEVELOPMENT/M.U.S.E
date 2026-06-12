@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime.learning_dataset import (
     NEGATIVE_EXAMPLE,
     CandidateStatus,
     DatasetStore,
@@ -17,7 +17,7 @@ from hermes_cli.jarvis_prime.learning_dataset import (
     has_residual_secret,
     strip_chain_of_thought,
 )
-from hermes_cli.jarvis_prime.memory_tree import SourceTrust
+from muse_cli.jarvis_prime.memory_tree import SourceTrust
 
 
 def _store(tmp_path) -> DatasetStore:

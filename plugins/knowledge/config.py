@@ -42,7 +42,7 @@ def from_mapping(raw: Mapping[str, Any] | None) -> KnowledgeConfig:
 
 def load_config() -> KnowledgeConfig:
     try:
-        from hermes_cli.config import load_config as _hermes_load_config
+        from muse_cli.config import load_config as _hermes_load_config
     except Exception:  # pragma: no cover
         return KnowledgeConfig()
     try:

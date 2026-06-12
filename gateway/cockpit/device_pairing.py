@@ -11,13 +11,13 @@ A new device pairs in two steps:
    and stores it pending. Rate-limited and lockout-protected, mirroring
    :mod:`gateway.pairing`.
 2. :func:`confirm_pairing` exchanges a valid, unexpired code for a fresh
-   per-device token (via :func:`hermes_cli.cockpit_token.generate_token`).
+   per-device token (via :func:`muse_cli.cockpit_token.generate_token`).
    Only the token's **hash** is persisted (keyed by a new ``device_id``);
    the raw token is returned exactly once and never stored or logged.
 
 Thereafter :func:`verify_device_token` authenticates a presented raw
 token against the stored hashes (constant-time, honoring a revoked set)
-via :func:`hermes_cli.cockpit_token.is_authorized`, and
+via :func:`muse_cli.cockpit_token.is_authorized`, and
 :func:`revoke_device` tombstones a device.
 
 Storage: ``${HERMES_HOME}/cockpit/devices.jsonl`` — a durable JSON-lines
@@ -39,7 +39,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from gateway.cockpit import auth as cockpit_auth
-from hermes_cli import cockpit_token
+from muse_cli import cockpit_token
 
 # Pairing code: unambiguous alphabet (no 0/O, 1/I/l) so a code read aloud
 # or typed on a phone is hard to mistype.

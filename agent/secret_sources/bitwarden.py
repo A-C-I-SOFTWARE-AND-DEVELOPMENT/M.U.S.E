@@ -558,7 +558,7 @@ def _is_valid_env_name(name: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Public entry point — called from hermes_cli.env_loader
+# Public entry point — called from muse_cli.env_loader
 # ---------------------------------------------------------------------------
 
 

@@ -41,7 +41,7 @@ def _audit_dir() -> Path:
     aren't importable (e.g. in a stripped-down test environment).
     """
     try:
-        from hermes_cli.config import get_hermes_home  # local import — heavy
+        from muse_cli.config import get_hermes_home  # local import — heavy
 
         base = Path(get_hermes_home())
     except Exception:

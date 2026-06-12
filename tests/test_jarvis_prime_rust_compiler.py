@@ -10,14 +10,14 @@ All checks are structural — no rustc / toolchain is invoked.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.intent_graph import (
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.intent_graph import (
     IntentGraph,
     IntentNode,
     IntentNodeKind,
     Slot,
 )
-from hermes_cli.jarvis_prime.ir_compilers.rust_module import (
+from muse_cli.jarvis_prime.ir_compilers.rust_module import (
     RustField,
     RustFn,
     RustModule,

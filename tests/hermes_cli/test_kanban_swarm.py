@@ -1,6 +1,6 @@
 import json
 
-from hermes_cli import kanban_db as kb
+from muse_cli import kanban_db as kb
 
 
 def _task(conn, task_id) -> kb.Task:
@@ -9,7 +9,7 @@ def _task(conn, task_id) -> kb.Task:
     assert task is not None
     return task
 
-from hermes_cli.kanban_swarm import (
+from muse_cli.kanban_swarm import (
     SwarmWorkerSpec,
     create_swarm,
     latest_blackboard,

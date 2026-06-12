@@ -1,7 +1,7 @@
 """Tests for SIGHUP protection and stdout mirroring in ``hermes update``.
 
 Covers ``_UpdateOutputStream``, ``_install_hangup_protection``, and
-``_finalize_update_output`` in ``hermes_cli/main.py``.  These exist so
+``_finalize_update_output`` in ``muse_cli/main.py``.  These exist so
 that ``hermes update`` survives a terminal disconnect mid-install
 (SSH drop, shell close) without leaving the venv half-installed.
 """
@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
-from hermes_cli.main import (
+from muse_cli.main import (
     _UpdateOutputStream,
     _finalize_update_output,
     _install_hangup_protection,
@@ -186,7 +186,7 @@ class TestInstallHangupProtection:
         """SIGHUP should be set to SIG_IGN so SSH disconnect doesn't kill the update."""
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         # Clear cached get_hermes_home if present
-        import hermes_cli.config as _cfg
+        import muse_cli.config as _cfg
         if hasattr(_cfg, "_HERMES_HOME_CACHE"):
             _cfg._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
 
@@ -203,7 +203,7 @@ class TestInstallHangupProtection:
     def test_wraps_stdout_and_stderr_with_mirror(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
         # Nuke any cached home path
-        import hermes_cli.config as _cfg
+        import muse_cli.config as _cfg
         if hasattr(_cfg, "_HERMES_HOME_CACHE"):
             _cfg._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
 
@@ -239,7 +239,7 @@ class TestInstallHangupProtection:
 
     def test_logs_dir_created_if_missing(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        import hermes_cli.config as _cfg
+        import muse_cli.config as _cfg
         if hasattr(_cfg, "_HERMES_HOME_CACHE"):
             _cfg._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
 
@@ -262,7 +262,7 @@ class TestInstallHangupProtection:
 
         # Patch the import inside _install_hangup_protection.
         monkeypatch.setattr(
-            "hermes_cli.config.get_hermes_home", _boom, raising=True
+            "muse_cli.config.get_hermes_home", _boom, raising=True
         )
 
         original_handler = (
@@ -295,7 +295,7 @@ class TestFinalizeUpdateOutput:
 
     def test_restores_streams_and_closes_log(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HERMES_HOME", str(tmp_path))
-        import hermes_cli.config as _cfg
+        import muse_cli.config as _cfg
         if hasattr(_cfg, "_HERMES_HOME_CACHE"):
             _cfg._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
 

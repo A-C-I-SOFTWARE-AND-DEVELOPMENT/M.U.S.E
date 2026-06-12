@@ -20,14 +20,14 @@ pytest.importorskip("httpx")
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from hermes_cli.jarvis_prime.learning_dataset import (
+from muse_cli.jarvis_prime.learning_dataset import (
     DatasetStore,
     Provenance,
     QualityGates,
     SourceTrust,
     TraceType,
 )
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 _PLUGIN_API = (
     Path(__file__).resolve().parents[3]  # repo root (tests/plugins/dashboard/<file>)

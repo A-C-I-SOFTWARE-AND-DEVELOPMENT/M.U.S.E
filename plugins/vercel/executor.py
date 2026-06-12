@@ -1,7 +1,7 @@
 """Out-of-band executors for Vercel write actions.
 
 Invoked only by the owner-approval path (cockpit decide after device auth, or
-an owner-run CLI) via :mod:`hermes_cli.action_executors` — never by the model's
+an owner-run CLI) via :mod:`muse_cli.action_executors` — never by the model's
 tool loop. Each executor performs the real mutation through :class:`VercelClient`
 and returns the uniform ``{"success": bool, ...}`` envelope, never echoing the
 env-var value or the deploy-hook URL back.
@@ -65,7 +65,7 @@ def apply_cancel(params: Dict[str, Any]) -> Dict[str, Any]:
 
 def register_executors() -> None:
     """Register the Vercel executors. Safe to call repeatedly (idempotent)."""
-    from hermes_cli.action_executors import register
+    from muse_cli.action_executors import register
 
     register("vercel.set_env", apply_set_env)
     register("vercel.deploy", apply_deploy)

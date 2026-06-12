@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.swarm.executor import AgentExecutor, GrainRunOutput
-from hermes_cli.swarm.grainler import partition
-from hermes_cli.swarm.specialist import build_grain_agent_spec
+from muse_cli.swarm.executor import AgentExecutor, GrainRunOutput
+from muse_cli.swarm.grainler import partition
+from muse_cli.swarm.specialist import build_grain_agent_spec
 
 
 class FakeRunner:

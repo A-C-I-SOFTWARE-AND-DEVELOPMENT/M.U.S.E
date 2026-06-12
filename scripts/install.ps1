@@ -1878,9 +1878,9 @@ function Invoke-SetupWizard {
 
     # Run muse setup using the venv Python directly (no activation needed)
     if (-not $NoVenv) {
-        & ".\venv\Scripts\python.exe" -m hermes_cli.main setup
+        & ".\venv\Scripts\python.exe" -m muse_cli.main setup
     } else {
-        python -m hermes_cli.main setup
+        python -m muse_cli.main setup
     }
 
     Pop-Location
@@ -2338,7 +2338,7 @@ function Invoke-JarvisLaunch {
     Write-Info "Start Hermes:   $hermesCmd"
     Write-Info "Invoke JARVIS:  /jarvis   (aliases: /jp, /jarvis-prime)"
     Write-Info "Run doctor:     $hermesCmd doctor --jarvis-launch"
-    Write-Info "Stop JARVIS:    /jarvis stop   (or: python -m hermes_cli.jarvis_prime stop)"
+    Write-Info "Stop JARVIS:    /jarvis stop   (or: python -m muse_cli.jarvis_prime stop)"
 }
 
 # ============================================================================

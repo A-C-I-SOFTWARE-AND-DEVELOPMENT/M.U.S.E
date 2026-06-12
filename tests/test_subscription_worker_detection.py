@@ -1,5 +1,5 @@
 """Tests for subscription-aware worker lane detection + handoff packets
-(hermes_cli.jarvis_prime.worker_registry).
+(muse_cli.jarvis_prime.worker_registry).
 
 Detection is policy-only: it never requires API keys, never reads
 credentials, and degrades to "unavailable" when the official CLI is not
@@ -9,8 +9,8 @@ claude/codex happen to be installed on the host.
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import worker_registry as wr
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli.jarvis_prime import worker_registry as wr
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 def _available(version: str = "1.0.0"):
@@ -87,7 +87,7 @@ def test_handoff_packet_has_required_fields() -> None:
         branch="claude/jarvis-launch",
         risk_class="RC2",
         lane_id="claude_code_builder",
-        allowed_files=["hermes_cli/jarvis_prime/launch.py"],
+        allowed_files=["muse_cli/jarvis_prime/launch.py"],
         acceptance_criteria=["hermes jarvis launch exits 0"],
         verification_commands=["pytest tests/test_jarvis_launch_cli.py"],
         rollback_plan="git revert the launch commit",

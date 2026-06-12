@@ -1,13 +1,13 @@
-"""Tests for hermes_cli.jarvis_prime.benchmark_gate."""
+"""Tests for muse_cli.jarvis_prime.benchmark_gate."""
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.benchmark_gate import (
+from muse_cli.jarvis_prime.benchmark_gate import (
     BENCHMARK_GATE,
     benchmark_gate,
     evaluate_improvement,
 )
-from hermes_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
+from muse_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
 
 
 def test_pass_when_candidate_beats_baseline():

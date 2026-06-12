@@ -1,7 +1,7 @@
 """Tests for the voice-intake pipeline.
 
-The pipeline lives in ``hermes_cli/voice_intake.py`` and the
-dataclasses in ``hermes_cli/voice_models.py``. These tests do not
+The pipeline lives in ``muse_cli/voice_intake.py`` and the
+dataclasses in ``muse_cli/voice_models.py``. These tests do not
 touch the audio stack (sounddevice / faster-whisper / TTS) — they
 only exercise the transcript-to-job contract.
 
@@ -29,8 +29,8 @@ import pytest
 def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point HERMES_HOME at a tmp dir for the duration of one test.
 
-    ``hermes_cli.voice_intake._hermes_home()`` reads ``HERMES_HOME`` on
-    every call (it is *not* cached), and ``hermes_cli.voice_models``
+    ``muse_cli.voice_intake._hermes_home()`` reads ``HERMES_HOME`` on
+    every call (it is *not* cached), and ``muse_cli.voice_models``
     holds no module-level state at all. A simple ``monkeypatch.setenv``
     is therefore enough — no module reload required. (We previously
     used ``importlib.reload``; that turned out to disturb other tests
@@ -42,14 +42,14 @@ def hermes_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture
 def vi(hermes_home):
-    import hermes_cli.voice_intake as vi
+    import muse_cli.voice_intake as vi
 
     return vi
 
 
 @pytest.fixture
 def vm(hermes_home):
-    import hermes_cli.voice_models as vm
+    import muse_cli.voice_models as vm
 
     return vm
 

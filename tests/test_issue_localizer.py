@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.navigation.issue_localizer import IssueLocalizer
-from hermes_cli.jarvis_prime.navigation.repo_index import RepoIndex
-from hermes_cli.jarvis_prime.navigation.symbol_graph import SymbolGraph
+from muse_cli.jarvis_prime.navigation.issue_localizer import IssueLocalizer
+from muse_cli.jarvis_prime.navigation.repo_index import RepoIndex
+from muse_cli.jarvis_prime.navigation.symbol_graph import SymbolGraph
 
 
 @pytest.fixture()

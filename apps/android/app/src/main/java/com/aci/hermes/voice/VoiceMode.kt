@@ -3,7 +3,7 @@ package com.aci.hermes.voice
 /**
  * The voice interaction modes the cockpit exposes. The first three map
  * directly onto the canonical backend mode contract
- * (`hermes_cli.voice_models`: ``push_to_talk`` / ``wake_word`` /
+ * (`muse_cli.voice_models`: ``push_to_talk`` / ``wake_word`` /
  * ``driving_capture``); [CODING_DICTATION] and [VOICE_APPROVAL] are UX modes
  * layered on top of the same pipeline (they still send transcripts through the
  * backend, which owns classification + the safety veto).

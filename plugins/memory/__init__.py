@@ -27,7 +27,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional, Tuple
-from hermes_cli.config import cfg_get
+from muse_cli.config import cfg_get
 
 if TYPE_CHECKING:
     from agent.memory_provider import MemoryProvider
@@ -316,7 +316,7 @@ def _get_active_memory_provider() -> Optional[str]:
     no plugin loading.
     """
     try:
-        from hermes_cli.config import load_config
+        from muse_cli.config import load_config
         config = load_config()
         return cfg_get(config, "memory", "provider") or None
     except Exception:

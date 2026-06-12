@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.jarvis_prime.open_data_sources import (
+from muse_cli.jarvis_prime.open_data_sources import (
     NO_LLM_TRAINING,
     DatasetRole,
     DataSource,
@@ -21,7 +21,7 @@ from hermes_cli.jarvis_prime.open_data_sources import (
     load_registry,
     register_all_in_vault,
 )
-from hermes_cli.jarvis_prime.research_vault import (
+from muse_cli.jarvis_prime.research_vault import (
     EvidenceStrength,
     ResearchVault,
     SourceType,
@@ -60,7 +60,7 @@ def test_default_registry_path_points_at_shipped_yaml():
 
 
 def test_env_override_resolves_registry(tmp_path, monkeypatch):
-    from hermes_cli.jarvis_prime import open_data_sources as ods
+    from muse_cli.jarvis_prime import open_data_sources as ods
 
     custom = tmp_path / "custom.yaml"
     custom.write_text(
@@ -75,7 +75,7 @@ def test_env_override_resolves_registry(tmp_path, monkeypatch):
 
 
 def test_missing_registry_raises_actionable_error(monkeypatch):
-    from hermes_cli.jarvis_prime import open_data_sources as ods
+    from muse_cli.jarvis_prime import open_data_sources as ods
 
     monkeypatch.delenv(ods.REGISTRY_PATH_ENV, raising=False)
     monkeypatch.setattr(ods, "_PACKAGED_REGISTRY_PATH", Path("/no/such/packaged.yaml"))

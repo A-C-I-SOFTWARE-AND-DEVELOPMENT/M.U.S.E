@@ -171,10 +171,16 @@ def _looks_like_gateway_process(pid: int) -> bool:
         return False
 
     patterns = (
+        "muse_cli.main gateway",
+        "muse_cli/main.py gateway",
+        # Legacy pre-rename cmdlines: a gateway started before the
+        # hermes_cli -> muse_cli rename must still be recognized.
         "hermes_cli.main gateway",
         "hermes_cli/main.py gateway",
         "hermes gateway",
         "hermes-gateway",
+        "muse gateway",
+        "muse-gateway",
         "gateway/run.py",
     )
     return any(pattern in cmdline for pattern in patterns)
@@ -192,9 +198,13 @@ def _record_looks_like_gateway(record: dict[str, Any]) -> bool:
     # Normalize Windows backslashes so patterns match cross-platform.
     cmdline = " ".join(str(part) for part in argv).replace("\\", "/")
     patterns = (
+        "muse_cli.main gateway",
+        "muse_cli/main.py gateway",
+        # Legacy pre-rename cmdlines (hermes_cli -> muse_cli rename).
         "hermes_cli.main gateway",
         "hermes_cli/main.py gateway",
         "hermes gateway",
+        "muse gateway",
         "gateway/run.py",
     )
     return any(pattern in cmdline for pattern in patterns)

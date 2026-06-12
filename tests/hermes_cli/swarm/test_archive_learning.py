@@ -6,14 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.swarm.archive import (
+from muse_cli.swarm.archive import (
     GrainVariant,
     VariantArchive,
     benchmark_gated_promotion,
 )
-from hermes_cli.swarm.grain import FileDomain, Grain, SwarmPlan
-from hermes_cli.swarm.coordinator import SwarmGrainResult
-from hermes_cli.swarm.learning import (
+from muse_cli.swarm.grain import FileDomain, Grain, SwarmPlan
+from muse_cli.swarm.coordinator import SwarmGrainResult
+from muse_cli.swarm.learning import (
     applied_updates_log_path,
     capture_swarm_trace,
     record_applied_update,

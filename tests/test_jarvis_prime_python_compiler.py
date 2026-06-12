@@ -11,14 +11,14 @@ from __future__ import annotations
 
 import ast
 
-from hermes_cli.jarvis_prime.backend_selector import BackendTarget
-from hermes_cli.jarvis_prime.intent_graph import (
+from muse_cli.jarvis_prime.backend_selector import BackendTarget
+from muse_cli.jarvis_prime.intent_graph import (
     IntentGraph,
     IntentNode,
     IntentNodeKind,
     Slot,
 )
-from hermes_cli.jarvis_prime.ir_compilers.python_module import (
+from muse_cli.jarvis_prime.ir_compilers.python_module import (
     PyDataclass,
     PyField,
     PyFunction,

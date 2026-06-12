@@ -5,10 +5,10 @@ the runtime auto-wiring uses an injected factory, so nothing touches a real
 Ollama or the network.
 """
 
-from hermes_cli.jarvis_prime import gemma_runner as gr
-from hermes_cli.jarvis_prime.memory import MemoryStore
-from hermes_cli.jarvis_prime.memory_tree import MemoryTreeStore
-from hermes_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
+from muse_cli.jarvis_prime import gemma_runner as gr
+from muse_cli.jarvis_prime.memory import MemoryStore
+from muse_cli.jarvis_prime.memory_tree import MemoryTreeStore
+from muse_cli.jarvis_prime.runtime import JarvisConfig, JarvisPrime
 
 _OLLAMA_LIST = (
     "NAME              ID    SIZE    MODIFIED\n"

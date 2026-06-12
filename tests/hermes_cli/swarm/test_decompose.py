@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hermes_cli.swarm.decompose import (
+from muse_cli.swarm.decompose import (
     directory_decomposer,
     keyword_decomposer,
     make_llm_decomposer,
 )
-from hermes_cli.swarm.grainler import partition
+from muse_cli.swarm.grainler import partition
 
 
 def _make_repo(tmp_path: Path) -> Path:
@@ -68,7 +68,7 @@ def test_llm_decomposer_seam_is_proven_disjoint():
 
 def test_llm_decomposer_overlap_is_rejected_by_proof():
     import pytest
-    from hermes_cli.swarm.grain import OverlapError
+    from muse_cli.swarm.grain import OverlapError
 
     class BadAgent:
         def chat(self, prompt):

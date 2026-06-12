@@ -8,7 +8,7 @@ from typing import Iterator
 
 import pytest
 
-from hermes_cli import orchestrator_ledger as ledger
+from muse_cli import orchestrator_ledger as ledger
 
 
 @pytest.fixture(autouse=True)
@@ -135,7 +135,7 @@ class TestAwarenessReaderCompat:
     """The awareness reader watches for the same path; verify the contract."""
 
     def test_awareness_can_read_what_we_wrote(self, _isolated_home: Path) -> None:
-        from hermes_cli.jarvis_prime import awareness
+        from muse_cli.jarvis_prime import awareness
 
         ledger.append("job-x", {"kind": "submit", "prompt": "hello"})
         ledger.append("job-x", {"kind": "publish"})

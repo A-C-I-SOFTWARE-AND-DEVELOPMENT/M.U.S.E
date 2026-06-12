@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.monitors import MonitorBoard
-from hermes_cli.jarvis_prime.owner_brief import build_owner_brief
+from muse_cli.jarvis_prime.monitors import MonitorBoard
+from muse_cli.jarvis_prime.owner_brief import build_owner_brief
 
 
 def _results():

@@ -34,7 +34,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import kanban_db as kb
+from muse_cli import kanban_db as kb
 
 
 def _task(conn, task_id) -> kb.Task:
@@ -273,7 +273,7 @@ def test_protocol_violation_loop_is_broken(kanban_home: Path) -> None:
 
 # ---------------------------------------------------------------------------
 # Schema-init recovery on legacy DBs is covered by
-# tests/hermes_cli/test_kanban_db.py::test_connect_migrates_legacy_db_before_optional_column_indexes
+# tests/muse_cli/test_kanban_db.py::test_connect_migrates_legacy_db_before_optional_column_indexes
 # (landed via #28754 / #28781).  The original PR shipped a duplicate test
 # here; dropped during salvage to avoid two assertions of the same contract.
 # ---------------------------------------------------------------------------

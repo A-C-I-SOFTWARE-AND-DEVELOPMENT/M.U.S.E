@@ -13,8 +13,8 @@ from pathlib import Path
 import pytest
 
 from gateway.cockpit import handlers as h
-from hermes_cli import orchestrator as orch
-from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+from muse_cli import orchestrator as orch
+from muse_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
 
 @pytest.fixture()

@@ -2,7 +2,7 @@
 
 import pytest
 
-from hermes_cli.integrations import (
+from muse_cli.integrations import (
     ActionRequest,
     IntegrationRegistry,
     IntegrationSpec,

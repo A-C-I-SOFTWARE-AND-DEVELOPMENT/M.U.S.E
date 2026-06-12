@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from hermes_cli.commands import resolve_command
-from hermes_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore
-from hermes_cli.jarvis_prime.research_fabric.pipeline import open_context
-from hermes_cli.jarvis_prime.research_fabric.status import fabric_status
+from muse_cli.commands import resolve_command
+from muse_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore
+from muse_cli.jarvis_prime.research_fabric.pipeline import open_context
+from muse_cli.jarvis_prime.research_fabric.status import fabric_status
 
 
 def test_status_empty_fabric(tmp_path) -> None:
@@ -25,7 +25,7 @@ def test_status_reflects_activity(tmp_path) -> None:
     archive = ArchiveStore(path=tmp_path / "a.jsonl")
     ctx = open_context(tmp_path)
     try:
-        from hermes_cli.jarvis_prime.research_fabric.improve import (
+        from muse_cli.jarvis_prime.research_fabric.improve import (
             run_algorithms_improvement,
         )
 

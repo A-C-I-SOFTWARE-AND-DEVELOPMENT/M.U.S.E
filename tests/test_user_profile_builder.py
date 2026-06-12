@@ -22,8 +22,8 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli import github_history as gh_history
-from hermes_cli import user_profile_builder as upb
+from muse_cli import github_history as gh_history
+from muse_cli import user_profile_builder as upb
 
 
 # ── fixtures ───────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ def synthetic_snapshot(fixed_now) -> gh_history.HistorySnapshot:
             subject="add: hermes orchestration ledger reader",
             body="",
             files=[
-                "hermes_cli/orchestrator.py",
+                "muse_cli/orchestrator.py",
                 "docs/orchestration/README.md",
             ],
             additions=80,

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.memory_capture import (
+from muse_cli.jarvis_prime.memory_capture import (
     DURABLE_WORTHY,
     capture_to_tree,
     extract_candidates,
 )
-from hermes_cli.jarvis_prime.memory_tree import (
+from muse_cli.jarvis_prime.memory_tree import (
     ApprovalState,
     MemoryLayer,
     MemoryTreeStore,

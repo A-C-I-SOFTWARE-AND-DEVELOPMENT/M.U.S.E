@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.research_fabric.ambition import (
+from muse_cli.jarvis_prime.research_fabric.ambition import (
     AmbitionProfile,
     apply_ambition,
 )
-from hermes_cli.jarvis_prime.research_fabric.validators import RatchetVerdict
+from muse_cli.jarvis_prime.research_fabric.validators import RatchetVerdict
 
 
 def _passing_verdict() -> RatchetVerdict:

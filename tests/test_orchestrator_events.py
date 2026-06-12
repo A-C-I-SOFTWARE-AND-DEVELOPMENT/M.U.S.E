@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.orchestrator_events — event constants + broker."""
+"""Tests for muse_cli.orchestrator_events — event constants + broker."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import asyncio
 
 import pytest
 
-from hermes_cli import orchestrator_events as oe
-from hermes_cli.orchestrator_events import (
+from muse_cli import orchestrator_events as oe
+from muse_cli.orchestrator_events import (
     ALL_EVENTS,
     ALL_PHASES,
     EVENT_APPROVAL_GRANTED,

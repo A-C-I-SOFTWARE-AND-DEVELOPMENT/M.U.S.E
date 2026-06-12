@@ -624,7 +624,7 @@ data class LocalModelSmokeResult(
 
 /**
  * Wire model for `GET /v1/cockpit/research` — one item from the JARVIS
- * Research Vault (`hermes_cli/jarvis_prime/research_vault.py`). One-to-one
+ * Research Vault (`muse_cli/jarvis_prime/research_vault.py`). One-to-one
  * with `ResearchArtifact.to_dict()`. Recent-first; the gateway returns an
  * honest empty list (never fabricated evidence) when the vault is missing.
  */
@@ -1077,7 +1077,7 @@ data class CockpitLearningProvenance(
 // ─── Voice intake (mobile-native, hands-free) ─────────────────────────
 //
 // Mirrors the canonical pipeline exposed by gateway/cockpit (which wraps
-// hermes_cli.voice_intake). The app sends an already-transcribed string and
+// muse_cli.voice_intake). The app sends an already-transcribed string and
 // the backend owns read-back / classification / the driving-mode safety
 // veto — the client never reimplements them.
 

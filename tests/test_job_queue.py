@@ -1,4 +1,4 @@
-"""Tests for hermes_cli.job_queue — the persistent orchestrator queue.
+"""Tests for muse_cli.job_queue — the persistent orchestrator queue.
 
 Every test runs against a tmp_path root so we never touch the user's
 ``.hermes-orchestrator``.
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.job_queue import (
+from muse_cli.job_queue import (
     JobQueue,
     JobQueueError,
     JobQueueNotFoundError,
@@ -83,7 +83,7 @@ class TestListJobs:
 
     def test_sorted_oldest_first(self, queue: JobQueue, monkeypatch):
         # Force created_at by patching time.
-        import hermes_cli.job_queue as jq
+        import muse_cli.job_queue as jq
 
         times = iter([100.0, 200.0, 150.0])
         monkeypatch.setattr(jq, "_now", lambda: next(times))

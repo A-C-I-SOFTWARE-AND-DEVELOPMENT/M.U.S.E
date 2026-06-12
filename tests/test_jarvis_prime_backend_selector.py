@@ -6,8 +6,8 @@ Covers trigger->automation, repo-edit->work-packet, hint override, the
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime import semantic_frontend as sf
-from hermes_cli.jarvis_prime.backend_selector import (
+from muse_cli.jarvis_prime import semantic_frontend as sf
+from muse_cli.jarvis_prime.backend_selector import (
     BackendContext,
     BackendTarget,
     select_backend,

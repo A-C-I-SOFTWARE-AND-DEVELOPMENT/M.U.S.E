@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from hermes_cli.budget_policy import (
+from muse_cli.budget_policy import (
     BudgetOutcome,
     evaluate_budget,
 )
@@ -85,7 +85,7 @@ def test_zero_spent_within():
     ],
 )
 def test_outcome_tier_mapping(outcome, tier):
-    from hermes_cli.budget_policy import OUTCOME_TIER
+    from muse_cli.budget_policy import OUTCOME_TIER
 
     assert OUTCOME_TIER[outcome] == tier
 

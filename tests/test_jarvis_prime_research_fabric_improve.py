@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from hermes_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
-from hermes_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore
-from hermes_cli.jarvis_prime.research_fabric.improve import (
+from muse_cli.jarvis_prime.guardrail_evidence import GuardrailLedger
+from muse_cli.jarvis_prime.research_fabric.archive.store import ArchiveStore
+from muse_cli.jarvis_prime.research_fabric.improve import (
     run_algorithms_improvement,
     run_swe_improvement,
 )
-from hermes_cli.jarvis_prime.research_fabric.selfplay.swe_tasks import (
+from muse_cli.jarvis_prime.research_fabric.selfplay.swe_tasks import (
     demo_swe_baseline,
     make_demo_swe_repo,
 )

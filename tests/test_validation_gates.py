@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli.validation`` — Phase 14 validation gates.
+"""Tests for ``muse_cli.validation`` — Phase 14 validation gates.
 
 Each test sets up an isolated temp workspace (or initialised git
 repo) and exercises one slice of the runner. We do *not* depend on
@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_cli.validation import (
+from muse_cli.validation import (
     CATEGORY_GIT,
     CATEGORY_HERMES,
     CATEGORY_LANGUAGE,

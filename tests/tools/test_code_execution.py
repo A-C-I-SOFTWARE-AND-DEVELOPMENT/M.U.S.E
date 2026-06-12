@@ -850,7 +850,7 @@ class TestLoadConfig(unittest.TestCase):
 
     def test_returns_code_execution_section(self):
         from tools.code_execution_tool import _load_config
-        with patch("hermes_cli.config.read_raw_config",
+        with patch("muse_cli.config.read_raw_config",
                    return_value={"code_execution": {"timeout": 120, "max_tool_calls": 10}}):
             result = _load_config()
         self.assertEqual(result, {"timeout": 120, "max_tool_calls": 10})
@@ -860,7 +860,7 @@ class TestLoadConfig(unittest.TestCase):
         mock_cli = MagicMock()
         mock_cli.CLI_CONFIG = {"code_execution": {"timeout": 999}}
         with patch.dict("sys.modules", {"cli": mock_cli}), \
-             patch("hermes_cli.config.read_raw_config", return_value={}):
+             patch("muse_cli.config.read_raw_config", return_value={}):
             result = _load_config()
         self.assertEqual(result, {})
 

@@ -1,4 +1,4 @@
-"""Tests for ``hermes_cli/self_improvement.py``.
+"""Tests for ``muse_cli/self_improvement.py``.
 
 The loop is bound by four rules from the skill / mission docs:
 
@@ -24,8 +24,8 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from hermes_cli import self_improvement as si
-from hermes_cli.self_improvement import (
+from muse_cli import self_improvement as si
+from muse_cli.self_improvement import (
     BLOCKING_SCORE_THRESHOLD,
     FINDING_KINDS,
     JobContext,

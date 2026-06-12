@@ -1772,9 +1772,9 @@ run_setup_wizard() {
     # Run muse setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
-        "$INSTALL_DIR/venv/bin/python" -m hermes_cli.main setup < /dev/tty
+        "$INSTALL_DIR/venv/bin/python" -m muse_cli.main setup < /dev/tty
     else
-        python -m hermes_cli.main setup < /dev/tty
+        python -m muse_cli.main setup < /dev/tty
     fi
 }
 
@@ -2080,7 +2080,7 @@ postinstall_mode() {
         "$HERMES_CMD" setup
     else
         log_warn "muse command not found on PATH"
-        log_info "Try: python -m hermes_cli.main setup"
+        log_info "Try: python -m muse_cli.main setup"
     fi
 }
 
@@ -2155,7 +2155,7 @@ run_jarvis_launch() {
     log_info "Start Hermes:   $hermes_cmd"
     log_info "Invoke JARVIS:  /jarvis   (aliases: /jp, /jarvis-prime)"
     log_info "Run doctor:     $hermes_cmd doctor --jarvis-launch"
-    log_info "Stop JARVIS:    /jarvis stop   (or: python -m hermes_cli.jarvis_prime stop)"
+    log_info "Stop JARVIS:    /jarvis stop   (or: python -m muse_cli.jarvis_prime stop)"
     log_info "Pull a local model later:  ollama pull deepseek-r1:8b"
 }
 

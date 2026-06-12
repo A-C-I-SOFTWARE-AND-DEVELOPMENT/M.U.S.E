@@ -548,10 +548,10 @@ def test_env_loader_skips_when_disabled(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     try:
-        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+        from muse_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
     except ImportError:
         pytest.skip(
-            "hermes_cli.env_loader._apply_external_secret_sources not present "
+            "muse_cli.env_loader._apply_external_secret_sources not present "
             "in this checkout — the env_loader secret-source wiring is part "
             "of a paired modification that ships in a follow-up PR."
         )
@@ -593,10 +593,10 @@ def test_env_loader_calls_bsm_when_enabled(tmp_path, monkeypatch):
     )
 
     try:
-        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
+        from muse_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
     except ImportError:
         pytest.skip(
-            "hermes_cli.env_loader._apply_external_secret_sources not present "
+            "muse_cli.env_loader._apply_external_secret_sources not present "
             "in this checkout — the env_loader secret-source wiring is part "
             "of a paired modification that ships in a follow-up PR."
         )

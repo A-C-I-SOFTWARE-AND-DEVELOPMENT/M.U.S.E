@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from hermes_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
-from hermes_cli.jarvis_prime.natural_language_coder import (
+from muse_cli.jarvis_prime.gates import GateOutcome, run_gate_summary
+from muse_cli.jarvis_prime.natural_language_coder import (
     CodingIntent,
     CodingWorkPacket,
     OwnerGate,
@@ -115,7 +115,7 @@ def test_avatar_request_becomes_owner_gated_avatar_packet() -> None:
     assert packet.owner_gated_actions == ("owner_approval",)
     assert OwnerGate.ANDROID_ACCESSIBILITY_GESTURE in packet.owner_gates
     assert packet.primary_worker != packet.reviewer_worker
-    assert "hermes_cli/jarvis_prime/companion_presence.py" in packet.allowed_files
+    assert "muse_cli/jarvis_prime/companion_presence.py" in packet.allowed_files
 
 
 def test_facebook_click_is_device_action() -> None:
@@ -156,9 +156,9 @@ def test_branch_slug_is_safe() -> None:
 
 def test_allowed_and_forbidden_files_are_explicit() -> None:
     packet = build_work_packet(
-        "add a helper", allowed_files=["hermes_cli/foo.py"], forbidden_files=["**/.env"]
+        "add a helper", allowed_files=["muse_cli/foo.py"], forbidden_files=["**/.env"]
     )
-    assert packet.allowed_files == ("hermes_cli/foo.py",)
+    assert packet.allowed_files == ("muse_cli/foo.py",)
     assert "**/.env" in packet.forbidden_files
 
 

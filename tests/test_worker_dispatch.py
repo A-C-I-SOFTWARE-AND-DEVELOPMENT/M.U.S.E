@@ -7,9 +7,9 @@ from typing import Iterator
 
 import pytest
 
-from hermes_cli import orchestrator as orch
-from hermes_cli.workers import registry as wr
-from hermes_cli.workers.base import (
+from muse_cli import orchestrator as orch
+from muse_cli.workers import registry as wr
+from muse_cli.workers.base import (
     WorkerAdapter,
     WorkerArtifacts,
     WorkerDetection,
@@ -17,7 +17,7 @@ from hermes_cli.workers.base import (
     WorkerRunResult,
     WorkerScore,
 )
-from hermes_cli.workers.local_planner import LocalPlannerWorker
+from muse_cli.workers.local_planner import LocalPlannerWorker
 
 
 @pytest.fixture()
@@ -166,7 +166,7 @@ def test_blocked_dispatch_records_ask_verdict(isolated_home: Path) -> None:
 
 
 def test_load_builtins_registers_both_workers() -> None:
-    from hermes_cli.workers import load_builtins, known_workers
+    from muse_cli.workers import load_builtins, known_workers
 
     load_builtins()
     ids = known_workers()
@@ -175,7 +175,7 @@ def test_load_builtins_registers_both_workers() -> None:
 
 
 def test_aider_handoff_adapter_is_non_executing(sample_repo: Path) -> None:
-    from hermes_cli.workers.aider_handoff import AiderHandoffWorker
+    from muse_cli.workers.aider_handoff import AiderHandoffWorker
 
     w = AiderHandoffWorker(str(sample_repo))
     assert w.requires_approval is False  # handoff only — safe ungated
@@ -212,7 +212,7 @@ import pytest as _pytest
 def test_all_handoff_workers_registered_and_non_executing(
     worker_id: str, isolated_home: Path, sample_repo: Path
 ) -> None:
-    from hermes_cli.workers import known_workers, load_builtins
+    from muse_cli.workers import known_workers, load_builtins
 
     load_builtins()
     assert worker_id in known_workers()
@@ -230,7 +230,7 @@ def test_all_handoff_workers_registered_and_non_executing(
 
 
 def test_builtin_worker_roster() -> None:
-    from hermes_cli.workers import builtin_worker_classes
+    from muse_cli.workers import builtin_worker_classes
 
     ids = {c.id for c in builtin_worker_classes()}
     assert ids == {
@@ -250,7 +250,7 @@ def test_builtin_worker_roster() -> None:
 def test_claude_execute_completes_the_orphaned_agentic_path() -> None:
     """claude-execute wraps the previously-orphaned Claude Code execute path and
     is owner-gated (never runs the tool without an approved execute phase)."""
-    from hermes_cli.workers.claude_handoff import ClaudeExecuteWorker
+    from muse_cli.workers.claude_handoff import ClaudeExecuteWorker
 
     w = ClaudeExecuteWorker()
     assert w.id == "claude-execute"
@@ -263,8 +263,8 @@ def test_claude_execute_completes_the_orphaned_agentic_path() -> None:
 
 from pathlib import Path as _Path  # noqa: E402
 
-from hermes_cli.workers.base import WorkerResult, WorkerStatus  # noqa: E402
-from hermes_cli.workers.handoff_base import ProceduralExecuteWorker  # noqa: E402
+from muse_cli.workers.base import WorkerResult, WorkerStatus  # noqa: E402
+from muse_cli.workers.handoff_base import ProceduralExecuteWorker  # noqa: E402
 
 
 class _FakeConfig:

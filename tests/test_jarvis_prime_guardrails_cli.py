@@ -14,7 +14,7 @@ import json
 
 import pytest
 
-from hermes_cli.guardrails_cli import cmd_guardrails, register
+from muse_cli.guardrails_cli import cmd_guardrails, register
 
 
 def _run(**kwargs) -> tuple[int, str]:

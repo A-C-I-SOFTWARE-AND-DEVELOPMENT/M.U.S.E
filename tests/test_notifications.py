@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from hermes_cli.notifications import (
+from muse_cli.notifications import (
     ApprovalNotification,
     NotificationProvider,
     PendingApprovalQueue,
