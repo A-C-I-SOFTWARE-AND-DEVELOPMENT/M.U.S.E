@@ -20,12 +20,12 @@ import ast
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 try:
-    import z3
+    import z3  # ty: ignore[unresolved-import]  # optional dep (axiom extra; no aarch64 wheels)
 except ImportError:  # no z3 wheels on this platform (e.g. aarch64)
-    z3 = None  # type: ignore[assignment]
+    z3 = cast("Any", None)  # typed Any so Z3_AVAILABLE-guarded uses don't flag; still None at runtime
 
 Z3_AVAILABLE = z3 is not None
 

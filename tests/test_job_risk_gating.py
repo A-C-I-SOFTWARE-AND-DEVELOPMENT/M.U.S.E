@@ -54,16 +54,19 @@ def _complete_packet(**extra) -> dict:
 
 def test_estimate_job_risk_bands() -> None:
     research = estimate_job_risk(JobMode.RESEARCH, True)
+    assert research is not None
     assert research["risk"] == "LOW"
     assert research["strict_evidence"] is False
     assert research["gates"] == ["build", "test"]
 
     trusted_build = estimate_job_risk(JobMode.BUILD, True)
+    assert trusted_build is not None
     assert trusted_build["risk"] == "MED"
     assert trusted_build["strict_evidence"] is True
     assert "owner_approval" not in trusted_build["gates"]
 
     untrusted_build = estimate_job_risk(JobMode.BUILD, False)
+    assert untrusted_build is not None
     assert untrusted_build["risk"] == "HIGH"
     assert "owner_approval" in untrusted_build["gates"]
     assert len(untrusted_build["gates"]) == 8
@@ -73,6 +76,7 @@ def test_overrides_sharpen_estimate() -> None:
     quiet = estimate_job_risk(
         JobMode.BUILD, True, overrides={"effects": (), "loc": 2}
     )
+    assert quiet is not None
     assert quiet["risk"] == "LOW"
 
 
