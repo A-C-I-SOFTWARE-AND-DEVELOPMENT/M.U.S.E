@@ -25,7 +25,7 @@ def test_openrouter_base_url_applies_or_headers(mock_openai):
 
     headers = agent._client_kwargs["default_headers"]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
-    assert headers["X-Title"] == "Hermes Agent"
+    assert headers["X-Title"] == "MUSE"
 
 
 @patch("run_agent.OpenAI")
@@ -44,7 +44,7 @@ def test_ai_gateway_base_url_applies_attribution_headers(mock_openai):
 
     headers = agent._client_kwargs["default_headers"]
     assert headers["HTTP-Referer"] == "https://hermes-agent.nousresearch.com"
-    assert headers["X-Title"] == "Hermes Agent"
+    assert headers["X-Title"] == "MUSE"
     assert headers["User-Agent"].startswith("HermesAgent/")
 
 
