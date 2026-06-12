@@ -404,9 +404,9 @@ def backup_existing(path: Path, backup_root: Path) -> Optional[Path]:
 # like ``openclaw`` → ``hermes`` (so filesystem paths like ``~/.openclaw``
 # become ``~/.hermes`` — the real Hermes home — not the broken ``~/.Hermes``).
 _REBRAND_PATTERNS: List[Tuple[re.Pattern, str]] = [
-    (re.compile(r'\bOpen[\s-]?Claw\b', re.IGNORECASE), 'Hermes'),
-    (re.compile(r'\bClawdBot\b', re.IGNORECASE), 'Hermes'),
-    (re.compile(r'\bMoltBot\b', re.IGNORECASE), 'Hermes'),
+    (re.compile(r'\bOpen[\s-]?Claw\b', re.IGNORECASE), 'MUSE'),
+    (re.compile(r'\bClawdBot\b', re.IGNORECASE), 'MUSE'),
+    (re.compile(r'\bMoltBot\b', re.IGNORECASE), 'MUSE'),
 ]
 
 
@@ -414,10 +414,10 @@ def _case_preserving_replacement(replacement: str):
     """Return a re.sub replacement fn that lowercases the result when the
     matched text was all-lowercase.
 
-    Keeps ``OpenClaw`` → ``Hermes`` but maps ``openclaw`` → ``hermes`` so a
+    Keeps ``OpenClaw`` → ``MUSE`` but maps ``openclaw`` → ``muse`` so a
     filesystem path like ``~/.openclaw/config.yaml`` rewrites to
-    ``~/.hermes/config.yaml`` (the real Hermes home) instead of the broken
-    ``~/.Hermes/config.yaml``.
+    ``~/.muse/config.yaml`` (the canonical MUSE home) instead of a broken
+    mixed-case path.
     """
     def _sub(match: "re.Match[str]") -> str:
         matched = match.group(0)

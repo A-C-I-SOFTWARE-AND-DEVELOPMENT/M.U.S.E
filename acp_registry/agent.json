@@ -1,16 +1,20 @@
 {
-  "id": "hermes-agent",
-  "name": "Hermes Agent",
+  "id": "muse-agent",
+  "name": "MUSE",
   "version": "0.14.1+aci.1",
-  "description": "Self-improving open-source AI agent by Nous Research with ACP editor integration, persistent memory, skills, and rich tool support.",
+  "description": "MUSE — self-improving, local-first open-source AI operating partner (formerly Hermes Agent, by Nous Research) with ACP editor integration, persistent memory, skills, and rich tool support.",
   "repository": "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E",
   "website": "https://hermes-agent.nousresearch.com/docs/user-guide/features/acp",
-  "authors": ["Nous Research"],
+  "authors": [
+    "Nous Research"
+  ],
   "license": "MIT",
   "distribution": {
     "uvx": {
       "package": "muse-agent[acp]==0.14.1+aci.1",
-      "args": ["muse-acp"]
+      "args": [
+        "muse-acp"
+      ]
     }
   }
 }

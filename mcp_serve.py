@@ -455,10 +455,20 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
             f"Install with: {sys.executable} -m pip install 'mcp'"
         )
 
+    # Advertised server name: "muse" (canonical). Clients key tool prefixes
+    # (mcp__<name>__*) off their OWN config entry, so existing configs that
+    # registered this server as "hermes" are unaffected. Users who depend on
+    # the advertised name can pin it via MUSE_MCP_SERVER_NAME (or the legacy
+    # HERMES_MCP_SERVER_NAME).
+    server_name = (
+        os.environ.get("MUSE_MCP_SERVER_NAME", "").strip()
+        or os.environ.get("HERMES_MCP_SERVER_NAME", "").strip()
+        or "muse"
+    )
     mcp = FastMCP(
-        "hermes",
+        server_name,
         instructions=(
-            "Hermes Agent messaging bridge. Use these tools to interact with "
+            "MUSE messaging bridge. Use these tools to interact with "
             "conversations across Telegram, Discord, Slack, WhatsApp, Signal, "
             "Matrix, and other connected platforms."
         ),

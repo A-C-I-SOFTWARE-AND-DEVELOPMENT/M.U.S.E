@@ -122,10 +122,15 @@ def _build_server() -> Any:
         handle_function_call,
     )
 
+    server_name = (
+        os.environ.get("MUSE_TOOLS_MCP_SERVER_NAME", "").strip()
+        or os.environ.get("HERMES_TOOLS_MCP_SERVER_NAME", "").strip()
+        or "muse-tools"
+    )
     mcp = FastMCP(
-        "hermes-tools",
+        server_name,
         instructions=(
-            "Hermes Agent's tool surface, exposed for use inside a Codex "
+            "MUSE's tool surface, exposed for use inside a Codex "
             "session. Use these for capabilities Codex's built-in toolset "
             "doesn't cover: web search/extract, browser automation, "
             "subagent delegation, vision, image generation, persistent "

@@ -104,7 +104,25 @@ Scope and method: see `MUSE_RENAME_INVENTORY.md` and the approved plan.
 
 **Gate-caught fixes:** 10 new test failures after the renames — ACP-manifest/release tests pinning the old dist name, the termux-all extra test, and termux doc tests reading the now-stubbed script paths — all updated to the new invariant (the ACP **id** assertion still pins `hermes-agent`, correctly).
 
-## Owner-gated proposals — awaiting exact `Yes, with authorization.`
+## Owner-gated proposals — RESOLVED by owner authorization (`Yes, with authorization.`, 2026-06-12)
+
+**Applied under authorization:**
+1. **MCP advertised name** → `"muse"` (`mcp_serve.py`), env-overridable via `MUSE_MCP_SERVER_NAME` / legacy `HERMES_MCP_SERVER_NAME` (verified: default `muse`, legacy pinnable to `hermes`). Note: client tool prefixes (`mcp__<name>__*`) come from the *client's own config key*, so existing `mcp__hermes__*` allow-lists keep working unchanged.
+2. **MCP tools server** → `"muse-tools"` (env-overridable `MUSE_TOOLS_MCP_SERVER_NAME`/`HERMES_TOOLS_MCP_SERVER_NAME`); module path `agent/transports/hermes_tools_mcp_server.py` kept (external `-m` contract in `~/.codex/config.toml`).
+3. **ACP manifest** → `id: "muse-agent"`, `name: "MUSE"`, MUSE description (repo/license/authors unchanged; registry-side coordination still needed when submitting).
+4. **PyPI workflow** environment URL → `pypi.org/p/muse-agent` (publish itself still off-machine).
+5. **Help guidance + bundled skill**: `skills/autonomous-ai-agents/hermes-agent` → `muse-agent`; `MUSE_AGENT_HELP_GUIDANCE` (legacy constant name kept as alias) now points at the `muse-agent` skill.
+6. **openclaw-migration rebrand** → OpenClaw/ClawdBot/MoltBot now rebrand to **MUSE** (lowercase matches become `muse`, so `~/.openclaw` path fragments rewrite to the canonical `~/.muse`); 41 migration tests green.
+7. **Website skill-docs generator** brand strings → MUSE (the live site builds from the generator, which still said Hermes).
+
+**Still pending (off-machine or needs coordinated release — cannot be executed from this environment):**
+- Homebrew tap publish (formula + `formula_renames.json` are ready in-repo).
+- PyPI project creation/redirect for `muse-agent` (local version `+aci.1` can't publish regardless).
+- ACP registry submission of the updated manifest.
+- Docs domain `hermes-agent.nousresearch.com` (external DNS/site — URLs left intact so links keep working).
+- Android `applicationId com.aci.hermes` — store-identity change; needs a mobile release plan (changing it silently orphans existing installs).
+- Website guide URL slugs (`*-hermes*.md`) — need `@docusaurus/plugin-client-redirects` first or old URLs 404.
+- Per-skill `author: Hermes Agent` frontmatter sweep across hundreds of SKILL.md files (cosmetic; follow-up).
 
 1. **MCP advertised server name `"hermes"`** (`mcp_serve.py`). Client configs (`claude_desktop_config.json`, `.mcp.json`) address tools as `mcp__hermes__*`; renaming breaks every existing allow-list. Proposal: register a second FastMCP entry point advertising `"muse"` (same tools) and document both; never remove `"hermes"`. Verified this session: server still advertises `hermes`.
 2. **MCP `"hermes-tools"`** (`agent/transports/hermes_tools_mcp_server.py`) — same pattern: additive `muse-tools` alias server, keep old name + module path (`-m` path is in `~/.codex/config.toml`).

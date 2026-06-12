@@ -28,9 +28,9 @@ def test_agent_json_matches_official_registry_required_fields():
     data = _manifest()
 
     assert FORBIDDEN_MANIFEST_KEYS.isdisjoint(data)
-    assert data["id"] == "hermes-agent"
+    assert data["id"] == "muse-agent"
     assert re.fullmatch(r"[a-z][a-z0-9-]*", data["id"])
-    assert data["name"] == "Hermes Agent"
+    assert data["name"] == "MUSE"
     assert data["description"]
     assert data["repository"] == "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E"
     assert data["website"].startswith("https://hermes-agent.nousresearch.com/")

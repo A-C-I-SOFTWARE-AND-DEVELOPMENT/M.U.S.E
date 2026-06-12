@@ -1,6 +1,6 @@
 ---
-name: hermes-agent
-description: "Configure, extend, or contribute to Hermes Agent."
+name: muse-agent
+description: "Configure, extend, or contribute to MUSE (formerly Hermes Agent)."
 version: 2.1.0
 author: Hermes Agent + Teknium
 license: MIT
