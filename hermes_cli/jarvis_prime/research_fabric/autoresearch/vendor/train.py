@@ -10,6 +10,7 @@ os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 import gc
 import math
+import sys
 import time
 from dataclasses import dataclass, asdict
 
@@ -569,7 +570,7 @@ while True:
     # Fast fail: abort if loss is exploding or NaN
     if math.isnan(train_loss_f) or train_loss_f > 100:
         print("FAIL")
-        exit(1)
+        sys.exit(1)
 
     torch.cuda.synchronize()
     t1 = time.time()
