@@ -453,7 +453,8 @@ def run_experiment_loop(
             stopped_reason = hit
             break
 
-        if index == 0 and config.baseline_bpb is None:
+        is_unedited_baseline = index == 0 and config.baseline_bpb is None
+        if is_unedited_baseline:
             edit = ExperimentEdit(description="baseline (unedited train.py)", train_py=None)
         else:
             proposed = propose_edit(
@@ -483,12 +484,12 @@ def run_experiment_loop(
         results.append(result)
         total_cost += result.cost_usd
 
-        if index == 0 and config.baseline_bpb is None:
+        if is_unedited_baseline:
             baseline = result
         if result.status == "keep" and result.val_bpb is not None:
             best_bpb = result.val_bpb
             # The unedited baseline is the bar, not a challenger.
-            if not (index == 0 and config.baseline_bpb is None):
+            if not is_unedited_baseline:
                 champion = result
         if result.status == "infeasible" and result.val_bpb is not None:
             if best_infeasible is None or result.val_bpb < (
