@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Optional
 
@@ -254,7 +255,7 @@ def test_record_promotion_is_high_risk_with_owner_gate(monkeypatch, tmp_path: Pa
 
 def test_dataset_candidate_offer_is_soft_fail(monkeypatch) -> None:
     # Even if the learning-dataset layer explodes, the run must not raise.
-    import hermes_cli.jarvis_prime.autoresearch_improve as mod
+    mod = sys.modules[record_promotion.__module__]
 
     def boom(details):
         raise RuntimeError("dataset layer down")
