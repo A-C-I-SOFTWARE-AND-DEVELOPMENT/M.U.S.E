@@ -7834,23 +7834,34 @@ class HermesCLI:
         """Dispatch /jarvis, /jp, /jarvis-prime, /muse, /m to the MUSE runtime.
 
         Imports lazily so the cost only lands when the user invokes the
-        slash command. ``/<cmd> stop`` is a special form that maps to
-        :meth:`JarvisPrime.stop`; everything else is forwarded as the
-        intent to :meth:`JarvisPrime.handle`.
+        slash command. ``/muse`` (or ``/m``) with no intent pulls up the
+        MUSE-branded TUI (singularity skin + banner). ``/<cmd> stop`` is a
+        special form that maps to :meth:`JarvisPrime.stop`; everything else
+        is forwarded as the intent to :meth:`JarvisPrime.handle`.
         """
         rest = cmd.strip()
         if rest.startswith("/"):
             rest = rest.lstrip("/")
-        # Strip the canonical / alias from the front of the payload.
+        # Strip the canonical / alias from the front of the payload, keeping
+        # the alias the user actually typed so messages echo it back.
         first, _, after = rest.partition(" ")
+        alias = "jarvis"
         if first.lower() in {"jarvis-prime", "jarvis", "jp", "muse", "m"}:
+            alias = first.lower()
             rest = after.strip()
         intent = rest.strip()
+
+        if not intent:
+            if alias in {"muse", "m"}:
+                self._activate_muse_tui()
+            else:
+                print(f"usage: /{alias} <intent> | /{alias} stop")
+            return
 
         try:
             from hermes_cli.jarvis_prime.runtime import JarvisPrime
         except Exception as exc:  # pragma: no cover - defensive
-            print(f"(._.) /jarvis: import failed — {exc}")
+            print(f"(._.) /{alias}: import failed — {exc}")
             return
 
         jp = JarvisPrime()
@@ -7862,14 +7873,11 @@ class HermesCLI:
                 f"tick_disabled={result['tick_disabled']}"
             )
             return
-        if not intent:
-            print("usage: /jarvis <intent> | /jarvis stop")
-            return
 
         try:
             turn = jp.handle(intent)
         except Exception as exc:  # pragma: no cover - defensive
-            print(f"(._.) /jarvis error: {exc}")
+            print(f"(._.) /{alias} error: {exc}")
             return
 
         print(f"Mode: {turn.classification.mode.value} "
@@ -9161,6 +9169,42 @@ class HermesCLI:
                     self._pending_input.put(prompt)
                 except Exception as exc:
                     logging.debug("goal continuation enqueue failed: %s", exc)
+
+    def _activate_muse_tui(self) -> None:
+        """Pull up the MUSE-branded TUI: singularity skin + banner + status.
+
+        Invoked by ``/muse`` (or ``/m``) with no intent. Reuses the ``/skin``
+        switch recipe so the change persists across sessions, then re-renders
+        the welcome banner in the M.U.S.E. look.
+        """
+        try:
+            from hermes_cli.skin_engine import (
+                get_active_skin,
+                get_active_skin_name,
+                set_active_skin,
+            )
+        except ImportError:
+            print("Skin engine not available.")
+            return
+
+        if get_active_skin_name() != "singularity":
+            set_active_skin("singularity")
+            _ACCENT.reset()  # Re-resolve ANSI accent for the MUSE skin
+            save_config_value("display.skin", "singularity")
+            self._apply_tui_skin_style()
+
+        try:
+            self.show_banner()
+        except Exception as exc:  # banner is cosmetic — never block activation
+            logging.debug("MUSE banner render failed: %s", exc)
+
+        skin = get_active_skin()
+        welcome = skin.get_branding(
+            "welcome", "Welcome to M.U.S.E. — one mind, many pathways."
+        )
+        _cprint(f"  {welcome}")
+        _cprint(f"  {_DIM}/muse <intent> — route an intent through MUSE{_RST}")
+        _cprint(f"  {_DIM}/muse stop — emergency stop · /model — switch model · /tools — toolsets · /skin — looks{_RST}")
 
     def _handle_skin_command(self, cmd: str):
         """Handle /skin [name] — show or change the display skin."""

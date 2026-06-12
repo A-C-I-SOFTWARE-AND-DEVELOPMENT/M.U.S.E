@@ -274,10 +274,11 @@ COMMAND_REGISTRY: list[CommandDef] = [
                subcommands=("run",)),
     CommandDef("jarvis-prime",
                "Invoke MUSE — local-first AI operating partner. "
-               "Prints persona prompt, route decision, and any owner-gate phrase.",
+               "/muse alone pulls up the MUSE-branded TUI; with an intent it "
+               "prints persona prompt, route decision, and any owner-gate phrase.",
                "Tools & Skills",
                aliases=("jarvis", "jp", "muse", "m"),
-               args_hint="<intent> | stop",
+               args_hint="[<intent> | stop]",
                subcommands=("stop",)),
     CommandDef("research-fabric",
                "Bounded-autonomous, verifier-gated self-improvement fabric — "
