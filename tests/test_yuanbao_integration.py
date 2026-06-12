@@ -115,7 +115,7 @@ class TestGatewayRunnerRegistration:
             "dotenv",
             "muse_cli.env_loader",
             "muse_cli.config",
-            "hermes_constants",
+            "muse_constants",
         ]
         _orig = {}
         for mod in stubs:

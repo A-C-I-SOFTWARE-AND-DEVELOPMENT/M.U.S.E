@@ -7,7 +7,7 @@
 # `~/.hermes/.env` (see `.env.example`) and `hermes doctor` reports each
 # model as ready/blocked.
 #
-# `hermes_model_catalog.py` loads and validates this file. Keep entries
+# `muse_model_catalog.py` loads and validates this file. Keep entries
 # alphabetical within a provider so diffs stay readable. This is data,
 # not code — adding a model is a YAML edit, no Python change.
 

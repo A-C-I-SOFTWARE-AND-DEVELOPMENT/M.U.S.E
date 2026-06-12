@@ -6,7 +6,7 @@ no Ollama, no downloads.
 
 from __future__ import annotations
 
-from hermes_model_catalog import load_catalog
+from muse_model_catalog import load_catalog
 from muse_cli.local_models.catalog import load_open_weight_catalog
 from muse_cli import oss_model_brain as ob
 

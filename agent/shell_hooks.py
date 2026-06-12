@@ -75,7 +75,7 @@ try:
 except ImportError:  # pragma: no cover
     fcntl = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional stdlib module on non-POSIX
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 from utils import atomic_replace
 
 logger = logging.getLogger(__name__)

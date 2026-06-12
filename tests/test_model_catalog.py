@@ -1,4 +1,4 @@
-"""Tests for the pre-wired model catalog loader (``hermes_model_catalog``)."""
+"""Tests for the pre-wired model catalog loader (``muse_model_catalog``)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from hermes_model_catalog import load_catalog
+from muse_model_catalog import load_catalog
 
 
 def test_real_catalog_loads_and_validates():

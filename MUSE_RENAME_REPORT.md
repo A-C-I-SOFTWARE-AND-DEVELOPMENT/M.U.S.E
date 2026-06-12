@@ -36,3 +36,11 @@ Scope and method: see `MUSE_RENAME_INVENTORY.md` and the approved plan.
 - Closing audit: `git grep '\bhermes_cli\b' -- '*.py'` = exactly the keep-both allowlist (8 files); one boundary-missed occurrence (`b"...\x00hermes_cli/main.py..."` in `tests/gateway/test_status.py` — `\b` fails after `\x00`'s `0`) found by the gate and fixed.
 - Gates (measured): editable reinstall OK; `import muse_cli` OK; `hermes_cli is muse_cli` identity OK; `python -m hermes_cli.main --version` / `muse --help` / `hermes --help` all exit 0; compileall **0 errors**; collect-only **29,317 green** (baseline + 7 shim tests); full pytest **57 failed / 29,054 passed / 210 skipped in 11:12** — normalized diff vs baseline: 0 new failures (the 1 initial new failure was the fixture above, fixed and re-run green; 4 baseline flakes passed this round).
 - Rollback handle: `00ca2da82`.
+
+## Phase 2 — top-level `hermes_*.py` → `muse_*.py` + shim modules
+
+- `git mv` of all six modules (bootstrap, constants, state, logging, model_catalog, time). LibCST `rename.RenameCommand` per module over the ~300 referencing files: **0 failures, 0 warnings**. Scoped token pass rewrote remaining comment/docstring/test-string refs with a `(?!\.db)` guard — `"hermes_state.db"` is a legacy **on-disk filename** in profile copy/exclude lists (`muse_cli/profiles.py`, `muse_cli/profile_distribution.py`) and stays verbatim (Bucket C).
+- Six permanent single-file shims left at the old names (`import muse_X as _target; warnings.warn(DeprecationWarning); sys.modules[__name__] = _target`).
+- `py-modules` now lists both generations and adds `muse_model_catalog`/`hermes_model_catalog` — the old `hermes_model_catalog` was missing entirely, so wheels never shipped it (latent bug fixed).
+- Gates (measured): editable reinstall OK; all six `hermes_X is muse_X` identity checks pass; `from hermes_constants import get_hermes_home` works via shim; compileall **0 errors**; collect-only **29,317 green**; full pytest **59 failed / 29,052 passed / 210 skipped in 10:32** — **0 new failures vs baseline** (normalized diff empty).
+- Rollback handle: see this phase's commit.

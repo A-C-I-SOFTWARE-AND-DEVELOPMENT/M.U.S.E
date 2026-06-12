@@ -34,7 +34,7 @@ __all__ = [
 
 def _hermes_home() -> Path:
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         return Path(get_hermes_home())
     except Exception:

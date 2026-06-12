@@ -1516,7 +1516,7 @@ def invoke_tool(agent, function_name: str, function_args: dict, effective_task_i
     elif function_name == "session_search":
         session_db = agent._get_session_db_for_recall()
         if not session_db:
-            from hermes_state import format_session_db_unavailable
+            from muse_state import format_session_db_unavailable
             return json.dumps({"success": False, "error": format_session_db_unavailable()})
         from tools.session_search_tool import session_search as _session_search
         return _session_search(

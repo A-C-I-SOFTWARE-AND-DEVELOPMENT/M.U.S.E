@@ -13,7 +13,7 @@ import sys
 import shlex
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 
 
 # ---------------------------------------------------------------------------

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from muse_cli.config import get_project_root, get_hermes_home, get_env_path
 from muse_cli.env_loader import load_hermes_dotenv
-from hermes_constants import display_hermes_home
+from muse_constants import display_hermes_home
 
 PROJECT_ROOT = get_project_root()
 HERMES_HOME = get_hermes_home()
@@ -26,7 +26,7 @@ load_hermes_dotenv(hermes_home=_env_path.parent, project_env=PROJECT_ROOT / ".en
 from muse_cli.colors import Colors, color
 from muse_cli.models import _HERMES_USER_AGENT
 from muse_cli.vercel_auth import describe_vercel_auth
-from hermes_constants import OPENROUTER_MODELS_URL
+from muse_constants import OPENROUTER_MODELS_URL
 from utils import base_url_host_matches
 
 
@@ -57,7 +57,7 @@ _PROVIDER_ENV_HINTS = (
 )
 
 
-from hermes_constants import is_termux as _is_termux
+from muse_constants import is_termux as _is_termux
 
 
 def _python_install_cmd() -> str:

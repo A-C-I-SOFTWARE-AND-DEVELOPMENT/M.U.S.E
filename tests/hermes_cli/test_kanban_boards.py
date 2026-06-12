@@ -53,10 +53,10 @@ def fresh_home(tmp_path, monkeypatch):
         "HERMES_KANBAN_BOARD",
     ):
         monkeypatch.delenv(var, raising=False)
-    # Also reset hermes_constants cache so get_default_hermes_root() re-reads.
+    # Also reset muse_constants cache so get_default_hermes_root() re-reads.
     try:
-        import hermes_constants
-        hermes_constants._cached_default_hermes_root = None  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+        import muse_constants
+        muse_constants._cached_default_hermes_root = None  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     except Exception:
         pass
     # Kanban module-level init cache must not leak between tests.

@@ -501,7 +501,7 @@ def _bridge_state_dir() -> Path:
 
     Resolved the same way :meth:`RemoteBridge._default_audit_path` resolves the
     audit dir — ``${HERMES_HOME}/bridge`` when ``HERMES_HOME`` is set, else
-    ``~/.hermes/bridge``. Kept stdlib-only (no ``hermes_constants`` import) so
+    ``~/.hermes/bridge``. Kept stdlib-only (no ``muse_constants`` import) so
     the file-drop path stays dependency-free, matching the rest of this module.
     """
     home = os.environ.get("HERMES_HOME")

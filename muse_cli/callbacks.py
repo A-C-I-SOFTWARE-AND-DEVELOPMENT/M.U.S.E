@@ -12,7 +12,7 @@ import getpass
 
 from muse_cli.banner import cprint, _DIM, _RST
 from muse_cli.config import save_env_value_secure
-from hermes_constants import display_hermes_home
+from muse_constants import display_hermes_home
 
 
 def clarify_callback(cli, question, choices):

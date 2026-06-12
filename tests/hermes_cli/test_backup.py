@@ -1443,9 +1443,9 @@ class TestRunPreUpdateBackup:
         monkeypatch.setenv("HERMES_HOME", str(root))
         # Make Path.home() point at tmp_path for anything that uses it
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        # Bust caches for muse_cli.config + hermes_constants so they pick up HERMES_HOME
+        # Bust caches for muse_cli.config + muse_constants so they pick up HERMES_HOME
         for mod in list(__import__("sys").modules.keys()):
-            if mod.startswith("muse_cli.config") or mod == "hermes_constants":
+            if mod.startswith("muse_cli.config") or mod == "muse_constants":
                 del __import__("sys").modules[mod]
         return root
 

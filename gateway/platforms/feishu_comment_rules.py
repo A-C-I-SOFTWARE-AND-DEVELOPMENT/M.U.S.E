@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 
 logger = logging.getLogger(__name__)
 

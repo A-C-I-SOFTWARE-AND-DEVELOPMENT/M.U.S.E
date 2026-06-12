@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, cast
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 from tools import skill_usage
 
 logger = logging.getLogger(__name__)

@@ -1,6 +1,6 @@
 """Open-weight model candidate catalog.
 
-The repo already ships a *provider* catalog (``hermes_model_catalog.py`` +
+The repo already ships a *provider* catalog (``muse_model_catalog.py`` +
 ``config/model-catalog.yaml``) describing hosted/keyed models. This module is
 the complementary **open-weight / local** view: the candidate models you might
 *download and run yourself* (Qwen, DeepSeek, Kimi, GLM coding/reasoning

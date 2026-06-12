@@ -157,7 +157,7 @@ def _hermes_home() -> Path:
     importing this module still pick up the override.
     """
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
         return Path(get_hermes_home())
     except Exception:
         return Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))

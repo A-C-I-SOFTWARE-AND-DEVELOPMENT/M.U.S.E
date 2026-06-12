@@ -69,7 +69,7 @@ class GrainVariant:
 
 def _default_archive_path() -> Path:
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         home = Path(get_hermes_home())
     except Exception:

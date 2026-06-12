@@ -49,7 +49,7 @@ def _hermes_home() -> Path:
     work for both.
     """
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
         return get_hermes_home()
     except Exception:
         return Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))

@@ -216,8 +216,8 @@ def _get_session_db() -> Optional[Any]:
     non-standard launchers can still use the GoalManager.
     """
     try:
-        from hermes_constants import get_hermes_home
-        from hermes_state import SessionDB
+        from muse_constants import get_hermes_home
+        from muse_state import SessionDB
 
         home = str(get_hermes_home())
     except Exception as exc:  # pragma: no cover

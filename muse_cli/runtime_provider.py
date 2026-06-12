@@ -30,7 +30,7 @@ from muse_cli.auth import (
     has_usable_secret,
 )
 from muse_cli.config import get_compatible_custom_providers, load_config
-from hermes_constants import OPENROUTER_BASE_URL
+from muse_constants import OPENROUTER_BASE_URL
 from utils import base_url_host_matches, base_url_hostname
 
 

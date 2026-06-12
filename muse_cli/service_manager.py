@@ -100,7 +100,7 @@ def detect_service_manager() -> ServiceManagerKind:
     # Imports deferred so importing this module doesn't drag in the
     # whole gateway dependency graph for callers that only need the
     # Protocol type or validate_profile_name().
-    from hermes_constants import is_container
+    from muse_constants import is_container
     from muse_cli.gateway import (
         is_macos,
         is_windows,

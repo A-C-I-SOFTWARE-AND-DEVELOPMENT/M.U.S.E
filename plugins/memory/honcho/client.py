@@ -20,7 +20,7 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 from muse_cli.profiles import _get_default_hermes_home
 from typing import Any, TYPE_CHECKING
 

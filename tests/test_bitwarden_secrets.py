@@ -61,9 +61,9 @@ def hermes_home(tmp_path, monkeypatch):
     home.mkdir()
     monkeypatch.setenv("HERMES_HOME", str(home))
     # Some modules cache get_hermes_home; clear if needed.
-    import hermes_constants
-    if hasattr(hermes_constants, "_HERMES_HOME_CACHE"):
-        hermes_constants._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
+    import muse_constants
+    if hasattr(muse_constants, "_HERMES_HOME_CACHE"):
+        muse_constants._HERMES_HOME_CACHE = None  # type: ignore[attr-defined]
     return home
 
 

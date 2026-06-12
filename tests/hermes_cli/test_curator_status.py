@@ -68,8 +68,8 @@ def curator_status_env(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     import importlib
-    import hermes_constants
-    importlib.reload(hermes_constants)
+    import muse_constants
+    importlib.reload(muse_constants)
     from tools import skill_usage
     importlib.reload(skill_usage)
     from agent import curator

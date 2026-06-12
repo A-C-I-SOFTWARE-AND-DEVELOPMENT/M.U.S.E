@@ -13,7 +13,7 @@ from dataclasses import dataclass, fields, replace
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
 
-from hermes_constants import OPENROUTER_BASE_URL
+from muse_constants import OPENROUTER_BASE_URL
 from muse_cli.config import get_env_value, load_env
 import muse_cli.auth as auth_mod
 from muse_cli.auth import (

@@ -253,7 +253,10 @@ muse-acp = "acp_adapter.entry:main"
 override-dependencies = ["pynacl>=1.6.2"]
 
 [tool.setuptools]
-py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "utils"]
+# muse_* are the canonical modules; the hermes_* entries are permanent compat
+# shims (each re-exports its muse_* twin). muse_model_catalog is newly listed —
+# the old hermes_model_catalog was missing here, so wheels never shipped it.
+py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "muse_bootstrap", "muse_constants", "muse_state", "muse_time", "muse_logging", "muse_model_catalog", "hermes_bootstrap", "hermes_constants", "hermes_state", "hermes_time", "hermes_logging", "hermes_model_catalog", "utils"]
 
 [tool.setuptools.package-data]
 muse_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]

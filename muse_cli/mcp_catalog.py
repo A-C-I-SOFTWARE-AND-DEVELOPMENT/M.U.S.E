@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from hermes_constants import get_hermes_home, get_optional_mcps_dir
+from muse_constants import get_hermes_home, get_optional_mcps_dir
 from muse_cli.colors import Colors, color
 from muse_cli.config import (
     load_config,

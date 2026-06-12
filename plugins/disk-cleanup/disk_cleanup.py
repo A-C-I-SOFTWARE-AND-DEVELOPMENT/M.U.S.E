@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Callable
 
 try:
-    from hermes_constants import get_hermes_home
+    from muse_constants import get_hermes_home
 except Exception:  # pragma: no cover — plugin may load before constants resolves
     import os
 

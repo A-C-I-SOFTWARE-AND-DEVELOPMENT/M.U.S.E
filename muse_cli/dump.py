@@ -15,7 +15,7 @@ from pathlib import Path
 
 from muse_cli.config import get_hermes_home, get_env_path, get_project_root, load_config
 from muse_cli.env_loader import load_hermes_dotenv
-from hermes_constants import display_hermes_home
+from muse_constants import display_hermes_home
 
 
 def _get_git_commit(project_root: Path) -> str:

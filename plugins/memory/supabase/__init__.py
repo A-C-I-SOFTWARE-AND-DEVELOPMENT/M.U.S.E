@@ -58,7 +58,7 @@ def _load_config() -> dict:
         "table": os.environ.get("SUPABASE_MEMORY_TABLE") or DEFAULT_TABLE,
     }
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         path = get_hermes_home() / "supabase_memory.json"
         if path.exists():

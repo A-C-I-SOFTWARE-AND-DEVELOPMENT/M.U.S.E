@@ -166,8 +166,8 @@ async def test_start_gateway_verbosity_imports_redacting_formatter(monkeypatch, 
 
     monkeypatch.setattr("gateway.status.get_running_pid", lambda: None)
     monkeypatch.setattr("tools.skills_sync.sync_skills", lambda quiet=True: None)
-    monkeypatch.setattr("hermes_logging.setup_logging", lambda hermes_home, mode: tmp_path)
-    monkeypatch.setattr("hermes_logging._add_rotating_handler", lambda *args, **kwargs: None)
+    monkeypatch.setattr("muse_logging.setup_logging", lambda hermes_home, mode: tmp_path)
+    monkeypatch.setattr("muse_logging._add_rotating_handler", lambda *args, **kwargs: None)
     monkeypatch.setattr("gateway.run.GatewayRunner", _CleanExitRunner)
 
     from gateway.run import start_gateway
@@ -216,8 +216,8 @@ async def test_start_gateway_replace_force_uses_terminate_pid(monkeypatch, tmp_p
     monkeypatch.setattr("gateway.run.os.kill", lambda pid, sig: None)
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("tools.skills_sync.sync_skills", lambda quiet=True: None)
-    monkeypatch.setattr("hermes_logging.setup_logging", lambda hermes_home, mode: tmp_path)
-    monkeypatch.setattr("hermes_logging._add_rotating_handler", lambda *args, **kwargs: None)
+    monkeypatch.setattr("muse_logging.setup_logging", lambda hermes_home, mode: tmp_path)
+    monkeypatch.setattr("muse_logging._add_rotating_handler", lambda *args, **kwargs: None)
     monkeypatch.setattr("gateway.run.GatewayRunner", _CleanExitRunner)
 
     from gateway.run import start_gateway
@@ -298,8 +298,8 @@ async def test_start_gateway_replace_writes_takeover_marker_before_sigterm(
     )
     monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr("tools.skills_sync.sync_skills", lambda quiet=True: None)
-    monkeypatch.setattr("hermes_logging.setup_logging", lambda hermes_home, mode: tmp_path)
-    monkeypatch.setattr("hermes_logging._add_rotating_handler", lambda *args, **kwargs: None)
+    monkeypatch.setattr("muse_logging.setup_logging", lambda hermes_home, mode: tmp_path)
+    monkeypatch.setattr("muse_logging._add_rotating_handler", lambda *args, **kwargs: None)
     monkeypatch.setattr("gateway.run.GatewayRunner", _CleanExitRunner)
 
     from gateway.run import start_gateway
@@ -340,8 +340,8 @@ async def test_start_gateway_replace_clears_marker_on_permission_denied(
     monkeypatch.setattr("gateway.status.terminate_pid", raise_permission)
     monkeypatch.setattr("gateway.run.os.getpid", lambda: 100)
     monkeypatch.setattr("tools.skills_sync.sync_skills", lambda quiet=True: None)
-    monkeypatch.setattr("hermes_logging.setup_logging", lambda hermes_home, mode: tmp_path)
-    monkeypatch.setattr("hermes_logging._add_rotating_handler", lambda *args, **kwargs: None)
+    monkeypatch.setattr("muse_logging.setup_logging", lambda hermes_home, mode: tmp_path)
+    monkeypatch.setattr("muse_logging._add_rotating_handler", lambda *args, **kwargs: None)
 
     from gateway.run import start_gateway
 

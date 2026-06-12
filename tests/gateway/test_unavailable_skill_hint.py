@@ -161,7 +161,7 @@ def test_optional_skill_uses_frontmatter_slug(
     # ``get_optional_skills_dir(repo_root / "optional-skills")`` — we
     # can't easily retarget ``repo_root``, so patch the resolver.
     monkeypatch.setattr(
-        "hermes_constants.get_optional_skills_dir",
+        "muse_constants.get_optional_skills_dir",
         lambda _default: optional,
         raising=False,
     )

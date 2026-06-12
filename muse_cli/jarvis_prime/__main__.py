@@ -581,7 +581,7 @@ def _holographic_store():
     isn't importable (e.g. minimal install).
     """
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
         from plugins.memory.holographic import _load_plugin_config
         from plugins.memory.holographic.store import MemoryStore
     except Exception as exc:  # pragma: no cover - minimal install
@@ -671,7 +671,7 @@ def _cmd_memory_stats(args: argparse.Namespace) -> int:
 def _memory_sources_config() -> dict:
     """Read jarvis_prime.memory_sources config from config.yaml (per-source gates)."""
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
         from muse_cli.config import cfg_get
         import yaml
 

@@ -1,6 +1,6 @@
 """Local / open-weight model layer for Hermes (Phase 6).
 
-Complements the hosted-provider catalog (`hermes_model_catalog.py`) with the
+Complements the hosted-provider catalog (`muse_model_catalog.py`) with the
 pieces needed to run models locally and route by measured outcomes:
 
 - :mod:`hardware_probe` — what the box can run (stdlib-only, Termux-safe).

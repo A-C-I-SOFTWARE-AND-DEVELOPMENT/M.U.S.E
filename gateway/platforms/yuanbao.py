@@ -1586,7 +1586,7 @@ class AutoSetHomeMiddleware(InboundMiddleware):
                 adapter._auto_sethome_done = True  # DM seen — no further upgrades needed
             if _should_set:
                 try:
-                    from hermes_constants import get_hermes_home
+                    from muse_constants import get_hermes_home
                     from utils import atomic_yaml_write
                     import yaml
 

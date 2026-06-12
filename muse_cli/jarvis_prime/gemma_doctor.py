@@ -36,7 +36,7 @@ OllamaListRunner = Callable[[], str]
 
 def _check_provider_catalog() -> LaunchCheck:
     try:
-        from hermes_model_catalog import load_catalog
+        from muse_model_catalog import load_catalog
 
         catalog = load_catalog()
         gemma = [m.ref for m in catalog.models if m.family == "gemma"]

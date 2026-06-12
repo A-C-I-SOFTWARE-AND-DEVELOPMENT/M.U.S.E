@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 from muse_cli.config import get_hermes_home, get_config_path, load_config, save_config
-from hermes_constants import get_optional_skills_dir
+from muse_constants import get_optional_skills_dir
 from muse_cli.setup import (
     Colors,
     color,

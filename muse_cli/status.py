@@ -19,7 +19,7 @@ from muse_cli.models import provider_label
 from muse_cli.nous_subscription import get_nous_subscription_features
 from muse_cli.runtime_provider import resolve_requested_provider
 from muse_cli.vercel_auth import describe_vercel_auth
-from hermes_constants import OPENROUTER_MODELS_URL
+from muse_constants import OPENROUTER_MODELS_URL
 from tools.tool_backend_helpers import managed_nous_tools_enabled
 
 def check_mark(ok: bool) -> str:
@@ -84,7 +84,7 @@ def _effective_provider_label() -> str:
     return provider_label(effective)
 
 
-from hermes_constants import is_termux as _is_termux
+from muse_constants import is_termux as _is_termux
 
 
 def show_status(args):

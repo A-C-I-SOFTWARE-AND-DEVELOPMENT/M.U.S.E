@@ -386,13 +386,13 @@ def _candidate_id(trace_type: TraceType, content: Mapping[str, Any], created_at:
 def default_dataset_path() -> Path:
     """Profile-aware default store path.
 
-    Resolves under :func:`hermes_constants.get_hermes_home` so each profile
+    Resolves under :func:`muse_constants.get_hermes_home` so each profile
     (and any ``HERMES_HOME`` override) gets its own learning dataset — per
     the AGENTS.md rule never to hardcode ``Path.home() / ".hermes"`` for
     persistent state.
     """
 
-    from hermes_constants import get_hermes_home
+    from muse_constants import get_hermes_home
 
     return get_hermes_home() / "jarvis_prime" / "learning_dataset.jsonl"
 

@@ -8,7 +8,7 @@ import shlex
 import shutil
 import subprocess
 
-from hermes_constants import get_hermes_home
+from muse_constants import get_hermes_home
 
 
 DEFAULT_BROWSER_CDP_PORT = 9222

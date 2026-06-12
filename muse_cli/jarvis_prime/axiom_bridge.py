@@ -71,7 +71,7 @@ GATE_PROFILES: dict[str, tuple[str, ...]] = {
 def _hermes_home() -> Path:
     """Return the active Hermes home directory (lazy, env-aware)."""
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         return Path(get_hermes_home())
     except Exception:

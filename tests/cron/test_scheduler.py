@@ -864,7 +864,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -911,7 +911,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -948,7 +948,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -976,7 +976,7 @@ class TestRunJobSessionPersistence:
             patch("cron.scheduler._hermes_home", tmp_path),
             patch("cron.scheduler._resolve_origin", return_value=None),
             patch("dotenv.load_dotenv"),
-            patch("hermes_state.SessionDB", return_value=fake_db),
+            patch("muse_state.SessionDB", return_value=fake_db),
             patch(
                 "muse_cli.runtime_provider.resolve_runtime_provider",
                 return_value={
@@ -1079,7 +1079,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1155,7 +1155,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1194,7 +1194,7 @@ class TestRunJobSessionPersistence:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1283,7 +1283,7 @@ class TestRunJobSessionPersistence:
                 return {"final_response": "ok"}
 
         with patch("cron.scheduler._hermes_home", tmp_path), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1349,7 +1349,7 @@ class TestRunJobSessionPersistence:
                 return {"final_response": "ok"}
 
         with patch("cron.scheduler._hermes_home", tmp_path), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1464,7 +1464,7 @@ class TestRunJobConfigEnvVarExpansion:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch("muse_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -1496,7 +1496,7 @@ class TestRunJobConfigEnvVarExpansion:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch("muse_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -1525,7 +1525,7 @@ class TestRunJobConfigEnvVarExpansion:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch("muse_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -1567,7 +1567,7 @@ class TestRunJobSkillBacked:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1627,7 +1627,7 @@ class TestRunJobSkillBacked:
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("tools.credential_files._resolve_hermes_home", return_value=tmp_path), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1665,7 +1665,7 @@ class TestRunJobSkillBacked:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
@@ -1711,7 +1711,7 @@ class TestRunJobSkillBacked:
         with patch("cron.scheduler._hermes_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("hermes_state.SessionDB", return_value=fake_db), \
+             patch("muse_state.SessionDB", return_value=fake_db), \
              patch(
                  "muse_cli.runtime_provider.resolve_runtime_provider",
                  return_value={

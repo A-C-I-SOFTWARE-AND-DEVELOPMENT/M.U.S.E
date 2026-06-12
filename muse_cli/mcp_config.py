@@ -24,7 +24,7 @@ from muse_cli.config import (
     get_hermes_home,  # noqa: F401 — used by test mocks
 )
 from muse_cli.colors import Colors, color
-from hermes_constants import display_hermes_home
+from muse_constants import display_hermes_home
 from tools.mcp_tool import _ENV_VAR_PATTERN
 
 logger = logging.getLogger(__name__)

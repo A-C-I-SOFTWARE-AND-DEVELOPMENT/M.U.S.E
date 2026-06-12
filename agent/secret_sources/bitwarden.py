@@ -211,7 +211,7 @@ class FetchResult:
 
 def _hermes_bin_dir() -> Path:
     """Where Hermes stores its managed binaries.  Profile-aware."""
-    from hermes_constants import get_hermes_home
+    from muse_constants import get_hermes_home
 
     return get_hermes_home() / "bin"
 

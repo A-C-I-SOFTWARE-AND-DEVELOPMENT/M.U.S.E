@@ -44,7 +44,7 @@ _GEMMA_VARIANTS = ("gemma4-e2b", "gemma4-e4b", "gemma4-26b-a4b", "gemma4-31b")
 
 
 def _cmd_status(args: argparse.Namespace) -> int:
-    from hermes_model_catalog import load_catalog
+    from muse_model_catalog import load_catalog
     from muse_cli.local_models.catalog import load_open_weight_catalog
 
     catalog = load_catalog()

@@ -108,7 +108,7 @@ def _hermes_home() -> Path:
     ``~/.hermes/``.
     """
     try:
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         return get_hermes_home()
     except Exception:

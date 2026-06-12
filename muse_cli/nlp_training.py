@@ -679,7 +679,7 @@ def _load_env() -> None:
 
     try:
         from muse_cli.env_loader import load_hermes_dotenv
-        from hermes_constants import get_hermes_home
+        from muse_constants import get_hermes_home
 
         load_hermes_dotenv(hermes_home=get_hermes_home(), project_env=REPO_ROOT / ".env")
     except Exception:  # pragma: no cover - never fatal; env may already be set

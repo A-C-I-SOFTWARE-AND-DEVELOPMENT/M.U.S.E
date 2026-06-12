@@ -114,7 +114,7 @@ def test_has_hermes_agent_browser_windows_path(tmp_path):
     (node_dir / "agent-browser.cmd").write_text("@echo off")
     from muse_cli.dep_ensure import _has_hermes_agent_browser
     with patch("muse_cli.dep_ensure._IS_WINDOWS", True), \
-         patch("hermes_constants.get_hermes_home", return_value=tmp_path):
+         patch("muse_constants.get_hermes_home", return_value=tmp_path):
         assert _has_hermes_agent_browser() is True
 
 
@@ -124,7 +124,7 @@ def test_has_hermes_agent_browser_posix_path(tmp_path):
     (bin_dir / "agent-browser").write_text("#!/bin/sh")
     from muse_cli.dep_ensure import _has_hermes_agent_browser
     with patch("muse_cli.dep_ensure._IS_WINDOWS", False), \
-         patch("hermes_constants.get_hermes_home", return_value=tmp_path):
+         patch("muse_constants.get_hermes_home", return_value=tmp_path):
         assert _has_hermes_agent_browser() is True
 
 
@@ -135,7 +135,7 @@ def test_has_hermes_agent_browser_legacy_node_modules_path(tmp_path):
     (bin_dir / "agent-browser").write_text("#!/bin/sh")
     from muse_cli.dep_ensure import _has_hermes_agent_browser
     with patch("muse_cli.dep_ensure._IS_WINDOWS", False), \
-         patch("hermes_constants.get_hermes_home", return_value=tmp_path):
+         patch("muse_constants.get_hermes_home", return_value=tmp_path):
         assert _has_hermes_agent_browser() is True
 
 
@@ -148,7 +148,7 @@ def test_ensure_dependency_uses_powershell_on_windows(tmp_path):
          patch("muse_cli.dep_ensure._DEP_CHECKS", {"node": lambda: False}), \
          patch("muse_cli.dep_ensure._find_install_script", return_value=(scripts_dir / "install.ps1", "powershell")), \
          patch("muse_cli.dep_ensure.shutil") as mock_shutil, \
-         patch("hermes_constants.get_hermes_home", return_value=tmp_path / "fakehome"), \
+         patch("muse_constants.get_hermes_home", return_value=tmp_path / "fakehome"), \
          patch("subprocess.run") as mock_run, \
          patch("sys.stdin") as mock_stdin:
         mock_shutil.which.side_effect = lambda name: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" if name == "powershell" else None

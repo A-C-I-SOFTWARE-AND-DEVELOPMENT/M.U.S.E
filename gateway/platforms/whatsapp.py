@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     import aiohttp  # annotation-only; runtime imports are function-local
 
 
-from hermes_constants import get_hermes_dir
+from muse_constants import get_hermes_dir
 
 logger = logging.getLogger(__name__)
 

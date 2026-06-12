@@ -180,7 +180,7 @@ def describe_profile(
 
     try:
         if canon == "default":
-            from hermes_constants import get_hermes_home
+            from muse_constants import get_hermes_home
             profile_dir = Path(get_hermes_home())
         else:
             profile_dir = profiles_mod.get_profile_dir(canon)
