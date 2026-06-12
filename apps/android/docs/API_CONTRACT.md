@@ -1,7 +1,7 @@
 # Android ↔ Cockpit API Contract (v1.5)
 
 The canonical, full wire contract lives at
-[`docs/android/hermes-apk-api-contract.md`](../../../docs/android/hermes-apk-api-contract.md);
+[`docs/android/muse-apk-api-contract.md`](../../../docs/android/muse-apk-api-contract.md);
 the Kotlin mirror is `data/cockpit/CockpitApi.kt`. This file documents the
 **coding-cockpit** surface v1.5 adds/consumes and the conventions the app
 relies on.

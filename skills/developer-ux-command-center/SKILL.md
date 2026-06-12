@@ -115,7 +115,7 @@ populate it:
     scaffold trace.
 
 Always link the developer to
-`docs/orchestration/hermes-orchestration-pipeline.md` for the full
+`docs/orchestration/muse-orchestration-pipeline.md` for the full
 contract — this skill is the conversational entry point, not the spec.
 
 ## Anti-patterns

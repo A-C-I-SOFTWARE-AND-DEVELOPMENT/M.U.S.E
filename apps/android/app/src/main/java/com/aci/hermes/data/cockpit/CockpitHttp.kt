@@ -15,7 +15,7 @@ import java.net.URL
  * while tests inject a fake [CockpitHttpExecutor].
  *
  * The wire format is the contract in
- * docs/android/hermes-apk-api-contract.md (§1 conventions, §12 SDK
+ * docs/android/muse-apk-api-contract.md (§1 conventions, §12 SDK
  * shape). This layer owns three of the four client responsibilities
  * that doc assigns to the client: attaching the bearer token, decoding
  * the error envelope into a typed [CockpitError], and enforcing the

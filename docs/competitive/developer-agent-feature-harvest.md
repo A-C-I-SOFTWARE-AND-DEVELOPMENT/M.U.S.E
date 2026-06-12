@@ -5,7 +5,7 @@
 A verified survey of distinctive features across competing AI developer agents,
 cross-referenced against what Hermes already ships. The output of this doc is a
 research base; the prioritized adoption list lives in
-[`docs/product/hermes-feature-backlog.md`](../product/hermes-feature-backlog.md).
+[`docs/product/muse-feature-backlog.md`](../product/muse-feature-backlog.md).
 
 **Date:** 2026-05-23 (Phase 23 refresh; Phase 21 baseline was ~2026-05-16)
 **Scope:** Claude Code, Codex CLI, Aider, OpenHands, Continue, Goose, OpenHuman,

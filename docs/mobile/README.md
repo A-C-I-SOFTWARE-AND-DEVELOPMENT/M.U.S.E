@@ -36,17 +36,17 @@ The older, still-accurate plain-English walkthrough lives at
   — how the app and the loopback cockpit backend fit together: the route
   table, bearer auth, encrypted token storage, mock vs. real wiring, and
   the data-flow model.
-- [`hermes-mobile-architecture.md`](hermes-mobile-architecture.md) — the
+- [`muse-mobile-architecture.md`](muse-mobile-architecture.md) — the
   module-level Android architecture (deep dive).
-- [`hermes-mobile-backend-contract.md`](hermes-mobile-backend-contract.md)
+- [`muse-mobile-backend-contract.md`](muse-mobile-backend-contract.md)
   — the wire contract between app and gateway.
 - [`app-api-client.md`](app-api-client.md),
   [`app-state-model.md`](app-state-model.md),
   [`app-screens.md`](app-screens.md),
   [`app-background-service.md`](app-background-service.md),
   [`app-voice-service.md`](app-voice-service.md) — per-subsystem specs.
-- [`../android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
-  and [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`../android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
+  and [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — the canonical APK cockpit + API contract.
 - [`../../apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — the in-app architecture README, including **secure storage**.
@@ -90,8 +90,8 @@ The older, still-accurate plain-English walkthrough lives at
 
 If you run the backend on the *same* phone via Termux:
 
-- [`../termux/hermes-phone-first-runtime.md`](../termux/hermes-phone-first-runtime.md),
-  [`../termux/hermes-android-permissions.md`](../termux/hermes-android-permissions.md),
-  [`../termux/hermes-wake-lock-policy.md`](../termux/hermes-wake-lock-policy.md).
-- [`../hermes-local-orchestrator.md`](../hermes-local-orchestrator.md) —
+- [`../termux/muse-phone-first-runtime.md`](../termux/muse-phone-first-runtime.md),
+  [`../termux/muse-android-permissions.md`](../termux/muse-android-permissions.md),
+  [`../termux/muse-wake-lock-policy.md`](../termux/muse-wake-lock-policy.md).
+- [`../muse-local-orchestrator.md`](../muse-local-orchestrator.md) —
   the clipboard-handoff workflow that predates the cockpit.

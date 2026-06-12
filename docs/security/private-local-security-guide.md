@@ -432,5 +432,5 @@ Use the platforms that match your threat model.
   — voice privacy controls.
 - [profile/github-history-profile-guide.md](../profile/github-history-profile-guide.md)
   — what the profile stores and how to wipe it.
-- [troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md)
+- [troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md)
   — symptom-to-fix table.

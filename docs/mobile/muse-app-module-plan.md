@@ -3,7 +3,7 @@
 This is the **execution plan** for the Phase 02 decision recorded in
 [`android-vs-flutter-decision.md`](android-vs-flutter-decision.md). It
 turns the architecture in
-[`hermes-mobile-architecture.md`](hermes-mobile-architecture.md) into
+[`muse-mobile-architecture.md`](muse-mobile-architecture.md) into
 concrete units of work in
 [`apps/android/`](../../apps/android/).
 
@@ -170,7 +170,7 @@ The voice surface is opt-in until both ends are stable.
 ## 6. Local API client plan
 
 Wraps `HermesCockpitClient` exactly as described in
-[`hermes-mobile-architecture.md`](hermes-mobile-architecture.md) §8.
+[`muse-mobile-architecture.md`](muse-mobile-architecture.md) §8.
 Implementation order:
 
 1. **Interface** + **mock** — lands first so screens can render in
@@ -328,13 +328,13 @@ workstreams have their own acceptance criteria.
 
 - [`android-vs-flutter-decision.md`](android-vs-flutter-decision.md)
   — the decision this plan executes.
-- [`hermes-mobile-architecture.md`](hermes-mobile-architecture.md)
+- [`muse-mobile-architecture.md`](muse-mobile-architecture.md)
   — the architecture this plan implements.
-- [`hermes-mobile-backend-contract.md`](hermes-mobile-backend-contract.md)
+- [`muse-mobile-backend-contract.md`](muse-mobile-backend-contract.md)
   — the wire surface this plan depends on.
-- [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+- [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
   — Phase 18 cockpit spec.
-- [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — authoritative cockpit wire format.
 - [`docs/android/termux-intent-bridge.md`](../android/termux-intent-bridge.md)
   — Termux RUN_COMMAND specifics.

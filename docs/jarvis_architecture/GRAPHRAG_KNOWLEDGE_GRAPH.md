@@ -70,7 +70,7 @@ de-duplicated source citations. `render()` produces an inspectable summary.
 - **Agent tool** — `graph_query` (in the core toolset): the agent consults
   the graph before writing code (reuse-before-duplicate). Read-only.
 - **Cockpit REST** — `GET /v1/cockpit/graph/related`, `GET …/graph/query`,
-  `POST …/graph/build` (see `docs/android/hermes-apk-api-contract.md` §10d).
+  `POST …/graph/build` (see `docs/android/muse-apk-api-contract.md` §10d).
 - **Android** — a "Related in knowledge graph" panel on the Task (job),
   Audit, and Memory screens, plus a dedicated **Knowledge graph** screen
   (Settings → Knowledge graph) for ad-hoc local/global/coding queries.

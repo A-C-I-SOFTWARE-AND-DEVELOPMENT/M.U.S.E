@@ -16,7 +16,7 @@ metadata:
 
 This skill is the orchestrator-side companion to
 `scripts/hermes-orchestrate.sh` and
-`docs/orchestration/hermes-orchestration-pipeline.md`. It tells you the
+`docs/orchestration/muse-orchestration-pipeline.md`. It tells you the
 folder contract every worker reads from and writes to, and the rules
 you must follow when reasoning about a job in this phase.
 
@@ -157,7 +157,7 @@ script's `WORKERS` array; keep this skill in sync if you change it.
 
 ## When in doubt
 
-- Reach for `docs/orchestration/hermes-orchestration-pipeline.md`
+- Reach for `docs/orchestration/muse-orchestration-pipeline.md`
   first — it is the human-readable spec.
 - The script itself is the executable spec. If they disagree, prefer
   the script's behavior and file a bug against the docs.

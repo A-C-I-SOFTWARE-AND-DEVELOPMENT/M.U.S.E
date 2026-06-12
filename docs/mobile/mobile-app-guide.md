@@ -6,8 +6,8 @@ what the Android app is, what the backend is, how they talk, what
 your network drops.
 
 > Looking for the developer spec? See
-> [`../android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
-> and [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md).
+> [`../android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
+> and [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md).
 > This page is for users.
 
 ---
@@ -158,7 +158,7 @@ Release builds and Google Play info are in
 ## What you'll see on screen
 
 The cockpit's primary screens are described below (full wireframes in
-[`../android/hermes-apk-ui-wireframes.md`](../android/hermes-apk-ui-wireframes.md)).
+[`../android/muse-apk-ui-wireframes.md`](../android/muse-apk-ui-wireframes.md)).
 
 ### Home — the command center
 The Home tab is the glanceable state of MUSE plus the launchpad to every
@@ -567,8 +567,8 @@ and monitors it for you:
 
 The full Termux setup (model server, llama.cpp, environment
 hardening) is documented in
-[`../termux/hermes-phone-first-runtime.md`](../termux/hermes-phone-first-runtime.md)
-and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
+[`../termux/muse-phone-first-runtime.md`](../termux/muse-phone-first-runtime.md)
+and [`../termux/muse-termux-boot.md`](../termux/muse-termux-boot.md).
 
 ---
 
@@ -601,5 +601,5 @@ and [`../termux/hermes-termux-boot.md`](../termux/hermes-termux-boot.md).
   — keeping the on-device path fully private-local.
 - [orchestration/getting-started.md](../orchestration/getting-started.md)
   — the canonical "first job" walkthrough, applies to the phone too.
-- [troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md)
+- [troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md)
   — symptom-to-fix table.

@@ -376,7 +376,7 @@ Bridge prompts work best when they make the Windows scope explicit.
 | Repeated judge fails on a bridge phase | Claude Code's output shape doesn't match the orchestrator's acceptance criteria | Sharpen the orchestrator skill's acceptance criteria, or downgrade the judge to peer-level. |
 
 Anything else: see
-[../troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md).
+[../troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md).
 
 ---
 

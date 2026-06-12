@@ -1,7 +1,7 @@
 # Mobile cockpit — Screens
 
 > Authoritative behavioural spec is Phase 18's
-> [`hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md). This file is
+> [`muse-apk-cockpit.md`](../android/muse-apk-cockpit.md). This file is
 > the **implementation** view: routes, view-models, files-to-create,
 > and the UX checklist that every screen must satisfy before it is
 > considered done.

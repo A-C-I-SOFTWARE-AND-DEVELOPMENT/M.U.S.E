@@ -18,7 +18,7 @@ in `hermes_cli/orchestrator.py`, so the CLI (`cli.py`) and the gateway
   records the request and assigns it an id.  It does **not** spawn
   an agent — that requires explicit configuration and an explicit
   approval step.  This mirrors the local-orchestrator contract in
-  `docs/hermes-local-orchestrator.md`.
+  `docs/muse-local-orchestrator.md`.
 * **Publish / remote / secret actions require approval.**  The
   `publish-plan`, `self-improve run`, and remote-worker dispatch paths
   refuse to advance until `/orchestrator approve <job-id> <phase>` has

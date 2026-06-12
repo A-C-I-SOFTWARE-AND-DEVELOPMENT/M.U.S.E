@@ -165,7 +165,7 @@ mount it directly. No tunneling layer needed.
 ## Manual handoff fallback
 
 The original M.U.S.E. Local Orchestrator flow ([see
-`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md))
+`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md))
 already supports a "copy the prompt to the clipboard, walk over to the
 desktop, paste it into Claude Code, copy the output back" workflow.
 Use that whenever:

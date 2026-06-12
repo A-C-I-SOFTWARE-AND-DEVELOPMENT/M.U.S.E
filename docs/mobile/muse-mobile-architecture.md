@@ -6,9 +6,9 @@ decision in
 
 > **Authoritative scope:** the Android native client at `apps/android/`.
 > The wire format it speaks is in
-> [`hermes-mobile-backend-contract.md`](hermes-mobile-backend-contract.md).
+> [`muse-mobile-backend-contract.md`](muse-mobile-backend-contract.md).
 > The work items to land this architecture are in
-> [`hermes-app-module-plan.md`](hermes-app-module-plan.md).
+> [`muse-app-module-plan.md`](muse-app-module-plan.md).
 >
 > **The Python runtime is unchanged.** The agent loop, skills, memory,
 > tools, scheduling, and orchestration ledger live on the gateway side.

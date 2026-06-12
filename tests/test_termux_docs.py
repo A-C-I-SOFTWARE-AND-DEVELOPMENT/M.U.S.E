@@ -21,13 +21,13 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 DOCS_DIR = REPO_ROOT / "docs" / "termux"
 
-SERVICE_SH = SCRIPTS_DIR / "hermes-termux-service.sh"
-DOCTOR_SH = SCRIPTS_DIR / "hermes-termux-doctor.sh"
+SERVICE_SH = SCRIPTS_DIR / "muse-termux-service.sh"
+DOCTOR_SH = SCRIPTS_DIR / "muse-termux-doctor.sh"
 
-DOC_PHONE_RUNTIME = DOCS_DIR / "hermes-phone-runtime.md"
-DOC_TERMUX_BOOT = DOCS_DIR / "hermes-termux-boot.md"
-DOC_BACKGROUND_LIMITS = DOCS_DIR / "hermes-background-limits.md"
-DOC_WAKE_LOCK = DOCS_DIR / "hermes-wake-lock-policy.md"
+DOC_PHONE_RUNTIME = DOCS_DIR / "muse-phone-runtime.md"
+DOC_TERMUX_BOOT = DOCS_DIR / "muse-termux-boot.md"
+DOC_BACKGROUND_LIMITS = DOCS_DIR / "muse-background-limits.md"
+DOC_WAKE_LOCK = DOCS_DIR / "muse-wake-lock-policy.md"
 
 
 # ── Files exist ────────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ def test_phone_runtime_doc_covers_lifecycle() -> None:
         "Crash recovery",
         "wake lock",
     ):
-        assert needle in text, f"hermes-phone-runtime.md missing section/term: {needle!r}"
+        assert needle in text, f"muse-phone-runtime.md missing section/term: {needle!r}"
 
 
 def test_termux_boot_doc_links_back_to_runtime_and_wake_lock() -> None:
@@ -187,7 +187,7 @@ def test_background_limits_doc_covers_required_topics() -> None:
         "OOM",
         "Termux:Boot",
     ):
-        assert needle in text, f"hermes-background-limits.md missing topic: {needle!r}"
+        assert needle in text, f"muse-background-limits.md missing topic: {needle!r}"
 
 
 def test_wake_lock_policy_doc_covers_required_topics() -> None:
@@ -201,7 +201,7 @@ def test_wake_lock_policy_doc_covers_required_topics() -> None:
         "battery",
         "Opting out",
     ):
-        assert needle in text, f"hermes-wake-lock-policy.md missing topic: {needle!r}"
+        assert needle in text, f"muse-wake-lock-policy.md missing topic: {needle!r}"
 
 
 def test_docs_are_internally_cross_linked() -> None:
@@ -211,10 +211,10 @@ def test_docs_are_internally_cross_linked() -> None:
     surrounding docs are not updated.
     """
     siblings = {
-        DOC_PHONE_RUNTIME: ("hermes-termux-boot.md", "hermes-background-limits.md"),
-        DOC_TERMUX_BOOT: ("hermes-phone-runtime.md", "hermes-android-permissions.md"),
-        DOC_BACKGROUND_LIMITS: ("hermes-phone-runtime.md", "hermes-wake-lock-policy.md"),
-        DOC_WAKE_LOCK: ("hermes-phone-runtime.md", "hermes-background-limits.md"),
+        DOC_PHONE_RUNTIME: ("muse-termux-boot.md", "muse-background-limits.md"),
+        DOC_TERMUX_BOOT: ("muse-phone-runtime.md", "muse-android-permissions.md"),
+        DOC_BACKGROUND_LIMITS: ("muse-phone-runtime.md", "muse-wake-lock-policy.md"),
+        DOC_WAKE_LOCK: ("muse-phone-runtime.md", "muse-background-limits.md"),
     }
     for doc, candidates in siblings.items():
         text = doc.read_text()

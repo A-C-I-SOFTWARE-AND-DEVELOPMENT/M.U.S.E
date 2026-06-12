@@ -286,4 +286,4 @@ Users can steer the router without editing YAML:
 - Decision tree + scoring: `docs/ai-intelligence/model-routing-policy.md`
 - Capability matrix: `docs/ai-intelligence/tool-capability-matrix.md`
 - GitHub publication rules: `docs/github-integration.md`
-- Hermes role on Android (planner-only handoffs): `docs/hermes-local-orchestrator.md`
+- Hermes role on Android (planner-only handoffs): `docs/muse-local-orchestrator.md`

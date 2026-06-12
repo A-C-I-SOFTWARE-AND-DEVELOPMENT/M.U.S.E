@@ -75,7 +75,7 @@ is actually here. See §10 (Recommended phase dependencies).
 | `.claude/` | **no** | Directory absent. |
 | `.claude/agents/` | **no** | Directory absent. |
 | `.claude/commands/` | **no** | Directory absent. |
-| `docs/` | yes | Only `github-integration.md`, `hermes-local-orchestrator.md`, `hermes-kanban-v1-spec.pdf`, `plans/` (2 files). Sparse. |
+| `docs/` | yes | Only `github-integration.md`, `muse-local-orchestrator.md`, `hermes-kanban-v1-spec.pdf`, `plans/` (2 files). Sparse. |
 | `scripts/` | yes | Install / release / build / test scripts. |
 | `tests/` | yes | ~20 test subdirectories (`agent/`, `cron/`, `gateway/`, `tools/`, `skills/`, etc.). |
 | `cron/` | yes | `jobs.py` (45 KB) + `scheduler.py` (84 KB). |
@@ -94,7 +94,7 @@ is actually here. See §10 (Recommended phase dependencies).
 - `hermes-already-has-routines.md` — marketing doc demonstrating
   M.U.S.E.' existing cron / webhook / API-trigger automation parity
   with Claude Code Routines.
-- `docs/hermes-local-orchestrator.md` — describes an **Android**
+- `docs/muse-local-orchestrator.md` — describes an **Android**
   app's "local orchestrator" pattern (not the agent council).
 - `docs/plans/` — two existing planning docs (Telegram multi-session
   topics; ACP Zed edit-approval diffs).
@@ -246,7 +246,7 @@ is actually here. See §10 (Recommended phase dependencies).
 - **No `skills/contrarian-red-flag-analyst/` alias** (and no upstream
   to alias to).
 - *No `docs/orchestration/` documentation* — created by this audit;
-  Phase 1 will extend it (e.g. `hermes-agent-skill-map.md`).
+  Phase 1 will extend it (e.g. `muse-agent-skill-map.md`).
 - *No "AI improvement radar"* feature/skill/CLI.
 - *No "competitive feature harvesting" subsystem*.
 - *No "developer UX command center"* skill (the closest analogue is
@@ -527,7 +527,7 @@ file at import time) and is surfaced through `model_tools.py` and
 
 | Phase | Likely files | Why |
 |---|---|---|
-| 1 (skill conversion) | `skills/<new-skill>/SKILL.md` (many new dirs), `docs/orchestration/hermes-agent-skill-map.md` (new), `docs/orchestration/phase-0-evidence-audit.md` (cross-link) | Author council skills. |
+| 1 (skill conversion) | `skills/<new-skill>/SKILL.md` (many new dirs), `docs/orchestration/muse-agent-skill-map.md` (new), `docs/orchestration/phase-0-evidence-audit.md` (cross-link) | Author council skills. |
 | 1 | `CLAUDE.md` (would need to be **created**), `.claude/agents/` (would need to be **created**) — *only if* path (c) from §9.1 is chosen | Hosting source agents. |
 | 1 | `agent/background_review.py:15`, `agent/system_prompt.py:7` | Replace dangling `hermes-agent-dev` reference once `self-improvement-loop` skill ships. |
 | 2 (decision ledger) | `hermes_state.py`, `hermes_cli/web_server.py`, new `tools/decision_ledger_tool.py`, new `skills/decision-ledger/` | Persist + surface ledger. |

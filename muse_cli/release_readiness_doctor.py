@@ -540,7 +540,7 @@ def _check_release_artifacts() -> ReadinessCheck:
         "release checklist": "docs/launch/10_10_RELEASE_CHECKLIST.md",
         "e2e runbook": "docs/launch/10_10_E2E_RUNBOOK.md",
         "security review": "docs/security/10_10_SECURITY_REVIEW.md",
-        "smoke script": "scripts/hermes-10-10-smoke.sh",
+        "smoke script": "scripts/muse-10-10-smoke.sh",
     }
     missing = [name for name, rel in need.items() if not _exists(rel)]
     return ReadinessCheck(

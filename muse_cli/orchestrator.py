@@ -28,7 +28,7 @@ returns formatted strings so the CLI dispatcher and the gateway can render
 them without duplicating logic.  It deliberately stops short of executing
 agents — every "go" path is gated and surfaces an instructional message
 until config + approval are wired.  This mirrors the local-orchestrator
-contract documented in ``docs/hermes-local-orchestrator.md``: Hermes
+contract documented in ``docs/muse-local-orchestrator.md``: Hermes
 prepares hand-off material; the user is the one who launches anything that
 actually moves money, code, or messages.
 

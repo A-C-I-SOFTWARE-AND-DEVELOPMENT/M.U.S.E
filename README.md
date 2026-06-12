@@ -21,7 +21,7 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
 <tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
 <tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
-<tr><td><b>A full operating layer, not just a chatbot</b></td><td>MUSE ships as a runtime (<code>hermes_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
+<tr><td><b>A full operating layer, not just a chatbot</b></td><td>MUSE ships as a runtime (<code>muse_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
 <tr><td><b>Goal-to-PR orchestration</b></td><td>Decomposes one goal into a validated task graph — Job → specialist Worker → per-task Model routing → Validation gate → tamper-evident Decision ledger. Drive it with <code>/orchestrate</code> from the TUI, a gateway DM, or the Android cockpit.</td></tr>
 <tr><td><b>An inspectable knowledge graph</b></td><td>GraphRAG unifies repo code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes over the repo as of 2026-06-10; see the attestation in the GraphRAG doc) with local, global, and coding query modes — so work reuses what already exists instead of rebuilding it.</td></tr>
 <tr><td><b>An autonomous-enterprise council</b></td><td>The AOS Enterprise Council — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files) spanning architecture, security, compliance, QA, release, product, psychology, HazMat Command, and more — convened for audits, launch readiness, and multi-perspective review.</td></tr>
@@ -34,9 +34,9 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 
 MUSE is a governed, local-first AI operating partner: **one mind over a synaptic substrate.** Everything below is real, tested code in this repository, not a roadmap. (Heritage + credits in small print at the very bottom.)
 
-- **MUSE operating layer** — a runtime in [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) (~100 modules): six modes, an intent/mode classifier, runtime persona injection, owner-authorization with exact-phrase grants, an emergency stop, and read-only monitors with a daily owner brief. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md).
+- **MUSE operating layer** — a runtime in [`muse_cli/jarvis_prime/`](muse_cli/jarvis_prime/) (~100 modules): six modes, an intent/mode classifier, runtime persona injection, owner-authorization with exact-phrase grants, an emergency stop, and read-only monitors with a daily owner brief. See [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md).
 - **Provenance-first cognition plane** — a Memory Tree (working/session/durable memory with source citations, confidence floors, contradiction reports, supersession, and no silent overwrites), a Research Vault, an evidence engine (BM25 + memory hybrid retrieval with citation verification), and TokenJuice — a deterministic, token-bounded context compiler that screens secrets.
-- **GraphRAG knowledge graph** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) unifies code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes / ~63.3k edges over the repo as of 2026-06-10 — attestation in the GraphRAG doc) with local/global/coding queries. See [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
+- **GraphRAG knowledge graph** — [`muse_cli/jarvis_prime/graphrag/`](muse_cli/jarvis_prime/graphrag/) unifies code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes / ~63.3k edges over the repo as of 2026-06-10 — attestation in the GraphRAG doc) with local/global/coding queries. See [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md).
 - **Goal-to-PR orchestration** — five primitives (Job, Worker, Model routing, Validation gate, Decision ledger) decompose a goal into a validated task graph and publish the result, auditing every decision in a tamper-evident ledger. See [`docs/orchestration/`](docs/orchestration/).
 - **AOS Enterprise Council** — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files; ~84 council agent files plus the general `agents/hermes/` skill library) for audits, hardening, launch readiness, and multi-perspective review. See [`skills/aos-enterprise-council/`](skills/aos-enterprise-council/).
 - **Eight verification gates + verifiable guardrails** — Planning, Build, Review, Test, Security, Release, Owner Approval, and Rollback — backed by a hash-chained, tamper-evident evidence ledger (`verify_chain()`). See [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md).
@@ -50,7 +50,7 @@ MUSE is a governed, local-first AI operating partner: **one mind over a synaptic
 
 ## MUSE Operating Layer
 
-> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
+> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `muse_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
 
 MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (M.U.S.E.: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
@@ -194,7 +194,7 @@ publishes to wherever you asked (PR, Telegram, file, Android
 cockpit).
 
 ```bash
-bash scripts/hermes-orchestrate.sh "Audit this repo"      # one-shot, scriptable
+bash scripts/muse-orchestrate.sh "Audit this repo"      # one-shot, scriptable
 muse                                                      # interactive
 /reload-skills                                            # after editing skills
 /orchestrate Build this repo into production quality      # from inside a session
@@ -227,7 +227,7 @@ points to one guide per topic:
 | Lock down private-local | [docs/security/private-local-security-guide.md](docs/security/private-local-security-guide.md) |
 | Wire GitHub / Supabase / Vercel | [docs/integrations/github-supabase-vercel-guide.md](docs/integrations/github-supabase-vercel-guide.md) |
 | Verify history with the AXIOM bridge | [docs/axiom-integration.md](docs/axiom-integration.md) |
-| Fix something broken | [docs/troubleshooting/hermes-orchestration-troubleshooting.md](docs/troubleshooting/hermes-orchestration-troubleshooting.md) |
+| Fix something broken | [docs/troubleshooting/muse-orchestration-troubleshooting.md](docs/troubleshooting/muse-orchestration-troubleshooting.md) |
 
 ## CLI vs Messaging Quick Reference
 
@@ -336,10 +336,25 @@ Invocation (from the CLI or any messaging gateway):
 Posture is **private and local-first** by default — no telemetry,
 no remote config, no third-party data sharing beyond the official AI
 tools the user is already logged into. See
-[`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+[`docs/muse-local-orchestrator.md`](docs/muse-local-orchestrator.md)
 for the Android cockpit contract.
 
 ---
+
+## Compatibility with Hermes-era installs
+
+MUSE is the canonical identity; everything from the Hermes era keeps working **forever** (PIL/Pillow-style permanent aliases — none of these are scheduled for removal):
+
+| Hermes-era name | Status |
+|---|---|
+| `hermes` command | Permanent alias of `muse` (same entry point) |
+| `import hermes_cli` / `python -m hermes_cli.main` | Permanent alias package — same module objects as `muse_cli` (a `DeprecationWarning` points to the new name) |
+| `import hermes_constants` / `hermes_state` / `hermes_logging` / `hermes_bootstrap` / `hermes_time` / `hermes_model_catalog` | Permanent alias modules for the `muse_*` twins |
+| `HERMES_HOME`, `HERMES_QUIET` (and every other `HERMES_*` env var) | Honored forever; `MUSE_HOME` / `MUSE_QUIET` win when both are set |
+| `~/.hermes` state directory | Migrated once at startup to `~/.muse` (atomic rename + breadcrumb) with a compat symlink left at `~/.hermes`; never copied, never clobbered |
+| `pip install hermes-agent[...]` extras spellings | The distribution is now `muse-agent`; Homebrew resolves the old name via `formula_renames.json` |
+| `setup-hermes.sh`, `scripts/hermes-*` | Permanent forwarding stubs to the `muse-*` scripts |
+| systemd unit `hermes-gateway*`, MCP server `"hermes"` / `"hermes-tools"`, ACP id `hermes-agent` | Unchanged (external contracts) |
 
 ## Migrating from OpenClaw
 
@@ -374,12 +389,12 @@ See `muse claw migrate --help` for all options, or use the `openclaw-migration` 
 
 We welcome contributions! See the [Contributing Guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) for development setup, code style, and PR process.
 
-Quick start for contributors — clone and go with `setup-hermes.sh`:
+Quick start for contributors — clone and go with `setup-muse.sh`:
 
 ```bash
 git clone https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E.git
 cd M.U.S.E
-./setup-hermes.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/muse
+./setup-muse.sh     # installs uv, creates venv, installs .[all], symlinks ~/.local/bin/muse
 ./hermes              # auto-detects the venv, no need to `source` first
 ```
 

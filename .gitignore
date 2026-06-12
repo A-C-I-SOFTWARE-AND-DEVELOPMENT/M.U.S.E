@@ -46,6 +46,7 @@ keystore.properties
 images/
 __pycache__/
 hermes_agent.egg-info/
+muse_agent.egg-info/
 wandb/
 testlogs
 
@@ -106,3 +107,4 @@ artifacts/research_fabric/
 
 # Python build artifacts (uv build / setuptools)
 /build/
+.import_linter_cache/

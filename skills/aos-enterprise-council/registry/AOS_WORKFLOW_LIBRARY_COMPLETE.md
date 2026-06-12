@@ -106,8 +106,8 @@
 | `final-hermes-orchestration-integration-report.md` | `docs/orchestration/final-hermes-orchestration-integration-report.md` |
 | `getting-started.md` | `docs/orchestration/getting-started.md` |
 | `github-publisher-runtime.md` | `docs/orchestration/github-publisher-runtime.md` |
-| `hermes-agent-skill-map.md` | `docs/orchestration/hermes-agent-skill-map.md` |
-| `hermes-orchestration-pipeline.md` | `docs/orchestration/hermes-orchestration-pipeline.md` |
+| `muse-agent-skill-map.md` | `docs/orchestration/muse-agent-skill-map.md` |
+| `muse-orchestration-pipeline.md` | `docs/orchestration/muse-orchestration-pipeline.md` |
 | `job-controller-roadmap.md` | `docs/orchestration/job-controller-roadmap.md` |
 | `known-limitations.md` | `docs/orchestration/known-limitations.md` |
 | `local-api-backend.md` | `docs/orchestration/local-api-backend.md` |

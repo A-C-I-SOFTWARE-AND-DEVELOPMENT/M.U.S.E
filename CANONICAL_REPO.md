@@ -8,7 +8,7 @@ for MUSE and how parallel repository work must be coordinated.
 `A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E` is the canonical source of
 truth for the MUSE runtime.
 
-All MUSE runtime files — the `hermes_cli/jarvis_prime/` package
+All MUSE runtime files — the `muse_cli/jarvis_prime/` package
 (`runtime.py`, `router.py`, `modes.py`, `gates.py`, `owner_auth.py`,
 `memory.py`, `awareness.py`, `reasoning.py`, `research.py`,
 `social_research.py`, `epistemics.py`, `self_update.py`, `onboarding.py`,
@@ -56,7 +56,7 @@ without first declaring which one is canonical for that change.
 The following actions require explicit owner authorization with the
 exact phrase `Yes, with authorization.` before they are executed.
 This list is kept in sync with the canonical `OWNER_GATED_ACTIONS`
-frozenset in `hermes_cli/jarvis_prime/owner_auth.py`; the code is the
+frozenset in `muse_cli/jarvis_prime/owner_auth.py`; the code is the
 authority and this doc must follow.
 
 * `spend_money`
@@ -77,7 +77,7 @@ authority and this doc must follow.
 * `regulated_claim` (legal, compliance, security, health, financial)
 
 The phrase is enforced literally by
-`hermes_cli/jarvis_prime/owner_auth.py:OwnerAuth.authorize`. Minor
+`muse_cli/jarvis_prime/owner_auth.py:OwnerAuth.authorize`. Minor
 variations ("yes with authorization", "yes - with authorization") do
 not authorize. Authorization stands only for the scope it was granted
 for — it is not a blanket approval for future actions of the same kind.
@@ -100,7 +100,7 @@ If verification cannot be produced, the change is not done — it is
 ## WorkPacket schema
 
 The canonical descriptor for a JARVIS unit of work is
-:class:`hermes_cli.jarvis_prime.work_packet.WorkPacket`. It carries
+:class:`muse_cli.jarvis_prime.work_packet.WorkPacket`. It carries
 mission, repo_root, branch, risk_class (RC0..RC4), allowed/protected
 files, non_goals, acceptance_criteria, files_changed, tests_run,
 tests_failed, verification_summary, rollback_plan, owner_gated_actions,

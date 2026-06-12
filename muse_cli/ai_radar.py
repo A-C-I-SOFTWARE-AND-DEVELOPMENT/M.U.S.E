@@ -658,7 +658,7 @@ def write_radar_request(
 ) -> Path:
     """Write a ``<timestamp>-request.json`` file under ``out_dir``.
 
-    This is what ``scripts/hermes-ai-radar.sh`` produces when the user
+    This is what ``scripts/muse-ai-radar.sh`` produces when the user
     triggers a radar. The skill reads the file when it runs.
     """
     out_dir.mkdir(parents=True, exist_ok=True)

@@ -8,9 +8,9 @@ as they apply to the M.U.S.E. phone-first runtime.
 
 Companion docs:
 
-- [`hermes-phone-runtime.md`](./hermes-phone-runtime.md) — service lifecycle
-- [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md) — when we hold a wake lock
-- [`hermes-android-permissions.md`](./hermes-android-permissions.md) — full permission table
+- [`muse-phone-runtime.md`](./muse-phone-runtime.md) — service lifecycle
+- [`muse-wake-lock-policy.md`](./muse-wake-lock-policy.md) — when we hold a wake lock
+- [`muse-android-permissions.md`](./muse-android-permissions.md) — full permission table
 
 ## What "background" means on Android
 
@@ -42,7 +42,7 @@ a few minutes, all three of these must hold simultaneously:
    its memory but stops getting CPU time within minutes of the
    screen turning off, and any network listener will go
    unresponsive. The service script handles this for you — see
-   [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md).
+   [`muse-wake-lock-policy.md`](./muse-wake-lock-policy.md).
 3. **The Termux app is not killed by the OOM killer or by the
    vendor battery optimizer.** This is the one M.U.S.E. cannot
    control from inside Termux; it is on you to configure the

@@ -88,7 +88,7 @@ typed in a terminal or spoke into a phone in the car.
 | Wire up GitHub, Supabase, and Vercel | [integrations/github-supabase-vercel-guide.md](integrations/github-supabase-vercel-guide.md) |
 | Add free public-API tools (weather, finance, news, time) | [integrations/public-apis-plugins.md](integrations/public-apis-plugins.md) |
 | Developer + code-review tools (packages, OSV, deps.dev, sandbox) | [integrations/devtools-codeintel-plugins.md](integrations/devtools-codeintel-plugins.md) |
-| Diagnose a stuck job or a broken integration | [troubleshooting/hermes-orchestration-troubleshooting.md](troubleshooting/hermes-orchestration-troubleshooting.md) |
+| Diagnose a stuck job or a broken integration | [troubleshooting/muse-orchestration-troubleshooting.md](troubleshooting/muse-orchestration-troubleshooting.md) |
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
 | Understand the SYNAPSE game / Neural Observatory / Platform-v1.0 program | [plans/2026-06-10-project-synapse-master-plan.md](plans/2026-06-10-project-synapse-master-plan.md) |
 | Build SYNAPSE from the locked design bible (17 docs, design + production + launch) | [synapse/design/00-INDEX.md](synapse/design/00-INDEX.md) |
@@ -103,7 +103,7 @@ Other useful pages outside this manual:
 - [`../SECURITY.md`](../SECURITY.md) — security reporting.
 - [`./github-integration.md`](github-integration.md) — the
   `github_assistant` plugin (native GitHub access).
-- [`./hermes-local-orchestrator.md`](hermes-local-orchestrator.md) —
+- [`./muse-local-orchestrator.md`](muse-local-orchestrator.md) —
   the Android clipboard handoff flow (predates the orchestration
   stack, still relevant for the simplest mobile workflow).
 
@@ -282,7 +282,7 @@ Read in this order:
 1. **The job folder.** `~/.hermes/jobs/<job-id>/summary.md` and
    `ledger.jsonl` together explain almost everything.
 2. **`muse doctor`** — environment + install health.
-3. **[Troubleshooting table](troubleshooting/hermes-orchestration-troubleshooting.md#quick-reference-table)** —
+3. **[Troubleshooting table](troubleshooting/muse-orchestration-troubleshooting.md#quick-reference-table)** —
    the symptom-to-fix table.
 4. **GitHub issues** — attach the job folder (tar / zip), `muse
    doctor` output, and `muse profile list`.
@@ -307,8 +307,8 @@ Read in this order:
 | Composable agent design patterns | [orchestration/agent-design-patterns.md](orchestration/agent-design-patterns.md) |
 | MUSE visual design language (banner, glyph, palette) | [brand/muse-design-language.md](brand/muse-design-language.md) |
 | Repo viability audit (2026-06) | [audit/repo-audit-2026-06.md](audit/repo-audit-2026-06.md) |
-| Termux phone-first runtime | [termux/hermes-phone-first-runtime.md](termux/hermes-phone-first-runtime.md) |
-| Android app contract | [android/hermes-apk-api-contract.md](android/hermes-apk-api-contract.md) |
+| Termux phone-first runtime | [termux/muse-phone-first-runtime.md](termux/muse-phone-first-runtime.md) |
+| Android app contract | [android/muse-apk-api-contract.md](android/muse-apk-api-contract.md) |
 
 Welcome aboard. If something here is unclear, the docs are wrong —
 open an issue.

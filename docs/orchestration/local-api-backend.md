@@ -7,7 +7,7 @@
 > orchestrator jobs and serves the job control + detail surface
 > (`/jobs/{id}/ledger|pause|resume|rerun|approve|diff|validate`) the
 > mobile Jobs cockpit drives. See
-> [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+> [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
 > §4. `orchestrator_api` (below) remains a parallel, FastAPI-based
 > control plane for the TUI and other local clients.
 

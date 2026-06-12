@@ -160,7 +160,7 @@ gateway holds the provider credentials and makes the model call.
 Every other cockpit surface (jobs, approvals, memory, evidence/research,
 autonomy, voice intake, …) uses the authenticated `/v1/cockpit/*` REST routes
 via `HermesCockpitClient`. See
-[`../../../docs/android/hermes-apk-api-contract.md`](../../../docs/android/hermes-apk-api-contract.md)
+[`../../../docs/android/muse-apk-api-contract.md`](../../../docs/android/muse-apk-api-contract.md)
 for the full route contract and live-vs-planned status.
 
 ## Build types

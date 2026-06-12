@@ -6,7 +6,7 @@ cockpit. Five waves, each one small enough to ship as a single PR,
 each one independently green on `assembleDebug` + `lintDebug`.
 
 > No wave below implements gateway changes. The Python gateway side
-> is tracked in `docs/android/hermes-apk-api-contract.md`. The
+> is tracked in `docs/android/muse-apk-api-contract.md`. The
 > Android-side roadmap below assumes the gateway side is being
 > worked in parallel and treats every gateway endpoint as a
 > contract that may not yet be live — every new screen is built
@@ -71,7 +71,7 @@ on them lands in Wave 2.
 
 PR shape: 3–4 PRs, gated on whether the gateway-side endpoint is
 already live (`/v1/health` is; others are spec-only per
-`docs/android/hermes-apk-api-contract.md`).
+`docs/android/muse-apk-api-contract.md`).
 
 1. **Manifest deltas.**
    - Add `<uses-permission android:name="android.permission.INTERNET" />`.

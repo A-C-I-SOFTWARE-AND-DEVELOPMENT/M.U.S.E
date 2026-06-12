@@ -168,7 +168,7 @@ is non-blocking, but read it.
 
 - [`secrets-management.md`](secrets-management.md) — the redaction
   side of the policy.
-- [`hermes-private-local-security.md`](hermes-private-local-security.md)
+- [`muse-private-local-security.md`](muse-private-local-security.md)
   — the high-level "why".
 - [`SECURITY.md`](../../SECURITY.md) — the trust model and reporting
   policy.

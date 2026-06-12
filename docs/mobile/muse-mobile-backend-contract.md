@@ -8,7 +8,7 @@ drift.
 
 > **Authoritative sources:**
 > - Cockpit API contract:
->   [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+>   [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
 > - Termux intent bridge:
 >   [`docs/android/termux-intent-bridge.md`](../android/termux-intent-bridge.md)
 > - Existing chat / health wire:
@@ -32,7 +32,7 @@ and **which gateway endpoints** it depends on.
 
 Cleartext HTTP is permitted on debug builds for LAN/emulator testing.
 Release builds use HTTPS only — see
-[`hermes-mobile-architecture.md`](hermes-mobile-architecture.md) §12.
+[`muse-mobile-architecture.md`](muse-mobile-architecture.md) §12.
 
 ---
 
@@ -211,7 +211,7 @@ unrecognised code falls through to *"Backend returned an error
 
 The cockpit supports three connection modes (see
 [`apps/android/README.md`](../../apps/android/README.md) §Runtime modes
-and [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+and [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
 §"Two operating modes"). The wire is the **same** across modes; only
 the URL changes:
 
@@ -225,7 +225,7 @@ There is a deliberate **fallback** mode — *Local handoff* — that does
 **not** speak this contract. It runs entirely on-device, copies
 prompts to the clipboard, and launches Codex / Claude / ChatGPT
 intents. See
-[`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md).
+[`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md).
 
 ---
 
@@ -272,15 +272,15 @@ the same commit on the same day.
 
 ## 10. Cross-references
 
-- [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — the authoritative wire format for cockpit routes.
-- [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+- [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
   — which mobile screen uses which route.
 - [`docs/android/termux-intent-bridge.md`](../android/termux-intent-bridge.md)
   — the on-device intent path.
 - [`apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — the existing chat / health wire and Kotlin client structure.
-- [`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md)
+- [`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md)
   — the *Local handoff* fallback.
 - [`apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt`](../../apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt)
   — Kotlin mirror of the cockpit shapes.

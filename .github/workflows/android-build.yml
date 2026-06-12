@@ -76,7 +76,7 @@ jobs:
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
-          name: hermes-agent-debug-apk
+          name: muse-agent-debug-apk
           path: apps/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: ignore
           retention-days: 14

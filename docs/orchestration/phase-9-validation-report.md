@@ -25,7 +25,7 @@ new features.
   earlier phases (1–8) but never landed.
 - The only orchestration code that does exist on this branch is the
   **Android local orchestrator** (under `apps/android/`, documented in
-  `docs/hermes-local-orchestrator.md`) and the **Enterprise Council**
+  `docs/muse-local-orchestrator.md`) and the **Enterprise Council**
   multi-agent skill set (`skills/enterprise-council/`). These two
   pieces validate cleanly.
 - This report records what passed, what was missing, and what was
@@ -82,7 +82,7 @@ to provide cannot be exercised. See "Gaps" below.
 
 ### 5. Docs reference existing paths where practical
 
-Spot-checked references found in `docs/hermes-local-orchestrator.md`,
+Spot-checked references found in `docs/muse-local-orchestrator.md`,
 `skills/enterprise-council/**`, and `AGENTS.md`:
 
 - `agent/`, `model_tools.py`, `cli.py`, `tools/kanban_tools.py` — all
@@ -167,7 +167,7 @@ anywhere in `scripts/` or `docs/` on this branch.
 
 ### Files genuinely related to orchestration
 
-- `docs/hermes-local-orchestrator.md` — Android local-orchestrator design doc.
+- `docs/muse-local-orchestrator.md` — Android local-orchestrator design doc.
 - `apps/android/app/src/main/java/com/aci/hermes/data/orchestrator/` —
   `HandoffLauncher.kt`, `HermesTaskRepository.kt`, `PromptBuilder.kt`.
 - `apps/android/app/src/main/java/com/aci/hermes/ui/screens/orchestrator/` —

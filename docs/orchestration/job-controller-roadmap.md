@@ -13,7 +13,7 @@ M.U.S.E. already has the right *primitives* for orchestration:
 
 - Skills (`skills/`) describe how to delegate to external coding agents
   (Claude Code, Codex, Aider, Goose, etc.).
-- The Android local orchestrator (`docs/hermes-local-orchestrator.md`)
+- The Android local orchestrator (`docs/muse-local-orchestrator.md`)
   defines a hand-off model where M.U.S.E. prepares a structured prompt
   and the user routes it to whichever paid CLI they already use.
 - The Enterprise Council (`skills/enterprise-council/`) shows a working

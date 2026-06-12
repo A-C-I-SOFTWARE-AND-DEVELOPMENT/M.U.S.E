@@ -57,7 +57,7 @@ Reports persist to `${HERMES_HOME:-~/.hermes}/jarvis_prime/research_reports.json
   process.
 - **Cockpit API**: `POST/GET /v1/cockpit/research`, `GET /research/{id}`,
   `POST /research/{id}/promote`, `POST /research/{id}/task` — see
-  [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+  [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   §10d.
 - **Android**: the Research screen
   (`apps/android/.../ui/screens/research/ResearchScreen.kt`), a full-screen

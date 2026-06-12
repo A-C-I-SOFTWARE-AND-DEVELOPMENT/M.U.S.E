@@ -222,7 +222,7 @@ re-spawn any `running` cards.
   cockpit's own README (build, modes, architecture).
 - [`apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — wire format and the "no embedded Python" decision.
-- [`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md)
+- [`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md)
   — the older, simpler Android-only handoff flow (predates the
   orchestration system; still useful for the "just hand off to ChatGPT/Codex
   via clipboard" workflow).

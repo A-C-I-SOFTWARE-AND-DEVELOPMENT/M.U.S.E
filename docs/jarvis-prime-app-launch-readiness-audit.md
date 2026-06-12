@@ -603,7 +603,7 @@ applies) or against generic launch-quality expectations.
   inside Termux on the *same device*" path will find no
   corresponding UI on the phone.
 - **Fix.** Build the Termux Control Panel screen from
-  `docs/android/hermes-apk-cockpit.md` against the existing bridge
+  `docs/android/muse-apk-cockpit.md` against the existing bridge
   stub; verify with Termux installed + `com.termux.permission.RUN_COMMAND`
   granted; add a fallback message when Termux is not installed.
 

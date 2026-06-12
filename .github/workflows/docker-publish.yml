@@ -10,7 +10,7 @@ on:
       - 'Dockerfile'
       - 'docker/**'
       - '.github/workflows/docker-publish.yml'
-      - '.github/actions/hermes-smoke-test/**'
+      - '.github/actions/muse-smoke-test/**'
   pull_request:
     branches: [main]
     paths:
@@ -20,7 +20,7 @@ on:
       - 'Dockerfile'
       - 'docker/**'
       - '.github/workflows/docker-publish.yml'
-      - '.github/actions/hermes-smoke-test/**'
+      - '.github/actions/muse-smoke-test/**'
   release:
     types: [published]
 
@@ -82,7 +82,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=docker-amd64
 
       - name: Smoke test image
-        uses: ./.github/actions/hermes-smoke-test
+        uses: ./.github/actions/muse-smoke-test
         with:
           image: ${{ env.IMAGE_NAME }}:test
 
@@ -174,7 +174,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=docker-arm64
 
       - name: Smoke test image
-        uses: ./.github/actions/hermes-smoke-test
+        uses: ./.github/actions/muse-smoke-test
         with:
           image: ${{ env.IMAGE_NAME }}:test
 

@@ -1,7 +1,7 @@
 # Hermes — Private / Local-Only Mode
 
 > **Status:** Product-level requirements for private/local mode.
-> Companion to [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md)
+> Companion to [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md)
 > and the existing orchestration-side doc
 > [`../orchestration/private-local-mode.md`](../orchestration/private-local-mode.md)
 > (which is the implementation guide). This file owns the **product
@@ -26,7 +26,7 @@ they have explicitly opted that cloud in.
 
 This is a product-level promise, not just a config flag. Every
 capability listed in
-[`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) §4
+[`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) §4
 must either work in private mode or fail loudly with a clear "this
 needs network" message when the user tries to use it.
 
@@ -227,6 +227,6 @@ Period.
 ## 11. Cross-references
 
 - [`../orchestration/private-local-mode.md`](../orchestration/private-local-mode.md) — implementation guide (model servers, plugin manifests, env vars).
-- [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) — the spec this mode preserves.
-- [`hermes-definition-of-done.md`](hermes-definition-of-done.md) — DoD for private mode.
+- [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) — the spec this mode preserves.
+- [`muse-definition-of-done.md`](muse-definition-of-done.md) — DoD for private mode.
 - [`../mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md) — the rule "keep operator data private."

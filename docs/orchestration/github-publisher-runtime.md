@@ -148,7 +148,7 @@ operator runs the commands.
 
 ## Integration with the orchestrator
 
-The local orchestrator (`docs/hermes-local-orchestrator.md`) calls
+The local orchestrator (`docs/muse-local-orchestrator.md`) calls
 `run(...)` with `approve=False` to attach a plan to a kanban card.
 Reviewers see the artifacts in `github/`, sign off, and the
 orchestrator re-runs with `approve=True`. The `publish-status.json`

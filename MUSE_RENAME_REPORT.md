@@ -78,3 +78,78 @@ Scope and method: see `MUSE_RENAME_INVENTORY.md` and the approved plan.
 - Docstrings/usage: `cli.py` ("MUSE — Interactive Terminal Interface" / "MUSE — Interactive AI Assistant"), `muse_cli/__init__.py`, `cli-config.yaml.example` header, the root `hermes` launcher docstring, `muse_cli/doctor.py` SOUL.md template + hint (now MUSE).
 - Bucket C untouched: model names (`NousResearch/Hermes-*` LLMs), service unit names, process patterns, env names, banner "Nous Research" credit. `HERMES_AGENT_HELP_GUIDANCE` (skill name + docs URL = external facts) left for the owner-gated list. The openclaw-migration `rebrand_text` (OpenClaw→Hermes) deliberately left: its replacement string is reused for filesystem paths (`~/.openclaw` → `~/.hermes`, which still resolves via the Phase 4 symlink) — rebranding it to MUSE is logged as a follow-up.
 - Gates (measured): compileall clean; cli tests 759 passed; full pytest **58 failed / 29,091 passed / 210 skipped in 11:22** — **0 new failures vs baseline**.
+- Rollback handle: `0a0d6c1aa`.
+
+## Phase 7 — filenames, packaging, docs, import-linter
+
+**Distribution rename (owner-approved):** pyproject `name = "muse-agent"` + all 21 self-referential extras; `uv lock` regenerated cleanly (282 packages; root renamed); `nix/python.nix` venv key → `muse-agent`; `nix/hermes-agent.nix` → `nix/muse-agent.nix` with `pkgs.muse-agent` canonical and `pkgs.hermes-agent` a permanent overlay alias; Homebrew formula → `packaging/homebrew/muse-agent.rb` (`class MuseAgent`) + `formula_renames.json` mapping `hermes-agent → muse-agent`; `acp_registry/agent.json` pip hint → `muse-agent[acp]` (ACP **id** stays `hermes-agent`, owner-gated); `scripts/release.py` uvx hint; android workflow artifact name; editable install reinstalled as `muse-agent` (old dist uninstalled, console scripts restored).
+
+**Path renames (with reference updates):** `tests/hermes_cli/` → `tests/muse_cli/`, `tests/hermes_state/` → `tests/muse_state/`, `tests/test_hermes_*.py` → `tests/test_muse_*.py` (shim tests keep old-name coverage by design); `setup-hermes.sh` → `setup-muse.sh` and all 7 `scripts/hermes-*` → `scripts/muse-*` — **permanent forwarding stubs left at every old script path**; `.github/actions/hermes-smoke-test` → `muse-smoke-test`; 25 internal docs `docs/**/hermes-*.md` → `muse-*.md` with repo-wide link updates (88 referencing files); root `./muse` launcher twin added beside the kept `./hermes`.
+
+**Import freeze:** `[tool.importlinter]` forbidden contract — production packages (muse_cli, agent, gateway, tools, cron, providers, tui_gateway, acp_adapter) may not import any `hermes_*` legacy name. Measured: **"Legacy hermes_* module names are import-frozen (compat shims only) KEPT — Contracts: 1 kept, 0 broken"** (868 files, 7,042 dependencies). Wired into `.github/workflows/lint.yml` as a blocking job. (grimp can't take single-file modules as roots, so `cli.py`/`run_agent.py` are covered by the grep audit instead — noted in pyproject.)
+
+**Docs:** README gains a "Compatibility with Hermes-era installs" table (all permanent aliases enumerated); CLAUDE.md/AGENTS.md/SETUP.md/CONTRIBUTING.md module paths updated to `muse_cli`/`muse_*`.
+
+**Intentionally KEPT at old names (Bucket C, each with reason):**
+- `agent/transports/hermes_tools_mcp_server.py` — `python -m agent.transports.hermes_tools_mcp_server` is the documented launch command in users' `~/.codex/config.toml` (external contract).
+- `muse_cli/workers/hermes_local.py` + `docs/orchestration/workers/hermes-local.md` — the worker profile name `hermes-local` persists in user configs and job ledgers.
+- `plugins/hermes-achievements/` — plugin folder name is referenced from user `config.yaml` plugin lists.
+- systemd `hermes-gateway*` unit names, `_GATEWAY_KIND`, process patterns — live units on user machines.
+- `skills/**hermes**`, `dotclaude/**hermes**` — user-invocable skill/command names (data, not code).
+- `scripts/install.sh` `$HERMES_HOME/hermes-agent` install dir — script's own in-place-preservation contract.
+- `ui-tui/packages/hermes-ink` / `@hermes/ink` npm names — renaming requires rebuilding committed dist bundles (follow-up).
+- Android `com.aci.hermes` package / `Hermes*.kt` — application-ID rename is a separate mobile release concern.
+- `website/docs/guides/*-hermes*.md` filenames — published URL slugs.
+- Historical records: `.reconciliation/`, `docs/audits/hermes-*`, `recovered-agent-sources/`, `hermes-already-has-routines.md`.
+
+**Gate-caught fixes:** 10 new test failures after the renames — ACP-manifest/release tests pinning the old dist name, the termux-all extra test, and termux doc tests reading the now-stubbed script paths — all updated to the new invariant (the ACP **id** assertion still pins `hermes-agent`, correctly).
+
+## Owner-gated proposals — awaiting exact `Yes, with authorization.`
+
+1. **MCP advertised server name `"hermes"`** (`mcp_serve.py`). Client configs (`claude_desktop_config.json`, `.mcp.json`) address tools as `mcp__hermes__*`; renaming breaks every existing allow-list. Proposal: register a second FastMCP entry point advertising `"muse"` (same tools) and document both; never remove `"hermes"`. Verified this session: server still advertises `hermes`.
+2. **MCP `"hermes-tools"`** (`agent/transports/hermes_tools_mcp_server.py`) — same pattern: additive `muse-tools` alias server, keep old name + module path (`-m` path is in `~/.codex/config.toml`).
+3. **ACP id `"hermes-agent"`** (`acp_registry/agent.json`) + `authors: ["Nous Research"]` + website URL — registry-facing identity. Proposal: coordinate with the ACP registry to add a `muse-agent` entry or alias; until then the id stays.
+4. **Homebrew publish** — the renamed formula + `formula_renames.json` are prepared in-repo; pushing to a published tap (and the formula's upstream `url`/`homepage`, which point at NousResearch releases) is an off-machine action.
+5. **PyPI project** — `upload_to_pypi.yml` still targets `pypi.org/p/hermes-agent`; the local version (`+aci.1`) can't publish anyway. Proposal: when publishing is desired, create the `muse-agent` PyPI project and keep `hermes-agent` as a redirect/stub release.
+6. **`HERMES_AGENT_HELP_GUIDANCE`** (`agent/prompt_builder.py`) — references the `hermes-agent` skill name and `hermes-agent.nousresearch.com` docs URL (external facts).
+7. **Website URL slugs** (`website/docs/guides/*-hermes*.md`) and `sync-aci-to-base44.yml` external repo refs.
+8. **Android applicationId `com.aci.hermes`** — store-identity change; needs a mobile release plan.
+9. **openclaw-migration `rebrand_text`** OpenClaw→Hermes mapping (replacement doubles as a path component) — propose OpenClaw→MUSE with explicit path-mapping table.
+
+## Compat infrastructure now in place (all PERMANENT)
+
+| Layer | Mechanism |
+|---|---|
+| `import hermes_cli[.x]` | Meta-path finder shim (`hermes_cli/__init__.py`) — identity alias, runpy support, DeprecationWarning |
+| `import hermes_{bootstrap,constants,state,logging,model_catalog,time}` | Six single-file `sys.modules` alias shims |
+| `hermes` command | Console-script alias → `muse_cli.main:main` |
+| `./hermes` launcher | Kept beside new `./muse` |
+| `HERMES_HOME`/`HERMES_QUIET` | Read as fallback forever; one-way `MUSE_*`→`HERMES_*` startup mirror for direct readers; spawners export both |
+| `~/.hermes` | One-shot atomic rename → `~/.muse` + breadcrumb + compat symlink; never copies/clobbers |
+| Legacy function names | `get_hermes_home` etc. kept; `get_muse_home` etc. canonical aliases |
+| `setup-hermes.sh`, `scripts/hermes-*` | Permanent exec-forwarding stubs |
+| Homebrew | `formula_renames.json` `hermes-agent → muse-agent` |
+| Nix | `pkgs.hermes-agent` overlay alias of `pkgs.muse-agent` |
+| Process/unit discovery | Keep-both pattern lists (old + new cmdlines, systemd markers) |
+| Drift prevention | import-linter forbidden contract, blocking in CI |
+
+## Rollback-handle inventory
+
+| Phase | Commit |
+|---|---|
+| 0 baseline+inventory | `6684b68` |
+| 1 package rename + shim | `d988931cf` (amended) |
+| 2 top-level modules | `50031704a` |
+| 3 env vars | `5d975ac14` |
+| 4 state-dir migration | `e37996119` |
+| 5 MUSE identity | `6f2c006f1` |
+| 6 display strings | `0a0d6c1aa` |
+| 7 packaging/paths/linter | (this commit) |
+
+## Final confirmation
+
+- `muse` launches with the MUSE identity by default — no flag, mode, or command needed (seeded SOUL.md and the hardcoded fallback are both MUSE; `/personality none` still yields MUSE).
+- `hermes`, `python -m hermes_cli.main`, `import hermes_cli`, every `HERMES_*` env var, `~/.hermes`, old script paths: all still work, permanently.
+- MCP servers still advertise `"hermes"` / `"hermes-tools"` (verified at gate); ACP id unchanged.
+- No feature or function removed — rename only (plus two latent packaging bugs fixed: wheel subpackage omission, missing `model_catalog` py-module).
+- Final full-suite result (measured): **56 failed / 29,093 passed / 210 skipped in 9:18** — every failure inside the 60-failure pre-existing baseline; **zero new failures**. Final smoke: muse/hermes/`-m hermes_cli.main`/`-m muse_cli.main` all exit 0; shim identity + MUSE identity assertions pass; lint-imports contract KEPT.

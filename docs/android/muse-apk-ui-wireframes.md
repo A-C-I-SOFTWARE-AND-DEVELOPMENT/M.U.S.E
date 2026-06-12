@@ -12,9 +12,9 @@ horizontal rules below mark the visible content area only.
 > - `▣` skeleton placeholder, `…` truncation.
 > - `■` solid swatch, used only for status colour glyphs.
 
-See the [cockpit doc](hermes-apk-cockpit.md) for the screen catalogue
+See the [cockpit doc](muse-apk-cockpit.md) for the screen catalogue
 this file illustrates, and the
-[API contract](hermes-apk-api-contract.md) for what every screen reads
+[API contract](muse-apk-api-contract.md) for what every screen reads
 and writes.
 
 ---

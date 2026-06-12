@@ -364,7 +364,7 @@ The full security model is
 | Tools available but every call fails 401 | Token expired or scoped wrong | Rotate at the provider, update `~/.hermes/.env`, restart. |
 
 Anything else: see
-[../troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md).
+[../troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md).
 
 ---
 

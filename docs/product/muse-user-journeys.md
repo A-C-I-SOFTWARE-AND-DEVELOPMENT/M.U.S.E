@@ -1,7 +1,7 @@
 # Hermes — Canonical User Journeys
 
 > **Status:** Spec. Companion to
-> [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md).
+> [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md).
 > Each journey below is a contract: at the 10/10 bar, these are the
 > flows Hermes must support end-to-end without surprises.
 
@@ -9,7 +9,7 @@ Every journey is written from the operator's point of view. Each
 journey lists: the trigger, the happy path, the fallback paths, the
 artifacts produced, the ledger entries written, and the
 "definition-of-done" link in
-[`hermes-definition-of-done.md`](hermes-definition-of-done.md).
+[`muse-definition-of-done.md`](muse-definition-of-done.md).
 
 ---
 
@@ -81,7 +81,7 @@ only, never uploaded unless cloud STT is opt-in), `transcript.txt`,
 ```
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-driving-mode`](hermes-definition-of-done.md#dod-driving-mode).
+[`muse-definition-of-done.md#dod-driving-mode`](muse-definition-of-done.md#dod-driving-mode).
 
 ---
 
@@ -141,7 +141,7 @@ only, never uploaded unless cloud STT is opt-in), `transcript.txt`,
   card with the report.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-phase-gates`](hermes-definition-of-done.md#dod-phase-gates).
+[`muse-definition-of-done.md#dod-phase-gates`](muse-definition-of-done.md#dod-phase-gates).
 
 ---
 
@@ -173,7 +173,7 @@ only, never uploaded unless cloud STT is opt-in), `transcript.txt`,
   findings" with the uncertainty stated in plain English.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-github-integration`](hermes-definition-of-done.md#dod-github-integration).
+[`muse-definition-of-done.md#dod-github-integration`](muse-definition-of-done.md#dod-github-integration).
 
 ---
 
@@ -216,7 +216,7 @@ only, never uploaded unless cloud STT is opt-in), `transcript.txt`,
   on the allowlist. Want to add it?"*
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-windows-bridge`](hermes-definition-of-done.md#dod-windows-bridge).
+[`muse-definition-of-done.md#dod-windows-bridge`](muse-definition-of-done.md#dod-windows-bridge).
 
 ---
 
@@ -252,7 +252,7 @@ for branch `feat/x`."*
   `confirm_cost` has run and the user has seen the price.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-supabase-vercel`](hermes-definition-of-done.md#dod-supabase-vercel).
+[`muse-definition-of-done.md#dod-supabase-vercel`](muse-definition-of-done.md#dod-supabase-vercel).
 
 ---
 
@@ -286,7 +286,7 @@ for branch `feat/x`."*
   **Retry PR** action.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-pr-flow`](hermes-definition-of-done.md#dod-pr-flow).
+[`muse-definition-of-done.md#dod-pr-flow`](muse-definition-of-done.md#dod-pr-flow).
 
 ---
 
@@ -338,7 +338,7 @@ restarts, or a remote worker (Windows) loses its tunnel.
   the success and the resume skips that step.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-resilience`](hermes-definition-of-done.md#dod-resilience).
+[`muse-definition-of-done.md#dod-resilience`](muse-definition-of-done.md#dod-resilience).
 
 ---
 
@@ -370,7 +370,7 @@ says *"Hermes, status"* and asks *"Why did you pick that?"*.
   used the default policy."*
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-explanations`](hermes-definition-of-done.md#dod-explanations).
+[`muse-definition-of-done.md#dod-explanations`](muse-definition-of-done.md#dod-explanations).
 
 ---
 
@@ -421,7 +421,7 @@ says *"Hermes, status"* and asks *"Why did you pick that?"*.
   the bottom line is "publishing blocked — timeout".
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-validation-report`](hermes-definition-of-done.md#dod-validation-report).
+[`muse-definition-of-done.md#dod-validation-report`](muse-definition-of-done.md#dod-validation-report).
 
 ---
 
@@ -460,15 +460,15 @@ grudgingly accepted.
   carries forward.
 
 **Definition-of-done link.**
-[`hermes-definition-of-done.md#dod-self-improvement`](hermes-definition-of-done.md#dod-self-improvement).
+[`muse-definition-of-done.md#dod-self-improvement`](muse-definition-of-done.md#dod-self-improvement).
 
 ---
 
 ## Cross-references
 
-- [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) — the spec these journeys exercise.
-- [`hermes-definition-of-done.md`](hermes-definition-of-done.md) — DoD checklists per journey.
-- [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md) — driving-mode and voice details.
-- [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md) — the principles every readback follows.
+- [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) — the spec these journeys exercise.
+- [`muse-definition-of-done.md`](muse-definition-of-done.md) — DoD checklists per journey.
+- [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md) — driving-mode and voice details.
+- [`muse-plain-english-principles.md`](muse-plain-english-principles.md) — the principles every readback follows.
 - [`../orchestration/prompt-to-pr-demo.md`](../orchestration/prompt-to-pr-demo.md) — the end-to-end demo this spec generalizes.
 - [`../orchestration/self-improvement-loop.md`](../orchestration/self-improvement-loop.md) — the loop journey #10 closes.

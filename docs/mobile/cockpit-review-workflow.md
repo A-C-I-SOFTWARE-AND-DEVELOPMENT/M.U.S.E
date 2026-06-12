@@ -9,7 +9,7 @@ from your phone**, over the cockpit API in
 It is the review-and-ship companion to the overall
 [mobile app guide](mobile-app-guide.md). Every route named here is **live**
 in the cockpit gateway and tracked in the
-[API contract](../android/hermes-apk-api-contract.md). Routes are written
+[API contract](../android/muse-apk-api-contract.md). Routes are written
 short (`/jobs/{id}/diff`); the full path is always
 `/v1/cockpit/jobs/{id}/diff`.
 
@@ -260,7 +260,7 @@ On success:
 
 ## See also
 
-- [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — the canonical route contract and the live-vs-planned status table.
 - [mobile-app-guide.md](mobile-app-guide.md) — the cockpit overall:
   pairing, screens, approvals, notifications.

@@ -22,7 +22,7 @@ def test_package_identity():
 
 
 def test_submodule_identity():
-    import hermes_cli.main as old_main  # noqa: deprecated alias under test
+    import hermes_cli.main as old_main  # noqa: deprecated alias under test  # ty: ignore[unresolved-import]
     import muse_cli.main as new_main
 
     assert old_main is new_main
@@ -35,7 +35,7 @@ def test_dynamic_import_identity():
 
 
 def test_from_import_resolves():
-    from hermes_cli import config as old_config  # noqa: deprecated alias
+    from hermes_cli import config as old_config  # noqa: deprecated alias  # ty: ignore[unresolved-import]
 
     import muse_cli.config as new_config
 

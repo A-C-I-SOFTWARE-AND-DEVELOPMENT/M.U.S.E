@@ -127,7 +127,7 @@ Three files (paths are fixed so the docs system can find them):
    plus per-product "what stands out" notes.
 2. `docs/competitive/<name>-research.md` — disambiguation notes for any
    obscure name (one file per name, or one combined file).
-3. `docs/product/hermes-feature-backlog.md` — only the rows marked
+3. `docs/product/muse-feature-backlog.md` — only the rows marked
    "Gap — high value", grouped by theme, with proposed implementation
    targets and a one-line rationale.
 

@@ -379,7 +379,7 @@ MUSE answers like a source-grounded research engine:
 
 The same engine backs the cockpit `/v1/cockpit/evidence*` API and the Android
 **Evidence** screen (search, trust/freshness labels, contradiction alerts,
-promote-to-memory). See `docs/android/hermes-apk-api-contract.md` §10d.
+promote-to-memory). See `docs/android/muse-apk-api-contract.md` §10d.
 
 ## Owner Gates
 
@@ -428,7 +428,7 @@ capability list (auto-approved vs. still-gated, from
 `approval_policy.capabilities()`), pending approvals, the decision audit trail,
 and a backend-wired **emergency stop** that cancels active jobs/workers and
 drops autonomy to `read_only`. See
-[`docs/android/hermes-apk-api-contract.md`](android/hermes-apk-api-contract.md) §10d.
+[`docs/android/muse-apk-api-contract.md`](android/muse-apk-api-contract.md) §10d.
 
 ## CLI Reference
 

@@ -18,7 +18,7 @@ lives, so contributors reach for the existing primitive instead of inventing a s
 
 | Pattern | What it is | Where it already lives in MUSE |
 |---|---|---|
-| **Prompt chaining** | Decompose into fixed sequential steps | The orchestrator's phase decomposition (a phase's output feeds the next); see [`hermes-orchestration-pipeline.md`](hermes-orchestration-pipeline.md) |
+| **Prompt chaining** | Decompose into fixed sequential steps | The orchestrator's phase decomposition (a phase's output feeds the next); see [`muse-orchestration-pipeline.md`](muse-orchestration-pipeline.md) |
 | **Routing** | Classify input, send to a specialized path | [`hermes_cli/model_router.py`](../../hermes_cli/model_router.py) (evidence-first worker routing) + [`hermes_cli/jarvis_prime/task_router.py`](../../hermes_cli/jarvis_prime/task_router.py) (mode/risk classification) |
 | **Parallelization** | Run independent subtasks concurrently and aggregate | `_should_parallelize_tool_batch()` in [`run_agent.py`](../../run_agent.py); parallel phases on the kanban board |
 | **Orchestrator-workers** | A lead LLM dynamically splits work, delegates, synthesizes | MUSE runtime ([`runtime.py`](../../hermes_cli/jarvis_prime/runtime.py)) over worker profiles ([`worker_registry.py`](../../hermes_cli/jarvis_prime/worker_registry.py)); the `delegate_task` tool |

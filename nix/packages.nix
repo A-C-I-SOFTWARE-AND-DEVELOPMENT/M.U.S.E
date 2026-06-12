@@ -4,7 +4,7 @@
   perSystem =
     { pkgs, inputs', ... }:
     let
-      hermesAgent = pkgs.callPackage ./hermes-agent.nix {
+      hermesAgent = pkgs.callPackage ./muse-agent.nix {
         inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
         npm-lockfile-fix = inputs'.npm-lockfile-fix.packages.default;
         # Only embed clean revs — dirtyRev doesn't represent any upstream

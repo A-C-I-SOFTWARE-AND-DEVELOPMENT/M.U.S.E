@@ -4,11 +4,11 @@
 > document in `docs/product/`, this file wins.
 >
 > **Companion docs:**
-> - [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md)
-> - [`hermes-user-journeys.md`](hermes-user-journeys.md)
-> - [`hermes-definition-of-done.md`](hermes-definition-of-done.md)
-> - [`hermes-private-local-mode.md`](hermes-private-local-mode.md)
-> - [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md)
+> - [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md)
+> - [`muse-user-journeys.md`](muse-user-journeys.md)
+> - [`muse-definition-of-done.md`](muse-definition-of-done.md)
+> - [`muse-private-local-mode.md`](muse-private-local-mode.md)
+> - [`muse-plain-english-principles.md`](muse-plain-english-principles.md)
 
 ---
 
@@ -119,7 +119,7 @@ Three rules:
 
 The full narrative of each journey — voice transcript, screens,
 backend state transitions, ledger entries, fallback paths — lives
-in [`hermes-user-journeys.md`](hermes-user-journeys.md). The ten
+in [`muse-user-journeys.md`](muse-user-journeys.md). The ten
 journeys this spec commits to:
 
 1. **Voice prompt while driving** → safe hands-free job capture.
@@ -146,7 +146,7 @@ journeys this spec commits to:
 
 | # | Capability | Owner module(s) | Notes |
 |---|---|---|---|
-| C1  | Mobile-native app shell (Android-native today; Flutter is the **future-state** target) | `apps/android/` | See [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md) for the decision rationale. |
+| C1  | Mobile-native app shell (Android-native today; Flutter is the **future-state** target) | `apps/android/` | See [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md) for the decision rationale. |
 | C2  | Voice-to-text pipeline | cockpit + gateway STT adapter | On-device first; cloud STT only with explicit opt-in. |
 | C3  | Optional continuous hands-free listening mode | cockpit | Off by default. Opt-in per session, with visible "listening" indicator. |
 | C4  | Driving-mode restrictions and safety boundaries | cockpit | No destructive taps; voice-only confirmation; large-target UI. |
@@ -166,7 +166,7 @@ journeys this spec commits to:
 
 A capability is **only** complete when it satisfies the matching row
 in §5 below and the corresponding entry in
-[`hermes-definition-of-done.md`](hermes-definition-of-done.md).
+[`muse-definition-of-done.md`](muse-definition-of-done.md).
 
 ---
 
@@ -182,7 +182,7 @@ The bar. Each row defines what 10/10 looks like and how it is verified.
 | Voice-to-text pipeline | "Long-press mic → speak → release" produces a transcript visible within 1 s of release; user can edit before dispatch; cloud STT only used when user has opted in; STT failures degrade to "type instead", never silently drop the prompt. | Latency budget tested with synthetic audio clips; opt-in flag asserted in instrumentation; fallback path covered by an Espresso test. |
 | Continuous hands-free listening | Off by default. When enabled, a persistent foreground notification + on-screen banner + LED-style mic icon indicate the mic is hot. Wake-word required before any prompt is captured. Session auto-ends after a user-configurable timeout. Recording is never transmitted off-device without an explicit per-prompt confirmation tone or visual cue. | Mic state surfaced via instrumentation; integration test verifies wake-word gating; privacy doc lists every byte that leaves the device. |
 | Driving-mode restrictions | When driving mode is on (manual toggle or Android Auto / car-Bluetooth detection), the UI shows only voice controls + a large "End" button; no destructive action is reachable; approvals require spoken confirmation phrase, not a tap; visual diffs are summarized aloud, never shown as code on the screen. | Espresso test for the restricted surface; CarPlay/Auto-style heuristics covered by unit tests; safety checklist signed-off per release. |
-| Plain-English explanations on every screen | Every job card, every gate decision, every model choice carries a one-paragraph plain-English "why" the user can tap to expand. No raw JSON, no opaque model names, no acronyms without expansion. | Screenshot diff per screen vs. a "no jargon" lint; reviewer signs off per release; see [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md). |
+| Plain-English explanations on every screen | Every job card, every gate decision, every model choice carries a one-paragraph plain-English "why" the user can tap to expand. No raw JSON, no opaque model names, no acronyms without expansion. | Screenshot diff per screen vs. a "no jargon" lint; reviewer signs off per release; see [`muse-plain-english-principles.md`](muse-plain-english-principles.md). |
 
 ### 5.2 Job lifecycle and orchestration
 
@@ -257,12 +257,12 @@ These items are decisions we have **not** yet made and they live in
 the documents below — this spec does not pre-empt them.
 
 - **Android-native vs. Flutter shell** — see
-  [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md).
+  [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md).
 - **Which on-device STT engine** — see the same vision doc.
 - **Driving-mode legal disclosures** — see
-  [`hermes-user-journeys.md`](hermes-user-journeys.md), journey #1.
+  [`muse-user-journeys.md`](muse-user-journeys.md), journey #1.
 - **Private/local mode threat model details** — see
-  [`hermes-private-local-mode.md`](hermes-private-local-mode.md).
+  [`muse-private-local-mode.md`](muse-private-local-mode.md).
 
 ---
 
@@ -270,12 +270,12 @@ the documents below — this spec does not pre-empt them.
 
 | Topic | Document |
 |---|---|
-| Mobile-native vision and Android/Flutter decision | [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md) |
-| Ten canonical user journeys with full narratives | [`hermes-user-journeys.md`](hermes-user-journeys.md) |
-| Definition-of-done checklists per capability | [`hermes-definition-of-done.md`](hermes-definition-of-done.md) |
-| Private / local mode requirements | [`hermes-private-local-mode.md`](hermes-private-local-mode.md) |
-| Plain-English communication principles | [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md) |
+| Mobile-native vision and Android/Flutter decision | [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md) |
+| Ten canonical user journeys with full narratives | [`muse-user-journeys.md`](muse-user-journeys.md) |
+| Definition-of-done checklists per capability | [`muse-definition-of-done.md`](muse-definition-of-done.md) |
+| Private / local mode requirements | [`muse-private-local-mode.md`](muse-private-local-mode.md) |
+| Plain-English communication principles | [`muse-plain-english-principles.md`](muse-plain-english-principles.md) |
 | Orchestration primitives (Job, Worker, Routing, Gate, Ledger) | [`../orchestration/README.md`](../orchestration/README.md) |
 | The success metric (delivered / validated / accepted) | [`../mission/best-coding-tool-mission.md`](../mission/best-coding-tool-mission.md) |
-| Current Android cockpit API contract | [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md) |
-| Existing Android cockpit screen spec | [`../android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md) |
+| Current Android cockpit API contract | [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md) |
+| Existing Android cockpit screen spec | [`../android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md) |

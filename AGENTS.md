@@ -25,12 +25,12 @@ hermes-agent/
 ├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
 ├── toolsets.py           # Toolset definitions, _HERMES_CORE_TOOLS list
 ├── cli.py                # HermesCLI class — interactive CLI orchestrator (~11k LOC)
-├── hermes_state.py       # SessionDB — SQLite session store (FTS5 search)
-├── hermes_constants.py   # get_hermes_home(), display_hermes_home() — profile-aware paths
-├── hermes_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
+├── muse_state.py       # SessionDB — SQLite session store (FTS5 search)
+├── muse_constants.py   # get_hermes_home(), display_hermes_home() — profile-aware paths
+├── muse_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
 ├── batch_runner.py       # Parallel batch processing
 ├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
-├── hermes_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
+├── muse_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
 │   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
 ├── gateway/              # Messaging gateway — run.py + session.py + platforms/
@@ -145,11 +145,11 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 - **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
 - **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
 - `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
-- **Skin engine** (`hermes_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
+- **Skin engine** (`muse_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
 - `process_command()` is a method on `HermesCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
 - Skill slash commands: `agent/skill_commands.py` scans `~/.hermes/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
 
-### Slash Command Registry (`hermes_cli/commands.py`)
+### Slash Command Registry (`muse_cli/commands.py`)
 
 All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
 
@@ -163,7 +163,7 @@ All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandD
 
 ### Adding a Slash Command
 
-1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `hermes_cli/commands.py`:
+1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `muse_cli/commands.py`:
 ```python
 CommandDef("mycommand", "Description of what it does", "Session",
            aliases=("mc",), args_hint="[arg]"),
@@ -247,7 +247,7 @@ npm test          # vitest
 
 ### TUI in the Dashboard (`muse dashboard` → `/chat`)
 
-The dashboard embeds the real `muse --tui` — **not** a rewrite.  See `hermes_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `hermes_cli/web_server.py`.
+The dashboard embeds the real `muse --tui` — **not** a rewrite.  See `muse_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `muse_cli/web_server.py`.
 
 - Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
@@ -281,7 +281,7 @@ Then `maybe_persist_tool_result` / `enforce_turn_budget` run unchanged as the
 fallback for anything still large. Config lives under `tool_output.compaction.*`
 in `cli-config.yaml` (see `cli-config.yaml.example`); global kill switch is
 `HERMES_TOKENJUICE=off`. Do **not** confuse this with
-`hermes_cli/jarvis_prime/tokenjuice.py` (a separate *context compiler*). Full
+`muse_cli/jarvis_prime/tokenjuice.py` (a separate *context compiler*). Full
 design: `docs/audits/tokenjuice-integration-plan.md`.
 
 ## Adding New Tools
@@ -358,7 +358,7 @@ Reference: #2810 (bounds pass), #9801 (SHA pinning + audit CI).
 ## Adding Configuration
 
 ### config.yaml options:
-1. Add to `DEFAULT_CONFIG` in `hermes_cli/config.py`
+1. Add to `DEFAULT_CONFIG` in `muse_cli/config.py`
 2. Bump `_config_version` (check the current value at the top of `DEFAULT_CONFIG`)
    ONLY if you need to actively migrate/transform existing user config
    (renaming keys, changing structure). Adding a new key to an existing
@@ -382,7 +382,7 @@ its own provider/model/base_url/max_tokens/reasoning_effort. See
 `archive_after_days`, `backup` (nested).
 
 ### .env variables (SECRETS ONLY — API keys, tokens, passwords):
-1. Add to `OPTIONAL_ENV_VARS` in `hermes_cli/config.py` with metadata:
+1. Add to `OPTIONAL_ENV_VARS` in `muse_cli/config.py` with metadata:
 ```python
 "NEW_API_KEY": {
     "description": "What it's for",
@@ -403,7 +403,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 | Loader | Used by | Location |
 |--------|---------|----------|
 | `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `muse tools`, `muse setup`, most CLI subcommands | `hermes_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
+| `load_config()` | `muse tools`, `muse setup`, most CLI subcommands | `muse_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
 If you add a new key and the CLI sees it but the gateway doesn't (or vice
@@ -421,12 +421,12 @@ versa), you're on the wrong loader. Check `DEFAULT_CONFIG` coverage.
 
 ## Skin/Theme System
 
-The skin engine (`hermes_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
+The skin engine (`muse_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
 
 ### Architecture
 
 ```
-hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
+muse_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 ~/.hermes/skins/*.yaml       # User-installed custom skins (drop-in)
 ```
 
@@ -466,7 +466,7 @@ hermes_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 
 ### Adding a built-in skin
 
-Add to `_BUILTIN_SKINS` dict in `hermes_cli/skin_engine.py`:
+Add to `_BUILTIN_SKINS` dict in `muse_cli/skin_engine.py`:
 
 ```python
 "mytheme": {
@@ -514,7 +514,7 @@ Hermes has two plugin surfaces. Both live under `plugins/` in the repo so
 repo-shipped plugins can be discovered alongside user-installed ones in
 `~/.hermes/plugins/` and pip-installed entry points.
 
-### General plugins (`hermes_cli/plugins.py` + `plugins/<name>/`)
+### General plugins (`muse_cli/plugins.py` + `plugins/<name>/`)
 
 `PluginManager` discovers plugins from `~/.hermes/plugins/`, `./.hermes/plugins/`,
 and pip entry points. Each plugin exposes a `register(ctx)` function that
@@ -553,7 +553,7 @@ provider (read from `memory.provider` in config.yaml), so disabled
 providers don't clutter `muse --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `hermes_cli/main.py`, etc.).
+(`run_agent.py`, `cli.py`, `gateway/run.py`, `muse_cli/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -749,7 +749,7 @@ These skills cooperate via two on-disk contracts:
 
 Companion docs:
 
-- `docs/orchestration/hermes-orchestration-pipeline.md` — pipeline contract.
+- `docs/orchestration/muse-orchestration-pipeline.md` — pipeline contract.
 - `docs/orchestration/decision-ledger.md` — ledger schema and lifecycle.
 - `docs/orchestration/self-improvement-loop.md` — how Hermes proposes
   patches to itself.
@@ -760,13 +760,13 @@ Companion docs:
 - `docs/competitive/openhuman-paperclip-research.md` — competitive
   feature harvester output that feeds `ai-improvement-radar`.
 - `docs/mission/best-coding-tool-mission.md` — mission statement.
-- `scripts/hermes-orchestrate.sh` — convenience entry point that
+- `scripts/muse-orchestrate.sh` — convenience entry point that
   invokes the pipeline against a job folder.
 
 Posture: **private and local-first**. No telemetry, no remote config,
 no third-party data sharing in the pipeline. The Hermes backend is the
 engine; the Android APK at [`apps/android`](apps/android/) is the
-cockpit. See [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+cockpit. See [`docs/muse-local-orchestrator.md`](docs/muse-local-orchestrator.md)
 for the cockpit contract.
 
 Invocation summary (CLI or any messaging gateway):
@@ -843,7 +843,7 @@ go to `~/.hermes/skills/.archive/` and are restorable.
 
 - **Core:** `agent/curator.py` (review loop, auto-transitions, LLM review
   prompt) + `agent/curator_backup.py` (pre-run tar.gz snapshots).
-- **CLI:** `hermes_cli/curator.py` wires `muse curator <verb>` where
+- **CLI:** `muse_cli/curator.py` wires `muse curator <verb>` where
   verbs are: `status`, `run`, `pause`, `resume`, `pin`, `unpin`,
   `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Telemetry:** `tools/skill_usage.py` owns the sidecar
@@ -913,7 +913,7 @@ workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `hermes_cli/kanban.py` wires `muse kanban` with verbs
+- **CLI:** `muse_cli/kanban.py` wires `muse kanban` with verbs
   `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
   `unlink`, `comment`, `complete`, `block`, `unblock`, `archive`,
   `tail`, plus less-commonly-used `watch`, `stats`, `runs`, `log`,
@@ -981,28 +981,28 @@ in config.yaml (or `HERMES_BACKGROUND_NOTIFICATIONS` env var):
 Hermes supports **profiles** — multiple fully isolated instances, each with its own
 `HERMES_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
 
-The core mechanism: `_apply_profile_override()` in `hermes_cli/main.py` sets
+The core mechanism: `_apply_profile_override()` in `muse_cli/main.py` sets
 `HERMES_HOME` before any module imports. All `get_hermes_home()` references
 automatically scope to the active profile.
 
 ### Rules for profile-safe code
 
-1. **Use `get_hermes_home()` for all HERMES_HOME paths.** Import from `hermes_constants`.
+1. **Use `get_hermes_home()` for all HERMES_HOME paths.** Import from `muse_constants`.
    NEVER hardcode `~/.hermes` or `Path.home() / ".hermes"` in code that reads/writes state.
    ```python
    # GOOD
-   from hermes_constants import get_hermes_home
+   from muse_constants import get_hermes_home
    config_path = get_hermes_home() / "config.yaml"
 
    # BAD — breaks profiles
    config_path = Path.home() / ".hermes" / "config.yaml"
    ```
 
-2. **Use `display_hermes_home()` for user-facing messages.** Import from `hermes_constants`.
+2. **Use `display_hermes_home()` for user-facing messages.** Import from `muse_constants`.
    This returns `~/.hermes` for default or `~/.hermes/profiles/<name>` for profiles.
    ```python
    # GOOD
-   from hermes_constants import display_hermes_home
+   from muse_constants import display_hermes_home
    print(f"Config saved to {display_hermes_home()}/config.yaml")
 
    # BAD — shows wrong path for profiles
@@ -1035,16 +1035,16 @@ automatically scope to the active profile.
 ## Known Pitfalls
 
 ### DO NOT hardcode `~/.hermes` paths
-Use `get_hermes_home()` from `hermes_constants` for code paths. Use `display_hermes_home()`
+Use `get_hermes_home()` from `muse_constants` for code paths. Use `display_hermes_home()`
 for user-facing print/log messages. Hardcoding `~/.hermes` breaks profiles — each profile
 has its own `HERMES_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
 
 ### DO NOT introduce new `simple_term_menu` usage
-Existing call sites in `hermes_cli/main.py` remain for legacy fallback only;
+Existing call sites in `muse_cli/main.py` remain for legacy fallback only;
 the preferred UI is curses (stdlib) because `simple_term_menu` has
 ghost-duplication rendering bugs in tmux/iTerm2 with arrow keys. New
-interactive menus must use `hermes_cli/curses_ui.py` — see
-`hermes_cli/tools_config.py` for the canonical pattern.
+interactive menus must use `muse_cli/curses_ui.py` — see
+`muse_cli/tools_config.py` for the canonical pattern.
 
 ### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
 Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
@@ -1084,7 +1084,7 @@ The `_isolate_hermes_home` autouse fixture in `tests/conftest.py` redirects `HER
 
 **Profile tests**: When testing profile features, also mock `Path.home()` so that
 `_get_profiles_root()` and `_get_default_hermes_home()` resolve within the temp dir.
-Use the pattern from `tests/hermes_cli/test_profiles.py`:
+Use the pattern from `tests/muse_cli/test_profiles.py`:
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
@@ -1209,7 +1209,7 @@ to update one of these pages too — pick the closest match:
 | The user profile / GitHub-history learning | `docs/profile/github-history-profile-guide.md` |
 | Secrets, policy gate, private-local recipes | `docs/security/private-local-security-guide.md` (+ `docs/orchestration/private-local-mode.md`) |
 | GitHub / Supabase / Vercel integration | `docs/integrations/github-supabase-vercel-guide.md` |
-| A new failure mode users will hit | `docs/troubleshooting/hermes-orchestration-troubleshooting.md` (and the orchestration-specific `docs/orchestration/troubleshooting.md`) |
+| A new failure mode users will hit | `docs/troubleshooting/muse-orchestration-troubleshooting.md` (and the orchestration-specific `docs/orchestration/troubleshooting.md`) |
 
 The index is [`docs/README.md`](docs/README.md). Keep the index in
 sync when you add or rename a guide.
@@ -1249,7 +1249,7 @@ existing doc) in the same PR.
 
 ### Swarm Grainler Parallel (code-task pipeline)
 
-For code-producing work, `hermes_cli/swarm/` composes the five
+For code-producing work, `muse_cli/swarm/` composes the five
 primitives into one collision-free pipeline: a goal is decomposed into
 **grains** with *provably disjoint file-domains* (`grain.SwarmPlan.prove_disjoint`),
 each grain becomes its own specialized LLM (token-juice context +
@@ -1300,7 +1300,7 @@ under `skills/` in the repo. They must:
 
 ### Adding a new entry surface
 
-There are five today: `hermes` (TUI), `bash scripts/hermes-orchestrate.sh`,
+There are five today: `hermes` (TUI), `bash scripts/muse-orchestrate.sh`,
 `/orchestrate` slash command, Android cockpit, gateway DM. A sixth would
 need:
 

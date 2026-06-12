@@ -102,7 +102,7 @@ workstation, use the remote bridge:
 
 If you'd rather hand a prompt to ChatGPT/Codex on the phone and paste the
 result back, the clipboard-handoff workflow predates the cockpit and still
-works: [`../hermes-local-orchestrator.md`](../hermes-local-orchestrator.md).
+works: [`../muse-local-orchestrator.md`](../muse-local-orchestrator.md).
 The **clipboard handoff** toggle is in Settings.
 
 ## Troubleshooting

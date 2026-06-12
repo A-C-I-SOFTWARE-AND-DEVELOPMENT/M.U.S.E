@@ -261,7 +261,7 @@ section. Each item starts with its channel marker:
   remote.
 - Commands: `grep -rn "build_environment_hints" .` → 4 hits, all in
   `agent/` and `tests/agent/`.
-- Docs: `docs/hermes-local-orchestrator.md` — describes the Android
+- Docs: `docs/muse-local-orchestrator.md` — describes the Android
   app's lifecycle; no mention of decision ledgers.
 - Web sources: (none consulted; question answered from local code)
 - Prior memory: session `20260520_141200_a1b2c3` decided to use

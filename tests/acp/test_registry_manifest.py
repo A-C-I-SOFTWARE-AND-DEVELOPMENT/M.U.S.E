@@ -47,7 +47,7 @@ def test_agent_json_uses_uvx_distribution_without_local_command_fields():
     # Schema allows {package, args, env}; we use {package, args}.
     assert set(uvx) <= {"package", "args", "env"}
     assert "package" in uvx
-    assert uvx["package"] == f"hermes-agent[acp]=={data['version']}"
+    assert uvx["package"] == f"muse-agent[acp]=={data['version']}"
     assert uvx["args"] == ["muse-acp"]
     # Old command-shape fields must not leak back in.
     assert "type" not in data["distribution"]
@@ -62,7 +62,7 @@ def test_agent_json_pins_uvx_package_to_pyproject_version():
     """The registry CI rejects ``@latest`` and floating pins; the manifest must
     always reference the exact PyPI version listed in pyproject.toml."""
     assert _manifest()["distribution"]["uvx"]["package"] == (
-        f"hermes-agent[acp]=={_pyproject_version()}"
+        f"muse-agent[acp]=={_pyproject_version()}"
     )
 
 

@@ -9,10 +9,10 @@ configure a gateway.
 
 For deeper Android-specific topics, see the companion docs:
 
-- [`hermes-termux-boot.md`](./hermes-termux-boot.md) — autostart on device boot
-- [`hermes-background-limits.md`](./hermes-background-limits.md) — what Android allows in the background
-- [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md) — when the runtime holds a wake lock
-- [`hermes-android-permissions.md`](./hermes-android-permissions.md) — system permissions and battery whitelists
+- [`muse-termux-boot.md`](./muse-termux-boot.md) — autostart on device boot
+- [`muse-background-limits.md`](./muse-background-limits.md) — what Android allows in the background
+- [`muse-wake-lock-policy.md`](./muse-wake-lock-policy.md) — when the runtime holds a wake lock
+- [`muse-android-permissions.md`](./muse-android-permissions.md) — system permissions and battery whitelists
 
 ## TL;DR
 
@@ -47,10 +47,10 @@ curiosity:
   whatever the model itself takes.
 - **Battery-aware.** The service script acquires a Termux wake lock
   so the runtime is not silently frozen the moment the screen turns
-  off. See [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md).
+  off. See [`muse-wake-lock-policy.md`](./muse-wake-lock-policy.md).
 - **Background-aware.** The service plays inside Android's
   background-execution rules, not around them. See
-  [`hermes-background-limits.md`](./hermes-background-limits.md).
+  [`muse-background-limits.md`](./muse-background-limits.md).
 - **No secrets in cloud.** Credentials live in `$HERMES_HOME`
   on the device's private storage.
 - **Self-diagnosing.** The doctor script verifies tooling, wake lock
@@ -242,7 +242,7 @@ manual intervention beyond a single `start`:
   unmounted, the next `start` re-creates the directory.
 
 If you want the runtime to come back automatically after a reboot,
-see [`hermes-termux-boot.md`](./hermes-termux-boot.md). Termux:Boot
+see [`muse-termux-boot.md`](./muse-termux-boot.md). Termux:Boot
 plus `~/.termux/boot/10-hermes` is enough; you do not need
 anything more sophisticated.
 
@@ -284,7 +284,7 @@ like `termux-battery-status`).
 
 - Phone-first installer entry points: `scripts/install.sh`,
   `hermes_cli/doctor.py`.
-- Background-execution rules: [`hermes-background-limits.md`](./hermes-background-limits.md).
-- Wake lock policy: [`hermes-wake-lock-policy.md`](./hermes-wake-lock-policy.md).
-- Boot autostart: [`hermes-termux-boot.md`](./hermes-termux-boot.md).
-- Android permissions table: [`hermes-android-permissions.md`](./hermes-android-permissions.md).
+- Background-execution rules: [`muse-background-limits.md`](./muse-background-limits.md).
+- Wake lock policy: [`muse-wake-lock-policy.md`](./muse-wake-lock-policy.md).
+- Boot autostart: [`muse-termux-boot.md`](./muse-termux-boot.md).
+- Android permissions table: [`muse-android-permissions.md`](./muse-android-permissions.md).

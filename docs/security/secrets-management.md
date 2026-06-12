@@ -132,7 +132,7 @@ sees, alongside whether the value passed the ASCII sanity check
 
 ## Related
 
-- [`hermes-private-local-security.md`](hermes-private-local-security.md)
+- [`muse-private-local-security.md`](muse-private-local-security.md)
   — the high-level "why".
 - [`autonomous-agent-safety.md`](autonomous-agent-safety.md) — the
   approval-policy companion.

@@ -247,8 +247,8 @@
 | `docs/orchestration/final-hermes-orchestration-integration-report.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ Orchestration\ —\ Final\ Integration\ Report |
 | `docs/orchestration/getting-started.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Getting\ started\ with\ Hermes\ Orchestration |
 | `docs/orchestration/github-publisher-runtime.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ GitHub\ publisher\ runtime |
-| `docs/orchestration/hermes-agent-skill-map.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ Agent\ Skill\ Map\ —\ AoS\ Council |
-| `docs/orchestration/hermes-orchestration-pipeline.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ orchestration\ pipeline |
+| `docs/orchestration/muse-agent-skill-map.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ Agent\ Skill\ Map\ —\ AoS\ Council |
+| `docs/orchestration/muse-orchestration-pipeline.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ orchestration\ pipeline |
 | `docs/orchestration/job-controller-roadmap.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Job\ Controller\ Roadmap\ (Phase\ 7) |
 | `docs/orchestration/known-limitations.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Hermes\ orchestration\ —\ known\ limitations |
 | `docs/orchestration/local-api-backend.md` | hermes-agent | docs/orchestration/ | GOVERNANCE | HIGH | — | #\ Local\ Orchestrator\ API\ Backend |

@@ -45,7 +45,7 @@ Do **not** use this skill to:
 In order — read the first one and the others as the conversation
 demands:
 
-1. [`docs/security/hermes-private-local-security.md`](../../docs/security/hermes-private-local-security.md)
+1. [`docs/security/muse-private-local-security.md`](../../docs/security/muse-private-local-security.md)
    — the plain-English overview.
 2. [`docs/security/secrets-management.md`](../../docs/security/secrets-management.md)
    — sources, scanners, redaction rules.

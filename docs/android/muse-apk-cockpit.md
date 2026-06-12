@@ -3,8 +3,8 @@
 > **Status:** specification + integration plan. The cockpit is an evolution
 > of the existing native Android app at [`apps/android/`](../../apps/android/).
 > This document defines the cockpit shape; the API contract lives in
-> [`hermes-apk-api-contract.md`](hermes-apk-api-contract.md), wireframes in
-> [`hermes-apk-ui-wireframes.md`](hermes-apk-ui-wireframes.md), and the
+> [`muse-apk-api-contract.md`](muse-apk-api-contract.md), wireframes in
+> [`muse-apk-ui-wireframes.md`](muse-apk-ui-wireframes.md), and the
 > on-device Termux integration in [`termux-intent-bridge.md`](termux-intent-bridge.md).
 
 ## 1. What "cockpit" means

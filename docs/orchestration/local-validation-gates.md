@@ -188,7 +188,7 @@ dashboard surfaces blocking failures alongside the artefacts.
 
 For the existing job folder contract (`jobs/<id>/job.json` with
 `id` + `status` keys, optional `logs/` directory), see
-[`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md).
+[`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md).
 
 ## Extending the runner
 

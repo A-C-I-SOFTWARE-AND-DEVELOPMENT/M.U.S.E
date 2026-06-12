@@ -24,7 +24,7 @@ Repository ground rules:
 - Land everything in one PR (draft).
 - Preserve the private-local posture
   (see `docs/orchestration/private-local-mode.md` and
-  `docs/hermes-local-orchestrator.md`): no remote sync, no telemetry,
+  `docs/muse-local-orchestrator.md`): no remote sync, no telemetry,
   no Play Billing, no credential brokering, no autonomous external
   action.
 - Reuse the primitives already in `main`. Do not duplicate them.
@@ -202,5 +202,5 @@ is the next PR's job, not this one's).
   output behind a kwarg. No flag day.
 - **No posture surface drift.** The private-local guarantees in
   `docs/orchestration/private-local-mode.md` and
-  `docs/hermes-local-orchestrator.md` are referenced as immutable
+  `docs/muse-local-orchestrator.md` are referenced as immutable
   constraints, not as bullet points to "consider."

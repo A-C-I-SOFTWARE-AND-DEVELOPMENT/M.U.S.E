@@ -11758,7 +11758,7 @@ def main():
         help=(
             "Run the unified release gate: the 10/10 readiness checks PLUS a "
             "ruff lint and a fast launch-critical pytest slice, aggregated "
-            "behind one safe-to-ship verdict (matches scripts/hermes-10-10-smoke.sh)."
+            "behind one safe-to-ship verdict (matches scripts/muse-10-10-smoke.sh)."
         ),
     )
     doctor_parser.add_argument(

@@ -12,7 +12,7 @@ and how to optionally bring the gateway up at boot.
    you do, Android does not register the boot receiver.
 2. **Allow autostart** for both Termux and Termux:Boot in your device's
    battery / autostart settings. The exact path varies by vendor; see
-   [`hermes-android-permissions.md`](./hermes-android-permissions.md#autostart)
+   [`muse-android-permissions.md`](./muse-android-permissions.md#autostart)
    for the common ones.
 3. **Confirm the wake lock works** by running:
 
@@ -113,7 +113,7 @@ the service is allowed to keep working in the background.
 
 For the trade-off with battery life and how to whitelist Termux against
 your vendor's battery optimizer, see
-[`hermes-android-permissions.md`](./hermes-android-permissions.md).
+[`muse-android-permissions.md`](./muse-android-permissions.md).
 
 ## Disabling autostart
 

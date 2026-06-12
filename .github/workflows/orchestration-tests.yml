@@ -9,10 +9,10 @@ on:
     branches: [main]
     paths:
       - 'muse_cli/**'
-      - 'scripts/hermes-orchestrate.sh'
-      - 'scripts/hermes-termux-service.sh'
-      - 'scripts/hermes-termux-doctor.sh'
-      - 'scripts/hermes-ai-radar.sh'
+      - 'scripts/muse-orchestrate.sh'
+      - 'scripts/muse-termux-service.sh'
+      - 'scripts/muse-termux-doctor.sh'
+      - 'scripts/muse-ai-radar.sh'
       - 'tests/test_orchestrator*.py'
       - 'tests/test_worker*.py'
       - 'tests/test_scoring.py'
@@ -23,10 +23,10 @@ on:
   pull_request:
     paths:
       - 'muse_cli/**'
-      - 'scripts/hermes-orchestrate.sh'
-      - 'scripts/hermes-termux-service.sh'
-      - 'scripts/hermes-termux-doctor.sh'
-      - 'scripts/hermes-ai-radar.sh'
+      - 'scripts/muse-orchestrate.sh'
+      - 'scripts/muse-termux-service.sh'
+      - 'scripts/muse-termux-doctor.sh'
+      - 'scripts/muse-ai-radar.sh'
       - 'tests/test_orchestrator*.py'
       - 'tests/test_worker*.py'
       - 'tests/test_scoring.py'
@@ -68,10 +68,10 @@ jobs:
 
       - name: Bash syntax-check the orchestration scripts
         run: |
-          bash -n scripts/hermes-orchestrate.sh
-          bash -n scripts/hermes-termux-service.sh
-          bash -n scripts/hermes-termux-doctor.sh
-          bash -n scripts/hermes-ai-radar.sh
+          bash -n scripts/muse-orchestrate.sh
+          bash -n scripts/muse-termux-service.sh
+          bash -n scripts/muse-termux-doctor.sh
+          bash -n scripts/muse-ai-radar.sh
 
       - name: Run orchestration tests
         env:

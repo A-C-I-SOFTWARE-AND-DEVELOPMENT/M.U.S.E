@@ -14,7 +14,7 @@ own paid subscription. Driving the web UI, scraping cookies, or
 proxying through a personal account would all break OpenAI's terms
 of service and violate the user's trust. So this worker does what the
 Android local orchestrator already does today (see
-[`docs/hermes-local-orchestrator.md`](../../hermes-local-orchestrator.md)):
+[`docs/muse-local-orchestrator.md`](../../muse-local-orchestrator.md)):
 prepares a structured prompt, surfaces it to the user, and waits for
 the user to drop the reply back into the workspace.
 

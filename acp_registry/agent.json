@@ -9,7 +9,7 @@
   "license": "MIT",
   "distribution": {
     "uvx": {
-      "package": "hermes-agent[acp]==0.14.1+aci.1",
+      "package": "muse-agent[acp]==0.14.1+aci.1",
       "args": ["muse-acp"]
     }
   }

@@ -145,7 +145,7 @@ through the same surface:
   cockpit review.
 
 These routes are spec — they sit alongside `/v1/cockpit/runtime/...`
-in `docs/android/hermes-apk-api-contract.md`. Implementations land
+in `docs/android/muse-apk-api-contract.md`. Implementations land
 together with the gateway work.
 
 ## 8. Tests and validation

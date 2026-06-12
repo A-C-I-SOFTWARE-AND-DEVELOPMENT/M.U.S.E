@@ -27,9 +27,9 @@ ACI Hermes is **two runtimes plus a bridge**:
 
 | # | Runtime | Status today | Where it lives |
 |---|---|---|---|
-| 1 | Python CLI + gateway (the main agent) | Stable, shipped | repo root, `agent/`, `gateway/`, `hermes_cli/`, `cli.py`, `run_agent.py` |
+| 1 | Python CLI + gateway (the main agent) | Stable, shipped | repo root, `agent/`, `gateway/`, `muse_cli/`, `cli.py`, `run_agent.py` |
 | 2 | Native Android companion (Kotlin + Compose) | **Alpha** — debug APK builds in CI, foreground service runs | [`apps/android/`](apps/android/) |
-| 3 | Termux / ADB bridge between #1 and #2 | Manual scripts; no auto-pairing yet | [`scripts/hermes-termux-doctor.sh`](scripts/hermes-termux-doctor.sh), [`scripts/hermes-termux-service.sh`](scripts/hermes-termux-service.sh), [`scripts/hermes-mobile-workspace-init.sh`](scripts/hermes-mobile-workspace-init.sh) |
+| 3 | Termux / ADB bridge between #1 and #2 | Manual scripts; no auto-pairing yet | [`scripts/muse-termux-doctor.sh`](scripts/muse-termux-doctor.sh), [`scripts/muse-termux-service.sh`](scripts/muse-termux-service.sh), [`scripts/muse-mobile-workspace-init.sh`](scripts/muse-mobile-workspace-init.sh) |
 
 The Android app is a **thin native client**, not a CPython-in-APK
 embedding. The intended on-device topology is:
@@ -120,26 +120,26 @@ uv pip install -e ".[termux]"
 ### 3c. Verify the runtime
 
 ```bash
-bash scripts/hermes-termux-doctor.sh                # read-only environment scan
-bash scripts/hermes-mobile-workspace-init.sh        # workspace + tooling probe
+bash scripts/muse-termux-doctor.sh                # read-only environment scan
+bash scripts/muse-mobile-workspace-init.sh        # workspace + tooling probe
 muse doctor
 ```
 
 ### 3d. Run as a background service (optional)
 
-Termux has no systemd. `scripts/hermes-termux-service.sh` is a small
+Termux has no systemd. `scripts/muse-termux-service.sh` is a small
 supervisor that uses a PID file, a wake lock, and `nohup`. Read the
 script's header for environment variables — and never put secrets in
 them.
 
 ```bash
-bash scripts/hermes-termux-service.sh start
-bash scripts/hermes-termux-service.sh status
-bash scripts/hermes-termux-service.sh stop
+bash scripts/muse-termux-service.sh start
+bash scripts/muse-termux-service.sh status
+bash scripts/muse-termux-service.sh stop
 ```
 
 For auto-start on device boot, install Termux:Boot and follow
-[`docs/termux/hermes-termux-boot.md`](docs/termux/hermes-termux-boot.md).
+[`docs/termux/muse-termux-boot.md`](docs/termux/muse-termux-boot.md).
 
 ---
 
@@ -212,7 +212,7 @@ for the full table and example commands.
    create an API key on the provider's developer console.
 4. **Codex CLI and Claude Code CLI authenticate independently** of
    anything in this repo. Run their own `login` / `auth` flows once;
-   `scripts/hermes-mobile-workspace-init.sh` will not (and should not)
+   `scripts/muse-mobile-workspace-init.sh` will not (and should not)
    try to do that for you.
 5. `[`SECURITY.md`](SECURITY.md)` covers vulnerability reporting and
    the supply-chain hardening (exact-pinned deps, OSV scanner, etc.).
@@ -291,6 +291,6 @@ For native Android issues, also attach:
 
 - `adb logcat -s HermesService` (the service's own log tag).
 - The Gradle output of the failing `./gradlew` invocation.
-- Output of `bash scripts/hermes-mobile-workspace-init.sh --json`.
+- Output of `bash scripts/muse-mobile-workspace-init.sh --json`.
 
 Welcome aboard.

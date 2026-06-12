@@ -1,7 +1,7 @@
 """Hermes cockpit API — the loopback HTTP surface the MUSE Android
 app talks to.
 
-Implements the contract in ``docs/android/hermes-apk-api-contract.md``:
+Implements the contract in ``docs/android/muse-apk-api-contract.md``:
 bearer-token-authenticated, loopback-only JSON/NDJSON endpoints backed by
 the **real** Hermes subsystems (MUSE runtime for chat, the
 orchestrator/job-queue for tasks, the decision ledger for audit, the

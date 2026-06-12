@@ -4,7 +4,7 @@ ChatGPT does not expose a usable headless CLI on the user's own paid
 subscription, so this worker is **always** a handoff: it materializes a
 structured prompt the user copies into their existing ChatGPT session
 (web or mobile app) — exactly the same pattern the Android local
-orchestrator uses today (see ``docs/hermes-local-orchestrator.md``).
+orchestrator uses today (see ``docs/muse-local-orchestrator.md``).
 
 There is no execution path. The adapter:
 

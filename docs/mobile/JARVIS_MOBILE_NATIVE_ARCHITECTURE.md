@@ -79,7 +79,7 @@ Each layer talks only to the one below it. The transport layer is the
   container; the cockpit endpoint and token are mirrored into volatile
   caches kept current by a long-lived collector, so config changes
   (pairing, endpoint edits) propagate without rebuilding the client.
-- **Correction to the prior doc:** `hermes-mobile-architecture.md` §2
+- **Correction to the prior doc:** `muse-mobile-architecture.md` §2
   describes a `data/network/` package and `CockpitSseClient.kt`. **The
   live transport actually lives in `data/cockpit/`** and there is **no
   SSE client**. This document supersedes that section.
@@ -136,7 +136,7 @@ daemon) and chat routes to `MockJarvisChatGateway`.
   foreground service (`service/HermesService.kt`) currently holds only a
   persistent notification; it does not own any live subscription.
 - **The prior doc's SSE design is unimplemented.**
-  `hermes-mobile-architecture.md` §4 references
+  `muse-mobile-architecture.md` §4 references
   `/v1/cockpit/jobs/stream`, `/v1/cockpit/events/stream`, and an SSE
   chat response, plus a `CockpitSseClient.kt`. **None of these exist in
   `gateway/cockpit/server.py` or `apps/android/`.** Treat that section as
@@ -344,12 +344,12 @@ None are part of this (docs-only) task.
 
 ## 9. Cross-references
 
-- [`hermes-mobile-architecture.md`](hermes-mobile-architecture.md) —
+- [`muse-mobile-architecture.md`](muse-mobile-architecture.md) —
   prior native-Android design. **Superseded** on the transport (§4):
   its SSE endpoints and `data/network/`/`CockpitSseClient.kt` are not
   implemented; the live transport is in `data/cockpit/` and is
   poll/JSONL.
-- [`hermes-mobile-backend-contract.md`](hermes-mobile-backend-contract.md)
+- [`muse-mobile-backend-contract.md`](muse-mobile-backend-contract.md)
   — mobile↔backend wire summary; see also `gateway/cockpit/contract.py`.
 - [`app-screens.md`](app-screens.md),
   [`app-api-client.md`](app-api-client.md),
@@ -357,8 +357,8 @@ None are part of this (docs-only) task.
   [`app-background-service.md`](app-background-service.md),
   [`app-voice-service.md`](app-voice-service.md) — per-area
   implementation notes.
-- [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md),
-  [`../android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md) —
+- [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md),
+  [`../android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md) —
   cockpit behavioural/API contracts.
 - [`../../apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — the module's own architecture notes (secure storage, wire format).

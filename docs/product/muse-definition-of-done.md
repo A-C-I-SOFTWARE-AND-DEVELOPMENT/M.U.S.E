@@ -1,7 +1,7 @@
 # Hermes — Definition of Done
 
 > **Status:** Per-capability DoD checklists. Companion to
-> [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md).
+> [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md).
 > A capability is **done** when every box in its section is ticked
 > in a release branch.
 
@@ -23,7 +23,7 @@ the section is genuinely done, not "looks done."
   **10/10-gating** below) must be 100 % green.
 
 The sections track the capabilities listed in
-[`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) §4.
+[`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) §4.
 
 ---
 
@@ -372,7 +372,7 @@ pinning verified on the cockpit.
 
 **Validation:** readability score in CI; "no jargon" lint per
 screen; "why" query test against a fixture job. See
-[`hermes-plain-english-principles.md`](hermes-plain-english-principles.md).
+[`muse-plain-english-principles.md`](muse-plain-english-principles.md).
 
 ---
 
@@ -399,7 +399,7 @@ a fixture.
 
 <a id="dod-private-local"></a>
 
-See [`hermes-private-local-mode.md`](hermes-private-local-mode.md)
+See [`muse-private-local-mode.md`](muse-private-local-mode.md)
 for the full requirements. Summary:
 
 - [ ] Zero outbound DNS / TCP outside loopback or LAN, end-to-end.
@@ -439,8 +439,8 @@ bound test; "no auto-merge" assertion.
 
 ## Cross-references
 
-- [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) — the spec these DoDs implement.
-- [`hermes-user-journeys.md`](hermes-user-journeys.md) — the journeys these DoDs deliver.
-- [`hermes-private-local-mode.md`](hermes-private-local-mode.md) — local-mode requirements expanded.
-- [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md) — the principles every readback follows.
+- [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) — the spec these DoDs implement.
+- [`muse-user-journeys.md`](muse-user-journeys.md) — the journeys these DoDs deliver.
+- [`muse-private-local-mode.md`](muse-private-local-mode.md) — local-mode requirements expanded.
+- [`muse-plain-english-principles.md`](muse-plain-english-principles.md) — the principles every readback follows.
 - [`../orchestration/release-checklist.md`](../orchestration/release-checklist.md) — the orchestration-specific release gate.

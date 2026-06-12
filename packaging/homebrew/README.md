@@ -1,6 +1,6 @@
 Homebrew packaging notes for Hermes Agent.
 
-Use `packaging/homebrew/hermes-agent.rb` as a tap or `homebrew-core` starting point.
+Use `packaging/homebrew/muse-agent.rb` as a tap or `homebrew-core` starting point.
 
 Key choices:
 - Stable builds should target the semver-named sdist asset attached to each GitHub release, not the CalVer tag tarball.
@@ -9,6 +9,6 @@ Key choices:
 
 Typical update flow:
 1. Bump the formula `url`, `version`, and `sha256`.
-2. Refresh Python resources with `brew update-python-resources --print-only hermes-agent`.
+2. Refresh Python resources with `brew update-python-resources --print-only muse-agent`.
 3. Keep `ignore_packages: %w[certifi cryptography pydantic]`.
-4. Verify `brew audit --new --strict hermes-agent` and `brew test hermes-agent`.
+4. Verify `brew audit --new --strict muse-agent` and `brew test muse-agent`.

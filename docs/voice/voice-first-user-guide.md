@@ -344,7 +344,7 @@ use hold-to-talk only — this is the default.
 | Audio uploaded but no turn appears | Network drop mid-upload | The cockpit retries automatically; if not, restart the upload from **Voice → Failed captures**. |
 
 For everything else, see
-[../troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md).
+[../troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md).
 
 ---
 

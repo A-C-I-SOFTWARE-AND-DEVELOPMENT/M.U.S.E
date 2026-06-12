@@ -43,7 +43,7 @@ What is **not** yet end-to-end automatic:
 - The orchestrator deliberately stops at "queued" / "scaffolded" and
   surfaces a hand-off message rather than executing workers. This is by
   design — the local-orchestrator contract
-  (`docs/hermes-local-orchestrator.md`) keeps the operator in the loop.
+  (`docs/muse-local-orchestrator.md`) keeps the operator in the loop.
 - The Android cockpit has its HTTP/WebSocket API surface implemented
   (`hermes_cli/orchestrator_api.py`, `docs/orchestration/local-api-backend.md`)
   but the Kotlin app does not yet render a Jobs / Decision Ledger /
@@ -85,7 +85,7 @@ other content changes were made.
 
 Sixteen specialist agents are reachable as first-class skills, with the
 canonical map in
-[`docs/orchestration/hermes-agent-skill-map.md`](./hermes-agent-skill-map.md):
+[`docs/orchestration/muse-agent-skill-map.md`](./muse-agent-skill-map.md):
 
 | Skill | Slash command | Path |
 |---|---|---|
@@ -441,7 +441,7 @@ provider tokens (see §13).
 
 This is a hard constraint across every phase, codified in
 [`docs/orchestration/private-local-mode.md`](./private-local-mode.md) and
-[`docs/hermes-local-orchestrator.md`](../hermes-local-orchestrator.md):
+[`docs/muse-local-orchestrator.md`](../muse-local-orchestrator.md):
 
 - **No commercial subscription surface.** No Google Play Billing, no
   in-app purchases, no paywall, no product IDs.
@@ -538,7 +538,7 @@ Phase 10 brief is on disk):
 
 7. **Phase 0 audit observation persists.** `docs/orchestration/phase-0-evidence-audit.md`
    records that the original brief assumed `.claude/agents/*.md` source
-   files which did not exist; Phase 03 (`hermes-agent-skill-map.md`)
+   files which did not exist; Phase 03 (`muse-agent-skill-map.md`)
    re-grounded the work against M.U.S.E.' native skill system. The
    audit's contradiction with the later skill map is resolved in
    favor of the skill map — the council exists as M.U.S.E. skills, not

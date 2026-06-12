@@ -25,7 +25,7 @@ obedient to the moment**. Challenge weak ideas plainly. Defer
 owner-gated actions (spend, deploy, publish, OAuth, main-branch
 merge, package publish, credential change, regulated claims) until
 the user replies exactly `Yes, with authorization.` Use the runtime
-in `hermes_cli/jarvis_prime/` when wiring slash commands or building
+in `muse_cli/jarvis_prime/` when wiring slash commands or building
 mode-aware logic.
 
 ## Repository orientation, in 30 seconds
@@ -44,7 +44,7 @@ local llama.cpp, …). The repo ships:
 - An orchestration system that decomposes goals into validated,
   audited task graphs — see [`docs/orchestration/`](docs/orchestration/).
 - A **GraphRAG knowledge graph** over the cognition plane
-  (`hermes_cli/jarvis_prime/graphrag/`) that unifies repo code, docs,
+  (`muse_cli/jarvis_prime/graphrag/`) that unifies repo code, docs,
   Research Vault, Memory Tree, and ledgers into one inspectable,
   source-backed graph. It *supplements* (never replaces) existing
   RAG/memory; coding tasks use it (via the `graph_query` tool or
@@ -192,7 +192,7 @@ the thread always shows live state.
   — secrets, approvals, private-local recipes.
 - [`docs/integrations/github-supabase-vercel-guide.md`](docs/integrations/github-supabase-vercel-guide.md)
   — wiring up GitHub, Supabase, and Vercel.
-- [`docs/troubleshooting/hermes-orchestration-troubleshooting.md`](docs/troubleshooting/hermes-orchestration-troubleshooting.md)
+- [`docs/troubleshooting/muse-orchestration-troubleshooting.md`](docs/troubleshooting/muse-orchestration-troubleshooting.md)
   — symptom-to-fix table across every surface.
 - [`docs/github-integration.md`](docs/github-integration.md) — the
   native `github_assistant` plugin vs the GitHub MCP server.
@@ -202,15 +202,15 @@ the thread always shows live state.
 - [`docs/ai-intelligence/jarvis-learning-dataset.md`](docs/ai-intelligence/jarvis-learning-dataset.md)
   — the MUSE learning dataset pipeline: validated, source-backed,
   owner-approved traces for fine-tuning / preference / eval, with no
-  secrets or chain-of-thought. CLI (`hermes_cli.jarvis_prime learning`),
+  secrets or chain-of-thought. CLI (`muse_cli.jarvis_prime learning`),
   cockpit (`/v1/cockpit/learning`), and the Android Learning Queue tab.
 - [`docs/ai-intelligence/top-open-data-sources-for-training.md`](docs/ai-intelligence/top-open-data-sources-for-training.md)
   — ranked inventory of public, license-aware datasets for MUSE
   fine-tuning, retrieval, and a held-out benchmark wall. Backed by the
   machine-readable `docs/ai-intelligence/open-data-sources.yaml` registry
-  (CLI: `hermes_cli.jarvis_prime data-sources`), which bridges each source
+  (CLI: `muse_cli.jarvis_prime data-sources`), which bridges each source
   into the Research Vault.
-- [`docs/hermes-local-orchestrator.md`](docs/hermes-local-orchestrator.md)
+- [`docs/muse-local-orchestrator.md`](docs/muse-local-orchestrator.md)
   — the Android-only handoff flow that predates the orchestration
   stack (still relevant for the "just hand off to ChatGPT/Codex via
   clipboard" workflow).

@@ -3,7 +3,7 @@ import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SETUP_SCRIPT = REPO_ROOT / "setup-hermes.sh"
+SETUP_SCRIPT = REPO_ROOT / "setup-muse.sh"
 
 
 def test_setup_hermes_script_is_valid_shell():

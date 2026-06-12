@@ -9,8 +9,8 @@ explicitly configure a gateway.
 This document is the entry point for that "phone-first" setup. Two
 companion guides cover the OS-level pieces:
 
-- [`hermes-termux-boot.md`](./hermes-termux-boot.md) — autostart on device boot
-- [`hermes-android-permissions.md`](./hermes-android-permissions.md) — Android constraints
+- [`muse-termux-boot.md`](./muse-termux-boot.md) — autostart on device boot
+- [`muse-android-permissions.md`](./muse-android-permissions.md) — Android constraints
 
 ## Why phone-first
 
@@ -43,7 +43,7 @@ bash scripts/hermes-termux-service.sh logs api
 `hermes-termux-service.sh` is intentionally minimal — no systemd, no
 launchd, no service manager binaries. Termux does not run any of those.
 Instead, the script supervises with a PID file plus `nohup`, and
-acquires a [wake lock](./hermes-android-permissions.md#wake-lock) so
+acquires a [wake lock](./muse-android-permissions.md#wake-lock) so
 Android's Doze mode does not freeze the process when the screen turns
 off.
 
@@ -119,9 +119,9 @@ on the next `start`/`restart`.
 
 ## Where to go next
 
-- Wire the service into device boot — [`hermes-termux-boot.md`](./hermes-termux-boot.md).
+- Wire the service into device boot — [`muse-termux-boot.md`](./muse-termux-boot.md).
 - Understand what Android allows in the background —
-  [`hermes-android-permissions.md`](./hermes-android-permissions.md).
+  [`muse-android-permissions.md`](./muse-android-permissions.md).
 - For the broader installer story (Termux packages, the
   `.[termux-all]` extras profile, etc.), see `scripts/install.sh` and
   `hermes_cli/doctor.py`.

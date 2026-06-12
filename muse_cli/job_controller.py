@@ -1,7 +1,7 @@
 """Core job controller for the Hermes local orchestrator.
 
 This is the Python counterpart to the Android local orchestrator
-(see ``docs/hermes-local-orchestrator.md``): a *single-device* manager
+(see ``docs/muse-local-orchestrator.md``): a *single-device* manager
 that organizes work for the AI tools the user is already logged into.
 No API calls are made from this module — it owns filesystem state only.
 

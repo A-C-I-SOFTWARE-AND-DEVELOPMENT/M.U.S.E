@@ -36,9 +36,9 @@ findings:
   non-secrets, EncryptedSharedPreferences for the gateway bearer token.
   See [`apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md).
 - The Android app's mental model is already a **cockpit**, not an agent
-  container: see [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+  container: see [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
   and the cockpit API contract at
-  [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md).
+  [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md).
 - A typed Kotlin mirror of the cockpit contract is in
   [`apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt`](../../apps/android/app/src/main/java/com/aci/hermes/data/cockpit/CockpitApi.kt).
 - A `TermuxIntentBridge` stub exists for talking to a Termux-hosted gateway
@@ -52,7 +52,7 @@ findings:
   `/v1/health` endpoint that the Android app already consumes. The
   `/v1/cockpit/*` Phase 18 routes are specced but not yet live.
 - The phone-first runtime (`muse` inside Termux) is documented in
-  [`docs/termux/hermes-phone-first-runtime.md`](../termux/hermes-phone-first-runtime.md)
+  [`docs/termux/muse-phone-first-runtime.md`](../termux/muse-phone-first-runtime.md)
   and is treated as the on-device backend the cockpit drives.
 
 The headline: **M.U.S.E. already chose Android-native** at the code level.
@@ -203,7 +203,7 @@ reopen this decision.
 ### 2.12 Integration with existing M.U.S.E. dashboard / TUI / backend
 
 The cockpit's API contract
-([`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md))
+([`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md))
 is the boundary. Anything that speaks HTTP+SSE with `Authorization:
 Bearer` integrates. Both Kotlin and Flutter satisfy this. So does a
 PWA — but the PWA path then has to re-solve background execution,
@@ -310,7 +310,7 @@ We treat Flutter as the fallback because:
 
 - New cockpit features are built in `apps/android/` (Kotlin) **until and
   unless** the project commits to an iOS deliverable.
-- The cockpit contract in `docs/android/hermes-apk-api-contract.md`
+- The cockpit contract in `docs/android/muse-apk-api-contract.md`
   stays the single source of truth, regardless of front-end stack.
 - A migration to Flutter is gated on a written go/no-go: see §6.
 
@@ -361,17 +361,17 @@ existing wiring and rewrite Phase 18 screens in a new stack.
   build and run the existing app.
 - [`apps/android/docs/ARCHITECTURE.md`](../../apps/android/docs/ARCHITECTURE.md)
   — module-by-module description of the existing Kotlin module.
-- [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+- [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
   — Phase 18 cockpit spec, which this decision is consistent with.
-- [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — cockpit ↔ gateway wire format.
 - [`docs/android/termux-intent-bridge.md`](../android/termux-intent-bridge.md)
   — the on-device intent path.
-- [`docs/termux/hermes-phone-first-runtime.md`](../termux/hermes-phone-first-runtime.md)
+- [`docs/termux/muse-phone-first-runtime.md`](../termux/muse-phone-first-runtime.md)
   — the Termux runtime the cockpit drives.
-- [`docs/mobile/hermes-mobile-architecture.md`](hermes-mobile-architecture.md)
+- [`docs/mobile/muse-mobile-architecture.md`](muse-mobile-architecture.md)
   — the concrete architecture this decision implies.
-- [`docs/mobile/hermes-mobile-backend-contract.md`](hermes-mobile-backend-contract.md)
+- [`docs/mobile/muse-mobile-backend-contract.md`](muse-mobile-backend-contract.md)
   — the wire format the mobile client expects.
-- [`docs/mobile/hermes-app-module-plan.md`](hermes-app-module-plan.md)
+- [`docs/mobile/muse-app-module-plan.md`](muse-app-module-plan.md)
   — what changes land in `apps/android/` to execute this decision.

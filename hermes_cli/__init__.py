@@ -48,7 +48,14 @@ class _AliasLoader(importlib.abc.Loader):
         # runpy support: ``python -m hermes_cli.x`` executes the *target's*
         # code object under __main__ — exactly ``python -m muse_cli.x``.
         target_spec = importlib.util.find_spec(self._target)
-        return target_spec.loader.get_code(self._target)
+        if target_spec is None or target_spec.loader is None:
+            raise ImportError(f"cannot resolve {self._target!r} for {fullname!r}")
+        get_code = getattr(target_spec.loader, "get_code", None)
+        if get_code is None:
+            raise ImportError(
+                f"loader for {self._target!r} does not support get_code"
+            )
+        return get_code(self._target)
 
 
 class _AliasFinder(importlib.abc.MetaPathFinder):
@@ -74,7 +81,9 @@ class _AliasFinder(importlib.abc.MetaPathFinder):
         spec.submodule_search_locations = target_spec.submodule_search_locations
         # Mirror has_location so runpy populates __file__ from origin
         # (otherwise ``python -m hermes_cli.x`` runs with __file__=None).
-        spec._set_fileattr = target_spec.has_location
+        # _set_fileattr is the private backing field of the read-only
+        # ModuleSpec.has_location property.
+        spec._set_fileattr = target_spec.has_location  # ty: ignore[unresolved-attribute]
         return spec
 
 

@@ -344,7 +344,7 @@ For the full lockdown, see
 | Sync is slow | Account has hundreds of repos | Set `profile.github.history_window` smaller; or limit `github.allowed_repositories`. |
 
 Anything else: see
-[../troubleshooting/hermes-orchestration-troubleshooting.md](../troubleshooting/hermes-orchestration-troubleshooting.md).
+[../troubleshooting/muse-orchestration-troubleshooting.md](../troubleshooting/muse-orchestration-troubleshooting.md).
 
 ---
 

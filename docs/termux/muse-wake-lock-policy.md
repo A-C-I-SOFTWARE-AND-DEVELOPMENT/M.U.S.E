@@ -8,9 +8,9 @@ you know what you are doing.
 
 Companion docs:
 
-- [`hermes-phone-runtime.md`](./hermes-phone-runtime.md) — service lifecycle
-- [`hermes-background-limits.md`](./hermes-background-limits.md) — Android background rules
-- [`hermes-termux-boot.md`](./hermes-termux-boot.md) — autostart at device boot
+- [`muse-phone-runtime.md`](./muse-phone-runtime.md) — service lifecycle
+- [`muse-background-limits.md`](./muse-background-limits.md) — Android background rules
+- [`muse-termux-boot.md`](./muse-termux-boot.md) — autostart at device boot
 
 ## What a Termux wake lock actually is
 
@@ -149,7 +149,7 @@ The next `start` re-acquires the wake lock and resyncs the marker.
 ## How the wake lock interacts with Termux:Boot
 
 The boot script template in
-[`hermes-termux-boot.md`](./hermes-termux-boot.md) calls
+[`muse-termux-boot.md`](./muse-termux-boot.md) calls
 `termux-wake-lock` once at the top, before invoking the service
 script:
 
@@ -188,7 +188,7 @@ The wake lock is a partial mitigation, not a guarantee:
 - **It does not exempt Termux from the vendor battery optimizer.**
   Xiaomi, Huawei, OPPO and friends will still kill Termux if you
   have not whitelisted it. See
-  [`hermes-background-limits.md#vendor-battery-optimizers`](./hermes-background-limits.md#vendor-battery-optimizers).
+  [`muse-background-limits.md#vendor-battery-optimizers`](./muse-background-limits.md#vendor-battery-optimizers).
 - **It does not prevent the OOM killer from reclaiming Termux.**
   Foreground-service classification helps; wake lock does not.
 - **It does not keep network sockets alive on its own.** Gateway

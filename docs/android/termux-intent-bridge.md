@@ -5,10 +5,10 @@
 > instead of going through a network round-trip first. This document
 > defines that bridge.
 
-The cockpit's [Termux Control Panel](hermes-apk-cockpit.md#37-android--termux-control-panel)
+The cockpit's [Termux Control Panel](muse-apk-cockpit.md#37-android--termux-control-panel)
 is the only screen that uses these intents directly. Every other screen
 talks to the gateway over HTTP/SSE as described in the
-[API contract](hermes-apk-api-contract.md).
+[API contract](muse-apk-api-contract.md).
 
 ---
 

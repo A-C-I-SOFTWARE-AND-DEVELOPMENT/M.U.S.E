@@ -268,7 +268,7 @@ class TestEntryPointsImportBootstrap:
         inside it to verify bootstrap is the imported module.
         """
         # Resolve relative to the hermes-agent repo root.  Tests live
-        # at tests/test_hermes_bootstrap.py, so go up one dir.
+        # at tests/test_muse_bootstrap.py, so go up one dir.
         import pathlib
         here = pathlib.Path(__file__).resolve()
         repo_root = here.parent.parent  # tests/ -> repo root

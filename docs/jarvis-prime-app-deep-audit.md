@@ -280,12 +280,12 @@ documented migration:
   model" and ARCHITECTURE.md §6. No probe code exists.
 - `/v1/chat` SSE stream — documented in ARCHITECTURE.md §6. No SSE
   reader exists; OkHttp-SSE is not a declared dependency.
-- All `/v1/cockpit/*` routes from `docs/android/hermes-apk-api-contract.md`
+- All `/v1/cockpit/*` routes from `docs/android/muse-apk-api-contract.md`
   (`workers`, `jobs`, `files/tree`, `files/snapshot`, `diff`,
   `validation`, `publish/preview`, `publish`, `approvals`,
   `events`).
 - `RECORD_AUDIO` + `foregroundServiceType="microphone"` — referenced
-  by `docs/mobile/hermes-app-module-plan.md` §"Voice layer plan" but
+  by `docs/mobile/muse-app-module-plan.md` §"Voice layer plan" but
   **not declared** in the manifest. Aligned with §15.
 - `EncryptedSharedPreferences` for the gateway bearer token —
   referenced by `data_extraction_rules.xml` and `backup_rules.xml`
@@ -343,7 +343,7 @@ What is documented but **not** shipped on the local path:
 
 ## 12. Approval features that are missing
 
-The Phase 18 spec (`docs/android/hermes-apk-api-contract.md` §3.8
+The Phase 18 spec (`docs/android/muse-apk-api-contract.md` §3.8
 *Pending approvals*) and the user guide
 (`docs/mobile/mobile-app-guide.md` §"How approvals work on the
 lockscreen") describe a full approval pipeline. The Android app has

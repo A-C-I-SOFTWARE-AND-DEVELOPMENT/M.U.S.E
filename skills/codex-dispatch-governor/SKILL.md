@@ -33,7 +33,7 @@ You govern how coding work leaves the council and arrives at a coding agent — 
 3. Use `read_file` to inspect each slice's `files_touched` and confirm they exist where the slice claims.
 4. For each dispatchable slice, build a **handoff packet** (see contract). Persist to `memory` at `aos/council/<slug>/dispatch/<slice-id>`.
 5. When the Director approves dispatch, call `delegate_task` for in-Hermes slices, or hand the packet to `github-publisher` to drop into an issue / PR description that external agents will read.
-6. If the target is the Android orchestrator workflow (see `docs/hermes-local-orchestrator.md`), produce a clipboard-ready prompt string — that workflow is manual-handoff by design.
+6. If the target is the Android orchestrator workflow (see `docs/muse-local-orchestrator.md`), produce a clipboard-ready prompt string — that workflow is manual-handoff by design.
 
 ## Output contract — handoff packet
 

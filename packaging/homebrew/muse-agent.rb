@@ -1,4 +1,4 @@
-class HermesAgent < Formula
+class MuseAgent < Formula
   include Language::Python::Virtualenv
 
   desc "Self-improving AI agent that creates skills from experience"
@@ -17,7 +17,7 @@ class HermesAgent < Formula
   pypi_packages ignore_packages: %w[certifi cryptography pydantic]
 
   # Refresh resource stanzas after bumping the source url/version:
-  #   brew update-python-resources --print-only hermes-agent
+  #   brew update-python-resources --print-only muse-agent
 
   def install
     venv = virtualenv_create(libexec, "python3.14")

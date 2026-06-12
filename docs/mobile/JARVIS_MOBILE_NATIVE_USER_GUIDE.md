@@ -202,5 +202,5 @@ which clears pending owner gates and disables proactive ticks.
 | Token "lost" after update | One-time secure-storage migration | The app migrates the legacy plaintext token into encrypted storage automatically on launch; if it failed, just re-pair. |
 
 More symptom→fix coverage:
-[`../troubleshooting/hermes-orchestration-troubleshooting.md`](../troubleshooting/hermes-orchestration-troubleshooting.md)
+[`../troubleshooting/muse-orchestration-troubleshooting.md`](../troubleshooting/muse-orchestration-troubleshooting.md)
 and `muse doctor` on the backend.

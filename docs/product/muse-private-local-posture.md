@@ -1,6 +1,6 @@
 # Hermes Private Local Posture
 
-Companion to [`hermes-10-10-product-spec.md`](./hermes-10-10-product-spec.md).
+Companion to [`muse-10-10-product-spec.md`](./muse-10-10-product-spec.md).
 
 This document defines what "private local" means for Hermes, why it is a deliberate product choice, and which self-protection guardrails remain non-negotiable even in a fully local deployment.
 

@@ -2,7 +2,7 @@
 
 > One typed entry point for every call to a M.U.S.E. gateway. The wire
 > format is fixed by
-> [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md);
+> [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md);
 > this file specifies the **client implementation** that maps that
 > contract into Kotlin.
 

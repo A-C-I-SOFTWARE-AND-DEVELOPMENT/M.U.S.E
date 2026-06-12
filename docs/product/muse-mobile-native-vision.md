@@ -1,7 +1,7 @@
 # Hermes — Mobile-Native, Voice-First Vision
 
 > **Status:** Vision + decision record. Companion to
-> [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md).
+> [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md).
 > This document explains the mobile-native bet and the technology
 > choices that follow from it.
 
@@ -147,7 +147,7 @@ yet built and must land before the cockpit is 10/10:
 - Glanceable lock-screen / always-on widget for "next pending
   approval" and "current job status".
 
-These are tracked in [`hermes-definition-of-done.md`](hermes-definition-of-done.md).
+These are tracked in [`muse-definition-of-done.md`](muse-definition-of-done.md).
 
 ---
 
@@ -177,7 +177,7 @@ These are tracked in [`hermes-definition-of-done.md`](hermes-definition-of-done.
 7. **No raw model output.** Stack traces, JSON dumps, and provider
    error blobs are folded behind a "show details" button. The
    default view is plain English. See
-   [`hermes-plain-english-principles.md`](hermes-plain-english-principles.md).
+   [`muse-plain-english-principles.md`](muse-plain-english-principles.md).
 
 ---
 
@@ -195,15 +195,15 @@ spec stays honest about what is decided and what is not.
 | Cockpit ⇄ backend transport | Existing HTTP + SSE · gRPC-Web · WebSocket | Stick with HTTP + SSE through 10/10; revisit only if SSE proves unreliable on cellular. |
 
 When any of these flips, update this file and the corresponding
-section of [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md).
+section of [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md).
 
 ---
 
 ## 6. Cross-references
 
-- [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) — overall product spec.
-- [`hermes-user-journeys.md`](hermes-user-journeys.md) — journey #1 (driving) and #7 (network recovery) are the heaviest tests of the mobile-native bet.
-- [`hermes-definition-of-done.md`](hermes-definition-of-done.md) — per-capability checklists, including cockpit DoD.
-- [`../android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md) — current cockpit screen spec.
-- [`../android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md) — gateway API for the cockpit.
-- [`../android/hermes-apk-ui-wireframes.md`](../android/hermes-apk-ui-wireframes.md) — current wireframes.
+- [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) — overall product spec.
+- [`muse-user-journeys.md`](muse-user-journeys.md) — journey #1 (driving) and #7 (network recovery) are the heaviest tests of the mobile-native bet.
+- [`muse-definition-of-done.md`](muse-definition-of-done.md) — per-capability checklists, including cockpit DoD.
+- [`../android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md) — current cockpit screen spec.
+- [`../android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md) — gateway API for the cockpit.
+- [`../android/muse-apk-ui-wireframes.md`](../android/muse-apk-ui-wireframes.md) — current wireframes.

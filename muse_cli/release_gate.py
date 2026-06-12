@@ -2,7 +2,7 @@
 
 Backs ``muse doctor --release-gate``. It aggregates the existing 10/10
 release-readiness checks (:func:`muse_cli.release_readiness_doctor.run_10_10_doctor`)
-with the two *runtime* gates the smoke script (``scripts/hermes-10-10-smoke.sh``)
+with the two *runtime* gates the smoke script (``scripts/muse-10-10-smoke.sh``)
 also runs — ``ruff check .`` and a fast, launch-critical pytest slice — into a
 single :class:`~muse_cli.release_readiness_doctor.ReadinessReport`.
 
@@ -81,7 +81,7 @@ def _strict_tooling_enabled() -> bool:
     return os.environ.get(_STRICT_TOOLING_ENV, "").strip().lower() in _STRICT_TRUTHY
 
 # Fast, launch-critical pytest slice — kept in lockstep with
-# scripts/hermes-10-10-smoke.sh (readiness + action executors + a couple of
+# scripts/muse-10-10-smoke.sh (readiness + action executors + a couple of
 # plugin suites + orchestration commands).
 _FAST_TEST_SLICE: tuple[str, ...] = (
     "tests/test_release_readiness_doctor.py",

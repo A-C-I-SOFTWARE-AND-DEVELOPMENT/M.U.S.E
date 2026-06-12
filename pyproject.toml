@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hermes-agent"
+name = "muse-agent"
 version = "0.14.1+aci.1"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
@@ -154,23 +154,23 @@ azure-identity = ["azure-identity==1.25.3"]
 termux = [
   # Baseline Android / Termux path for reliable fresh installs.
   "python-telegram-bot[webhooks]==22.6",
-  "hermes-agent[cron]",
-  "hermes-agent[cli]",
-  "hermes-agent[pty]",
-  "hermes-agent[mcp]",
-  "hermes-agent[honcho]",
-  "hermes-agent[acp]",
+  "muse-agent[cron]",
+  "muse-agent[cli]",
+  "muse-agent[pty]",
+  "muse-agent[mcp]",
+  "muse-agent[honcho]",
+  "muse-agent[acp]",
 ]
 termux-all = [
   # Best-effort "install all" profile for Termux. Same policy as [all]:
   # only includes extras that aren't covered by `tools/lazy_deps.py`.
   # Backends like telegram/slack/dingtalk/feishu/honcho lazy-install at
   # first use, so they're no longer eager-installed here.
-  "hermes-agent[termux]",
-  "hermes-agent[google]",
-  "hermes-agent[homeassistant]",
-  "hermes-agent[sms]",
-  "hermes-agent[web]",
+  "muse-agent[termux]",
+  "muse-agent[google]",
+  "muse-agent[homeassistant]",
+  "muse-agent[sms]",
+  "muse-agent[web]",
 ]
 dingtalk = ["dingtalk-stream==0.24.3", "alibabacloud-dingtalk==2.2.42", "qrcode==7.4.2"]
 feishu = ["lark-oapi==1.5.3", "qrcode==7.4.2"]
@@ -224,16 +224,16 @@ all = [
   # (thousands of parser snapshots) and exhausted device storage
   # ("No space left on device"). Developers install `.[all,dev]`
   # (the documented + CI path); CI already does exactly that.
-  "hermes-agent[cron]",
-  "hermes-agent[cli]",
-  "hermes-agent[pty]",
-  "hermes-agent[mcp]",
-  "hermes-agent[homeassistant]",
-  "hermes-agent[sms]",
-  "hermes-agent[acp]",
-  "hermes-agent[google]",
-  "hermes-agent[web]",
-  "hermes-agent[youtube]",
+  "muse-agent[cron]",
+  "muse-agent[cli]",
+  "muse-agent[pty]",
+  "muse-agent[mcp]",
+  "muse-agent[homeassistant]",
+  "muse-agent[sms]",
+  "muse-agent[acp]",
+  "muse-agent[google]",
+  "muse-agent[web]",
+  "muse-agent[youtube]",
 ]
 
 [project.scripts]
@@ -299,6 +299,32 @@ python-version = "3.13"
 [tool.ty.rules]
 unknown-argument = "warn"
 redundant-cast = "ignore"
+
+# Import-linter: the deprecated hermes_* module names are import-frozen.
+# The shims themselves import muse_* (allowed direction); production code
+# must never import the legacy names, so post-rename drift can't return.
+# Run: uv run --no-project --with import-linter --with-editable . lint-imports
+# Note: grimp only accepts real packages as roots, so the single-file
+# top-level modules (cli.py, run_agent.py, muse_*.py) can't be graph roots;
+# the closing grep audit in MUSE_RENAME_REPORT.md covers those as sources.
+[tool.importlinter]
+root_packages = [
+  "muse_cli", "agent", "gateway", "tools", "cron", "providers",
+  "tui_gateway", "acp_adapter",
+]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Legacy hermes_* module names are import-frozen (compat shims only)"
+type = "forbidden"
+source_modules = [
+  "muse_cli", "agent", "gateway", "tools", "cron", "providers",
+  "tui_gateway", "acp_adapter",
+]
+forbidden_modules = [
+  "hermes_cli", "hermes_bootstrap", "hermes_constants", "hermes_state",
+  "hermes_logging", "hermes_model_catalog", "hermes_time",
+]
 
 [tool.ruff]
 preview = true  # required for PLW1514 (unspecified-encoding) — preview rule

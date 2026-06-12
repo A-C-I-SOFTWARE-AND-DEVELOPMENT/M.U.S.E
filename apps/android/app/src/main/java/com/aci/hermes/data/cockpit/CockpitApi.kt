@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * Phase 18 cockpit API contract — Kotlin mirror.
  *
  * One-to-one with the JSON shapes in
- * docs/android/hermes-apk-api-contract.md. Adding fields here without
+ * docs/android/muse-apk-api-contract.md. Adding fields here without
  * updating that doc (and vice versa) is the failure mode this file
  * exists to prevent.
  *

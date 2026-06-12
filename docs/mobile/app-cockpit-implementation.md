@@ -1,9 +1,9 @@
 # Mobile cockpit — Phase 20 implementation plan
 
 > **Status:** implementation plan. Phase 18 produced the cockpit spec
-> ([`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md))
+> ([`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md))
 > and the API contract
-> ([`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)).
+> ([`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)).
 > Phase 20 turns those into a concrete build plan against the existing
 > native Android scaffold at [`apps/android/`](../../apps/android/).
 
@@ -255,9 +255,9 @@ a hypothetical future use case.
   pipeline.
 - [`app-background-service.md`](app-background-service.md) — foreground
   service, notifications, offline queue replay.
-- [`docs/android/hermes-apk-cockpit.md`](../android/hermes-apk-cockpit.md)
+- [`docs/android/muse-apk-cockpit.md`](../android/muse-apk-cockpit.md)
   — Phase 18 spec (still authoritative for screen *behaviour*).
-- [`docs/android/hermes-apk-api-contract.md`](../android/hermes-apk-api-contract.md)
+- [`docs/android/muse-apk-api-contract.md`](../android/muse-apk-api-contract.md)
   — wire contract.
 - [`docs/android/termux-intent-bridge.md`](../android/termux-intent-bridge.md)
   — on-device Termux interop.

@@ -1307,5 +1307,5 @@ routes the gateway serves today (health, runtime status, worker
 detection); other routes are reachable via `getRaw` until their server
 shapes settle into typed models.
 
-See [`hermes-apk-cockpit.md`](hermes-apk-cockpit.md) §4 for cross-cutting
+See [`muse-apk-cockpit.md`](muse-apk-cockpit.md) §4 for cross-cutting
 behaviours (auth storage, destructive-action rules, network policy).

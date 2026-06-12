@@ -199,7 +199,7 @@ audits cover the same vision and remain valid context:
 - `docs/audits/hermes-10-10-gap-report.md` — Phase 00 gap report (2026-05-23), scored the product ~6.5/10.
 - `docs/orchestration/final-10-10-readiness-report.md` & `docs/audits/hermes-final-10-10-readiness-report.md` — Phase 24 readiness.
 - `docs/audits/hermes-known-limitations.md` — Phase 27 honesty contract.
-- `docs/product/hermes-10-10-product-spec.md` — canonical product spec.
+- `docs/product/muse-10-10-product-spec.md` — canonical product spec.
 
 The uploaded package re-frames that vision as **Sprints 0–14 with parallel
 agent lanes**. The two numbering systems describe the same program; this
@@ -221,7 +221,7 @@ for sprint-plan tracking. Where the older docs and current code disagree,
   `docs/launch/AUTOMATED_MERGE_POLICY.md`, `AUTO_MERGE_RUNBOOK.md`,
   `LAUNCH_BRANCH_MATRIX.md`.
 - 🟡 Per-surface current-state docs — partial equivalents exist
-  (`docs/api/local-orchestrator-api.md`, `docs/android/hermes-apk-cockpit.md`)
+  (`docs/api/local-orchestrator-api.md`, `docs/android/muse-apk-cockpit.md`)
   but not under the plan's exact paths; no `docs/gateway/` dir.
 
 **Gap:** governance is real but scattered and unbranded; no single

@@ -1,7 +1,7 @@
 # Hermes — Plain-English Communication Principles
 
 > **Status:** Product-level communication rules. Companion to
-> [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md).
+> [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md).
 > Every string the user reads or hears in Hermes — from a job card
 > to a validation report to a spoken readback — follows these
 > principles.
@@ -268,7 +268,7 @@ response templates, and the validation-report template.
 
 ## 9. Cross-references
 
-- [`hermes-10-10-product-spec.md`](hermes-10-10-product-spec.md) — the spec these principles serve.
-- [`hermes-user-journeys.md`](hermes-user-journeys.md) — every journey's readbacks follow these rules.
-- [`hermes-definition-of-done.md`](hermes-definition-of-done.md) — DoD for plain-English explanations.
-- [`hermes-mobile-native-vision.md`](hermes-mobile-native-vision.md) — voice readback rules.
+- [`muse-10-10-product-spec.md`](muse-10-10-product-spec.md) — the spec these principles serve.
+- [`muse-user-journeys.md`](muse-user-journeys.md) — every journey's readbacks follow these rules.
+- [`muse-definition-of-done.md`](muse-definition-of-done.md) — DoD for plain-English explanations.
+- [`muse-mobile-native-vision.md`](muse-mobile-native-vision.md) — voice readback rules.

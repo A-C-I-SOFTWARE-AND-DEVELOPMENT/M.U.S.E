@@ -161,5 +161,5 @@ register entry.
 - Source-of-truth runtime: `hermes_cli/jarvis_prime/`
 - Apex persona spec: [`jarvis-prime-operating-system.md`](jarvis-prime-operating-system.md)
 - Skill: [`/skills/jarvis-prime/SKILL.md`](../skills/jarvis-prime/SKILL.md)
-- Existing APK API contract: [`docs/android/hermes-apk-api-contract.md`](android/hermes-apk-api-contract.md)
-- Existing cockpit spec: [`docs/android/hermes-apk-cockpit.md`](android/hermes-apk-cockpit.md)
+- Existing APK API contract: [`docs/android/muse-apk-api-contract.md`](android/muse-apk-api-contract.md)
+- Existing cockpit spec: [`docs/android/muse-apk-cockpit.md`](android/muse-apk-cockpit.md)

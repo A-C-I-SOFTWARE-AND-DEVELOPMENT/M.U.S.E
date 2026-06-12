@@ -372,4 +372,4 @@ curator) are sufficient.
 - [`../../skills/enterprise-council/judge/SKILL.md`](../../skills/enterprise-council/judge/SKILL.md) — Judge validates ledgers in structured leaf results
 - [`../../skills/enterprise-council/monitor/SKILL.md`](../../skills/enterprise-council/monitor/SKILL.md) — Monitor flags systemic ledger-quality regressions
 - [`../../skills/autonomous-ai-agents/hermes-agent/SKILL.md`](../../skills/autonomous-ai-agents/hermes-agent/SKILL.md) — M.U.S.E. overall surface area (cron, kanban, gateway, delegation)
-- [`../hermes-local-orchestrator.md`](../hermes-local-orchestrator.md) — Android local orchestrator (consumer of ledgers when manual handoff feeds back into a session)
+- [`../muse-local-orchestrator.md`](../muse-local-orchestrator.md) — Android local orchestrator (consumer of ledgers when manual handoff feeds back into a session)
