@@ -259,7 +259,7 @@ def test_dataset_candidate_offer_is_soft_fail(monkeypatch) -> None:
     def boom(details):
         raise RuntimeError("dataset layer down")
 
-    monkeypatch.setattr(mod, "_offer_dataset_candidate", lambda d: None)
+    monkeypatch.setattr(mod, "_offer_dataset_candidate", boom)
     outcome, _ = _run(FakeAutoresearchWorker(champion_bpb=0.95))
     assert outcome.proposal is not None
     assert os.environ.get("HERMES_HOME")  # hermetic guard intact
