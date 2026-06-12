@@ -124,10 +124,16 @@ def test_resolve_backend_auto_falls_back_without_sentence_transformers(
 
     real_import = builtins.__import__
 
-    def blocked(name: str, *args: object, **kwargs: object):
+    def blocked(
+        name: str,
+        globals: object = None,  # noqa: A002 (builtins.__import__ API)
+        locals: object = None,  # noqa: A002
+        fromlist: object = (),
+        level: int = 0,
+    ):
         if name.startswith("sentence_transformers"):
             raise ImportError("blocked for test")
-        return real_import(name, *args, **kwargs)
+        return real_import(name, globals, locals, fromlist, level)  # ty: ignore[invalid-argument-type]
 
     monkeypatch.setattr(builtins, "__import__", blocked)
     backend = resolve_backend("auto")

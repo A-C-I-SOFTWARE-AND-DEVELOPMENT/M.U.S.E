@@ -71,7 +71,7 @@ def fastpath(tmp_path: Path):
         model=model,
         backend=backend,
         templates_root=tmp_path,
-        client=_FakeClient(),  # type: ignore[arg-type]
+        client=_FakeClient(),  # ty: ignore[invalid-argument-type]
         tau=0.75,
         n_slots=4,
         recorder=lambda kind, payload, outcome=None: records.append((kind, payload, outcome)),

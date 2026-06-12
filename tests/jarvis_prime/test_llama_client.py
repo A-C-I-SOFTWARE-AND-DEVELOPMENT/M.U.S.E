@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
+from typing import Any, Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
@@ -19,7 +20,7 @@ from hermes_cli.jarvis_prime.llama_client import (
 def test_completion_payload_contract() -> None:
     captured: dict = {}
 
-    def fake_post(url: str, payload: dict, timeout: float) -> dict:
+    def fake_post(url: str, payload: Mapping[str, Any], timeout: float) -> dict[str, Any]:
         captured["url"] = url
         captured["payload"] = dict(payload)
         return {
@@ -46,7 +47,7 @@ def test_completion_payload_contract() -> None:
 
 
 def test_completion_omits_unset_optionals_and_reads_timings_fallback() -> None:
-    def fake_post(url: str, payload: dict, timeout: float) -> dict:
+    def fake_post(url: str, payload: Mapping[str, Any], timeout: float) -> dict[str, Any]:
         assert "grammar" not in payload and "id_slot" not in payload
         return {"content": "x", "timings": {"predicted_n": 3, "cache_n": 9}}
 
@@ -96,8 +97,8 @@ class _StubHandler(BaseHTTPRequestHandler):
 
     slot_cache: dict[int, int] = {}
 
-    def log_message(self, *args: object) -> None:  # silence
-        pass
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 (http.server API)
+        del format, args  # silence request logging
 
     def do_GET(self) -> None:  # noqa: N802 (http.server API)
         if self.path == "/health":

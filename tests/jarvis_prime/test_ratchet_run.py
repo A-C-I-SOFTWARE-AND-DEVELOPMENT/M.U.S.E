@@ -172,26 +172,29 @@ def test_mechanical_only_never_freezes_even_on_pass(tmp_path: Path) -> None:
 def test_existing_champion_is_the_bar(tmp_path: Path) -> None:
     # First run freezes the good champion; a second, equal challenger must
     # FAIL the composite-margin condition (no free re-promotions).
-    common = dict(
-        rollback_handle=GIT_SHA,
-        db_path=tmp_path / "snap.sqlite3",
-        ledger_path=tmp_path / "ledger.jsonl",
-        suite_path=_suite(tmp_path),
-        heldout_dir=_heldout(tmp_path),
-    )
+    suite = _suite(tmp_path)
+    heldout = _heldout(tmp_path)
     queued: list = []
     first = run_ratchet(
         champion_runner=_bad_runner,
         candidate_runner=_good_runner,
+        rollback_handle=GIT_SHA,
+        db_path=tmp_path / "snap.sqlite3",
+        ledger_path=tmp_path / "ledger.jsonl",
+        suite_path=suite,
+        heldout_dir=heldout,
         queue_improvement=lambda *a, **k: queued.append(1),
-        **common,
     )
     assert first.frozen
     second = run_ratchet(
         champion_runner=_good_runner,
         candidate_runner=_good_runner,
+        rollback_handle=GIT_SHA,
+        db_path=tmp_path / "snap.sqlite3",
+        ledger_path=tmp_path / "ledger.jsonl",
+        suite_path=suite,
+        heldout_dir=heldout,
         queue_improvement=lambda *a, **k: queued.append(2),
-        **common,
     )
     assert not second.verdict.passed
     assert any("composite" in r for r in second.verdict.reasons)
