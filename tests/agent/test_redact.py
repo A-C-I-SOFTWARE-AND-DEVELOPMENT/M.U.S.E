@@ -169,7 +169,7 @@ class TestPassthrough:
         assert redact_sensitive_text(12345) == "12345"  # ty: ignore[invalid-argument-type]
 
     def test_non_string_input_dict_coerced_and_redacted(self):
-        result = redact_sensitive_text({"token": "sk-proj-abc123def456ghi789jkl012"})  # ty: ignore[invalid-argument-type]
+        result = redact_sensitive_text({"token": "sk-proj-abc123def456ghi789jkl012"})  # ty: ignore[invalid-argument-type]  # pragma: allowlist secret
         assert "abc123def456" not in result
 
     def test_normal_text_unchanged(self):
