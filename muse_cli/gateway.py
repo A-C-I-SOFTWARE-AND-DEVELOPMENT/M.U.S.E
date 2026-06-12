@@ -730,6 +730,7 @@ def _sync_hermes_home_from_systemd_unit(system: bool) -> None:
     if current == unit_home:
         return
     os.environ["HERMES_HOME"] = unit_home
+    os.environ["MUSE_HOME"] = unit_home
 
 
 def _read_systemd_unit_properties(
@@ -2206,6 +2207,7 @@ Environment="USER={username}"
 Environment="LOGNAME={username}"
 Environment="PATH={sane_path}"
 Environment="VIRTUAL_ENV={venv_dir}"
+Environment="MUSE_HOME={hermes_home}"
 Environment="HERMES_HOME={hermes_home}"
 Restart=always
 RestartSec=5
@@ -2241,6 +2243,7 @@ ExecStart={python_path} -m muse_cli.main{f" {profile_arg}" if profile_arg else "
 WorkingDirectory={working_dir}
 Environment="PATH={sane_path}"
 Environment="VIRTUAL_ENV={venv_dir}"
+Environment="MUSE_HOME={hermes_home}"
 Environment="HERMES_HOME={hermes_home}"
 Restart=always
 RestartSec=5

@@ -47,7 +47,8 @@ from typing import List, Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 # Suppress startup messages for clean CLI experience
-os.environ["HERMES_QUIET"] = "1"  # Our own modules
+os.environ["MUSE_QUIET"] = "1"  # Our own modules (HERMES_QUIET = legacy alias)
+os.environ["HERMES_QUIET"] = "1"
 
 import yaml
 

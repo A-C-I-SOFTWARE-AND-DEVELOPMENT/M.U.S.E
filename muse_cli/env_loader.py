@@ -153,7 +153,12 @@ def load_hermes_dotenv(
     """
     loaded: list[Path] = []
 
-    home_path = Path(hermes_home or os.getenv("HERMES_HOME", Path.home() / ".hermes"))
+    home_path = Path(
+        hermes_home
+        or os.getenv("MUSE_HOME")
+        or os.getenv("HERMES_HOME")
+        or Path.home() / ".hermes"
+    )
     user_env = home_path / ".env"
     project_env_path = Path(project_env) if project_env else None
 
@@ -172,3 +177,7 @@ def load_hermes_dotenv(
         loaded.append(project_env_path)
 
     return loaded
+
+
+# Canonical MUSE alias — the hermes-named function is kept forever.
+load_muse_dotenv = load_hermes_dotenv

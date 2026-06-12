@@ -163,6 +163,7 @@ _HERMES_BEHAVIORAL_VARS = frozenset({
     "HERMES_YOLO_MODE",
     "HERMES_INTERACTIVE",
     "HERMES_QUIET",
+    "MUSE_QUIET",
     "HERMES_TOOL_PROGRESS",
     "HERMES_TOOL_PROGRESS_MODE",
     "HERMES_MAX_ITERATIONS",
@@ -329,6 +330,11 @@ def _hermetic_environment(tmp_path, monkeypatch):
     (fake_hermes_home / "memories").mkdir()
     (fake_hermes_home / "skills").mkdir()
     monkeypatch.setenv("HERMES_HOME", str(fake_hermes_home))
+    # MUSE_HOME outranks HERMES_HOME in get_hermes_home(), and hundreds of
+    # tests re-point HERMES_HOME themselves. Strip MUSE_HOME so a developer's
+    # exported value can't leak in AND per-test HERMES_HOME stays decisive;
+    # tests that exercise MUSE_HOME precedence set it explicitly.
+    monkeypatch.delenv("MUSE_HOME", raising=False)
 
     # 4. Deterministic locale / timezone / hashseed. CI runs in UTC with
     #    C.UTF-8 locale; local dev often doesn't. Pin everything.

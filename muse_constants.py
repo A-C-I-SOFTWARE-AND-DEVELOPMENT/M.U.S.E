@@ -11,10 +11,63 @@ from pathlib import Path
 
 
 _profile_fallback_warned: bool = False
+_legacy_home_env_warned: bool = False
 _UNSET = object()
 _HERMES_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
     "_HERMES_HOME_OVERRIDE", default=_UNSET
 )
+
+
+def env_first(new: str, old: str) -> str | None:
+    """Read an env var under its canonical MUSE_* name, then the legacy
+    HERMES_* name.
+
+    Returns the first non-empty value (empty/whitespace counts as unset,
+    matching the ``.strip()`` convention used throughout). Both names are
+    supported forever; this helper is the pattern for any future
+    MUSE_*/HERMES_* pair.
+    """
+    for key in (new, old):
+        val = os.environ.get(key, "").strip()
+        if val:
+            return val
+    return None
+
+
+def _warn_legacy_home_env_once() -> None:
+    """One-shot DeprecationWarning when only the legacy HERMES_HOME is set."""
+    global _legacy_home_env_warned
+    if _legacy_home_env_warned:
+        return
+    _legacy_home_env_warned = True
+    import warnings
+
+    warnings.warn(
+        "HERMES_HOME is deprecated; set MUSE_HOME instead "
+        "(both names are honored forever; MUSE_HOME wins when both are set)",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
+def _sync_legacy_env_aliases() -> None:
+    """Mirror MUSE_* values onto the legacy HERMES_* names (one-way).
+
+    Many modules and standalone scripts read ``HERMES_HOME`` /
+    ``HERMES_QUIET`` from the environment directly. When a user configures
+    only the canonical MUSE_* names, mirroring them onto the legacy names at
+    import time keeps every such reader working without touching ~90 call
+    sites. The mirror is deliberately one-way (new -> old, setdefault only):
+    mirroring old -> new would freeze a stale MUSE_HOME ahead of later
+    HERMES_HOME changes (e.g. per-test monkeypatching) and invert precedence.
+    """
+    for new, old in (("MUSE_HOME", "HERMES_HOME"), ("MUSE_QUIET", "HERMES_QUIET")):
+        val = os.environ.get(new, "").strip()
+        if val:
+            os.environ.setdefault(old, val)
+
+
+_sync_legacy_env_aliases()
 
 
 def set_hermes_home_override(path: str | Path | None) -> Token:
@@ -41,9 +94,11 @@ def get_hermes_home_override() -> str | None:
 
 
 def get_hermes_home() -> Path:
-    """Return the Hermes home directory (default: ~/.hermes).
+    """Return the MUSE home directory (default: ~/.hermes).
 
-    Reads HERMES_HOME env var, falls back to ~/.hermes.
+    Reads the MUSE_HOME env var first, then the legacy HERMES_HOME, then
+    falls back to ~/.hermes. Both env names are honored forever; MUSE_HOME
+    wins when both are set. ``get_muse_home`` is the canonical alias.
     This is the single source of truth — all other copies should import this.
 
     When ``HERMES_HOME`` is unset but an ``active_profile`` file indicates
@@ -60,8 +115,13 @@ def get_hermes_home() -> Path:
     if override:
         return Path(override)
 
+    val = os.environ.get("MUSE_HOME", "").strip()
+    if val:
+        return Path(val)
+
     val = os.environ.get("HERMES_HOME", "").strip()
     if val:
+        _warn_legacy_home_env_once()
         return Path(val)
 
     # Guard: if a non-default profile is sticky-active, warn once that
@@ -118,7 +178,7 @@ def get_default_hermes_root() -> Path:
     Import-safe — no dependencies beyond stdlib.
     """
     native_home = Path.home() / ".hermes"
-    env_home = os.environ.get("HERMES_HOME", "")
+    env_home = env_first("MUSE_HOME", "HERMES_HOME") or ""
     if not env_home:
         return native_home
     env_path = Path(env_home)
@@ -291,7 +351,7 @@ def get_subprocess_home() -> str | None:
     Activation is directory-based: if the ``home/`` subdirectory doesn't
     exist, returns ``None`` and behavior is unchanged.
     """
-    hermes_home = get_hermes_home_override() or os.getenv("HERMES_HOME")
+    hermes_home = get_hermes_home_override() or env_first("MUSE_HOME", "HERMES_HOME")
     if not hermes_home:
         return None
     profile_home = os.path.join(hermes_home, "home")
@@ -455,3 +515,17 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 OPENROUTER_MODELS_URL = f"{OPENROUTER_BASE_URL}/models"
 
 AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1"
+
+
+# ─── Canonical MUSE aliases ──────────────────────────────────────────────────
+# `muse` is the canonical identity; the hermes-named functions above are kept
+# forever for compatibility (imported from hundreds of sites and patched by
+# string in tests). New code should prefer these names.
+
+get_muse_home = get_hermes_home
+get_muse_home_override = get_hermes_home_override
+set_muse_home_override = set_hermes_home_override
+reset_muse_home_override = reset_hermes_home_override
+get_default_muse_root = get_default_hermes_root
+get_muse_dir = get_hermes_dir
+display_muse_home = display_hermes_home

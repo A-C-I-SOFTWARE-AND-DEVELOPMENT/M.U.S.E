@@ -28,7 +28,7 @@ except (ModuleNotFoundError, ImportError):
         """Return the Hermes home directory (default: ~/.hermes).
 
         Mirrors ``muse_constants.get_hermes_home()``."""
-        val = os.environ.get("HERMES_HOME", "").strip()
+        val = (os.environ.get("MUSE_HOME") or os.environ.get("HERMES_HOME") or "").strip()
         return Path(val) if val else Path.home() / ".hermes"
 
     def display_hermes_home() -> str:

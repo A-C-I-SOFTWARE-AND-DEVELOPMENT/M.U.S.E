@@ -878,6 +878,7 @@ def _run_job_script(script_path: str) -> tuple[bool, str]:
 
     run_env = os.environ.copy()
     run_env["HERMES_HOME"] = str(_get_hermes_home())
+    run_env["MUSE_HOME"] = run_env["HERMES_HOME"]
     try:
         from muse_constants import get_subprocess_home
 

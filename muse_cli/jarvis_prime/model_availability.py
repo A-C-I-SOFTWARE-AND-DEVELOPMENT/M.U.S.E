@@ -57,7 +57,11 @@ def load_hermes_dotenv(home: Optional[Path] = None) -> dict:
     base = (
         Path(home)
         if home
-        else Path(os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes"))
+        else Path(
+            os.environ.get("MUSE_HOME")
+            or os.environ.get("HERMES_HOME")
+            or os.path.expanduser("~/.hermes")
+        )
     )
     env_file = base / ".env"
     if not env_file.exists():

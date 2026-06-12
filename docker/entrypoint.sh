@@ -2,7 +2,9 @@
 # Docker/Podman entrypoint: bootstrap config files into the mounted volume, then run hermes.
 set -e
 
-HERMES_HOME="${HERMES_HOME:-/opt/data}"
+HERMES_HOME="${HERMES_HOME:-${MUSE_HOME:-/opt/data}}"
+MUSE_HOME="${MUSE_HOME:-$HERMES_HOME}"
+export MUSE_HOME HERMES_HOME
 INSTALL_DIR="/opt/hermes"
 
 # --- Privilege dropping via gosu ---
