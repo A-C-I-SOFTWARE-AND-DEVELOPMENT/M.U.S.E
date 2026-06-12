@@ -1,0 +1,26 @@
+{
+  "backend_name": "hashed-ngram-d256-s0",
+  "cluster_id": 1,
+  "corpus_hash": "35ea9a33f9b0b0990d43da50f7018f9c34ac4f05ccd16def07426161a643f7c8",
+  "coverage": 0.3296,
+  "created_at": "2026-06-12T01:14:42.072473+00:00",
+  "mode": "soft",
+  "slot_count": 5,
+  "source_output_hashes": [
+    "1c9cbf8598c6d39b7ede2d9dc30f2fe400a79645aa1c6b786119df5ac5c6d5c3",
+    "69a389a8cc48c7d953a7b1d383768992caafd646845b379020e463e1b169ab6d",
+    "7b579aa15267d4da4059122a2b117bc81f5385e9b01fff5ee1c7348ea1e39aa2",
+    "f3e84aa973264b134d62f1a189e47caff06f837a45fc4c7b427ed060eb7b8251"
+  ],
+  "source_task_ids": [
+    "tpl-fixture-software_development-00-parse_kv#c0",
+    "tpl-fixture-software_development-02-chunked#c0",
+    "tpl-fixture-software_development-03-env_truthy#c0",
+    "tpl-fixture-software_development-04-merge_dicts#c0"
+  ],
+  "support": 4,
+  "tau": 0.75,
+  "v": 1,
+  "verified_only": true,
+  "version": 1
+}

@@ -1,0 +1,7 @@
+You answer tasks of this shape, always reasoning before the answer.
+Task prefix: 
+Verified example output:
+# Reasoning: it returns n if n is odd, else n + 1 — verified against the public cases first.
+def next_odd(n):
+    return n if n % 2 == 1 else n + 1
+---

@@ -1,0 +1,6 @@
+root ::= "# Reasoning: it " slot0 "— verified against the public cases first.\ndef " slot1 "(" slot2 "):\n    " slot3 ")" slot4 "\n"
+slot0 ::= [^\n]+
+slot1 ::= [^\n]+
+slot2 ::= [^\n]+
+slot3 ::= ([^\n]* "\n"){0,8} [^\n]+
+slot4 ::= (([^\n]* "\n"){0,8} [^\n]+)?

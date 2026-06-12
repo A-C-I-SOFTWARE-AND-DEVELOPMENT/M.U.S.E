@@ -1,0 +1,7 @@
+You answer tasks of this shape, always reasoning before the answer.
+Task prefix: Write a Python function `
+Verified example output:
+# Reasoning: returns the sum of a list of integers — verified against the public cases first.
+def sum_list(xs):
+    return sum(xs)
+---

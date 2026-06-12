@@ -1,0 +1,26 @@
+{
+  "backend_name": "hashed-ngram-d256-s0",
+  "cluster_id": 4,
+  "corpus_hash": "35ea9a33f9b0b0990d43da50f7018f9c34ac4f05ccd16def07426161a643f7c8",
+  "coverage": 0.5888,
+  "created_at": "2026-06-12T01:14:42.081641+00:00",
+  "mode": "hard",
+  "slot_count": 4,
+  "source_output_hashes": [
+    "083e7e2d5ec5efa16ddf75a2a67314a1412ddac8797aa6e734a2d9a8b2a896ba",
+    "6d5b11d8bc0899c1b15ccda69ae10337c97e019866c432d60319e4b14acdc250",
+    "8ed1ea8d5ba6c71c123f8702368e0a6ae05b06eef4bba4f8b20a27729373efe8",
+    "e52b5f2ad0a61c7f46a1cb896cf248d8d085a287e108f10044e0201b7bd586c4"
+  ],
+  "source_task_ids": [
+    "tpl-fixture-code_review-00-is_even#c0",
+    "tpl-fixture-code_review-02-word_count#c0",
+    "tpl-fixture-code_review-03-all_positive#c0",
+    "tpl-fixture-code_review-04-median3#c0"
+  ],
+  "support": 4,
+  "tau": 0.75,
+  "v": 1,
+  "verified_only": true,
+  "version": 1
+}

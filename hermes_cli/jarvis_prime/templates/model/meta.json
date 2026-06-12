@@ -1,0 +1,10 @@
+{
+  "backend_name": "hashed-ngram-d256-s0",
+  "corpus_hash": "c655670a11107df34b898f190598f84763afc6f7ac9939cff50bd9769391a6b9",
+  "created_at": "2026-06-12T01:08:25.717653+00:00",
+  "dim": 256,
+  "k": 5,
+  "n_texts": 24,
+  "seed": 0,
+  "v": 1
+}
