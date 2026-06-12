@@ -7162,8 +7162,10 @@ class HermesCLI:
                 current_model=self.model or "",
                 current_base_url=self.base_url or "",
             )
-        except Exception:
+            inventory_error = None
+        except Exception as exc:
             ctx = None
+            inventory_error = str(exc) or type(exc).__name__
 
         # switch_model() + _open_model_picker still need the raw provider
         # dicts; ConfigContext is the canonical source for both.
@@ -7175,15 +7177,20 @@ class HermesCLI:
             model_display = self.model or "unknown"
             provider_display = get_label(self.provider) if self.provider else "unknown"
 
-            try:
-                if ctx is None:
-                    raise RuntimeError("inventory context unavailable")
-                providers = build_models_payload(ctx, max_models=50)["providers"]
-            except Exception:
-                providers = []
+            providers = []
+            if ctx is not None:
+                try:
+                    providers = build_models_payload(ctx, max_models=50)["providers"]
+                except Exception as exc:
+                    inventory_error = str(exc) or type(exc).__name__
 
             if not providers:
-                _cprint("  No authenticated providers found.")
+                if inventory_error:
+                    _cprint(f"  ✗ Could not load the model inventory: {inventory_error}")
+                    _cprint("    Run `muse doctor` to diagnose provider configuration.")
+                else:
+                    _cprint("  No authenticated providers found.")
+                    _cprint("    Run `muse setup` or `muse model` to configure a provider.")
                 _cprint("")
                 _cprint("  /model <name>                        switch model")
                 _cprint("  /model --provider <slug>             switch provider")

@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 _HERMES_MODEL_WARNING = (
     "Nous Research Hermes 3 & 4 models are NOT agentic and are not designed "
-    "for use with Hermes Agent. They lack the tool-calling capabilities "
+    "for use with MUSE. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )
@@ -447,6 +447,32 @@ def _model_sort_key(model_id: str, prefix: str) -> tuple:
     return version_key + (suffix_rank, suffix)
 
 
+def _suggest_close_models(key: str, current_provider: str) -> list[str]:
+    """Best-effort "did you mean" candidates for a failed model lookup.
+
+    Pools known alias names with the current provider's catalog IDs and
+    returns up to three close matches. Never raises — suggestions are
+    purely cosmetic.
+    """
+    from difflib import get_close_matches
+
+    candidates = set(MODEL_ALIASES)
+    try:
+        _ensure_direct_aliases()
+        candidates.update(DIRECT_ALIASES)
+    except Exception:
+        pass
+    if current_provider:
+        try:
+            candidates.update(list_provider_models(current_provider) or [])
+        except Exception:
+            pass
+    try:
+        return get_close_matches(key, sorted(candidates), n=3, cutoff=0.5)
+    except Exception:
+        return []
+
+
 def resolve_alias(
     raw_input: str,
     current_provider: str,
@@ -772,14 +798,18 @@ def switch_model(
                     )
                 else:
                     identity = MODEL_ALIASES[key]
+                    message = (
+                        f"Alias '{key}' maps to {identity.vendor}/{identity.family} "
+                        f"but no matching model was found in any provider catalog. "
+                        f"Try specifying the full model name."
+                    )
+                    suggestions = _suggest_close_models(key, current_provider)
+                    if suggestions:
+                        message += "\n  Did you mean: " + ", ".join(suggestions) + "?"
                     return ModelSwitchResult(
                         success=False,
                         is_global=is_global,
-                        error_message=(
-                            f"Alias '{key}' maps to {identity.vendor}/{identity.family} "
-                            f"but no matching model was found in any provider catalog. "
-                            f"Try specifying the full model name."
-                        ),
+                        error_message=message,
                     )
             else:
                 # --- Step c: On aggregator, convert vendor:model to vendor/model ---

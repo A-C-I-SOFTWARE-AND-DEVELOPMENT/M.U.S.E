@@ -201,6 +201,29 @@ class TestToolsValidation:
         out = capsys.readouterr().out
         assert "Unknown toolset 'nonexistent_toolset'" in out
 
+    def test_unknown_toolset_near_miss_suggests_close_match(self, capsys):
+        config = {"platform_toolsets": {"cli": ["web"]}}
+        with patch("hermes_cli.tools_config.load_config", return_value=config), \
+             patch("hermes_cli.tools_config.save_config"):
+            tools_disable_enable_command(
+                Namespace(tools_action="disable", names=["webb"], platform="cli")
+            )
+        out = capsys.readouterr().out
+        assert "Unknown toolset 'webb'" in out
+        assert "Did you mean:" in out
+        assert "web" in out
+
+    def test_unknown_toolset_far_miss_has_no_suggestion(self, capsys):
+        config = {"platform_toolsets": {"cli": ["web"]}}
+        with patch("hermes_cli.tools_config.load_config", return_value=config), \
+             patch("hermes_cli.tools_config.save_config"):
+            tools_disable_enable_command(
+                Namespace(tools_action="disable", names=["zzqqxx"], platform="cli")
+            )
+        out = capsys.readouterr().out
+        assert "Unknown toolset 'zzqqxx'" in out
+        assert "Did you mean:" not in out
+
     def test_unknown_toolset_does_not_corrupt_config(self):
         config = {"platform_toolsets": {"cli": ["web", "memory"]}}
         with patch("hermes_cli.tools_config.load_config", return_value=config), \
