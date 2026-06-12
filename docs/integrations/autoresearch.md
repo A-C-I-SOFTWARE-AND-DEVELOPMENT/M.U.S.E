@@ -44,8 +44,10 @@ export MUSE_AUTORESEARCH_ALLOW_SPAWN=1
 ```
 
 The workspace runs against the **vendored `pyproject.toml`** (which carries
-the `pytorch-cu128` index). MUSE's `[autoresearch]` extra is convenience-only
-(default-index torch — CPU on most hosts) for inspecting the engine in-env.
+the `pytorch-cu128` index). There is deliberately **no `[autoresearch]` extra**
+in MUSE's own pyproject: the engine's `torch==2.9.1` pin would force a
+repo-wide torch downgrade (uv unifies versions across extras), so — exactly
+like SIA — the engine lives in its own per-workspace environment.
 
 ## Running
 
