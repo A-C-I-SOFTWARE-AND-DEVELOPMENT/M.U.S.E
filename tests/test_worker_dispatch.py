@@ -244,6 +244,7 @@ def test_builtin_worker_roster() -> None:
         "codex-execute",
         "claude-execute",
         "sia",
+        "autoresearch",
     }
 
 
