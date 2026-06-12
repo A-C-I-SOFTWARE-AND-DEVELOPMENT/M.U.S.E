@@ -38,7 +38,7 @@ class ProgressCaptureAdapter(BasePlatformAdapter):
         )
         return SendResult(success=True, message_id="progress-1")
 
-    async def edit_message(self, chat_id, message_id, content) -> SendResult:
+    async def edit_message(self, chat_id, message_id, content) -> SendResult:  # ty: ignore[invalid-method-override]
         self.edits.append(
             {
                 "chat_id": chat_id,
@@ -153,6 +153,7 @@ class LongPreviewAgent:
         self.tools = []
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
+        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "terminal", self.LONG_CMD, {})
         time.sleep(0.35)
         return {
@@ -168,6 +169,7 @@ class DelayedProgressAgent:
         self.tools = []
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
+        assert self.tool_progress_callback is not None
         self.tool_progress_callback("tool.started", "terminal", "first command", {})
         time.sleep(0.45)
         self.tool_progress_callback("tool.started", "terminal", "second command", {})
@@ -210,6 +212,7 @@ class DelayedInterimAgent:
         self.tools = []
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
+        assert self.interim_assistant_callback is not None
         self.interim_assistant_callback("first interim")
         time.sleep(0.45)
         self.interim_assistant_callback("second interim")
@@ -250,11 +253,11 @@ async def test_run_agent_progress_stays_in_originating_topic(monkeypatch, tmp_pa
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeAgent
+    fake_run_agent.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
     import tools.terminal_tool  # noqa: F401 - register terminal emoji for this fake-agent test
 
@@ -297,11 +300,11 @@ async def test_run_agent_progress_edits_keep_originating_topic_metadata(monkeypa
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeAgent
+    fake_run_agent.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = MetadataEditProgressCaptureAdapter()
@@ -336,11 +339,11 @@ async def test_run_agent_progress_does_not_use_event_message_id_for_telegram_dm(
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeAgent
+    fake_run_agent.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter(platform=Platform.TELEGRAM)
@@ -386,11 +389,11 @@ async def test_run_agent_progress_uses_event_message_id_for_slack_dm(monkeypatch
     )
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeAgent
+    fake_run_agent.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter(platform=Platform.SLACK)
@@ -428,11 +431,11 @@ async def test_run_agent_feishu_progress_replies_inside_existing_thread(monkeypa
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = FakeAgent
+    fake_run_agent.AIAgent = FakeAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter(platform=Platform.FEISHU)
@@ -484,11 +487,11 @@ def _run_long_preview_helper(monkeypatch, tmp_path, preview_length=0):
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = LongPreviewAgent
+    fake_run_agent.AIAgent = LongPreviewAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     # Write config.yaml so _run_agent picks up tool_preview_length
@@ -662,6 +665,7 @@ class VerboseAgent:
         self.tools = []
 
     def run_conversation(self, message, conversation_history=None, task_id=None):
+        assert self.tool_progress_callback is not None
         self.tool_progress_callback(
             "tool.started", "execute_code", None,
             {"code": self.LONG_CODE},
@@ -694,11 +698,11 @@ async def _run_with_agent(
         (tmp_path / "config.yaml").write_text(yaml.dump(config_data), encoding="utf-8")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = agent_cls
+    fake_run_agent.AIAgent = agent_cls  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = adapter_cls(platform=platform)
@@ -1030,11 +1034,11 @@ async def test_run_agent_drops_tool_progress_after_generation_invalidation(monke
     )
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = DelayedProgressAgent
+    fake_run_agent.AIAgent = DelayedProgressAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
     import tools.terminal_tool  # noqa: F401 - register terminal tool metadata
 
@@ -1063,7 +1067,7 @@ async def test_run_agent_drops_tool_progress_after_generation_invalidation(monke
             runner._invalidate_session_run_generation(session_key, reason="test_stop")
         return result
 
-    adapter.send = send_and_invalidate
+    adapter.send = send_and_invalidate  # ty: ignore[invalid-assignment]
 
     result = await runner._run_agent(
         message="hello",
@@ -1092,11 +1096,11 @@ async def test_run_agent_drops_interim_commentary_after_generation_invalidation(
     )
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *args, **kwargs: None
+    fake_dotenv.load_dotenv = lambda *args, **kwargs: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = DelayedInterimAgent
+    fake_run_agent.AIAgent = DelayedInterimAgent  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
     adapter = ProgressCaptureAdapter(platform=Platform.DISCORD)
@@ -1124,7 +1128,7 @@ async def test_run_agent_drops_interim_commentary_after_generation_invalidation(
             runner._invalidate_session_run_generation(session_key, reason="test_stop")
         return result
 
-    adapter.send = send_and_invalidate
+    adapter.send = send_and_invalidate  # ty: ignore[invalid-assignment]
 
     result = await runner._run_agent(
         message="hello",

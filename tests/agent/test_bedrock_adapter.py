@@ -24,8 +24,8 @@ def _mock_botocore_session(*, return_value=None, side_effect=None):
     """Patch botocore.session even when botocore is not installed."""
     botocore_mod = ModuleType("botocore")
     session_mod = ModuleType("botocore.session")
-    session_mod.get_session = MagicMock(return_value=return_value, side_effect=side_effect)
-    botocore_mod.session = session_mod
+    session_mod.get_session = MagicMock(return_value=return_value, side_effect=side_effect)  # ty: ignore[unresolved-attribute]
+    botocore_mod.session = session_mod  # ty: ignore[unresolved-attribute]
     with patch.dict("sys.modules", {"botocore": botocore_mod, "botocore.session": session_mod}):
         yield session_mod.get_session
 
@@ -87,7 +87,7 @@ class TestResolveAwsAuthEnvVar:
         mock_session.get_credentials.return_value = None
         with patch.dict("sys.modules", {"botocore": MagicMock(), "botocore.session": MagicMock()}):
             import botocore.session as _bs
-            _bs.get_session = MagicMock(return_value=mock_session)
+            _bs.get_session = MagicMock(return_value=mock_session)  # ty: ignore[invalid-assignment]
             assert resolve_aws_auth_env_var({}) is None
 
     def test_ignores_whitespace_only_values(self):
@@ -97,7 +97,7 @@ class TestResolveAwsAuthEnvVar:
         mock_session.get_credentials.return_value = None
         with patch.dict("sys.modules", {"botocore": MagicMock(), "botocore.session": MagicMock()}):
             import botocore.session as _bs
-            _bs.get_session = MagicMock(return_value=mock_session)
+            _bs.get_session = MagicMock(return_value=mock_session)  # ty: ignore[invalid-assignment]
             assert resolve_aws_auth_env_var(env) is None
 
 
@@ -112,7 +112,7 @@ class TestHasAwsCredentials:
         mock_session.get_credentials.return_value = None
         with patch.dict("sys.modules", {"botocore": MagicMock(), "botocore.session": MagicMock()}):
             import botocore.session as _bs
-            _bs.get_session = MagicMock(return_value=mock_session)
+            _bs.get_session = MagicMock(return_value=mock_session)  # ty: ignore[invalid-assignment]
             assert has_aws_credentials({}) is False
 
 
@@ -195,7 +195,7 @@ class TestConvertToolsToConverse:
     def test_empty_tools(self):
         from agent.bedrock_adapter import convert_tools_to_converse
         assert convert_tools_to_converse([]) == []
-        assert convert_tools_to_converse(None) == []
+        assert convert_tools_to_converse(None) == []  # ty: ignore[invalid-argument-type]
 
     def test_missing_parameters_gets_default(self):
         from agent.bedrock_adapter import convert_tools_to_converse

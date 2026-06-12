@@ -18,12 +18,12 @@ def test_registry_has_core_domains() -> None:
 
 
 def test_executable_domains_are_autonomy_eligible() -> None:
-    assert get_domain("algorithms").autonomy_eligible is True
-    assert get_domain("swe_local").autonomy_eligible is True
+    assert get_domain("algorithms").autonomy_eligible is True  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    assert get_domain("swe_local").autonomy_eligible is True  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_verifierless_domain_is_not_autonomy_eligible() -> None:
-    assert get_domain("prose").autonomy_eligible is False
+    assert get_domain("prose").autonomy_eligible is False  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_admit_for_autonomy_allows_verifier_domain() -> None:

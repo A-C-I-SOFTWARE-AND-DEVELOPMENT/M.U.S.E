@@ -11,6 +11,14 @@ import pytest
 from hermes_cli import kanban_db as kb
 
 
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
+
+
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
     home = tmp_path / ".hermes"
@@ -35,7 +43,7 @@ def _create_triage(conn, title="rough idea", body=None, assignee=None, tenant=No
 def test_decompose_creates_children_and_promotes_root(kanban_home):
     with kb.connect() as conn:
         tid = _create_triage(conn, title="ship a feature")
-        assert kb.get_task(conn, tid).status == "triage"
+        assert _task(conn, tid).status == "triage"
 
     children = [
         {"title": "research", "body": "look at prior art", "assignee": "researcher", "parents": []},
@@ -58,13 +66,19 @@ def test_decompose_creates_children_and_promotes_root(kanban_home):
         c1 = kb.get_task(conn, child_ids[1])
 
     # Root flipped to todo with orchestrator assignee, gated by children.
+    assert root is not None
     assert root.status == "todo"
+    assert root is not None
     assert root.assignee == "orchestrator"
     # First child has no internal parents → ready on recompute_ready.
+    assert c0 is not None
     assert c0.status == "ready"
+    assert c0 is not None
     assert c0.assignee == "researcher"
     # Second child has parents=[0] → stays in todo until c0 completes.
+    assert c1 is not None
     assert c1.status == "todo"
+    assert c1 is not None
     assert c1.assignee == "engineer"
 
 

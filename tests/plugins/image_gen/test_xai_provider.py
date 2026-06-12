@@ -184,7 +184,7 @@ class TestGenerate:
         response._content = json.dumps({"error": {"message": "Invalid API key"}}).encode()
         response.headers["Content-Type"] = "application/json"
 
-        response.raise_for_status = MagicMock(
+        response.raise_for_status = MagicMock(  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
             side_effect=req_lib.HTTPError(response=response)
         )
 

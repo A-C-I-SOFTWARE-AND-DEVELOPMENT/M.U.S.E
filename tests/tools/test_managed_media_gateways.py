@@ -56,7 +56,7 @@ def _install_fake_tools_package():
     tools_package = types.ModuleType("tools")
     tools_package.__path__ = [str(TOOLS_DIR)]  # type: ignore[attr-defined]
     sys.modules["tools"] = tools_package
-    sys.modules["tools.debug_helpers"] = types.SimpleNamespace(
+    sys.modules["tools.debug_helpers"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         DebugSession=lambda *args, **kwargs: types.SimpleNamespace(
             active=False,
             session_id="debug-session",
@@ -119,7 +119,7 @@ def _install_fake_fal_client(captured):
             SyncRequestHandle=SyncRequestHandle,
         ),
     )
-    sys.modules["fal_client"] = fal_client_module
+    sys.modules["fal_client"] = fal_client_module  # ty: ignore[invalid-assignment]
     return fal_client_module
 
 
@@ -161,7 +161,7 @@ def _install_fake_openai_module(captured, transcription_response=None):
         APIConnectionError=Exception,
         APITimeoutError=Exception,
     )
-    sys.modules["openai"] = fake_module
+    sys.modules["openai"] = fake_module  # ty: ignore[invalid-assignment]
 
 
 def test_managed_fal_submit_uses_gateway_origin_and_nous_token(monkeypatch):

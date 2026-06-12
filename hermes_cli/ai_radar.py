@@ -262,7 +262,7 @@ def is_official_source(url: object) -> bool:
     if any(_host_matches(host, bad) for bad in _DISQUALIFIED_HOSTS):
         return False
     try:
-        parsed = urlparse(url)  # type: ignore[arg-type]
+        parsed = urlparse(url)  # ty: ignore[no-matching-overload]  # non-str rejected by _parsed_host
     except (ValueError, TypeError):
         return False
     path = (parsed.path or "").lower()

@@ -52,7 +52,7 @@ def test_repair_rate_ignores_none(tmp_path: Path):
     store.record(_sample("m", repair=False))
     card = store.scorecard("m")
     # Only the two non-None repair attempts count -> 0.5
-    assert card.repair_success_rate == 0.5
+    assert card.repair_success_rate == 0.5  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_select_prefers_higher_composite(tmp_path: Path):

@@ -293,14 +293,14 @@ class DockerEnvironment(BaseEnvironment):
         disk: int = 0,
         persistent_filesystem: bool = False,
         task_id: str = "default",
-        volumes: list = None,
+        volumes: list | None = None,
         forward_env: list[str] | None = None,
         env: dict | None = None,
         network: bool = True,
-        host_cwd: str = None,
+        host_cwd: str | None = None,
         auto_mount_cwd: bool = False,
         run_as_host_user: bool = False,
-        extra_args: list = None,
+        extra_args: list | None = None,
     ):
         if cwd == "~":
             cwd = "/root"

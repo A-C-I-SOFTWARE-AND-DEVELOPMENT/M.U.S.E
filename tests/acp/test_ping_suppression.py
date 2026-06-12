@@ -172,7 +172,7 @@ async def test_bare_ping_request_produces_proper_response_and_no_stderr_noise(
 
         agent_task = asyncio.create_task(
             acp.run_agent(
-                _FakeAgent(),
+                _FakeAgent(),  # ty: ignore[invalid-argument-type]
                 input_stream=agent_output,
                 output_stream=agent_input,
                 use_unstable_protocol=True,

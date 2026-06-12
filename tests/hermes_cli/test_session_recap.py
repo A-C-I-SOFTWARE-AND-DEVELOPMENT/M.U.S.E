@@ -176,5 +176,5 @@ def test_tool_message_count_reported():
 def test_ignores_non_mapping_entries_gracefully():
     msgs = [None, "stray", _user("hi"), _assistant("hello")]
     # Should not raise.
-    out = build_recap(msgs)
+    out = build_recap(msgs)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     assert "Session recap" in out

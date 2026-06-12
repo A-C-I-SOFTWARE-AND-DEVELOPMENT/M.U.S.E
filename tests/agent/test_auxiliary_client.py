@@ -893,28 +893,28 @@ class TestIsPaymentError:
 
     def test_402_status_code(self):
         exc = Exception("Payment Required")
-        exc.status_code = 402
+        exc.status_code = 402  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_402_with_credits_message(self):
         exc = Exception("You requested up to 65535 tokens, but can only afford 8029")
-        exc.status_code = 402
+        exc.status_code = 402  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_with_credits_message(self):
         exc = Exception("insufficient credits remaining")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_without_credits_message_is_not_payment(self):
         """Normal rate limits should NOT be treated as payment errors."""
         exc = Exception("Rate limit exceeded, try again in 2 seconds")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is False
 
     def test_generic_500_is_not_payment(self):
         exc = Exception("Internal server error")
-        exc.status_code = 500
+        exc.status_code = 500  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is False
 
     def test_no_status_code_with_billing_message(self):
@@ -930,37 +930,37 @@ class TestIsPaymentError:
     def test_429_quota_exceeded(self):
         """Cloud provider quota exhaustion (e.g. Vertex AI) is a payment error."""
         exc = Exception("RESOURCE_EXHAUSTED: quota exceeded for project")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_too_many_tokens_per_day(self):
         """Bedrock / LiteLLM daily token limit is a payment error."""
         exc = Exception("Too many tokens per day: 1000000 used, 1000000 limit")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_daily_limit_phrase(self):
         """Generic 'daily limit' phrasing is a payment error."""
         exc = Exception("You have exceeded your daily limit.")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_resource_exhausted_grpc(self):
         """Vertex AI gRPC RESOURCE_EXHAUSTED maps to payment error."""
         exc = Exception("resource exhausted")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_daily_quota_phrase(self):
         """'daily quota' phrasing is a payment error."""
         exc = Exception("Daily quota of 500 requests reached.")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is True
 
     def test_429_transient_rate_limit_not_quota(self):
         """Transient 429 rate limit without quota keywords is NOT a payment error."""
         exc = Exception("Rate limit exceeded. Retry after 10s.")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_payment_error(exc) is False
 
 
@@ -969,45 +969,45 @@ class TestIsRateLimitError:
 
     def test_429_with_rate_limit_message(self):
         exc = Exception("Rate limit exceeded, try again in 2 seconds")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_resets_in_message(self):
         """Nous-style 429: 'resets in 3508s'."""
         exc = Exception("Hold up for a bit, you've exceeded the rate limit on your API key")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_too_many_requests(self):
         exc = Exception("Too many requests")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is True
 
     def test_429_without_billing_keywords_is_rate_limit(self):
         """Generic 429 without billing keywords = likely a rate limit."""
         exc = Exception("Something went wrong")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_credits_message_is_not_rate_limit(self):
         """Billing-related 429 should NOT be classified as rate limit."""
         exc = Exception("insufficient credits remaining")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is False
 
     def test_429_with_billing_message_is_not_rate_limit(self):
         exc = Exception("you can only afford 1000 tokens")
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is False
 
     def test_402_is_not_rate_limit(self):
         exc = Exception("Payment Required")
-        exc.status_code = 402
+        exc.status_code = 402  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is False
 
     def test_500_is_not_rate_limit(self):
         exc = Exception("Internal Server Error")
-        exc.status_code = 500
+        exc.status_code = 500  # ty: ignore[unresolved-attribute]
         assert _is_rate_limit_error(exc) is False
 
     def test_openai_ratelimiterror_classname(self):
@@ -1098,12 +1098,12 @@ class TestCallLlmPaymentFallback:
 
     def _make_402_error(self, msg="Payment Required: insufficient credits"):
         exc = Exception(msg)
-        exc.status_code = 402
+        exc.status_code = 402  # ty: ignore[unresolved-attribute]
         return exc
 
     def _make_429_rate_limit_error(self, msg="Rate limit exceeded, try again in 60 seconds"):
         exc = Exception(msg)
-        exc.status_code = 429
+        exc.status_code = 429  # ty: ignore[unresolved-attribute]
         return exc
 
     def test_non_payment_error_not_caught(self, monkeypatch):
@@ -1112,7 +1112,7 @@ class TestCallLlmPaymentFallback:
 
         primary_client = MagicMock()
         server_err = Exception("Internal Server Error")
-        server_err.status_code = 500
+        server_err.status_code = 500  # ty: ignore[unresolved-attribute]
         primary_client.chat.completions.create.side_effect = server_err
 
         with patch("agent.auxiliary_client._get_cached_client",
@@ -1157,7 +1157,7 @@ class TestAuxiliaryFallbackLayering:
 
     def _make_payment_err(self):
         exc = Exception("Payment Required: insufficient credits")
-        exc.status_code = 402
+        exc.status_code = 402  # ty: ignore[unresolved-attribute]
         return exc
 
     def test_explicit_provider_uses_configured_chain_first(self, monkeypatch, caplog):
@@ -1363,13 +1363,13 @@ class TestIsConnectionError:
     def test_normal_api_error_not_connection(self):
         from agent.auxiliary_client import _is_connection_error
         err = Exception("Bad Request: invalid model")
-        err.status_code = 400
+        err.status_code = 400  # ty: ignore[unresolved-attribute]
         assert _is_connection_error(err) is False
 
     def test_500_not_connection(self):
         from agent.auxiliary_client import _is_connection_error
         err = Exception("Internal Server Error")
-        err.status_code = 500
+        err.status_code = 500  # ty: ignore[unresolved-attribute]
         assert _is_connection_error(err) is False
 
 
@@ -1928,7 +1928,7 @@ class TestAuxiliaryAuthRefreshRetry:
 class TestAuxiliaryPoolRotationRetry:
     def test_call_llm_rotates_explicit_codex_pool_on_429(self):
         rate_err = Exception("usage limit reached")
-        rate_err.status_code = 429
+        rate_err.status_code = 429  # ty: ignore[unresolved-attribute]
 
         stale_client = MagicMock()
         stale_client.base_url = "https://chatgpt.com/backend-api/codex"
@@ -1978,7 +1978,7 @@ class TestAuxiliaryPoolRotationRetry:
     @pytest.mark.asyncio
     async def test_async_call_llm_rotates_explicit_codex_pool_on_429(self):
         rate_err = Exception("usage limit reached")
-        rate_err.status_code = 429
+        rate_err.status_code = 429  # ty: ignore[unresolved-attribute]
 
         stale_client = MagicMock()
         stale_client.base_url = "https://chatgpt.com/backend-api/codex"
@@ -2321,7 +2321,7 @@ class TestCodexAuxiliaryAdapterTimeout:
                 return FakeStream()
 
         fake_client = SimpleNamespace(responses=FakeResponses())
-        adapter = _CodexCompletionsAdapter(fake_client, "gpt-5.5")
+        adapter = _CodexCompletionsAdapter(fake_client, "gpt-5.5")  # ty: ignore[invalid-argument-type]
 
         response = adapter.create(
             messages=[{"role": "user", "content": "summarize this"}],
@@ -2358,7 +2358,7 @@ class TestCodexAuxiliaryAdapterTimeout:
                 return SlowAliveStream()
 
         fake_client = SimpleNamespace(responses=FakeResponses(), close=lambda: None)
-        adapter = _CodexCompletionsAdapter(fake_client, "gpt-5.5")
+        adapter = _CodexCompletionsAdapter(fake_client, "gpt-5.5")  # ty: ignore[invalid-argument-type]
 
         started = time.monotonic()
         with pytest.raises(TimeoutError):
@@ -2412,7 +2412,7 @@ class TestAuxiliaryClientPoisonedCacheEviction:
         real = SimpleNamespace(api_key="k", base_url="https://chatgpt.com/backend-api/codex",
                                responses=SimpleNamespace(stream=lambda **k: None),
                                close=lambda: None)
-        wrapper = CodexAuxiliaryClient(real, "gpt-5.5")
+        wrapper = CodexAuxiliaryClient(real, "gpt-5.5")  # ty: ignore[invalid-argument-type]
         with _client_cache_lock:
             _client_cache.clear()
             _client_cache[("openai-codex", False, None, None, None)] = (wrapper, "gpt-5.5", None)
@@ -2450,7 +2450,7 @@ class TestAuxiliaryClientPoisonedCacheEviction:
         real = SimpleNamespace(api_key="k", base_url="https://chatgpt.com/backend-api/codex",
                                responses=SimpleNamespace(stream=lambda **k: None),
                                close=lambda: None)
-        sync_wrapper = CodexAuxiliaryClient(real, "gpt-5.5")
+        sync_wrapper = CodexAuxiliaryClient(real, "gpt-5.5")  # ty: ignore[invalid-argument-type]
         async_wrapper = AsyncCodexAuxiliaryClient(sync_wrapper)
         with _client_cache_lock:
             _client_cache.clear()
@@ -2500,13 +2500,13 @@ class TestAuxiliaryClientPoisonedCacheEviction:
                 closed["flag"] = True
 
         fake_real = FakeClient()
-        wrapper = CodexAuxiliaryClient(fake_real, "gpt-5.5")
+        wrapper = CodexAuxiliaryClient(fake_real, "gpt-5.5")  # ty: ignore[invalid-argument-type]
         cache_key = ("openai-codex", False, None, None, None)
         with _client_cache_lock:
             _client_cache.clear()
             _client_cache[cache_key] = (wrapper, "gpt-5.5", None)
         try:
-            adapter = _CodexCompletionsAdapter(fake_real, "gpt-5.5")
+            adapter = _CodexCompletionsAdapter(fake_real, "gpt-5.5")  # ty: ignore[invalid-argument-type]
             with pytest.raises(TimeoutError):
                 adapter.create(
                     messages=[{"role": "user", "content": "x"}],
@@ -2968,7 +2968,7 @@ class TestAuxUnhealthyCache:
         # (resolved_provider="auto" doesn't carry that information by itself).
         primary_client.base_url = "https://openrouter.ai/api/v1/"
         err = Exception("Payment Required: insufficient credits")
-        err.status_code = 402
+        err.status_code = 402  # ty: ignore[unresolved-attribute]
         primary_client.chat.completions.create.side_effect = err
 
         nous_client = MagicMock()

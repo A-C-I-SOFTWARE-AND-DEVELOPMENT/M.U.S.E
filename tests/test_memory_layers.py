@@ -44,7 +44,7 @@ def test_untrusted_content_never_auto_promotes():
     assert decision == "proposed"
     assert proposal is not None
     # RC3 ⇒ owner approval required; nothing written to durable memory.
-    assert proposal.status == ProposalStatus.NEEDS_OWNER_APPROVAL
+    assert proposal.status == ProposalStatus.NEEDS_OWNER_APPROVAL  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     assert book.pending()
 
 
@@ -64,7 +64,7 @@ def test_trusted_unapproved_content_is_proposed_not_dumped():
     book = ProposalBook()
     decision, proposal = consider(e, book)
     assert decision == "proposed"
-    assert proposal.risk_class == "RC2"
+    assert proposal.risk_class == "RC2"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_retrieval_filter_drops_low_trust_and_low_confidence():

@@ -29,7 +29,7 @@ import tempfile
 import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set, cast
 
 from hermes_constants import get_hermes_home
 from tools import skill_usage
@@ -648,7 +648,7 @@ def _parse_structured_summary(
     # Prefer PyYAML when available — every hermes install already has it
     # (config.yaml loader). Fall back to a hand parser for paranoia.
     try:
-        import yaml  # type: ignore
+        import yaml
         data = yaml.safe_load(body)
     except Exception:
         return empty
@@ -907,7 +907,7 @@ def _build_rename_summary(
     pinning (pruned-only runs skip it).
     """
     after_by_name = {r.get("name"): r for r in after_report if isinstance(r, dict)}
-    after_names = set(after_by_name.keys())
+    after_names = cast(Set[str], set(after_by_name.keys()))
     removed = sorted(before_names - after_names)
     added = sorted(after_names - before_names)
     if not removed:
@@ -1005,7 +1005,7 @@ def _write_run_report(
 
     # Diff before/after
     after_by_name = {r.get("name"): r for r in after_report if isinstance(r, dict)}
-    after_names = set(after_by_name.keys())
+    after_names = cast(Set[str], set(after_by_name.keys()))
     removed = sorted(before_names - after_names)   # archived during this run
     added = sorted(after_names - before_names)     # new skills this run
     before_by_name = {r.get("name"): r for r in before_report if isinstance(r, dict)}
@@ -1449,7 +1449,7 @@ def run_curator_review(
             before_report = skill_usage.agent_created_report()
         except Exception:
             before_report = []
-        before_names = {r.get("name") for r in before_report if isinstance(r, dict)}
+        before_names = cast(Set[str], {r.get("name") for r in before_report if isinstance(r, dict)})
 
         llm_meta: Dict[str, Any] = {}
         try:

@@ -156,7 +156,7 @@ def test_missing_method_returns_error():
 
 
 def test_non_string_method_returns_error():
-    result = json.loads(browser_cdp_tool.browser_cdp(method=123))  # type: ignore[arg-type]
+    result = json.loads(browser_cdp_tool.browser_cdp(method=123))  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     assert "error" in result
     assert "method" in result["error"].lower()
 
@@ -166,7 +166,7 @@ def test_non_dict_params_returns_error(monkeypatch):
         browser_cdp_tool, "_resolve_cdp_endpoint", lambda: "ws://localhost:9999"
     )
     result = json.loads(
-        browser_cdp_tool.browser_cdp(method="Target.getTargets", params="not-a-dict")  # type: ignore[arg-type]
+        browser_cdp_tool.browser_cdp(method="Target.getTargets", params="not-a-dict")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     )
     assert "error" in result
     assert "object" in result["error"].lower() or "dict" in result["error"].lower()
@@ -336,7 +336,7 @@ def test_timeout_clamped_above_max(cdp_server):
 def test_invalid_timeout_falls_back_to_default(cdp_server):
     cdp_server.on("Browser.getVersion", lambda p, s: {"product": "ok"})
     result = json.loads(
-        browser_cdp_tool.browser_cdp(method="Browser.getVersion", timeout="nope")  # type: ignore[arg-type]
+        browser_cdp_tool.browser_cdp(method="Browser.getVersion", timeout="nope")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     )
     assert result["success"] is True
 

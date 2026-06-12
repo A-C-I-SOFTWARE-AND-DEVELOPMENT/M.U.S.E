@@ -12,7 +12,7 @@ from agent.models_dev import (
 )
 
 
-SAMPLE_REGISTRY = {
+SAMPLE_REGISTRY: dict = {
     "anthropic": {
         "id": "anthropic",
         "name": "Anthropic",
@@ -108,7 +108,7 @@ class TestExtractContext:
         assert _extract_context({"limit": {"output": 8192}}) is None
 
     def test_non_dict_returns_none(self):
-        assert _extract_context("not a dict") is None
+        assert _extract_context("not a dict") is None  # ty: ignore[invalid-argument-type]
 
     def test_float_context_coerced_to_int(self):
         assert _extract_context({"limit": {"context": 131072.0}}) == 131072

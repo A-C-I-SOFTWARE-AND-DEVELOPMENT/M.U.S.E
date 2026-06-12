@@ -45,7 +45,7 @@ import time
 import uuid
 
 _IS_WINDOWS = platform.system() == "Windows"
-from typing import Any, Dict, List, Optional
+from typing import AbstractSet, Any, Dict, List, Optional
 
 # Availability gate.  On Windows we fall back to loopback TCP for the
 # sandbox RPC transport (AF_UNIX is unreliable on Windows Python) — see
@@ -132,9 +132,9 @@ def _scrub_child_env(source_env, is_passthrough=None, is_windows=None):
     if is_passthrough is None:
         try:
             from tools.env_passthrough import is_env_passthrough as _ep
+            is_passthrough = _ep
         except Exception:
-            _ep = lambda _: False  # noqa: E731
-        is_passthrough = _ep
+            is_passthrough = lambda _: False  # noqa: E731
     if is_windows is None:
         is_windows = _IS_WINDOWS
 
@@ -1147,6 +1147,8 @@ def execute_code(
             _host, _port = server_sock.getsockname()[:2]
             rpc_endpoint = f"tcp://{_host}:{_port}"
         else:
+            # POSIX path: sock_path was assigned in the non-TCP branch above.
+            assert sock_path is not None
             server_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             server_sock.bind(sock_path)
             os.chmod(sock_path, 0o600)
@@ -1238,7 +1240,7 @@ def execute_code(
             stderr=subprocess.PIPE,
             stdin=subprocess.DEVNULL,
             preexec_fn=None if _IS_WINDOWS else os.setsid,
-            creationflags=subprocess.CREATE_NO_WINDOW if _IS_WINDOWS else 0,
+            creationflags=subprocess.CREATE_NO_WINDOW if _IS_WINDOWS else 0,  # ty: ignore[unresolved-attribute]  # Windows-only attribute, guarded by _IS_WINDOWS
         )
 
         # --- Poll loop: watch for exit, timeout, and interrupt ---
@@ -1569,7 +1571,7 @@ def _is_usable_python(python_path: str) -> bool:
              "import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)"],
             timeout=5,
             capture_output=True,
-            creationflags=subprocess.CREATE_NO_WINDOW if _IS_WINDOWS else 0,
+            creationflags=subprocess.CREATE_NO_WINDOW if _IS_WINDOWS else 0,  # ty: ignore[unresolved-attribute]  # Windows-only attribute, guarded by _IS_WINDOWS
         )
         return result.returncode == 0
     except (OSError, subprocess.TimeoutExpired, subprocess.SubprocessError):
@@ -1672,8 +1674,8 @@ _TOOL_DOC_LINES = [
 ]
 
 
-def build_execute_code_schema(enabled_sandbox_tools: set = None,
-                              mode: str = None) -> dict:
+def build_execute_code_schema(enabled_sandbox_tools: Optional[AbstractSet[str]] = None,
+                              mode: Optional[str] = None) -> dict:
     """Build the execute_code schema with description listing only enabled tools.
 
     When tools are disabled via ``hermes tools`` (e.g. web is turned off),

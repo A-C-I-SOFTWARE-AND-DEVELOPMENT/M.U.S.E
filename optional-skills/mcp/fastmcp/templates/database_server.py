@@ -5,7 +5,7 @@ import re
 import sqlite3
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP  # ty: ignore[unresolved-import]
 
 
 mcp = FastMCP("__SERVER_NAME__")

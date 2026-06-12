@@ -35,7 +35,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -132,7 +132,7 @@ class Footgun:
     # if the match is a REAL footgun (not a false positive). Use this when
     # the regex can't fully distinguish (e.g. open() where mode may contain
     # "b" for binary, or the line may have `encoding=` elsewhere).
-    post_filter: "callable | None" = None
+    post_filter: "Callable[[re.Match[str], str], bool] | None" = None
 
 
 FOOTGUNS: list[Footgun] = [
@@ -555,9 +555,9 @@ def main(argv: list[str]) -> int:
     # characters used in the output. Reconfigure streams to UTF-8 so the
     # script works correctly on the very platform it is designed to help.
     if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stdout.reconfigure(encoding="utf-8")  # ty: ignore[call-non-callable]
     if hasattr(sys.stderr, "reconfigure"):
-        sys.stderr.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")  # ty: ignore[call-non-callable]
 
     args = parse_args(argv)
 

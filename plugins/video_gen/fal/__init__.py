@@ -292,7 +292,7 @@ def _load_fal_client() -> Any:
     global _fal_client
     if _fal_client is not None:
         return _fal_client
-    import fal_client  # type: ignore
+    import fal_client
 
     _fal_client = fal_client
     return fal_client

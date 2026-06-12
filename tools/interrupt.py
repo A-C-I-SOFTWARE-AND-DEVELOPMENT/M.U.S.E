@@ -17,6 +17,7 @@ Usage in tools:
 import logging
 import os
 import threading
+from typing import cast
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,8 @@ def set_interrupt(active: bool, thread_id: int | None = None) -> None:
         thread_id: Target thread ident.  When None, targets the
                    current thread (backward compat for CLI/tests).
     """
-    tid = thread_id if thread_id is not None else threading.current_thread().ident
+    # The current thread is always started, so its ident is never None.
+    tid = thread_id if thread_id is not None else cast(int, threading.current_thread().ident)
     with _lock:
         if active:
             _interrupted_threads.add(tid)

@@ -75,15 +75,15 @@ class ContextEngine(ABC):
         """
 
     @abstractmethod
-    def should_compress(self, prompt_tokens: int = None) -> bool:
+    def should_compress(self, prompt_tokens: int | None = None) -> bool:
         """Return True if compaction should fire this turn."""
 
     @abstractmethod
     def compress(
         self,
         messages: List[Dict[str, Any]],
-        current_tokens: int = None,
-        focus_topic: str = None,
+        current_tokens: int | None = None,
+        focus_topic: str | None = None,
     ) -> List[Dict[str, Any]]:
         """Compact the message list and return the new message list.
 

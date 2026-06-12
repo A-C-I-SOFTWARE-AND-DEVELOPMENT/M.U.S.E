@@ -74,7 +74,7 @@ def _make_413_error(*, use_status_code=True, message="Request entity too large")
     """Create an exception that mimics a 413 HTTP error."""
     err = Exception(message)
     if use_status_code:
-        err.status_code = 413
+        err.status_code = 413  # ty: ignore[unresolved-attribute]
     return err
 
 
@@ -94,9 +94,9 @@ def agent():
         )
         a.client = MagicMock()
         a._cached_system_prompt = "You are helpful."
-        a._use_prompt_caching = False
-        a.tool_delay = 0
-        a.compression_enabled = False
+        a._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
+        a.tool_delay = 0  # ty: ignore[unresolved-attribute]
+        a.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
         a.save_trajectories = False
         return a
 
@@ -239,7 +239,7 @@ class TestHTTP413Compression:
             "Error code: 400 - This endpoint's maximum context length is 128000 tokens. "
             "However, you requested about 270460 tokens."
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="OK", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
 
@@ -284,7 +284,7 @@ class TestHTTP413Compression:
             "\"This endpoint's maximum context length is 204800 tokens. "
             "However, you requested about 270460 tokens.\", 'code': 400}}"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered after compression", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
 
@@ -316,7 +316,7 @@ class TestHTTP413Compression:
         err_400 = Exception(
             "Error code: 400 - Please reduce the length of the messages"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="OK", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
 
@@ -347,7 +347,7 @@ class TestHTTP413Compression:
             "\"This endpoint's maximum context length is 128000 tokens. "
             "Please reduce the length of the messages.\"}}"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered after real compression", finish_reason="stop")
 
         request_payloads = []
@@ -591,7 +591,7 @@ class TestToolResultPreflightCompression:
             "Error code: 400 - {'type': 'error', 'error': {'type': 'invalid_request_error', "
             "'message': 'prompt is too long: 233153 tokens > 200000 maximum'}}"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
         prefill = [

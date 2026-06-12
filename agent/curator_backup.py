@@ -184,7 +184,7 @@ def _count_skill_files(base: Path) -> int:
 def _write_manifest(dest: Path, reason: str, archive_path: Path,
                     skills_counted: int,
                     cron_info: Optional[Dict[str, Any]] = None) -> None:
-    manifest = {
+    manifest: Dict[str, Any] = {
         "id": dest.name,
         "reason": reason,
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -669,7 +669,7 @@ def rollback(backup_id: Optional[str] = None) -> Tuple[bool, str, Optional[Path]
 # Human-readable summary for CLI
 # ---------------------------------------------------------------------------
 
-def format_size(n: int) -> str:
+def format_size(n: float) -> str:
     for unit in ("B", "KB", "MB", "GB"):
         if n < 1024 or unit == "GB":
             return f"{n:.1f} {unit}" if unit != "B" else f"{n} B"

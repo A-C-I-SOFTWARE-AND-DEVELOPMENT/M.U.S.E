@@ -12,7 +12,7 @@ import sys
 from unittest.mock import patch
 
 
-def _reload_entry_with_env(env_overrides: dict) -> None:
+def _reload_entry_with_env(env_overrides: dict) -> list[str]:
     """Re-execute entry.py's module-level path setup under a controlled env."""
     # We only want to exercise the sys.path fixup block, not the signal/import
     # machinery that follows.  We do this by running the fixup code verbatim in

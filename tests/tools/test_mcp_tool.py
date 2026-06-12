@@ -967,6 +967,7 @@ class TestMCPServerTask:
                 await server.start({"command": "npx"})
 
                 assert server.session is not None
+                assert server._task is not None
                 assert not server._task.done()
 
                 await server.shutdown()
@@ -2220,25 +2221,25 @@ try:
         TextContent,
     )
 except ImportError:
-    CreateMessageResult = _CompatType
-    ErrorData = _CompatType
-    SamplingCapability = _CompatType
-    TextContent = _CompatType
+    CreateMessageResult = _CompatType  # ty: ignore[invalid-assignment]
+    ErrorData = _CompatType  # ty: ignore[invalid-assignment]
+    SamplingCapability = _CompatType  # ty: ignore[invalid-assignment]
+    TextContent = _CompatType  # ty: ignore[invalid-assignment]
 
 try:
     from mcp.types import CreateMessageResultWithTools
 except ImportError:
-    CreateMessageResultWithTools = _CompatType
+    CreateMessageResultWithTools = _CompatType  # ty: ignore[invalid-assignment]
 
 try:
     from mcp.types import SamplingToolsCapability
 except ImportError:
-    SamplingToolsCapability = _CompatType
+    SamplingToolsCapability = _CompatType  # ty: ignore[invalid-assignment]
 
 try:
     from mcp.types import ToolUseContent
 except ImportError:
-    ToolUseContent = _CompatType
+    ToolUseContent = _CompatType  # ty: ignore[invalid-assignment]
 
 from tools.mcp_tool import (
     CreateMessageResultWithTools,
@@ -3051,6 +3052,7 @@ class TestMCPServerTaskSamplingIntegration:
         # sampling setup portion directly.
         server._config = config
         sampling_config = config.get("sampling", {})
+        assert isinstance(sampling_config, dict)
         if sampling_config.get("enabled", True) and _MCP_SAMPLING_TYPES:
             server._sampling = SamplingHandler(server.name, sampling_config)
         else:
@@ -3072,6 +3074,7 @@ class TestMCPServerTaskSamplingIntegration:
         }
         server._config = config
         sampling_config = config.get("sampling", {})
+        assert isinstance(sampling_config, dict)
         if sampling_config.get("enabled", True) and _MCP_SAMPLING_TYPES:
             server._sampling = SamplingHandler(server.name, sampling_config)
         else:
@@ -3628,7 +3631,7 @@ class TestSanitizeMcpNameComponent:
 
     def test_none_returns_empty(self):
         from tools.mcp_tool import sanitize_mcp_name_component
-        assert sanitize_mcp_name_component(None) == ""
+        assert sanitize_mcp_name_component(None) == ""  # ty: ignore[invalid-argument-type]
 
     def test_slash_in_convert_mcp_schema(self):
         """Server names with slashes produce valid tool names via _convert_mcp_schema."""

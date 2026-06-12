@@ -43,6 +43,7 @@ class TestPlatformConfigRoundtrip:
 
         assert restored.enabled is True
         assert restored.token == "tok_123"
+        assert restored.home_channel is not None
         assert restored.home_channel.chat_id == "555"
         assert restored.extra == {"foo": "bar"}
 

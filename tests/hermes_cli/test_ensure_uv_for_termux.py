@@ -67,7 +67,7 @@ def test_termux_returns_uv_when_wheel_installs(monkeypatch):
     monkeypatch.setattr(main.shutil, "which", _which)
     monkeypatch.setattr(main.subprocess, "run", lambda *a, **k: None)
 
-    assert main._ensure_uv_for_termux(["py", "-m", "pip"]).endswith("/bin/uv")
+    assert main._ensure_uv_for_termux(["py", "-m", "pip"]).endswith("/bin/uv")  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_termux_install_timeout_falls_back_to_pip(monkeypatch):

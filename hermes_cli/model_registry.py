@@ -205,7 +205,7 @@ def _load_yaml_registry(path: Path) -> Registry | None:
     """Parse the YAML at *path*. Returns ``None`` if YAML is unavailable
     or the file is missing / malformed."""
     try:
-        import yaml  # type: ignore
+        import yaml
     except ImportError:
         return None
     try:

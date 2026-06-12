@@ -219,7 +219,7 @@ class TestReasoningCommand:
             },
         )
         fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
+        fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
         _CapturingAgent.last_init = None
@@ -268,7 +268,7 @@ class TestReasoningCommand:
             },
         )
         fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
+        fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
         _CapturingAgent.last_init = None
@@ -327,7 +327,7 @@ class TestReasoningCommand:
             },
         )
         fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
+        fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
         _CapturingAgent.last_init = None
@@ -379,7 +379,7 @@ class TestReasoningCommand:
             },
         )
         fake_run_agent = types.ModuleType("run_agent")
-        fake_run_agent.AIAgent = _CapturingAgent
+        fake_run_agent.AIAgent = _CapturingAgent  # ty: ignore[unresolved-attribute]
         monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
 
         _CapturingAgent.last_init = None

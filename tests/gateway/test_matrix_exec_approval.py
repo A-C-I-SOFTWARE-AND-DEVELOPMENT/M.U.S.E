@@ -14,8 +14,8 @@ class TestMatrixExecApprovalReactions:
 
         adapter = MatrixAdapter(PlatformConfig(enabled=True, token="tok", extra={"homeserver": "https://matrix.example.org"}))
         adapter._client = types.SimpleNamespace()
-        adapter.send = AsyncMock(return_value=types.SimpleNamespace(success=True, message_id="$evt1"))
-        adapter._send_reaction = AsyncMock(return_value="$r")
+        adapter.send = AsyncMock(return_value=types.SimpleNamespace(success=True, message_id="$evt1"))  # ty: ignore[invalid-assignment]
+        adapter._send_reaction = AsyncMock(return_value="$r")  # ty: ignore[invalid-assignment]
 
         result = await adapter.send_exec_approval(
             chat_id="!room:example.org",
@@ -27,8 +27,8 @@ class TestMatrixExecApprovalReactions:
         assert result.success is True
         assert adapter._approval_prompt_by_session["sess-1"] == "$evt1"
         assert adapter._approval_prompts_by_event["$evt1"].session_key == "sess-1"
-        assert adapter._send_reaction.await_count == 2
-        emojis = [call.args[2] for call in adapter._send_reaction.await_args_list]
+        assert adapter._send_reaction.await_count == 2  # ty: ignore[unresolved-attribute]
+        emojis = [call.args[2] for call in adapter._send_reaction.await_args_list]  # ty: ignore[unresolved-attribute]
         assert emojis == ["✅", "❎"]
 
     @pytest.mark.asyncio

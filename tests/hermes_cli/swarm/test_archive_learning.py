@@ -60,7 +60,8 @@ def test_best_for_picks_highest_score(tmp_path: Path):
     arc.add(GrainVariant(variant_id="a", grain_kind="api", benchmark_score=0.6, benchmark_ran=True))
     arc.add(GrainVariant(variant_id="b", grain_kind="api", benchmark_score=0.8, benchmark_ran=True))
     arc.add(GrainVariant(variant_id="c", grain_kind="web", benchmark_score=0.95, benchmark_ran=True))
-    assert arc.best_for("api").variant_id == "b"
+    assert arc is not None
+    assert arc.best_for("api").variant_id == "b"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 # ── learning + apply hook ────────────────────────────────────────────────────

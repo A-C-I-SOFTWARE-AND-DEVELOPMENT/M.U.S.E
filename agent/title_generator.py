@@ -31,7 +31,7 @@ def generate_title(
     assistant_response: str,
     timeout: float = 30.0,
     failure_callback: Optional[FailureCallback] = None,
-    main_runtime: dict = None,
+    main_runtime: Optional[dict] = None,
 ) -> Optional[str]:
     """Generate a session title from the first exchange.
 
@@ -90,7 +90,7 @@ def auto_title_session(
     user_message: str,
     assistant_response: str,
     failure_callback: Optional[FailureCallback] = None,
-    main_runtime: dict = None,
+    main_runtime: Optional[dict] = None,
     title_callback: Optional[TitleCallback] = None,
 ) -> None:
     """Generate and set a session title if one doesn't already exist.
@@ -137,7 +137,7 @@ def maybe_auto_title(
     assistant_response: str,
     conversation_history: list,
     failure_callback: Optional[FailureCallback] = None,
-    main_runtime: dict = None,
+    main_runtime: Optional[dict] = None,
     title_callback: Optional[TitleCallback] = None,
 ) -> None:
     """Fire-and-forget title generation after the first exchange.

@@ -337,8 +337,8 @@ def test_login_openai_codex_force_new_login_skips_existing_reuse_prompt(monkeypa
 
     def _fake_save(tokens, last_refresh=None):
         called["device_login"] += 1
-        called["tokens"] = dict(tokens)
-        called["last_refresh"] = last_refresh
+        called["tokens"] = dict(tokens)  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        called["last_refresh"] = last_refresh  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
 
     monkeypatch.setattr("hermes_cli.auth._save_codex_tokens", _fake_save)
     monkeypatch.setattr("hermes_cli.auth._update_config_for_provider", lambda *args, **kwargs: "/tmp/config.yaml")

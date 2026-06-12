@@ -677,7 +677,7 @@ class TestCosignVerification:
 
         def _dl_side_effect(url, dest, timeout=10):
             if url.endswith(".sig") or url.endswith(".pem"):
-                raise urllib.request.URLError("404 Not Found")
+                raise urllib.request.URLError("404 Not Found")  # ty: ignore[unresolved-attribute]
 
         mock_dl.side_effect = _dl_side_effect
         mock_tar = MagicMock()
@@ -1337,7 +1337,7 @@ class TestIsAppTldFinding:
         assert not self.fn({"rule_id": "lookalike_tld", "severity": "low"})
 
     def test_non_dict_input(self):
-        assert not self.fn("not a dict")  # type: ignore[arg-type]
+        assert not self.fn("not a dict")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
 
     def test_case_insensitive_match(self):
         assert self.fn({"rule_id": "lookalike_tld", "value": ".APP"})

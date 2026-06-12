@@ -60,6 +60,7 @@ class TestValidateContentSize:
 
     def test_custom_label(self):
         err = _validate_content_size("a" * (MAX_SKILL_CONTENT_CHARS + 1), label="references/api.md")
+        assert err is not None
         assert "references/api.md" in err
 
 

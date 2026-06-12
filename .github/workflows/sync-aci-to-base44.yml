@@ -71,6 +71,10 @@ jobs:
               "$SOURCE/$APP_FOLDER/" "$TARGET/"
           fi
 
+          # The heredoc body is indented to the YAML block-scalar base indent
+          # (YAML strips it, so the shell still sees every line at column 0).
+          # Unindented heredoc content terminates the `run: |` block and makes
+          # the whole workflow file unparseable.
           cat > BASE44_ACI_SOURCE_OF_TRUTH.md <<'EOF'
           # Base44 Hermes Connect Source of Truth
 

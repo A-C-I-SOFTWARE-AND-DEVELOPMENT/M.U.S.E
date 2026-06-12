@@ -15,15 +15,15 @@ import asyncio
 import json
 import logging
 import signal
-from typing import Optional
+from typing import Mapping, Optional
 
 try:
     import aiohttp
     from aiohttp import web
     AIOHTTP_AVAILABLE = True
 except ImportError:
-    aiohttp = None  # type: ignore[assignment]
-    web = None  # type: ignore[assignment]
+    aiohttp = None  # ty: ignore[invalid-assignment]
+    web = None  # ty: ignore[invalid-assignment]
     AIOHTTP_AVAILABLE = False
 
 from hermes_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
@@ -59,7 +59,7 @@ def _json_error(status: int, message: str, code: str = "proxy_error") -> "web.Re
     return web.json_response(body, status=status)
 
 
-def _filter_request_headers(headers: "aiohttp.typedefs.LooseHeaders") -> dict:
+def _filter_request_headers(headers: "Mapping[str, str]") -> dict:
     """Strip hop-by-hop + auth headers from the inbound request."""
     out = {}
     for key, value in headers.items():

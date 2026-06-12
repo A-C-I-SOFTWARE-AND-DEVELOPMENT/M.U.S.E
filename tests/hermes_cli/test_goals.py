@@ -219,11 +219,15 @@ class TestGoalManager:
         mgr = GoalManager(session_id="test-sid-4")
         mgr.set("goal text")
         mgr.pause(reason="user-paused")
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.status == "paused"
         assert not mgr.is_active()
         assert mgr.has_goal()
 
         mgr.resume()
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.status == "active"
         assert mgr.is_active()
 
@@ -266,7 +270,11 @@ class TestGoalManager:
         assert decision["verdict"] == "done"
         assert decision["should_continue"] is False
         assert decision["continuation_prompt"] is None
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.status == "done"
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.turns_used == 1
 
     def test_evaluate_after_turn_continue_under_budget(self, hermes_home):
@@ -283,7 +291,11 @@ class TestGoalManager:
         assert decision["should_continue"] is True
         assert decision["continuation_prompt"] is not None
         assert "a long goal" in decision["continuation_prompt"]
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.status == "active"
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.turns_used == 1
 
     def test_evaluate_after_turn_budget_exhausted(self, hermes_home):
@@ -297,14 +309,24 @@ class TestGoalManager:
         with patch.object(goals, "judge_goal", return_value=("continue", "not yet", False)):
             d1 = mgr.evaluate_after_turn("step 1")
             assert d1["should_continue"] is True
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.turns_used == 1
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.status == "active"
 
             d2 = mgr.evaluate_after_turn("step 2")
             # turns_used is now 2 which equals max_turns → paused
             assert d2["should_continue"] is False
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.status == "paused"
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.turns_used == 2
+            assert mgr is not None
+            assert mgr.state is not None
             assert "budget" in (mgr.state.paused_reason or "").lower()
 
     def test_evaluate_after_turn_inactive(self, hermes_home):
@@ -439,15 +461,21 @@ class TestJudgeParseFailureAutoPause:
         ):
             d1 = mgr.evaluate_after_turn("step 1")
             assert d1["should_continue"] is True
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 1
 
             d2 = mgr.evaluate_after_turn("step 2")
             assert d2["should_continue"] is True
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 2
 
             d3 = mgr.evaluate_after_turn("step 3")
             assert d3["should_continue"] is False
             assert d3["status"] == "paused"
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 3
             # Message points at the config surface so the user can fix it.
             assert "auxiliary" in d3["message"]
@@ -468,6 +496,8 @@ class TestJudgeParseFailureAutoPause:
         ):
             mgr.evaluate_after_turn("step 1")
             mgr.evaluate_after_turn("step 2")
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 2
 
         # …then one clean reply resets the counter.
@@ -476,6 +506,8 @@ class TestJudgeParseFailureAutoPause:
         ):
             d = mgr.evaluate_after_turn("step 3")
             assert d["should_continue"] is True
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 0
 
     def test_parse_failure_counter_not_incremented_by_api_errors(self, hermes_home):
@@ -492,7 +524,11 @@ class TestJudgeParseFailureAutoPause:
             for _ in range(5):
                 d = mgr.evaluate_after_turn("still going")
                 assert d["should_continue"] is True
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.consecutive_parse_failures == 0
+            assert mgr is not None
+            assert mgr.state is not None
             assert mgr.state.status == "active"
 
     def test_consecutive_parse_failures_persists_across_goalmanager_reloads(
@@ -555,6 +591,8 @@ class TestGoalManagerSubgoals:
         mgr.set("main goal")
         text = mgr.add_subgoal("  use bullet points  ")
         assert text == "use bullet points"
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.subgoals == ["use bullet points"]
 
     def test_add_subgoal_requires_active_goal(self, hermes_home):
@@ -581,6 +619,8 @@ class TestGoalManagerSubgoals:
         mgr.add_subgoal("third")
         removed = mgr.remove_subgoal(2)
         assert removed == "second"
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.subgoals == ["first", "third"]
 
     def test_remove_subgoal_out_of_range(self, hermes_home):
@@ -602,6 +642,8 @@ class TestGoalManagerSubgoals:
         mgr.add_subgoal("b")
         prev = mgr.clear_subgoals()
         assert prev == 2
+        assert mgr is not None
+        assert mgr.state is not None
         assert mgr.state.subgoals == []
 
     def test_subgoals_persist_across_reloads(self, hermes_home):
@@ -613,6 +655,8 @@ class TestGoalManagerSubgoals:
         mgr.add_subgoal("second")
 
         mgr2 = GoalManager(session_id="sub-persist")
+        assert mgr2 is not None
+        assert mgr2.state is not None
         assert mgr2.state.subgoals == ["first", "second"]
 
 

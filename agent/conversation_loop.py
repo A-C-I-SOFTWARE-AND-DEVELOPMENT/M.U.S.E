@@ -25,7 +25,7 @@ import ssl
 import threading
 import time
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 from agent.anthropic_adapter import _is_oauth_token
 from agent.auxiliary_client import set_runtime_main
@@ -270,10 +270,10 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
 def run_conversation(
     agent,
     user_message: str,
-    system_message: str = None,
-    conversation_history: List[Dict[str, Any]] = None,
-    task_id: str = None,
-    stream_callback: Optional[callable] = None,
+    system_message: Optional[str] = None,
+    conversation_history: Optional[List[Dict[str, Any]]] = None,
+    task_id: Optional[str] = None,
+    stream_callback: Optional[Callable] = None,
     persist_user_message: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
@@ -629,7 +629,7 @@ def run_conversation(
     # entry (the model recovered).  At end-of-turn, any entries still
     # present are surfaced in an advisory footer so the model cannot
     # over-claim success while the file is actually unchanged on disk.
-    agent._turn_failed_file_mutations: Dict[str, Dict[str, Any]] = {}
+    agent._turn_failed_file_mutations = {}
     
     # Record the execution thread so interrupt()/clear_interrupt() can
     # scope the tool-level interrupt signal to THIS agent's thread only.
@@ -3146,7 +3146,8 @@ def run_conversation(
                     or interim_has_codex_reasoning
                     or interim_has_codex_message_items
                 ):
-                    last_msg = messages[-1] if messages else None
+                    _lm = messages[-1] if messages else None
+                    last_msg: Optional[Dict[str, Any]] = _lm if isinstance(_lm, dict) else None
                     # Duplicate detection: two consecutive incomplete assistant
                     # messages with identical content AND reasoning are collapsed.
                     # For provider-state-only changes (encrypted reasoning
@@ -3154,19 +3155,22 @@ def run_conversation(
                     # while visible content/reasoning are unchanged), compare
                     # those opaque payloads too so we don't silently drop the
                     # newer continuation state.
-                    last_codex_items = last_msg.get("codex_reasoning_items") if isinstance(last_msg, dict) else None
                     interim_codex_items = interim_msg.get("codex_reasoning_items")
-                    last_codex_message_items = last_msg.get("codex_message_items") if isinstance(last_msg, dict) else None
                     interim_codex_message_items = interim_msg.get("codex_message_items")
-                    duplicate_interim = (
-                        isinstance(last_msg, dict)
-                        and last_msg.get("role") == "assistant"
-                        and last_msg.get("finish_reason") == "incomplete"
-                        and (last_msg.get("content") or "") == (interim_msg.get("content") or "")
-                        and (last_msg.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
-                        and last_codex_items == interim_codex_items
-                        and last_codex_message_items == interim_codex_message_items
-                    )
+                    if last_msg is not None:
+                        _lm_dict: Dict[str, Any] = last_msg
+                        last_codex_items = _lm_dict.get("codex_reasoning_items")
+                        last_codex_message_items = _lm_dict.get("codex_message_items")
+                        duplicate_interim = (
+                            _lm_dict.get("role") == "assistant"
+                            and _lm_dict.get("finish_reason") == "incomplete"
+                            and (_lm_dict.get("content") or "") == (interim_msg.get("content") or "")
+                            and (_lm_dict.get("reasoning") or "") == (interim_msg.get("reasoning") or "")
+                            and last_codex_items == interim_codex_items
+                            and last_codex_message_items == interim_codex_message_items
+                        )
+                    else:
+                        duplicate_interim = False
                     if not duplicate_interim:
                         messages.append(interim_msg)
                         agent._emit_interim_assistant_message(interim_msg)
@@ -3426,7 +3430,7 @@ def run_conversation(
                 agent._execute_tool_calls(assistant_message, messages, effective_task_id, api_call_count)
 
                 if agent._tool_guardrail_halt_decision is not None:
-                    decision = agent._tool_guardrail_halt_decision
+                    decision = cast(Any, agent._tool_guardrail_halt_decision)
                     _turn_exit_reason = "guardrail_halt"
                     final_response = agent._toolguard_controlled_halt_response(decision)
                     agent._emit_status(
@@ -3977,7 +3981,8 @@ def run_conversation(
         1 for m in messages
         if isinstance(m, dict) and m.get("role") == "assistant" and m.get("tool_calls")
     )
-    _resp_len = len(final_response) if final_response else 0
+    _fr_diag = final_response
+    _resp_len = len(_fr_diag) if isinstance(_fr_diag, str) else 0
     _budget_used = agent.iteration_budget.used if agent.iteration_budget else 0
     _budget_max = agent.iteration_budget.max_total if agent.iteration_budget else 0
 
@@ -4022,8 +4027,12 @@ def run_conversation(
             _failed = getattr(agent, "_turn_failed_file_mutations", None) or {}
             if _failed and agent._file_mutation_verifier_enabled():
                 footer = agent._format_file_mutation_failure_footer(_failed)
-                if footer:
-                    final_response = final_response.rstrip() + "\n\n" + footer
+                # isinstance guard preserves the old behavior for a None
+                # response (the AttributeError was swallowed by the except
+                # below, skipping the footer) while letting ty narrow.
+                _fr_footer = final_response
+                if footer and isinstance(_fr_footer, str):
+                    final_response = _fr_footer.rstrip() + "\n\n" + footer
         except Exception as _ver_err:
             logger.debug("file-mutation verifier footer failed: %s", _ver_err)
 
@@ -4112,7 +4121,7 @@ def run_conversation(
         "cost_source": agent.session_cost_source,
     }
     if agent._tool_guardrail_halt_decision is not None:
-        result["guardrail"] = agent._tool_guardrail_halt_decision.to_metadata()
+        result["guardrail"] = cast(Any, agent._tool_guardrail_halt_decision).to_metadata()
     # If a /steer landed after the final assistant turn (no more tool
     # batches to drain into), hand it back to the caller so it can be
     # delivered as the next user turn instead of being silently lost.

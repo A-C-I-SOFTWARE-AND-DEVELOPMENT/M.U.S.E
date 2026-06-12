@@ -411,6 +411,7 @@ def test_x_search_honors_config_model_and_timeout(monkeypatch, tmp_path):
     captured = {}
 
     def _fake_post(url, headers=None, json=None, timeout=None):
+        assert json is not None
         captured["model"] = json["model"]
         captured["timeout"] = timeout
         return _FakeResponse({"output_text": "Custom model OK."})

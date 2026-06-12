@@ -27,8 +27,8 @@ def test_evolve_discovers_lower_opcount(tmp_path) -> None:
         DEMO_EVOLVE_TASK, DEMO_BASELINE_CODE, demo_variant_proposer, ledger=ledger
     )
     assert result.improved is True
-    assert result.best_opcount < result.baseline_opcount
-    assert result.reduction > 0
+    assert result.best_opcount < result.baseline_opcount  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+    assert result.reduction > 0  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
     assert "evolve_accept" in [r.kind for r in ledger.read_all()]
     assert ledger.verify_chain().ok is True
 
@@ -36,7 +36,7 @@ def test_evolve_discovers_lower_opcount(tmp_path) -> None:
 def test_evolve_is_monotone_never_worse() -> None:
     result = evolve(DEMO_EVOLVE_TASK, DEMO_BASELINE_CODE, demo_variant_proposer)
     # The evolved best can never be worse than the baseline.
-    assert result.best_opcount <= result.baseline_opcount
+    assert result.best_opcount <= result.baseline_opcount  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 def test_incorrect_baseline_yields_no_evolution() -> None:

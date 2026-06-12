@@ -72,7 +72,7 @@ except ImportError:
 try:
     from pydantic import AnyUrl
 except ImportError:
-    AnyUrl = None  # type: ignore[assignment, misc]
+    AnyUrl = None  # type: ignore[assignment, misc]  # ty: ignore[invalid-assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -377,8 +377,8 @@ def _make_callback_handler() -> tuple[type, dict]:
             self.end_headers()
             self.wfile.write(body.encode())
 
-        def log_message(self, fmt: str, *args: Any) -> None:
-            logger.debug("OAuth callback: %s", fmt % args)
+        def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 — matches BaseHTTPRequestHandler
+            logger.debug("OAuth callback: %s", format % args)
 
     return _Handler, result
 

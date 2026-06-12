@@ -107,10 +107,15 @@ def test_decompose_with_fanout_creates_children(kanban_home):
         root = kb.get_task(conn, tid)
         c0 = kb.get_task(conn, outcome.child_ids[0])
         c1 = kb.get_task(conn, outcome.child_ids[1])
+    assert root is not None
     assert root.status == "todo"
+    assert c0 is not None
     assert c0.status == "ready"
+    assert c1 is not None
     assert c1.status == "todo"
+    assert c0 is not None
     assert c0.assignee == "researcher"
+    assert c1 is not None
     assert c1.assignee == "engineer"
 
 
@@ -291,6 +296,7 @@ def test_decompose_unknown_assignee_falls_back_to_default(kanban_home):
     with kb.connect() as conn:
         child = kb.get_task(conn, outcome.child_ids[0])
     # 'made_up' wasn't in roster, so assignee rewritten to 'fallback'
+    assert child is not None
     assert child.assignee == "fallback"
 
 

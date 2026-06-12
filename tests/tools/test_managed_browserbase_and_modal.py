@@ -89,7 +89,7 @@ def _install_fake_tools_package():
     agent_package = types.ModuleType("agent")
     agent_package.__path__ = []  # type: ignore[attr-defined]
     sys.modules["agent"] = agent_package
-    sys.modules["agent.auxiliary_client"] = types.SimpleNamespace(
+    sys.modules["agent.auxiliary_client"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         call_llm=lambda *args, **kwargs: "",
     )
 
@@ -102,10 +102,10 @@ def _install_fake_tools_package():
     class _StubBrowserProvider:
         """Minimal BrowserProvider stub for ``from agent.browser_provider import BrowserProvider``."""
 
-    sys.modules["agent.browser_provider"] = types.SimpleNamespace(
+    sys.modules["agent.browser_provider"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         BrowserProvider=_StubBrowserProvider,
     )
-    sys.modules["agent.browser_registry"] = types.SimpleNamespace(
+    sys.modules["agent.browser_registry"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         get_provider=lambda name: None,
         list_providers=lambda: [],
         register_provider=lambda provider: None,
@@ -131,7 +131,7 @@ def _install_fake_tools_package():
         _vendor_pkg.__path__ = []  # type: ignore[attr-defined]
         sys.modules[f"plugins.browser.{_name}"] = _vendor_pkg
         _provider_stub_cls = type(_classname, (_StubBrowserProvider,), {})
-        sys.modules[f"plugins.browser.{_name}.provider"] = types.SimpleNamespace(
+        sys.modules[f"plugins.browser.{_name}.provider"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
             **{_classname: _provider_stub_cls},
         )
 
@@ -141,12 +141,12 @@ def _install_fake_tools_package():
     )
 
     interrupt_event = threading.Event()
-    sys.modules["tools.interrupt"] = types.SimpleNamespace(
+    sys.modules["tools.interrupt"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         set_interrupt=lambda value=True: interrupt_event.set() if value else interrupt_event.clear(),
         is_interrupted=lambda: interrupt_event.is_set(),
         _interrupt_event=interrupt_event,
     )
-    sys.modules["tools.approval"] = types.SimpleNamespace(
+    sys.modules["tools.approval"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         detect_dangerous_command=lambda *args, **kwargs: None,
         check_dangerous_command=lambda *args, **kwargs: {"approved": True},
         check_all_command_guards=lambda *args, **kwargs: {"approved": True},
@@ -160,7 +160,7 @@ def _install_fake_tools_package():
 
     from tools.registry import tool_error
 
-    sys.modules["tools.registry"] = types.SimpleNamespace(
+    sys.modules["tools.registry"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         registry=_Registry(), tool_error=tool_error,
     )
 
@@ -172,16 +172,16 @@ def _install_fake_tools_package():
         def cleanup(self):
             return None
 
-    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyEnvironment)
-    sys.modules["tools.environments.local"] = types.SimpleNamespace(LocalEnvironment=_DummyEnvironment)
-    sys.modules["tools.environments.singularity"] = types.SimpleNamespace(
+    sys.modules["tools.environments.base"] = types.SimpleNamespace(BaseEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.local"] = types.SimpleNamespace(LocalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.singularity"] = types.SimpleNamespace(  # ty: ignore[invalid-assignment]
         _get_scratch_dir=lambda: Path(tempfile.gettempdir()),
         SingularityEnvironment=_DummyEnvironment,
     )
-    sys.modules["tools.environments.ssh"] = types.SimpleNamespace(SSHEnvironment=_DummyEnvironment)
-    sys.modules["tools.environments.docker"] = types.SimpleNamespace(DockerEnvironment=_DummyEnvironment)
-    sys.modules["tools.environments.modal"] = types.SimpleNamespace(ModalEnvironment=_DummyEnvironment)
-    sys.modules["tools.environments.managed_modal"] = types.SimpleNamespace(ManagedModalEnvironment=_DummyEnvironment)
+    sys.modules["tools.environments.ssh"] = types.SimpleNamespace(SSHEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.docker"] = types.SimpleNamespace(DockerEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.modal"] = types.SimpleNamespace(ModalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
+    sys.modules["tools.environments.managed_modal"] = types.SimpleNamespace(ManagedModalEnvironment=_DummyEnvironment)  # ty: ignore[invalid-assignment]
 
 
 def test_browser_use_explicit_local_mode_stays_local_even_when_managed_gateway_is_ready(tmp_path):

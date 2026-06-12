@@ -204,7 +204,7 @@ try:
     try:
         from mcp.client.sse import sse_client
     except ImportError:
-        sse_client = None
+        sse_client = None  # ty: ignore[invalid-assignment]  # optional-transport fallback; callers check for None
         logger.debug("mcp.client.sse.sse_client not available -- SSE transport disabled")
     # Sampling types -- separated so older SDK versions don't break MCP support
     try:
@@ -1030,7 +1030,7 @@ class MCPServerTask:
 
     def __init__(self, name: str):
         self.name = name
-        self.session: Optional[Any] = None
+        self.session: Any = None  # Optional: None until the server is connected
         self.tool_timeout: float = _DEFAULT_TOOL_TIMEOUT
         self._task: Optional[asyncio.Task] = None
         self._ready = asyncio.Event()
@@ -3431,9 +3431,9 @@ def probe_mcp_server_tools() -> Dict[str, List[tuple]]:
             if isinstance(outcome, Exception):
                 logger.debug("Probe: failed to connect to '%s': %s", name, outcome)
                 continue
-            probed_servers.append(outcome)
+            probed_servers.append(outcome)  # ty: ignore[invalid-argument-type]  # gather(return_exceptions=True) typing includes BaseException; Exception outcomes were filtered above
             tools = []
-            for t in outcome._tools:
+            for t in outcome._tools:  # ty: ignore[unresolved-attribute]  # see above: outcome is an MCPServerTask here
                 desc = getattr(t, "description", "") or ""
                 tools.append((t.name, desc))
             result[name] = tools

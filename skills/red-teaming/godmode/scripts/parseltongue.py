@@ -17,6 +17,7 @@ Usage:
 
 import re
 import base64
+from typing import Any
 
 # ═══════════════════════════════════════════════════════════════════
 # Trigger words that commonly trip safety classifiers
@@ -342,7 +343,7 @@ def _apply_triplelayer(word):
 # Technique registry (ordered by tier)
 # ═══════════════════════════════════════════════════════════════════
 
-TECHNIQUES = [
+TECHNIQUES: list[dict[str, Any]] = [
     # TIER 1: CORE OBFUSCATION (1-11)
     {'name': 'raw',          'label': 'Raw',         'tier': 1, 'fn': _apply_raw},
     {'name': 'leetspeak',    'label': 'L33t',        'tier': 1, 'fn': _apply_leetspeak},
@@ -421,7 +422,7 @@ def to_morse(text):
     }
     return ' '.join(morse.get(c.lower(), c) for c in text)
 
-ENCODING_ESCALATION = [
+ENCODING_ESCALATION: list[dict[str, Any]] = [
     {'name': 'plain',     'label': 'PLAIN',   'fn': lambda q: q},
     {'name': 'leetspeak', 'label': 'L33T',    'fn': to_leetspeak},
     {'name': 'bubble',    'label': 'BUBBLE',  'fn': to_bubble},
@@ -446,7 +447,7 @@ def detect_triggers(text, custom_triggers=None):
     return list(set(found))
 
 
-def obfuscate_query(query, technique_name, triggers=None):
+def obfuscate_query(query, technique_name, triggers: list[str] | None = None):
     """Apply one obfuscation technique to trigger words in a query.
     
     Args:

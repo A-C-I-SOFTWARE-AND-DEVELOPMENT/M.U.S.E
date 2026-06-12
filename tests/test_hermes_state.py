@@ -1538,6 +1538,7 @@ class TestSchemaInit:
         conn.close()
 
         db = SessionDB(db_path=old_db)
+        assert db._conn is not None
         cursor = db._conn.execute("PRAGMA table_info(sessions)")
         columns = {row[1] for row in cursor.fetchall()}
         assert {"chat_id", "chat_type", "thread_id", "session_key"}.isdisjoint(columns)
@@ -1607,6 +1608,7 @@ class TestSchemaInit:
         db = SessionDB(db_path=old_db)
         db.apply_telegram_topic_migration()
 
+        assert db._conn is not None
         tables = {
             row[0]
             for row in db._conn.execute(
@@ -1760,6 +1762,7 @@ class TestSchemaInit:
         migrated_db = SessionDB(db_path=db_path)
 
         # Verify migration
+        assert migrated_db._conn is not None
         cursor = migrated_db._conn.execute("SELECT version FROM schema_version")
         assert cursor.fetchone()[0] == 11
 
@@ -1769,6 +1772,7 @@ class TestSchemaInit:
         assert session["title"] is None
 
         # Verify api_call_count column was added with default 0
+        assert migrated_db._conn is not None
         cursor = migrated_db._conn.execute(
             "SELECT api_call_count FROM sessions WHERE id = 'existing'"
         )
@@ -1777,6 +1781,7 @@ class TestSchemaInit:
         # Verify we can set title on migrated session
         assert migrated_db.set_session_title("existing", "Migrated Title") is True
         session = migrated_db.get_session("existing")
+        assert session is not None
         assert session["title"] == "Migrated Title"
 
         migrated_db.close()
@@ -1864,6 +1869,7 @@ class TestSchemaInit:
         # Open with SessionDB — reconciliation should add the missing column
         migrated_db = SessionDB(db_path=db_path)
 
+        assert migrated_db._conn is not None
         msg_cols = {
             r[1]
             for r in migrated_db._conn.execute("PRAGMA table_info(messages)").fetchall()
@@ -1871,6 +1877,7 @@ class TestSchemaInit:
         assert "reasoning_content" in msg_cols
 
         # The query that used to crash must now work
+        assert migrated_db._conn is not None
         cursor = migrated_db._conn.execute(
             "SELECT role, content, reasoning, reasoning_content, "
             "reasoning_details, codex_reasoning_items "
@@ -1888,10 +1895,12 @@ class TestSchemaInit:
         """Opening the same database twice doesn't error or duplicate columns."""
         db_path = tmp_path / "idempotent.db"
         db1 = SessionDB(db_path=db_path)
+        assert db1._conn is not None
         cols1 = {r[1] for r in db1._conn.execute("PRAGMA table_info(messages)").fetchall()}
         db1.close()
 
         db2 = SessionDB(db_path=db_path)
+        assert db2._conn is not None
         cols2 = {r[1] for r in db2._conn.execute("PRAGMA table_info(messages)").fetchall()}
         db2.close()
 
@@ -2952,6 +2961,7 @@ class TestFTS5ToolCallMigration:
             assert len(session_db.search_messages("LEGACYARG")) == 1, \
                 "v11 migration must backfill tool_calls JSON into FTS"
             # schema_version bumped
+            assert session_db._conn is not None
             row = session_db._conn.execute(
                 "SELECT version FROM schema_version LIMIT 1"
             ).fetchone()

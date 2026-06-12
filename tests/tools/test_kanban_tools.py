@@ -304,6 +304,7 @@ def test_complete_happy_path(worker_env):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
         assert run.outcome == "completed"
         assert run.summary == "got the thing done"
         assert run.metadata == {"files": 2}
@@ -354,6 +355,7 @@ def test_complete_stamps_worker_session_id_from_env(monkeypatch, worker_env):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
         assert run.metadata == {
             "files": 2,
             "worker_session_id": "session-trusted",
@@ -381,6 +383,7 @@ def test_complete_does_not_stamp_worker_session_id_without_scoped_task(
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
         assert run.metadata == {
             "files": 2,
             "worker_session_id": "user-provided",
@@ -423,6 +426,8 @@ def test_complete_with_artifacts_lands_in_event_payload(worker_env):
         ]
         # And the artifacts also live on metadata for downstream workers
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
+        assert run.metadata is not None
         assert run.metadata.get("artifacts") == [
             "/tmp/q3-revenue.png",
             "/tmp/q3-report.pdf",
@@ -445,6 +450,8 @@ def test_complete_artifacts_accepts_single_string(worker_env):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
+        assert run.metadata is not None
         assert run.metadata.get("artifacts") == ["/tmp/chart.png"]
     finally:
         conn.close()
@@ -466,6 +473,8 @@ def test_complete_artifacts_merges_with_explicit_metadata_field(worker_env):
     conn = kb.connect()
     try:
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
+        assert run.metadata is not None
         # Order: existing entries first, then new ones, deduplicated.
         assert run.metadata.get("artifacts") == ["/tmp/a.png", "/tmp/b.pdf"]
         assert run.metadata.get("other") == "fact"
@@ -526,7 +535,9 @@ def test_complete_phantom_card_message_advertises_retry(worker_env):
     # rejection did not mutate state, so the worker's retry can land.
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, worker_env).status == "running"
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "running"
     finally:
         conn.close()
 
@@ -554,7 +565,9 @@ def test_complete_retry_with_empty_created_cards_succeeds(worker_env):
 
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, worker_env).status == "done"
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "done"
     finally:
         conn.close()
 
@@ -591,7 +604,9 @@ def test_complete_retry_with_corrected_created_cards_succeeds(worker_env):
 
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, worker_env).status == "done"
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "done"
     finally:
         conn.close()
 
@@ -604,7 +619,9 @@ def test_block_happy_path(worker_env):
     from hermes_cli import kanban_db as kb
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, worker_env).status == "blocked"
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "blocked"
     finally:
         conn.close()
 
@@ -743,7 +760,9 @@ def test_comment_schema_omits_author_override():
     handler is hardened against.
     """
     from tools.kanban_tools import KANBAN_COMMENT_SCHEMA
-    props = KANBAN_COMMENT_SCHEMA["parameters"]["properties"]
+    params = KANBAN_COMMENT_SCHEMA["parameters"]
+    assert isinstance(params, dict)
+    props = params["properties"]
     assert "author" not in props
 
 
@@ -762,6 +781,7 @@ def test_create_happy_path(worker_env):
     conn = kb.connect()
     try:
         child = kb.get_task(conn, d["task_id"])
+        assert child is not None
         assert child.title == "child task"
         assert child.assignee == "peer"
     finally:
@@ -786,6 +806,7 @@ def test_create_stamps_session_id_from_env(monkeypatch, worker_env):
     conn = kb.connect()
     try:
         new_task = kb.get_task(conn, d["task_id"])
+        assert new_task is not None
         assert new_task.session_id == "acp-sess-abc"
     finally:
         conn.close()
@@ -810,6 +831,7 @@ def test_create_session_id_arg_overrides_env(monkeypatch, worker_env):
     conn = kb.connect()
     try:
         new_task = kb.get_task(conn, d["task_id"])
+        assert new_task is not None
         assert new_task.session_id == "explicit-arg"
     finally:
         conn.close()
@@ -832,6 +854,7 @@ def test_create_session_id_absent_when_env_unset(monkeypatch, worker_env):
     conn = kb.connect()
     try:
         new_task = kb.get_task(conn, d["task_id"])
+        assert new_task is not None
         assert new_task.session_id is None
     finally:
         conn.close()
@@ -867,6 +890,7 @@ def test_create_parses_triage_string_false(worker_env):
     conn = kb.connect()
     try:
         task = kb.get_task(conn, d["task_id"])
+        assert task is not None
         assert task.status == "ready"
     finally:
         conn.close()
@@ -885,6 +909,7 @@ def test_create_parses_triage_string_true(worker_env):
     conn = kb.connect()
     try:
         task = kb.get_task(conn, d["task_id"])
+        assert task is not None
         assert task.status == "triage"
     finally:
         conn.close()
@@ -922,6 +947,7 @@ def test_create_accepts_skills_list(worker_env):
     assert d["ok"] is True
     with kb.connect() as conn:
         task = kb.get_task(conn, d["task_id"])
+    assert task is not None
     assert task.skills == ["translation", "github-code-review"]
 
 
@@ -938,6 +964,7 @@ def test_create_accepts_skills_string(worker_env):
     assert d["ok"] is True
     with kb.connect() as conn:
         task = kb.get_task(conn, d["task_id"])
+    assert task is not None
     assert task.skills == ["translation"]
 
 
@@ -1008,7 +1035,9 @@ def test_unblock_happy_path(monkeypatch, worker_env):
 
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, tid).status == "ready"
+        task = kb.get_task(conn, tid)
+        assert task is not None
+        assert task.status == "ready"
     finally:
         conn.close()
 
@@ -1059,14 +1088,17 @@ def test_worker_lifecycle_through_tools(worker_env):
     conn = kb.connect()
     try:
         parent = kb.get_task(conn, worker_env)
+        assert parent is not None
         assert parent.status == "done"
         assert parent.current_run_id is None
         run = kb.latest_run(conn, worker_env)
+        assert run is not None
         assert run.outcome == "completed"
         assert run.metadata == {"child_task": child_out["task_id"]}
         # Child is todo (parent just finished, but recompute_ready may
         # have promoted it — complete_task runs recompute internally).
         child = kb.get_task(conn, child_out["task_id"])
+        assert child is not None
         assert child.status == "ready", (
             f"child should be ready after parent done, got {child.status}"
         )
@@ -1189,7 +1221,9 @@ def test_worker_complete_rejects_foreign_task_id(worker_env):
     # Sibling task must be untouched.
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, other).status == "ready"
+        task = kb.get_task(conn, other)
+        assert task is not None
+        assert task.status == "ready"
     finally:
         conn.close()
 
@@ -1212,7 +1246,9 @@ def test_worker_block_rejects_foreign_task_id(worker_env):
 
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, other).status == "ready"
+        task = kb.get_task(conn, other)
+        assert task is not None
+        assert task.status == "ready"
     finally:
         conn.close()
 
@@ -1297,7 +1333,9 @@ def test_worker_unblock_rejects_foreign_task_id(worker_env):
 
     conn = kb.connect()
     try:
-        assert kb.get_task(conn, other).status == "blocked"
+        task = kb.get_task(conn, other)
+        assert task is not None
+        assert task.status == "blocked"
     finally:
         conn.close()
 
@@ -1319,12 +1357,14 @@ def test_worker_complete_rejects_stale_run_id(worker_env, monkeypatch):
     conn = kb.connect()
     try:
         run1 = kb.latest_run(conn, worker_env)
+        assert run1 is not None
         kb._set_worker_pid(conn, worker_env, 98765)
         monkeypatch.setattr(_kb, "_pid_alive", lambda pid: False)
         assert kb.detect_crashed_workers(conn) == [worker_env]
 
         kb.claim_task(conn, worker_env)
         run2 = kb.latest_run(conn, worker_env)
+        assert run2 is not None
         assert run2.id != run1.id
     finally:
         conn.close()
@@ -1338,6 +1378,7 @@ def test_worker_complete_rejects_stale_run_id(worker_env, monkeypatch):
     conn = kb.connect()
     try:
         task = kb.get_task(conn, worker_env)
+        assert task is not None
         assert task.status == "running"
         assert task.current_run_id == run2.id
     finally:
@@ -1452,7 +1493,9 @@ def test_board_param_routes_create_to_alt_board(multi_board_env):
 
     # Lands on alt board.
     with kb.connect(board="alt") as conn:
-        assert kb.get_task(conn, new_tid).title == "alt-only"
+        task = kb.get_task(conn, new_tid)
+        assert task is not None
+        assert task.title == "alt-only"
     # Does NOT land on default board.
     with kb.connect() as conn:
         assert kb.get_task(conn, new_tid) is None
@@ -1558,11 +1601,15 @@ def test_board_param_routes_complete_to_alt_board(multi_board_env):
     assert d["ok"] is True
 
     with kb.connect(board="alt") as conn:
-        assert kb.get_task(conn, alt_seed).status == "done"
+        task = kb.get_task(conn, alt_seed)
+        assert task is not None
+        assert task.status == "done"
     # Default seed is unchanged.
     with kb.connect() as conn:
         default_seed = multi_board_env["default_seed"]
-        assert kb.get_task(conn, default_seed).status == "ready"
+        task = kb.get_task(conn, default_seed)
+        assert task is not None
+        assert task.status == "ready"
 
 
 def test_board_param_routes_block_to_alt_board(multi_board_env):
@@ -1583,7 +1630,9 @@ def test_board_param_routes_block_to_alt_board(multi_board_env):
     assert d["ok"] is True
 
     with kb.connect(board="alt") as conn:
-        assert kb.get_task(conn, alt_seed).status == "blocked"
+        task = kb.get_task(conn, alt_seed)
+        assert task is not None
+        assert task.status == "blocked"
 
 
 def test_board_param_routes_unblock_to_alt_board(multi_board_env):
@@ -1594,7 +1643,9 @@ def test_board_param_routes_unblock_to_alt_board(multi_board_env):
     alt_seed = multi_board_env["alt_seed"]
     with kb.connect(board="alt") as conn:
         kb.block_task(conn, alt_seed, reason="waiting")
-        assert kb.get_task(conn, alt_seed).status == "blocked"
+        task = kb.get_task(conn, alt_seed)
+        assert task is not None
+        assert task.status == "blocked"
 
     out = kt._handle_unblock({"task_id": alt_seed, "board": "alt"})
     d = json.loads(out)
@@ -1602,7 +1653,9 @@ def test_board_param_routes_unblock_to_alt_board(multi_board_env):
     assert d["status"] == "ready"
 
     with kb.connect(board="alt") as conn:
-        assert kb.get_task(conn, alt_seed).status == "ready"
+        task = kb.get_task(conn, alt_seed)
+        assert task is not None
+        assert task.status == "ready"
 
 
 def test_board_param_routes_heartbeat_to_alt_board(monkeypatch, tmp_path):
@@ -1707,12 +1760,17 @@ def test_board_param_in_all_schemas():
         kt.KANBAN_LINK_SCHEMA,
     ]
     for schema in schemas:
-        props = schema["parameters"]["properties"]
+        params = schema["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "board" in props, (
             f"{schema['name']} is missing the 'board' property"
         )
-        assert props["board"]["type"] == "string"
+        board_prop = props["board"]
+        assert isinstance(board_prop, dict)
+        assert board_prop["type"] == "string"
         # board is optional everywhere — never in required.
-        assert "board" not in schema["parameters"].get("required", []), (
+        assert "board" not in params.get("required", []), (
             f"{schema['name']} marks board as required; must be optional"
         )

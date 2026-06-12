@@ -49,7 +49,7 @@ def profile_env(tmp_path, monkeypatch):
     return tmp_path
 
 
-def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:
+def _make_staging_dir(root: Path, name: str = "src", *, manifest: DistributionManifest = None) -> Path:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
     """Build a local distribution staging directory (what a git clone would
     contain after .git is removed).
 
@@ -84,9 +84,13 @@ class TestManifestParsing:
     def test_minimal_manifest(self, tmp_path):
         (tmp_path / MANIFEST_FILENAME).write_text("name: minimal\n")
         m = read_manifest(tmp_path)
+        assert m is not None
         assert m.name == "minimal"
+        assert m is not None
         assert m.version == "0.1.0"
+        assert m is not None
         assert m.env_requires == []
+        assert m is not None
         assert m.distribution_owned == []
 
     def test_full_manifest(self, tmp_path):
@@ -108,15 +112,25 @@ class TestManifestParsing:
             "  - skills/\n"
         )
         m = read_manifest(tmp_path)
+        assert m is not None
         assert m.name == "telem"
+        assert m is not None
         assert m.version == "1.2.3"
+        assert m is not None
         assert m.author == "Kyle"
+        assert m is not None
         assert m.license == "MIT"
+        assert m is not None
         assert len(m.env_requires) == 2
+        assert m is not None
         assert m.env_requires[0].name == "OPENAI_API_KEY"
+        assert m is not None
         assert m.env_requires[0].required is True
+        assert m is not None
         assert m.env_requires[1].required is False
+        assert m is not None
         assert m.env_requires[1].default == "http://127.0.0.1:8000"
+        assert m is not None
         assert m.distribution_owned == ["SOUL.md", "skills"]
 
     def test_missing_name_rejected(self, tmp_path):
@@ -151,7 +165,9 @@ class TestManifestParsing:
         )
         write_manifest(tmp_path, original)
         parsed = read_manifest(tmp_path)
+        assert parsed is not None
         assert parsed.name == "rt"
+        assert parsed is not None
         assert parsed.env_requires[0].name == "FOO"
 
 
@@ -277,7 +293,9 @@ class TestInstall:
         assert (plan.target_dir / "mcp.json").exists()
         # Manifest on disk records canonical name + provenance
         m = read_manifest(plan.target_dir)
+        assert m is not None
         assert m.name == "installed"
+        assert m is not None
         assert m.source == str(staged)
 
     def test_install_uses_manifest_name_when_no_override(self, profile_env):
@@ -485,17 +503,21 @@ class TestInstalledAtStamp:
         staged = _make_staging_dir(profile_env, "src")
         plan = install_distribution(str(staged), name="stamped")
         mf = read_manifest(plan.target_dir)
+        assert mf is not None
         assert mf.installed_at, "installed_at should be set after install"
         # ISO-8601 UTC sanity: starts with 4-digit year, contains 'T', ends with '+00:00'.
+        assert mf is not None
         assert mf.installed_at[:4].isdigit()
+        assert mf is not None
         assert "T" in mf.installed_at
+        assert mf is not None
         assert mf.installed_at.endswith("+00:00")
 
     def test_update_refreshes_installed_at(self, profile_env, monkeypatch):
         staged = _make_staging_dir(profile_env, "src")
         install_distribution(str(staged), name="demo")
         from hermes_cli.profiles import get_profile_dir
-        first = read_manifest(get_profile_dir("demo")).installed_at
+        first = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         # Freeze `datetime.now()` to a fixed future time so we can observe that
         # update writes a NEW stamp (installs within the same second otherwise
@@ -511,7 +533,7 @@ class TestInstalledAtStamp:
 
         from hermes_cli.profile_distribution import update_distribution
         update_distribution("demo")
-        refreshed = read_manifest(get_profile_dir("demo")).installed_at
+        refreshed = read_manifest(get_profile_dir("demo")).installed_at  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         assert refreshed != first, "installed_at should change on update"
         assert refreshed.startswith("2099-01-01"), refreshed
 

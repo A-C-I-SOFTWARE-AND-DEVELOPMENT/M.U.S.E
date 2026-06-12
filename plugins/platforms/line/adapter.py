@@ -969,7 +969,7 @@ class LineAdapter(BasePlatformAdapter):
 
         event_obj = MessageEvent(
             text=text,
-            message_type=MessageType.TEXT if msg_type == "text" else MessageType.IMAGE,
+            message_type=MessageType.TEXT if msg_type == "text" else MessageType.IMAGE,  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
             source=source_obj,
             raw_message=event,
             message_id=message_id,
@@ -1192,7 +1192,7 @@ class LineAdapter(BasePlatformAdapter):
                 self.pending_text, self.button_label, rid
             )
             try:
-                await self._client.reply(token, [msg])
+                await self._client.reply(token, [msg])  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
                 logger.info("LINE: sent slow-LLM postback button for chat %s (rid=%s)", chat_id, rid)
             except Exception as exc:
                 logger.warning("LINE: postback button send failed: %s", exc)
@@ -1308,7 +1308,9 @@ class LineAdapter(BasePlatformAdapter):
         chat_id: str,
         image_path: str,
         caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         path = Path(image_path)
         if not path.exists() or not path.is_file():
@@ -1337,8 +1339,12 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         audio_path: str,
-        duration_ms: int = 1000,
+        caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        *,
+        duration_ms: int = 1000,
+        **kwargs,
     ) -> SendResult:
         path = Path(audio_path)
         if not path.exists() or not path.is_file():
@@ -1361,8 +1367,12 @@ class LineAdapter(BasePlatformAdapter):
         self,
         chat_id: str,
         video_path: str,
-        preview_path: Optional[str] = None,
+        caption: Optional[str] = None,
+        reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        *,
+        preview_path: Optional[str] = None,
+        **kwargs,
     ) -> SendResult:
         path = Path(video_path)
         if not path.exists() or not path.is_file():
@@ -1575,7 +1585,7 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from hermes_cli.config import get_env_var, set_env_var
+        from hermes_cli.config import get_env_var, set_env_var  # ty: ignore[unresolved-import]  # dynamic config/plugin path
     except ImportError:
         print("hermes_cli.config not available; set LINE_* vars manually in ~/.hermes/.env")
         return

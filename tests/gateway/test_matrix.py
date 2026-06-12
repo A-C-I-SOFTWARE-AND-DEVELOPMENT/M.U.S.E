@@ -35,8 +35,8 @@ def _make_fake_mautrix():
             self.session = MagicMock()
             self.session.close = AsyncMock()
 
-    mautrix_api.HTTPAPI = HTTPAPI
-    mautrix.api = mautrix_api
+    mautrix_api.HTTPAPI = HTTPAPI  # ty: ignore[unresolved-attribute]
+    mautrix.api = mautrix_api  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.types ---
     mautrix_types = types.ModuleType("mautrix.types")
@@ -80,17 +80,17 @@ def _make_fake_mautrix():
         BACKWARD = "b"
         FORWARD = "f"
 
-    mautrix_types.EventType = EventType
-    mautrix_types.UserID = UserID
-    mautrix_types.RoomID = RoomID
-    mautrix_types.EventID = EventID
-    mautrix_types.ContentURI = ContentURI
-    mautrix_types.SyncToken = SyncToken
-    mautrix_types.RoomCreatePreset = RoomCreatePreset
-    mautrix_types.PresenceState = PresenceState
-    mautrix_types.TrustState = TrustState
-    mautrix_types.PaginationDirection = PaginationDirection
-    mautrix.types = mautrix_types
+    mautrix_types.EventType = EventType  # ty: ignore[unresolved-attribute]
+    mautrix_types.UserID = UserID  # ty: ignore[unresolved-attribute]
+    mautrix_types.RoomID = RoomID  # ty: ignore[unresolved-attribute]
+    mautrix_types.EventID = EventID  # ty: ignore[unresolved-attribute]
+    mautrix_types.ContentURI = ContentURI  # ty: ignore[unresolved-attribute]
+    mautrix_types.SyncToken = SyncToken  # ty: ignore[unresolved-attribute]
+    mautrix_types.RoomCreatePreset = RoomCreatePreset  # ty: ignore[unresolved-attribute]
+    mautrix_types.PresenceState = PresenceState  # ty: ignore[unresolved-attribute]
+    mautrix_types.TrustState = TrustState  # ty: ignore[unresolved-attribute]
+    mautrix_types.PaginationDirection = PaginationDirection  # ty: ignore[unresolved-attribute]
+    mautrix.types = mautrix_types  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.client ---
     mautrix_client = types.ModuleType("mautrix.client")
@@ -115,9 +115,9 @@ def _make_fake_mautrix():
     class InternalEventType:
         INVITE = "internal.invite"
 
-    mautrix_client.Client = Client
-    mautrix_client.InternalEventType = InternalEventType
-    mautrix.client = mautrix_client
+    mautrix_client.Client = Client  # ty: ignore[unresolved-attribute]
+    mautrix_client.InternalEventType = InternalEventType  # ty: ignore[unresolved-attribute]
+    mautrix.client = mautrix_client  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.client.dispatcher ---
     mautrix_client_dispatcher = types.ModuleType("mautrix.client.dispatcher")
@@ -125,7 +125,7 @@ def _make_fake_mautrix():
     class MembershipEventDispatcher:
         pass
 
-    mautrix_client_dispatcher.MembershipEventDispatcher = MembershipEventDispatcher
+    mautrix_client_dispatcher.MembershipEventDispatcher = MembershipEventDispatcher  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.client.state_store ---
     mautrix_client_state_store = types.ModuleType("mautrix.client.state_store")
@@ -143,8 +143,8 @@ def _make_fake_mautrix():
     class MemorySyncStore:
         pass
 
-    mautrix_client_state_store.MemoryStateStore = MemoryStateStore
-    mautrix_client_state_store.MemorySyncStore = MemorySyncStore
+    mautrix_client_state_store.MemoryStateStore = MemoryStateStore  # ty: ignore[unresolved-attribute]
+    mautrix_client_state_store.MemorySyncStore = MemorySyncStore  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.crypto ---
     mautrix_crypto = types.ModuleType("mautrix.crypto")
@@ -163,7 +163,7 @@ def _make_fake_mautrix():
         async def decrypt_megolm_event(self, event):
             return event
 
-    mautrix_crypto.OlmMachine = OlmMachine
+    mautrix_crypto.OlmMachine = OlmMachine  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.crypto.store ---
     mautrix_crypto_store = types.ModuleType("mautrix.crypto.store")
@@ -173,7 +173,7 @@ def _make_fake_mautrix():
             self.account_id = account_id
             self.pickle_key = pickle_key
 
-    mautrix_crypto_store.MemoryCryptoStore = MemoryCryptoStore
+    mautrix_crypto_store.MemoryCryptoStore = MemoryCryptoStore  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.crypto.attachments ---
     mautrix_crypto_attachments = types.ModuleType("mautrix.crypto.attachments")
@@ -186,7 +186,7 @@ def _make_fake_mautrix():
         }
         return (b"ciphertext_" + data, encrypted_file)
 
-    mautrix_crypto_attachments.encrypt_attachment = encrypt_attachment
+    mautrix_crypto_attachments.encrypt_attachment = encrypt_attachment  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.crypto.store.asyncpg ---
     mautrix_crypto_store_asyncpg = types.ModuleType("mautrix.crypto.store.asyncpg")
@@ -206,7 +206,7 @@ def _make_fake_mautrix():
         async def put_device_id(self, device_id):
             self._device_id = device_id
 
-    mautrix_crypto_store_asyncpg.PgCryptoStore = PgCryptoStore
+    mautrix_crypto_store_asyncpg.PgCryptoStore = PgCryptoStore  # ty: ignore[unresolved-attribute]
 
     # --- mautrix.util ---
     mautrix_util = types.ModuleType("mautrix.util")
@@ -222,7 +222,7 @@ def _make_fake_mautrix():
             db.stop = AsyncMock()
             return db
 
-    mautrix_util_async_db.Database = Database
+    mautrix_util_async_db.Database = Database  # ty: ignore[unresolved-attribute]
 
     return {
         "mautrix": mautrix,
@@ -736,7 +736,7 @@ class TestMatrixRequirements:
         monkeypatch.delenv("MATRIX_ENCRYPTION", raising=False)
         from gateway.platforms.matrix import check_matrix_requirements
         try:
-            import mautrix  # noqa: F401
+            import mautrix  # noqa: F401  # ty: ignore[unresolved-import]
             assert check_matrix_requirements() is True
         except ImportError:
             with patch("tools.lazy_deps.ensure", side_effect=ImportError("mautrix unavailable")):
@@ -776,7 +776,7 @@ class TestMatrixRequirements:
         with patch.object(matrix_mod, "_check_e2ee_deps", return_value=False):
             # Still needs mautrix itself to be importable
             try:
-                import mautrix  # noqa: F401
+                import mautrix  # noqa: F401  # ty: ignore[unresolved-import]
                 assert matrix_mod.check_matrix_requirements() is True
             except ImportError:
                 with patch("tools.lazy_deps.ensure", side_effect=ImportError("mautrix unavailable")):
@@ -791,7 +791,7 @@ class TestMatrixRequirements:
         from gateway.platforms import matrix as matrix_mod
         with patch.object(matrix_mod, "_check_e2ee_deps", return_value=True):
             try:
-                import mautrix  # noqa: F401
+                import mautrix  # noqa: F401  # ty: ignore[unresolved-import]
                 assert matrix_mod.check_matrix_requirements() is True
             except ImportError:
                 with patch("tools.lazy_deps.ensure", side_effect=ImportError("mautrix unavailable")):
@@ -1265,7 +1265,7 @@ class TestMatrixUploadAndSend:
         )
 
         assert result.success is True
-        sent = mock_client.send_message_event.await_args.args[2]
+        sent = mock_client.send_message_event.await_args.args[2]  # ty: ignore[unresolved-attribute]
         assert sent["url"] == "mxc://example.org/plain"
         assert "file" not in sent
 
@@ -1289,9 +1289,9 @@ class TestMatrixUploadAndSend:
 
         assert result.success is True
         # Should have uploaded ciphertext, not plaintext
-        uploaded_data = mock_client.upload_media.await_args.args[0]
+        uploaded_data = mock_client.upload_media.await_args.args[0]  # ty: ignore[unresolved-attribute]
         assert uploaded_data != b"secret"
-        sent = mock_client.send_message_event.await_args.args[2]
+        sent = mock_client.send_message_event.await_args.args[2]  # ty: ignore[unresolved-attribute]
         assert "url" not in sent
         assert "file" in sent
         assert sent["file"]["url"] == "mxc://example.org/enc"
@@ -1709,7 +1709,10 @@ class TestMatrixReactions:
         mock_client.send_message_event.assert_called_once()
         call_args = mock_client.send_message_event.call_args
         content = call_args.args[2] if len(call_args.args) > 2 else call_args.kwargs.get("content")
+        assert content is not None
+        assert content["m.relates_to"] is not None
         assert content["m.relates_to"]["rel_type"] == "m.annotation"
+        assert content["m.relates_to"] is not None
         assert content["m.relates_to"]["key"] == "\U0001f44d"
 
     @pytest.mark.asyncio

@@ -248,7 +248,7 @@ def _build_apikey_providers_list() -> list:
     Base list augmented with any ProviderProfile with auth_type="api_key" not
     already present — adding plugins/model-providers/<name>/ is sufficient to get into doctor.
     """
-    _static = [
+    _static: list[tuple] = [
         ("Z.AI / GLM",      ("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"), "https://api.z.ai/api/paas/v4/models", "GLM_BASE_URL", True),
         ("Kimi / Moonshot",  ("KIMI_API_KEY",),                              "https://api.moonshot.ai/v1/models",   "KIMI_BASE_URL", True),
         ("StepFun Step Plan", ("STEPFUN_API_KEY",),                          "https://api.stepfun.ai/step_plan/v1/models", "STEPFUN_BASE_URL", True),
@@ -537,7 +537,7 @@ def run_doctor(args):
                 )
                 known_providers = set(PROVIDER_REGISTRY.keys()) | {"openrouter", "custom", "auto"}
             except Exception:
-                _resolve_auth_provider = None
+                _resolve_auth_provider = None  # ty: ignore[invalid-assignment]
                 pass
             try:
                 from hermes_cli.config import get_compatible_custom_providers as _compatible_custom_providers
@@ -546,9 +546,9 @@ def run_doctor(args):
                     resolve_provider_full as _resolve_provider_full,
                 )
             except Exception:
-                _compatible_custom_providers = None
-                _normalize_catalog_provider = None
-                _resolve_provider_full = None
+                _compatible_custom_providers = None  # ty: ignore[invalid-assignment]
+                _normalize_catalog_provider = None  # ty: ignore[invalid-assignment]
+                _resolve_provider_full = None  # ty: ignore[invalid-assignment]
 
             custom_providers = []
             if _compatible_custom_providers is not None:

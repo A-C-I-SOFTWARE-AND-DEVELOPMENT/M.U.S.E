@@ -32,7 +32,7 @@ import logging
 import os
 import re
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -228,7 +228,7 @@ _AWS_CREDENTIAL_ENV_VARS = [
 ]
 
 
-def resolve_aws_auth_env_var(env: Optional[Dict[str, str]] = None) -> Optional[str]:
+def resolve_aws_auth_env_var(env: Optional[Mapping[str, str]] = None) -> Optional[str]:
     """Return the name of the AWS auth source that is active, or None.
 
     Checks environment variables first, then falls back to boto3's credential
@@ -270,7 +270,7 @@ def resolve_aws_auth_env_var(env: Optional[Dict[str, str]] = None) -> Optional[s
     return None
 
 
-def has_aws_credentials(env: Optional[Dict[str, str]] = None) -> bool:
+def has_aws_credentials(env: Optional[Mapping[str, str]] = None) -> bool:
     """Return True if any AWS credential source is detected.
 
     Checks environment variables first (fast, no I/O), then falls back to
@@ -301,7 +301,7 @@ def has_aws_credentials(env: Optional[Dict[str, str]] = None) -> bool:
     return False
 
 
-def resolve_bedrock_region(env: Optional[Dict[str, str]] = None) -> str:
+def resolve_bedrock_region(env: Optional[Mapping[str, str]] = None) -> str:
     """Resolve the AWS region for Bedrock API calls.
 
     Priority:
@@ -889,12 +889,13 @@ def build_converse_kwargs(
     """
     system_prompt, converse_messages = convert_messages_to_converse(messages)
 
+    _inference_config: Dict[str, Any] = {
+        "maxTokens": max_tokens,
+    }
     kwargs: Dict[str, Any] = {
         "modelId": model,
         "messages": converse_messages,
-        "inferenceConfig": {
-            "maxTokens": max_tokens,
-        },
+        "inferenceConfig": _inference_config,
     }
 
     if system_prompt:

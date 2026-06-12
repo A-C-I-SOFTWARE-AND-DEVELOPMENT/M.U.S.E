@@ -370,9 +370,9 @@ def test_normalize_env_dict_coerces_scalars():
 
 def test_normalize_env_dict_rejects_non_dict():
     """_normalize_env_dict should return empty dict for non-dict input."""
-    assert docker_env._normalize_env_dict("not a dict") == {}
+    assert docker_env._normalize_env_dict("not a dict") == {}  # ty: ignore[invalid-argument-type]
     assert docker_env._normalize_env_dict(None) == {}
-    assert docker_env._normalize_env_dict([]) == {}
+    assert docker_env._normalize_env_dict([]) == {}  # ty: ignore[invalid-argument-type]
 
 
 def test_normalize_env_dict_rejects_complex_values():

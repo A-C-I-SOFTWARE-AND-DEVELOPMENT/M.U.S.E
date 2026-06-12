@@ -48,7 +48,7 @@ def _make_cli(env_overrides=None, config_overrides=None, **kwargs):
     with patch.dict(sys.modules, prompt_toolkit_stubs), \
          patch.dict("os.environ", clean_env, clear=False):
         import cli as _cli_mod
-        _cli_mod = importlib.reload(_cli_mod)
+        _cli_mod = importlib.reload(_cli_mod)  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         with patch.object(_cli_mod, "get_tool_definitions", return_value=[]), \
              patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}):
             return _cli_mod.HermesCLI(**kwargs)
@@ -188,7 +188,7 @@ class TestPromptToolkitTerminalCompatibility:
              _patch("builtins.open", side_effect=OSError("no /proc")):
             kb = KeyBindings()
             _bind_prompt_submit_keys(kb, submit_handler)
-            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}
+            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             assert bindings[("c-m",)] is submit_handler
             assert bindings[("c-j",)] is submit_handler
 
@@ -199,7 +199,7 @@ class TestPromptToolkitTerminalCompatibility:
              _patch("builtins.open", side_effect=OSError("no /proc")):
             kb = KeyBindings()
             _bind_prompt_submit_keys(kb, submit_handler)
-            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}
+            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             assert bindings[("c-m",)] is submit_handler
             assert ("c-j",) not in bindings
 
@@ -208,7 +208,7 @@ class TestPromptToolkitTerminalCompatibility:
         with _patch.object(_sys, "platform", "win32"):
             kb = KeyBindings()
             _bind_prompt_submit_keys(kb, submit_handler)
-            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}
+            bindings = {tuple(key.value for key in binding.keys): binding.handler for binding in kb.bindings}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
             assert bindings[("c-m",)] is submit_handler
             assert ("c-j",) not in bindings
 

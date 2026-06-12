@@ -17,7 +17,7 @@ pytestmark = pytest.mark.integration
 pytest.importorskip("nacl.secret", reason="PyNaCl required for voice integration tests")
 discord = pytest.importorskip("discord", reason="discord.py required for voice integration tests")
 
-import nacl.secret
+import nacl.secret  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
 
 try:
     if not discord.opus.is_loaded():
@@ -130,7 +130,7 @@ def _make_voice_receiver(secret_key, dave_session=None, bot_ssrc=9999,
     vc.user = SimpleNamespace(id=bot_ssrc)
     vc.channel = MagicMock()
     vc.channel.members = members or []
-    receiver = VoiceReceiver(vc, allowed_user_ids=allowed_user_ids)
+    receiver = VoiceReceiver(vc, allowed_user_ids=allowed_user_ids)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     receiver.start()
     return receiver
 

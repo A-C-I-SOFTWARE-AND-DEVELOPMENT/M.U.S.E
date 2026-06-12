@@ -204,9 +204,9 @@ def get_external_skills_dirs() -> List[Path]:
     # the full YAML parse, so the fast path is nearly free.
     try:
         stat = config_path.stat()
-        cache_key: Tuple[str, int] = (str(config_path), stat.st_mtime_ns)
+        cache_key: Optional[Tuple[str, int]] = (str(config_path), stat.st_mtime_ns)
     except OSError:
-        cache_key = None  # type: ignore[assignment]
+        cache_key = None
 
     if cache_key is not None:
         cached = _EXTERNAL_DIRS_CACHE.get(cache_key)
@@ -501,7 +501,8 @@ def parse_qualified_name(name: str) -> Tuple[Optional[str], str]:
     """
     if ":" not in name:
         return None, name
-    return tuple(name.split(":", 1))  # type: ignore[return-value]
+    namespace, bare_name = name.split(":", 1)
+    return namespace, bare_name
 
 
 def is_valid_namespace(candidate: Optional[str]) -> bool:

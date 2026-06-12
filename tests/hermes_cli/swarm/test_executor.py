@@ -86,4 +86,4 @@ def test_runner_crash_is_contained(tmp_path: Path):
     ex = AgentExecutor(agent_runner=Boom(), use_worktrees=False)
     results = ex.run(tmp_path, plan, specs)
     assert results[0].state == "failed"
-    assert "runner exception" in results[0].error
+    assert "runner exception" in results[0].error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture

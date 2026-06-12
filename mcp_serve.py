@@ -52,7 +52,7 @@ try:
 
     _MCP_SERVER_AVAILABLE = True
 except ImportError:
-    FastMCP = None  # type: ignore[assignment,misc]
+    FastMCP = None  # type: ignore[assignment,misc]  # ty: ignore[invalid-assignment]
 
 
 # ---------------------------------------------------------------------------

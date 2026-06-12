@@ -69,39 +69,39 @@ class _FakeInputMediaPhoto:
 
 
 _fake_telegram = types.ModuleType("telegram")
-_fake_telegram.Update = object
-_fake_telegram.Bot = object
-_fake_telegram.Message = object
-_fake_telegram.InlineKeyboardButton = _FakeInlineKeyboardButton
-_fake_telegram.InlineKeyboardMarkup = _FakeInlineKeyboardMarkup
-_fake_telegram.InputMediaPhoto = _FakeInputMediaPhoto
+_fake_telegram.Update = object  # ty: ignore[unresolved-attribute]
+_fake_telegram.Bot = object  # ty: ignore[unresolved-attribute]
+_fake_telegram.Message = object  # ty: ignore[unresolved-attribute]
+_fake_telegram.InlineKeyboardButton = _FakeInlineKeyboardButton  # ty: ignore[unresolved-attribute]
+_fake_telegram.InlineKeyboardMarkup = _FakeInlineKeyboardMarkup  # ty: ignore[unresolved-attribute]
+_fake_telegram.InputMediaPhoto = _FakeInputMediaPhoto  # ty: ignore[unresolved-attribute]
 _fake_telegram_error = types.ModuleType("telegram.error")
-_fake_telegram_error.NetworkError = FakeNetworkError
-_fake_telegram_error.BadRequest = FakeBadRequest
-_fake_telegram_error.TimedOut = FakeTimedOut
-_fake_telegram.error = _fake_telegram_error
+_fake_telegram_error.NetworkError = FakeNetworkError  # ty: ignore[unresolved-attribute]
+_fake_telegram_error.BadRequest = FakeBadRequest  # ty: ignore[unresolved-attribute]
+_fake_telegram_error.TimedOut = FakeTimedOut  # ty: ignore[unresolved-attribute]
+_fake_telegram.error = _fake_telegram_error  # ty: ignore[unresolved-attribute]
 _fake_telegram_constants = types.ModuleType("telegram.constants")
-_fake_telegram_constants.ParseMode = SimpleNamespace(
+_fake_telegram_constants.ParseMode = SimpleNamespace(  # ty: ignore[unresolved-attribute]
     MARKDOWN_V2="MarkdownV2",
     MARKDOWN="Markdown",
     HTML="HTML",
 )
-_fake_telegram_constants.ChatType = SimpleNamespace(
+_fake_telegram_constants.ChatType = SimpleNamespace(  # ty: ignore[unresolved-attribute]
     GROUP="group",
     SUPERGROUP="supergroup",
     CHANNEL="channel",
     PRIVATE="private",
 )
-_fake_telegram.constants = _fake_telegram_constants
+_fake_telegram.constants = _fake_telegram_constants  # ty: ignore[unresolved-attribute]
 _fake_telegram_ext = types.ModuleType("telegram.ext")
-_fake_telegram_ext.Application = object
-_fake_telegram_ext.CommandHandler = object
-_fake_telegram_ext.CallbackQueryHandler = object
-_fake_telegram_ext.MessageHandler = object
-_fake_telegram_ext.ContextTypes = SimpleNamespace(DEFAULT_TYPE=object)
-_fake_telegram_ext.filters = object
+_fake_telegram_ext.Application = object  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.CommandHandler = object  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.CallbackQueryHandler = object  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.MessageHandler = object  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.ContextTypes = SimpleNamespace(DEFAULT_TYPE=object)  # ty: ignore[unresolved-attribute]
+_fake_telegram_ext.filters = object  # ty: ignore[unresolved-attribute]
 _fake_telegram_request = types.ModuleType("telegram.request")
-_fake_telegram_request.HTTPXRequest = object
+_fake_telegram_request.HTTPXRequest = object  # ty: ignore[unresolved-attribute]
 
 
 @pytest.fixture(autouse=True)
@@ -139,6 +139,7 @@ def test_non_forum_group_reply_thread_id_does_not_fork_session_key():
     from gateway.platforms import telegram as telegram_mod
 
     adapter = _make_adapter()
+    assert telegram_mod.ChatType is not None
     message = SimpleNamespace(
         text="Done",
         caption=None,
@@ -173,6 +174,7 @@ def test_forum_group_topic_message_preserves_thread_session_key():
     from gateway.platforms import telegram as telegram_mod
 
     adapter = _make_adapter()
+    assert telegram_mod.ChatType is not None
     message = SimpleNamespace(
         text="hello from topic",
         caption=None,
@@ -203,6 +205,7 @@ def test_forum_general_topic_without_message_thread_id_keeps_thread_context():
     from gateway.platforms import telegram as telegram_mod
 
     adapter = _make_adapter()
+    assert telegram_mod.ChatType is not None
     message = SimpleNamespace(
         text="hello from General",
         caption=None,
@@ -539,11 +542,11 @@ async def test_gateway_runner_busy_ack_replies_to_triggering_message_for_telegra
     event = MessageEvent(
         text="busy follow-up",
         message_type=MessageType.TEXT,
-        source=source,
+        source=source,  # ty: ignore[invalid-argument-type]
         message_id="463",
         reply_to_message_id="462",
     )
-    session_key = build_session_key(source)
+    session_key = build_session_key(source)  # ty: ignore[invalid-argument-type]
     adapter = BusyAdapter()
 
     runner = object.__new__(GatewayRunner)
@@ -1052,7 +1055,7 @@ async def test_base_send_image_fallback_preserves_metadata():
         async def disconnect(self):
             return None
 
-        async def send(self, **kwargs):
+        async def send(self, **kwargs):  # ty: ignore[invalid-method-override]
             call_log.append(kwargs)
             return SendResult(success=True, message_id="781")
 
@@ -1060,7 +1063,7 @@ async def test_base_send_image_fallback_preserves_metadata():
             return None
 
     call_log = []
-    adapter = _ConcreteBaseAdapter(Platform.TELEGRAM, None)
+    adapter = _ConcreteBaseAdapter(Platform.TELEGRAM, None)  # ty: ignore[invalid-argument-type]
     metadata = {"thread_id": "20197"}
 
     result = await adapter.send_image(

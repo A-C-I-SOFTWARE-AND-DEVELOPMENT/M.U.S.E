@@ -139,8 +139,8 @@ class TestIsCommandProviderConfig:
         assert _is_command_provider_config({}) is False
 
     def test_non_dict_is_false(self):
-        assert _is_command_provider_config("foo") is False
-        assert _is_command_provider_config(None) is False
+        assert _is_command_provider_config("foo") is False  # ty: ignore[invalid-argument-type]
+        assert _is_command_provider_config(None) is False  # ty: ignore[invalid-argument-type]
 
     def test_type_mismatch_is_false(self):
         assert _is_command_provider_config({"type": "native", "command": "x"}) is False

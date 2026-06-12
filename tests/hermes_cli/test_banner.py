@@ -23,7 +23,7 @@ def test_display_toolset_name_preserves_clean_names():
 
 def test_display_toolset_name_handles_empty():
     assert banner._display_toolset_name("") == "unknown"
-    assert banner._display_toolset_name(None) == "unknown"
+    assert banner._display_toolset_name(None) == "unknown"  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_build_welcome_banner_uses_normalized_toolset_names():

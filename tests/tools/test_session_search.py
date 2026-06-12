@@ -64,7 +64,9 @@ def _seed_modpack_sessions(db):
 
 class TestSchema:
     def test_schema_has_required_params(self):
-        params = SESSION_SEARCH_SCHEMA["parameters"]["properties"]
+        parameters = SESSION_SEARCH_SCHEMA["parameters"]
+        assert isinstance(parameters, dict)
+        params = parameters["properties"]
         # Discovery shape
         assert "query" in params
         assert "limit" in params
@@ -78,11 +80,16 @@ class TestSchema:
 
     def test_no_mode_parameter(self):
         # Mode is inferred from which args are set — no explicit mode param
-        params = SESSION_SEARCH_SCHEMA["parameters"]["properties"]
+        parameters = SESSION_SEARCH_SCHEMA["parameters"]
+        assert isinstance(parameters, dict)
+        params = parameters["properties"]
         assert "mode" not in params
 
     def test_sort_enum(self):
-        params = SESSION_SEARCH_SCHEMA["parameters"]["properties"]
+        parameters = SESSION_SEARCH_SCHEMA["parameters"]
+        assert isinstance(parameters, dict)
+        params = parameters["properties"]
+        assert isinstance(params, dict)
         assert params["sort"]["enum"] == ["newest", "oldest"]
 
     def test_schema_description_teaches_scroll(self):
@@ -95,7 +102,9 @@ class TestSchema:
 
     def test_no_llm_promise_in_description(self):
         # The new design never calls an LLM
-        desc = SESSION_SEARCH_SCHEMA["description"].lower()
+        raw_desc = SESSION_SEARCH_SCHEMA["description"]
+        assert isinstance(raw_desc, str)
+        desc = raw_desc.lower()
         assert "no llm" in desc
 
 
@@ -195,7 +204,7 @@ class TestDiscoveryShape:
 
     def test_non_int_limit_falls_back(self, db):
         _seed_modpack_sessions(db)
-        result = json.loads(session_search(query="modpack", limit="bogus", db=db))
+        result = json.loads(session_search(query="modpack", limit="bogus", db=db))  # ty: ignore[invalid-argument-type]
         assert result["success"] is True
 
     def test_current_session_filtered_out(self, db):
@@ -343,7 +352,7 @@ class TestScrollShape:
     def test_scroll_invalid_around_message_id_errors(self, db):
         _seed_modpack_sessions(db)
         result = json.loads(session_search(
-            session_id="s_oldest", around_message_id="not-an-int", db=db
+            session_id="s_oldest", around_message_id="not-an-int", db=db  # ty: ignore[invalid-argument-type]
         ))
         assert result["success"] is False
 

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class IntegrationRegistry:
         if transport is not None:
             self._transports[spec.name] = transport
 
-    def list(self) -> list[IntegrationSpec]:
+    def list(self) -> "List[IntegrationSpec]":
         return list(self._specs.values())
 
     def get(self, name: str) -> Optional[IntegrationSpec]:

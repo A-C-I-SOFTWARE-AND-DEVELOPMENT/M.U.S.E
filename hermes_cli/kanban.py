@@ -81,7 +81,7 @@ def _task_to_dict(t: kb.Task) -> dict[str, Any]:
     }
 
 
-def _run_state_kwargs(args: argparse.Namespace) -> Optional[dict[str, str]]:
+def _run_state_kwargs(args: argparse.Namespace) -> Optional[dict[str, Any]]:
     st = getattr(args, "state_type", None)
     sn = getattr(args, "state_name", None)
     if (st is None) != (sn is None):
@@ -147,7 +147,7 @@ def _check_dispatcher_presence() -> tuple[bool, str]:
     false warnings (better to miss a warning than to cry wolf).
     """
     try:
-        from gateway.status import get_running_pid  # type: ignore
+        from gateway.status import get_running_pid
     except Exception:
         return (True, "")  # can't probe — silent
     try:
@@ -1307,6 +1307,7 @@ def _cmd_create(args: argparse.Namespace) -> int:
             initial_status=getattr(args, "initial_status", "running"),
         )
         task = kb.get_task(conn, task_id)
+        assert task is not None  # just created above
     if getattr(args, "json", False):
         print(json.dumps(_task_to_dict(task), indent=2, ensure_ascii=False))
     else:

@@ -24,7 +24,7 @@ def _make_message(*, author=None, content="hello", mentions=None, is_dm=False):
     msg.attachments = []
     msg.mentions = mentions or []
     if is_dm:
-        import discord
+        import discord  # ty: ignore[unresolved-import]
         msg.channel = MagicMock(spec=discord.DMChannel)
         msg.channel.id = 111
     else:

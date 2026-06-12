@@ -26,6 +26,7 @@ class TestExactMatch:
     def test_identical_strings(self):
         new, count, _, err = fuzzy_find_and_replace("abc", "abc", "abc")
         assert count == 0
+        assert err is not None
         assert "identical" in err
 
     def test_multiline_exact(self):
@@ -57,6 +58,7 @@ class TestReplaceAll:
         content = "aaa bbb aaa"
         new, count, _, err = fuzzy_find_and_replace(content, "aaa", "ccc", replace_all=False)
         assert count == 0
+        assert err is not None
         assert "Found 2 matches" in err
 
     def test_multiple_matches_with_flag(self):

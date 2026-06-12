@@ -189,7 +189,7 @@ def _ensure_discord_mock():
 
 _ensure_discord_mock()
 
-import discord as discord_mod_ref  # noqa: E402
+import discord as discord_mod_ref  # noqa: E402  # ty: ignore[unresolved-import]
 from gateway.platforms.discord import DiscordAdapter  # noqa: E402
 
 

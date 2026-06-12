@@ -264,7 +264,10 @@ class TestCheckpointNotify:
 class TestTerminalSchema:
     def test_schema_has_notify_on_complete(self):
         from tools.terminal_tool import TERMINAL_SCHEMA
-        props = TERMINAL_SCHEMA["parameters"]["properties"]
+        params = TERMINAL_SCHEMA["parameters"]
+        assert isinstance(params, dict)
+        props = params["properties"]
+        assert isinstance(props, dict)
         assert "notify_on_complete" in props
         assert props["notify_on_complete"]["type"] == "boolean"
         assert props["notify_on_complete"]["default"] is False

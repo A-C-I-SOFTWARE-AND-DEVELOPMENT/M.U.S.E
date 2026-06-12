@@ -244,7 +244,7 @@ class TestSendWithRetryExhausted:
                 raise RuntimeError("notice send also failed")
             return network_err
 
-        adapter.send = send_with_notice_failure
+        adapter.send = send_with_notice_failure  # ty: ignore[invalid-assignment]
         with patch("asyncio.sleep", new_callable=AsyncMock):
             result = await adapter._send_with_retry("chat1", "hello", max_retries=2, base_delay=0)
         assert not result.success  # still failed, but no exception raised

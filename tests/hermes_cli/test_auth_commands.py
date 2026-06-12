@@ -1516,6 +1516,7 @@ def test_seed_custom_pool_respects_config_suppression(tmp_path, monkeypatch):
     }))
 
     entries = []
+    assert pool_key is not None
     changed, active = _seed_custom_pool(pool_key, entries)
     assert changed is False
     assert entries == []

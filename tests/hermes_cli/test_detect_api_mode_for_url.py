@@ -73,7 +73,7 @@ class TestDefaultCase:
         assert _detect_api_mode_for_url("") is None
 
     def test_none_returns_none(self):
-        assert _detect_api_mode_for_url(None) is None
+        assert _detect_api_mode_for_url(None) is None  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
     def test_localhost_returns_none(self):
         assert _detect_api_mode_for_url("http://localhost:11434/v1") is None

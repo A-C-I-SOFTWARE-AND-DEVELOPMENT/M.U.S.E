@@ -134,7 +134,7 @@ def jarvis_responder(
         try:
             # Prefer the routing-aware 3-arg form; fall back for plain generators.
             try:
-                text = generate(prompt, persona_prompt, hint).strip()
+                text = generate(prompt, persona_prompt, hint).strip()  # ty: ignore[too-many-positional-arguments]  # duck-typed platform/adapter path
             except TypeError:
                 text = generate(prompt, persona_prompt).strip()
         except Exception as exc:  # pragma: no cover - defensive

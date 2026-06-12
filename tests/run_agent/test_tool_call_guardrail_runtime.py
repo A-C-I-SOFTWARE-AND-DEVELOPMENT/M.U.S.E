@@ -53,9 +53,9 @@ def _make_agent(*tool_names: str, max_iterations: int = 10, config: dict | None 
         )
     agent.client = MagicMock()
     agent._cached_system_prompt = "You are helpful."
-    agent._use_prompt_caching = False
-    agent.tool_delay = 0
-    agent.compression_enabled = False
+    agent._use_prompt_caching = False  # ty: ignore[unresolved-attribute]
+    agent.tool_delay = 0  # ty: ignore[unresolved-attribute]
+    agent.compression_enabled = False  # ty: ignore[unresolved-attribute, unused-ignore-comment]
     agent.save_trajectories = False
     return agent
 
@@ -92,7 +92,7 @@ def test_default_sequential_path_warns_repeated_exact_failure_without_blocking_e
     _seed_exact_failures(agent, "web_search", args)
     starts = []
     progress = []
-    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))
+    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))  # ty: ignore[unresolved-attribute]
     agent.tool_progress_callback = lambda *a, **k: progress.append((a, k))
     tc = _mock_tool_call("web_search", json.dumps(args), "c-soft")
     msg = SimpleNamespace(content="", tool_calls=[tc])
@@ -118,7 +118,7 @@ def test_config_enabled_hard_stop_blocks_repeated_exact_failure_before_execution
     _seed_exact_failures(agent, "web_search", args)
     starts = []
     progress = []
-    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))
+    agent.tool_start_callback = lambda *a, **k: starts.append((a, k))  # ty: ignore[unresolved-attribute]
     agent.tool_progress_callback = lambda *a, **k: progress.append((a, k))
     tc = _mock_tool_call("web_search", json.dumps(args), "c-block")
     msg = SimpleNamespace(content="", tool_calls=[tc])
@@ -191,7 +191,7 @@ def test_config_enabled_hard_stop_concurrent_path_does_not_submit_blocked_calls_
     _seed_exact_failures(agent, "web_search", blocked_args)
     starts = []
     progress_events = []
-    agent.tool_start_callback = lambda tool_call_id, name, args: starts.append((tool_call_id, name, args))
+    agent.tool_start_callback = lambda tool_call_id, name, args: starts.append((tool_call_id, name, args))  # ty: ignore[unresolved-attribute]
     agent.tool_progress_callback = lambda event, name, preview, args, **kw: progress_events.append((event, name, args, kw))
     calls = [
         _mock_tool_call("web_search", json.dumps(blocked_args), "c-block"),
@@ -250,6 +250,7 @@ def test_default_run_conversation_warns_without_guardrail_halt():
         for i in range(1, 4)
     ]
     responses.append(_mock_response(content="done", finish_reason="stop", tool_calls=None))
+    assert agent.client is not None
     agent.client.chat.completions.create.side_effect = responses
 
     with (
@@ -279,6 +280,7 @@ def test_config_enabled_hard_stop_run_conversation_returns_controlled_guardrail_
         )
         for i in range(1, 10)
     ]
+    assert agent.client is not None
     agent.client.chat.completions.create.side_effect = responses
 
     with (

@@ -52,7 +52,7 @@ def fake_tool(monkeypatch):
     fake = _FakeTool({"success": True, "message_id": "m123"})
 
     mod = types.ModuleType("tools.send_message_tool")
-    mod.send_message_tool = fake
+    mod.send_message_tool = fake  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # Register the stub so ``from tools.send_message_tool import ...`` inside
     # cmd_send resolves to our fake. Also patch the parent ``tools`` package
     # entry so attribute lookup works.
@@ -195,7 +195,7 @@ def test_tool_error_returns_failure_exit(monkeypatch, capsys):
     def _bad_tool(args, **_kw):
         return json.dumps({"error": "platform blew up"})
 
-    fake_mod.send_message_tool = _bad_tool
+    fake_mod.send_message_tool = _bad_tool  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     monkeypatch.setitem(_sys.modules, "tools.send_message_tool", fake_mod)
 
     args = _parse(["--to", "telegram", "nope"])
@@ -211,7 +211,7 @@ def test_skipped_result_is_success(monkeypatch):
     import types as _types
 
     fake_mod = _types.ModuleType("tools.send_message_tool")
-    fake_mod.send_message_tool = lambda args, **_kw: json.dumps(
+    fake_mod.send_message_tool = lambda args, **_kw: json.dumps(  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         {"success": True, "skipped": True, "reason": "duplicate"}
     )
     monkeypatch.setitem(_sys.modules, "tools.send_message_tool", fake_mod)
@@ -232,8 +232,8 @@ def test_list_human_output(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "Available messaging targets:\n\nTelegram:\n  telegram:-100123\n"
-    fake_dir.load_directory = lambda: {
+    fake_dir.format_directory_for_display = lambda: "Available messaging targets:\n\nTelegram:\n  telegram:-100123\n"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         "platforms": {"telegram": [{"id": "-100123", "name": "Test Group"}]}
     }
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
@@ -251,8 +251,8 @@ def test_list_json(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "(ignored in json mode)"
-    fake_dir.load_directory = lambda: {
+    fake_dir.format_directory_for_display = lambda: "(ignored in json mode)"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         "platforms": {"telegram": [{"id": "-100123", "name": "Test Group"}]}
     }
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
@@ -271,8 +271,8 @@ def test_list_filter_platform(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: "(should not be called when filter set)"
-    fake_dir.load_directory = lambda: {
+    fake_dir.format_directory_for_display = lambda: "(should not be called when filter set)"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.load_directory = lambda: {  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         "platforms": {
             "telegram": [{"id": "-100123", "name": "TG Chat"}],
             "discord": [{"id": "555", "name": "bot-home"}],
@@ -296,8 +296,8 @@ def test_list_unknown_platform_fails(monkeypatch, capsys):
     import types as _types
 
     fake_dir = _types.ModuleType("gateway.channel_directory")
-    fake_dir.format_directory_for_display = lambda: ""
-    fake_dir.load_directory = lambda: {"platforms": {"telegram": []}}
+    fake_dir.format_directory_for_display = lambda: ""  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
+    fake_dir.load_directory = lambda: {"platforms": {"telegram": []}}  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     monkeypatch.setitem(_sys.modules, "gateway.channel_directory", fake_dir)
 
     args = _parse(["--list", "pigeon-post"])

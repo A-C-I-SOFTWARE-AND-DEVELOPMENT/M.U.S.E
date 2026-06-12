@@ -135,7 +135,7 @@ class TestResumePreservesProgress:
                 "last_updated": None,
             }
 
-        completed_set = set(checkpoint_data.get("completed_prompts", []))
+        completed_set = set(checkpoint_data.get("completed_prompts", []))  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         assert completed_set == {0, 1, 2, 3, 4}
 
     def test_different_run_name_starts_fresh(self, runner):

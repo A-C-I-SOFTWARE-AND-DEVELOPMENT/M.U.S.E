@@ -148,7 +148,7 @@ class PatchResult:
     error: Optional[str] = None
     
     def to_dict(self) -> dict:
-        result = {"success": self.success}
+        result: Dict[str, Any] = {"success": self.success}
         if self.diff:
             result["diff"] = self.diff
         if self.files_modified:
@@ -186,7 +186,7 @@ class SearchResult:
     error: Optional[str] = None
     
     def to_dict(self) -> dict:
-        result = {"total_count": self.total_count}
+        result: Dict[str, Any] = {"total_count": self.total_count}
         if self.matches:
             result["matches"] = [
                 {"path": m.path, "line": m.line_number, "content": m.content}
@@ -414,7 +414,7 @@ def _lint_toml_inproc(content: str) -> tuple[bool, str]:
     except ImportError:
         # Pre-3.11 fallback via tomli, if installed.
         try:
-            import tomli as _toml  # type: ignore[no-redef]
+            import tomli as _toml  # type: ignore[no-redef]  # ty: ignore[unresolved-import]
         except ImportError:
             return True, "__SKIP__"
     try:
@@ -508,7 +508,7 @@ class ShellFileOperations(FileOperations):
     This includes local, docker, singularity, ssh, modal, and daytona environments.
     """
     
-    def __init__(self, terminal_env, cwd: str = None):
+    def __init__(self, terminal_env, cwd: Optional[str] = None):
         """
         Initialize file operations with a terminal environment.
 
@@ -543,8 +543,8 @@ class ShellFileOperations(FileOperations):
         # Cache for command availability checks
         self._command_cache: Dict[str, bool] = {}
     
-    def _exec(self, command: str, cwd: str = None, timeout: int = None,
-              stdin_data: str = None) -> ExecuteResult:
+    def _exec(self, command: str, cwd: Optional[str] = None, timeout: Optional[int] = None,
+              stdin_data: Optional[str] = None) -> ExecuteResult:
         """Execute command via terminal backend.
 
         Args:
@@ -582,7 +582,7 @@ class ShellFileOperations(FileOperations):
             self._command_cache[cmd] = result.stdout.strip() == 'yes'
         return self._command_cache[cmd]
     
-    def _is_likely_binary(self, path: str, content_sample: str = None) -> bool:
+    def _is_likely_binary(self, path: str, content_sample: Optional[str] = None) -> bool:
         """
         Check if a file is likely binary.
         
@@ -1664,7 +1664,7 @@ class ShellFileOperations(FileOperations):
         
         # rg exit codes: 0=matches found, 1=no matches, 2=error
         if result.exit_code == 2 and not result.stdout.strip():
-            error_msg = result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else "Search error"
+            error_msg = result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else "Search error"  # ty: ignore[unresolved-attribute]
             return SearchResult(error=f"Search failed: {error_msg}", total_count=0)
         
         # Parse results based on output mode
@@ -1764,7 +1764,7 @@ class ShellFileOperations(FileOperations):
         
         # grep exit codes: 0=matches found, 1=no matches, 2=error
         if result.exit_code == 2 and not result.stdout.strip():
-            error_msg = result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else "Search error"
+            error_msg = result.stderr.strip() if hasattr(result, 'stderr') and result.stderr else "Search error"  # ty: ignore[unresolved-attribute]
             return SearchResult(error=f"Search failed: {error_msg}", total_count=0)
         
         if output_mode == "files_only":

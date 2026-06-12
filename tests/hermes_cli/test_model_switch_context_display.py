@@ -35,7 +35,7 @@ class TestResolveDisplayContextLength:
                 "openai-codex",
                 base_url="https://chatgpt.com/backend-api/codex",
                 api_key="",
-                model_info=fake_mi,
+                model_info=fake_mi,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             )
         assert ctx == 272_000, (
             "Codex OAuth's 272K cap must win over models.dev's 1.05M for gpt-5.5"
@@ -49,7 +49,7 @@ class TestResolveDisplayContextLength:
             ctx = resolve_display_context_length(
                 "some-model",
                 "some-provider",
-                model_info=fake_mi,
+                model_info=fake_mi,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             )
         assert ctx == 1_048_576
 
@@ -71,7 +71,7 @@ class TestResolveDisplayContextLength:
             side_effect=RuntimeError("network down"),
         ):
             ctx = resolve_display_context_length(
-                "x", "y", model_info=fake_mi
+                "x", "y", model_info=fake_mi  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             )
         assert ctx == 200_000
 
@@ -85,7 +85,7 @@ class TestResolveDisplayContextLength:
             ctx = resolve_display_context_length(
                 "capped-model",
                 "capped-provider",
-                model_info=fake_mi,
+                model_info=fake_mi,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             )
         assert ctx == 128_000
 

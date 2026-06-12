@@ -67,7 +67,7 @@ def _get_exa_client() -> Any:
     except Exception as exc:  # noqa: BLE001 — lazy_deps surfaces install hints
         raise ImportError(str(exc))
 
-    from exa_py import Exa  # noqa: WPS433 — deliberately lazy
+    from exa_py import Exa  # noqa: WPS433 — deliberately lazy  # ty: ignore[unresolved-import]  # dynamic config/plugin path
 
     client = Exa(api_key=api_key)
     client.headers["x-exa-integration"] = "hermes-agent"

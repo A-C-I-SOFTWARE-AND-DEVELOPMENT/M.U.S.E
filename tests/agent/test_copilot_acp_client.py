@@ -26,7 +26,7 @@ class CopilotACPClientSafetyTests(unittest.TestCase):
         process = _FakeProcess()
         handled = self.client._handle_server_message(
             message,
-            process=process,
+            process=process,  # ty: ignore[invalid-argument-type]
             cwd=cwd,
             text_parts=[],
             reasoning_parts=[],

@@ -86,7 +86,7 @@ class TestDeliverOnlyBypassesAgent:
         async def _capture(event):
             handle_message_calls.append(event)
 
-        adapter.handle_message = _capture
+        adapter.handle_message = _capture  # ty: ignore[invalid-assignment]
 
         app = _create_app(adapter)
         body = json.dumps(

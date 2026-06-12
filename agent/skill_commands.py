@@ -218,7 +218,7 @@ def _build_skill_message(
             ]
         )
 
-    supporting = []
+    supporting: list = []
     linked_files = loaded_skill.get("linked_files") or {}
     for entries in linked_files.values():
         if isinstance(entries, list):

@@ -125,7 +125,7 @@ def test_owner_gate_requires_grant_artifact(repo_with_change: Path) -> None:
     # A packet carrying an owner-gated action needs a challenge-bound grant.
     packet = build_work_packet("deploy the service to production")
     gp = packet.to_gate_packet()
-    owner_actions = list(gp["owner_gated_actions"])  # type: ignore[arg-type]
+    owner_actions = list(gp["owner_gated_actions"])  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     packet_id = str(gp["packet_id"])
     assert owner_actions, "deploy should surface an owner-gated action"
     bundle = _full_bundle(repo_with_change, packet_id)

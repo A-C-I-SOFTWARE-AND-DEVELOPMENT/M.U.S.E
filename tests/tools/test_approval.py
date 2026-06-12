@@ -923,7 +923,7 @@ class TestFailClosedUnderPromptToolkit:
         import prompt_toolkit.application.current as ptc
 
         orig = ptc.get_app_or_none
-        ptc.get_app_or_none = lambda: object()  # pretend a pt app is running
+        ptc.get_app_or_none = lambda: object()  # pretend a pt app is running  # ty: ignore[invalid-assignment]
         result = []
         try:
             def run():
@@ -952,7 +952,7 @@ class TestFailClosedUnderPromptToolkit:
         import prompt_toolkit.application.current as ptc
 
         orig = ptc.get_app_or_none
-        ptc.get_app_or_none = lambda: object()
+        ptc.get_app_or_none = lambda: object()  # ty: ignore[invalid-assignment]
         try:
             def cb(command, description, **kwargs):
                 return "once"

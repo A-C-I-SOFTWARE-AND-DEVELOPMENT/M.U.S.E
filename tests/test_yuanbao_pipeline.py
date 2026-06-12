@@ -759,8 +759,8 @@ class TestPipelineIntegration:
         adapter = make_adapter()
         adapter._bot_id = "bot_123"
         adapter._access_policy = AccessPolicy(dm_policy="open", dm_allow_from=[], group_policy="open", group_allow_from=[])
-        adapter.handle_message = AsyncMock()
-        adapter._resolve_inbound_media_urls = AsyncMock(return_value=([], []))
+        adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
+        adapter._resolve_inbound_media_urls = AsyncMock(return_value=([], []))  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
         push_data = make_json_push(
             from_account="alice",

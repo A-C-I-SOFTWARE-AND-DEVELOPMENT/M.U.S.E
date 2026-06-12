@@ -283,7 +283,7 @@ def test_transport_error_wraps_as_auth_error(monkeypatch):
 def test_non_dict_payload_raises_invalid_json(monkeypatch):
     """xAI returning ``[]`` or a string at 200 is a server bug — fail
     with a precise error rather than crashing later in token storage."""
-    recorder = _PostRecorder(_ok_response([1, 2, 3]))  # type: ignore[arg-type]
+    recorder = _PostRecorder(_ok_response([1, 2, 3]))  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     monkeypatch.setattr("hermes_cli.auth.httpx.post", recorder)
     with pytest.raises(AuthError) as exc_info:
         _xai_oauth_exchange_code_for_tokens(

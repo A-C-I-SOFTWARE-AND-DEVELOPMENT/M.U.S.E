@@ -339,7 +339,7 @@ def _normalise_corrections(value: object) -> tuple[str, ...]:
     if not hasattr(value, "__iter__"):
         return ()
     out: list[str] = []
-    for item in value:
+    for item in value:  # ty: ignore[not-iterable]  # hasattr __iter__ checked above
         if isinstance(item, str):
             s = item.strip()
             if s:

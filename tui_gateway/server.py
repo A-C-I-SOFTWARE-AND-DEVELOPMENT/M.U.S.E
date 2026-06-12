@@ -13,7 +13,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from hermes_constants import get_hermes_home
 from hermes_cli.env_loader import load_hermes_dotenv
@@ -116,7 +116,7 @@ except Exception:
 from tui_gateway.render import make_stream_renderer, render_diff, render_message
 
 _sessions: dict[str, dict] = {}
-_methods: dict[str, callable] = {}
+_methods: dict[str, Callable] = {}
 _pending: dict[str, tuple[str, threading.Event]] = {}
 _answers: dict[str, str] = {}
 _db = None
@@ -177,7 +177,7 @@ sys.stdout = sys.stderr
 # Module-level stdio transport — fallback sink when no transport is bound via
 # contextvar or session. Stream resolved through a lambda so runtime monkey-
 # patches of `_real_stdout` (used extensively in tests) still land correctly.
-_stdio_transport = StdioTransport(lambda: _real_stdout, _stdout_lock)
+_stdio_transport: Transport = StdioTransport(lambda: _real_stdout, _stdout_lock)
 
 
 class _SlashWorker:
@@ -232,8 +232,8 @@ class _SlashWorker:
         with self._lock:
             self._seq += 1
             rid = self._seq
-            self.proc.stdin.write(json.dumps({"id": rid, "command": command}) + "\n")
-            self.proc.stdin.flush()
+            self.proc.stdin.write(json.dumps({"id": rid, "command": command}) + "\n")  # ty: ignore[unresolved-attribute]
+            self.proc.stdin.flush()  # ty: ignore[unresolved-attribute]
 
             while True:
                 try:
@@ -383,7 +383,7 @@ def write_json(obj: dict) -> bool:
 
 
 def _emit(event: str, sid: str, payload: dict | None = None):
-    params = {"type": event, "session_id": sid}
+    params: dict[str, Any] = {"type": event, "session_id": sid}
     if payload is not None:
         params["payload"] = payload
     write_json({"jsonrpc": "2.0", "method": "event", "params": params})
@@ -412,9 +412,9 @@ def _estimate_image_tokens(width: int, height: int) -> int:
 
 
 def _image_meta(path: Path) -> dict:
-    meta = {"name": path.name}
+    meta: dict[str, Any] = {"name": path.name}
     try:
-        from PIL import Image
+        from PIL import Image  # ty: ignore[unresolved-import]
 
         with Image.open(path) as img:
             width, height = img.size
@@ -845,7 +845,7 @@ def _coerce_statusbar(raw) -> str:
     return "top"
 
 
-def _display_mouse_tracking(display: dict) -> bool:
+def _display_mouse_tracking(display: dict | None) -> bool:
     """Return canonical display.mouse_tracking with legacy tui_mouse fallback."""
     if not isinstance(display, dict):
         return True
@@ -911,7 +911,7 @@ def _load_enabled_toolsets() -> list[str] | None:
     try:
         from toolsets import validate_toolset
     except Exception:
-        validate_toolset = None
+        validate_toolset = None  # ty: ignore[invalid-assignment]
 
     if explicit and validate_toolset is not None:
         built_in = [name for name in explicit if validate_toolset(name)]
@@ -951,11 +951,9 @@ def _load_enabled_toolsets() -> list[str] | None:
             from hermes_cli.tools_config import _parse_enabled_flag
 
             raw_cfg = read_raw_config()
-            mcp_servers = (
-                raw_cfg.get("mcp_servers")
-                if isinstance(raw_cfg.get("mcp_servers"), dict)
-                else {}
-            )
+            mcp_servers = raw_cfg.get("mcp_servers")
+            if not isinstance(mcp_servers, dict):
+                mcp_servers = {}
             for name, server_cfg in mcp_servers.items():
                 if not isinstance(server_cfg, dict):
                     continue
@@ -1532,7 +1530,7 @@ def _on_tool_start(sid: str, tool_call_id: str, name: str, args: dict):
 
 
 def _on_tool_complete(sid: str, tool_call_id: str, name: str, args: dict, result: str):
-    payload = {"tool_id": tool_call_id, "name": name}
+    payload: dict[str, Any] = {"tool_id": tool_call_id, "name": name}
     session = _sessions.get(sid)
     snapshot = None
     started_at = None
@@ -1587,7 +1585,7 @@ def _on_tool_progress(
         _emit("reasoning.available", sid, {"text": str(preview)})
         return
     if event_type.startswith("subagent."):
-        payload = {
+        payload: dict[str, Any] = {
             "goal": str(_kwargs.get("goal") or ""),
             "task_count": int(_kwargs.get("task_count") or 1),
             "task_index": int(_kwargs.get("task_index") or 0),
@@ -1747,7 +1745,7 @@ def _validate_personality(value: str, cfg: dict | None = None) -> tuple[str, str
 
 
 def _apply_personality_to_session(
-    sid: str, session: dict, new_prompt: str
+    sid: str, session: dict | None, new_prompt: str
 ) -> tuple[bool, dict | None]:
     """Apply a personality change to an existing session without resetting history.
 
@@ -2870,12 +2868,12 @@ def _(rid, params: dict) -> dict:
     if not isinstance(subagents, list) or not subagents:
         return _err(rid, 4000, "subagents list required")
 
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     started_at = params.get("started_at")
     finished_at = params.get("finished_at") or time.time()
     label = str(params.get("label") or "")
-    ts = datetime.utcfromtimestamp(float(finished_at)).strftime("%Y%m%dT%H%M%S")
+    ts = datetime.fromtimestamp(float(finished_at), tz=timezone.utc).strftime("%Y%m%dT%H%M%S")
     fname = f"{ts}.json"
     d = _spawn_tree_session_dir(session_id or "default")
     path = d / fname
@@ -3859,6 +3857,9 @@ def _(rid, params: dict) -> dict:
             current_overrides.pop("service_tier", None)
             current_overrides.pop("speed", None)
             if nv == "fast":
+                # Guaranteed non-None: the nv == "fast" branch above returned
+                # an error when resolve_fast_mode_overrides() yielded None.
+                assert overrides is not None
                 current_overrides.update(overrides)
             agent.request_overrides = current_overrides
             _emit(
@@ -3937,14 +3938,12 @@ def _(rid, params: dict) -> dict:
             arg = str(value or "").strip().lower()
             if arg in {"show", "on"}:
                 cfg = _load_cfg()
-                display = (
-                    cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-                )
-                sections = (
-                    display.get("sections")
-                    if isinstance(display.get("sections"), dict)
-                    else {}
-                )
+                display = cfg.get("display")
+                if not isinstance(display, dict):
+                    display = {}
+                sections = display.get("sections")
+                if not isinstance(sections, dict):
+                    sections = {}
                 display["show_reasoning"] = True
                 sections["thinking"] = "expanded"
                 display["sections"] = sections
@@ -3955,14 +3954,12 @@ def _(rid, params: dict) -> dict:
                 return _ok(rid, {"key": key, "value": "show"})
             if arg in {"hide", "off"}:
                 cfg = _load_cfg()
-                display = (
-                    cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-                )
-                sections = (
-                    display.get("sections")
-                    if isinstance(display.get("sections"), dict)
-                    else {}
-                )
+                display = cfg.get("display")
+                if not isinstance(display, dict):
+                    display = {}
+                sections = display.get("sections")
+                if not isinstance(sections, dict):
+                    sections = {}
                 display["show_reasoning"] = False
                 sections["thinking"] = "hidden"
                 display["sections"] = sections
@@ -3987,10 +3984,12 @@ def _(rid, params: dict) -> dict:
         if nv not in _DETAIL_MODES:
             return _err(rid, 4002, f"unknown details_mode: {value}")
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-        sections = (
-            display.get("sections") if isinstance(display.get("sections"), dict) else {}
-        )
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
+        sections = display.get("sections")
+        if not isinstance(sections, dict):
+            sections = {}
         display["details_mode"] = nv
         for section in _DETAIL_SECTION_NAMES:
             sections[section] = nv
@@ -4009,10 +4008,12 @@ def _(rid, params: dict) -> dict:
             return _err(rid, 4002, f"unknown section: {section}")
 
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
-        sections_cfg = (
-            display.get("sections") if isinstance(display.get("sections"), dict) else {}
-        )
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
+        sections_cfg = display.get("sections")
+        if not isinstance(sections_cfg, dict):
+            sections_cfg = {}
 
         nv = str(value or "").strip().lower()
         if not nv:
@@ -4046,7 +4047,9 @@ def _(rid, params: dict) -> dict:
     if key == "compact":
         raw = str(value or "").strip().lower()
         cfg0 = _load_cfg()
-        d0 = cfg0.get("display") if isinstance(cfg0.get("display"), dict) else {}
+        d0 = cfg0.get("display")
+        if not isinstance(d0, dict):
+            d0 = {}
         cur_b = bool(d0.get("tui_compact", False))
         if raw in {"", "toggle"}:
             nv_b = not cur_b
@@ -4080,7 +4083,9 @@ def _(rid, params: dict) -> dict:
     if key == "mouse":
         raw = str(value or "").strip().lower()
         cfg = _load_cfg()
-        display = cfg.get("display") if isinstance(cfg.get("display"), dict) else {}
+        display = cfg.get("display")
+        if not isinstance(display, dict):
+            display = {}
         current = _display_mouse_tracking(display)
 
         if raw in {"", "toggle"}:
@@ -5586,7 +5591,7 @@ def _(rid, params: dict) -> dict:
             plugin_handler = get_plugin_command_handler(_cmd_base)
         except Exception:
             plugin_handler = None
-            resolve_plugin_command_result = None
+            resolve_plugin_command_result = None  # ty: ignore[invalid-assignment]
 
     if plugin_handler and resolve_plugin_command_result:
         try:
@@ -6562,7 +6567,7 @@ def _(rid, params: dict) -> dict:
                 def print(self, *a, **k):
                     pass
 
-            do_install(query, skip_confirm=True, console=_Q())
+            do_install(query, skip_confirm=True, console=_Q())  # ty: ignore[invalid-argument-type]
             return _ok(rid, {"installed": True, "name": query})
         if action == "browse":
             from hermes_cli.skills_hub import browse_skills

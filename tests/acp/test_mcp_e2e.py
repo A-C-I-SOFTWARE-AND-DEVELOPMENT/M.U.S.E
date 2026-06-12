@@ -193,6 +193,7 @@ class TestMcpRegistrationE2E:
             },
         )
 
+        assert update.content is not None
         assert len(update.content) == 1
         assert update.content[0].type == "content"
         assert "Approval prompt shows the diff" in update.content[0].content.text

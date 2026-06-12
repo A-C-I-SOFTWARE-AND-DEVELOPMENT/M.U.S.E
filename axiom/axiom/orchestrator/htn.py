@@ -54,10 +54,12 @@ class Plan:
 
     def execute(self, task: Task) -> Any:
         if task.kind == "leaf":
-            _key, result, _ran = self.store.run(task.name, task.inputs, task.job)
+            # Task.leaf() always sets job for leaf tasks.
+            _key, result, _ran = self.store.run(task.name, task.inputs, task.job)  # ty: ignore[invalid-argument-type]
             return result
         results = [self.execute(child) for child in task.children]
-        if not task.verifier(results):
+        # Task.composite() rejects a None verifier at construction time.
+        if not task.verifier(results):  # ty: ignore[call-non-callable]
             raise RuntimeError(
                 f"decomposition {task.name!r}: verifier rejected results"
             )

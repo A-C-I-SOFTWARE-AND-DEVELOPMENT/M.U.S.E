@@ -118,7 +118,7 @@ def wait_for_response(clarify_id: str, timeout: float) -> Optional[str]:
     try:
         from tools.environments.base import touch_activity_if_due
     except Exception:  # pragma: no cover - optional
-        touch_activity_if_due = None
+        touch_activity_if_due = None  # ty: ignore[invalid-assignment]
 
     deadline = time.monotonic() + max(timeout, 0.0)
     activity_state = {"last_touch": time.monotonic(), "start": time.monotonic()}

@@ -113,9 +113,8 @@ def _sanitize_env_file_if_needed(path: Path) -> None:
     except ImportError:
         return  # early bootstrap — config module not available yet
 
-    read_kw = {"encoding": "utf-8-sig", "errors": "replace"}
     try:
-        with open(path, **read_kw) as f:
+        with open(path, encoding="utf-8-sig", errors="replace") as f:
             original = f.readlines()
         sanitized = _sanitize_env_lines(original)
         if sanitized != original:

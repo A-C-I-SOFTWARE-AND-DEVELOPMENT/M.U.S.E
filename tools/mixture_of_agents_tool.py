@@ -108,7 +108,7 @@ async def _run_reference_model_safe(
     temperature: float = REFERENCE_TEMPERATURE,
     max_tokens: int = 32000,
     max_retries: int = 6
-) -> tuple[str, str, bool]:
+) -> tuple[str, str, bool]:  # ty: ignore[invalid-return-type]  # loop always returns for max_retries >= 1 (both branches return on the final attempt)
     """
     Run a single reference model with retry logic and graceful failure handling.
     
@@ -127,7 +127,7 @@ async def _run_reference_model_safe(
             logger.info("Querying %s (attempt %s/%s)", model, attempt + 1, max_retries)
             
             # Build parameters for the API call
-            api_params = {
+            api_params: Dict[str, Any] = {
                 "model": model,
                 "messages": [{"role": "user", "content": user_prompt}],
                 "max_tokens": max_tokens,
@@ -182,7 +182,7 @@ async def _run_aggregator_model(
     system_prompt: str,
     user_prompt: str,
     temperature: float = AGGREGATOR_TEMPERATURE,
-    max_tokens: int = None
+    max_tokens: Optional[int] = None
 ) -> str:
     """
     Run the aggregator model to synthesize the final response.
@@ -199,7 +199,7 @@ async def _run_aggregator_model(
     logger.info("Running aggregator model: %s", AGGREGATOR_MODEL)
 
     # Build parameters for the API call
-    api_params = {
+    api_params: Dict[str, Any] = {
         "model": AGGREGATOR_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -276,7 +276,7 @@ async def mixture_of_agents_tool(
     """
     start_time = datetime.datetime.now()
     
-    debug_call_data = {
+    debug_call_data: Dict[str, Any] = {
         "parameters": {
             "user_prompt": user_prompt[:200] + "..." if len(user_prompt) > 200 else user_prompt,
             "reference_models": reference_models or REFERENCE_MODELS,

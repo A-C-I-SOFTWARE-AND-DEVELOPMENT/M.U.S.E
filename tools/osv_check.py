@@ -132,7 +132,7 @@ def _query_osv(
     package: str, ecosystem: str, version: Optional[str] = None
 ) -> list:
     """Query the OSV API for MAL-* advisories. Returns list of malware vulns."""
-    payload = {"package": {"name": package, "ecosystem": ecosystem}}
+    payload: dict = {"package": {"name": package, "ecosystem": ecosystem}}
     if version:
         payload["version"] = version
 

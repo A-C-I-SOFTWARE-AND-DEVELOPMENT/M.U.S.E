@@ -49,14 +49,14 @@ try:
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
-    aiohttp = None  # type: ignore[assignment]
+    aiohttp = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 try:
     import httpx
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
-    httpx = None  # type: ignore[assignment]
+    httpx = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # optional-import fallback
 
 from gateway.config import Platform, PlatformConfig
 from gateway.platforms.helpers import MessageDeduplicator
@@ -211,7 +211,7 @@ class WeComAdapter(BasePlatformAdapter):
             # Tighter keepalive so idle CLOSE_WAIT drains promptly (#18451).
             from gateway.platforms._http_client_limits import platform_httpx_limits
             self._http_client = httpx.AsyncClient(
-                timeout=30.0, follow_redirects=True, limits=platform_httpx_limits(),
+                timeout=30.0, follow_redirects=True, limits=platform_httpx_limits(),  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             )
             await self._open_connection()
             self._mark_connected()
@@ -274,7 +274,7 @@ class WeComAdapter(BasePlatformAdapter):
         """Open and authenticate a websocket connection."""
         await self._cleanup_ws()
         self._session = aiohttp.ClientSession(trust_env=True)
-        self._ws = await self._session.ws_connect(
+        self._ws = await self._session.ws_connect(  # ty: ignore[no-matching-overload]  # duck-typed platform/adapter path
             self._ws_url,
             heartbeat=HEARTBEAT_INTERVAL_SECONDS * 2,
             timeout=CONNECT_TIMEOUT_SECONDS,
@@ -582,12 +582,12 @@ class WeComAdapter(BasePlatformAdapter):
         existing = self._pending_text_batches.get(key)
         chunk_len = len(event.text or "")
         if existing is None:
-            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            event._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             self._pending_text_batches[key] = event
         else:
             if event.text:
                 existing.text = f"{existing.text}\n{event.text}" if existing.text else event.text
-            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]
+            existing._last_chunk_len = chunk_len  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # transient chunk-tracking attr
             # Merge any media that might be attached
             if event.media_urls:
                 existing.media_urls.extend(event.media_urls)
@@ -651,31 +651,31 @@ class WeComAdapter(BasePlatformAdapter):
                         text_parts.append(content)
         else:
             text_block = body.get("text") if isinstance(body.get("text"), dict) else {}
-            content = str(text_block.get("content") or "").strip()
+            content = str(text_block.get("content") or "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             if content:
                 text_parts.append(content)
 
             if msgtype == "voice":
                 voice_block = body.get("voice") if isinstance(body.get("voice"), dict) else {}
-                voice_text = str(voice_block.get("content") or "").strip()
+                voice_text = str(voice_block.get("content") or "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 if voice_text:
                     text_parts.append(voice_text)
 
             # Extract appmsg title (filename) for WeCom AI Bot attachments
             if msgtype == "appmsg":
                 appmsg = body.get("appmsg") if isinstance(body.get("appmsg"), dict) else {}
-                title = str(appmsg.get("title") or "").strip()
+                title = str(appmsg.get("title") or "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
                 if title:
                     text_parts.append(title)
 
         quote = body.get("quote") if isinstance(body.get("quote"), dict) else {}
-        quote_type = str(quote.get("msgtype") or "").lower()
+        quote_type = str(quote.get("msgtype") or "").lower()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         if quote_type == "text":
-            quote_text = quote.get("text") if isinstance(quote.get("text"), dict) else {}
-            reply_text = str(quote_text.get("content") or "").strip() or None
+            quote_text = quote.get("text") if isinstance(quote.get("text"), dict) else {}  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+            reply_text = str(quote_text.get("content") or "").strip() or None  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         elif quote_type == "voice":
-            quote_voice = quote.get("voice") if isinstance(quote.get("voice"), dict) else {}
-            reply_text = str(quote_voice.get("content") or "").strip() or None
+            quote_voice = quote.get("voice") if isinstance(quote.get("voice"), dict) else {}  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+            reply_text = str(quote_voice.get("content") or "").strip() or None  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
 
         return "\n".join(part for part in text_parts if part).strip(), reply_text
 
@@ -711,11 +711,11 @@ class WeComAdapter(BasePlatformAdapter):
                     refs.append(("image", appmsg["image"]))
 
         quote = body.get("quote") if isinstance(body.get("quote"), dict) else {}
-        quote_type = str(quote.get("msgtype") or "").lower()
-        if quote_type == "image" and isinstance(quote.get("image"), dict):
-            refs.append(("image", quote["image"]))
-        elif quote_type == "file" and isinstance(quote.get("file"), dict):
-            refs.append(("file", quote["file"]))
+        quote_type = str(quote.get("msgtype") or "").lower()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+        if quote_type == "image" and isinstance(quote.get("image"), dict):  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+            refs.append(("image", quote["image"]))  # ty: ignore[not-subscriptable]  # duck-typed platform/adapter path
+        elif quote_type == "file" and isinstance(quote.get("file"), dict):  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
+            refs.append(("file", quote["file"]))  # ty: ignore[not-subscriptable]  # duck-typed platform/adapter path
 
         for kind, ref in refs:
             cached = await self._cache_media(kind, ref)
@@ -1164,7 +1164,7 @@ class WeComAdapter(BasePlatformAdapter):
         self._raise_for_wecom_error(init_response, "media upload init")
 
         init_body = init_response.get("body") if isinstance(init_response.get("body"), dict) else {}
-        upload_id = str(init_body.get("upload_id") or "").strip()
+        upload_id = str(init_body.get("upload_id") or "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         if not upload_id:
             raise RuntimeError(f"media upload init failed: missing upload_id in response {init_response}")
 
@@ -1188,14 +1188,14 @@ class WeComAdapter(BasePlatformAdapter):
         self._raise_for_wecom_error(finish_response, "media upload finish")
 
         finish_body = finish_response.get("body") if isinstance(finish_response.get("body"), dict) else {}
-        media_id = str(finish_body.get("media_id") or "").strip()
+        media_id = str(finish_body.get("media_id") or "").strip()  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         if not media_id:
             raise RuntimeError(f"media upload finish failed: missing media_id in response {finish_response}")
 
         return {
-            "type": str(finish_body.get("type") or media_type),
+            "type": str(finish_body.get("type") or media_type),  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
             "media_id": media_id,
-            "created_at": finish_body.get("created_at"),
+            "created_at": finish_body.get("created_at"),  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         }
 
     async def _send_media_message(self, chat_id: str, media_type: str, media_id: str) -> Dict[str, Any]:
@@ -1408,6 +1408,7 @@ class WeComAdapter(BasePlatformAdapter):
         image_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1425,6 +1426,7 @@ class WeComAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1442,6 +1444,7 @@ class WeComAdapter(BasePlatformAdapter):
         audio_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1458,6 +1461,7 @@ class WeComAdapter(BasePlatformAdapter):
         video_path: str,
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> SendResult:
         del kwargs
@@ -1543,7 +1547,7 @@ def qr_scan_for_bot_info(
     print()
     qr_rendered = False
     try:
-        import qrcode as _qrcode
+        import qrcode as _qrcode  # ty: ignore[unresolved-import]  # optional platform SDK
         qr = _qrcode.QRCode()
         qr.add_data(auth_url)
         qr.make(fit=True)

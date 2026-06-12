@@ -216,17 +216,54 @@ jobs:
       - name: Install Tauri CLI (prebuilt)
         run: npm install -g @tauri-apps/cli@^2
 
+      # The unsigned-fallback contract above only worked when the signing
+      # secrets were ABSENT. A present-but-malformed APPLE_CERTIFICATE made
+      # Tauri attempt codesigning and die at `security import`
+      # ("SecKeychainItemImport: ... not valid"), failing every macOS leg.
+      # Probe the cert here; on failure, warn and build unsigned instead.
+      - name: Validate Apple signing certificate (macOS only)
+        id: applecert
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then
+            echo "No APPLE_CERTIFICATE secret; building unsigned (documented fallback)."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cert="$(mktemp)"
+          ok=false
+          if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
+            # OpenSSL 3 needs -legacy for .p12 files using the old RC2/3DES
+            # encryption that Apple's Keychain Access exports by default.
+            if openssl pkcs12 -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1 \
+               || openssl pkcs12 -legacy -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1; then
+              ok=true
+            fi
+          fi
+          rm -f "$cert"
+          if [ "$ok" = true ]; then
+            echo "APPLE_CERTIFICATE decodes and opens; signing enabled."
+            echo "sign=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::APPLE_CERTIFICATE is set but is not a valid base64-encoded .p12 (or the password is wrong) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build installers
         env:
           # Tauri reads these for code-signing; ALL resolve to empty when the
-          # secret is unset -> the build produces UNSIGNED installers and still
-          # succeeds (the fork/bring-up fallback). See apps/desktop/RELEASE.md.
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}  # pragma: allowlist secret
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # secret is unset OR fails the applecert probe above -> the build
+          # produces UNSIGNED installers and still succeeds (the fork/bring-up
+          # fallback). See apps/desktop/RELEASE.md.
+          APPLE_CERTIFICATE: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}  # pragma: allowlist secret
+          APPLE_SIGNING_IDENTITY: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
+          APPLE_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_PASSWORD || '' }}  # pragma: allowlist secret
+          APPLE_TEAM_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_TEAM_ID || '' }}
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
           BUNDLES: ${{ matrix.bundles }}

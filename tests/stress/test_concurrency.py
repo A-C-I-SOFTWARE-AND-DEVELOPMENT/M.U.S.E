@@ -86,7 +86,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                 "kind": "claimed",
                 "task": tid,
                 "worker": worker_id,
-                "run_id": run.id,
+                "run_id": run.id,  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
                 "t": time.monotonic() - start,
             })
 
@@ -98,7 +98,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                     conn, tid,
                     result=f"done by worker-{worker_id}",
                     summary=f"worker-{worker_id} finished task {tid}",
-                    metadata={"worker_id": worker_id, "run_id": run.id},
+                    metadata={"worker_id": worker_id, "run_id": run.id},  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
                 )
             except sqlite3.OperationalError as e:
                 events.append({"kind": "sqlite_err_on_complete", "task": tid, "err": str(e)})
@@ -107,7 +107,7 @@ def worker_loop(worker_id: int, hermes_home: str, result_file: str) -> None:
                 "kind": "completed",
                 "task": tid,
                 "worker": worker_id,
-                "run_id": run.id,
+                "run_id": run.id,  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
                 "t": time.monotonic() - start,
             })
         finally:

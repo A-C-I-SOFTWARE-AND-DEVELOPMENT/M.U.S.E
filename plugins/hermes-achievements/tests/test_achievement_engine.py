@@ -4,8 +4,8 @@ from pathlib import Path
 
 MODULE_PATH = Path(__file__).resolve().parents[1] / "dashboard" / "plugin_api.py"
 spec = importlib.util.spec_from_file_location("plugin_api", MODULE_PATH)
-plugin_api = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(plugin_api)
+plugin_api = importlib.util.module_from_spec(spec)  # ty: ignore[invalid-argument-type]  # dynamic config/plugin path
+spec.loader.exec_module(plugin_api)  # ty: ignore[unresolved-attribute]  # dynamic config/plugin path
 
 
 class AchievementEngineTests(unittest.TestCase):

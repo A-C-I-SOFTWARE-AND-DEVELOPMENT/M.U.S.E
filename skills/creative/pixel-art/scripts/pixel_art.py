@@ -13,12 +13,12 @@ Usage (CLI):
     python pixel_art.py in.png out.png --preset nes
 """
 
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageEnhance, ImageOps  # ty: ignore[unresolved-import]
 
 try:
-    from .palettes import PALETTES, build_palette_image
+    from .palettes import PALETTES, build_palette_image  # ty: ignore[unresolved-import]
 except ImportError:
-    from palettes import PALETTES, build_palette_image
+    from palettes import PALETTES, build_palette_image  # ty: ignore[unresolved-import]
 
 
 PRESETS = {

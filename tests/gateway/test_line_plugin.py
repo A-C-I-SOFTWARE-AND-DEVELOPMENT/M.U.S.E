@@ -423,6 +423,7 @@ class TestRegister:
     def test_register_advertises_required_env(self):
         ctx = self._FakeCtx()
         register(ctx)
+        assert ctx.kwargs is not None
         assert set(ctx.kwargs["required_env"]) == {
             "LINE_CHANNEL_ACCESS_TOKEN",
             "LINE_CHANNEL_SECRET",
@@ -431,22 +432,26 @@ class TestRegister:
     def test_register_wires_allowlist_envs(self):
         ctx = self._FakeCtx()
         register(ctx)
+        assert ctx.kwargs is not None
         assert ctx.kwargs["allowed_users_env"] == "LINE_ALLOWED_USERS"
         assert ctx.kwargs["allow_all_env"] == "LINE_ALLOW_ALL_USERS"
 
     def test_register_wires_cron_home_channel(self):
         ctx = self._FakeCtx()
         register(ctx)
+        assert ctx.kwargs is not None
         assert ctx.kwargs["cron_deliver_env_var"] == "LINE_HOME_CHANNEL"
 
     def test_register_provides_standalone_sender(self):
         ctx = self._FakeCtx()
         register(ctx)
+        assert ctx.kwargs is not None
         assert callable(ctx.kwargs["standalone_sender_fn"])
 
     def test_register_provides_env_enablement(self):
         ctx = self._FakeCtx()
         register(ctx)
+        assert ctx.kwargs is not None
         assert callable(ctx.kwargs["env_enablement_fn"])
 
     def test_register_factory_yields_line_adapter(self):
@@ -457,6 +462,7 @@ class TestRegister:
             "channel_access_token": "tok",
             "channel_secret": "sec",
         })
+        assert ctx.kwargs is not None
         ad = ctx.kwargs["adapter_factory"](cfg)
         assert isinstance(ad, LineAdapter)
 
@@ -464,6 +470,7 @@ class TestRegister:
         ctx = self._FakeCtx()
         register(ctx)
         # LINE per-bubble limit is 5000; we register 4500 to leave headroom.
+        assert ctx.kwargs is not None
         assert ctx.kwargs["max_message_length"] <= 5000
 
 

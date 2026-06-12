@@ -177,7 +177,7 @@ class TestSyncSessionKeyAfterAutoCompress:
             def __init__(self, target=None, daemon=None, **kw):
                 self._target = target
             def start(self):
-                self._target()
+                self._target()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
 
         server._sessions["test-sid"] = session
         monkeypatch.setattr(server.threading, "Thread", _ImmediateThread)
@@ -245,7 +245,7 @@ class TestPendingTitleValueError:
             def __init__(self, target=None, daemon=None, **kw):
                 self._target = target
             def start(self):
-                self._target()
+                self._target()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
 
         server._sessions["sid"] = session
         monkeypatch.setattr(server.threading, "Thread", _ImmediateThread)
@@ -299,7 +299,7 @@ class TestPendingTitleValueError:
             def __init__(self, target=None, daemon=None, **kw):
                 self._target = target
             def start(self):
-                self._target()
+                self._target()  # ty: ignore[call-non-callable]  # mock/duck-typed test fixture
 
         server._sessions["sid"] = session
         monkeypatch.setattr(server.threading, "Thread", _ImmediateThread)
@@ -343,7 +343,7 @@ class TestGatewaySurfacesNullResponse:
 
         response = agent_result.get("final_response") or ""
         response = _normalize_empty_agent_response(
-            agent_result, response, history_len=10,
+            agent_result, response, history_len=10,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
 
         assert response != "", "Null response with api_calls>0 must be surfaced"
@@ -362,7 +362,7 @@ class TestGatewaySurfacesNullResponse:
 
         response = agent_result.get("final_response") or ""
         response = _normalize_empty_agent_response(
-            agent_result, response, history_len=10,
+            agent_result, response, history_len=10,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
 
         assert response == "", "Interrupted turns should not get synthetic responses"
@@ -380,7 +380,7 @@ class TestGatewaySurfacesNullResponse:
 
         response = agent_result.get("final_response") or ""
         response = _normalize_empty_agent_response(
-            agent_result, response, history_len=60,
+            agent_result, response, history_len=60,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
 
         assert "context window" in response
@@ -399,7 +399,7 @@ class TestGatewaySurfacesNullResponse:
 
         response = agent_result.get("final_response") or ""
         response = _normalize_empty_agent_response(
-            agent_result, response, history_len=5,
+            agent_result, response, history_len=5,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         )
 
         assert "500 Internal Server Error" in response

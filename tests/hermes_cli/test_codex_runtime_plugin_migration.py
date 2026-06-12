@@ -42,6 +42,7 @@ class TestTranslateOneServer:
             "command": "/usr/bin/myserver",
             "cwd": "/var/lib/mcp",
         })
+        assert cfg is not None
         assert cfg["cwd"] == "/var/lib/mcp"
 
     def test_http_basic(self):
@@ -60,6 +61,7 @@ class TestTranslateOneServer:
             "url": "http://localhost:8000/sse",
             "transport": "sse",
         })
+        assert cfg is not None
         assert cfg["url"] == "http://localhost:8000/sse"
         assert any("sse" in s.lower() for s in skipped)
 
@@ -69,7 +71,9 @@ class TestTranslateOneServer:
             "timeout": 180,
             "connect_timeout": 30,
         })
+        assert cfg is not None
         assert cfg["tool_timeout_sec"] == 180.0
+        assert cfg is not None
         assert cfg["startup_timeout_sec"] == 30.0
 
     def test_non_numeric_timeout_skipped(self):
@@ -77,7 +81,7 @@ class TestTranslateOneServer:
             "command": "y",
             "timeout": "not-a-number",
         })
-        assert "tool_timeout_sec" not in cfg
+        assert "tool_timeout_sec" not in cfg  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert any("timeout" in s and "numeric" in s for s in skipped)
 
     def test_disabled_server_emits_enabled_false(self):
@@ -85,18 +89,19 @@ class TestTranslateOneServer:
             "command": "y",
             "enabled": False,
         })
+        assert cfg is not None
         assert cfg["enabled"] is False
 
     def test_enabled_true_omitted(self):
         cfg, _ = _translate_one_server("x", {"command": "y", "enabled": True})
-        assert "enabled" not in cfg  # codex defaults to true
+        assert "enabled" not in cfg  # codex defaults to true  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_command_and_url_prefers_stdio_warns(self):
         cfg, skipped = _translate_one_server("x", {
             "command": "y", "url": "http://z",
         })
-        assert "command" in cfg
-        assert "url" not in cfg
+        assert "command" in cfg  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "url" not in cfg  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert any("url" in s for s in skipped)
 
     def test_no_transport_returns_none(self):
@@ -109,7 +114,7 @@ class TestTranslateOneServer:
             "command": "y",
             "sampling": {"enabled": True, "model": "gemini-3-flash"},
         })
-        assert "sampling" not in cfg
+        assert "sampling" not in cfg  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert any("sampling" in s for s in skipped)
 
     def test_unknown_keys_warned(self):
@@ -117,11 +122,11 @@ class TestTranslateOneServer:
             "command": "y",
             "totally_made_up_key": "value",
         })
-        assert "totally_made_up_key" not in cfg
+        assert "totally_made_up_key" not in cfg  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
         assert any("totally_made_up_key" in s for s in skipped)
 
     def test_non_dict_input(self):
-        cfg, skipped = _translate_one_server("x", "notadict")  # type: ignore[arg-type]
+        cfg, skipped = _translate_one_server("x", "notadict")  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         assert cfg is None
 
 

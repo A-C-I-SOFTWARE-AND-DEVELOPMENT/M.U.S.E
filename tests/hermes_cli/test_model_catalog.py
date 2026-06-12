@@ -369,8 +369,11 @@ class TestManifestMatchesInRepoLists:
         import importlib.util
         script_path = repo_root / "scripts" / "build_model_catalog.py"
         spec = importlib.util.spec_from_file_location("_build_model_catalog", script_path)
+        assert spec is not None
         mod = importlib.util.module_from_spec(spec)
+        assert spec is not None
         assert spec.loader is not None
+        assert spec is not None
         spec.loader.exec_module(mod)
         expected = mod.build_catalog()
 

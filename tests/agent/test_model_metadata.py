@@ -44,7 +44,7 @@ class TestEstimateTokensRough:
         assert estimate_tokens_rough("") == 0
 
     def test_none_returns_zero(self):
-        assert estimate_tokens_rough(None) == 0
+        assert estimate_tokens_rough(None) == 0  # ty: ignore[invalid-argument-type]
 
     def test_known_length(self):
         assert estimate_tokens_rough("a" * 400) == 100

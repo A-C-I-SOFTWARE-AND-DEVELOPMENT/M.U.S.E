@@ -45,6 +45,6 @@ def test_research_fabric_slash_command_registered() -> None:
     assert "rf" in entry.aliases
     assert entry.category == "Tools & Skills"
     # Alias resolves to the same canonical command.
-    assert resolve_command("/rf").name == "research-fabric"
+    assert resolve_command("/rf").name == "research-fabric"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     # Key subcommands are advertised for completion.
     assert {"charter", "improve", "benchmarks", "status"} <= set(entry.subcommands)

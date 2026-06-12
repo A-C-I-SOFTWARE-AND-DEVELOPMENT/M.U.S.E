@@ -64,7 +64,7 @@ class FakeMemoryProvider(MemoryProvider):
     def shutdown(self):
         self.shutdown_called = True
 
-    def on_turn_start(self, turn_number, message):
+    def on_turn_start(self, turn_number, message, **kwargs):
         self.turn_starts.append((turn_number, message))
 
     def on_session_end(self, messages):
@@ -73,7 +73,7 @@ class FakeMemoryProvider(MemoryProvider):
     def on_pre_compress(self, messages):
         self.pre_compress_called = True
 
-    def on_memory_write(self, action, target, content):
+    def on_memory_write(self, action, target, content, metadata=None):
         self.memory_writes.append((action, target, content))
 
 
@@ -240,7 +240,7 @@ class TestMemoryManager:
         """If one provider's sync fails, others still run."""
         mgr = MemoryManager()
         p1 = FakeMemoryProvider("builtin")
-        p1.sync_turn = MagicMock(side_effect=RuntimeError("boom"))
+        p1.sync_turn = MagicMock(side_effect=RuntimeError("boom"))  # ty: ignore[invalid-assignment]
         p2 = FakeMemoryProvider("external")
         mgr.add_provider(p1)
         mgr.add_provider(p2)
@@ -330,9 +330,9 @@ class TestMemoryManager:
         mgr = MemoryManager()
         order = []
         p1 = FakeMemoryProvider("builtin")
-        p1.shutdown = lambda: order.append("builtin")
+        p1.shutdown = lambda: order.append("builtin")  # ty: ignore[invalid-assignment]
         p2 = FakeMemoryProvider("external")
-        p2.shutdown = lambda: order.append("external")
+        p2.shutdown = lambda: order.append("external")  # ty: ignore[invalid-assignment]
         mgr.add_provider(p1)
         mgr.add_provider(p2)
 
@@ -357,7 +357,7 @@ class TestMemoryManager:
     def test_prefetch_failure_doesnt_block(self):
         mgr = MemoryManager()
         p1 = FakeMemoryProvider("builtin")
-        p1.prefetch = MagicMock(side_effect=RuntimeError("network error"))
+        p1.prefetch = MagicMock(side_effect=RuntimeError("network error"))  # ty: ignore[invalid-assignment]
         p2 = FakeMemoryProvider("external")
         p2._prefetch_result = "external memory"
         mgr.add_provider(p1)
@@ -369,7 +369,7 @@ class TestMemoryManager:
     def test_system_prompt_failure_doesnt_block(self):
         mgr = MemoryManager()
         p1 = FakeMemoryProvider("builtin")
-        p1.system_prompt_block = MagicMock(side_effect=RuntimeError("broken"))
+        p1.system_prompt_block = MagicMock(side_effect=RuntimeError("broken"))  # ty: ignore[invalid-assignment]
         p2 = FakeMemoryProvider("external")
         p2._prompt_block = "works fine"
         mgr.add_provider(p1)
@@ -840,7 +840,7 @@ class TestCommitMemorySessionRouting:
         mgr = MemoryManager()
         builtin = FakeMemoryProvider("builtin")
         bad = _CommitRecorder("bad-provider")
-        bad.on_session_end = lambda m: (_ for _ in ()).throw(RuntimeError("boom"))
+        bad.on_session_end = lambda m: (_ for _ in ()).throw(RuntimeError("boom"))  # ty: ignore[invalid-assignment]
         mgr.add_provider(builtin)
         mgr.add_provider(bad)
 
@@ -953,7 +953,7 @@ class TestOnMemoryWriteBridge:
 
         # Simulate self.tools already containing one of the plugin tools
         # (as if it was registered via ctx.register_tool → get_tool_definitions)
-        existing_tools = [
+        existing_tools: list[dict] = [
             {"type": "function", "function": {"name": "ext_recall", "description": "Recall (from registry)", "parameters": {}}},
             {"type": "function", "function": {"name": "web_search", "description": "Search", "parameters": {}}},
         ]
@@ -983,7 +983,7 @@ class TestOnMemoryWriteBridge:
         """If a provider's on_memory_write raises, others still get notified."""
         mgr = MemoryManager()
         bad = FakeMemoryProvider("builtin")
-        bad.on_memory_write = MagicMock(side_effect=RuntimeError("boom"))
+        bad.on_memory_write = MagicMock(side_effect=RuntimeError("boom"))  # ty: ignore[invalid-assignment]
         good = FakeMemoryProvider("good")
         mgr.add_provider(bad)
         mgr.add_provider(good)
@@ -1024,7 +1024,7 @@ class TestHonchoCadenceTracking:
             def prefetch_context(self, key, query=None):
                 pass
 
-        p._manager = FakeManager()
+        p._manager = FakeManager()  # ty: ignore[invalid-assignment]
 
         # Simulate turn 1: last_dialectic_turn = -999, so (1 - (-999)) >= 3 -> fires
         p.on_turn_start(1, "turn 1")

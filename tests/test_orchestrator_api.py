@@ -385,9 +385,9 @@ class TestCostAndBudget:
             )
             await store.accumulate_cost(job.id, cost_usd=1.5)
             budget = (await store.get(job.id)).budget_status()
-            assert budget["outcome"] == "soft_exceeded"
-            assert budget["tier"] == "ask"
-            assert budget["needs_approval"] is True
+            assert budget["outcome"] == "soft_exceeded"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+            assert budget["tier"] == "ask"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+            assert budget["needs_approval"] is True  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
         asyncio.run(_run())
 
     def test_budget_hard_exceeded_should_stop(self):
@@ -396,9 +396,9 @@ class TestCostAndBudget:
             job = await store.create("b", {"budget": {"hard_limit": 2.0}})
             await store.accumulate_cost(job.id, cost_usd=2.0)
             budget = (await store.get(job.id)).budget_status()
-            assert budget["outcome"] == "hard_exceeded"
-            assert budget["tier"] == "refuse"
-            assert budget["should_stop"] is True
+            assert budget["outcome"] == "hard_exceeded"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+            assert budget["tier"] == "refuse"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
+            assert budget["should_stop"] is True  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
         asyncio.run(_run())
 
     def test_malformed_budget_spec_degrades_to_none(self):

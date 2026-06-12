@@ -25,7 +25,7 @@ import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
 
-import pytest  # ty: ignore[unresolved-import]
+import pytest
 
 import gateway.cockpit.server as server_mod
 from gateway.cockpit import observatory_metrics as om

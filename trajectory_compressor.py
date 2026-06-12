@@ -362,7 +362,7 @@ class TrajectoryCompressor:
     def _init_tokenizer(self):
         """Initialize HuggingFace tokenizer for token counting."""
         try:
-            from transformers import AutoTokenizer
+            from transformers import AutoTokenizer  # ty: ignore[unresolved-import]  # optional dependency, guarded by try/except
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.config.tokenizer_name,
                 trust_remote_code=self.config.trust_remote_code
@@ -568,7 +568,7 @@ class TrajectoryCompressor:
             return text
         return "[CONTEXT SUMMARY]:" if not text else f"[CONTEXT SUMMARY]: {text}"
     
-    def _generate_summary(self, content: str, metrics: TrajectoryMetrics) -> str:
+    def _generate_summary(self, content: str, metrics: TrajectoryMetrics) -> str:  # ty: ignore[invalid-return-type]  # retry loop always returns when max_retries >= 1
         """
         Generate a summary of the compressed turns using OpenRouter.
         
@@ -615,13 +615,14 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
                         max_tokens=self.config.summary_target_tokens * 2,
                     )
                 else:
-                    _create_kwargs = {
+                    _create_kwargs: Dict[str, Any] = {
                         "model": self.config.summarization_model,
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": self.config.summary_target_tokens * 2,
                     }
                     if summary_temperature is not None:
                         _create_kwargs["temperature"] = summary_temperature
+                    assert self.client is not None  # set in _init_summarizer when _use_call_llm is False
                     response = self.client.chat.completions.create(**_create_kwargs)
                 
                 summary = self._coerce_summary_content(response.choices[0].message.content)
@@ -637,7 +638,7 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
                     # Fallback: create a basic summary
                     return "[CONTEXT SUMMARY]: [Summary generation failed - previous turns contained tool calls and responses that have been compressed to save context space.]"
     
-    async def _generate_summary_async(self, content: str, metrics: TrajectoryMetrics) -> str:
+    async def _generate_summary_async(self, content: str, metrics: TrajectoryMetrics) -> str:  # ty: ignore[invalid-return-type]  # retry loop always returns when max_retries >= 1
         """
         Generate a summary of the compressed turns using OpenRouter (async version).
         
@@ -684,7 +685,7 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
                         max_tokens=self.config.summary_target_tokens * 2,
                     )
                 else:
-                    _create_kwargs = {
+                    _create_kwargs: Dict[str, Any] = {
                         "model": self.config.summarization_model,
                         "messages": [{"role": "user", "content": prompt}],
                         "max_tokens": self.config.summary_target_tokens * 2,
@@ -1289,11 +1290,11 @@ Write only the summary, starting with "[CONTEXT SUMMARY]:" prefix."""
 
 def main(
     input: str,
-    output: str = None,
+    output: Optional[str] = None,
     config: str = "configs/trajectory_compression.yaml",
-    target_max_tokens: int = None,
-    tokenizer: str = None,
-    sample_percent: float = None,
+    target_max_tokens: Optional[int] = None,
+    tokenizer: Optional[str] = None,
+    sample_percent: Optional[float] = None,
     seed: int = 42,
     dry_run: bool = False,
 ):

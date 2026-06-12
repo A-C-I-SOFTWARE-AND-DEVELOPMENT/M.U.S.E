@@ -115,8 +115,8 @@ def test_flatten_exception_chain_caps_depth():
 
 def test_log_stream_retry_includes_diagnostic_fields(caplog):
     agent = _make_agent()
-    agent._delegate_depth = 1
-    agent._subagent_id = "sa-3-deadbeef"
+    agent._delegate_depth = 1  # ty: ignore[unresolved-attribute]
+    agent._subagent_id = "sa-3-deadbeef"  # ty: ignore[unresolved-attribute]
     agent.provider = "openrouter"
 
     diag = AIAgent._stream_diag_init()
@@ -175,7 +175,7 @@ def test_log_stream_retry_includes_diagnostic_fields(caplog):
 def test_log_stream_retry_works_without_diag(caplog):
     """diag is optional — older callers / unit tests still work."""
     agent = _make_agent()
-    agent._delegate_depth = 0
+    agent._delegate_depth = 0  # ty: ignore[unresolved-attribute]
     agent.provider = "openrouter"
 
     with caplog.at_level(logging.WARNING, logger="run_agent"):

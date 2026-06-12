@@ -50,7 +50,7 @@ def _make_adapter(api_key: str = "") -> APIServerAdapter:
 
 def _create_app(adapter: APIServerAdapter) -> web.Application:
     """Create the aiohttp app with jobs routes registered."""
-    app = web.Application(middlewares=[cors_middleware])
+    app = web.Application(middlewares=[cors_middleware])  # ty: ignore[invalid-argument-type]
     app["api_server_adapter"] = adapter
     # Register only job routes (plus health for sanity)
     app.router.add_get("/health", adapter._handle_health)

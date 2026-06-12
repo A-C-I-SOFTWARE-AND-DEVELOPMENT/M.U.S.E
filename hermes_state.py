@@ -329,7 +329,11 @@ class SessionDB:
     # Attempt a PASSIVE WAL checkpoint every N successful writes.
     _CHECKPOINT_EVERY_N_WRITES = 50
 
-    def __init__(self, db_path: Path = None):
+    # The connection is opened in __init__ and stays open for the object's
+    # lifetime; only close() drops it (annotation-only declaration).
+    _conn: sqlite3.Connection
+
+    def __init__(self, db_path: Optional[Path] = None):
         self.db_path = db_path or DEFAULT_DB_PATH
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -458,7 +462,7 @@ class SessionDB:
                 except Exception:
                     pass
                 self._conn.close()
-                self._conn = None
+                self._conn = None  # ty: ignore[invalid-assignment]  # connection intentionally dropped after close()
 
     @staticmethod
     def _parse_schema_columns(schema_sql: str) -> Dict[str, Dict[str, str]]:
@@ -685,11 +689,11 @@ class SessionDB:
         self,
         session_id: str,
         source: str,
-        model: str = None,
-        model_config: Dict[str, Any] = None,
-        system_prompt: str = None,
-        user_id: str = None,
-        parent_session_id: str = None,
+        model: Optional[str] = None,
+        model_config: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None,
+        user_id: Optional[str] = None,
+        parent_session_id: Optional[str] = None,
     ) -> None:
         """Shared INSERT OR IGNORE for session rows."""
         def _do(conn):
@@ -755,7 +759,7 @@ class SessionDB:
         session_id: str,
         input_tokens: int = 0,
         output_tokens: int = 0,
-        model: str = None,
+        model: Optional[str] = None,
         cache_read_tokens: int = 0,
         cache_write_tokens: int = 0,
         reasoning_tokens: int = 0,
@@ -853,7 +857,7 @@ class SessionDB:
         self,
         session_id: str,
         source: str = "unknown",
-        model: str = None,
+        model: Optional[str] = None,
         **kwargs,
     ) -> str:
         """Ensure a session row exists (INSERT OR IGNORE). Accepts optional kwargs."""
@@ -1012,7 +1016,7 @@ class SessionDB:
 
         return cleaned
 
-    def set_session_title(self, session_id: str, title: str) -> bool:
+    def set_session_title(self, session_id: str, title: Optional[str]) -> bool:
         """Set or update a session's title.
 
         Returns True if session was found and title was set.
@@ -1161,8 +1165,8 @@ class SessionDB:
 
     def list_sessions_rich(
         self,
-        source: str = None,
-        exclude_sources: List[str] = None,
+        source: Optional[str] = None,
+        exclude_sources: Optional[List[str]] = None,
         limit: int = 20,
         offset: int = 0,
         include_children: bool = False,
@@ -1349,7 +1353,7 @@ class SessionDB:
 
         return sessions
 
-    def _get_session_rich_row(self, session_id: str) -> Optional[Dict[str, Any]]:
+    def _get_session_rich_row(self, session_id: Optional[str]) -> Optional[Dict[str, Any]]:
         """Fetch a single session with the same enriched columns as
         ``list_sessions_rich`` (preview + last_active). Returns None if the
         session doesn't exist.
@@ -1434,14 +1438,14 @@ class SessionDB:
         self,
         session_id: str,
         role: str,
-        content: str = None,
-        tool_name: str = None,
+        content: Optional[str] = None,
+        tool_name: Optional[str] = None,
         tool_calls: Any = None,
-        tool_call_id: str = None,
-        token_count: int = None,
-        finish_reason: str = None,
-        reasoning: str = None,
-        reasoning_content: str = None,
+        tool_call_id: Optional[str] = None,
+        token_count: Optional[int] = None,
+        finish_reason: Optional[str] = None,
+        reasoning: Optional[str] = None,
+        reasoning_content: Optional[str] = None,
         reasoning_details: Any = None,
         codex_reasoning_items: Any = None,
         codex_message_items: Any = None,
@@ -2078,12 +2082,12 @@ class SessionDB:
     def search_messages(
         self,
         query: str,
-        source_filter: List[str] = None,
-        exclude_sources: List[str] = None,
-        role_filter: List[str] = None,
+        source_filter: Optional[List[str]] = None,
+        exclude_sources: Optional[List[str]] = None,
+        role_filter: Optional[List[str]] = None,
         limit: int = 20,
         offset: int = 0,
-        sort: str = None,
+        sort: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         Full-text search across session messages using FTS5.
@@ -2377,7 +2381,7 @@ class SessionDB:
 
     def search_sessions(
         self,
-        source: str = None,
+        source: Optional[str] = None,
         limit: int = 20,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -2415,7 +2419,7 @@ class SessionDB:
     # Utility
     # =========================================================================
 
-    def session_count(self, source: str = None) -> int:
+    def session_count(self, source: Optional[str] = None) -> int:
         """Count sessions, optionally filtered by source."""
         with self._lock:
             if source:
@@ -2426,7 +2430,7 @@ class SessionDB:
                 cursor = self._conn.execute("SELECT COUNT(*) FROM sessions")
             return cursor.fetchone()[0]
 
-    def message_count(self, session_id: str = None) -> int:
+    def message_count(self, session_id: Optional[str] = None) -> int:
         """Count messages, optionally for a specific session."""
         with self._lock:
             if session_id:
@@ -2449,7 +2453,7 @@ class SessionDB:
         messages = self.get_messages(session_id)
         return {**session, "messages": messages}
 
-    def export_all(self, source: str = None) -> List[Dict[str, Any]]:
+    def export_all(self, source: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Export all sessions (with messages) as a list of dicts.
         Suitable for writing to a JSONL file for backup/analysis.
@@ -2537,7 +2541,7 @@ class SessionDB:
     def prune_sessions(
         self,
         older_than_days: int = 90,
-        source: str = None,
+        source: Optional[str] = None,
         sessions_dir: Optional[Path] = None,
     ) -> int:
         """Delete sessions older than N days. Returns count of deleted sessions.

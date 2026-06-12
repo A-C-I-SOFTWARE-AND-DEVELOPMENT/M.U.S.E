@@ -26,8 +26,11 @@ import importlib.util
 import logging
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
 from hermes_cli.config import cfg_get
+
+if TYPE_CHECKING:
+    from agent.memory_provider import MemoryProvider
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +223,7 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                         parent_mod = importlib.util.module_from_spec(spec)
                         sys.modules[parent] = parent_mod
                         try:
-                            spec.loader.exec_module(parent_mod)
+                            spec.loader.exec_module(parent_mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
                         except Exception:
                             pass
 
@@ -250,12 +253,12 @@ def _load_provider_from_dir(provider_dir: Path) -> Optional["MemoryProvider"]:
                     sub_mod = importlib.util.module_from_spec(sub_spec)
                     sys.modules[full_sub_name] = sub_mod
                     try:
-                        sub_spec.loader.exec_module(sub_mod)
+                        sub_spec.loader.exec_module(sub_mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
                     except Exception as e:
                         logger.debug("Failed to load submodule %s: %s", full_sub_name, e)
 
         try:
-            spec.loader.exec_module(mod)
+            spec.loader.exec_module(mod)  # ty: ignore[unresolved-attribute]  # file-based specs always carry a loader
         except Exception as e:
             logger.debug("Failed to exec_module %s: %s", module_name, e)
             sys.modules.pop(module_name, None)

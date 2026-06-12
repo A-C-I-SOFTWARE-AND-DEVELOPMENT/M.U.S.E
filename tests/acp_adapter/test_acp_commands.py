@@ -65,7 +65,7 @@ def make_agent_and_state():
     acp_agent = HermesACPAgent(session_manager=manager)
     state = manager.create_session(cwd=".")
     conn = CaptureConn()
-    acp_agent.on_connect(conn)
+    acp_agent.on_connect(conn)  # ty: ignore[invalid-argument-type]
     return acp_agent, state, fake, conn
 
 

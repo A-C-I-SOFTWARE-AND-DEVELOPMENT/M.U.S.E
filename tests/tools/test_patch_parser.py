@@ -223,6 +223,7 @@ class TestAdditionOnlyHunks:
         file_ops = FakeFileOps()
         result = apply_v4a_operations(ops, file_ops)
         assert result.success is True
+        assert file_ops.written is not None
         assert "def helper():" in file_ops.written
         assert "return 42" in file_ops.written
 
@@ -251,6 +252,7 @@ class TestAdditionOnlyHunks:
         file_ops = FakeFileOps()
         result = apply_v4a_operations(ops, file_ops)
         assert result.success is True
+        assert file_ops.written is not None
         assert file_ops.written.endswith("def new_func():\n    return True\n")
         assert "existing = True" in file_ops.written
 
@@ -288,6 +290,7 @@ class TestReadFileRaw:
         file_ops = FakeFileOps()
         result = apply_v4a_operations(ops, file_ops)
         assert result.success is True
+        assert file_ops.written is not None
         written_lines = file_ops.written.split("\n")
         assert len(written_lines) == 2500, (
             f"Expected 2500 lines, got {len(written_lines)}"
@@ -322,6 +325,7 @@ class TestReadFileRaw:
         file_ops = FakeFileOps()
         result = apply_v4a_operations(ops, file_ops)
         assert result.success is True
+        assert file_ops.written is not None
         assert long_line in file_ops.written, "Long line was truncated"
         assert "... [truncated]" not in file_ops.written
 
@@ -365,6 +369,7 @@ class TestValidationPhase:
         result = apply_v4a_operations(ops, FakeFileOps())
         assert result.success is False
         assert written == {}, f"No files should have been written, got: {list(written.keys())}"
+        assert result.error is not None
         assert "validation failed" in result.error.lower()
 
     def test_all_valid_operations_applied(self):

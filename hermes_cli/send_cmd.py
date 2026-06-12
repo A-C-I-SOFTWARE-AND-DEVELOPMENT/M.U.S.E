@@ -218,7 +218,7 @@ def _load_hermes_env() -> None:
     try:
         from dotenv import load_dotenv
     except Exception:
-        load_dotenv = None  # type: ignore[assignment]
+        load_dotenv = None  # ty: ignore[invalid-assignment]
 
     try:
         from hermes_cli.config import get_hermes_home

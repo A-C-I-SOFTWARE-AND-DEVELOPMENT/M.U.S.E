@@ -105,7 +105,7 @@ def test_missing_parameters_gets_default_object_schema():
 
 
 def test_non_dict_parameters_gets_default_object_schema():
-    tools = [_tool("t", "object")]  # pathological
+    tools = [_tool("t", "object")]  # pathological  # ty: ignore[invalid-argument-type]
     out = sanitize_tool_schemas(tools)
     assert out[0]["function"]["parameters"] == {"type": "object", "properties": {}}
 
@@ -206,7 +206,7 @@ def test_empty_tools_list_returns_empty():
 
 
 def test_none_tools_returns_none():
-    assert sanitize_tool_schemas(None) is None
+    assert sanitize_tool_schemas(None) is None  # ty: ignore[invalid-argument-type]
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -303,7 +303,7 @@ def test_strip_empty_tools_returns_zero():
 
 
 def test_strip_none_returns_zero():
-    tools, stripped = strip_pattern_and_format(None)
+    tools, stripped = strip_pattern_and_format(None)  # ty: ignore[invalid-argument-type]
     assert tools is None
     assert stripped == 0
 
@@ -615,7 +615,7 @@ def test_strip_slash_enum_empty_returns_zero():
 
 
 def test_strip_slash_enum_none_returns_zero():
-    tools, stripped = strip_slash_enum(None)
+    tools, stripped = strip_slash_enum(None)  # ty: ignore[invalid-argument-type]
     assert tools is None
     assert stripped == 0
 

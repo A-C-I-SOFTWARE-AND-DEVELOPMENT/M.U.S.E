@@ -58,7 +58,7 @@ class CleanupCaptureAdapter(BasePlatformAdapter):
         )
         return SendResult(success=True, message_id=mid)
 
-    async def edit_message(self, chat_id, message_id, content) -> SendResult:
+    async def edit_message(self, chat_id, message_id, content) -> SendResult:  # ty: ignore[invalid-method-override]
         self.edits.append({"chat_id": chat_id, "message_id": message_id, "content": content})
         return SendResult(success=True, message_id=message_id)
 
@@ -89,7 +89,7 @@ class NoDeleteAdapter(CleanupCaptureAdapter):
 
 
 # Re-bind so the class's delete_message identity equals the base's.
-NoDeleteAdapter.delete_message = BasePlatformAdapter.delete_message
+NoDeleteAdapter.delete_message = BasePlatformAdapter.delete_message  # ty: ignore[invalid-assignment]
 
 
 class ProgressAgent:
@@ -159,11 +159,11 @@ def _install_fakes(monkeypatch, agent_cls, *, cleanup_on: bool):
     monkeypatch.setenv("HERMES_TOOL_PROGRESS_MODE", "all")
 
     fake_dotenv = types.ModuleType("dotenv")
-    fake_dotenv.load_dotenv = lambda *a, **k: None
+    fake_dotenv.load_dotenv = lambda *a, **k: None  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "dotenv", fake_dotenv)
 
     fake_run_agent = types.ModuleType("run_agent")
-    fake_run_agent.AIAgent = agent_cls
+    fake_run_agent.AIAgent = agent_cls  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "run_agent", fake_run_agent)
     import tools.terminal_tool  # noqa: F401 — register tool emoji
 

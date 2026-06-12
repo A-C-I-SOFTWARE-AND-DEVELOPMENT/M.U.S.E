@@ -110,7 +110,7 @@ def adapter():
     # Slash auth is exercised in test_discord_slash_auth.py — bypass it here
     # so registration / dispatch / thread behavior tests don't have to
     # construct a full auth context (allowlist / channel scope).
-    adapter._check_slash_authorization = AsyncMock(return_value=True)
+    adapter._check_slash_authorization = AsyncMock(return_value=True)  # ty: ignore[invalid-assignment]
     return adapter
 
 
@@ -612,7 +612,7 @@ async def test_auto_create_thread_returns_none_when_direct_and_fallback_fail(ada
 # ------------------------------------------------------------------
 
 
-import discord as _discord_mod  # noqa: E402 — mock or real, used below
+import discord as _discord_mod  # noqa: E402 — mock or real, used below  # ty: ignore[unresolved-import]
 
 
 class _FakeTextChannel:

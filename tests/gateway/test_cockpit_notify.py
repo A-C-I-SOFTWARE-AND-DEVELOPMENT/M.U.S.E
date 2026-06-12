@@ -249,7 +249,7 @@ def test_resolve_and_notify_never_raises_on_queue_failure(home: Path) -> None:
             raise RuntimeError("queue down")
 
     # A failing queue must not break the caller.
-    assert notify.resolve_and_notify("a", decision="approve", queue=BoomQueue()) is False  # type: ignore[arg-type]
+    assert notify.resolve_and_notify("a", decision="approve", queue=BoomQueue()) is False  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     # The decided event is still emitted.
     assert len(_read_decided_events()) == 1
 
@@ -324,9 +324,9 @@ def test_approvals_decide_idempotent_repeat_keeps_no_pending(home: Path) -> None
 
     first = _decide()
     second = _decide()
-    assert first.status == 200  # type: ignore[attr-defined]
-    assert second.status == 200  # type: ignore[attr-defined]
-    assert second.payload["idempotent"] is True  # type: ignore[attr-defined]
+    assert first.status == 200  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+    assert second.status == 200  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
+    assert second.payload["idempotent"] is True  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
     # Only the first (real) decision cleared the queue + emitted; the idempotent
     # repeat added no second decided event.

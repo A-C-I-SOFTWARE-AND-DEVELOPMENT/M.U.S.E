@@ -64,7 +64,7 @@ def test_compress_context_falls_back_when_engine_rejects_focus_topic():
     # Directly invoke the compression call site — this is the line that
     # used to blow up with TypeError under focus_topic+strict plugin.
     try:
-        compressed = engine.compress(messages, current_tokens=100, focus_topic="foo")
+        compressed = engine.compress(messages, current_tokens=100, focus_topic="foo")  # ty: ignore[unknown-argument]
     except TypeError:
         compressed = engine.compress(messages, current_tokens=100)
 

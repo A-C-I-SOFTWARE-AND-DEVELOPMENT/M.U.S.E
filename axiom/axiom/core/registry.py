@@ -11,7 +11,7 @@ from __future__ import annotations
 import sqlite3
 import time
 
-from nacl.signing import SigningKey, VerifyKey
+from nacl.signing import SigningKey, VerifyKey  # ty: ignore[unresolved-import]
 
 from .canonical import Unit
 

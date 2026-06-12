@@ -30,7 +30,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 from urllib.parse import quote
 
 from agent.memory_provider import MemoryProvider
@@ -524,7 +524,7 @@ class RetainDBMemoryProvider(MemoryProvider):
 
     def _seed_soul(self, content: str) -> None:
         try:
-            self._client.seed_agent_identity(self._agent_id, content, source="soul_md")
+            self._client.seed_agent_identity(self._agent_id, content, source="soul_md")  # ty: ignore[unresolved-attribute]  # thread spawned only after initialize() sets _client
         except Exception as exc:
             logger.debug("RetainDB soul seed failed: %s", exc)
 
@@ -558,8 +558,8 @@ class RetainDBMemoryProvider(MemoryProvider):
 
     def _prefetch_context(self, query: str) -> None:
         try:
-            query_result = self._client.query_context(self._user_id, self._session_id, query)
-            profile = self._client.get_profile(self._user_id)
+            query_result = self._client.query_context(self._user_id, self._session_id, query)  # ty: ignore[unresolved-attribute]  # thread spawned only when _client is set
+            profile = self._client.get_profile(self._user_id)  # ty: ignore[unresolved-attribute]
             overlay = _build_overlay(profile, query_result)
             with self._lock:
                 self._context_result = overlay
@@ -568,7 +568,7 @@ class RetainDBMemoryProvider(MemoryProvider):
 
     def _prefetch_dialectic(self, query: str) -> None:
         try:
-            result = self._client.ask_user(self._user_id, query, reasoning_level=self._reasoning_level(query))
+            result = self._client.ask_user(self._user_id, query, reasoning_level=self._reasoning_level(query))  # ty: ignore[unresolved-attribute]  # thread spawned only when _client is set
             answer = str(result.get("answer") or "")
             if answer:
                 with self._lock:
@@ -578,7 +578,7 @@ class RetainDBMemoryProvider(MemoryProvider):
 
     def _prefetch_agent_model(self) -> None:
         try:
-            model = self._client.get_agent_model(self._agent_id)
+            model = self._client.get_agent_model(self._agent_id)  # ty: ignore[unresolved-attribute]  # thread spawned only when _client is set
             if model.get("memory_count", 0) > 0:
                 with self._lock:
                     self._agent_model = model
@@ -657,7 +657,8 @@ class RetainDBMemoryProvider(MemoryProvider):
             return tool_error(str(exc))
 
     def _dispatch(self, tool_name: str, args: dict) -> Any:
-        c = self._client
+        # handle_tool_call (the only caller) guards against an uninitialized client.
+        c = cast("_Client", self._client)
 
         if tool_name == "retaindb_profile":
             return c.get_profile(self._user_id)
@@ -744,7 +745,7 @@ class RetainDBMemoryProvider(MemoryProvider):
 
     # ── Optional hooks ─────────────────────────────────────────────────────
 
-    def on_memory_write(self, action: str, target: str, content: str) -> None:
+    def on_memory_write(self, action: str, target: str, content: str) -> None:  # ty: ignore[invalid-method-override]  # legacy hook signature; MemoryManager sig-inspects and adapts
         """Mirror built-in memory writes to RetainDB."""
         if action != "add" or not content or not self._client:
             return

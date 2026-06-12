@@ -12,11 +12,11 @@ from tools.mcp_tool import MCPServerTask, _format_connect_error, _resolve_stdio_
 if not _MCP_AVAILABLE:
     import tools.mcp_tool as _mcp_mod
     if not hasattr(_mcp_mod, "StdioServerParameters"):
-        _mcp_mod.StdioServerParameters = MagicMock
+        _mcp_mod.StdioServerParameters = MagicMock  # ty: ignore[invalid-assignment]
     if not hasattr(_mcp_mod, "stdio_client"):
-        _mcp_mod.stdio_client = MagicMock
+        _mcp_mod.stdio_client = MagicMock  # ty: ignore[invalid-assignment]
     if not hasattr(_mcp_mod, "ClientSession"):
-        _mcp_mod.ClientSession = MagicMock
+        _mcp_mod.ClientSession = MagicMock  # ty: ignore[invalid-assignment]
 
 
 def test_resolve_stdio_command_falls_back_to_hermes_node_bin(tmp_path):

@@ -715,7 +715,9 @@ class KawaiiSpinner:
                 time.sleep(0.1)
                 continue
             frame = self.spinner_frames[self.frame_idx % len(self.spinner_frames)]
-            elapsed = time.time() - self.start_time
+            start_time = self.start_time
+            assert start_time is not None  # set in start() before the animation thread launches
+            elapsed = time.time() - start_time
             if wings:
                 left, right = wings[self.frame_idx % len(wings)]
                 line = f"  {left} {frame} {self.message} {right} ({elapsed:.1f}s)"
@@ -756,7 +758,7 @@ class KawaiiSpinner:
         blanks = ' ' * max(self.last_line_len + 5, 40)
         self._write(f"\r{blanks}\r  {text}", flush=True)
 
-    def stop(self, final_message: str = None):
+    def stop(self, final_message: str | None = None):
         self.running = False
         if self.thread:
             self.thread.join(timeout=0.5)

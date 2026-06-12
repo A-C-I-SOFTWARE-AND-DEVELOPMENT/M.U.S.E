@@ -50,7 +50,7 @@ def _make_cli(tool_progress="all"):
     with patch.dict(sys.modules, prompt_toolkit_stubs), \
          patch.dict("os.environ", clean_env, clear=False):
         import cli as mod
-        mod = importlib.reload(mod)
+        mod = importlib.reload(mod)  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         _cli_mod = mod
         with patch.object(mod, "get_tool_definitions", return_value=[]), \
              patch.dict(mod.__dict__, {"CLI_CONFIG": _clean_config}):

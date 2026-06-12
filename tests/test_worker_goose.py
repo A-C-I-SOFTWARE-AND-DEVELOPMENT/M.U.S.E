@@ -78,9 +78,9 @@ class TestHandoffPath:
     def test_handoff_command_references_instructions(self, tmp_path):
         with mock.patch.object(goose_worker, "detect_command", return_value=True):
             result = goose_worker.run(_task(), tmp_path / "ws")
-        assert "goose run" in result.handoff_command
-        assert "--instructions" in result.handoff_command
-        assert "prompt.md" in result.handoff_command
+        assert "goose run" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "--instructions" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "prompt.md" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
     def test_status_json_is_machine_readable(self, tmp_path):
         with mock.patch.object(goose_worker, "detect_command", return_value=True):
@@ -105,9 +105,9 @@ class TestHandoffPath:
         )
         with mock.patch.object(goose_worker, "detect_command", return_value=True):
             result = goose_worker.run(_task(), tmp_path / "ws", config=cfg)
-        assert "--recipe recipes/summarize.yaml" in result.handoff_command
-        assert "--with-extension developer" in result.handoff_command
-        assert "--with-extension files" in result.handoff_command
+        assert "--recipe recipes/summarize.yaml" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "--with-extension developer" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
+        assert "--with-extension files" in result.handoff_command  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 class TestExecutionPath:

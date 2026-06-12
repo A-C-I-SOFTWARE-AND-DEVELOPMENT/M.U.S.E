@@ -1128,7 +1128,9 @@ class TestNovitaProvider:
     def test_novita_aliases(self):
         from providers import get_provider_profile
         profile = get_provider_profile("novita")
+        assert profile is not None
         assert "novita-ai" in profile.aliases
+        assert profile is not None
         assert "novitaai" in profile.aliases
 
     def test_novita_alias_resolves(self):

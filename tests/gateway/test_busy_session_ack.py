@@ -15,12 +15,12 @@ import pytest
 import sys, types
 
 _tg = types.ModuleType("telegram")
-_tg.constants = types.ModuleType("telegram.constants")
+_tg.constants = types.ModuleType("telegram.constants")  # ty: ignore[unresolved-attribute]
 _ct = MagicMock()
 _ct.SUPERGROUP = "supergroup"
 _ct.GROUP = "group"
 _ct.PRIVATE = "private"
-_tg.constants.ChatType = _ct
+_tg.constants.ChatType = _ct  # ty: ignore[unresolved-attribute]
 sys.modules.setdefault("telegram", _tg)
 sys.modules.setdefault("telegram.constants", _tg.constants)
 sys.modules.setdefault("telegram.ext", types.ModuleType("telegram.ext"))
@@ -41,7 +41,7 @@ from gateway.platforms.base import (
 def _make_event(text="hello", chat_id="123", platform_val="telegram"):
     """Build a minimal MessageEvent."""
     source = SessionSource(
-        platform=MagicMock(value=platform_val),
+        platform=MagicMock(value=platform_val),  # ty: ignore[invalid-argument-type]
         chat_id=chat_id,
         chat_type="private",
         user_id="user1",

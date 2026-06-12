@@ -125,7 +125,7 @@ def preprocess_context_references(
     if loop and loop.is_running():
         import concurrent.futures
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            return pool.submit(asyncio.run, coro).result()
+            return pool.submit(asyncio.run, coro).result()  # ty: ignore[invalid-return-type]  # ty cannot solve asyncio.run's generic through Executor.submit
     return asyncio.run(coro)
 
 

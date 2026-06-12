@@ -33,6 +33,7 @@ import tempfile
 import threading
 import time
 import urllib.request
+from typing import Literal
 
 from hermes_constants import get_hermes_home
 
@@ -93,8 +94,8 @@ def _load_security_config() -> dict:
 
 # Cached path after first resolution (avoids repeated shutil.which per command).
 # _INSTALL_FAILED means "we tried and failed" — prevents retry on every command.
-_resolved_path: str | None | bool = None
-_INSTALL_FAILED = False  # sentinel: distinct from "not yet tried"
+_resolved_path: "str | None | Literal[False]" = None
+_INSTALL_FAILED: "Literal[False]" = False  # sentinel: distinct from "not yet tried"
 _install_failure_reason: str = ""  # reason tag when _resolved_path is _INSTALL_FAILED
 
 # Background install thread coordination

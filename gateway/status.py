@@ -153,7 +153,7 @@ def _read_process_cmdline(pid: int) -> Optional[str]:
 
     # Windows fallback: psutil (already used by _pid_exists)
     try:
-        import psutil  # type: ignore
+        import psutil
         proc = psutil.Process(pid)
         cmdline_parts = proc.cmdline()
         if cmdline_parts:
@@ -239,7 +239,7 @@ def _read_json_file(path: Path) -> Optional[dict[str, Any]]:
 
 
 def _write_json_file(path: Path, payload: dict[str, Any]) -> None:
-    atomic_json_write(path, payload, indent=None, separators=(",", ":"))
+    atomic_json_write(path, payload, indent=None, separators=(",", ":"))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
 
 
 def _read_pid_record(pid_path: Optional[Path] = None) -> Optional[dict]:
@@ -355,7 +355,7 @@ def _pid_exists(pid: int) -> bool:
     scaffold phase before ``psutil`` is pip-installed.
     """
     try:
-        import psutil  # type: ignore
+        import psutil
         return bool(psutil.pid_exists(int(pid)))
     except ImportError:
         pass  # Fall through to stdlib fallback.
@@ -721,7 +721,7 @@ def release_all_scoped_locks(
                 if not isinstance(record, dict):
                     continue
                 try:
-                    record_pid = int(record.get("pid"))
+                    record_pid = int(record.get("pid"))  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
                 except (TypeError, ValueError):
                     continue
                 if record_pid != owner_pid:
@@ -950,12 +950,12 @@ def get_running_pid(
         if not _pid_exists(pid):
             continue
 
-        recorded_start = record.get("start_time")
+        recorded_start = record.get("start_time")  # ty: ignore[unresolved-attribute]  # duck-typed platform/adapter path
         current_start = _get_process_start_time(pid)
         if recorded_start is not None and current_start is not None and current_start != recorded_start:
             continue
 
-        if _looks_like_gateway_process(pid) or _record_looks_like_gateway(record):
+        if _looks_like_gateway_process(pid) or _record_looks_like_gateway(record):  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             return pid
 
     _cleanup_invalid_pid_path(resolved_pid_path, cleanup_stale=cleanup_stale)

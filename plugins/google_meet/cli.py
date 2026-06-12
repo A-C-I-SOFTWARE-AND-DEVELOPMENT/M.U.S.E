@@ -163,7 +163,7 @@ def _cmd_setup() -> int:
     print(f"  platform       : {system}  [{'ok' if system_ok else 'unsupported'}]")
 
     try:
-        import playwright  # noqa: F401
+        import playwright  # noqa: F401  # ty: ignore[unresolved-import]  # dynamic config/plugin path
         pw_ok = True
         pw_msg = "installed"
     except ImportError:
@@ -175,7 +175,7 @@ def _cmd_setup() -> int:
     chromium_msg = "unknown"
     if pw_ok:
         try:
-            from playwright.sync_api import sync_playwright
+            from playwright.sync_api import sync_playwright  # ty: ignore[unresolved-import]  # dynamic config/plugin path
             with sync_playwright() as p:
                 try:
                     exe = p.chromium.executable_path
@@ -337,7 +337,7 @@ def _cmd_install(*, realtime: bool, assume_yes: bool) -> int:
 def _cmd_auth() -> int:
     """Open a headed Chromium, let the user sign in, save storage_state."""
     try:
-        from playwright.sync_api import sync_playwright
+        from playwright.sync_api import sync_playwright  # ty: ignore[unresolved-import]  # dynamic config/plugin path
     except ImportError:
         print(
             "playwright is not installed. run:\n"

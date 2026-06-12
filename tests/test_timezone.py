@@ -62,7 +62,7 @@ class TestHermesTimeNow:
         result = hermes_time.now()
         assert result.tzinfo is not None
         # Offset is -5h or -4h depending on DST
-        offset_hours = result.utcoffset().total_seconds() / 3600
+        offset_hours = result.utcoffset().total_seconds() / 3600  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         assert offset_hours in {-5, -4}
 
     def test_invalid_timezone_falls_back(self, caplog):
@@ -232,7 +232,7 @@ class TestCronTimezone:
         from cron.jobs import compute_next_run
         schedule = {"kind": "interval", "minutes": 60}
         result = compute_next_run(schedule)
-        next_dt = datetime.fromisoformat(result)
+        next_dt = datetime.fromisoformat(result)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         assert next_dt.tzinfo is not None
 
     def test_get_due_jobs_handles_naive_timestamps(self, tmp_path, monkeypatch):

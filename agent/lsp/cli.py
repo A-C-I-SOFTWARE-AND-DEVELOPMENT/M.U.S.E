@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 def register_subparser(subparsers: argparse._SubParsersAction) -> None:
@@ -96,7 +96,7 @@ def _cmd_status(emit_json: bool) -> int:
 
     svc = get_service()
     service_active = svc is not None
-    info = svc.get_status() if svc is not None else {"enabled": False}
+    info: Dict[str, Any] = svc.get_status() if svc is not None else {"enabled": False}
 
     if emit_json:
         import json

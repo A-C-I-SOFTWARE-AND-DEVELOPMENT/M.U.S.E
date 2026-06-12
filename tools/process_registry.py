@@ -44,7 +44,7 @@ _IS_WINDOWS = platform.system() == "Windows"
 from tools.environments.local import _find_shell, _resolve_safe_cwd, _sanitize_subprocess_env
 from hermes_cli._subprocess_compat import windows_hide_flags
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, overload
 
 from hermes_cli.config import get_hermes_home
 
@@ -413,6 +413,14 @@ class ProcessRegistry:
         from gateway.status import _pid_exists
         return _pid_exists(pid)
 
+    # Overloads (annotation-only): the method always returns its input session
+    # object — None in, None out; a session in, the same session out.
+    @overload
+    def _refresh_detached_session(self, session: ProcessSession) -> ProcessSession: ...
+
+    @overload
+    def _refresh_detached_session(self, session: None) -> None: ...
+
     def _refresh_detached_session(self, session: Optional[ProcessSession]) -> Optional[ProcessSession]:
         """Update recovered host-PID sessions when the underlying process has exited."""
         if session is None or session.exited or not session.detached or session.pid_scope != "host":
@@ -474,10 +482,10 @@ class ProcessRegistry:
     def spawn_local(
         self,
         command: str,
-        cwd: str = None,
+        cwd: Optional[str] = None,
         task_id: str = "",
         session_key: str = "",
-        env_vars: dict = None,
+        env_vars: Optional[dict] = None,
         use_pty: bool = False,
     ) -> ProcessSession:
         """
@@ -503,11 +511,14 @@ class ProcessRegistry:
             # Try PTY mode for interactive CLI tools
             try:
                 if _IS_WINDOWS:
-                    from winpty import PtyProcess as _PtyProcessCls
+                    from winpty import PtyProcess as _PtyProcessCls  # ty: ignore[unresolved-import]
                 else:
                     from ptyprocess import PtyProcess as _PtyProcessCls
                 user_shell = _find_shell()
-                pty_env = _sanitize_subprocess_env(os.environ, env_vars)
+                # os.environ is a Mapping, not a dict; _sanitize_subprocess_env
+                # only iterates it, so its over-narrow `dict | None` annotation
+                # is a false positive at this call site.
+                pty_env = _sanitize_subprocess_env(os.environ, env_vars)  # ty: ignore[invalid-argument-type]
                 pty_env["PYTHONUNBUFFERED"] = "1"
                 pty_proc = _PtyProcessCls.spawn(
                     [user_shell, "-lic", f"set +m; {command}"],
@@ -548,9 +559,10 @@ class ProcessRegistry:
         # Force unbuffered output for Python scripts so progress is visible
         # during background execution (libraries like tqdm/datasets buffer when
         # stdout is a pipe, hiding output from process(action="poll")).
-        bg_env = _sanitize_subprocess_env(os.environ, env_vars)
+        # See note above — os.environ is a Mapping; the callee only reads it.
+        bg_env = _sanitize_subprocess_env(os.environ, env_vars)  # ty: ignore[invalid-argument-type]
         bg_env["PYTHONUNBUFFERED"] = "1"
-        _popen_kwargs = {"creationflags": windows_hide_flags()} if _IS_WINDOWS else {}
+        _popen_kwargs: Dict[str, Any] = {"creationflags": windows_hide_flags()} if _IS_WINDOWS else {}
 
         proc = subprocess.Popen(
             [user_shell, "-lic", f"set +m; {command}"],
@@ -611,7 +623,7 @@ class ProcessRegistry:
         self,
         env: Any,
         command: str,
-        cwd: str = None,
+        cwd: Optional[str] = None,
         task_id: str = "",
         session_key: str = "",
         timeout: int = 10,
@@ -691,10 +703,14 @@ class ProcessRegistry:
 
     def _reader_loop(self, session: ProcessSession):
         """Background thread: read stdout from a local Popen process."""
+        # spawn_local sets session.process (with stdout=PIPE) before starting
+        # this thread, so both are always present here.
+        proc = session.process
+        assert proc is not None and proc.stdout is not None
         first_chunk = True
         try:
             while True:
-                chunk = session.process.stdout.read(4096)
+                chunk = proc.stdout.read(4096)
                 if not chunk:
                     break
                 if first_chunk:
@@ -710,11 +726,11 @@ class ProcessRegistry:
         finally:
             # Always reap the child to prevent zombie processes.
             try:
-                session.process.wait(timeout=5)
+                proc.wait(timeout=5)
             except Exception as e:
                 logger.debug("Process wait timed out or failed: %s", e)
             session.exited = True
-            session.exit_code = session.process.returncode
+            session.exit_code = proc.returncode
             self._move_to_finished(session)
 
     def _env_poller_loop(
@@ -993,7 +1009,7 @@ class ProcessRegistry:
             self._completion_consumed.add(session_id)
         return result
 
-    def wait(self, session_id: str, timeout: int = None) -> dict:
+    def wait(self, session_id: str, timeout: Optional[int] = None) -> dict:
         """
         Block until a process exits, timeout, or interrupt.
 
@@ -1194,7 +1210,7 @@ class ProcessRegistry:
         except Exception as e:
             return {"status": "error", "error": str(e)}
 
-    def list_sessions(self, task_id: str = None) -> list:
+    def list_sessions(self, task_id: Optional[str] = None) -> list:
         """List all running and recently-finished processes."""
         with self._lock:
             all_sessions = list(self._running.values()) + list(self._finished.values())
@@ -1253,7 +1269,7 @@ class ProcessRegistry:
                 for s in self._running.values()
             )
 
-    def kill_all(self, task_id: str = None) -> int:
+    def kill_all(self, task_id: Optional[str] = None) -> int:
         """Kill all running processes, optionally filtered by task_id. Returns count killed."""
         with self._lock:
             targets = [

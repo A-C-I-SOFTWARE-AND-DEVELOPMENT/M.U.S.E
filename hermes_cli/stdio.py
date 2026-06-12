@@ -56,7 +56,7 @@ def _flip_console_code_page_to_utf8() -> None:
     try:
         import ctypes
 
-        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+        kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]  # win32-only
         # Best-effort; if there's no console attached these just fail silently.
         kernel32.SetConsoleCP(65001)
         kernel32.SetConsoleOutputCP(65001)

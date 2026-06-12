@@ -222,6 +222,7 @@ class TestDefaultConfig:
 
         assert "web" in DEFAULT_CONFIG
         web = DEFAULT_CONFIG["web"]
+        assert isinstance(web, dict)
         assert "backend" in web
         assert "search_backend" in web
         assert "extract_backend" in web

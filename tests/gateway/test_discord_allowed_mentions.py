@@ -41,7 +41,7 @@ def _ensure_discord_mock():
     that's the only attribute this test file actually needs real behavior from.
     """
     if "discord" in sys.modules and hasattr(sys.modules["discord"], "__file__"):
-        sys.modules["discord"].AllowedMentions = _FakeAllowedMentions
+        sys.modules["discord"].AllowedMentions = _FakeAllowedMentions  # ty: ignore[unresolved-attribute]
         return
 
     if sys.modules.get("discord") is None:
@@ -76,7 +76,7 @@ def _ensure_discord_mock():
     # Whether we just installed the mock OR the mock was already installed
     # by another test's _ensure_discord_mock, force the AllowedMentions
     # stand-in onto it — _build_allowed_mentions() reads this attribute.
-    sys.modules["discord"].AllowedMentions = _FakeAllowedMentions
+    sys.modules["discord"].AllowedMentions = _FakeAllowedMentions  # ty: ignore[invalid-assignment]
 
 
 _ensure_discord_mock()

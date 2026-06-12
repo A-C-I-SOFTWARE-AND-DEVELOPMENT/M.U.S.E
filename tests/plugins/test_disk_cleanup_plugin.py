@@ -38,10 +38,10 @@ def _load_lib():
     """Import the plugin's library module directly from the repo path."""
     repo_root = Path(__file__).resolve().parents[2]
     lib_path = repo_root / "plugins" / "disk-cleanup" / "disk_cleanup.py"
-    spec = importlib.util.spec_from_file_location(
+    spec = importlib.util.spec_from_file_location(  # ty: ignore[possibly-missing-submodule]  # mock/duck-typed test fixture
         "disk_cleanup_under_test", lib_path
     )
-    mod = importlib.util.module_from_spec(spec)
+    mod = importlib.util.module_from_spec(spec)  # ty: ignore[possibly-missing-submodule]  # mock/duck-typed test fixture
     spec.loader.exec_module(mod)
     return mod
 
@@ -51,7 +51,7 @@ def _load_plugin_init():
     repo_root = Path(__file__).resolve().parents[2]
     plugin_dir = repo_root / "plugins" / "disk-cleanup"
     # Use the PluginManager's module naming convention so relative imports work.
-    spec = importlib.util.spec_from_file_location(
+    spec = importlib.util.spec_from_file_location(  # ty: ignore[possibly-missing-submodule]  # mock/duck-typed test fixture
         "hermes_plugins.disk_cleanup",
         plugin_dir / "__init__.py",
         submodule_search_locations=[str(plugin_dir)],
@@ -62,7 +62,7 @@ def _load_plugin_init():
         ns = types.ModuleType("hermes_plugins")
         ns.__path__ = []
         sys.modules["hermes_plugins"] = ns
-    mod = importlib.util.module_from_spec(spec)
+    mod = importlib.util.module_from_spec(spec)  # ty: ignore[possibly-missing-submodule]  # mock/duck-typed test fixture
     mod.__package__ = "hermes_plugins.disk_cleanup"
     mod.__path__ = [str(plugin_dir)]
     sys.modules["hermes_plugins.disk_cleanup"] = mod

@@ -589,7 +589,7 @@ def get_toolset(name: str) -> Optional[Dict[str, Any]]:
     }
 
 
-def resolve_toolset(name: str, visited: Set[str] = None) -> List[str]:
+def resolve_toolset(name: str, visited: Optional[Set[str]] = None) -> List[str]:
     """
     Recursively resolve a toolset to get all tool names.
     
@@ -779,8 +779,8 @@ def validate_toolset(name: str) -> bool:
 def create_custom_toolset(
     name: str,
     description: str,
-    tools: List[str] = None,
-    includes: List[str] = None
+    tools: Optional[List[str]] = None,
+    includes: Optional[List[str]] = None
 ) -> None:
     """
     Create a custom toolset at runtime.
@@ -800,7 +800,7 @@ def create_custom_toolset(
 
 
 
-def get_toolset_info(name: str) -> Dict[str, Any]:
+def get_toolset_info(name: str) -> Optional[Dict[str, Any]]:
     """
     Get detailed information about a toolset including resolved tools.
     
@@ -837,6 +837,7 @@ if __name__ == "__main__":
     print("-" * 40)
     for name, toolset in get_all_toolsets().items():
         info = get_toolset_info(name)
+        assert info is not None  # name comes from get_all_toolsets()
         composite = "[composite]" if info["is_composite"] else "[leaf]"
         print(f"  {composite} {name:20} - {toolset['description']}")
         print(f"     Tools: {len(info['resolved_tools'])} total")
@@ -863,6 +864,7 @@ if __name__ == "__main__":
         includes=["terminal", "vision"]
     )
     custom_info = get_toolset_info("my_custom")
+    assert custom_info is not None  # just created above
     print("  Created 'my_custom' toolset:")
     print(f"    Description: {custom_info['description']}")
     print(f"    Resolved tools: {', '.join(custom_info['resolved_tools'])}")

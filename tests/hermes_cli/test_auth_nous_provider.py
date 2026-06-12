@@ -1538,7 +1538,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
 
     with pytest.raises(AuthError) as exc_info:
         _refresh_access_token(
-            client=_FakeClient(),
+            client=_FakeClient(),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             portal_base_url="https://portal.nousresearch.com",
             client_id="hermes-cli",
             refresh_token="rt_consumed_elsewhere",
@@ -1578,7 +1578,7 @@ def test_refresh_token_reuse_error_code_is_terminal():
 
     with pytest.raises(AuthError) as exc_info:
         auth_mod._refresh_access_token(
-            client=_FakeClient(),
+            client=_FakeClient(),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             portal_base_url="https://portal.nousresearch.com",
             client_id="hermes-cli",
             refresh_token="rt_consumed_elsewhere",
@@ -1613,7 +1613,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
     client = _FakeClient()
 
     payload = _refresh_access_token(
-        client=client,
+        client=client,  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
         portal_base_url="https://portal.nousresearch.com",
         client_id="hermes-cli",
         refresh_token="refresh-1",
@@ -1654,7 +1654,7 @@ def test_refresh_non_reuse_error_keeps_original_description():
 
     with pytest.raises(AuthError) as exc_info:
         _refresh_access_token(
-            client=_FakeClient(),
+            client=_FakeClient(),  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
             portal_base_url="https://portal.nousresearch.com",
             client_id="hermes-cli",
             refresh_token="rt_anything",

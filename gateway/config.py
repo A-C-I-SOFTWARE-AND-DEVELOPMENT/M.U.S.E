@@ -97,6 +97,19 @@ def _ensure_platform_extra_dict(platforms_data: dict, name: str) -> tuple[dict, 
 _Platform__bundled_plugin_names: Optional[set] = None
 
 
+def _get_bundled_plugin_names() -> set:
+    """Lazily scan and cache bundled platform plugin names.
+
+    Kept outside the ``Platform`` class body: a ``global`` assignment inside
+    an enum method makes type checkers fold the assigned type into the
+    enum's ``.value`` type.
+    """
+    global _Platform__bundled_plugin_names
+    if _Platform__bundled_plugin_names is None:
+        _Platform__bundled_plugin_names = Platform._scan_bundled_plugin_platforms()
+    return _Platform__bundled_plugin_names
+
+
 class Platform(Enum):
     """Supported messaging platforms.
 
@@ -145,10 +158,7 @@ class Platform(Enum):
 
         # Only create pseudo-members for bundled plugin platforms (discovered
         # via filesystem scan) or runtime-registered plugin platforms.
-        global _Platform__bundled_plugin_names
-        if _Platform__bundled_plugin_names is None:
-            _Platform__bundled_plugin_names = cls._scan_bundled_plugin_platforms()
-        if value in _Platform__bundled_plugin_names:
+        if value in _get_bundled_plugin_names():
             pseudo = object.__new__(cls)
             pseudo._value_ = value
             pseudo._name_ = value.upper().replace("-", "_").replace(" ", "_")
@@ -792,7 +802,7 @@ def load_gateway_config() -> GatewayConfig:
                 from gateway.platform_registry import platform_registry as _pr
             except Exception as e:
                 logger.debug("plugin discovery skipped: %s", e)
-                _pr = None
+                _pr = None  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
             _shared_loop_targets: list = list(Platform)
             if _pr is not None:
@@ -1260,7 +1270,7 @@ def _validate_gateway_config(config: "GatewayConfig") -> None:
     try:
         from hermes_cli.auth import has_usable_secret
     except ImportError:
-        has_usable_secret = None  # type: ignore[assignment]
+        has_usable_secret = None  # type: ignore[assignment]  # ty: ignore[invalid-assignment]  # duck-typed platform/adapter path
 
     if has_usable_secret is not None:
         for platform, pconfig in config.platforms.items():

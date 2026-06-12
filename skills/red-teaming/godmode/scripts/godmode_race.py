@@ -26,7 +26,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 try:
     from openai import OpenAI
 except ImportError:
-    OpenAI = None
+    OpenAI = None  # ty: ignore[invalid-assignment]
 
 # ═══════════════════════════════════════════════════════════════════
 # Model tiers (55 models, updated Mar 2026)

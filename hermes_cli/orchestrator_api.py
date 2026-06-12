@@ -48,10 +48,10 @@ try:
     from fastapi.responses import JSONResponse
     FASTAPI_AVAILABLE = True
 except ImportError:  # pragma: no cover - exercised only without the extra
-    FastAPI = None  # type: ignore[assignment]
-    HTTPException = Exception  # type: ignore[assignment]
-    WebSocket = object  # type: ignore[assignment]
-    WebSocketDisconnect = Exception  # type: ignore[assignment]
+    FastAPI = None  # ty: ignore[invalid-assignment]
+    HTTPException = Exception  # ty: ignore[invalid-assignment]
+    WebSocket = object  # ty: ignore[invalid-assignment]
+    WebSocketDisconnect = Exception  # ty: ignore[invalid-assignment]
     FASTAPI_AVAILABLE = False
 
 from hermes_cli import job_event_store

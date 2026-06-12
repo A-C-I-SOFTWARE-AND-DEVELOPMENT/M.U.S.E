@@ -409,7 +409,7 @@ class TestDiscoverAllPlugins:
     """
 
     @staticmethod
-    def _write_plugin(root: Path, segments: list, manifest_name: str = None) -> None:
+    def _write_plugin(root: Path, segments: list, manifest_name: str = None) -> None:  # ty: ignore[invalid-parameter-default]  # mock/duck-typed test fixture
         plugin_dir = root
         for seg in segments:
             plugin_dir = plugin_dir / seg
@@ -431,7 +431,7 @@ class TestDiscoverAllPlugins:
             "hermes_cli.plugins.get_bundled_plugins_dir", lambda: bundled
         )
         monkeypatch.setattr(plugins_cmd, "_plugins_dir", lambda: user)
-        return bundled, user, lambda: {
+        return bundled, user, lambda: {  # ty: ignore[invalid-return-type]  # mock/duck-typed test fixture
             e[0]: e for e in plugins_cmd._discover_all_plugins()
         }
 

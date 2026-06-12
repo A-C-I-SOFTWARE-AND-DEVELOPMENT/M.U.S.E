@@ -140,7 +140,7 @@ def test_auto_apply_inside_charter(tmp_path) -> None:
     assert rig.applied == ["cand1"]
     # New champion frozen.
     assert rig.champions.current() is not None
-    assert rig.champions.current().composite >= 0.92
+    assert rig.champions.current().composite >= 0.92  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     kinds = [r.kind for r in rig.ledger.read_all()]
     assert "auto_apply" in kinds
 
@@ -213,7 +213,7 @@ def test_budget_exhaustion_falls_back_to_proposal(tmp_path) -> None:
     rig = _make_rig(tmp_path, budget=1, initial_champion=_champ85())
     charter = rig.charters.active()
     # Simulate one prior auto-apply in the window.
-    rig.ledger.append("auto_apply", "prior", {"charter_id": charter.charter_id})
+    rig.ledger.append("auto_apply", "prior", {"charter_id": charter.charter_id})  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
     out = _eval(rig, _candidate())
     assert out.decision == "proposed"
     assert "budget" in out.rationale
@@ -230,7 +230,7 @@ def test_canary_regression_triggers_rollback(tmp_path) -> None:
     kinds = [r.kind for r in rig.ledger.read_all()]
     assert "auto_rollback" in kinds
     # Prior champion restored.
-    assert rig.champions.current().rollback_handle == "base-sha"
+    assert rig.champions.current().rollback_handle == "base-sha"  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
 
 
 def test_reward_hacking_candidate_trips_and_halts(tmp_path) -> None:

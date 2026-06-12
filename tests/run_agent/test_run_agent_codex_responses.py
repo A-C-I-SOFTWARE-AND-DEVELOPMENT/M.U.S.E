@@ -5,9 +5,9 @@ from types import SimpleNamespace
 import pytest
 
 
-sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))
-sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))
-sys.modules.setdefault("fal_client", types.SimpleNamespace())
+sys.modules.setdefault("fire", types.SimpleNamespace(Fire=lambda *a, **k: None))  # ty: ignore[no-matching-overload]
+sys.modules.setdefault("firecrawl", types.SimpleNamespace(Firecrawl=object))  # ty: ignore[no-matching-overload]
+sys.modules.setdefault("fal_client", types.SimpleNamespace())  # ty: ignore[no-matching-overload]
 
 import run_agent
 
@@ -51,10 +51,10 @@ def _build_agent(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    agent._cleanup_task_resources = lambda task_id: None
-    agent._persist_session = lambda messages, history=None: None
-    agent._save_trajectory = lambda messages, user_message, completed: None
-    agent._save_session_log = lambda messages: None
+    agent._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]
+    agent._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]
+    agent._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]
+    agent._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]
     return agent
 
 
@@ -72,10 +72,10 @@ def _build_copilot_agent(monkeypatch, *, model="gpt-5.4"):
         skip_context_files=True,
         skip_memory=True,
     )
-    agent._cleanup_task_resources = lambda task_id: None
-    agent._persist_session = lambda messages, history=None: None
-    agent._save_trajectory = lambda messages, user_message, completed: None
-    agent._save_session_log = lambda messages: None
+    agent._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]
+    agent._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]
+    agent._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]
+    agent._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]
     return agent
 
 
@@ -332,10 +332,10 @@ def test_build_api_kwargs_codex_clamps_minimal_effort(monkeypatch):
         skip_memory=True,
         reasoning_config={"enabled": True, "effort": "minimal"},
     )
-    agent._cleanup_task_resources = lambda task_id: None
-    agent._persist_session = lambda messages, history=None: None
-    agent._save_trajectory = lambda messages, user_message, completed: None
-    agent._save_session_log = lambda messages: None
+    agent._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]
+    agent._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]
+    agent._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]
+    agent._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]
 
     kwargs = agent._build_api_kwargs(
         [
@@ -362,10 +362,10 @@ def test_build_api_kwargs_codex_preserves_supported_efforts(monkeypatch):
             skip_memory=True,
             reasoning_config={"enabled": True, "effort": effort},
         )
-        agent._cleanup_task_resources = lambda task_id: None
-        agent._persist_session = lambda messages, history=None: None
-        agent._save_trajectory = lambda messages, user_message, completed: None
-        agent._save_session_log = lambda messages: None
+        agent._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]
+        agent._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]
+        agent._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]
+        agent._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]
 
         kwargs = agent._build_api_kwargs(
             [
@@ -591,10 +591,10 @@ def _build_xai_oauth_agent(monkeypatch):
         skip_context_files=True,
         skip_memory=True,
     )
-    agent._cleanup_task_resources = lambda task_id: None
-    agent._persist_session = lambda messages, history=None: None
-    agent._save_trajectory = lambda messages, user_message, completed: None
-    agent._save_session_log = lambda messages: None
+    agent._cleanup_task_resources = lambda task_id: None  # ty: ignore[invalid-assignment]
+    agent._persist_session = lambda messages, history=None: None  # ty: ignore[invalid-assignment]
+    agent._save_trajectory = lambda messages, user_message, completed: None  # ty: ignore[invalid-assignment]
+    agent._save_session_log = lambda messages: None  # ty: ignore[invalid-assignment]
     return agent
 
 
@@ -1589,13 +1589,14 @@ def test_dump_api_request_debug_uses_chat_completions_url(monkeypatch, tmp_path)
         skip_context_files=True,
         skip_memory=True,
     )
-    agent.logs_dir = tmp_path
+    agent.logs_dir = tmp_path  # ty: ignore[unresolved-attribute, unused-ignore-comment]
 
     dump_file = agent._dump_api_request_debug(
         {"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
         reason="preflight",
     )
 
+    assert dump_file is not None
     payload = json.loads(dump_file.read_text())
     assert payload["request"]["url"] == "http://127.0.0.1:9208/v1/chat/completions"
 

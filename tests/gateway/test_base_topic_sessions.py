@@ -123,7 +123,7 @@ class TestBasePlatformTopicSessions:
             await asyncio.Event().wait()
 
         adapter.set_message_handler(handler)
-        adapter._keep_typing = hold_typing
+        adapter._keep_typing = hold_typing  # ty: ignore[invalid-assignment]
 
         event = _make_event("-1001", "17585")
         await adapter._process_message_background(event, build_session_key(event.source))
@@ -162,8 +162,8 @@ class TestBasePlatformTopicSessions:
             await asyncio.Event().wait()
 
         adapter.set_message_handler(handler)
-        adapter.send = failing_send
-        adapter._keep_typing = hold_typing
+        adapter.send = failing_send  # ty: ignore[invalid-assignment]
+        adapter._keep_typing = hold_typing  # ty: ignore[invalid-assignment]
 
         event = _make_event("-1001", "17585")
         await adapter._process_message_background(event, build_session_key(event.source))
@@ -185,7 +185,7 @@ class TestBasePlatformTopicSessions:
             await asyncio.Event().wait()
 
         adapter.set_message_handler(handler)
-        adapter._keep_typing = hold_typing
+        adapter._keep_typing = hold_typing  # ty: ignore[invalid-assignment]
 
         event = _make_event("-1001", "17585")
         await adapter._process_message_background(event, build_session_key(event.source))
@@ -208,7 +208,7 @@ class TestBasePlatformTopicSessions:
             await asyncio.Event().wait()
 
         adapter.set_message_handler(handler)
-        adapter._keep_typing = hold_typing
+        adapter._keep_typing = hold_typing  # ty: ignore[invalid-assignment]
 
         event = _make_event("-1001", "17585")
         task = asyncio.create_task(adapter._process_message_background(event, build_session_key(event.source)))
@@ -236,7 +236,7 @@ class TestBasePlatformTopicSessions:
             await asyncio.Event().wait()
 
         adapter.set_message_handler(handler)
-        adapter._keep_typing = hold_typing
+        adapter._keep_typing = hold_typing  # ty: ignore[invalid-assignment]
 
         event = _make_event("-1001", "17585")
         await adapter.handle_message(event)
@@ -276,8 +276,8 @@ class TestTelegramAutoTtsCaptionDelivery:
     async def test_short_telegram_auto_tts_uses_caption_without_followup_text(self, tmp_path):
         adapter = DummyTelegramAdapter()
         adapter._keep_typing = self._hold_typing()
-        adapter._should_auto_tts_for_chat = lambda _chat_id: True
-        adapter.play_tts = AsyncMock(return_value=SendResult(success=True, message_id="tts-1"))
+        adapter._should_auto_tts_for_chat = lambda _chat_id: True  # ty: ignore[invalid-assignment]
+        adapter.play_tts = AsyncMock(return_value=SendResult(success=True, message_id="tts-1"))  # ty: ignore[invalid-assignment]
         adapter.set_message_handler(lambda _event: asyncio.sleep(0, result="Short reply"))
 
         tts_path = tmp_path / "reply.ogg"
@@ -290,16 +290,16 @@ class TestTelegramAutoTtsCaptionDelivery:
         ):
             await adapter._process_message_background(event, build_session_key(event.source))
 
-        adapter.play_tts.assert_awaited_once()
-        assert adapter.play_tts.await_args.kwargs["caption"] == "Short reply"
+        adapter.play_tts.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        assert adapter.play_tts.await_args.kwargs["caption"] == "Short reply"  # ty: ignore[unresolved-attribute]
         assert adapter.sent == []
 
     @pytest.mark.asyncio
     async def test_long_telegram_auto_tts_keeps_followup_text_when_caption_would_truncate(self, tmp_path):
         adapter = DummyTelegramAdapter()
         adapter._keep_typing = self._hold_typing()
-        adapter._should_auto_tts_for_chat = lambda _chat_id: True
-        adapter.play_tts = AsyncMock(return_value=SendResult(success=True, message_id="tts-1"))
+        adapter._should_auto_tts_for_chat = lambda _chat_id: True  # ty: ignore[invalid-assignment]
+        adapter.play_tts = AsyncMock(return_value=SendResult(success=True, message_id="tts-1"))  # ty: ignore[invalid-assignment]
         long_reply = "x" * 1025
         adapter.set_message_handler(lambda _event: asyncio.sleep(0, result=long_reply))
 
@@ -313,8 +313,8 @@ class TestTelegramAutoTtsCaptionDelivery:
         ):
             await adapter._process_message_background(event, build_session_key(event.source))
 
-        adapter.play_tts.assert_awaited_once()
-        assert adapter.play_tts.await_args.kwargs["caption"] is None
+        adapter.play_tts.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        assert adapter.play_tts.await_args.kwargs["caption"] is None  # ty: ignore[unresolved-attribute]
         assert adapter.sent == [
             {
                 "chat_id": "-1001",
@@ -328,8 +328,8 @@ class TestTelegramAutoTtsCaptionDelivery:
     async def test_telegram_auto_tts_send_failure_keeps_followup_text(self, tmp_path):
         adapter = DummyTelegramAdapter()
         adapter._keep_typing = self._hold_typing()
-        adapter._should_auto_tts_for_chat = lambda _chat_id: True
-        adapter.play_tts = AsyncMock(return_value=SendResult(success=False, error="boom"))
+        adapter._should_auto_tts_for_chat = lambda _chat_id: True  # ty: ignore[invalid-assignment]
+        adapter.play_tts = AsyncMock(return_value=SendResult(success=False, error="boom"))  # ty: ignore[invalid-assignment]
         adapter.set_message_handler(lambda _event: asyncio.sleep(0, result="Short reply"))
 
         tts_path = tmp_path / "reply.ogg"
@@ -342,8 +342,8 @@ class TestTelegramAutoTtsCaptionDelivery:
         ):
             await adapter._process_message_background(event, build_session_key(event.source))
 
-        adapter.play_tts.assert_awaited_once()
-        assert adapter.play_tts.await_args.kwargs["caption"] == "Short reply"
+        adapter.play_tts.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+        assert adapter.play_tts.await_args.kwargs["caption"] == "Short reply"  # ty: ignore[unresolved-attribute]
         assert adapter.sent == [
             {
                 "chat_id": "-1001",

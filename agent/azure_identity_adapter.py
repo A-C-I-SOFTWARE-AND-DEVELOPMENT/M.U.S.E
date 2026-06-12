@@ -63,7 +63,7 @@ def has_azure_identity_installed() -> bool:
     Cheap check — does not walk the credential chain.
     """
     try:
-        import azure.identity  # noqa: F401
+        import azure.identity  # noqa: F401  # ty: ignore[unresolved-import]  # optional dep (azure-identity extra)
         return True
     except Exception:
         return False
@@ -76,7 +76,7 @@ def _require_azure_identity():
     package is missing and lazy installs are disabled.
     """
     try:
-        import azure.identity as _ai
+        import azure.identity as _ai  # ty: ignore[unresolved-import]  # optional dep (azure-identity extra)
         return _ai
     except ImportError:
         try:
@@ -97,7 +97,7 @@ def _require_azure_identity():
             ) from exc
 
         # Retry import after lazy install.
-        import azure.identity as _ai  # noqa: WPS440
+        import azure.identity as _ai  # noqa: WPS440  # ty: ignore[unresolved-import]
         return _ai
 
 

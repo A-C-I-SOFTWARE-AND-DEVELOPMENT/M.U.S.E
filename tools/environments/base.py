@@ -123,7 +123,9 @@ def _pipe_stdin(proc: subprocess.Popen, data: str) -> None:
             # in byte mode, proc.stdin is already a BufferedWriter with
             # no ``.buffer`` attribute — fall back to .write() directly.
             raw = data.encode("utf-8") if isinstance(data, str) else data
-            target = getattr(proc.stdin, "buffer", proc.stdin)
+            stdin = proc.stdin
+            assert stdin is not None  # callers always create the process with stdin=PIPE
+            target = getattr(stdin, "buffer", stdin)
             target.write(raw)
             target.close()
         except (BrokenPipeError, OSError):
@@ -193,7 +195,7 @@ class ProcessHandle(Protocol):
 
     def poll(self) -> int | None: ...
     def kill(self) -> None: ...
-    def wait(self, timeout: float | None = None) -> int: ...
+    def wait(self, timeout: float | None = None) -> int | None: ...
 
     @property
     def stdout(self) -> IO[str] | None: ...
@@ -266,7 +268,7 @@ class _ThreadedProcessHandle:
             except Exception:
                 pass
 
-    def wait(self, timeout: float | None = None) -> int:
+    def wait(self, timeout: float | None = None) -> int | None:
         self._done.wait(timeout=timeout)
         return self._returncode
 
@@ -308,7 +310,7 @@ class BaseEnvironment(ABC):
         """
         return "/tmp"
 
-    def __init__(self, cwd: str, timeout: int, env: dict = None):
+    def __init__(self, cwd: str, timeout: int, env: dict | None = None):
         self.cwd = cwd
         self.timeout = timeout
         self.env = env or {}
@@ -525,7 +527,9 @@ class BaseEnvironment(ABC):
         decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
 
         def _drain():
-            fd = proc.stdout.fileno()
+            stdout = proc.stdout
+            assert stdout is not None  # every backend spawns with a stdout pipe
+            fd = stdout.fileno()
             # select.select does NOT work on pipe fds on Windows (only sockets).
             # Use blocking os.read in a daemon thread instead — safe because
             # EOF arrives promptly when bash exits.
@@ -691,7 +695,9 @@ class BaseEnvironment(ABC):
         drain_thread.join(timeout=2)
 
         try:
-            proc.stdout.close()
+            stdout_stream = proc.stdout
+            if stdout_stream is not None:
+                stdout_stream.close()
         except Exception:
             pass
 
@@ -839,5 +845,7 @@ class BaseEnvironment(ABC):
         """Transform sudo commands if SUDO_PASSWORD is available."""
         from tools.terminal_tool import _transform_sudo_command
 
-        return _transform_sudo_command(command)
+        cmd, sudo_stdin = _transform_sudo_command(command)
+        assert cmd is not None  # _transform_sudo_command only returns None for None input
+        return cmd, sudo_stdin
 

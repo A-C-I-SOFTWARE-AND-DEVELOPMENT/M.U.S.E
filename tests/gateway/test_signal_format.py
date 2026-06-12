@@ -443,7 +443,7 @@ class TestSignalStreamingPatch:
         async def mock_rpc(method, params, rpc_id=None):
             return {"timestamp": 1234567890}
 
-        adapter._rpc = mock_rpc
+        adapter._rpc = mock_rpc  # ty: ignore[invalid-assignment]
 
         result = await adapter.send(
             chat_id="+15559876543",

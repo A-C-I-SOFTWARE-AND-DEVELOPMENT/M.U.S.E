@@ -210,6 +210,7 @@ class TestSaveRouting:
             mgr.save(sess)
             # flush_session should NOT be called synchronously
             mock_flush.assert_not_called()
+        assert mgr._async_queue is not None
         assert not mgr._async_queue.empty()
 
     def test_int_frequency_flushes_on_nth_turn(self):
@@ -254,6 +255,7 @@ class TestFlushAll:
         mgr = _make_manager(write_frequency="async")
         sess = _make_session()
         sess.add_message("user", "pending")
+        assert mgr._async_queue is not None
         mgr._async_queue.put(sess)
 
         with patch.object(mgr, "_flush_session") as mock_flush:
@@ -288,8 +290,10 @@ class TestAsyncWriterThread:
 
     def test_shutdown_joins_thread(self):
         mgr = _make_manager(write_frequency="async")
+        assert mgr._async_thread is not None
         assert mgr._async_thread.is_alive()
         mgr.shutdown()
+        assert mgr._async_thread is not None
         assert not mgr._async_thread.is_alive()
 
     def test_async_writer_calls_flush(self):
@@ -303,7 +307,8 @@ class TestAsyncWriterThread:
             flushed.append(s)
             return True
 
-        mgr._flush_session = capture
+        mgr._flush_session = capture  # ty: ignore[invalid-assignment]
+        assert mgr._async_queue is not None
         mgr._async_queue.put(sess)
         # Give the daemon thread time to process
         deadline = time.time() + 2.0
@@ -318,6 +323,7 @@ class TestAsyncWriterThread:
         mgr = _make_manager(write_frequency="async")
         thread = mgr._async_thread
         mgr.shutdown()
+        assert thread is not None
         thread.join(timeout=3)
         assert not thread.is_alive()
 
@@ -340,9 +346,10 @@ class TestAsyncWriterRetry:
                 raise ConnectionError("network blip")
             # second call succeeds silently
 
-        mgr._flush_session = flaky_flush
+        mgr._flush_session = flaky_flush  # ty: ignore[invalid-assignment]
 
         with patch("time.sleep"):  # skip the 2s sleep in retry
+            assert mgr._async_queue is not None
             mgr._async_queue.put(sess)
             deadline = time.time() + 3.0
             while call_count[0] < 2 and time.time() < deadline:
@@ -362,9 +369,10 @@ class TestAsyncWriterRetry:
             call_count[0] += 1
             raise RuntimeError("always broken")
 
-        mgr._flush_session = always_fail
+        mgr._flush_session = always_fail  # ty: ignore[invalid-assignment]
 
         with patch("time.sleep"):
+            assert mgr._async_queue is not None
             mgr._async_queue.put(sess)
             deadline = time.time() + 3.0
             while call_count[0] < 2 and time.time() < deadline:
@@ -373,6 +381,7 @@ class TestAsyncWriterRetry:
         mgr.shutdown()
         # Should have tried exactly twice (initial + one retry) and not crashed
         assert call_count[0] == 2
+        assert mgr._async_thread is not None
         assert not mgr._async_thread.is_alive()
 
     def test_retries_when_flush_reports_failure(self):
@@ -386,9 +395,10 @@ class TestAsyncWriterRetry:
             call_count[0] += 1
             return call_count[0] > 1
 
-        mgr._flush_session = fail_then_succeed
+        mgr._flush_session = fail_then_succeed  # ty: ignore[invalid-assignment]
 
         with patch("time.sleep"):
+            assert mgr._async_queue is not None
             mgr._async_queue.put(sess)
             deadline = time.time() + 3.0
             while call_count[0] < 2 and time.time() < deadline:

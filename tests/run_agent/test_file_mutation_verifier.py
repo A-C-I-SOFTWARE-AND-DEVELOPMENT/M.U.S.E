@@ -137,7 +137,7 @@ class TestRecordFileMutationResult:
         agent._record_file_mutation_result(
             "read_file", {"path": "/tmp/x"}, "{}", is_error=True,
         )
-        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
     def test_failure_recorded(self):
         agent = _bare_agent()
@@ -146,7 +146,7 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             result, is_error=True,
         )
-        state = agent._turn_failed_file_mutations
+        state = agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
         assert "/tmp/a.md" in state
         assert state["/tmp/a.md"]["tool"] == "patch"
         assert "Could not find old_string" in state["/tmp/a.md"]["error_preview"]
@@ -158,13 +158,13 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "x", "new_string": "y"},
             json.dumps({"error": "not found"}), is_error=True,
         )
-        assert "/tmp/a.md" in agent._turn_failed_file_mutations
+        assert "/tmp/a.md" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
         # Second attempt with corrected old_string succeeds
         agent._record_file_mutation_result(
             "patch", {"mode": "replace", "path": "/tmp/a.md", "old_string": "real", "new_string": "fixed"},
             json.dumps({"success": True, "diff": "..."}), is_error=False,
         )
-        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
     def test_write_file_with_lint_error_counts_as_landed(self):
         agent = _bare_agent()
@@ -174,7 +174,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "write failed"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
 
         result = json.dumps({
             "bytes_written": 24,
@@ -188,7 +188,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
     def test_patch_with_lsp_diagnostics_counts_as_landed(self):
         agent = _bare_agent()
@@ -198,7 +198,7 @@ class TestRecordFileMutationResult:
             json.dumps({"error": "Could not find old_string"}),
             is_error=True,
         )
-        assert "/tmp/a.py" in agent._turn_failed_file_mutations
+        assert "/tmp/a.py" in agent._turn_failed_file_mutations  # ty: ignore[unresolved-attribute]
 
         result = json.dumps({
             "success": True,
@@ -214,7 +214,7 @@ class TestRecordFileMutationResult:
             is_error=True,
         )
 
-        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
     def test_repeated_failure_keeps_first_error(self):
         agent = _bare_agent()
@@ -228,7 +228,7 @@ class TestRecordFileMutationResult:
         )
         # Keep the original error — swapping to the latest would obscure
         # the initial root cause.
-        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]
+        assert "first error" in agent._turn_failed_file_mutations["/tmp/a.md"]["error_preview"]  # ty: ignore[unresolved-attribute]
 
     def test_v4a_multi_file_all_tracked(self):
         agent = _bare_agent()
@@ -242,7 +242,7 @@ class TestRecordFileMutationResult:
             "patch", {"mode": "patch", "patch": body},
             json.dumps({"error": "parse failure"}), is_error=True,
         )
-        assert set(agent._turn_failed_file_mutations) == {"/tmp/a.md", "/tmp/b.md"}
+        assert set(agent._turn_failed_file_mutations) == {"/tmp/a.md", "/tmp/b.md"}  # ty: ignore[unresolved-attribute]
 
     def test_no_state_dict_silent_noop(self):
         """When called outside run_conversation the state dict is absent.
@@ -266,7 +266,7 @@ class TestRecordFileMutationResult:
         )
         # No path → nothing to key on, state stays empty.  The per-turn
         # state is about file paths, not individual tool-call IDs.
-        assert agent._turn_failed_file_mutations == {}
+        assert agent._turn_failed_file_mutations == {}  # ty: ignore[unresolved-attribute]
 
 
 # ---------------------------------------------------------------------------

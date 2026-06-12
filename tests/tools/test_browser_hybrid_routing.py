@@ -105,7 +105,7 @@ class TestNavigationSessionKey:
     def test_none_task_id_defaults(self, monkeypatch):
         """``None`` task_id resolves to 'default'."""
         monkeypatch.setattr(browser_tool, "_get_cloud_provider", lambda: Mock())
-        key = browser_tool._navigation_session_key(None, "http://localhost:3000/")
+        key = browser_tool._navigation_session_key(None, "http://localhost:3000/")  # ty: ignore[invalid-argument-type]
         assert key == "default::local"
 
 
@@ -121,7 +121,7 @@ class TestSessionKeyHelpers:
         monkeypatch.setattr(browser_tool, "_last_active_session_key", {})
         assert browser_tool._last_session_key("default") == "default"
         assert browser_tool._last_session_key("task-42") == "task-42"
-        assert browser_tool._last_session_key(None) == "default"
+        assert browser_tool._last_session_key(None) == "default"  # ty: ignore[invalid-argument-type]
 
     def test_last_session_key_returns_recorded_key(self, monkeypatch):
         monkeypatch.setattr(

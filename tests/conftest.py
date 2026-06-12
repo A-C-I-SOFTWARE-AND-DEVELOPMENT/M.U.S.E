@@ -765,7 +765,7 @@ def _live_system_guard(request, monkeypatch):
             c.pid for c in _psutil.Process(test_pid).children(recursive=True)
         }
     except Exception:
-        _psutil = None
+        _psutil = None  # ty: ignore[invalid-assignment]  # mock/duck-typed test fixture
         _initial_children = set()
 
     def _is_own_subtree(pid: int) -> bool:
@@ -933,7 +933,7 @@ def _live_system_guard(request, monkeypatch):
         # ``Popen`` with a plain function breaks ``Popen[bytes]`` at
         # import time. Defer ``__class_getitem__`` to the original.
         if hasattr(real, "__class_getitem__"):
-            _guarded.__class_getitem__ = real.__class_getitem__
+            _guarded.__class_getitem__ = real.__class_getitem__  # ty: ignore[unresolved-attribute]  # mock/duck-typed test fixture
         return _guarded
 
     def _wrap_popen():
@@ -978,16 +978,16 @@ def _live_system_guard(request, monkeypatch):
     )
 
     # os.system / os.popen — same risk class, completely unwrapped before.
-    real_os_system = _os.system
-    real_os_popen = _os.popen
+    real_os_system = _os.system  # ty: ignore[deprecated]  # mock/duck-typed test fixture
+    real_os_popen = _os.popen  # ty: ignore[deprecated]  # mock/duck-typed test fixture
 
     def _guarded_os_system(command):
         _check_subprocess_cmd("os.system", command)
-        return real_os_system(command)
+        return real_os_system(command)  # ty: ignore[deprecated]  # mock/duck-typed test fixture
 
     def _guarded_os_popen(cmd, *args, **kwargs):
         _check_subprocess_cmd("os.popen", cmd)
-        return real_os_popen(cmd, *args, **kwargs)
+        return real_os_popen(cmd, *args, **kwargs)  # ty: ignore[deprecated]  # mock/duck-typed test fixture
 
     monkeypatch.setattr(_os, "system", _guarded_os_system)
     monkeypatch.setattr(_os, "popen", _guarded_os_popen)

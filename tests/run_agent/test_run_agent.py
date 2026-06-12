@@ -556,7 +556,7 @@ class TestExtractReasoning:
 
 class TestCleanSessionContent:
     def test_none_passthrough(self):
-        assert AIAgent._clean_session_content(None) is None
+        assert AIAgent._clean_session_content(None) is None  # ty: ignore[invalid-argument-type]
 
     def test_scratchpad_converted(self):
         text = "<REASONING_SCRATCHPAD>think</REASONING_SCRATCHPAD> answer"
@@ -668,7 +668,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._use_prompt_caching is True
+            assert a._use_prompt_caching is True  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_non_claude(self):
         """Non-Claude model should disable prompt caching."""
@@ -685,7 +685,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._use_prompt_caching is False
+            assert a._use_prompt_caching is False  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_non_openrouter(self):
         """Custom base_url (not OpenRouter) should disable prompt caching."""
@@ -702,7 +702,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._use_prompt_caching is False
+            assert a._use_prompt_caching is False  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_native_anthropic(self):
         """Native Anthropic provider should enable prompt caching."""
@@ -719,7 +719,7 @@ class TestInit:
                 skip_memory=True,
             )
             assert a.api_mode == "anthropic_messages"
-            assert a._use_prompt_caching is True
+            assert a._use_prompt_caching is True  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_cache_ttl_defaults_without_config(self):
         """cache_ttl stays 5m when prompt_caching is absent from config."""
@@ -737,7 +737,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._cache_ttl == "5m"
+            assert a._cache_ttl == "5m"  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_cache_ttl_custom_1h(self):
         """prompt_caching.cache_ttl 1h is applied when present in config."""
@@ -758,7 +758,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._cache_ttl == "1h"
+            assert a._cache_ttl == "1h"  # ty: ignore[unresolved-attribute]
 
     def test_model_max_tokens_from_config(self):
         """model.max_tokens config populates the chat-completions request cap."""
@@ -783,7 +783,7 @@ class TestInit:
 
             kwargs = a._build_api_kwargs([{"role": "user", "content": "Hi"}])
 
-        assert a.max_tokens == 4096
+        assert a.max_tokens == 4096  # ty: ignore[unresolved-attribute]
         assert kwargs["max_tokens"] == 4096
 
     def test_constructor_max_tokens_wins_over_config(self):
@@ -808,7 +808,7 @@ class TestInit:
                 skip_memory=True,
             )
 
-        assert a.max_tokens == 8192
+        assert a.max_tokens == 8192  # ty: ignore[unresolved-attribute]
 
     def test_prompt_caching_cache_ttl_invalid_falls_back(self):
         """Non-Anthropic TTL values keep default 5m without raising."""
@@ -829,7 +829,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a._cache_ttl == "5m"
+            assert a._cache_ttl == "5m"  # ty: ignore[unresolved-attribute]
 
     def test_valid_tool_names_populated(self):
         """valid_tool_names should contain names from loaded tools."""
@@ -846,7 +846,7 @@ class TestInit:
                 skip_context_files=True,
                 skip_memory=True,
             )
-            assert a.valid_tool_names == {"web_search", "terminal"}
+            assert a.valid_tool_names == {"web_search", "terminal"}  # ty: ignore[unresolved-attribute, unused-ignore-comment]
 
     def test_session_id_auto_generated(self):
         """Session ID should be auto-generated in YYYYMMDD_HHMMSS_<hex6> format."""
@@ -2351,6 +2351,8 @@ class TestParallelScopePathNormalization:
         abs_scoped = _extract_parallel_scope_path("write_file", {"path": str(abs_path)})
 
         assert rel_scoped == abs_scoped
+        assert rel_scoped is not None
+        assert abs_scoped is not None
         assert _paths_overlap(rel_scoped, abs_scoped)
 
     def test_should_parallelize_tool_batch_rejects_same_file_with_mixed_path_spellings(self, tmp_path, monkeypatch):
@@ -3130,7 +3132,7 @@ class TestRunConversation:
         err_400 = Exception(
             "Error code: 400 - {'error': {'code': '1261', 'message': 'Prompt exceeds max length'}}"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered after compression", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
         prefill = [
@@ -3172,7 +3174,7 @@ class TestRunConversation:
         err_400 = Exception(
             "HTTP 400: invalid params, context window exceeds limit (2013)"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered after compression", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
         prefill = [
@@ -3212,7 +3214,7 @@ class TestRunConversation:
         err_400 = Exception(
             "HTTP 400: invalid params, context window exceeds limit (2013)"
         )
-        err_400.status_code = 400
+        err_400.status_code = 400  # ty: ignore[unresolved-attribute]
         ok_resp = _mock_response(content="Recovered after compression", finish_reason="stop")
         agent.client.chat.completions.create.side_effect = [err_400, ok_resp]
         prefill = [

@@ -16,12 +16,12 @@ import types
 
 # Minimal stubs for gateway imports
 _tg = types.ModuleType("telegram")
-_tg.constants = types.ModuleType("telegram.constants")
+_tg.constants = types.ModuleType("telegram.constants")  # ty: ignore[unresolved-attribute]
 _ct = MagicMock()
 _ct.SUPERGROUP = "supergroup"
 _ct.GROUP = "group"
 _ct.PRIVATE = "private"
-_tg.constants.ChatType = _ct
+_tg.constants.ChatType = _ct  # ty: ignore[unresolved-attribute]
 sys.modules.setdefault("telegram", _tg)
 sys.modules.setdefault("telegram.constants", _tg.constants)
 sys.modules.setdefault("telegram.ext", types.ModuleType("telegram.ext"))
@@ -44,7 +44,7 @@ def _make_event(text="hello", chat_id="123", user_id="user1", user_name="TestUse
                 platform_val="slack", thread_id="thread-abc"):
     """Build a MessageEvent for a shared thread."""
     source = SessionSource(
-        platform=MagicMock(value=platform_val),
+        platform=MagicMock(value=platform_val),  # ty: ignore[invalid-argument-type]
         chat_id=chat_id,
         chat_type="channel",
         user_id=user_id,

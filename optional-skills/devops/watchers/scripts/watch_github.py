@@ -28,7 +28,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from _watermark import Watermark, format_items_as_markdown  # type: ignore
+from _watermark import Watermark, format_items_as_markdown
 
 
 VALID_SCOPES = ("issues", "pulls", "releases", "commits")

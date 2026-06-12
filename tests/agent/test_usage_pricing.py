@@ -126,10 +126,15 @@ def test_openrouter_models_api_pricing_is_converted_from_per_token_to_per_millio
         provider="openrouter",
         base_url="https://openrouter.ai/api/v1",
     )
+    assert entry is not None
 
+    assert entry.input_cost_per_million is not None
     assert float(entry.input_cost_per_million) == 5.0
+    assert entry.output_cost_per_million is not None
     assert float(entry.output_cost_per_million) == 25.0
+    assert entry.cache_read_cost_per_million is not None
     assert float(entry.cache_read_cost_per_million) == 0.5
+    assert entry.cache_write_cost_per_million is not None
     assert float(entry.cache_write_cost_per_million) == 6.25
 
 
@@ -142,6 +147,7 @@ def test_estimate_usage_cost_marks_subscription_routes_included():
     )
 
     assert result.status == "included"
+    assert result.amount_usd is not None
     assert float(result.amount_usd) == 0.0
 
 
@@ -187,8 +193,11 @@ def test_custom_endpoint_models_api_pricing_is_supported(monkeypatch):
         base_url="https://llm.chutes.ai/v1",
         api_key="test-key",
     )
+    assert entry is not None
 
+    assert entry.input_cost_per_million is not None
     assert float(entry.input_cost_per_million) == 0.5
+    assert entry.output_cost_per_million is not None
     assert float(entry.output_cost_per_million) == 2.0
 
 
@@ -209,6 +218,7 @@ def test_deepseek_v4_pro_pricing_entry_exists():
     assert entry.output_cost_per_million is not None
     assert float(entry.input_cost_per_million) == 1.74
     assert float(entry.output_cost_per_million) == 3.48
+    assert entry.cache_read_cost_per_million is not None
     assert float(entry.cache_read_cost_per_million) == 0.0145
 
 

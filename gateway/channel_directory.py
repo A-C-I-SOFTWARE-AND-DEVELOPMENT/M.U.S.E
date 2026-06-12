@@ -117,7 +117,7 @@ def _build_discord(adapter) -> List[Dict[str, str]]:
         return channels
 
     try:
-        import discord as _discord  # noqa: F401 — SDK presence check
+        import discord as _discord  # noqa: F401 — SDK presence check  # ty: ignore[unresolved-import]  # optional platform SDK
     except ImportError:
         return channels
 
@@ -237,7 +237,7 @@ def _build_from_sessions(platform_name: str) -> List[Dict[str, str]]:
     except Exception as e:
         logger.debug("Channel directory: failed to read sessions for %s: %s", platform_name, e)
 
-    return entries
+    return entries  # ty: ignore[invalid-return-type]  # duck-typed platform/adapter path
 
 
 # ---------------------------------------------------------------------------

@@ -81,7 +81,7 @@ def _sample_task(**overrides: object) -> cc.WorkerTask:
         ],
     }
     base.update(overrides)
-    return cc.WorkerTask(**base)  # type: ignore[arg-type]
+    return cc.WorkerTask(**base)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 # ── detection ─────────────────────────────────────────────────────────────
@@ -355,7 +355,7 @@ def test_collect_artifacts_all_present(tmp_path: Path):
     assert collected.status is not None
     assert collected.status["verdict"] == "approve"
 
-    weighted = cc.score(collected.status["scores"])
+    weighted = cc.score(collected.status["scores"])  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
     expected = (
         0.9 * 0.30
         + 0.8 * 0.25
@@ -433,7 +433,7 @@ def test_score_clamps_and_treats_missing_axes_as_zero():
         "extra_axis": 1.0,                # ignored
     }
     expected = 1.0 * 0.30 + 0.0 * 0.25 + 0.5 * 0.20 + 0.0 * 0.15 + 0.0 * 0.10
-    assert cc.score(weird) == pytest.approx(expected)
+    assert cc.score(weird) == pytest.approx(expected)  # ty: ignore[invalid-argument-type]  # mock/duck-typed test fixture
 
 
 def test_scoring_weights_sum_to_one():
@@ -453,7 +453,7 @@ def test_describe_round_trip(tmp_path: Path):
     assert snap["mode"] == cc.RUN_MODE_HANDOFF
     assert Path(str(snap["workdir"])) == prepared.workdir
     assert Path(str(snap["prompt_path"])) == prepared.prompt_path
-    assert snap["detection"]["path"] == "/x/claude"
+    assert snap["detection"]["path"] == "/x/claude"  # ty: ignore[not-subscriptable]  # mock/duck-typed test fixture
 
 
 def test_iter_expected_artifact_paths_matches_workdir(tmp_path: Path):

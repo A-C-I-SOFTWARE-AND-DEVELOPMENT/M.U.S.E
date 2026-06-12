@@ -171,7 +171,7 @@ class Mem0MemoryProvider(MemoryProvider):
             if self._client is not None:
                 return self._client
             try:
-                from mem0 import MemoryClient
+                from mem0 import MemoryClient  # ty: ignore[unresolved-import]
                 self._client = MemoryClient(api_key=self._api_key)
                 return self._client
             except ImportError:

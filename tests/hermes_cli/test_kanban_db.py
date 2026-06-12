@@ -7,10 +7,19 @@ import os
 import sqlite3
 import time
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 from hermes_cli import kanban_db as kb
+
+
+def _task(conn, task_id) -> kb.Task:
+    """Fetch a task that must exist (fails the test if missing)."""
+    task = kb.get_task(conn, task_id)
+    assert task is not None
+    return task
+
 
 
 @pytest.fixture
@@ -147,9 +156,9 @@ def test_create_task_with_parent_is_todo_until_parent_done(kanban_home):
     with kb.connect() as conn:
         p = kb.create_task(conn, title="parent")
         c = kb.create_task(conn, title="child", parents=[p])
-        assert kb.get_task(conn, c).status == "todo"
+        assert _task(conn, c).status == "todo"
         kb.complete_task(conn, p, result="ok")
-        assert kb.get_task(conn, c).status == "ready"
+        assert _task(conn, c).status == "ready"
 
 
 def test_create_task_unknown_parent_errors(kanban_home):
@@ -176,7 +185,10 @@ def test_create_task_persists_worktree_branch_name(kanban_home, tmp_path):
         events = kb.list_events(conn, tid)
         context = kb.build_worker_context(conn, tid)
 
+    assert task is not None
     assert task.branch_name == "wt/t6-wire"
+    assert events is not None
+    assert events[0].payload is not None
     assert events[0].payload["branch_name"] == "wt/t6-wire"
     assert "Branch:   wt/t6-wire" in context
 
@@ -199,9 +211,9 @@ def test_link_demotes_ready_child_to_todo_when_parent_not_done(kanban_home):
     with kb.connect() as conn:
         a = kb.create_task(conn, title="a")
         b = kb.create_task(conn, title="b")
-        assert kb.get_task(conn, b).status == "ready"
+        assert _task(conn, b).status == "ready"
         kb.link_tasks(conn, a, b)
-        assert kb.get_task(conn, b).status == "todo"
+        assert _task(conn, b).status == "todo"
 
 
 def test_link_keeps_ready_child_when_parent_already_done(kanban_home):
@@ -209,9 +221,9 @@ def test_link_keeps_ready_child_when_parent_already_done(kanban_home):
         a = kb.create_task(conn, title="a")
         kb.complete_task(conn, a)
         b = kb.create_task(conn, title="b")
-        assert kb.get_task(conn, b).status == "ready"
+        assert _task(conn, b).status == "ready"
         kb.link_tasks(conn, a, b)
-        assert kb.get_task(conn, b).status == "ready"
+        assert _task(conn, b).status == "ready"
 
 
 def test_link_rejects_self_loop(kanban_home):
@@ -237,12 +249,12 @@ def test_recompute_ready_cascades_through_chain(kanban_home):
         a = kb.create_task(conn, title="a")
         b = kb.create_task(conn, title="b", parents=[a])
         c = kb.create_task(conn, title="c", parents=[b])
-        assert [kb.get_task(conn, x).status for x in (a, b, c)] == \
+        assert [_task(conn, x).status for x in (a, b, c)] == \
                ["ready", "todo", "todo"]
         kb.complete_task(conn, a)
-        assert kb.get_task(conn, b).status == "ready"
+        assert _task(conn, b).status == "ready"
         kb.complete_task(conn, b)
-        assert kb.get_task(conn, c).status == "ready"
+        assert _task(conn, c).status == "ready"
 
 
 def test_recompute_ready_promotes_blocked_with_done_parents(kanban_home):
@@ -263,13 +275,16 @@ def test_recompute_ready_promotes_blocked_with_done_parents(kanban_home):
             (child,),
         )
         conn.commit()
-        assert kb.get_task(conn, child).status == "blocked"
+        assert _task(conn, child).status == "blocked"
         # recompute_ready should promote blocked → ready and reset failures
         promoted = kb.recompute_ready(conn)
         assert promoted == 1
         task = kb.get_task(conn, child)
+        assert task is not None
         assert task.status == "ready"
+        assert task is not None
         assert task.consecutive_failures == 0
+        assert task is not None
         assert task.last_failure_error is None
 
 
@@ -279,9 +294,9 @@ def test_recompute_ready_fan_in_waits_for_all_parents(kanban_home):
         b = kb.create_task(conn, title="b")
         c = kb.create_task(conn, title="c", parents=[a, b])
         kb.complete_task(conn, a)
-        assert kb.get_task(conn, c).status == "todo"
+        assert _task(conn, c).status == "todo"
         kb.complete_task(conn, b)
-        assert kb.get_task(conn, c).status == "ready"
+        assert _task(conn, c).status == "ready"
 
 
 # ---------------------------------------------------------------------------
@@ -302,7 +317,7 @@ def test_claim_uses_env_default_ttl(kanban_home, monkeypatch):
     with kb.connect() as conn:
         t = kb.create_task(conn, title="x", assignee="a")
         kb.claim_task(conn, t, claimer="host:1")
-        expires = kb.get_task(conn, t).claim_expires
+        expires = _task(conn, t).claim_expires
     assert expires is not None
     assert expires > int(time.time()) + 3000
 
@@ -313,7 +328,7 @@ def test_claim_fails_on_non_ready(kanban_home):
         # Move to todo by introducing an unsatisfied parent.
         p = kb.create_task(conn, title="p")
         kb.link_tasks(conn, p, t)
-        assert kb.get_task(conn, t).status == "todo"
+        assert _task(conn, t).status == "todo"
         assert kb.claim_task(conn, t) is None
 
 
@@ -322,6 +337,7 @@ def test_schedule_task_parks_time_delay_without_dispatching(kanban_home):
         t = kb.create_task(conn, title="delayed recheck", assignee="ops")
         assert kb.schedule_task(conn, t, reason="run next week") is True
         task = kb.get_task(conn, t)
+        assert task is not None
         assert task.status == "scheduled"
         assert kb.claim_task(conn, t) is None
 
@@ -333,16 +349,16 @@ def test_unblock_scheduled_rechecks_parent_gate(kanban_home):
     with kb.connect() as conn:
         parent = kb.create_task(conn, title="parent")
         child = kb.create_task(conn, title="child", parents=[parent])
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         assert kb.schedule_task(conn, child, reason="wait until tomorrow") is True
 
         assert kb.unblock_task(conn, child) is True
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
 
         kb.complete_task(conn, parent)
         assert kb.schedule_task(conn, child, reason="second timer") is True
         assert kb.unblock_task(conn, child) is True
-        assert kb.get_task(conn, child).status == "ready"
+        assert _task(conn, child).status == "ready"
 
 
 def test_stale_claim_reclaimed(kanban_home, monkeypatch):
@@ -369,7 +385,7 @@ def test_stale_claim_reclaimed(kanban_home, monkeypatch):
         monkeypatch.setattr(_kb, "_pid_alive", lambda _pid: False)
         reclaimed = kb.release_stale_claims(conn, signal_fn=_signal)
         assert reclaimed == 1
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
         assert killed == [signal.SIGTERM]
 
 
@@ -402,8 +418,11 @@ def test_stale_claim_with_live_pid_extends_instead_of_reclaiming(
         )
         assert reclaimed == 0
         task = kb.get_task(conn, t)
+        assert task is not None
         assert task.status == "running"
+        assert task is not None
         assert task.claim_expires is not None
+        assert task is not None
         assert task.claim_expires > old_expires
         assert killed == []  # live worker not killed
 
@@ -507,6 +526,7 @@ def test_detect_crashed_workers_systemic_failure_fast_block(
 
         for tid in task_ids:
             task = kb.get_task(conn, tid)
+            assert task is not None
             assert task.status == "blocked", (
                 f"task {tid} should be blocked (systemic), got {task.status}"
             )
@@ -538,6 +558,7 @@ def test_detect_crashed_workers_isolated_failure_normal_retry(
 
         for tid in task_ids:
             task = kb.get_task(conn, tid)
+            assert task is not None
             assert task.status == "ready", (
                 f"task {tid} should stay ready (isolated), got {task.status}"
             )
@@ -560,7 +581,9 @@ def test_max_runtime_uses_current_run_start_after_retry(kanban_home, monkeypatch
         )
 
         kb.claim_task(conn, t, claimer=f"{host}:first")
-        first_run_id = kb.latest_run(conn, t).id
+        first_run = kb.latest_run(conn, t)
+        assert first_run is not None
+        first_run_id = first_run.id
         old_started = int(time.time()) - 20
         conn.execute(
             "UPDATE tasks SET started_at = ?, worker_pid = ? WHERE id = ?",
@@ -573,7 +596,7 @@ def test_max_runtime_uses_current_run_start_after_retry(kanban_home, monkeypatch
 
         timed_out = kb.enforce_max_runtime(conn, signal_fn=lambda _pid, _sig: None)
         assert timed_out == [t]
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
         kb.claim_task(conn, t, claimer=f"{host}:retry")
         retry_run = kb.latest_run(conn, t)
@@ -581,6 +604,7 @@ def test_max_runtime_uses_current_run_start_after_retry(kanban_home, monkeypatch
             "UPDATE tasks SET worker_pid = ? WHERE id = ?",
             (999999, t),
         )
+        assert retry_run is not None
         conn.execute(
             "UPDATE task_runs SET worker_pid = ? WHERE id = ?",
             (999999, retry_run.id),
@@ -588,7 +612,7 @@ def test_max_runtime_uses_current_run_start_after_retry(kanban_home, monkeypatch
 
         timed_out = kb.enforce_max_runtime(conn, signal_fn=lambda _pid, _sig: None)
         assert timed_out == []
-        assert kb.get_task(conn, t).status == "running"
+        assert _task(conn, t).status == "running"
 
 
 def test_heartbeat_extends_claim(kanban_home):
@@ -596,12 +620,13 @@ def test_heartbeat_extends_claim(kanban_home):
         t = kb.create_task(conn, title="x", assignee="a")
         claimer = "host:hb"
         kb.claim_task(conn, t, claimer=claimer, ttl_seconds=60)
-        original = kb.get_task(conn, t).claim_expires
+        original = _task(conn, t).claim_expires
         # Rewind then heartbeat.
         conn.execute("UPDATE tasks SET claim_expires = ? WHERE id = ?", (0, t))
         ok = kb.heartbeat_claim(conn, t, claimer=claimer, ttl_seconds=3600)
         assert ok
-        new = kb.get_task(conn, t).claim_expires
+        new = _task(conn, t).claim_expires
+        assert new is not None
         assert new > int(time.time()) + 3000
 
 
@@ -614,7 +639,7 @@ def test_heartbeat_uses_env_default_ttl(kanban_home, monkeypatch):
         conn.execute("UPDATE tasks SET claim_expires = ? WHERE id = ?", (0, t))
         ok = kb.heartbeat_claim(conn, t, claimer=claimer)
         assert ok
-        new = kb.get_task(conn, t).claim_expires
+        new = _task(conn, t).claim_expires
         assert new is not None
         assert new > int(time.time()) + 3000
 
@@ -645,8 +670,11 @@ def test_complete_records_result(kanban_home):
         t = kb.create_task(conn, title="x")
         assert kb.complete_task(conn, t, result="done and dusted")
         task = kb.get_task(conn, t)
+    assert task is not None
     assert task.status == "done"
+    assert task is not None
     assert task.result == "done and dusted"
+    assert task is not None
     assert task.completed_at is not None
 
 
@@ -655,9 +683,9 @@ def test_block_then_unblock(kanban_home):
         t = kb.create_task(conn, title="x", assignee="a")
         kb.claim_task(conn, t)
         assert kb.block_task(conn, t, reason="need input")
-        assert kb.get_task(conn, t).status == "blocked"
+        assert _task(conn, t).status == "blocked"
         assert kb.unblock_task(conn, t)
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_unblock_resets_failure_counters(kanban_home):
@@ -675,8 +703,11 @@ def test_unblock_resets_failure_counters(kanban_home):
         conn.commit()
         assert kb.unblock_task(conn, t)
         task = kb.get_task(conn, t)
+        assert task is not None
         assert task.status == "ready"
+        assert task is not None
         assert task.consecutive_failures == 0
+        assert task is not None
         assert task.last_failure_error is None
 
 
@@ -698,20 +729,20 @@ def test_claim_rejects_when_parents_not_done(kanban_home):
             conn, title="child", assignee="a", parents=[parent],
         )
         # Child correctly starts 'todo' because parent is not 'done'.
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         # Simulate the race: a racy writer force-promotes the child to
         # 'ready' while parent is still pending.
         conn.execute(
             "UPDATE tasks SET status='ready' WHERE id=?", (child,),
         )
         conn.commit()
-        assert kb.get_task(conn, child).status == "ready"
+        assert _task(conn, child).status == "ready"
 
         result = kb.claim_task(conn, child, claimer="host:1")
 
     assert result is None
     with kb.connect() as conn:
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         events = conn.execute(
             "SELECT kind, payload FROM task_events "
             "WHERE task_id = ? ORDER BY id",
@@ -733,7 +764,7 @@ def test_claim_succeeds_once_parents_done(kanban_home):
         kb.claim_task(conn, parent)
         assert kb.complete_task(conn, parent, result="ok")
         kb.recompute_ready(conn)
-        assert kb.get_task(conn, child).status == "ready"
+        assert _task(conn, child).status == "ready"
         claimed = kb.claim_task(conn, child, claimer="host:1")
     assert claimed is not None
     assert claimed.status == "running"
@@ -746,17 +777,17 @@ def test_create_with_parents_stays_todo_until_parents_done(kanban_home):
         child = kb.create_task(
             conn, title="child", assignee="a", parents=[parent],
         )
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         # Dispatcher tick between create and some later event must NOT
         # produce a winner for this child.
         promoted = kb.recompute_ready(conn)
         assert promoted == 0
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         # Complete parent; complete_task internally runs recompute_ready,
         # which promotes the child to 'ready'.
         kb.claim_task(conn, parent)
         kb.complete_task(conn, parent, result="ok")
-        assert kb.get_task(conn, child).status == "ready"
+        assert _task(conn, child).status == "ready"
 
 
 def test_unblock_with_pending_parents_goes_to_todo(kanban_home):
@@ -778,12 +809,12 @@ def test_unblock_with_pending_parents_goes_to_todo(kanban_home):
         )
         conn.commit()
         assert kb.unblock_task(conn, child)
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         # After parent completes + recompute, the child is ready.
         kb.claim_task(conn, parent)
         kb.complete_task(conn, parent, result="ok")
         kb.recompute_ready(conn)
-        assert kb.get_task(conn, child).status == "ready"
+        assert _task(conn, child).status == "ready"
 
 
 def test_unblock_without_parents_goes_to_ready(kanban_home):
@@ -793,7 +824,7 @@ def test_unblock_without_parents_goes_to_ready(kanban_home):
         kb.claim_task(conn, t)
         assert kb.block_task(conn, t, reason="need input")
         assert kb.unblock_task(conn, t)
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_assign_refuses_while_running(kanban_home):
@@ -808,16 +839,16 @@ def test_assign_reassigns_when_not_running(kanban_home):
     with kb.connect() as conn:
         t = kb.create_task(conn, title="x", assignee="a")
         assert kb.assign_task(conn, t, "b")
-        assert kb.get_task(conn, t).assignee == "b"
+        assert _task(conn, t).assignee == "b"
 
 
 def test_assignee_normalized_to_lowercase_on_create_and_assign(kanban_home):
     """Dashboard/CLI may pass title-cased profile labels; DB + spawn use canonical id."""
     with kb.connect() as conn:
         tid = kb.create_task(conn, title="cased", assignee="Jules")
-        assert kb.get_task(conn, tid).assignee == "jules"
+        assert _task(conn, tid).assignee == "jules"
         assert kb.assign_task(conn, tid, "Librarian")
-        assert kb.get_task(conn, tid).assignee == "librarian"
+        assert _task(conn, tid).assignee == "librarian"
 
 
 def test_list_tasks_assignee_filter_case_insensitive(kanban_home):
@@ -986,8 +1017,8 @@ def test_dispatch_dry_run_does_not_claim(kanban_home, all_assignees_spawnable):
     assert {s[0] for s in res.spawned} == {t1, t2}
     with kb.connect() as conn:
         # Dry run must NOT mutate status.
-        assert kb.get_task(conn, t1).status == "ready"
-        assert kb.get_task(conn, t2).status == "ready"
+        assert _task(conn, t1).status == "ready"
+        assert _task(conn, t2).status == "ready"
 
 
 def test_dispatch_skips_unassigned(kanban_home):
@@ -1064,7 +1095,7 @@ def test_dispatch_promotes_ready_and_spawns(kanban_home, all_assignees_spawnable
     assert spawns[0][1] == "bob"
     # c is now running
     with kb.connect() as conn:
-        assert kb.get_task(conn, c).status == "running"
+        assert _task(conn, c).status == "running"
 
 
 def test_dispatch_spawn_failure_releases_claim(kanban_home, all_assignees_spawnable):
@@ -1075,8 +1106,8 @@ def test_dispatch_spawn_failure_releases_claim(kanban_home, all_assignees_spawna
         t = kb.create_task(conn, title="boom", assignee="alice")
         kb.dispatch_once(conn, spawn_fn=boom)
         # Must return to ready so the next tick can retry.
-        assert kb.get_task(conn, t).status == "ready"
-        assert kb.get_task(conn, t).claim_lock is None
+        assert _task(conn, t).status == "ready"
+        assert _task(conn, t).claim_lock is None
 
 
 def test_dispatch_max_spawn_counts_existing_running_tasks(
@@ -1104,7 +1135,7 @@ def test_dispatch_max_spawn_counts_existing_running_tasks(
 
         assert res.spawned == []
         assert spawns == []
-        assert kb.get_task(conn, ready).status == "ready"
+        assert _task(conn, ready).status == "ready"
 
 
 def test_dispatch_max_spawn_fills_remaining_capacity(
@@ -1126,8 +1157,8 @@ def test_dispatch_max_spawn_fills_remaining_capacity(
 
         assert len(res.spawned) == 1
         assert spawns == [ready_a]
-        assert kb.get_task(conn, ready_a).status == "running"
-        assert kb.get_task(conn, ready_b).status == "ready"
+        assert _task(conn, ready_a).status == "running"
+        assert _task(conn, ready_b).status == "ready"
 
 
 def test_dispatch_reclaims_stale_before_spawning(kanban_home):
@@ -1299,7 +1330,7 @@ def test_dispatch_respawn_guard_defers_auth_error_without_auto_block(
     # Status stays ``ready`` so a future tick (or operator action) can
     # retry without manual unblock.
     with kb.connect() as conn:
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_dispatch_respawn_guard_skips_recent_success(
@@ -1325,7 +1356,7 @@ def test_dispatch_respawn_guard_skips_recent_success(
     assert t not in spawned_ids
     assert t not in res.auto_blocked
     with kb.connect() as conn:
-        assert kb.get_task(conn, t).status == "ready"  # not blocked, just skipped
+        assert _task(conn, t).status == "ready"  # not blocked, just skipped
 
 
 def test_dispatch_respawn_guard_skips_active_pr(
@@ -1349,7 +1380,7 @@ def test_dispatch_respawn_guard_skips_active_pr(
     assert t not in spawned_ids
     assert t not in res.auto_blocked
     with kb.connect() as conn:
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_dispatch_respawn_guard_dry_run_no_auto_block(
@@ -1367,7 +1398,7 @@ def test_dispatch_respawn_guard_dry_run_no_auto_block(
     assert (t, "blocker_auth") in res.respawn_guarded
     assert t not in res.auto_blocked
     with kb.connect() as conn:
-        assert kb.get_task(conn, t).status == "ready"  # dry_run: no writes
+        assert _task(conn, t).status == "ready"  # dry_run: no writes
 
 
 def test_dispatch_respawn_guard_allows_clean_task(
@@ -1419,6 +1450,7 @@ def test_scratch_workspace_created_under_hermes_home(kanban_home):
     with kb.connect() as conn:
         t = kb.create_task(conn, title="x")
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     assert ws.exists()
     assert ws.is_dir()
@@ -1432,6 +1464,7 @@ def test_dir_workspace_honors_given_path(kanban_home, tmp_path):
             conn, title="biz", workspace_kind="dir", workspace_path=str(target)
         )
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     assert ws == target
     assert ws.exists()
@@ -1444,6 +1477,7 @@ def test_worktree_workspace_returns_intended_path(kanban_home, tmp_path):
             conn, title="ship", workspace_kind="worktree", workspace_path=target
         )
         task = kb.get_task(conn, t)
+        assert task is not None
         ws = kb.resolve_workspace(task)
     # We do NOT auto-create worktrees; the worker's skill handles that.
     assert str(ws) == target
@@ -1511,6 +1545,8 @@ def test_tenant_propagates_to_events(kanban_home):
         events = kb.list_events(conn, t)
     # The "created" event should have tenant in its payload.
     created = [e for e in events if e.kind == "created"]
+    assert created[0] is not None
+    assert created[0].payload is not None
     assert created and created[0].payload.get("tenant") == "biz-a"
 
 
@@ -2012,14 +2048,14 @@ def test_unlink_tasks_triggers_recompute_ready(kanban_home):
 
         # B depends on both A (done) and C (running) → stays todo.
         b = kb.create_task(conn, title="child", parents=[a, c])
-        assert kb.get_task(conn, b).status == "todo"
+        assert _task(conn, b).status == "todo"
 
         # Remove the blocking dependency C → B.
         removed = kb.unlink_tasks(conn, c, b)
         assert removed is True
 
         # B's only remaining parent is A (done) → must be ready immediately.
-        assert kb.get_task(conn, b).status == "ready", (
+        assert _task(conn, b).status == "ready", (
             "child should promote to ready immediately after unlink_tasks "
             "removes its last blocking dependency"
         )
@@ -2037,10 +2073,10 @@ def test_archive_task_triggers_recompute_ready_for_dependents(kanban_home):
         parent = kb.create_task(conn, title="obsolete parent")
         child = kb.create_task(conn, title="child", parents=[parent])
 
-        assert kb.get_task(conn, child).status == "todo"
+        assert _task(conn, child).status == "todo"
         assert kb.archive_task(conn, parent) is True
 
-        assert kb.get_task(conn, child).status == "ready", (
+        assert _task(conn, child).status == "ready", (
             "child should promote to ready immediately after its last blocking "
             "parent is archived"
         )
@@ -2321,7 +2357,7 @@ def test_resolve_hermes_argv_module_actually_runs():
 
 def _make_task(**overrides) -> "kb.Task":
     """Minimal Task with all required fields filled in. Override anything."""
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         id="t_age",
         title="x",
         body=None,
@@ -2436,6 +2472,7 @@ def test_task_dict_survives_corrupt_created_at(tmp_path, monkeypatch):
         task = kb.get_task(conn, good_id)
     finally:
         conn.close()
+    assert task is not None
     age = kb.task_age(task)
     assert age["created_age_seconds"] is None
 
@@ -2591,7 +2628,7 @@ def test_dispatch_review_dry_run(kanban_home, all_assignees_spawnable):
     assert res.spawned[0][0] == t
     # Dry run must NOT mutate status.
     with kb.connect() as conn:
-        assert kb.get_task(conn, t).status == "review"
+        assert _task(conn, t).status == "review"
 
 
 def test_dispatch_review_spawns_with_correct_skills(
@@ -2749,6 +2786,7 @@ def test_detect_stale_returns_running_task_with_no_heartbeat(kanban_home, monkey
         )
         assert t in stale, "Task with no heartbeat for >4h should be reclaimed"
         task = kb.get_task(conn, t)
+        assert task is not None
         assert task.status == "ready"
 
 
@@ -2782,7 +2820,7 @@ def test_detect_stale_returns_task_with_stale_heartbeat(kanban_home, monkeypatch
         assert t in stale, (
             "Task with heartbeat >1h old and started >4h ago should be stale"
         )
-        assert kb.get_task(conn, t).status == "ready"
+        assert _task(conn, t).status == "ready"
 
 
 def test_detect_stale_skips_task_with_recent_heartbeat(kanban_home, monkeypatch):
@@ -2813,7 +2851,7 @@ def test_detect_stale_skips_task_with_recent_heartbeat(kanban_home, monkeypatch)
             conn, stale_timeout_seconds=14400, signal_fn=lambda p, s: None,
         )
         assert stale == [], "Task with recent heartbeat should not be reclaimed"
-        assert kb.get_task(conn, t).status == "running"
+        assert _task(conn, t).status == "running"
 
 
 def test_detect_stale_skips_recently_started_task(kanban_home, monkeypatch):
@@ -2842,7 +2880,7 @@ def test_detect_stale_skips_recently_started_task(kanban_home, monkeypatch):
             conn, stale_timeout_seconds=14400, signal_fn=lambda p, s: None,
         )
         assert stale == [], "Task started <4h ago should not be reclaimed"
-        assert kb.get_task(conn, t).status == "running"
+        assert _task(conn, t).status == "running"
 
 
 def test_detect_stale_skips_when_timeout_zero(kanban_home, monkeypatch):
@@ -2869,7 +2907,7 @@ def test_detect_stale_skips_when_timeout_zero(kanban_home, monkeypatch):
             conn, stale_timeout_seconds=0, signal_fn=lambda p, s: None,
         )
         assert stale == [], "timeout=0 should disable stale detection"
-        assert kb.get_task(conn, t).status == "running"
+        assert _task(conn, t).status == "running"
 
 
 def test_detect_stale_skips_blocked_tasks(kanban_home, monkeypatch):
@@ -2899,7 +2937,7 @@ def test_detect_stale_skips_blocked_tasks(kanban_home, monkeypatch):
             conn, stale_timeout_seconds=14400, signal_fn=lambda p, s: None,
         )
         assert stale == [], "Blocked task should not be reclaimed by stale detection"
-        assert kb.get_task(conn, t).status == "blocked"
+        assert _task(conn, t).status == "blocked"
 
 
 def test_detect_stale_does_not_tick_failure_counter(kanban_home, monkeypatch):

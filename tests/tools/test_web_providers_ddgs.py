@@ -34,7 +34,7 @@ def _install_fake_ddgs(monkeypatch, *, text_results=None, text_raises=None):
             for hit in (text_results or []):
                 yield hit
 
-    fake.DDGS = _FakeDDGS
+    fake.DDGS = _FakeDDGS  # ty: ignore[unresolved-attribute]
     monkeypatch.setitem(sys.modules, "ddgs", fake)
     return fake
 

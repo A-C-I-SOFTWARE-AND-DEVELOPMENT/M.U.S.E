@@ -681,6 +681,7 @@ class TestCheckNousFreeTierCache:
             result1 = check_nous_free_tier()
             assert mock_fetch.call_count == 1
 
+            assert _models_mod._free_tier_cache is not None  # populated by the call above
             cached_result, cached_at = _models_mod._free_tier_cache
             _models_mod._free_tier_cache = (cached_result, cached_at - _FREE_TIER_CACHE_TTL - 1)
 

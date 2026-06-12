@@ -81,27 +81,27 @@ def _ensure_teams_mock():
         async def stop(self):
             pass
 
-    microsoft_teams_apps.App = MockApp
-    microsoft_teams_apps.ActivityContext = MagicMock
-    microsoft_teams_common_http_client.ClientOptions = MagicMock
+    microsoft_teams_apps.App = MockApp  # ty: ignore[unresolved-attribute]
+    microsoft_teams_apps.ActivityContext = MagicMock  # ty: ignore[unresolved-attribute]
+    microsoft_teams_common_http_client.ClientOptions = MagicMock  # ty: ignore[unresolved-attribute]
 
     # MessageActivity mock
-    microsoft_teams_api.MessageActivity = MagicMock
-    microsoft_teams_api.ConversationReference = MagicMock
-    microsoft_teams_api.MessageActivityInput = MagicMock
+    microsoft_teams_api.MessageActivity = MagicMock  # ty: ignore[unresolved-attribute]
+    microsoft_teams_api.ConversationReference = MagicMock  # ty: ignore[unresolved-attribute]
+    microsoft_teams_api.MessageActivityInput = MagicMock  # ty: ignore[unresolved-attribute]
 
     # TypingActivityInput mock
     class MockTypingActivityInput:
         pass
 
-    microsoft_teams_api_activities_typing.TypingActivityInput = MockTypingActivityInput
+    microsoft_teams_api_activities_typing.TypingActivityInput = MockTypingActivityInput  # ty: ignore[unresolved-attribute]
 
     # Adaptive card invoke activity mock
-    microsoft_teams_api_activities_invoke_adaptive_card.AdaptiveCardInvokeActivity = MagicMock
+    microsoft_teams_api_activities_invoke_adaptive_card.AdaptiveCardInvokeActivity = MagicMock  # ty: ignore[unresolved-attribute]
 
     # Adaptive card response mocks
-    microsoft_teams_api_models_adaptive_card.AdaptiveCardActionCardResponse = MagicMock
-    microsoft_teams_api_models_adaptive_card.AdaptiveCardActionMessageResponse = MagicMock
+    microsoft_teams_api_models_adaptive_card.AdaptiveCardActionCardResponse = MagicMock  # ty: ignore[unresolved-attribute]
+    microsoft_teams_api_models_adaptive_card.AdaptiveCardActionMessageResponse = MagicMock  # ty: ignore[unresolved-attribute]
 
     # Invoke response mocks
     class MockInvokeResponse:
@@ -109,8 +109,8 @@ def _ensure_teams_mock():
             self.status = status
             self.body = body
 
-    microsoft_teams_api_models_invoke_response.InvokeResponse = MockInvokeResponse
-    microsoft_teams_api_models_invoke_response.AdaptiveCardInvokeResponse = MagicMock
+    microsoft_teams_api_models_invoke_response.InvokeResponse = MockInvokeResponse  # ty: ignore[unresolved-attribute]
+    microsoft_teams_api_models_invoke_response.AdaptiveCardInvokeResponse = MagicMock  # ty: ignore[unresolved-attribute]
 
     # Cards mocks
     class MockAdaptiveCard:
@@ -123,9 +123,9 @@ def _ensure_teams_mock():
         def with_actions(self, actions):
             return self
 
-    microsoft_teams_cards.AdaptiveCard = MockAdaptiveCard
-    microsoft_teams_cards.ExecuteAction = MagicMock
-    microsoft_teams_cards.TextBlock = MagicMock
+    microsoft_teams_cards.AdaptiveCard = MockAdaptiveCard  # ty: ignore[unresolved-attribute]
+    microsoft_teams_cards.ExecuteAction = MagicMock  # ty: ignore[unresolved-attribute]
+    microsoft_teams_cards.TextBlock = MagicMock  # ty: ignore[unresolved-attribute]
 
     # HttpRequest TypedDict mock
     def HttpRequest(body=None, headers=None):
@@ -137,10 +137,10 @@ def _ensure_teams_mock():
     from typing import Callable
     HttpRouteHandler = Callable
 
-    microsoft_teams_apps_http_adapter.HttpRequest = HttpRequest
-    microsoft_teams_apps_http_adapter.HttpResponse = HttpResponse
-    microsoft_teams_apps_http_adapter.HttpMethod = HttpMethod
-    microsoft_teams_apps_http_adapter.HttpRouteHandler = HttpRouteHandler
+    microsoft_teams_apps_http_adapter.HttpRequest = HttpRequest  # ty: ignore[unresolved-attribute]
+    microsoft_teams_apps_http_adapter.HttpResponse = HttpResponse  # ty: ignore[unresolved-attribute]
+    microsoft_teams_apps_http_adapter.HttpMethod = HttpMethod  # ty: ignore[unresolved-attribute]
+    microsoft_teams_apps_http_adapter.HttpRouteHandler = HttpRouteHandler  # ty: ignore[unresolved-attribute]
 
     # Wire the hierarchy
     for name, mod in {
@@ -170,15 +170,15 @@ _ensure_teams_mock()
 # (plugin_adapter_teams) so it cannot collide with sibling plugin adapters.
 _teams_mod = load_plugin_adapter("teams")
 
-_teams_mod.TEAMS_SDK_AVAILABLE = True
-_teams_mod.AIOHTTP_AVAILABLE = True
+_teams_mod.TEAMS_SDK_AVAILABLE = True  # ty: ignore[unresolved-attribute]
+_teams_mod.AIOHTTP_AVAILABLE = True  # ty: ignore[unresolved-attribute]
 
 # Ensure SDK symbols that were None (import failed on Python <3.12) are
 # replaced with the mocked versions so runtime calls don't silently no-op.
 import sys as _sys
 _mt = _sys.modules.get("microsoft_teams.api.activities.typing")
 if _mt and _teams_mod.TypingActivityInput is None:
-    _teams_mod.TypingActivityInput = _mt.TypingActivityInput
+    _teams_mod.TypingActivityInput = _mt.TypingActivityInput  # ty: ignore[unresolved-attribute]
 
 TeamsAdapter = _teams_mod.TeamsAdapter
 TeamsSummaryWriter = _teams_mod.TeamsSummaryWriter

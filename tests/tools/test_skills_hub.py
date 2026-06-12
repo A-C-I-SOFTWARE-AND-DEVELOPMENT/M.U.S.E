@@ -911,7 +911,7 @@ class TestUrlSource:
             None, 123, ["list"],
         ]
         for name in invalid:
-            assert not UrlSource._is_valid_skill_name(name), f"should reject {name!r}"
+            assert not UrlSource._is_valid_skill_name(name), f"should reject {name!r}"  # ty: ignore[invalid-argument-type]
 
 
 class TestCheckForSkillUpdates:

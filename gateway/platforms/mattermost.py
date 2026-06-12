@@ -356,6 +356,7 @@ class MattermostAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a local image file."""
         return await self._send_local_file(
@@ -370,6 +371,7 @@ class MattermostAdapter(BasePlatformAdapter):
         file_name: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a local file as a document."""
         return await self._send_local_file(
@@ -383,6 +385,7 @@ class MattermostAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload an audio file."""
         return await self._send_local_file(
@@ -396,6 +399,7 @@ class MattermostAdapter(BasePlatformAdapter):
         caption: Optional[str] = None,
         reply_to: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> SendResult:
         """Upload a video file."""
         return await self._send_local_file(
@@ -863,8 +867,8 @@ class MattermostAdapter(BasePlatformAdapter):
             source=source,
             raw_message=post,
             message_id=post_id,
-            media_urls=media_urls if media_urls else None,
-            media_types=media_types if media_types else None,
+            media_urls=media_urls if media_urls else None,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
+            media_types=media_types if media_types else None,  # ty: ignore[invalid-argument-type]  # duck-typed platform/adapter path
             channel_prompt=_channel_prompt,
         )
 

@@ -46,7 +46,7 @@ class TestProviderSelectionGate:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(config_mod, "get_env_value", lambda name, default=None: "")
-            tt = importlib.reload(tt)
+            tt = importlib.reload(tt)  # ty: ignore[invalid-assignment]
 
         try:
             with patch.object(tt, "_HAS_FASTER_WHISPER", False), \
@@ -66,7 +66,7 @@ class TestProviderSelectionGate:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(config_mod, "get_env_value", lambda name, default=None: "")
-            xai_http = importlib.reload(xai_http)
+            xai_http = importlib.reload(xai_http)  # ty: ignore[invalid-assignment]
 
         try:
             with patch(

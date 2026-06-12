@@ -315,13 +315,13 @@ async def test_heartbeat_probe_no_op_when_polling_healthy():
     mock_app.bot.get_me = AsyncMock(return_value=MagicMock())
     adapter._app = mock_app
 
-    adapter._handle_polling_network_error = AsyncMock()
+    adapter._handle_polling_network_error = AsyncMock()  # ty: ignore[invalid-assignment]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         await adapter._verify_polling_after_reconnect()
 
     mock_app.bot.get_me.assert_awaited_once()
-    adapter._handle_polling_network_error.assert_not_awaited()
+    adapter._handle_polling_network_error.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -340,14 +340,14 @@ async def test_heartbeat_probe_reenters_ladder_when_updater_not_running():
     mock_app.bot.get_me = AsyncMock()
     adapter._app = mock_app
 
-    adapter._handle_polling_network_error = AsyncMock()
+    adapter._handle_polling_network_error = AsyncMock()  # ty: ignore[invalid-assignment]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         await adapter._verify_polling_after_reconnect()
 
     mock_app.bot.get_me.assert_not_called()
-    adapter._handle_polling_network_error.assert_awaited_once()
-    err = adapter._handle_polling_network_error.await_args.args[0]
+    adapter._handle_polling_network_error.assert_awaited_once()  # ty: ignore[unresolved-attribute]
+    err = adapter._handle_polling_network_error.await_args.args[0]  # ty: ignore[unresolved-attribute]
     assert isinstance(err, RuntimeError)
     assert "not running" in str(err).lower()
 
@@ -371,7 +371,7 @@ async def test_heartbeat_probe_reenters_ladder_when_get_me_times_out():
     mock_app.bot.get_me = AsyncMock(side_effect=hang_forever)
     adapter._app = mock_app
 
-    adapter._handle_polling_network_error = AsyncMock()
+    adapter._handle_polling_network_error = AsyncMock()  # ty: ignore[invalid-assignment]
 
     async def fast_wait_for(coro, timeout):
         if asyncio.iscoroutine(coro):
@@ -382,7 +382,7 @@ async def test_heartbeat_probe_reenters_ladder_when_get_me_times_out():
         with patch("gateway.platforms.telegram.asyncio.wait_for", new=fast_wait_for):
             await adapter._verify_polling_after_reconnect()
 
-    adapter._handle_polling_network_error.assert_awaited_once()
+    adapter._handle_polling_network_error.assert_awaited_once()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio
@@ -401,14 +401,14 @@ async def test_heartbeat_probe_reenters_ladder_on_get_me_network_error():
     mock_app.bot.get_me = AsyncMock(side_effect=ConnectionError("pool wedged"))
     adapter._app = mock_app
 
-    adapter._handle_polling_network_error = AsyncMock()
+    adapter._handle_polling_network_error = AsyncMock()  # ty: ignore[invalid-assignment]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         await adapter._verify_polling_after_reconnect()
 
-    adapter._handle_polling_network_error.assert_awaited_once()
+    adapter._handle_polling_network_error.assert_awaited_once()  # ty: ignore[unresolved-attribute]
     assert isinstance(
-        adapter._handle_polling_network_error.await_args.args[0], ConnectionError
+        adapter._handle_polling_network_error.await_args.args[0], ConnectionError  # ty: ignore[unresolved-attribute]
     )
 
 
@@ -425,13 +425,13 @@ async def test_heartbeat_probe_skips_when_already_fatal():
     mock_app.bot.get_me = AsyncMock()
     adapter._app = mock_app
 
-    adapter._handle_polling_network_error = AsyncMock()
+    adapter._handle_polling_network_error = AsyncMock()  # ty: ignore[invalid-assignment]
 
     with patch("asyncio.sleep", new_callable=AsyncMock):
         await adapter._verify_polling_after_reconnect()
 
     mock_app.bot.get_me.assert_not_called()
-    adapter._handle_polling_network_error.assert_not_awaited()
+    adapter._handle_polling_network_error.assert_not_awaited()  # ty: ignore[unresolved-attribute]
 
 
 @pytest.mark.asyncio

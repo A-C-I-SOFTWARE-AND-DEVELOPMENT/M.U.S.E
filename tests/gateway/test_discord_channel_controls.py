@@ -82,7 +82,7 @@ def adapter(monkeypatch):
     adapter = DiscordAdapter(config)
     adapter._client = SimpleNamespace(user=SimpleNamespace(id=999))
     adapter._text_batch_delay_seconds = 0  # disable batching for tests
-    adapter.handle_message = AsyncMock()
+    adapter.handle_message = AsyncMock()  # ty: ignore[invalid-assignment]
     return adapter
 
 

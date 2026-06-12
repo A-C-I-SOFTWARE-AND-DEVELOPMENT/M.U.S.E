@@ -399,7 +399,7 @@ class TestExtractHttpStatus:
 
     def test_extracts_from_status_code_attr(self, image_tool):
         exc = Exception("fail")
-        exc.status_code = 404  # type: ignore[attr-defined]
+        exc.status_code = 404  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
         assert image_tool._extract_http_status(exc) == 404
 
     def test_returns_none_for_non_http_exception(self, image_tool):
@@ -410,7 +410,7 @@ class TestExtractHttpStatus:
         class OddResponse:
             pass
         exc = Exception("weird")
-        exc.response = OddResponse()  # type: ignore[attr-defined]
+        exc.response = OddResponse()  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
         assert image_tool._extract_http_status(exc) is None
 
 

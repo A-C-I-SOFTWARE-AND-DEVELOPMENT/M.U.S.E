@@ -909,7 +909,7 @@ def _vapi_call(
         ("phone", "vapi", "model"),
         default=VAPI_DEFAULT_MODEL,
     )
-    assistant = {
+    assistant: dict[str, Any] = {
         "model": {
             "provider": "openai",
             "model": model,

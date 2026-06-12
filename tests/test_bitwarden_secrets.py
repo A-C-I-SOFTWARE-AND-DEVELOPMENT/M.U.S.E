@@ -434,7 +434,7 @@ def test_apply_missing_token(monkeypatch):
         enabled=True, project_id="p", auto_install=False
     )
     assert not result.ok
-    assert "BWS_ACCESS_TOKEN" in result.error
+    assert "BWS_ACCESS_TOKEN" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 def test_apply_missing_project_id(monkeypatch):
@@ -443,7 +443,7 @@ def test_apply_missing_project_id(monkeypatch):
         enabled=True, project_id="", auto_install=False
     )
     assert not result.ok
-    assert "project_id" in result.error
+    assert "project_id" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 def test_apply_does_not_override_existing(monkeypatch, tmp_path):
@@ -532,7 +532,7 @@ def test_apply_swallows_fetch_errors(monkeypatch, tmp_path):
         enabled=True, project_id="p", auto_install=False,
     )
     assert not result.ok
-    assert "bad token" in result.error
+    assert "bad token" in result.error  # ty: ignore[unsupported-operator]  # mock/duck-typed test fixture
 
 
 # ---------------------------------------------------------------------------
@@ -548,7 +548,7 @@ def test_env_loader_skips_when_disabled(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     try:
-        from hermes_cli.env_loader import _apply_external_secret_sources
+        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
     except ImportError:
         pytest.skip(
             "hermes_cli.env_loader._apply_external_secret_sources not present "
@@ -593,7 +593,7 @@ def test_env_loader_calls_bsm_when_enabled(tmp_path, monkeypatch):
     )
 
     try:
-        from hermes_cli.env_loader import _apply_external_secret_sources
+        from hermes_cli.env_loader import _apply_external_secret_sources  # ty: ignore[unresolved-import]  # mock/duck-typed test fixture
     except ImportError:
         pytest.skip(
             "hermes_cli.env_loader._apply_external_secret_sources not present "

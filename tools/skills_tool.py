@@ -528,7 +528,7 @@ def _get_session_platform() -> str:
         return ""
 
 
-def _is_skill_disabled(name: str, platform: str = None) -> bool:
+def _is_skill_disabled(name: str, platform: Optional[str] = None) -> bool:
     """Check if a skill is disabled in config.
 
     Resolves the active platform from (in order of precedence):
@@ -675,7 +675,7 @@ def _load_category_description(category_dir: Path) -> Optional[str]:
         return None
 
 
-def skills_list(category: str = None, task_id: str = None) -> str:
+def skills_list(category: Optional[str] = None, task_id: Optional[str] = None) -> str:
     """
     List all available skills (progressive disclosure tier 1 - minimal metadata).
 
@@ -852,8 +852,8 @@ def _serve_plugin_skill(
 
 def skill_view(
     name: str,
-    file_path: str = None,
-    task_id: str = None,
+    file_path: Optional[str] = None,
+    task_id: Optional[str] = None,
     preprocess: bool = True,
 ) -> str:
     """
@@ -881,6 +881,8 @@ def skill_view(
             from hermes_cli.plugins import discover_plugins, get_plugin_manager
 
             namespace, bare = parse_qualified_name(name)
+            # ":" in name guarantees parse_qualified_name returns a namespace.
+            assert namespace is not None
             if not is_valid_namespace(namespace):
                 return json.dumps(
                     {

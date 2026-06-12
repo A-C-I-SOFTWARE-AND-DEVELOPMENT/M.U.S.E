@@ -325,11 +325,12 @@ class TestUnifiedCronjobTool:
                 action="create",
                 prompt="Daily briefing",
                 schedule="every 1h",
-                deliver=["telegram"],
+                deliver=["telegram"],  # ty: ignore[invalid-argument-type]
             )
         )
         assert created["success"] is True
         stored = get_job(created["job_id"])
+        assert stored is not None
         assert stored["deliver"] == "telegram"
 
     def test_create_normalizes_multi_element_list_deliver(self):
@@ -341,11 +342,12 @@ class TestUnifiedCronjobTool:
                 action="create",
                 prompt="Daily briefing",
                 schedule="every 1h",
-                deliver=["telegram", "discord"],
+                deliver=["telegram", "discord"],  # ty: ignore[invalid-argument-type]
             )
         )
         assert created["success"] is True
         stored = get_job(created["job_id"])
+        assert stored is not None
         assert stored["deliver"] == "telegram,discord"
 
     def test_update_normalizes_list_form_deliver(self):
@@ -359,9 +361,10 @@ class TestUnifiedCronjobTool:
             cronjob(
                 action="update",
                 job_id=created["job_id"],
-                deliver=["telegram"],
+                deliver=["telegram"],  # ty: ignore[invalid-argument-type]
             )
         )
         assert updated["success"] is True
         stored = get_job(created["job_id"])
+        assert stored is not None
         assert stored["deliver"] == "telegram"

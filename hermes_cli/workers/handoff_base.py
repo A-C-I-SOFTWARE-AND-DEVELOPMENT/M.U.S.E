@@ -48,8 +48,8 @@ def build_worker_task(
         from hermes_cli.jarvis_prime.navigation import Navigator
 
         packet = Navigator.for_repo(repo_root).navigate(objective, limit=5).worker_packet()
-        files = list(packet.get("candidate_files") or [])
-        criteria = list(packet.get("verify_with") or [])
+        files = list(packet.get("candidate_files") or [])  # ty: ignore[invalid-argument-type, invalid-assignment]  # dynamic config/plugin path
+        criteria = list(packet.get("verify_with") or [])  # ty: ignore[invalid-argument-type, invalid-assignment]  # dynamic config/plugin path
     except Exception:
         pass
     return WorkerTask(

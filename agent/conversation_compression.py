@@ -251,7 +251,7 @@ def replay_compression_warning(agent: Any) -> None:
 def compress_context(
     agent: Any,
     messages: list,
-    system_message: str,
+    system_message: Optional[str],
     *,
     approx_tokens: Optional[int] = None,
     task_id: str = "default",
