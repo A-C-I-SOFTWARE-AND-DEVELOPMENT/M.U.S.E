@@ -466,9 +466,11 @@ def _suggest_close_models(key: str, current_provider: str) -> list[str]:
         try:
             candidates.update(list_provider_models(current_provider) or [])
         except Exception as exc:
+            # Log the exception type only — provider/HTTP errors can embed
+            # credentials (auth headers, keyed URLs) in their messages.
             logger.debug(
                 "provider catalog unavailable for suggestions (%s): %s",
-                current_provider, exc,
+                current_provider, type(exc).__name__,
             )
     try:
         return get_close_matches(key, sorted(candidates), n=3, cutoff=0.5)
