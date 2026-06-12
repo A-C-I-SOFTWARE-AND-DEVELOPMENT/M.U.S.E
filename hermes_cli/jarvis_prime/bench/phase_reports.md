@@ -86,3 +86,38 @@ per domain by `sha256(seed:base_task_id)` (pass/fail siblings never split):
 - [x] Fallback corpus provenance stated (fixtures, verifier-earned tags)
 
 **Rollback:** none needed (read-only + additive files).
+
+## Phase 1 — Shared cluster infrastructure
+
+**MEASURED (container, hashed-ngram backend `hashed-ngram-d256-s0`):** fitted on
+the 24 unique train prompts of the Phase-0 corpus, `k = round(sqrt(24)) = 5`,
+seed 0. Cluster→domain alignment is exact (no mixed cluster except
+safety+reasoning sharing one cluster at k=5):
+
+| cluster | domains (train members) |
+|---|---|
+| 0 | code_generation ×4 |
+| 1 | software_development ×4 |
+| 2 | code_editing ×4 |
+| 3 | safety ×4 + reasoning ×4 |
+| 4 | code_review ×4 |
+
+**Confidence calibration (deviation, intent kept):** the spec's plain
+normalized-inverse-distance softmax compresses confidence to ≈1/k (measured
+0.26–0.37 in-domain vs 0.21 gibberish — τ=0.75 would gate *everything* out).
+Replaced with a radius-calibrated inverse distance
+`conf = r/(r + max(d−r, 0))` (r = fitted cluster radius): still a normalized
+inverse centroid distance in (0,1], but τ=0.75 now means d ≤ 4r/3. Measured:
+train prompts mean 0.981 (min 0.880); unseen held-out prompts mean 0.846
+(5/6 ≥ 0.75); gibberish 0.607 / off-topic 0.641 — correctly below the gate.
+
+- MiniLM backend present but **unusable here** (HF blocked) — `resolve_backend("auto")`
+  falls back to the hashed backend; the model artifact records the backend name and
+  `assign` fail-closes on backend mismatch.
+- Model artifact committed at `hermes_cli/jarvis_prime/templates/model/`
+  (`centroids.npz` + `meta.json`, corpus hash recorded).
+
+**Done-when:** ≥3 coherent clusters with visible confidence separation — met (5
+coherent clusters; ≥0.2 separation between in-domain and off-topic). 11 unit
+tests green. **Rollback:** delete `clusters.py` + `templates/model/` (nothing
+else imports them yet).
