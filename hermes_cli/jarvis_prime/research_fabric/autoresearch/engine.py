@@ -435,7 +435,7 @@ def run_experiment_loop(
     best_infeasible: Optional[ExperimentResult] = None
     best_bpb = config.baseline_bpb
     total_cost = 0.0
-    stopped_reason = "max_experiments"
+    stopped_reason: str
     index = 0
 
     def _ceiling_hit() -> Optional[str]:
