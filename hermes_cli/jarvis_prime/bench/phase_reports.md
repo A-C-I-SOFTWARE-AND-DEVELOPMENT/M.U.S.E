@@ -279,3 +279,25 @@ it never touches `gemma_runner.py`; missing binary/model degrades to
 **Done-when (adapted):** comparison-table scaffolding + harness exist and are
 tested (6 tests green); measured table DEFERRED with the owner script.
 **Rollback:** delete `bench/diffusion_lane.py` + the script; nothing imports it.
+
+## Phase 6 — Termux/aarch64 port
+
+**Plan + tooling shipped; device numbers DEFERRED** (no aarch64 device in this
+environment) → `scripts/templates_fastpath/phase6_termux.sh`, which on-device:
+
+1. Builds llama.cpp natively (`pkg install cmake clang git python`,
+   `-DGGML_NATIVE=ON`) if absent.
+2. Installs numpy via `constraints-termux.txt`; **no torch/sentence-transformers
+   on device** — the hashed embedding backend (Phase 1) is the designed-in
+   Termux answer and the committed cluster model already uses it.
+3. Fills the measured memory-budget table (target + draft + KV/slot ≤ device
+   `MemAvailable`) and applies the rule: **if RAM-bound, drop speculative
+   decoding FIRST** — grammar forcing + prompt-cache stay (they work everywhere
+   llama.cpp runs).
+4. Reruns the Phase-3 bench (same gate: ≥20% latency win, parse rate ≥
+   baseline) against a 1–3B Gemma Q4 GGUF, 2 slots, c=2048, with
+   `MUSE_TEMPLATES_DIR` honored for on-device template artifacts.
+
+**Done-when (adapted):** on-device steps + budget-table tooling ready; the
+"runs within RAM budget with measured speedup" check is produced by the script
+on the phone. **Rollback:** `MUSE_TEMPLATES=0` on device (instant).
