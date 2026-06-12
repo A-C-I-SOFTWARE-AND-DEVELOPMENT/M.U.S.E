@@ -250,3 +250,32 @@ structured entry. No promotion was recorded — and none may be implied.
 > Rollback if approved and later regretted: set `MUSE_TEMPLATES=0` (instant)
 > and/or `git revert` the flip commit; the frozen champion's
 > `rollback_handle` records the pre-promotion sha.
+
+## Phase 5 — Diffusion experimental lane (isolated, laptop only)
+
+**MEASURED (container):** llama.cpp's `llama-diffusion-cli` target **builds**
+from the same source checkout (build 1593d56) and exposes exactly the spec's
+flags (`--diffusion-steps`, `--diffusion-algorithm`,
+`--diffusion-block-length`, `-ub`). The probe harness
+(`bench/diffusion_lane.py`) sweeps steps {64, 128, 256}, uses the same
+Phase-4 verifier corpus prompts and a latency co-metric, and emits the
+comparison table via `comparison_table()`.
+
+**Isolation (test-enforced):** no module outside `bench/` imports the lane;
+it never touches `gemma_runner.py`; missing binary/model degrades to
+`{"available": False}`.
+
+**Deviations (rule 7):**
+- Dream-7B / LLaDA-8B GGUFs are **unobtainable in this container** (HF
+  blocked, multi-GB) — the quality/latency comparison is **DEFERRED** to
+  `scripts/templates_fastpath/phase5_diffusion.sh` on the laptop. The
+  expectation to confirm/refute there: diffusion slower than the AR fast path
+  on CPU at batch size 1.
+- `llama-diffusion-cli` exposes no token-clamping API, so "clamped-template
+  infilling" is realized as an explicit blank-filling skeleton prompt
+  (`build_infill_prompt`); true positional clamping would need a llama.cpp
+  patch.
+
+**Done-when (adapted):** comparison-table scaffolding + harness exist and are
+tested (6 tests green); measured table DEFERRED with the owner script.
+**Rollback:** delete `bench/diffusion_lane.py` + the script; nothing imports it.
