@@ -187,7 +187,9 @@ def parse_summary(log_text: str) -> Optional[dict[str, float]]:
                 try:
                     values[key] = float(raw)
                 except ValueError:
-                    pass
+                    # Ignore malformed numeric values; parser is best-effort and
+                    # only requires a valid final val_bpb to consider the run parsed.
+                    continue
     if "val_bpb" not in values:
         return None
     return values
