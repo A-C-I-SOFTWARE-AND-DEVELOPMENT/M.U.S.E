@@ -44,6 +44,7 @@ class ReleaseCenterViewModelTest {
                     currentVersionCode = 1,
                     currentVersionName = "0.1.0",
                     fetch = updateFetch,
+                    dispatcher = Dispatchers.Unconfined,
                 ),
             ),
         )

@@ -1,5 +1,6 @@
 package com.aci.hermes.data.update
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -60,6 +61,7 @@ class UpdateCheckerTest {
             currentVersionCode = 10,
             currentVersionName = "v10",
             fetch = { null },
+            dispatcher = Dispatchers.Unconfined,
         )
         assertTrue(checker.check() is UpdateState.Unknown)
     }

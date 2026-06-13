@@ -1,5 +1,6 @@
 package com.aci.hermes.data.update
 
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
@@ -20,9 +21,11 @@ class UpdateChecker(
     private val currentVersionName: String,
     private val manifestUrl: String = DEFAULT_MANIFEST_URL,
     private val fetch: (String) -> String? = ::httpGet,
+    /** Where the blocking fetch runs. Injectable so tests stay deterministic. */
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     /** Fetch the manifest and decide. Never throws; failures map to [UpdateState.Unknown]. */
-    suspend fun check(): UpdateState = withContext(Dispatchers.IO) {
+    suspend fun check(): UpdateState = withContext(dispatcher) {
         val body = fetch(manifestUrl)
         UpdateState.evaluate(
             currentVersionCode = currentVersionCode,
