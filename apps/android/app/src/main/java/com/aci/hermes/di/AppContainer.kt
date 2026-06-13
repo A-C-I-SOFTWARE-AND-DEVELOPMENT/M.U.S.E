@@ -523,6 +523,10 @@ class AppContainer(private val application: Application) {
             appVersion = com.aci.hermes.BuildConfig.VERSION_NAME,
             buildType = if (com.aci.hermes.BuildConfig.DEBUG) "debug" else "release",
             applicationId = com.aci.hermes.BuildConfig.APPLICATION_ID,
+            updateChecker = com.aci.hermes.data.update.UpdateChecker(
+                currentVersionCode = com.aci.hermes.BuildConfig.VERSION_CODE,
+                currentVersionName = com.aci.hermes.BuildConfig.VERSION_NAME,
+            ),
         )
     }
 

@@ -273,6 +273,8 @@ jobs:
           SHA: ${{ steps.ctx.outputs.sha }}
           ASSET: ${{ steps.apk.outputs.name }}
           SIGNING: ${{ steps.verify.outputs.signing }}
+          # Must equal BuildConfig.VERSION_CODE (set to github.run_number at build).
+          VERSION_CODE: ${{ github.run_number }}
         run: |
           if [ "$SIGNING" = "release" ]; then
             sign_line="**Release-signed** (verified by apksigner)."
@@ -308,3 +310,14 @@ jobs:
           fi
           gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --clobber
           echo "Download: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}"
+
+          # Version manifest the in-app "install update" affordance reads. Only
+          # the rolling channel is queried by the app (data/update/UpdateChecker),
+          # so emit it there; versionCode mirrors the compiled BuildConfig value.
+          if [ "$TAG" = "android-latest" ]; then
+            apk_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/${ASSET}"
+            printf '{"versionCode": %s, "versionName": "%s", "apkUrl": "%s", "notes": "MUSE %s — built %s UTC"}\n' \
+              "$VERSION_CODE" "$VERSION" "$apk_url" "$VERSION" "$BUILD_DATE" > android-latest.json
+            gh release upload "$TAG" android-latest.json --repo "$GITHUB_REPOSITORY" --clobber
+            echo "Manifest: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/android-latest.json"
+          fi

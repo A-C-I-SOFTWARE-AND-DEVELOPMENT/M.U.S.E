@@ -20,12 +20,16 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import android.content.Context
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.aci.hermes.data.cockpit.ServerCapabilities
+import com.aci.hermes.data.update.ApkInstaller
+import com.aci.hermes.data.update.UpdateState
 import com.aci.hermes.ui.designsystem.MuseButton
 import com.aci.hermes.ui.designsystem.MuseButtonVariant
 import com.aci.hermes.ui.designsystem.MuseCard
@@ -72,6 +76,12 @@ fun ReleaseCenterScreen(
                 Line("Build type", viewModel.buildType)
                 Line("Application id", viewModel.applicationId)
             }
+
+            UpdateCard(
+                update = state.update,
+                fallbackApkUrl = viewModel.downloadUrl,
+                onRecheck = viewModel::checkForUpdate,
+            )
 
             SectionCard("Download & install") {
                 Text(
@@ -131,6 +141,96 @@ fun ReleaseCenterScreen(
                 )
             }
         }
+    }
+}
+
+/**
+ * Manual "install update" affordance. Shows whether the rolling channel has a
+ * newer build and offers a single visible action that downloads it and opens
+ * the system installer (installing the newer build updates in place). No
+ * background/auto behavior — the user taps to install.
+ */
+@Composable
+private fun UpdateCard(
+    update: UpdateState,
+    fallbackApkUrl: String,
+    onRecheck: () -> Unit,
+) {
+    val context = LocalContext.current
+    SectionCard("Update") {
+        when (update) {
+            is UpdateState.Checking ->
+                Text(
+                    "Checking the rolling channel for a newer build…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
+                )
+
+            is UpdateState.UpToDate -> {
+                Text(
+                    "You're on the latest published build (${update.versionName}).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
+                )
+                MuseButton(
+                    onClick = { startInstall(context, fallbackApkUrl) },
+                    text = "Reinstall latest",
+                    variant = MuseButtonVariant.Secondary,
+                )
+            }
+
+            is UpdateState.Available -> {
+                Text(
+                    "Update available: ${update.versionName}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = JarvisSignal,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (update.notes.isNotBlank()) {
+                    Text(
+                        update.notes,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = JarvisSignalDim,
+                    )
+                }
+                MuseButton(
+                    onClick = { startInstall(context, update.apkUrl) },
+                    text = "Download & install update",
+                    variant = MuseButtonVariant.Primary,
+                )
+                Text(
+                    "You'll be asked to allow installs from MUSE (once) and to confirm the " +
+                        "install in the system dialog.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
+                )
+            }
+
+            is UpdateState.Unknown -> {
+                Text(
+                    update.reason,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = JarvisSignalDim,
+                )
+                MuseButton(
+                    onClick = onRecheck,
+                    text = "Check again",
+                    variant = MuseButtonVariant.Secondary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Either send the user to grant "install unknown apps" (first time) or start the
+ * visible download → system-installer flow. Always user-approved.
+ */
+private fun startInstall(context: Context, apkUrl: String) {
+    if (!ApkInstaller.canInstall(context)) {
+        ApkInstaller.requestInstallPermission(context)
+    } else {
+        ApkInstaller.downloadAndInstall(context, apkUrl)
     }
 }
 
