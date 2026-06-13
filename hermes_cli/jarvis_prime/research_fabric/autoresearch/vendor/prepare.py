@@ -216,7 +216,7 @@ class Tokenizer:
 
     @classmethod
     def from_directory(cls, tokenizer_dir=TOKENIZER_DIR):
-        with open(os.path.join(tokenizer_dir, "tokenizer.pkl"), "rb") as f:  # windows-footgun: ok (binary mode)
+        with open(os.path.join(tokenizer_dir, "tokenizer.pkl"), "rb") as f:
             enc = pickle.load(f)
         return cls(enc)
 
