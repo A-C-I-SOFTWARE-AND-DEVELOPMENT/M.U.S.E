@@ -63,6 +63,14 @@ values), and the paired backend's version/capabilities. It deliberately shows
 no live CI/PR status — that needs a configured GitHub token (not wired) — rather
 than fabricating one.
 
+## Keeping `android-latest` in sync with `main`
+
+The `android-latest` download is also refreshed by the repo-wide
+[`Sync main to releases`](../../../docs/releases/sync-main-to-releases.md)
+engine — an hourly auto-sync (and the `muse sync` button) dispatches the
+Android release workflow in rolling mode so the channel tracks `main` even for
+changes that don't touch `apps/android/**`.
+
 ## CI notes
 
 The `Unit tests` job (`testDebugUnitTest`) can intermittently flake on a few

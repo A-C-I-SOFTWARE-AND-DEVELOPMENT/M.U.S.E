@@ -40,6 +40,14 @@ on:
         description: 'Optional: hand-name the release tag (e.g. android-v1.0.0). Leave blank for an auto-versioned date.commits release.'
         required: false
         default: ''
+      channel:
+        description: 'rolling = refresh the android-latest download from current main (used by sync-main-to-releases); versioned = cut a permanent release (the default one-button behavior).'
+        required: false
+        type: choice
+        default: versioned
+        options:
+          - versioned
+          - rolling
 
 permissions:
   contents: write  # needed to create/upload the GitHub Release asset
@@ -99,6 +107,7 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
         run: |
           # Version is auto-derived from the repo's real history so it always
           # reflects the actual time + work done — never a hand-edited
@@ -119,6 +128,13 @@ jobs:
             VERSION="${REF_NAME#android-v}"; TAG="$REF_NAME"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
             ASSET="jarvis-prime-${VERSION}.apk"; TITLE="MUSE ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$INPUT_CHANNEL" = "rolling" ]; then
+            # sync-main-to-releases dispatches us in rolling mode: refresh the
+            # 'android-latest' download from the current main instead of cutting
+            # a new permanent version. Same outputs as the main-push branch.
+            VERSION="$AUTO_VERSION"; TAG="android-latest"
+            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
+            ASSET="jarvis-prime-android.apk"; TITLE="MUSE — latest Android build"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
             # Manual dispatch against an explicit tag.
             VERSION="${INPUT_TAG#android-v}"; TAG="$INPUT_TAG"

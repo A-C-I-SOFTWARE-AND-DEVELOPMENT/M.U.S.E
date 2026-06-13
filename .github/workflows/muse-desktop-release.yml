@@ -31,6 +31,14 @@ on:
         description: 'Optional: hand-name the tag (muse-desktop-v1.2.3). Blank = auto 0.1.<commits> release.'
         required: false
         default: ''
+      channel:
+        description: 'rolling = refresh the muse-desktop-latest download from current main (used by sync-main-to-releases); versioned = cut a permanent release (the default one-button behavior).'
+        required: false
+        type: choice
+        default: versioned
+        options:
+          - versioned
+          - rolling
 
 permissions:
   contents: write  # create/upload the GitHub Release
@@ -69,6 +77,7 @@ jobs:
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
         run: |
           # Bundle version must be valid semver (deb/nsis/msi reject date.commits),
           # so we use 0.1.<repo commit count> -- monotonic and reflects real work.
@@ -84,6 +93,13 @@ jobs:
             VERSION="${REF_NAME#muse-desktop-v}"; TAG="$REF_NAME"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned
             TITLE="MUSE Desktop ${TAG}"
+          elif [ "$EVENT" = "workflow_dispatch" ] && [ "$INPUT_CHANNEL" = "rolling" ]; then
+            # sync-main-to-releases dispatches us in rolling mode: refresh the
+            # 'muse-desktop-latest' download from current main instead of cutting
+            # a new permanent version. Same outputs as the main-push branch.
+            VERSION="$AUTO_VERSION"; TAG="muse-desktop-latest"
+            PUBLISH=true; PRERELEASE=true; CHANNEL=rolling
+            TITLE="MUSE Desktop — latest build"
           elif [ "$EVENT" = "workflow_dispatch" ] && [ -n "$INPUT_TAG" ]; then
             VERSION="${INPUT_TAG#muse-desktop-v}"; TAG="$INPUT_TAG"
             PUBLISH=true; PRERELEASE=false; CHANNEL=versioned

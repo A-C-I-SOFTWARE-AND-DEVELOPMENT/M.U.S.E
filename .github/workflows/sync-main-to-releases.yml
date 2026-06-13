@@ -1,0 +1,127 @@
+name: Sync main to releases
+
+# Push the current `main` to every release channel so the published releases
+# always reflect the latest source — closing the gap where the per-app release
+# workflows only refresh their rolling channel when a `main` push touches that
+# app's paths (so a docs/core change never reached the releases).
+#
+# This is the engine behind `muse sync` / the "muse-auto-sync" hourly job.
+# It refreshes three targets:
+#   - `M.U.S.E`             source tag + release  (cheap: just re-point, no build)
+#   - `android-latest`      rolling APK download  (dispatches Android release)
+#   - `muse-desktop-latest` rolling desktop build (dispatches desktop release)
+#
+# Triggers:
+#   - push to main          → only the cheap source-tag re-point runs (no
+#                             expensive APK/desktop rebuild on every commit;
+#                             the per-app workflows still handle path-relevant
+#                             pushes, and the hourly cron below catches the rest).
+#   - schedule (hourly)      → refresh all three (the unattended auto-sync).
+#   - workflow_dispatch      → on-demand; `targets` picks which channels.
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Hourly — the "muse-auto-sync" job. Keeps the rolling channels and the
+    # source tag fresh even for changes that don't touch an app's own paths.
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Which release channels to refresh.'
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - android
+          - desktop
+          - source
+
+permissions:
+  contents: write   # re-point the M.U.S.E tag + edit the source release
+  actions: write    # dispatch the sibling android / desktop release workflows
+
+# Never cancel an in-flight sync: a run may be mid re-point / mid-dispatch.
+concurrency:
+  group: sync-main-to-releases
+  cancel-in-progress: false
+
+jobs:
+  # ---- 1. Source tag: re-point `M.U.S.E` to main HEAD (cheap, no build) ------
+  sync-source-tag:
+    name: Sync M.U.S.E source tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Runs on push + schedule always; on manual dispatch only when source is in scope.
+    if: >-
+      github.event_name == 'push' ||
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.targets == 'all' || github.event.inputs.targets == 'source'))
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Re-point the M.U.S.E tag and release to main HEAD
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: M.U.S.E
+        run: |
+          SHA="$(git rev-parse HEAD)"
+          echo "Pointing tag $TAG at $SHA"
+          # Force-move the lightweight source tag to the current main commit.
+          git push origin "${SHA}:refs/tags/${TAG}" --force
+          # Re-target (or create) the GitHub Release for that tag so the
+          # "source" release tracks main too.
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+              --title "M.U.S.E — latest source" \
+              --notes "Rolling source release; tracks the latest \`main\` (auto-synced)." \
+              --prerelease
+          fi
+          echo "M.U.S.E source release now tracks main @ $SHA"
+
+  # ---- 2. Android rolling channel: dispatch the Android release in rolling mode
+  refresh-android:
+    name: Refresh android-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Heavy rebuild: hourly cron + on-demand dispatch only (not on every push).
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.targets == 'all' || github.event.inputs.targets == 'android'))
+    steps:
+      - name: Dispatch Android release (rolling)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run android-release.yml \
+            --repo "$GITHUB_REPOSITORY" --ref main -f channel=rolling
+          echo "Dispatched android-release.yml (channel=rolling) on main."
+
+  # ---- 3. Desktop rolling channel: dispatch the desktop release in rolling mode
+  refresh-desktop:
+    name: Refresh muse-desktop-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' &&
+        (github.event.inputs.targets == 'all' || github.event.inputs.targets == 'desktop'))
+    steps:
+      - name: Dispatch desktop release (rolling)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run muse-desktop-release.yml \
+            --repo "$GITHUB_REPOSITORY" --ref main -f channel=rolling
+          echo "Dispatched muse-desktop-release.yml (channel=rolling) on main."
