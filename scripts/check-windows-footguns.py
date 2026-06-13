@@ -79,7 +79,10 @@ EXCLUDED_DIRS = {
     "site-packages",
     "website/build",
     "optional-skills",  # external skills
-    "vendor",  # byte-identical vendored upstream payloads (sha256-pinned, never edited)
+    # Vendored upstream files are byte-pinned by integrity manifests
+    # (tests/jarvis_prime/test_autoresearch_vendor_integrity.py) — they can
+    # carry neither fixes nor inline suppressions, so they are out of scope.
+    "vendor",
 }
 
 # File globs we never scan (beyond the dirs above).
