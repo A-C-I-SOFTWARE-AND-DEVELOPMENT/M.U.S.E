@@ -6067,6 +6067,22 @@ def cmd_config(args):
     config_command(args)
 
 
+def cmd_sync(args):
+    """Push the current ``main`` to every release channel.
+
+    Thin dispatcher to the ``sync-main-to-releases`` GitHub workflow; the real
+    logic lives in ``hermes_cli/sync_releases.py``.
+    """
+    from hermes_cli.sync_releases import cmd_sync as _cmd_sync
+
+    code = _cmd_sync(args)
+    # Propagate a non-zero result as the process exit code (the top-level
+    # dispatcher calls cmd functions for their side effects and ignores the
+    # return value, so a bare `return code` would be swallowed).
+    if code:
+        raise SystemExit(code)
+
+
 def cmd_backup(args):
     """Back up the MUSE home directory to a zip file."""
     if getattr(args, "quick", False):
@@ -12007,6 +12023,30 @@ Examples:
         help="One or more paste URLs to delete (e.g. https://paste.rs/abc123)",
     )
     debug_parser.set_defaults(func=cmd_debug)
+
+    # =========================================================================
+    # sync command — push main to every release channel
+    # =========================================================================
+    sync_parser = subparsers.add_parser(
+        "sync",
+        help="Push the current main to every release channel",
+        description="Trigger the sync-main-to-releases workflow so the rolling "
+        "release channels (android-latest, muse-desktop-latest) and the "
+        "M.U.S.E source tag are refreshed to point at the current main. "
+        "Runs hourly in CI on its own; this is the on-demand button.",
+    )
+    sync_parser.add_argument(
+        "--targets",
+        choices=["all", "android", "desktop", "source"],
+        default="all",
+        help="Which release channels to refresh (default: all)",
+    )
+    sync_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Resolve the repo and print the dispatch command without running it",
+    )
+    sync_parser.set_defaults(func=cmd_sync)
 
     # =========================================================================
     # backup command

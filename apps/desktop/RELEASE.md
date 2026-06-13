@@ -9,6 +9,12 @@ Like the Android lane, **signing is entirely secret-driven** — nothing sensiti
 lives in the repo, and **builds succeed unsigned** when secrets are absent (clearly
 marked in the release notes), so forks and first bring-up are never blocked.
 
+The `muse-desktop-latest` rolling channel is also refreshed by the repo-wide
+[`Sync main to releases`](../../docs/releases/sync-main-to-releases.md) engine —
+an hourly auto-sync (and the `muse sync` button) dispatches this workflow in
+rolling mode (`channel=rolling`) so the channel tracks `main` even for changes
+that don't touch `apps/desktop/**`.
+
 ## Cutting a release
 
 - **One button (recommended):** Actions → *MUSE desktop release* → *Run workflow*
