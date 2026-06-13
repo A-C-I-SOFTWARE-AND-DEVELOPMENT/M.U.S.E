@@ -22,6 +22,7 @@ on:
     branches: [main]
   schedule:
     - cron: "27 3 * * 1" # weekly, Monday 03:27 UTC
+  workflow_dispatch: {} # on-demand run (still gated on the CODEQL_ADVANCED variable)
 
 permissions:
   contents: read
@@ -42,19 +43,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # First-party languages only. `build-mode: none` means no build step is
-        # required (CodeQL analyzes sources directly), which keeps every leg
-        # fast and reliable. The default-setup auto-detection of csharp / ruby /
-        # rust / c-cpp is dropped here — the repo has no first-party code in
-        # those languages.
+        # First-party languages analyzable without a build (`build-mode: none`),
+        # which keeps every leg fast and reliable. Dropped on purpose:
+        #   - csharp / ruby / rust / c-cpp: default-setup false detections, no
+        #     first-party code.
+        #   - java-kotlin (apps/android): CodeQL can't analyze the Android
+        #     Gradle/Kotlin app in build-mode none (configuration error — it
+        #     needs a full Android build). The Android app is already covered by
+        #     android-build.yml (lint + unit tests + APK build); add it back here
+        #     only with a working autobuild + Android SDK setup.
         include:
           - language: python
             build-mode: none
           - language: javascript-typescript
             build-mode: none
           - language: actions
-            build-mode: none
-          - language: java-kotlin # apps/android
             build-mode: none
     steps:
       - name: Checkout
