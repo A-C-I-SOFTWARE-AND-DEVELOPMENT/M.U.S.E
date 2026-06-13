@@ -40,8 +40,9 @@ def test_local_adapter_is_runtime_adapter_instance():
 
 
 def test_stub_adapters_are_runtime_adapter_instances():
-    # The stubs still satisfy the structural Protocol (they expose all members),
-    # even though calling prepare()/run() raises NotImplementedError.
+    # The remote adapters satisfy the structural Protocol (they expose all
+    # members). End-to-end behavior is covered in the dedicated ssh/docker
+    # test modules; here we only assert the structural contract + host kind.
     ssh = SSHRuntimeAdapter(host_id="box", host="example.invalid")
     docker = DockerRuntimeAdapter(host_id="ctr", image="python:3.12")
     assert isinstance(ssh, RuntimeAdapter)
@@ -183,23 +184,22 @@ def test_local_adapter_cleanup_is_safe(tmp_path: Path):
     adapter.cleanup()
 
 
-# ─── stubs raise with a clear message ─────────────────────────────────
+# ─── remote adapters degrade clearly when their binary is absent ──────
 
 
-def test_ssh_stub_raises_not_implemented():
+def test_ssh_adapter_missing_binary_raises_runtimeerror(monkeypatch):
+    # No `ssh` on PATH → a clear RuntimeError (never NotImplementedError, and
+    # never a silent local fallback). cleanup() stays a safe no-op.
+    monkeypatch.setattr("hermes_cli.runtime_adapter.shutil.which", lambda _: None)
     ssh = SSHRuntimeAdapter(host_id="box", host="example.invalid", user="me")
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(RuntimeError, match="ssh"):
         ssh.prepare()
-    with pytest.raises(NotImplementedError):
-        ssh.run(["echo", "hi"], timeout=30)
-    # cleanup() is a safe no-op even though prepare() raises.
     assert ssh.cleanup() is None
 
 
-def test_docker_stub_raises_not_implemented():
+def test_docker_adapter_missing_binary_raises_runtimeerror(monkeypatch):
+    monkeypatch.setattr("hermes_cli.runtime_adapter.shutil.which", lambda _: None)
     docker = DockerRuntimeAdapter(host_id="ctr", image="python:3.12")
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(RuntimeError, match="docker"):
         docker.prepare()
-    with pytest.raises(NotImplementedError):
-        docker.run(["echo", "hi"], timeout=30)
     assert docker.cleanup() is None

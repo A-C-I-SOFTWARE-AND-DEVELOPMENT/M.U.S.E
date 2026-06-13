@@ -673,3 +673,29 @@ autoresearch, post-#455 MUSE final audit). Session branch
   dismiss the two vendor-file CodeQL alerts; optional settings clicks
   (#408 CodeQL language, strict-gate required promotion).
 
+## Wave F — "perfect MUSE" residual sweep (2026-06-13)
+
+Owner asked to finish every genuinely-unfinished feature ("leave no drafts").
+A two-deep audit (Explore + Plan subagents, re-verified against HEAD) confirmed
+the system was already ~86% with the loop closed at the seam level; several
+prior "gaps" were already shipped (voice audio duplex, Android pairing nav,
+FU-2/FU-3 #459, signed bridge envelope) and were **not** reopened. Five real
+residuals remained, built on `claude/perfect-muse-mmfke2`:
+
+| Lane | Item | Owned files | Risk | Status |
+|---|---|---|---|---|
+| **F-A** | Real SSH + Docker runtime adapters (were `NotImplementedError` stubs) — stdlib `subprocess`, no new deps | `hermes_cli/runtime_adapter.py` · `tests/test_runtime_adapter{,_ssh,_docker}.py` | additive | **built — auto-merge on green** |
+| **F-B** | Yuanbao `get_chat_info` enriched from the existing live group-info API, with creds-absent fallback (closes `TODO T06`) | `gateway/platforms/yuanbao.py` · `tests/test_yuanbao_chat_info.py` | additive | **built — auto-merge** |
+| **F-C** | Linear `--label`/`--assignee` name→id resolution (closes `TODO`); added missing update-issue flags | `skills/productivity/linear/scripts/linear_api.py` · `tests/skills/test_linear_skill.py` | additive | **built — auto-merge** |
+| **F-D** | Decision verdict recorded at the out-of-band owner-approved mutation seam (recorded-not-gating) | `hermes_cli/action_executors.py` · `tests/test_action_executors.py` | additive | **built — auto-merge** |
+| **F-E** | Live caller for the per-job cost seam — `POST /jobs/{id}/dispatch` drains worker usage into `JobCost` (real cost stops reading 0) | `hermes_cli/orchestrator_api.py` · `tests/test_orchestrator_dispatch_route.py` | **behavior change → owner-gated** | **built — default-off (`HERMES_ORCHESTRATOR_DISPATCH`), draft PR, awaits `Yes, with authorization.`** |
+
+- `2026-06-13` — All five lanes built + validated: `uv run --extra dev ruff
+  check .` clean, `ty check` clean on every touched module (no new
+  diagnostics), and the full touched-suite selection green (166 tests) plus
+  yuanbao regression (126). **F-E is behavior-changing and owner-gated**: the
+  dispatch route is registered but 403s unless `HERMES_ORCHESTRATOR_DISPATCH=1`,
+  so booting the API is byte-identical by default. F-A…F-D are strictly
+  additive (eligible to merge on green); **F-E merges only after the owner's
+  exact `Yes, with authorization.`**
+

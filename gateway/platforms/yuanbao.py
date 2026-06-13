@@ -4669,16 +4669,38 @@ class YuanbaoAdapter(BasePlatformAdapter):
         return await self._outbound.send_text(chat_id, content, reply_to, group_code=group_code)
 
     async def get_chat_info(self, chat_id: str) -> Dict[str, Any]:
-        """Return basic chat metadata derived from the chat_id prefix.
+        """Return chat metadata, enriched from the Yuanbao API when available.
 
         chat_id conventions:
           "group:<group_code>"  → group chat
           "direct:<account>"   → C2C / direct message (default)
 
-        TODO (T06): fetch real chat name/member-count from Yuanbao API.
+        For a group, this queries the live group info (real name, member count,
+        owner) over the WS connection via :meth:`GroupQueryService.query_group_info_raw`.
+        That call returns ``None`` whenever the connection isn't established
+        (e.g. no live session / credentials) or on timeout/error — in which case
+        we fall back to the prefix-derived ``{"name": chat_id, ...}`` so the
+        method never raises and always returns usable metadata.
         """
         if chat_id.startswith("group:"):
-            return {"name": chat_id, "type": "group"}
+            group_code = chat_id[len("group:"):]
+            info: Dict[str, Any] = {
+                "name": chat_id,
+                "type": "group",
+                "group_code": group_code,
+            }
+            try:
+                raw = await self._group_query.query_group_info_raw(group_code)
+            except Exception:
+                raw = None
+            if raw:
+                if raw.get("group_name"):
+                    info["name"] = raw["group_name"]
+                if raw.get("member_count"):
+                    info["member_count"] = raw["member_count"]
+                if raw.get("owner_id"):
+                    info["owner_id"] = raw["owner_id"]
+            return info
         return {"name": chat_id, "type": "dm"}
 
     async def send_typing(self, chat_id: str, metadata: Optional[dict] = None) -> None:

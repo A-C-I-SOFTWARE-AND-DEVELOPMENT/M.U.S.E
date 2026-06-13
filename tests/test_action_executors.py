@@ -65,6 +65,26 @@ def test_apply_owner_approved_requires_exact_phrase():
     assert ax.apply_owner_approved("t.act", {}, owner_phrase=PHRASE)["success"] is True
 
 
+def test_apply_owner_approved_attaches_decision_verdict():
+    # Sprint 2 breadth: the out-of-band mutation seam records one canonical
+    # verdict (ask tier, owner-gated) into the result envelope, recorded-not-
+    # gating. An executor that already set a verdict is left untouched.
+    ax.register("t.act", lambda p: {"success": True})
+    out = ax.apply_owner_approved("t.act", {}, owner_phrase=PHRASE)
+    verdict = out["decision_verdict"]
+    assert verdict["tier"] == "ask"
+    assert verdict["action_type"] == "executor.t.act"
+    assert verdict["required_owner_phrase"] == PHRASE
+
+    ax.register(
+        "t.pre",
+        lambda p: {"success": True, "decision_verdict": {"tier": "auto"}},
+        overwrite=True,
+    )
+    pre = ax.apply_owner_approved("t.pre", {}, owner_phrase=PHRASE)
+    assert pre["decision_verdict"] == {"tier": "auto"}  # not clobbered
+
+
 def test_vercel_executor_applies_via_owner_approval(monkeypatch):
     from plugins.vercel import executor as vexec
     from plugins.vercel.client import VercelClient

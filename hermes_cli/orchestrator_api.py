@@ -33,7 +33,7 @@ import os
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, cast
 
 try:
     from fastapi import (
@@ -309,6 +309,96 @@ def _extract_usage_report(
     if isinstance(provider, str) and provider.strip():
         result["provider"] = provider.strip()
     return result
+
+
+#: Opt-in switch for the live dispatch route. Default-OFF: the route exists for
+#: discoverability but 403s unless this is set truthy, so booting the API never
+#: changes behavior (the dispatcher actually executing a plan + accruing cost is
+#: an owner decision). Mirrors the explicit-enable spirit of the other gates.
+DISPATCH_ENV = "HERMES_ORCHESTRATOR_DISPATCH"
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def dispatch_enabled() -> bool:
+    """Return ``True`` only when :data:`DISPATCH_ENV` is set to a truthy value."""
+    return os.environ.get(DISPATCH_ENV, "").strip().lower() in _TRUTHY
+
+
+def _plan_from_spec(job_id: str, spec: Dict[str, Any]) -> Any:
+    """Build an :class:`ExecutionPlan` from a stored job ``spec`` dict.
+
+    Recognised spec shape (only ``workers`` is required)::
+
+        {
+          "workers": [
+            {"worker_id": "w1", "profile": "default", "mode": "local-run",
+             "command": ["..."], "prompt": "...", "timeout_seconds": 600,
+             "cwd": "...", "env": {...}, "handoff": {...}, "use_worktree": false}
+          ],
+          "concurrency": 2, "use_worktrees": false,
+          "base_ref": null, "allow_dirty": false
+        }
+
+    Raises :class:`OrchestratorError` (mapped to HTTP 400 by the route) for a
+    malformed spec; the constructed plan is validated before return. Imported
+    lazily because :mod:`hermes_cli.orchestrator_dispatch` /
+    :mod:`hermes_cli.orchestrator_parallel` import from this module.
+    """
+    from hermes_cli.orchestrator_parallel import (
+        ExecutionMode,
+        ExecutionPlan,
+        OrchestratorError,
+        WorkerPlan,
+    )
+
+    raw_workers = spec.get("workers")
+    if not isinstance(raw_workers, list) or not raw_workers:
+        raise OrchestratorError("spec.workers must be a non-empty list")
+
+    workers: List[Any] = []
+    for index, raw in enumerate(raw_workers):
+        if not isinstance(raw, dict):
+            raise OrchestratorError(f"spec.workers[{index}] must be an object")
+        raw = cast(Dict[str, Any], raw)
+        mode_raw = str(raw.get("mode", ExecutionMode.LOCAL_RUN.value))
+        try:
+            mode = ExecutionMode(mode_raw)
+        except ValueError as exc:
+            raise OrchestratorError(f"unknown worker mode {mode_raw!r}") from exc
+        kwargs: Dict[str, Any] = {
+            "worker_id": str(raw.get("worker_id") or f"w{index}"),
+            "profile": str(raw.get("profile") or "default"),
+            "mode": mode,
+            "prompt": str(raw.get("prompt", "")),
+        }
+        command = raw.get("command")
+        if isinstance(command, (list, tuple)):
+            kwargs["command"] = [str(token) for token in command]
+        if isinstance(raw.get("cwd"), str):
+            kwargs["cwd"] = raw["cwd"]
+        if isinstance(raw.get("env"), dict):
+            kwargs["env"] = {str(k): str(v) for k, v in raw["env"].items()}
+        if raw.get("timeout_seconds") is not None:
+            kwargs["timeout_seconds"] = int(raw["timeout_seconds"])
+        if isinstance(raw.get("handoff"), dict):
+            kwargs["handoff"] = raw["handoff"]
+        if "use_worktree" in raw:
+            kwargs["use_worktree"] = bool(raw["use_worktree"])
+        workers.append(WorkerPlan(**kwargs))
+
+    plan_kwargs: Dict[str, Any] = {"job_id": job_id, "workers": workers}
+    if spec.get("concurrency") is not None:
+        plan_kwargs["concurrency"] = int(spec["concurrency"])
+    if "use_worktrees" in spec:
+        plan_kwargs["use_worktrees"] = bool(spec["use_worktrees"])
+    if isinstance(spec.get("base_ref"), str):
+        plan_kwargs["base_ref"] = spec["base_ref"]
+    if "allow_dirty" in spec:
+        plan_kwargs["allow_dirty"] = bool(spec["allow_dirty"])
+
+    plan = ExecutionPlan(**plan_kwargs)
+    plan.validate()
+    return plan
 
 
 class JobStore:
@@ -1094,6 +1184,67 @@ def create_app(
                 {"worker": worker, "result": body.get("result")},
             )
         return {"id": job.id, "worker": worker, "info": job.workers[worker]}
+
+    @app.post("/jobs/{job_id}/dispatch")
+    async def dispatch_job(
+        job_id: str, payload: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Execute a job's plan and drain per-worker usage into its cost meter.
+
+        This is the **live caller** of the cost producer→consumer seam: until
+        now ``hermes_cli.orchestrator_dispatch.run_plan_into_store`` had no
+        caller, so a real server's per-job ``cost`` always read ``0``. This
+        route runs the job's plan through a :class:`ParallelRunner` and folds
+        each worker's reported usage into the job's :class:`JobCost`, so a
+        subsequent ``GET /jobs/{id}/status`` reflects real cost.
+
+        **Owner-gated + opt-in.** It 403s unless
+        ``HERMES_ORCHESTRATOR_DISPATCH`` is set truthy, so simply booting the
+        API never starts executing plans (default behavior is byte-identical).
+
+        Body (optional): ``{"spec": {...}, "repo": "/path"}``. ``spec`` overrides
+        the stored job spec as the plan source; ``repo`` is the root the worker
+        artifacts live under (defaults to the process cwd).
+        """
+        if not dispatch_enabled():
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "orchestrator dispatch is disabled; set "
+                    f"{DISPATCH_ENV}=1 to enable (owner decision)"
+                ),
+            )
+        job = await _get_job_or_404(job_id)
+        _reject_terminal(job, "dispatch")
+        body = dict(payload or {})
+        spec_override = body.get("spec")
+        spec = spec_override if isinstance(spec_override, dict) else job.spec
+        repo = body.get("repo") or (spec or {}).get("repo") or os.getcwd()
+
+        # Lazy import: orchestrator_dispatch / orchestrator_parallel import from
+        # this module, so importing them at module load would be circular.
+        from hermes_cli.orchestrator_dispatch import run_plan_into_store
+        from hermes_cli.orchestrator_parallel import (
+            OrchestratorError,
+            per_worker_local_adapter,
+        )
+
+        try:
+            plan = _plan_from_spec(job_id, spec or {})
+            statuses = await run_plan_into_store(
+                repo, plan, store, adapter_factory=per_worker_local_adapter
+            )
+        except OrchestratorError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+
+        job = await store.get(job_id)
+        return {
+            "id": job.id,
+            "status": job.status,
+            "workers": {wid: st.as_dict() for wid, st in statuses.items()},
+            "cost": job.cost.totals(),
+            "budget": job.budget_status(),
+        }
 
     @app.post("/voice/intake", status_code=201)
     async def voice_intake(payload: Dict[str, Any]) -> Dict[str, Any]:
