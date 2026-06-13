@@ -60,7 +60,8 @@ def test_sample_elite_seeded_and_persistence(tmp_path):
     grid.consider("a", BehaviorDescriptor((10.0, 100.0)), 0.4)
     grid.consider("b", BehaviorDescriptor((90.0, 900.0)), 0.6)
     sampled = grid.sample_elite(rng=random.Random(7))
-    assert sampled.candidate_id in {"a", "b"}
-    assert grid.sample_elite(rng=random.Random(7)).candidate_id == sampled.candidate_id
+    assert sampled is not None and sampled.candidate_id in {"a", "b"}
+    resampled = grid.sample_elite(rng=random.Random(7))
+    assert resampled is not None and resampled.candidate_id == sampled.candidate_id
     reloaded = ElitesGrid(bins_per_dim=2, bounds=BOUNDS, path=path)
     assert {c.candidate_id for c in reloaded.cells()} == {"a", "b"}

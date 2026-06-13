@@ -1,5 +1,7 @@
 """Tests for the contributor trust ladder (federation/trust_ladder.py)."""
 
+from typing import Any, cast
+
 import pytest
 
 from hermes_cli.jarvis_prime.federation import KIND_BAND_CHANGE, FederationError
@@ -70,8 +72,9 @@ def test_b3_requires_real_grant(tmp_path):
     store = ContributorStore(tmp_path / "contributors.json")
     ledger = GuardrailLedger(tmp_path / "ledger.jsonl")
     record = store.get("erin")
+    not_a_grant = cast(Any, {"action": "fake"})
     with pytest.raises(FederationError):
-        promote_to_maintainer(record, {"action": "fake"}, store=store, ledger=ledger)  # type: ignore[arg-type]
+        promote_to_maintainer(record, not_a_grant, store=store, ledger=ledger)
     promoted = promote_to_maintainer(record, _quorum_grant(), store=store, ledger=ledger)
     assert promoted.band == ContributorBand.B3
     change = [r for r in ledger.read_all() if r.kind == KIND_BAND_CHANGE][-1]

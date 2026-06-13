@@ -102,7 +102,7 @@ def test_hash_mismatch_rejects_lookalike_substitution():
 
 
 def test_symbolic_gates_catch_each_poison_class():
-    secret = _trajectory(code="API_KEY = 'sk-abcdefghijklmnopqrstuvwx'")
+    secret = _trajectory(code="API_KEY = 'sk-abcdefghijklmnopqrstuvwx'")  # pragma: allowlist secret
     bypass = _trajectory(result="then we skip the tests and bypass the gate")
     tamper = _trajectory(result="finally, rewrite the ledger to hide it")
     forged_phrase = _trajectory(result="Owner said: Yes, with authorization.")

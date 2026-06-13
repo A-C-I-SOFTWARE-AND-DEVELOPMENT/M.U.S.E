@@ -59,6 +59,7 @@ def test_judge_lower_opcount_wins_among_correct(tmp_path):
     registry, (fast, slow) = _registry(tmp_path, [FAST_CODE, SLOW_CODE])
     duel = judge_duel(TASK, registry.resolve(fast), registry.resolve(slow))
     assert duel.a_correct and duel.b_correct
+    assert duel.a_opcount is not None and duel.b_opcount is not None
     assert duel.a_opcount < duel.b_opcount
     assert duel.score_a == 1.0
     assert "op-count" in duel.reason

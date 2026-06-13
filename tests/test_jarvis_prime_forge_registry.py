@@ -65,7 +65,8 @@ def test_lookup_by_hash_and_for_task(tmp_path):
     a = registry.register(_record())
     b = registry.register(_record(code="def solve(xs):\n    t=0\n    return t\n"))
     registry.register(_record(code="def other():\n    pass\n", task_id="alg_other"))
-    assert registry.lookup_by_hash(a.payload_sha256).candidate_id == a.candidate_id
+    by_hash = registry.lookup_by_hash(a.payload_sha256)
+    assert by_hash is not None and by_hash.candidate_id == a.candidate_id
     assert registry.lookup_by_hash("0" * 64) is None
     assert {r.candidate_id for r in registry.for_task("alg_sum")} == {
         a.candidate_id,

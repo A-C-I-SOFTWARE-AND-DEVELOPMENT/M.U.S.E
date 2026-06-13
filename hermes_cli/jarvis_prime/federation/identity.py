@@ -23,16 +23,15 @@ from hermes_cli.jarvis_prime.guardrail_evidence import canonical_json, sha256_he
 
 from . import federation_dir
 
-try:  # Opportunistic Ed25519 (never required).
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import (
-        Ed25519PrivateKey,
-        Ed25519PublicKey,
-    )
+# Opportunistic Ed25519 (never required). The module namespace is held in an
+# Any-typed slot so the ImportError fallback type-checks cleanly.
+_ED25519: Any = None
+try:
+    from cryptography.hazmat.primitives.asymmetric import ed25519 as _ed25519_module
 
+    _ED25519 = _ed25519_module
     _ED25519_AVAILABLE = True
 except ImportError:  # pragma: no cover - depends on environment
-    Ed25519PrivateKey = None  # type: ignore[assignment, misc]
-    Ed25519PublicKey = None  # type: ignore[assignment, misc]
     _ED25519_AVAILABLE = False
 
 ALGO_ED25519 = "ed25519"
@@ -52,6 +51,20 @@ def _chmod_private(path: Path) -> None:
         os.chmod(path, 0o600)
     except OSError:  # pragma: no cover - platform-dependent
         pass
+
+
+def _write_private_bytes(path: Path, data: bytes) -> None:
+    """Create a key file with 0o600 from the first instant (no chmod window).
+
+    Local key material on disk is by design (the SSH-key pattern): this node
+    is local-first and stdlib-first, so the secret never leaves the machine;
+    restrictive permissions are applied atomically at creation.
+    """
+
+    flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    fd = os.open(path, flags, 0o600)
+    with os.fdopen(fd, "wb") as fh:
+        fh.write(data)
 
 
 @dataclass(frozen=True)
@@ -107,7 +120,7 @@ def init_identity(
         return existing
 
     if prefer_ed25519 and _ED25519_AVAILABLE:
-        private_key = Ed25519PrivateKey.generate()
+        private_key = _ED25519.Ed25519PrivateKey.generate()
         from cryptography.hazmat.primitives import serialization
 
         private_bytes = private_key.private_bytes(
@@ -120,15 +133,13 @@ def init_identity(
             format=serialization.PublicFormat.Raw,
         ).hex()
         key_path = base / _PRIVATE_KEY_FILE
-        key_path.write_bytes(private_bytes)
-        _chmod_private(key_path)
+        _write_private_bytes(key_path, private_bytes)
         algo = ALGO_ED25519
         public_material = public_hex
     else:
         secret = secrets.token_bytes(32)
         secret_path = base / _SECRET_FILE
-        secret_path.write_bytes(secret)
-        _chmod_private(secret_path)
+        _write_private_bytes(secret_path, secret)
         algo = ALGO_HMAC
         public_hex = ""
         # No public key exists; derive the id from a hash of the secret so the
@@ -178,7 +189,7 @@ def sign_payload(payload: Mapping[str, Any], *, dir: Optional[Path] = None) -> d
         key_path = base / _PRIVATE_KEY_FILE
         if not key_path.exists():
             return {}
-        private_key = Ed25519PrivateKey.from_private_bytes(key_path.read_bytes())
+        private_key = _ED25519.Ed25519PrivateKey.from_private_bytes(key_path.read_bytes())
         signature = private_key.sign(message).hex()
     else:
         secret_path = base / _SECRET_FILE
@@ -209,7 +220,7 @@ def verify_signature(
         return False, "peer identity carries no public key"
     message = canonical_json(dict(payload)).encode("utf-8")
     try:
-        public_key = Ed25519PublicKey.from_public_bytes(bytes.fromhex(identity.public_key_hex))
+        public_key = _ED25519.Ed25519PublicKey.from_public_bytes(bytes.fromhex(identity.public_key_hex))
         public_key.verify(bytes.fromhex(str(signature.get("signature_hex", ""))), message)
     except Exception:
         return False, "ed25519 signature invalid"

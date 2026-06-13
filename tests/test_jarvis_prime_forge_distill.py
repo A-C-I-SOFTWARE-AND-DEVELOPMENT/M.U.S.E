@@ -36,7 +36,7 @@ SLOW_CODE = (
 WRONG_CODE = "def solve(xs):\n    return 0\n"
 # Correct code carrying an embedded secret — the poison filter must catch it
 # even though the verifier passes it.
-POISON_CODE = "KEY = 'sk-abcdefghijklmnopqrstuvwx'\ndef solve(xs):\n    return sum(xs)\n"
+POISON_CODE = "KEY = 'sk-abcdefghijklmnopqrstuvwx'\ndef solve(xs):\n    return sum(xs)\n"  # pragma: allowlist secret
 
 
 def _tournament(tmp_path, codes):
