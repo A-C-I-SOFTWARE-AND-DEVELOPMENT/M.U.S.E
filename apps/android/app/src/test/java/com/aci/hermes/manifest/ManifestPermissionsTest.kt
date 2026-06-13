@@ -54,6 +54,10 @@ class ManifestPermissionsTest {
         // including localhost, behind it. Used only for the paired local
         // gateway; never for remote AI providers, and no API keys live here.
         "android.permission.INTERNET",
+        // In-app "install update": hands the downloaded MUSE APK to the system
+        // package installer (visible OS Install/Update dialog). No silent or
+        // background install — see data/update/ApkInstaller.
+        "android.permission.REQUEST_INSTALL_PACKAGES",
     )
 
     private val forbiddenPermissions: Set<String> = setOf(
