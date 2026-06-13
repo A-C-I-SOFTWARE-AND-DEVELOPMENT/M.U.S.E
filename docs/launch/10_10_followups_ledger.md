@@ -635,7 +635,7 @@ autoresearch, post-#455 MUSE final audit). Session branch
 | **#408 advanced CodeQL** | blocked on owner repo settings (CodeQL Default Setup). |
 | **Registry/namespace renames** (Docker Hub / PyPI / Cachix / homebrew) | owner-coordinated, publish-time. |
 | **G2 follow-on — promote "Release gate (strict tooling)" to required** | owner GitHub-settings click (several green cycles have elapsed since Wave D). |
-| **PR #453 — deep Hermes→MUSE rename (owner's PR)** | `mergeable_state: dirty` vs post-#454/#455 main (1,505 files, 10 commits). Rework-vs-supersede is an **owner decision** — posed to the owner this session; not touched without direction. |
+| **PR #453 — deep Hermes→MUSE rename (owner's PR)** | **closed — stale/superseded-for-now** (owner delegated the disposition: "whichever action completes the task"). The 1,505-file diff was `dirty` vs main; the user-visible rebrand is on main via #455 and the audit records internal identifiers as intentionally kept, so closing leaves the audited, accepted state. The branch + `MUSE_RENAME_REPORT.md`/`MUSE_RENAME_INVENTORY.md` are preserved as the blueprint; redo = re-run the codemod phases fresh against then-current main as an owner-gated program (full rationale on the PR). |
 | Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/MUSE_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
 
 ## Decision log
@@ -662,4 +662,14 @@ autoresearch, post-#455 MUSE final audit). Session branch
   FU-3 opened as owner-gated draft PR #459** — Wave E's last buildable item;
   everything else remaining is blocked-on-owner/external by design (see
   inventory above). Wave E build phase complete.
+- `2026-06-13` — **#453 closed** (owner-delegated disposition; rationale +
+  redo blueprint on the PR; branch preserved). **Final audit on `main`
+  @ `93f0bd891`:** footgun scan clean (898 files); vendor-integrity, bridge
+  soft-fail, autoresearch engine, `/muse`, and restart-replay suites all
+  green in a fresh worktree. Open-PR census: #459 (this wave's owner-gated
+  draft — awaiting `Yes, with authorization.`) and #458 (another session's
+  in-flight Vol-VI draft, opened mid-wave — not a ledger follow-up, not
+  touched). **Wave E closed.** Owner action items: authorize/decline #459;
+  dismiss the two vendor-file CodeQL alerts; optional settings clicks
+  (#408 CodeQL language, strict-gate required promotion).
 
