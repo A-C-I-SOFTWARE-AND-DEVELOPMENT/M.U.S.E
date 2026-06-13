@@ -9,6 +9,7 @@ Verifies that:
   arguments.
 """
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -18,7 +19,7 @@ from hermes_cli.github_publisher import PublisherError, RepoInfo
 
 def _repo(owner="A-C-I-SOFTWARE-AND-DEVELOPMENT", repo="M.U.S.E"):
     return RepoInfo(
-        root="/tmp/repo",
+        root=Path("/tmp/repo"),
         owner=owner,
         repo=repo,
         remote_url=f"https://github.com/{owner}/{repo}.git",
@@ -55,7 +56,7 @@ def test_rejects_unknown_targets(capsys):
 
 def test_rejects_non_github_remote(capsys):
     args = SimpleNamespace(targets="all", dry_run=False)
-    non_gh = RepoInfo(root="/tmp/repo", owner=None, repo=None, remote_url="ssh://x/y")
+    non_gh = RepoInfo(root=Path("/tmp/repo"), owner=None, repo=None, remote_url="ssh://x/y")
     with patch.object(sync_releases, "get_repo_info", return_value=non_gh):
         rc = sync_releases.cmd_sync(args)
     assert rc == 1
