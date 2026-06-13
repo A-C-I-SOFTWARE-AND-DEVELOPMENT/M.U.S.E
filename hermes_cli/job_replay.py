@@ -30,12 +30,15 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
+from types import SimpleNamespace
 from typing import Any, Optional
 
+from hermes_cli.job_cost import USAGE_TOKEN_FIELDS, JobCost
 from hermes_cli.orchestrator_events import (
     EVENT_APPROVAL_GRANTED,
     EVENT_APPROVAL_REJECTED,
     EVENT_APPROVAL_REQUESTED,
+    EVENT_COST_ACCUMULATED,
     EVENT_ERROR,
     EVENT_JOB_CREATED,
     EVENT_JOB_FAILED,
@@ -94,6 +97,9 @@ class JobSnapshot:
     failed: bool = False
     event_count: int = 0
     last_ts: Optional[float] = None
+    # Rebuilt from ``cost.accumulated`` deltas; logs that predate cost
+    # event-sourcing simply leave it at the zero default.
+    cost: JobCost = field(default_factory=JobCost)
 
     @property
     def is_terminal(self) -> bool:
@@ -115,6 +121,7 @@ class JobSnapshot:
             "failed": self.failed,
             "event_count": self.event_count,
             "last_ts": self.last_ts,
+            "cost": self.cost.totals(),
         }
 
 
@@ -207,6 +214,24 @@ def rebuild_snapshot(
             approval_id = data.get("approval_id") or data.get("id")
             if isinstance(approval_id, str) and approval_id:
                 snapshot.approvals[approval_id] = "rejected"
+
+        elif event == EVENT_COST_ACCUMULATED:
+            raw_usage = data.get("usage")
+            usage_obj = (
+                SimpleNamespace(
+                    **{f: raw_usage.get(f, 0) for f in USAGE_TOKEN_FIELDS}
+                )
+                if isinstance(raw_usage, Mapping)
+                else None
+            )
+            model = data.get("model")
+            provider = data.get("provider")
+            snapshot.cost.add_usage(
+                usage_obj,
+                cost_usd=data.get("cost_usd"),
+                model=model if isinstance(model, str) else None,
+                provider=provider if isinstance(provider, str) else None,
+            )
 
         elif event == EVENT_VALIDATION_COMPLETED:
             result = data.get("result")

@@ -90,7 +90,7 @@ class FakeAutoresearchWorker:
         gens = [
             {
                 "gen": e["index"],
-                "score": bpb_gate_score(e["val_bpb"]),
+                "score": bpb_gate_score(float(e["val_bpb"])),
                 "target_agent": "/ws/train.py",
                 "improvement": "/ws/results.tsv",
             }

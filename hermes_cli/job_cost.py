@@ -103,6 +103,18 @@ def _coerce_tokens(value: Any) -> int:
     return max(0, count)
 
 
+#: The ``CanonicalUsage`` token attributes :meth:`JobCost.add_usage` reads off
+#: a usage object. The single source of truth for serializing a usage delta
+#: (``cost.accumulated`` events) and rebuilding it on restart-replay.
+USAGE_TOKEN_FIELDS: tuple[str, ...] = (
+    "input_tokens",
+    "output_tokens",
+    "cache_read_tokens",
+    "cache_write_tokens",
+    "reasoning_tokens",
+)
+
+
 @dataclass
 class JobCost:
     """Running cost + token totals for a single job.

@@ -100,7 +100,7 @@ def _edits(*descriptions: str):
 
 
 def _config(tmp_path: Path, **overrides) -> ExperimentConfig:
-    defaults = dict(
+    defaults: dict = dict(
         tag="t1",
         workspace_dir=str(tmp_path / "ws"),
         max_experiments=10,

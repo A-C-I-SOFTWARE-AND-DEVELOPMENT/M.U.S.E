@@ -86,6 +86,12 @@ A `kind` field discriminates approval types (`"publish"`,
 | `worker.blocked`   | Worker stalled and needs intervention. | `worker`, `reason` |
 | `worker.completed` | Worker finished its slice of work. | `worker`, `result` |
 
+### Cost
+
+| Event | When | Notable `data` keys |
+|---|---|---|
+| `cost.accumulated` | One model-call delta folded into the job's cost meter (`JobStore.accumulate_cost`). Event-sourced so restart-replay rebuilds the meter. | `usage` (token buckets), `cost_usd`, `model`, `provider` |
+
 Heartbeats are emitted by the API when a client POSTs
 `/jobs/{id}/workers/{worker}` with `state="running"`. Cockpits should
 treat a missing heartbeat for N seconds as "worker silent" rather than

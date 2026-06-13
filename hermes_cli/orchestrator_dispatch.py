@@ -33,8 +33,11 @@ make every plain worker in a multi-worker plan write ``stdout.log`` /
 ``stderr.log`` into the *same* directory, clobbering each other, instead of each
 worker's own ``worker_dir`` the way the inline path does. The inline default
 preserves that per-worker isolation. A caller may still pass an explicit adapter
-(it then owns the workdir/stream placement); a *safe default* adapter needs a
-per-worker adapter factory on the runner — a separate follow-up, not this seam.
+(it then owns the workdir/stream placement) — or, since the FU-2 follow-up
+landed, pass ``adapter_factory`` (e.g.
+:func:`hermes_cli.orchestrator_parallel.per_worker_local_adapter`) to get a
+fresh, placement-faithful adapter per worker. The inline default here stays
+unchanged either way.
 
 Scope / honesty: this lands the **tested seam only**. An audit established there
 is no live caller of :class:`ParallelRunner` today, so nothing in a running
@@ -52,6 +55,7 @@ from typing import Any, Optional, Union
 
 from hermes_cli.orchestrator_api import JobStore, _extract_usage_report
 from hermes_cli.orchestrator_parallel import (
+    AdapterFactory,
     ExecutionPlan,
     ParallelRunner,
     WorkerStatus,
@@ -68,6 +72,7 @@ async def run_plan_into_store(
     store: JobStore,
     *,
     runtime_adapter: Optional[RuntimeAdapter] = None,
+    adapter_factory: Optional[AdapterFactory] = None,
 ) -> dict[str, WorkerStatus]:
     """Run ``plan`` via a :class:`ParallelRunner` and drain usage into ``store``.
 
@@ -101,6 +106,12 @@ async def run_plan_into_store(
         runtime_adapter: ``None`` (default) runs every worker on the runner's
             inline subprocess path; a concrete adapter opts the run onto that
             adapter.
+        adapter_factory: Optional per-worker adapter construction (see
+            :data:`hermes_cli.orchestrator_parallel.AdapterFactory`). Consulted
+            first for each worker; a ``None`` return falls back to
+            ``runtime_adapter`` / inline. Pass
+            :func:`hermes_cli.orchestrator_parallel.per_worker_local_adapter`
+            for the safe per-worker-isolated local default.
 
     Returns:
         The per-worker :class:`WorkerStatus` map the runner produced.
@@ -109,7 +120,12 @@ async def run_plan_into_store(
     # Normalize once: the runner / drain helpers take a ``Path``; accepting a
     # ``str`` here is a caller convenience.
     repo_path = Path(repo)
-    runner = ParallelRunner(repo_path, plan, runtime_adapter=runtime_adapter)
+    runner = ParallelRunner(
+        repo_path,
+        plan,
+        runtime_adapter=runtime_adapter,
+        adapter_factory=adapter_factory,
+    )
     # The runner blocks (subprocess launches + poll-sleep loop); keep the event
     # loop free so concurrent coroutines (e.g. WebSocket fan-out) are not stalled.
     statuses = await asyncio.to_thread(runner.run)

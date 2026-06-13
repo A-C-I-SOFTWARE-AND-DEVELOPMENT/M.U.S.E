@@ -32,6 +32,13 @@ _LAZY = {
     "honest_mfu": "platform",
     "default_vram_budget_mb": "platform",
     "H100_BF16_PEAK_FLOPS": "platform",
+    # ideas (default edit providers)
+    "KnobIdea": "ideas",
+    "DEFAULT_IDEAS": "ideas",
+    "CatalogEditProvider": "ideas",
+    "LlmEditProvider": "ideas",
+    "ChainEditProvider": "ideas",
+    "default_edit_provider": "ideas",
     # swarm
     "LaneSpec": "swarm",
     "LaneAssignment": "swarm",

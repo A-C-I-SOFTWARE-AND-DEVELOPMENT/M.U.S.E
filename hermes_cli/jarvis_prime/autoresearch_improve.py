@@ -311,8 +311,10 @@ def run_autoresearch_improvement(
             try:
                 _offer_dataset_candidate(details)
             except Exception:
-                # Best-effort: a failure in the learning-dataset layer must
-                # never sink an otherwise-successful improvement run.
+                # Soft-fail by contract: a learning-dataset hiccup must never
+                # void a validated improvement run (the proposal/provenance
+                # above already landed). Asserted by
+                # test_dataset_candidate_offer_is_soft_fail.
                 pass
 
     return AutoresearchImprovementOutcome(
