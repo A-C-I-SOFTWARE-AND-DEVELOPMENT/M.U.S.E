@@ -174,6 +174,33 @@ jobs:
               --title "$TITLE" --notes-file release-notes.md --target "$GITHUB_SHA" $pre_flag
           fi
 
+      - name: Prune stale rolling assets
+        if: needs.meta.outputs.channel == 'rolling'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # pragma: allowlist secret
+          TAG: ${{ needs.meta.outputs.tag }}
+          VERSION: ${{ needs.meta.outputs.version }}
+        run: |
+          # Rolling installers embed the version in their filename (e.g.
+          # M.U.S.E._0.1.10140_amd64.AppImage), so the build job's
+          # `gh release upload --clobber` never overwrites a prior build's set
+          # and old versions accumulate on muse-desktop-latest. Runs once here
+          # (before the build matrix uploads the current $VERSION), so deleting
+          # every asset that isn't from $VERSION cleanly removes the previous
+          # rolling build without racing the fresh uploads. Versioned releases
+          # never reach this step (gated on channel == 'rolling').
+          names=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+                    --json assets --jq '.assets[].name' 2>/dev/null || true)
+          while IFS= read -r name; do
+            [ -z "$name" ] && continue
+            case "$name" in
+              *"$VERSION"*) echo "Keep $name" ;;
+              *) echo "Prune stale asset: $name"
+                 gh release delete-asset "$TAG" "$name" \
+                   --repo "$GITHUB_REPOSITORY" --yes || true ;;
+            esac
+          done <<< "$names"
+
   # ---- 3. Build per-OS and upload installers to the release ------------------
   build:
     name: Build & upload (${{ matrix.os }})
