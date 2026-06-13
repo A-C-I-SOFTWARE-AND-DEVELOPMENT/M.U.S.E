@@ -13,9 +13,9 @@
 ## ⬇️ Download & install (sideload)
 
 The latest build is published as a downloadable APK on the
-[**`android-latest` release**](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/tag/android-latest):
+[**`android-latest` release**](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/android-latest):
 
-- Direct link: **[jarvis-prime-android.apk](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/download/android-latest/jarvis-prime-android.apk)**
+- Direct link: **[jarvis-prime-android.apk](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk)**
 
 To install: open the link on your phone, download the `.apk`, tap it, and
 allow installs from this source if Android prompts. Requires **Android 8.0+
