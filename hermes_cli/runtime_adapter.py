@@ -16,10 +16,13 @@ runtime-checkable contract:
   touch the orchestrator runner (``orchestrator_parallel.py``); it is a
   standalone building block so the runner can adopt it later without a circular
   import or a behavior change to the existing local path.
-* :class:`SSHRuntimeAdapter` / :class:`DockerRuntimeAdapter` — documented stubs
-  that raise :class:`NotImplementedError`. Their docstrings describe the
-  intended contract so the follow-up that wires real remote execution has a
-  precise target.
+* :class:`SSHRuntimeAdapter` / :class:`DockerRuntimeAdapter` — concrete,
+  stdlib-only adapters that run a command on a remote host over OpenSSH or
+  inside a Docker container via the ``docker`` CLI. Both shell out through
+  :mod:`subprocess` (no third-party SDK), stream the remote/container
+  stdout/stderr into local files (same "paths, not bytes" shape as
+  :class:`LocalRuntimeAdapter`), and degrade with a clear :class:`RuntimeError`
+  when the required ``ssh`` / ``docker`` binary is absent.
 
 Design constraints (same spirit as the lease modules and
 ``tools/environments/base.py``):
@@ -43,8 +46,11 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
 import subprocess
+import tempfile
 import time
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol, Sequence, Union, runtime_checkable
@@ -136,6 +142,74 @@ def _resolve_stream_paths(
     return out, err
 
 
+def _spawn_to_files(
+    argv: Union[list[str], str],
+    *,
+    use_shell: bool,
+    cwd: str | None,
+    env: dict[str, str] | None,
+    timeout: float,
+    out_path: Path,
+    err_path: Path,
+) -> RuntimeResult:
+    """Spawn a child process, stream its streams to files, honor ``timeout``.
+
+    Shared by every adapter so the "paths, not bytes" capture, the shared-handle
+    merge when stdout/stderr resolve to one path, and the timeout→``124`` /
+    ``timed_out`` convention live in exactly one place. The local adapter runs
+    the worker command directly; the SSH/Docker adapters pass an ``ssh`` /
+    ``docker`` argv whose child *is* the local transport process — the remote
+    bytes stream over the wire into these same local file handles.
+    """
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    err_path.parent.mkdir(parents=True, exist_ok=True)
+
+    start = time.monotonic()
+    timed_out = False
+    # Open both stream files for the lifetime of the child. When stdout and
+    # stderr resolve to the same path, share one handle so interleaving is
+    # preserved rather than two writers clobbering each other.
+    same_target = out_path == err_path
+    out_fh = open(out_path, "w", encoding="utf-8")
+    err_fh = out_fh if same_target else open(err_path, "w", encoding="utf-8")
+    try:
+        proc = subprocess.Popen(
+            argv,
+            cwd=cwd,
+            env=env,
+            stdout=out_fh,
+            stderr=subprocess.STDOUT if same_target else err_fh,
+            stdin=subprocess.DEVNULL,
+            shell=use_shell,
+            text=True,
+        )
+        try:
+            returncode = proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            proc.kill()
+            # Reap so we don't leak a zombie; output already on disk.
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:  # pragma: no cover - kill stuck
+                pass
+            returncode = 124
+    finally:
+        out_fh.close()
+        if not same_target:
+            err_fh.close()
+
+    duration = time.monotonic() - start
+    return RuntimeResult(
+        returncode=returncode,
+        stdout_path=out_path,
+        stderr_path=err_path,
+        duration=duration,
+        timed_out=timed_out,
+    )
+
+
 @dataclass
 class LocalRuntimeAdapter:
     """Run commands on the machine hosting Hermes, via :mod:`subprocess`.
@@ -201,53 +275,16 @@ class LocalRuntimeAdapter:
         out_path, err_path = _resolve_stream_paths(
             workdir, self.stdout_path, self.stderr_path
         )
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        err_path.parent.mkdir(parents=True, exist_ok=True)
-
         use_shell, argv = _normalize_command(command)
 
-        start = time.monotonic()
-        timed_out = False
-        # Open both stream files for the lifetime of the child. When stdout and
-        # stderr resolve to the same path, share one handle so interleaving is
-        # preserved rather than two writers clobbering each other.
-        same_target = out_path == err_path
-        out_fh = open(out_path, "w", encoding="utf-8")
-        err_fh = out_fh if same_target else open(err_path, "w", encoding="utf-8")
-        try:
-            proc = subprocess.Popen(
-                argv,
-                cwd=str(workdir),
-                env=self._child_env(),
-                stdout=out_fh,
-                stderr=subprocess.STDOUT if same_target else err_fh,
-                stdin=subprocess.DEVNULL,
-                shell=use_shell,
-                text=True,
-            )
-            try:
-                returncode = proc.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                proc.kill()
-                # Reap so we don't leak a zombie; output already on disk.
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:  # pragma: no cover - kill stuck
-                    pass
-                returncode = 124
-        finally:
-            out_fh.close()
-            if not same_target:
-                err_fh.close()
-
-        duration = time.monotonic() - start
-        return RuntimeResult(
-            returncode=returncode,
-            stdout_path=out_path,
-            stderr_path=err_path,
-            duration=duration,
-            timed_out=timed_out,
+        return _spawn_to_files(
+            argv,
+            use_shell=use_shell,
+            cwd=str(workdir),
+            env=self._child_env(),
+            timeout=timeout,
+            out_path=out_path,
+            err_path=err_path,
         )
 
     def cleanup(self) -> None:
@@ -273,24 +310,46 @@ def _normalize_command(command: Command) -> tuple[bool, Union[list[str], str]]:
     return False, argv
 
 
+def _command_to_str(command: Command) -> str:
+    """Flatten a command into a single shell string for a remote/container run.
+
+    An argv list is shell-quoted with :func:`_shell_join`; a string is passed
+    through (it is already a shell command). Raises ``ValueError`` on empty
+    input — same contract as :func:`_normalize_command`.
+    """
+
+    if isinstance(command, str):
+        if not command.strip():
+            raise ValueError("command string must be non-empty")
+        return command
+    argv = list(command)
+    if not argv:
+        raise ValueError("command sequence must be non-empty")
+    return _shell_join(argv)
+
+
 @dataclass
 class SSHRuntimeAdapter:
-    """Run commands on a remote host over SSH — **stub** (not yet implemented).
+    """Run commands on a remote host over OpenSSH, via :mod:`subprocess`.
 
-    Intended contract for the follow-up that adds real multi-host execution:
+    Concrete ``"ssh"`` :class:`RuntimeAdapter`. It shells out to the system
+    ``ssh`` binary (no third-party SDK) over a multiplexed ``ControlMaster``
+    socket, so the per-command handshake cost is paid once in :meth:`prepare`:
 
-    * :meth:`prepare` opens (or validates) an SSH connection to
-      ``host``/``user`` — most likely a multiplexed OpenSSH ``ControlMaster``
-      socket or a Paramiko channel — and verifies the remote ``workdir`` exists.
-    * :meth:`run` executes the command on the remote host, streaming the remote
-      stdout/stderr back into local files (so :class:`RuntimeResult` keeps the
-      same "paths, not bytes" shape as the local adapter), and maps the remote
-      exit status onto ``returncode`` / ``timed_out``.
-    * :meth:`cleanup` tears the connection / control socket down.
-
-    Until implemented, every method raises :class:`NotImplementedError` so a
-    scheduler can register an ``ssh`` host without anything silently running
-    locally by mistake.
+    * :meth:`prepare` checks that ``ssh`` is on ``PATH``, opens a backgrounded
+      ``ControlMaster`` socket to ``[user@]host:port`` (``BatchMode=yes`` — no
+      interactive prompts), and verifies the remote ``workdir`` exists. It
+      raises :class:`RuntimeError` (not :class:`NotImplementedError`) if the
+      binary is absent or the connection/workdir check fails, so a scheduler
+      never silently falls back to local execution.
+    * :meth:`run` runs the command over the shared control socket, redirecting
+      the remote stdout/stderr into local files — keeping the same
+      "paths, not bytes" :class:`RuntimeResult` shape as the local adapter, with
+      the same timeout→``124`` / ``timed_out`` convention (via
+      :func:`_spawn_to_files`). ``workdir``/``env`` are applied as a
+      ``cd``/``export`` prefix on the remote command.
+    * :meth:`cleanup` closes the control socket (``ssh -O exit``) and removes
+      the temp socket dir. Safe to call even if :meth:`prepare` never ran.
     """
 
     host_id: str
@@ -299,39 +358,179 @@ class SSHRuntimeAdapter:
     port: int = 22
     workdir: str | None = None
     kind: str = "ssh"
+    #: Local directory for the captured stdout/stderr files (defaults to cwd).
+    local_logdir: Path | None = None
+    stdout_path: Path | None = None
+    stderr_path: Path | None = None
+    #: Environment exported on the remote host for the command.
+    env: dict[str, str] | None = None
+    ssh_bin: str = "ssh"
+    connect_timeout: float = 30.0
+    _control_dir: str | None = None
+    _control_path: str | None = None
+    _prepared: bool = False
 
-    _UNIMPLEMENTED = (
-        "SSHRuntimeAdapter is a Sprint 13 stub; remote SSH execution is a "
-        "documented follow-up. Use LocalRuntimeAdapter for the local host."
-    )
+    def _target(self) -> str:
+        return f"{self.user}@{self.host}" if self.user else self.host
 
     def prepare(self) -> None:
-        raise NotImplementedError(self._UNIMPLEMENTED)
+        if self._prepared:
+            return
+        if shutil.which(self.ssh_bin) is None:
+            raise RuntimeError(
+                f"SSHRuntimeAdapter requires the {self.ssh_bin!r} binary; "
+                "it was not found on PATH."
+            )
+        self._control_dir = tempfile.mkdtemp(prefix="hermes-ssh-")
+        self._control_path = os.path.join(self._control_dir, "cm.sock")
+        master = [
+            self.ssh_bin,
+            "-M",
+            "-S",
+            self._control_path,
+            "-o",
+            "ControlPersist=60",
+            "-o",
+            "BatchMode=yes",
+            "-o",
+            f"ConnectTimeout={int(self.connect_timeout)}",
+            "-p",
+            str(self.port),
+            "-fN",
+            self._target(),
+        ]
+        opened = subprocess.run(
+            master,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=self.connect_timeout + 10,
+        )
+        if opened.returncode != 0:
+            self._teardown_control()
+            raise RuntimeError(
+                f"failed to open SSH control connection to {self._target()}: "
+                f"{opened.stderr.strip() or opened.returncode}"
+            )
+        if self.workdir:
+            check = subprocess.run(
+                [
+                    self.ssh_bin,
+                    "-S",
+                    self._control_path,
+                    "-p",
+                    str(self.port),
+                    self._target(),
+                    f"test -d {shlex.quote(self.workdir)}",
+                ],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=self.connect_timeout,
+            )
+            if check.returncode != 0:
+                self._teardown_control()
+                raise RuntimeError(
+                    f"remote workdir {self.workdir!r} not found on {self._target()}"
+                )
+        self._prepared = True
 
     def run(self, command: Command, *, timeout: float) -> RuntimeResult:
-        raise NotImplementedError(self._UNIMPLEMENTED)
+        if timeout <= 0:
+            raise ValueError("timeout must be > 0")
+        if not self._prepared:
+            self.prepare()
+        assert self._control_path is not None  # set by prepare()
+
+        logdir = (
+            Path(self.local_logdir) if self.local_logdir is not None else Path.cwd()
+        )
+        out_path, err_path = _resolve_stream_paths(
+            logdir, self.stdout_path, self.stderr_path
+        )
+
+        remote = _command_to_str(command)
+        if self.env:
+            prefix = "".join(
+                f"export {key}={shlex.quote(value)}; "
+                for key, value in self.env.items()
+            )
+            remote = prefix + remote
+        if self.workdir:
+            remote = f"cd {shlex.quote(self.workdir)} && {remote}"
+
+        argv = [
+            self.ssh_bin,
+            "-S",
+            self._control_path,
+            "-o",
+            "BatchMode=yes",
+            "-p",
+            str(self.port),
+            self._target(),
+            remote,
+        ]
+        return _spawn_to_files(
+            argv,
+            use_shell=False,
+            cwd=None,
+            env=None,
+            timeout=timeout,
+            out_path=out_path,
+            err_path=err_path,
+        )
+
+    def _teardown_control(self) -> None:
+        if self._control_path and shutil.which(self.ssh_bin):
+            try:
+                subprocess.run(
+                    [
+                        self.ssh_bin,
+                        "-S",
+                        self._control_path,
+                        "-O",
+                        "exit",
+                        "-p",
+                        str(self.port),
+                        self._target(),
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+            except (OSError, subprocess.SubprocessError):  # pragma: no cover
+                pass
+        if self._control_dir:
+            shutil.rmtree(self._control_dir, ignore_errors=True)
+        self._control_path = None
+        self._control_dir = None
 
     def cleanup(self) -> None:
-        # Safe to call on a never-prepared stub; there is nothing to release.
-        return None
+        # Safe to call even if prepare() never ran or failed mid-way.
+        self._teardown_control()
+        self._prepared = False
 
 
 @dataclass
 class DockerRuntimeAdapter:
-    """Run commands inside a Docker container — **stub** (not yet implemented).
+    """Run commands inside a Docker container, via the ``docker`` CLI.
 
-    Intended contract for the follow-up:
+    Concrete ``"docker"`` :class:`RuntimeAdapter`. It shells out to the system
+    ``docker`` binary (no SDK):
 
-    * :meth:`prepare` ensures the ``image`` is present (pull if missing) and
-      starts (or attaches to) a container, bind-mounting the job workspace so
-      the command sees the repo — mirroring how the existing Docker execution
-      environment bind-mounts the host workspace.
+    * :meth:`prepare` checks that ``docker`` is on ``PATH``, pulls ``image`` if
+      it is not already present (``docker image inspect`` → ``docker pull``),
+      and starts a detached container (``sleep infinity``) optionally
+      bind-mounting ``host_workspace`` at ``workdir`` so the command sees the
+      repo. Raises :class:`RuntimeError` if the binary is absent or the
+      pull/start fails.
     * :meth:`run` executes the command inside the container
-      (``docker exec``-style), streaming container stdout/stderr to local files
-      and surfacing the container exit code as ``returncode`` / ``timed_out``.
-    * :meth:`cleanup` stops and removes the container it created.
-
-    Until implemented, every method raises :class:`NotImplementedError`.
+      (``docker exec -w <workdir> ... sh -c <cmd>``), streaming container
+      stdout/stderr to local files with the same :class:`RuntimeResult` shape
+      and timeout convention as the local adapter (via :func:`_spawn_to_files`).
+    * :meth:`cleanup` force-removes the container it created. Safe to call even
+      if :meth:`prepare` never ran.
     """
 
     host_id: str
@@ -339,28 +538,121 @@ class DockerRuntimeAdapter:
     workdir: str = "/workspace"
     container_name: str | None = None
     kind: str = "docker"
-
-    _UNIMPLEMENTED = (
-        "DockerRuntimeAdapter is a Sprint 13 stub; container execution is a "
-        "documented follow-up. Use LocalRuntimeAdapter for the local host."
-    )
+    #: Host directory bind-mounted at ``workdir`` inside the container.
+    host_workspace: Path | None = None
+    #: Local directory for the captured stdout/stderr files (defaults to cwd).
+    local_logdir: Path | None = None
+    stdout_path: Path | None = None
+    stderr_path: Path | None = None
+    #: Environment passed into the container for the command (``docker -e``).
+    env: dict[str, str] | None = None
+    docker_bin: str = "docker"
+    pull_timeout: float = 300.0
+    _container: str | None = None
+    _prepared: bool = False
 
     def prepare(self) -> None:
-        raise NotImplementedError(self._UNIMPLEMENTED)
+        if self._prepared:
+            return
+        if shutil.which(self.docker_bin) is None:
+            raise RuntimeError(
+                f"DockerRuntimeAdapter requires the {self.docker_bin!r} binary; "
+                "it was not found on PATH."
+            )
+        inspect = subprocess.run(
+            [self.docker_bin, "image", "inspect", self.image],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if inspect.returncode != 0:
+            pull = subprocess.run(
+                [self.docker_bin, "pull", self.image],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=self.pull_timeout,
+            )
+            if pull.returncode != 0:
+                raise RuntimeError(
+                    f"failed to pull image {self.image!r}: "
+                    f"{pull.stderr.strip() or pull.returncode}"
+                )
+        name = self.container_name or f"hermes-{self.host_id}-{uuid.uuid4().hex[:8]}"
+        run_argv = [self.docker_bin, "run", "-d", "--name", name]
+        if self.host_workspace is not None:
+            mount = f"{Path(self.host_workspace).resolve()}:{self.workdir}"
+            run_argv += ["-v", mount]
+        run_argv += ["-w", self.workdir, self.image, "sleep", "infinity"]
+        started = subprocess.run(
+            run_argv,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if started.returncode != 0:
+            raise RuntimeError(
+                f"failed to start container from {self.image!r}: "
+                f"{started.stderr.strip() or started.returncode}"
+            )
+        self._container = name
+        self._prepared = True
 
     def run(self, command: Command, *, timeout: float) -> RuntimeResult:
-        raise NotImplementedError(self._UNIMPLEMENTED)
+        if timeout <= 0:
+            raise ValueError("timeout must be > 0")
+        if not self._prepared:
+            self.prepare()
+        assert self._container is not None  # set by prepare()
+
+        logdir = (
+            Path(self.local_logdir) if self.local_logdir is not None else Path.cwd()
+        )
+        out_path, err_path = _resolve_stream_paths(
+            logdir, self.stdout_path, self.stderr_path
+        )
+
+        inner = _command_to_str(command)
+        argv = [self.docker_bin, "exec"]
+        if self.env:
+            for key, value in self.env.items():
+                argv += ["-e", f"{key}={value}"]
+        argv += ["-w", self.workdir, self._container, "sh", "-c", inner]
+        return _spawn_to_files(
+            argv,
+            use_shell=False,
+            cwd=None,
+            env=None,
+            timeout=timeout,
+            out_path=out_path,
+            err_path=err_path,
+        )
 
     def cleanup(self) -> None:
-        # Safe to call on a never-prepared stub; there is nothing to release.
-        return None
+        # Safe to call even if prepare() never ran or failed mid-way.
+        if self._container and shutil.which(self.docker_bin):
+            try:
+                subprocess.run(
+                    [self.docker_bin, "rm", "-f", self._container],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+            except (OSError, subprocess.SubprocessError):  # pragma: no cover
+                pass
+        self._container = None
+        self._prepared = False
 
 
 def _shell_join(argv: Sequence[str]) -> str:
-    """Best-effort shell quoting for argv → string (used by remote stubs' docs).
+    """Best-effort shell quoting for argv → string.
 
-    Kept here so the ssh/docker follow-up has a ready helper; ``shlex.join`` on
-    3.8+ is equivalent but this is explicit about quoting each token.
+    Used by the SSH/Docker adapters to flatten an argv command into a single
+    remote/container shell string; ``shlex.join`` on 3.8+ is equivalent but this
+    is explicit about quoting each token.
     """
 
     return " ".join(shlex.quote(token) for token in argv)

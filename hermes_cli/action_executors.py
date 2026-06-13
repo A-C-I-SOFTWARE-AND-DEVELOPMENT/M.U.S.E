@@ -109,8 +109,24 @@ def apply_owner_approved(
     Raises :class:`NotAuthorized` on a phrase mismatch and
     :class:`UnknownAction` when no executor is registered.
     """
+    from hermes_cli.decision_engine import merge_decision_inputs, owner_gate_input
     from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
 
     if (owner_phrase or "").strip() != AUTHORIZATION_PHRASE:
         raise NotAuthorized("exact owner authorization phrase required")
-    return dispatch(action_type, params)
+    result = dispatch(action_type, params)
+    # Sprint 2 breadth: record the unified decision verdict for the out-of-band
+    # owner-approved mutation seam. This mutation is owner-gated and only runs
+    # after the exact-phrase check above, so the verdict is always an ``ask``
+    # tier satisfied by the owner gate. Recorded, not gating — the phrase check
+    # is the gate; this only attaches the canonical verdict to the result
+    # envelope so the cockpit/CLI render one verdict across every mutation
+    # surface (matching the bridge dispatch + publish boundaries). ``setdefault``
+    # leaves any verdict an executor already emitted untouched.
+    if isinstance(result, dict):
+        verdict = merge_decision_inputs(
+            f"executor.{action_type}",
+            [owner_gate_input(True, action=action_type)],
+        )
+        result.setdefault("decision_verdict", verdict.to_redacted_dict())
+    return result
