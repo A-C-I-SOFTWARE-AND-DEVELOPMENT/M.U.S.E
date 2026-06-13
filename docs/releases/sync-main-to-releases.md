@@ -49,6 +49,22 @@ muse sync --dry-run            # print what would be dispatched; no side effects
 or unauthenticated it prints the exact command (and the Actions URL) to run by
 hand instead of failing, keeping the local-first, secret-free posture.
 
+## Things to know
+
+- **The `M.U.S.E` tag is a mutable, HEAD-tracking pointer**, not an immutable
+  release tag. The source-tag job force-moves it to the latest `main` on every
+  push. Do **not** pin to it expecting a fixed commit — pin to a versioned tag
+  (`android-v*` / `muse-desktop-v*`) or a specific SHA if you need immutability.
+- **The rolling releases show a stale "published" date.** Refreshing a rolling
+  channel re-targets the *existing* GitHub Release (via `gh release edit`), so
+  GitHub keeps the original `published_at`. The GitHub mobile/web Releases list
+  will show a weeks-old date next to a fresh asset — that is expected. Trust the
+  **version string + build date in the release notes** (and the in-app Release
+  Center), not the GitHub "published" date.
+- **Hourly cron is change-gated.** The scheduled run skips the (expensive,
+  multi-OS) app rebuilds when the rolling release already points at the current
+  `main`; a manual `muse sync` / dispatch always rebuilds.
+
 ## Owner gate
 
 Refreshing a release **publishes** (outward-facing). The automation only takes

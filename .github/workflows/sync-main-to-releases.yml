@@ -103,7 +103,19 @@ jobs:
       - name: Dispatch Android release (rolling)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
         run: |
+          # Cost guard: on the hourly cron, skip the (expensive) rebuild when
+          # the rolling release already points at the current main — otherwise
+          # an idle repo rebuilds byte-identical APKs every hour. Manual
+          # dispatch always rebuilds (no skip).
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
+          rel_sha="$(gh release view android-latest --repo "$GITHUB_REPOSITORY" \
+            --json targetCommitish --jq '.targetCommitish' 2>/dev/null || echo '')"
+          if [ "$EVENT" = "schedule" ] && [ -n "$rel_sha" ] && [ "$main_sha" = "$rel_sha" ]; then
+            echo "android-latest already at main ($main_sha); skipping hourly rebuild."
+            exit 0
+          fi
           gh workflow run android-release.yml \
             --repo "$GITHUB_REPOSITORY" --ref main -f channel=rolling
           echo "Dispatched android-release.yml (channel=rolling) on main."
@@ -121,7 +133,20 @@ jobs:
       - name: Dispatch desktop release (rolling)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
         run: |
+          # Cost guard: on the hourly cron, skip the (expensive, multi-OS) rebuild
+          # when the rolling release already points at the current main. The
+          # desktop matrix bills macOS minutes at 10x, so an unconditional hourly
+          # rebuild of unchanged source is the biggest waste in this engine.
+          # Manual dispatch always rebuilds (no skip).
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
+          rel_sha="$(gh release view muse-desktop-latest --repo "$GITHUB_REPOSITORY" \
+            --json targetCommitish --jq '.targetCommitish' 2>/dev/null || echo '')"
+          if [ "$EVENT" = "schedule" ] && [ -n "$rel_sha" ] && [ "$main_sha" = "$rel_sha" ]; then
+            echo "muse-desktop-latest already at main ($main_sha); skipping hourly rebuild."
+            exit 0
+          fi
           gh workflow run muse-desktop-release.yml \
             --repo "$GITHUB_REPOSITORY" --ref main -f channel=rolling
           echo "Dispatched muse-desktop-release.yml (channel=rolling) on main."
