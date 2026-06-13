@@ -611,3 +611,39 @@ breakdown:
 
 Awaits owner go/no-go before any branch is cut.
 
+---
+
+# Wave E — finish all remaining follow-ups (2026-06-13)
+
+**Trigger:** owner directive (`/goal`) — "finish all remaining follow ups."
+**Single-writer (orchestrator).** Base: `main` @ `851930f2d` (post-#454
+autoresearch, post-#455 MUSE final audit). Session branch
+`claude/stoic-planck-l3dvd6` (single-branch pattern, as Wave C).
+
+## Remaining-items inventory (ground-truthed against code/PRs/branches)
+
+| Item | Disposition |
+|---|---|
+| **G7 desktop-polish** (Wave D, was `building`) | **in-review → PR #456.** The grain was fully built+validated on `claude/fu-d7-desktop-polish-r2` but its PR was never opened (session suspension; the snapshot's "#438" was a stale placeholder). Cherry-picked onto current main with keep-both resolution against the brain sidecar that landed in the same files; Cargo.lock re-resolved (+347 lines, glib unchanged 0.18.5); fully re-validated. Merge on green per the Wave-D pre-authorization. Snapshot: `followups/fu-d7-desktop-polish.md`. |
+| **Post-#454 main breakage** (found this wave) | **fixed in PR #456:** (a) the blocking *Windows footguns* gate failed on every PR — autoresearch `engine.py` bare `os.killpg`/`SIGKILL` now platform-gated; `vendor/` dirs excluded from the scanner (byte-pinned files can carry neither fixes nor suppressions); (b) *vendor-integrity test red on main* — GitHub autofix commits on #454 had edited `vendor/prepare.py` + `vendor/train.py`; restored byte-identical to the import (`64ad937e4`); the two CodeQL alerts those autofixes closed re-open on vendor files → **owner: dismiss them in the Security tab** (vendor policy: adaptations live in sibling modules); (c) `test_dataset_candidate_offer_is_soft_fail` red on main — missing call-site guard in `autoresearch_improve.py` added. 45 autoresearch tests green. |
+| **glib GHSA-wrw7-89jp-8q8g (alert #49)** | **blocked upstream (re-affirmed at rebase):** `glib ^0.18` ← `gtk v0.18.2` ← `tauri v2.11.2`; gtk3-rs is maintenance-only. Auto-closes when Tauri drops `gtk ^0.18`; re-check on each Tauri upgrade. |
+| **FU-3 residual — restored-job cost resets to 0** | **actionable → next in this wave** (`rebuild_snapshot` has no cost field; documented at `orchestrator_api.py` restore docstring). Behavior change on the restore path → built as a separate PR, owner-gated merge per contract §6. |
+| **FU-2 (old) — per-worker default adapter factory** | **actionable → next in this wave** (dispatch still takes a single shared `runtime_adapter`; a bare shared adapter collides per-worker logs). Strictly additive opt-in → merge-on-green. |
+| **FU-1 residual — wire the live server dispatcher to `run_plan_into_store`** | **owner-decision-gated** (unchanged; no live caller by design until the owner wires it). |
+| **yuanbao T06** | blocked: needs live Yuanbao credentials — untestable free/local. |
+| **EPIC-COCKPIT-SEAM P1–P5** | owner go/no-go gate (P0 contract freeze merged #436). |
+| **#408 advanced CodeQL** | blocked on owner repo settings (CodeQL Default Setup). |
+| **Registry/namespace renames** (Docker Hub / PyPI / Cachix / homebrew) | owner-coordinated, publish-time. |
+| **G2 follow-on — promote "Release gate (strict tooling)" to required** | owner GitHub-settings click (several green cycles have elapsed since Wave D). |
+| **PR #453 — deep Hermes→MUSE rename (owner's PR)** | `mergeable_state: dirty` vs post-#454/#455 main (1,505 files, 10 commits). Rework-vs-supersede is an **owner decision** — posed to the owner this session; not touched without direction. |
+| Audit deferrals (desktop sidecar bundling, `package.json` names, classic skin, orchestrator v-next placeholders) | intentionally deferred with rationale — `docs/launch/MUSE_FINAL_AUDIT_2026-06-12.md` §4; unchanged. |
+
+## Decision log
+
+- `2026-06-13` — Goal received; ledger read first (contract §1). Inventory
+  ground-truthed: G7 identified as the only unfinished *built* grain; landed
+  as PR #456 after rebase + re-validation. While #456 was in CI, its blocking
+  *Windows footguns* failure exposed the post-#454 main breakage (gate +
+  vendor pin + soft-fail test) — repaired in the same PR so the blocking gate
+  works again for every PR.
+

@@ -1,6 +1,6 @@
 # FU-D7: Desktop (Tauri v2) polish — About/menu actions, window-state, a11y, glib triage
 
-- **Status:** in-review
+- **Status:** in-review (PR #456)
 - **Risk class:** additive (new menu actions + plugins; no default web/runtime code paths changed)
 - **Branch:** `claude/fu-d7-desktop-polish-r2` · **Base:** `main` @ `f17ee72f1`
   (includes `7ba9f7bd` desktop release packaging and `bb19e9c45` dependabot fixes).
@@ -8,7 +8,19 @@
   rebuild. A *local* branch `claude/fu-d7-desktop-polish` existed checked out in
   another worktree (nothing on origin), so per instructions nothing was deleted
   and the `-r2` name is used.
-- **PR:** #438 (draft)
+- **PR:** #456 (draft) — the Wave-D session was suspended before any PR for
+  this grain was opened (an earlier "#438" reference here was a stale
+  placeholder; #438 was G1 root-tidy). Landed 2026-06-13 by cherry-picking
+  `2eab724ab` from `claude/fu-d7-desktop-polish-r2` onto `main` @ `851930f2d`
+  via the orchestrator session branch `claude/stoic-planck-l3dvd6`
+  (single-branch pattern, as Wave C). Keep-both conflict resolution with the
+  brain sidecar that had landed in the same files (`brain.rs`, shell plugin,
+  RunEvent reaping): shell + window-state + clipboard plugins coexist;
+  capability description merged; `Cargo.lock` re-resolved by cargo on top of
+  main's lock (+347 lines; glib unchanged at 0.18.5 — triage below still
+  exact). Re-validated on the rebased branch in-container: `npm ci` +
+  `npm run build` green, `cargo check` green (1m02s), capabilities JSON
+  parses, `scan_secrets --base origin/main` exit 0, `tokens.css` untouched.
 - **Owner-gate required to merge?** no (additive desktop-shell polish; merge on
   green CI per the parallel follow-up contract)
 
