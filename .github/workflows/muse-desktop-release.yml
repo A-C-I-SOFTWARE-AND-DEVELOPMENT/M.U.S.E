@@ -305,6 +305,15 @@ jobs:
           # ENABLE_MACOS_SIGNING is on and a cert is present — still guard
           # against a half-provisioned cert with a faithful keychain import
           # probe before letting Tauri attempt the (more brittle) codesign.
+          # The probe MUST mirror what Tauri's bundler actually does: import the
+          # full pkcs12 IDENTITY (certificate + private key) and confirm a usable
+          # codesigning identity results. The earlier probe used `-t cert`, which
+          # imports only the certificate and returns success even for a .p12 with
+          # no signing key — a false positive that let Tauri proceed and then die
+          # with "security import: failed to import keychain certificate",
+          # failing the whole release and publishing no .dmg. Requiring a real
+          # codesigning identity makes a non-functional cert fall back to an
+          # UNSIGNED build (green, .dmg ships) instead of a hard failure.
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
@@ -313,9 +322,14 @@ jobs:
             security delete-keychain "$kc" 2>/dev/null || true
             if security create-keychain -p "$pw" "$kc" 2>/dev/null; then
               security unlock-keychain -p "$pw" "$kc" 2>/dev/null || true
+              # No `-t cert`: import the whole identity exactly as Tauri does.
               if security import "$cert" -k "$kc" -P "${APPLE_CERTIFICATE_PASSWORD}" \
-                   -t cert -f pkcs12 -T /usr/bin/codesign >/dev/null 2>&1; then
-                ok=true
+                   -f pkcs12 -T /usr/bin/codesign >/dev/null 2>&1; then
+                # find-identity prints "<N> valid identities found"; require N>=1
+                # so a cert lacking its private key does NOT count as signable.
+                n="$(security find-identity -v -p codesigning "$kc" 2>/dev/null \
+                       | sed -n 's/.*[^0-9]\([0-9][0-9]*\) valid identities found.*/\1/p')"
+                [ "${n:-0}" -ge 1 ] 2>/dev/null && ok=true
               fi
               security delete-keychain "$kc" 2>/dev/null || true
             fi
@@ -325,7 +339,7 @@ jobs:
             echo "APPLE_CERTIFICATE imports into a keychain; signing enabled."
             echo "sign=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::APPLE_CERTIFICATE is set but cannot be imported via 'security import' (not a valid base64 .p12, wrong password, or unsupported encoding) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
+            echo "::warning::APPLE_CERTIFICATE is set but did not yield a usable codesigning identity (not a valid base64 .p12, wrong password, unsupported encoding, or a certificate exported WITHOUT its private key) — building UNSIGNED. Re-export it as a Personal Information Exchange (.p12) INCLUDING the private key and re-provision per apps/desktop/RELEASE.md."
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
