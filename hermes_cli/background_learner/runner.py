@@ -185,17 +185,22 @@ class BackgroundLearnerRunner:
                 "plan-only: live run blocked — MUSE_AUTORESEARCH_ALLOW_SPAWN "
                 f"is not set to 1. {plan.summary()}",
             )
-        if self._autoresearch_fn is None:
+        baseline_bpb = payload.get("baseline_bpb")
+        if self._autoresearch_fn is None and baseline_bpb is None:
+            # The built-in runner gates on a known baseline; an injected
+            # runner may establish its own.
             return JobOutcome(
                 job.id,
                 job.kind,
                 "ran",
-                f"plan-only: no live autoresearch runner wired. {plan.summary()}",
+                "plan-only: payload.baseline_bpb is required for a live run — "
+                f"establish it with an unedited baseline run first. {plan.summary()}",
             )
-        outcome = self._autoresearch_fn(
+        run_fn = self._autoresearch_fn or _default_autoresearch_swarm
+        outcome = run_fn(
             plan,
             book=self.book,
-            baseline_bpb=payload.get("baseline_bpb"),
+            baseline_bpb=float(baseline_bpb) if baseline_bpb is not None else None,
             min_bpb_delta=float(payload.get("min_bpb_delta", 0.0)),
         )
         proposal = getattr(
@@ -225,6 +230,35 @@ class BackgroundLearnerRunner:
             risk_class="RC3",
         )
         return JobOutcome(job.id, job.kind, "proposed", f"skill proposal for {target}", proposal=p)
+
+
+def _default_autoresearch_swarm(plan, *, book, baseline_bpb, min_bpb_delta):
+    """The built-in live runner: real workers + the default idea catalog.
+
+    Reached only when every gate is already open (approval token at enqueue,
+    ``MUSE_AUTORESEARCH_ALLOW_SPAWN=1``); each worker still re-checks
+    ``detect()`` fail-closed at run time (uv, training data, CUDA/modal).
+    """
+
+    from hermes_cli.jarvis_prime.research_fabric.autoresearch.swarm import run_swarm
+    from hermes_cli.workers.autoresearch import (
+        AutoresearchWorker,
+        AutoresearchWorkerConfig,
+    )
+
+    def worker_factory(assignment):
+        return AutoresearchWorker(
+            config=AutoresearchWorkerConfig(experiment=assignment.config)
+        )
+
+    return run_swarm(
+        plan,
+        worker_factory=worker_factory,
+        book=book,
+        baseline_bpb=baseline_bpb,
+        min_bpb_delta=min_bpb_delta,
+        vram_budget_mb=plan.assignments[0].config.vram_budget_mb if plan.assignments else 0.0,
+    )
 
 
 def run_idle_cycle(

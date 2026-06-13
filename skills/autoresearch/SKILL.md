@@ -74,6 +74,9 @@ from hermes_cli.jarvis_prime.self_update import ProposalBook
 from hermes_cli.workers.autoresearch import AutoresearchWorker, AutoresearchWorkerConfig
 
 config = ExperimentConfig(tag="jun12", max_experiments=12, vram_budget_mb=11059)
+# propose_edit is optional: omitted, the built-in idea source is used — the
+# deterministic knob catalog (ideas.DEFAULT_IDEAS), optionally chained with an
+# LLM via ideas.default_edit_provider(llm_runner).
 worker = AutoresearchWorker(
     config=AutoresearchWorkerConfig(experiment=config, propose_edit=my_idea_provider)
 )
