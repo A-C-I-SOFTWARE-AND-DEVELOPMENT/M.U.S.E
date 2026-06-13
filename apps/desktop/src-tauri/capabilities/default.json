@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capabilities for the M.U.S.E. main window. Deliberately minimal: the UI talks to the gateway over plain HTTP/fetch, so only core window + tray permissions are granted, plus window-state persistence and clipboard write-text (for the Copy Gateway URL menu action). No filesystem, shell, or HTTP-plugin scopes are opened. tauri-plugin-shell is registered in Rust but used ONLY from Rust (brain.rs spawns `muse cockpit serve`); deliberately no shell:* permission here, so the webview can never execute processes. The brain's app-defined commands (gateway_status/start/stop, autostart_get/set) are application commands, which Tauri v2 does not ACL-gate.",
+  "description": "Capabilities for the M.U.S.E. main window. Deliberately minimal: the UI talks to the gateway over plain HTTP/fetch, so only core window + tray permissions are granted, plus window-state persistence. No filesystem, shell, HTTP-plugin, or clipboard scopes are opened. tauri-plugin-shell and tauri-plugin-clipboard-manager are registered in Rust but used ONLY from Rust (brain.rs spawns `muse cockpit serve`; the Copy Gateway URL menu action writes the clipboard in on_menu_event) — deliberately no shell:* or clipboard-manager:* permission here, so the webview can neither execute processes nor touch the clipboard. App-defined commands (gateway_status/start/stop, autostart_get/set, gateway_url_hint_set) are application commands, which Tauri v2 does not ACL-gate.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -11,7 +11,6 @@
     "core:window:allow-unminimize",
     "core:tray:default",
     "core:menu:default",
-    "window-state:default",
-    "clipboard-manager:allow-write-text"
+    "window-state:default"
   ]
 }

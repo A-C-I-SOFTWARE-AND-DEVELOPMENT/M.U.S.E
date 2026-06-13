@@ -12,6 +12,8 @@
 
 mod brain;
 
+use std::sync::Mutex;
+
 use tauri::{
     menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu},
     tray::{TrayIconBuilder, TrayIconEvent},
@@ -29,6 +31,38 @@ const DEFAULT_GATEWAY_URL: &str = "http://127.0.0.1:8765";
 /// Resolve the configured gateway URL for display. Honors `MUSE_GATEWAY_URL`.
 pub(crate) fn gateway_url() -> String {
     std::env::var("MUSE_GATEWAY_URL").unwrap_or_else(|_| DEFAULT_GATEWAY_URL.to_string())
+}
+
+/// The gateway base the UI is *actually* using. The Settings override lives in
+/// the webview's localStorage where Rust cannot see it, so the UI reports it
+/// here (`gateway_url_hint_set`, on load and on every change) and native
+/// surfaces — Help → Copy Gateway URL — stay truthful instead of advertising
+/// the env/default value.
+#[derive(Default)]
+pub(crate) struct UiGatewayHint(Mutex<Option<String>>);
+
+#[tauri::command]
+fn gateway_url_hint_set(state: tauri::State<UiGatewayHint>, url: String) {
+    let trimmed = url.trim();
+    // Bound + sanity-check the hint — it feeds the clipboard, nothing else.
+    let value = (!trimmed.is_empty()
+        && trimmed.len() <= 2048
+        && (trimmed.starts_with("http://") || trimmed.starts_with("https://")))
+    .then(|| trimmed.trim_end_matches('/').to_string());
+    if let Ok(mut slot) = state.0.lock() {
+        *slot = value;
+    }
+}
+
+/// The URL the Copy Gateway URL action copies: the UI-reported hint when
+/// present, else the env/default.
+fn effective_gateway_url(app: &tauri::AppHandle) -> String {
+    app.state::<UiGatewayHint>()
+        .0
+        .lock()
+        .ok()
+        .and_then(|slot| slot.clone())
+        .unwrap_or_else(gateway_url)
 }
 
 /// Show and focus the main window (used by the tray and second-instance hook).
@@ -77,13 +111,14 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         ],
     )?;
 
-    // An actionable item that copies the configured gateway URL to the
-    // clipboard (handled in the builder's `on_menu_event`). `with_id` gives it
-    // a stable id the handler matches on.
+    // An actionable item that copies the *effective* gateway URL to the
+    // clipboard (handled in the builder's `on_menu_event`). The label carries
+    // no URL on purpose: the UI's Settings override can change at runtime and
+    // a static label would go stale / disagree with what gets copied.
     let gateway_item = MenuItem::with_id(
         app,
         "copy-gateway-url",
-        format!("Copy Gateway URL ({})", gateway_url()),
+        "Copy Gateway URL",
         true,
         None::<&str>,
     )?;
@@ -152,17 +187,21 @@ pub fn run() {
         // Native clipboard access for the "Copy Gateway URL" menu item.
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(brain::BrainState::default())
+        .manage(UiGatewayHint::default())
         .invoke_handler(tauri::generate_handler![
             brain::gateway_status,
             brain::gateway_start,
             brain::gateway_stop,
             brain::autostart_get,
             brain::autostart_set,
+            gateway_url_hint_set,
         ])
         // Application menu actions (menu items declared in `build_menu`).
+        // Clipboard write happens HERE, Rust-side — the webview holds no
+        // clipboard capability (capabilities/default.json).
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "copy-gateway-url" {
-                let _ = app.clipboard().write_text(gateway_url());
+                let _ = app.clipboard().write_text(effective_gateway_url(app));
             }
         })
         .setup(|app| {

@@ -35,7 +35,31 @@ export function getGatewayBase(): string {
 
 export function setGatewayBase(base: string): void {
   safeLocalStorageSet(BASE_KEY, stripTrailingSlash(base.trim()));
+  reportBaseToShell(getGatewayBase());
 }
+
+/**
+ * Best-effort: tell the native shell (when running inside it) which gateway
+ * base the UI is using. The Settings override lives in localStorage where the
+ * Rust side cannot see it; this hint keeps native surfaces (Help → Copy
+ * Gateway URL) truthful. A no-op in a plain browser.
+ */
+function reportBaseToShell(base: string): void {
+  try {
+    const inv = (
+      window as unknown as {
+        __TAURI__?: { core?: { invoke?: (cmd: string, args?: unknown) => Promise<unknown> } };
+      }
+    ).__TAURI__?.core?.invoke;
+    if (inv) void inv("gateway_url_hint_set", { url: base }).catch(() => {});
+  } catch {
+    // Not in the shell (or invoke unavailable) — the hint is optional.
+  }
+}
+
+// Report the initial base once on module load so the shell is truthful even
+// before the user ever opens Settings.
+reportBaseToShell(getGatewayBase());
 
 export function getToken(): string {
   return safeLocalStorageGet(TOKEN_KEY) || "";
