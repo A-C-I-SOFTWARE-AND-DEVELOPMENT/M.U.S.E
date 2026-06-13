@@ -1,0 +1,73 @@
+name: CodeQL
+
+# Advanced CodeQL setup that consumes .github/codeql/codeql-config.yml — the
+# vendor `paths-ignore` (the sha-pinned autoresearch vendor tree) and the
+# `py/clear-text-logging-sensitive-data` query-filter. The repo currently runs
+# CodeQL *default setup*, which ignores that config file and produces a failing
+# ~2s "CodeQL" check plus un-suppressed vendor alerts. This advanced workflow is
+# the supported way to apply the committed config.
+#
+# DORMANT until activated, so merging this file changes nothing on its own:
+# every job is gated on `vars.CODEQL_ADVANCED == 'true'` and renders as skipped
+# (neutral — never a red check) while that variable is unset. Activation is two
+# owner-only steps (see docs/security/codeql-advanced-setup.md):
+#   1. Settings -> Code security -> CodeQL analysis: switch Default -> Advanced
+#      (default and advanced setup cannot run at the same time).
+#   2. Set the repository variable CODEQL_ADVANCED = true.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "27 3 * * 1" # weekly, Monday 03:27 UTC
+
+permissions:
+  contents: read
+  security-events: write # upload SARIF results to code scanning
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    # Dormant until the owner opts in (see header). Unset variable => skipped,
+    # so this workflow adds no failing check before activation.
+    if: vars.CODEQL_ADVANCED == 'true'
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # First-party languages only. `build-mode: none` means no build step is
+        # required (CodeQL analyzes sources directly), which keeps every leg
+        # fast and reliable. The default-setup auto-detection of csharp / ruby /
+        # rust / c-cpp is dropped here — the repo has no first-party code in
+        # those languages.
+        include:
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+          - language: java-kotlin # apps/android
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3.36.2
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v3.36.2
+        with:
+          category: "/language:${{ matrix.language }}"

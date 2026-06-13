@@ -698,4 +698,24 @@ residuals remained, built on `claude/perfect-muse-mmfke2`:
   so booting the API is byte-identical by default. F-A…F-D are strictly
   additive (eligible to merge on green); **F-E merges only after the owner's
   exact `Yes, with authorization.`**
+- `2026-06-13` — **Wave F merged → #464** (squash `c1286f4`, owner-authorized
+  `Yes, with authorization.` + admin-merge over two pre-existing reds). The
+  `test_startup_plugin_gating` red was **already fixed on `main` by #463**
+  (`2d3a37c` registered the real top-level `sync` subcommand in
+  `_BUILTIN_SUBCOMMANDS`); #464 only saw it because it branched before #463
+  merged. Verified on current `main`: all 37 gating tests pass. No follow-up
+  needed for that item.
+- `2026-06-13` — **CodeQL `#408` follow-up (separate PR, branch
+  `claude/codeql-advanced-setup`).** Root cause: the committed advanced config
+  `.github/codeql/codeql-config.yml` (vendor `paths-ignore` + clear-text-logging
+  query-filter) is ignored because the repo runs CodeQL *default setup* with no
+  advanced workflow — hence the 2s "CodeQL" failure + two un-suppressed vendor
+  alerts. Added a **dormant** advanced workflow `.github/workflows/codeql.yml`
+  (jobs gated on `vars.CODEQL_ADVANCED == 'true'` → skipped/neutral until
+  activated, so it adds no red check) plus
+  `docs/security/codeql-advanced-setup.md`. **Owner finish (two clicks):**
+  Settings → Code security → switch CodeQL Default→Advanced, then set repo
+  variable `CODEQL_ADVANCED=true`. That applies the config (clears the 2s
+  failure + vendor alerts). Owner-gated by nature (repo Security settings);
+  opened as a draft PR.
 
