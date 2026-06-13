@@ -324,3 +324,30 @@ def test_run_plan_inline_and_explicit_adapter_agree_on_cost(repo: Path):
         assert totals_i["cost_usd"] == 0.0731
 
     asyncio.run(_run_test())
+
+
+def test_run_plan_passes_adapter_factory_through(repo: Path):
+    # FU-2: the seam forwards adapter_factory to the runner; the factory-built
+    # per-worker adapter runs the worker and usage still drains into the store.
+    async def _run_test():
+        store = JobStore()
+        job = await store.create("factory", {})
+        plan = op.ExecutionPlan(
+            job_id=job.id, workers=_usage_plan(repo, job.id).workers
+        )
+        seen: list[str] = []
+
+        def factory(worker, worker_root):
+            seen.append(worker.worker_id)
+            return op.per_worker_local_adapter(worker, worker_root)
+
+        statuses = await run_plan_into_store(
+            repo, plan, store, adapter_factory=factory
+        )
+
+        assert statuses["w1"].state is op.WorkerState.COMPLETED
+        assert seen == ["w1"]
+        refreshed = await store.get(job.id)
+        assert refreshed.cost.totals()["cost_usd"] == 0.0731
+
+    asyncio.run(_run_test())

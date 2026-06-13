@@ -50,6 +50,10 @@ EVENT_WORKER_HEARTBEAT = "worker.heartbeat"
 EVENT_WORKER_BLOCKED = "worker.blocked"
 EVENT_WORKER_COMPLETED = "worker.completed"
 
+# Cost — one per folded model-call delta (Sprint 10 aggregate; event-sourced
+# so restart-replay can rebuild the cost meter instead of resetting it to 0).
+EVENT_COST_ACCUMULATED = "cost.accumulated"
+
 # Evidence / scoring
 EVENT_EVIDENCE_UPDATED = "evidence.updated"
 EVENT_SCORING_COMPLETED = "scoring.completed"
@@ -70,6 +74,7 @@ ALL_EVENTS: Tuple[str, ...] = (
     EVENT_WORKER_HEARTBEAT,
     EVENT_WORKER_BLOCKED,
     EVENT_WORKER_COMPLETED,
+    EVENT_COST_ACCUMULATED,
     EVENT_EVIDENCE_UPDATED,
     EVENT_SCORING_COMPLETED,
     EVENT_VALIDATION_COMPLETED,

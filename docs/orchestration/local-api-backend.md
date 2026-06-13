@@ -114,6 +114,7 @@ The full event vocabulary:
 | `worker.started`        | A worker picks up the job, or `POST /jobs/{id}/resume` succeeds. |
 | `worker.blocked`        | A worker raises a blocker requiring user input. |
 | `worker.completed`      | A worker finishes its slice of the job. |
+| `cost.accumulated`      | A model-call cost/usage delta folds into the job's cost meter. |
 | `scoring.completed`     | Scoring/verification stage finishes. |
 | `validation.completed`  | `POST /jobs/{id}/validate` succeeds. |
 | `publish.ready`         | `POST /jobs/{id}/publish-plan` succeeds. |
