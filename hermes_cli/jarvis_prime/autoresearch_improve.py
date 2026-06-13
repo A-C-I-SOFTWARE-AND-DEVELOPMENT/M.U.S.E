@@ -308,7 +308,12 @@ def run_autoresearch_improvement(
         if memory_store is not None:
             memory_written = _consolidate_memory(details, memory_store)
         if sia_outcome.improved:
-            _offer_dataset_candidate(details)
+            try:
+                _offer_dataset_candidate(details)
+            except Exception:
+                # Best-effort: a failure in the learning-dataset layer must
+                # never sink an otherwise-successful improvement run.
+                pass
 
     return AutoresearchImprovementOutcome(
         sia=sia_outcome,
