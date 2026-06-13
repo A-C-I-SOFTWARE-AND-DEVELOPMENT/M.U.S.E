@@ -190,15 +190,33 @@ def test_score_zero_when_no_feasible_champion(monkeypatch, tmp_path: Path) -> No
     assert "infeasible" in score.rationale
 
 
-def test_run_fails_closed_without_edit_provider(monkeypatch, tmp_path: Path) -> None:
+def test_run_without_provider_uses_the_default_catalog(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv(SPAWN_ENV, "1")
     monkeypatch.setattr("hermes_cli.workers.autoresearch.detect_command", lambda c: True)
+    from hermes_cli.jarvis_prime.research_fabric.autoresearch.ideas import DEFAULT_IDEAS
+
+    outputs = [SUMMARY.format(bpb=1.0, vram=9000.0), SUMMARY.format(bpb=0.97, vram=9000.0)]
+
+    def runner(argv, *, cwd, timeout, env=None):
+        return _Completed(outputs.pop(0))
+
     worker = AutoresearchWorker(
         config=AutoresearchWorkerConfig(
-            experiment=ExperimentConfig(tag="x", device="modal:test"),
+            experiment=ExperimentConfig(
+                tag="dflt",
+                workspace_dir=str(tmp_path / "ws-default"),
+                device="modal:test",
+                vram_budget_mb=12000.0,
+                max_experiments=2,
+            ),
+            subprocess_runner=runner,
+            git_runner=_fake_git,
             data_cache=_data_cache(tmp_path),
         )
     )
-    result = worker.run(object())
-    assert not result.ok
-    assert "edit provider" in result.error
+    job = object()
+    result = worker.run(job)
+    assert result.ok, result.error
+    details = dict(worker.collect(job).details)
+    # Experiment 1's description came from the built-in idea catalog.
+    assert details["experiments"][1]["description"] == DEFAULT_IDEAS[0].description

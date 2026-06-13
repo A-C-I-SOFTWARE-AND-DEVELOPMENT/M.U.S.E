@@ -159,10 +159,9 @@ class AutoresearchWorker(WorkerAdapter):
         detection = self.detect()  # fail-closed re-check at run time
         if not detection.available:
             return WorkerRunResult(ok=False, error=detection.reason)
-        if self.config is None or self.config.propose_edit is None:
+        if self.config is None:
             return WorkerRunResult(
-                ok=False,
-                error="no edit provider configured — autoresearch needs an idea source",
+                ok=False, error="no worker config — autoresearch needs an ExperimentConfig"
             )
         from hermes_cli.jarvis_prime.research_fabric.autoresearch import (
             engine as ar_engine,
@@ -170,6 +169,15 @@ class AutoresearchWorker(WorkerAdapter):
         from hermes_cli.jarvis_prime.research_fabric.autoresearch import (
             platform as ar_platform,
         )
+
+        propose_edit = self.config.propose_edit
+        if propose_edit is None:
+            # Built-in idea source: the deterministic knob catalog (ideas.py).
+            from hermes_cli.jarvis_prime.research_fabric.autoresearch.ideas import (
+                default_edit_provider,
+            )
+
+            propose_edit = default_edit_provider()
 
         try:
             profile = (
@@ -179,7 +187,7 @@ class AutoresearchWorker(WorkerAdapter):
             )
             run = ar_engine.run_experiment_loop(
                 self.config.experiment,
-                propose_edit=self.config.propose_edit,
+                propose_edit=propose_edit,
                 subprocess_runner=self.config.subprocess_runner,
                 git_runner=self.config.git_runner,
                 profile=profile,

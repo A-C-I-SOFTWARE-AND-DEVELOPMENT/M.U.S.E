@@ -22,7 +22,7 @@ omits added by MUSE: **gates, owner approval, cost ceiling, provenance**.
 | single CUDA GPU | local CUDA lane or `modal:<gpu>` lanes; swarm coordinator for N lanes |
 
 Modules: `hermes_cli/jarvis_prime/research_fabric/autoresearch/`
-(`vendor/`, `platform.py`, `engine.py`, `swarm.py`),
+(`vendor/`, `platform.py`, `engine.py`, `ideas.py`, `swarm.py`),
 `hermes_cli/workers/autoresearch.py` (the five-step adapter),
 `hermes_cli/jarvis_prime/autoresearch_improve.py` (the bridge — reuses
 `sia_self_improve.run_self_improvement`).
@@ -52,7 +52,13 @@ like SIA — the engine lives in its own per-workspace environment.
 ## Running
 
 See `skills/autoresearch/SKILL.md` for the runtime snippets (single run,
-swarm, nightly `autoresearch_train` background job). The flow is always:
+swarm, nightly `autoresearch_train` background job). Idea sources: workers
+default to the **built-in knob catalog** (`ideas.DEFAULT_IDEAS` — LR/warmdown/
+weight-decay/window/depth/batch tweaks from the vendored README's guidance,
+never repeating, always `ast`-validated), optionally chained with any
+`(prompt) -> str` LLM runner via `ideas.default_edit_provider(llm_runner)`
+(fenced-code extraction, hard validation, bounded idea budget). The flow is
+always:
 loop in the workspace → constraints gate (VRAM/cost, named failures) →
 benchmark gate → **owner-gated proposal**. On approval, `record_promotion()`
 writes the HIGH-risk AXIOM classification + chain event.

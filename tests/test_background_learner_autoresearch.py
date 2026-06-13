@@ -99,7 +99,7 @@ def test_fully_gated_live_run_proposes(monkeypatch) -> None:
     assert out.proposal.status is ProposalStatus.NEEDS_OWNER_APPROVAL
 
 
-def test_live_without_wired_runner_is_plan_only(monkeypatch) -> None:
+def test_live_without_baseline_bpb_is_plan_only(monkeypatch) -> None:
     monkeypatch.setenv(SPAWN_ENV, "1")
     runner = BackgroundLearnerRunner()  # no autoresearch_fn wired
     queue = JobQueue()
@@ -108,7 +108,34 @@ def test_live_without_wired_runner_is_plan_only(monkeypatch) -> None:
     )
     out = runner.handle(job)
     assert out.status == "ran"
-    assert "no live autoresearch runner" in out.detail
+    assert "baseline_bpb is required" in out.detail
+
+
+def test_live_without_wired_runner_uses_the_default_swarm(monkeypatch) -> None:
+    monkeypatch.setenv(SPAWN_ENV, "1")
+    import hermes_cli.background_learner.runner as runner_mod
+
+    calls: list[Any] = []
+
+    def fake_default(plan, *, book, baseline_bpb, min_bpb_delta):
+        calls.append((plan, baseline_bpb))
+
+        class _O:
+            proposal_outcome = None
+
+        return _O()
+
+    monkeypatch.setattr(runner_mod, "_default_autoresearch_swarm", fake_default)
+    runner = BackgroundLearnerRunner()
+    queue = JobQueue()
+    payload = dict(PAYLOAD, baseline_bpb=1.0)
+    job = queue.enqueue(
+        "autoresearch_train", dry_run=False, payload=payload, approval_token="t"
+    )
+    out = runner.handle(job)
+    assert out.status == "ran"
+    assert "without a promotable champion" in out.detail
+    assert calls and calls[0][1] == 1.0
 
 
 def test_missing_tag_is_an_error() -> None:
