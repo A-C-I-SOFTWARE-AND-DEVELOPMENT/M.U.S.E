@@ -43,6 +43,15 @@ on:
 permissions:
   contents: write  # create/upload the GitHub Release
 
+# Serialize release runs per ref: the hourly sync cron and a path-relevant main
+# push can otherwise launch two rolling builds against `muse-desktop-latest` at
+# once, racing the prune-stale-assets step and the `gh release upload --clobber`
+# (a later run could delete the earlier run's just-uploaded current assets).
+# Never cancel in-flight: a run may be mid-publish. Mirrors android-release.yml.
+concurrency:
+  group: muse-desktop-release-${{ github.ref }}
+  cancel-in-progress: false
+
 defaults:
   run:
     shell: bash  # uniform shell across the macOS/Windows/Linux matrix
@@ -264,27 +273,38 @@ jobs:
       # Tauri attempt codesigning and die at `security import`
       # ("SecKeychainItemImport: ... not valid"), failing every macOS leg.
       # Probe the cert here; on failure, warn and build unsigned instead.
+      # macOS signing is OPT-IN and OFF by default. Tauri's bundler codesigns
+      # via the deprecated `SecKeychainItemImport` C API, which a `security
+      # import` CLI probe CANNOT faithfully replicate — a malformed/mis-encoded
+      # APPLE_CERTIFICATE can pass a CLI probe yet still make Tauri die at
+      # `SecKeychainItemImport: ... not valid`, failing every macOS leg. Rather
+      # than guess, we gate signing on an explicit repo variable
+      # (ENABLE_MACOS_SIGNING=true) so the default is a deterministic UNSIGNED
+      # build that publishes the .dmg and keeps the release green. Flip the
+      # variable on only after a known-good cert is provisioned (see
+      # apps/desktop/RELEASE.md); the probe below then still guards against a
+      # half-provisioned cert.
       - name: Validate Apple signing certificate (macOS only)
         id: applecert
         if: runner.os == 'macOS'
         env:
+          ENABLE_MACOS_SIGNING: ${{ vars.ENABLE_MACOS_SIGNING }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}  # pragma: allowlist secret
         run: |
+          if [ "${ENABLE_MACOS_SIGNING:-false}" != "true" ]; then
+            echo "::warning::macOS signing is disabled (repo variable ENABLE_MACOS_SIGNING is not 'true') — building UNSIGNED. The .dmg still publishes; macOS may warn it is from an unknown developer. Provision a valid cert and set ENABLE_MACOS_SIGNING=true to sign (see apps/desktop/RELEASE.md)."
+            echo "sign=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ -z "$APPLE_CERTIFICATE" ]; then
             echo "No APPLE_CERTIFICATE secret; building unsigned (documented fallback)."
             echo "sign=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Probe with the EXACT operation+flags Tauri uses to sign —
-          # `security import ... -t cert -f pkcs12` into a throwaway keychain.
-          # Both an `openssl pkcs12` check AND a flag-less `security import`
-          # (format auto-detect) are false positives: a blob that isn't a real
-          # PKCS#12 can still "import" under auto-detect yet is rejected by
-          # Tauri's explicit `-f pkcs12` ("SecKeychainItemImport: ... not
-          # valid"), which is exactly what kept failing every macOS leg. Gate
-          # on the faithful import so a bad/mis-encoded cert falls back to
-          # UNSIGNED (the .dmg still publishes) instead of failing the release.
+          # ENABLE_MACOS_SIGNING is on and a cert is present — still guard
+          # against a half-provisioned cert with a faithful keychain import
+          # probe before letting Tauri attempt the (more brittle) codesign.
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then

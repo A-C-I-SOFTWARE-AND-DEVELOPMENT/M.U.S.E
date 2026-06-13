@@ -48,6 +48,16 @@ the normal "open anyway" path.
 - `APPLE_SIGNING_IDENTITY` — e.g. `Developer ID Application: Your Org (TEAMID)`
 - `APPLE_ID`, `APPLE_PASSWORD` (app-specific password), `APPLE_TEAM_ID` — for notarization
 
+macOS signing is **opt-in and OFF by default**: the release builds an UNSIGNED
+`.dmg` (which still publishes) unless the repo **variable**
+`ENABLE_MACOS_SIGNING` is set to `true`. This is deliberate — Tauri's bundler
+codesigns via the deprecated `SecKeychainItemImport` API, which a `security
+import` CLI probe can't faithfully validate, so a half-provisioned or
+mis-encoded `APPLE_CERTIFICATE` would otherwise fail every macOS leg. After
+provisioning a known-good cert (and the secrets above), set
+`ENABLE_MACOS_SIGNING=true` (Settings → Secrets and variables → Actions →
+Variables) to turn signing on; leave it unset for unsigned bring-up builds.
+
 **Windows** (Authenticode): provide a cert and set Tauri's Windows signing config
 (`bundle.windows.certificateThumbprint` in `tauri.conf.json`, or the equivalent env).
 EV/OV certs avoid SmartScreen warnings.
