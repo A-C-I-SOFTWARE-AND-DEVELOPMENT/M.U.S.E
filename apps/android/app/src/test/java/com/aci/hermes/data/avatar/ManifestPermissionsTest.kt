@@ -48,6 +48,10 @@ class ManifestPermissionsTest {
             // Local gateway only — never remote AI providers; no API keys here.
             // Not the avatar picker's doing — see the dedicated permission audits.
             "android.permission.INTERNET",
+            // In-app "install update" hands the downloaded APK to the system
+            // package installer (visible OS dialog). Not the avatar picker's
+            // doing — see data/update/ApkInstaller + the permission audits.
+            "android.permission.REQUEST_INSTALL_PACKAGES",
         )
         assertEquals(expected, found)
     }

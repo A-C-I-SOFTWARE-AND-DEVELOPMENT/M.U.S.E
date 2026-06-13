@@ -13,6 +13,11 @@
          providers, and no provider API keys ever live in this app. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Install the downloaded MUSE update APK through the system package
+         installer (the visible OS "Install/Update" dialog). Used only by the
+         in-app "install update" action; never a silent or background install. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Sentient avatar: the body lives over other apps and operates the
          device; the voice loop listens through a headset. These are the
          power-user permissions the personal-tool fork opts into. -->
@@ -102,5 +107,17 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/jarvis_accessibility" />
         </service>
+
+        <!-- Hands the downloaded update APK to the system package installer via
+             a content:// URI (never a raw file:// path). Used by ApkInstaller. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>

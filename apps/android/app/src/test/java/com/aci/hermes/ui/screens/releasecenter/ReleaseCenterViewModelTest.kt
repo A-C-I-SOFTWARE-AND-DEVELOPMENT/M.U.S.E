@@ -4,6 +4,7 @@ import com.aci.hermes.data.cockpit.CockpitHttpExecutor
 import com.aci.hermes.data.cockpit.CockpitRawResponse
 import com.aci.hermes.data.cockpit.CockpitRequest
 import com.aci.hermes.data.cockpit.HermesCockpitClient
+import com.aci.hermes.data.update.UpdateChecker
 import com.aci.hermes.testutil.MainDispatcherRule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -24,6 +25,7 @@ class ReleaseCenterViewModelTest {
 
     private fun vm(
         token: String? = "tok",
+        updateFetch: (String) -> String? = { null },
         exec: (CockpitRequest) -> CockpitRawResponse,
     ): ReleaseCenterViewModel {
         val client = HermesCockpitClient(
@@ -32,7 +34,20 @@ class ReleaseCenterViewModelTest {
             executor = CockpitHttpExecutor { exec(it) },
             ioDispatcher = Dispatchers.Unconfined,
         )
-        return mainDispatcherRule.register(ReleaseCenterViewModel(client, appVersion = "0.1.0", buildType = "debug", applicationId = "com.aci.hermes.debug"))
+        return mainDispatcherRule.register(
+            ReleaseCenterViewModel(
+                client,
+                appVersion = "0.1.0",
+                buildType = "debug",
+                applicationId = "com.aci.hermes.debug",
+                updateChecker = UpdateChecker(
+                    currentVersionCode = 1,
+                    currentVersionName = "0.1.0",
+                    fetch = updateFetch,
+                    dispatcher = Dispatchers.Unconfined,
+                ),
+            ),
+        )
     }
 
     @Test

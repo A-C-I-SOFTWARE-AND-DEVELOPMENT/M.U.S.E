@@ -50,6 +50,7 @@ export function Settings() {
         </div>
       </div>
       <GatewayCard />
+      <UpdatesCard />
       <BrainCard />
       <PairingCard />
       <EmergencyCard />
@@ -106,6 +107,73 @@ function GatewayCard() {
           Save
         </button>
         {saved && <span className="muted">Saved.</span>}
+      </div>
+    </div>
+  );
+}
+
+// ---- updates --------------------------------------------------------------
+
+/**
+ * Rolling desktop release — always the latest installer for every OS
+ * (.dmg / .exe / .AppImage / .deb). Installing it over the current build is how
+ * the app updates.
+ */
+const LATEST_DESKTOP_RELEASE_URL =
+  "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest";
+
+/**
+ * Manual "install update": shows the installed version and a one-click link to
+ * download the latest installer for the user's OS. Running it updates in place
+ * (settings preserved). No background/auto-update and no signing-key machinery —
+ * just the always-fresh installer. Opening the release page uses the same
+ * external-link path as the rest of Settings (Tauri opens it in the browser).
+ */
+function UpdatesCard() {
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void (async () => {
+      try {
+        const g = window as unknown as {
+          __TAURI__?: { app?: { getVersion?: () => Promise<string> } };
+        };
+        const v = await g.__TAURI__?.app?.getVersion?.();
+        if (alive && v) setVersion(v);
+      } catch {
+        // Plain browser build / API unavailable — leave the version unknown.
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  return (
+    <div className="card">
+      <div className="row">
+        <b>Updates</b>
+      </div>
+      {version && (
+        <div className="row">
+          <span className="k">Installed version</span>
+          <span className="mono">{version}</span>
+        </div>
+      )}
+      <p className="muted">
+        M.U.S.E. updates by installing the latest build over the current one.
+        Download the installer for your OS and run it — your settings are kept.
+      </p>
+      <div className="row gap-top">
+        <a
+          className="primary"
+          href={LATEST_DESKTOP_RELEASE_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Download the latest installer
+        </a>
       </div>
     </div>
   );

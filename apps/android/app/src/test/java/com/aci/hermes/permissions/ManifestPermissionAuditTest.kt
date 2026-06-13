@@ -33,6 +33,10 @@ class ManifestPermissionAuditTest {
         // loopback/LAN (Android gates even localhost sockets behind INTERNET).
         // Local gateway only — never remote AI providers; no API keys here.
         "android.permission.INTERNET",
+        // In-app "install update": hands the downloaded MUSE APK to the system
+        // package installer (the visible OS Install/Update dialog). Never a
+        // silent or background install — see data/update/ApkInstaller.
+        "android.permission.REQUEST_INSTALL_PACKAGES",
     )
 
     private val forbidden = setOf(

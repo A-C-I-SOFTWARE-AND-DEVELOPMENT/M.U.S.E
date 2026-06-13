@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider paths for ApkInstaller. The update APK is downloaded to
+     getExternalFilesDir(DIRECTORY_DOWNLOADS) → app-private external storage,
+     exposed to the package installer only as a granted content:// URI. -->
+<paths>
+    <external-files-path
+        name="muse_updates"
+        path="Download/" />
+</paths>

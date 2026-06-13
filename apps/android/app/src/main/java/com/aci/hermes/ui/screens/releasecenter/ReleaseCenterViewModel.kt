@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.aci.hermes.data.cockpit.CockpitResult
 import com.aci.hermes.data.cockpit.HermesCockpitClient
 import com.aci.hermes.data.cockpit.ServerCapabilities
+import com.aci.hermes.data.update.UpdateChecker
+import com.aci.hermes.data.update.UpdateState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,6 +27,8 @@ class ReleaseCenterViewModel(
     val appVersion: String,
     val buildType: String,
     val applicationId: String,
+    /** Reads the rolling channel for a newer build. Injected for JVM tests. */
+    private val updateChecker: UpdateChecker,
 ) : ViewModel() {
 
     data class UiState(
@@ -32,6 +36,8 @@ class ReleaseCenterViewModel(
         val capabilities: ServerCapabilities? = null,
         /** Honest hint when the backend is unreachable/unpaired (no data). */
         val backendUnavailable: String? = null,
+        /** Whether a newer build is available to install (rolling channel). */
+        val update: UpdateState = UpdateState.Checking,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -52,6 +58,7 @@ class ReleaseCenterViewModel(
 
     init {
         refresh()
+        checkForUpdate()
     }
 
     fun refresh() {
@@ -65,6 +72,15 @@ class ReleaseCenterViewModel(
                 is CockpitResult.Failure ->
                     _state.update { it.copy(loading = false, capabilities = null, backendUnavailable = r.error.message) }
             }
+        }
+    }
+
+    /** Re-read the rolling channel; surfaces [UpdateState] into [UiState.update]. */
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            _state.update { it.copy(update = UpdateState.Checking) }
+            val result = updateChecker.check()
+            _state.update { it.copy(update = result) }
         }
     }
 }
