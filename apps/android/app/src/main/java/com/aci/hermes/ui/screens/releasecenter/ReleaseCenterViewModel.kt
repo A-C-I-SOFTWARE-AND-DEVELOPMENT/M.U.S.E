@@ -45,7 +45,7 @@ class ReleaseCenterViewModel(
 
     /** Stable, documented rolling-download URL (see RELEASE_DOWNLOAD.md). */
     val downloadUrl: String =
-        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/download/" +
+        "https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/" +
             "android-latest/jarvis-prime-android.apk"
 
     /** The four CI secret *names* (never values) that switch on release signing. */

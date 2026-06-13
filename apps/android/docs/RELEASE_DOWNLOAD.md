@@ -12,7 +12,7 @@ steps are owner-gated.
 | Versioned | tag `android-v*` | `jarvis-prime-<ver>.apk` GitHub Release asset (90 days) | release if configured, else debug |
 
 Direct download (rolling):
-`https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/hermes-agent/releases/download/android-latest/jarvis-prime-android.apk`
+`https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/download/android-latest/jarvis-prime-android.apk`
 
 Install: download on the phone → open → allow installs from this source if
 prompted → launch **MUSE**. Requires Android 8.0+ (API 26).
