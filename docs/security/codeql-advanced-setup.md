@@ -30,10 +30,11 @@ order:
 2. **Enable the workflow.** Repo → **Settings → Secrets and variables → Actions
    → Variables → New repository variable**: `CODEQL_ADVANCED` = `true`.
 
-After both, the next push to `main` (or the weekly schedule, or a PR) runs the
-four first-party language legs (`python`, `javascript-typescript`, `actions`,
-`java-kotlin`) with the committed config applied — the 2-second failure
-disappears and the two vendor alerts clear on the next scan.
+After both, the next push to `main` (or the weekly schedule, a PR, or a manual
+**Actions → CodeQL → Run workflow**) runs the first-party language legs
+(`python`, `javascript-typescript`, `actions`) with the committed config applied
+— the 2-second failure disappears and the two vendor alerts clear on the next
+scan.
 
 ## Deactivation / rollback
 
@@ -43,6 +44,11 @@ scanning settings (it cannot coexist with this workflow once both are active).
 
 ## Language scope
 
-The matrix targets only first-party languages. Default setup's auto-detection of
-`csharp` / `ruby` / `rust` / `c-cpp` is intentionally dropped — there is no
-first-party code in those languages. Add a matrix entry if that changes.
+The matrix targets the first-party languages analyzable without a build:
+`python`, `javascript-typescript`, `actions`. Dropped on purpose: `csharp` /
+`ruby` / `rust` / `c-cpp` (default-setup false detections, no first-party code),
+and `java-kotlin` — CodeQL can't analyze the Android Gradle/Kotlin app
+(`apps/android`) in `build-mode: none` (it reports a configuration error needing
+a full Android build); that app is already covered by `android-build.yml` (lint
++ unit tests + APK build). Re-add `java-kotlin` only with a working autobuild +
+Android SDK setup.
