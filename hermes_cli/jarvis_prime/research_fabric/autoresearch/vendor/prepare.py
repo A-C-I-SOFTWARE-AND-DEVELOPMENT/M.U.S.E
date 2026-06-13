@@ -81,9 +81,8 @@ def download_single_shard(index):
                 if os.path.exists(path):
                     try:
                         os.remove(path)
-                    except OSError as cleanup_err:
-                        # Cleanup is best-effort; continue retry loop even if removal fails.
-                        print(f"  Warning: failed to remove partial file {path}: {cleanup_err}")
+                    except OSError:
+                        pass
             if attempt < max_attempts:
                 time.sleep(2 ** attempt)
     return False
