@@ -368,6 +368,37 @@ class FederationRegistry:
         except OSError:  # pragma: no cover
             pass
 
+    def _identity_findings(self, bundle: AttestationBundle) -> list[str]:
+        """Identity checks that must hold before a bundle is considered.
+
+        1. An Ed25519 ``node_id`` is content-derived: it must equal
+           ``"node_" + sha256(public_key_hex)[:16]`` — a bundle claiming a
+           known node id with a different key fails this immediately.
+        2. Key continuity (TOFU): once a peer is recorded, its ``algo`` and
+           ``public_key_hex`` are pinned; any change is a forgery attempt.
+        """
+
+        node = bundle.node
+        findings: list[str] = []
+        if node.algo == "ed25519":
+            if not node.public_key_hex:
+                findings.append("ed25519 identity carries no public key")
+            else:
+                derived = "node_" + sha256_hex(node.public_key_hex)[:16]
+                if node.node_id != derived:
+                    findings.append(
+                        f"node_id {node.node_id} does not derive from the claimed public key"
+                    )
+        known = self._peers.get(node.node_id)
+        if known is not None:
+            if known.algo != node.algo:
+                findings.append(
+                    f"signing algo changed for known peer ({known.algo} -> {node.algo})"
+                )
+            if known.public_key_hex != node.public_key_hex:
+                findings.append("public key changed for known peer")
+        return findings
+
     def peers(self) -> list[PeerRecord]:
         return list(self._peers.values())
 
@@ -387,7 +418,26 @@ class FederationRegistry:
         ledger: Optional[GuardrailLedger] = None,
         allow_divergent: bool = False,
     ) -> PeerRecord:
-        """Record a peer attestation; refuse divergent state by default."""
+        """Record a peer attestation; refuse divergent state by default.
+
+        Identity is trust-on-first-use with key continuity: an existing
+        peer's signing identity (algo + public key) may never change, and an
+        Ed25519 ``node_id`` must derive from its claimed public key. Identity
+        forgeries are refused unconditionally — ``allow_divergent`` only
+        relaxes ledger-head divergence, never identity.
+        """
+
+        identity_findings = self._identity_findings(bundle)
+        if identity_findings:
+            if ledger is not None:
+                ledger.append(
+                    KIND_DIVERGENCE,
+                    bundle.node.node_id,
+                    {"findings": identity_findings, "kind": "identity_forgery"},
+                )
+            raise FederationError(
+                "peer identity forgery refused: " + "; ".join(identity_findings)
+            )
 
         findings = detect_divergence(self, bundle)
         if findings:

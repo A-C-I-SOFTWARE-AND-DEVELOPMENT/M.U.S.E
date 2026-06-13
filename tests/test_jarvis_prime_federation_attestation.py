@@ -160,3 +160,49 @@ def test_hmac_identity_is_admissible_but_unverified(tmp_path, monkeypatch):
     registry = FederationRegistry(tmp_path / "peers.json")
     record = registry.record(bundle)
     assert record.signature_verified is False  # honest: hash-anchored, not signature-verified
+
+
+def test_key_substitution_for_known_peer_is_refused(tmp_path):
+    """A bundle reusing a trusted node_id with a different key is a forgery."""
+
+    import dataclasses
+
+    identity, peer_ledger, node_dir = _node(tmp_path, "peer")
+    registry = FederationRegistry(tmp_path / "peers.json")
+    local_ledger = GuardrailLedger(tmp_path / "local_ledger.jsonl")
+    registry.record(attest_local(peer_ledger, identity, signature_dir=node_dir))
+
+    # Attacker mints their own keypair but claims the trusted peer's node_id,
+    # attesting a LONGER chain (which divergence checks alone would accept).
+    attacker_identity, attacker_ledger, attacker_dir = _node(tmp_path, "attacker")
+    attacker_ledger.append("test_seed", "s3", {"n": 3})  # length 3 > peer's 2
+    forged_node = dataclasses.replace(attacker_identity, node_id=identity.node_id)
+    bundle = attest_local(attacker_ledger, forged_node, signature_dir=attacker_dir)
+
+    with pytest.raises(FederationError, match="forgery"):
+        registry.record(bundle, ledger=local_ledger)
+    # allow_divergent must NOT bypass identity checks.
+    with pytest.raises(FederationError, match="forgery"):
+        registry.record(bundle, ledger=local_ledger, allow_divergent=True)
+    # The forged head was never adopted; the refusals were ledgered.
+    assert 3 not in registry.head_history(identity.node_id)
+    forgeries = [
+        r for r in local_ledger.read_all()
+        if r.kind == KIND_DIVERGENCE and r.payload.get("kind") == "identity_forgery"
+    ]
+    assert len(forgeries) == 2
+    assert local_ledger.verify_chain().ok
+
+
+def test_ed25519_node_id_must_derive_from_public_key(tmp_path):
+    import dataclasses
+
+    identity, peer_ledger, node_dir = _node(tmp_path, "peer")
+    assert identity.algo == "ed25519"
+    registry = FederationRegistry(tmp_path / "peers.json")
+    # Fresh peer (no TOFU record yet) whose node_id doesn't match its key.
+    mismatched = dataclasses.replace(identity, node_id="node_0000000000000000")
+    bundle = attest_local(peer_ledger, mismatched, signature_dir=node_dir)
+    with pytest.raises(FederationError, match="does not derive"):
+        registry.record(bundle)
+    assert registry.peers() == []
