@@ -108,9 +108,14 @@ EXCLUDED_SUFFIXES = {
 
 # Files we never scan (self-referential — this script mentions the
 # patterns it detects — and the CONTRIBUTING docs that list them).
+# Vendored upstream files are also excluded: they must stay byte-identical
+# to their checksum manifest (see autoresearch VENDOR.md), so they cannot
+# carry suppression comments; platform adaptations belong in sibling modules.
 EXCLUDED_FILES = {
     "scripts/check-windows-footguns.py",
     "CONTRIBUTING.md",
+    "hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor/prepare.py",
+    "hermes_cli/jarvis_prime/research_fabric/autoresearch/vendor/train.py",
 }
 
 
