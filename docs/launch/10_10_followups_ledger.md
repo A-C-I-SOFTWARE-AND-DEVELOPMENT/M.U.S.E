@@ -624,11 +624,11 @@ autoresearch, post-#455 MUSE final audit). Session branch
 
 | Item | Disposition |
 |---|---|
-| **G7 desktop-polish** (Wave D, was `building`) | **in-review → PR #456.** The grain was fully built+validated on `claude/fu-d7-desktop-polish-r2` but its PR was never opened (session suspension; the snapshot's "#438" was a stale placeholder). Cherry-picked onto current main with keep-both resolution against the brain sidecar that landed in the same files; Cargo.lock re-resolved (+347 lines, glib unchanged 0.18.5); fully re-validated. Merge on green per the Wave-D pre-authorization. Snapshot: `followups/fu-d7-desktop-polish.md`. |
-| **Post-#454 main breakage** (found this wave) | **fixed in PR #456:** (a) the blocking *Windows footguns* gate failed on every PR — autoresearch `engine.py` bare `os.killpg`/`SIGKILL` now platform-gated; `vendor/` dirs excluded from the scanner (byte-pinned files can carry neither fixes nor suppressions); (b) *vendor-integrity test red on main* — GitHub autofix commits on #454 had edited `vendor/prepare.py` + `vendor/train.py`; restored byte-identical to the import (`64ad937e4`); the two CodeQL alerts those autofixes closed re-open on vendor files → **owner: dismiss them in the Security tab** (vendor policy: adaptations live in sibling modules); (c) `test_dataset_candidate_offer_is_soft_fail` red on main — missing call-site guard in `autoresearch_improve.py` added. 45 autoresearch tests green. |
+| **G7 desktop-polish** (Wave D, was `building`) | **merged → #456** (`93f0bd891`, full board green). Built+validated on `claude/fu-d7-desktop-polish-r2` but its PR was never opened (session suspension; the snapshot's "#438" was a stale placeholder). Cherry-picked onto current main with keep-both resolution against the brain sidecar that landed in the same files; Cargo.lock re-resolved (+347 lines, glib unchanged 0.18.5); fully re-validated. Both Codex review P2s fixed pre-merge: webview clipboard grant **removed** (copy happens Rust-side) and Copy Gateway URL copies the UI-selected base via the validated `gateway_url_hint_set` app command (label de-URL'd so it can't go stale). Snapshot: `followups/fu-d7-desktop-polish.md`. |
+| **Post-#454 main breakage** (found this wave) | **fixed — merged in #456:** (a) the blocking *Windows footguns* gate failed on every PR — autoresearch `engine.py` bare `os.killpg`/`SIGKILL` now platform-gated; `vendor/` dirs excluded from the scanner (byte-pinned files can carry neither fixes nor suppressions); (b) *vendor-integrity test red on main* — GitHub autofix commits on #454 had edited `vendor/prepare.py` + `vendor/train.py`; restored byte-identical to the import (`64ad937e4`); the two CodeQL alerts those autofixes closed re-open on vendor files → **owner: dismiss them in the Security tab** (vendor policy: adaptations live in sibling modules); (c) `test_dataset_candidate_offer_is_soft_fail` red on main — missing call-site guard in `autoresearch_improve.py` added. 45 autoresearch tests green. |
 | **glib GHSA-wrw7-89jp-8q8g (alert #49)** | **blocked upstream (re-affirmed at rebase):** `glib ^0.18` ← `gtk v0.18.2` ← `tauri v2.11.2`; gtk3-rs is maintenance-only. Auto-closes when Tauri drops `gtk ^0.18`; re-check on each Tauri upgrade. |
-| **FU-3 residual — restored-job cost resets to 0** | **actionable → next in this wave** (`rebuild_snapshot` has no cost field; documented at `orchestrator_api.py` restore docstring). Behavior change on the restore path → built as a separate PR, owner-gated merge per contract §6. |
-| **FU-2 (old) — per-worker default adapter factory** | **actionable → next in this wave** (dispatch still takes a single shared `runtime_adapter`; a bare shared adapter collides per-worker logs). Strictly additive opt-in → merge-on-green. |
+| **FU-3 residual — restored-job cost resets to 0** | **in-review → draft PR #459 (owner-gated).** Cost is now event-sourced (`cost.accumulated`); restart-replay rebuilds the meter; pre-event logs restore with the old zero meter. Behavior change (new event kind on the stream + restore now carries cost) ⇒ merge awaits the owner's exact `Yes, with authorization.` |
+| **FU-2 (old) — per-worker default adapter factory** | **in-review → draft PR #459** (same PR; strictly additive — `adapter_factory` on the runner + `per_worker_local_adapter` canonical factory; default path byte-for-byte). |
 | **FU-1 residual — wire the live server dispatcher to `run_plan_into_store`** | **owner-decision-gated** (unchanged; no live caller by design until the owner wires it). |
 | **yuanbao T06** | blocked: needs live Yuanbao credentials — untestable free/local. |
 | **EPIC-COCKPIT-SEAM P1–P5** | owner go/no-go gate (P0 contract freeze merged #436). |
@@ -655,4 +655,11 @@ autoresearch, post-#455 MUSE final audit). Session branch
   ty unchanged vs base (35). The FU-3 behavior change makes the PR
   **owner-gated** per contract §6 — draft opens after #456 merges; merge
   awaits the owner's exact `Yes, with authorization.`
+- `2026-06-13` — **#456 merged** (`93f0bd891`) on a fully clean board (every
+  check green, including the repaired footgun gate and the full web test
+  job). Codex review's two P2 findings fixed pre-merge (webview clipboard
+  grant removed; Copy Gateway URL copies the UI-selected base). **FU-2 +
+  FU-3 opened as owner-gated draft PR #459** — Wave E's last buildable item;
+  everything else remaining is blocked-on-owner/external by design (see
+  inventory above). Wave E build phase complete.
 
