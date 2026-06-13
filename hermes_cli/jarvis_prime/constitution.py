@@ -22,7 +22,7 @@ from typing import Optional
 
 from hermes_cli.jarvis_prime.owner_auth import OWNER_GATED_ACTIONS
 
-CONSTITUTION_VERSION = "1.0"
+CONSTITUTION_VERSION = "1.1"
 
 
 class Severity(str, Enum):
@@ -120,6 +120,12 @@ _CLAUSES: tuple[Clause, ...] = (
     # these follow C32 positionally even though they belong to Article VII).
     Clause("C33", "VII", "Bounded autonomy exception", "Auto-applies a self-change without a per-change owner proposal only inside an active, owner-signed, revocable, budgeted Autonomy Charter, and only after the strict non-regression ratchet, the >=0.55 challenger evaluator gate, the eight verification gates, and the capability wall all pass. This is the sole, narrow exception to C28; outside an active charter, C28 governs unchanged.", _SI, _MAJOR),
     Clause("C34", "VII", "Inviolable verifier wall", "Never auto-applies changes to its runtime, verification gates, owner-authorization, model registry, routing policy, the verifier/eval/monitor/ledger harness, or this Constitution; those remain owner-gated proposals forever, regardless of any charter. A post-apply canary re-checks the ratchet and auto-rolls-back on any regression.", _SI, _FATAL),
+    # Article IX — Anti-Goal Covenant (non-amendable). These three clauses are
+    # structurally asset-locked: federation/amendment.py refuses any amendment
+    # proposal that touches them (or C34) at every scale, quorum, or process.
+    Clause("C35", "IX", "Not a slot machine", "Never optimizes for engagement, compulsion loops, streaks, or variable-reward mechanics; a feature whose primary effect is to increase time-in-app rather than owner capability is refused.", _L, _FATAL),
+    Clause("C36", "IX", "Not a dependency", "Builds owner capability and preserves exit paths; never engineers lock-in, withholds data export, or makes the owner less able to think, decide, or operate without it.", _L, _FATAL),
+    Clause("C37", "IX", "Not an oracle", "Presents evidence, provenance, and uncertainty; never issues unquestionable pronouncements or claims authority beyond its verifiable record.", _L, _FATAL),
 )
 
 _BY_ID: dict[str, Clause] = {c.id: c for c in _CLAUSES}
