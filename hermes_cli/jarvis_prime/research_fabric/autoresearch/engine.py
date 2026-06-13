@@ -195,6 +195,24 @@ def parse_summary(log_text: str) -> Optional[dict[str, float]]:
     return values
 
 
+def _kill_process_tree(proc: "subprocess.Popen[str]") -> None:
+    """Watchdog kill: the whole process group on POSIX, the child elsewhere.
+
+    ``uv run`` spawns python as a grandchild, so on POSIX the group kill is
+    what actually stops training; Windows has no killpg/SIGKILL, so we fall
+    back to killing the direct child (the engine itself is a Linux/Modal lane,
+    but the driver must stay importable and safe everywhere).
+    """
+
+    if hasattr(os, "killpg"):
+        try:
+            os.killpg(proc.pid, getattr(signal, "SIGKILL", signal.SIGTERM))
+            return
+        except (ProcessLookupError, PermissionError):
+            pass
+    proc.kill()
+
+
 def _default_subprocess_runner(
     argv: Sequence[str],
     *,
@@ -211,15 +229,12 @@ def _default_subprocess_runner(
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        start_new_session=True,
+        start_new_session=hasattr(os, "setsid"),
     ) as proc:
         try:
             stdout, _ = proc.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                proc.kill()
+            _kill_process_tree(proc)
             proc.wait()
             raise
     return subprocess.CompletedProcess(list(argv), proc.returncode, stdout or "", "")

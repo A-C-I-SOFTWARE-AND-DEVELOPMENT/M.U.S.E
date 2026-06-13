@@ -79,6 +79,7 @@ EXCLUDED_DIRS = {
     "site-packages",
     "website/build",
     "optional-skills",  # external skills
+    "vendor",  # byte-identical vendored upstream payloads (sha256-pinned, never edited)
 }
 
 # File globs we never scan (beyond the dirs above).
