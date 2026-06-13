@@ -21,6 +21,15 @@
 #     and API_SERVER_HOST. See docs/user-guide/api-server.md before doing
 #     this on an internet-facing host.
 #
+# One-click / VPS deployment:
+#   For a 24/7 cloud-VPS deployment (this compose + secure remote access),
+#   see docs/deploy/vps-deployment-guide.md.  The gateway service below sets
+#   HERMES_BOOTSTRAP_MODELS=1, so on first boot it wires every reachable model
+#   route (local OSS + any provider whose key is in ~/.hermes/.env) into the
+#   model policy.  Add your API keys to ~/.hermes/.env, then re-run
+#   `docker compose exec gateway hermes models bootstrap --free-first --jarvis`
+#   to pick up newly-added providers.
+#
 services:
   gateway:
     build: .
@@ -33,6 +42,10 @@ services:
     environment:
       - HERMES_UID=${HERMES_UID:-10000}
       - HERMES_GID=${HERMES_GID:-10000}
+      # One-shot on first boot: wire every reachable model route into the
+      # model policy (local OSS + any provider key present in ~/.hermes/.env).
+      # Idempotent — guarded by ~/.hermes/.models_bootstrapped. Set to 0 to opt out.
+      - HERMES_BOOTSTRAP_MODELS=${HERMES_BOOTSTRAP_MODELS:-1}
       # To expose the OpenAI-compatible API server beyond localhost,
       # uncomment BOTH lines (API_SERVER_KEY is mandatory for auth):
       # - API_SERVER_HOST=0.0.0.0

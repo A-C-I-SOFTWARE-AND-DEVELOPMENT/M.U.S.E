@@ -107,6 +107,30 @@ if [ -d "$INSTALL_DIR/skills" ]; then
     python3 "$INSTALL_DIR/tools/skills_sync.py"
 fi
 
+# Optionally bootstrap free-first model routing on first boot.
+#
+# Toggled by HERMES_BOOTSTRAP_MODELS=1 (also "true"/"yes", case-insensitive);
+# OFF by default so existing containers' behavior is unchanged.  When on, this
+# runs `hermes models bootstrap --free-first --jarvis --no-pull` exactly once —
+# it wires every reachable route (local OSS runtimes + any hosted/free provider
+# whose key is present in the mounted .env) into ~/.hermes/jarvis_prime/
+# model_policy.json.  Paid providers stay opt-in; --no-pull avoids multi-GB
+# downloads at boot.  The marker file makes this a one-shot, mirroring the
+# auth.json first-boot guard above: a restart never re-runs it, so user edits
+# to the model policy are preserved.
+case "${HERMES_BOOTSTRAP_MODELS:-}" in
+    1|true|TRUE|True|yes|YES|Yes)
+        if [ ! -f "$HERMES_HOME/.models_bootstrapped" ]; then
+            echo "Bootstrapping free-first model routing (one-shot)"
+            if hermes models bootstrap --free-first --jarvis --no-pull; then
+                touch "$HERMES_HOME/.models_bootstrapped" 2>/dev/null || true
+            else
+                echo "Warning: model bootstrap reported issues (often just missing optional runtimes) — continuing"
+            fi
+        fi
+        ;;
+esac
+
 # Optionally start `hermes dashboard` as a side-process.
 #
 # Toggled by HERMES_DASHBOARD=1 (also accepts "true"/"yes", case-insensitive).
