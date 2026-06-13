@@ -276,22 +276,33 @@ jobs:
             echo "sign=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          # Probe with the SAME operation Tauri uses to sign — `security import`
+          # into a throwaway keychain. An `openssl pkcs12` check is a false
+          # positive here: a cert can decode under openssl yet still be rejected
+          # by macOS `security import` ("SecKeychainItemImport: ... not valid"),
+          # which is exactly what was failing every macOS leg. Gate on the real
+          # import so a bad/mis-encoded cert cleanly falls back to UNSIGNED.
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
-            # OpenSSL 3 needs -legacy for .p12 files using the old RC2/3DES
-            # encryption that Apple's Keychain Access exports by default.
-            if openssl pkcs12 -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1 \
-               || openssl pkcs12 -legacy -in "$cert" -nokeys -passin "pass:${APPLE_CERTIFICATE_PASSWORD}" >/dev/null 2>&1; then
-              ok=true
+            kc="$RUNNER_TEMP/muse-signing-probe.keychain-db"
+            pw="probe-$RANDOM$RANDOM"
+            security delete-keychain "$kc" 2>/dev/null || true
+            if security create-keychain -p "$pw" "$kc" 2>/dev/null; then
+              security unlock-keychain -p "$pw" "$kc" 2>/dev/null || true
+              if security import "$cert" -k "$kc" -P "${APPLE_CERTIFICATE_PASSWORD}" \
+                   -T /usr/bin/codesign >/dev/null 2>&1; then
+                ok=true
+              fi
+              security delete-keychain "$kc" 2>/dev/null || true
             fi
           fi
           rm -f "$cert"
           if [ "$ok" = true ]; then
-            echo "APPLE_CERTIFICATE decodes and opens; signing enabled."
+            echo "APPLE_CERTIFICATE imports into a keychain; signing enabled."
             echo "sign=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::APPLE_CERTIFICATE is set but is not a valid base64-encoded .p12 (or the password is wrong) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
+            echo "::warning::APPLE_CERTIFICATE is set but cannot be imported via 'security import' (not a valid base64 .p12, wrong password, or unsupported encoding) — building UNSIGNED. Re-export and re-provision it per apps/desktop/RELEASE.md."
             echo "sign=false" >> "$GITHUB_OUTPUT"
           fi
 
