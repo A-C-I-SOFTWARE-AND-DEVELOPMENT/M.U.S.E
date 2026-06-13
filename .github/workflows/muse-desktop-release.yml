@@ -276,12 +276,15 @@ jobs:
             echo "sign=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          # Probe with the SAME operation Tauri uses to sign — `security import`
-          # into a throwaway keychain. An `openssl pkcs12` check is a false
-          # positive here: a cert can decode under openssl yet still be rejected
-          # by macOS `security import` ("SecKeychainItemImport: ... not valid"),
-          # which is exactly what was failing every macOS leg. Gate on the real
-          # import so a bad/mis-encoded cert cleanly falls back to UNSIGNED.
+          # Probe with the EXACT operation+flags Tauri uses to sign —
+          # `security import ... -t cert -f pkcs12` into a throwaway keychain.
+          # Both an `openssl pkcs12` check AND a flag-less `security import`
+          # (format auto-detect) are false positives: a blob that isn't a real
+          # PKCS#12 can still "import" under auto-detect yet is rejected by
+          # Tauri's explicit `-f pkcs12` ("SecKeychainItemImport: ... not
+          # valid"), which is exactly what kept failing every macOS leg. Gate
+          # on the faithful import so a bad/mis-encoded cert falls back to
+          # UNSIGNED (the .dmg still publishes) instead of failing the release.
           cert="$(mktemp)"
           ok=false
           if printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert" 2>/dev/null; then
@@ -291,7 +294,7 @@ jobs:
             if security create-keychain -p "$pw" "$kc" 2>/dev/null; then
               security unlock-keychain -p "$pw" "$kc" 2>/dev/null || true
               if security import "$cert" -k "$kc" -P "${APPLE_CERTIFICATE_PASSWORD}" \
-                   -T /usr/bin/codesign >/dev/null 2>&1; then
+                   -t cert -f pkcs12 -T /usr/bin/codesign >/dev/null 2>&1; then
                 ok=true
               fi
               security delete-keychain "$kc" 2>/dev/null || true
