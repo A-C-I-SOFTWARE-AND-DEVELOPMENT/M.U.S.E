@@ -217,7 +217,10 @@ def _default_subprocess_runner(
             stdout, _ = proc.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
+                if hasattr(os, "killpg"):  # POSIX: reap uv's whole process group
+                    os.killpg(proc.pid, getattr(signal, "SIGKILL", signal.SIGTERM))
+                else:  # Windows: no killpg/SIGKILL; kill the direct child
+                    proc.kill()
             except (ProcessLookupError, PermissionError):
                 proc.kill()
             proc.wait()
