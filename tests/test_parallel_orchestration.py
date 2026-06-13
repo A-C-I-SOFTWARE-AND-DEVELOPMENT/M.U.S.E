@@ -1403,3 +1403,143 @@ def test_compute_reschedule_plan_empty_when_nothing_retryable(
     runner = op.ParallelRunner(repo, plan, lease_store=store)
     # now is still within the lease deadline (1000 + 600 = 1600).
     assert runner.compute_reschedule_plan(now=1100.0) == []
+
+
+# ─── per-worker adapter factory (FU-2, additive) ──────────────────────
+
+
+def test_default_adapter_factory_is_none(repo: Path):
+    # The additive default: no factory is wired unless one is passed.
+    plan = op.ExecutionPlan(
+        job_id="job-nofactory",
+        workers=[op.WorkerPlan("w1", "p", op.ExecutionMode.PROMPT_ONLY, prompt="x")],
+    )
+    runner = op.ParallelRunner(repo, plan)
+    assert runner._adapter_factory is None
+
+
+def test_per_worker_factory_isolates_multi_worker_logs(repo: Path):
+    # The exact collision that made a bare shared LocalRuntimeAdapter default
+    # unsafe: two plain workers sharing one adapter clobber each other's
+    # stdout.log. The per-worker factory gives each worker its own adapter
+    # with streams in its own worker_root.
+    seen: list[tuple[str, Path]] = []
+
+    def factory(worker, worker_root):
+        seen.append((worker.worker_id, worker_root))
+        return op.per_worker_local_adapter(worker, worker_root)
+
+    plan = op.ExecutionPlan(
+        job_id="job-factory-iso",
+        concurrency=2,
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('alpha')"),
+                timeout_seconds=10,
+            ),
+            op.WorkerPlan(
+                worker_id="w2",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('beta')"),
+                timeout_seconds=10,
+            ),
+        ],
+    )
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, adapter_factory=factory
+    ).run()
+
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    assert statuses["w2"].state is op.WorkerState.COMPLETED
+    assert sorted(wid for wid, _ in seen) == ["w1", "w2"]
+    out_w1 = op.worker_dir(repo, "job-factory-iso", "w1") / op.STDOUT_LOG
+    out_w2 = op.worker_dir(repo, "job-factory-iso", "w2") / op.STDOUT_LOG
+    assert "alpha" in out_w1.read_text(encoding="utf-8")
+    assert "beta" in out_w2.read_text(encoding="utf-8")
+
+
+def test_factory_decline_falls_back_to_inline(repo: Path):
+    # A factory returning None declines the worker; with no shared adapter the
+    # existing inline subprocess path runs it unchanged.
+    declined: list[str] = []
+
+    def factory(worker, worker_root):
+        declined.append(worker.worker_id)
+        return None
+
+    plan = op.ExecutionPlan(
+        job_id="job-factory-decline",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command("print('inline ran')"),
+                timeout_seconds=10,
+            )
+        ],
+    )
+    statuses = op.ParallelRunner(
+        repo, plan, poll_interval=0.05, adapter_factory=factory
+    ).run()
+
+    assert declined == ["w1"]
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    out = op.worker_dir(repo, "job-factory-decline", "w1") / op.STDOUT_LOG
+    assert "inline ran" in out.read_text(encoding="utf-8")
+
+
+def test_factory_adapter_honors_worker_cwd_and_env(repo: Path, tmp_path: Path):
+    # Unlike a shared injected adapter (guarded by _needs_inline_placement), a
+    # factory-built adapter OWNS per-worker placement: the worker's own cwd and
+    # env overlay are honored on the adapter path.
+    workdir = tmp_path / "fu2-cwd"
+    workdir.mkdir()
+    plan = op.ExecutionPlan(
+        job_id="job-factory-place",
+        workers=[
+            op.WorkerPlan(
+                worker_id="w1",
+                profile="bash",
+                mode=op.ExecutionMode.LOCAL_RUN,
+                command=_python_command(
+                    "import os",
+                    "print(os.path.realpath(os.getcwd()))",
+                    "print(os.environ.get('FU2_MARKER', 'missing'))",
+                ),
+                cwd=str(workdir),
+                env={"FU2_MARKER": "fu2-value"},
+                timeout_seconds=10,
+            )
+        ],
+    )
+    statuses = op.ParallelRunner(
+        repo,
+        plan,
+        poll_interval=0.05,
+        adapter_factory=op.per_worker_local_adapter,
+    ).run()
+
+    assert statuses["w1"].state is op.WorkerState.COMPLETED
+    out = (
+        op.worker_dir(repo, "job-factory-place", "w1") / op.STDOUT_LOG
+    ).read_text(encoding="utf-8")
+    assert str(workdir.resolve()) in out
+    assert "fu2-value" in out
+
+
+def test_per_worker_local_adapter_declines_worktree_workers():
+    # Worktree cwds are resolved runner-internally; the canonical factory
+    # declines so the inline path (the only one that owns them) runs the worker.
+    worker = op.WorkerPlan(
+        worker_id="w1",
+        profile="bash",
+        mode=op.ExecutionMode.LOCAL_RUN,
+        command=["true"],
+        use_worktree=True,
+    )
+    assert op.per_worker_local_adapter(worker, Path("/tmp/unused")) is None

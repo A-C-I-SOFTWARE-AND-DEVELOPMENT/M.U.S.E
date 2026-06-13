@@ -646,4 +646,13 @@ autoresearch, post-#455 MUSE final audit). Session branch
   *Windows footguns* failure exposed the post-#454 main breakage (gate +
   vendor pin + soft-fail test) — repaired in the same PR so the blocking gate
   works again for every PR.
+- `2026-06-13` — **FU-2 + FU-3 built** (one commit, sequential PR on the same
+  session branch after #456): per-worker ``adapter_factory`` on the runner +
+  ``per_worker_local_adapter`` canonical factory (FU-2, additive); cost
+  event-sourcing via ``cost.accumulated`` so restart-replay rebuilds the cost
+  meter (FU-3, behavior change on emit + restore paths). Validation: 170
+  runner/replay/dispatch tests + 82 API + 65 e2e/contract green; ruff clean;
+  ty unchanged vs base (35). The FU-3 behavior change makes the PR
+  **owner-gated** per contract §6 — draft opens after #456 merges; merge
+  awaits the owner's exact `Yes, with authorization.`
 

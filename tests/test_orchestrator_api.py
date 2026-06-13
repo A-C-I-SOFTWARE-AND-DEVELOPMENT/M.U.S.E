@@ -154,6 +154,7 @@ def test_all_events_match_spec():
         "worker.heartbeat",
         "worker.blocked",
         "worker.completed",
+        "cost.accumulated",
         "evidence.updated",
         "scoring.completed",
         "validation.completed",

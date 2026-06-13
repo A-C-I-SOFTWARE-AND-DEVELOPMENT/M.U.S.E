@@ -126,7 +126,11 @@ from hermes_cli import worktrees as wt
 from hermes_cli import worker_lease as wl
 from hermes_cli.budget_policy import BudgetDecision, evaluate_budget
 from hermes_cli.lease_scheduler import Reschedule
-from hermes_cli.runtime_adapter import RuntimeAdapter, RuntimeResult
+from hermes_cli.runtime_adapter import (
+    LocalRuntimeAdapter,
+    RuntimeAdapter,
+    RuntimeResult,
+)
 from hermes_cli.worker_lease_store import DEFAULT_HOST_ID, WorkerLeaseStore
 
 ORCHESTRATOR_DIRNAME = wt.ORCHESTRATOR_DIRNAME
@@ -360,6 +364,46 @@ def _needs_inline_placement(worker: WorkerPlan) -> bool:
     return bool(worker.cwd or worker.env or worker.use_worktree)
 
 
+#: Per-worker adapter construction (the FU-2 follow-up to the shared-adapter
+#: placement limitation above). Receives the worker plan and its artifact root
+#: (``…/jobs/<job-id>/workers/<worker-id>``); returns a fresh adapter for that
+#: worker, or ``None`` to decline — the runner then falls back to its existing
+#: logic (shared adapter or inline subprocess). A factory adapter bypasses
+#: :func:`_needs_inline_placement` deliberately: the factory sees the worker's
+#: ``cwd``/``env`` and OWNS honoring them in the adapter it builds.
+AdapterFactory = Callable[["WorkerPlan", Path], Optional[RuntimeAdapter]]
+
+
+def per_worker_local_adapter(
+    worker: "WorkerPlan", worker_root: Path
+) -> Optional[LocalRuntimeAdapter]:
+    """The safe default :data:`AdapterFactory` — one local adapter per worker.
+
+    Mirrors the inline subprocess path's placement exactly: the worker's own
+    ``cwd`` (or its artifact root), its ``env`` overlay, and stream files at
+    ``worker_root/stdout.log`` / ``worker_root/stderr.log`` — so a multi-worker
+    plan never clobbers another worker's logs (the collision that made a bare
+    shared :class:`LocalRuntimeAdapter` default unsafe — see the adapter-policy
+    note in :mod:`hermes_cli.orchestrator_dispatch`).
+
+    Declines (returns ``None``) for ``use_worktree`` workers: their cwd is the
+    runner-internal worktree path, resolved only on the inline path.
+    """
+
+    if worker.use_worktree:
+        return None
+    workdir = Path(worker.cwd) if worker.cwd else worker_root
+    env = (
+        {str(k): str(v) for k, v in worker.env.items()} if worker.env else None
+    )
+    return LocalRuntimeAdapter(
+        workdir=workdir,
+        stdout_path=worker_root / STDOUT_LOG,
+        stderr_path=worker_root / STDERR_LOG,
+        env=env,
+    )
+
+
 # ─── runner ───────────────────────────────────────────────────────────
 
 
@@ -381,6 +425,7 @@ class ParallelRunner:
         budget_soft_limit: Optional[float] = None,
         budget_hard_limit: Optional[float] = None,
         runtime_adapter: Optional[RuntimeAdapter] = None,
+        adapter_factory: Optional[AdapterFactory] = None,
     ) -> None:
         self.repo = Path(repo).resolve()
         plan.validate()
@@ -440,6 +485,12 @@ class ParallelRunner:
         # RuntimeResult is mapped onto the same WorkerStatus fields. Purely
         # additive — no other mode and no other behavior is affected.
         self._runtime_adapter = runtime_adapter
+        # Optional per-worker adapter factory (FU-2). Consulted first for each
+        # LOCAL_RUN worker; an adapter it returns OWNS that worker's placement
+        # (cwd/env/streams — see :data:`AdapterFactory`). ``None`` from the
+        # factory falls back to the shared-adapter/inline logic unchanged, so
+        # the default path stays byte-for-byte when no factory is passed.
+        self._adapter_factory = adapter_factory
         # Last computed reschedule plan (Sprint 13). ``None`` until
         # :meth:`compute_reschedule_plan` runs; the plan is *observational* — it
         # is never auto-executed (re-leasing lost work is a documented
@@ -714,6 +765,16 @@ class ParallelRunner:
         # has a single construction-time cwd/env and cannot apply them per
         # worker, so routing such a worker through it would silently run the
         # command in the wrong directory/environment.
+        # A per-worker adapter factory (FU-2) is consulted first: a fresh
+        # adapter per worker can honor per-worker placement, so the
+        # _needs_inline_placement guard — which protects against a *shared*
+        # adapter's single construction-time cwd/env — deliberately does not
+        # apply. A factory that cannot honor a worker declines with ``None``.
+        if self._adapter_factory is not None:
+            factory_adapter = self._adapter_factory(worker, worker_root)
+            if factory_adapter is not None:
+                self._run_via_adapter(worker, worker_root, factory_adapter)
+                return
         if self._runtime_adapter is None or _needs_inline_placement(worker):
             self._run_subprocess(worker, worker_root)
         else:

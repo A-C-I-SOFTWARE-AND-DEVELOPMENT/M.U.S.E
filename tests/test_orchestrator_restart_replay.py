@@ -345,13 +345,25 @@ class TestRestartReplay:
         assert again == 0
         assert phase == "custom-live"
 
-    def test_cost_not_restored_known_limitation(self, hermes_home):
-        # Cost is not event-sourced; a restored job's cost resets to zero.
+    def test_cost_restored_from_event_sourced_deltas(self, hermes_home):
+        # Cost is event-sourced (cost.accumulated, FU-3 residual closeout):
+        # a restored job's cost meter rebuilds to the pre-restart aggregate,
+        # including token buckets and the by-model breakdown.
+        class _Usage:
+            input_tokens = 100
+            output_tokens = 40
+            cache_read_tokens = 7
+            cache_write_tokens = 0
+            reasoning_tokens = 3
+
         async def _emit_with_cost():
             store_a = JobStore()
             job_id = await _seed_running_job(store_a)
             await store_a.accumulate_cost(job_id, cost_usd=4.2, model="m")
-            assert store_a._jobs[job_id].cost.totals()["cost_usd"] == pytest.approx(4.2)
+            await store_a.accumulate_cost(
+                job_id, usage=_Usage(), cost_usd="0.8", model="m2", provider="p"
+            )
+            assert store_a._jobs[job_id].cost.totals()["cost_usd"] == pytest.approx(5.0)
             return job_id
 
         job_id = asyncio.run(_emit_with_cost())
@@ -364,7 +376,32 @@ class TestRestartReplay:
             return job.cost.totals()
 
         totals = asyncio.run(_cost())
+        assert totals["cost_usd"] == pytest.approx(5.0)
+        assert totals["input_tokens"] == 100
+        assert totals["output_tokens"] == 40
+        assert totals["cache_read_tokens"] == 7
+        assert totals["reasoning_tokens"] == 3
+        assert totals["call_count"] == 2
+        assert totals["by_model"] == {
+            "m": pytest.approx(4.2),
+            "p/m2": pytest.approx(0.8),
+        }
+
+    def test_pre_cost_event_logs_restore_with_zero_meter(self, hermes_home):
+        # Logs that predate cost event-sourcing carry no cost.accumulated
+        # deltas — they must still restore cleanly, with the old zero meter.
+        job_id = asyncio.run(_with_store(_seed_running_job))
+
+        store_b = JobStore()
+        store_b.restore_from_disk()
+
+        async def _cost():
+            job = await store_b.get(job_id)
+            return job.cost.totals()
+
+        totals = asyncio.run(_cost())
         assert totals["cost_usd"] == pytest.approx(0.0)
+        assert totals["call_count"] == 0
 
 
 # ---------------------------------------------------------------------------

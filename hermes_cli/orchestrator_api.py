@@ -55,7 +55,7 @@ except ImportError:  # pragma: no cover - exercised only without the extra
     FASTAPI_AVAILABLE = False
 
 from hermes_cli import job_event_store
-from hermes_cli.job_cost import JobCost
+from hermes_cli.job_cost import USAGE_TOKEN_FIELDS, JobCost, _coerce_cost, _coerce_tokens
 from hermes_cli.job_replay import JobSnapshot, rebuild_snapshot
 from hermes_cli.orchestrator_events import (
     ALL_EVENTS,
@@ -63,6 +63,7 @@ from hermes_cli.orchestrator_events import (
     EVENT_APPROVAL_GRANTED,
     EVENT_APPROVAL_REJECTED,
     EVENT_APPROVAL_REQUESTED,
+    EVENT_COST_ACCUMULATED,
     EVENT_ERROR,
     EVENT_EVIDENCE_UPDATED,
     EVENT_JOB_CREATED,
@@ -425,6 +426,24 @@ class JobStore:
                 provider=provider,
             )
             job.updated_at = time.time()
+        # Event-source the folded delta so restart-replay can rebuild the
+        # cost meter (the in-memory fold above stays the live truth). Outside
+        # the lock — emit_event takes it itself. Token/cost values go through
+        # the same coercions add_usage applies, so the durable delta is
+        # JSON-serializable and replays to the identical aggregate.
+        delta: Dict[str, Any] = {}
+        if usage is not None:
+            delta["usage"] = {
+                name: _coerce_tokens(getattr(usage, name, 0))
+                for name in USAGE_TOKEN_FIELDS
+            }
+        if cost_usd is not None:
+            delta["cost_usd"] = _coerce_cost(cost_usd)
+        if model:
+            delta["model"] = model
+        if provider:
+            delta["provider"] = provider
+        await self.emit_event(job_id, EVENT_COST_ACCUMULATED, delta)
         return job
 
     # ------------------------------------------------------------------
@@ -506,11 +525,12 @@ class JobStore:
         bare ``JobStore()`` does *not* call this — restore is wired only in
         :func:`create_app`, so the in-memory-only tests stay pure.
 
-        Known limitation: :class:`hermes_cli.job_cost.JobCost` is **not**
-        event-sourced (``rebuild_snapshot`` has no cost field), so a restored
-        job's cost resets to zero. Status / phase / workers / approvals /
-        validation / publish plan are faithfully restored — sufficient for the
-        Sprint-14 restart-replay gate. A job already in ``self._jobs`` is left
+        :class:`hermes_cli.job_cost.JobCost` is event-sourced via
+        ``cost.accumulated`` deltas (one per :meth:`accumulate_cost` call), so
+        a restored job's cost meter is rebuilt alongside status / phase /
+        workers / approvals / validation / publish plan. Logs that predate
+        cost event-sourcing carry no deltas and restore with a zero meter —
+        the old documented behavior. A job already in ``self._jobs`` is left
         untouched (the live copy wins).
 
         Returns the number of jobs newly restored. Best-effort: a malformed or
@@ -549,8 +569,9 @@ class JobStore:
 
         The loaded ``envelopes`` are copied onto ``job.events``/``job.logs`` so
         the live snapshot/log routes re-fold the same stream post-restart.
-        ``JobCost`` is intentionally left at its zero default (see
-        :meth:`restore_from_disk`).
+        ``Job.cost`` is seeded from ``snapshot.cost`` — the aggregate the
+        replay fold rebuilt from ``cost.accumulated`` deltas (zero for logs
+        that predate cost event-sourcing).
         """
         workers: Dict[str, Dict[str, Any]] = {
             name: {"state": state} for name, state in snapshot.workers.items()
@@ -575,6 +596,7 @@ class JobStore:
             error=snapshot.error,
             events=events,
             logs=list(events),
+            cost=snapshot.cost,
         )
         return job
 
