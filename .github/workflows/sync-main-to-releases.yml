@@ -105,15 +105,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event_name }}
         run: |
-          # Cost guard: on the hourly cron, skip the (expensive) rebuild when
-          # the rolling release already points at the current main — otherwise
-          # an idle repo rebuilds byte-identical APKs every hour. Manual
+          # Cost guard: on the hourly cron, skip the (expensive) rebuild only
+          # when the Android release workflow has already *completed
+          # successfully* for the current main SHA — otherwise an idle repo
+          # rebuilds byte-identical APKs every hour. We key off the prior run's
+          # conclusion (not the release's targetCommitish, which the release
+          # workflow sets BEFORE the build legs run — a partial/failed publish
+          # would otherwise wedge auto-sync into skipping forever). Manual
           # dispatch always rebuilds (no skip).
           main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
-          rel_sha="$(gh release view android-latest --repo "$GITHUB_REPOSITORY" \
-            --json targetCommitish --jq '.targetCommitish' 2>/dev/null || echo '')"
-          if [ "$EVENT" = "schedule" ] && [ -n "$rel_sha" ] && [ "$main_sha" = "$rel_sha" ]; then
-            echo "android-latest already at main ($main_sha); skipping hourly rebuild."
+          last="$(gh run list --repo "$GITHUB_REPOSITORY" \
+            --workflow=android-release.yml --branch main --limit 30 \
+            --json headSha,status,conclusion \
+            --jq "[.[] | select(.headSha==\"$main_sha\" and .status==\"completed\")][0].conclusion" \
+            2>/dev/null || echo '')"
+          if [ "$EVENT" = "schedule" ] && [ "$last" = "success" ]; then
+            echo "android-release already succeeded for main ($main_sha); skipping hourly rebuild."
             exit 0
           fi
           gh workflow run android-release.yml \
@@ -135,16 +142,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event_name }}
         run: |
-          # Cost guard: on the hourly cron, skip the (expensive, multi-OS) rebuild
-          # when the rolling release already points at the current main. The
-          # desktop matrix bills macOS minutes at 10x, so an unconditional hourly
+          # Cost guard: on the hourly cron, skip the (expensive, multi-OS)
+          # rebuild only when the desktop release workflow has already
+          # *completed successfully* for the current main SHA. The desktop
+          # matrix bills macOS minutes at 10x, so an unconditional hourly
           # rebuild of unchanged source is the biggest waste in this engine.
-          # Manual dispatch always rebuilds (no skip).
+          # We key off the prior run's conclusion rather than the release's
+          # targetCommitish: the release workflow's `prepare` job re-targets
+          # muse-desktop-latest BEFORE the build legs run, so a partial/failed
+          # publish leaves target==main with stale/missing assets — keying off
+          # the target would then skip forever and never retry. Keying off a
+          # SUCCESSFUL completed run retries until the publish actually
+          # succeeds. Manual dispatch always rebuilds (no skip).
           main_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')"
-          rel_sha="$(gh release view muse-desktop-latest --repo "$GITHUB_REPOSITORY" \
-            --json targetCommitish --jq '.targetCommitish' 2>/dev/null || echo '')"
-          if [ "$EVENT" = "schedule" ] && [ -n "$rel_sha" ] && [ "$main_sha" = "$rel_sha" ]; then
-            echo "muse-desktop-latest already at main ($main_sha); skipping hourly rebuild."
+          last="$(gh run list --repo "$GITHUB_REPOSITORY" \
+            --workflow=muse-desktop-release.yml --branch main --limit 30 \
+            --json headSha,status,conclusion \
+            --jq "[.[] | select(.headSha==\"$main_sha\" and .status==\"completed\")][0].conclusion" \
+            2>/dev/null || echo '')"
+          if [ "$EVENT" = "schedule" ] && [ "$last" = "success" ]; then
+            echo "muse-desktop-release already succeeded for main ($main_sha); skipping hourly rebuild."
             exit 0
           fi
           gh workflow run muse-desktop-release.yml \
