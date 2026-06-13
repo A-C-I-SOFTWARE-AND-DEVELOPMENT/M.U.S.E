@@ -83,6 +83,7 @@ typed in a terminal or spoke into a phone in the car.
 | Ship the mobile cockpit (launch gate) | [launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md](launch/MOBILE_NATIVE_LAUNCH_CHECKLIST.md) |
 | Use M.U.S.E. hands-free (voice-first, driving mode) | [voice/voice-first-user-guide.md](voice/voice-first-user-guide.md) |
 | Run M.U.S.E. from Windows / drive Claude Code remotely | [remote/windows-claude-code-bridge-guide.md](remote/windows-claude-code-bridge-guide.md) |
+| Deploy M.U.S.E. 24/7 on a cloud VPS (one-click) | [deploy/vps-deployment-guide.md](deploy/vps-deployment-guide.md) |
 | Have M.U.S.E. profile your GitHub history & learn your patterns | [profile/github-history-profile-guide.md](profile/github-history-profile-guide.md) |
 | Lock everything down to private / local-only | [security/private-local-security-guide.md](security/private-local-security-guide.md) |
 | Wire up GitHub, Supabase, and Vercel | [integrations/github-supabase-vercel-guide.md](integrations/github-supabase-vercel-guide.md) |

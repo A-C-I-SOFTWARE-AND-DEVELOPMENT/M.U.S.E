@@ -1,0 +1,47 @@
+# M.U.S.E. web dashboard — 24/7 systemd unit (loopback-only)
+#
+# This runs `muse dashboard` as a persistent background service so the web UI
+# (config, API keys, sessions) survives reboots and logouts.  The gateway has
+# its own service manager (`muse gateway install`); the dashboard does not, so
+# this template fills that gap for native VPS installs.
+#
+# SECURITY: this binds 127.0.0.1 only.  The dashboard stores API keys, so it is
+# NEVER exposed on a public interface.  Reach it remotely with an SSH tunnel:
+#     ssh -L 9119:localhost:9119 <user>@<vps>
+# then open http://localhost:9119 on your laptop.  For a hostname + TLS, put an
+# authenticated reverse proxy in front (see docs/deploy/vps-deployment-guide.md
+# and docs/remote/secure-tunnel-options.md).  Do NOT pass --insecure --host
+# 0.0.0.0 to make it public.
+#
+# Install:
+#   scripts/quickstart.sh --native        # installs + substitutes the values below
+# or manually:
+#   1. Replace the __PLACEHOLDERS__ below (see each comment).
+#   2. sudo cp deploy/muse-dashboard.service /etc/systemd/system/muse-dashboard.service
+#   3. sudo systemctl daemon-reload && sudo systemctl enable --now muse-dashboard
+#   4. systemctl status muse-dashboard   (or: muse dashboard --status)
+#
+# __MUSE_BIN__     absolute path to the muse command (e.g. /usr/local/bin/muse
+#                  for a root FHS install, or ~/.local/bin/muse for a user install)
+# __RUN_USER__     the OS user that owns ~/.hermes (e.g. root, or your login user)
+# __HERMES_HOME__  the data dir (default /root/.hermes for root, ~/.hermes otherwise)
+
+[Unit]
+Description=M.U.S.E. web dashboard (loopback-only config/keys/sessions UI)
+Documentation=https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/blob/main/docs/deploy/vps-deployment-guide.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__RUN_USER__
+Environment=HERMES_HOME=__HERMES_HOME__
+# --no-open: never try to launch a browser on a headless server.
+# --skip-build: serve the prebuilt web dist (avoids needing npm at boot).
+# Host stays 127.0.0.1 — tunnel in; never bind 0.0.0.0.
+ExecStart=__MUSE_BIN__ dashboard --no-open --skip-build --host 127.0.0.1 --port 9119
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
