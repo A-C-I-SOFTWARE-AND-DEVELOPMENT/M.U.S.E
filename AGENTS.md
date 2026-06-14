@@ -1372,3 +1372,59 @@ its activation phrases (see below) or explicitly via
 hazmat-command files + 20 hermes-agent AOS files snapshotted on
 2026-05-24, with `MANIFEST.md` listing every preserved file. See
 `recovered-agent-sources/MANIFEST.md` for the index.
+
+---
+
+## Cursor Cloud specific instructions
+
+This section is durable guidance for cloud agents running in an environment
+where the update script (see below) has already created `.venv` and installed
+deps. Standard dev/test/run commands live in `CONTRIBUTING.md` and the
+`## Testing` / `## Development Environment` sections above — reference those
+rather than duplicating.
+
+### Environment layout (non-obvious)
+
+- The venv is `.venv` at the repo root (Python 3.11 via `uv`). `uv` itself
+  installs to `~/.local/bin` — already on PATH in the update script context,
+  but if `uv` is "not found" in a fresh shell, run `export PATH="$HOME/.local/bin:$PATH"`.
+- Activate with `source .venv/bin/activate`, or rely on `scripts/run_tests.sh`
+  which auto-discovers `.venv`.
+- Optional messaging/voice/provider backends (telegram, discord, anthropic,
+  faster-whisper, …) are intentionally **lazy-installed at first use** via
+  `tools/lazy_deps.py` — `muse doctor` listing them as "optional, not installed"
+  is expected, not a setup failure.
+
+### Running without API keys
+
+- A real `muse` chat turn needs an LLM provider key in `~/.hermes/.env`
+  (e.g. `OPENROUTER_API_KEY`). None is present by default, so interactive
+  chat / gateway agent turns will not complete.
+- Offline-capable core surfaces that need no keys and are good smoke tests:
+  - `muse version`, `muse doctor`
+  - `python -m hermes_cli.jarvis_prime classify "<text>"` / `packet "<text>"`
+    (MUSE decision + work-packet primitives)
+  - `muse cockpit serve` — loopback HTTP API on `127.0.0.1:8765`. Probe with
+    `curl -s http://127.0.0.1:8765/v1/health`; bearer-gated endpoints need a
+    token from `muse cockpit token` (`Authorization: Bearer <token>`).
+
+### First-run config scaffold (one-time; not in the update script)
+
+If `~/.hermes/` is missing on a fresh machine, create it before running
+`muse` commands:
+
+```bash
+mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}
+cp -n cli-config.yaml.example ~/.hermes/config.yaml
+touch ~/.hermes/.env
+```
+
+`muse doctor` exits non-zero when it emits warnings (e.g. no API key); that
+exit code is not a hard failure on its own — read the report.
+
+### Tests
+
+Use `scripts/run_tests.sh` (CI-parity, pins `-n 4`, hermetic env). The full
+suite is large (~17k tests); scope to a path for quick iteration, e.g.
+`scripts/run_tests.sh tests/agent/`. `integration` and `e2e` tests are
+excluded by default.
