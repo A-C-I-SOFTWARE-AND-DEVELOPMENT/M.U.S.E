@@ -52,6 +52,12 @@ _MEMBER_REFINE_PASSES = 12
 ALGO_FR3D = "fr3d"
 ALGO_NX_SPRING = "nx-spring"
 ALGO_RADIAL = "radial-refined"
+ALGO_SOLAR = "solar-orbital"
+
+# Solar ("Nero Solar System") layout — see :func:`solar_layout`.
+_SOLAR_RING_BASE = 3  # capacity of the innermost orbit
+_SOLAR_RING_STEP = 2  # each outer orbit holds this many more bodies
+_SOLAR_MAX_INCL = 0.35  # max per-orbit inclination, radians (~20°)
 
 try:  # optional fast path — never required, never installed by this module
     import networkx as _nx  # ty: ignore[unresolved-import]
@@ -225,6 +231,82 @@ def _normalize_box(
         )
         for i, p in raw.items()
     }
+
+
+# ---------------------------------------------------------------------------
+# Solar ("Nero Solar System") layout — an alternate super-node arrangement
+# ---------------------------------------------------------------------------
+
+
+def solar_layout_algo() -> str:
+    """Algorithm label for :func:`solar_layout` (show-your-work doctrine)."""
+    return ALGO_SOLAR
+
+
+def solar_layout(
+    clusters: Sequence[dict[str, Any]],
+    cluster_edges: Sequence[dict[str, Any]],
+    seed: int,
+) -> dict[str, tuple[float, float, float]]:
+    """Deterministic "solar system" arrangement of the super-node clusters.
+
+    An alternate to :func:`super_layout` for the "Nero Solar System" theme:
+    the origin ``(0, 0, 0)`` is reserved for the **Nero Core** (the sun, drawn
+    by the renderer — never a cluster), and clusters orbit it as planets.
+    Heavier clusters (more members) take inner, tighter orbits; clusters are
+    packed onto concentric rings of increasing capacity (``3, 5, 7, …``),
+    inner rings filled first. Each ring gets a deterministic inclination and
+    phase so the system reads as 3D, not a flat disc.
+
+    Same contract as :func:`super_layout`: reads ``id`` (and ``members`` when
+    present) from each cluster dict, returns cluster id → ``(x, y, z)`` inside
+    ``[-BOX_HALF, BOX_HALF]^3``, rounded to 4 dp, and is a pure function of its
+    arguments (all randomness flows through ``random.Random(seed)``). Same
+    inputs ⇒ byte-identical positions. ``cluster_edges`` is accepted for
+    signature parity with :func:`super_layout`; placement is geometric, so it
+    is intentionally not consulted.
+    """
+    del cluster_edges  # geometric layout: edges intentionally unused
+    meta = [(str(c["id"]), int(c.get("members") or 0)) for c in clusters]
+    if not meta:
+        return {}
+    # Heaviest clusters inner-first; ties broken by id so order is stable.
+    ordered = [cid for cid, _ in sorted(meta, key=lambda im: (-im[1], im[0]))]
+    n = len(ordered)
+    rng = random.Random(seed)
+    if n == 1:
+        # A lone planet sits on a mid orbit, never on the sun at the origin.
+        return {ordered[0]: (round(BOX_HALF * 0.5, 4), 0.0, 0.0)}
+
+    # Partition into orbital rings of growing capacity, inner rings first.
+    rings: list[list[str]] = []
+    idx, cap = 0, _SOLAR_RING_BASE
+    while idx < n:
+        take = min(cap, n - idx)
+        rings.append(ordered[idx : idx + take])
+        idx += take
+        cap += _SOLAR_RING_STEP
+    ring_count = len(rings)
+
+    out: dict[str, tuple[float, float, float]] = {}
+    for k, ring in enumerate(rings):
+        # Outermost ring reaches BOX_HALF; inner rings scale down linearly.
+        radius = BOX_HALF * (k + 1) / ring_count
+        incl = _SOLAR_MAX_INCL * (2.0 * rng.random() - 1.0)
+        phase = 2.0 * math.pi * rng.random()
+        cos_i, sin_i = math.cos(incl), math.sin(incl)
+        m = len(ring)
+        for j, cid in enumerate(ring):
+            theta = phase + 2.0 * math.pi * j / m
+            x = radius * math.cos(theta)
+            planar = radius * math.sin(theta)
+            # Tilt the orbital plane about the x-axis by `incl`.
+            out[cid] = (
+                round(x, 4),
+                round(planar * cos_i, 4),
+                round(planar * sin_i, 4),
+            )
+    return out
 
 
 # ---------------------------------------------------------------------------
