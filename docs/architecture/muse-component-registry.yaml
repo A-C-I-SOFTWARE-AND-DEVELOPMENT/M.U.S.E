@@ -1,0 +1,305 @@
+# M.U.S.E component registry — machine-readable architecture inventory.
+#
+# This file is the canonical, machine-readable source of truth behind
+# docs/architecture/MUSE_COMPONENT_REGISTRY.md. It is loaded by
+# hermes_cli/jarvis_prime/component_registry.py and validated by
+# tests/hermes_cli/test_component_registry.py so the documented architecture
+# can never silently drift from the code it describes.
+#
+# It implements the `muse.component_registry.v1` schema sketched in the M.U.S.E
+# Engineering Blueprint (§10). It is a thin inventory: it does NOT execute,
+# import, or mutate any component — it only describes them.
+#
+# Field reference (per component):
+#   id                  stable slug, unique across the registry
+#   name                human name
+#   kind                surface | runtime | orchestration | cognition |
+#                       governance | integration | worker | provider
+#   entrypoints         how the component is invoked (free text: console
+#                       scripts, slash commands, service mains)
+#   owner_module        repo-root-relative path to the module/dir that owns
+#                       this component. MUST resolve on disk (the test checks).
+#   capabilities        what the component does
+#   risk_class          RC0..RC4 — the blast radius of CHANGING this component
+#                       (matches work_packet.VALID_RISK_CLASSES)
+#   owner_gated_actions actions this component can reach that require owner
+#                       authorization. MUST be a subset of the canonical
+#                       owner_auth.OWNER_GATED_ACTIONS frozenset — the test
+#                       enforces this so the registry references the single
+#                       source of truth (Constitution C9) rather than copying.
+#   tests               how to verify this component (pytest selection / cmd)
+#   rollback            how to revert a change to this component
+#   observability       where this component's logs / evidence / ledger live
+#   docs                repo-root-relative doc paths. MUST resolve on disk.
+
+schema: muse.component_registry.v1
+version: 1
+as_of: "2026-06-14"
+repo: "A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E"
+
+components:
+  # --- surfaces (where the owner talks to M.U.S.E) -------------------------
+  - id: cli
+    name: "muse / hermes CLI + REPL"
+    kind: surface
+    entrypoints: ["muse", "hermes"]
+    owner_module: hermes_cli/main.py
+    capabilities: ["chat", "config", "tool_invocation", "skill_loading", "orchestrator_control"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k 'cli or main'"
+    rollback: "revert the hermes_cli/main.py change; console scripts are unchanged"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/README.md", "docs/architecture/MUSE_COMPONENT_REGISTRY.md"]
+
+  - id: gateway
+    name: "Messaging gateway (Telegram / Discord / Slack / Signal / Email / …)"
+    kind: surface
+    entrypoints: ["gateway.run:main", "muse gateway"]
+    owner_module: gateway/run.py
+    capabilities: ["multi_platform_dm", "session_routing", "stream_consumption", "approval_prompts"]
+    risk_class: RC2
+    owner_gated_actions: ["post_publicly"]
+    tests: "uv run pytest tests/gateway"
+    rollback: "revert gateway change; per-platform adapters are isolated under gateway/platforms/"
+    observability: "~/.hermes/logs/gateway/"
+    docs: ["docs/README.md", "docs/architecture/MUSE_DATAFLOW.md"]
+
+  - id: tui
+    name: "Full terminal UI"
+    kind: surface
+    entrypoints: ["tui_gateway.entry:main"]
+    owner_module: tui_gateway/entry.py
+    capabilities: ["interactive_tui", "websocket_stream", "slash_commands"]
+    risk_class: RC1
+    owner_gated_actions: []
+    tests: "uv run pytest tests -k tui"
+    rollback: "revert tui_gateway change; bundled JS frontend ships separately"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/README.md"]
+
+  - id: acp_adapter
+    name: "Agent Client Protocol adapter"
+    kind: surface
+    entrypoints: ["muse-acp", "acp_adapter.entry:main"]
+    owner_module: acp_adapter/entry.py
+    capabilities: ["acp_bridge", "openai_compatible_surface"]
+    risk_class: RC1
+    owner_gated_actions: []
+    tests: "uv run pytest tests -k acp"
+    rollback: "revert acp_adapter change; adapter is opt-in"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/README.md"]
+
+  - id: android_cockpit
+    name: "Android companion cockpit"
+    kind: surface
+    entrypoints: ["apps/android (Gradle app)"]
+    owner_module: apps/android
+    capabilities: ["mobile_cockpit", "lockscreen_approvals", "voice_capture", "push"]
+    risk_class: RC2
+    owner_gated_actions: ["post_publicly", "app_store_submission"]
+    tests: "Gradle unit/instrumentation suite under apps/android"
+    rollback: "revert apps/android change; app is a separate artifact from the runtime"
+    observability: "device logcat + cockpit event stream"
+    docs: ["apps/android/README.md", "docs/mobile/mobile-app-guide.md"]
+
+  # --- core runtime --------------------------------------------------------
+  - id: agent_loop
+    name: "Core agent loop + tool orchestration"
+    kind: runtime
+    entrypoints: ["muse-agent", "run_agent:main"]
+    owner_module: run_agent.py
+    capabilities: ["model_tool_loop", "tool_dispatch", "toolset_resolution", "error_recovery"]
+    risk_class: RC3
+    owner_gated_actions: []
+    tests: "uv run pytest tests -k 'run_agent or model_tools or toolsets'"
+    rollback: "revert run_agent.py / model_tools.py / toolsets.py; default toolset is stable"
+    observability: "~/.hermes/logs/"
+    docs: ["AGENTS.md", "docs/architecture/MUSE_DATAFLOW.md"]
+
+  - id: jarvis_prime_runtime
+    name: "Jarvis Prime runtime (modes / routing / cognition entry)"
+    kind: runtime
+    entrypoints: ["/jarvis", "/jp", "/jarvis-prime", "hermes_cli.jarvis_prime.__main__:main"]
+    owner_module: hermes_cli/jarvis_prime/__main__.py
+    capabilities: ["mode_routing", "owner_authorization", "verification_gates", "memory_context_compilation", "worker_orchestration"]
+    risk_class: RC3
+    owner_gated_actions: ["grant_autonomy_charter"]
+    tests: "uv run pytest tests/hermes_cli -k jarvis"
+    rollback: "revert the jarvis_prime change; modes degrade to plain agent loop"
+    observability: "~/.hermes/logs/ + guardrail evidence bundle + decision ledger"
+    docs: ["docs/jarvis-prime-operating-system.md"]
+
+  - id: plugin_system
+    name: "Plugin loader + tool auto-discovery"
+    kind: runtime
+    entrypoints: ["plugins.enabled allowlist in ~/.hermes/config.yaml"]
+    owner_module: hermes_cli/plugins.py
+    capabilities: ["plugin_discovery", "opt_in_gating", "tool_registration", "env_gated_tools"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "uv run pytest tests -k plugin"
+    rollback: "revert hermes_cli/plugins.py; plugins are opt-in (allowlist), so default surface is unchanged"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/github-integration.md", "docs/architecture/MUSE_COMPONENT_REGISTRY.md"]
+
+  # --- governance (the safety spine) --------------------------------------
+  - id: verification_gates
+    name: "Eight-gate verification chain"
+    kind: governance
+    entrypoints: ["hermes_cli.jarvis_prime.gates"]
+    owner_module: hermes_cli/jarvis_prime/gates.py
+    capabilities: ["planning_gate", "build_gate", "review_gate", "test_gate", "security_gate", "release_gate", "owner_approval_gate", "rollback_gate"]
+    risk_class: RC4
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k gates"
+    rollback: "revert gates.py; gates are pure functions over a work packet"
+    observability: "guardrail evidence bundle (strict evidence mode)"
+    docs: ["docs/jarvis-verification-gates.md"]
+
+  - id: owner_authorization
+    name: "Owner-authorization gate (owner-gated action set)"
+    kind: governance
+    entrypoints: ["hermes_cli.jarvis_prime.owner_auth", "muse guardrails authorize"]
+    owner_module: hermes_cli/jarvis_prime/owner_auth.py
+    capabilities: ["owner_gating", "exact_phrase_check", "nonce_bound_challenge", "grant_artifact"]
+    risk_class: RC4
+    owner_gated_actions: ["grant_autonomy_charter"]
+    tests: "uv run pytest tests/hermes_cli -k owner_auth"
+    rollback: "revert owner_auth.py; OWNER_GATED_ACTIONS is the single source of truth referenced by gates and the constitution"
+    observability: "owner-authorization grant artifacts in the decision ledger"
+    docs: ["docs/jarvis-constitution.md", "docs/jarvis-prime-operating-system.md"]
+
+  - id: work_packet
+    name: "Standard MUSE work packet schema"
+    kind: governance
+    entrypoints: ["hermes_cli.jarvis_prime.work_packet", "/jarvis-packetize"]
+    owner_module: hermes_cli/jarvis_prime/work_packet.py
+    capabilities: ["bounded_scope_descriptor", "risk_classification", "owner_gate_recording", "rollback_recording"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k work_packet"
+    rollback: "revert work_packet.py; schema is additive and data-only"
+    observability: "work packets embedded in the decision ledger"
+    docs: ["docs/architecture/MUSE_WORKFLOW_SCHEMAS.md"]
+
+  - id: decision_ledger
+    name: "Tamper-evident decision ledger"
+    kind: governance
+    entrypoints: ["hermes_cli.decision_ledger", "/orchestrator status"]
+    owner_module: hermes_cli/decision_ledger.py
+    capabilities: ["append_only_audit", "decision_template", "tamper_evidence"]
+    risk_class: RC3
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k ledger"
+    rollback: "revert decision_ledger.py; the on-disk ledger.jsonl is append-only and unaffected"
+    observability: "~/.hermes/jobs/<job-id>/ledger.jsonl"
+    docs: ["docs/orchestration/decision-ledger.md"]
+
+  # --- orchestration (the five primitives) --------------------------------
+  - id: orchestrator
+    name: "Goal-to-PR orchestrator (Job + JobStore)"
+    kind: orchestration
+    entrypoints: ["/orchestrate", "/swarm", "hermes_cli.orchestrator_api:create_app"]
+    owner_module: hermes_cli/orchestrator_api.py
+    capabilities: ["goal_decomposition", "task_dag", "job_lifecycle", "local_api_backend"]
+    risk_class: RC3
+    owner_gated_actions: ["production_deploy"]
+    tests: "uv run pytest tests/hermes_cli -k 'orchestrator or job'"
+    rollback: "revert orchestrator_api.py; JobStore is local-first and rebuildable from the event log"
+    observability: "~/.hermes/jobs/<job-id>/"
+    docs: ["docs/orchestration/README.md"]
+
+  - id: worker_registry
+    name: "Worker profiles + model routing"
+    kind: orchestration
+    entrypoints: ["/profiles", "hermes_cli.model_registry", "hermes_cli.parallel_runner"]
+    owner_module: hermes_cli/model_registry.py
+    capabilities: ["worker_detection", "profile_routing", "model_selection", "parallel_workers"]
+    risk_class: RC3
+    owner_gated_actions: ["change_default_active_agents", "registry_mutation"]
+    tests: "uv run pytest tests/hermes_cli -k 'registry or worker or parallel'"
+    rollback: "revert model_registry.py; profiles fall back to the shipped defaults"
+    observability: "~/.hermes/logs/ + decision ledger routing entries"
+    docs: ["docs/orchestration/worker-adapters.md"]
+
+  - id: remote_worker_bridge
+    name: "Remote worker bridge (Windows Claude Code / file-drop / HTTP)"
+    kind: worker
+    entrypoints: ["hermes_cli.remote_bridge", "muse remote"]
+    owner_module: hermes_cli/remote_bridge.py
+    capabilities: ["allowlisted_exec", "repo_root_scoping", "manifest_status_artifacts", "approval_relay"]
+    risk_class: RC3
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k 'remote or bridge'"
+    rollback: "revert remote_bridge.py; the bridge only executes allowlisted commands and is opt-in"
+    observability: "shared workspace artifacts (status.json) + ledger.jsonl tool_call entries"
+    docs: ["docs/remote/windows-claude-code-bridge-guide.md", "docs/architecture/MUSE_WORKFLOW_SCHEMAS.md"]
+
+  # --- cognition plane -----------------------------------------------------
+  - id: cognition_memory
+    name: "Cognition plane (Memory Tree + Research Vault)"
+    kind: cognition
+    entrypoints: ["hermes_cli.jarvis_prime.research_vault"]
+    owner_module: hermes_cli/jarvis_prime/research_vault.py
+    capabilities: ["provenance_bound_memory", "sourced_claims", "contradiction_reports", "supersession"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k 'memory or vault or research'"
+    rollback: "revert the change; memory artifacts carry provenance and are never silently overwritten"
+    observability: "~/.hermes/ memory + research vault stores"
+    docs: ["docs/architecture/MUSE_DATAFLOW.md", "docs/jarvis-prime-operating-system.md"]
+
+  - id: graphrag
+    name: "GraphRAG knowledge graph"
+    kind: cognition
+    entrypoints: ["graph_query tool", "jarvis_prime graph"]
+    owner_module: hermes_cli/jarvis_prime/graphrag
+    capabilities: ["unified_source_graph", "reuse_discovery", "source_backed_query"]
+    risk_class: RC1
+    owner_gated_actions: []
+    tests: "uv run pytest tests/jarvis_prime -k graphrag"
+    rollback: "revert the change; GraphRAG supplements and never replaces RAG/memory"
+    observability: "~/.hermes/ graphrag index"
+    docs: ["docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md"]
+
+  # --- integrations / providers -------------------------------------------
+  - id: model_router
+    name: "Model provider router"
+    kind: provider
+    entrypoints: ["/model", "providers.get_provider_profile"]
+    owner_module: providers/__init__.py
+    capabilities: ["provider_discovery", "model_routing", "multi_backend (anthropic / openai / gemini / openrouter / local llama.cpp / …)"]
+    risk_class: RC2
+    owner_gated_actions: ["oauth_change", "credential_change"]
+    tests: "uv run pytest tests -k provider"
+    rollback: "revert the change; provider plugins self-register lazily and are independent"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/architecture/MUSE_DATAFLOW.md", "docs/architecture/MUSE_TECHNOLOGY_DISPOSITION.md"]
+
+  - id: visual_synthesis
+    name: "Image + video generation (multi-provider)"
+    kind: integration
+    entrypoints: ["image_generate tool", "video_generate tool"]
+    owner_module: plugins/image_gen
+    capabilities: ["text_to_image", "image_to_video", "multi_provider (openai / gemini / xai / fal)"]
+    risk_class: RC1
+    owner_gated_actions: ["spend_money"]
+    tests: "uv run pytest tests/plugins -k 'image or video'"
+    rollback: "revert the plugin change; image/video gen is opt-in per the plugins.enabled allowlist"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/architecture/MUSE_TECHNOLOGY_DISPOSITION.md", "docs/architecture/decisions/visual-synthesis-disposition.md"]
+
+  - id: web3_skills
+    name: "Web3 / blockchain optional skills (Solana / EVM / Hyperliquid)"
+    kind: integration
+    entrypoints: ["optional-skills/blockchain/*/SKILL.md"]
+    owner_module: optional-skills/blockchain
+    capabilities: ["read_only_onchain (wallets, tokens, gas, ENS, perps)", "configurable_rpc_endpoint"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "skill self-checks under optional-skills/blockchain"
+    rollback: "remove the skill from the active set; skills are data, not default-loaded code"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/architecture/MUSE_TECHNOLOGY_DISPOSITION.md"]

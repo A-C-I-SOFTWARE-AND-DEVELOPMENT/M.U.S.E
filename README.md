@@ -219,6 +219,7 @@ points to one guide per topic:
 | Want to… | Read |
 |---|---|
 | Run your first job | [docs/orchestration/getting-started.md](docs/orchestration/getting-started.md) |
+| See the architecture map (components, dataflow, schemas) | [docs/architecture/README.md](docs/architecture/README.md) |
 | See end-to-end Prompt to PR | [docs/orchestration/prompt-to-pr-demo.md](docs/orchestration/prompt-to-pr-demo.md) |
 | Drive M.U.S.E. from a phone | [docs/mobile/mobile-app-guide.md](docs/mobile/mobile-app-guide.md) |
 | Use voice-first (driving mode) | [docs/voice/voice-first-user-guide.md](docs/voice/voice-first-user-guide.md) |

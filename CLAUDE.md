@@ -167,6 +167,11 @@ the thread always shows live state.
 - [`SECURITY.md`](SECURITY.md) — reporting vulnerabilities.
 - [`docs/README.md`](docs/README.md) — plain-English operating
   manual index. Points to every user-facing guide below.
+- [`docs/architecture/`](docs/architecture/) — the inspectable
+  architecture map: component registry (machine-readable
+  `muse-component-registry.yaml` + drift test), dataflow diagrams,
+  work-packet/remote-worker schemas, and the technology disposition
+  matrix.
 - [`docs/orchestration/`](docs/orchestration/) — orchestration
   end-to-end. Start with `getting-started.md` and the Prompt to PR
   demo (`prompt-to-pr-demo.md`).
