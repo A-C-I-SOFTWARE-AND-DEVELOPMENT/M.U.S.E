@@ -91,6 +91,7 @@ typed in a terminal or spoke into a phone in the car.
 | Developer + code-review tools (packages, OSV, deps.dev, sandbox) | [integrations/devtools-codeintel-plugins.md](integrations/devtools-codeintel-plugins.md) |
 | Diagnose a stuck job or a broken integration | [troubleshooting/hermes-orchestration-troubleshooting.md](troubleshooting/hermes-orchestration-troubleshooting.md) |
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
+| See the architecture map: components, dataflow, schemas, tech disposition | [architecture/README.md](architecture/README.md) |
 | Understand the SYNAPSE game / Neural Observatory / Platform-v1.0 program | [plans/2026-06-10-project-synapse-master-plan.md](plans/2026-06-10-project-synapse-master-plan.md) |
 | Build SYNAPSE from the locked design bible (17 docs, design + production + launch) | [synapse/design/00-INDEX.md](synapse/design/00-INDEX.md) |
 
@@ -299,6 +300,9 @@ Read in this order:
 | Claude-specific dev hints | [`../CLAUDE.md`](../CLAUDE.md) |
 | Security policy + reporting | [`../SECURITY.md`](../SECURITY.md) |
 | Contributing process | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
+| Architecture map (components, dataflow, schemas) | [architecture/README.md](architecture/README.md) |
+| Component registry (source of truth) | [architecture/muse-component-registry.yaml](architecture/muse-component-registry.yaml) |
+| Technology disposition (adopt / migrate / discard) | [architecture/MUSE_TECHNOLOGY_DISPOSITION.md](architecture/MUSE_TECHNOLOGY_DISPOSITION.md) |
 | Orchestration overview | [orchestration/README.md](orchestration/README.md) |
 | Decision ledger schema | [orchestration/decision-ledger.md](orchestration/decision-ledger.md) |
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
