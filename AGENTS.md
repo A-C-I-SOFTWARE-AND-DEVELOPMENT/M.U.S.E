@@ -1372,3 +1372,55 @@ its activation phrases (see below) or explicitly via
 hazmat-command files + 20 hermes-agent AOS files snapshotted on
 2026-05-24, with `MANIFEST.md` listing every preserved file. See
 `recovered-agent-sources/MANIFEST.md` for the index.
+
+---
+
+## Cursor Cloud specific instructions
+
+This is a Python project (`requires-python >=3.11`); CI pins **3.11**. The
+startup update script runs `uv sync --python 3.11 --extra all --extra dev`,
+which installs the curated `[all,dev]` set into `.venv` from the
+hash-verified `uv.lock`. Activate it with `source .venv/bin/activate`
+before running anything (see "Development Environment" above). `uv` is on
+PATH.
+
+- **Lint:** `ruff check .` (the blocking rule set). Optional type pass: `ty check`.
+- **Test:** always `scripts/run_tests.sh` (not bare `pytest`). The full
+  suite is ~17k tests, so target a directory while iterating, e.g.
+  `scripts/run_tests.sh tests/agent/`. The wrapper enforces CI-parity
+  (hermetic env, `-n 4`).
+- **`[all]` is curated, not "everything".** It excludes `messaging`
+  (telegram/discord), `anthropic`, `edge-tts`, `honcho`, `voice`, etc.
+  `muse doctor` flagging those as "not installed" is expected; install the
+  specific extra only if you need that feature.
+
+### Running the agent (no cloud LLM credentials by default)
+
+`muse` needs an LLM endpoint; no provider API keys are present in this
+environment by default. To run end-to-end without paid credentials, point
+it at a **local OpenAI-compatible server** via `~/.hermes/config.yaml`:
+
+```yaml
+model:
+  default: "qwen2.5:3b"
+  provider: "custom"           # aliases: ollama, vllm, llamacpp
+  base_url: "http://127.0.0.1:11435/v1"
+  api_key: "ollama"
+  context_length: 65536        # muse requires >=64K declared; override for small models
+  ollama_num_ctx: 32768
+```
+
+Then: `muse chat -Q -t file -q "..."` (non-interactive; `-t` trims the
+toolset so the prompt/inference stay small — CPU inference on a 3B model is
+slow, ~1-2 min/turn).
+
+**Gotchas (non-obvious):**
+- The **latest Ollama prebuilt binary (0.30.x) segfaults** during model
+  warmup on this VM's CPU regardless of model. **Ollama 0.6.8 works** — its
+  GitHub release tarball runs fine (`ollama serve` started manually; systemd
+  is not available here). Models live under `~/.ollama/models`.
+- `muse` rejects models declaring `<64K` context with a hard init error;
+  use the `context_length` override above for small local models.
+- If a provider API key is added later (e.g. `OPENROUTER_API_KEY`), remove
+  the local `model.base_url`/`provider` overrides so `muse` uses the real
+  provider.
