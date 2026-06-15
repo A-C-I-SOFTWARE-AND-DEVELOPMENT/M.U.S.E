@@ -18,7 +18,7 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
 <tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
 <tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
-<tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
+<tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams, or run <code>/swarm</code> Grainler Parallel jobs — non-overlapping grains, each its own specialized LLM in an isolated git worktree, dated and ledgered. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
 <tr><td><b>Runs anywhere, not just your laptop</b></td><td>Seven terminal backends — local, Docker, SSH, Singularity, Modal, Daytona, and Vercel Sandbox. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
 <tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
 <tr><td><b>A full operating layer, not just a chatbot</b></td><td>MUSE ships as a runtime (<code>hermes_cli/jarvis_prime/</code>): six modes (Companion, Strategy, Critic, Operator, Builder, Mobile Voice), an intent/mode classifier, runtime persona injection, eight verification gates, owner-authorization, and an emergency stop. Invoke with <code>/jarvis</code>.</td></tr>
@@ -26,6 +26,9 @@ Use any model you want — [OpenRouter](https://openrouter.ai) (200+ models), [N
 <tr><td><b>An inspectable knowledge graph</b></td><td>GraphRAG unifies repo code, docs, Research Vault, Memory Tree, and ledgers into one typed, source-backed graph (measured 33,483 nodes over the repo as of 2026-06-10; see the attestation in the GraphRAG doc) with local, global, and coding query modes — so work reuses what already exists instead of rebuilding it.</td></tr>
 <tr><td><b>An autonomous-enterprise council</b></td><td>The AOS Enterprise Council — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files) spanning architecture, security, compliance, QA, release, product, psychology, HazMat Command, and more — convened for audits, launch readiness, and multi-perspective review.</td></tr>
 <tr><td><b>A native Android cockpit</b></td><td>Kotlin + Compose app (<code>apps/android/</code>) that pairs with the M.U.S.E. gateway: streaming chat, on-device voice intake, job control, lockscreen-style owner approvals, evidence/memory/graph views, and an emergency stop. No provider keys on the phone.</td></tr>
+<tr><td><b>A native desktop cockpit</b></td><td>A Tauri v2 + React desktop app (<code>apps/desktop/</code>) — Chat, Jobs, Approvals, Autonomy, and Settings surfaces speaking the same gateway protocol as the Android cockpit. Auto-built for macOS, Windows, and Linux via the <code>muse-desktop-latest</code> release channel; it talks only to your own local gateway and holds no keys.</td></tr>
+<tr><td><b>Federation &amp; sovereign nodes</b></td><td>Run MUSE as a sovereign node that federates with peers — TOFU peer-identity pinning, M-of-N quorum authorization wrapping the owner gates, cross-attestation, a content-addressed Forge, and a contributor trust ladder. See <a href="docs/federation/">docs/federation/</a>.</td></tr>
+<tr><td><b>Owner-gated self-improvement</b></td><td>Autoresearch (vendored training engine) and the SIA worker iterate in disposable sandboxes; winners never auto-merge — they surface only as reviewable, owner-gated proposals. See <a href="docs/integrations/autoresearch.md">autoresearch</a> and <a href="docs/integrations/sia-self-improvement.md">SIA</a>.</td></tr>
 </table>
 
 ---
@@ -40,17 +43,20 @@ MUSE is a governed, local-first AI operating partner: **one mind over a synaptic
 - **Goal-to-PR orchestration** — five primitives (Job, Worker, Model routing, Validation gate, Decision ledger) decompose a goal into a validated task graph and publish the result, auditing every decision in a tamper-evident ledger. See [`docs/orchestration/`](docs/orchestration/).
 - **AOS Enterprise Council** — a routed catalog of 233 registered agent roles + 108 sub-agent entries (registry tallies, not 341 standalone files; ~84 council agent files plus the general `agents/hermes/` skill library) for audits, hardening, launch readiness, and multi-perspective review. See [`skills/aos-enterprise-council/`](skills/aos-enterprise-council/).
 - **Eight verification gates + verifiable guardrails** — Planning, Build, Review, Test, Security, Release, Owner Approval, and Rollback — backed by a hash-chained, tamper-evident evidence ledger (`verify_chain()`). See [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md).
-- **A versioned Constitution + self-audit layer** — an append-only behavioral rubric (clauses `C1…Cn`, severity-rated) the agent is scored against, plus reward-hacking / Goodhart detection and a capability-band wall. See [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md).
+- **A versioned Constitution + self-audit layer** — an append-only behavioral rubric (clauses `C1…Cn`, severity-rated) the agent is scored against, plus reward-hacking / Goodhart detection and a capability-band wall. The federated-governance volume adds an Anti-Goal Covenant (clauses `C35–C37`) and M-of-N quorum authorization over the owner gates. See [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) and [`docs/federation/`](docs/federation/).
 - **Owner control by construction** — owner-gated actions (spend, deploy, publish, OAuth, credential change, package publish, regulated claims) defer until you reply exactly `Yes, with authorization.`; a workspace-scoped high-autonomy coding mode auto-approves only local friction and never weakens those gates; and every self-update is a reviewable proposal, never a silent rewrite.
-- **Free-first model routing + a closed learning loop** — routes local OSS → hosted-free → official Claude Code / Codex worker lanes → paid (opt-in only), choosing per task class from measured scorecards; an owner-approved pipeline (SFT → ORPO/DPO → GRPO) promotes a model only when it beats the incumbent on a held-out benchmark wall. See [`docs/ai-intelligence/`](docs/ai-intelligence/).
-- **Native Android cockpit + voice-first** — a Kotlin/Compose app ([`apps/android/`](apps/android/)) pairing to the cockpit gateway: streaming chat, on-device voice intake, job control, owner approvals, evidence/memory/graph views, autonomy controls, and an emergency stop — with a clipboard-handoff fallback when unpaired. Provider keys never leave the gateway.
-- **Runs where you are** — native Windows support ([`scripts/install.ps1`](scripts/install.ps1), a scheduled-task service with a locked-down fallback, portable Git, no admin) alongside the Linux/macOS/WSL2 and Termux paths.
+- **Free-first model routing + a closed learning loop** — routes local OSS → hosted-free → official Claude Code / Codex worker lanes → paid (opt-in only), choosing per task class from measured scorecards; an owner-approved pipeline (SFT → ORPO/DPO → GRPO) promotes a model only when it beats the incumbent on a held-out benchmark wall. A validated, source-backed learning-dataset pipeline and a license-aware open-data-sources registry feed fine-tuning, retrieval, and the benchmark wall. See [`docs/ai-intelligence/`](docs/ai-intelligence/).
+- **Owner-gated self-improvement engines** — the SIA worker ([`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)) and the vendored autoresearch training engine ([`docs/integrations/autoresearch.md`](docs/integrations/autoresearch.md)) iterate in disposable, cost-ceilinged sandboxes; MUSE promotes a winner only as a reviewable proposal, never a silent rewrite.
+- **Federation & sovereign nodes** — run MUSE as a sovereign node that federates with peers: TOFU peer-identity pinning, M-of-N quorum authorization, cross-attestation, a content-addressed Forge with a poison-filtered intake, and a contributor trust ladder. See [`docs/federation/`](docs/federation/).
+- **An inspectable architecture map** — a machine-readable component registry (with a drift test), dataflow diagrams, work-packet / remote-worker schemas, and a technology-disposition matrix. See [`docs/architecture/`](docs/architecture/).
+- **Native Android + desktop cockpits + voice-first** — a Kotlin/Compose Android app ([`apps/android/`](apps/android/)) and a Tauri v2 + React desktop app ([`apps/desktop/`](apps/desktop/)) pairing to the cockpit gateway: streaming chat, on-device voice intake, job control, owner approvals, evidence/memory/graph views, autonomy controls, and an emergency stop — with a clipboard-handoff fallback when unpaired. Provider keys never leave the gateway.
+- **Runs where you are** — native Windows support ([`scripts/install.ps1`](scripts/install.ps1), a scheduled-task service with a locked-down fallback, portable Git, no admin) alongside the Linux/macOS/WSL2 and Termux paths, plus a one-click VPS deploy and one-click update across Android, desktop, and CLI.
 
 ---
 
 ## MUSE Operating Layer
 
-> **Status — runtime shipped (v1.0.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. See [`docs/launch/RELEASE_NOTES_v1.0.0.md`](docs/launch/RELEASE_NOTES_v1.0.0.md) for the full launch notes.
+> **Status — runtime shipped (v1.1.0).** The operating contract, mode taxonomy, routing rules, and skill descriptions for MUSE live as `docs/jarvis-*.md` and `skills/jarvis-*`. The runtime (mode classifier, personality injection, verification-gate enforcement, owner-authorization mechanism, emergency stop, memory CLI) ships in `hermes_cli/jarvis_prime/` and is activated from the interactive `muse` CLI via `/jarvis`, `/jp`, or `/jarvis-prime`. v1.1.0 adds the one-command free-first launch, Claude Code / Codex worker lanes, and single-editor branch leasing. See the launch notes for [`v1.1.0`](docs/launch/RELEASE_NOTES_v1.1.0.md) and [`v1.0.0`](docs/launch/RELEASE_NOTES_v1.0.0.md).
 
 MUSE is a governed, local-first AI operating layer for users who want an active command center rather than a passive chatbot — a single identity (the *mind*) over a synaptic substrate (M.U.S.E.: the gateway, routing, and model pathways) that coordinates conversation, tools, memory, local verification, and platform surfaces while preserving owner control.
 
@@ -158,6 +164,16 @@ If you already have Git installed, the installer detects it and uses that instea
 > **Android / Termux:** The tested manual path is documented in the [Termux guide](https://hermes-agent.nousresearch.com/docs/getting-started/termux). On Termux, M.U.S.E. installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies. **A native Android companion app** (Kotlin + Compose) lives at [`apps/android`](apps/android/) — see [Android Native App](#android-native-app) below.
 >
 > **Windows:** Native Windows is supported as an **early beta** — the PowerShell one-liner above installs everything, but expect rough edges and please file issues when you hit them. If you'd rather use WSL2 (our most battle-tested Windows path), the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\hermes`; WSL2 installs under `~/.hermes` as on Linux.  The only M.U.S.E. feature that currently needs WSL2 specifically is the browser-based dashboard chat pane (it uses a POSIX PTY — classic CLI and gateway both run natively).
+
+### Deploy 24/7 on a VPS (one-click)
+
+Take a bare Ubuntu/Debian VPS to a M.U.S.E. instance running around the clock — gateway online, free-first model routing wired up, and the dashboard reachable securely — with one dispatcher that auto-picks Docker or native:
+
+```bash
+bash scripts/quickstart.sh        # auto: Docker if available, else native
+```
+
+Full walkthrough (SSH tunnel / authenticated proxy, backups, model routing): [`docs/deploy/vps-deployment-guide.md`](docs/deploy/vps-deployment-guide.md).
 
 After installation:
 
@@ -296,6 +312,27 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 **Release AAB for Google Play:** see [`apps/android/README.md`](apps/android/README.md#release-aab-for-google-play). CI builds the debug APK on every change via [`.github/workflows/android-build.yml`](.github/workflows/android-build.yml).
 
 Architecture, wire format, and the deliberate "no embedded Python" decision are documented in [`apps/android/docs/ARCHITECTURE.md`](apps/android/docs/ARCHITECTURE.md).
+
+---
+
+## Desktop App
+
+A native desktop cockpit lives at [`apps/desktop`](apps/desktop/) — a **Tauri v2** shell wrapping the lean **Singularity** client (Vite + React 19 + TypeScript). It speaks the same gateway protocol as the browser and Android cockpits: bearer-token pairing (owner-phrase gated), SSE job streams, and NDJSON chat. It holds **no provider keys** and talks only to a gateway you control (default `http://127.0.0.1:8765`).
+
+**Surfaces:** Home, Chat, Jobs, Approvals, Autonomy, Observatory, and Settings.
+
+**One installable — the app starts the brain.** On launch the shell probes `GET /v1/health`; if the gateway is down and an installed `muse` CLI is found, it spawns `muse cockpit serve` as a managed child (Rust-side only — the webview gets no shell permission). It never spawns over a running gateway, and a gateway you started yourself is never touched.
+
+**Install the latest build:** download from the `muse-desktop-latest` [release](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest) — macOS `.dmg`, Windows `-setup.exe`, or Linux `.AppImage` / `.deb`. Unsigned builds may warn about an unknown developer until signing certs are provisioned.
+
+**Build it yourself:**
+
+```bash
+cd apps/desktop/ui && npm install && npm run build      # production UI bundle
+cd ../src-tauri && cargo tauri build                    # native installer for this OS
+```
+
+The UI is also an installable PWA. Prerequisites, the gateway-autostart contract, and the CI lane are documented in [`apps/desktop/README.md`](apps/desktop/README.md).
 
 ---
 
