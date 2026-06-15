@@ -284,14 +284,20 @@ def _active_jobs() -> tuple[list[dict[str, Any]], int]:
 # ---------------------------------------------------------------------------
 
 
-def observatory_snapshot(_req: Request) -> JsonResponse:
+def observatory_snapshot(req: Request) -> JsonResponse:
     """One-call Observatory boot: graph clusters + stations + ladder + rollup.
 
     Read-only (spec §3.1). Graph section is the documented ``unavailable``
     shape until the GraphRAG cache is built; ladder/rollup sections are
     honestly empty until events are recorded.
+
+    ``?layout=solar`` re-arranges the super-node clusters into the deterministic
+    "Nero Solar System" orbital layout (Nero Core at the origin); any other
+    value (default ``force``) keeps the cached force-directed positions.
     """
     from .handlers import _now_iso
+
+    layout_mode = (req.query.get("layout") or "force").strip().lower()
 
     try:
         from gateway.cockpit import observatory_metrics as om
@@ -309,6 +315,20 @@ def observatory_snapshot(_req: Request) -> JsonResponse:
     else:
         clusters = [dict(c) for c in summary["clusters"]]
         _apply_measured_cluster_heat(clusters, collector)
+        layout_algo = summary["layout_algo"]
+        if layout_mode == "solar":
+            # Overlay deterministic solar positions onto this request's copy
+            # only — the cached force-directed summary is never mutated.
+            positions = _layout_engine.solar_layout(
+                summary["clusters"],
+                summary["cluster_edges"],
+                _layout_engine.seed_from(summary["graph_version"], "solar"),
+            )
+            for cluster in clusters:
+                pos = positions.get(cluster["id"])
+                if pos is not None:
+                    cluster["pos"] = list(pos)
+            layout_algo = _layout_engine.solar_layout_algo()
         graph_section = {
             "graph_version": summary["graph_version"],
             "node_count": summary["node_count"],
@@ -318,7 +338,7 @@ def observatory_snapshot(_req: Request) -> JsonResponse:
             "clusters_total": summary["clusters_total"],
             "clusters_truncated": summary["clusters_truncated"],
             "layout_status": "computed",  # real positions from the engine
-            "layout_algo": summary["layout_algo"],  # which algorithm ran
+            "layout_algo": layout_algo,  # which algorithm ran
         }
 
     active, queue_depth = _active_jobs()

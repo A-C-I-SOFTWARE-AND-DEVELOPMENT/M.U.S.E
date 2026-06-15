@@ -843,3 +843,42 @@ struct SYNAPSEOBSERVATORY_API FObsStreamEvent
 	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
 	FString Ts;
 };
+
+/** One fused action from GET /v1/observatory/actions — the live "neural network
+ *  wallpaper" feed (gateway `action_fusion.py`). Every field comes verbatim from
+ *  a really-recorded source event; nothing is invented. The `kind` vocabulary is
+ *  closed (see gateway action_fusion.KINDS) so renderers can pin a finite switch. */
+USTRUCT(BlueprintType)
+struct SYNAPSEOBSERVATORY_API FObsActionEvent
+{
+	GENERATED_BODY()
+
+	/** JSON `kind` — cluster.spark | pipeline.packet | gate.flare | ladder.streak
+	 *  | owner.pulse | agent.pulse | skill.pulse | system.pulse | audit.flare. */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString Kind;
+
+	/** JSON `source` — collector | flywheel | cockpit | axiom (provenance). */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString Source;
+
+	/** JSON `target.cluster_id` — present for cluster-targeted actions; else empty. */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString ClusterId;
+
+	/** JSON `target.job_id` — present for job-targeted actions; else empty. */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString JobId;
+
+	/** JSON `label` — short human/visual label (from real fields only). */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString Label;
+
+	/** JSON `weight` — real numeric when the source carries one, else 1.0. */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	float Weight = 1.0f;
+
+	/** JSON `severity` — info | warn | error | critical. */
+	UPROPERTY(BlueprintReadOnly, Category = "Observatory")
+	FString Severity;
+};

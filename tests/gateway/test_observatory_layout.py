@@ -115,6 +115,66 @@ def test_seed_from_is_stable_and_version_sensitive() -> None:
     assert ole.seed_from("g-x", "c-1") != ole.seed_from("g-x", "c-2")
 
 
+# ── solar_layout (Nero Solar System) ─────────────────────────────────────────
+
+
+def test_solar_layout_deterministic_same_seed() -> None:
+    clusters, edges = _clusters(20), _ring_edges(20)
+    a = ole.solar_layout(clusters, edges, seed=42)
+    b = ole.solar_layout(clusters, edges, seed=42)
+    assert a == b  # byte-identical, not merely close
+
+
+def test_solar_layout_different_seed_differs() -> None:
+    clusters, edges = _clusters(20), _ring_edges(20)
+    assert ole.solar_layout(clusters, edges, seed=1) != ole.solar_layout(
+        clusters, edges, seed=2
+    )
+
+
+def test_solar_layout_within_box_and_off_the_core() -> None:
+    clusters, edges = _clusters(40), _ring_edges(40)
+    pos = ole.solar_layout(clusters, edges, seed=7)
+    assert set(pos) == {c["id"] for c in clusters}  # every cluster, no extras
+    for p in pos.values():
+        assert all(abs(c) <= ole.BOX_HALF + 1e-6 for c in p)
+        # The origin is the Nero Core (the sun) — no planet may sit on it.
+        assert math.dist(p, (0.0, 0.0, 0.0)) > 0.0
+    # Non-degenerate: bodies do not collapse onto one another.
+    assert len(set(pos.values())) == len(clusters)
+
+
+def test_solar_layout_ignores_edges() -> None:
+    # Placement is geometric, so cluster_edges must not change the result.
+    clusters = _clusters(15)
+    assert ole.solar_layout(clusters, _ring_edges(15), seed=3) == ole.solar_layout(
+        clusters, [], seed=3
+    )
+
+
+def test_solar_layout_heavier_clusters_take_inner_orbits() -> None:
+    # _clusters sets members = 10 + i, so higher index = heavier. The heaviest
+    # cluster must orbit closer to the core than the lightest.
+    clusters = _clusters(30)
+    pos = ole.solar_layout(clusters, [], seed=9)
+    heaviest = max(clusters, key=lambda c: c["members"])["id"]
+    lightest = min(clusters, key=lambda c: c["members"])["id"]
+    assert math.dist(pos[heaviest], (0.0, 0.0, 0.0)) < math.dist(
+        pos[lightest], (0.0, 0.0, 0.0)
+    )
+
+
+def test_solar_layout_edge_cases() -> None:
+    assert ole.solar_layout([], [], seed=1) == {}
+    solo = ole.solar_layout([{"id": "c-solo", "members": 5}], [], seed=1)
+    assert set(solo) == {"c-solo"}
+    assert math.dist(solo["c-solo"], (0.0, 0.0, 0.0)) > 0.0  # not on the sun
+
+
+def test_solar_layout_algo_label() -> None:
+    assert ole.solar_layout_algo() == ole.ALGO_SOLAR
+
+
 # ── member_layout ────────────────────────────────────────────────────────────
 
 
@@ -268,3 +328,24 @@ def test_member_layout_memoized_per_cluster(home: Path) -> None:
     cached = summary["_member_layouts"][cid]
     h.observatory_layout(req)
     assert summary["_member_layouts"][cid] is cached  # reused, not recomputed
+
+
+def test_snapshot_solar_layout_overlays_positions(home: Path) -> None:
+    _seed_graph(home)
+    force = h.observatory_snapshot(h.Request(method="GET", path="x"))
+    solar = h.observatory_snapshot(
+        h.Request(method="GET", path="x", query={"layout": "solar"})
+    )
+    assert force.status == solar.status == 200
+    # Default path keeps the force-directed algo; solar reports its own label.
+    assert force.payload["graph"]["layout_algo"] in {ole.ALGO_FR3D, ole.ALGO_NX_SPRING}
+    assert solar.payload["graph"]["layout_algo"] == ole.ALGO_SOLAR
+    fpos = {c["id"]: tuple(c["pos"]) for c in force.payload["graph"]["clusters"]}
+    spos = {c["id"]: tuple(c["pos"]) for c in solar.payload["graph"]["clusters"]}
+    assert set(fpos) == set(spos)  # same real clusters, none fabricated
+    for p in spos.values():
+        assert all(abs(c) <= ole.BOX_HALF + 1e-6 for c in p)
+    # The overlay must not corrupt the cached force-directed summary: asking
+    # for the default layout again still returns the force positions.
+    again = h.observatory_snapshot(h.Request(method="GET", path="x"))
+    assert {c["id"]: tuple(c["pos"]) for c in again.payload["graph"]["clusters"]} == fpos
