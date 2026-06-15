@@ -7,7 +7,7 @@ from cli import HermesCLI
 
 # Shared patch so all status-bar tests see the real model slug
 # rather than the "Axiom" collective brand when fusion is active.
-_no_fusion = patch("cli.should_use_fusion", return_value=False)
+_no_fusion = patch("agent.fusion_router.should_use_fusion", return_value=False)
 
 
 def _make_cli(model: str = "anthropic/claude-sonnet-4-20250514"):

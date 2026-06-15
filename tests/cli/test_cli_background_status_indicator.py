@@ -39,8 +39,7 @@ def _make_cli():
 # model display path (model slug visible, ▶ N background indicator
 # appended after it).  The fusion/Axiom display path is covered by
 # the fusion-specific test suite.
-# -------------------------------------------------------------------
-_no_fusion = patch("cli.should_use_fusion", return_value=False)
+_no_fusion = patch("agent.fusion_router.should_use_fusion", return_value=False)
 
 
 def test_snapshot_reports_zero_when_no_background_tasks():
