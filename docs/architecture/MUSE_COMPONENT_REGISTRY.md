@@ -33,6 +33,22 @@ canonical `owner_auth.OWNER_GATED_ACTIONS` frozenset all raise loudly. The
 registry therefore *references* the single source of truth for owner gates
 (Constitution C9) and can never quietly grow a second copy.
 
+### From the CLI
+
+The same registry is browsable read-only from the `jarvis_prime` CLI:
+
+```bash
+# list every component (add --json for machine output)
+python -m hermes_cli.jarvis_prime architecture list
+
+# filter by kind, risk class, or owner-gated reach
+python -m hermes_cli.jarvis_prime architecture list --kind governance
+python -m hermes_cli.jarvis_prime architecture list --owner-gated --risk RC4
+
+# show one component's full record
+python -m hermes_cli.jarvis_prime architecture show owner_authorization
+```
+
 ## The components
 
 ### Surfaces — where you talk to M.U.S.E

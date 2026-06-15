@@ -1049,6 +1049,70 @@ def _cmd_data_sources_register_vault(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- component architecture registry ---------------------------------------
+
+
+def _architecture_pool(args: argparse.Namespace):
+    """Resolve the component registry, honoring an optional --registry override."""
+    from hermes_cli.jarvis_prime.component_registry import load_registry
+
+    path = Path(args.registry) if getattr(args, "registry", None) else None
+    return load_registry(path)
+
+
+def _cmd_architecture_list(args: argparse.Namespace) -> int:
+    components = _architecture_pool(args)
+    if getattr(args, "kind", None):
+        components = [c for c in components if c.kind == args.kind]
+    if getattr(args, "risk", None):
+        components = [c for c in components if c.risk_class == args.risk]
+    if getattr(args, "owner_gated", False):
+        components = [c for c in components if c.is_owner_gated]
+
+    if getattr(args, "json", False):
+        _print_json([c.to_dict() for c in components])
+        return 0
+    if not components:
+        print("no matching components")
+        return 0
+    for c in components:
+        gate = "GATED" if c.is_owner_gated else ""
+        print(
+            f"{c.id:<22}  {c.kind:<13}  {c.risk_class:<4}  {gate:<5}  "
+            f"{c.name}".rstrip()
+        )
+    return 0
+
+
+def _cmd_architecture_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.component_registry import get
+
+    comp = get(args.component_id, components=_architecture_pool(args))
+    if comp is None:
+        print(f"unknown component: {args.component_id!r}", file=sys.stderr)
+        return 1
+    if getattr(args, "json", False):
+        _print_json(comp.to_dict())
+        return 0
+    d = comp.to_dict()
+    for label in (
+        "name",
+        "kind",
+        "risk_class",
+        "owner_module",
+        "entrypoints",
+        "capabilities",
+        "owner_gated_actions",
+        "is_owner_gated",
+        "tests",
+        "rollback",
+        "observability",
+        "docs",
+    ):
+        print(f"{label:>20}: {d[label]}")
+    return 0
+
+
 def _cmd_handoff(args: argparse.Namespace) -> int:
     packet_path = Path(args.packet)
     if not packet_path.is_file():
@@ -2575,6 +2639,60 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
     p_data_reg.add_argument("--json", action="store_true")
     p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
+
+    # architecture — machine-readable M.U.S.E component registry (read-only).
+    # Inventory lives in docs/architecture/muse-component-registry.yaml and is
+    # the source of truth behind docs/architecture/MUSE_COMPONENT_REGISTRY.md.
+    p_arch = sub.add_parser(
+        "architecture",
+        help="M.U.S.E component registry: list/show components, owners, risk, gates",
+        description=(
+            "Browse the inspectable component registry inventoried in "
+            "docs/architecture/muse-component-registry.yaml (the source of truth "
+            "behind docs/architecture/MUSE_COMPONENT_REGISTRY.md): each "
+            "component's owner module, capabilities, risk class, and the "
+            "owner-gated actions it can reach. Read-only."
+        ),
+    )
+    p_arch_sub = p_arch.add_subparsers(dest="architecture_command", required=True)
+
+    p_arch_list = p_arch_sub.add_parser("list", help="List registry components")
+    p_arch_list.add_argument(
+        "--kind",
+        choices=(
+            "surface",
+            "runtime",
+            "orchestration",
+            "cognition",
+            "governance",
+            "integration",
+            "worker",
+            "provider",
+        ),
+        help="Filter by component kind",
+    )
+    p_arch_list.add_argument(
+        "--risk",
+        choices=("RC0", "RC1", "RC2", "RC3", "RC4"),
+        help="Filter by risk class",
+    )
+    p_arch_list.add_argument(
+        "--owner-gated",
+        dest="owner_gated",
+        action="store_true",
+        help="Only components that can reach an owner-gated action",
+    )
+    p_arch_list.add_argument("--registry", help="Override registry YAML path")
+    p_arch_list.add_argument("--json", action="store_true")
+    p_arch_list.set_defaults(func=_cmd_architecture_list)
+
+    p_arch_show = p_arch_sub.add_parser("show", help="Show one component by id")
+    p_arch_show.add_argument(
+        "component_id", help="Component id (e.g. owner_authorization)"
+    )
+    p_arch_show.add_argument("--registry", help="Override registry YAML path")
+    p_arch_show.add_argument("--json", action="store_true")
+    p_arch_show.set_defaults(func=_cmd_architecture_show)
 
     # self-audit — a Petri-style auditor->target->judge loop that scores JARVIS
     # behavior against the JARVIS Constitution (docs/jarvis-constitution.md).
