@@ -308,6 +308,7 @@ Read in this order:
 | Worker adapters | [orchestration/worker-adapters.md](orchestration/worker-adapters.md) |
 | Open data sources for training MUSE | [ai-intelligence/top-open-data-sources-for-training.md](ai-intelligence/top-open-data-sources-for-training.md) |
 | NVIDIA Deep Learning Software stack (provenance registry) | [ai-intelligence/nvidia-deep-learning-software.md](ai-intelligence/nvidia-deep-learning-software.md) |
+| Use the NVIDIA / CUDA tools on any device (install + container + remote GPU) | [gpu/using-nvidia-tools-anywhere.md](gpu/using-nvidia-tools-anywhere.md) |
 | MUSE Constitution (the behavioral rubric) | [jarvis-constitution.md](jarvis-constitution.md) |
 | Deconstruct "Mythos" → reconstruct into MUSE | [jarvis_architecture/MYTHOS_RECONSTRUCTION.md](jarvis_architecture/MYTHOS_RECONSTRUCTION.md) |
 | Composable agent design patterns | [orchestration/agent-design-patterns.md](orchestration/agent-design-patterns.md) |

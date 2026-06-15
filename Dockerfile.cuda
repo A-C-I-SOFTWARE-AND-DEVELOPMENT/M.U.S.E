@@ -1,0 +1,43 @@
+# Dockerfile.cuda — run MUSE inside a CUDA-capable container, identically on any
+# Linux host that has an NVIDIA GPU + driver + the NVIDIA Container Toolkit.
+#
+# This is the most portable way to "use the NVIDIA tools on any device": the same
+# image runs everywhere, no per-machine CUDA install. Build/run it with the
+# scripts/muse-gpu.sh helper, or directly:
+#
+#   docker build -f Dockerfile.cuda -t muse-cuda:local .
+#   docker run --rm --gpus all muse-cuda:local nvidia-smi
+#
+# Override the base image to pin a different CUDA/cuDNN/OS combo:
+#   docker build -f Dockerfile.cuda \
+#     --build-arg CUDA_IMAGE=nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04 -t muse-cuda:local .
+#
+# The default base ships nvcc, the CUDA libraries, and cuDNN (the "-cudnn-devel"
+# tag). See https://hub.docker.com/r/nvidia/cuda for available tags.
+
+ARG CUDA_IMAGE=nvidia/cuda:12.6.2-cudnn-devel-ubuntu24.04
+FROM ${CUDA_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1
+
+# Python + git + build basics. (The CUDA toolkit itself is already in the base.)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      python3 python3-pip python3-venv git ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/*
+
+# Fast, reproducible installs.
+RUN pip install --no-cache-dir uv
+
+WORKDIR /work
+# Install MUSE's Python deps first (better layer caching), then the source.
+COPY pyproject.toml ./
+RUN uv pip install --system -e . || pip install -e . || true
+COPY . .
+RUN pip install --no-cache-dir -e . || true
+
+# Default: drop into a shell. Override the command to run anything, e.g.
+#   docker run --rm --gpus all muse-cuda:local python -m hermes_cli.jarvis_prime nvidia-dl-software list
+CMD ["bash"]

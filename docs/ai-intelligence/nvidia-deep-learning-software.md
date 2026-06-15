@@ -109,3 +109,10 @@ python -m hermes_cli.jarvis_prime nvidia-dl-software register-vault --store /tmp
 The default vault lives at `~/.hermes/jarvis_prime/research_vault.jsonl`
 (honoring `HERMES_HOME`), written with `0600` permissions. Override the registry
 path with `--registry` or `HERMES_NVIDIA_DL_SOFTWARE_REGISTRY`.
+
+## Actually using these tools
+
+This registry is *knowledge about* the tools — to install and run CUDA and the
+NVIDIA dev tools on your machine(s), see
+[Using the NVIDIA tools on any device](../gpu/using-nvidia-tools-anywhere.md)
+(install script, portable container, and the remote-GPU handoff for phones/Macs).
