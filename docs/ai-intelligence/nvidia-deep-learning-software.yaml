@@ -1,0 +1,459 @@
+# NVIDIA Deep Learning Software registry.
+#
+# Machine-readable source of truth behind
+# docs/ai-intelligence/nvidia-deep-learning-software.md. Loaded by
+# hermes_cli/jarvis_prime/nvidia_dl_software.py and bridged into the Research
+# Vault so the JARVIS pipeline can cite NVIDIA's deep-learning software stack
+# (frameworks, inference, libraries, and developer/devops tools) with provenance.
+#
+# MUSE is hardware-agnostic and local-first: nothing here is downloaded, built,
+# or executed. We store provenance cards only (purpose, capabilities, canonical
+# URIs, license posture). Several of these are proprietary NVIDIA components
+# under the NVIDIA Software License / EULA.
+#
+# Capture note: the live page https://developer.nvidia.com/deep-learning-software
+# returned HTTP 403 to every available fetcher on 2026-06-15, so entries were
+# reconstructed from NVIDIA's official sub-pages plus web search. Every entry is
+# therefore evidence_strength: vendor_reported and its license_notes asks the
+# reader to re-verify the URI/details at ingest.
+#
+# Field reference:
+#   rank              ordering across the page (unique)
+#   key               stable slug used by the CLI and code (unique)
+#   name              human name
+#   section           page grouping: Frameworks | Inference | Libraries |
+#                     Developer and DevOps Tools
+#   category          framework | inference-sdk | inference-server |
+#                     inference-integration | library | profiler |
+#                     orchestration | visualization
+#   purpose           one-line description
+#   capabilities      bullet capabilities (free-text list)
+#   interfaces        gui | cli | both | library | sdk
+#   requires_gpu      true if it needs an NVIDIA GPU to run
+#   license           open-source | proprietary | mixed
+#   official_uri      canonical NVIDIA product/landing page
+#   source_uris       canonical URLs (first is used as the vault source_uri)
+#   license_notes     licensing posture + capture caveat
+#   evidence_strength primary | strong | moderate | weak | vendor_reported
+#                     (matches research_vault.EvidenceStrength)
+
+version: 1
+as_of: "2026-06-15"
+
+source_page: "https://developer.nvidia.com/deep-learning-software"
+
+tools:
+  # --- Frameworks ----------------------------------------------------------
+  - rank: 1
+    key: pytorch
+    name: "PyTorch (NVIDIA-optimized)"
+    section: "Frameworks"
+    category: framework
+    purpose: >-
+      GPU-accelerated PyTorch deep-learning framework, distributed by NVIDIA as
+      tuned NGC containers for high-performance multi-GPU training and inference.
+    capabilities:
+      - "Define, train, and validate deep neural networks via a high-level API"
+      - "Multi-GPU / multi-node accelerated training on NVIDIA GPUs"
+      - "Ships as monthly-tuned NGC containers with cuDNN/NCCL/DALI baked in"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/deep-learning-frameworks"
+    source_uris:
+      - "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/pytorch"
+      - "https://developer.nvidia.com/deep-learning-frameworks"
+    license_notes: >-
+      PyTorch itself is open source (BSD-3-Clause); NVIDIA's optimized container
+      builds bundle proprietary NVIDIA libraries under the NVIDIA Deep Learning
+      Container license. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 2
+    key: tensorflow
+    name: "TensorFlow (NVIDIA-optimized)"
+    section: "Frameworks"
+    category: framework
+    purpose: >-
+      GPU-accelerated TensorFlow deep-learning framework, distributed by NVIDIA
+      as tuned NGC containers for high-performance training and inference.
+    capabilities:
+      - "Build and train deep neural networks via a high-level API"
+      - "Multi-GPU / multi-node accelerated training on NVIDIA GPUs"
+      - "Integrates NCCL for multi-GPU/multi-node collective communication"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/deep-learning-frameworks"
+    source_uris:
+      - "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/tensorflow"
+      - "https://developer.nvidia.com/deep-learning-frameworks"
+    license_notes: >-
+      TensorFlow itself is open source (Apache-2.0); NVIDIA's optimized container
+      builds bundle proprietary NVIDIA libraries under the NVIDIA Deep Learning
+      Container license. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 3
+    key: jax
+    name: "JAX (NVIDIA-optimized)"
+    section: "Frameworks"
+    category: framework
+    purpose: >-
+      GPU-accelerated JAX numerical-computing / deep-learning framework,
+      distributed by NVIDIA as tuned NGC containers for accelerated training.
+    capabilities:
+      - "Composable function transformations (grad, jit, vmap, pmap)"
+      - "XLA-compiled, multi-GPU accelerated training on NVIDIA GPUs"
+      - "Ships as NVIDIA-tuned NGC containers"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/deep-learning-frameworks"
+    source_uris:
+      - "https://catalog.ngc.nvidia.com/orgs/nvidia/containers/jax"
+      - "https://developer.nvidia.com/deep-learning-frameworks"
+    license_notes: >-
+      JAX itself is open source (Apache-2.0); NVIDIA's optimized container builds
+      bundle proprietary NVIDIA libraries under the NVIDIA Deep Learning
+      Container license. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  # --- Inference -----------------------------------------------------------
+  - rank: 4
+    key: tensorrt
+    name: "NVIDIA TensorRT"
+    section: "Inference"
+    category: inference-sdk
+    purpose: >-
+      SDK and ecosystem of compilers, runtimes, and model optimizations for
+      high-performance, low-latency deep-learning inference in production.
+    capabilities:
+      - "Inference compiler + runtime for optimized deployment"
+      - "Layer/tensor fusion, precision calibration (INT8/FP8), kernel autotuning"
+      - "Low latency, high throughput across data center and edge"
+    interfaces: sdk
+    requires_gpu: true
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/tensorrt"
+    source_uris:
+      - "https://developer.nvidia.com/tensorrt"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA; free to download and use,
+      redistribution restricted. Live page 403-blocked on capture (2026-06-15) —
+      verify URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 5
+    key: tensorrt-llm
+    name: "NVIDIA TensorRT-LLM"
+    section: "Inference"
+    category: inference-sdk
+    purpose: >-
+      Open-source library that compiles and optimizes large language models for
+      efficient inference on NVIDIA GPUs using the TensorRT backend.
+    capabilities:
+      - "Optimized LLM inference: in-flight batching, paged KV cache"
+      - "Tensor/pipeline parallelism for multi-GPU serving"
+      - "Quantization (FP8/INT4/INT8) and speculative decoding"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://github.com/NVIDIA/TensorRT-LLM"
+    source_uris:
+      - "https://github.com/NVIDIA/TensorRT-LLM"
+      - "https://developer.nvidia.com/tensorrt"
+    license_notes: >-
+      Open source (Apache-2.0) but depends on the proprietary TensorRT runtime
+      and CUDA stack. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 6
+    key: triton-inference-server
+    name: "NVIDIA Triton Inference Server"
+    section: "Inference"
+    category: inference-server
+    purpose: >-
+      Open-source inference-serving software that standardizes model deployment
+      and execution across frameworks, on GPU or CPU, in production.
+    capabilities:
+      - "Serve models from many backends (TensorRT, PyTorch, ONNX, Python, …)"
+      - "Dynamic batching, concurrent model execution, model ensembles"
+      - "HTTP/gRPC endpoints with metrics for production deployment"
+    interfaces: both
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/triton-inference-server"
+    source_uris:
+      - "https://developer.nvidia.com/triton-inference-server"
+      - "https://github.com/triton-inference-server/server"
+    license_notes: >-
+      Open source (BSD-3-Clause). GPU acceleration relies on the proprietary CUDA
+      stack. Live page 403-blocked on capture (2026-06-15) — verify URI/details
+      at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 7
+    key: tensorrt-model-optimizer
+    name: "NVIDIA TensorRT Model Optimizer"
+    section: "Inference"
+    category: inference-sdk
+    purpose: >-
+      Library of post-training and training-in-the-loop model-optimization
+      techniques (quantization, sparsity, distillation) to compress models for
+      faster inference with TensorRT / TensorRT-LLM.
+    capabilities:
+      - "Post-training quantization and quantization-aware training"
+      - "Sparsity and knowledge distillation"
+      - "Exports optimized checkpoints for TensorRT / TensorRT-LLM"
+    interfaces: library
+    requires_gpu: true
+    license: mixed
+    official_uri: "https://github.com/NVIDIA/TensorRT-Model-Optimizer"
+    source_uris:
+      - "https://github.com/NVIDIA/TensorRT-Model-Optimizer"
+      - "https://developer.nvidia.com/tensorrt"
+    license_notes: >-
+      Toolkit is open source (Apache-2.0) but targets the proprietary TensorRT
+      runtime and CUDA stack (mixed posture). Live page 403-blocked on capture
+      (2026-06-15) — verify URI/details at ingest. MUSE stores a provenance card
+      only.
+    evidence_strength: vendor_reported
+
+  - rank: 8
+    key: tf-trt
+    name: "TensorFlow-TensorRT (TF-TRT)"
+    section: "Inference"
+    category: inference-integration
+    purpose: >-
+      Deep-learning compiler that integrates TensorRT into TensorFlow, optimizing
+      TF models for inference on NVIDIA devices.
+    capabilities:
+      - "Transparently converts supported TF subgraphs to TensorRT engines"
+      - "Falls back to native TF for unsupported ops"
+      - "Reduced-precision (FP16/INT8) inference inside TensorFlow"
+    interfaces: library
+    requires_gpu: true
+    license: mixed
+    official_uri: "https://docs.nvidia.com/deeplearning/frameworks/tf-trt-user-guide/index.html"
+    source_uris:
+      - "https://docs.nvidia.com/deeplearning/frameworks/tf-trt-user-guide/index.html"
+    license_notes: >-
+      TF-TRT integration ships with TensorFlow (Apache-2.0) but wraps the
+      proprietary TensorRT runtime (mixed posture). Live page 403-blocked on
+      capture (2026-06-15) — verify URI/details at ingest. MUSE stores a
+      provenance card only.
+    evidence_strength: vendor_reported
+
+  # --- Libraries -----------------------------------------------------------
+  - rank: 9
+    key: cudnn
+    name: "NVIDIA cuDNN (CUDA Deep Neural Network library)"
+    section: "Libraries"
+    category: library
+    purpose: >-
+      GPU-accelerated library of primitives for deep neural networks, providing
+      highly tuned implementations of standard routines.
+    capabilities:
+      - "Forward/backward convolution, pooling, normalization, activation"
+      - "Tuned kernels exploiting Tensor Cores"
+      - "Foundation under every major DL framework"
+    interfaces: library
+    requires_gpu: true
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/cudnn"
+    source_uris:
+      - "https://developer.nvidia.com/cudnn"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA; free to use, redistribution
+      restricted. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 10
+    key: nccl
+    name: "NVIDIA NCCL (Collective Communications Library)"
+    section: "Libraries"
+    category: library
+    purpose: >-
+      Library implementing multi-GPU and multi-node collective communication
+      primitives optimized for NVIDIA GPUs and networking topology.
+    capabilities:
+      - "All-reduce, broadcast, reduce, all-gather, reduce-scatter primitives"
+      - "Topology-aware multi-GPU / multi-node scaling"
+      - "Integrated into TensorFlow/PyTorch to accelerate distributed training"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/nccl"
+    source_uris:
+      - "https://developer.nvidia.com/nccl"
+      - "https://github.com/NVIDIA/nccl"
+    license_notes: >-
+      Open source (BSD-3-Clause); runs on the proprietary CUDA stack. Live page
+      403-blocked on capture (2026-06-15) — verify URI/details at ingest. MUSE
+      stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 11
+    key: dali
+    name: "NVIDIA DALI (Data Loading Library)"
+    section: "Libraries"
+    category: library
+    purpose: >-
+      GPU-accelerated library for data loading and preprocessing to accelerate
+      the input (ETL) pipeline of deep-learning training and inference.
+    capabilities:
+      - "Offload image/video/audio decode and augmentation to the GPU"
+      - "Removes CPU data-loading bottlenecks in training"
+      - "Drop-in pipelines for PyTorch, TensorFlow, and others"
+    interfaces: library
+    requires_gpu: true
+    license: open-source
+    official_uri: "https://developer.nvidia.com/dali"
+    source_uris:
+      - "https://developer.nvidia.com/dali"
+      - "https://github.com/NVIDIA/DALI"
+    license_notes: >-
+      Open source (Apache-2.0); GPU pipelines rely on the proprietary CUDA stack.
+      Live page 403-blocked on capture (2026-06-15) — verify URI/details at
+      ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  # --- Developer and DevOps Tools -----------------------------------------
+  - rank: 12
+    key: nsight-systems
+    name: "NVIDIA Nsight Systems"
+    section: "Developer and DevOps Tools"
+    category: profiler
+    purpose: >-
+      System-wide performance analysis tool to visualize an application's
+      algorithms, identify the largest optimization opportunities, and tune to
+      scale efficiently across any number of CPUs and GPUs.
+    capabilities:
+      - "System-wide timeline of CPU + GPU activity"
+      - "Algorithm visualization to locate optimization opportunities"
+      - "Scaling/tuning across multiple CPUs and GPUs"
+    interfaces: both
+    requires_gpu: true
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/nsight-systems"
+    source_uris:
+      - "https://developer.nvidia.com/nsight-systems"
+      - "https://developer.nvidia.com/deep-learning-software"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA; free to download and use,
+      redistribution restricted. Live page 403-blocked on capture (2026-06-15) —
+      verify URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 13
+    key: dlprof
+    name: "DLProf (Deep Learning Profiler)"
+    section: "Developer and DevOps Tools"
+    category: profiler
+    purpose: >-
+      Profiling tool to visualize GPU utilization and the operations supported
+      by Tensor Cores and their usage during model execution.
+    capabilities:
+      - "Visualize GPU utilization for deep-learning workloads"
+      - "Identify operations eligible for Tensor Core acceleration"
+      - "Report Tensor Core usage during execution"
+    interfaces: both
+    requires_gpu: true
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/dlprof"
+    source_uris:
+      - "https://docs.nvidia.com/deeplearning/frameworks/dlprof-user-guide/index.html"
+      - "https://developer.nvidia.com/dlprof"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA. NVIDIA has DEPRECATED DLProf
+      in favor of Nsight Systems/Compute; captured for provenance and historical
+      reference. Live page 403-blocked on capture (2026-06-15) — verify
+      URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 14
+    key: kubernetes-on-nvidia-gpus
+    name: "Kubernetes on NVIDIA GPUs"
+    section: "Developer and DevOps Tools"
+    category: orchestration
+    purpose: >-
+      Scale up training and inference deployment to multi-cloud GPU clusters by
+      packaging GPU-accelerated applications and their dependencies and deploying
+      them with Kubernetes.
+    capabilities:
+      - "Scale training and inference across multi-cloud GPU clusters"
+      - "Package GPU-accelerated apps + dependencies for deployment"
+      - "Deploy and orchestrate GPU workloads with Kubernetes"
+    interfaces: cli
+    requires_gpu: true
+    license: mixed
+    official_uri: "https://developer.nvidia.com/kubernetes-gpu"
+    source_uris:
+      - "https://developer.nvidia.com/kubernetes-gpu"
+      - "https://github.com/NVIDIA/gpu-operator"
+    license_notes: >-
+      Proprietary NVIDIA components (GPU Operator / device plugin) layered on
+      open-source Kubernetes (mixed posture). Live page 403-blocked on capture
+      (2026-06-15) — verify URI/details at ingest. MUSE stores a provenance card
+      only.
+    evidence_strength: vendor_reported
+
+  - rank: 15
+    key: nsight-compute
+    name: "NVIDIA Nsight Compute"
+    section: "Developer and DevOps Tools"
+    category: profiler
+    purpose: >-
+      Interactive CUDA kernel profiler for deep-learning applications, providing
+      detailed performance metrics and API debugging via a GUI or CLI;
+      customizable, data-driven, and extensible with analysis scripts.
+    capabilities:
+      - "Interactive CUDA kernel profiling"
+      - "Detailed per-kernel performance metrics and API debugging"
+      - "GUI and CLI front ends"
+      - "Customizable, data-driven, extensible via analysis scripts"
+    interfaces: both
+    requires_gpu: true
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/nsight-compute"
+    source_uris:
+      - "https://developer.nvidia.com/nsight-compute"
+      - "https://developer.nvidia.com/deep-learning-software"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA; free to download and use,
+      redistribution restricted. Live page 403-blocked on capture (2026-06-15) —
+      verify URI/details at ingest. MUSE stores a provenance card only.
+    evidence_strength: vendor_reported
+
+  - rank: 16
+    key: feature-map-explorer
+    name: "Feature Map Explorer (FME)"
+    section: "Developer and DevOps Tools"
+    category: visualization
+    purpose: >-
+      Visualize 4D image-based feature-map data, providing channel
+      visualizations together with detailed numerical information about the full
+      feature-map tensor and each individual channel slice.
+    capabilities:
+      - "Visualize 4D image-based feature-map data"
+      - "Per-channel feature-map visualizations"
+      - "Detailed numerical info on the full tensor and each channel slice"
+    interfaces: gui
+    requires_gpu: false
+    license: proprietary
+    official_uri: "https://developer.nvidia.com/nsight-dl-designer"
+    source_uris:
+      - "https://developer.nvidia.com/nsight-dl-designer"
+      - "https://developer.nvidia.com/deep-learning-software"
+    license_notes: >-
+      Proprietary — NVIDIA Software License / EULA. FME ships as part of NVIDIA
+      Nsight DL Designer; a canonical standalone URL is unconfirmed — verify
+      before relying on it. Live page 403-blocked on capture (2026-06-15). MUSE
+      stores a provenance card only.
+    evidence_strength: vendor_reported
