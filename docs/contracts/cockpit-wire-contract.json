@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 111,
+  "handler_count": 112,
   "owner_gated_count": 10,
-  "route_count": 113,
+  "route_count": 114,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -966,6 +966,15 @@
       "path": "/v1/jarvis/chat",
       "requires_auth": true,
       "summary": null
+    },
+    {
+      "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._stream_actions",
+      "kind": "sse",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/observatory/actions",
+      "requires_auth": true,
+      "summary": "SSE feed fusing every real action source (observatory collector +"
     },
     {
       "handler": "gateway.cockpit.handlers_observatory.observatory_layout",
