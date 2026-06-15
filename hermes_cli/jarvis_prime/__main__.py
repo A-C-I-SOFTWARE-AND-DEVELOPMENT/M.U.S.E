@@ -1049,6 +1049,100 @@ def _cmd_data_sources_register_vault(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- NVIDIA deep learning software registry --------------------------------
+
+
+def _nvidia_dl_software_pool(args: argparse.Namespace):
+    """Resolve the NVIDIA registry, honoring an optional --registry override."""
+    from hermes_cli.jarvis_prime.nvidia_dl_software import load_registry
+
+    path = Path(args.registry) if getattr(args, "registry", None) else None
+    return load_registry(path)
+
+
+def _cmd_nvidia_dl_software_list(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.nvidia_dl_software import ToolCategory
+
+    tools = _nvidia_dl_software_pool(args)
+    if getattr(args, "section", None):
+        tools = [t for t in tools if t.section == args.section]
+    if getattr(args, "category", None):
+        want = ToolCategory(args.category)
+        tools = [t for t in tools if t.category == want]
+
+    if getattr(args, "json", False):
+        _print_json([t.to_dict() for t in tools])
+        return 0
+    if not tools:
+        print("no matching tools")
+        return 0
+    for t in tools:
+        gpu = "[gpu]" if t.requires_gpu else ""
+        print(
+            f"{t.rank:>2}  {t.key:<28}  {t.category.value:<22}  "
+            f"{t.license:<12}  {t.name} {gpu}".rstrip()
+        )
+    return 0
+
+
+def _cmd_nvidia_dl_software_show(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.nvidia_dl_software import get
+
+    tool = get(args.key, tools=_nvidia_dl_software_pool(args))
+    if tool is None:
+        print(f"unknown nvidia-dl-software tool: {args.key!r}", file=sys.stderr)
+        return 1
+    if getattr(args, "json", False):
+        _print_json(tool.to_dict())
+        return 0
+    d = tool.to_dict()
+    for label in (
+        "name",
+        "rank",
+        "section",
+        "category",
+        "interfaces",
+        "requires_gpu",
+        "license",
+        "purpose",
+        "capabilities",
+        "official_uri",
+        "source_uris",
+        "license_notes",
+        "evidence_strength",
+    ):
+        print(f"{label:>18}: {d[label]}")
+    return 0
+
+
+def _cmd_nvidia_dl_software_register_vault(args: argparse.Namespace) -> int:
+    from hermes_cli.jarvis_prime.nvidia_dl_software import register_all_in_vault
+    from hermes_cli.jarvis_prime.research_vault import ResearchVault
+
+    tools = _nvidia_dl_software_pool(args)
+    dry_run = getattr(args, "dry_run", False)
+    vault_path = Path(args.store) if getattr(args, "store", None) else None
+    vault = ResearchVault.load(vault_path)
+    result = register_all_in_vault(vault, tools=tools, persist=not dry_run)
+    if getattr(args, "json", False):
+        _print_json(
+            {
+                "dry_run": dry_run,
+                "registered": [a.id for a in result.registered],
+                "skipped": [{"key": k, "reason": r} for k, r in result.skipped],
+                "vault": str(vault._resolve_path()),
+            }
+        )
+        return 0
+    verb = "would register" if dry_run else "registered"
+    print(f"{verb} {len(result.registered)} NVIDIA tool(s) into the Research Vault")
+    for key, reason in result.skipped:
+        print(f"  skipped {key}: {reason}")
+    if not dry_run:
+        print(f"  vault: {vault._resolve_path()}")
+    return 0
+
+
 # --- component architecture registry ---------------------------------------
 
 
@@ -2639,6 +2733,74 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_data_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
     p_data_reg.add_argument("--json", action="store_true")
     p_data_reg.set_defaults(func=_cmd_data_sources_register_vault)
+
+    # nvidia-dl-software — NVIDIA Deep Learning Software catalog (read-only +
+    # a Research-Vault bridge). Inventory lives in
+    # docs/ai-intelligence/nvidia-deep-learning-software.yaml.
+    p_nv = sub.add_parser(
+        "nvidia-dl-software",
+        help="NVIDIA Deep Learning Software catalog: list/show, bridge into the Research Vault",
+        description=(
+            "Browse the NVIDIA deep-learning software stack (frameworks, "
+            "inference, libraries, and developer/devops tools) inventoried in "
+            "docs/ai-intelligence/nvidia-deep-learning-software.yaml (the "
+            "registry behind docs/ai-intelligence/nvidia-deep-learning-software.md) "
+            "and bridge it into the Research Vault. These are NVIDIA's tools — "
+            "several proprietary under EULA; nothing is downloaded. Read-only "
+            "except 'register-vault', which only adds provenance cards."
+        ),
+    )
+    p_nv_sub = p_nv.add_subparsers(dest="nvidia_dl_software_command", required=True)
+
+    p_nv_list = p_nv_sub.add_parser("list", help="List registry tools")
+    p_nv_list.add_argument(
+        "--section",
+        help=(
+            "Filter by page section (Frameworks | Inference | Libraries | "
+            "'Developer and DevOps Tools')"
+        ),
+    )
+    p_nv_list.add_argument(
+        "--category",
+        choices=(
+            "framework",
+            "inference-sdk",
+            "inference-server",
+            "inference-integration",
+            "library",
+            "profiler",
+            "orchestration",
+            "visualization",
+        ),
+        help="Filter by tool category",
+    )
+    p_nv_list.add_argument("--registry", help="Override registry YAML path")
+    p_nv_list.add_argument("--json", action="store_true")
+    p_nv_list.set_defaults(func=_cmd_nvidia_dl_software_list)
+
+    p_nv_show = p_nv_sub.add_parser("show", help="Show one tool by key")
+    p_nv_show.add_argument("key", help="Tool key (e.g. nsight-compute)")
+    p_nv_show.add_argument("--registry", help="Override registry YAML path")
+    p_nv_show.add_argument("--json", action="store_true")
+    p_nv_show.set_defaults(func=_cmd_nvidia_dl_software_show)
+
+    p_nv_reg = p_nv_sub.add_parser(
+        "register-vault",
+        help="Bridge NVIDIA tools into the Research Vault as provenance cards",
+        description=(
+            "Record each tool as a Research Vault artifact (source URI, evidence "
+            "strength, license notes). No binary is downloaded — MUSE is "
+            "hardware-agnostic and stores provenance only."
+        ),
+    )
+    p_nv_reg.add_argument(
+        "--dry-run", dest="dry_run", action="store_true",
+        help="Report what would be registered without writing the vault",
+    )
+    p_nv_reg.add_argument("--registry", help="Override registry YAML path")
+    p_nv_reg.add_argument("--store", help="Path to a persistent research-vault JSONL")
+    p_nv_reg.add_argument("--json", action="store_true")
+    p_nv_reg.set_defaults(func=_cmd_nvidia_dl_software_register_vault)
 
     # architecture — machine-readable M.U.S.E component registry (read-only).
     # Inventory lives in docs/architecture/muse-component-registry.yaml and is
