@@ -616,7 +616,8 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                     self._sse_sleep(_SSE_POLL_S)
                 self._write_chunk(b"")
             except (BrokenPipeError, ConnectionResetError):
-                pass
+                # Client disconnected during SSE streaming; this is expected.
+                return
             except Exception:  # pragma: no cover - defensive
                 pass
 
