@@ -514,6 +514,20 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "fallback_providers": [],
     "credential_pool_strategies": {},
     "toolsets": ["hermes-cli"],
+    # ── Fusion (Mixture-of-Agents) ─────────────────────────────────
+    # Axiom routes all responses through multi-model fusion by default.
+    # Set mode to "single" to disable fusion and use single-model responses.
+    "fusion": {
+        "mode": "fusion",  # "fusion" (default) or "single"
+        "reference_models": [
+            "anthropic/claude-opus-4.6",
+            "google/gemini-2.5-pro",
+            "deepseek/deepseek-r1",
+        ],
+        "aggregator_model": "anthropic/claude-opus-4.6",
+        "rounds": 1,          # Iterative refinement rounds (1-5)
+        "strategy": "parallel",
+    },
     "agent": {
         "max_turns": 90,
         # Inactivity timeout for gateway agent execution (seconds).

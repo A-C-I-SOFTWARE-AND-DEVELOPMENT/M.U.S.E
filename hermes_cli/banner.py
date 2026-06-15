@@ -92,29 +92,29 @@ HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀�
 
 
 # -------------------------------------------------------------------------
-# M.U.S.E. "Singularity" art (default skin)
+# Axiom "Singularity" art (default skin)
 # -------------------------------------------------------------------------
 # Design language: docs/brand/muse-design-language.md — a white core blazing
 # in the void, wrapped by one thin spectral ring with a single gap. White is
 # the hero; the ring is the only spectral accent (matte cyan→violet, never
 # glowed); the wordmark is near-white so the core owns the brightest pixel.
 #
-# MUSE_WORDMARK — crisp block-letter "M.U.S.E." in a single near-white fill
+# AXIOM_WORDMARK — crisp block-letter "AXIOM" in a single near-white fill
 # (#EEF2F7), the same full-block style as HERMES_AGENT_LOGO. The wordmark is
 # uniform; the value ladder lives across tiers (core → wordmark → tagline),
 # not within the letters.
-MUSE_WORDMARK = """[bold #EEF2F7]███╗   ███╗   ██╗   ██╗   ███████╗   ███████╗[/]
-[bold #EEF2F7]████╗ ████║   ██║   ██║   ██╔════╝   ██╔════╝[/]
-[bold #EEF2F7]██╔████╔██║   ██║   ██║   ███████╗   █████╗[/]
-[bold #EEF2F7]██║╚██╔╝██║   ██║   ██║   ╚════██║   ██╔══╝[/]
-[bold #EEF2F7]██║ ╚═╝ ██║██╗╚██████╔╝██╗███████║██╗███████╗██╗[/]
-[bold #EEF2F7]╚═╝     ╚═╝╚═╝ ╚═════╝ ╚═╝╚══════╝╚═╝╚══════╝╚═╝[/]"""
+AXIOM_WORDMARK = """[bold #EEF2F7] █████╗ ██╗  ██╗██╗ ██████╗ ███╗   ███╗[/]
+[bold #EEF2F7]██╔══██╗╚██╗██╔╝██║██╔═══██╗████╗ ████║[/]
+[bold #EEF2F7]███████║ ╚███╔╝ ██║██║   ██║██╔████╔██║[/]
+[bold #EEF2F7]██╔══██║ ██╔██╗ ██║██║   ██║██║╚██╔╝██║[/]
+[bold #EEF2F7]██║  ██║██╔╝ ██╗██║╚██████╔╝██║ ╚═╝ ██║[/]
+[bold #EEF2F7]╚═╝  ╚═╝╚═╝  ╚═╝╚═╝ ╚═════╝ ╚═╝     ╚═╝[/]"""
 
-# MUSE_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
+# AXIOM_GLYPH — the Singularity mark: a bright white core (◉) inside one thin
 # ring with a gap at the lower-right, drawn in box-drawing arcs with a matte
 # left→right #7AE0FF (cyan) → #B388FF (violet) gradient. Below it, the two
-# brand tiers: the acronym expansion (signal-dim) and the motto (dim).
-MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
+# brand tiers: the product name (signal-dim) and the motto (dim).
+AXIOM_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╮[/]
         [#84D1FF]╭[/][#87CCFF]─[/][#8AC8FF]╯[/]       [#A3A0FF]╰[/][#A69CFF]─[/][#AA97FF]╮[/]
       [#7DDBFF]╭[/][#80D6FF]─[/][#84D1FF]╯[/]           [#AA97FF]╰[/][#AD92FF]─[/][#B08DFF]╮[/]
      [#7AE0FF]╭[/][#7DDBFF]╯[/]               [#B08DFF]╰[/][#B388FF]╮[/]
@@ -124,8 +124,12 @@ MUSE_GLYPH = """           [#8DC3FF]╭[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF
         [#84D1FF]╰[/][#87CCFF]─[/][#8AC8FF]╮[/]
            [#8DC3FF]╰[/][#90BEFF]─[/][#93B9FF]─[/][#96B4FF]─[/][#9AAFFF]─[/][#9DAAFF]─[/][#A0A5FF]╯[/]
 
-        [#AAB2C4]Multi-Use Synaptic Entity[/]
-         [dim #8B93A6]One mind, many pathways.[/]"""
+        [#AAB2C4]Axiom — Collective Intelligence[/]
+         [dim #8B93A6]Fusion by default. Many minds, one answer.[/]"""
+
+# Backward compatibility aliases (deprecated)
+MUSE_WORDMARK = AXIOM_WORDMARK
+MUSE_GLYPH = AXIOM_GLYPH
 
 
 
