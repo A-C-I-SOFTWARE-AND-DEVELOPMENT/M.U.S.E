@@ -342,24 +342,36 @@ def observatory_snapshot(req: Request) -> JsonResponse:
         }
 
     active, queue_depth = _active_jobs()
-    return JsonResponse(
-        200,
-        {
-            "v": OBSERVATORY_VERSION,
-            "generated_at": _now_iso(),
-            "graph": graph_section,
-            "stations": {
-                "nodes": list(STATIONS),
-                "active_jobs": active,
-                "queue_depth": queue_depth,
-            },
-            "ladder": {"tiers": collector.ladder_rollup("1h")},
-            "metrics_rollup": {
-                "v": OBSERVATORY_VERSION,
-                **collector.rollup("1h"),
-            },
+    payload: dict[str, Any] = {
+        "v": OBSERVATORY_VERSION,
+        "generated_at": _now_iso(),
+        "graph": graph_section,
+        "stations": {
+            "nodes": list(STATIONS),
+            "active_jobs": active,
+            "queue_depth": queue_depth,
         },
-    )
+        "ladder": {"tiers": collector.ladder_rollup("1h")},
+        "metrics_rollup": {
+            "v": OBSERVATORY_VERSION,
+            **collector.rollup("1h"),
+        },
+    }
+    # Nero-Fleet overlay (additive, docs/plans/2026-06-15-nero-fleet-architecture.md).
+    try:
+        from hermes_cli.jarvis_prime.fleet.registry import get_registry
+        from hermes_cli.jarvis_prime.fleet.solar_map import solar_system_view
+
+        fleet_snap = get_registry().snapshot()
+        payload["fleet"] = fleet_snap
+        graph_for_solar = graph_section if graph_section.get("status") != "unavailable" else None
+        payload["nero_solar"] = solar_system_view(
+            fleet_snap,
+            observatory_graph=graph_for_solar,
+        )
+    except Exception:
+        pass  # fleet overlay is best-effort; snapshot stays valid without it
+    return JsonResponse(200, payload)
 
 
 def observatory_metrics(req: Request) -> JsonResponse:
