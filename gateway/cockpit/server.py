@@ -214,6 +214,7 @@ _STREAM_ROUTES: list[tuple[re.Pattern[str], str]] = [
     (_compile("/v1/cockpit/jobs/stream"), "_stream_jobs"),
     (_compile("/v1/cockpit/events/stream"), "_stream_events"),
     (_compile("/v1/observatory/stream"), "_stream_observatory"),
+    (_compile("/v1/observatory/actions"), "_stream_actions"),
 ]
 
 
@@ -571,6 +572,52 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
                 # Client disconnected mid-stream — expected for SSE consumers
                 # (tab closed, reconnect with Last-Event-ID); nothing to clean up.
                 pass
+            except Exception:  # pragma: no cover - defensive
+                pass
+
+        def _stream_actions(self) -> None:
+            """SSE feed fusing every real action source (observatory collector +
+            flywheel + cockpit event log + axiom chain) for the live "neural
+            network wallpaper". Read-only; dormant (503) when the observatory
+            collector is opt-out. ``Last-Event-ID`` carries an opaque per-source
+            cursor so a reconnect resumes after the last delivered batch.
+            Fabricates nothing — only events that were really recorded.
+            """
+            try:
+                from gateway.cockpit import action_fusion as af
+                from gateway.cockpit import observatory_metrics as om
+            except Exception:  # pragma: no cover - defensive
+                self._send_json(503, {"error": "collector_unavailable"})
+                return
+            if not om.enabled():
+                self._send_json(503, {"error": "collector_unavailable"})
+                return
+            tailer = af.FusionTailer(self.headers.get("Last-Event-ID"))
+            self._sse_headers()
+            last_beat = time.monotonic()
+            started = time.monotonic()
+            try:
+                self._write_chunk(b"retry: 5000\r\n\r\n")
+                if tailer.fresh:
+                    self._sse_send("meta.resync", {"reason": "fresh", "ts": h._now_iso()})
+                while not stop_event.is_set():
+                    events = tailer.drain()
+                    if events:
+                        cursor = tailer.cursor()
+                        for event in events:
+                            self._write_chunk(f"id: {cursor}\r\n".encode("ascii"))
+                            self._sse_send(event["kind"], event)
+                    now = time.monotonic()
+                    if now - last_beat >= _SSE_HEARTBEAT_S:
+                        self._write_chunk(b": ping\r\n\r\n")
+                        last_beat = now
+                    if now - started >= _SSE_MAX_DURATION_S:
+                        break
+                    self._sse_sleep(_SSE_POLL_S)
+                self._write_chunk(b"")
+            except (BrokenPipeError, ConnectionResetError):
+                # Client disconnected during SSE streaming; this is expected.
+                return
             except Exception:  # pragma: no cover - defensive
                 pass
 

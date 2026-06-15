@@ -4120,6 +4120,28 @@ def run_conversation(
         "cost_status": agent.session_cost_status,
         "cost_source": agent.session_cost_source,
     }
+
+    # ── Fusion routing ───────────────────────────────────────────
+    # When fusion mode is active (the default in Axiom), route the
+    # final_response through the MoA pipeline so the user gets a
+    # consensus-synthesized answer instead of a single-model output.
+    if final_response and not interrupted:
+        try:
+            from agent.fusion_router import should_use_fusion, fuse_response_sync
+            if should_use_fusion():
+                logger.info("Fusion active — routing final response through MoA pipeline")
+                fused = fuse_response_sync(
+                    user_prompt=original_user_message,
+                    original_response=final_response,
+                )
+                if fused and fused != final_response:
+                    final_response = fused
+                    result["final_response"] = fused
+                    result["fused"] = True
+                    logger.info("Fusion complete — response length: %d chars", len(fused))
+        except Exception as exc:
+            logger.warning("Fusion routing failed, using original response: %s", exc)
+            result["fused"] = False
     if agent._tool_guardrail_halt_decision is not None:
         result["guardrail"] = cast(Any, agent._tool_guardrail_halt_decision).to_metadata()
     # If a /steer landed after the final assistant turn (no more tool

@@ -233,3 +233,23 @@ dialog input { width: 100%; }
   .views .view { padding: 6px 7px; }
   .winwrap { display: none; }
 }
+
+/* ── Wallpaper mode: chromeless, full-bleed live wallpaper (?wallpaper=1) ── */
+body.wallpaper #hud,
+body.wallpaper #recs,
+body.wallpaper #recsopen,
+body.wallpaper #drawer,
+body.wallpaper #dock,
+body.wallpaper #tooltip { display: none !important; }
+
+/* Non-spatial action pulse: a brief, honest full-frame tint (severity-keyed).
+   Reflects a real recorded action; it never invents one. */
+#actionflash {
+  position: fixed; inset: 0; pointer-events: none; z-index: 4;
+  opacity: 0; transition: opacity 0.6s ease;
+  background: radial-gradient(circle at 50% 50%, transparent 55%, var(--flash, #7ae0ff22) 100%);
+}
+#actionflash.on { opacity: 1; transition: opacity 0.05s ease; }
+#actionflash[data-sev="warn"] { --flash: #ffcc6633; }
+#actionflash[data-sev="error"] { --flash: #ff5a6633; }
+#actionflash[data-sev="critical"] { --flash: #ff2a4455; }

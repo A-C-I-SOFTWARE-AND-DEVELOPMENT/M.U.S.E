@@ -52,6 +52,15 @@ let token = localStorage.getItem(TOKEN_KEY) || "";
 // file); a stored base overrides for split deployments.
 const apiBase = (localStorage.getItem(BASE_KEY) || "").replace(/\/+$/, "");
 
+// Wallpaper mode: a chromeless, full-bleed, gently auto-orbiting presentation
+// for live device wallpapers. Toggled by `?wallpaper=1` on the page URL.
+const WALLPAPER = (() => {
+  try {
+    const v = new URLSearchParams(window.location.search).get("wallpaper");
+    return v === "1" || v === "true" || v === "yes";
+  } catch (e) { return false; }
+})();
+
 function authHeaders(extra) {
   const h = Object.assign({}, extra || {});
   if (token) h["Authorization"] = "Bearer " + token;
@@ -992,6 +1001,10 @@ function frame(t) {
   rafId = requestAnimationFrame(frame);
   const dt = Math.min(0.1, (t - lastT) / 1000 || 0.016);
   lastT = t;
+  // Wallpaper mode drifts the camera slowly while the viewer is idle, so a
+  // live wallpaper is never a frozen frame. User input (rig.idle() false)
+  // pauses the drift immediately.
+  if (WALLPAPER && rig && rig.idle()) rig.goal.theta += dt * 0.04;
   tick(dt);
   if (renderer) renderer.render(scene, camera);
 }
@@ -1780,6 +1793,94 @@ function startStream() {
   subscribeStream(ctrl);
 }
 
+/* Fused all-actions stream (/v1/observatory/actions) — every recorded system
+ * action as a visual. Spatial kinds reuse the galaxy/pipeline/ladder helpers;
+ * non-spatial pulses (owner/agent/skill/system/axiom) flash a brief, honest
+ * full-frame tint so the wallpaper "sees everything". The id: line is an opaque
+ * resume cursor (string), not the integer the observatory stream uses. */
+let actionsAbort = null;
+
+function actionFlash(severity) {
+  const node = $("#actionflash");
+  if (!node) return;
+  node.dataset.sev = severity || "info";
+  node.hidden = false;
+  node.classList.remove("on");
+  void node.offsetWidth; // restart the transition
+  node.classList.add("on");
+  clearTimeout(actionFlash._t);
+  actionFlash._t = setTimeout(() => node.classList.remove("on"), 60);
+}
+
+function dispatchAction_(event, data) {
+  let d = null;
+  if (data) { try { d = JSON.parse(data); } catch (e) { return; } }
+  if (!d) return;
+  const target = d.target || {};
+  switch (event) {
+    case "cluster.spark": if (target.cluster_id) pulseCluster(target.cluster_id, d.weight); break;
+    case "pipeline.packet": if (target.job_id) upsertPacket(target.job_id, null, d.label); break;
+    case "gate.flare": if (target.job_id) gateFlare(target.job_id, d.severity === "error" ? "fail" : "pass"); break;
+    case "ladder.streak": routeStreak(String(d.label || "").split("·")[0]); break;
+    case "meta.resync": return; // control only
+    default: actionFlash(d.severity); break; // owner/agent/skill/system/audit pulses
+  }
+  if (!state.telemetryLive) { state.telemetryLive = true; setTelemetryPill(); updateDormantDressing(); }
+}
+
+async function subscribeActions(ctrl) {
+  let backoff = 1000;
+  let lastId = null;
+  while (!ctrl.signal.aborted && token) {
+    try {
+      const headers = authHeaders({ Accept: "text/event-stream" });
+      if (lastId != null) headers["Last-Event-ID"] = String(lastId);
+      const r = await fetch(apiBase + "/v1/observatory/actions", { headers, signal: ctrl.signal });
+      if (!r.ok || !r.body) {
+        if (r.status === 401 || r.status === 503) return; // unauth/dormant: stay silent
+        throw new Error("actions status " + r.status);
+      }
+      backoff = 1000;
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+        let sep;
+        while ((sep = buf.indexOf("\n\n")) >= 0) {
+          const frameTxt = buf.slice(0, sep);
+          buf = buf.slice(sep + 2);
+          let event = "message";
+          const dataLines = [];
+          for (const raw of frameTxt.split("\n")) {
+            if (raw.startsWith(":")) continue;             // ": ping" heartbeat
+            else if (raw.startsWith("id:")) lastId = raw.slice(3).trim(); // opaque cursor
+            else if (raw.startsWith("event:")) event = raw.slice(6).trim();
+            else if (raw.startsWith("data:")) dataLines.push(raw.slice(5).replace(/^ /, ""));
+          }
+          if (dataLines.length) dispatchAction_(event, dataLines.join("\n"));
+        }
+      }
+    } catch (e) {
+      if (ctrl.signal.aborted) return;
+    }
+    if (ctrl.signal.aborted || !token) return;
+    await new Promise((res) => setTimeout(res, backoff));
+    backoff = Math.min(backoff * 2, 15000);
+  }
+}
+
+function startActions() {
+  if (actionsAbort) { try { actionsAbort.abort(); } catch (e) {} actionsAbort = null; }
+  if (!token) return;
+  if (typeof ReadableStream === "undefined" || typeof AbortController === "undefined") return;
+  const ctrl = new AbortController();
+  actionsAbort = ctrl;
+  subscribeActions(ctrl);
+}
+
 /* ════════════════════════════════════════════════════════════════════════
  * 13. Token dialog + boot
  * ════════════════════════════════════════════════════════════════════════ */
@@ -1793,6 +1894,7 @@ $("#tokensave").addEventListener("click", () => {
   localStorage.setItem(TOKEN_KEY, token);
   $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
   startStream();
+  startActions();
   refreshAll();
 });
 $("#tokenbtn").textContent = token ? "Token ✓" : "Token";
@@ -1802,6 +1904,8 @@ renderDockStations();
 renderLayoutNote();
 refreshAll();
 startStream();
+startActions();
+if (WALLPAPER) document.body.classList.add("wallpaper");
 if (!token) {
   setConn("off", "no token");
   $("#recslist").replaceChildren(el("div", "empty",

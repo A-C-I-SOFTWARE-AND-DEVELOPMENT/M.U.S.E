@@ -636,4 +636,8 @@
         <item quantity="one">%1$s: %2$d failing test.</item>
         <item quantity="other">%1$s: %2$d failing tests.</item>
     </plurals>
+
+    <!-- Neural Observatory live wallpaper (ObservatoryWallpaperService). -->
+    <string name="observatory_wallpaper_label">MUSE Neural Observatory</string>
+    <string name="observatory_wallpaper_desc">A live wallpaper of MUSE\'s neural network — the real knowledge graph, pulsing on every system action, synced from your paired gateway. Stays a quiet starfield when unpaired or telemetry is off.</string>
 </resources>

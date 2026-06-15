@@ -345,20 +345,44 @@ jobs:
 
       - name: Build installers
         env:
-          # Tauri reads these for code-signing; ALL resolve to empty when the
-          # secret is unset OR fails the applecert probe above -> the build
-          # produces UNSIGNED installers and still succeeds (the fork/bring-up
-          # fallback). See apps/desktop/RELEASE.md.
+          # Tauri reads these for code-signing only when signing is enabled
+          # (applecert probe -> sign=true). When unsigned they are intentionally
+          # absent (unset in the script below), NOT set-to-empty: Tauri's macOS
+          # bundler checks `env::var("APPLE_CERTIFICATE")` by PRESENCE, so a
+          # present-but-empty `APPLE_CERTIFICATE=""` reads as `Ok("")` and still
+          # triggers the keychain import — base64-decoding "" to empty bytes and
+          # running `security import` on them, which dies with
+          # "SecKeychainItemImport: ... not valid" and fails every macOS leg
+          # (publishing no .dmg). Gating with `|| ''` blanked the value but left
+          # the var defined, so it kept tripping Tauri; we therefore unset the
+          # whole Apple var family on the unsigned path. See apps/desktop/RELEASE.md.
+          SIGN: ${{ steps.applecert.outputs.sign }}
           APPLE_CERTIFICATE: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_CERTIFICATE_PASSWORD || '' }}  # pragma: allowlist secret
           APPLE_SIGNING_IDENTITY: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_SIGNING_IDENTITY || '' }}
           APPLE_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_ID || '' }}
           APPLE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_PASSWORD || '' }}  # pragma: allowlist secret
           APPLE_TEAM_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_TEAM_ID || '' }}
+          # linuxdeploy and its AppImage plugins are themselves AppImages that
+          # mount via FUSE to run. GitHub's Linux runners do not reliably provide
+          # FUSE, so Tauri's AppImage bundling dies with "failed to run
+          # linuxdeploy". Extract-and-run unpacks the tools to a temp dir and runs
+          # them without FUSE — the canonical CI fix. Harmless on macOS/Windows
+          # (only AppImage tooling reads it).
+          APPIMAGE_EXTRACT_AND_RUN: "1"
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
           BUNDLES: ${{ matrix.bundles }}
         run: |
+          # On the UNSIGNED path, remove the Apple signing vars entirely so
+          # Tauri's bundler sees them as absent and produces a clean unsigned
+          # build. A present-but-empty APPLE_CERTIFICATE would otherwise make
+          # Tauri attempt (and fail) a keychain import. `unset` here strips them
+          # from the environment handed to the `tauri` child process.
+          if [ "${SIGN:-false}" != "true" ]; then
+            unset APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
+                  APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID
+          fi
           # Stamp the CI-derived semver into the bundle via a --config merge so
           # the installer carries the real version (tauri.conf stays at 0.1.0).
           target_arg=""; [ -n "$TARGET" ] && target_arg="--target $TARGET"

@@ -1377,36 +1377,22 @@ hazmat-command files + 20 hermes-agent AOS files snapshotted on
 
 ## Cursor Cloud specific instructions
 
-This section is durable guidance for cloud agents running in an environment
-where the update script (see below) has already created `.venv` and installed
-deps. Standard dev/test/run commands live in `CONTRIBUTING.md` and the
-`## Testing` / `## Development Environment` sections above — reference those
-rather than duplicating.
+This is a Python project (`requires-python >=3.11`); CI pins **3.11**. The
+startup update script runs `uv sync --python 3.11 --extra all --extra dev`,
+which installs the curated `[all,dev]` set into `.venv` from the
+hash-verified `uv.lock`. Activate it with `source .venv/bin/activate`
+before running anything (see "Development Environment" above). `uv` is on
+PATH (installed to `~/.local/bin`).
 
-### Environment layout (non-obvious)
-
-- The venv is `.venv` at the repo root (Python 3.11 via `uv`). `uv` itself
-  installs to `~/.local/bin` — already on PATH in the update script context,
-  but if `uv` is "not found" in a fresh shell, run `export PATH="$HOME/.local/bin:$PATH"`.
-- Activate with `source .venv/bin/activate`, or rely on `scripts/run_tests.sh`
-  which auto-discovers `.venv`.
-- Optional messaging/voice/provider backends (telegram, discord, anthropic,
-  faster-whisper, …) are intentionally **lazy-installed at first use** via
-  `tools/lazy_deps.py` — `muse doctor` listing them as "optional, not installed"
-  is expected, not a setup failure.
-
-### Running without API keys
-
-- A real `muse` chat turn needs an LLM provider key in `~/.hermes/.env`
-  (e.g. `OPENROUTER_API_KEY`). None is present by default, so interactive
-  chat / gateway agent turns will not complete.
-- Offline-capable core surfaces that need no keys and are good smoke tests:
-  - `muse version`, `muse doctor`
-  - `python -m hermes_cli.jarvis_prime classify "<text>"` / `packet "<text>"`
-    (MUSE decision + work-packet primitives)
-  - `muse cockpit serve` — loopback HTTP API on `127.0.0.1:8765`. Probe with
-    `curl -s http://127.0.0.1:8765/v1/health`; bearer-gated endpoints need a
-    token from `muse cockpit token` (`Authorization: Bearer <token>`).
+- **Lint:** `ruff check .` (the blocking rule set). Optional type pass: `ty check`.
+- **Test:** always `scripts/run_tests.sh` (not bare `pytest`). The full
+  suite is ~17k tests, so target a directory while iterating, e.g.
+  `scripts/run_tests.sh tests/agent/`. The wrapper enforces CI-parity
+  (hermetic env, `-n 4`). `integration` and `e2e` tests are excluded by default.
+- **`[all]` is curated, not "everything".** It excludes `messaging`
+  (telegram/discord), `anthropic`, `edge-tts`, `honcho`, `voice`, etc.
+  `muse doctor` flagging those as "not installed" is expected; install the
+  specific extra only if you need that feature.
 
 ### First-run config scaffold (one-time; not in the update script)
 
@@ -1422,9 +1408,43 @@ touch ~/.hermes/.env
 `muse doctor` exits non-zero when it emits warnings (e.g. no API key); that
 exit code is not a hard failure on its own — read the report.
 
-### Tests
+### Running without cloud LLM credentials
 
-Use `scripts/run_tests.sh` (CI-parity, pins `-n 4`, hermetic env). The full
-suite is large (~17k tests); scope to a path for quick iteration, e.g.
-`scripts/run_tests.sh tests/agent/`. `integration` and `e2e` tests are
-excluded by default.
+No provider API keys are present by default, so interactive `muse` chat /
+gateway agent turns will not complete. Two paths:
+
+**Key-free core surfaces (no LLM at all)** — good smoke tests:
+- `muse version`, `muse doctor`
+- `python -m hermes_cli.jarvis_prime classify "<text>"` / `packet "<text>"`
+  (MUSE decision + work-packet primitives)
+- `muse cockpit serve` — loopback HTTP API on `127.0.0.1:8765`. Probe with
+  `curl -s http://127.0.0.1:8765/v1/health`; bearer-gated endpoints need a
+  token from `muse cockpit token` (`Authorization: Bearer <token>`).
+
+**Local OpenAI-compatible server (full agent E2E)** — point
+`~/.hermes/config.yaml` at a local model:
+
+```yaml
+model:
+  default: "qwen2.5:3b"
+  provider: "custom"           # aliases: ollama, vllm, llamacpp
+  base_url: "http://127.0.0.1:11435/v1"
+  api_key: "ollama"
+  context_length: 65536        # muse requires >=64K declared; override for small models
+  ollama_num_ctx: 32768
+```
+
+Then: `muse chat -Q -t file -q "..."` (non-interactive; `-t` trims the
+toolset so the prompt/inference stay small — CPU inference on a 3B model is
+slow, ~1-2 min/turn).
+
+**Gotchas (non-obvious):**
+- The **latest Ollama prebuilt binary (0.30.x) segfaults** during model
+  warmup on this VM's CPU regardless of model. **Ollama 0.6.8 works** — its
+  GitHub release tarball runs fine (`ollama serve` started manually; systemd
+  is not available here). Models live under `~/.ollama/models`.
+- `muse` rejects models declaring `<64K` context with a hard init error;
+  use the `context_length` override above for small local models.
+- If a provider API key is added later (e.g. `OPENROUTER_API_KEY`), remove
+  the local `model.base_url`/`provider` overrides so `muse` uses the real
+  provider.

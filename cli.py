@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-M.U.S.E. CLI - Interactive Terminal Interface
+Axiom CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for M.U.S.E., inspired by Claude Code.
+A beautiful command-line interface for Axiom collective intelligence, inspired by Claude Code.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -348,10 +348,10 @@ def load_cli_config() -> Dict[str, Any]:
                 "teacher": "You are a patient teacher. Explain concepts clearly with examples.",
                 "kawaii": "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ",
                 "catgirl": "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!",
-                "pirate": "Arrr! Ye be talkin' to Captain MUSE, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
+                "pirate": "Arrr! Ye be talkin' to Captain Axiom, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
                 "shakespeare": "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?",
                 "surfer": "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga!",
-                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me MUSE - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
+                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me Axiom - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
                 "uwu": "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<",
                 "philosopher": "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.",
                 "hype": "YOOO LET'S GOOOO!!! I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS!",
@@ -2457,7 +2457,7 @@ def _build_compact_banner() -> str:
         line1 = "⚕ NOUS HERMES - AI Agent Framework"
         tiny_line = "⚕ NOUS HERMES"
     else:
-        agent_name = _skin.get_branding("agent_name", "M.U.S.E.") if _skin else "M.U.S.E."
+        agent_name = _skin.get_branding("agent_name", "Axiom") if _skin else "Axiom"
         line1 = f"{agent_name} - AI Agent Framework"
         tiny_line = agent_name
 
@@ -3192,13 +3192,30 @@ class HermesCLI:
         emoji = "⏱" if live else "⏲"
         return f"{emoji} {time_str}"
 
-    def _get_status_bar_snapshot(self) -> Dict[str, Any]:
-        # Prefer the agent's model name — it updates on fallback.
-        # self.model reflects the originally configured model and never
-        # changes mid-session, so the TUI would show a stale name after
-        # _try_activate_fallback() switches provider/model.
+    def _get_display_model_name(self) -> str:
+        """Return the model name to show in the UI.
+
+        When fusion mode is active (the default), returns 'Axiom' since
+        responses are synthesized from multiple models — showing a single
+        model slug would be misleading.  When fusion is off (single mode),
+        returns the actual active model slug.
+        """
+        try:
+            from agent.fusion_router import should_use_fusion
+            if should_use_fusion():
+                return "Axiom"
+        except Exception:
+            pass
         agent = getattr(self, "agent", None)
-        model_name = (getattr(agent, "model", None) or self.model or "unknown")
+        return getattr(agent, "model", None) or self.model or "unknown"
+
+    def _get_status_bar_snapshot(self) -> Dict[str, Any]:
+        # Use the fusion-aware display name: 'Axiom' when multi-model
+        # fusion is active, the raw model slug when running in single mode.
+        model_name = self._get_display_model_name()
+        # agent is needed below to populate token/call stats; guard against
+        # the test fixture (which sets cli_obj.agent = None directly).
+        agent = getattr(self, "agent", None)
         model_short = model_name.split("/")[-1] if "/" in model_name else model_name
         if model_short.endswith(".gguf"):
             model_short = model_short[:-5]
@@ -3505,7 +3522,7 @@ class HermesCLI:
                 parts.append("⚠ YOLO")
             return self._trim_status_bar_text(" │ ".join(parts), width)
         except Exception:
-            return f"◉ {self.model if getattr(self, 'model', None) else 'M.U.S.E.'}"
+            return f"◉ {self._get_display_model_name()}"
 
     def _get_status_bar_fragments(self):
         if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
@@ -4096,10 +4113,10 @@ class HermesCLI:
             try:
                 from hermes_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
-                label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                label = _skin.get_branding("response_label", "◉ Axiom")
                 _text_hex = _skin.get_color("banner_text", "#FFF8DC")
             except Exception:
-                label = "◉ M.U.S.E."
+                label = "◉ Axiom"
                 _text_hex = "#FFF8DC"
             # Build a true-color ANSI escape for the response text color
             # so streamed content matches the Rich Panel appearance.
@@ -4714,7 +4731,7 @@ class HermesCLI:
             # Build and display the banner
             build_welcome_banner(
                 console=self.console,
-                model=self.model,
+                model=self._get_display_model_name(),
                 cwd=cwd,
                 tools=tools,
                 enabled_toolsets=self.enabled_toolsets,
@@ -5897,7 +5914,7 @@ class HermesCLI:
         print("+" + "-" * width + "+")
         print()
         print("  -- Model --")
-        print(f"  Model:     {self.model}")
+        print(f"  Model:     {self._get_display_model_name()}")
         print(f"  Base URL:  {self.base_url}")
         print(f"  API Key:   {api_key_display}")
         print()
@@ -7174,7 +7191,7 @@ class HermesCLI:
 
         # No args at all: open prompt_toolkit-native picker modal
         if not model_input and not explicit_provider:
-            model_display = self.model or "unknown"
+            model_display = self._get_display_model_name()
             provider_display = get_label(self.provider) if self.provider else "unknown"
 
             providers = []
@@ -8047,7 +8064,7 @@ class HermesCLI:
                         ctx_len = self.agent.context_compressor.context_length
                     build_welcome_banner(
                         console=cc,  # ty: ignore[invalid-argument-type]  # ChatConsole is a documented Console drop-in
-                        model=self.model,
+                        model=self._get_display_model_name(),
                         cwd=cwd,
                         tools=tools,
                         enabled_toolsets=self.enabled_toolsets,
@@ -8568,11 +8585,11 @@ class HermesCLI:
                     try:
                         from hermes_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                        label = _skin.get_branding("response_label", "◉ Axiom")
                         _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                         _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                     except Exception:
-                        label = "◉ M.U.S.E."
+                        label = "◉ Axiom"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -11383,7 +11400,7 @@ class HermesCLI:
                     if not _streaming_box_opened:
                         _streaming_box_opened = True
                         w = self._scrollback_box_width(getattr(self.console, "width", 80))
-                        label = " ◉ M.U.S.E. "
+                        label = " ◉ Axiom "
                         if self.show_timestamps:
                             label = f"{label}{datetime.now().strftime('%H:%M')} "
                         fill = w - 2 - HermesCLI._status_bar_display_width(label)
@@ -11688,11 +11705,11 @@ class HermesCLI:
                 try:
                     from hermes_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
-                    label = _skin.get_branding("response_label", "◉ M.U.S.E.")
+                    label = _skin.get_branding("response_label", "◉ Axiom")
                     _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                     _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                 except Exception:
-                    label = "◉ M.U.S.E."
+                    label = "◉ Axiom"
                     _resp_color = _maybe_remap_for_light_mode("#CD7F32")
                     _resp_text = _maybe_remap_for_light_mode("#FFF8DC")
 
