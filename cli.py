@@ -3213,6 +3213,9 @@ class HermesCLI:
         # Use the fusion-aware display name: 'Axiom' when multi-model
         # fusion is active, the raw model slug when running in single mode.
         model_name = self._get_display_model_name()
+        # agent is needed below to populate token/call stats; guard against
+        # the test fixture (which sets cli_obj.agent = None directly).
+        agent = getattr(self, "agent", None)
         model_short = model_name.split("/")[-1] if "/" in model_name else model_name
         if model_short.endswith(".gguf"):
             model_short = model_short[:-5]

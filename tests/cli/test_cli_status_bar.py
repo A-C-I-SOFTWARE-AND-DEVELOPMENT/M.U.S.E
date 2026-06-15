@@ -5,6 +5,10 @@ from unittest.mock import MagicMock, patch
 
 from cli import HermesCLI
 
+# Shared patch so all status-bar tests see the real model slug
+# rather than the "Axiom" collective brand when fusion is active.
+_no_fusion = patch("cli.should_use_fusion", return_value=False)
+
 
 def _make_cli(model: str = "anthropic/claude-sonnet-4-20250514"):
     cli_obj = HermesCLI.__new__(HermesCLI)
@@ -63,23 +67,24 @@ class TestCLIStatusBar:
         assert cli_obj._status_bar_context_style(95) == "class:status-bar-critical"
 
     def test_build_status_bar_text_for_wide_terminal(self):
-        cli_obj = _attach_agent(
-            _make_cli(),
-            prompt_tokens=10_230,
-            completion_tokens=2_220,
-            total_tokens=12_450,
-            api_calls=7,
-            context_tokens=12_450,
-            context_length=200_000,
-        )
+        with _no_fusion:
+            cli_obj = _attach_agent(
+                _make_cli(),
+                prompt_tokens=10_230,
+                completion_tokens=2_220,
+                total_tokens=12_450,
+                api_calls=7,
+                context_tokens=12_450,
+                context_length=200_000,
+            )
 
-        text = cli_obj._build_status_bar_text(width=120)
+            text = cli_obj._build_status_bar_text(width=120)
 
-        assert "claude-sonnet-4-20250514" in text
-        assert "12.4K/200K" in text
-        assert "6%" in text
-        assert "$0.06" not in text  # cost hidden by default
-        assert "15m" in text
+            assert "claude-sonnet-4-20250514" in text
+            assert "12.4K/200K" in text
+            assert "6%" in text
+            assert "$0.06" not in text  # cost hidden by default
+            assert "15m" in text
 
     def test_input_height_counts_wide_characters_using_cell_width(self):
         cli_obj = _make_cli()
@@ -200,12 +205,13 @@ class TestCLIStatusBar:
         assert "200K" not in text
 
     def test_build_status_bar_text_handles_missing_agent(self):
-        cli_obj = _make_cli()
+        with _no_fusion:
+            cli_obj = _make_cli()
 
-        text = cli_obj._build_status_bar_text(width=100)
+            text = cli_obj._build_status_bar_text(width=100)
 
-        assert "⚕" in text
-        assert "claude-sonnet-4-20250514" in text
+            assert "⚕" in text
+            assert "claude-sonnet-4-20250514" in text
 
     def test_compression_count_shown_in_wide_status_bar(self):
         cli_obj = _attach_agent(
