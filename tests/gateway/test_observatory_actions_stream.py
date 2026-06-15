@@ -20,7 +20,6 @@ import gateway.cockpit.server as server_mod
 from gateway.cockpit import action_fusion as af
 from gateway.cockpit import event_log
 from gateway.cockpit import observatory_metrics as om
-from gateway.cockpit.server import serve
 
 TOKEN = "test-cockpit-token-123"
 
@@ -36,7 +35,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 @pytest.fixture()
 def server(home: Path):
-    srv = serve(host="127.0.0.1", port=0, token=TOKEN)
+    srv = server_mod.serve(host="127.0.0.1", port=0, token=TOKEN)
     yield srv
     srv.shutdown()
 
