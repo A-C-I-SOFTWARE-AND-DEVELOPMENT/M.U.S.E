@@ -108,6 +108,23 @@
                 android:resource="@xml/jarvis_accessibility" />
         </service>
 
+        <!-- The Neural Observatory live wallpaper: renders MUSE's real network
+             and pulses on every system action, synced from the paired gateway's
+             /v1/observatory/* routes. Native on-device (not a remote stream);
+             honest-dormant when unpaired or the collector is opt-out. -->
+        <service
+            android:name=".service.ObservatoryWallpaperService"
+            android:exported="true"
+            android:label="@string/observatory_wallpaper_label"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.wallpaper"
+                android:resource="@xml/observatory_wallpaper" />
+        </service>
+
         <!-- Hands the downloaded update APK to the system package installer via
              a content:// URI (never a raw file:// path). Used by ApkInstaller. -->
         <provider
