@@ -24,7 +24,7 @@ The behavioral layer (SC1…SC12) lives in
 | 8 | message composition | EXISTS | `tools/send_message_tool.py` `send_message` |
 | 9 | file create/edit/view/run/share | EXISTS | `tools/file_tools.py` (`read_file`/`write_file`/`patch`/`search_files`) + `execute_code` |
 | 10 | interactive prompts / options | EXISTS | `tools/clarify_tool.py` `clarify` |
-| 11 | recommend apps/surfaces | PLANNED | tool wrapper over `gateway/cockpit/observatory_recommend.py` |
+| 11 | recommend apps/surfaces | BUILT | `plugins/recommend/` (`recommend_surfaces` over a curated MUSE-surface catalog) |
 | 12 | MCP connector discovery / suggest | EXISTS | `hermes_cli/mcp_catalog.py`, `hermes_cli/mcp_picker.py`, `tools/mcp_tool.py` |
 | 13 | skills system (SKILL.md) | EXISTS | `tools/skills_tool.py` + `skills/` |
 | 14 | memory (durable/session) | EXISTS | `tools/memory_tool.py` (MEMORY.md + USER.md) |
