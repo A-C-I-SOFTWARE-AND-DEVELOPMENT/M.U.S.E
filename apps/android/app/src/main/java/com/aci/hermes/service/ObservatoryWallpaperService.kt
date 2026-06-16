@@ -27,7 +27,7 @@ import kotlinx.coroutines.Dispatchers
 /**
  * Live device wallpaper that renders the M.U.S.E neural network and pulses on
  * every real system action, synced from the paired gateway's
- * `/v1/observatory/*` routes — **native on the device, not a remote stream**.
+ * `/v1/observatory/…` routes — **native on the device, not a remote stream**.
  *
  * This is the Canvas baseline renderer (matches the app's existing Canvas
  * drawing, e.g. `PixelRoom`): a starfield, the real GraphRAG super-node clusters
