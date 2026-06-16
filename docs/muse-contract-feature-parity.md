@@ -20,7 +20,7 @@ The behavioral layer (SC1…SC12) lives in
 | 4 | weather | EXISTS | `plugins/weather/` (Open-Meteo, free) |
 | 5 | sports scores/standings | BUILT | `plugins/sports/` (ESPN public JSON, free) |
 | 6 | places / maps | BUILT | `plugins/places/` (OSM Nominatim search + map/itinerary URL builder) |
-| 7 | recipe (structured) | PLANNED | `plugins/recipe/` (auxiliary LLM → validated schema) |
+| 7 | recipe (structured) | BUILT | `plugins/recipe/` (auxiliary LLM → validated schema) |
 | 8 | message composition | EXISTS | `tools/send_message_tool.py` `send_message` |
 | 9 | file create/edit/view/run/share | EXISTS | `tools/file_tools.py` (`read_file`/`write_file`/`patch`/`search_files`) + `execute_code` |
 | 10 | interactive prompts / options | EXISTS | `tools/clarify_tool.py` `clarify` |
