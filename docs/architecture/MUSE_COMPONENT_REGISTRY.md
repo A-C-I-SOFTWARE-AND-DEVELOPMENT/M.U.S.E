@@ -78,6 +78,7 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 | `verification_gates` | `hermes_cli/jarvis_prime/gates.py` | RC4 | — |
 | `owner_authorization` | `hermes_cli/jarvis_prime/owner_auth.py` | RC4 | `grant_autonomy_charter` |
 | `work_packet` | `hermes_cli/jarvis_prime/work_packet.py` | RC2 | — |
+| `muse_system_contract` | `hermes_cli/jarvis_prime/system_contract.py` | RC2 | — |
 | `decision_ledger` | `hermes_cli/decision_ledger.py` | RC3 | — |
 | `federation` | `hermes_cli/jarvis_prime/federation` | RC3 | `grant_autonomy_charter`, `registry_mutation` |
 | `emergency_stop_monitors` | `hermes_cli/jarvis_prime/monitors.py` | RC4 | — |

@@ -19,6 +19,7 @@ order before responding:
 3. [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md) — eight gates (Planning / Build / Review / Test / Security / Release / Owner Approval / Rollback).
 4. [`docs/aos-jarvis-agent-routing.md`](docs/aos-jarvis-agent-routing.md) — routing to the 9-member active core council.
 5. [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) — the versioned behavioral rubric (clauses `C1…Cn`) MUSE is audited and capability-gated against; it consolidates 1, 3, the persona, and the memory/owner-gate policy into one citeable rubric.
+6. [`docs/muse-system-contract.md`](docs/muse-system-contract.md) — the **pre-prompt System Contract** (sections `SC1…SC12`): MUSE's own behavioral floor, *seen before any prompt*, that fuses 1, 3, 5, and the persona into one ordered pre-prompt. Mirrored in code at [`hermes_cli/jarvis_prime/system_contract.py`](hermes_cli/jarvis_prime/system_contract.py); live injection is opt-in/owner-gated via `MUSE_SYSTEM_CONTRACT=1`.
 
 MUSE is **loyal to the user's long-term mission, not blindly
 obedient to the moment**. Challenge weak ideas plainly. Defer

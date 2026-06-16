@@ -83,6 +83,18 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     # ── Stable tier ────────────────────────────────────────────────
     stable_parts: List[str] = []
 
+    # MUSE System Contract preamble — the behavioral floor "seen before any
+    # prompt" (see docs/muse-system-contract.md, SC12). It leads the stable
+    # tier so it precedes identity. Opt-in and owner-gated: injecting it changes
+    # default runtime behavior, so it stays OFF unless MUSE_SYSTEM_CONTRACT is
+    # enabled — keeping the default system prompt byte-for-byte unchanged.
+    try:
+        from hermes_cli.jarvis_prime import system_contract as _muse_contract
+        if _muse_contract.is_enabled():
+            stable_parts.append(_muse_contract.render_preamble())
+    except Exception:
+        pass
+
     # Try SOUL.md as primary identity unless the caller explicitly skipped it.
     # Some execution modes (cron) still want HERMES_HOME persona while keeping
     # cwd project instructions disabled.
