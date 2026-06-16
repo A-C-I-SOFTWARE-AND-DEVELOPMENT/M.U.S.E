@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import importlib
 import threading
+import uuid
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -54,7 +55,14 @@ def server(hermes_home):
 @pytest.fixture()
 def session(server):
     sid = "sid-test"
-    session_key = "tui-goal-session-1"
+    # Unique per test. Goal state persists in a single shared on-disk
+    # SessionDB (``GoalManager`` resolves its DB via the module-level
+    # ``DEFAULT_DB_PATH``, so the per-test ``HERMES_HOME`` monkeypatch in
+    # ``hermes_home`` does not redirect it). A hardcoded key therefore races
+    # across xdist workers: a sibling test that sets a goal under the same key
+    # leaks an active goal into the "No active goal" assertions here. A unique
+    # key per test isolates each test's row so the assertions are deterministic.
+    session_key = f"tui-goal-session-{uuid.uuid4().hex}"
     s = {
         "session_key": session_key,
         "history": [],
