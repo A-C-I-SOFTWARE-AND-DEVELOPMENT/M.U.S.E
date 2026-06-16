@@ -13,6 +13,7 @@ M.U.S.E Engineering Blueprint.
 | Learn the work-packet + remote-worker schemas, owner-approval examples, failure playbooks | [MUSE_WORKFLOW_SCHEMAS.md](MUSE_WORKFLOW_SCHEMAS.md) |
 | See which external technologies are adopted, migrated, or declined | [MUSE_TECHNOLOGY_DISPOSITION.md](MUSE_TECHNOLOGY_DISPOSITION.md) |
 | Understand context engineering: memory, state, tools, retrieval, CAG | [MUSE_CONTEXT_ENGINEERING.md](MUSE_CONTEXT_ENGINEERING.md) |
+| Activate full autonomy safely (the Autonomy Charter, hard wall intact) | [MUSE_AUTONOMY_CHARTER.md](MUSE_AUTONOMY_CHARTER.md) |
 | Read architecture decision records | [decisions/](decisions/) |
 
 ## New-contributor one-pager
