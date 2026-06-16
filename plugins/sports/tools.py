@@ -84,13 +84,17 @@ STANDINGS_SCHEMA: Dict[str, Any] = {
 }
 
 
-def _bad_league(league: Any) -> str | None:
-    if league not in LEAGUES:
-        return _err(
-            "bad_args",
-            f"unknown league {league!r}; valid: {', '.join(sorted(LEAGUES))}",
-        )
-    return None
+def _valid_league_or_error(league: Any) -> str:
+    """Return an error envelope when ``league`` is not a known league key.
+
+    The ``isinstance``/membership check at each call site (not here) is what
+    lets the type checker narrow ``league`` to ``str`` before it reaches the
+    ESPN client, so this helper is only the shared error message.
+    """
+    return _err(
+        "bad_args",
+        f"unknown league {league!r}; valid: {', '.join(sorted(LEAGUES))}",
+    )
 
 
 def _competitor(c: Dict[str, Any]) -> Dict[str, Any]:
@@ -107,8 +111,8 @@ def handle_scores(args: Dict[str, Any], **_kw) -> str:
     if (disabled := _enabled_or_error()) is not None:
         return disabled
     league = args.get("league")
-    if (bad := _bad_league(league)) is not None:
-        return bad
+    if not isinstance(league, str) or league not in LEAGUES:
+        return _valid_league_or_error(league)
     try:
         payload = EspnClient().scoreboard(league)
     except HttpClientError as exc:
@@ -181,8 +185,8 @@ def handle_standings(args: Dict[str, Any], **_kw) -> str:
     if (disabled := _enabled_or_error()) is not None:
         return disabled
     league = args.get("league")
-    if (bad := _bad_league(league)) is not None:
-        return bad
+    if not isinstance(league, str) or league not in LEAGUES:
+        return _valid_league_or_error(league)
     try:
         payload = EspnClient().standings(league)
     except HttpClientError as exc:
