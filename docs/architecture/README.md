@@ -12,6 +12,7 @@ M.U.S.E Engineering Blueprint.
 | Follow how data flows (context, goal-to-PR, gates, cognition, remote worker, routing) | [MUSE_DATAFLOW.md](MUSE_DATAFLOW.md) |
 | Learn the work-packet + remote-worker schemas, owner-approval examples, failure playbooks | [MUSE_WORKFLOW_SCHEMAS.md](MUSE_WORKFLOW_SCHEMAS.md) |
 | See which external technologies are adopted, migrated, or declined | [MUSE_TECHNOLOGY_DISPOSITION.md](MUSE_TECHNOLOGY_DISPOSITION.md) |
+| Understand context engineering: memory, state, tools, retrieval, CAG | [MUSE_CONTEXT_ENGINEERING.md](MUSE_CONTEXT_ENGINEERING.md) |
 | Read architecture decision records | [decisions/](decisions/) |
 
 ## New-contributor one-pager

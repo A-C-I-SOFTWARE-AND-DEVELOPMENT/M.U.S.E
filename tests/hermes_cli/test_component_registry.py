@@ -88,6 +88,20 @@ def test_every_doc_path_resolves(registry):
             assert doc.exists(), f"{c.id}: doc {doc} does not exist"
 
 
+def test_human_doc_lists_every_component(registry):
+    """The human-readable registry doc must not drift from the YAML: every
+    component id has to appear (as a `backticked` id) in
+    MUSE_COMPONENT_REGISTRY.md, so the prose tables can't silently fall behind."""
+
+    doc = (
+        _REPO_ROOT / "docs" / "architecture" / "MUSE_COMPONENT_REGISTRY.md"
+    ).read_text(encoding="utf-8")
+    missing = [c.id for c in registry if f"`{c.id}`" not in doc]
+    assert not missing, (
+        "MUSE_COMPONENT_REGISTRY.md is missing rows for: " + ", ".join(missing)
+    )
+
+
 # --- partitions + env override ----------------------------------------------
 
 

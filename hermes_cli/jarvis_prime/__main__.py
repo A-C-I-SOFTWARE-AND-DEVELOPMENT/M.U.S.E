@@ -52,6 +52,13 @@ Subcommands:
   relevant files/tests, GraphRAG nodes, prior decisions, model-lane
   recommendation, verification plan) instead of a whole-repo dump.
   Network-free; degrades gracefully if the graph isn't built.
+- ``data-sources {list|clusters|show|register-vault}`` — browse the open
+  data-source registry (``docs/ai-intelligence/open-data-sources.yaml``) and
+  bridge sources into the Research Vault. Read-only except ``register-vault``.
+- ``architecture {list|show}`` — inspect the machine-readable M.U.S.E
+  component registry (``docs/architecture/muse-component-registry.yaml``):
+  list components by ``--kind``/``--risk``/``--owner-gated`` or show one by id,
+  with ``--json``. Read-only.
 """
 
 from __future__ import annotations

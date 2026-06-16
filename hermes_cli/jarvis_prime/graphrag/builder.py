@@ -16,6 +16,7 @@ from typing import Iterable, Optional
 from hermes_cli.jarvis_prime.graphrag.graph import KnowledgeGraph
 from hermes_cli.jarvis_prime.graphrag.indexers import (
     index_code,
+    index_components,
     index_docs,
     index_evidence,
     index_ledger,
@@ -27,8 +28,16 @@ from hermes_cli.jarvis_prime.navigation.repo_index import RepoIndex
 logger = logging.getLogger(__name__)
 
 # Run order matters: code/docs create FILE/DOCUMENT nodes that the later
-# indexers attach evidence/decisions onto.
-ALL_INDEXERS: tuple[str, ...] = ("code", "docs", "evidence", "memory", "ledger")
+# indexers attach evidence/decisions/component edges onto. ``components`` runs
+# after ``docs`` so its OWNS/CITES edges land on existing FILE/DOCUMENT nodes.
+ALL_INDEXERS: tuple[str, ...] = (
+    "code",
+    "docs",
+    "components",
+    "evidence",
+    "memory",
+    "ledger",
+)
 
 
 def build_graph(
@@ -59,6 +68,7 @@ def build_graph(
     steps = {
         "code": lambda: index_code(graph, root, index=shared_index),
         "docs": lambda: index_docs(graph, root, index=shared_index),
+        "components": lambda: index_components(graph, root),
         "evidence": lambda: index_evidence(graph),
         "memory": lambda: index_memory(graph),
         "ledger": lambda: index_ledger(graph, repo_root=root),
