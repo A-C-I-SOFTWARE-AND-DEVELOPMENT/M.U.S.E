@@ -22,14 +22,17 @@
 <tr><td><b>随你所在</b></td><td>Telegram、Discord、Slack、WhatsApp、Signal 和 CLI——全部从单个网关进程运行。语音备忘录转写、跨平台对话连续性。</td></tr>
 <tr><td><b>闭环学习</b></td><td>代理管理记忆并定期自我提醒。复杂任务后自动创建技能。技能在使用中自我改进。FTS5 会话搜索配合 LLM 摘要实现跨会话回溯。<a href="https://github.com/plastic-labs/honcho">Honcho</a> 辩证式用户建模。兼容 <a href="https://agentskills.io">agentskills.io</a> 开放标准。</td></tr>
 <tr><td><b>定时自动化</b></td><td>内置 cron 调度器，支持向任何平台投递。日报、夜间备份、周审计——全部用自然语言描述，无人值守运行。</td></tr>
-<tr><td><b>委派与并行</b></td><td>生成隔离子代理处理并行工作流。编写 Python 脚本通过 RPC 调用工具，将多步管道压缩为零上下文开销的轮次。</td></tr>
+<tr><td><b>委派与并行</b></td><td>生成隔离子代理处理并行工作流，或运行 <code>/swarm</code> Grainler 并行作业——非重叠晶粒，每个晶粒都在隔离的 git 工作树中拥有专属的专职 LLM，带日期与账本记录。编写 Python 脚本通过 RPC 调用工具，将多步管道压缩为零上下文开销的轮次。</td></tr>
 <tr><td><b>随处运行</b></td><td>六种终端后端——本地、Docker、SSH、Daytona、Singularity 和 Modal。Daytona 和 Modal 提供 Serverless 持久化——代理环境空闲时休眠、按需唤醒，空闲期间几乎零成本。$5 VPS 或 GPU 集群都能跑。</td></tr>
 <tr><td><b>研究就绪</b></td><td>批量轨迹生成、轨迹压缩——用于训练下一代工具调用模型。</td></tr>
 <tr><td><b>完整的操作层，而非聊天机器人</b></td><td>MUSE 以运行时形式交付（<code>hermes_cli/jarvis_prime/</code>）：六种模式（Companion、Strategy、Critic、Operator、Builder、Mobile Voice）、意图/模式分类器、运行时人格注入、八道验证关卡、所有者授权和紧急停止。用 <code>/jarvis</code> 调用。</td></tr>
 <tr><td><b>从目标到 PR 的编排</b></td><td>将单个目标分解为经校验的任务图——Job → 专职 Worker → 按任务的模型路由 → 校验关卡 → 防篡改决策账本。可在 TUI、网关私信或 Android 驾驶舱用 <code>/orchestrate</code> 驱动。</td></tr>
-<tr><td><b>可检视的知识图谱</b></td><td>GraphRAG 将仓库代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 个节点），支持 local、global、coding 三种查询模式——让工作复用既有实现，而非重造。</td></tr>
+<tr><td><b>可检视的知识图谱</b></td><td>GraphRAG 将仓库代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（截至 2026-06-10 实测约 33,483 个节点，见 GraphRAG 文档中的证明），支持 local、global、coding 三种查询模式——让工作复用既有实现，而非重造。</td></tr>
 <tr><td><b>自治企业议会</b></td><td>AOS Enterprise Council——233 个顶层代理 + 108 个子代理，覆盖 18 个领域（架构、安全、合规、QA、发布、产品、心理、HazMat Command 等），用于审计、上线就绪评估和多视角评审。</td></tr>
 <tr><td><b>原生 Android 驾驶舱</b></td><td>Kotlin + Compose 应用（<code>apps/android/</code>），与 M.U.S.E. 网关配对：流式对话、设备端语音录入、作业控制、锁屏式所有者审批、证据/记忆/图谱视图，以及紧急停止。手机上不保存任何模型提供商密钥。</td></tr>
+<tr><td><b>原生桌面驾驶舱</b></td><td>Tauri v2 + React 桌面应用（<code>apps/desktop/</code>）——Chat、Jobs、Approvals、Autonomy、Settings 界面，使用与 Android 驾驶舱相同的网关协议。通过 <code>muse-desktop-latest</code> 发布渠道为 macOS、Windows、Linux 自动构建；仅与你自己的本地网关通信，不保存任何密钥。</td></tr>
+<tr><td><b>联邦与主权节点</b></td><td>将 MUSE 作为主权节点运行，与对等节点联邦——TOFU 对等身份锁定、覆盖所有者门控的 M-of-N 法定人数授权、跨证明、内容寻址的 Forge，以及贡献者信任阶梯。见 <a href="docs/federation/">docs/federation/</a>。</td></tr>
+<tr><td><b>所有者门控的自我改进</b></td><td>Autoresearch（内置训练引擎）与 SIA worker 在一次性沙箱中迭代；获胜者绝不自动合并——仅作为可评审、所有者门控的提案出现。见 <a href="docs/integrations/autoresearch.md">autoresearch</a> 与 <a href="docs/integrations/sia-self-improvement.md">SIA</a>。</td></tr>
 </table>
 
 ---
@@ -40,15 +43,18 @@ M.U.S.E. 是开放底座。在其之上，**[A-C-I Software and Development](htt
 
 - **MUSE 操作层** — 位于 [`hermes_cli/jarvis_prime/`](hermes_cli/jarvis_prime/) 的运行时（约 100 个模块）：六种模式、意图/模式分类器、运行时人格注入、需精确口令的所有者授权、紧急停止，以及带每日所有者简报的只读监视器。见 [`docs/jarvis-prime-operating-system.md`](docs/jarvis-prime-operating-system.md)。
 - **可溯源优先的认知层** — Memory Tree（工作/会话/持久记忆，带来源引用、置信度下限、矛盾报告、取代关系，且绝不静默覆写）、Research Vault、证据引擎（BM25 + 记忆混合检索，带引用校验），以及 TokenJuice——一个确定性、按 token 预算的上下文编译器，会筛除密钥。
-- **GraphRAG 知识图谱** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) 将代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（仓库约 28k 节点 / 52k 边），支持 local/global/coding 查询。见 [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md)。
+- **GraphRAG 知识图谱** — [`hermes_cli/jarvis_prime/graphrag/`](hermes_cli/jarvis_prime/graphrag/) 将代码、文档、Research Vault、Memory Tree 与各类账本统一为一张带类型、可溯源的图（截至 2026-06-10 实测约 33,483 节点 / ~63.3k 边），支持 local/global/coding 查询。见 [`docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md`](docs/jarvis_architecture/GRAPHRAG_KNOWLEDGE_GRAPH.md)。
 - **从目标到 PR 的编排** — 五个原语（Job、Worker、模型路由、校验关卡、决策账本）将目标分解为经校验的任务图并发布结果，每个决策都记入防篡改账本。见 [`docs/orchestration/`](docs/orchestration/)。
 - **AOS Enterprise Council** — 233 个顶层代理 + 108 个子代理，覆盖 18 个领域，用于审计、加固、上线就绪评估与多视角评审。见 [`skills/aos-enterprise-council/`](skills/aos-enterprise-council/)。
 - **八道验证关卡 + 可验证护栏** — Planning、Build、Review、Test、Security、Release、Owner Approval、Rollback——由哈希链式、防篡改的证据账本（`verify_chain()`）支撑。见 [`docs/jarvis-verification-gates.md`](docs/jarvis-verification-gates.md)。
-- **版本化 Constitution + 自审层** — 一份只追加的行为准则（条款 `C1…Cn`，带严重度分级）作为评分基准，外加奖励作弊 / Goodhart 检测和能力带壁垒。见 [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md)。
+- **版本化 Constitution + 自审层** — 一份只追加的行为准则（条款 `C1…Cn`，带严重度分级）作为评分基准，外加奖励作弊 / Goodhart 检测和能力带壁垒。联邦治理卷宗新增反目标盟约（条款 `C35–C37`）以及覆盖所有者门控的 M-of-N 法定人数授权。见 [`docs/jarvis-constitution.md`](docs/jarvis-constitution.md) 与 [`docs/federation/`](docs/federation/)。
 - **以构造保障的所有者控制** — 所有者门控动作（花钱、部署、发布、OAuth、凭据变更、包发布、受监管声明）会延后，直到你精确回复 `Yes, with authorization.`；工作区范围的高自治编码模式仅自动批准本地摩擦，绝不削弱这些门控；每次自我更新都是可评审的提案，绝非静默改写。
-- **免费优先的模型路由 + 闭环学习** — 路由顺序为本地 OSS → 托管免费 → 官方 Claude Code / Codex worker 通道 → 付费（仅按需开启），并依据实测记分卡按任务类别选择；一条经所有者批准的流水线（SFT → ORPO/DPO → GRPO）只有在留出基准壁垒上胜过现任时才晋升模型。见 [`docs/ai-intelligence/`](docs/ai-intelligence/)。
-- **原生 Android 驾驶舱 + 语音优先** — Kotlin/Compose 应用（[`apps/android/`](apps/android/)）与驾驶舱网关配对：流式对话、设备端语音录入、作业控制、所有者审批、证据/记忆/图谱视图、自治控制和紧急停止——未配对时回退到剪贴板交接。模型提供商密钥绝不离开网关。
-- **在你所在之处运行** — 原生 Windows 支持（[`scripts/install.ps1`](scripts/install.ps1)、带受限回退的计划任务服务、便携式 Git、无需管理员权限），与 Linux/macOS/WSL2 及 Termux 路径并行。
+- **免费优先的模型路由 + 闭环学习** — 路由顺序为本地 OSS → 托管免费 → 官方 Claude Code / Codex worker 通道 → 付费（仅按需开启），并依据实测记分卡按任务类别选择；一条经所有者批准的流水线（SFT → ORPO/DPO → GRPO）只有在留出基准壁垒上胜过现任时才晋升模型。一条经过校验、可溯源的学习数据集流水线与一份许可感知的开放数据源登记表，为微调、检索与基准壁垒供给数据。见 [`docs/ai-intelligence/`](docs/ai-intelligence/)。
+- **所有者门控的自我改进引擎** — SIA worker（[`docs/integrations/sia-self-improvement.md`](docs/integrations/sia-self-improvement.md)）与内置的 autoresearch 训练引擎（[`docs/integrations/autoresearch.md`](docs/integrations/autoresearch.md)）在一次性、成本受限的沙箱中迭代；MUSE 仅以可评审的提案形式推送获胜者，绝不静默改写。
+- **联邦与主权节点** — 将 MUSE 作为主权节点运行，与对等节点联邦：TOFU 对等身份锁定、M-of-N 法定人数授权、跨证明、带毒物过滤入口的内容寻址 Forge，以及贡献者信任阶梯。见 [`docs/federation/`](docs/federation/)。
+- **可检视的架构地图** — 机器可读的组件登记表（带漂移测试）、数据流图、工作包 / 远程 worker 模式，以及技术配置矩阵。见 [`docs/architecture/`](docs/architecture/)。
+- **原生 Android + 桌面驾驶舱 + 语音优先** — Kotlin/Compose Android 应用（[`apps/android/`](apps/android/)）与 Tauri v2 + React 桌面应用（[`apps/desktop/`](apps/desktop/)）和驾驶舱网关配对：流式对话、设备端语音录入、作业控制、所有者审批、证据/记忆/图谱视图、自治控制和紧急停止——未配对时回退到剪贴板交接。模型提供商密钥绝不离开网关。
+- **在你所在之处运行** — 原生 Windows 支持（[`scripts/install.ps1`](scripts/install.ps1)、带受限回退的计划任务服务、便携式 Git、无需管理员权限），与 Linux/macOS/WSL2 及 Termux 路径并行，另有一键 VPS 部署，以及跨 Android、桌面、CLI 的一键更新。
 
 ---
 
@@ -63,6 +69,16 @@ curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.
 > **Android / Termux：** 已测试的手动安装路径请参考 [Termux 指南](https://hermes-agent.nousresearch.com/docs/getting-started/termux)。在 Termux 上，M.U.S.E. 会安装精选的 `.[termux]` 扩展，因为完整的 `.[all]` 扩展会拉取 Android 不兼容的语音依赖。
 >
 > **Windows：** 原生 Windows 不受支持。请安装 [WSL2](https://learn.microsoft.com/zh-cn/windows/wsl/install) 并运行上述命令。
+
+### 在 VPS 上 24/7 部署（一键）
+
+用一个自动选择 Docker 或原生方式的调度器，把一台裸 Ubuntu/Debian VPS 部署为全天候运行的 M.U.S.E. 实例——网关在线、免费优先的模型路由就绪、仪表板可安全访问：
+
+```bash
+bash scripts/quickstart.sh        # 自动：有 Docker 用 Docker，否则用原生
+```
+
+完整演练（SSH 隧道 / 认证反向代理、备份、模型路由）：[`docs/deploy/vps-deployment-guide.md`](docs/deploy/vps-deployment-guide.md)。
 
 安装后：
 
@@ -130,6 +146,27 @@ M.U.S.E. 有两种入口：用 `muse` 启动终端 UI，或运行网关从 Teleg
 | [贡献](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) | 开发设置、PR 流程、代码风格 |
 | [CLI 参考](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) | 所有命令和标志 |
 | [环境变量](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) | 完整环境变量参考 |
+
+---
+
+## 桌面应用
+
+原生桌面驾驶舱位于 [`apps/desktop`](apps/desktop/)——一个包装精简 **Singularity** 客户端（Vite + React 19 + TypeScript）的 **Tauri v2** 外壳。它使用与浏览器和 Android 驾驶舱相同的网关协议：持有者令牌配对（所有者口令门控）、SSE 作业流、NDJSON 对话。它**不保存任何模型提供商密钥**，且仅与你控制的网关通信（默认 `http://127.0.0.1:8765`）。
+
+**界面：** Home、Chat、Jobs、Approvals、Autonomy、Observatory 与 Settings。
+
+**单一可安装包——应用自行启动大脑。** 启动时外壳会探测 `GET /v1/health`；若网关未运行且找到已安装的 `muse` CLI，它会以托管子进程方式启动 `muse cockpit serve`（仅 Rust 侧——webview 不获得任何 shell 权限）。它绝不会在已运行的网关之上重复启动，你自己启动的网关也绝不会被触碰。
+
+**安装最新构建：** 从 `muse-desktop-latest` [发布页](https://github.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/releases/tag/muse-desktop-latest) 下载——macOS `.dmg`、Windows `-setup.exe`，或 Linux `.AppImage` / `.deb`。在配置好签名证书之前，未签名的构建可能会提示来自未知开发者。
+
+**自行构建：**
+
+```bash
+cd apps/desktop/ui && npm install && npm run build      # 生产 UI 包
+cd ../src-tauri && cargo tauri build                    # 当前操作系统的原生安装包
+```
+
+该 UI 同时也是一个可安装的 PWA。前置条件、网关自启动契约以及 CI 通道记录在 [`apps/desktop/README.md`](apps/desktop/README.md)。
 
 ---
 
