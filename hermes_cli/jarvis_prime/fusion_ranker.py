@@ -26,9 +26,9 @@ from __future__ import annotations
 
 import math
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Iterable, Optional, Sequence
+from typing import Any, Iterable, Optional
 
 
 def _env_float(name: str, default: float) -> float:
