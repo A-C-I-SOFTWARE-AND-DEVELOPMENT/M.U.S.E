@@ -16,7 +16,7 @@ The behavioral layer (SC1…SC12) lives in
 |---|---|---|---|
 | 1 | web search | EXISTS | `tools/web_tools.py` `web_search` (Exa/Tavily/Brave/DDG/SearXNG…) |
 | 2 | web/URL fetch | EXISTS | `tools/web_tools.py` `web_extract` |
-| 3 | image search | PLANNED | `plugins/image_search/` (Openverse, free, CC-licensed) |
+| 3 | image search | BUILT | `plugins/image_search/` (Openverse, free, CC-licensed) |
 | 4 | weather | EXISTS | `plugins/weather/` (Open-Meteo, free) |
 | 5 | sports scores/standings | PLANNED | `plugins/sports/` (ESPN public JSON, free) |
 | 6 | places / maps | BUILT | `plugins/places/` (OSM Nominatim search + map/itinerary URL builder) |
