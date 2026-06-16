@@ -51,6 +51,7 @@ class NodeType(str, Enum):
     SOURCE = "source"
     TASK = "task"
     DECISION = "decision"
+    COMPONENT = "component"
 
 
 class EdgeType(str, Enum):

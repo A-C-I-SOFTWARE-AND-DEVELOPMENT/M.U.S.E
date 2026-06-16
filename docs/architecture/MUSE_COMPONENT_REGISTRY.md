@@ -60,6 +60,8 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 | `tui` | `tui_gateway/entry.py` | RC1 | — |
 | `acp_adapter` | `acp_adapter/entry.py` | RC1 | — |
 | `android_cockpit` | `apps/android` | RC2 | `post_publicly`, `app_store_submission` |
+| `desktop_cockpit` | `apps/desktop` | RC2 | `post_publicly`, `app_store_submission` |
+| `voice` | `hermes_cli/voice.py` | RC2 | `post_publicly`, `spend_money`, `production_deploy` |
 
 ### Core runtime
 
@@ -77,6 +79,8 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 | `owner_authorization` | `hermes_cli/jarvis_prime/owner_auth.py` | RC4 | `grant_autonomy_charter` |
 | `work_packet` | `hermes_cli/jarvis_prime/work_packet.py` | RC2 | — |
 | `decision_ledger` | `hermes_cli/decision_ledger.py` | RC3 | — |
+| `federation` | `hermes_cli/jarvis_prime/federation` | RC3 | `grant_autonomy_charter`, `registry_mutation` |
+| `emergency_stop_monitors` | `hermes_cli/jarvis_prime/monitors.py` | RC4 | — |
 
 ### Orchestration + workers
 
@@ -85,6 +89,7 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 | `orchestrator` | `hermes_cli/orchestrator_api.py` | RC3 | `production_deploy` |
 | `worker_registry` | `hermes_cli/model_registry.py` | RC3 | `change_default_active_agents`, `registry_mutation` |
 | `remote_worker_bridge` | `hermes_cli/remote_bridge.py` | RC3 | — |
+| `cron_scheduler` | `cron/scheduler.py` | RC2 | `post_publicly`, `spend_money`, `production_deploy` |
 
 ### Cognition plane
 
@@ -92,6 +97,7 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 |---|---|---|---|
 | `cognition_memory` | `hermes_cli/jarvis_prime/research_vault.py` | RC2 | — |
 | `graphrag` | `hermes_cli/jarvis_prime/graphrag` | RC1 | — |
+| `research_fabric` | `hermes_cli/jarvis_prime/research_fabric` | RC4 | `grant_autonomy_charter`, `registry_mutation`, `production_deploy` |
 
 ### Integrations + providers
 
@@ -100,6 +106,8 @@ python -m hermes_cli.jarvis_prime architecture show owner_authorization
 | `model_router` | `providers/__init__.py` | RC2 | `oauth_change`, `credential_change` |
 | `visual_synthesis` | `plugins/image_gen` | RC1 | `spend_money` |
 | `web3_skills` | `optional-skills/blockchain` | RC2 | — |
+| `learning_pipeline` | `plugins/learning` | RC1 | — |
+| `memory_backends` | `plugins/memory` | RC1 | `credential_change`, `modify_secrets` |
 
 ## Risk classes
 

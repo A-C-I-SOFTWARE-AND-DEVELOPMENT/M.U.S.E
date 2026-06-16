@@ -303,3 +303,112 @@ components:
     rollback: "remove the skill from the active set; skills are data, not default-loaded code"
     observability: "~/.hermes/logs/"
     docs: ["docs/architecture/MUSE_TECHNOLOGY_DISPOSITION.md"]
+
+  # --- additional surfaces -------------------------------------------------
+  - id: desktop_cockpit
+    name: "Desktop cockpit (Tauri v2 + React)"
+    kind: surface
+    entrypoints: ["apps/desktop (Tauri app)", "muse-desktop-latest release channel"]
+    owner_module: apps/desktop
+    capabilities: ["desktop_cockpit", "chat_jobs_approvals_autonomy", "observatory", "gateway_protocol"]
+    risk_class: RC2
+    owner_gated_actions: ["post_publicly", "app_store_submission"]
+    tests: "desktop app build + unit suite under apps/desktop"
+    rollback: "revert apps/desktop change; the desktop app is a separate artifact from the runtime and holds no keys"
+    observability: "desktop app logs + gateway event stream"
+    docs: ["apps/desktop/README.md"]
+
+  - id: voice
+    name: "Voice-first capture + driving mode"
+    kind: surface
+    entrypoints: ["hermes_cli.voice", "voice_mode tool", "driving mode"]
+    owner_module: hermes_cli/voice.py
+    capabilities: ["push_to_talk", "continuous_vad", "transcript_to_job_intake", "spoken_confirmation"]
+    risk_class: RC2
+    owner_gated_actions: ["post_publicly", "spend_money", "production_deploy"]
+    tests: "uv run pytest tests -k voice"
+    rollback: "revert the voice change; raw audio is never persisted and driving mode requires spoken confirmation before any action"
+    observability: "~/.hermes/ intake folder (mode 0700) + decision ledger"
+    docs: ["docs/voice/voice-first-user-guide.md"]
+
+  # --- orchestration -------------------------------------------------------
+  - id: cron_scheduler
+    name: "Cron scheduler + automations"
+    kind: orchestration
+    entrypoints: ["hermes_cli.cron", "cron.scheduler.tick"]
+    owner_module: cron/scheduler.py
+    capabilities: ["scheduled_jobs", "unattended_delivery", "injection_scanning", "file_locked_tick"]
+    risk_class: RC2
+    owner_gated_actions: ["post_publicly", "spend_money", "production_deploy"]
+    tests: "uv run pytest tests -k cron"
+    rollback: "revert cron change; scheduled jobs pass the same gates and injection scanner as interactive ones"
+    observability: "~/.hermes/logs/ + decision ledger"
+    docs: ["docs/README.md"]
+
+  # --- cognition / self-improvement ---------------------------------------
+  - id: research_fabric
+    name: "Research fabric (autoresearch + SIA self-improvement)"
+    kind: cognition
+    entrypoints: ["hermes_cli.jarvis_prime.research_fabric", "skills/autoresearch", "skills/sia-self-improve"]
+    owner_module: hermes_cli/jarvis_prime/research_fabric
+    capabilities: ["bounded_self_improvement", "sandboxed_challengers", "ratchet_wall", "canary_rollback"]
+    risk_class: RC4
+    owner_gated_actions: ["grant_autonomy_charter", "registry_mutation", "production_deploy"]
+    tests: "uv run pytest tests/jarvis_prime -k 'research_fabric or autoresearch or charter'"
+    rollback: "revert the change; winners never auto-merge — they surface only as owner-gated proposals, and a post-apply canary auto-rolls-back on regression (C34 hard wall protects the safety core)"
+    observability: "decision ledger + guardrail evidence + autonomy charter ledger"
+    docs: ["docs/integrations/autoresearch.md", "docs/integrations/sia-self-improvement.md"]
+
+  - id: emergency_stop_monitors
+    name: "Emergency stop + read-only monitors + daily owner brief"
+    kind: governance
+    entrypoints: ["JarvisPrime.stop()", "hermes_cli.jarvis_prime.monitors", "hermes_cli.jarvis_prime.owner_brief"]
+    owner_module: hermes_cli/jarvis_prime/monitors.py
+    capabilities: ["emergency_stop", "fail_visible_monitors", "blind_spot_tracking", "daily_owner_brief"]
+    risk_class: RC4
+    owner_gated_actions: []
+    tests: "uv run pytest tests/hermes_cli -k 'monitor or owner_brief or stop'"
+    rollback: "revert the change; the emergency stop stays un-gated so the killswitch always works, and monitors are read-only"
+    observability: "monitor results + daily owner brief + tamper-evident stop record in the ledger"
+    docs: ["docs/jarvis-prime-operating-system.md"]
+
+  # --- integrations --------------------------------------------------------
+  - id: learning_pipeline
+    name: "Learning dataset pipeline + learning aids"
+    kind: integration
+    entrypoints: ["jarvis_prime learning", "plugins/learning tools"]
+    owner_module: plugins/learning
+    capabilities: ["source_backed_dataset", "read_only_learning_aids (books, gutenberg, quotes, wolfram)"]
+    risk_class: RC1
+    owner_gated_actions: []
+    tests: "uv run pytest tests/plugins -k learning"
+    rollback: "remove the plugin from the plugins.enabled allowlist; tools are read-only and opt-in"
+    observability: "~/.hermes/logs/"
+    docs: ["docs/ai-intelligence/jarvis-learning-dataset.md"]
+
+  - id: memory_backends
+    name: "Pluggable memory backends (sqlite / honcho / mem0 / supermemory / …)"
+    kind: integration
+    entrypoints: ["plugins/memory", "memory.provider config"]
+    owner_module: plugins/memory
+    capabilities: ["pluggable_memory", "dialectic_user_modeling", "opt_in_backends"]
+    risk_class: RC1
+    owner_gated_actions: ["credential_change", "modify_secrets"]
+    tests: "uv run pytest tests/plugins -k memory"
+    rollback: "switch back to the default backend via memory.provider; backends are opt-in and data-only"
+    observability: "~/.hermes/ memory store"
+    docs: ["docs/integrations/knowledge-learning-plugins.md"]
+
+  # --- federation ----------------------------------------------------------
+  - id: federation
+    name: "Federation + sovereign nodes"
+    kind: governance
+    entrypoints: ["hermes_cli.jarvis_prime.federation"]
+    owner_module: hermes_cli/jarvis_prime/federation
+    capabilities: ["tofu_peer_pinning", "m_of_n_quorum_auth", "cross_attestation", "split_brain_detection", "trust_ladder"]
+    risk_class: RC3
+    owner_gated_actions: ["grant_autonomy_charter", "registry_mutation"]
+    tests: "uv run pytest tests -k federation"
+    rollback: "revert the change; federation is opt-in and quorum auth wraps (never replaces) the single-owner gates; non-amendable clauses stay locked"
+    observability: "signed ledger-head attestations + decision ledger"
+    docs: ["docs/federation/MUSE_UNBOUND_VOL_VI_FEDERATED_GOVERNANCE.md"]
