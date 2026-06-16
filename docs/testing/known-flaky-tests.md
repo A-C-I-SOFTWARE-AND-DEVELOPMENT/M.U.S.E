@@ -108,3 +108,61 @@ Gave the sleep mock a ~1 ms **real**-sleep `side_effect` so those threads yield
 instead of busy-spinning, keeping the test fast and the assertion unchanged.
 Sibling tests in the same class share the no-op-`time.sleep` pattern and could
 flake similarly under enough load; apply the same `side_effect` if they do.
+
+---
+
+## Python — `tests/hermes_cli/test_web_server.py::TestPtyWebSocket::test_pub_broadcasts_to_events_subscribers`
+
+- **Status:** documented, root-caused — **no product fix needed** (the server
+  broadcast path is correct; this is a test-harness scheduling artifact under
+  load).
+
+### Symptom
+
+Green on `main` and **8/8 in isolation (~1.4 s)**, but intermittently hits the
+30 s global test timeout (`tests/conftest.py` `TimeoutError`) under
+`pytest -n 4` full-suite load — observed in repeated back-to-back full-suite
+runs locally:
+
+```
+FAILED tests/hermes_cli/test_web_server.py::TestPtyWebSocket::test_pub_broadcasts_to_events_subscribers
+    TimeoutError: Test exceeded 30 second timeout   (tests/conftest.py)
+```
+
+### Root cause
+
+Starlette's `TestClient.websocket_connect` runs the ASGI app on a background
+`anyio` portal (a separate event-loop thread). The test performs a synchronous,
+cross-thread websocket round-trip: `pub.send_text(...)` → server
+`pub_ws` → `_broadcast_event` → `await sub.send_text(...)` →
+`sub.receive_text()` **with no timeout**. Under CPU starvation (this test runs
+inside the ~29k-test process on 4 workers) the portal's loop thread is scheduled
+late, so the round-trip occasionally takes longer than the 30 s cap and the
+no-timeout `receive_text()` blocks until the global timeout fires.
+
+The frame is **delayed, not dropped**: `_broadcast_event`
+(`hermes_cli/web_server.py`) copies the subscriber set under `_event_lock` and
+`await sub.send_text(payload)` directly, and the test already waits up to 5 s for
+the subscriber to register in `_event_channels` before publishing. There is no
+lost-message race in the server once a subscriber is registered — so this is a
+harness/scheduling artifact, **not** a pub/sub correctness bug. Do not "fix" the
+broadcast code.
+
+### Recommended fix (if it must be de-flaked)
+
+Test-only, no product change — pick one: bound `sub.receive_text()` with an
+explicit short receive timeout and `xfail`/skip on timeout; give the test a
+longer per-test budget via `@pytest.mark.timeout(...)`; or move it to a
+serial / low-parallelism lane. Leaving it as a documented load flake is also
+acceptable — a re-kick is not a real regression.
+
+### Sibling observations (same category, this sweep)
+
+The same 27k-test CPU-starvation-vs-30 s-timeout pattern produced one-off
+intermittent failures in
+`tests/plugins/test_achievements_plugin.py::test_evaluate_all_stale_cache_serves_stale_and_refreshes_in_background`
+(background cache-refresh thread timing; 8/8 in isolation). A *separate*,
+genuine **test-isolation** bug surfaced in `tests/tui_gateway/test_goal_command.py`
+(tests shared a hardcoded SessionDB key and raced across xdist workers) — that
+one was a real defect and was fixed by giving each test a unique session key
+(not a timeout flake).
