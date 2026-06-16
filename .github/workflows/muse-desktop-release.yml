@@ -170,7 +170,7 @@ jobs:
             printf '%s\n' "## Install"
             printf '%s\n' "- **macOS:** download the \`.dmg\`, open it, drag M.U.S.E. to Applications."
             printf '%s\n' "- **Windows:** download the \`-setup.exe\` and run it."
-            printf '%s\n' "- **Linux:** download the \`.AppImage\` (chmod +x and run) or the \`.deb\`."
+            printf '%s\n' "- **Linux:** download the \`.deb\` and install it (\`sudo apt install ./M.U.S.E._*_amd64.deb\`)."
             printf '%s\n' ""
             printf '%s\n' "Unsigned builds may warn about an unknown developer (Gatekeeper / SmartScreen) until signing certs are provisioned (see apps/desktop/RELEASE.md)."
           } > release-notes.md
@@ -226,7 +226,15 @@ jobs:
           # supported x64 label. If this leg ever reports "runner not found",
           # drop it (the arm64 leg still publishes) rather than blocking releases.
           - { os: macos-15-intel, rust_target: x86_64-apple-darwin,  bundles: 'app,dmg' }
-          - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'appimage,deb' }
+          # Linux ships `.deb` only. AppImage bundling is DISABLED because
+          # Tauri's `linuxdeploy` path regressed upstream (mid-2026) and fails on
+          # GitHub runners with "failed to run linuxdeploy" even with
+          # APPIMAGE_EXTRACT_AND_RUN=1 + GTK/WebKitGTK packages — see
+          # https://github.com/tauri-apps/tauri/issues/14796. The `.deb` builds
+          # reliably and keeps the release green; re-add `appimage` (the
+          # APPIMAGE_EXTRACT_AND_RUN env below is retained for that) once
+          # upstream linuxdeploy is fixed.
+          - { os: ubuntu-22.04,  rust_target: '',                   bundles: 'deb' }
           - { os: windows-latest, rust_target: '',                  bundles: 'nsis' }
     steps:
       - name: Checkout
@@ -363,12 +371,12 @@ jobs:
           APPLE_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_ID || '' }}
           APPLE_PASSWORD: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_PASSWORD || '' }}  # pragma: allowlist secret
           APPLE_TEAM_ID: ${{ steps.applecert.outputs.sign == 'true' && secrets.APPLE_TEAM_ID || '' }}
-          # linuxdeploy and its AppImage plugins are themselves AppImages that
-          # mount via FUSE to run. GitHub's Linux runners do not reliably provide
-          # FUSE, so Tauri's AppImage bundling dies with "failed to run
-          # linuxdeploy". Extract-and-run unpacks the tools to a temp dir and runs
-          # them without FUSE — the canonical CI fix. Harmless on macOS/Windows
-          # (only AppImage tooling reads it).
+          # Retained for when AppImage bundling is re-enabled (see the matrix
+          # note above): linuxdeploy and its plugins are AppImages that FUSE-mount
+          # to run, which GitHub runners don't reliably provide. Extract-and-run
+          # avoids FUSE. NOTE: this alone did NOT clear the mid-2026 upstream
+          # linuxdeploy regression (tauri-apps/tauri#14796), which is why Linux
+          # currently bundles `.deb` only. Harmless on macOS/Windows.
           APPIMAGE_EXTRACT_AND_RUN: "1"
           VERSION: ${{ needs.meta.outputs.version }}
           TARGET: ${{ matrix.rust_target }}
