@@ -22,7 +22,12 @@ MUSE's retrieved-knowledge path is agentic RAG, not single-shot lookup: GraphRAG
 answers local/global/coding queries over a typed, source-backed graph, and the
 evidence engine verifies citations before injection. **Fusion** (`second_brain/`)
 adds hybrid dense+graph+keyword signal blending — combining vector similarity,
-memory confidence, and recency into one ranking. Retrieval is explainable
+memory confidence, and recency into one ranking. The fusion *ranking* is also
+available **database-free** in MUSE via
+[`hermes_cli/jarvis_prime/fusion_ranker.py`](../../hermes_cli/jarvis_prime/fusion_ranker.py)
+(a faithful port of Second Brain's blend, same weights + `SECOND_BRAIN_W_*` env
+overrides), so MUSE can fuse the candidates its own retrieval already produces
+without the Postgres/Neo4j backend. Retrieval is explainable
 (deterministic path-based CITES edges, no opaque embedding guesses) so every
 injected fact is attributable.
 
