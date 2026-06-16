@@ -18,7 +18,7 @@ The behavioral layer (SC1…SC12) lives in
 | 2 | web/URL fetch | EXISTS | `tools/web_tools.py` `web_extract` |
 | 3 | image search | BUILT | `plugins/image_search/` (Openverse, free, CC-licensed) |
 | 4 | weather | EXISTS | `plugins/weather/` (Open-Meteo, free) |
-| 5 | sports scores/standings | PLANNED | `plugins/sports/` (ESPN public JSON, free) |
+| 5 | sports scores/standings | BUILT | `plugins/sports/` (ESPN public JSON, free) |
 | 6 | places / maps | BUILT | `plugins/places/` (OSM Nominatim search + map/itinerary URL builder) |
 | 7 | recipe (structured) | PLANNED | `plugins/recipe/` (auxiliary LLM → validated schema) |
 | 8 | message composition | EXISTS | `tools/send_message_tool.py` `send_message` |
