@@ -55,6 +55,8 @@ def test_component_indexer_adds_nodes_and_owns_and_cites_edges(tmp_path):
     assert comp_id in g.nodes
     assert g.nodes[comp_id].attrs["kind"] == "runtime"
     assert g.nodes[comp_id].attrs["risk_class"] == "RC1"
+    # Provenance URI is recorded relative to the indexed tree (like FILE/DOC nodes).
+    assert g.nodes[comp_id].sources[0]["uri"] == "registry.yaml"
 
     file_id = node_id(NodeType.FILE, "pkg/thing.py")
     assert (comp_id, file_id, EdgeType.OWNS.value) in g.edges

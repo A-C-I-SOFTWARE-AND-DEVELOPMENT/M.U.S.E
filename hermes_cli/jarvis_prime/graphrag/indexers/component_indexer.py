@@ -30,7 +30,6 @@ from pathlib import Path
 from typing import Optional
 
 from hermes_cli.jarvis_prime.component_registry import (
-    DEFAULT_REGISTRY_PATH,
     REGISTRY_PATH_ENV,
     load_registry,
 )
@@ -47,13 +46,14 @@ logger = logging.getLogger(__name__)
 _REGISTRY_RELPATH = Path("docs") / "architecture" / "muse-component-registry.yaml"
 
 
-def _registry_uri(path: Path) -> str:
-    """Repo-relative registry path for provenance, falling back to the absolute
-    path when the registry lives outside the source tree."""
+def _registry_uri(path: Path, root: Path) -> str:
+    """Provenance URI for the registry, relative to the tree being indexed so it
+    matches how FILE/DOCUMENT nodes record their paths. Absolute when the
+    registry lives outside that tree (an explicit path or env override)."""
 
     try:
-        return str(path.relative_to(DEFAULT_REGISTRY_PATH.parents[2]))
-    except (ValueError, IndexError):
+        return str(path.relative_to(root))
+    except ValueError:
         return str(path)
 
 
@@ -94,7 +94,7 @@ def index_components(
         )
         return graph
 
-    src = _src(_registry_uri(Path(registry_path)))
+    src = _src(_registry_uri(Path(registry_path), root))
     for c in components:
         comp = graph.add_node(
             NodeType.COMPONENT,
