@@ -27,26 +27,42 @@ Granting the charter is the owner-gated action `grant_autonomy_charter`
 **nonce-bound** challenge — a one-time code — not just the static phrase, so a
 replayed approval can never mint autonomy:
 
-```text
-# 1) Request the challenge (prints a one-time code):
-$ muse guardrails authorize grant_autonomy_charter --subject "broad autonomy"
-required_phrase: Yes, with authorization. Code: 728193
+The dedicated CLI is `research-fabric charter` (two steps — minting the challenge,
+then you answering it). For a **broad** charter (maximal autonomy, safety core
+intact) override the conservative defaults (`--risk-ceiling RC2 --budget 5 --ttl
+86400`):
 
-# 2) Respond with the exact phrase INCLUDING the code:
-$ muse guardrails authorize-response <challenge-id> "Yes, with authorization. Code: 728193"
-authorized: true   # a content-addressed grant artifact lands in the ledger
+```text
+# 1) Mint the nonce-bound challenge — prints the coded phrase you must echo back:
+$ python -m hermes_cli.jarvis_prime research-fabric charter challenge \
+    --risk-ceiling RC3 --budget 50 --window-seconds 86400 --ttl 604800
+challenge_id:    chal_…
+required_phrase: Yes, with authorization. Code: 728193
+next:            research-fabric charter grant --challenge-id <id> --phrase '<required_phrase>'
+
+# 2) Grant it by echoing the EXACT coded phrase — THIS is your step; the code is
+#    the proof only you can supply (C11), so the agent can never self-grant:
+$ python -m hermes_cli.jarvis_prime research-fabric charter grant \
+    --challenge-id chal_… --phrase 'Yes, with authorization. Code: 728193'
+granted: { … }     # the charter is active; the controller now auto-applies in scope
+
+# inspect / revoke at any time:
+$ python -m hermes_cli.jarvis_prime research-fabric charter status
+$ python -m hermes_cli.jarvis_prime research-fabric charter revoke --charter-id <id>
 ```
 
-That grant is what `charter.CharterBook.grant(...)` consumes to mint the charter.
-A **broad** charter (maximal autonomy, safety core intact) looks like:
+The challenge persists at `~/.hermes/jarvis_prime/charter_challenges.jsonl`
+between the two commands. `--allowed-kinds` defaults to the broad non-hard-walled
+set (`charter.DEFAULT_ALLOWED_KINDS`); pass it explicitly to narrow scope. The CLI
+flags map to `charter.CharterBook.grant(...)`:
 
-| Charter field | Broad value | Meaning |
+| Charter field / flag | Broad value | Meaning |
 |---|---|---|
-| `allowed_kinds` | every **non-hard-walled** `ProposalKind` (e.g. `SKILL_UPDATE`, `NEW_SKILL`, …) | what MUSE may auto-apply |
-| `risk_band_ceiling` | `RC3` | highest risk it may auto-apply (RC4 is **never** permitted) |
-| `per_window_budget` | large (e.g. 50) | max auto-applies per window |
-| `window_seconds` | e.g. `86400` | the budget window (1 day) |
-| `ttl_seconds` | e.g. `604800` | auto-expiry (1 week) — re-grant to extend |
+| `--allowed-kinds` (`allowed_kinds`) | every **non-hard-walled** `ProposalKind` (default `DEFAULT_ALLOWED_KINDS`) | what MUSE may auto-apply |
+| `--risk-ceiling` (`risk_band_ceiling`) | `RC3` | highest risk it may auto-apply (RC4 is **never** permitted) |
+| `--budget` (`per_window_budget`) | large (e.g. 50) | max auto-applies per window |
+| `--window-seconds` (`window_seconds`) | e.g. `86400` | the budget window (1 day) |
+| `--ttl` (`ttl_seconds`) | e.g. `604800` | auto-expiry (1 week) — re-grant to extend |
 
 `grant()` **rejects** an `RC4` ceiling and **rejects** any hard-walled kind up
 front, so a "broad" charter is still bounded by the wall.
