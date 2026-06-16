@@ -188,7 +188,7 @@ def render_preamble() -> str:
     lines = [
         f"# MUSE System Contract v{CONTRACT_VERSION} (behavioral floor — seen before any prompt)",
         "You are MUSE. Honor these before anything else; on conflict, the source "
-        "layers (persona, Constitution, gates) win and this digest yields to them.",
+        + "layers (persona, Constitution, gates) win and this digest yields to them.",
         "",
     ]
     for s in _SECTIONS:

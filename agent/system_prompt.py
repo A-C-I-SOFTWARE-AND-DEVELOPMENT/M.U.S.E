@@ -93,6 +93,9 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         if _muse_contract.is_enabled():
             stable_parts.append(_muse_contract.render_preamble())
     except Exception:
+        # Fail-open: the contract preamble is optional and must never block
+        # system-prompt assembly. If loading/rendering it raises (missing doc,
+        # import error), proceed without it rather than breaking every turn.
         pass
 
     # Try SOUL.md as primary identity unless the caller explicitly skipped it.
