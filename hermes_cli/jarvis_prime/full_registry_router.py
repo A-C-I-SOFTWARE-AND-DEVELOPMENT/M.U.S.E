@@ -65,7 +65,11 @@ class RankedModel:
 
 
 def _measured_scores(task: str, book: Any) -> dict[str, tuple[float, int]]:
-    """``{model_id: (score, samples)}`` from the scorecard book, best-effort."""
+    """``{model_id: (score, samples)}`` from the scorecard book, best-effort.
+
+    ``task`` is matched against the scorecard ``task_type`` as-is; evidence is
+    only applied when the scorecard task name matches the one passed here.
+    """
 
     if book is None:
         try:
@@ -81,8 +85,39 @@ def _measured_scores(task: str, book: Any) -> dict[str, tuple[float, int]]:
     return {model: (score, n) for model, score, n in rows}
 
 
+def _family_of(model: str) -> str:
+    """Coarse family id for ``model`` (best-effort; identity on failure)."""
+
+    try:
+        from hermes_cli.jarvis_prime.model_scorecard import model_family
+
+        return model_family(model) or model
+    except Exception:  # pragma: no cover - defensive (stripped install)
+        return model
+
+
+def _by_family(
+    measured: dict[str, tuple[float, int]],
+) -> dict[str, tuple[float, int]]:
+    """Best score per model family, so a scorecard recorded under a variant id
+    (e.g. ``gemma4-e4b``) still informs its family (``gemma4``) — mirroring the
+    family-level fallback in :mod:`hermes_cli.jarvis_prime.task_router`."""
+
+    out: dict[str, tuple[float, int]] = {}
+    for model, sn in measured.items():
+        fam = _family_of(model)
+        if fam and (fam not in out or sn[0] > out[fam][0]):
+            out[fam] = sn
+    return out
+
+
 def _task_fit(catalog: OssCatalog, model: OssModel, task: str) -> bool:
-    base = task[len("local_") :] if task.startswith("local_") else task
+    want_local = task.startswith("local_")
+    base = task[len("local_") :] if want_local else task
+    # A local_* task only fits a family that actually has a local variant —
+    # mirrors OssCatalog._ordered_for_task's locality narrowing.
+    if want_local and not model.local:
+        return False
     if task in model.best_for or base in model.best_for:
         return True
     routed = catalog.routing_dict.get(task) or catalog.routing_dict.get(base)
@@ -105,10 +140,17 @@ def rank_full_registry(
     task = (task or "").strip().lower()
     catalog = catalog or load_oss_catalog()
     measured = _measured_scores(task, book)
+    measured_by_family = _by_family(measured)
 
     ranked: list[RankedModel] = []
     for fam in catalog.families:
+        # Exact id wins; else a scorecard recorded under a *variant* of this
+        # family (its family id == fam.id) informs it. Catalog ids are already
+        # family-level, so look up by fam.id (not its family-of) to avoid
+        # spreading one score across unrelated same-family catalog entries.
         score_n = measured.get(fam.id)
+        if score_n is None and measured_by_family:
+            score_n = measured_by_family.get(fam.id)
         ranked.append(
             RankedModel(
                 model=fam.id,
