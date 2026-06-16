@@ -1382,23 +1382,47 @@ startup update script runs `uv sync --python 3.11 --extra all --extra dev`,
 which installs the curated `[all,dev]` set into `.venv` from the
 hash-verified `uv.lock`. Activate it with `source .venv/bin/activate`
 before running anything (see "Development Environment" above). `uv` is on
-PATH.
+PATH (installed to `~/.local/bin`).
 
 - **Lint:** `ruff check .` (the blocking rule set). Optional type pass: `ty check`.
 - **Test:** always `scripts/run_tests.sh` (not bare `pytest`). The full
   suite is ~17k tests, so target a directory while iterating, e.g.
   `scripts/run_tests.sh tests/agent/`. The wrapper enforces CI-parity
-  (hermetic env, `-n 4`).
+  (hermetic env, `-n 4`). `integration` and `e2e` tests are excluded by default.
 - **`[all]` is curated, not "everything".** It excludes `messaging`
   (telegram/discord), `anthropic`, `edge-tts`, `honcho`, `voice`, etc.
   `muse doctor` flagging those as "not installed" is expected; install the
   specific extra only if you need that feature.
 
-### Running the agent (no cloud LLM credentials by default)
+### First-run config scaffold (one-time; not in the update script)
 
-`muse` needs an LLM endpoint; no provider API keys are present in this
-environment by default. To run end-to-end without paid credentials, point
-it at a **local OpenAI-compatible server** via `~/.hermes/config.yaml`:
+If `~/.hermes/` is missing on a fresh machine, create it before running
+`muse` commands:
+
+```bash
+mkdir -p ~/.hermes/{cron,sessions,logs,memories,skills}
+cp -n cli-config.yaml.example ~/.hermes/config.yaml
+touch ~/.hermes/.env
+```
+
+`muse doctor` exits non-zero when it emits warnings (e.g. no API key); that
+exit code is not a hard failure on its own — read the report.
+
+### Running without cloud LLM credentials
+
+No provider API keys are present by default, so interactive `muse` chat /
+gateway agent turns will not complete. Two paths:
+
+**Key-free core surfaces (no LLM at all)** — good smoke tests:
+- `muse version`, `muse doctor`
+- `python -m hermes_cli.jarvis_prime classify "<text>"` / `packet "<text>"`
+  (MUSE decision + work-packet primitives)
+- `muse cockpit serve` — loopback HTTP API on `127.0.0.1:8765`. Probe with
+  `curl -s http://127.0.0.1:8765/v1/health`; bearer-gated endpoints need a
+  token from `muse cockpit token` (`Authorization: Bearer <token>`).
+
+**Local OpenAI-compatible server (full agent E2E)** — point
+`~/.hermes/config.yaml` at a local model:
 
 ```yaml
 model:
