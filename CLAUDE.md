@@ -113,6 +113,34 @@ Inside `hermes` (interactive CLI) or any gateway DM:
 5. **No secrets in code.** API keys live in `~/.hermes/.env`. The
    plugin layer reads them; the agent never sees them.
 
+## Quality & documentation workflow
+
+This repo ships the `muse-quality` skill
+(`.claude/skills/muse-quality/`). Doxygen is **not** used for Python
+call graphs (its Python graphs are unreliable); the stack is
+Python-native. There is **no `src/`** layout — scripts target the
+first-party packages via `QUALITY_PATHS`
+(`agent tools hermes_cli gateway tui_gateway cron acp_adapter providers
+second_brain` by default).
+
+- **TIERS:** (1) a fast Ruff check runs automatically on every file
+  edit via a `PostToolUse` hook (report-only; do not re-run it);
+  (2) at the end of any phase, run `/phase-complete` for the
+  checkpoint gate (Ruff blocking on the repo's configured rules,
+  `ty` advisory, plus Bandit/radon/xenon/interrogate/import-linter/
+  vulture/TODO when installed); (3) full PDF/diagram builds run in
+  GitHub Actions (`muse-quality-pipeline.yml`), not locally — only run
+  `/document` locally if explicitly asked.
+- **RATCHET RULE** ("Intelligence proposes; the verifier disposes"):
+  never loosen thresholds in `pyproject.toml`, `.importlinter`, or
+  xenon to make a gate pass. Fix the code instead.
+- Use `ty`, not mypy — `ty` is the repo's configured type checker.
+- Prefer `pyreverse -o mmd` (Mermaid) for diagrams so they embed in
+  Markdown and work on Termux without Graphviz.
+- On Termux, do not attempt Docker/MegaLinter/LaTeX/Structurizr; push
+  to CI. Generated outputs live in the git-ignored `docs/_generated/`
+  and `docs/_build/`.
+
 ## Parallel follow-up execution contract
 
 When closing out a backlog of follow-ups (e.g. the post-launch 10/10
