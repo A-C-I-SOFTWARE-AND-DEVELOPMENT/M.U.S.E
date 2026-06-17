@@ -1628,6 +1628,34 @@ def _cmd_learning_prepare_job(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_learning_close_loop(args: argparse.Namespace) -> int:
+    """Close the learning loop: approved traces → dataset+spec → gated train run.
+
+    Always materializes the dataset + spec; only launches a real run when the
+    dataset is ready, the owner phrase is given (--phrase), and a runner is
+    configured (--runner or MUSE_TRAINING_RUNNER).
+    """
+    from hermes_cli.jarvis_prime.nlp_training import close_training_loop
+
+    result = close_training_loop(
+        base_model=args.base_model,
+        out_dir=args.out_dir,
+        method=getattr(args, "method", "lora"),
+        min_examples=getattr(args, "min_examples", 1),
+        owner_phrase=getattr(args, "phrase", None),
+        runner_cmd=getattr(args, "runner", None),
+    )
+    if getattr(args, "json", False):
+        _print_json(result.to_dict())
+    else:
+        print(f"close-loop: launched={result.launched} — {result.reason}")
+        print(
+            f"  dataset: {result.spec.dataset_path} "
+            f"({result.spec.num_examples} approved example(s))"
+        )
+    return 0 if result.spec.ready else 1
+
+
 def _cmd_bootstrap(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime import model_bootstrap as mb
 
@@ -2081,6 +2109,15 @@ def _cmd_council(args: argparse.Namespace) -> int:
 
     if op == "dispatch":
         session = dispatch(args.request, max_council=getattr(args, "max_council", None))
+        if getattr(args, "execute", False):
+            from hermes_cli.jarvis_prime.aos_council import execute
+
+            deliberation = execute(session)
+            if getattr(args, "json", False):
+                _print_json(deliberation.to_dict())
+            else:
+                print(deliberation.render())
+            return 0
         if getattr(args, "json", False):
             _print_json(session.to_dict())
             return 0
@@ -2088,6 +2125,81 @@ def _cmd_council(args: argparse.Namespace) -> int:
         return 0
 
     print(f"error: unknown council op {op!r}", file=sys.stderr)
+    return 2
+
+
+def _cmd_schedule(args: argparse.Namespace) -> int:
+    """Recurring autonomy tasks: add / list / remove / due / run.
+
+    The due computation is deterministic; running owner-gated kinds
+    (autoresearch / sia) requires the owner authorization phrase via ``--phrase``.
+    """
+    from hermes_cli.jarvis_prime.scheduler import Scheduler, default_runner
+
+    sched = Scheduler()
+    op = args.schedule_command
+
+    if op == "add":
+        kwargs: dict = {}
+        if getattr(args, "rounds", None) is not None:
+            kwargs["rounds"] = args.rounds
+        try:
+            task = sched.add(args.kind, args.every, **kwargs)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        if getattr(args, "json", False):
+            _print_json(task.to_dict())
+        else:
+            print(f"added {task.id} ({task.kind}, every {task.interval_seconds}s)")
+        return 0
+
+    if op == "list":
+        tasks = sched.tasks()
+        if getattr(args, "json", False):
+            _print_json([t.to_dict() for t in tasks])
+            return 0
+        for t in tasks:
+            flag = "on " if t.enabled else "off"
+            gate = " owner-gated" if t.owner_gated else ""
+            print(f"  [{flag}] {t.id}  {t.kind}  every {t.interval_seconds}s  last={t.last_run or '—'}{gate}")
+        if not tasks:
+            print("  (no scheduled tasks)")
+        return 0
+
+    if op == "remove":
+        ok = sched.remove(args.id)
+        print("removed" if ok else "not found")
+        return 0 if ok else 1
+
+    if op == "due":
+        due = sched.due()
+        if getattr(args, "json", False):
+            _print_json([t.to_dict() for t in due])
+            return 0
+        for t in due:
+            print(f"  {t.id}  {t.kind}")
+        if not due:
+            print("  (nothing due)")
+        return 0
+
+    if op == "run":
+        allow = False
+        if getattr(args, "phrase", None):
+            from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+
+            allow = args.phrase.strip() == AUTHORIZATION_PHRASE
+        results = sched.run_due(runner=default_runner(allow_owner_gated=allow))
+        if getattr(args, "json", False):
+            _print_json(results)
+            return 0
+        for r in results:
+            print(f"  {r['id']} {r['kind']}: {r['output']}")
+        if not results:
+            print("  (nothing due)")
+        return 0
+
+    print(f"error: unknown schedule op {op!r}", file=sys.stderr)
     return 2
 
 
@@ -2854,6 +2966,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_learning_pj.add_argument("--json", action="store_true")
     p_learning_pj.set_defaults(func=_cmd_learning_prepare_job)
+
+    p_learning_cl = p_learning_sub.add_parser(
+        "close-loop",
+        help="Close the learning loop: materialize approved traces + owner-gated train launch",
+    )
+    p_learning_cl.add_argument("--base-model", dest="base_model", required=True)
+    p_learning_cl.add_argument("--out-dir", dest="out_dir", required=True)
+    p_learning_cl.add_argument("--method", default="lora")
+    p_learning_cl.add_argument("--min-examples", dest="min_examples", type=int, default=1)
+    p_learning_cl.add_argument(
+        "--runner", help="External training runner command (or set MUSE_TRAINING_RUNNER)"
+    )
+    p_learning_cl.add_argument(
+        "--phrase", help="Owner authorization phrase (required to actually launch)"
+    )
+    p_learning_cl.add_argument("--json", action="store_true")
+    p_learning_cl.set_defaults(func=_cmd_learning_close_loop)
 
     # data-sources — open data-source registry for training/eval (read-only +
     # a Research-Vault bridge). Inventory lives in
@@ -3624,8 +3753,48 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--max-council", dest="max_council", type=int, default=None,
         help="Cap the active council size (default: registry policy)",
     )
+    p_council_dispatch.add_argument(
+        "--execute", action="store_true",
+        help="Run each engaged member through the model layer and synthesize a "
+             "deliberation (uses a local Gemma runner if available)",
+    )
     p_council_dispatch.add_argument("--json", action="store_true")
     p_council_dispatch.set_defaults(func=_cmd_council)
+
+    # schedule — recurring autonomy tasks (forge / autoresearch / sia).
+    p_sched = sub.add_parser(
+        "schedule",
+        help="Recurring autonomy tasks: add / list / remove / due / run",
+        description=(
+            "Register recurring tasks (forge tournaments, autoresearch, SIA) and "
+            "compute which are due. 'run' executes due tasks; owner-gated kinds "
+            "(autoresearch / sia) require the owner phrase via --phrase."
+        ),
+    )
+    p_sched_sub = p_sched.add_subparsers(dest="schedule_command", required=True)
+    p_sched_add = p_sched_sub.add_parser("add", help="Register a recurring task")
+    p_sched_add.add_argument(
+        "--kind", required=True, choices=["forge-tournament", "autoresearch", "sia"]
+    )
+    p_sched_add.add_argument("--every", type=int, required=True, help="Interval in seconds")
+    p_sched_add.add_argument("--rounds", type=int, default=None, help="forge-tournament rounds")
+    p_sched_add.add_argument("--json", action="store_true")
+    p_sched_add.set_defaults(func=_cmd_schedule)
+    p_sched_list = p_sched_sub.add_parser("list", help="List scheduled tasks")
+    p_sched_list.add_argument("--json", action="store_true")
+    p_sched_list.set_defaults(func=_cmd_schedule)
+    p_sched_remove = p_sched_sub.add_parser("remove", help="Remove a task by id")
+    p_sched_remove.add_argument("id")
+    p_sched_remove.set_defaults(func=_cmd_schedule)
+    p_sched_due = p_sched_sub.add_parser("due", help="List tasks due now")
+    p_sched_due.add_argument("--json", action="store_true")
+    p_sched_due.set_defaults(func=_cmd_schedule)
+    p_sched_run = p_sched_sub.add_parser(
+        "run", help="Run all due tasks (owner-gated kinds need --phrase)"
+    )
+    p_sched_run.add_argument("--phrase", help="Owner authorization phrase for owner-gated kinds")
+    p_sched_run.add_argument("--json", action="store_true")
+    p_sched_run.set_defaults(func=_cmd_schedule)
 
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(

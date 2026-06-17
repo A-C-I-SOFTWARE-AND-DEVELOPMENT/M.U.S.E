@@ -35,14 +35,14 @@ workers, **1519** test files.
 | **Gateway / cockpit** | ✅ WIRED | 114 routes; loopback + bearer auth; serves NEXUS at `/nexus/` | in-app editors (mostly read-only panels) |
 | **NEXUS PWA** | ✅ WIRED / DEPLOYED | `apps/nexus/`; ~33 capabilities; Pages + APK builds | — |
 | **NEXUS native APK** | ✅ WIRED | `apps/nexus/android/` (local-gateway autodetect); `nexus-android-latest` release | Play-store signing (debug-signed today) |
-| **Autoresearch (Karpathy) + SIA** | ✅ WIRED (owner-gated) | `AutoresearchWorker`/`SiaWorker`; skills `/autoresearch`,`/sia-self-improve`; cost+VRAM gates | continuous/scheduled runs (on-demand today) |
-| **Learning dataset** | ✅ WIRED | CLI `learning *`; cockpit `/v1/cockpit/learning/*`; NEXUS Learning Queue | downstream SFT/preference training invocation |
+| **Autoresearch (Karpathy) + SIA** | ✅ WIRED (owner-gated) | `AutoresearchWorker`/`SiaWorker`; skills `/autoresearch`,`/sia-self-improve`; cost+VRAM gates; **`schedule` CLI** for recurring runs | — |
+| **Learning dataset** | ✅ WIRED | CLI `learning *` incl. **`close-loop`** (approved traces → dataset+spec → gated train launch); cockpit `/v1/cockpit/learning/*`; NEXUS Learning Queue | actual training needs a configured runner (by design) |
 | **Federation** (Vol VI) | ✅ WIRED | CLI `federation`; **cockpit `/v1/cockpit/federation/status`** (public-only); **NEXUS Federation tab**; 9 test files | no autonomous peer loop |
 | **Forge** (tournament/championship) | ✅ WIRED | CLI `forge`; **cockpit `/v1/cockpit/forge/leaderboard`**; **NEXUS Championship tab**; 7 test files | no scheduled tournaments |
 | **Forge** (NEXUS per-agent knowledge) | ✅ WIRED | NEXUS `/forge`; cockpit `/v1/cockpit/learning` | — |
 | **Voice / Avatar** | ✅ WIRED | CLI `/voice`; cockpit `/v1/cockpit/{voice,avatar}/*`; persona/room stores | lockscreen-approval UX; avatar animation engine |
 | **Second Brain** | ✅ WIRED (this PR) | CLI `second-brain {status,retrieve,ingest}`; agent `recollect`/`build_context_handoff`; cockpit `/v1/cockpit/second-brain/{status,retrieve}`; NEXUS tab; **in-memory backend** runs with zero infra | durable store needs Postgres (in-memory is process-local); cockpit ingest is CLI-only by design |
-| **AOS Enterprise Council** | ✅ WIRED | `hermes_cli/jarvis_prime/aos_council/` registry dispatcher; CLI `council {roster,dispatch}`; cockpit `/v1/cockpit/council/dispatch`; NEXUS Council Dispatch tab; routes the real `operating-registry/registry.json` | per-member LLM execution is opt-in (the dispatcher hands `path` personas to the model layer) |
+| **AOS Enterprise Council** | ✅ WIRED | registry dispatcher + **`council dispatch --execute`** (per-member model execution → director synthesis); CLI `council {roster,dispatch}`; cockpit `/v1/cockpit/council/dispatch`; NEXUS Council Dispatch tab | execution needs a configured model (by design) |
 
 ## What's left (prioritized, honest)
 
@@ -60,14 +60,23 @@ items remain.
 - ✅ **AOS Council executable runtime** — a registry dispatcher (CLI + cockpit +
    NEXUS) routes a request to the real council; no longer catalog-only.
 
-**Remaining (autonomy + opt-in depth):**
-1. **Direct/scheduled triggers** — autoresearch / SIA / forge tournaments run
-   on-demand via orchestrator jobs; periodic/continuous scheduling is not wired.
-2. **Per-member council execution** — the dispatcher routes + gates members;
-   running each engaged member's persona through the model layer is the opt-in
-   next layer (the `path` is already surfaced).
-3. **Learning loop closure** — the dataset pipeline captures approved traces but
-   does not yet invoke downstream SFT/preference training.
+**Autonomy layer — now built (this pass):**
+1. ✅ **Scheduled triggers** — `schedule {add,list,due,run}`
+   (`hermes_cli/jarvis_prime/scheduler.py`) registers recurring forge / autoresearch /
+   SIA tasks and runs the due ones; owner-gated lanes refuse without the owner phrase.
+2. ✅ **Per-member council execution** — `council dispatch --execute`
+   (`aos_council/executor.py`) runs each engaged member through the model layer
+   (local Gemma runner by default) and synthesizes a deliberation; degrades to a
+   deterministic outline when no model is configured.
+3. ✅ **Learning-loop closure** — `learning close-loop`
+   (`nlp_training.close_training_loop`) materializes approved traces → dataset + job
+   spec → a real training launch, gated on dataset-readiness + the owner phrase + a
+   configured runner (`MUSE_TRAINING_RUNNER`); never autonomous.
+
+**By design (gated, not gaps):** the autonomy actions above only *execute* heavy work
+when their gates pass — a configured local model (council execution), the owner phrase
+(scheduled owner-gated lanes; training launch), and a configured runner (training).
+Default-off, owner-gated, never silent.
 
 **Non-issues (do not "fix"):**
 - The 15 `raise NotImplementedError` sites are ABC contracts with concrete

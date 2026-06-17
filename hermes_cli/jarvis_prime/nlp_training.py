@@ -33,7 +33,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Protocol
 
 from hermes_cli.jarvis_prime.learning_dataset import (
     NEGATIVE_EXAMPLE,
@@ -44,6 +44,17 @@ from hermes_cli.jarvis_prime.learning_dataset import (
     TraceType,
 )
 from hermes_cli.jarvis_prime.memory_tree import SourceTrust
+
+
+class SupportsExportJsonl(Protocol):
+    """The only store capability the fine-tune helpers need: export to JSONL.
+
+    ``DatasetStore`` satisfies this structurally; typing against the protocol lets
+    callers (and tests) inject any compatible store.
+    """
+
+    def export_jsonl(self, path: Path) -> int:
+        """Export the approved examples to ``path`` (JSONL); return the count."""
 
 #: Label every NL-compile trace carries, so the cohort is filterable.
 NL_COMPILE_LABEL = "nl-compile"
@@ -167,7 +178,7 @@ def prepare_finetune_job(
     dataset_path: Optional[Path | str] = None,
     method: str = "lora",
     min_examples: int = 1,
-    store: Optional[DatasetStore] = None,
+    store: Optional[SupportsExportJsonl] = None,
     launch: bool = False,
     grant: Any = None,
 ) -> FinetuneJobSpec:
@@ -187,10 +198,10 @@ def prepare_finetune_job(
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    store = store or DatasetStore.load()
+    resolved = store if store is not None else DatasetStore.load()
 
     export_target = Path(dataset_path) if dataset_path else out_path / "nl_compile_dataset.jsonl"
-    count = store.export_jsonl(export_target)
+    count = resolved.export_jsonl(export_target)
 
     reasons: list[str] = []
     ready = count >= min_examples
@@ -216,6 +227,103 @@ def prepare_finetune_job(
         num_examples=count,
         ready=ready,
         reasons=tuple(reasons),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Learning-loop closure — materialize approved traces and hand off to a trainer.
+# ---------------------------------------------------------------------------
+
+_OWNER_PHRASE = "Yes, with authorization."
+#: Env var naming the external training runner command. The dataset + spec paths
+#: are appended as the last two args, e.g. ``python train.py``.
+TRAINING_RUNNER_ENV = "MUSE_TRAINING_RUNNER"
+
+
+@dataclass(frozen=True)
+class TrainingLaunchResult:
+    """Outcome of :func:`close_training_loop` — the gated train handoff."""
+
+    launched: bool
+    spec: FinetuneJobSpec
+    runner: Optional[str]
+    reason: str
+    returncode: Optional[int] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema": "hermes.jarvis.training_launch.v1",
+            "launched": self.launched,
+            "runner": self.runner,
+            "reason": self.reason,
+            "returncode": self.returncode,
+            "spec": self.spec.to_dict(),
+        }
+
+
+def _default_spawn(runner: str, dataset_path: str, spec_path: str) -> int:
+    import shlex
+    import subprocess  # noqa: S404 - owner-authorized, runner is owner-configured
+
+    cmd = shlex.split(runner) + [dataset_path, spec_path]
+    return subprocess.run(cmd, check=False).returncode  # noqa: S603
+
+
+def close_training_loop(
+    *,
+    base_model: str,
+    out_dir: str,
+    method: str = "lora",
+    min_examples: int = 1,
+    store: Optional[SupportsExportJsonl] = None,
+    owner_phrase: Optional[str] = None,
+    runner_cmd: Optional[str] = None,
+    spawn: Any = None,
+) -> TrainingLaunchResult:
+    """Close the learning loop: approved traces → dataset+spec → gated train run.
+
+    Materializes the owner-approved examples (via :func:`prepare_finetune_job`),
+    writes the job spec, then **only launches a real training run when all three
+    gates pass**: the dataset is ready (>= ``min_examples``), the owner supplied
+    the exact authorization phrase, and a runner command is configured
+    (``--runner`` or ``MUSE_TRAINING_RUNNER``). Otherwise it returns a
+    ``launched=False`` result whose ``reason`` explains the missing gate — the
+    dataset + spec are still written so the owner can run it by hand.
+    """
+
+    spec = prepare_finetune_job(
+        base_model=base_model,
+        out_dir=out_dir,
+        method=method,
+        min_examples=min_examples,
+        store=store,
+        launch=False,
+    )
+    spec_path = spec.write(out_dir)
+
+    if not spec.ready:
+        return TrainingLaunchResult(False, spec, None, "; ".join(spec.reasons))
+    if (owner_phrase or "").strip() != _OWNER_PHRASE:
+        return TrainingLaunchResult(
+            False, spec, None, f"owner authorization required — reply exactly: {_OWNER_PHRASE!r}"
+        )
+    runner = runner_cmd or os.environ.get(TRAINING_RUNNER_ENV)
+    if not runner:
+        return TrainingLaunchResult(
+            False,
+            spec,
+            None,
+            f"no training runner configured — set {TRAINING_RUNNER_ENV} or pass --runner "
+            f"(dataset + spec are ready under {out_dir})",
+        )
+    run_spawn = spawn or _default_spawn
+    rc = run_spawn(runner, spec.dataset_path, str(spec_path))
+    return TrainingLaunchResult(
+        launched=rc == 0,
+        spec=spec,
+        runner=runner,
+        reason="launched" if rc == 0 else f"runner exited {rc}",
+        returncode=rc,
     )
 
 
