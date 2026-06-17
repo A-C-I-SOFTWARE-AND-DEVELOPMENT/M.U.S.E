@@ -6,6 +6,7 @@ import { TopBar } from './components/shell/TopBar';
 import { CommandPalette } from './components/shell/CommandPalette';
 import { ConnectWizard } from './components/setup/ConnectWizard';
 import { isConfigured } from './lib/config';
+import { anyProviderReady } from './lib/directProvider';
 import { useNexusStore } from './store/useNexusStore';
 import ConsolePage from './pages/ConsolePage';
 import SteerPage from './pages/SteerPage';
@@ -44,14 +45,27 @@ export default function App() {
   const location = useLocation();
   const wallpaper = useNexusStore((s) => s.wallpaper);
 
-  // First-run: auto-open the one-click connect wizard until configured/skipped.
+  // First-run: auto-open the connect wizard only when there's nothing to go on —
+  // no gateway AND no provider key. If either is present we auto go online and use
+  // the app directly (no nag). The wizard stays reachable via "Install & connect".
   const [wizard, setWizard] = useState(
-    () => !isConfigured() && localStorage.getItem(ONBOARD_KEY) !== '1',
+    () => !isConfigured() && !anyProviderReady() && localStorage.getItem(ONBOARD_KEY) !== '1',
   );
   useEffect(() => {
     const open = () => setWizard(true);
     window.addEventListener('nexus:open-setup', open);
-    return () => window.removeEventListener('nexus:open-setup', open);
+    // Once a provider key (or gateway) lands — including after async secret
+    // hydration — drop the first-run wizard and go straight online.
+    const reeval = () => {
+      if (localStorage.getItem(ONBOARD_KEY) !== '1' && (isConfigured() || anyProviderReady())) {
+        setWizard(false);
+      }
+    };
+    window.addEventListener('nexus:config', reeval);
+    return () => {
+      window.removeEventListener('nexus:open-setup', open);
+      window.removeEventListener('nexus:config', reeval);
+    };
   }, []);
   const closeWizard = () => {
     localStorage.setItem(ONBOARD_KEY, '1');
