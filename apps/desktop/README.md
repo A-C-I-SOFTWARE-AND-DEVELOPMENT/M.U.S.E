@@ -24,7 +24,7 @@ apps/desktop/
 │   │   ├── routes.ts          # APPEND-ONLY route registry (the extension seam)
 │   │   ├── routes.register.ts # registers the built-in Home route
 │   │   ├── views/             # Home, Chat, Jobs, Approvals, Autonomy, Observatory, Settings
-│   │   └── styles/tokens.css  # inlined Singularity tokens (TODO: @muse/design-system)
+│   │   └── styles/tokens.css  # @import "@muse/design-system/tokens.css" + desktop motion aliases
 │   ├── public/                # favicon.svg + derived PWA icons
 │   └── vite.config.ts         # Vite + vite-plugin-pwa (manifest + service worker)
 └── src-tauri/      # Tauri v2 Rust shell
