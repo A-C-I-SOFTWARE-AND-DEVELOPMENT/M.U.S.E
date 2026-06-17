@@ -376,13 +376,22 @@ class TestTryRecoverPrimaryTransport:
         agent = _make_agent(provider="custom")
         error = _make_transport_error("ReadTimeout")
 
+        # Give the sleep mock a tiny REAL sleep as its side effect — same fix as
+        # test_wait_time_capped_at_8. Patching the global time.sleep to a pure
+        # no-op makes background daemon threads in the (27k-test) process
+        # busy-spin on sleep; under CI parallel load that both starves CPU and
+        # inflates the recorded call count (observed: 774468 calls), which made
+        # assert_called_once_with flake. A ~1ms real sleep lets those threads
+        # yield; assert_any_call asserts the real invariant (wait scales to 6).
+        import time as _time
+        _real_sleep = _time.sleep
         with patch("run_agent.OpenAI", return_value=MagicMock()), \
-             patch("time.sleep") as mock_sleep:
+             patch("time.sleep", side_effect=lambda *_a, **_k: _real_sleep(0.001)) as mock_sleep:
             agent._try_recover_primary_transport(
                 error, retry_count=3, max_retries=3,
             )
             # wait_time = min(3 + retry_count, 8) = min(6, 8) = 6
-            mock_sleep.assert_called_once_with(6)
+            mock_sleep.assert_any_call(6)
 
     def test_wait_time_capped_at_8(self):
         agent = _make_agent(provider="custom")
