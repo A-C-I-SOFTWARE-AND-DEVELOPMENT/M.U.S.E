@@ -12,6 +12,9 @@ import SteerPage from './pages/SteerPage';
 import AxiomGatePage from './pages/AxiomGatePage';
 import ObservatoryPage from './pages/ObservatoryPage';
 import ChatPage from './pages/ChatPage';
+import FusionPage from './pages/FusionPage';
+import ForgePage from './pages/ForgePage';
+import FleetPage from './pages/FleetPage';
 import SharePage from './pages/SharePage';
 import AgentsPage from './pages/AgentsPage';
 import ActivityPage from './pages/ActivityPage';
@@ -72,6 +75,9 @@ export default function App() {
             <Route path="/axiom" element={<Page><AxiomGatePage /></Page>} />
             <Route path="/observatory" element={<Page><ObservatoryPage /></Page>} />
             <Route path="/chat" element={<Page><ChatPage /></Page>} />
+            <Route path="/fusion" element={<Page><FusionPage /></Page>} />
+            <Route path="/forge" element={<Page><ForgePage /></Page>} />
+            <Route path="/fleet" element={<Page><FleetPage /></Page>} />
             <Route path="/share" element={<Page><SharePage /></Page>} />
             <Route path="/agents" element={<Page><AgentsPage /></Page>} />
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />

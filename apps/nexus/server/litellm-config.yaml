@@ -1,0 +1,66 @@
+# ============================================================================
+# Opt-in LiteLLM proxy config (Phase 5 — production power mode).
+#
+# Keep the bespoke Node gateway as the fusion-orchestration edge (the MoA logic
+# is ours). Route the PER-LEG transport through LiteLLM when you want: 100+
+# providers, virtual model names (so a unified fusion is ONE model id),
+# multi-key load-balancing (sustains the Fleet's high concurrency), budgets, and
+# OpenTelemetry spans. Default transport stays 'direct'; set a leg/fusion
+# transport to 'litellm' and point the gateway's LOCAL/base at this proxy.
+#
+#   pip install 'litellm[proxy]'
+#   litellm --config server/litellm-config.yaml --port 4000
+#   # then run the gateway with the litellm transport pointed at :4000
+#
+# Docs: https://docs.litellm.ai/  (BerriAI/litellm, MIT)
+# ============================================================================
+
+model_list:
+  # --- Direct provider passthroughs (keys from env) ---
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: anthropic/claude-sonnet-4-5
+      api_key: os.environ/ANTHROPIC_API_KEY
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+      api_key: os.environ/OPENAI_API_KEY
+  - model_name: gemini-2.0-flash
+    litellm_params:
+      model: gemini/gemini-2.0-flash
+      api_key: os.environ/GEMINI_API_KEY
+
+  # --- Multi-key load-balancing for high-concurrency fan-out (the Fleet) ---
+  # Add the same model_name multiple times with different keys; LiteLLM spreads
+  # load and respects each key's rate limit, so tasks queue instead of failing.
+  - model_name: bulk-fast
+    litellm_params:
+      model: openrouter/auto
+      api_key: os.environ/OPENROUTER_API_KEY_1
+  - model_name: bulk-fast
+    litellm_params:
+      model: openrouter/auto
+      api_key: os.environ/OPENROUTER_API_KEY_2
+
+  # --- Virtual model name for a UNIFIED fusion (one id maps to the whole graph).
+  # External OpenAI-compatible tools can call "muse-prime" as a single model;
+  # back it with your strongest leg (or front the Node fusion endpoint).
+  - model_name: muse-prime
+    litellm_params:
+      model: anthropic/claude-opus-4-1
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+router_settings:
+  routing_strategy: usage-based-routing-v2   # load-balance across duplicate keys
+  num_retries: 2
+  allowed_fails: 3
+  cooldown_time: 30
+
+litellm_settings:
+  drop_params: true        # tolerate provider-specific param differences
+  # success_callback: ["langfuse"]   # uncomment for OTel/Langfuse fusion+fleet spans
+  # failure_callback: ["langfuse"]
+
+general_settings:
+  # max_budget: 50.0       # hard monthly spend cap (cost-runaway circuit breaker)
+  # budget_duration: 30d

@@ -16,11 +16,11 @@ const I = (path: ReactNode) => (
 
 const TABS: Tab[] = [
   { to: '/', label: 'Console', icon: I(<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>) },
+  { to: '/fusion', label: 'Fusion', icon: I(<><circle cx="5" cy="6" r="2" /><circle cx="5" cy="18" r="2" /><circle cx="19" cy="12" r="2.4" /><path d="M7 6.5l10 4.5M7 17.5l10-4.5" /></>) },
   { to: '/steer', label: 'Steer', icon: I(<><polygon points="12,2 19,6 19,14 12,18 5,14 5,6" /><circle cx="12" cy="10" r="2.4" /></>) },
   { to: '/axiom', label: 'Axiom', icon: I(<><path d="M12 3l8 5v8l-8 5-8-5V8z" /><path d="M12 8l4 2.5v0L12 13l-4-2.5z" /></>) },
   { to: '/observatory', label: 'Observ.', icon: I(<><circle cx="12" cy="12" r="2.4" /><ellipse cx="12" cy="12" rx="9" ry="3.6" /><ellipse cx="12" cy="12" rx="9" ry="3.6" transform="rotate(60 12 12)" /></>) },
-  { to: '/agents', label: 'Agents', icon: I(<><circle cx="12" cy="8" r="3.2" /><path d="M5 20c0-3.3 3.1-5.5 7-5.5s7 2.2 7 5.5" /></>) },
-  { to: '/activity', label: 'Activity', icon: I(<polyline points="2,13 7,13 10,4 14,20 17,13 22,13" />) },
+  { to: '/fleet', label: 'Fleet', icon: I(<><circle cx="6" cy="6" r="2" /><circle cx="12" cy="6" r="2" /><circle cx="18" cy="6" r="2" /><circle cx="6" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="18" cy="12" r="2" /><circle cx="9" cy="18" r="2" /><circle cx="15" cy="18" r="2" /></>) },
   { to: '/settings', label: 'Settings', icon: I(<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></>) },
 ];
 

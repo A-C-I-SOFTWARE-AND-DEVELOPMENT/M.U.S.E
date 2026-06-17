@@ -22,6 +22,7 @@
 // ============================================================================
 
 import http from 'node:http';
+import { runFusion } from './fusion-executor.mjs';
 
 const PORT = Number(process.env.GATEWAY_PORT || 8782);
 const KEYS = {
@@ -32,7 +33,7 @@ const KEYS = {
 };
 const LOCAL_BASE_URL = process.env.LOCAL_BASE_URL || ''; // e.g. http://127.0.0.1:11434/v1
 
-function route(model = '') {
+export function route(model = '') {
   const m = model.toLowerCase();
   if (m.startsWith('openrouter/')) return 'openrouter';
   if (m.startsWith('claude')) return 'anthropic';
@@ -174,6 +175,47 @@ async function handleChat(req, res, body) {
   }
 }
 
+// ---- Single-leg, non-streaming text completion (used by the fusion executor).
+// Returns the full text for one model over its official provider. -------------
+export async function completeText(model, messages, opts = {}) {
+  const provider = route(model);
+  const { temperature, system } = opts;
+  const msgs = system ? [{ role: 'system', content: system }, ...messages] : messages;
+
+  if (provider === 'anthropic') {
+    if (!KEYS.anthropic) throw new Error('ANTHROPIC_API_KEY not set');
+    const sys = msgs.filter((m) => m.role === 'system').map((m) => m.content).join('\n');
+    const conv = msgs.filter((m) => m.role !== 'system').map((m) => ({ role: m.role, content: m.content }));
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': KEYS.anthropic, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model, max_tokens: opts.max_tokens || 2048, temperature, system: sys || undefined, messages: conv }),
+    });
+    const d = await r.json();
+    if (r.status >= 400) throw new Error(d?.error?.message || `anthropic ${r.status}`);
+    return (d.content || []).map((c) => c.text || '').join('');
+  }
+
+  const bases = {
+    openai: ['https://api.openai.com/v1', KEYS.openai, {}],
+    gemini: ['https://generativelanguage.googleapis.com/v1beta/openai', KEYS.gemini, {}],
+    openrouter: ['https://openrouter.ai/api/v1', KEYS.openrouter, { 'HTTP-Referer': 'https://nexus.local', 'X-Title': 'NEXUS' }],
+    local: [LOCAL_BASE_URL, process.env.LOCAL_API_KEY || 'local', {}],
+  };
+  const [base, key, extra] = bases[provider] || bases.openrouter;
+  if (!base) throw new Error(`no base for provider ${provider}`);
+  if (!key && provider !== 'local') throw new Error(`${provider} key not set`);
+  const sendModel = provider === 'openrouter' ? model.replace(/^openrouter\//, '') : model;
+  const r = await fetch(`${base}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, ...extra },
+    body: JSON.stringify({ model: sendModel, messages: msgs, temperature, stream: false }),
+  });
+  const d = await r.json();
+  if (r.status >= 400) throw new Error(d?.error?.message || `${provider} ${r.status}`);
+  return d?.choices?.[0]?.message?.content ?? '';
+}
+
 const MODELS = [
   { id: 'claude-opus-4-1', owned_by: 'anthropic' },
   { id: 'claude-sonnet-4-5', owned_by: 'anthropic' },
@@ -187,6 +229,23 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') return json(res, 204, {});
   if (req.url === '/health') return json(res, 200, { ok: true, providers: Object.fromEntries(Object.entries(KEYS).map(([k, v]) => [k, !!v])) });
   if (req.url === '/v1/models') return json(res, 200, { object: 'list', data: MODELS.map((m) => ({ ...m, object: 'model' })) });
+  if (req.url === '/v1/fusion/completions' && req.method === 'POST') {
+    let raw = '';
+    req.on('data', (c) => (raw += c));
+    req.on('end', async () => {
+      let body;
+      try { body = JSON.parse(raw); } catch { return json(res, 400, { error: 'invalid JSON' }); }
+      if (!body.fusion || !Array.isArray(body.messages)) return json(res, 400, { error: 'fusion and messages required' });
+      try {
+        await runFusion({ fusion: body.fusion, messages: body.messages, stream: !!body.stream, res, completeText, json, sseHeaders });
+      } catch (e) {
+        console.error('[fusion] error:', e);
+        if (!res.headersSent) json(res, 502, { error: 'fusion run failed' });
+        else res.end();
+      }
+    });
+    return;
+  }
   if (req.url === '/v1/chat/completions' && req.method === 'POST') {
     let raw = '';
     req.on('data', (c) => (raw += c));
