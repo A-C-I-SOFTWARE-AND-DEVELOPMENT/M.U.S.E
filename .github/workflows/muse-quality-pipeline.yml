@@ -1,0 +1,86 @@
+name: muse-quality-pipeline
+
+# Tier 3 of the muse-quality pipeline: the heavy documentation + diagram + health
+# build that is impractical on Termux/WSL2 and belongs on a clean runner.
+#
+# Additive and non-blocking by design: it uploads artifacts (health JSON, Mermaid
+# + SVG diagrams, Sphinx HTML/PDF) but does not gate merges and does not publish
+# to GitHub Pages (the existing Pages workflows own that surface). Mirrors
+# .claude/skills/muse-quality/scripts/{check,build_docs}.sh.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "docs/**"
+      - ".claude/skills/muse-quality/**"
+      - ".github/workflows/muse-quality-pipeline.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: muse-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0 # full history for git-of-theseus ownership plots
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install system deps (Graphviz, Java, ripgrep)
+        run: sudo apt-get update && sudo apt-get install -y graphviz default-jre ripgrep
+
+      - name: Install repo lint/type tools
+        run: |
+          uv tool install ruff
+          uv tool install ty
+
+      - name: Install Python quality + docs tools
+        run: |
+          pipx install bandit || true
+          pipx install radon || true
+          pipx install xenon || true
+          pipx install interrogate || true
+          pipx install vulture || true
+          pipx install pydeps || true
+          pipx install pylint || true   # provides pyreverse
+          pipx install code2flow || true
+          pipx install import-linter || true
+          pipx install git-of-theseus || true
+          pipx install sphinx || true
+
+      - name: Checkpoint quality gate (advisory in CI)
+        run: bash .claude/skills/muse-quality/scripts/check.sh || true
+
+      - name: Heavy docs + diagram build
+        run: bash .claude/skills/muse-quality/scripts/build_docs.sh || true
+
+      - name: Upload quality + docs artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: muse-quality-reports
+          path: |
+            docs/_generated
+            docs/_build
+          if-no-files-found: ignore

@@ -10,6 +10,18 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); [ -n \"$f\" ] && bash \"$CLAUDE_PROJECT_DIR/.claude/skills/muse-quality/scripts/fast_check.sh\" \"$f\" || true",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   }
 }
