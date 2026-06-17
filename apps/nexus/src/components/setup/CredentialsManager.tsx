@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CRED_CATEGORIES,
@@ -96,6 +96,14 @@ function IntegrationCard({ integ }: { integ: Integration }) {
 export function CredentialsManager() {
   const [snippet, setSnippet] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Secrets hydrate asynchronously (encrypted at rest) and change on "Forget
+  // all" — re-mount the field tree when the config signals an update.
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const bump = () => setVersion((v) => v + 1);
+    window.addEventListener('nexus:config', bump);
+    return () => window.removeEventListener('nexus:config', bump);
+  }, []);
 
   const buildSnippet = () => {
     const text = envSnippet(gatewayEnvKeys());
@@ -130,7 +138,7 @@ export function CredentialsManager() {
           <div key={cat}>
             <div className="hud-label mb-2">{cat}</div>
             <div className="flex flex-col gap-2">
-              {items.map((i) => <IntegrationCard key={i.id} integ={i} />)}
+              {items.map((i) => <IntegrationCard key={`${i.id}-${version}`} integ={i} />)}
             </div>
           </div>
         );
