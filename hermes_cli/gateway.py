@@ -1839,7 +1839,20 @@ def prompt_linux_gateway_install_scope() -> str | None:
     return {0: "user", 1: "system", 2: None}[choice]
 
 
-def install_linux_gateway_from_setup(force: bool = False, enable_on_startup: bool = True) -> tuple[str | None, bool]:
+def install_linux_gateway_from_setup(
+    force: bool = False,
+    enable_on_startup: bool = True,
+    assume_yes: bool = False,
+) -> tuple[str | None, bool]:
+    if assume_yes:
+        # Unattended (gateway.auto_start): install a user-scope service without
+        # prompting for scope or legacy-unit removal. System scope needs sudo +
+        # an explicit run-as user, so it is never chosen unattended.
+        systemd_install(
+            force=force, system=False, enable_on_startup=enable_on_startup, assume_yes=True,
+        )
+        return "user", True
+
     scope = prompt_linux_gateway_install_scope()
     if scope is None:
         return None, False
@@ -4846,6 +4859,9 @@ def gateway_setup():
                     systemd_start()
                 elif is_macos():
                     launchd_start()
+                elif is_windows():
+                    from hermes_cli import gateway_windows
+                    gateway_windows.start()
             except UserSystemdUnavailableError as e:
                 print_error("  Failed to start — user systemd not reachable:")
                 for line in str(e).splitlines():
@@ -4931,7 +4947,7 @@ def gateway_setup():
         elif service_installed:
             if supports_systemd_services() and _system_scope_wizard_would_need_root():
                 _print_system_scope_remediation("start")
-            elif prompt_yes_no("  Start the gateway service?", True):
+            elif gateway_auto_start_enabled() or prompt_yes_no("  Start the gateway service?", True):
                 try:
                     if supports_systemd_services():
                         systemd_start()
@@ -4959,7 +4975,8 @@ def gateway_setup():
                 else:
                     platform_name = "Scheduled Task"
                 wsl_note = " (note: services may not survive WSL restarts)" if is_wsl() else ""
-                if gateway_auto_start_enabled():
+                auto = gateway_auto_start_enabled()
+                if auto:
                     # Opted into auto-start — install + enable + start without prompts.
                     print_info("  gateway.auto_start is set — installing, enabling, and starting without prompts.")
                     start_now = True
@@ -4978,13 +4995,22 @@ def gateway_setup():
                             installed_scope, did_install = install_linux_gateway_from_setup(
                                 force=False,
                                 enable_on_startup=start_on_login,
+                                assume_yes=auto,
                             )
                         elif is_macos():
                             launchd_install(force=False)
                             did_install = True
                         else:
                             from hermes_cli import gateway_windows
-                            gateway_windows.install(force=False)
+                            # Unattended: register the login task (start_on_login)
+                            # without prompting and without an immediate start —
+                            # the post-install block below performs the single
+                            # start when start_now is set.
+                            gateway_windows.install(
+                                force=False,
+                                start_now=False if auto else None,
+                                start_on_login=True if auto else None,
+                            )
                             did_install = True
                         print()
                         if did_install and start_now:
