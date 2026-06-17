@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { enablePush, pushEnabled, pushSupported } from '@/lib/push';
 import { supabaseConfigured } from '@/lib/supabase';
 import { getConfig } from '@/lib/config';
+import { useNavigate } from 'react-router-dom';
 import { CredentialsManager } from '@/components/setup/CredentialsManager';
+import { ProvidersManager } from '@/components/setup/ProvidersManager';
+import { AddOnsManager } from '@/components/setup/AddOnsManager';
+import { RepoSyncCard } from '@/components/repo/RepoSyncCard';
 import {
   requestMic,
   startListening,
@@ -13,6 +17,7 @@ import {
 } from '@/lib/voice';
 
 export default function SettingsPage() {
+  const navigate = useNavigate();
   const [installEvt, setInstallEvt] = useState<any>(null);
   const [pushOn, setPushOn] = useState(false);
   const [pushMsg, setPushMsg] = useState<string>('');
@@ -86,6 +91,24 @@ export default function SettingsPage() {
         <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />
+      </Section>
+
+      <Section title="MUSE repo — synced to main">
+        <RepoSyncCard />
+        <button
+          onClick={() => navigate('/repo')}
+          className="mt-2 w-full rounded-md border border-[var(--hairline)] px-3 py-2 text-[11px] font-medium text-[var(--ink)]"
+        >
+          Browse the full live mirror →
+        </button>
+      </Section>
+
+      <Section title="AI Providers">
+        <ProvidersManager />
+      </Section>
+
+      <Section title="Add-ons — CLIs · MCPs · Custom">
+        <AddOnsManager />
       </Section>
 
       <Section title="Connections & Credentials">

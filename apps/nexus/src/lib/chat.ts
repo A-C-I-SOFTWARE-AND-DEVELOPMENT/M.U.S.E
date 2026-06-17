@@ -1,5 +1,10 @@
-// Chat client for the NEXUS unified provider gateway (OpenAI-compatible).
-// Plain streaming fetch — no UI automation, no synthetic events.
+// Chat client. Two transports, no terminal required:
+//   • direct  — straight from the browser via OpenRouter (just paste one key)
+//   • gateway — the optional local provider gateway (apps/nexus/server)
+// 'auto' picks direct when an OpenRouter key is present, else gateway.
+
+import { streamDirect } from './directProvider';
+import { resolveModelTransport, configuredProviders } from './providers';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -8,17 +13,24 @@ export interface ChatMessage {
 
 const LS = 'nexus.chat.v1';
 
+export type ChatTransport = 'auto' | 'direct' | 'gateway';
+
 export interface ChatConfig {
   baseUrl: string;
   model: string;
+  mode: ChatTransport;
 }
 
 export function getChatConfig(): ChatConfig {
   try {
     const s = JSON.parse(localStorage.getItem(LS) ?? '{}');
-    return { baseUrl: s.baseUrl || 'http://127.0.0.1:8782/v1', model: s.model || 'openrouter/auto' };
+    return {
+      baseUrl: s.baseUrl || 'http://127.0.0.1:8782/v1',
+      model: s.model || 'openrouter/auto',
+      mode: (s.mode as ChatTransport) || 'auto',
+    };
   } catch {
-    return { baseUrl: 'http://127.0.0.1:8782/v1', model: 'openrouter/auto' };
+    return { baseUrl: 'http://127.0.0.1:8782/v1', model: 'openrouter/auto', mode: 'auto' };
   }
 }
 
@@ -26,14 +38,24 @@ export function setChatConfig(c: Partial<ChatConfig>): void {
   localStorage.setItem(LS, JSON.stringify({ ...getChatConfig(), ...c }));
 }
 
-export const CHAT_MODELS = [
-  'claude-sonnet-4-5',
-  'claude-opus-4-1',
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gemini-2.0-flash',
-  'openrouter/auto',
-];
+/** The transport that will actually serve this config's model. 'gateway' takes
+ *  the gateway fetch path; everything else (direct/openrouter/unavailable) goes
+ *  through streamDirect (which surfaces an honest error if unavailable). */
+export function effectiveTransport(cfg: ChatConfig = getChatConfig()): 'direct' | 'gateway' {
+  if (cfg.mode === 'gateway') return 'gateway';
+  if (cfg.mode === 'direct') return 'direct';
+  return resolveModelTransport(cfg.model).kind === 'gateway' ? 'gateway' : 'direct';
+}
+
+/** A quick sync model list for the dropdown: curated models of configured
+ *  providers (+ openrouter/auto). The Models tab has the full async catalog. */
+export function modelsFor(_cfg: ChatConfig = getChatConfig()): string[] {
+  const out = new Set<string>(['openrouter/auto']);
+  for (const p of configuredProviders()) {
+    for (const m of p.curated ?? []) out.add(m.includes('/') || p.id === 'openrouter' ? m : `${p.id}/${m}`);
+  }
+  return [...out];
+}
 
 /**
  * Stream a completion. Calls onToken with each text delta; resolves with the
@@ -45,6 +67,10 @@ export async function streamChat(
   onToken: (delta: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
+  // Direct (browser → OpenRouter): no local gateway, no terminal.
+  if (effectiveTransport(cfg) === 'direct') {
+    return streamDirect(cfg.model, messages, onToken, signal);
+  }
   const res = await fetch(`${cfg.baseUrl.replace(/\/$/, '')}/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

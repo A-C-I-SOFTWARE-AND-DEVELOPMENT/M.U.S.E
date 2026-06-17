@@ -6,7 +6,8 @@ import { PRESETS, clonePreset } from '@/lib/presets';
 import { streamFusion, type FusionMeta } from '@/lib/fusionClient';
 import { shapeOf, type FusionDef, type LegResult } from '@/lib/fusionTypes';
 import { useNexusStore } from '@/store/useNexusStore';
-import { cockpitConfigured } from '@/adapters/cockpit';
+import { effectiveTransport } from '@/lib/chat';
+import { hasDirectKey } from '@/lib/directProvider';
 
 type Tab = 'presets' | 'recommend' | 'history';
 
@@ -102,9 +103,9 @@ export default function FusionPage() {
         />
       </div>
 
-      {!cockpitConfigured() && (
+      {!(effectiveTransport() === 'direct' ? hasDirectKey() : true) && (
         <div className="mono mb-3 rounded-md border border-[var(--hairline)] px-3 py-2 text-[10px] text-[var(--ink-dim)]">
-          Fusion runs need the local provider gateway (apps/nexus/server). Start it, then run.
+          Add an OpenRouter key in Settings → Credentials to run fusions directly — no gateway, no terminal.
         </div>
       )}
 

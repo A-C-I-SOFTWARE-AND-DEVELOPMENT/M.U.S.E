@@ -1,6 +1,6 @@
 import type { FusionDef, LegResult } from './fusionTypes';
 import type { ChatMessage } from './chat';
-import { getChatConfig } from './chat';
+import { getChatConfig, effectiveTransport } from './chat';
 
 // Streaming client for the fusion-graph executor (/v1/fusion/completions).
 // Plain SSE over the local gateway — provider-agnostic, your keys server-side.
@@ -27,6 +27,11 @@ export async function streamFusion(
   onAggregate: (delta: string) => void,
   signal?: AbortSignal,
 ): Promise<FusionStreamResult> {
+  // Direct mode (browser → OpenRouter): run the MoA client-side, no gateway.
+  if (effectiveTransport() === 'direct') {
+    const { runFusionDirect } = await import('./fusionExec');
+    return runFusionDirect(fusion, messages, onLeg, onAggregate);
+  }
   const base = getChatConfig().baseUrl.replace(/\/$/, '');
   const res = await fetch(`${base}/fusion/completions`, {
     method: 'POST',

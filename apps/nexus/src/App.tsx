@@ -15,6 +15,8 @@ import ChatPage from './pages/ChatPage';
 import FusionPage from './pages/FusionPage';
 import ForgePage from './pages/ForgePage';
 import FleetPage from './pages/FleetPage';
+import ModelsPage from './pages/ModelsPage';
+import RepoPage from './pages/RepoPage';
 import SharePage from './pages/SharePage';
 import AgentsPage from './pages/AgentsPage';
 import ActivityPage from './pages/ActivityPage';
@@ -78,6 +80,8 @@ export default function App() {
             <Route path="/fusion" element={<Page><FusionPage /></Page>} />
             <Route path="/forge" element={<Page><ForgePage /></Page>} />
             <Route path="/fleet" element={<Page><FleetPage /></Page>} />
+            <Route path="/models" element={<Page><ModelsPage /></Page>} />
+            <Route path="/repo" element={<Page><RepoPage /></Page>} />
             <Route path="/share" element={<Page><SharePage /></Page>} />
             <Route path="/agents" element={<Page><AgentsPage /></Page>} />
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />

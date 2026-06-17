@@ -18,6 +18,8 @@ export interface RuntimeConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
   vapidPublicKey: string;
+  repoSlug: string; // MUSE repo mirror source, e.g. "owner/repo" (non-sensitive)
+  repoBranch: string; // branch to mirror, default "main"
 }
 
 const PLAIN_KEY = 'nexus.cfg.v2'; // non-sensitive only
@@ -34,6 +36,8 @@ const K_VAPID = 'vapidPublicKey';
 interface PlainCfg {
   museBaseUrl: string;
   supabaseUrl: string;
+  repoSlug: string;
+  repoBranch: string;
 }
 
 let plainCache: PlainCfg | null = null;
@@ -49,11 +53,18 @@ function readPlain(): PlainCfg {
   const def: PlainCfg = {
     museBaseUrl: import.meta.env.VITE_MUSE_BASE_URL ?? '',
     supabaseUrl: import.meta.env.VITE_SUPABASE_URL ?? '',
+    repoSlug: import.meta.env.VITE_REPO_SLUG ?? '',
+    repoBranch: import.meta.env.VITE_REPO_BRANCH ?? '',
   };
   if (typeof localStorage === 'undefined') return (plainCache = def);
   try {
     const s = JSON.parse(localStorage.getItem(PLAIN_KEY) ?? '{}') as Partial<PlainCfg>;
-    plainCache = { museBaseUrl: s.museBaseUrl || def.museBaseUrl, supabaseUrl: s.supabaseUrl || def.supabaseUrl };
+    plainCache = {
+      museBaseUrl: s.museBaseUrl || def.museBaseUrl,
+      supabaseUrl: s.supabaseUrl || def.supabaseUrl,
+      repoSlug: s.repoSlug || def.repoSlug,
+      repoBranch: s.repoBranch || def.repoBranch,
+    };
   } catch {
     plainCache = def;
   }
@@ -139,6 +150,8 @@ export function getConfig(): RuntimeConfig {
   return {
     museBaseUrl: p.museBaseUrl,
     supabaseUrl: p.supabaseUrl,
+    repoSlug: p.repoSlug,
+    repoBranch: p.repoBranch,
     museToken: sec(K_TOKEN),
     supabaseAnonKey: sec(K_ANON, import.meta.env.VITE_SUPABASE_ANON_KEY ?? ''),
     vapidPublicKey: sec(K_VAPID, import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ''),
@@ -149,6 +162,8 @@ export function setConfig(patch: Partial<RuntimeConfig>): void {
   const p = readPlain();
   if (patch.museBaseUrl !== undefined) { p.museBaseUrl = patch.museBaseUrl; persistPlain(); }
   if (patch.supabaseUrl !== undefined) { p.supabaseUrl = patch.supabaseUrl; persistPlain(); }
+  if (patch.repoSlug !== undefined) { p.repoSlug = patch.repoSlug; persistPlain(); }
+  if (patch.repoBranch !== undefined) { p.repoBranch = patch.repoBranch; persistPlain(); }
   let touchedSecure = false;
   if (patch.museToken !== undefined) { secureCache[K_TOKEN] = patch.museToken; touchedSecure = true; }
   if (patch.supabaseAnonKey !== undefined) { secureCache[K_ANON] = patch.supabaseAnonKey; touchedSecure = true; }
@@ -158,7 +173,7 @@ export function setConfig(patch: Partial<RuntimeConfig>): void {
 }
 
 export function resetConfig(): void {
-  plainCache = { museBaseUrl: '', supabaseUrl: '' };
+  plainCache = { museBaseUrl: '', supabaseUrl: '', repoSlug: '', repoBranch: '' };
   secureCache = {};
   try {
     localStorage.removeItem(PLAIN_KEY);

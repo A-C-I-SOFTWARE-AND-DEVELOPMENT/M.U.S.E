@@ -41,6 +41,73 @@ React 18 · TypeScript · Vite · Tailwind · Zustand · React Router ·
 `vite-plugin-pwa` (Workbox) · Framer Motion · SVG octagon · Supabase (auth +
 persistence) · deploy to Vercel.
 
+## Any provider, any model — one click
+
+NEXUS mirrors MUSE's multi-provider layer. `src/lib/providers.ts` registers ~28
+providers (OpenRouter, Anthropic, OpenAI, Google/Gemini, Groq, Mistral, DeepSeek,
+xAI, Together, NovitaAI, NVIDIA NIM, Qwen/DashScope, Kimi, GLM, StepFun, MiniMax,
+Hugging Face, GitHub Models, Nous, Cerebras, Perplexity, Fireworks, Vercel AI
+Gateway, Azure, Bedrock, local Ollama/LM Studio, and a **custom** OpenAI-compatible
+endpoint). Enter a key for any of them in **Settings → AI Providers**; the
+provider shows as **Connected** and its models flow into the dedicated **Models**
+tab, where one tap selects a model for Chat **and** Fusion.
+
+- **Auto-routing** (`resolveModelTransport`): a model runs **direct** from the
+  browser when its provider is CORS-friendly and has a key; otherwise it falls
+  back to **OpenRouter**, then the **gateway**, then an honest "needs a key".
+- **Add-ons** (`Settings → Add-ons`): the full MUSE integration surface — **MCP
+  servers** and **CLI lanes** — plus **add your own** custom provider / MCP / CLI.
+  These run gateway-side; values are encrypted on-device and exported to
+  `~/.hermes/.env`. The MCP list is **mirrored live** from the repo's `.mcp.json`
+  + `optional-mcps/` (see below), not a hand-picked subset.
+
+## Live repo mirror — synced to GitHub `main`
+
+NEXUS reflects the **actual MUSE repository on GitHub**, read straight from `main`
+at runtime — not just what was hand-coded. The **Repo** tab (`/repo`, also in
+Settings → "MUSE repo — synced to main") shows a live inventory pulled via the
+GitHub git-trees API + raw `.mcp.json`:
+
+The Repo tab has three modes:
+
+- **Inventory** — the parsed surface: **Plugins** (`plugins/**/plugin.yaml`),
+  **Model providers** (`plugins/model-providers/**`), **Skills** (`skills/**` +
+  `optional-skills/**`), **MCP servers** (`.mcp.json`), **Optional MCPs**
+  (`optional-mcps/`), and **Docs** (`docs/**`). As of this writing the repo mirrors
+  to **52 plugins · 29 providers · 222 skills · 28 optional MCPs · the `.mcp.json`
+  servers · 374 docs** — whatever is on `main` is what you see.
+- **Files** — the **entire repo, end-to-end, file to file** (all ~6,470 tracked
+  files): a directory browser with breadcrumbs, path search across the whole tree,
+  and an in-app viewer that renders text/code, images, and a GitHub fallback for
+  binaries. Each file links to its source.
+- **Pull requests** — the **full PR history, #1 → latest** (every merge to `main`
+  reflected), oldest-first with merged/open/closed badges, base ref, author, search
+  and filters, paginated "load older."
+- **`src/lib/repoSync.ts`** does the fetch + parse (dependency-free, JSON only —
+  never an in-browser YAML parser); results are cached with a 30-min TTL and a
+  manual **Sync now**. An optional `GITHUB_TOKEN` (Settings) lifts the anon rate
+  limit. The repo source is configurable (`owner/repo`, branch) but defaults to
+  the canonical MUSE repo.
+- **One-click install/update — pulls the latest build from git.** NEXUS is served
+  from GitHub Pages built off `main`, so the service worker *is* the git deploy.
+  The build embeds its commit SHA (`__BUILD_SHA__`); the Repo Sync card compares it
+  to the live `main` HEAD and, when a newer build is waiting, surfaces a one-click
+  **⤓ Update NEXUS** (`registerType: 'prompt'`, `src/lib/appUpdate.ts`) that
+  activates the new worker and reloads. Also available from ⌘K ("Update NEXUS").
+
+## Zero-server use (no terminal, ever)
+
+The fastest path needs **no local server and no terminal**: install the PWA, open
+the first-run wizard, paste **one OpenRouter key**, and **Chat + Fusion work
+instantly** — straight from the browser via OpenRouter (Claude, GPT, Gemini & 300+
+models through one key). The key is stored encrypted on-device.
+
+- **Chat / Fusion** auto-select a transport: `direct` (browser → OpenRouter) when
+  an OpenRouter key is present, else the optional local `gateway`. No process to run.
+- The **MUSE cockpit gateway** (orchestration, memory, fleet, observatory) is the
+  only thing that still needs a backend — it's optional and gated behind
+  "Advanced" in the wizard.
+
 ## One-click install (autonomous bring-up)
 
 ```bash
