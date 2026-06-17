@@ -27,7 +27,14 @@ available **database-free** in MUSE via
 [`hermes_cli/jarvis_prime/fusion_ranker.py`](../../hermes_cli/jarvis_prime/fusion_ranker.py)
 (a faithful port of Second Brain's blend, same weights + `SECOND_BRAIN_W_*` env
 overrides), so MUSE can fuse the candidates its own retrieval already produces
-without the Postgres/Neo4j backend. Retrieval is explainable
+without the Postgres/Neo4j backend. For the *full* DB-backed Second Brain
+pipeline, the opt-in bridge
+[`hermes_cli/jarvis_prime/second_brain_bridge.py`](../../hermes_cli/jarvis_prime/second_brain_bridge.py)
+wires it into MUSE: it imports `second_brain` lazily and degrades gracefully
+(`SecondBrainUnavailable`) when the drivers/backend aren't present, so MUSE falls
+back to its native retrieval instead of crashing. The backend is configured via
+the `SECOND_BRAIN_*` env vars; the bridge holds no credentials and starts no
+service. Retrieval is explainable
 (deterministic path-based CITES edges, no opaque embedding guesses) so every
 injected fact is attributable.
 
