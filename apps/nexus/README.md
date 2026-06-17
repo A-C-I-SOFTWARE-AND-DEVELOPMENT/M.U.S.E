@@ -108,6 +108,37 @@ models through one key). The key is stored encrypted on-device.
   only thing that still needs a backend — it's optional and gated behind
   "Advanced" in the wizard.
 
+## The entire MUSE on your phone (Android · Termux)
+
+To get the **whole** MUSE — cockpit, orchestration, memory, fleet — on the phone
+(not just the gateway-less features), run a gateway **on the phone itself** in
+Termux. The trick that makes this seamless: the cockpit gateway **serves NEXUS
+same-origin** at `http://127.0.0.1:8765/nexus/`, so the PWA and the API share one
+http loopback origin — **no mixed-content barrier, no tunnel**.
+
+```sh
+# In Termux — one command brings up the gateway and serves NEXUS:
+curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/termux-nexus-gateway.sh | bash
+```
+
+Then open **`http://127.0.0.1:8765/nexus/`** on the phone (add it to the home
+screen). NEXUS **auto-detects the same-origin gateway and pairs itself** — you
+only enter the owner phrase `Yes, with authorization.` once. The script
+(`scripts/termux-nexus-gateway.sh`) installs git/python/nodejs, clones MUSE,
+installs it (Termux-aware via `setup-hermes.sh`), builds NEXUS with
+`NEXUS_BASE=/nexus/`, takes a wake-lock, and runs `muse cockpit serve`.
+
+Server side this is a small additive change: `gateway/cockpit/server.py` mounts
+`apps/nexus/dist` at `/nexus/` (path-traversal-safe, SPA fallback, loopback-only,
+bearer-token-protected API) — set `NEXUS_DIST_DIR` to point elsewhere. If no
+build is present the mount simply 404s; nothing else changes.
+
+> Hosted vs on-device: the GitHub Pages build (HTTPS) is great for provider
+> Chat/Models/Fusion and the Repo mirror without any backend. For the cockpit
+> features you either run the on-device Termux gateway above, or expose your
+> desktop gateway over **HTTPS** (a Cloudflare/ngrok tunnel) and paste that URL
+> under Advanced. NEXUS detects each case and tells you which is which.
+
 ## One-click install (autonomous bring-up)
 
 ```bash

@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { establishConnections, localGatewayBlockedByHttps, type ConnectStep } from '@/lib/connect';
+import { establishConnections, localGatewayBlockedByHttps, detectSameOriginGateway, type ConnectStep } from '@/lib/connect';
 import { getConfig, getSecret, setSecret } from '@/lib/config';
+
+// Paste-into-Termux one-liner that brings up a MUSE gateway on the phone and
+// serves NEXUS same-origin at http://127.0.0.1:8765/nexus/.
+const TERMUX_ONELINER =
+  'curl -fsSL https://raw.githubusercontent.com/A-C-I-SOFTWARE-AND-DEVELOPMENT/M.U.S.E/main/scripts/termux-nexus-gateway.sh | bash';
 
 interface Props {
   open: boolean;
@@ -29,6 +34,8 @@ export function ConnectWizard({ open, onClose }: Props) {
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
   const [installEvt, setInstallEvt] = useState<any>(null);
+  const [device, setDevice] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -39,11 +46,34 @@ export function ConnectWizard({ open, onClose }: Props) {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  const run = async () => {
+  // If NEXUS is being served BY a gateway (same origin — e.g. MUSE in Termux on
+  // this phone serving /nexus/), detect it and connect automatically.
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    detectSameOriginGateway().then((origin) => {
+      if (!alive || !origin) return;
+      setDevice(origin);
+      setBaseUrl(origin);
+      if (!getConfig().museToken) void run(origin);
+    });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const copyCmd = async () => {
+    try {
+      await navigator.clipboard.writeText(TERMUX_ONELINER);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable */ }
+  };
+
+  const run = async (overrideBase?: string) => {
     setRunning(true);
     setDone(false);
     const final = await establishConnections(
-      { baseUrl: baseUrl.trim() || undefined, ownerPhrase: phrase.trim() || OWNER_PHRASE, withPush },
+      { baseUrl: (overrideBase ?? baseUrl).trim() || undefined, ownerPhrase: phrase.trim() || OWNER_PHRASE, withPush },
       setSteps,
     );
     setRunning(false);
@@ -95,7 +125,14 @@ export function ConnectWizard({ open, onClose }: Props) {
               Gemini & 300+ models). The MUSE gateway is optional, for orchestration / memory / fleet.
             </p>
 
-            {hostedNoGateway && (
+            {device && (
+              <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--state-running)', background: 'color-mix(in oklab, var(--state-running) 8%, transparent)' }}>
+                <div className="text-[11px] font-semibold" style={{ color: 'var(--state-running)' }}>MUSE gateway detected on this device ✓</div>
+                <div className="mono mt-1 text-[10px] text-[var(--ink-dim)]">{device} — connecting automatically…</div>
+              </div>
+            )}
+
+            {hostedNoGateway && !device && (
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--state-auth, #FFB020)', background: 'color-mix(in oklab, var(--state-auth, #FFB020) 8%, transparent)' }}>
                 <div className="text-[11px] font-semibold" style={{ color: 'var(--state-auth, #FFB020)' }}>Running hosted — the local gateway is out of reach (that's normal)</div>
                 <div className="mt-1 text-[10px] leading-relaxed text-[var(--ink-dim)]">
@@ -103,8 +140,17 @@ export function ConnectWizard({ open, onClose }: Props) {
                   gateway (browsers block mixed content), and on a phone <span className="mono">localhost</span> is the phone.
                   <b className="text-[var(--ink)]"> Everything that doesn't need the gateway works right now</b> —
                   provider Chat, Models, Fusion (with your key), and the whole Repo mirror. Just tap
-                  <b className="text-[var(--ink)]"> Enter NEXUS</b>. To use cockpit / orchestration, expose your gateway
-                  over HTTPS (a Cloudflare/ngrok tunnel) and paste that URL under Advanced.
+                  <b className="text-[var(--ink)]"> Enter NEXUS</b>.
+                </div>
+                <div className="mt-2 border-t border-[var(--hairline)] pt-2 text-[10px] leading-relaxed text-[var(--ink-dim)]">
+                  <b className="text-[var(--ink)]">Want the entire MUSE on this phone?</b> Run a gateway right here in
+                  <b className="text-[var(--ink)]"> Termux</b> — it serves NEXUS at <span className="mono">localhost:8765/nexus/</span>
+                  (same origin, no tunnel). Paste this:
+                  <div className="mono mt-1.5 flex items-start gap-2 rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-2 py-1.5">
+                    <span className="min-w-0 flex-1 break-all text-[9.5px] text-[var(--ink)]">{TERMUX_ONELINER}</span>
+                    <button onClick={copyCmd} className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold text-black" style={{ background: 'var(--octa-glow)' }}>{copied ? 'Copied ✓' : 'Copy'}</button>
+                  </div>
+                  <span className="mt-1 block">Then open <span className="mono">http://127.0.0.1:8765/nexus/</span> on the phone — NEXUS auto-connects.</span>
                 </div>
               </div>
             )}
@@ -219,7 +265,7 @@ export function ConnectWizard({ open, onClose }: Props) {
                       Add to Home Screen
                     </button>
                   )}
-                  <button onClick={run} disabled={running} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)] disabled:opacity-50">
+                  <button onClick={() => run()} disabled={running} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)] disabled:opacity-50">
                     {running ? 'Trying gateway…' : 'Try gateway anyway'}
                   </button>
                 </div>
@@ -227,7 +273,7 @@ export function ConnectWizard({ open, onClose }: Props) {
             ) : (
               <>
                 <button
-                  onClick={run}
+                  onClick={() => run()}
                   disabled={running}
                   className="w-full rounded-md px-3 py-3 text-[13px] font-bold text-black disabled:opacity-50"
                   style={{ background: 'var(--octa-glow)' }}

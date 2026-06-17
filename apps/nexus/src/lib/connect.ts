@@ -89,6 +89,19 @@ const newSteps = (): ConnectStep[] => [
 ];
 
 /**
+ * When NEXUS is served *by* the gateway (e.g. MUSE running in Termux on the same
+ * phone serves the PWA at http://localhost:8765/), the page origin IS the gateway
+ * — same scheme, same host, so there is no mixed-content barrier. Returns that
+ * origin if it answers /v1/health, else ''. Used to auto-connect on first load.
+ */
+export async function detectSameOriginGateway(): Promise<string> {
+  if (typeof window === 'undefined') return '';
+  const origin = window.location.origin.replace(/\/$/, '');
+  if (!origin || origin.startsWith('file:')) return '';
+  return (await probeHealth(origin)) ? origin : '';
+}
+
+/**
  * Run the full autonomous bring-up. Calls onProgress after every step so the UI
  * animates live; resolves with the final step list.
  */
