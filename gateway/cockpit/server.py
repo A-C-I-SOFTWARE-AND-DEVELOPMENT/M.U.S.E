@@ -90,6 +90,9 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("POST", _compile("/v1/cockpit/models/local/smoke"), h.models_local_smoke, True),
     ("GET", _compile("/v1/cockpit/model-routes"), h.model_routes, True),
     ("POST", _compile("/v1/cockpit/model-routes/override"), h.model_route_override, True),
+    # Owner-gated, opt-in (HERMES_COCKPIT_SECRET_IMPORT=1), loopback-only export of
+    # the user's existing ~/.hermes/.env credential keys so NEXUS can import them.
+    ("GET", _compile("/v1/cockpit/secrets/import"), h.secrets_import, True),
     ("GET", _compile("/v1/cockpit/memory"), h.memory_list, True),
     ("POST", _compile("/v1/cockpit/memory"), h.memory_create, True),
     ("DELETE", _compile("/v1/cockpit/memory/{id}"), h.memory_delete, True),

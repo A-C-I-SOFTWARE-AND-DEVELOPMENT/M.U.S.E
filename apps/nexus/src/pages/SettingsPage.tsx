@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { CredentialsManager } from '@/components/setup/CredentialsManager';
 import { ProvidersManager } from '@/components/setup/ProvidersManager';
 import { AddOnsManager } from '@/components/setup/AddOnsManager';
+import { ImportKeysCard } from '@/components/setup/ImportKeysCard';
 import { RepoSyncCard } from '@/components/repo/RepoSyncCard';
 import {
   requestMic,
@@ -104,6 +105,9 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="AI Providers">
+        <div className="mb-2">
+          <ImportKeysCard />
+        </div>
         <ProvidersManager />
       </Section>
 

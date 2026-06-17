@@ -221,6 +221,68 @@ def model_routes(_req: Request) -> JsonResponse:
     return JsonResponse(200, payload)
 
 
+def _is_credential_key(name: str) -> bool:
+    """Credential-shaped env names only — never the cockpit's own token/state."""
+    upper = name.upper()
+    if upper in {"HERMES_COCKPIT_TOKEN", "COCKPIT_TOKEN", "HERMES_TOKEN", "HERMES_HOME", "HERMES_REPO_DIR"}:
+        return False
+    return any(
+        upper.endswith(suffix)
+        for suffix in ("_API_KEY", "_TOKEN", "_KEY", "_SECRET", "_URL", "_CMD", "_AUTH", "_PASSWORD", "_WEBHOOK")
+    )
+
+
+def secrets_import(_req: Request) -> JsonResponse:
+    """Owner-gated, **opt-in** export of the user's existing credential keys from
+    ``~/.hermes/.env`` so a paired client (NEXUS) can import them instead of
+    re-typing every key.
+
+    Guards (defence in depth):
+      * **Disabled by default** — returns 403 unless ``HERMES_COCKPIT_SECRET_IMPORT``
+        is set to ``1``/``true``/``yes``/``on`` on the gateway. The default cockpit
+        posture (no secret export) is therefore unchanged.
+      * **Bearer-authenticated** — the route requires auth (owner-paired token).
+      * **Loopback-only** — refused whenever the cockpit is bound beyond loopback
+        (``--allow-external``); secrets only ever leave over the loopback interface.
+      * **Credential-shaped names only** — never the cockpit's own bearer token,
+        which lives in a separate file under ``cockpit/token`` (not ``.env``).
+    """
+    import os
+
+    if str(os.environ.get("HERMES_COCKPIT_SECRET_IMPORT", "")).strip().lower() not in {"1", "true", "yes", "on"}:
+        return JsonResponse(
+            403,
+            {
+                "error": "secret import disabled",
+                "hint": "set HERMES_COCKPIT_SECRET_IMPORT=1 on the gateway to allow importing ~/.hermes/.env keys",
+            },
+        )
+    if _ALLOW_REMOTE_EXECUTE:
+        return JsonResponse(403, {"error": "secret import refused on a non-loopback cockpit"})
+
+    env_path = _hermes_state_dir() / ".env"
+    try:
+        text = env_path.read_text(encoding="utf-8")
+    except OSError:
+        return JsonResponse(200, {"keys": {}, "count": 0, "present": False, "source": str(env_path)})
+
+    keys: dict[str, str] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, _, value = line.partition("=")
+        name = name.strip()
+        if name.startswith("export "):
+            name = name[len("export ") :].strip()
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+            value = value[1:-1]
+        if name and value and _is_credential_key(name):
+            keys[name] = value
+    return JsonResponse(200, {"keys": keys, "count": len(keys), "present": True, "source": str(env_path)})
+
+
 def model_route_override(req: Request) -> JsonResponse:
     """Set/clear an owner model override, or flip paid routing (owner-gated).
 

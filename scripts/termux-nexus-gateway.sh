@@ -63,8 +63,11 @@ else
 fi
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
-  say "Building the NEXUS PWA (base = /nexus/)…"
-  ( cd apps/nexus && (npm ci --no-audit --no-fund || npm install) && NEXUS_BASE=/nexus/ npm run build )
+  say "Building NEXUS (base = /nexus/, service worker skipped on Termux)…"
+  # NEXUS_NO_PWA=1 skips the workbox/vite-plugin-pwa service-worker pass, which
+  # fails on Termux/Android ("Unable to write the service worker file"). The SW is
+  # an offline-shell nicety only — the gateway serves NEXUS, so it isn't needed.
+  ( cd apps/nexus && (npm ci --no-audit --no-fund || npm install) && NEXUS_BASE=/nexus/ NEXUS_NO_PWA=1 npm run build )
   ok "NEXUS built → apps/nexus/dist"
 else
   say "SKIP_BUILD=1 — using the existing apps/nexus/dist (if any)."
@@ -82,5 +85,11 @@ ok "Gateway starting. Open this on the phone (add to home screen):"
 printf '\n    \033[1;32mhttp://127.0.0.1:%s/nexus/\033[0m\n\n' "$MUSE_PORT"
 echo "   First launch: NEXUS auto-detects this gateway (same origin) and pairs"
 echo "   once you enter the owner phrase: Yes, with authorization."
+echo "   Tip: in NEXUS → Settings → AI Providers, tap \"Import my keys\" to pull"
+echo "   every key you already have in ~/.hermes/.env (no re-typing)."
 echo
+# Allow NEXUS's "Import my keys" to read the existing ~/.hermes/.env credentials.
+# Owner-gated + loopback-only on the gateway side; opt out with
+# MUSE_NO_SECRET_IMPORT=1. This is your own device, so it's enabled by default.
+if [ "${MUSE_NO_SECRET_IMPORT:-0}" != "1" ]; then export HERMES_COCKPIT_SECRET_IMPORT=1; fi
 exec $MUSE_BIN cockpit serve --port "$MUSE_PORT"
