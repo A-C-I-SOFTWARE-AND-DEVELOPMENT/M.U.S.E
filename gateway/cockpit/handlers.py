@@ -2652,6 +2652,34 @@ def federation_status(_req: Request) -> JsonResponse:
         )
 
 
+def council_dispatch(req: Request) -> JsonResponse:
+    """Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``.
+
+    Returns the engaged active council + matching domain specialists with their
+    roles, required outputs, verification, and owner gates. Deterministic
+    registry routing — no model calls, no writes.
+    """
+    query = req.query.get("q", "").strip()
+    if not query:
+        return JsonResponse(400, {"error": "missing q"})
+    try:
+        from hermes_cli.jarvis_prime.aos_council import dispatch
+
+        return JsonResponse(200, dispatch(query).to_dict())
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200,
+            {
+                "request": query,
+                "council": [],
+                "specialists": [],
+                "engaged_count": 0,
+                "owner_gated": False,
+                "error": str(exc),
+            },
+        )
+
+
 # Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
 # ---------------------------------------------------------------------------
 

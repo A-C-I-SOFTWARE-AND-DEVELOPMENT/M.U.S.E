@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **119 routes** across **117 distinct handlers**
+- **120 routes** across **118 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -42,6 +42,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/coding/audit` | `gateway.cockpit.handlers.coding_audit` | bearer | — | json | Classify + route a plain-English coding request (read-only). |
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
 | POST | `/v1/cockpit/coding/plan` | `gateway.cockpit.handlers.coding_plan` | bearer | — | json | Build + validate a bounded coding work packet (stage only, never runs). |
+| GET | `/v1/cockpit/council/dispatch` | `gateway.cockpit.handlers.council_dispatch` | bearer | — | json | Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``. |
 | GET | `/v1/cockpit/diagnostics` | `gateway.cockpit.handlers.diagnostics` | bearer | — | json | Launch-readiness diagnostics (reuses the JARVIS launch doctor). |
 | POST | `/v1/cockpit/emergency-stop` | `gateway.cockpit.handlers.emergency_stop` | bearer | — | json | Owner panic button: a decisive backend halt. |
 | GET | `/v1/cockpit/events` | `gateway.cockpit.handlers.audit_events` | bearer | — | json | Leveled cockpit events (contract §9) from the structured event log. |
