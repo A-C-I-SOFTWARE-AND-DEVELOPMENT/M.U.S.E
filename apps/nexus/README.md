@@ -170,6 +170,26 @@ The shell is tuned to Apple/Google-grade feel: springy sliding tab indicator,
 emphasized-easing page transitions, tactile press feedback, on-brand focus rings,
 and full `prefers-reduced-motion` support.
 
+## Connections & credentials (enter anything through the app)
+
+Settings → **Connections & Credentials** is an in-app manager for every
+third-party connection that needs a username / password / API key / token —
+`src/lib/credentials.ts` registers them by category (Backend · Model Providers ·
+Messaging Bridges · Dev Integrations · Push & MCP) with the **canonical MUSE env
+var names**:
+
+- **App credentials** (gateway URL + device token, Supabase URL/anon key, VAPID
+  public key) apply immediately to the live runtime config — no rebuild.
+- **Gateway credentials** (Anthropic / OpenAI / Google / OpenRouter / Novita /
+  NIM keys; Telegram / Discord / Slack / WhatsApp / Signal / Email; GitHub /
+  Vercel / Cloudflare; MCP) are collected and exported as a ready-to-apply
+  **`.env` snippet** (Copy) to paste into `~/.hermes/.env` on the gateway host —
+  because MUSE keeps provider/messaging keys server-side by design (there is no
+  remote secrets endpoint to push them to).
+
+Secret fields are masked with a reveal toggle and stored only in this device's
+`localStorage`; "Forget all credentials" clears them.
+
 ## Supabase + voice (wired, optional)
 
 - **Supabase** (`src/lib/supabase.ts`) — a thin REST client (no SDK) that

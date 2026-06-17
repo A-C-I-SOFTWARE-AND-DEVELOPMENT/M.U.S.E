@@ -91,3 +91,51 @@ export function authHeaders(): Record<string, string> {
 export function isConfigured(): boolean {
   return !!museBase();
 }
+
+// ---- Third-party secrets bag (keyed by canonical ENV var name) -------------
+// Stored separately from RuntimeConfig. The app applies "local" creds directly;
+// "gateway" creds are collected here and exported as a ready-to-apply .env
+// snippet for the gateway host (MUSE keeps provider/messaging keys in
+// ~/.hermes/.env — there is no remote secrets endpoint, by design).
+
+const SECRETS_KEY = 'nexus.secrets.v1';
+let secretsCache: Record<string, string> | null = null;
+
+function readSecrets(): Record<string, string> {
+  if (secretsCache) return secretsCache;
+  if (typeof localStorage === 'undefined') return (secretsCache = {});
+  try {
+    secretsCache = JSON.parse(localStorage.getItem(SECRETS_KEY) ?? '{}');
+  } catch {
+    secretsCache = {};
+  }
+  return secretsCache!;
+}
+
+export function getSecret(env: string): string {
+  return readSecrets()[env] ?? '';
+}
+
+export function getSecrets(): Record<string, string> {
+  return { ...readSecrets() };
+}
+
+export function setSecret(env: string, value: string): void {
+  const next = { ...readSecrets() };
+  if (value) next[env] = value;
+  else delete next[env];
+  secretsCache = next;
+  try {
+    localStorage.setItem(SECRETS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+  if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('nexus:config'));
+}
+
+/** Build a ready-to-apply ~/.hermes/.env snippet from the stored gateway secrets. */
+export function envSnippet(envKeys: string[]): string {
+  const s = readSecrets();
+  const lines = envKeys.filter((k) => s[k]).map((k) => `${k}=${s[k]}`);
+  return lines.join('\n');
+}

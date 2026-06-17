@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { enablePush, pushEnabled, pushSupported } from '@/lib/push';
 import { supabaseConfigured } from '@/lib/supabase';
 import { getConfig } from '@/lib/config';
+import { CredentialsManager } from '@/components/setup/CredentialsManager';
 import {
   requestMic,
   startListening,
@@ -85,6 +86,10 @@ export default function SettingsPage() {
         <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />
+      </Section>
+
+      <Section title="Connections & Credentials">
+        <CredentialsManager />
       </Section>
 
       <Section title="Install">
