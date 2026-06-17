@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   getChatConfig,
   setChatConfig,
@@ -10,6 +11,7 @@ import {
   type ChatMessage,
 } from '@/lib/chat';
 import { hasDirectKey } from '@/lib/directProvider';
+import { resolveModelTransport } from '@/lib/providers';
 
 export default function ChatPage() {
   const [cfg, setCfg] = useState(getChatConfig());
@@ -20,8 +22,21 @@ export default function ChatPage() {
   const [providers, setProviders] = useState<Record<string, boolean> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const transport = effectiveTransport(cfg);
   const ready = transport === 'direct' ? hasDirectKey() : !!providers;
+  // Honest, granular label for the selected model's actual route. The old code
+  // hardcoded "direct · OpenRouter", which mislabels Anthropic/Gemini/Groq/etc.
+  // direct routes now that the multi-provider transport layer exists.
+  const rt = resolveModelTransport(cfg.model);
+  const transportLabel =
+    cfg.mode === 'gateway' || rt.kind === 'gateway'
+      ? cfg.baseUrl
+      : rt.kind === 'direct'
+        ? `direct · ${rt.provider.label}`
+        : rt.kind === 'openrouter'
+          ? 'via OpenRouter'
+          : 'needs a provider key';
 
   useEffect(() => {
     if (transport === 'gateway') gatewayHealth(cfg.baseUrl).then(setProviders);
@@ -83,11 +98,17 @@ export default function ChatPage() {
           {modelsFor(cfg).map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         <div className="mono flex-1 truncate text-[9px] text-[var(--ink-faint)]">
-          {transport === 'direct' ? 'direct · OpenRouter' : cfg.baseUrl}
+          {transportLabel}
         </div>
+        <button
+          onClick={() => navigate('/models')}
+          className="mono shrink-0 text-[9px] text-[var(--octa-glow)]"
+        >
+          Models →
+        </button>
         <span
           className="h-2 w-2 rounded-full"
-          title={ready ? (transport === 'direct' ? 'direct via OpenRouter' : 'gateway online') : transport === 'direct' ? 'add an OpenRouter key in Settings' : 'gateway offline'}
+          title={ready ? transportLabel : transport === 'direct' ? 'add a provider or OpenRouter key in Settings' : 'gateway offline'}
           style={{ background: ready ? 'var(--state-running)' : 'var(--ink-faint)' }}
         />
       </div>
@@ -100,8 +121,10 @@ export default function ChatPage() {
               <div className="text-[13px] font-semibold">Unified provider chat</div>
               {transport === 'direct' ? (
                 <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
-                  Direct from this app via OpenRouter — Claude, GPT, Gemini & 300+ models through one
-                  key. <b className="text-[var(--ink)]">No server, no terminal.</b>
+                  Direct from this app — Claude, GPT, Gemini & 300+ models through your own provider
+                  keys or OpenRouter. <b className="text-[var(--ink)]">No server, no terminal.</b>
+                  {' '}
+                  <button onClick={() => navigate('/models')} className="underline" style={{ color: 'var(--octa-glow)' }}>Browse all models →</button>
                 </div>
               ) : (
                 <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
