@@ -2622,6 +2622,36 @@ def forge_leaderboard(_req: Request) -> JsonResponse:
         )
 
 
+def federation_status(_req: Request) -> JsonResponse:
+    """Federation status (read-only, **public fields only**): this node's public
+    identity and the known peer list.
+
+    Security: ``NodeIdentity.to_dict()`` exposes only public material
+    (node_id, display_name, algo, public_key_hex). Private key / HMAC secret are
+    stored separately on disk and **never** leave the machine — they are not in
+    this payload. Honest-empty before ``federation identity init``.
+    """
+    try:
+        from hermes_cli.jarvis_prime.federation.attestation import FederationRegistry
+        from hermes_cli.jarvis_prime.federation.identity import load_identity
+
+        identity = load_identity()
+        registry = FederationRegistry()
+        peers = [p.to_dict() for p in registry.peers()]
+        return JsonResponse(
+            200,
+            {
+                "identity": identity.to_dict() if identity is not None else None,
+                "peers": peers,
+                "peer_count": len(peers),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200, {"identity": None, "peers": [], "peer_count": 0, "error": str(exc)}
+        )
+
+
 # Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
 # ---------------------------------------------------------------------------
 

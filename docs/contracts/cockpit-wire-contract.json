@@ -1,8 +1,8 @@
 {
   "contract": "cockpit-wire-contract",
-  "handler_count": 116,
+  "handler_count": 117,
   "owner_gated_count": 10,
-  "route_count": 118,
+  "route_count": 119,
   "routes": [
     {
       "handler": "gateway.cockpit.server._make_handler.<locals>.Handler._serve_static",
@@ -282,6 +282,15 @@
       "path": "/v1/cockpit/evidence/{id}/promote",
       "requires_auth": true,
       "summary": "Promote an evidence artifact into durable Memory Tree."
+    },
+    {
+      "handler": "gateway.cockpit.handlers.federation_status",
+      "kind": "json",
+      "method": "GET",
+      "owner_gated": false,
+      "path": "/v1/cockpit/federation/status",
+      "requires_auth": true,
+      "summary": "Federation status (read-only, **public fields only**): this node's public"
     },
     {
       "handler": "gateway.cockpit.handlers.forge_leaderboard",

@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **118 routes** across **116 distinct handlers**
+- **119 routes** across **117 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -52,6 +52,7 @@ helper it calls) compares the request against
 | DELETE | `/v1/cockpit/evidence/{id}` | `gateway.cockpit.handlers.evidence_demote` | bearer | — | json | Remove an evidence artifact from the vault (demotion). |
 | GET | `/v1/cockpit/evidence/{id}` | `gateway.cockpit.handlers.evidence_detail` | bearer | — | json | Return one evidence artifact by id. |
 | POST | `/v1/cockpit/evidence/{id}/promote` | `gateway.cockpit.handlers.evidence_promote` | bearer | owner-phrase | json | Promote an evidence artifact into durable Memory Tree. |
+| GET | `/v1/cockpit/federation/status` | `gateway.cockpit.handlers.federation_status` | bearer | — | json | Federation status (read-only, **public fields only**): this node's public |
 | GET | `/v1/cockpit/forge/leaderboard` | `gateway.cockpit.handlers.forge_leaderboard` | bearer | — | json | The Forge championship view (read-only): Glicko-2 standings, MAP-Elites |
 | POST | `/v1/cockpit/graph/build` | `gateway.cockpit.handlers.graph_build` | bearer | — | json | Rebuild + persist the knowledge-graph cache. Read-only over the repo and |
 | GET | `/v1/cockpit/graph/query` | `gateway.cockpit.handlers.graph_query` | bearer | — | json | Run a GraphRAG query (``mode`` = local \| global \| coding). |

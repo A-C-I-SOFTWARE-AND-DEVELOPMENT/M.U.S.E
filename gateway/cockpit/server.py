@@ -181,6 +181,7 @@ _ROUTES: list[tuple[str, re.Pattern[str], _HandlerFn, bool]] = [
     ("GET", _compile("/v1/cockpit/second-brain/status"), h.second_brain_status, True),
     ("GET", _compile("/v1/cockpit/second-brain/retrieve"), h.second_brain_retrieve, True),
     ("GET", _compile("/v1/cockpit/forge/leaderboard"), h.forge_leaderboard, True),
+    ("GET", _compile("/v1/cockpit/federation/status"), h.federation_status, True),
     ("GET", _compile("/v1/cockpit/sessions"), h.sessions_list, True),
     ("GET", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_get, True),
     ("POST", _compile("/v1/cockpit/avatar/persona"), h.avatar_persona_set, True),
