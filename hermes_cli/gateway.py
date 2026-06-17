@@ -2442,6 +2442,7 @@ def systemd_install(
     system: bool = False,
     run_as_user: str | None = None,
     enable_on_startup: bool = True,
+    assume_yes: bool = False,
 ):
     if system:
         _require_root_for_system_service("install")
@@ -2455,7 +2456,10 @@ def systemd_install(
         print()
         print_legacy_unit_warning()
         print()
-        if prompt_yes_no("Remove the legacy unit(s) before installing?", True):
+        # ``assume_yes`` (set by the non-interactive ``gateway ensure`` path)
+        # takes the default "yes" answer without prompting, so establishment
+        # stays fully unattended even on a pre-rename upgrade.
+        if assume_yes or prompt_yes_no("Remove the legacy unit(s) before installing?", True):
             remove_legacy_hermes_units(interactive=False)
             print()
 
@@ -4836,7 +4840,7 @@ def gateway_setup():
         print_warning("Gateway service is installed but not running.")
         if supports_systemd_services() and _system_scope_wizard_would_need_root():
             _print_system_scope_remediation("start")
-        elif prompt_yes_no("  Start it now?", True):
+        elif gateway_auto_start_enabled() or prompt_yes_no("  Start it now?", True):
             try:
                 if supports_systemd_services():
                     systemd_start()
@@ -4955,11 +4959,17 @@ def gateway_setup():
                 else:
                     platform_name = "Scheduled Task"
                 wsl_note = " (note: services may not survive WSL restarts)" if is_wsl() else ""
-                start_now = prompt_yes_no("  Start the gateway now?", True)
-                start_on_login = prompt_yes_no(
-                    f"  Start the gateway automatically on login/boot as a {platform_name} service?{wsl_note}",
-                    True,
-                )
+                if gateway_auto_start_enabled():
+                    # Opted into auto-start — install + enable + start without prompts.
+                    print_info("  gateway.auto_start is set — installing, enabling, and starting without prompts.")
+                    start_now = True
+                    start_on_login = True
+                else:
+                    start_now = prompt_yes_no("  Start the gateway now?", True)
+                    start_on_login = prompt_yes_no(
+                        f"  Start the gateway automatically on login/boot as a {platform_name} service?{wsl_note}",
+                        True,
+                    )
                 if start_now or start_on_login:
                     try:
                         installed_scope = None
@@ -5157,7 +5167,7 @@ def gateway_ensure(verbose: int = 0) -> int:
         if is_wsl():
             print_warning("WSL detected — systemd services may not survive WSL restarts.")
         try:
-            systemd_install(force=False, system=False, enable_on_startup=True)
+            systemd_install(force=False, system=False, enable_on_startup=True, assume_yes=True)
             systemd_start(system=False)
             print_success(
                 "✓ Gateway established as a systemd user service (auto-starts on login)."
@@ -5192,6 +5202,74 @@ def gateway_ensure(verbose: int = 0) -> int:
 
     print_info("No service manager detected — establishing a background gateway.")
     return _report_background_launch()
+
+
+# =============================================================================
+# Host-side auto-start (opt-in `gateway.auto_start`)
+# =============================================================================
+
+# Process-level guard: a single CLI invocation establishes at most once, even
+# if the interactive entry point is re-entered (e.g. resume → chat).
+_AUTO_ESTABLISH_ATTEMPTED = False
+
+
+def gateway_auto_start_enabled() -> bool:
+    """True when the opt-in ``gateway.auto_start`` flag is set in config.yaml.
+
+    Mirrors :func:`hermes_cli.container_boot._read_auto_start` for the host:
+    a single lightweight raw-config read, defaulting to ``False`` so the flag
+    is strictly opt-in and the default code path is unchanged.
+    """
+    try:
+        cfg = read_raw_config()
+    except Exception:  # noqa: BLE001 — a bad config must never gate the CLI
+        return False
+    gateway_cfg = cfg.get("gateway") if isinstance(cfg, dict) else None
+    if not isinstance(gateway_cfg, dict):
+        return False
+    return bool(gateway_cfg.get("auto_start", False))
+
+
+def maybe_auto_establish_gateway() -> None:
+    """Honor the opt-in ``gateway.auto_start`` flag on the host, best-effort.
+
+    The container boot reconciler already auto-establishes gateways when
+    ``gateway.auto_start`` is set (see :mod:`hermes_cli.container_boot`). This
+    is the host analog: when a user who opted in launches MUSE, make sure the
+    gateway is established — installed + enabled + started — so it also comes
+    back on every login/reboot, without them ever running ``gateway ensure``
+    by hand.
+
+    Strictly opt-in and idempotent:
+
+    * No-op when ``gateway.auto_start`` is unset/false — a single cheap config
+      read, so the default launch path is unchanged.
+    * No-op inside a container (the reconciler owns that path) or a managed
+      (NixOS) install.
+    * No-op when a gateway is already running or its service is installed.
+    * Never raises — runs on the interactive launch path, so any failure is
+      swallowed and must never block the user.
+    """
+    global _AUTO_ESTABLISH_ATTEMPTED
+    if _AUTO_ESTABLISH_ATTEMPTED:
+        return
+    _AUTO_ESTABLISH_ATTEMPTED = True
+    try:
+        if not gateway_auto_start_enabled():
+            return
+        if is_container() or is_managed():
+            return
+        try:
+            if find_gateway_pids():
+                return
+        except Exception:  # noqa: BLE001 — probe failure shouldn't block establish
+            pass
+        if _is_service_installed():
+            return
+        print_info("gateway.auto_start is set — establishing the MUSE gateway…")
+        gateway_ensure()
+    except Exception as exc:  # noqa: BLE001 — best-effort; never block the CLI
+        logger.debug("auto-establish gateway skipped: %s", exc)
 
 
 # =============================================================================

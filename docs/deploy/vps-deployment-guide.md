@@ -177,23 +177,38 @@ like:
 - On Termux / bare Docker / WSL-without-systemd it launches a detached
   background `muse gateway run` (logged to `$HERMES_HOME/logs/gateway.log`).
 
-Because it asks no questions, `ensure` is safe to drop into a provisioning
-script, a cron `@reboot` line, or a boot hook.
+Because it asks no questions — even the pre-rename legacy-unit cleanup is
+unattended — `ensure` is safe to drop into a provisioning script, a cron
+`@reboot` line, or a boot hook.
 
-**Containers:** to make a freshly-created container bring its gateway up on
-every boot — with zero manual steps — opt in via `config.yaml`:
+### Opt in once with `gateway.auto_start`
+
+To never run *anything* by hand, set the opt-in flag in `config.yaml`
+(`~/.hermes/config.yaml`, or a profile's `config.yaml`):
 
 ```yaml
 gateway:
   auto_start: true
 ```
 
-The container-boot reconciler then starts the gateway from a fresh or
-cleanly-stopped state, not only when it was running before the last restart.
-A gateway that *failed at startup* still stays down (the crash-loop guard),
-so a misconfigured profile can't wedge the container into an endless restart
-loop. The flag is opt-in; with it unset, the default behaviour (restart only
-profiles that were `running`) is unchanged.
+With the flag set:
+
+- **Containers** — the container-boot reconciler brings the gateway up on
+  every boot from a fresh or cleanly-stopped state, not only when it was
+  running before the last restart. A gateway that *failed at startup* still
+  stays down (the crash-loop guard), so a misconfigured profile can't wedge
+  the container into an endless restart loop.
+- **Hosts** — the next time you launch MUSE (`muse`), it self-establishes the
+  gateway (install + enable + start) if it isn't already up; after that first
+  launch, systemd/launchd/Task Scheduler keeps it alive across every reboot.
+- **`muse setup`** skips its "start now? / start on boot?" prompts and just
+  establishes the service.
+
+The flag is opt-in; with it unset, the default behaviour is unchanged
+(containers restart only profiles that were `running`; hosts establish
+nothing automatically). `muse doctor` will nudge you toward `muse gateway
+ensure` whenever no gateway is established yet — and flags it as an issue if
+`auto_start` is set but nothing is up.
 
 ---
 
