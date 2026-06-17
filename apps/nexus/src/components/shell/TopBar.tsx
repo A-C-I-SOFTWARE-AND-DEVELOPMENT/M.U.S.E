@@ -4,6 +4,7 @@ const TITLES: Record<string, string> = {
   '/': 'CONSOLE',
   '/steer': 'AGENT OPTIMIZATION CONTROL',
   '/axiom': 'AXIOM GATE · FUSION',
+  '/observatory': 'NEURAL OBSERVATORY',
   '/agents': 'AGENTS',
   '/activity': 'ACTIVITY',
   '/settings': 'SETTINGS',

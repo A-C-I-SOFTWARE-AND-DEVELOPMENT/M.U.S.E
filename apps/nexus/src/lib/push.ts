@@ -6,6 +6,8 @@
 //   - owner-gated authorization prompts
 // See ADAPTERS.md for the expected /api/push/subscribe shape.
 
+import { persistPushSubscription } from './supabase';
+
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? '';
 const MUSE_BASE = import.meta.env.VITE_MUSE_BASE_URL ?? '';
 
@@ -40,6 +42,8 @@ export async function enablePush(): Promise<{ ok: boolean; reason?: string }> {
       body: JSON.stringify(sub),
     });
   }
+  // Persist to Supabase too (optional; no-ops when Supabase is unconfigured).
+  await persistPushSubscription(sub.toJSON());
   return { ok: true };
 }
 

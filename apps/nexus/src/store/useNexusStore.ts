@@ -30,6 +30,10 @@ interface NexusState {
   gateConfig: GateConfig;
   sourceContrib: Record<string, number>;
 
+  // Observatory wallpaper ("mirror") mode — hides chrome, full-bleed galaxy.
+  wallpaper: boolean;
+  observatoryDemo: boolean;
+
   setPreset: (key: string) => void;
   setActiveProfile: (id: string) => void;
   addProfile: (name: string) => void;
@@ -40,6 +44,9 @@ interface NexusState {
   toggleGate: (key: keyof GateConfig['enforced']) => void;
   setOwnerApproved: (v: boolean) => void;
   setSourceContrib: (id: string, value: number) => void;
+
+  setWallpaper: (v: boolean) => void;
+  setObservatoryDemo: (v: boolean) => void;
 }
 
 const initialProfile: SteeringProfile = {
@@ -60,6 +67,10 @@ export const useNexusStore = create<NexusState>((set) => ({
   fusionStrategy: 'weighted-mean',
   gateConfig: defaultGateConfig(),
   sourceContrib: {},
+
+  wallpaper:
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('wallpaper') === '1',
+  observatoryDemo: false,
 
   setPreset: (key) =>
     set(() => ({
@@ -111,6 +122,9 @@ export const useNexusStore = create<NexusState>((set) => ({
 
   setSourceContrib: (id, value) =>
     set((s) => ({ sourceContrib: { ...s.sourceContrib, [id]: value } })),
+
+  setWallpaper: (wallpaper) => set({ wallpaper }),
+  setObservatoryDemo: (observatoryDemo) => set({ observatoryDemo }),
 }));
 
 // Helper for default neutral display.

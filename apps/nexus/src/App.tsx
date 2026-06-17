@@ -3,9 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { TabBar } from './components/shell/TabBar';
 import { TopBar } from './components/shell/TopBar';
+import { useNexusStore } from './store/useNexusStore';
 import ConsolePage from './pages/ConsolePage';
 import SteerPage from './pages/SteerPage';
 import AxiomGatePage from './pages/AxiomGatePage';
+import ObservatoryPage from './pages/ObservatoryPage';
 import AgentsPage from './pages/AgentsPage';
 import ActivityPage from './pages/ActivityPage';
 import SettingsPage from './pages/SettingsPage';
@@ -28,6 +30,11 @@ function Page({ children }: { children: ReactNode }) {
 
 export default function App() {
   const location = useLocation();
+  const wallpaper = useNexusStore((s) => s.wallpaper);
+
+  // Wallpaper ("mirror") mode renders the Observatory full-bleed with no chrome.
+  if (wallpaper) return <ObservatoryPage />;
+
   return (
     <div className="flex h-full flex-col">
       <TopBar />
@@ -40,6 +47,7 @@ export default function App() {
             <Route path="/" element={<Page><ConsolePage /></Page>} />
             <Route path="/steer" element={<Page><SteerPage /></Page>} />
             <Route path="/axiom" element={<Page><AxiomGatePage /></Page>} />
+            <Route path="/observatory" element={<Page><ObservatoryPage /></Page>} />
             <Route path="/agents" element={<Page><AgentsPage /></Page>} />
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />
             <Route path="/settings" element={<Page><SettingsPage /></Page>} />

@@ -135,6 +135,70 @@ export interface GateConfig {
   ownerApproved: boolean;
 }
 
+// ---- Neural Observatory (the live "mirror" dashboard) ----------------------
+// Mirrors the gateway's read-only /v1/observatory/* contract
+// (docs/synapse/design/10-observatory-spec.md). Render-only: every number
+// arrives fully formed from the gateway. Honesty rule: when the graph is
+// unavailable, render the dormant dressing — NEVER fabricate activity.
+
+export interface ObsCluster {
+  id: string;
+  label: string;
+  type_mix: Record<string, number>;
+  members: number;
+  pos: [number, number, number];
+  radius: number;
+  heat: number | null; // null below the n>=5 confidence gate
+}
+
+export interface ObsClusterEdge {
+  a: string;
+  b: string;
+  weight: number;
+  heat: number | null;
+}
+
+export interface ObsActiveJob {
+  job_id: string;
+  task_class: string;
+  stage: 'queued' | 'navigator' | 'worker' | 'gate' | 'ledger' | 'done' | 'failed';
+  stage_entered_at: string;
+  queue_pos: number | null;
+}
+
+export interface ObsLadderTier {
+  tier: 'local' | 'hosted' | 'paired';
+  model: string;
+  share_1h: number;
+  p50_latency_ms: number;
+  p95_latency_ms: number;
+}
+
+export interface ObsSnapshot {
+  v: number;
+  generated_at: string;
+  graph: {
+    available: boolean;
+    graph_version: string;
+    node_count: number;
+    edge_count: number;
+    clusters: ObsCluster[];
+    cluster_edges: ObsClusterEdge[];
+    layout_algo?: string;
+  };
+  stations: { nodes: string[]; active_jobs: ObsActiveJob[]; queue_depth: number };
+  ladder: { tiers: ObsLadderTier[] };
+  /** True only for the clearly-labeled local sample topology (never real telemetry). */
+  sample?: boolean;
+}
+
+export type ObsStreamEvent =
+  | { type: 'job.stage'; job_id: string; task_class: string; stage: ObsActiveJob['stage']; queue_depth: number; ts: string }
+  | { type: 'gate.verdict'; job_id: string; gate: AxiomGateKey; verdict: 'pass' | 'fail' | 'override'; attempt: number; ts: string }
+  | { type: 'node.activate'; cluster_id: string; node_id: string | null; kind: 'query' | 'write' | 'promote'; weight: number; ts: string }
+  | { type: 'route.decision'; turn_id: string; tier: ObsLadderTier['tier']; model: string; reason: string; latency_ms: number; ts: string }
+  | { type: 'resync'; reason: 'gap' | 'graph_rebuilt'; ts: string };
+
 export interface ActivityEvent {
   id: string;
   surface: SurfaceKind;

@@ -1,10 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { enablePush, pushEnabled, pushSupported } from '@/lib/push';
+import { supabaseConfigured } from '@/lib/supabase';
+import {
+  requestMic,
+  startListening,
+  speak,
+  sttSupported,
+  ttsSupported,
+  type VoiceSession,
+} from '@/lib/voice';
 
 export default function SettingsPage() {
   const [installEvt, setInstallEvt] = useState<any>(null);
   const [pushOn, setPushOn] = useState(false);
   const [pushMsg, setPushMsg] = useState<string>('');
+  const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState('');
+  const voiceRef = useRef<VoiceSession | null>(null);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -29,12 +41,39 @@ export default function SettingsPage() {
     setPushMsg(res.ok ? 'Notifications enabled' : res.reason ?? 'Failed');
   };
 
+  const toggleListen = async () => {
+    if (listening) {
+      voiceRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const ok = await requestMic();
+    if (!ok) {
+      setHeard('Microphone permission denied');
+      return;
+    }
+    setHeard('');
+    voiceRef.current = startListening(
+      (partial) => setHeard(partial),
+      (final) => {
+        setHeard(final);
+        setListening(false);
+      },
+      (err) => {
+        setHeard(err);
+        setListening(false);
+      },
+    );
+    if (voiceRef.current) setListening(true);
+  };
+
   const museBase = import.meta.env.VITE_MUSE_BASE_URL ?? '';
 
   return (
     <div className="px-4 pb-6">
       <Section title="Connections">
         <Row label="M.U.S.E. base URL" value={museBase || 'Not configured'} />
+        <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />
       </Section>
@@ -83,9 +122,30 @@ export default function SettingsPage() {
       </Section>
 
       <Section title="Voice bridge">
-        <Row label="STT/TTS" value="M.U.S.E. Flask + Web Speech" />
+        <Row label="STT/TTS" value={sttSupported() ? 'Web Speech ready' : 'Unsupported'} />
+        <div className="mt-2 flex items-center gap-2">
+          <button
+            onClick={toggleListen}
+            disabled={!sttSupported()}
+            className="rounded-md px-3 py-1.5 text-[11px] font-semibold text-black disabled:opacity-40"
+            style={{ background: listening ? 'var(--state-error)' : 'var(--octa-glow)' }}
+          >
+            {listening ? 'Stop' : '🎤 Listen'}
+          </button>
+          <button
+            onClick={() => speak('MUSE voice bridge online.')}
+            disabled={!ttsSupported()}
+            className="rounded-md border border-[var(--hairline)] px-3 py-1.5 text-[11px] disabled:opacity-40"
+          >
+            Test speak
+          </button>
+        </div>
+        {heard && (
+          <div className="mono mt-2 text-[11px] text-[var(--ink)]">“{heard}”</div>
+        )}
         <div className="mt-1 text-[10px] text-[var(--ink-faint)]">
-          Uses the existing M.U.S.E. voice bridge — not reimplemented here.
+          Drives the existing M.U.S.E. voice bridge (Flask + Web Speech) — final
+          transcripts POST to <span className="mono">/api/voice/stt</span>; not reimplemented here.
         </div>
       </Section>
 

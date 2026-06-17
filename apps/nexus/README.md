@@ -1,8 +1,9 @@
 # NEXUS — Unified Agent Command Console
 
 A mobile-first **PWA** that unifies **Antigravity**, **Google AI Studio**, and
-**M.U.S.E.** into one command center, fronted by an interactive **Agent
-Optimization Control** octagon for real-time inference steering.
+**M.U.S.E.** into one command center — with an interactive **Agent Optimization
+Control** octagon for real-time inference steering, an **Axiom Gate** fusion +
+verification stage, and a live **Neural Observatory** "mirror" dashboard.
 
 > M.U.S.E. is the only backend the user fully controls, so it gets the deepest
 > integration (embedded panel + live steering). Antigravity and AI Studio are
@@ -23,7 +24,7 @@ cd apps/nexus
 cp .env.example .env        # fill in VITE_MUSE_BASE_URL etc. (optional for UI)
 npm install
 npm run dev                 # http://localhost:5173
-npm test                    # 17 unit tests for the steering math
+npm test                    # 30 unit tests (steering + Axiom-Gate fusion math)
 npm run build && npm run preview
 ```
 
@@ -76,20 +77,58 @@ challenge-bound **"Yes, with authorization"** owner gate for high-risk vectors.
 The fusion engine (`fuseVectors` / `runAxiomGates` / `runFusion` /
 `attestationHash`) is pure and unit-tested (13 of the 30 tests).
 
-## App shell — 6 tabs
+## The Neural Observatory (the live "mirror" dashboard)
+
+The **Observatory** tab is the live system mirror — the web/PWA renderer of MUSE's
+cross-device "live neural-network wallpaper" program (the UE5 and Android
+renderers share the exact same gateway contract). It consumes the read-only
+`/v1/observatory/*` route family and renders the **Nero Solar System** dressing:
+
+- **Nero Core** (the sun) at the reserved origin — pulse ∝ queue depth.
+- **Planets** = GraphRAG clusters at gateway-computed `pos`, size ∝ `radius`,
+  tint by dominant `type_mix`, glow by `heat` (**grey when `heat` is null** —
+  "no measured activations", never a guessed glow).
+- **Orbit rings** derived from planet positions; **cluster edges** weighted by heat.
+- **Pipeline** — the station graph Job → Navigator → Worker → Gate → Ledger, with
+  live packets and a red gate flare on a `gate.verdict` fail.
+- **Brain Ladder** — routing share per tier (local / hosted / paired).
+- It **pulses on every real system action** via the SSE `/stream` feed
+  (`node.activate`, `job.stage`, `gate.verdict`, `route.decision`).
+
+**Honesty (binding):** when the graph is unavailable (no gateway / no GraphRAG
+cache), it renders the **dormant dressing** — dim core, **zero planets**, empty
+pipeline — never fabricated activity. A separate, clearly-badged **`SAMPLE`**
+demo topology lets the design be previewed without passing demo data off as
+telemetry.
+
+**Wallpaper mode** (`?wallpaper=1` or the in-app button) renders the galaxy
+full-bleed with all chrome hidden — the PWA "mirror."
+
+## App shell — 7 tabs
 
 | Tab | What |
 |---|---|
 | **Console** | Launcher tiles (M.U.S.E. embedded, Antigravity/AI Studio link-out) + AOS roster with live status dots |
 | **Steer** | The Agent Optimization Control octagon + profiles + fine sliders + mapped inference readout |
 | **Axiom** | The Axiom Gate — fuse steering sources, verify through 8 gates, attest, apply |
+| **Observatory** | The live Neural Observatory galaxy ("mirror") + pipeline + Brain Ladder + wallpaper mode |
 | **Agents** | All agents across surfaces; full control for M.U.S.E., open-out for the rest; embedded M.U.S.E. panel |
 | **Activity** | Unified event feed (SSE from M.U.S.E.) |
-| **Settings** | Connections, install prompt, push notifications, daemon pairing, voice bridge |
+| **Settings** | Connections, install prompt, push notifications, daemon pairing, **live voice bridge (mic STT + TTS)** |
 
 The shell is tuned to Apple/Google-grade feel: springy sliding tab indicator,
 emphasized-easing page transitions, tactile press feedback, on-brand focus rings,
 and full `prefers-reduced-motion` support.
+
+## Supabase + voice (wired, optional)
+
+- **Supabase** (`src/lib/supabase.ts`) — a thin REST client (no SDK) that
+  persists Web Push subscriptions and probes the session; no-ops gracefully when
+  `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are unset.
+- **Voice bridge** (`src/lib/voice.ts`) — Web Speech API STT + TTS with a real
+  microphone-permission flow; final transcripts POST to the existing M.U.S.E.
+  voice bridge (`/api/voice/stt`). Driven from Settings; the bridge itself is not
+  reimplemented.
 
 ## PWA
 

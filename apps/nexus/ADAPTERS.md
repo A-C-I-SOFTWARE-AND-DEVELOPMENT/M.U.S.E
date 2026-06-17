@@ -32,6 +32,9 @@ NEXUS never fabricates data.
 | Live metrics (telemetry panel) | `GET /api/metrics` | `{ loss, accuracy, epoch, trainingSets }` |
 | Event stream (activity feed) | `GET /api/events` (SSE) | `ActivityEvent` frames |
 | Register push device | `POST /api/push/subscribe` | `204` |
+| Voice STT transcript | `POST /api/voice/stt` `{transcript}` | `204` |
+| Observatory snapshot | `GET /v1/observatory/snapshot` | boot map (clusters, stations, ladder) |
+| Observatory stream (SSE) | `GET /v1/observatory/stream` | `job.stage` / `gate.verdict` / `node.activate` / `route.decision` / `resync` |
 
 ### `AgentSummary`
 ```jsonc
@@ -82,8 +85,19 @@ Each `message` frame is JSON:
 
 ### Voice bridge
 NEXUS integrates the **existing** M.U.S.E. voice bridge (Flask + Web Speech API).
-It is NOT reimplemented here. Configure it on the M.U.S.E. side; NEXUS only
-requests microphone permission and calls the existing STT/TTS endpoints.
+It is NOT reimplemented here. NEXUS requests microphone permission, runs Web
+Speech STT/TTS locally, and POSTs settled transcripts to `/api/voice/stt`
+(`src/lib/voice.ts`). Configure the bridge on the M.U.S.E. side.
+
+### Neural Observatory (the live "mirror" dashboard)
+NEXUS renders the read-only `/v1/observatory/*` route family
+(`docs/synapse/design/10-observatory-spec.md`) — the web member of MUSE's
+cross-device live-wallpaper program. `GET /v1/observatory/snapshot` boots the
+galaxy (clusters with `pos`/`radius`/`heat`, station graph, Brain Ladder tiers);
+`GET /v1/observatory/stream` (SSE) drives live pulses. Render-only and honest:
+the `{"status":"unavailable"}` graph shape → `bGraphAvailable=false` → dormant
+dressing (zero planets), and `heat: null` → neutral grey, never a guessed glow.
+See `src/adapters/observatory.ts`.
 
 ---
 
