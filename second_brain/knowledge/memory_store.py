@@ -21,7 +21,6 @@ not optimized for large corpora — for production scale use the Postgres backen
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Dict, Iterator, List, Optional, Sequence
 
@@ -36,8 +35,6 @@ from .models import (
     utcnow,
 )
 from .retrieval_orchestrator import BM25Ranker
-
-logger = logging.getLogger(__name__)
 
 __all__ = [
     "InMemoryVectorStore",

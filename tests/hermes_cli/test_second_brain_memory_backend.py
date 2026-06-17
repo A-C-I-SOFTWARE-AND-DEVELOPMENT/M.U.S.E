@@ -13,7 +13,7 @@ from datetime import timedelta
 import pytest
 
 from second_brain.knowledge import SecondBrain, load_settings
-from second_brain.knowledge.config import EmbeddingConfig, Settings
+from second_brain.knowledge.config import Settings
 from second_brain.knowledge.memory_store import (
     InMemoryDocumentStore,
     InMemoryProvenanceTracker,
