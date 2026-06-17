@@ -58,7 +58,33 @@ tab, where one tap selects a model for Chat **and** Fusion.
 - **Add-ons** (`Settings → Add-ons`): the full MUSE integration surface — **MCP
   servers** and **CLI lanes** — plus **add your own** custom provider / MCP / CLI.
   These run gateway-side; values are encrypted on-device and exported to
-  `~/.hermes/.env`.
+  `~/.hermes/.env`. The MCP list is **mirrored live** from the repo's `.mcp.json`
+  + `optional-mcps/` (see below), not a hand-picked subset.
+
+## Live repo mirror — synced to GitHub `main`
+
+NEXUS reflects the **actual MUSE repository on GitHub**, read straight from `main`
+at runtime — not just what was hand-coded. The **Repo** tab (`/repo`, also in
+Settings → "MUSE repo — synced to main") shows a live inventory pulled via the
+GitHub git-trees API + raw `.mcp.json`:
+
+- **Plugins** (`plugins/**/plugin.yaml`), **Model providers**
+  (`plugins/model-providers/**`), **Skills** (`skills/**` + `optional-skills/**`),
+  **MCP servers** (`.mcp.json`), **Optional MCPs** (`optional-mcps/`), and **Docs**
+  (`docs/**`). Each row links to its source on GitHub. As of this writing the repo
+  mirrors to **52 plugins · 29 providers · 222 skills · 28 optional MCPs · the
+  `.mcp.json` servers · 374 docs** — whatever is on `main` is what you see.
+- **`src/lib/repoSync.ts`** does the fetch + parse (dependency-free, JSON only —
+  never an in-browser YAML parser); results are cached with a 30-min TTL and a
+  manual **Sync now**. An optional `GITHUB_TOKEN` (Settings) lifts the anon rate
+  limit. The repo source is configurable (`owner/repo`, branch) but defaults to
+  the canonical MUSE repo.
+- **One-click install/update — pulls the latest build from git.** NEXUS is served
+  from GitHub Pages built off `main`, so the service worker *is* the git deploy.
+  The build embeds its commit SHA (`__BUILD_SHA__`); the Repo Sync card compares it
+  to the live `main` HEAD and, when a newer build is waiting, surfaces a one-click
+  **⤓ Update NEXUS** (`registerType: 'prompt'`, `src/lib/appUpdate.ts`) that
+  activates the new worker and reloads. Also available from ⌘K ("Update NEXUS").
 
 ## Zero-server use (no terminal, ever)
 

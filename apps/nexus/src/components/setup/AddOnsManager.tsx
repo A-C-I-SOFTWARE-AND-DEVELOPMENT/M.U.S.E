@@ -7,9 +7,11 @@ import {
   addCustomAddon,
   removeCustomAddon,
   addonConfigured,
+  liveMcpAddons,
   type AddOn,
   type AddOnKind,
 } from '@/lib/addons';
+import { getCachedMirror, fetchMirror } from '@/lib/repoSync';
 import { SecretField } from './SecretField';
 
 function AddOnCard({ a, onRemove }: { a: AddOn; onRemove?: () => void }) {
@@ -55,9 +57,20 @@ function AddYourOwn({ kind, onAdd }: { kind: AddOnKind; onAdd: (label: string) =
 
 export function AddOnsManager() {
   const [version, setVersion] = useState(0);
+  const mirror = getCachedMirror();
+  const [mcpList, setMcpList] = useState<AddOn[]>(() =>
+    mirror ? liveMcpAddons(mirror.mcpServers, mirror.optionalMcps) : MCP_SERVERS,
+  );
   useEffect(() => {
     const bump = () => setVersion((v) => v + 1);
     window.addEventListener('nexus:config', bump);
+    // Reflect the live repo: hydrate the MCP list from the MUSE mirror.
+    fetchMirror(false)
+      .then((m) => {
+        const live = liveMcpAddons(m.mcpServers, m.optionalMcps);
+        if (live.length) setMcpList(live);
+      })
+      .catch(() => {/* offline → static fallback */});
     return () => window.removeEventListener('nexus:config', bump);
   }, []);
   const custom = getCustomAddons();
@@ -81,10 +94,10 @@ export function AddOnsManager() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[11px] leading-relaxed text-[var(--ink-dim)]">
-        The full MUSE integration surface — MCP servers and CLI lanes — plus <b className="text-[var(--ink)]">add your own</b>.
+        The full MUSE integration surface — MCP servers (mirrored live from <span className="mono">.mcp.json</span> + <span className="mono">optional-mcps/</span> on <b className="text-[var(--ink)]">main</b>) and CLI lanes — plus <b className="text-[var(--ink)]">add your own</b>.
         These run gateway-side; values are stored encrypted on-device and exported to <span className="mono">~/.hermes/.env</span>.
       </p>
-      {section('MCP servers', 'mcp', MCP_SERVERS)}
+      {section(`MCP servers · ${mcpList.length}`, 'mcp', mcpList)}
       {section('CLI lanes', 'cli', CLI_LANES)}
       {section('Custom providers', 'provider', [])}
     </div>

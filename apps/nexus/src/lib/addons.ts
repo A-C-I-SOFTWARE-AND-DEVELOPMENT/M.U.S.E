@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { getSecret, setSecret } from './config';
+import type { McpServer, RepoItem } from './repoSync';
 
 export type AddOnKind = 'provider' | 'mcp' | 'cli';
 
@@ -70,6 +71,44 @@ export const CLI_LANES: AddOn[] = [
     { env: `${env}_AUTH`, label: 'Auth / token (optional)', type: 'password' as const },
   ],
 }));
+
+// ---- Live add-ons derived from the MUSE repo mirror --------------------------
+// When a repo mirror is cached (RepoSyncCard / RepoPage), the add-ons surface
+// reflects the *actual* MCP servers declared on `main` (.mcp.json + optional-mcps)
+// rather than a hand-picked list. Each gets a name-derived env pair so users can
+// supply a URL/command + token. Falls back to MCP_SERVERS offline.
+
+function mcpEnv(name: string): string {
+  return name.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+export function mcpAddon(name: string, blurb: string, optional = false): AddOn {
+  const E = mcpEnv(name);
+  return {
+    id: `mcp-${name}`,
+    label: name,
+    kind: 'mcp',
+    blurb,
+    fields: [
+      { env: `${E}_MCP_URL`, label: 'Server URL / command', type: 'url', placeholder: 'https://… or stdio command' },
+      { env: `${E}_MCP_TOKEN`, label: optional ? 'Auth token (optional)' : 'Auth token', type: 'password' },
+    ],
+  };
+}
+
+/** Merge the connected (.mcp.json) + optional MCP servers from the live mirror. */
+export function liveMcpAddons(servers: McpServer[], optional: RepoItem[]): AddOn[] {
+  const out = new Map<string, AddOn>();
+  for (const s of servers) {
+    const blurb = s.url ? `${s.transport} · ${s.url}` : s.command ? `stdio · ${s.command}` : s.transport;
+    out.set(s.name.toLowerCase(), mcpAddon(s.name, blurb, s.optional));
+  }
+  for (const o of optional) {
+    const key = o.name.toLowerCase();
+    if (!out.has(key)) out.set(key, mcpAddon(o.name, 'Optional MCP server (bundled in repo)', true));
+  }
+  return [...out.values()].sort((a, b) => a.label.localeCompare(b.label));
+}
 
 // ---- Custom add-ons (add your own) -------------------------------------------
 const CUSTOM_KEY = 'nexus.addons.custom.v1';

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { CAPABILITIES } from '@/lib/capabilities';
 import { cockpit } from '@/adapters/cockpit';
 import { useNexusStore } from '@/store/useNexusStore';
+import { applyUpdate, checkForUpdate } from '@/lib/appUpdate';
+import { fetchMirror } from '@/lib/repoSync';
 
 interface Cmd {
   id: string;
@@ -46,7 +48,7 @@ export function CommandPalette() {
 
   const cmds = useMemo<Cmd[]>(() => {
     const nav: Cmd[] = [
-      ['Console', '/'], ['Chat', '/chat'], ['Models', '/models'], ['Fusion', '/fusion'], ['Forge', '/forge'], ['Fleet', '/fleet'],
+      ['Console', '/'], ['Chat', '/chat'], ['Models', '/models'], ['Repo Mirror', '/repo'], ['Fusion', '/fusion'], ['Forge', '/forge'], ['Fleet', '/fleet'],
       ['Steer', '/steer'], ['Axiom Gate', '/axiom'], ['Observatory', '/observatory'],
       ['Agents', '/agents'], ['Activity', '/activity'], ['Settings', '/settings'],
     ].map(([label, to]) => ({ id: `nav-${to}`, label: `Go to ${label}`, hint: 'page', run: () => navigate(to) }));
@@ -54,6 +56,9 @@ export function CommandPalette() {
       { id: 'wallpaper', label: 'Enter wallpaper mode', hint: 'observatory', run: () => { navigate('/observatory'); setWallpaper(true); } },
       { id: 'estop', label: 'Emergency stop', hint: 'halt all work', run: () => void cockpit.emergencyStop() },
       { id: 'connect', label: 'Install & connect everything', hint: 'setup', run: () => window.dispatchEvent(new CustomEvent('nexus:open-setup')) },
+      { id: 'update', label: 'Update NEXUS (pull latest from main)', hint: 'sync', run: () => void applyUpdate() },
+      { id: 'checkupdate', label: 'Check for NEXUS update', hint: 'sync', run: () => void checkForUpdate() },
+      { id: 'syncrepo', label: 'Sync MUSE repo mirror', hint: 'repo', run: () => { void fetchMirror(true); navigate('/repo'); } },
     ];
     const caps: Cmd[] = CAPABILITIES.map((c) => ({
       id: `cap-${c.id}`,
