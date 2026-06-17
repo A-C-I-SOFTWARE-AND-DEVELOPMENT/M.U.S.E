@@ -42,6 +42,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // The service-worker generation (workbox-build runs its own Rollup pass)
+      // can fail in constrained environments like Termux/Android ("Unable to
+      // write the service worker file"). It is purely a progressive enhancement
+      // (offline shell) and is NOT needed when the gateway serves NEXUS, so the
+      // Termux on-device build sets NEXUS_NO_PWA=1 to skip it. `disable:true`
+      // still leaves virtual:pwa-register resolvable as a no-op, so main.tsx
+      // compiles unchanged.
+      disable: process.env.NEXUS_NO_PWA === '1',
       // 'prompt' (not autoUpdate) so the user drives the one-click "Update NEXUS"
       // action from the Repo Sync surface. We register the SW ourselves in
       // main.tsx via virtual:pwa-register, hence injectRegister:false.

@@ -63,8 +63,11 @@ else
 fi
 
 if [ "${SKIP_BUILD:-0}" != "1" ]; then
-  say "Building the NEXUS PWA (base = /nexus/)…"
-  ( cd apps/nexus && (npm ci --no-audit --no-fund || npm install) && NEXUS_BASE=/nexus/ npm run build )
+  say "Building NEXUS (base = /nexus/, service worker skipped on Termux)…"
+  # NEXUS_NO_PWA=1 skips the workbox/vite-plugin-pwa service-worker pass, which
+  # fails on Termux/Android ("Unable to write the service worker file"). The SW is
+  # an offline-shell nicety only — the gateway serves NEXUS, so it isn't needed.
+  ( cd apps/nexus && (npm ci --no-audit --no-fund || npm install) && NEXUS_BASE=/nexus/ NEXUS_NO_PWA=1 npm run build )
   ok "NEXUS built → apps/nexus/dist"
 else
   say "SKIP_BUILD=1 — using the existing apps/nexus/dist (if any)."
