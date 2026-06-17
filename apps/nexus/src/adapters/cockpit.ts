@@ -9,20 +9,20 @@
 // to a null/empty result so the UI shows "requires gateway", never fake data.
 // ============================================================================
 
-const BASE = import.meta.env.VITE_MUSE_BASE_URL ?? '';
+import { museBase, authHeaders, isConfigured } from '@/lib/config';
 
 export function cockpitConfigured(): boolean {
-  return !!BASE;
+  return isConfigured();
 }
 
 function url(path: string): string {
-  return `${BASE.replace(/\/$/, '')}/v1/cockpit${path}`;
+  return `${museBase()}/v1/cockpit${path}`;
 }
 
 async function get<T>(path: string): Promise<T | null> {
-  if (!BASE) return null;
+  if (!museBase()) return null;
   try {
-    const res = await fetch(url(path));
+    const res = await fetch(url(path), { headers: authHeaders() });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -31,11 +31,11 @@ async function get<T>(path: string): Promise<T | null> {
 }
 
 async function post<T>(path: string, body?: unknown): Promise<T | null> {
-  if (!BASE) return null;
+  if (!museBase()) return null;
   try {
     const res = await fetch(url(path), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: body == null ? undefined : JSON.stringify(body),
     });
     if (!res.ok) return null;
@@ -72,7 +72,9 @@ export interface RuntimeStatus {
 }
 
 export const cockpit = {
-  base: BASE,
+  get base() {
+    return museBase();
+  },
   configured: cockpitConfigured,
   rawGet: get,
   rawPost: post,

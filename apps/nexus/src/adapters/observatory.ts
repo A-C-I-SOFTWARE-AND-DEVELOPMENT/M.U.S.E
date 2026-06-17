@@ -1,4 +1,5 @@
 import type { ObsSnapshot, ObsStreamEvent } from '@/lib/types';
+import { museBase, authHeaders } from '@/lib/config';
 
 // ============================================================================
 // Observatory adapter — the read-only /v1/observatory/* route family.
@@ -7,17 +8,15 @@ import type { ObsSnapshot, ObsStreamEvent } from '@/lib/types';
 // the design be previewed without ever passing demo data off as telemetry.
 // ============================================================================
 
-const BASE = import.meta.env.VITE_MUSE_BASE_URL ?? '';
-
 function obsUrl(path: string): string {
-  return `${BASE.replace(/\/$/, '')}/v1/observatory${path}`;
+  return `${museBase()}/v1/observatory${path}`;
 }
 
 /** Boot the map. Returns null when unconfigured or the graph is unavailable. */
 export async function fetchSnapshot(): Promise<ObsSnapshot | null> {
-  if (!BASE) return null;
+  if (!museBase()) return null;
   try {
-    const res = await fetch(obsUrl('/snapshot'));
+    const res = await fetch(obsUrl('/snapshot'), { headers: authHeaders() });
     if (!res.ok) return null;
     const raw = await res.json();
     // Tolerant of additive fields; map the {"status":"unavailable"} graph shape.
@@ -50,7 +49,7 @@ export async function fetchSnapshot(): Promise<ObsSnapshot | null> {
 export function streamObservatory(
   onEvent: (e: ObsStreamEvent) => void,
 ): () => void {
-  if (!BASE || typeof EventSource === 'undefined') return () => {};
+  if (!museBase() || typeof EventSource === 'undefined') return () => {};
   let es: EventSource | null = null;
   try {
     es = new EventSource(obsUrl('/stream'));

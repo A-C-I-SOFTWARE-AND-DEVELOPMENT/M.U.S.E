@@ -3,7 +3,7 @@
 // — it does not reimplement that bridge, it drives it. Microphone permission is
 // requested lazily on first listen (a genuine PWA capability).
 
-const BASE = import.meta.env.VITE_MUSE_BASE_URL ?? '';
+import { museBase, authHeaders } from './config';
 
 type SpeechRecognitionLike = {
   lang: string;
@@ -74,10 +74,10 @@ export function startListening(
     if (interim) onPartial(interim);
     if (final) {
       onFinal(final);
-      if (BASE) {
-        fetch(`${BASE}/api/voice/stt`, {
+      if (museBase()) {
+        fetch(`${museBase()}/api/voice/stt`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ transcript: final }),
         }).catch(() => {});
       }

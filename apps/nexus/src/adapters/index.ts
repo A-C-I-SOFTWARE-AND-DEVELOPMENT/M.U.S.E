@@ -4,6 +4,7 @@ import type {
   AgentSurface,
   SteeringVector,
 } from '@/lib/types';
+import { museBase, authHeaders } from '@/lib/config';
 
 // ============================================================================
 // Surface adapters. All three surfaces implement AgentSurface so the UI never
@@ -11,17 +12,15 @@ import type {
 // AI Studio are LINK-OUT only (see note in antigravity.ts).
 // ============================================================================
 
-const MUSE_BASE = import.meta.env.VITE_MUSE_BASE_URL ?? '';
-
 /** M.U.S.E. adapter — the deep integration (the only backend the user owns). */
 export const museSurface: AgentSurface = {
   id: 'muse',
   kind: 'muse',
   canEmbed: true, // user controls the CSP -> embeddable in-app.
   async listAgents(): Promise<AgentSummary[]> {
-    if (!MUSE_BASE) return []; // honest empty state when unconfigured.
+    if (!museBase()) return []; // honest empty state when unconfigured.
     try {
-      const res = await fetch(`${MUSE_BASE}/api/agents`);
+      const res = await fetch(`${museBase()}/api/agents`, { headers: authHeaders() });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as AgentSummary[];
       return data.map((a) => ({ ...a, surface: 'muse' }));
@@ -30,22 +29,22 @@ export const museSurface: AgentSurface = {
     }
   },
   async getStatus(agentId: string): Promise<AgentStatus> {
-    if (!MUSE_BASE)
+    if (!museBase())
       return { id: agentId, state: 'unknown', updatedAt: Date.now() };
     try {
-      const res = await fetch(`${MUSE_BASE}/api/agents/${agentId}/status`);
+      const res = await fetch(`${museBase()}/api/agents/${agentId}/status`, { headers: authHeaders() });
       return (await res.json()) as AgentStatus;
     } catch {
       return { id: agentId, state: 'unknown', updatedAt: Date.now() };
     }
   },
   async applySteering(agentId: string, v: SteeringVector): Promise<void> {
-    if (!MUSE_BASE) return;
+    if (!museBase()) return;
     // Sends the octagon's steering vector to M.U.S.E.'s model-routing layer.
     // Endpoint shape documented in ADAPTERS.md.
-    await fetch(`${MUSE_BASE}/api/agents/${agentId}/steer`, {
+    await fetch(`${museBase()}/api/agents/${agentId}/steer`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(v),
     });
   },

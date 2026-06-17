@@ -41,11 +41,37 @@ React 18 · TypeScript · Vite · Tailwind · Zustand · React Router ·
 `vite-plugin-pwa` (Workbox) · Framer Motion · SVG octagon · Supabase (auth +
 persistence) · deploy to Vercel.
 
-## Quick start
+## One-click install (autonomous bring-up)
+
+```bash
+cd apps/nexus && ./install.sh        # Linux / macOS / WSL2 / Termux
+#   apps\nexus\install.ps1           # Windows (PowerShell)
+```
+
+The installer checks Node, installs deps, **generates a VAPID keypair**, writes
+`.env` (seeding the gateway URL), builds the PWA, and serves it — then opens to a
+first-run **"Install & Connect"** wizard that establishes *everything*
+autonomously:
+
+1. **Discovers** the MUSE gateway (tries your URL, the page origin, and
+   `127.0.0.1:8765`, probing the open `/v1/health` route).
+2. **Pairs** this device through the cockpit handshake (`pair/start` →
+   `pair/confirm`) — the one owner-gated step, so it asks for the owner phrase
+   once and stores the returned per-device Bearer token.
+3. **Verifies** capabilities, then wires the **Observatory**, **runtime**,
+   **push**, **Supabase**, and **voice** — each reporting its own honest status
+   (optional/unsupported connections are skipped, never faked).
+
+Env flags: `START_GATEWAY=1` also boots the local cockpit gateway;
+`MUSE_GATEWAY_URL=…` and `NEXUS_PORT=…` override defaults. Runtime config is
+stored in `localStorage`, so the wizard reconfigures the live app **without a
+rebuild** — re-open it anytime from Settings → "Install & connect everything".
+
+## Manual / dev
 
 ```bash
 cd apps/nexus
-cp .env.example .env        # fill in VITE_MUSE_BASE_URL etc. (optional for UI)
+cp .env.example .env        # optional — the wizard can set these at runtime
 npm install
 npm run dev                 # http://localhost:5173
 npm test                    # 30 unit tests (steering + Axiom-Gate fusion math)

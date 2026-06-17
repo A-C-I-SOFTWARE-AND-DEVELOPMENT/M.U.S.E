@@ -1,0 +1,179 @@
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { establishConnections, type ConnectStep } from '@/lib/connect';
+import { getConfig } from '@/lib/config';
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+}
+
+const STATUS_META: Record<ConnectStep['status'], { color: string; glyph: string }> = {
+  pending: { color: 'var(--ink-faint)', glyph: '○' },
+  running: { color: 'var(--octa-glow)', glyph: '◐' },
+  ok: { color: 'var(--state-running)', glyph: '✓' },
+  skip: { color: 'var(--ink-dim)', glyph: '–' },
+  fail: { color: 'var(--state-error)', glyph: '✕' },
+};
+
+const OWNER_PHRASE = 'Yes, with authorization.';
+
+export function ConnectWizard({ open, onClose }: Props) {
+  const [baseUrl, setBaseUrl] = useState(getConfig().museBaseUrl);
+  const [phrase, setPhrase] = useState('');
+  const [withPush, setWithPush] = useState(true);
+  const [steps, setSteps] = useState<ConnectStep[]>([]);
+  const [running, setRunning] = useState(false);
+  const [done, setDone] = useState(false);
+  const [installEvt, setInstallEvt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setInstallEvt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const run = async () => {
+    setRunning(true);
+    setDone(false);
+    const final = await establishConnections(
+      { baseUrl: baseUrl.trim() || undefined, ownerPhrase: phrase.trim() || OWNER_PHRASE, withPush },
+      setSteps,
+    );
+    setRunning(false);
+    setDone(true);
+    if (final.find((s) => s.key === 'capabilities')?.status === 'ok') {
+      // Connected — auto-dismiss shortly so the user lands in the live app.
+      setTimeout(onClose, 1400);
+    }
+  };
+
+  const installPwa = async () => {
+    if (!installEvt) return;
+    installEvt.prompt();
+    await installEvt.userChoice;
+    setInstallEvt(null);
+  };
+
+  const okCount = steps.filter((s) => s.status === 'ok').length;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[60] flex flex-col bg-[var(--bg-base)]"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <div className="scroll-area flex-1 px-5 py-6">
+            <div className="mb-1 flex items-center gap-2.5">
+              <div
+                className="grid h-9 w-9 place-items-center rounded-lg text-[15px] font-bold text-black"
+                style={{ background: 'linear-gradient(135deg, var(--acc-coding), var(--acc-creativity))' }}
+              >
+                N
+              </div>
+              <div>
+                <div className="text-[17px] font-bold">Install & Connect</div>
+                <div className="mono text-[10px] text-[var(--ink-dim)]">one click · autonomous bring-up</div>
+              </div>
+            </div>
+            <p className="mt-3 text-[12px] leading-relaxed text-[var(--ink-dim)]">
+              NEXUS will discover your MUSE gateway, pair this device, and wire every connection —
+              capabilities, Observatory, runtime, push, Supabase, and voice. Pairing a device token
+              is owner-gated, so it needs the owner phrase once.
+            </p>
+
+            {/* Inputs */}
+            <div className="mt-4 flex flex-col gap-2.5">
+              <label className="hud-label">Gateway URL (blank = auto-discover)</label>
+              <input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="http://127.0.0.1:8765"
+                className="rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-3 py-2 text-[12px] text-[var(--ink)]"
+              />
+              <label className="hud-label mt-1">Owner authorization phrase</label>
+              <input
+                value={phrase}
+                onChange={(e) => setPhrase(e.target.value)}
+                placeholder={OWNER_PHRASE}
+                className="rounded-md border px-3 py-2 text-[12px] text-[var(--ink)]"
+                style={{
+                  borderColor: phrase.trim() === OWNER_PHRASE ? 'var(--state-running)' : 'var(--hairline)',
+                  background: 'var(--panel-solid)',
+                }}
+              />
+              <label className="mt-1 flex items-center gap-2 text-[11px] text-[var(--ink-dim)]">
+                <input type="checkbox" checked={withPush} onChange={(e) => setWithPush(e.target.checked)} />
+                Enable push notifications during connect
+              </label>
+            </div>
+
+            {/* Progress */}
+            {steps.length > 0 && (
+              <div className="glass mt-4 px-3 py-3">
+                <div className="hud-label mb-2">Bring-up · {okCount}/{steps.length} connected</div>
+                <div className="flex flex-col gap-1.5">
+                  {steps.map((s) => {
+                    const m = STATUS_META[s.status];
+                    return (
+                      <div key={s.key} className="flex items-center gap-2.5">
+                        <motion.span
+                          animate={s.status === 'running' ? { rotate: 360 } : { rotate: 0 }}
+                          transition={s.status === 'running' ? { repeat: Infinity, duration: 1, ease: 'linear' } : {}}
+                          className="mono w-4 text-center text-[12px]"
+                          style={{ color: m.color }}
+                        >
+                          {m.glyph}
+                        </motion.span>
+                        <span className="w-[150px] shrink-0 text-[12px]">{s.label}</span>
+                        <span className="mono flex-1 truncate text-[9px] text-[var(--ink-faint)]">{s.detail ?? ''}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {done && (
+              <div className="mt-3 text-center text-[12px]" style={{ color: okCount >= 3 ? 'var(--state-running)' : 'var(--state-auth)' }}>
+                {okCount >= 3 ? 'Connected. Entering NEXUS…' : 'Partial connection — review the steps above.'}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div
+            className="flex flex-col gap-2 border-t border-[var(--hairline)] bg-[var(--bg-elev)] px-5 py-4"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+          >
+            <button
+              onClick={run}
+              disabled={running}
+              className="w-full rounded-md px-3 py-3 text-[13px] font-bold text-black disabled:opacity-50"
+              style={{ background: 'var(--octa-glow)' }}
+            >
+              {running ? 'Connecting…' : steps.length ? 'Reconnect' : 'Install & Connect everything'}
+            </button>
+            <div className="flex gap-2">
+              {installEvt && (
+                <button onClick={installPwa} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px]">
+                  Add to Home Screen
+                </button>
+              )}
+              <button onClick={onClose} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)]">
+                {done ? 'Enter NEXUS' : 'Skip for now'}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

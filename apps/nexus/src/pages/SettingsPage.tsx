@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { enablePush, pushEnabled, pushSupported } from '@/lib/push';
 import { supabaseConfigured } from '@/lib/supabase';
+import { getConfig } from '@/lib/config';
 import {
   requestMic,
   startListening,
@@ -67,12 +68,20 @@ export default function SettingsPage() {
     if (voiceRef.current) setListening(true);
   };
 
-  const museBase = import.meta.env.VITE_MUSE_BASE_URL ?? '';
+  const museBase = getConfig().museBaseUrl;
 
   return (
     <div className="px-4 pb-6">
       <Section title="Connections">
-        <Row label="M.U.S.E. base URL" value={museBase || 'Not configured'} />
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('nexus:open-setup'))}
+          className="mb-2 w-full rounded-md px-3 py-2 text-[12px] font-semibold text-black"
+          style={{ background: 'var(--octa-glow)' }}
+        >
+          ⚡ Install & connect everything
+        </button>
+        <Row label="M.U.S.E. gateway" value={museBase || 'Not configured'} />
+        <Row label="Device token" value={getConfig().museToken ? 'Paired ✓' : 'Not paired'} />
         <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />

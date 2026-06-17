@@ -2,14 +2,14 @@
 // persistence (push subscriptions) and a lightweight session check. Every call
 // no-ops gracefully when the env vars are unset, so the app runs backend-free.
 
-const URL = import.meta.env.VITE_SUPABASE_URL ?? '';
-const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
+import { supabaseUrlCfg, supabaseAnonCfg } from './config';
 
 export function supabaseConfigured(): boolean {
-  return !!(URL && ANON);
+  return !!(supabaseUrlCfg() && supabaseAnonCfg());
 }
 
 function headers(extra: Record<string, string> = {}): Record<string, string> {
+  const ANON = supabaseAnonCfg();
   return {
     apikey: ANON,
     Authorization: `Bearer ${ANON}`,
@@ -22,7 +22,7 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 export async function upsert(table: string, row: Record<string, unknown>): Promise<boolean> {
   if (!supabaseConfigured()) return false;
   try {
-    const res = await fetch(`${URL.replace(/\/$/, '')}/rest/v1/${table}`, {
+    const res = await fetch(`${supabaseUrlCfg()}/rest/v1/${table}`, {
       method: 'POST',
       headers: headers({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify(row),
@@ -46,7 +46,7 @@ export async function persistPushSubscription(sub: PushSubscriptionJSON): Promis
 export async function getSessionUser(): Promise<{ id: string } | null> {
   if (!supabaseConfigured()) return null;
   try {
-    const res = await fetch(`${URL.replace(/\/$/, '')}/auth/v1/user`, { headers: headers() });
+    const res = await fetch(`${supabaseUrlCfg()}/auth/v1/user`, { headers: headers() });
     if (!res.ok) return null;
     const u = await res.json();
     return u?.id ? { id: u.id } : null;
