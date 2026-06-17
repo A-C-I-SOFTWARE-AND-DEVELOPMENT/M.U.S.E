@@ -167,6 +167,9 @@ class Settings:
     retrieval: RetrievalConfig = field(default_factory=RetrievalConfig)
     lifecycle: LifecycleConfig = field(default_factory=LifecycleConfig)
     log_level: str = "INFO"
+    #: Storage backend: ``"postgres"`` (default, durable) or ``"memory"``
+    #: (zero-infrastructure, process-local — for local-first use, tests, demos).
+    backend: str = "postgres"
 
 
 def load_settings() -> Settings:
@@ -237,6 +240,7 @@ def load_settings() -> Settings:
         retrieval=retrieval,
         lifecycle=lifecycle,
         log_level=_env_str("SECOND_BRAIN_LOG_LEVEL", "INFO"),
+        backend=_env_str("SECOND_BRAIN_BACKEND", "postgres").strip().lower(),
     )
 
 

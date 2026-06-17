@@ -86,9 +86,13 @@ def test_is_available_returns_false_when_parent_package_missing(monkeypatch):
     assert is_available() is False
 
 
-def test_real_backend_degrades_gracefully_without_drivers():
-    # In an environment without the DB drivers/backend, the real factory must
-    # surface SecondBrainUnavailable (catchable) — never a bare ImportError.
+def test_real_backend_degrades_gracefully_without_drivers(monkeypatch):
+    # With Postgres explicitly selected but no driver/server, the real factory
+    # must surface SecondBrainUnavailable (catchable) — never a bare ImportError.
+    # (Without an explicit backend the factory now uses the in-memory store, so
+    # we force postgres here to exercise the degrade-to-unavailable path.)
+    monkeypatch.setenv("SECOND_BRAIN_BACKEND", "postgres")
+    monkeypatch.setenv("SECOND_BRAIN_PG_HOST", "localhost")
     with pytest.raises(SecondBrainUnavailable):
         retrieve("q")
 
