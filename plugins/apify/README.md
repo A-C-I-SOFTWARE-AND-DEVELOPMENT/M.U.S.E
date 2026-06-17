@@ -20,7 +20,7 @@ apify:
 
 ```bash
 # ~/.hermes/.env
-APIFY_TOKEN=apify_api_yourTokenHere
+APIFY_TOKEN=apify_api_yourTokenHere   # pragma: allowlist secret
 ```
 
 ## Tools

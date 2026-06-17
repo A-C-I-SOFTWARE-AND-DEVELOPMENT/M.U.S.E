@@ -32,7 +32,7 @@ This mirrors `github_assistant`'s `enabled` / `allow_writes` split:
 
    ```bash
    # ~/.hermes/.env
-   APIFY_TOKEN=apify_api_yourTokenHere   # https://console.apify.com/account/integrations
+   APIFY_TOKEN=apify_api_yourTokenHere   # placeholder; get yours at https://console.apify.com/account/integrations  pragma: allowlist secret
    ```
 
 2. **Enable the plugin** in `~/.hermes/config.yaml`:
