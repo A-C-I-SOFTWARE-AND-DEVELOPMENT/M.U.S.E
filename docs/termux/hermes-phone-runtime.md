@@ -255,6 +255,13 @@ minimum set for a working phone-first runtime:
 # Termux essentials.
 pkg install termux-tools termux-api git python nodejs
 
+# Build toolchain — REQUIRED. Termux uses bionic libc, so pip cannot use
+# PyPI's prebuilt wheels and builds from source. Two core deps
+# (pydantic-core, cryptography) are Rust, and others (pyyaml, …) are C —
+# without rust + a linker + clang their build hangs/fails and the install
+# looks frozen for 20+ minutes.
+pkg install rust binutils clang
+
 # Granted-via-dialog permission for shared storage (only needed if
 # you want to share files with other Android apps).
 termux-setup-storage
