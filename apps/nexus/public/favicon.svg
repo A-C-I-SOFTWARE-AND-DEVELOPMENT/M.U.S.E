@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34E5C8"/>
+      <stop offset="1" stop-color="#C264FE"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0A0E14"/>
+  <polygon points="32,10 47,18 47,38 32,46 17,38 17,18" fill="none" stroke="url(#g)" stroke-width="2.5" stroke-linejoin="round"/>
+  <circle cx="32" cy="28" r="5" fill="url(#g)"/>
+  <text x="32" y="58" font-family="monospace" font-size="9" fill="#8499AD" text-anchor="middle" letter-spacing="2">NEXUS</text>
+</svg>

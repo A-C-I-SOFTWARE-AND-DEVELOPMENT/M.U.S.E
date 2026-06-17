@@ -1,0 +1,147 @@
+/* ===========================================================================
+   NEXUS design tokens — dark HUD / sci-fi. Everything themeable via CSS vars.
+   The octagon's live glow color is driven by --octa-glow (animated ~400ms).
+   =========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  /* Backgrounds */
+  --bg-base: #0a0e14;
+  --bg-elev: #0e141d;
+  --panel: rgba(18, 24, 33, 0.72);
+  --panel-solid: #121821;
+  --hairline: rgba(120, 150, 180, 0.16);
+  --hairline-strong: rgba(120, 150, 180, 0.32);
+
+  /* Text */
+  --ink: #e6edf3;
+  --ink-dim: #8499ad;
+  --ink-faint: #4a5a6a;
+
+  /* Signal palette = the 8 vertex accents */
+  --acc-reasoning: #ffb020;
+  --acc-creativity: #c264fe;
+  --acc-logic: #4fc3f7;
+  --acc-contemplation: #7c9eff;
+  --acc-coding: #34e5c8;
+  --acc-synthesis: #3dd68c;
+  --acc-empathy: #ff6b8a;
+  --acc-factuality: #5ee6eb;
+
+  /* Live octagon glow (mutated at runtime) */
+  --octa-glow: #3dd68c;
+
+  /* State dots */
+  --state-idle: #5a6b7d;
+  --state-running: #34e5c8;
+  --state-error: #ff5470;
+  --state-auth: #ffb020;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --tab-h: 64px;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 800px at 50% -10%, rgba(52, 229, 200, 0.06), transparent 60%),
+    radial-gradient(900px 700px at 100% 110%, rgba(194, 100, 254, 0.05), transparent 60%),
+    var(--bg-base);
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Glass panel primitive */
+.glass {
+  background: var(--panel);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.hud-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+/* Octagon glow breathing for the "maxed out" state */
+@keyframes octa-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px var(--octa-glow)) brightness(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 26px var(--octa-glow)) brightness(1.18);
+  }
+}
+
+.octa-glow-transition {
+  transition: stroke 380ms ease, fill 380ms ease, filter 380ms ease;
+}
+
+.scroll-area {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-area::-webkit-scrollbar {
+  width: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* Thin HUD range slider for the per-vertex fine controls */
+.nexus-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--hairline);
+  border-radius: 999px;
+  outline: none;
+}
+.nexus-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--bg-base);
+  box-shadow: 0 0 6px currentColor;
+  cursor: pointer;
+}
+.nexus-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 2px solid var(--bg-base);
+  cursor: pointer;
+}
+.nexus-range:disabled {
+  opacity: 0.4;
+}

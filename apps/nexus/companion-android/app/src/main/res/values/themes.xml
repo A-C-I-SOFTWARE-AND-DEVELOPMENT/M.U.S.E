@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.NexusDaemon" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#0A0E14</item>
+        <item name="android:windowBackground">#0A0E14</item>
+    </style>
+</resources>
