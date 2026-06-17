@@ -53,7 +53,8 @@ class SupportsExportJsonl(Protocol):
     callers (and tests) inject any compatible store.
     """
 
-    def export_jsonl(self, path: Path) -> int: ...
+    def export_jsonl(self, path: Path) -> int:
+        """Export the approved examples to ``path`` (JSONL); return the count."""
 
 #: Label every NL-compile trace carries, so the cohort is filterable.
 NL_COMPILE_LABEL = "nl-compile"

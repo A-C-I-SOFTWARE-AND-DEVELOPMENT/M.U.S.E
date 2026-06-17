@@ -19,9 +19,11 @@ def test_add_list_remove(tmp_path):
     s = _sched(tmp_path)
     t = s.add("forge-tournament", 3600)
     assert [x.id for x in s.tasks()] == [t.id]
-    assert s.remove(t.id) is True
+    removed = s.remove(t.id)
+    assert removed is True
     assert s.tasks() == []
-    assert s.remove("nope") is False
+    removed_missing = s.remove("nope")
+    assert removed_missing is False
 
 
 def test_add_rejects_nonpositive_interval(tmp_path):
