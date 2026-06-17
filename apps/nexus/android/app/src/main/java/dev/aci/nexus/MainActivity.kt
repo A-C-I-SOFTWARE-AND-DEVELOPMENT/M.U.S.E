@@ -133,8 +133,51 @@ class MainActivity : AppCompatActivity() {
         })
 
         if (savedInstanceState == null) {
-            webView.loadUrl(getString(R.string.nexus_url))
+            chooseAndLoad()
         }
+    }
+
+    /**
+     * Prefer the LOCAL gateway when one is running: load it same-origin at
+     * http://127.0.0.1:<port>/nexus/ so the whole app + API share one http origin
+     * (no mixed-content, no CORS) and every gateway feature — cockpit, import keys,
+     * orchestration — works. Fall back to the hosted PWA when no gateway is up.
+     */
+    private fun chooseAndLoad() {
+        val hosted = getString(R.string.nexus_url)
+        val localBase = "http://127.0.0.1:$GATEWAY_PORT"
+        Thread {
+            val url = if (probe("$localBase/v1/health")) "$localBase/nexus/" else hosted
+            runOnUiThread { webView.loadUrl(url) }
+        }.start()
+    }
+
+    /** True if a GET to ``url`` returns 2xx within a short timeout. */
+    private fun probe(url: String): Boolean = try {
+        val conn = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
+            connectTimeout = 1500
+            readTimeout = 1500
+            requestMethod = "GET"
+        }
+        val ok = conn.responseCode in 200..299
+        conn.disconnect()
+        ok
+    } catch (e: Exception) {
+        false
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // If we fell back to the hosted PWA but a gateway has since come up (e.g. the
+        // user started it in Termux after opening the app), switch to it.
+        val current = webView.url ?: return
+        if (current.startsWith("http://127.0.0.1")) return // already on the gateway
+        val localBase = "http://127.0.0.1:$GATEWAY_PORT"
+        Thread {
+            if (probe("$localBase/v1/health")) {
+                runOnUiThread { webView.loadUrl("$localBase/nexus/") }
+            }
+        }.start()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -160,5 +203,11 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
         if (missing.isNotEmpty()) permissionLauncher.launch(missing.toTypedArray())
+    }
+
+    companion object {
+        // The default cockpit/gateway port (matches `muse cockpit serve` and the
+        // Termux bring-up script's MUSE_PORT default).
+        private const val GATEWAY_PORT = 8765
     }
 }
