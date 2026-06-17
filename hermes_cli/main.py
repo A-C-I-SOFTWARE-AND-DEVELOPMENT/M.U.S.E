@@ -10902,6 +10902,23 @@ def main():
     _add_accept_hooks_flag(gateway_run)
     _add_accept_hooks_flag(gateway_parser)
 
+    # gateway ensure — non-interactive, idempotent "establish it and forget it"
+    gateway_ensure_p = gateway_subparsers.add_parser(
+        "ensure",
+        help=(
+            "Establish the gateway non-interactively and idempotently "
+            "(install+enable+start as a service, bring up the container slot, "
+            "or background run) — no prompts; safe to call from boot hooks"
+        ),
+    )
+    gateway_ensure_p.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase stderr log verbosity (-v=INFO, -vv=DEBUG)",
+    )
+
     # gateway start
     gateway_start = gateway_subparsers.add_parser(
         "start", help="Start the installed systemd/launchd background service"
