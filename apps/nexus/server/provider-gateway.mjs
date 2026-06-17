@@ -167,7 +167,10 @@ async function handleChat(req, res, body) {
         return json(res, 400, { error: `no provider for model ${body.model}` });
     }
   } catch (e) {
-    return json(res, 502, { error: String(e?.message ?? e) });
+    // Log the detail server-side only; return a generic message so internal
+    // details / stack traces are never exposed to the client.
+    console.error('[gateway] upstream error:', e);
+    return json(res, 502, { error: 'upstream request failed' });
   }
 }
 
