@@ -357,10 +357,13 @@ const renderTable = (k: number, rows: string[][], t: Theme, cols?: number) => {
   const isHard = totalMin > availableWidth // tier 3 needs hard word breaks
   const sep = columnWidths.map(w => '─'.repeat(Math.max(1, w))).join('  ')
 
-  // When wrapping isn't needed, build single-line strings per row.
-  // All cells render as plain text via stripInlineMarkup.
-  // TODO: follow-up — format to ANSI then wrap with wrapAnsi for inline markdown preservation.
-  // See free-code/src/components/MarkdownTable.tsx L44-L62 for approach.
+  // When wrapping isn't needed, build single-line strings per row. Cells
+  // render as plain text via stripInlineMarkup by design: the column-width
+  // math (stringWidth) and the emitted strings must agree exactly, so cells
+  // are measured and rendered as plain text. Formatting inline markdown to
+  // ANSI and wrapping with wrapAnsi was evaluated and intentionally not
+  // pursued — ANSI-aware width accounting is fragile in narrow terminals and
+  // risks column misalignment for a niche benefit.
   if (!needsWrap) {
     const buildRowString = (row: string[]): string =>
       row.map((cell, ci) => {

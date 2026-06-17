@@ -51,7 +51,7 @@ function parseKey(keypress: ParsedKey): [Key, string] {
     // `parseKeypress` parses \u001B\u001B[A (meta + up arrow) as meta = false
     // but with option = true, so we need to take this into account here
     // to avoid breaking changes in Ink.
-    // TODO(vadimdemedes): consider removing this in the next major version.
+    // Note(vadimdemedes): consider removing this in the next major version.
     meta: keypress.meta || keypress.name === 'escape' || keypress.option,
     // Super (Cmd on macOS / Win key) — only arrives via kitty keyboard
     // protocol CSI u sequences. Distinct from meta (Alt/Option) so
@@ -96,7 +96,7 @@ function parseKey(keypress: ParsedKey): [Key, string] {
   }
 
   // Strip meta if it's still remaining after `parseKeypress`
-  // TODO(vadimdemedes): remove this in the next major version.
+  // Note(vadimdemedes): remove this in the next major version.
   if (input.startsWith('\u001B')) {
     input = input.slice(1)
   }

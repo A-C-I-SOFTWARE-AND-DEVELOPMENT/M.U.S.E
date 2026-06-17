@@ -89,7 +89,7 @@ external standard (NIST, OWASP, ISO 27001) is being invoked.
 ## Anti-patterns rejected on sight
 
 - "Bypass for now, will tighten later."
-- A new `// TODO: re-enable after demo` adjacent to an authz check.
+- A new "re-enable after demo" deferral comment placed next to an authz check.
 - A test that asserts the new behavior matches the new code, with
   no negative case.
 - A schema migration to an RC3 surface with no rollback.

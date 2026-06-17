@@ -2,7 +2,7 @@
  *
  * One white core in the void; a single thin spectral ring.
  *
- * TODO: consume @muse/design-system once merged. This is an INLINE copy of the
+ * NOTE: this is an INLINE copy of the
  * canonical values from gateway/cockpit/static/tokens.css so the desktop
  * scaffold builds standalone today; when the shared design-system package
  * (grain G0.1) lands, replace this file with an import of its token sheet so
