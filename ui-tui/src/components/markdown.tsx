@@ -206,6 +206,73 @@ export const stripInlineMarkup = (v: string) =>
     .replace(/(?<!\$)\$([^\s$](?:[^$\n]*?[^\s$])?)\$(?!\$)/g, '$1')
     .replace(/\\\(([^\n]+?)\\\)/g, '$1')
 
+// A styled slice of a table cell's *visible* text. The concatenation of every
+// run's `text` is guaranteed by `inlineCellRuns` to equal stripInlineMarkup of
+// the raw cell, so runs add styling without changing width — column math is
+// unaffected.
+type InlineRun = {
+  text: string
+  bold?: boolean
+  italic?: boolean
+  strike?: boolean
+  code?: boolean
+  highlight?: boolean
+}
+
+// Parse a table cell's raw markdown into styled runs whose combined visible
+// text is identical to `stripInlineMarkup(raw)`. Width-stable decoration spans
+// (bold / italic / inline code / strikethrough / highlight) become styled runs
+// that reuse the exact colors MdInline uses elsewhere; every other token
+// (links, images, autolinks, footnotes, super/sub-script, math, bare URLs) is
+// flattened to its stripped text so the cell never changes width.
+//
+// Returns null when the reconstructed text does NOT match stripInlineMarkup —
+// the caller then renders plain text, so styling is only ever layered on when
+// it is provably width-neutral and table column alignment can never regress.
+export const inlineCellRuns = (raw: string): InlineRun[] | null => {
+  const runs: InlineRun[] = []
+  let last = 0
+
+  const pushPlain = (s: string) => {
+    if (s.length === 0) return
+    const text = stripInlineMarkup(s)
+    if (text.length > 0) runs.push({ text })
+  }
+
+  for (const m of raw.matchAll(INLINE_RE)) {
+    const i = m.index ?? 0
+    if (i > last) pushPlain(raw.slice(last, i))
+
+    if (m[7] !== undefined) {
+      // inline `code` is verbatim — neither stripInlineMarkup nor MdInline
+      // reprocess its contents.
+      runs.push({ code: true, text: m[7] })
+    } else if ((m[8] ?? m[9]) !== undefined) {
+      runs.push({ bold: true, text: stripInlineMarkup(m[8] ?? m[9]!) })
+    } else if ((m[10] ?? m[11]) !== undefined) {
+      runs.push({ italic: true, text: stripInlineMarkup(m[10] ?? m[11]!) })
+    } else if (m[6] !== undefined) {
+      runs.push({ strike: true, text: stripInlineMarkup(m[6]) })
+    } else if (m[12] !== undefined) {
+      runs.push({ highlight: true, text: stripInlineMarkup(m[12]) })
+    } else {
+      // links, images, autolinks, footnotes, super/sub-script, math, bare URLs:
+      // no width-stable styling — keep the stripped text exactly.
+      pushPlain(m[0])
+    }
+
+    last = i + m[0].length
+  }
+  if (last < raw.length) pushPlain(raw.slice(last))
+
+  // Width-neutrality guard: only style when the runs reconstruct the plain
+  // strip exactly. Otherwise fall back so alignment is byte-for-byte unchanged.
+  const rebuilt = runs.map(r => r.text).join('')
+  if (rebuilt !== stripInlineMarkup(raw)) return null
+
+  return runs
+}
+
 const SAFETY_MARGIN = 4
 const MIN_COL_WIDTH = 3
 const COL_GAP = 2 // the '  ' between columns
@@ -357,21 +424,46 @@ const renderTable = (k: number, rows: string[][], t: Theme, cols?: number) => {
   const isHard = totalMin > availableWidth // tier 3 needs hard word breaks
   const sep = columnWidths.map(w => '─'.repeat(Math.max(1, w))).join('  ')
 
-  // When wrapping isn't needed, build single-line strings per row. Cells
-  // render as plain text via stripInlineMarkup by design: the column-width
-  // math (stringWidth) and the emitted strings must agree exactly, so cells
-  // are measured and rendered as plain text. Formatting inline markdown to
-  // ANSI and wrapping with wrapAnsi was evaluated and intentionally not
-  // pursued — ANSI-aware width accounting is fragile in narrow terminals and
-  // risks column misalignment for a niche benefit.
+  // When wrapping isn't needed, build one <Text> per row. Each cell keeps its
+  // exact stripped width (the column math depends on it) but layers inline-
+  // markdown styling on top via `inlineCellRuns`, which guarantees the visible
+  // text is byte-identical to the plain strip (and falls back to plain text on
+  // any mismatch). The wrapping path below stays plain text: preserving styling
+  // across word-wrap boundaries in a narrow terminal is a separate, larger
+  // problem, and dropping styling there is an acceptable degradation.
   if (!needsWrap) {
-    const buildRowString = (row: string[]): string =>
-      row.map((cell, ci) => {
-        const text = stripInlineMarkup(cell)
-        const pad = ' '.repeat(Math.max(0, columnWidths[ci]! - stringWidth(text)))
-        const gap = ci < numCols - 1 ? '  ' : ''
-        return text + pad + gap
-      }).join('')
+    const renderCell = (raw: string, ci: number, isHeader: boolean): ReactNode => {
+      const stripped = stripInlineMarkup(raw)
+      const pad = Math.max(0, columnWidths[ci]! - stringWidth(stripped))
+      const gap = ci < numCols - 1 ? '  ' : ''
+      const tail = ' '.repeat(pad) + gap
+      // Header cells keep their existing bold-accent plain rendering; only body
+      // cells receive inline styling.
+      const runs = isHeader ? null : inlineCellRuns(raw)
+
+      if (!runs) {
+        return <Text key={ci}>{stripped}{tail}</Text>
+      }
+
+      return (
+        <Text key={ci}>
+          {runs.map((r, j) => (
+            <Text
+              backgroundColor={r.highlight ? t.color.diffAdded : undefined}
+              bold={r.bold}
+              color={r.code ? t.color.accent : r.highlight ? t.color.diffAddedWord : undefined}
+              dimColor={r.code}
+              italic={r.italic}
+              key={j}
+              strikethrough={r.strike}
+            >
+              {r.text}
+            </Text>
+          ))}
+          {tail}
+        </Text>
+      )
+    }
 
     return (
       <Box flexDirection="column" key={k} paddingLeft={TABLE_PADDING_LEFT}>
@@ -382,7 +474,7 @@ const renderTable = (k: number, rows: string[][], t: Theme, cols?: number) => {
               color={ri === 0 ? t.color.accent : undefined}
               wrap="truncate-end"
             >
-              {buildRowString(row)}
+              {row.map((cell, ci) => renderCell(cell, ci, ri === 0))}
             </Text>
             {ri === 0 && normalizedRows.length > 1 ? (
               <Text color={t.color.muted} dimColor wrap="truncate-end">{sep}</Text>
