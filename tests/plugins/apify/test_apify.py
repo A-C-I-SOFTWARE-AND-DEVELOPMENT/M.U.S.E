@@ -9,8 +9,8 @@ import pytest
 
 import plugins.apify as plugin_pkg
 import plugins.apify.client as apify_client
+import plugins.apify.config as apify_config
 import plugins.apify.tools as tools
-from plugins.apify import config as apify_config
 
 
 def _parse(result: str):
