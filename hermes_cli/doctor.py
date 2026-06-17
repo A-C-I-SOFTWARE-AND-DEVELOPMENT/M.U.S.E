@@ -207,6 +207,59 @@ def _fail_and_issue(text: str, detail: str, fix: str, issues: list[str]) -> None
     issues.append(fix)
 
 
+def _check_gateway_established(issues: list[str]) -> None:
+    """Nudge toward ``muse gateway ensure`` when no gateway is established yet.
+
+    "Established" means a service is installed (systemd/launchd/Scheduled Task)
+    or a gateway process is running for the active profile. When neither is
+    true, point the user at the one-shot, non-interactive establish command —
+    and flag it as an issue when they've opted into ``gateway.auto_start`` but
+    nothing is up yet. Inside a container the boot reconciler owns gateway
+    lifecycle, so this is skipped there.
+    """
+    try:
+        from hermes_cli.gateway import (
+            _is_service_installed,
+            find_gateway_pids,
+            gateway_auto_start_enabled,
+        )
+        from hermes_constants import is_container, is_termux
+    except Exception:
+        return
+
+    if is_container():
+        return
+
+    try:
+        installed = _is_service_installed()
+    except Exception:
+        installed = False
+    try:
+        running = bool(find_gateway_pids())
+    except Exception:
+        running = False
+
+    if installed or running:
+        # Already established — the linger check covers the rest.
+        return
+
+    _section("Gateway Service")
+    if gateway_auto_start_enabled():
+        check_warn(
+            "Gateway not established",
+            "(gateway.auto_start is set, but no gateway is installed or running)",
+        )
+        check_info("Run: muse gateway ensure   (or just launch `muse` — it self-establishes)")
+        issues.append(
+            "gateway.auto_start is set but no gateway is established: run `muse gateway ensure`"
+        )
+    else:
+        check_info("No gateway established yet")
+        check_info("Establish one (and keep it alive across reboots): muse gateway ensure")
+        if is_termux():
+            check_info("(Termux has no service manager — ensure runs it in the background)")
+
+
 def _check_gateway_service_linger(issues: list[str]) -> None:
     """Warn when a systemd user gateway service will stop after logout."""
     try:
@@ -954,6 +1007,7 @@ def run_doctor(args):
         except Exception:
             pass
 
+    _check_gateway_established(issues)
     _check_gateway_service_linger(issues)
 
     if sys.platform != "win32":

@@ -1463,6 +1463,17 @@ def cmd_chat(args):
     except Exception:
         pass
 
+    # Honor the opt-in gateway.auto_start flag on the host: if set (and not
+    # already established), bring the gateway up so it persists across
+    # logins/reboots -- the host analog of the container boot reconciler.
+    # Best-effort + idempotent + a no-op when the flag is unset (the default).
+    try:
+        from hermes_cli.gateway import maybe_auto_establish_gateway
+
+        maybe_auto_establish_gateway()
+    except Exception:
+        pass
+
     # --yolo: bypass all dangerous command approvals
     if getattr(args, "yolo", False):
         os.environ["HERMES_YOLO_MODE"] = "1"
