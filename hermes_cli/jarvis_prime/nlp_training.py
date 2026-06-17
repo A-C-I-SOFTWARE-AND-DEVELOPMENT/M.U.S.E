@@ -33,7 +33,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Protocol
 
 from hermes_cli.jarvis_prime.learning_dataset import (
     NEGATIVE_EXAMPLE,
@@ -44,6 +44,16 @@ from hermes_cli.jarvis_prime.learning_dataset import (
     TraceType,
 )
 from hermes_cli.jarvis_prime.memory_tree import SourceTrust
+
+
+class SupportsExportJsonl(Protocol):
+    """The only store capability the fine-tune helpers need: export to JSONL.
+
+    ``DatasetStore`` satisfies this structurally; typing against the protocol lets
+    callers (and tests) inject any compatible store.
+    """
+
+    def export_jsonl(self, path: Path) -> int: ...
 
 #: Label every NL-compile trace carries, so the cohort is filterable.
 NL_COMPILE_LABEL = "nl-compile"
@@ -167,7 +177,7 @@ def prepare_finetune_job(
     dataset_path: Optional[Path | str] = None,
     method: str = "lora",
     min_examples: int = 1,
-    store: Optional[DatasetStore] = None,
+    store: Optional[SupportsExportJsonl] = None,
     launch: bool = False,
     grant: Any = None,
 ) -> FinetuneJobSpec:
@@ -187,10 +197,10 @@ def prepare_finetune_job(
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    store = store or DatasetStore.load()
+    resolved = store if store is not None else DatasetStore.load()
 
     export_target = Path(dataset_path) if dataset_path else out_path / "nl_compile_dataset.jsonl"
-    count = store.export_jsonl(export_target)
+    count = resolved.export_jsonl(export_target)
 
     reasons: list[str] = []
     ready = count >= min_examples
@@ -264,7 +274,7 @@ def close_training_loop(
     out_dir: str,
     method: str = "lora",
     min_examples: int = 1,
-    store: Optional[DatasetStore] = None,
+    store: Optional[SupportsExportJsonl] = None,
     owner_phrase: Optional[str] = None,
     runner_cmd: Optional[str] = None,
     spawn: Any = None,
