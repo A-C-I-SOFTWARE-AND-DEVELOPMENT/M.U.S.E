@@ -81,13 +81,22 @@ npm run build && npm run preview
 The app runs fully **without** a backend — unconfigured integrations render
 honest empty states (no fabricated metrics).
 
-## Deploy
+## Deploy to Vercel (one click / one command)
 
-- **Web (Vercel):** `apps/nexus` → framework "Vite", build `npm run build`,
-  output `dist`. `vercel.json` is included (SPA rewrites + SW headers).
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FA-C-I-SOFTWARE-AND-DEVELOPMENT%2FM.U.S.E&root-directory=apps%2Fnexus&project-name=nexus&framework=vite)
+
+- **One-click:** the button above clones + deploys with **Root Directory =
+  `apps/nexus`**, framework **Vite**, output `dist` (auto-detected). `vercel.json`
+  is included (SPA rewrites + SW headers).
+- **One-command:** `VERCEL_TOKEN=xxxxx ./deploy.sh` (token from
+  <https://vercel.com/account/tokens>, or paste it in Settings → Connections &
+  Credentials → Vercel). First run auto-creates the project.
+- **Git integration:** import the repo in Vercel once with Root Directory
+  `apps/nexus`; every push then auto-deploys.
 - **Edge/DNS (Cloudflare):** point your domain at the Vercel deployment.
-- Set env vars (`VITE_MUSE_BASE_URL`, Supabase keys, `VITE_VAPID_PUBLIC_KEY`) in
-  the Vercel project.
+- Runtime config (gateway URL, keys) is entered **in the app** (connect wizard +
+  credentials manager) — no Vercel env vars required, though
+  `VITE_MUSE_BASE_URL` / `VITE_VAPID_PUBLIC_KEY` can pre-seed them.
 
 ## The octagon → inference mapping
 
