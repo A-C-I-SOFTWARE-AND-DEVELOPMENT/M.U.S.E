@@ -24,11 +24,21 @@ from .dispatcher import (
     registry_path,
     roster,
 )
+from .executor import (
+    CouncilDeliberation,
+    MemberResult,
+    default_runner,
+    execute,
+)
 
 __all__ = [
+    "CouncilDeliberation",
     "CouncilMember",
     "CouncilSession",
+    "MemberResult",
+    "default_runner",
     "dispatch",
+    "execute",
     "load_registry",
     "registry_path",
     "roster",

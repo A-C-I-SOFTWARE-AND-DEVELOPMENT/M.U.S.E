@@ -2081,6 +2081,15 @@ def _cmd_council(args: argparse.Namespace) -> int:
 
     if op == "dispatch":
         session = dispatch(args.request, max_council=getattr(args, "max_council", None))
+        if getattr(args, "execute", False):
+            from hermes_cli.jarvis_prime.aos_council import execute
+
+            deliberation = execute(session)
+            if getattr(args, "json", False):
+                _print_json(deliberation.to_dict())
+            else:
+                print(deliberation.render())
+            return 0
         if getattr(args, "json", False):
             _print_json(session.to_dict())
             return 0
@@ -3623,6 +3632,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_council_dispatch.add_argument(
         "--max-council", dest="max_council", type=int, default=None,
         help="Cap the active council size (default: registry policy)",
+    )
+    p_council_dispatch.add_argument(
+        "--execute", action="store_true",
+        help="Run each engaged member through the model layer and synthesize a "
+             "deliberation (uses a local Gemma runner if available)",
     )
     p_council_dispatch.add_argument("--json", action="store_true")
     p_council_dispatch.set_defaults(func=_cmd_council)
