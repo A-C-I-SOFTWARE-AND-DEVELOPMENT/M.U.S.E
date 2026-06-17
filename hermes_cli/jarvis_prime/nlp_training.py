@@ -219,6 +219,103 @@ def prepare_finetune_job(
     )
 
 
+# ---------------------------------------------------------------------------
+# Learning-loop closure — materialize approved traces and hand off to a trainer.
+# ---------------------------------------------------------------------------
+
+_OWNER_PHRASE = "Yes, with authorization."
+#: Env var naming the external training runner command. The dataset + spec paths
+#: are appended as the last two args, e.g. ``python train.py``.
+TRAINING_RUNNER_ENV = "MUSE_TRAINING_RUNNER"
+
+
+@dataclass(frozen=True)
+class TrainingLaunchResult:
+    """Outcome of :func:`close_training_loop` — the gated train handoff."""
+
+    launched: bool
+    spec: FinetuneJobSpec
+    runner: Optional[str]
+    reason: str
+    returncode: Optional[int] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema": "hermes.jarvis.training_launch.v1",
+            "launched": self.launched,
+            "runner": self.runner,
+            "reason": self.reason,
+            "returncode": self.returncode,
+            "spec": self.spec.to_dict(),
+        }
+
+
+def _default_spawn(runner: str, dataset_path: str, spec_path: str) -> int:
+    import shlex
+    import subprocess  # noqa: S404 - owner-authorized, runner is owner-configured
+
+    cmd = shlex.split(runner) + [dataset_path, spec_path]
+    return subprocess.run(cmd, check=False).returncode  # noqa: S603
+
+
+def close_training_loop(
+    *,
+    base_model: str,
+    out_dir: str,
+    method: str = "lora",
+    min_examples: int = 1,
+    store: Optional[DatasetStore] = None,
+    owner_phrase: Optional[str] = None,
+    runner_cmd: Optional[str] = None,
+    spawn: Any = None,
+) -> TrainingLaunchResult:
+    """Close the learning loop: approved traces → dataset+spec → gated train run.
+
+    Materializes the owner-approved examples (via :func:`prepare_finetune_job`),
+    writes the job spec, then **only launches a real training run when all three
+    gates pass**: the dataset is ready (>= ``min_examples``), the owner supplied
+    the exact authorization phrase, and a runner command is configured
+    (``--runner`` or ``MUSE_TRAINING_RUNNER``). Otherwise it returns a
+    ``launched=False`` result whose ``reason`` explains the missing gate — the
+    dataset + spec are still written so the owner can run it by hand.
+    """
+
+    spec = prepare_finetune_job(
+        base_model=base_model,
+        out_dir=out_dir,
+        method=method,
+        min_examples=min_examples,
+        store=store,
+        launch=False,
+    )
+    spec_path = spec.write(out_dir)
+
+    if not spec.ready:
+        return TrainingLaunchResult(False, spec, None, "; ".join(spec.reasons))
+    if (owner_phrase or "").strip() != _OWNER_PHRASE:
+        return TrainingLaunchResult(
+            False, spec, None, f"owner authorization required — reply exactly: {_OWNER_PHRASE!r}"
+        )
+    runner = runner_cmd or os.environ.get(TRAINING_RUNNER_ENV)
+    if not runner:
+        return TrainingLaunchResult(
+            False,
+            spec,
+            None,
+            f"no training runner configured — set {TRAINING_RUNNER_ENV} or pass --runner "
+            f"(dataset + spec are ready under {out_dir})",
+        )
+    run_spawn = spawn or _default_spawn
+    rc = run_spawn(runner, spec.dataset_path, str(spec_path))
+    return TrainingLaunchResult(
+        launched=rc == 0,
+        spec=spec,
+        runner=runner,
+        reason="launched" if rc == 0 else f"runner exited {rc}",
+        returncode=rc,
+    )
+
+
 def _write_text(target: Path, content: str) -> None:
     """Atomic write with restrictive perms on the temp file."""
 

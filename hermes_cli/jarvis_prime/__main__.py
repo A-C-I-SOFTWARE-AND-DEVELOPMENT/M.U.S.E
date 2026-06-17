@@ -1628,6 +1628,34 @@ def _cmd_learning_prepare_job(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_learning_close_loop(args: argparse.Namespace) -> int:
+    """Close the learning loop: approved traces → dataset+spec → gated train run.
+
+    Always materializes the dataset + spec; only launches a real run when the
+    dataset is ready, the owner phrase is given (--phrase), and a runner is
+    configured (--runner or MUSE_TRAINING_RUNNER).
+    """
+    from hermes_cli.jarvis_prime.nlp_training import close_training_loop
+
+    result = close_training_loop(
+        base_model=args.base_model,
+        out_dir=args.out_dir,
+        method=getattr(args, "method", "lora"),
+        min_examples=getattr(args, "min_examples", 1),
+        owner_phrase=getattr(args, "phrase", None),
+        runner_cmd=getattr(args, "runner", None),
+    )
+    if getattr(args, "json", False):
+        _print_json(result.to_dict())
+    else:
+        print(f"close-loop: launched={result.launched} — {result.reason}")
+        print(
+            f"  dataset: {result.spec.dataset_path} "
+            f"({result.spec.num_examples} approved example(s))"
+        )
+    return 0 if result.spec.ready else 1
+
+
 def _cmd_bootstrap(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime import model_bootstrap as mb
 
@@ -2938,6 +2966,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     p_learning_pj.add_argument("--json", action="store_true")
     p_learning_pj.set_defaults(func=_cmd_learning_prepare_job)
+
+    p_learning_cl = p_learning_sub.add_parser(
+        "close-loop",
+        help="Close the learning loop: materialize approved traces + owner-gated train launch",
+    )
+    p_learning_cl.add_argument("--base-model", dest="base_model", required=True)
+    p_learning_cl.add_argument("--out-dir", dest="out_dir", required=True)
+    p_learning_cl.add_argument("--method", default="lora")
+    p_learning_cl.add_argument("--min-examples", dest="min_examples", type=int, default=1)
+    p_learning_cl.add_argument(
+        "--runner", help="External training runner command (or set MUSE_TRAINING_RUNNER)"
+    )
+    p_learning_cl.add_argument(
+        "--phrase", help="Owner authorization phrase (required to actually launch)"
+    )
+    p_learning_cl.add_argument("--json", action="store_true")
+    p_learning_cl.set_defaults(func=_cmd_learning_close_loop)
 
     # data-sources — open data-source registry for training/eval (read-only +
     # a Research-Vault bridge). Inventory lives in
