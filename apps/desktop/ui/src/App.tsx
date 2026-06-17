@@ -9,6 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import { Glyph } from "./components/Glyph";
+import { Dock } from "./components/Dock";
 import { getRoutes, type RouteDef } from "./routes";
 import { pingHealth } from "./lib/gateway";
 import "./styles/app.css";
@@ -133,6 +134,10 @@ export function App() {
       )}
 
       <main className="app-main">{active ? active.render() : null}</main>
+
+      {/* Global overlay: the movable MUSE dock floats above every surface.
+          Not a route — mounted once here so it persists across navigation. */}
+      <Dock />
     </div>
   );
 }
