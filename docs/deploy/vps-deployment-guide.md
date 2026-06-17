@@ -158,6 +158,43 @@ muse gateway restart
 > The dashboard does **not**, which is why the native track installs the small
 > systemd unit above to keep it running 24/7.
 
+### Establish it once — never set up the gateway by hand again
+
+If you didn't go through the quickstart (or want a single, scriptable,
+prompt-free command), run:
+
+```bash
+muse gateway ensure
+```
+
+`ensure` is **non-interactive and idempotent** — run it as many times as you
+like:
+
+- If a gateway is already running for the active profile, it does nothing.
+- On systemd / launchd / Windows it **installs + enables + starts** the
+  service, so the gateway also comes back automatically on every reboot.
+- Inside an s6 container it brings up the pre-registered per-profile slot.
+- On Termux / bare Docker / WSL-without-systemd it launches a detached
+  background `muse gateway run` (logged to `$HERMES_HOME/logs/gateway.log`).
+
+Because it asks no questions, `ensure` is safe to drop into a provisioning
+script, a cron `@reboot` line, or a boot hook.
+
+**Containers:** to make a freshly-created container bring its gateway up on
+every boot — with zero manual steps — opt in via `config.yaml`:
+
+```yaml
+gateway:
+  auto_start: true
+```
+
+The container-boot reconciler then starts the gateway from a fresh or
+cleanly-stopped state, not only when it was running before the last restart.
+A gateway that *failed at startup* still stays down (the crash-loop guard),
+so a misconfigured profile can't wedge the container into an endless restart
+loop. The flag is opt-in; with it unset, the default behaviour (restart only
+profiles that were `running`) is unchanged.
+
 ---
 
 ## Make all models available

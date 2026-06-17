@@ -35,6 +35,14 @@ log = logging.getLogger(__name__)
 # `docker restart` cycles.
 _AUTOSTART_STATES = frozenset({"running"})
 
+# Prior states that the opt-in ``gateway.auto_start`` flag must NOT
+# override. ``startup_failed`` is the crash-loop guard: a gateway that
+# died during startup last boot stays down even when the operator opted
+# into auto-start, so a misconfigured profile can't wedge the container
+# into an endless restart loop. Every other prior state (missing/None,
+# stopped, starting) is fair game for auto_start.
+_AUTOSTART_BLOCKED_STATES = frozenset({"startup_failed"})
+
 # Stale runtime files we sweep before recreating service slots. These
 # all hold container-namespaced state (PIDs, process tables) that's
 # garbage post-restart — a numerically-equal PID in the new container
@@ -95,7 +103,9 @@ def reconcile_profile_gateways(
     # auto-up only when the prior state was "running" (same rule as
     # named profiles).
     default_prior_state = _read_prior_state(hermes_home)
-    default_should_start = default_prior_state in _AUTOSTART_STATES
+    default_should_start = _should_autostart(
+        default_prior_state, _read_auto_start(hermes_home)
+    )
     if not dry_run:
         _cleanup_stale_runtime_files(hermes_home)
         _register_service(scandir, "default", start=default_should_start)
@@ -130,7 +140,7 @@ def reconcile_profile_gateways(
                 continue
 
             prior_state = _read_prior_state(entry)
-            should_start = prior_state in _AUTOSTART_STATES
+            should_start = _should_autostart(prior_state, _read_auto_start(entry))
 
             if not dry_run:
                 _cleanup_stale_runtime_files(entry)
@@ -161,6 +171,60 @@ def _read_prior_state(profile_dir: Path) -> str | None:
             "could not read %s; treating as no prior state", state_file,
         )
         return None
+
+
+def _read_auto_start(profile_dir: Path) -> bool:
+    """Read the opt-in ``gateway.auto_start`` flag from a profile's config.
+
+    Auto-start is strictly opt-in: this returns ``False`` whenever the
+    profile's ``config.yaml`` is missing, unparseable, or doesn't set a
+    truthy ``gateway.auto_start``. When it returns ``True`` the gateway
+    comes up on container boot even with no prior ``running`` state — the
+    ``startup_failed`` crash-loop guard still applies (see
+    :func:`_should_autostart`).
+
+    The flag is read directly from the profile's own ``config.yaml`` rather
+    than via the full config loader: this runs in cont-init.d (as root,
+    before s6 starts user services) and walks several profiles, so a cheap,
+    dependency-light file read is the right tool.
+    """
+    config_path = profile_dir / "config.yaml"
+    if not config_path.exists():
+        return False
+    try:
+        import yaml
+
+        data = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — a bad config must not break reconciliation
+        log.warning(
+            "could not read %s for gateway.auto_start; treating as off",
+            config_path,
+        )
+        return False
+    if not isinstance(data, dict):
+        return False
+    gateway_cfg = data.get("gateway")
+    if not isinstance(gateway_cfg, dict):
+        return False
+    return bool(gateway_cfg.get("auto_start", False))
+
+
+def _should_autostart(prior_state: str | None, auto_start: bool) -> bool:
+    """Decide whether a profile's gateway should auto-start on container boot.
+
+    A prior ``running`` state always restarts (the original, default
+    behaviour — unchanged when ``auto_start`` is off). When the operator
+    opts into ``gateway.auto_start``, the gateway also comes up from a
+    fresh or cleanly-stopped state, so a brand-new container establishes
+    its gateway with zero manual steps. The one exception is
+    ``startup_failed`` (see :data:`_AUTOSTART_BLOCKED_STATES`): that stays
+    down to preserve the crash-loop guard.
+    """
+    if prior_state in _AUTOSTART_STATES:
+        return True
+    if auto_start and prior_state not in _AUTOSTART_BLOCKED_STATES:
+        return True
+    return False
 
 
 def _cleanup_stale_runtime_files(profile_dir: Path) -> None:
