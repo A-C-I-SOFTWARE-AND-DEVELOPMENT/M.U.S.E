@@ -27,6 +27,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  import-contracts:
+    # Blocking: enforces the direct-coupling boundaries in .importlinter. These
+    # contracts hold today (verified against the grimp graph), so a regression
+    # that breaks one is a real new cross-package coupling worth stopping.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Install import-linter
+        run: pip install import-linter
+
+      - name: Lint import contracts
+        run: lint-imports
+
   quality-and-docs:
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -39,6 +39,25 @@ All reports land in `docs/_generated/health/`; `summarize_health.py` writes
 **Ratchet rule.** Thresholds tighten, never loosen. Never edit `pyproject.toml`,
 `.importlinter`, or any threshold to make a gate pass — fix the code.
 
+### Import contracts (`.importlinter`)
+
+The repo ships `.importlinter` with direct-coupling boundary contracts derived
+from the actual grimp import graph (not aspirational layers — the four core
+packages `agent`/`tools`/`hermes_cli`/`gateway`/`cron` are mutually circular
+today, so a strict layered order can't yet be asserted). The contracts that
+hold and are enforced:
+
+- `second_brain` is a leaf — imports no other first-party package.
+- only `hermes_cli` may directly import `tui_gateway`.
+- only `hermes_cli` may directly import `acp_adapter`.
+- only `agent` and `hermes_cli` may directly import `providers`.
+
+Boundary contracts use `allow_indirect_imports = True` so they constrain direct
+coupling only (indirect chains through `hermes_cli` are expected). Locally
+`lint-imports` runs advisory via `check.sh`; in CI the `import-contracts` job in
+`muse-quality-pipeline.yml` runs it **blocking**. Tighten over time (e.g. add a
+layers contract once the core cycle is broken); never loosen to pass.
+
 ## Tier 3 — heavy build (`build_docs.sh`, CI-preferred)
 
 - `pyreverse -o mmd` → Mermaid UML (no Graphviz needed; Termux-safe).

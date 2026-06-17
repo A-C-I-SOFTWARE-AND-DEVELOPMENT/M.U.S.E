@@ -1,0 +1,86 @@
+# import-linter contracts for MUSE / hermes-agent.
+#
+# Run via `lint-imports` (the muse-quality checkpoint runs it automatically when
+# this file is present; CI runs it in muse-quality-pipeline.yml). These contracts
+# encode the import boundaries that are TRUE today, derived from the actual grimp
+# import graph — not aspirational ones. Per the repo ratchet rule, tighten these
+# over time; never loosen a contract to make a gate pass.
+#
+# Why no top-down "layers" contract yet: the four core packages
+# (agent, tools, hermes_cli, gateway, and cron) are mutually circular in the
+# current tree, so a strict layered order cannot be asserted without a refactor.
+# The contracts below instead protect the genuine leaf/edge boundaries, which is
+# where regressions are both likely and cheap to prevent. All boundary contracts
+# use allow_indirect_imports=True so they constrain *direct* coupling only —
+# indirect chains routed through hermes_cli are expected given the core cycle.
+
+[importlinter]
+root_packages =
+    agent
+    tools
+    hermes_cli
+    gateway
+    tui_gateway
+    cron
+    acp_adapter
+    providers
+    second_brain
+
+[importlinter:contract:second-brain-leaf]
+name = second_brain is a leaf — it imports no other first-party package
+type = forbidden
+source_modules =
+    second_brain
+forbidden_modules =
+    agent
+    tools
+    hermes_cli
+    gateway
+    tui_gateway
+    cron
+    acp_adapter
+    providers
+
+[importlinter:contract:tui-gateway-boundary]
+name = Only hermes_cli may directly import tui_gateway
+type = forbidden
+source_modules =
+    agent
+    tools
+    gateway
+    cron
+    acp_adapter
+    providers
+    second_brain
+forbidden_modules =
+    tui_gateway
+allow_indirect_imports = True
+
+[importlinter:contract:acp-adapter-boundary]
+name = Only hermes_cli may directly import acp_adapter
+type = forbidden
+source_modules =
+    agent
+    tools
+    gateway
+    cron
+    tui_gateway
+    providers
+    second_brain
+forbidden_modules =
+    acp_adapter
+allow_indirect_imports = True
+
+[importlinter:contract:providers-consumers]
+name = Only agent and hermes_cli may directly import providers
+type = forbidden
+source_modules =
+    tools
+    gateway
+    cron
+    tui_gateway
+    acp_adapter
+    second_brain
+forbidden_modules =
+    providers
+allow_indirect_imports = True
