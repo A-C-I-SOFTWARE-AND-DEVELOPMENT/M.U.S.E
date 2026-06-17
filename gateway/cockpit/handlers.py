@@ -2502,6 +2502,95 @@ def graph_build(_req: Request) -> JsonResponse:
         return JsonResponse(200, {"saved": str(path), **graph.stats()})
     except Exception as exc:  # pragma: no cover - defensive
         return JsonResponse(500, {"error": str(exc)})
+
+
+def second_brain_status(_req: Request) -> JsonResponse:
+    """Second Brain availability + non-secret settings (read-only).
+
+    Reports whether retrieval is enabled (``MUSE_SECOND_BRAIN``) and the module
+    is importable, plus the resolved backend and non-secret connection fields
+    (never the password). Defensive — never raises.
+    """
+    try:
+        from hermes_cli.jarvis_prime import second_brain_bridge as sbb
+
+        available = sbb.is_available()
+        out: dict[str, Any] = {"enabled": sbb.enabled(), "available": available}
+        if available:
+            try:
+                from second_brain.knowledge import load_settings
+
+                s = load_settings()
+                out["settings"] = {
+                    "backend": s.backend,
+                    "postgres": {
+                        "host": s.postgres.host,
+                        "port": s.postgres.port,
+                        "database": s.postgres.database,
+                        "user": s.postgres.user,
+                    },
+                    "embedding": {
+                        "provider": s.embedding.provider,
+                        "model": s.embedding.model,
+                        "dimension": s.embedding.dimension,
+                    },
+                }
+            except Exception as exc:  # pragma: no cover - defensive
+                out["settings_error"] = str(exc)
+        return JsonResponse(200, out)
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(200, {"enabled": False, "available": False, "error": str(exc)})
+
+
+def second_brain_retrieve(req: Request) -> JsonResponse:
+    """Retrieve fused Second Brain context for ``q`` (read-only).
+
+    Requires ``MUSE_SECOND_BRAIN`` enabled + the module available; otherwise
+    returns an honest payload (never an exception). Mirrors the bridge's
+    augment-never-replace contract — this is a read-only retrieval surface, no
+    writes (ingestion stays CLI-only and owner-gated).
+    """
+    from hermes_cli.jarvis_prime import second_brain_bridge as sbb
+
+    query = req.query.get("q", "").strip()
+    if not query:
+        return JsonResponse(400, {"error": "missing q"})
+    if not sbb.enabled():
+        return JsonResponse(
+            200,
+            {
+                "enabled": False,
+                "blocks": 0,
+                "text": "",
+                "hint": "set MUSE_SECOND_BRAIN=1 on the gateway",
+            },
+        )
+    if not sbb.is_available():
+        return JsonResponse(200, {"enabled": True, "available": False, "blocks": 0, "text": ""})
+    raw = req.query.get("top_k", "")
+    try:
+        top_k = int(raw) if raw else None
+    except ValueError:
+        top_k = None
+    ctx = sbb.retrieve_optional(query, top_k=top_k)
+    if ctx is None:
+        return JsonResponse(
+            200,
+            {"enabled": True, "available": True, "backend_ready": False, "blocks": 0, "text": ""},
+        )
+    return JsonResponse(
+        200,
+        {
+            "enabled": True,
+            "available": True,
+            "backend_ready": True,
+            "blocks": ctx.block_count,
+            "text": ctx.text,
+            "source": ctx.source,
+        },
+    )
+
+
 # Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
 # ---------------------------------------------------------------------------
 

@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **115 routes** across **113 distinct handlers**
+- **117 routes** across **115 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -109,6 +109,8 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/research/{id}/task` | `gateway.cockpit.handlers.research_create_task` | bearer | — | json | Create a coding task from a research report — via the job queue gate. |
 | GET | `/v1/cockpit/runtime/status` | `gateway.cockpit.handlers.runtime_status` | bearer | — | json | Real runtime status: gateway, host, and live queue snapshot. |
 | GET | `/v1/cockpit/runtime/workers` | `gateway.cockpit.handlers.runtime_workers` | bearer | — | json | Detected worker lanes (Claude Code / Codex) — detection only, no keys. |
+| GET | `/v1/cockpit/second-brain/retrieve` | `gateway.cockpit.handlers.second_brain_retrieve` | bearer | — | json | Retrieve fused Second Brain context for ``q`` (read-only). |
+| GET | `/v1/cockpit/second-brain/status` | `gateway.cockpit.handlers.second_brain_status` | bearer | — | json | Second Brain availability + non-secret settings (read-only). |
 | GET | `/v1/cockpit/secrets/import` | `gateway.cockpit.handlers.secrets_import` | bearer | — | json | Owner-gated, **opt-in** export of the user's existing credential keys from |
 | GET | `/v1/cockpit/sessions` | `gateway.cockpit.handlers.sessions_list` | bearer | — | json |  |
 | GET | `/v1/cockpit/skills` | `gateway.cockpit.handlers.skills_list` | bearer | — | json | The gateway's real installed skills (read-only). |
