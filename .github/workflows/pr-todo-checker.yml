@@ -17,6 +17,9 @@ on:
 permissions:
   contents: read
   pull-requests: write # needed to post / update TODO review comments
+  statuses: write # the action sets a "PR Todo Checker" commit status via
+  #                 repos.createCommitStatus; without this scope the call
+  #                 fails and the check silently "fails open" (never red).
 
 concurrency:
   group: pr-todo-checker-${{ github.ref }}
