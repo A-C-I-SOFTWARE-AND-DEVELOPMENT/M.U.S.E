@@ -86,7 +86,7 @@ export default defineConfig({
         },
       },
       workbox: {
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         runtimeCaching: [
           {
             // M.U.S.E. backend: network-first, fall back to cache when offline.

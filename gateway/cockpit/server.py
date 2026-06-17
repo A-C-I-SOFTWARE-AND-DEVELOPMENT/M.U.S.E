@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import os
 import re
 import threading
 import time
@@ -38,6 +39,29 @@ from gateway.jarvis_local_http import (
     encode_stream,
     error,
 )
+
+def _nexus_dist_root() -> Optional[Path]:
+    """Resolve the built NEXUS PWA directory (``apps/nexus/dist``) so the cockpit
+    can serve it *same-origin* at ``/nexus/`` — letting a phone running MUSE in
+    Termux reach the whole app over ``http://127.0.0.1:8765/nexus/`` with no
+    mixed-content barrier. Override with ``NEXUS_DIST_DIR``. Returns ``None`` when
+    no build is present (the mount then simply 404s — nothing else changes)."""
+    override = os.environ.get("NEXUS_DIST_DIR")
+    if override:
+        # An explicit override is authoritative — no fallback. Either it holds a
+        # build or the mount is off.
+        p = Path(override)
+        try:
+            return p.resolve() if (p / "index.html").is_file() else None
+        except OSError:
+            return None
+    # Default: apps/nexus/dist relative to the repo root (parents[2]).
+    default = Path(__file__).resolve().parents[2] / "apps" / "nexus" / "dist"
+    try:
+        return default.resolve() if (default / "index.html").is_file() else None
+    except OSError:
+        return None
+
 
 # Route table: (method, compiled-pattern, handler, requires_auth).
 # Patterns use ``{name}`` placeholders captured into ``path_params``.
@@ -315,6 +339,11 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             ".ico": "image/x-icon",
             ".png": "image/png",
             ".webmanifest": "application/manifest+json",
+            ".woff2": "font/woff2",
+            ".woff": "font/woff",
+            ".ttf": "font/ttf",
+            ".map": "application/json",
+            ".txt": "text/plain; charset=utf-8",
         }
 
         def _serve_static(self, path: str) -> bool:
@@ -363,6 +392,49 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             self.wfile.flush()
             return True
 
+        def _serve_nexus(self, path: str) -> bool:
+            """Serve the built NEXUS PWA same-origin under ``/nexus/`` so the whole
+            app + API live on one http origin (the phone's loopback). Returns True
+            if handled. Path-traversal-safe; SPA-falls-back to its index.html. When
+            no NEXUS build is present, returns False (404) and nothing else changes.
+            """
+            root = _nexus_dist_root()
+            if root is None:
+                return False
+            if path in ("/nexus", "/nexus/"):
+                rel = "index.html"
+            elif path.startswith("/nexus/"):
+                rel = path[len("/nexus/"):].lstrip("/") or "index.html"
+            else:
+                return False
+            try:
+                target = (root / rel).resolve()
+                target.relative_to(root)  # reject ../ traversal
+            except (ValueError, OSError):
+                return False
+            suffix = target.suffix
+            if suffix and suffix not in self._STATIC_TYPES:
+                return False  # disallowed file type -> 404
+            if not target.is_file():
+                target = root / "index.html"  # SPA fallback (route or missing)
+                if not target.is_file():
+                    return False
+            ctype = self._STATIC_TYPES.get(target.suffix, "application/octet-stream")
+            try:
+                data = target.read_bytes()
+            except OSError:
+                return False
+            self.close_connection = True
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+            return True
+
         # -- dispatch ---------------------------------------------------
         def _dispatch(self, method: str) -> None:
             self.close_connection = True
@@ -373,6 +445,14 @@ def _make_handler(token: Optional[str], responder, stop_event: threading.Event):
             # GET only, path-traversal-safe. Served before the API route table.
             if method == "GET" and (path == "/" or path.startswith("/cockpit")):
                 if self._serve_static(path):
+                    return
+
+            # NEXUS PWA, served same-origin under /nexus/ (when a build exists).
+            # Lets a phone running MUSE in Termux reach the whole app + API on one
+            # http loopback origin — no mixed-content barrier. Unauthenticated
+            # shell; its API calls still carry the bearer token. GET only.
+            if method == "GET" and (path == "/nexus" or path.startswith("/nexus/")):
+                if self._serve_nexus(path):
                     return
 
             # Streaming chat endpoint (real agent) — POST only.
