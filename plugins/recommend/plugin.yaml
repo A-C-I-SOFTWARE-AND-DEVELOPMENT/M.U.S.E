@@ -1,0 +1,7 @@
+name: recommend
+version: 1.0.0
+description: "Recommend the right MUSE surface for a task — a pure, deterministic tool (no network, no API key). recommend_surfaces matches a described use-case against MUSE's own surfaces (cockpit, Android app, voice, orchestration, gateway, GraphRAG, TUI, skills, memory, Termux) and returns the most relevant ones with why + how to reach them. Opt-in via `recommend.enabled` in ~/.hermes/config.yaml."
+author: hermes-agent
+kind: standalone
+provides_tools:
+  - recommend_surfaces

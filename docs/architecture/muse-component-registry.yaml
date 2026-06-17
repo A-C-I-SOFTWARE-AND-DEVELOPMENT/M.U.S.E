@@ -184,6 +184,19 @@ components:
     observability: "work packets embedded in the decision ledger"
     docs: ["docs/architecture/MUSE_WORKFLOW_SCHEMAS.md"]
 
+  - id: muse_system_contract
+    name: "MUSE System Contract (pre-prompt behavioral floor)"
+    kind: governance
+    entrypoints: ["hermes_cli.jarvis_prime.system_contract"]
+    owner_module: hermes_cli/jarvis_prime/system_contract.py
+    capabilities: ["pre_prompt_behavioral_floor", "layer_fusion_ordering", "muse_branding_guard", "opt_in_prompt_injection"]
+    risk_class: RC2
+    owner_gated_actions: []
+    tests: "uv run pytest tests/jarvis_prime/test_system_contract.py"
+    rollback: "revert system_contract.py + docs/muse-system-contract.md; preamble injection is opt-in (MUSE_SYSTEM_CONTRACT) and default-off, so default runtime behavior is unaffected"
+    observability: "validate() reports contract drift; doc<->code sync enforced by test_system_contract.py"
+    docs: ["docs/muse-system-contract.md"]
+
   - id: decision_ledger
     name: "Tamper-evident decision ledger"
     kind: governance
