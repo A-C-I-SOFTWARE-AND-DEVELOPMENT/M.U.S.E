@@ -16,8 +16,14 @@ This module simply **is** NEXUS, rendered natively.
 
 ## What it loads
 
-By default it loads the GitHub Pages deploy
-`https://a-c-i-software-and-development.github.io/M.U.S.E/`. Override at build time:
+On launch it **probes for a local gateway** (`http://127.0.0.1:8765/v1/health`).
+If one is running it loads it **same-origin** at `http://127.0.0.1:8765/nexus/`, so
+the whole app + API share one http origin — **every gateway feature works**
+(cockpit, import-keys, orchestration; no mixed-content / CORS). If no gateway is up
+it falls back to the GitHub Pages deploy
+`https://a-c-i-software-and-development.github.io/M.U.S.E/` (provider-direct
+features still work). It re-checks on resume, so starting the gateway after opening
+the app switches it over automatically. Override the fallback URL at build time:
 
 ```sh
 NEXUS_URL="http://127.0.0.1:8765/nexus/" ./gradlew :app:assembleDebug   # local Termux gateway
