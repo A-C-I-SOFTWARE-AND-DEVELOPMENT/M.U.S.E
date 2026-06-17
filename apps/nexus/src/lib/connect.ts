@@ -54,6 +54,29 @@ async function probeHealth(base: string): Promise<boolean> {
   }
 }
 
+/**
+ * True when NEXUS is served over HTTPS but the only gateway we'd try is a local
+ * http:// address (localhost / 127.0.0.1 / private LAN). The browser blocks that
+ * fetch as mixed content, so the gateway can never be reached from the hosted
+ * app — this is expected, not a failure. Cockpit features then need the gateway
+ * exposed over HTTPS (a tunnel); everything else works without it.
+ */
+export function localGatewayBlockedByHttps(baseUrl?: string): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.location.protocol !== 'https:') return false;
+  const target = (baseUrl || getConfig().museBaseUrl || 'http://127.0.0.1:8765').trim();
+  if (!/^http:\/\//i.test(target)) return false; // https gateway is fine
+  const host = target.replace(/^http:\/\//i, '').split(/[:/]/)[0];
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '0.0.0.0' ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host)
+  );
+}
+
 const newSteps = (): ConnectStep[] => [
   { key: 'discover', label: 'Discover MUSE gateway', status: 'pending' },
   { key: 'pair', label: 'Pair device (owner-gated)', status: 'pending' },
@@ -91,9 +114,12 @@ export async function establishConnections(
     }
   }
   if (!base) {
-    set('discover', 'fail', 'No gateway reachable (tried localhost:8765, origin, configured URL)');
+    const detail = localGatewayBlockedByHttps(opts.baseUrl)
+      ? 'Hosted over HTTPS — a local http://localhost gateway is blocked (mixed content). Expected: use providers directly, or expose the gateway over HTTPS.'
+      : 'No gateway reachable (tried localhost:8765, origin, configured URL)';
+    set('discover', localGatewayBlockedByHttps(opts.baseUrl) ? 'skip' : 'fail', detail);
     ['pair', 'capabilities', 'observatory', 'runtime', 'push', 'supabase', 'voice'].forEach((k) =>
-      set(k, 'skip', 'gateway not found'),
+      set(k, 'skip', 'gateway optional — not connected'),
     );
     return steps;
   }

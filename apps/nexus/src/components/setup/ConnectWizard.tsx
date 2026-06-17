@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { establishConnections, type ConnectStep } from '@/lib/connect';
+import { establishConnections, localGatewayBlockedByHttps, type ConnectStep } from '@/lib/connect';
 import { getConfig, getSecret, setSecret } from '@/lib/config';
 
 interface Props {
@@ -62,6 +62,9 @@ export function ConnectWizard({ open, onClose }: Props) {
   };
 
   const okCount = steps.filter((s) => s.status === 'ok').length;
+  // Hosted over HTTPS with only a local http gateway → that gateway can't be
+  // reached (mixed content). Surface this as "expected", not a failure.
+  const hostedNoGateway = localGatewayBlockedByHttps(baseUrl);
 
   return (
     <AnimatePresence>
@@ -91,6 +94,20 @@ export function ConnectWizard({ open, onClose }: Props) {
               OpenRouter key and chat + fusion work instantly, straight from this app (Claude, GPT,
               Gemini & 300+ models). The MUSE gateway is optional, for orchestration / memory / fleet.
             </p>
+
+            {hostedNoGateway && (
+              <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: 'var(--state-auth, #FFB020)', background: 'color-mix(in oklab, var(--state-auth, #FFB020) 8%, transparent)' }}>
+                <div className="text-[11px] font-semibold" style={{ color: 'var(--state-auth, #FFB020)' }}>Running hosted — the local gateway is out of reach (that's normal)</div>
+                <div className="mt-1 text-[10px] leading-relaxed text-[var(--ink-dim)]">
+                  This page is served over HTTPS, so it can't reach a <span className="mono">http://localhost</span> MUSE
+                  gateway (browsers block mixed content), and on a phone <span className="mono">localhost</span> is the phone.
+                  <b className="text-[var(--ink)]"> Everything that doesn't need the gateway works right now</b> —
+                  provider Chat, Models, Fusion (with your key), and the whole Repo mirror. Just tap
+                  <b className="text-[var(--ink)]"> Enter NEXUS</b>. To use cockpit / orchestration, expose your gateway
+                  over HTTPS (a Cloudflare/ngrok tunnel) and paste that URL under Advanced.
+                </div>
+              </div>
+            )}
 
             {/* Primary path: one key, no server */}
             <div className="glass mt-4 px-3 py-3" style={{ borderColor: orSaved ? 'var(--state-running)' : 'var(--hairline)' }}>
@@ -185,24 +202,50 @@ export function ConnectWizard({ open, onClose }: Props) {
             className="flex flex-col gap-2 border-t border-[var(--hairline)] bg-[var(--bg-elev)] px-5 py-4"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
           >
-            <button
-              onClick={run}
-              disabled={running}
-              className="w-full rounded-md px-3 py-3 text-[13px] font-bold text-black disabled:opacity-50"
-              style={{ background: 'var(--octa-glow)' }}
-            >
-              {running ? 'Connecting…' : steps.length ? 'Reconnect' : 'Install & Connect everything'}
-            </button>
-            <div className="flex gap-2">
-              {installEvt && (
-                <button onClick={installPwa} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px]">
-                  Add to Home Screen
+            {/* When hosted without a reachable gateway, entering NEXUS is the
+                primary action (everything non-gateway works); connecting is secondary. */}
+            {hostedNoGateway ? (
+              <>
+                <button
+                  onClick={onClose}
+                  className="w-full rounded-md px-3 py-3 text-[13px] font-bold text-black"
+                  style={{ background: 'var(--octa-glow)' }}
+                >
+                  Enter NEXUS →
                 </button>
-              )}
-              <button onClick={onClose} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)]">
-                {done ? 'Enter NEXUS' : 'Skip for now'}
-              </button>
-            </div>
+                <div className="flex gap-2">
+                  {installEvt && (
+                    <button onClick={installPwa} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px]">
+                      Add to Home Screen
+                    </button>
+                  )}
+                  <button onClick={run} disabled={running} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)] disabled:opacity-50">
+                    {running ? 'Trying gateway…' : 'Try gateway anyway'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={run}
+                  disabled={running}
+                  className="w-full rounded-md px-3 py-3 text-[13px] font-bold text-black disabled:opacity-50"
+                  style={{ background: 'var(--octa-glow)' }}
+                >
+                  {running ? 'Connecting…' : steps.length ? 'Reconnect' : 'Install & Connect everything'}
+                </button>
+                <div className="flex gap-2">
+                  {installEvt && (
+                    <button onClick={installPwa} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px]">
+                      Add to Home Screen
+                    </button>
+                  )}
+                  <button onClick={onClose} className="flex-1 rounded-md border border-[var(--hairline)] px-3 py-2 text-[12px] text-[var(--ink-dim)]">
+                    {done ? 'Enter NEXUS' : 'Skip for now'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       )}
