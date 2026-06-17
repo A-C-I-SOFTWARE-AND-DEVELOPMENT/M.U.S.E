@@ -5,17 +5,15 @@ prompts. These tests stub the platform predicates and the install/start
 helpers so the dispatch logic is exercised on any host.
 """
 
-import pytest
-
 import hermes_cli.gateway as gateway_cli
 
 
-@pytest.fixture
-def no_platform(monkeypatch):
+def _stub_platform(monkeypatch):
     """Default every platform predicate to False / no running gateway.
 
     Individual tests flip exactly the predicate they care about, so the
-    dispatch order in ``gateway_ensure`` is asserted in isolation.
+    dispatch order in ``gateway_ensure`` is asserted in isolation. Returns
+    the same ``monkeypatch`` so callers can chain further overrides.
     """
     monkeypatch.setattr(gateway_cli, "is_managed", lambda: False)
     monkeypatch.setattr(gateway_cli, "is_termux", lambda: False)
@@ -28,29 +26,32 @@ def no_platform(monkeypatch):
     return monkeypatch
 
 
-def test_already_running_is_noop(no_platform):
+def test_already_running_is_noop(monkeypatch):
     """A live gateway short-circuits: no install / start / background launch."""
-    no_platform.setattr(gateway_cli, "find_gateway_pids", lambda *a, **k: [4321])
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "find_gateway_pids", lambda *a, **k: [4321])
     calls = []
-    no_platform.setattr(gateway_cli, "supports_systemd_services", lambda: True)
-    no_platform.setattr(gateway_cli, "systemd_install", lambda **k: calls.append("install"))
-    no_platform.setattr(gateway_cli, "_report_background_launch", lambda: calls.append("bg") or 0)
+    mp.setattr(gateway_cli, "supports_systemd_services", lambda: True)
+    mp.setattr(gateway_cli, "systemd_install", lambda **k: calls.append("install"))
+    mp.setattr(gateway_cli, "_report_background_launch", lambda: calls.append("bg") or 0)
     assert gateway_cli.gateway_ensure() == 0
     assert calls == []
 
 
-def test_managed_is_noop(no_platform):
+def test_managed_is_noop(monkeypatch):
     """NixOS-managed installs defer to the system manager — establish nothing."""
-    no_platform.setattr(gateway_cli, "is_managed", lambda: True)
-    no_platform.setattr(gateway_cli, "managed_error", lambda msg: None)
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "is_managed", lambda: True)
+    mp.setattr(gateway_cli, "managed_error", lambda msg: None)
     calls = []
-    no_platform.setattr(gateway_cli, "_report_background_launch", lambda: calls.append("bg") or 0)
+    mp.setattr(gateway_cli, "_report_background_launch", lambda: calls.append("bg") or 0)
     assert gateway_cli.gateway_ensure() == 0
     assert calls == []
 
 
-def test_systemd_installs_enables_and_starts(no_platform):
-    no_platform.setattr(gateway_cli, "supports_systemd_services", lambda: True)
+def test_systemd_installs_enables_and_starts(monkeypatch):
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "supports_systemd_services", lambda: True)
     seen = {}
 
     def fake_install(force=False, system=False, enable_on_startup=True, **k):
@@ -59,8 +60,8 @@ def test_systemd_installs_enables_and_starts(no_platform):
     def fake_start(system=False):
         seen["start"] = {"system": system}
 
-    no_platform.setattr(gateway_cli, "systemd_install", fake_install)
-    no_platform.setattr(gateway_cli, "systemd_start", fake_start)
+    mp.setattr(gateway_cli, "systemd_install", fake_install)
+    mp.setattr(gateway_cli, "systemd_start", fake_start)
 
     assert gateway_cli.gateway_ensure() == 0
     # Enabled on boot (auto-start on login) and started immediately.
@@ -68,41 +69,45 @@ def test_systemd_installs_enables_and_starts(no_platform):
     assert seen["start"] == {"system": False}
 
 
-def test_systemd_unavailable_falls_back_to_background(no_platform):
-    no_platform.setattr(gateway_cli, "supports_systemd_services", lambda: True)
+def test_systemd_unavailable_falls_back_to_background(monkeypatch):
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "supports_systemd_services", lambda: True)
 
     def boom(**k):
         raise gateway_cli.UserSystemdUnavailableError("no user bus")
 
-    no_platform.setattr(gateway_cli, "systemd_install", boom)
+    mp.setattr(gateway_cli, "systemd_install", boom)
     fallback = []
-    no_platform.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
+    mp.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
 
     assert gateway_cli.gateway_ensure() == 0
     assert fallback == [1]
 
 
-def test_termux_uses_background(no_platform):
-    no_platform.setattr(gateway_cli, "is_termux", lambda: True)
+def test_termux_uses_background(monkeypatch):
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "is_termux", lambda: True)
     fallback = []
-    no_platform.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
+    mp.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
     assert gateway_cli.gateway_ensure() == 0
     assert fallback == [1]
 
 
-def test_macos_installs_and_starts(no_platform):
-    no_platform.setattr(gateway_cli, "is_macos", lambda: True)
+def test_macos_installs_and_starts(monkeypatch):
+    mp = _stub_platform(monkeypatch)
+    mp.setattr(gateway_cli, "is_macos", lambda: True)
     seen = []
-    no_platform.setattr(gateway_cli, "launchd_install", lambda force=False: seen.append(("install", force)))
-    no_platform.setattr(gateway_cli, "launchd_start", lambda: seen.append(("start",)))
+    mp.setattr(gateway_cli, "launchd_install", lambda force=False: seen.append(("install", force)))
+    mp.setattr(gateway_cli, "launchd_start", lambda: seen.append(("start",)))
     assert gateway_cli.gateway_ensure() == 0
     assert ("install", False) in seen
     assert ("start",) in seen
 
 
-def test_unknown_platform_uses_background(no_platform):
+def test_unknown_platform_uses_background(monkeypatch):
+    mp = _stub_platform(monkeypatch)
     fallback = []
-    no_platform.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
+    mp.setattr(gateway_cli, "_report_background_launch", lambda: fallback.append(1) or 0)
     assert gateway_cli.gateway_ensure() == 0
     assert fallback == [1]
 
