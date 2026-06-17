@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { establishConnections, type ConnectStep } from '@/lib/connect';
-import { getConfig } from '@/lib/config';
+import { getConfig, getSecret, setSecret } from '@/lib/config';
 
 interface Props {
   open: boolean;
@@ -22,6 +22,9 @@ export function ConnectWizard({ open, onClose }: Props) {
   const [baseUrl, setBaseUrl] = useState(getConfig().museBaseUrl);
   const [phrase, setPhrase] = useState('');
   const [withPush, setWithPush] = useState(true);
+  const [orKey, setOrKey] = useState(getSecret('OPENROUTER_API_KEY'));
+  const [orSaved, setOrSaved] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [steps, setSteps] = useState<ConnectStep[]>([]);
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(false);
@@ -84,36 +87,65 @@ export function ConnectWizard({ open, onClose }: Props) {
               </div>
             </div>
             <p className="mt-3 text-[12px] leading-relaxed text-[var(--ink-dim)]">
-              NEXUS will discover your MUSE gateway, pair this device, and wire every connection —
-              capabilities, Observatory, runtime, push, Supabase, and voice. Pairing a device token
-              is owner-gated, so it needs the owner phrase once.
+              The fastest way — <b className="text-[var(--ink)]">no server, no terminal</b>: paste one
+              OpenRouter key and chat + fusion work instantly, straight from this app (Claude, GPT,
+              Gemini & 300+ models). The MUSE gateway is optional, for orchestration / memory / fleet.
             </p>
 
-            {/* Inputs */}
-            <div className="mt-4 flex flex-col gap-2.5">
-              <label className="hud-label">Gateway URL (blank = auto-discover)</label>
-              <input
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="http://127.0.0.1:8765"
-                className="rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-3 py-2 text-[12px] text-[var(--ink)]"
-              />
-              <label className="hud-label mt-1">Owner authorization phrase</label>
-              <input
-                value={phrase}
-                onChange={(e) => setPhrase(e.target.value)}
-                placeholder={OWNER_PHRASE}
-                className="rounded-md border px-3 py-2 text-[12px] text-[var(--ink)]"
-                style={{
-                  borderColor: phrase.trim() === OWNER_PHRASE ? 'var(--state-running)' : 'var(--hairline)',
-                  background: 'var(--panel-solid)',
-                }}
-              />
-              <label className="mt-1 flex items-center gap-2 text-[11px] text-[var(--ink-dim)]">
-                <input type="checkbox" checked={withPush} onChange={(e) => setWithPush(e.target.checked)} />
-                Enable push notifications during connect
-              </label>
+            {/* Primary path: one key, no server */}
+            <div className="glass mt-4 px-3 py-3" style={{ borderColor: orSaved ? 'var(--state-running)' : 'var(--hairline)' }}>
+              <label className="hud-label">OpenRouter key — chat &amp; fusion, no gateway</label>
+              <div className="mt-1.5 flex gap-2">
+                <input
+                  value={orKey}
+                  onChange={(e) => { setOrKey(e.target.value); setOrSaved(false); }}
+                  type="password"
+                  placeholder="sk-or-…"
+                  autoComplete="off"
+                  className="flex-1 rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-3 py-2 text-[12px] text-[var(--ink)]"
+                />
+                <button
+                  onClick={() => { setSecret('OPENROUTER_API_KEY', orKey.trim()); setOrSaved(true); }}
+                  disabled={!orKey.trim()}
+                  className="rounded-md px-3 py-2 text-[12px] font-semibold text-black disabled:opacity-40"
+                  style={{ background: 'var(--octa-glow)' }}
+                >
+                  {orSaved ? 'Saved ✓' : 'Save'}
+                </button>
+              </div>
+              <div className="mono mt-1.5 text-[9px] text-[var(--ink-faint)]">
+                Get one at openrouter.ai/keys · stored encrypted on this device.
+                {orSaved && <span style={{ color: 'var(--state-running)' }}> Done — open Chat.</span>}
+              </div>
             </div>
+
+            {/* Advanced: MUSE gateway pairing (optional) */}
+            <button onClick={() => setShowAdvanced((v) => !v)} className="mono mt-3 text-[10px] text-[var(--ink-dim)] underline">
+              {showAdvanced ? 'Hide' : 'Advanced:'} connect a MUSE gateway (orchestration · memory · fleet)
+            </button>
+            {showAdvanced && (
+              <div className="mt-2 flex flex-col gap-2.5">
+                <label className="hud-label">Gateway URL (blank = auto-discover)</label>
+                <input
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
+                  placeholder="http://127.0.0.1:8765"
+                  className="rounded-md border border-[var(--hairline)] bg-[var(--panel-solid)] px-3 py-2 text-[12px] text-[var(--ink)]"
+                />
+                <label className="hud-label mt-1">Owner authorization phrase</label>
+                <input
+                  value={phrase}
+                  onChange={(e) => setPhrase(e.target.value)}
+                  placeholder={OWNER_PHRASE}
+                  className="rounded-md border px-3 py-2 text-[12px] text-[var(--ink)]"
+                  style={{ borderColor: phrase.trim() === OWNER_PHRASE ? 'var(--state-running)' : 'var(--hairline)', background: 'var(--panel-solid)' }}
+                />
+                <label className="mt-1 flex items-center gap-2 text-[11px] text-[var(--ink-dim)]">
+                  <input type="checkbox" checked={withPush} onChange={(e) => setWithPush(e.target.checked)} />
+                  Enable push notifications during connect
+                </label>
+              </div>
+            )}
 
             {/* Progress */}
             {steps.length > 0 && (

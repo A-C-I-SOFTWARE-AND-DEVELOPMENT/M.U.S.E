@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  CHAT_MODELS,
   getChatConfig,
   setChatConfig,
   streamChat,
   gatewayHealth,
+  effectiveTransport,
+  modelsFor,
   type ChatMessage,
 } from '@/lib/chat';
+import { hasDirectKey } from '@/lib/directProvider';
 
 export default function ChatPage() {
   const [cfg, setCfg] = useState(getChatConfig());
@@ -18,10 +20,13 @@ export default function ChatPage() {
   const [providers, setProviders] = useState<Record<string, boolean> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const transport = effectiveTransport(cfg);
+  const ready = transport === 'direct' ? hasDirectKey() : !!providers;
 
   useEffect(() => {
-    gatewayHealth(cfg.baseUrl).then(setProviders);
-  }, [cfg.baseUrl]);
+    if (transport === 'gateway') gatewayHealth(cfg.baseUrl).then(setProviders);
+    else setProviders(null);
+  }, [cfg.baseUrl, transport]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -75,13 +80,15 @@ export default function ChatPage() {
           onChange={(e) => updateModel(e.target.value)}
           className="mono rounded-md bg-[var(--panel-solid)] px-2 py-1 text-[11px] text-[var(--ink)]"
         >
-          {CHAT_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
+          {modelsFor(cfg).map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
-        <div className="mono flex-1 truncate text-[9px] text-[var(--ink-faint)]">{cfg.baseUrl}</div>
+        <div className="mono flex-1 truncate text-[9px] text-[var(--ink-faint)]">
+          {transport === 'direct' ? 'direct · OpenRouter' : cfg.baseUrl}
+        </div>
         <span
           className="h-2 w-2 rounded-full"
-          title={providers ? `providers: ${Object.entries(providers).filter(([, v]) => v).map(([k]) => k).join(', ') || 'none'}` : 'gateway offline'}
-          style={{ background: providers ? 'var(--state-running)' : 'var(--ink-faint)' }}
+          title={ready ? (transport === 'direct' ? 'direct via OpenRouter' : 'gateway online') : transport === 'direct' ? 'add an OpenRouter key in Settings' : 'gateway offline'}
+          style={{ background: ready ? 'var(--state-running)' : 'var(--ink-faint)' }}
         />
       </div>
 
@@ -91,14 +98,20 @@ export default function ChatPage() {
           <div className="grid h-full place-items-center px-6 text-center">
             <div>
               <div className="text-[13px] font-semibold">Unified provider chat</div>
-              <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
-                Talks to the local NEXUS provider gateway (official APIs, your keys). Start the
-                gateway in <span className="mono">apps/nexus/server</span>, then chat with any
-                provider through one endpoint.
-              </div>
-              {providers === null && (
+              {transport === 'direct' ? (
+                <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
+                  Direct from this app via OpenRouter — Claude, GPT, Gemini & 300+ models through one
+                  key. <b className="text-[var(--ink)]">No server, no terminal.</b>
+                </div>
+              ) : (
+                <div className="mt-1 text-[11px] leading-snug text-[var(--ink-dim)]">
+                  Using the local gateway. Tip: paste an <b className="text-[var(--ink)]">OpenRouter key</b> in
+                  Settings → Credentials and chat works instantly with no gateway at all.
+                </div>
+              )}
+              {!ready && (
                 <div className="mono mt-3 text-[10px] text-[var(--state-auth)]">
-                  Gateway not reachable at {cfg.baseUrl}
+                  {transport === 'direct' ? 'Add an OpenRouter key in Settings → Credentials' : `Gateway not reachable at ${cfg.baseUrl}`}
                 </div>
               )}
             </div>

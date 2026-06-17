@@ -41,6 +41,19 @@ React 18 · TypeScript · Vite · Tailwind · Zustand · React Router ·
 `vite-plugin-pwa` (Workbox) · Framer Motion · SVG octagon · Supabase (auth +
 persistence) · deploy to Vercel.
 
+## Zero-server use (no terminal, ever)
+
+The fastest path needs **no local server and no terminal**: install the PWA, open
+the first-run wizard, paste **one OpenRouter key**, and **Chat + Fusion work
+instantly** — straight from the browser via OpenRouter (Claude, GPT, Gemini & 300+
+models through one key). The key is stored encrypted on-device.
+
+- **Chat / Fusion** auto-select a transport: `direct` (browser → OpenRouter) when
+  an OpenRouter key is present, else the optional local `gateway`. No process to run.
+- The **MUSE cockpit gateway** (orchestration, memory, fleet, observatory) is the
+  only thing that still needs a backend — it's optional and gated behind
+  "Advanced" in the wizard.
+
 ## One-click install (autonomous bring-up)
 
 ```bash
