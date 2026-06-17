@@ -3,6 +3,8 @@ import { enablePush, pushEnabled, pushSupported } from '@/lib/push';
 import { supabaseConfigured } from '@/lib/supabase';
 import { getConfig } from '@/lib/config';
 import { CredentialsManager } from '@/components/setup/CredentialsManager';
+import { ProvidersManager } from '@/components/setup/ProvidersManager';
+import { AddOnsManager } from '@/components/setup/AddOnsManager';
 import {
   requestMic,
   startListening,
@@ -86,6 +88,14 @@ export default function SettingsPage() {
         <Row label="Supabase" value={supabaseConfigured() ? 'Connected' : 'Not configured'} />
         <Row label="Antigravity" value="Link-out (no SDK)" />
         <Row label="AI Studio" value="Link-out (no SDK)" />
+      </Section>
+
+      <Section title="AI Providers">
+        <ProvidersManager />
+      </Section>
+
+      <Section title="Add-ons — CLIs · MCPs · Custom">
+        <AddOnsManager />
       </Section>
 
       <Section title="Connections & Credentials">

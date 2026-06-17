@@ -103,6 +103,8 @@ export const CAPABILITIES: Capability[] = [
 
   // ---- Surfaces & Tooling ----
   { id: 'chat', title: 'Unified Provider Chat', blurb: 'Chat with Claude / GPT / Gemini / OpenRouter / local through one local OpenAI-compatible gateway (official APIs, your keys).', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/chat' }, doc: 'apps/nexus/server/README.md' },
+  { id: 'models', title: 'Models', blurb: 'Every model across all connected providers (~30) — pick any with one click. Auto-routes direct / OpenRouter / gateway.', plane: 'intelligence', accent: '#C264FE', surface: { kind: 'tab', to: '/models' } },
+  { id: 'addons', title: 'Add-ons (CLIs · MCPs · Custom)', blurb: 'The full MUSE integration surface — MCP servers, CLI lanes, and your own custom providers/MCPs/CLIs.', plane: 'surfaces', accent: '#3DD68C', surface: { kind: 'tab', to: '/settings' } },
   { id: 'fusion', title: 'Fusion Gate', blurb: 'Mixture-of-Agents: route / ensemble / pipeline / graph across providers, synthesized + AXIOM-attested. Presets, describe→recommend, favorites, history.', plane: 'intelligence', accent: '#C264FE', surface: { kind: 'tab', to: '/fusion' } },
   { id: 'steer', title: 'Agent Optimization Control', blurb: 'The octagon — real-time inference steering, mapped to the model-routing layer.', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/steer' } },
   { id: 'skills', title: 'Skills System', blurb: 'Procedural memory: Markdown playbooks, the Skills Hub, the /<skill-name> slash invocation.', plane: 'surfaces', accent: '#3DD68C', surface: { kind: 'panel', panel: 'skills' }, endpoint: '/v1/cockpit/skills' },

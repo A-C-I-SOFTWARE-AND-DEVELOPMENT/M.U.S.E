@@ -41,6 +41,25 @@ React 18 · TypeScript · Vite · Tailwind · Zustand · React Router ·
 `vite-plugin-pwa` (Workbox) · Framer Motion · SVG octagon · Supabase (auth +
 persistence) · deploy to Vercel.
 
+## Any provider, any model — one click
+
+NEXUS mirrors MUSE's multi-provider layer. `src/lib/providers.ts` registers ~28
+providers (OpenRouter, Anthropic, OpenAI, Google/Gemini, Groq, Mistral, DeepSeek,
+xAI, Together, NovitaAI, NVIDIA NIM, Qwen/DashScope, Kimi, GLM, StepFun, MiniMax,
+Hugging Face, GitHub Models, Nous, Cerebras, Perplexity, Fireworks, Vercel AI
+Gateway, Azure, Bedrock, local Ollama/LM Studio, and a **custom** OpenAI-compatible
+endpoint). Enter a key for any of them in **Settings → AI Providers**; the
+provider shows as **Connected** and its models flow into the dedicated **Models**
+tab, where one tap selects a model for Chat **and** Fusion.
+
+- **Auto-routing** (`resolveModelTransport`): a model runs **direct** from the
+  browser when its provider is CORS-friendly and has a key; otherwise it falls
+  back to **OpenRouter**, then the **gateway**, then an honest "needs a key".
+- **Add-ons** (`Settings → Add-ons`): the full MUSE integration surface — **MCP
+  servers** and **CLI lanes** — plus **add your own** custom provider / MCP / CLI.
+  These run gateway-side; values are encrypted on-device and exported to
+  `~/.hermes/.env`.
+
 ## Zero-server use (no terminal, ever)
 
 The fastest path needs **no local server and no terminal**: install the PWA, open

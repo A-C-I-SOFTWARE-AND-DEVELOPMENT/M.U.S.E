@@ -3,7 +3,8 @@
 //   • gateway — the optional local provider gateway (apps/nexus/server)
 // 'auto' picks direct when an OpenRouter key is present, else gateway.
 
-import { hasDirectKey, streamDirect, DIRECT_MODELS } from './directProvider';
+import { streamDirect } from './directProvider';
+import { resolveModelTransport, configuredProviders } from './providers';
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';
@@ -37,25 +38,23 @@ export function setChatConfig(c: Partial<ChatConfig>): void {
   localStorage.setItem(LS, JSON.stringify({ ...getChatConfig(), ...c }));
 }
 
-/** Resolve 'auto' → 'direct' when a key exists (no gateway needed), else 'gateway'. */
+/** The transport that will actually serve this config's model. 'gateway' takes
+ *  the gateway fetch path; everything else (direct/openrouter/unavailable) goes
+ *  through streamDirect (which surfaces an honest error if unavailable). */
 export function effectiveTransport(cfg: ChatConfig = getChatConfig()): 'direct' | 'gateway' {
-  if (cfg.mode === 'direct') return 'direct';
   if (cfg.mode === 'gateway') return 'gateway';
-  return hasDirectKey() ? 'direct' : 'gateway';
+  if (cfg.mode === 'direct') return 'direct';
+  return resolveModelTransport(cfg.model).kind === 'gateway' ? 'gateway' : 'direct';
 }
 
-export const CHAT_MODELS = [
-  'claude-sonnet-4-5',
-  'claude-opus-4-1',
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gemini-2.0-flash',
-  'openrouter/auto',
-];
-
-/** Model list appropriate to the active transport. */
-export function modelsFor(cfg: ChatConfig = getChatConfig()): string[] {
-  return effectiveTransport(cfg) === 'direct' ? DIRECT_MODELS : CHAT_MODELS;
+/** A quick sync model list for the dropdown: curated models of configured
+ *  providers (+ openrouter/auto). The Models tab has the full async catalog. */
+export function modelsFor(_cfg: ChatConfig = getChatConfig()): string[] {
+  const out = new Set<string>(['openrouter/auto']);
+  for (const p of configuredProviders()) {
+    for (const m of p.curated ?? []) out.add(m.includes('/') || p.id === 'openrouter' ? m : `${p.id}/${m}`);
+  }
+  return [...out];
 }
 
 /**
