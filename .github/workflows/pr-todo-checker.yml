@@ -36,3 +36,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           enable_ignore_checkbox: true
+          # Don't flag the checker's own config file: its documentation
+          # comments necessarily contain the words TODO / FIXME, and the
+          # action name (pr-todo-checker) trips the matcher too.
+          exclude: |
+            .github/workflows/pr-todo-checker.yml
