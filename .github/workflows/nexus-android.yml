@@ -1,0 +1,135 @@
+name: NEXUS Android
+
+# Build the NEXUS native WebView-shell APK and publish it as a downloadable
+# release asset. A debug-signed APK is produced (installable via sideload) with
+# no secrets required; add the ANDROID_KEYSTORE_* secrets to release-sign it.
+#
+# Pushes to main (or the bring-up branch) that touch apps/nexus/android refresh
+# the rolling `nexus-android-latest` download; the stable asset URL never changes.
+# One-button build: Actions → "NEXUS Android" → "Run workflow".
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'apps/nexus/android/**'
+      - '.github/workflows/nexus-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nexus-android-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-apk:
+    name: Build & publish NEXUS APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/nexus/android
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3.2.2
+        with:
+          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+
+      - name: Cache Gradle caches
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-nexus-${{ runner.os }}-${{ hashFiles('apps/nexus/android/**/*.gradle*', 'apps/nexus/android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-nexus-${{ runner.os }}-
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Determine version
+        id: ctx
+        run: |
+          DATE="$(date -u +%Y.%m.%d)"
+          REPO_COMMITS="$(git rev-list --count HEAD)"
+          SHA="$(git rev-parse --short HEAD)"
+          VERSION="${DATE}.${REPO_COMMITS}"
+          {
+            echo "version=$VERSION"
+            echo "date=$DATE"
+            echo "sha=$SHA"
+          } >> "$GITHUB_OUTPUT"
+          echo "NEXUS Android version $VERSION (sha $SHA)"
+
+      - name: Assemble debug APK
+        env:
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+          ANDROID_VERSION_NAME: ${{ steps.ctx.outputs.version }}
+        run: ./gradlew --no-daemon --stacktrace :app:assembleDebug
+
+      - name: Locate and name the APK
+        id: apk
+        run: |
+          src="$(find app/build/outputs/apk/debug -name '*.apk' | head -1)"
+          if [ -z "$src" ]; then echo "No debug APK produced" >&2; exit 1; fi
+          cp "$src" nexus-android.apk
+          echo "path=apps/nexus/android/nexus-android.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK as workflow artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nexus-android.apk
+          path: ${{ steps.apk.outputs.path }}
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish the rolling download
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: nexus-android-latest
+          VERSION: ${{ steps.ctx.outputs.version }}
+          BUILD_DATE: ${{ steps.ctx.outputs.date }}
+          SHA: ${{ steps.ctx.outputs.sha }}
+        run: |
+          {
+            printf '%s\n' "**NEXUS** — the NEXUS PWA as a true native Android app. Version ${VERSION}."
+            printf '%s\n' ""
+            printf '%s\n' "_Built ${BUILD_DATE} (UTC) from commit \`${SHA}\`._"
+            printf '%s\n' ""
+            printf '%s\n' "> A native WebView shell: its own launcher icon, full-screen (no browser chrome), and real device access (camera, mic, location, file upload/download, notifications). It loads the hosted NEXUS PWA and renders it like a native app."
+            printf '%s\n' ""
+            printf '%s\n' "Signing: **Debug-signed** — installable via sideload (Android may warn about an \"unknown developer\"). Not a Play-ready artifact."
+            printf '%s\n' ""
+            printf '%s\n' "## Install"
+            printf '%s\n' "1. On your Android phone, download \`nexus-android.apk\` from the Assets below."
+            printf '%s\n' "2. Open it and tap install; allow installs from this source if prompted."
+            printf '%s\n' "3. Launch **NEXUS**."
+            printf '%s\n' ""
+            printf '%s\n' "Requires Android 8.0+ (API 26)."
+          } > release-notes.md
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "NEXUS — latest Android build" --notes-file release-notes.md --target "$GITHUB_SHA" --prerelease
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "NEXUS — latest Android build" --notes-file release-notes.md --target "$GITHUB_SHA" --prerelease
+          fi
+          gh release upload "$TAG" nexus-android.apk --repo "$GITHUB_REPOSITORY" --clobber
+          echo "Download: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/nexus-android.apk"
