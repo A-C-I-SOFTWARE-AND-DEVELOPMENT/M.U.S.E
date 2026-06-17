@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom';
+import { useLinkState } from '@/lib/health';
 
 const TITLES: Record<string, string> = {
   '/': 'CONSOLE',
@@ -10,8 +11,16 @@ const TITLES: Record<string, string> = {
   '/settings': 'SETTINGS',
 };
 
+const LINK_META = {
+  online: { color: 'var(--state-running)', label: 'LIVE' },
+  connecting: { color: 'var(--state-auth)', label: 'SYNC' },
+  offline: { color: 'var(--ink-faint)', label: 'OFFLINE' },
+} as const;
+
 export function TopBar() {
   const { pathname } = useLocation();
+  const link = useLinkState();
+  const meta = LINK_META[link];
   return (
     <header
       className="flex items-center justify-between px-4"
@@ -32,9 +41,25 @@ export function TopBar() {
           <div className="hud-label mt-0.5">{TITLES[pathname] ?? ''}</div>
         </div>
       </div>
-      <div className="mono text-[10px] text-[var(--ink-dim)]">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--state-running)]" />{' '}
-        LINK
+      <div className="flex items-center gap-2.5">
+      <button
+        onClick={() => window.dispatchEvent(new CustomEvent('nexus:open-palette'))}
+        aria-label="Open command palette"
+        className="grid h-6 w-6 place-items-center rounded-md border border-[var(--hairline)] text-[var(--ink-dim)]"
+      >
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
+      </button>
+      <div className="mono flex items-center gap-1.5 text-[10px]" style={{ color: meta.color }}>
+        <span
+          className="inline-block h-1.5 w-1.5 rounded-full"
+          style={{
+            background: meta.color,
+            boxShadow: link === 'online' ? `0 0 8px ${meta.color}` : undefined,
+            animation: link === 'connecting' ? 'octa-pulse 1.2s ease-in-out infinite' : undefined,
+          }}
+        />
+        {meta.label}
+      </div>
       </div>
     </header>
   );

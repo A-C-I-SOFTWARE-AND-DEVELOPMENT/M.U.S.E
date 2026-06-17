@@ -20,13 +20,14 @@ export default defineConfig({
         name: 'NEXUS — Agent Command Console',
         short_name: 'NEXUS',
         description:
-          'Unified command center for Antigravity, Google AI Studio, and M.U.S.E. agents.',
+          'Unified, live command center for M.U.S.E. — orchestration, the steering octagon, the Axiom Gate, and the Neural Observatory.',
         theme_color: '#0A0E14',
         background_color: '#0A0E14',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         scope: '/',
+        categories: ['productivity', 'developer', 'utilities'],
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -37,6 +38,19 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        // App shortcuts (long-press the home-screen icon).
+        shortcuts: [
+          { name: 'Steer', short_name: 'Steer', url: '/steer', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Axiom Gate', short_name: 'Axiom', url: '/axiom', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Observatory', short_name: 'Observatory', url: '/observatory', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Wallpaper', short_name: 'Wallpaper', url: '/observatory?wallpaper=1', icons: [{ src: 'icons/icon-192.png', sizes: '192x192' }] },
+        ],
+        // Share-sheet target: "Send to M.U.S.E." → opens a goal composer.
+        share_target: {
+          action: '/share',
+          method: 'GET',
+          params: { title: 'title', text: 'text', url: 'url' },
+        },
       },
       workbox: {
         navigateFallback: '/index.html',
