@@ -88,6 +88,7 @@ typed in a terminal or spoke into a phone in the car.
 | Lock everything down to private / local-only | [security/private-local-security-guide.md](security/private-local-security-guide.md) |
 | Wire up GitHub, Supabase, and Vercel | [integrations/github-supabase-vercel-guide.md](integrations/github-supabase-vercel-guide.md) |
 | Add free public-API tools (weather, finance, news, time) | [integrations/public-apis-plugins.md](integrations/public-apis-plugins.md) |
+| Scrape the web & run Apify Actors | [integrations/apify-plugin.md](integrations/apify-plugin.md) |
 | Developer + code-review tools (packages, OSV, deps.dev, sandbox) | [integrations/devtools-codeintel-plugins.md](integrations/devtools-codeintel-plugins.md) |
 | Diagnose a stuck job or a broken integration | [troubleshooting/hermes-orchestration-troubleshooting.md](troubleshooting/hermes-orchestration-troubleshooting.md) |
 | Deep-dive on a specific orchestration topic | [orchestration/](orchestration/) (full subfolder) |
