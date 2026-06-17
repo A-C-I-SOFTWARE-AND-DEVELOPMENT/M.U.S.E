@@ -12,7 +12,8 @@ const TITLES: Record<string, string> = {
 };
 
 const LINK_META = {
-  online: { color: 'var(--state-running)', label: 'LIVE' },
+  gateway: { color: 'var(--state-running)', label: 'GATEWAY' },
+  online: { color: 'var(--octa-glow)', label: 'ONLINE' },
   connecting: { color: 'var(--state-auth)', label: 'SYNC' },
   offline: { color: 'var(--ink-faint)', label: 'OFFLINE' },
 } as const;
@@ -61,7 +62,7 @@ export function TopBar() {
           className="inline-block h-1.5 w-1.5 rounded-full"
           style={{
             background: meta.color,
-            boxShadow: link === 'online' ? `0 0 8px ${meta.color}` : undefined,
+            boxShadow: link === 'online' || link === 'gateway' ? `0 0 8px ${meta.color}` : undefined,
             animation: link === 'connecting' ? 'octa-pulse 1.2s ease-in-out infinite' : undefined,
           }}
         />

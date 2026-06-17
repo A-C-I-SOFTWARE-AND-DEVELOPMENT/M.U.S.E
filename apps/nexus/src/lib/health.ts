@@ -1,19 +1,42 @@
 import { useEffect, useState } from 'react';
 import { museBase } from './config';
 
-// Live gateway health. Periodically probes the open /v1/health route so the UI
-// reflects real reachability (and stream consumers can react to reconnects).
+// Live connection state. Periodically probes the gateway's open /v1/health route,
+// but — crucially — when no gateway is established it AUTO-FALLS-BACK to "online"
+// (provider-direct / hosted mode) rather than reporting offline, so the app is
+// immediately usable without a gateway. States:
+//   • gateway — the MUSE gateway is established and reachable
+//   • online  — no gateway, but the internet is up → provider-direct mode (usable)
+//   • offline — no network at all
+//   • connecting — probing
 
-export type LinkState = 'offline' | 'connecting' | 'online';
+export type LinkState = 'offline' | 'connecting' | 'gateway' | 'online';
 
-let current: LinkState = 'offline';
+/**
+ * Pure resolver (unit-tested). The key rule: a missing/unreachable gateway is NOT
+ * "offline" as long as we're on the internet — we automatically go "online" and
+ * use provider-direct / hosted capabilities.
+ */
+export function resolveLinkState(hasGateway: boolean, gatewayOk: boolean, navigatorOnline: boolean): LinkState {
+  if (!navigatorOnline) return 'offline';
+  if (hasGateway && gatewayOk) return 'gateway';
+  return 'online'; // no gateway, or gateway down → auto online
+}
+
+function isOnline(): boolean {
+  return typeof navigator === 'undefined' || navigator.onLine !== false;
+}
+
+let current: LinkState = 'connecting';
 const listeners = new Set<(s: LinkState) => void>();
 let timer: number | null = null;
 
 async function ping(): Promise<void> {
+  const online = isOnline();
   const base = museBase();
+  // No gateway configured → go straight to online (no probe needed).
   if (!base) {
-    set('offline');
+    set(resolveLinkState(false, false, online));
     return;
   }
   try {
@@ -21,9 +44,10 @@ async function ping(): Promise<void> {
     const t = setTimeout(() => ctrl.abort(), 4000);
     const res = await fetch(`${base}/v1/health`, { signal: ctrl.signal });
     clearTimeout(t);
-    set(res.ok ? 'online' : 'offline');
+    set(resolveLinkState(true, res.ok, online));
   } catch {
-    set('offline');
+    // Gateway unreachable, but if we're on the internet still auto go online.
+    set(resolveLinkState(true, false, online));
   }
 }
 
