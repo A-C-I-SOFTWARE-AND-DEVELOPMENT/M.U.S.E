@@ -10,7 +10,7 @@ PR as any route change.
 
 ## Census (real counts)
 
-- **117 routes** across **115 distinct handlers**
+- **120 routes** across **118 distinct handlers**
 - 10 routes are owner-gated (handler enforces the exact owner authorization phrase)
 - 6 routes do not require the bearer token (health, pairing bootstrap, static UI shell)
 
@@ -42,6 +42,7 @@ helper it calls) compares the request against
 | POST | `/v1/cockpit/coding/audit` | `gateway.cockpit.handlers.coding_audit` | bearer | — | json | Classify + route a plain-English coding request (read-only). |
 | POST | `/v1/cockpit/coding/execute` | `gateway.cockpit.handlers.coding_execute` | bearer | owner-phrase | json | Dispatch a coding job **only** through the existing gated orchestrator. |
 | POST | `/v1/cockpit/coding/plan` | `gateway.cockpit.handlers.coding_plan` | bearer | — | json | Build + validate a bounded coding work packet (stage only, never runs). |
+| GET | `/v1/cockpit/council/dispatch` | `gateway.cockpit.handlers.council_dispatch` | bearer | — | json | Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``. |
 | GET | `/v1/cockpit/diagnostics` | `gateway.cockpit.handlers.diagnostics` | bearer | — | json | Launch-readiness diagnostics (reuses the JARVIS launch doctor). |
 | POST | `/v1/cockpit/emergency-stop` | `gateway.cockpit.handlers.emergency_stop` | bearer | — | json | Owner panic button: a decisive backend halt. |
 | GET | `/v1/cockpit/events` | `gateway.cockpit.handlers.audit_events` | bearer | — | json | Leveled cockpit events (contract §9) from the structured event log. |
@@ -52,6 +53,8 @@ helper it calls) compares the request against
 | DELETE | `/v1/cockpit/evidence/{id}` | `gateway.cockpit.handlers.evidence_demote` | bearer | — | json | Remove an evidence artifact from the vault (demotion). |
 | GET | `/v1/cockpit/evidence/{id}` | `gateway.cockpit.handlers.evidence_detail` | bearer | — | json | Return one evidence artifact by id. |
 | POST | `/v1/cockpit/evidence/{id}/promote` | `gateway.cockpit.handlers.evidence_promote` | bearer | owner-phrase | json | Promote an evidence artifact into durable Memory Tree. |
+| GET | `/v1/cockpit/federation/status` | `gateway.cockpit.handlers.federation_status` | bearer | — | json | Federation status (read-only, **public fields only**): this node's public |
+| GET | `/v1/cockpit/forge/leaderboard` | `gateway.cockpit.handlers.forge_leaderboard` | bearer | — | json | The Forge championship view (read-only): Glicko-2 standings, MAP-Elites |
 | POST | `/v1/cockpit/graph/build` | `gateway.cockpit.handlers.graph_build` | bearer | — | json | Rebuild + persist the knowledge-graph cache. Read-only over the repo and |
 | GET | `/v1/cockpit/graph/query` | `gateway.cockpit.handlers.graph_query` | bearer | — | json | Run a GraphRAG query (``mode`` = local \| global \| coding). |
 | GET | `/v1/cockpit/graph/related` | `gateway.cockpit.handlers.graph_related` | bearer | — | json | Related files / sources / decisions for an entity. Accepts ``node`` (a |

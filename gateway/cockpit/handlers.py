@@ -2591,6 +2591,95 @@ def second_brain_retrieve(req: Request) -> JsonResponse:
     )
 
 
+def forge_leaderboard(_req: Request) -> JsonResponse:
+    """The Forge championship view (read-only): Glicko-2 standings, MAP-Elites
+    coverage/QD score, and the candidate count.
+
+    Surfaces the CLI-only ``jarvis_prime forge`` tournament system over the
+    gateway. Read-only over the local registry/ledger; honest-empty (not an
+    error) before anything has competed.
+    """
+    try:
+        from hermes_cli.jarvis_prime.forge.leaderboard import standings
+        from hermes_cli.jarvis_prime.forge.map_elites import ElitesGrid
+        from hermes_cli.jarvis_prime.forge.registry import CandidateRegistry
+        from hermes_cli.jarvis_prime.forge.tournament import RatingBook
+
+        registry = CandidateRegistry()
+        grid = ElitesGrid()
+        return JsonResponse(
+            200,
+            {
+                "standings": [s.to_dict() for s in standings(RatingBook(), registry)],
+                "candidates": len(list(registry.all())),
+                "coverage": round(grid.coverage(), 4),
+                "qd_score": round(grid.qd_score(), 4),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200, {"standings": [], "candidates": 0, "coverage": 0.0, "qd_score": 0.0, "error": str(exc)}
+        )
+
+
+def federation_status(_req: Request) -> JsonResponse:
+    """Federation status (read-only, **public fields only**): this node's public
+    identity and the known peer list.
+
+    Security: ``NodeIdentity.to_dict()`` exposes only public material
+    (node_id, display_name, algo, public_key_hex). Private key / HMAC secret are
+    stored separately on disk and **never** leave the machine — they are not in
+    this payload. Honest-empty before ``federation identity init``.
+    """
+    try:
+        from hermes_cli.jarvis_prime.federation.attestation import FederationRegistry
+        from hermes_cli.jarvis_prime.federation.identity import load_identity
+
+        identity = load_identity()
+        registry = FederationRegistry()
+        peers = [p.to_dict() for p in registry.peers()]
+        return JsonResponse(
+            200,
+            {
+                "identity": identity.to_dict() if identity is not None else None,
+                "peers": peers,
+                "peer_count": len(peers),
+            },
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200, {"identity": None, "peers": [], "peer_count": 0, "error": str(exc)}
+        )
+
+
+def council_dispatch(req: Request) -> JsonResponse:
+    """Route a request to the AOS Enterprise Council (read-only). ``?q=<request>``.
+
+    Returns the engaged active council + matching domain specialists with their
+    roles, required outputs, verification, and owner gates. Deterministic
+    registry routing — no model calls, no writes.
+    """
+    query = req.query.get("q", "").strip()
+    if not query:
+        return JsonResponse(400, {"error": "missing q"})
+    try:
+        from hermes_cli.jarvis_prime.aos_council import dispatch
+
+        return JsonResponse(200, dispatch(query).to_dict())
+    except Exception as exc:  # pragma: no cover - defensive
+        return JsonResponse(
+            200,
+            {
+                "request": query,
+                "council": [],
+                "specialists": [],
+                "engaged_count": 0,
+                "owner_gated": False,
+                "error": str(exc),
+            },
+        )
+
+
 # Ledger timeline (orchestrator event ledger) — the mobile "Activity" surface
 # ---------------------------------------------------------------------------
 

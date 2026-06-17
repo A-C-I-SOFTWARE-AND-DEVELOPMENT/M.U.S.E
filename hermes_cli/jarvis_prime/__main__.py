@@ -2059,6 +2059,38 @@ def _cmd_second_brain(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cmd_council(args: argparse.Namespace) -> int:
+    """AOS Enterprise Council runtime: roster / dispatch.
+
+    Loads the real ``operating-registry/registry.json`` and routes a request to
+    the active council + matching domain specialists. Deterministic, offline.
+    """
+    from hermes_cli.jarvis_prime.aos_council import dispatch, roster
+
+    op = args.council_command
+    if op == "roster":
+        r = roster()
+        if getattr(args, "json", False):
+            _print_json({k: [m.to_dict() for m in v] for k, v in r.items()})
+            return 0
+        for section, members in r.items():
+            print(f"{section} ({len(members)}):")
+            for m in members:
+                print(f"  - {m.id:34s} {m.domain or m.role}")
+        return 0
+
+    if op == "dispatch":
+        session = dispatch(args.request, max_council=getattr(args, "max_council", None))
+        if getattr(args, "json", False):
+            _print_json(session.to_dict())
+            return 0
+        print(session.render())
+        return 0
+
+    print(f"error: unknown council op {op!r}", file=sys.stderr)
+    return 2
+
+
 def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.model_scorecard import (
         ModelScorecard,
@@ -3566,6 +3598,34 @@ def main(argv: Optional[list[str]] = None) -> int:
         "--graph", action="store_true", help="Also write to the Neo4j graph store"
     )
     p_sb_ingest.set_defaults(func=_cmd_second_brain)
+
+    # council — AOS Enterprise Council executable runtime (roster / dispatch).
+    p_council = sub.add_parser(
+        "council",
+        help="AOS Enterprise Council runtime: roster / dispatch a request",
+        description=(
+            "Route a request to the real AOS council registry — the always-on "
+            "active council plus the domain specialists whose when_to_use matches. "
+            "Deterministic and offline; surfaces each engaged member's required "
+            "output, verification, and owner gate."
+        ),
+    )
+    p_council_sub = p_council.add_subparsers(dest="council_command", required=True)
+    p_council_roster = p_council_sub.add_parser(
+        "roster", help="List the active council + domain specialists"
+    )
+    p_council_roster.add_argument("--json", action="store_true")
+    p_council_roster.set_defaults(func=_cmd_council)
+    p_council_dispatch = p_council_sub.add_parser(
+        "dispatch", help="Route a request to the council (roles + gates)"
+    )
+    p_council_dispatch.add_argument("request", help="The request / goal to route")
+    p_council_dispatch.add_argument(
+        "--max-council", dest="max_council", type=int, default=None,
+        help="Cap the active council size (default: registry policy)",
+    )
+    p_council_dispatch.add_argument("--json", action="store_true")
+    p_council_dispatch.set_defaults(func=_cmd_council)
 
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(
