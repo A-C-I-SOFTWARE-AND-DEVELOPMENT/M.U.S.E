@@ -78,7 +78,7 @@ if run vulture; then
   vulture "${PATHS[@]}" --min-confidence 80 > "$OUT/vulture.txt" 2>&1 || true
 fi
 
-# --- TODO inventory (ADVISORY) -----------------------------------------------
+# --- Task-marker inventory (ADVISORY) ----------------------------------------
 if run rg; then
   rg -n "TODO|FIXME|BUG|HACK|XXX" "${PATHS[@]}" > "$OUT/todos.txt" 2>/dev/null || true
 fi

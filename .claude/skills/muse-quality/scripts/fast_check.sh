@@ -27,7 +27,7 @@ fi
 # Report (to stderr → visible to Claude on a PostToolUse hook) without blocking.
 ruff check "$f" 1>&2 || true
 
-# Informational TODO delta.
+# Informational task-marker delta (scans for the usual annotation tokens).
 if command -v rg >/dev/null 2>&1; then
   rg -n "TODO|FIXME|BUG|HACK|XXX" "$f" >> docs/_generated/todo_delta.log 2>/dev/null || true
 fi
