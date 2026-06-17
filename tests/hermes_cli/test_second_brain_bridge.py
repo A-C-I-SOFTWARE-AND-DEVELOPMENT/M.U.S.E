@@ -12,8 +12,10 @@ import pytest
 from hermes_cli.jarvis_prime.second_brain_bridge import (
     RetrievedContext,
     SecondBrainUnavailable,
+    enabled,
     is_available,
     retrieve,
+    retrieve_optional,
 )
 
 
@@ -89,3 +91,42 @@ def test_real_backend_degrades_gracefully_without_drivers():
     # surface SecondBrainUnavailable (catchable) — never a bare ImportError.
     with pytest.raises(SecondBrainUnavailable):
         retrieve("q")
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("1", True),
+        ("true", True),
+        ("YES", True),
+        ("on", True),
+        ("0", False),
+        ("false", False),
+        ("", False),
+        ("nope", False),
+    ],
+)
+def test_enabled_reads_env(monkeypatch, value, expected):
+    monkeypatch.setenv("MUSE_SECOND_BRAIN", value)
+    assert enabled() is expected
+
+
+def test_enabled_false_when_env_unset(monkeypatch):
+    monkeypatch.delenv("MUSE_SECOND_BRAIN", raising=False)
+    assert enabled() is False
+
+
+def test_retrieve_optional_returns_context_with_fake_brain():
+    brain = _FakeBrain(_FakePayload("CTX", 2))
+    out = retrieve_optional("q", factory=lambda *, enable_graph=False: brain)
+    assert isinstance(out, RetrievedContext)
+    assert out.text == "CTX"
+    assert out.block_count == 2
+
+
+def test_retrieve_optional_returns_none_when_unavailable():
+    def boom(*, enable_graph=False):
+        raise ImportError("no psycopg")
+
+    # The catchable-unavailable case becomes None, not an exception.
+    assert retrieve_optional("q", factory=boom) is None

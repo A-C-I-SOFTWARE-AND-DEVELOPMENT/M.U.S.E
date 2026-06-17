@@ -1908,6 +1908,157 @@ def _cmd_graph(args: argparse.Namespace) -> int:
     return 2
 
 
+def _cmd_second_brain(args: argparse.Namespace) -> int:
+    """Second Brain lane: status / retrieve / ingest.
+
+    Opt-in (``MUSE_SECOND_BRAIN``) hybrid retrieval over the Postgres+Neo4j
+    Second Brain module. It *augments*, never replaces, MUSE's native retrieval;
+    every op degrades to an honest message (never a traceback) when the module
+    or its backend isn't available.
+    """
+
+    from hermes_cli.jarvis_prime import second_brain_bridge as sbb
+
+    op = args.sb_command
+
+    if op == "status":
+        available = sbb.is_available()
+        info: dict[str, Any] = {
+            "enabled": sbb.enabled(),
+            "available": available,
+            "enable_env": "MUSE_SECOND_BRAIN",
+        }
+        if available:
+            try:
+                from second_brain.knowledge import load_settings
+
+                s = load_settings()
+                info["settings"] = {  # non-secret fields only (never the password)
+                    "postgres": {
+                        "host": s.postgres.host,
+                        "port": s.postgres.port,
+                        "database": s.postgres.database,
+                        "user": s.postgres.user,
+                    },
+                    "neo4j": {"uri": s.neo4j.uri, "database": s.neo4j.database},
+                    "embedding": {
+                        "provider": s.embedding.provider,
+                        "model": s.embedding.model,
+                        "dimension": s.embedding.dimension,
+                    },
+                    "retrieval": {
+                        "top_k": s.retrieval.top_k,
+                        "token_budget": s.retrieval.token_budget,
+                    },
+                }
+            except Exception as exc:  # pragma: no cover - defensive
+                info["settings_error"] = str(exc)
+        if getattr(args, "json", False):
+            _print_json(info)
+            return 0
+        print("Second Brain:")
+        print(f"  enabled (MUSE_SECOND_BRAIN): {'yes' if info['enabled'] else 'no'}")
+        print(f"  module importable:           {'yes' if available else 'no'}")
+        if not available:
+            print("  → module not installed; MUSE uses native retrieval.")
+        elif not info["enabled"]:
+            print("  → set MUSE_SECOND_BRAIN=1 to fuse it into retrieval.")
+        settings = info.get("settings")
+        if settings:
+            pg, n4, emb = settings["postgres"], settings["neo4j"], settings["embedding"]
+            print(f"  postgres:  {pg['user']}@{pg['host']}:{pg['port']}/{pg['database']}")
+            print(f"  neo4j:     {n4['uri']} db={n4['database']}")
+            print(f"  embedding: {emb['provider']}/{emb['model']} dim={emb['dimension']}")
+        return 0
+
+    if op == "retrieve":
+        if not sbb.is_available():
+            print("error: second_brain module is not importable here", file=sys.stderr)
+            return 2
+        ctx = sbb.retrieve_optional(
+            args.query,
+            top_k=getattr(args, "top_k", None),
+            enable_graph=getattr(args, "graph", False),
+        )
+        if ctx is None:
+            print(
+                "second brain backend unavailable — configure SECOND_BRAIN_* and "
+                "start the backend (see second_brain/docker-compose.yml).",
+                file=sys.stderr,
+            )
+            return 1
+        if getattr(args, "json", False):
+            _print_json(
+                {
+                    "text": ctx.text,
+                    "block_count": ctx.block_count,
+                    "source": ctx.source,
+                }
+            )
+        else:
+            print(ctx.text or "(no context)")
+        return 0
+
+    if op == "ingest":
+        if not args.apply:
+            print(
+                f"dry-run: would ingest {len(args.paths)} path(s) into the Second "
+                "Brain backend.\nRe-run with --apply and the owner phrase "
+                "(--phrase or JARVIS_OWNER_PHRASE) to write."
+            )
+            return 0
+        # Owner gate: ingestion writes to the backend — require the exact phrase.
+        from hermes_cli.jarvis_prime.owner_auth import AUTHORIZATION_PHRASE
+        import os
+
+        phrase = args.phrase or os.environ.get("JARVIS_OWNER_PHRASE", "")
+        if phrase.strip() != AUTHORIZATION_PHRASE:
+            print(
+                f"owner authorization required to write — reply exactly: "
+                f"{AUTHORIZATION_PHRASE!r} (via --phrase or JARVIS_OWNER_PHRASE)",
+                file=sys.stderr,
+            )
+            return 3
+        if not sbb.is_available():
+            print("error: second_brain module is not importable here", file=sys.stderr)
+            return 2
+        try:
+            from second_brain.knowledge import SecondBrain, load_settings
+
+            brain = SecondBrain(
+                load_settings(), enable_graph=getattr(args, "graph", False)
+            )
+        except Exception as exc:
+            print(f"error: second brain backend unavailable: {exc}", file=sys.stderr)
+            return 1
+        written = 0
+        try:
+            for p in args.paths:
+                path = Path(p)
+                if not path.is_file():
+                    print(f"  skip (not a file): {p}", file=sys.stderr)
+                    continue
+                text = path.read_text(encoding="utf-8", errors="replace")
+                brain.ingest_text(text, source_id=str(path), title=path.name)
+                written += 1
+                print(f"  ingested: {p}")
+        finally:
+            close = getattr(brain, "close", None)
+            if callable(close):
+                try:
+                    close()
+                except Exception as exc:
+                    # Releasing DB connections is best-effort: a close() failure
+                    # must not flip an otherwise-successful ingest to an error.
+                    # Surface it as a non-fatal warning rather than swallowing it.
+                    print(f"  warning: second brain close failed: {exc}", file=sys.stderr)
+        print(f"ingested {written} file(s) into the Second Brain.")
+        return 0
+
+    print(f"error: unknown second-brain op {op!r}", file=sys.stderr)
+    return 2
+
+
 def _cmd_model_scorecard(args: argparse.Namespace) -> int:
     from hermes_cli.jarvis_prime.model_scorecard import (
         ModelScorecard,
@@ -3360,6 +3511,61 @@ def main(argv: Optional[list[str]] = None) -> int:
     p_graph.add_argument("--store", help="Path to a persistent graph JSON file")
     p_graph.add_argument("--json", action="store_true")
     p_graph.set_defaults(func=_cmd_graph)
+
+    # second-brain — opt-in Postgres+Neo4j hybrid-retrieval module. Augments
+    # (never replaces) native retrieval; only consulted when MUSE_SECOND_BRAIN=1.
+    p_secondbrain = sub.add_parser(
+        "second-brain",
+        help="Opt-in Second Brain hybrid retrieval (status / retrieve / ingest)",
+        description=(
+            "The Second Brain is a Postgres(pgvector)+Neo4j hybrid-retrieval "
+            "knowledge module. It augments — never replaces — MUSE's native "
+            "retrieval and is only fused into recollection when "
+            "MUSE_SECOND_BRAIN=1. All ops degrade gracefully (an honest message, "
+            "never a traceback) when the module or its backend isn't available."
+        ),
+    )
+    p_secondbrain_sub = p_secondbrain.add_subparsers(
+        dest="sb_command", required=True
+    )
+
+    p_sb_status = p_secondbrain_sub.add_parser(
+        "status", help="Show enabled / importable state + non-secret settings"
+    )
+    p_sb_status.add_argument("--json", action="store_true")
+    p_sb_status.set_defaults(func=_cmd_second_brain)
+
+    p_sb_retrieve = p_secondbrain_sub.add_parser(
+        "retrieve", help="Retrieve fused context for a query (read-only)"
+    )
+    p_sb_retrieve.add_argument("query", help="The query to retrieve context for")
+    p_sb_retrieve.add_argument("--top-k", dest="top_k", type=int, default=None)
+    p_sb_retrieve.add_argument(
+        "--graph", action="store_true", help="Enable Neo4j graph reasoning (heavier)"
+    )
+    p_sb_retrieve.add_argument("--json", action="store_true")
+    p_sb_retrieve.set_defaults(func=_cmd_second_brain)
+
+    p_sb_ingest = p_secondbrain_sub.add_parser(
+        "ingest",
+        help="Ingest file(s) into the Second Brain backend (owner-gated write)",
+        description=(
+            "Read each file and ingest its text into the Second Brain backend. "
+            "Dry-run by default; --apply writes and requires the owner "
+            "authorization phrase (--phrase or JARVIS_OWNER_PHRASE)."
+        ),
+    )
+    p_sb_ingest.add_argument("paths", nargs="+", help="File path(s) to ingest")
+    p_sb_ingest.add_argument(
+        "--apply", action="store_true", help="Write to the backend (owner phrase required)"
+    )
+    p_sb_ingest.add_argument(
+        "--phrase", help="Owner authorization phrase (required with --apply)"
+    )
+    p_sb_ingest.add_argument(
+        "--graph", action="store_true", help="Also write to the Neo4j graph store"
+    )
+    p_sb_ingest.set_defaults(func=_cmd_second_brain)
 
     # model-scorecard — evidence-backed model routing records.
     p_score = sub.add_parser(

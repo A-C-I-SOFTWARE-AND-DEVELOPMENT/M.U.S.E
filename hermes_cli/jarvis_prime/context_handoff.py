@@ -113,6 +113,7 @@ class ContextHandoff:
     model_lane: dict = field(default_factory=dict)
     verification_plan: list[str] = field(default_factory=list)
     citations: list[dict] = field(default_factory=list)
+    second_brain: list[str] = field(default_factory=list)
     graph_built: bool = False
     owner_gated: bool = False
     notes: list[str] = field(default_factory=list)
@@ -131,6 +132,7 @@ class ContextHandoff:
             "model_lane": dict(self.model_lane),
             "verification_plan": list(self.verification_plan),
             "citations": list(self.citations),
+            "second_brain": list(self.second_brain),
             "graph_built": self.graph_built,
             "owner_gated": self.owner_gated,
             "notes": list(self.notes),
@@ -184,6 +186,10 @@ class ContextHandoff:
                 f"  - {c.get('kind', '?')}: {c.get('uri', '')}"
                 for c in self.citations[:20]
             )
+        if self.second_brain:
+            lines.append("")
+            lines.append("## second brain")
+            lines.extend(f"  - {s}" for s in self.second_brain)
         if self.notes:
             lines.append("")
             lines.append("## notes")
@@ -315,5 +321,34 @@ def build_context_handoff(
             )
     except Exception as exc:  # pragma: no cover - defensive
         handoff.notes.append(f"graph context unavailable: {exc}")
+
+    # --- Second Brain (opt-in; augments GraphRAG, never replaces) ------------
+    # Only consulted when MUSE_SECOND_BRAIN is set; degrades to a note (never an
+    # exception) when the module/backend is absent. Lines are secret-screened on
+    # the way in, like every other graph-derived string in this packet.
+    try:
+        from hermes_cli.jarvis_prime import second_brain_bridge as sbb
+
+        if sbb.enabled():
+            if not sbb.is_available():
+                handoff.notes.append(
+                    "second brain enabled but module not importable; "
+                    "using native retrieval"
+                )
+            else:
+                ctx = sbb.retrieve_optional(request, top_k=limit)
+                if ctx is not None and (ctx.text or "").strip():
+                    handoff.second_brain = [
+                        _redact(line)
+                        for line in ctx.text.strip().splitlines()
+                        if line.strip()
+                    ][:limit]
+                else:
+                    handoff.notes.append(
+                        "second brain enabled but returned no context "
+                        "(backend unavailable or empty)"
+                    )
+    except Exception as exc:  # pragma: no cover - defensive
+        handoff.notes.append(f"second brain context unavailable: {exc}")
 
     return handoff
