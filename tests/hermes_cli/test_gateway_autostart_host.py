@@ -152,3 +152,40 @@ def test_systemd_install_interactive_prompts_for_legacy(monkeypatch, tmp_path, c
     gateway_cli.systemd_install(system=False, assume_yes=False)
     assert len(prompts) == 1      # default path still asks
     assert len(removed) == 1      # answered yes (stub returns True)
+
+
+# ---------------------------------------------------------------------------
+# install_linux_gateway_from_setup(assume_yes=...) — wizard unattended path
+# ---------------------------------------------------------------------------
+
+def test_install_from_setup_assume_yes_skips_scope_prompt(monkeypatch):
+    """assume_yes installs a user-scope service with no scope prompt, threading
+    assume_yes into systemd_install (so the legacy prompt is skipped too)."""
+    calls = {}
+    scope_prompts = []
+
+    def fake_systemd_install(force=False, system=False, run_as_user=None, enable_on_startup=True, assume_yes=False):
+        calls["systemd_install"] = {"system": system, "enable": enable_on_startup, "assume_yes": assume_yes}
+
+    monkeypatch.setattr(gateway_cli, "systemd_install", fake_systemd_install)
+    monkeypatch.setattr(
+        gateway_cli, "prompt_linux_gateway_install_scope",
+        lambda: scope_prompts.append("asked") or "user",
+    )
+
+    scope, did = gateway_cli.install_linux_gateway_from_setup(enable_on_startup=True, assume_yes=True)
+    assert scope == "user"
+    assert did is True
+    assert scope_prompts == []  # no interactive scope prompt
+    assert calls["systemd_install"] == {"system": False, "enable": True, "assume_yes": True}
+
+
+def test_install_from_setup_interactive_still_prompts_scope(monkeypatch):
+    """assume_yes=False keeps the interactive scope prompt (cancel → no install)."""
+    called = []
+    monkeypatch.setattr(gateway_cli, "systemd_install", lambda **k: called.append(k))
+    monkeypatch.setattr(gateway_cli, "prompt_linux_gateway_install_scope", lambda: None)
+    scope, did = gateway_cli.install_linux_gateway_from_setup(assume_yes=False)
+    assert scope is None
+    assert did is False
+    assert called == []  # cancelled at the scope prompt — nothing installed
