@@ -141,11 +141,14 @@ def test_lifecycle_mutations_and_get_many():
     n = _node("v", [1.0, 0.0, 0.0])
     store.upsert_node(n)
     store.update_confidence(n.id, 0.99)
-    assert store.get(n.id).confidence_score == 0.99
+    got = store.get(n.id)
+    assert got is not None and got.confidence_score == 0.99
     assert store.bump_version(n.id, content="v2") == 2
-    assert store.get(n.id).content == "v2"
+    got = store.get(n.id)
+    assert got is not None and got.content == "v2"
     store.mark_accessed(n.id)
-    assert store.get(n.id).last_accessed_at is not None
+    got = store.get(n.id)
+    assert got is not None and got.last_accessed_at is not None
     assert [x.id for x in store.get_many([n.id, "missing"])] == [n.id]
     assert [x.id for x in store.iter_all()] == [n.id]
     store.delete(n.id)
@@ -161,7 +164,8 @@ def test_document_store_dedup_by_hash():
     d2 = Document(content="hello again", source_id="s", content_hash="h1")
     first = ds.save(d1)
     assert ds.save(d2) == first  # same hash ⇒ reused id
-    assert ds.exists("h1") and ds.find_by_hash("h1").id == first
+    found = ds.find_by_hash("h1")
+    assert ds.exists("h1") and found is not None and found.id == first
     assert [d.id for d in ds.get_by_source("s")] == [first]
     ds.delete(first)
     assert not ds.exists("h1")
