@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useLinkState } from '@/lib/health';
 
 const TITLES: Record<string, string> = {
@@ -42,6 +42,13 @@ export function TopBar() {
         </div>
       </div>
       <div className="flex items-center gap-2.5">
+      <Link
+        to="/chat"
+        aria-label="Open chat"
+        className="grid h-6 w-6 place-items-center rounded-md border border-[var(--hairline)] text-[var(--ink-dim)]"
+      >
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" /></svg>
+      </Link>
       <button
         onClick={() => window.dispatchEvent(new CustomEvent('nexus:open-palette'))}
         aria-label="Open command palette"

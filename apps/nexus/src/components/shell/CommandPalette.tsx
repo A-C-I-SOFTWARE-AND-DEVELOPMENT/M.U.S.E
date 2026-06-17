@@ -46,9 +46,9 @@ export function CommandPalette() {
 
   const cmds = useMemo<Cmd[]>(() => {
     const nav: Cmd[] = [
-      ['Console', '/'], ['Steer', '/steer'], ['Axiom Gate', '/axiom'],
+      ['Console', '/'], ['Chat', '/chat'], ['Steer', '/steer'], ['Axiom Gate', '/axiom'],
       ['Observatory', '/observatory'], ['Agents', '/agents'], ['Activity', '/activity'], ['Settings', '/settings'],
-    ].map(([label, to]) => ({ id: `nav-${to}`, label: `Go to ${label}`, hint: 'tab', run: () => navigate(to) }));
+    ].map(([label, to]) => ({ id: `nav-${to}`, label: `Go to ${label}`, hint: 'page', run: () => navigate(to) }));
     const actions: Cmd[] = [
       { id: 'wallpaper', label: 'Enter wallpaper mode', hint: 'observatory', run: () => { navigate('/observatory'); setWallpaper(true); } },
       { id: 'estop', label: 'Emergency stop', hint: 'halt all work', run: () => void cockpit.emergencyStop() },

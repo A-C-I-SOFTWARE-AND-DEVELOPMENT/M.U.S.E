@@ -11,6 +11,7 @@ import ConsolePage from './pages/ConsolePage';
 import SteerPage from './pages/SteerPage';
 import AxiomGatePage from './pages/AxiomGatePage';
 import ObservatoryPage from './pages/ObservatoryPage';
+import ChatPage from './pages/ChatPage';
 import SharePage from './pages/SharePage';
 import AgentsPage from './pages/AgentsPage';
 import ActivityPage from './pages/ActivityPage';
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/steer" element={<Page><SteerPage /></Page>} />
             <Route path="/axiom" element={<Page><AxiomGatePage /></Page>} />
             <Route path="/observatory" element={<Page><ObservatoryPage /></Page>} />
+            <Route path="/chat" element={<Page><ChatPage /></Page>} />
             <Route path="/share" element={<Page><SharePage /></Page>} />
             <Route path="/agents" element={<Page><AgentsPage /></Page>} />
             <Route path="/activity" element={<Page><ActivityPage /></Page>} />

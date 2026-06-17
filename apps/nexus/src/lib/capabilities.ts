@@ -100,6 +100,7 @@ export const CAPABILITIES: Capability[] = [
   { id: 'architecture', title: 'Architecture Map', blurb: 'Machine-readable component registry (with drift test), dataflow diagrams, work-packet/remote-worker schemas, tech-disposition matrix.', plane: 'federation', accent: '#5EE6EB', surface: { kind: 'panel', panel: 'info' }, doc: 'docs/architecture/README.md' },
 
   // ---- Surfaces & Tooling ----
+  { id: 'chat', title: 'Unified Provider Chat', blurb: 'Chat with Claude / GPT / Gemini / OpenRouter / local through one local OpenAI-compatible gateway (official APIs, your keys).', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/chat' }, doc: 'apps/nexus/server/README.md' },
   { id: 'steer', title: 'Agent Optimization Control', blurb: 'The octagon — real-time inference steering, mapped to the model-routing layer.', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'tab', to: '/steer' } },
   { id: 'skills', title: 'Skills System', blurb: 'Procedural memory: Markdown playbooks, the Skills Hub, the /<skill-name> slash invocation.', plane: 'surfaces', accent: '#3DD68C', surface: { kind: 'panel', panel: 'skills' }, endpoint: '/v1/cockpit/skills' },
   { id: 'commands', title: 'Command Palette', blurb: 'Run MUSE slash commands — /orchestrate, /swarm, /model, /jarvis, /personality, and more.', plane: 'surfaces', accent: '#34E5C8', surface: { kind: 'panel', panel: 'commands' } },
